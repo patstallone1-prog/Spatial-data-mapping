@@ -1,0 +1,572 @@
+{
+  "schema": "kerbside.inferred_house_batch/1",
+  "selection": "twelve synthetic programs plus eight Kerbside shells, SHA256 selection before inference; no solver filtering",
+  "houses": [
+    {
+      "id": "residential-duplex-one-floor",
+      "name": "Duplex One Floor",
+      "file": "residential-duplex-one-floor.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "room_count": 15,
+        "objects": 47,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.1193131734445604,
+        "downloaded_assets_used": 22,
+        "connected_rooms": 15,
+        "households": 2,
+        "garage_cars": 0,
+        "private_kitchens": 2,
+        "private_full_bathrooms": 2,
+        "common_rooms": 1
+      },
+      "search": {
+        "candidates_tried": 1,
+        "rejected": [],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-triplex-two-floors",
+      "name": "Triplex Two Floors",
+      "file": "residential-triplex-two-floors.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 29,
+        "objects": 72,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.1103199272065515,
+        "downloaded_assets_used": 34,
+        "connected_rooms": 29,
+        "households": 3,
+        "garage_cars": 0,
+        "private_kitchens": 3,
+        "private_full_bathrooms": 3,
+        "common_rooms": 4
+      },
+      "search": {
+        "candidates_tried": 1,
+        "rejected": [],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-four-family",
+      "name": "Four Family",
+      "file": "residential-four-family.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Walnut & muted terracotta",
+      "metrics": {
+        "room_count": 32,
+        "objects": 85,
+        "coverage_min": 1.0,
+        "hallway_area_fraction_max": 0.107836975130837,
+        "downloaded_assets_used": 50,
+        "connected_rooms": 32,
+        "households": 4,
+        "garage_cars": 0,
+        "private_kitchens": 4,
+        "private_full_bathrooms": 4,
+        "common_rooms": 4
+      },
+      "search": {
+        "candidates_tried": 6,
+        "rejected": [
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-five-family",
+      "name": "Five Family",
+      "file": "residential-five-family.json",
+      "passed": true,
+      "storeys": 3,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 45,
+        "objects": 114,
+        "coverage_min": 0.9999999999999999,
+        "hallway_area_fraction_max": 0.107836975130837,
+        "downloaded_assets_used": 56,
+        "connected_rooms": 45,
+        "households": 5,
+        "garage_cars": 0,
+        "private_kitchens": 5,
+        "private_full_bathrooms": 5,
+        "common_rooms": 6
+      },
+      "search": {
+        "candidates_tried": 6,
+        "rejected": [
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-five-one-floor",
+      "name": "Five One Floor",
+      "file": "residential-five-one-floor.json",
+      "passed": true,
+      "storeys": 1,
+      "style": "Ash & slate",
+      "metrics": {
+        "room_count": 31,
+        "objects": 103,
+        "coverage_min": 0.9999999999999997,
+        "hallway_area_fraction_max": 0.11169436825148955,
+        "downloaded_assets_used": 55,
+        "connected_rooms": 31,
+        "households": 5,
+        "garage_cars": 0,
+        "private_kitchens": 5,
+        "private_full_bathrooms": 5,
+        "common_rooms": 1
+      },
+      "search": {
+        "candidates_tried": 3,
+        "rejected": [
+          "apartment room program/entry failed: no feasible single-family plan: reduce the room program or revise the footprint; narrow/disconnected wings are not silently filled",
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          5
+        ]
+      }
+    },
+    {
+      "id": "residential-rotated-four",
+      "name": "Rotated Four",
+      "file": "residential-rotated-four.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 36,
+        "objects": 95,
+        "coverage_min": 0.9999999977202692,
+        "hallway_area_fraction_max": 0.1042844348218055,
+        "downloaded_assets_used": 44,
+        "connected_rooms": 36,
+        "households": 4,
+        "garage_cars": 0,
+        "private_kitchens": 4,
+        "private_full_bathrooms": 4,
+        "common_rooms": 4
+      },
+      "search": {
+        "candidates_tried": 6,
+        "rejected": [
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-setback-three",
+      "name": "Setback Three",
+      "file": "residential-setback-three.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Ash & slate",
+      "metrics": {
+        "room_count": 29,
+        "objects": 75,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.10133225128017717,
+        "downloaded_assets_used": 36,
+        "connected_rooms": 29,
+        "households": 3,
+        "garage_cars": 0,
+        "private_kitchens": 3,
+        "private_full_bathrooms": 3,
+        "common_rooms": 4
+      },
+      "search": {
+        "candidates_tried": 1,
+        "rejected": [],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "residential-one-car-attached",
+      "name": "One Car Attached",
+      "file": "residential-one-car-attached.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 22,
+        "objects": 50,
+        "coverage_min": 0.9999999999999997,
+        "hallway_area_fraction_max": 0.20177615571776153,
+        "downloaded_assets_used": 27,
+        "connected_rooms": 22,
+        "households": 1,
+        "garage_cars": 1,
+        "private_kitchens": 1,
+        "private_full_bathrooms": 1,
+        "common_rooms": 1
+      },
+      "search": {
+        "candidates_tried": 15,
+        "rejected": [
+          "residential-one-car-attached:L0:R0: no reachable sofa fits",
+          "residential-one-car-attached:L0:R0: no reachable sofa fits",
+          "residential-one-car-attached:L0:R0: no reachable sofa fits",
+          "residential-one-car-attached:L0:R0: no reachable sofa fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-one-car-attached:L0:R1: no reachable sink_counter fits"
+        ],
+        "built_in_closets": true,
+        "valid_layouts_compared": 3,
+        "objective": "least circulation and oversized low-use room area"
+      }
+    },
+    {
+      "id": "residential-two-car-attached",
+      "name": "Two Car Attached",
+      "file": "residential-two-car-attached.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 22,
+        "objects": 54,
+        "coverage_min": 0.9999999999999999,
+        "hallway_area_fraction_max": 0.16151016260134238,
+        "downloaded_assets_used": 26,
+        "connected_rooms": 22,
+        "households": 1,
+        "garage_cars": 2,
+        "private_kitchens": 1,
+        "private_full_bathrooms": 1,
+        "common_rooms": 1
+      },
+      "search": {
+        "candidates_tried": 31,
+        "rejected": [
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-two-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-two-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-two-car-attached:L0:R1: no reachable sink_counter fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R0: no reachable sofa fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits",
+          "residential-two-car-attached:L0:R2: no reachable dining set fits"
+        ],
+        "built_in_closets": true,
+        "valid_layouts_compared": 3,
+        "objective": "least circulation and oversized low-use room area"
+      }
+    },
+    {
+      "id": "residential-three-car-floor",
+      "name": "Three Car Floor",
+      "file": "residential-three-car-floor.json",
+      "passed": true,
+      "storeys": 2,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "room_count": 18,
+        "objects": 42,
+        "coverage_min": 0.9999999999999998,
+        "hallway_area_fraction_max": 0.0973972638664277,
+        "downloaded_assets_used": 14,
+        "connected_rooms": 18,
+        "households": 1,
+        "garage_cars": 3,
+        "private_kitchens": 1,
+        "private_full_bathrooms": 1,
+        "common_rooms": 6
+      },
+      "search": {
+        "candidates_tried": 7,
+        "rejected": [
+          "recorded garage conflicts with the common entry/stair core",
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "residential-four-car-floor",
+      "name": "Four Car Floor",
+      "file": "residential-four-car-floor.json",
+      "passed": true,
+      "storeys": 3,
+      "style": "Warm oak & sage",
+      "metrics": {
+        "room_count": 24,
+        "objects": 60,
+        "coverage_min": 0.9999999999999997,
+        "hallway_area_fraction_max": 0.12882031557323312,
+        "downloaded_assets_used": 30,
+        "connected_rooms": 24,
+        "households": 1,
+        "garage_cars": 4,
+        "private_kitchens": 1,
+        "private_full_bathrooms": 1,
+        "common_rooms": 6
+      },
+      "search": {
+        "candidates_tried": 7,
+        "rejected": [
+          "recorded garage conflicts with the common entry/stair core",
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "residential-apartments-with-parking",
+      "name": "Apartments With Parking",
+      "file": "residential-apartments-with-parking.json",
+      "passed": true,
+      "storeys": 3,
+      "style": "Coastal linen & blue",
+      "metrics": {
+        "room_count": 40,
+        "objects": 94,
+        "coverage_min": 0.9999999999999996,
+        "hallway_area_fraction_max": 0.09353339181509587,
+        "downloaded_assets_used": 39,
+        "connected_rooms": 40,
+        "households": 3,
+        "garage_cars": 2,
+        "private_kitchens": 3,
+        "private_full_bathrooms": 3,
+        "common_rooms": 7
+      },
+      "search": {
+        "candidates_tried": 7,
+        "rejected": [
+          "recorded garage conflicts with the common entry/stair core",
+          "common entrance cannot align with supplied entrance"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "residential-osm-243596363",
+      "name": "Mapped apartments 243596363",
+      "passed": false,
+      "reason": "garage threshold differs from ground floor; supply its lower-floor program"
+    },
+    {
+      "id": "residential-osm-262552539",
+      "name": "Mapped apartments 262552539",
+      "passed": false,
+      "reason": "no feasible residential program: no aligned common stair core inside every floor; apartment room program/entry failed: all layout candidates failed: residential-osm-262552539:unit:2:L0:R2: no reachable dining set fits; residential-osm-262552539:unit:2:L0:R1: no reachable refrigerator fits; apartment room program/entry failed: no feasible single-family plan: reduce the room program or revise the footprint; narrow/disconnected wings are not silently filled; an independent apartment has insufficient usable space; common entrance cannot align with supplied entrance; entry does not face the compact core; cross-corridor scheme needs a single residential floor; apartment room program/entry failed: all layout candidates failed: residential-osm-262552539:unit:1:L0:R2: no reachable dining set fits; residential-osm-262552539:unit:1:L0:R1: no reachable refrigerator fits"
+    },
+    {
+      "id": "residential-osm-253203887",
+      "name": "Mapped apartments 253203887",
+      "passed": false,
+      "reason": "no feasible residential program: no aligned common stair core inside every floor; entry does not face the compact core; recorded garage conflicts with the common entry/stair core; compact stair core does not fit inside the supplied outline; cross-corridor scheme needs a single residential floor"
+    },
+    {
+      "id": "residential-osm-259928418",
+      "name": "Mapped apartments 259928418",
+      "file": "residential-osm-259928418.json",
+      "passed": true,
+      "storeys": 3,
+      "style": "Ash & slate",
+      "metrics": {
+        "room_count": 39,
+        "objects": 99,
+        "coverage_min": 0.9999999946675318,
+        "hallway_area_fraction_max": 0.07992467725720272,
+        "downloaded_assets_used": 54,
+        "connected_rooms": 39,
+        "households": 3,
+        "garage_cars": 0,
+        "private_kitchens": 3,
+        "private_full_bathrooms": 3,
+        "common_rooms": 6
+      },
+      "search": {
+        "candidates_tried": 11,
+        "rejected": [
+          "no aligned common stair core inside every floor",
+          "entry does not face the compact core"
+        ],
+        "address_specific_rules": false,
+        "units_per_floor": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "residential-osm-262727844",
+      "name": "Mapped detached 262727844",
+      "passed": false,
+      "reason": "no feasible residential program: all layout candidates failed: residential-osm-262727844:L1:R0: no reachable bath_sink fits; oversize wet room cannot be compacted with usable fixtures and surplus; residential-osm-262727844:L0:R0: no reachable sofa fits; residential-osm-262727844:L0:R2: no reachable dining set fits; no aligned common stair core inside every floor; entry does not face the compact core; recorded garage conflicts with the common entry/stair core; cross-corridor scheme needs a single residential floor"
+    },
+    {
+      "id": "residential-osm-262727846",
+      "name": "Mapped detached 262727846",
+      "passed": false,
+      "reason": "recorded garage height conflicts with supplied floor height"
+    },
+    {
+      "id": "residential-osm-262096308",
+      "name": "Mapped house 262096308",
+      "file": "residential-osm-262096308.json",
+      "passed": true,
+      "storeys": 3,
+      "style": "Ash & slate",
+      "metrics": {
+        "room_count": 21,
+        "objects": 54,
+        "coverage_min": 0.9999999977076058,
+        "hallway_area_fraction_max": 0.1414054208962923,
+        "downloaded_assets_used": 32,
+        "connected_rooms": 21
+      },
+      "search": {
+        "candidates_tried": 54,
+        "rejected": [
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "oversize wet room cannot be compacted with usable fixtures and surplus",
+          "residential-osm-262096308:L1:R1:closet: no reachable closet_rail fits",
+          "residential-osm-262096308:L1:R1:closet: no reachable closet_rail fits",
+          "residential-osm-262096308:L1:R1:closet: no reachable closet_rail fits"
+        ],
+        "built_in_closets": false,
+        "valid_layouts_compared": 3,
+        "objective": "least circulation and oversized low-use room area"
+      }
+    },
+    {
+      "id": "residential-osm-262419190",
+      "name": "Mapped detached 262419190",
+      "passed": false,
+      "reason": "recorded garages need overlapping parking envelopes"
+    }
+  ],
+  "passed": 14,
+  "total": 20,
+  "asset_manifest": "../interior-assets/manifest.json",
+  "measured": false
+}

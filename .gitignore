@@ -155,3 +155,5 @@ cloud/infra/terraform/*.tfstate*
 # Overture places pulls and their per-region joins (scripts/fetch_places.py); kept in the private bucket.
 data/places
 data/ortho
+# Local residential program reviews are separate from the fixed acceptance cohort.
+/docs/inferred-residential/overrides/

@@ -1,0 +1,19 @@
+{
+ "schema": "kerbside.inferred_house_overlay/1",
+ "buildings": {
+  "262096308": {
+   "file": "residential-osm-262096308.json",
+   "origin_lon_lat": [
+    -122.4380908,
+    37.7922604
+   ]
+  },
+  "259928418": {
+   "file": "residential-osm-259928418.json",
+   "origin_lon_lat": [
+    -122.4117899,
+    37.7905052
+   ]
+  }
+ }
+}

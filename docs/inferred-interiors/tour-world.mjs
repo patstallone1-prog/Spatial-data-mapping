@@ -6,8 +6,10 @@ export function segmentDistance(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.
 export class TourWorld {
  constructor(house,doors=[]){this.house=house;this.doors=doors;this.radius=.25;}
  level(feet){return this.house.storeys.filter(f=>f.elevation_m<=feet+.22).at(-1)||this.house.storeys[0];}
- surface(x,z,feet){let best=null;for(const f of this.house.storeys)if(f.elevation_m<=feet+.22&&inPolygon(x,z,f.inside)&&!(f.slab_holes||[]).some(p=>inPolygon(x,z,p)))best=f.elevation_m;
- for(const stair of this.house.stairs)for(const s of stair.steps)if(s.top_m<=feet+.22&&(inPolygon(x,z,s.footprint)||s.footprint.coordinates[0].slice(1).some((b,i)=>segmentDistance(x,z,s.footprint.coordinates[0][i],b)<1e-5))&&(best===null||s.top_m>best))best=s.top_m;
+ surface(x,z,feet){let best=null;for(const f of this.house.storeys)if(inPolygon(x,z,f.inside)&&!(f.slab_holes||[]).some(p=>inPolygon(x,z,p))){
+  const patch=(f.surface_patches||[]).find(p=>inPolygon(x,z,p.polygon)),y=patch?.elevation_m??f.elevation_m;if(y<=feet+.22&&(best===null||y>best))best=y;}
+
+ for(const stair of [...this.house.stairs,...this.house.storeys.flatMap(f=>f.level_changes||[])])for(const s of stair.steps)if(s.top_m<=feet+.22&&(inPolygon(x,z,s.footprint)||s.footprint.coordinates[0].slice(1).some((b,i)=>segmentDistance(x,z,s.footprint.coordinates[0][i],b)<1e-5))&&(best===null||s.top_m>best))best=s.top_m;
  return best;
  }
  clear(x,z,feet){const f=this.level(feet),r=this.radius;
@@ -36,8 +38,8 @@ export class TourWorld {
  }return best.yaw;
  }
  spawn(level=0,roomId=null){const f=this.house.storeys[level],rooms=roomId?f.rooms.filter(r=>r.id===roomId):[...f.rooms].sort((a,b)=>(a.kind==='hallway'?-1:0)-(b.kind==='hallway'?-1:0));
- for(const room of rooms){const ring=room.polygon.coordinates[0],xs=ring.map(p=>p[0]),zs=ring.map(p=>p[1]);
-  const points=[];for(let x=Math.min(...xs)+.35;x<Math.max(...xs);x+=.22)for(let z=Math.min(...zs)+.35;z<Math.max(...zs);z+=.22)if(inPolygon(x,z,room.polygon)&&this.surface(x,z,f.elevation_m)===f.elevation_m&&this.clear(x,z,f.elevation_m))points.push({x,z,y:f.elevation_m});
-  if(points.length){const entrance=f.openings.find(o=>o.entrance),line=entrance?.segment.coordinates;const c=line?[(line[0][0]+line[1][0])/2,(line[0][1]+line[1][1])/2]:[ring.reduce((s,p)=>s+p[0],0)/ring.length,ring.reduce((s,p)=>s+p[1],0)/ring.length];points.sort((a,b)=>Math.hypot(a.x-c[0],a.z-c[1])-Math.hypot(b.x-c[0],b.z-c[1]));return points[0];}
+ for(const room of rooms){const roomY=room.elevation_m??f.elevation_m;const ring=room.polygon.coordinates[0],xs=ring.map(p=>p[0]),zs=ring.map(p=>p[1]);
+  const points=[];for(let x=Math.min(...xs)+.35;x<Math.max(...xs);x+=.22)for(let z=Math.min(...zs)+.35;z<Math.max(...zs);z+=.22)if(inPolygon(x,z,room.polygon)&&this.surface(x,z,roomY)===roomY&&this.clear(x,z,roomY))points.push({x,z,y:roomY});
+  if(points.length){const entrance=f.openings.find(o=>o.entrance&&o.rooms.includes(room.id))||f.openings.find(o=>o.unit_entrance&&o.rooms.includes(room.id))||f.openings.find(o=>o.entrance),line=entrance?.segment.coordinates;const c=line?[(line[0][0]+line[1][0])/2,(line[0][1]+line[1][1])/2]:[ring.reduce((s,p)=>s+p[0],0)/ring.length,ring.reduce((s,p)=>s+p[1],0)/ring.length];points.sort((a,b)=>Math.hypot(a.x-c[0],a.z-c[1])-Math.hypot(b.x-c[0],b.z-c[1]));return points[0];}
  }throw Error('No clear standing position on this floor');}
 }

@@ -53,14 +53,41 @@ class HouseInput:
     total_height_m: float | None = None
     source: str = "user supplied footprint"
     envelope: dict | None = None
+    households: int = 1
+    units_per_floor: tuple[int, ...] | None = None
+    garages: tuple[dict, ...] = ()
+    garage_cars: int | None = None
+    garage_mode: str = "auto"
+    entrance_level: int = 0
+    compact_program: bool = False
 
     def __post_init__(self) -> None:
         polygon(self.footprint)
+        if type(self.entrance_level) is not int or not 0 <= self.entrance_level < len(self.storeys):
+            raise ValueError("entrance_level must identify a supplied floor")
+        if type(self.households) is not int or not 1 <= self.households <= 5:
+            raise ValueError("residential inference accepts one to five separate households")
+        if self.units_per_floor is not None and (
+            len(self.units_per_floor) != len(self.storeys)
+            or any(type(n) is not int or not 0 <= n <= 5 for n in self.units_per_floor)
+            or sum(self.units_per_floor) != self.households
+        ):
+            raise ValueError(
+                "units_per_floor must allocate every household across the supplied floors"
+            )
+        if self.garage_cars is not None and (
+            type(self.garage_cars) is not int or not 1 <= self.garage_cars <= 4
+        ):
+            raise ValueError("garage_cars must be an integer from one to four")
+        if self.garage_mode not in {"auto", "room", "floor"}:
+            raise ValueError("garage_mode must be auto, room or floor")
+        if self.garage_cars and not self.garages:
+            raise ValueError("garage capacity needs recorded garage openings; none may be invented")
         if not self.id or not 1 <= len(self.storeys) <= 6:
             raise ValueError("single-family v1 accepts an id and one to six storeys")
         for s in self.storeys:
-            if not math.isfinite(s.height_m) or not 2.4 <= s.height_m <= 7:
-                raise ValueError("storey heights must be finite and 2.4-7 m")
+            if not math.isfinite(s.height_m) or not 2.3 <= s.height_m <= 7:
+                raise ValueError("storey heights must be finite and 2.3-7 m")
             p = polygon(s.footprint if s.footprint is not None else self.footprint)
             if p.area < 48:
                 raise ValueError("single-family v1 requires at least 48 m² per storey")
@@ -104,6 +131,13 @@ class HouseInput:
             office=row.get("office", False),
             total_height_m=row.get("total_height_m"),
             source=row.get("source", "user input"),
+            households=row.get("households", row.get("families", 1)),
+            units_per_floor=tuple(row["units_per_floor"]) if "units_per_floor" in row else None,
+            garages=tuple(row.get("garages", (row.get("envelope") or {}).get("garages", []))),
+            garage_cars=row.get("garage_cars"),
+            garage_mode=row.get("garage_mode", "auto"),
+            entrance_level=row.get("entrance_level", 0),
+            compact_program=bool(row.get("compact_program", False)),
         )
 
 
@@ -113,7 +147,11 @@ def stamp_inference(document: dict, confidence: float) -> dict:
     for floor in document.get("storeys", []):
         groups.append([floor])
         groups.extend(floor.get(key, []) for key in ("rooms", "objects", "openings", "walls"))
+        groups.extend(floor.get(key, []) for key in ("surface_patches", "level_changes"))
+        groups.extend(change.get("steps", []) for change in floor.get("level_changes", []))
     groups.append(document.get("stairs", []))
+    groups.extend(document.get(key, []) for key in ("residential_units", "garages"))
+    groups.extend(garage.get("parking_bays", []) for garage in document.get("garages", []))
     groups.extend(stair.get("steps", []) for stair in document.get("stairs", []))
     envelope = document.get("envelope") or {}
     groups.extend(envelope.get(key, []) for key in ("windows", "balconies"))

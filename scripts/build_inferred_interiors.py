@@ -128,11 +128,52 @@ def update_overlay(path: Path, overlay: dict) -> None:
     write(path, {"schema": "kerbside.inferred_house_overlay/1", "buildings": existing}, indent=1)
 
 
+def resolve_residential_envelope(row, envelope):
+    """Preserve the world height when a recorded garage sits a storey below the home."""
+    import copy
+
+    e = copy.deepcopy(envelope)
+    garages = e.get("garages", [])
+    lower = -min((g["v"] for g in garages), default=0)
+    if lower >= 2.4:
+        if lower > 7 or len(e["storeys"]) >= 6:
+            raise ValueError(
+                "garage threshold needs a lower-floor program outside supported heights"
+            )
+        e["floor_y_m"] -= lower
+        e["storeys"].insert(0, {"height_m": lower})
+        for item in e["windows"]:
+            item["v"] += lower
+        for item in e["balconies"]:
+            item["elevation_m"] += lower
+            for part in item.get("parts", []):
+                part["bottom_m"] += lower
+        for g in garages:
+            g["v"] += lower
+        row.update(entrance_level=1, garage_mode="floor")
+        e["lower_floor_evidence"] = (
+            "garage threshold and upper entry floor; interior subdivision inferred"
+        )
+    row.update(
+        footprint=e["footprint"],
+        entrance=e["entrance"],
+        storeys=e["storeys"],
+        envelope=e,
+        total_height_m=e["shell_top_y_m"] - e["floor_y_m"],
+        storey_evidence="same Kerbside canonical floor/window rules; terrain foundation respected",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, help="JSON array of metre-based HouseInput records")
     parser.add_argument("--out", type=Path, default=ROOT / "docs/inferred-interiors")
     parser.add_argument("--fixtures-only", action="store_true")
+    parser.add_argument(
+        "--include-garages",
+        action="store_true",
+        help="resolve the map's canonical garage openings before inference",
+    )
     parser.add_argument(
         "--reuse-synthetic",
         action="store_true",
@@ -156,6 +197,7 @@ def main() -> None:
                 "node",
                 str(ROOT / "scripts/export_interior_envelopes.mjs"),
                 str(args.out / "inputs.json"),
+                *(["--with-garages"] if args.include_garages else []),
             ],
             text=True,
         )
@@ -163,16 +205,10 @@ def main() -> None:
     for row in inputs:
         if row["id"] in envelope["buildings"]:
             e = envelope["buildings"][row["id"]]
-            row.update(
-                footprint=e["footprint"],
-                entrance=e["entrance"],
-                storeys=e["storeys"],
-                envelope=e,
-                total_height_m=e["shell_top_y_m"] - e["floor_y_m"],
-                storey_evidence=(
-                    "same Kerbside canonical floor/window rules; terrain foundation respected"
-                ),
-            )
+            try:
+                resolve_residential_envelope(row, e)
+            except ValueError as exc:
+                envelope.setdefault("rejected", {})[row["id"]] = str(exc)
     write(args.out / "envelopes.json", envelope)
     write(args.out / "inputs.json", inputs)
     if args.fixtures_only:
@@ -241,8 +277,12 @@ def main() -> None:
         {
             "schema": "kerbside.inferred_house_batch/1",
             "selection": (
-                "eight fixed stress shapes + eight OSM houses ordered by SHA256(id); "
-                "no solver filtering"
+                "caller-supplied fixed cohort before inference; no solver filtering"
+                if args.input
+                else (
+                    "eight fixed stress shapes + eight OSM houses ordered by SHA256(id); "
+                    "no solver filtering"
+                )
             ),
             "houses": records,
             "passed": sum(r["passed"] for r in records),

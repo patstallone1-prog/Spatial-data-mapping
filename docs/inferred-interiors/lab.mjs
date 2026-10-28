@@ -1,7 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import {GLTFLoader} from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildInferredHouse} from './renderer.mjs?v=prep-islands-4';
+import {buildInferredHouse} from './renderer.mjs?v=apartments-garages-6';
 import {TourWorld,inPolygon} from './tour-world.mjs';
 const restaurant=location.pathname.includes('inferred-restaurants');
 const $=id=>document.getElementById(id),canvas=$('canvas'),viewport=$('viewport');
@@ -67,7 +67,10 @@ async function choose(record){
  const token=++generation;
  document.querySelectorAll('.house').forEach(b=>b.classList.toggle('active',b.dataset.id===record.id));
  const h=await fetch(record.file,{cache:'no-store'}).then(r=>r.json());if(token!==generation)return;current=h;
+ if($('household-count')){$('household-count').value=h.households||1;$('garage-count').value=h.validation.metrics.garage_cars||'';$('garage-mode').value=h.garage_mode||'auto';}
+ if($('regenerate-residential')){$('regenerate-residential').disabled=false;$('residential-status').textContent='';}
  $('name').textContent=h.name;$('subtitle').textContent=`${h.storeys.length} storey${h.storeys.length>1?'s':''} · ${h.style.tier} allowance · ${restaurant?'Assumed ground-floor tenant envelope':h.id.startsWith('osm-')?'Kerbside mapped footprint':'Synthetic stress shape'}`;
+ if(h.residential_units)$('subtitle').textContent=`${h.households} independent home${h.households>1?'s':''} · ${h.storeys.length} floor${h.storeys.length>1?'s':''} · ${h.validation.metrics.garage_cars} garage spaces · Inferred layout`;
  $('floor').innerHTML=h.storeys.map(f=>`<option value="${f.level}">${f.level===0?'Ground floor':`Floor ${f.level+1}`} · ${f.height_m.toFixed(2)} m</option>`).join('')+(h.storeys.length>1?'<option value="-1">All floors · separated</option>':'');
  $('area').textContent=h.storeys.reduce((s,f)=>s+f.rooms.reduce((a,r)=>a+r.area_m2,0),0).toFixed(1);
  $('rooms').textContent=h.validation.metrics.room_count;$('objects').textContent=`Rooms · ${h.validation.metrics.objects} placed objects`;
@@ -82,11 +85,12 @@ async function choose(record){
   if(price?.source_url){const link=document.createElement('a');link.href=price.source_url;link.textContent=' · Google Maps';link.target='_blank';link.rel='noreferrer';$('economics').append(link);}
   if(h.footprint_area_m2)$('inspector').textContent+=` Outline ${h.footprint_area_m2.toFixed(1)} m² / ${h.footprint_area_sqft.toFixed(0)} ft²; floor height ${h.total_height_m.toFixed(2)} m. ${h.validation.metrics.prep_islands||0} central prep islands.`;
  }
+ if(h.residential_units)$('inspector').textContent=`Each home has its own kitchen, full bathroom and sleeping space. ${h.residential_units.length} independent home${h.residential_units.length>1?'s':''} · ${h.validation.metrics.garage_cars} parked cars · ${h.validation.metrics.common_rooms} shared/service rooms. Garage positions follow source openings; supports are inferred proposals. ${h.garages?.some(g=>g.parking_mode==='tandem')?'Tandem parking: front cars move before rear cars.':''}`;
  const sources=new Map();for(const f of h.storeys)for(const o of f.objects)if(!o.asset.procedural)sources.set(o.asset.attribution,o.asset.source);
  $('credits').innerHTML=[...sources].map(([name,url])=>`<a href="${escape(url)}" target="_blank" rel="noreferrer">${escape(name)}</a>`).join(' · ');
  rebuild(true);if(mode==='tour')spawnTour();
 }
-function roomLabel(r){return r?.laundry_stack?'laundry alcove':(r?.kind||'stairs').replaceAll('_',' ');}
+function roomLabel(r){const label=r?.laundry_stack?'laundry alcove':(r?.kind||'stairs').replaceAll('_',' ');return current?.residential_units?`${r?.unit_id?'Home '+r.unit_id.split(':').at(-1):'Shared'} · ${label}`:label;}
 function roomOptions(){const level=Math.max(0,Number($('floor').value));$('visit').innerHTML=current.storeys[level].rooms.filter(r=>!['closet','stair'].includes(r.kind)).map(r=>`<option value="${escape(r.id)}">${escape(roomLabel(r))}</option>`).join('');}
 function spawnTour(roomId=null){
  const level=Math.max(0,Number($('floor').value)),f=current.storeys[level];
@@ -103,17 +107,17 @@ function spawnTour(roomId=null){
  }
  camera.fov=72;camera.updateProjectionMatrix();roomOptions();if(chosen)$('visit').value=chosen;canvas.focus();
 }
-function toggleDoor(){if(!position)return;const near=built.doors.filter(d=>d.level===world.level(position.y).level).sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];if(near&&Math.hypot(near.x-position.x,near.z-position.z)<2){near.open=!near.open;near.leaf.rotation.y=near.open?near.angle:0;}}
+function toggleDoor(){if(!position)return;const near=built.doors.filter(d=>d.level===world.level(position.y).level).sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];if(near&&Math.hypot(near.x-position.x,near.z-position.z)<2){if(near.setOpen)near.setOpen(!near.open);else{near.open=!near.open;near.leaf.rotation.y=near.open?near.angle:0;}}}
 $('floor').addEventListener('change',()=>{rebuild(mode!=='tour');if(mode==='tour')spawnTour();});$('walls').onclick=()=>{fullWalls=!fullWalls;$('walls').classList.toggle('on',fullWalls);rebuild();};
 function setMode(m){const wasTour=mode==='tour';mode=m;controls.enabled=m==='3d';canvas.style.display=m!=='2d'?'block':'none';$('plan').style.display=m==='2d'?'block':'none';$('three').classList.toggle('on',m==='3d');$('two').classList.toggle('on',m==='2d');$('tour').classList.toggle('on',m==='tour');$('tourbar').style.display=m==='tour'?'block':'none';$('walls').disabled=m==='tour';$('hint').textContent=m==='tour'?'WASD to walk · drag to look · arrows to turn · E for doors · walk up stairs or select a floor':m==='3d'?'Drag to orbit · scroll to zoom · select a floor above':'Select a room to inspect its inventory · local metre coordinates';
  if(m==='tour'){rebuild();spawnTour();}else if(wasTour){position=null;camera.fov=35;camera.updateProjectionMatrix();rebuild(true);}resize();}
 $('three').onclick=()=>setMode('3d');$('two').onclick=()=>setMode('2d');$('tour').onclick=()=>setMode('tour');$('visit-go').onclick=()=>spawnTour($('visit').value);$('door').onclick=toggleDoor;
 window.addEventListener('keydown',e=>{if(e.code==='Escape'&&viewport.classList.contains('expanded')){viewport.classList.remove('expanded');$('expand').textContent='Expand view';return;}if(mode!=='tour'||['INPUT','SELECT'].includes(document.activeElement.tagName))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(!e.repeat&&e.code==='ArrowLeft')yaw+=Math.PI/12;if(!e.repeat&&e.code==='ArrowRight')yaw-=Math.PI/12;keys.add(e.code);}if(e.code==='KeyE'&&!e.repeat)toggleDoor();if(e.code==='Escape')setMode('3d');});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());
 let dragging=false;canvas.addEventListener('pointerdown',e=>{if(mode==='tour'){dragging=true;canvas.setPointerCapture(e.pointerId);canvas.focus();}});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointermove',e=>{if(mode==='tour'&&dragging){yaw-=e.movementX*.004;pitch=Math.max(-1.35,Math.min(1.35,pitch-e.movementY*.004));}});
-async function showBatch(manifest){$('houses').replaceChildren();$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':'houses'} validated`;
+async function showBatch(manifest){$('houses').replaceChildren();$('batch').textContent=`${manifest.passed} / ${manifest.total} ${restaurant?'venues':location.pathname.includes('inferred-residential')?'buildings':'houses'} validated`;
  for(const [i,r]of manifest.houses.entries()){const b=document.createElement('button');b.className='house';b.dataset.id=r.id;
   b.innerHTML=`<span class="num">${String(i+1).padStart(2,'0')}</span><span><span class="title">${escape(r.name.split(',')[0])}</span><span class="sub">${r.passed?`${r.storeys} storey · ${r.metrics.objects} objects`:'Rejected input'}</span></span><span class="dot"></span>`;
-  b.classList.toggle('failed',!r.passed);b.onclick=()=>r.passed?choose(r):$('inspector').textContent=`${r.name}: ${r.reason}`;$('houses').appendChild(b);}
+  b.classList.toggle('failed',!r.passed);b.onclick=()=>{if(r.passed)return choose(r);$('inspector').textContent=`${r.name}: ${r.reason}`;if($('regenerate-residential')){$('regenerate-residential').disabled=true;$('residential-status').textContent='Rejected source/program. Select a validated case to change its requirements.';}};$('houses').appendChild(b);}
  await choose(restaurant?[...manifest.houses].filter(r=>r.passed).sort((a,b)=>b.metrics.seats-a.metrics.seats)[0]:manifest.houses.find(r=>r.id==='stress-family'&&r.passed)||manifest.houses.find(r=>r.passed));
 }
 try{
@@ -142,3 +146,15 @@ if(restaurant)$('reprice').onclick=async()=>{
 };
 
 $('expand').onclick=()=>{const expanded=viewport.classList.toggle('expanded');$('expand').textContent=expanded?'Restore view':'Expand view';resize();};
+
+if($('regenerate-residential')){
+ if(!LOCAL_LAB)$('residential-controls').hidden=true;
+ $('regenerate-residential').onclick=async()=>{
+  const button=$('regenerate-residential');button.disabled=true;$('residential-status').textContent='Building and checking the new layout…';
+  try{
+   const response=await fetch('/api/infer-residential',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:current.id,households:Number($('household-count').value),garage_cars:$('garage-count').value?Number($('garage-count').value):null,garage_mode:$('garage-mode').value})});
+   const h=await response.json();if(!response.ok)throw Error(h.error||'Inference failed');
+   await choose({id:h.id,file:`overrides/${h.id}.json`});$('residential-status').textContent='New layout passed geometry, privacy and navigation checks.';
+  }catch(error){$('residential-status').textContent=error.message;}finally{button.disabled=false;}
+ };
+}

@@ -28,6 +28,9 @@ export function buildInferredHouse(THREE, house, options = {}) {
         ctx.fillStyle='#'+new THREE.Color(color).multiplyScalar(.96+((x*7+y*3)%5)*.012).getHexString();
         ctx.fillRect(x*128+2,y*128+2,124,124);
       }
+    } else if(finish==='concrete') {
+      ctx.fillStyle=color;ctx.fillRect(0,0,512,512);
+      for(let i=0;i<1800;i++){ctx.fillStyle=i%2?'#ffffff10':'#20251d12';ctx.fillRect((i*83)%512,(i*197)%512,1+i%2,1+i%2);}
     } else {
       for(let i=0;i<4;i++) {
         ctx.fillStyle='#'+new THREE.Color(color).multiplyScalar(.91+i*.035).getHexString();ctx.fillRect(i*128,0,128,512);
@@ -61,6 +64,26 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function fixture(parent,o) {
     const [w,h,d]=o.size_m,role=o.role;
+    if(role==='parked_car') {
+      const paint=material(house.style.accent,{metalness:.2,roughness:.32}),glass=material('#425b66',{metalness:.3,roughness:.18});
+      box(parent,w*.94,h*.42,d*.95,0,h*.39,0,paint);box(parent,w*.84,h*.36,d*.50,0,h*.75,-d*.04,glass);
+      box(parent,w*.82,.06,d*.40,0,h*.94,-d*.04,paint);box(parent,w*.94,.12,.08,0,h*.24,d*.48,steel);
+      for(const x of [-w*.44,w*.44])for(const z of [-d*.31,d*.31]){
+        const wheel=new THREE.Mesh(new THREE.CylinderGeometry(h*.2,h*.2,w*.12,24),material('#252925'));wheel.rotation.z=Math.PI/2;wheel.position.set(x,h*.2,z);parent.add(wheel);
+        const hub=new THREE.Mesh(new THREE.CylinderGeometry(h*.115,h*.115,w*.125,16),steel);hub.rotation.z=Math.PI/2;hub.position.copy(wheel.position);parent.add(hub);}
+      for(const x of [-w*.32,w*.32]){box(parent,w*.19,.12,.04,x,h*.50,d*.485,material('#e5e3c6'));box(parent,w*.19,.12,.04,x,h*.50,-d*.485,material('#a64436'));}
+      return;
+    }
+    if(role==='structural_column'||role==='structural_beam') {
+      const concrete=material('#aeb3aa',{roughness:.92});box(parent,w,h,d,0,h/2,0,concrete);
+      if(role==='structural_column'){box(parent,w,.06,d,0,.03,0,steel);box(parent,w,.06,d,0,h-.03,0,steel);}return;
+    }
+    if(role==='mailboxes') {
+      box(parent,w,h,d,0,h/2,0,steel);for(let i=0;i<4;i++){box(parent,w*.85,.015,.025,0,h*(i+1)/5,d/2, dark);box(parent,w*.18,.025,.03,w*.2,h*(i+.55)/5,d/2+.01,dark);}return;
+    }
+    if(role==='workbench') {
+      box(parent,w,.06,d,0,h-.03,0,timber(house.style.wood));for(const x of [-w*.43,w*.43])for(const z of [-d*.4,d*.4])box(parent,.045,h-.06,.045,x,(h-.06)/2,z,steel);return;
+    }
     if(['commercial_range','warewash_sink','handwash_sink','prep_table','cutting_board','commercial_fridge','commercial_hood','dishwasher','dry_storage','waste_bin','service_counter','bar_counter','pickup_shelf','payment_terminal','booth'].includes(role)) {
       if(role==='commercial_range') {
         box(parent,w,h-.1,d,0,(h-.1)/2,0,steel);box(parent,w,.065,d,0,h-.03,0,dark);
@@ -208,10 +231,19 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function door(fg,f,o){
     const [a,b]=o.segment.coordinates,L=o.width_m,h=Math.min(o.height_m||2.1,wallHeight),finish=o.appearance||{design:'recessed_panels',timber:house.style.wood,frame:house.style.wood,hardware:house.style.metal,panel_count:2};
-    const pivot=new THREE.Group();pivot.position.set(a[0],f.elevation_m,a[1]);pivot.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);fg.add(pivot);
+    const pivot=new THREE.Group();pivot.position.set(a[0],f.elevation_m+(o.threshold_m||0),a[1]);pivot.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);fg.add(pivot);
+    if(o.type==='garage_door') {
+      const leaf=new THREE.Group();pivot.add(leaf);const finish=material(o.source_opening?.colour||'#b5b9b0',{metalness:.25,roughness:.55});
+      box(leaf,L,h,.07,L/2,h/2,0,finish);for(let y=.25;y<h;y+=.38)box(leaf,L-.06,.025,.014,L/2,y,.044,steel);
+      for(const x of [.04,L-.04])box(pivot,.055,h+.08,.08,x,(h+.08)/2,.10,steel);
+      box(pivot,L+.14,.12,.12,L/2,h+.02,0,steel);
+      const state={x:(a[0]+b[0])/2,z:(a[1]+b[1])/2,level:f.level,segment:[a,b],leaf,open:false,angle:0,
+        setOpen(value){this.open=value;leaf.scale.y=value?.04:1;leaf.position.y=value?h*.96:0;}};
+      doors.push(state);return;
+    }
     const leaf=new THREE.Group();pivot.add(leaf);const wood=timber(finish.timber),frame=timber(finish.frame),metal=material(finish.hardware,{metalness:.8,roughness:.3});
     const owner=f.rooms.find(r=>r.id===o.rooms[0]),dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),cx=(a[0]+b[0])/2,cz=(a[1]+b[1])/2;
-    const left=owner&&inPolygon(cx-dz/len*.2,cz+dx/len*.2,owner.polygon),angle=(left?-1:1)*Math.PI/2,open=!o.entrance;
+    const left=owner&&inPolygon(cx-dz/len*.2,cz+dx/len*.2,owner.polygon),angle=(left?-1:1)*Math.PI/2,open=!(o.entrance||o.unit_entrance||o.garage_access);
     leaf.rotation.y=open?angle:0;
     for(const x of [-.035,L+.035])box(pivot,.075,h+.08,.15,x,(h+.08)/2,0,frame);box(pivot,L+.14,.075,.15,L/2,h+.045,0,frame);
     const w=L-.045,glazed=finish.design!=='recessed_panels';
@@ -248,14 +280,14 @@ export function buildInferredHouse(THREE, house, options = {}) {
     const holes=f.slab_holes||[];
     for(const room of f.rooms) {
       if(room.kind==='stair')continue;
-      const mesh=plane(fg,room.polygon,room.materials.floor,f.elevation_m+.01,[],room.materials.floor_finish);
+      const mesh=plane(fg,room.polygon,room.materials.floor,(room.elevation_m??f.elevation_m)+.01,[],room.materials.floor_finish);
       mesh.userData={roomId:room.id,kind:room.kind,grade:'inferred'};
     }
     if(ceilings)plane(fg,f.inside,'#e6decf',f.elevation_m+f.height_m-.15,
       f.level<house.storeys.length-1?house.stairs.filter(s=>s.from_level===f.level).map(s=>s.footprint):[]);
     for(const w of f.walls) {
       const coords=w.segment.coordinates;
-      for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],f.elevation_m,Math.min(wallHeight,w.height_m),w.side_materials||w.materials,w.thickness_m);
+      for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],w.elevation_m??f.elevation_m,Math.min(wallHeight,w.height_m),w.side_materials||w.materials,w.thickness_m);
       const a=coords[0],b=coords.at(-1);
       const trim=wall(fg,a,b,f.elevation_m,.11,house.style.wood,(w.thickness_m||.10)+.025);if(trim)trim.userData.surface='skirting';
       if(wallHeight>1.5)wall(fg,a,b,f.elevation_m+Math.min(wallHeight,w.height_m)-.06,.06,'#eadbc3',(w.thickness_m||.10)+.025);
@@ -269,16 +301,16 @@ export function buildInferredHouse(THREE, house, options = {}) {
       const ring=f.footprint.coordinates[0];
       for(let i=0;i<ring.length-1;i++) {
         const a=ring[i],b=ring[i+1],dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);if(length<.01)continue;
-        const ux=dx/length,uz=dz/length,top=Math.min(wallHeight,f.height_m-.10),cuts=[];
+        const ux=dx/length,uz=dz/length,top=Math.min(wallHeight,f.height_m-.10),bottom=Math.min(0,...f.rooms.map(r=>(r.elevation_m??f.elevation_m)-f.elevation_m)),cuts=[];
         const project=p=>((p[0]-a[0])*dx+(p[1]-a[1])*dz)/length;
         for(const o of f.openings.filter(o=>o.entrance)) {
           const [p,q]=o.segment.coordinates,c=[(p[0]+q[0])/2,(p[1]+q[1])/2];
           if(Math.abs((c[0]-a[0])*dz-(c[1]-a[1])*dx)/length>.22)continue;
-          cuts.push({u:project(c)-o.width_m/2,w:o.width_m,v:0,h:o.height_m});
+          cuts.push({u:project(c)-o.width_m/2,w:o.width_m,v:o.threshold_m||0,h:o.height_m});
         }
         for(const o of house.envelope?.windows||[])if(o.edge===i)cuts.push({...o,v:o.v-f.elevation_m});
-        const holes=cuts.map(o=>[Math.max(0,o.u),Math.max(0,o.v),Math.min(length,o.u+o.w),Math.min(top,o.v+o.h)]).filter(o=>o[2]>o[0]&&o[3]>o[1]);
-        const xs=[...new Set([0,length,...holes.flatMap(o=>[o[0],o[2]]),...wallRoomCuts(f,a,b)])].sort((a,b)=>a-b),ys=[...new Set([0,top,...holes.flatMap(o=>[o[1],o[3]])])].sort((a,b)=>a-b);
+        const holes=cuts.map(o=>[Math.max(0,o.u),Math.max(bottom,o.v),Math.min(length,o.u+o.w),Math.min(top,o.v+o.h)]).filter(o=>o[2]>o[0]&&o[3]>o[1]);
+        const xs=[...new Set([0,length,...holes.flatMap(o=>[o[0],o[2]]),...wallRoomCuts(f,a,b)])].sort((a,b)=>a-b),ys=[...new Set([bottom,top,...holes.flatMap(o=>[o[1],o[3]])])].sort((a,b)=>a-b);
         for(let x=0;x<xs.length-1;x++)for(let y=0;y<ys.length-1;y++) {
           const u=(xs[x]+xs[x+1])/2,v=(ys[y]+ys[y+1])/2;
           if(!holes.some(o=>u>o[0]&&u<o[2]&&v>o[1]&&v<o[3])){
@@ -337,10 +369,10 @@ export function buildInferredHouse(THREE, house, options = {}) {
         mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());fg.add(mesh);
       }
     }
-    for(const s of house.stairs.filter(s=>s.from_level===f.level))for(const step of s.steps) {
-      const outline=shapeOf(step.footprint),height=step.top_m-f.elevation_m;
+    for(const s of [...house.stairs.filter(s=>s.from_level===f.level),...(f.level_changes||[])])for(const step of s.steps) {
+      const outline=shapeOf(step.footprint),height=step.top_m-(s.base_y_m??f.elevation_m);
       const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(outline,{depth:height,bevelEnabled:false}),wood);
-      mesh.rotation.x=-Math.PI/2;mesh.position.y=f.elevation_m;mesh.castShadow=mesh.receiveShadow=true;fg.add(mesh);
+      mesh.rotation.x=-Math.PI/2;mesh.position.y=s.base_y_m??f.elevation_m;mesh.castShadow=mesh.receiveShadow=true;fg.add(mesh);
     }
   }
   group.userData={surface:'interior',grade:'inferred',engine:'kerbside-polygon-v1'};
