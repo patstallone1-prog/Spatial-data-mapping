@@ -42,6 +42,10 @@ REQUIRED = ("KERBSIDE_SECRET", "KERBSIDE_OPS_TOKEN", "RUNPOD_API_KEY", "AWS_REGI
             "S3_PUBLIC_BUCKET", "S3_PUBLIC_ACCESS_KEY_ID", "S3_PUBLIC_SECRET_ACCESS_KEY",
             "S3_PUBLIC_BASE")
 OPTIONAL = ("S3_ENDPOINT_URL", "MAPILLARY_ACCESS_TOKEN", "MAPILLARY_TOKEN", "HUGGINGFACE_TOKEN")
+#: Optional to start, but a controller without them hands every worker an environment in which
+#: the imagery, colour and facade stages run on nothing (2026-10-28: twice, both times from a
+#: shell that had loaded controller.env and not .env.local). ``create`` refuses without them.
+IMAGERY_TOKENS = ("MAPILLARY_ACCESS_TOKEN", "MAPILLARY_TOKEN")
 #: The page origin the viewer reads the public bucket from (cloud/infra/s3-cors.json).
 SITE_ORIGIN = "https://spatial-data-mapping.vercel.app"
 
@@ -303,6 +307,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tag", help="the image build to run (default: origin/main's commit)")
     ap.add_argument("--flavor", default="cpu3c", help="RunPod CPU flavour for the controller")
     ap.add_argument("--vcpus", type=int, default=2)
+    ap.add_argument("--without-imagery", action="store_true",
+                    help="create: start even though the Mapillary tokens are not set")
     ap.add_argument("--replace", action="store_true",
                     help="create: delete the existing controller pod first (to move it onto a new "
                          "build); its queue comes back from the private bucket's backup")
@@ -314,9 +320,14 @@ def main(argv: list[str] | None = None) -> int:
         tag = args.tag or default_tag()
         body = build_body(env, tag, flavor=args.flavor, vcpus=args.vcpus)
         images = {repo: image_exists(repo, tag) for repo in ("kerbside-cpu", "kerbside-gpu")}
+        missing = [k for k in OPTIONAL if not env.get(k)]
         if args.action == "plan":
-            print(json.dumps({"would_create": masked(body), "images_on_ghcr": images}, indent=1))
+            print(json.dumps({"would_create": masked(body), "images_on_ghcr": images,
+                              "missing_optional": missing}, indent=1))
             return 0 if all(images.values()) else 1
+        if any(k in missing for k in IMAGERY_TOKENS) and not args.without_imagery:
+            raise SystemExit(f"{', '.join(k for k in IMAGERY_TOKENS if k in missing)} not set: load "
+                             ".env.local as well as controller.env, or pass --without-imagery")
         if not all(images.values()):
             raise SystemExit(f"not on GHCR for {tag}: {[r for r, ok in images.items() if not ok]}")
         # A controller that cannot reach its buckets would bill for nothing: prove them first.
