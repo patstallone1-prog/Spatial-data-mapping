@@ -17358,9 +17358,6 @@ function storefrontWall(feature) {
   return feature._storefrontWall;
 }
 
-//: A shop's street wall is glass and a door, not a garage: a dropped kerb in front of one is a
-//: loading bay or the way into a yard behind, and its door is drawn only where there is room for
-//: a vehicle entrance beside the shops (a wide cut in a long wall). The kerb itself stays dropped.
 //: Whether the wall from ``a`` to ``b`` (scene x, z) is the one a person edited on this building:
 //: its ends where the edit's corners are, either way round.
 function editedEdge(way, a, b) {
@@ -17383,6 +17380,9 @@ function dropEditedWallGarages(feature) {
     return !(off < 1.0 && along > -0.5 && along < len + 0.5);
   });
 }
+//: A shop's street wall is glass and a door, not a garage: a dropped kerb in front of one is a
+//: loading bay or the way into a yard behind, and its door is drawn only where there is room for
+//: a vehicle entrance beside the shops (a wide cut in a long wall). The kerb itself stays dropped.
 const STORE_GARAGE_MIN_CUT_M = 3.0;
 const STORE_GARAGE_MIN_WALL_M = 12;
 function dropStorefrontGarages(feature) {
