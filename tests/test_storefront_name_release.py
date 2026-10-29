@@ -58,8 +58,12 @@ def test_name_sidecars_live_beside_each_app_viewer_not_legacy_payload_assets():
     namespace = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
     assert 'ATTACH.resolve("sf-corridor-storefront-names.json")' in namespace["HTML"]
     assert 'new URL("sf-corridor-storefront-names.json", location.href)' in namespace["HTML"]
+    # A cloud-released cell has no audited names yet; its payload's own shop names stand.
+    cloud = {r["name"] for r in json.loads((ROOT / "docs/app-regions.json").read_text())["regions"]
+             if r.get("published_via") == "cloud release"}
     for viewer in [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]:
-        assert viewer.with_name("sf-corridor-storefront-names.json").is_file()
+        if viewer.parent.name not in cloud:
+            assert viewer.with_name("sf-corridor-storefront-names.json").is_file()
 
 
 def test_shared_search_retains_names_outside_render_window_and_rejects_stale_world():

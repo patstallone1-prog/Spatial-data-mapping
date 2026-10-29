@@ -140,7 +140,8 @@ def test_address_arrival_stays_outside_house_and_faces_its_door():
 def test_all_app_regions_have_usable_provenance_tagged_interior_plans():
     index = json.loads((ROOT / "docs/app-regions.json").read_text())
     for region in index["regions"]:
-        if not region.get("built"):
+        # A cloud-released cell's interiors come with the interior engine's own release.
+        if not region.get("built") or region.get("published_via") == "cloud release":
             continue
         page = ROOT / "docs" / region["path"]
         # Oakland has its expanded local payload; the others reuse their own

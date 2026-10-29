@@ -306,6 +306,678 @@
     "lanes": "osm+priors"
    },
    "note": "kerbs from lidar; building_height from lidar; terrain from lidar"
+  },
+  {
+   "name": "alameda-gap-p0-2-0",
+   "title": "alameda gap p0 2 0",
+   "path": "app-regions/alameda-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.73,
+    -122.2331886881643,
+    37.75245777937477,
+    -122.20478303224645
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-0-1",
+   "title": "belmont san carlos gap p0 0 1",
+   "path": "app-regions/belmont-san-carlos-gap-p0-0-1/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.47245777937478,
+    -122.33,
+    37.49,
+    -122.30170395328321
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-1-0",
+   "title": "belmont san carlos gap p0 1 0",
+   "path": "app-regions/belmont-san-carlos-gap-p0-1-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.45,
+    -122.30170395328321,
+    37.47245777937478,
+    -122.27340790656642
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-1-1",
+   "title": "belmont san carlos gap p0 1 1",
+   "path": "app-regions/belmont-san-carlos-gap-p0-1-1/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.47245777937478,
+    -122.30170395328321,
+    37.49,
+    -122.27340790656642
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-2-0",
+   "title": "belmont san carlos gap p0 2 0",
+   "path": "app-regions/belmont-san-carlos-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.45,
+    -122.27340790656642,
+    37.47245777937478,
+    -122.24511185984963
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-3-0",
+   "title": "belmont san carlos gap p0 3 0",
+   "path": "app-regions/belmont-san-carlos-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.45,
+    -122.24511185984963,
+    37.47245777937478,
+    -122.23
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-0-0",
+   "title": "daly south sf gap p0 0 0",
+   "path": "app-regions/daly-south-sf-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.6,
+    -122.5,
+    37.62245777937478,
+    -122.47163398339094
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-1-0",
+   "title": "daly south sf gap p0 1 0",
+   "path": "app-regions/daly-south-sf-gap-p0-1-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.6,
+    -122.47163398339094,
+    37.62245777937478,
+    -122.44326796678189
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-2-0",
+   "title": "daly south sf gap p0 2 0",
+   "path": "app-regions/daly-south-sf-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.6,
+    -122.44326796678189,
+    37.62245777937478,
+    -122.41490195017283
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-3-0",
+   "title": "daly south sf gap p0 3 0",
+   "path": "app-regions/daly-south-sf-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.6,
+    -122.41490195017283,
+    37.62245777937478,
+    -122.38653593356378
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-4-2",
+   "title": "daly south sf gap p0 4 2",
+   "path": "app-regions/daly-south-sf-gap-p0-4-2/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.64491555874955,
+    -122.38653593356378,
+    37.66737333812433,
+    -122.375
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-4-3",
+   "title": "daly south sf gap p0 4 3",
+   "path": "app-regions/daly-south-sf-gap-p0-4-3/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.66737333812433,
+    -122.38653593356378,
+    37.689831117499104,
+    -122.375
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "east-bay-south-gap-p0-0-0",
+   "title": "east bay south gap p0 0 0",
+   "path": "app-regions/east-bay-south-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -122.2,
+    37.522457779374776,
+    -122.171638375221
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-0-0",
+   "title": "emeryville north oakland gap p0 0 0",
+   "path": "app-regions/emeryville-north-oakland-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.815,
+    -122.33,
+    37.83745777937477,
+    -122.3015626015508
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-1-0",
+   "title": "emeryville north oakland gap p0 1 0",
+   "path": "app-regions/emeryville-north-oakland-gap-p0-1-0/app-model.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.815,
+    -122.3015626015508,
+    37.83745777937477,
+    -122.2731252031016
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-2-0",
+   "title": "emeryville north oakland gap p0 2 0",
+   "path": "app-regions/emeryville-north-oakland-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.815,
+    -122.2731252031016,
+    37.83745777937477,
+    -122.2446878046524
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "millbrae-burlingame-gap-p0-0-0",
+   "title": "millbrae burlingame gap p0 0 0",
+   "path": "app-regions/millbrae-burlingame-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Peninsula connection south of SFO",
+   "bbox": [
+    37.55,
+    -122.425,
+    37.57245777937477,
+    -122.39666410296228
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "millbrae-burlingame-gap-p0-2-0",
+   "title": "millbrae burlingame gap p0 2 0",
+   "path": "app-regions/millbrae-burlingame-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Peninsula connection south of SFO",
+   "bbox": [
+    37.55,
+    -122.36832820592456,
+    37.57245777937477,
+    -122.33999230888683
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "mountain-view-gap-p0-0-0",
+   "title": "mountain view gap p0 0 0",
+   "path": "app-regions/mountain-view-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.37,
+    -122.155,
+    37.39245777937477,
+    -122.12673040526414
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "mountain-view-gap-p0-3-0",
+   "title": "mountain view gap p0 3 0",
+   "path": "app-regions/mountain-view-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.37,
+    -122.07019121579242,
+    37.39245777937477,
+    -122.04192162105656
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "mountain-view-gap-p0-3-2",
+   "title": "mountain view gap p0 3 2",
+   "path": "app-regions/mountain-view-gap-p0-3-2/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.41491555874955,
+    -122.07019121579242,
+    37.43,
+    -122.04192162105656
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "mountain-view-gap-p0-4-0",
+   "title": "mountain view gap p0 4 0",
+   "path": "app-regions/mountain-view-gap-p0-4-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.37,
+    -122.04192162105656,
+    37.39245777937477,
+    -122.04
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "mountain-view-gap-p1-1-0",
+   "title": "mountain view gap p1 1 0",
+   "path": "app-regions/mountain-view-gap-p1-1-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.43,
+    -122.1017153010754,
+    37.45,
+    -122.07343060215081
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "redwood-menlo-gap-p0-0-0",
+   "title": "redwood menlo gap p0 0 0",
+   "path": "app-regions/redwood-menlo-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Redwood City, Menlo Park and Palo Alto approach",
+   "bbox": [
+    37.43,
+    -122.26,
+    37.44,
+    -122.23171719073555
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "redwood-menlo-gap-p3-0-0",
+   "title": "redwood menlo gap p3 0 0",
+   "path": "app-regions/redwood-menlo-gap-p3-0-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Redwood City, Menlo Park and Palo Alto approach",
+   "bbox": [
+    37.44,
+    -122.26,
+    37.45,
+    -122.23171341094731
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-0-0",
+   "title": "san mateo foster gap p0 0 0",
+   "path": "app-regions/san-mateo-foster-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.49,
+    -122.37,
+    37.51245777937478,
+    -122.34168500278788
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-2-0",
+   "title": "san mateo foster gap p0 2 0",
+   "path": "app-regions/san-mateo-foster-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.49,
+    -122.31337000557576,
+    37.51245777937478,
+    -122.28505500836364
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-3-0",
+   "title": "san mateo foster gap p0 3 0",
+   "path": "app-regions/san-mateo-foster-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.49,
+    -122.28505500836364,
+    37.51245777937478,
+    -122.25674001115152
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-central-gap-p1-0-0",
+   "title": "sf central gap p1 0 0",
+   "path": "app-regions/sf-central-gap-p1-0-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Connect corridor, Haight/Castro, Richmond and Mission",
+   "bbox": [
+    37.765,
+    -122.47,
+    37.77,
+    -122.4415905034135
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-central-gap-p1-1-0",
+   "title": "sf central gap p1 1 0",
+   "path": "app-regions/sf-central-gap-p1-1-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Connect corridor, Haight/Castro, Richmond and Mission",
+   "bbox": [
+    37.765,
+    -122.4415905034135,
+    37.77,
+    -122.4275
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-0-0",
+   "title": "sf south gap p0 0 0",
+   "path": "app-regions/sf-south-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.708,
+    -122.47,
+    37.730457779374774,
+    -122.44160566296911
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-1-0",
+   "title": "sf south gap p0 1 0",
+   "path": "app-regions/sf-south-gap-p0-1-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.708,
+    -122.44160566296911,
+    37.730457779374774,
+    -122.41321132593822
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-2-0",
+   "title": "sf south gap p0 2 0",
+   "path": "app-regions/sf-south-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.708,
+    -122.41321132593822,
+    37.730457779374774,
+    -122.38481698890733
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-2-1",
+   "title": "sf south gap p0 2 1",
+   "path": "app-regions/sf-south-gap-p0-2-1/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.730457779374774,
+    -122.41321132593822,
+    37.748,
+    -122.38481698890733
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-3-0",
+   "title": "sf south gap p0 3 0",
+   "path": "app-regions/sf-south-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.708,
+    -122.38481698890733,
+    37.730457779374774,
+    -122.38
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p0-3-1",
+   "title": "sf south gap p0 3 1",
+   "path": "app-regions/sf-south-gap-p0-3-1/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.730457779374774,
+    -122.38481698890733,
+    37.748,
+    -122.38
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p1-0-0",
+   "title": "sf south gap p1 0 0",
+   "path": "app-regions/sf-south-gap-p1-0-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.748,
+    -122.47,
+    37.755,
+    -122.44159664756967
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sf-south-gap-p1-1-0",
+   "title": "sf south gap p1 1 0",
+   "path": "app-regions/sf-south-gap-p1-1-0/app-model.html",
+   "built": true,
+   "city": "san-francisco",
+   "description": "Southern SF connection to the Peninsula",
+   "bbox": [
+    37.748,
+    -122.44159664756967,
+    37.755,
+    -122.4275
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p0-0-0",
+   "title": "sunnyvale santa clara gap p0 0 0",
+   "path": "app-regions/sunnyvale-santa-clara-gap-p0-0-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.32,
+    -122.04,
+    37.325,
+    -122.01175958463759
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p0-1-0",
+   "title": "sunnyvale santa clara gap p0 1 0",
+   "path": "app-regions/sunnyvale-santa-clara-gap-p0-1-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.32,
+    -122.01175958463759,
+    37.325,
+    -121.98351916927517
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p0-2-0",
+   "title": "sunnyvale santa clara gap p0 2 0",
+   "path": "app-regions/sunnyvale-santa-clara-gap-p0-2-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.32,
+    -121.98351916927517,
+    37.325,
+    -121.95527875391275
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p0-3-0",
+   "title": "sunnyvale santa clara gap p0 3 0",
+   "path": "app-regions/sunnyvale-santa-clara-gap-p0-3-0/app-model.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.32,
+    -121.95527875391275,
+    37.325,
+    -121.92703833855033
+   ],
+   "published_via": "cloud release",
+   "release": "596705fb4079d834"
   }
  ]
 }

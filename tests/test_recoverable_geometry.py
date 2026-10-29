@@ -51,7 +51,9 @@ def test_vendored_codec_hash_and_all_region_recovery_assets():
     assert hashlib.sha256((ROOT / "docs/vendor" / manifest["file"]).read_bytes()).hexdigest() == manifest["sha256"]
     assert "MIT" in (ROOT / "docs/vendor" / manifest["license_file"]).read_text()
     viewers = [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
-    assert len(viewers) == 8
+    # One viewer per built region; cloud releases add regions (docs/app-regions.json).
+    built = [r for r in json.loads((ROOT / "docs/app-regions.json").read_text())["regions"] if r.get("built")]
+    assert {ROOT / "docs" / r["path"] for r in built} == set(viewers)
     for path in viewers:
         source = path.read_text()
         assert 'import(sharedAsset("recoverable-geometry.mjs"))' in source

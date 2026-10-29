@@ -29,6 +29,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .checkpoint import get_pointer, pull_tree
@@ -85,14 +86,22 @@ def update_regions(index: dict, release: dict, registry: dict) -> list[str]:
     return added
 
 
+MATERIALISE_THREADS = 16
+
+
 def materialise(publisher: Publisher, release: dict, repo: Path, cells: list[str]) -> None:
-    """The cells' files under docs/regions/<cell>/, from the public chunks, for the page build."""
+    """The cells' files under docs/regions/<cell>/, from the public chunks, for the page build.
+    Fetched sixteen at a time: one by one, a release of small chunks came down at 4 MB a minute."""
+    wanted = []
     for site_path, chunk in release["files"].items():
         parts = site_path.split("/")
         if len(parts) >= 3 and parts[0] == "regions" and parts[1] in cells:
             target = repo / "docs" / site_path
             if not target.exists():
-                publisher.store.get_file(chunk, target)
+                wanted.append((chunk, target))
+    with ThreadPoolExecutor(max_workers=MATERIALISE_THREADS) as pool:
+        for _ in pool.map(lambda job: publisher.store.get_file(*job), wanted):
+            pass
 
 
 def commit_paths(repo: Path, cells: list[str]) -> list[str]:

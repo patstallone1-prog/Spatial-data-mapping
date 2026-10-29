@@ -72,6 +72,8 @@ def test_no_data_is_not_water_and_mapped_dry_surfaces_override_water() -> None:
 def test_committed_app_masks_match_rendered_assets_and_keep_buildings_dry() -> None:
     docs = ROOT / "docs"
     roots = [docs, *sorted((docs / "app-regions").iterdir())]
+    cloud = {r["name"] for r in json.loads((docs / "app-regions.json").read_text())["regions"]
+             if r.get("published_via") == "cloud release"}
     for root in roots:
         if not root.is_dir():
             continue
@@ -79,9 +81,16 @@ def test_committed_app_masks_match_rendered_assets_and_keep_buildings_dry() -> N
         mask_path = root / mask_name
         assert mask_path.exists(), root
         manifest = json.loads(mask_path.with_suffix(".json").read_text())
+        assert f'content="{mask_path.name}"' in (root / "app-model.html").read_text()
         payload_path = root / "sf-corridor-3d.json"
         if not payload_path.exists():
             payload_path = docs / "regions" / root.name / "sf-corridor-3d.json"
+        if not payload_path.exists() and root.name in cloud:
+            # A cloud-released cell's payload is in the bucket: its mask is checked whole.
+            mask = np.fromfile(mask_path, dtype=np.uint8)
+            assert set(np.unique(mask)).issubset({LAND, WATER, BUILT_LAND})
+            assert sum(manifest["counts"].values()) == mask.size
+            continue
         terrain_root = (
             root if (root / "sf-corridor-terrain.bin").exists() else docs / "regions" / root.name
         )
