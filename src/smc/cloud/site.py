@@ -10,7 +10,8 @@ lists its areas from ``app-regions.json``; a new cell needs an entry there and i
    the documented rebuild (``build_sf_corridor_3d.py --page-only --detail app`` then
    ``tools/build_app_worlds.py``);
 4. with ``--interiors``, publish the interior engine's collected batches and restaurant rounds
-   (:func:`promote_interiors`) before the rebuild;
+   (:func:`promote_interiors`), and with ``--houses`` the houses the newest house batch accepted
+   (:func:`promote_houses`), before the rebuild;
 5. commit only the small files (the map, the indexes, the pages and their release record), never
    the cell's data, which the map sends to R2; push a branch and open a pull request with
    auto-merge. CI's three gates (ruff, pytest, the render audit) and Vercel's deploy gate
@@ -27,12 +28,13 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from .checkpoint import get_pointer, pull_tree
+from .checkpoint import cas_key, get_pointer, pull_tree, read_tree
 from .publish import Publisher
 from .store import ObjectStore
 
@@ -152,11 +154,57 @@ def promote_interiors(repo: Path, private: ObjectStore) -> dict:
     return {"interior_regions": regions, "restaurants": bool(restaurants)}
 
 
+#: The matcher's accepted houses inside the house pipeline's saved state (stages.HOUSE_STATE).
+HOUSES = "build/facade-match/houses"
+
+
+def latest_houses(private: ObjectStore) -> str | None:
+    """The saved state of the newest finished house batch, read from the queue's backup."""
+    from .controller import restore_queue
+    from .queue import Queue
+
+    with tempfile.TemporaryDirectory() as tmp:
+        db = Path(tmp) / "queue.sqlite"
+        if not restore_queue(private, db):
+            return None
+        queue = Queue(db)
+        done = [j for j in queue.jobs(kind="house_batch", state="done")
+                if j["id"].startswith("house:batch-") and (j.get("output") or {}).get("tree")]
+        queue.close()
+    return max(done, key=lambda j: j["id"])["output"]["tree"] if done else None
+
+
+def promote_houses(repo: Path, private: ObjectStore, tree: str | None = None) -> dict:
+    """The accepted houses onto the site: only ``build/facade-match/houses`` of the house state
+    (its 4 MB of records, not its 12 GB) fetched and merged into the fit tiles by
+    tools/publish_house_snapshot.py, which keeps every published house and its manual
+    refinements and adds only accepted records with a certainty and a footprint."""
+    tree = tree or latest_houses(private)
+    if not tree:
+        return {"houses": None}
+    wanted = [(rel, entry[0]) for rel, entry in read_tree(private, tree)["files"].items()
+              if rel.startswith(f"{HOUSES}/")]
+    with tempfile.TemporaryDirectory() as tmp:
+        def fetch(item):
+            target = Path(tmp) / item[0]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            private.get_file(cas_key(item[1]), target)
+
+        with ThreadPoolExecutor(max_workers=MATERIALISE_THREADS) as pool:
+            for _ in pool.map(fetch, wanted):
+                pass
+        subprocess.run([sys.executable, "tools/publish_house_snapshot.py", "--houses", str(Path(tmp) / HOUSES)],
+                       cwd=repo, check=True, capture_output=True)
+    report = json.loads((repo / "docs/audits/house-publication-snapshot.json").read_text())
+    return {"tree": tree, "accepted": report["eligible_worker_records"],
+            "published": report["published"], "added": report["net_added"]}
+
+
 def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
-            interiors: ObjectStore | None = None) -> dict:
+            interiors: ObjectStore | None = None, houses: ObjectStore | None = None) -> dict:
     repo = Path(repo)
     release = publisher.current() if publisher else None
-    if not release and interiors is None:
+    if not release and interiors is None and houses is None:
         return {"changed": False, "reason": "nothing released"}
     added: list[str] = []
     fetched: list[str] = []
@@ -173,13 +221,14 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
         if fetched:
             materialise(publisher, release, repo, fetched)
     furnished = promote_interiors(repo, interiors) if interiors is not None else None
+    fitted = promote_houses(repo, houses) if houses is not None else None
     if rebuild:
         for cmd in ([sys.executable, "scripts/build_sf_corridor_3d.py", "--page-only", "--detail", "app",
                      "--out", "build/app-viewer.html"], [sys.executable, "tools/build_app_worlds.py"]):
             subprocess.run(cmd, cwd=repo, check=True)
-    version = release["version"] if release else time.strftime("interiors-%Y%m%d-%H%M%S", time.gmtime())
+    version = release["version"] if release else time.strftime("site-%Y%m%d-%H%M%S", time.gmtime())
     return {"changed": True, "version": version, "added": added, "interiors": furnished,
-            "paths": commit_paths(repo, fetched)}
+            "houses": fitted, "paths": commit_paths(repo, fetched)}
 
 
 def _github(method: str, url: str, token: str, body: dict) -> dict:

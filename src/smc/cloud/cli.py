@@ -13,7 +13,7 @@
     smc-cloud estimate
     smc-cloud gate     CELL                            # the parity gate on a local cell
     smc-cloud release  check | rollback [--to VERSION]
-    smc-cloud promote  [--interiors] [--open-pr]       # the live release onto the site (manual)
+    smc-cloud promote  [--interiors] [--houses] [--open-pr]       # the live release onto the site (manual)
     smc-cloud watchdog --config ...                    # the independent fail-safe
     smc-cloud selftest                                 # the whole lifecycle, locally
     smc-cloud runpod-controller keys|plan|storage|check|create|status|stop|start   # its pod
@@ -109,13 +109,15 @@ def cmd_promote(args) -> int:
 
     pub = Publisher(open_store(args.public, role="public"), args.base) if args.public else None
     private = None
-    if args.interiors:
+    if args.interiors or args.houses:
         if not args.private:
-            raise SystemExit("--interiors needs --private (or KERBSIDE_PRIVATE_STORE)")
+            raise SystemExit("--interiors and --houses need --private (or KERBSIDE_PRIVATE_STORE)")
         private = open_store(args.private, role="private")
     if pub is None and private is None:
-        raise SystemExit("set --public (or KERBSIDE_PUBLIC_STORE), or pass --interiors")
-    result = promote(args.root, pub, rebuild=not args.no_rebuild, interiors=private)
+        raise SystemExit("set --public (or KERBSIDE_PUBLIC_STORE), or pass --interiors or --houses")
+    result = promote(args.root, pub, rebuild=not args.no_rebuild,
+                     interiors=private if args.interiors else None,
+                     houses=private if args.houses else None)
     if result.get("changed") and args.open_pr:
         token = os.environ.get("GITHUB_TOKEN", "")
         if not token:
@@ -277,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--no-rebuild", action="store_true")
     pr.add_argument("--interiors", action="store_true",
                     help="also publish the collected interiors and restaurant rounds")
+    pr.add_argument("--houses", action="store_true",
+                    help="also publish the houses the newest house batch accepted")
     pr.add_argument("--private", default=os.environ.get("KERBSIDE_PRIVATE_STORE", ""))
     pr.add_argument("--open-pr", action="store_true")
     w = sub.add_parser("watchdog")

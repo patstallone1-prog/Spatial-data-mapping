@@ -111,6 +111,11 @@ SHARED_INPUTS: dict[str, tuple[str, ...]] = {
     # ``missing_input`` and batches 1-2 screened nothing (2026-10-28). Uploaded by
     # :func:`.migrate.migrate_house_inputs`, which keeps only the open providers' rows.
     "house-inputs": (),
+    # Every published cloud cell's map, terrain and open-provider photo rows, at the paths the
+    # filter reads a released cell from (docs/regions/<cell>/); composed by the controller from
+    # the cells' own saved trees (:func:`.migrate.house_cells_input`), so nothing is uploaded
+    # twice. The eight regions above had run out of photographs to screen (2026-10-29).
+    "house-cells": (),
 }
 
 #: The house pipeline's state: the filter's and the matcher's journals and buckets. One state
@@ -199,11 +204,13 @@ def republish_job(cell: str, gate: str, last: str, priority: int = 100) -> JobSp
 
 
 def house_batch(number: int, sample: int, previous: str | None, *, device: str = "cuda",
-                regions: tuple[str, ...] = HOUSE_REGIONS) -> JobSpec:
+                regions: tuple[str, ...] = HOUSE_REGIONS, cells: tuple[str, ...] = ()) -> JobSpec:
     """One pass of the house pipeline over the next ``sample`` houses per region: the frontage
     filter, the matcher (which fits and accepts or rejects each house into its bucket) and the
     materials reader -- the local supervisor's three GPU workers, run once each instead of
-    watching. Its fits stay private: publishing a house is a reviewed step, never a batch's."""
+    watching. Its fits stay private: publishing a house is a reviewed step, never a batch's.
+    ``cells`` are published cloud cells screened beside the regions (the ``house-cells`` input)."""
+    regions = (*regions, *cells)
     common_inputs = ["build/frontage-live", "build/frontage-pilot-v2"]
     steps = [
         [PY, "scripts/filter_frontage_photos.py", "--regions", *regions, "--landmarks",
@@ -222,7 +229,8 @@ def house_batch(number: int, sample: int, previous: str | None, *, device: str =
                    resource="gpu", command=steps,
                    depends=[previous] if previous else [],
                    restore_from=[previous] if previous else ["migrate:house-state"],
-                   shared=["frontage-models", "frontage-inputs", "house-inputs"],
+                   shared=["frontage-models", "frontage-inputs", "house-inputs",
+                           *(["house-cells"] if cells else [])],
                    save=list(HOUSE_STATE),
                    # The filter only adds to its pixel store (put_if_absent); the matcher reads the
                    # review JPEGs. 43 of the state's 56 GB stay in the bucket, referenced.

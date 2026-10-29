@@ -29,7 +29,16 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .checkpoint import EXCLUDE, get_pointer, push_tree, set_pointer
+from .checkpoint import (
+    EXCLUDE,
+    cas_key,
+    get_pointer,
+    manifest_digest,
+    push_tree,
+    read_tree,
+    set_pointer,
+    sha256_file,
+)
 from .inventory import classify
 from .stages import (
     HOUSE_PROVIDERS,
@@ -84,6 +93,67 @@ def migrate_shared(store: ObjectStore, root: Path, name: str, known: set[str] | 
 
 
 HOUSE_POSES = "data/observation_enrichment/mapillary_poses.jsonl"
+CELL_MAPS = ("sf-corridor-3d.json", "sf-corridor-terrain.json", "sf-corridor-terrain.bin")
+
+
+def _open_rows(store: ObjectStore, sha: str) -> list:
+    """A photo catalogue part with only :data:`.stages.HOUSE_PROVIDERS`' rows, stored; its
+    ``[sha, size]``."""
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+
+    with tempfile.TemporaryDirectory() as tmp:
+        source, kept = Path(tmp) / "in.parquet", Path(tmp) / "out.parquet"
+        store.get_file(cas_key(sha), source)
+        table = pq.read_table(source)
+        pq.write_table(table.filter(pc.is_in(table["provider"], value_set=pa.array(HOUSE_PROVIDERS))), kept)
+        digest = sha256_file(kept)
+        if store.head(cas_key(digest)) is None:
+            store.put_file(cas_key(digest), kept)
+        return [digest, kept.stat().st_size]
+
+
+def house_cells_input(store: ObjectStore, cells: dict[str, str]) -> dict:
+    """``shared-house-cells``: each published cell's map and terrain (``cells``: name -> its
+    saved tree) at docs/regions/<cell>/, where the filter and the matcher read a released cell,
+    and its photo catalogue with only the open providers' rows. Maps are referenced, not copied;
+    a catalogue part is filtered once (``filtered`` in the pointer). A cell without its map or
+    catalogue is left out. Returns the pointer."""
+    previous = get_pointer(store, "shared-house-cells") or {}
+    filtered = dict(previous.get("filtered", {}))
+    files: dict[str, list] = {}
+    paths, used = [], []
+    for cell, tree in sorted(cells.items()):
+        try:
+            source = read_tree(store, tree)["files"]
+        except KeyError:
+            continue
+        site, catalog = f"data/regions/{cell}/site", f"data/regions/{cell}/catalog/observations"
+        parts = sorted(p for p in source if p.startswith(f"{catalog}/") and p.endswith(".parquet"))
+        if not parts or not all(f"{site}/{n}" in source for n in CELL_MAPS):
+            continue
+        for name in CELL_MAPS:
+            files[f"docs/regions/{cell}/{name}"] = source[f"{site}/{name}"]
+        for part in parts:
+            sha = source[part][0]
+            if sha not in filtered:
+                filtered[sha] = _open_rows(store, sha)
+            files[part] = [*filtered[sha], 0o644]
+        paths += [f"docs/regions/{cell}", catalog]
+        used.append(cell)
+    if not used:
+        return previous
+    _refuse_restricted(paths)
+    manifest = {"schema": "kerbside.tree/1", "paths": sorted(paths), "files": files}
+    digest = manifest_digest(manifest)
+    if previous.get("tree") == digest:
+        return previous
+    if store.head(f"trees/{digest}.json") is None:
+        store.put_json(f"trees/{digest}.json", manifest)
+    pointer = {"tree": digest, "cells": used, "filtered": filtered, "providers": list(HOUSE_PROVIDERS)}
+    set_pointer(store, "shared-house-cells", digest, **{k: v for k, v in pointer.items() if k != "tree"})
+    return pointer
 
 
 def migrate_house_inputs(store: ObjectStore, root: Path, known: set[str] | None = None, *,
