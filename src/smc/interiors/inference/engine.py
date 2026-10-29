@@ -19,6 +19,7 @@ from smc.interiors.inference.efficiency import (
     trim_blind_ends,
 )
 from smc.interiors.inference.furnish import RoomFurnisher
+from smc.interiors.inference.memo import inference_session
 from smc.interiors.inference.model import HouseInput, geo, stamp_inference
 from smc.interiors.inference.partition import lines, partition_candidates, shared, width
 from smc.interiors.inference.style import door_finish, house_style, room_materials
@@ -569,6 +570,7 @@ def refresh_assets(house: dict, catalog: Catalog | None = None) -> dict:
     return house
 
 
+@inference_session
 def infer_house(
     spec: HouseInput, catalog: Catalog | None = None, *, style: dict | None = None
 ) -> dict:
@@ -578,7 +580,13 @@ def infer_house(
     """
     from smc.interiors.inference.validate import validate_house
 
-    if spec.households > 1 or spec.garages:
+    if (
+        spec.households > 1
+        or spec.garages
+        or spec.units_per_floor is not None
+        or spec.units_by_floor is not None
+        or spec.apartment_layout != "auto"
+    ):
         from smc.interiors.inference.residential import infer_residential
 
         return infer_residential(spec, catalog)

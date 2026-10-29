@@ -30,7 +30,11 @@ def residential_request(row):
         raise ValueError("select a known residential test case")
     # Program changes cannot alter Kerbside's stored shell, heights or opening evidence.
     known["households"] = row.get("households", known.get("households", 1))
-    known.pop("units_per_floor", None)
+    for field in ("units_per_floor", "units_by_floor"):
+        known.pop(field, None)
+        if row.get(field) is not None:
+            known[field] = row[field]
+    known["apartment_layout"] = row.get("apartment_layout", "auto")
     if row.get("garage_cars") is None:
         known.pop("garage_cars", None)
     else:

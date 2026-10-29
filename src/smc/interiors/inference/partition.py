@@ -14,6 +14,7 @@ from shapely import affinity
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 
+from smc.interiors.inference.memo import geometry_cached
 from smc.interiors.inference.model import HouseInput
 
 HALL_WIDTH = 1.12
@@ -37,11 +38,13 @@ def lines(g) -> list[LineString]:
     return [p for x in getattr(g, "geoms", []) for p in lines(x)]
 
 
+@geometry_cached
 def width(p: Polygon) -> float:
     q = list(p.minimum_rotated_rectangle.exterior.coords)
     return min(math.dist(q[i], q[i + 1]) for i in range(4))
 
 
+@geometry_cached
 def shared(a, b):
     return a.boundary.intersection(b.boundary.buffer(1e-6, cap_style=2))
 
@@ -75,6 +78,12 @@ def split_candidates(p: Polygon, hall, count: int, compact=False):
 
 
 def subdivide(regions: list[Polygon], hall, count: int, compact=False):
+    parts, result_hall = _subdivide(tuple(regions), hall, count, compact)
+    return list(parts), result_hall
+
+
+@geometry_cached
+def _subdivide(regions: tuple[Polygon, ...], hall, count: int, compact=False):
     regions = list(regions)
     while len(regions) < count:
         choices = []
@@ -86,9 +95,10 @@ def subdivide(regions: list[Polygon], hall, count: int, compact=False):
         _, i, parts, seam = min(choices, key=lambda c: c[0])
         regions[i : i + 1] = parts
         hall = unary_union([hall, seam])
-    return regions, hall
+    return tuple(regions), hall
 
 
+@geometry_cached
 def open_split(p: Polygon, ratio: float = 0.5, preferred_axis: int = 0) -> tuple[Polygon, Polygon]:
     """Split functional zones with no wall or corridor between them."""
     x0, y0, x1, y1 = p.bounds

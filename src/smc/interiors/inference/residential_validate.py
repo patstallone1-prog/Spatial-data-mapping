@@ -27,6 +27,11 @@ def validate_residential(h):
         own = {k: r for k, r in rooms.items() if r.get("unit_id") == unit["id"]}
         if set(unit["room_ids"]) != set(own):
             errors.append("unit room ownership ledger disagrees")
+        levels = sorted(
+            {f["level"] for f in h["storeys"] for r in f["rooms"] if r.get("unit_id") == unit["id"]}
+        )
+        if unit.get("levels") != levels:
+            errors.append("unit floor ownership ledger disagrees")
         kinds = {r["kind"] for r in own.values()}
         if not {"kitchen", "living", "dining", "full_bathroom"} <= kinds or not kinds & {
             "bedroom",
@@ -47,6 +52,12 @@ def validate_residential(h):
             for o in entrances
         ):
             errors.append("apartment entrance lacks a private door")
+    program = h.get("apartment_program", {})
+    for level, labels in enumerate(program.get("units_by_floor") or []):
+        expected = {f"{h['id']}:unit:{label}" for label in labels}
+        actual = {r["unit_id"] for r in h["storeys"][level]["rooms"] if r.get("unit_id")}
+        if actual != expected:
+            errors.append("apartment program disagrees with floor ownership")
     common_edges = []
     for o in portals.values():
         a, b = o["rooms"]

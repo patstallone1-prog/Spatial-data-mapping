@@ -10,6 +10,7 @@ from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 
 from smc.interiors.inference.catalog import Catalog
+from smc.interiors.inference.memo import geometry_cached
 from smc.interiors.inference.model import geo
 from smc.interiors.inference.partition import polygons
 
@@ -17,9 +18,12 @@ WALK_RADIUS = 0.28
 
 
 def oriented_box(x: float, y: float, w: float, d: float, angle: float) -> Polygon:
-    return affinity.translate(
-        affinity.rotate(box(-w / 2, -d / 2, w / 2, d / 2), angle, origin=(0, 0)), x, y
-    )
+    return affinity.translate(_box_template(w, d, angle), x, y)
+
+
+@geometry_cached
+def _box_template(w, d, angle):
+    return affinity.rotate(box(-w / 2, -d / 2, w / 2, d / 2), angle, origin=(0, 0))
 
 
 def inward_point(p: Polygon, line, distance: float = 0.65) -> Point:
@@ -32,6 +36,17 @@ def inward_point(p: Polygon, line, distance: float = 0.65) -> Point:
         if p.buffer(0.001).covers(q):
             return q
     return p.representative_point()
+
+
+@geometry_cached(limit=32)
+def obstacle_free_space(inside, obstacles, radius):
+    # The two approaches to a seating assembly have the same physical free space.
+    # Retain only a short request-local history of these comparatively large shapes.
+    return (
+        inside.difference(unary_union(obstacles).buffer(radius, join_style=2))
+        if obstacles
+        else inside
+    )
 
 
 class RoomFurnisher:
@@ -62,27 +77,38 @@ class RoomFurnisher:
         )
         self.starts = [inward_point(self.p, line) for line in portals]
         self.safe = self.p.buffer(-0.065, join_style=2)
+        self.walk_inside = self.p.buffer(-self.walk_radius, join_style=2)
+        self.window_zones = []
+        for window in self.windows:
+            a, b = window["a"], window["b"]
+            length = math.dist(a, b)
+            ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+            u, w = window["u"], window["w"]
+            edge = LineString(
+                [(a[0] + ux * u, a[1] + uy * u), (a[0] + ux * (u + w), a[1] + uy * (u + w))]
+            )
+            self.window_zones.append(
+                (window["v"], window["v"] + window["h"], edge.buffer(0.23, cap_style=2))
+            )
 
     def reachable(self, obstacle: Polygon | None = None, target: Point | None = None) -> bool:
         obstacles = self.obstacles + ([obstacle] if obstacle is not None else [])
-        free = self.p.buffer(-self.walk_radius, join_style=2)
-        if obstacles:
-            free = free.difference(unary_union(obstacles).buffer(self.walk_radius, join_style=2))
+        free = self.walk_inside
+        free = obstacle_free_space(free, tuple(obstacles), self.walk_radius)
         points = self.starts + self.targets + ([target] if target is not None else [])
         return not points or any(
-            all(part.buffer(0.015).covers(q) for q in points) for part in polygons(free)
+            all(expanded.covers(q) for q in points)
+            for part in polygons(free)
+            for expanded in [part.buffer(0.015)]
         )
 
     def fits(self, poly: Polygon, target: Point | None = None) -> bool:
-        return (
-            self.safe.covers(poly)
-            and not any(poly.intersects(z) for z in self.door_zones)
-            and not any(
-                poly.buffer(0.055, join_style=2).intersects(p)
-                for p in self.obstacles + self.reservations
-            )
-            and self.reachable(poly, target)
-        )
+        if not self.safe.covers(poly) or any(poly.intersects(z) for z in self.door_zones):
+            return False
+        padded = poly.buffer(0.055, join_style=2)
+        return not any(
+            padded.intersects(p) for p in self.obstacles + self.reservations
+        ) and self.reachable(poly, target)
 
     def put(
         self,
@@ -105,22 +131,8 @@ class RoomFurnisher:
             return None
         if supported_by is None:
             base = self.floor_y if base_y is None else base_y
-            for window in self.windows:
-                a, b = window["a"], window["b"]
-                length = math.dist(a, b)
-                ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
-                u, width = window["u"], window["w"]
-                edge = LineString(
-                    [
-                        (a[0] + ux * u, a[1] + uy * u),
-                        (a[0] + ux * (u + width), a[1] + uy * (u + width)),
-                    ]
-                )
-                if (
-                    base + h > window["v"] + 0.02
-                    and base < window["v"] + window["h"]
-                    and poly.intersects(edge.buffer(0.23, cap_style=2))
-                ):
+            for bottom, top, zone in self.window_zones:
+                if base + h > bottom + 0.02 and base < top and poly.intersects(zone):
                     return None
         index = len(self.items)
         item = {

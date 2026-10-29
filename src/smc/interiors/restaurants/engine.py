@@ -17,7 +17,13 @@ from shapely.ops import unary_union
 
 from smc.interiors.inference.catalog import Catalog
 from smc.interiors.inference.engine import opening
-from smc.interiors.inference.furnish import RoomFurnisher, inward_point, oriented_box
+from smc.interiors.inference.furnish import (
+    RoomFurnisher,
+    inward_point,
+    obstacle_free_space,
+    oriented_box,
+)
+from smc.interiors.inference.memo import geometry_cached, inference_session
 from smc.interiors.inference.model import geo, polygon, stamp_inference
 from smc.interiors.inference.partition import lines, polygons, shared, width
 from smc.interiors.inference.style import door_finish, house_style, room_materials
@@ -349,11 +355,22 @@ def _prep_island(f):
                     return
 
 
+@geometry_cached
+def _route_inside(p, radius):
+    return p.buffer(-radius, join_style=2)
+
+
 def _component(p, obstacles, targets, radius=ROUTE_RADIUS):
-    free = p.buffer(-radius, join_style=2)
-    if obstacles:
-        free = free.difference(unary_union(obstacles).buffer(radius, join_style=2))
-    return next((q for q in polygons(free) if all(q.buffer(0.02).covers(t) for t in targets)), None)
+    free = _route_inside(p, radius)
+    free = obstacle_free_space(free, tuple(obstacles), radius)
+    return next(
+        (
+            q
+            for q in polygons(free)
+            if all(expanded.covers(t) for expanded in [q.buffer(0.02)] for t in targets)
+        ),
+        None,
+    )
 
 
 def _seating(room, style, catalog, opens, mode):
@@ -381,41 +398,68 @@ def _seating(room, style, catalog, opens, mode):
     ]
     spots.sort(key=lambda p: room["shape"].boundary.distance(Point(p)))
 
+    candidate_positions = {}
+    geometries = {}
+    blocked = set()
+    safe = room["shape"].buffer(-0.065)
+    accessible_inside = room["shape"].buffer(-0.07)
+    door_zones = [shape(o["clearance"]) for o in opens if room["id"] in o["rooms"]]
+    angles = frame_angles(room["shape"])
+
     def place(seats, booth):
         n = seats // 2
-        if booth:
+        position_key = (seats, booth)
+        if position_key in candidate_positions:
+            candidates = candidate_positions[position_key]
+        elif booth:
             candidates = []
             for bx, by, angle, _target, nx, ny in f.wall_spots(n * 0.72, 0.58):
                 # The bench is already wall-backed; move the table in front of it.
                 x, y = bx + nx * (0.29 + 0.12 + 0.39), by + ny * (0.29 + 0.12 + 0.39)
                 candidates.append((x, y, angle))
         else:
-            candidates = [(x, y, angle) for angle in frame_angles(room["shape"]) for x, y in spots]
+            candidates = [(x, y, angle) for angle in angles for x, y in spots]
+        candidate_positions[position_key] = candidates
         for x, y, angle in candidates:
-            defs, targets = assembly(x, y, angle, seats, booth)
-            if booth:
-                bench = next(row for row in defs if row[0] == "booth")
-                if not wall_backed(
-                    back_edge(bench[1], bench[2], bench[3], bench[4], bench[6]), backing
+            key = (seats, booth, x, y, angle)
+            if key in blocked:
+                continue
+            if key not in geometries:
+                defs, targets = assembly(x, y, angle, seats, booth)
+                if booth:
+                    bench = next(row for row in defs if row[0] == "booth")
+                    if not wall_backed(
+                        back_edge(bench[1], bench[2], bench[3], bench[4], bench[6]), backing
+                    ):
+                        blocked.add(key)
+                        continue
+                footprints = [oriented_box(a, b, c, d, rot) for _, a, b, c, d, _, rot in defs]
+                seated = [
+                    oriented_box(a, b, 0.55, 0.78, rot)
+                    for role, a, b, _, _, _, rot in defs
+                    if role == "dining_chair"
+                ]
+                occupied_shape = unary_union(footprints + seated)
+                if (
+                    not safe.covers(occupied_shape)
+                    or occupied_shape.intersects(queue)
+                    or any(occupied_shape.intersects(zone) for zone in door_zones)
                 ):
+                    blocked.add(key)
                     continue
-            footprints = [oriented_box(a, b, c, d, rot) for _, a, b, c, d, _, rot in defs]
-            seated = [
-                oriented_box(a, b, 0.55, 0.78, rot)
-                for role, a, b, _, _, _, rot in defs
-                if role == "dining_chair"
-            ]
-            occupied_shape = unary_union(footprints + seated)
-            if (
-                not room["shape"].buffer(-0.065).covers(occupied_shape)
-                or occupied_shape.intersects(queue)
-                or any(
-                    occupied_shape.intersects(shape(o["clearance"]))
-                    for o in opens
-                    if room["id"] in o["rooms"]
+                geometries[key] = (
+                    defs,
+                    targets,
+                    footprints,
+                    occupied_shape,
+                    occupied_shape.buffer(0.08),
                 )
-                or any(occupied_shape.buffer(0.08).intersects(p) for p in obstacles + reservations)
-            ):
+            defs, targets, footprints, occupied_shape, padded = geometries[key]
+            if any(padded.intersects(p) for p in obstacles + reservations):
+                # Accepted furniture and reservations only grow. A footprint blocked
+                # now cannot become available later in this same seating search.
+                blocked.add(key)
+                del geometries[key]
                 continue
             for target in targets:
                 acc = None
@@ -434,7 +478,7 @@ def _seating(room, style, catalog, opens, mode):
                         0.80,
                         angle,
                     )
-                    if not room["shape"].buffer(-0.07).covers(acc) or any(
+                    if not accessible_inside.covers(acc) or any(
                         acc.intersects(p) for p in obstacles + reservations + [queue]
                     ):
                         continue
@@ -913,6 +957,7 @@ def validate_restaurant(h):
     }
 
 
+@inference_session
 def infer_restaurant(spec: RestaurantInput, catalog=None):
     catalog = catalog or Catalog()
     style = restaurant_style(spec)

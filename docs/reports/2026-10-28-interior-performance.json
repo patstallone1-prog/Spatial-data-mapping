@@ -1,0 +1,340 @@
+{
+  "date": "2026-10-28",
+  "reference_commit": "769cb1922",
+  "method": "Three sequential unprofiled wall-clock runs per case in each source version; median; fresh request cache each solve; same assets; module imports excluded; input/catalog/result serialization included. Full canonical JSON SHA-256 comparison, including existing rejection.",
+  "environment": {
+    "platform": "macOS-15.7.3-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "arm",
+    "python": "3.12.14"
+  },
+  "cohorts": [
+    {
+      "name": "fixed",
+      "selection": "fixed 10-case pool selected before profiling; four single-family, three two/three-family, three restaurant programs",
+      "cases": [
+        {
+          "id": "stress-compact",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            3.621345999999903,
+            3.669347042014124,
+            3.596954665990779
+          ],
+          "optimized_seconds": [
+            2.531666666996898,
+            2.4836453329771757,
+            2.51620841701515
+          ],
+          "baseline_median_seconds": 3.621345999999903,
+          "optimized_median_seconds": 2.51620841701515,
+          "speedup": 1.4392074899326985,
+          "sha256": "5939e956fd65f23ed942ff224c8c13855f247a8120f5136a6d1f17139101ddee",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "stress-family",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            3.062907957995776,
+            3.0458759579923935,
+            3.073109832999762
+          ],
+          "optimized_seconds": [
+            1.1151520000130404,
+            1.1199413749855012,
+            1.1076014589925762
+          ],
+          "baseline_median_seconds": 3.062907957995776,
+          "optimized_median_seconds": 1.1151520000130404,
+          "speedup": 2.7466282246366047,
+          "sha256": "c638d69b4de84fd2303a77b0a5c6c673ff638a9035a486679be7deff47d199d7",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "stress-L-wing",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            1.900319042004412,
+            1.8270838749886025,
+            1.8767594580131117
+          ],
+          "optimized_seconds": [
+            1.1275430000096094,
+            1.126551458000904,
+            1.1289532909868285
+          ],
+          "baseline_median_seconds": 1.8767594580131117,
+          "optimized_median_seconds": 1.1275430000096094,
+          "speedup": 1.6644681914544432,
+          "sha256": "77493ec5aa2312d226b17181271c2ccaca78cfdd0b29f9700cc59145be6c04f5",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "osm-460228342",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            13.690839042013977,
+            13.669519291986944,
+            13.591527999989921
+          ],
+          "optimized_seconds": [
+            8.556389000004856,
+            8.438302416005172,
+            8.444840542011661
+          ],
+          "baseline_median_seconds": 13.669519291986944,
+          "optimized_median_seconds": 8.444840542011661,
+          "speedup": 1.61868293711212,
+          "sha256": "8bbc842266100887e1369a03ab6fd73c7136930906b2c38472e60f02529c4f60",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "residential-duplex-one-floor",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            1.2799052079790272,
+            1.2917309159820434,
+            1.2776853750110604
+          ],
+          "optimized_seconds": [
+            0.8779227919876575,
+            0.8656192080234177,
+            0.8620505829749163
+          ],
+          "baseline_median_seconds": 1.2799052079790272,
+          "optimized_median_seconds": 0.8656192080234177,
+          "speedup": 1.4786007474367433,
+          "sha256": "e82319492e78d7f838fc2216433e0027c58e206c6491d45c6905445f976b15a3",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "residential-triplex-two-floors",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            2.413726750004571,
+            2.404328832984902,
+            2.4061393339943606
+          ],
+          "optimized_seconds": [
+            1.4891112089972012,
+            1.4812239590100944,
+            1.504190915991785
+          ],
+          "baseline_median_seconds": 2.4061393339943606,
+          "optimized_median_seconds": 1.4891112089972012,
+          "speedup": 1.6158224580249487,
+          "sha256": "932642c05a2a8f8e6db1c9cc57262adc9afe5d243c6438ebee7fc29f6769dbf8",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "residential-setback-three",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            2.5234489169961307,
+            2.562199749983847,
+            2.5474156670097727
+          ],
+          "optimized_seconds": [
+            1.5257076669950038,
+            1.5466741669806652,
+            1.5437111670034938
+          ],
+          "baseline_median_seconds": 2.5474156670097727,
+          "optimized_median_seconds": 1.5437111670034938,
+          "speedup": 1.6501893109671386,
+          "sha256": "48f26afbf4a9d668eb38fec84496224a936943a97ba5a33733b6e0ab34491aa2",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "restaurant-939458462",
+          "kind": "restaurant",
+          "passed": false,
+          "baseline_seconds": [
+            0.004071207978995517,
+            0.003450208023423329,
+            0.0034417909919284284
+          ],
+          "optimized_seconds": [
+            0.0048748749832157046,
+            0.003773667005589232,
+            0.003394917002879083
+          ],
+          "baseline_median_seconds": 0.003450208023423329,
+          "optimized_median_seconds": 0.003773667005589232,
+          "speedup": 0.9142852345777136,
+          "sha256": "7fa650b82c4d5d74793538af5019937ed2a3fb4c66abd6b0ea50f9e952af1e16",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "restaurant-262585102",
+          "kind": "restaurant",
+          "passed": true,
+          "baseline_seconds": [
+            65.90640300000086,
+            66.02141874999506,
+            66.14181366699631
+          ],
+          "optimized_seconds": [
+            15.791436833998887,
+            15.627797875000397,
+            15.6081851250201
+          ],
+          "baseline_median_seconds": 66.02141874999506,
+          "optimized_median_seconds": 15.627797875000397,
+          "speedup": 4.224614323660325,
+          "sha256": "5defae87885c2054a79208f605c9a27519e26d0c50880c8afde4787ae5c98985",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "restaurant-151195275",
+          "kind": "restaurant",
+          "passed": true,
+          "baseline_seconds": [
+            6.002739332994679,
+            5.9929842080164235,
+            5.957114499993622
+          ],
+          "optimized_seconds": [
+            2.1676029170048423,
+            2.1585486250114627,
+            2.164229208981851
+          ],
+          "baseline_median_seconds": 5.9929842080164235,
+          "optimized_median_seconds": 2.164229208981851,
+          "speedup": 2.769107903702948,
+          "sha256": "2ac82926b9c9a47439ecd24121e443d1d59d0611906a301b8d7e47832af0f92a",
+          "identical_output": true,
+          "deterministic": true
+        }
+      ]
+    },
+    {
+      "name": "held_out",
+      "selection": "five held-out caller programs, without venue-specific rules",
+      "cases": [
+        {
+          "id": "heldout-single",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            0.9708706660021562,
+            0.8719397920067422,
+            0.8621345839928836
+          ],
+          "optimized_seconds": [
+            0.5306547079817392,
+            0.5384127910074312,
+            0.5522664999880362
+          ],
+          "baseline_median_seconds": 0.8719397920067422,
+          "optimized_median_seconds": 0.5384127910074312,
+          "speedup": 1.6194633681997863,
+          "sha256": "1d2925c139d86c487a998e99df174721518d10a889c7f4bb4aec18409118d6ac",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "heldout-duplex",
+          "kind": "house",
+          "passed": true,
+          "baseline_seconds": [
+            0.7579021250130609,
+            0.7417021250003017,
+            0.756659957987722
+          ],
+          "optimized_seconds": [
+            0.39960058400174603,
+            0.39044583300710656,
+            0.39205887500429526
+          ],
+          "baseline_median_seconds": 0.756659957987722,
+          "optimized_median_seconds": 0.39205887500429526,
+          "speedup": 1.9299651308223345,
+          "sha256": "7bb1226edc1e81679bebd1444ef2da870b89e2937a37949137adfbeb741801da",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "heldout-pickup",
+          "kind": "restaurant",
+          "passed": true,
+          "baseline_seconds": [
+            0.08378937499946915,
+            0.0786322089843452,
+            0.07917770801577717
+          ],
+          "optimized_seconds": [
+            0.05130933300824836,
+            0.04896729200845584,
+            0.048725124972406775
+          ],
+          "baseline_median_seconds": 0.07917770801577717,
+          "optimized_median_seconds": 0.04896729200845584,
+          "speedup": 1.6169509231203656,
+          "sha256": "b7229c036837dda3166a0fe751cd9539be28eb609a780416fec677141ad9b111",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "heldout-rotated-dining",
+          "kind": "restaurant",
+          "passed": true,
+          "baseline_seconds": [
+            14.628730208001798,
+            14.639043083006982,
+            15.156902874994557
+          ],
+          "optimized_seconds": [
+            4.25221325000166,
+            4.18423170899041,
+            4.182896084006643
+          ],
+          "baseline_median_seconds": 14.639043083006982,
+          "optimized_median_seconds": 4.18423170899041,
+          "speedup": 3.498621515522895,
+          "sha256": "2daaddfecd817a8b0f607c80d28b3c5d69c772d75446b5206c3427ecb6b1c0df",
+          "identical_output": true,
+          "deterministic": true
+        },
+        {
+          "id": "heldout-narrow-counter",
+          "kind": "restaurant",
+          "passed": true,
+          "baseline_seconds": [
+            1.9234765830042306,
+            1.9284937909978908,
+            2.0364818339876365
+          ],
+          "optimized_seconds": [
+            0.746435749984812,
+            0.7346596670104191,
+            0.7347744590078946
+          ],
+          "baseline_median_seconds": 1.9284937909978908,
+          "optimized_median_seconds": 0.7347744590078946,
+          "speedup": 2.6246064589694327,
+          "sha256": "950626282df01079d1370c4026ab37b8616670e5baac75cc685b244133c571e5",
+          "identical_output": true,
+          "deterministic": true
+        }
+      ]
+    }
+  ]
+}
