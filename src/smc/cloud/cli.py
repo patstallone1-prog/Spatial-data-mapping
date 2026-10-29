@@ -155,13 +155,37 @@ def cmd_watchdog(args) -> int:
                 deleted.append({"provider": name, "id": inst.id, "worker": inst.worker_id,
                                 "age_h": round(age_h, 2), "controller_silent_min": round(silent_min)})
     woke = None if healthy else wake_controller(cfg, private)
+    # The controller's warnings (idle spend, a budget nearly spent: budget.warnings). A new one
+    # fails this run, which is how it reaches the owner: GitHub emails a failed scheduled run.
+    warnings = []
+    if healthy and os.environ.get("KERBSIDE_OPS_TOKEN"):
+        try:
+            warnings = _ops("/api/status").get("warnings") or []
+        except (OSError, ValueError) as exc:
+            warnings = [{"key": "status-unreadable", "text": f"status unreadable: {exc}"}]
+    # The balance is asked here too: at $0 RunPod deletes the controller, which then warns no one.
+    for name, provider in cfg.providers.items():
+        try:
+            balance = provider.balance()
+        except Exception as exc:  # a warning, whatever went wrong
+            balance, warnings = None, [*warnings, {"key": f"balance-unknown:{name}", "text": f"{name} balance unknown: {exc}"}]
+        if balance is not None and balance < cfg.budget.warn_usd:
+            day = time.strftime("%Y-%m-%d", time.gmtime(now))
+            warnings.append({"key": f"balance:{day}", "text": f"{name} balance ${balance:.2f}: at $0 every pod is "
+                                                               "deleted, the controller's too. Top it up."})
+    warnings = list({w["key"]: w for w in warnings}.values())
+    reported = set(state.get("warned", []))
+    new = [w for w in warnings if w["key"] not in reported]
+    state["warned"] = sorted(reported | {w["key"] for w in warnings})[-50:]
     state["last_run"] = now
     state["deleted"] = deleted
     state["wake"] = woke
     private.put_json("watchdog/state.json", state)
     print(json.dumps({"controller_healthy": healthy, "silent_min": round(silent_min),
-                      "deleted": deleted, "wake": woke}))
-    return 0
+                      "deleted": deleted, "wake": woke, "warnings": warnings}))
+    for w in new:
+        print(f"::warning title=Kerbside cloud::{w['text']}")
+    return 1 if new else 0
 
 
 def wake_controller(cfg, private) -> dict:

@@ -431,6 +431,8 @@ class Controller:
             "release": (self.publisher.pointer()[0] or {}),
             "paused": q.get_meta("paused"),
             "paused_kinds": json.loads(q.get_meta("paused_kinds") or "[]"),
+            "warnings": self.scheduler.last.get("warnings", []),
+            "idle_today_usd": self.scheduler.last.get("idle_today_usd"),
             "last_tick": self.scheduler.last,
         }
 
@@ -550,7 +552,8 @@ def _handler(ctl: Controller):
             q.seen(worker)
             if self.path == "/api/lease":
                 me = next((w for w in q.workers() if w["id"] == worker), {})
-                if me.get("state") == "draining" or q.get_meta("paused"):
+                if (me.get("state") == "draining" or q.get_meta("paused")
+                        or worker in json.loads(q.get_meta("packing") or "[]")):
                     return self._send(200, {"lease": None})
                 lease = q.lease(worker, body.get("resources") or [me.get("resource", "cpu")],
                                 float(body.get("ttl", ctl.c.lease_ttl_s)), me.get("instance_type"))
