@@ -84,8 +84,7 @@ def test_restaurant_index_only_accepts_same_envelope_single_tenant_and_passed_la
     assert len(data) >= 3
     for ref in data.values():
         assert ref['kind'] == 'restaurant' and ref['measured'] is False
-    published = json.loads((ROOT/'docs/inferred-restaurants/map-overlay.json').read_text())['buildings']
-    assert all(published.get(k) == v for k, v in data.items())
+    assert json.loads((ROOT/'docs/inferred-restaurants/map-overlay.json').read_text())['buildings'] == data
 
 
 @pytest.mark.parametrize('aspect',[.4,1,2.5])

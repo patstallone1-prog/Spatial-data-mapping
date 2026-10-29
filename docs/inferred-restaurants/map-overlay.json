@@ -1,6 +1,48 @@
 {
  "schema": "kerbside.inferred_restaurant_overlay/1",
  "buildings": {
+  "1073747194": {
+   "file": "../inferred-restaurants/restaurant-1073747194.json",
+   "kind": "restaurant",
+   "name": "Suavecito Birria & Tacos",
+   "footprint": [
+    [
+     -122.4147381,
+     37.7885514
+    ],
+    [
+     -122.4149376,
+     37.7885262
+    ],
+    [
+     -122.414966,
+     37.7886664
+    ],
+    [
+     -122.4147664,
+     37.7886916
+    ],
+    [
+     -122.414757,
+     37.7886449
+    ],
+    [
+     -122.4147505,
+     37.7886127
+    ],
+    [
+     -122.4147381,
+     37.7885514
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4148193,
+    37.7886155
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
   "115921779": {
    "file": "../inferred-restaurants/restaurant-115921779.json",
    "kind": "restaurant",
@@ -319,6 +361,44 @@
    "confidence": 0.2,
    "tenancy": "single listed food tenant; boundaries inferred"
   },
+  "148741782": {
+   "file": "../inferred-restaurants/restaurant-148741782.json",
+   "kind": "restaurant",
+   "name": "Toy Soldier",
+   "footprint": [
+    [
+     -122.4037775,
+     37.7914472
+    ],
+    [
+     -122.4037664,
+     37.7913942
+    ],
+    [
+     -122.4037463,
+     37.7913968
+    ],
+    [
+     -122.4035643,
+     37.7914207
+    ],
+    [
+     -122.403576,
+     37.7914735
+    ],
+    [
+     -122.4037775,
+     37.7914472
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4036861,
+    37.7914265
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
   "149705550": {
    "file": "../inferred-restaurants/restaurant-149705550.json",
    "kind": "restaurant",
@@ -360,6 +440,40 @@
    "origin_lon_lat": [
     -122.4205693,
     37.7882963
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "151195275": {
+   "file": "../inferred-restaurants/restaurant-151195275.json",
+   "kind": "restaurant",
+   "name": "Mr. Mahjong",
+   "footprint": [
+    [
+     -122.4039127,
+     37.7906139
+    ],
+    [
+     -122.4039,
+     37.7905519
+    ],
+    [
+     -122.4036575,
+     37.790583
+    ],
+    [
+     -122.4036702,
+     37.790645
+    ],
+    [
+     -122.4039127,
+     37.7906139
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4037851,
+    37.7905984
    ],
    "measured": false,
    "confidence": 0.2,
@@ -592,6 +706,48 @@
    "origin_lon_lat": [
     -122.4062982,
     37.7949724
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "256733188": {
+   "file": "../inferred-restaurants/restaurant-256733188.json",
+   "kind": "restaurant",
+   "name": "Hunan Homes Restaurant",
+   "footprint": [
+    [
+     -122.4056701,
+     37.7965996
+    ],
+    [
+     -122.4056018,
+     37.7962345
+    ],
+    [
+     -122.4056731,
+     37.7962262
+    ],
+    [
+     -122.4057279,
+     37.7965194
+    ],
+    [
+     -122.4057484,
+     37.796517
+    ],
+    [
+     -122.4057618,
+     37.7965889
+    ],
+    [
+     -122.4056701,
+     37.7965996
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4056972,
+    37.7964476
    ],
    "measured": false,
    "confidence": 0.2,
@@ -940,6 +1096,126 @@
    "origin_lon_lat": [
     -122.4048259,
     37.7936541
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "260921157": {
+   "file": "../inferred-restaurants/restaurant-260921157.json",
+   "kind": "restaurant",
+   "name": "Golden Flower",
+   "footprint": [
+    [
+     -122.4063213,
+     37.7958719
+    ],
+    [
+     -122.406351,
+     37.7960023
+    ],
+    [
+     -122.4062861,
+     37.7960101
+    ],
+    [
+     -122.4062596,
+     37.7958799
+    ],
+    [
+     -122.4063213,
+     37.7958719
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4063045,
+    37.795941
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "261107108": {
+   "file": "../inferred-restaurants/restaurant-261107108.json",
+   "kind": "restaurant",
+   "name": "Thai Spice",
+   "footprint": [
+    [
+     -122.4210211,
+     37.7927815
+    ],
+    [
+     -122.4210359,
+     37.7927846
+    ],
+    [
+     -122.4210398,
+     37.792803
+    ],
+    [
+     -122.4210269,
+     37.7928098
+    ],
+    [
+     -122.4210272,
+     37.7928115
+    ],
+    [
+     -122.4210416,
+     37.792817
+    ],
+    [
+     -122.4210445,
+     37.7928339
+    ],
+    [
+     -122.4210331,
+     37.7928401
+    ],
+    [
+     -122.4210344,
+     37.7928468
+    ],
+    [
+     -122.4209461,
+     37.7928581
+    ],
+    [
+     -122.4209437,
+     37.7928464
+    ],
+    [
+     -122.4208642,
+     37.7928565
+    ],
+    [
+     -122.4208633,
+     37.7928566
+    ],
+    [
+     -122.4208663,
+     37.7928715
+    ],
+    [
+     -122.4206934,
+     37.7928935
+    ],
+    [
+     -122.4206794,
+     37.7928251
+    ],
+    [
+     -122.4206808,
+     37.7928249
+    ],
+    [
+     -122.4210211,
+     37.7927815
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4209319,
+    37.792833
    ],
    "measured": false,
    "confidence": 0.2,
@@ -1304,6 +1580,132 @@
    "origin_lon_lat": [
     -122.4123316,
     37.8001686
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "262585102": {
+   "file": "../inferred-restaurants/restaurant-262585102.json",
+   "kind": "restaurant",
+   "name": "Sushi on North Beach - Katsu",
+   "footprint": [
+    [
+     -122.4121718,
+     37.8015081
+    ],
+    [
+     -122.4121409,
+     37.8015129
+    ],
+    [
+     -122.4121341,
+     37.8015127
+    ],
+    [
+     -122.4121235,
+     37.8015056
+    ],
+    [
+     -122.4121113,
+     37.8015095
+    ],
+    [
+     -122.41202,
+     37.8014475
+    ],
+    [
+     -122.4120219,
+     37.8014371
+    ],
+    [
+     -122.4119962,
+     37.8014198
+    ],
+    [
+     -122.4119827,
+     37.8014216
+    ],
+    [
+     -122.4119282,
+     37.8013845
+    ],
+    [
+     -122.4119304,
+     37.8013754
+    ],
+    [
+     -122.4119201,
+     37.8013685
+    ],
+    [
+     -122.4119097,
+     37.8013727
+    ],
+    [
+     -122.4118897,
+     37.8013575
+    ],
+    [
+     -122.4118924,
+     37.8013498
+    ],
+    [
+     -122.4119096,
+     37.8013337
+    ],
+    [
+     -122.411946,
+     37.8013294
+    ],
+    [
+     -122.4119478,
+     37.8013383
+    ],
+    [
+     -122.411984,
+     37.801334
+    ],
+    [
+     -122.4119823,
+     37.801325
+    ],
+    [
+     -122.4120273,
+     37.8013197
+    ],
+    [
+     -122.4120283,
+     37.8013245
+    ],
+    [
+     -122.4121146,
+     37.8013142
+    ],
+    [
+     -122.4121221,
+     37.8013522
+    ],
+    [
+     -122.4121304,
+     37.8013512
+    ],
+    [
+     -122.4121417,
+     37.8014088
+    ],
+    [
+     -122.4121521,
+     37.8014076
+    ],
+    [
+     -122.4121718,
+     37.8015081
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4120244,
+    37.8013934
    ],
    "measured": false,
    "confidence": 0.2,
@@ -2292,6 +2694,40 @@
    "origin_lon_lat": [
     -122.4130854,
     37.7878901
+   ],
+   "measured": false,
+   "confidence": 0.2,
+   "tenancy": "single listed food tenant; boundaries inferred"
+  },
+  "79377158": {
+   "file": "../inferred-restaurants/restaurant-79377158.json",
+   "kind": "restaurant",
+   "name": "Luke\u2019s Lobster",
+   "footprint": [
+    [
+     -122.4001688,
+     37.7881336
+    ],
+    [
+     -122.4000215,
+     37.7880232
+    ],
+    [
+     -122.400082,
+     37.7879739
+    ],
+    [
+     -122.400228,
+     37.7880873
+    ],
+    [
+     -122.4001688,
+     37.7881336
+    ]
+   ],
+   "origin_lon_lat": [
+    -122.4001251,
+    37.7880545
    ],
    "measured": false,
    "confidence": 0.2,

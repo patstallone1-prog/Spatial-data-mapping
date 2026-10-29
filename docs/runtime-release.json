@@ -139,7 +139,7 @@
     "inferred-interiors/retail-fixtures.mjs": "c1a38b0bd89ea90f993b2e8b08fcd8ef32031360748c07bbc2bb66c2792ca6d8",
     "inferred-interiors/tour-world.mjs": "63bada97da221f3cff050ca81f72a227c4ee802d73bcc4b020c5b1a08bce0b81",
     "inferred-interiors/map-overlay.json": "f29cb594dc57094d9d6888a30b143f76dad6e3bf282597a1ce4ad7b26bfdc9ea",
-    "inferred-restaurants/map-overlay.json": "f43b3be2d62bd52a13874dc657247790604657538cb8881b2be58194254c9bcd",
+    "inferred-restaurants/map-overlay.json": "1efec9bb5b77fd339e28a92f72b11e809e33f18e806c939067e789ef667b0a3c",
     "meta-xr.mjs": "ca0edc6ee4c01f2b9d169f037d4101e30b07ba2683cbb129b65cba2f9da52149",
     "meta.webmanifest": "8fe87be2a84e6c058ebd6132219aa5f1d75c841c29542a6f384e7ba8a6d2faad",
     "nature/models/dandelion_01.glb": "2db165e4ded05519095209fd625b65f747eed95c75aa1b7d01560e2be2c897f1",
@@ -195,7 +195,7 @@
   },
   "interior_engine": {
     "houses": 923,
-    "restaurants": 42,
+    "restaurants": 50,
     "grade": "inferred; validated layout hypotheses, not measured real interiors",
     "consumer": "Mac app only"
   },
