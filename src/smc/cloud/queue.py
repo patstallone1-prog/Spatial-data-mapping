@@ -283,14 +283,31 @@ class Queue:
             return len(self._ready_rows(self._db, [resource], self.clock()))
 
     def lease(self, worker: str, resources: list[str], ttl_s: float,
-              instance_type: str | None = None) -> dict | None:
-        """The highest-priority ready job for these resources, leased to ``worker``."""
+              instance_type: str | None = None, caps: dict[str, int] | None = None) -> dict | None:
+        """The highest-priority ready job for these resources, leased to ``worker``.
+
+        Two preferences on top of the priority order (2026-10-29, both to waste less time):
+        a stage in ``caps`` is not leased to a worker already running that many of it (Overpass
+        throttles one address's burst of cells into timeouts), and a worker is offered the next
+        stage of a subject it has just worked on before anyone else's -- its restored files and
+        its photo cache are already on its disk, where another worker would fetch them again."""
         now = self.clock()
         with self._tx() as db:
-            rows = self._ready_rows(db, resources, now, limit=1)
+            rows = self._ready_rows(db, resources, now)
+            if caps:
+                running: dict[str, int] = {}
+                for r in db.execute("SELECT stage FROM jobs WHERE state='leased' AND lease_owner=?",
+                                    (worker,)):
+                    running[r["stage"]] = running.get(r["stage"], 0) + 1
+                rows = [r for r in rows if r["stage"] not in caps
+                        or running.get(r["stage"], 0) < caps[r["stage"]]]
             if not rows:
                 return None
-            row = rows[0]
+            recent = {r["subject"] for r in db.execute(
+                "SELECT j.subject FROM attempts a JOIN jobs j ON j.id = a.job_id WHERE a.worker=?"
+                " AND a.started_at > ? ORDER BY a.started_at DESC LIMIT 24", (worker, now - 3 * 3600))}
+            # Only a fresh next stage: a retry keeps its place (a stalled one goes to the back).
+            row = next((r for r in rows if r["subject"] in recent and r["state"] == "pending"), rows[0])
             token = row["attempts"] + 1
             changed = db.execute(
                 "UPDATE jobs SET state='leased', attempts=?, lease_owner=?, lease_token=?,"

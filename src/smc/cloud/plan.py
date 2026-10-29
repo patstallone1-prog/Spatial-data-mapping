@@ -20,6 +20,7 @@ from .queue import JobSpec, Queue
 from .stages import (
     CELL_CHAIN,
     ENRICH_CHAIN,
+    HOUSE_SAMPLE,
     INTERIOR_OUT,
     cell_job,
     gate_job,
@@ -125,7 +126,7 @@ def submit_restaurants(queue: Queue, private: ObjectStore, rounds: int) -> int:
 
 
 def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[str] | None = None,
-                house_batches: int = 0, house_sample: int = 24, interiors: bool = False,
+                house_batches: int = 0, house_sample: int = HOUSE_SAMPLE, interiors: bool = False,
                 restaurant_rounds: int = 0, house_ahead: int = 0) -> dict:
     """Submit (or re-submit) the plan. ``cells`` limits it to those names, in plan order.
     ``house_ahead`` keeps that many house batches queued past the last one finished, so the

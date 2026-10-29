@@ -151,7 +151,8 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
         "audit": ([PY, "scripts/audit_corridor_render.py", "--page", str(site / "sf-corridor-3d.json"),
                    "--official", str(site / "sf-corridor-official.json"), "--ground", str(site / "sf-corridor-ground.json"),
                    "--baseline", str(base / "audit_baseline.json")], [base / "audit_baseline.json"]),
-        "colours": ([PY, "scripts/build_building_colours.py", "--region", region.name],
+        # Eight threads: a building's colour is mostly a wait for its photographs (2026-10-29).
+        "colours": ([PY, "scripts/build_building_colours.py", "--region", region.name, "--workers", "8"],
                     [official / "building_colours.json"]),
         "survey": ([PY, "scripts/build_facade_survey.py", "--region", region.name],
                    [official / "facade_survey.json"]),

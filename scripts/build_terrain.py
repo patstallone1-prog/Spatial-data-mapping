@@ -31,6 +31,7 @@ import argparse
 import itertools
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -41,7 +42,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.region import SF_CORRIDOR, get_region  # noqa: E402
 from smc.lidar.ept import SF_DATASET, EptReader  # noqa: E402
-from smc.net import use_certifi  # noqa: E402
+from smc.net import ordered_prefetch, use_certifi  # noqa: E402
 
 use_certifi()
 
@@ -55,6 +56,8 @@ FILL_REACH = 6
 FAR_FILL_REACH = 60
 #: A collection with no ground in this many of its first tiles is not the one for the box.
 PROBE_TILES = 12
+#: Tiles fetched at once; folded in one at a time in the grid's order (2026-10-29).
+TILE_THREADS = int(os.environ.get("KERBSIDE_TERRAIN_TILE_THREADS", "3"))
 HOLDOUT_SHARE = 0.02
 MIN_CELL_POINTS = 2
 #: The lidar is read at this spacing: two metres of grid does not need five-centimetre points.
@@ -233,40 +236,51 @@ def main() -> int:
         count[:] = 0
         holdout.clear()
         tiles = 0
-        tx = x0
         empty_probe = False
-        while tx < x1 and not empty_probe:
+        # The grid in its own order, column by column. TILE_THREADS tiles are fetched at once
+        # and folded in one at a time in that order, so the seeded hold-out draws are the same.
+        grid = []
+        tx = x0
+        while tx < x1:
             ty = y0
             while ty < y1:
-                cx, cy = tx + TILE_M / 2, ty + TILE_M / 2
-                lat = mid_lat + cy / KY
-                lon = mid_lon + cx / kx
-                try:
-                    cloud = reader.around(lat, lon, TILE_M / 2 + 2.0, resolution_m=RESOLUTION_M).ground()
-                except Exception as exc:  # a missing tile is a hole, not a halt
-                    print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {exc}", flush=True)
-                    ty += TILE_M
-                    continue
-                tiles += 1
-                if tiles == PROBE_TILES and not (count > 0).any():
-                    print(f"  no ground in the first {PROBE_TILES} tiles of {candidate}: not this collection", flush=True)
-                    empty_probe = True
-                    break
-                if len(cloud.east):
-                    ex = cloud.east + (cloud.origin_lon - mid_lon) * kx
-                    ny = cloud.north + (cloud.origin_lat - mid_lat) * KY
-                    keep = (ex >= tx) & (ex < tx + TILE_M) & (ny >= ty) & (ny < ty + TILE_M)
-                    ex, ny, up = ex[keep], ny[keep], cloud.up[keep]
-                    held = rng.random(ex.size) < HOLDOUT_SHARE
-                    if held.any():
-                        holdout.append(np.column_stack((ex[held], ny[held], up[held])))
-                    ex, ny, up = ex[~held], ny[~held], up[~held]
-                    ci = np.clip(((ex - x0) / step).astype(int), 0, cols - 1)
-                    ri = np.clip(((ny - y0) / step).astype(int), 0, rows - 1)
-                    np.add.at(total, (ri, ci), up)
-                    np.add.at(count, (ri, ci), 1)
+                grid.append((tx, ty))
                 ty += TILE_M
             tx += TILE_M
+
+        def fetch(tile, reader=reader):
+            cx, cy = tile[0] + TILE_M / 2, tile[1] + TILE_M / 2
+            return reader.around(mid_lat + cy / KY, mid_lon + cx / kx, TILE_M / 2 + 2.0,
+                                 resolution_m=RESOLUTION_M).ground()
+
+        column = None
+        for (tx, ty), cloud in ordered_prefetch(fetch, grid, TILE_THREADS):
+            if column is not None and tx != column:
+                print(f"  {tiles} tiles, {int((count > 0).sum())} cells so far", flush=True)
+            column = tx
+            if isinstance(cloud, Exception):  # a missing tile is a hole, not a halt
+                lat, lon = mid_lat + (ty + TILE_M / 2) / KY, mid_lon + (tx + TILE_M / 2) / kx
+                print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {cloud}", flush=True)
+                continue
+            tiles += 1
+            if tiles == PROBE_TILES and not (count > 0).any():
+                print(f"  no ground in the first {PROBE_TILES} tiles of {candidate}: not this collection", flush=True)
+                empty_probe = True
+                break
+            if len(cloud.east):
+                ex = cloud.east + (cloud.origin_lon - mid_lon) * kx
+                ny = cloud.north + (cloud.origin_lat - mid_lat) * KY
+                keep = (ex >= tx) & (ex < tx + TILE_M) & (ny >= ty) & (ny < ty + TILE_M)
+                ex, ny, up = ex[keep], ny[keep], cloud.up[keep]
+                held = rng.random(ex.size) < HOLDOUT_SHARE
+                if held.any():
+                    holdout.append(np.column_stack((ex[held], ny[held], up[held])))
+                ex, ny, up = ex[~held], ny[~held], up[~held]
+                ci = np.clip(((ex - x0) / step).astype(int), 0, cols - 1)
+                ri = np.clip(((ny - y0) / step).astype(int), 0, rows - 1)
+                np.add.at(total, (ri, ci), up)
+                np.add.at(count, (ri, ci), 1)
+        if not empty_probe:
             print(f"  {tiles} tiles, {int((count > 0).sum())} cells so far", flush=True)
         if not empty_probe and (count > 0).any():
             dataset = candidate

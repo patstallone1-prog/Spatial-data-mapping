@@ -31,6 +31,7 @@ import hashlib
 import itertools
 import json
 import math
+import os
 import shutil
 import sys
 import time
@@ -71,6 +72,9 @@ CELL_TRIES = 3
 #: The wait before each retry, seconds. DNS comes back in seconds; a throttled bucket takes
 #: longer, so the wait grows.
 CELL_BACKOFF_S = (5, 30, 120)
+#: Cells fetched at once (2026-10-29: a cell is ~9 s of waiting on the bucket and well under a
+#: second of measuring; one at a time, a city cell took 80 minutes).
+CELL_THREADS = int(os.environ.get("KERBSIDE_LIDAR_CELL_THREADS", "3"))
 
 
 def transient(message: str) -> bool:
@@ -84,7 +88,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from smc.imagery.region import get_region  # noqa: E402
 from smc.lidar.ept import EptReader  # noqa: E402
 from smc.lidar.region import STATION_M, building_height, street_kerbs  # noqa: E402
-from smc.net import use_certifi  # noqa: E402
+from smc.net import ordered_prefetch, use_certifi  # noqa: E402
 
 use_certifi()
 
@@ -156,32 +160,45 @@ def main() -> int:
     started = time.time()
     n_cells = 0
     failed_cells: list[str] = []
-    with journal.open("a") as out:
-        for (cx, cy), content in sorted(by_cell.items()):
-            key = f"{cx}:{cy}"
-            if key in done:
-                continue
-            if args.limit_cells and n_cells >= args.limit_cells:
-                break
-            n_cells += 1
-            centre_lon = lon0 + (cx + 0.5) * CELL_M / kx
-            centre_lat = lat0 + (cy + 0.5) * CELL_M / ky
-            reader = EptReader(dataset, cache_dir=cache_root / key)
-            cloud = None
-            failure = ""
-            for attempt in range(CELL_TRIES):
-                try:
-                    cloud = reader.around(centre_lat, centre_lon, CELL_M / 2 + REACH_M, resolution_m=RESOLUTION_M)
-                    failure = ""
+    todo = []
+    for (cx, cy), content in sorted(by_cell.items()):
+        key = f"{cx}:{cy}"
+        if key in done:
+            continue
+        if args.limit_cells and len(todo) >= args.limit_cells:
+            break
+        todo.append(((cx, cy), content))
+
+    def fetch(item):
+        """One cell's cloud, tried again on the network's failures: (cloud, failure)."""
+        (cx, cy), _content = item
+        key = f"{cx}:{cy}"
+        centre_lon = lon0 + (cx + 0.5) * CELL_M / kx
+        centre_lat = lat0 + (cy + 0.5) * CELL_M / ky
+        reader = EptReader(dataset, cache_dir=cache_root / key)
+        failure = ""
+        for attempt in range(CELL_TRIES):
+            try:
+                return reader.around(centre_lat, centre_lon, CELL_M / 2 + REACH_M,
+                                     resolution_m=RESOLUTION_M), ""
+            except Exception as exc:   # a cell the service will not serve is a gap, not a halt
+                failure = str(exc)
+                if not transient(failure) or attempt == CELL_TRIES - 1:
                     break
-                except Exception as exc:   # a cell the service will not serve is a gap, not a halt
-                    failure = str(exc)
-                    if not transient(failure) or attempt == CELL_TRIES - 1:
-                        break
-                    wait = CELL_BACKOFF_S[min(attempt, len(CELL_BACKOFF_S) - 1)]
-                    print(f"  cell {key}: {failure}; again in {wait} s", flush=True)
-                    shutil.rmtree(cache_root / key, ignore_errors=True)
-                    time.sleep(wait)
+                wait = CELL_BACKOFF_S[min(attempt, len(CELL_BACKOFF_S) - 1)]
+                print(f"  cell {key}: {failure}; again in {wait} s", flush=True)
+                shutil.rmtree(cache_root / key, ignore_errors=True)
+                time.sleep(wait)
+        return None, failure
+
+    with journal.open("a") as out:
+        # CELL_THREADS cells are fetched at once -- each is minutes of waiting on the bucket and
+        # seconds of measuring -- and measured and journalled one at a time in the grid's order,
+        # so the journal and every output are as a cell-at-a-time run writes them.
+        for ((cx, cy), content), fetched in ordered_prefetch(fetch, todo, CELL_THREADS):
+            key = f"{cx}:{cy}"
+            cloud, failure = fetched if isinstance(fetched, tuple) else (None, str(fetched))
+            n_cells += 1
             if failure:
                 # Journalled either way, so the run leaves a record of what it met -- but a
                 # network failure is marked to be tried again rather than counted as measured.

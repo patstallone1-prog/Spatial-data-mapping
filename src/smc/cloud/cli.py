@@ -35,6 +35,7 @@ import urllib.request
 from pathlib import Path
 
 from . import USER_AGENT
+from .stages import HOUSE_SAMPLE
 
 
 def _ops(path: str, body: dict | None = None) -> dict:
@@ -237,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("plan")
     p.add_argument("--cells", default="all")
     p.add_argument("--house-batches", type=int, default=0)
-    p.add_argument("--house-sample", type=int, default=24)
+    p.add_argument("--house-sample", type=int, default=HOUSE_SAMPLE)
     p.add_argument("--interiors", action="store_true", help="every region's interior engine batches")
     p.add_argument("--restaurant-rounds", type=int, default=0)
     p.add_argument("--house-ahead", type=int, default=0,
