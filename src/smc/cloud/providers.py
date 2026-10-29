@@ -46,6 +46,9 @@ class Pool:
     slots: int = 1
     #: Minutes without a job before a worker is stopped.
     idle_minutes: float = 10
+    #: Ready jobs a worker beyond the first must have to be launched: a pod is not rented for
+    #: one job another pod will have room for minutes later.
+    min_fill: int = 1
     #: Hours after which a worker takes no new job and is replaced (memory leaks, stuck mounts).
     max_hours: float = 24
     #: Billing granularity: an instance stopped early still costs this many hours.

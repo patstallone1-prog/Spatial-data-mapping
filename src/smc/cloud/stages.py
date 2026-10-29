@@ -97,6 +97,11 @@ SHARED_INPUTS: dict[str, tuple[str, ...]] = {
     "corridor-stats": ("data/sf_corridor/stats", "data/sf_corridor/depth"),
     "frontage-models": ("build/frontage-pilot-v2/model-cache", "build/facade-detail-model-cache"),
     "frontage-inputs": ("build/frontage-pilot-v2",),
+    # The house filter's world: each region's map and its photographs' metadata. ``docs/`` and
+    # the catalogues are kept out of the images, and without them every region came back
+    # ``missing_input`` and batches 1-2 screened nothing (2026-10-28). Uploaded by
+    # :func:`.migrate.migrate_house_inputs`, which keeps only the open providers' rows.
+    "house-inputs": (),
 }
 
 #: The house pipeline's state: the filter's and the matcher's journals and buckets. One state
@@ -104,6 +109,19 @@ SHARED_INPUTS: dict[str, tuple[str, ...]] = {
 HOUSE_STATE = ("build/frontage-live", "build/facade-match")
 HOUSE_REGIONS = ("sf-corridor", "sf-mission", "sf-haight-castro", "sf-sunset", "oakland-downtown",
                  "berkeley-downtown", "palo-alto-downtown", "san-jose-downtown")
+#: Photograph providers whose rows go to the cloud: openly licensed and fetched there by the
+#: filter itself. PandaSet's rows point at local benchmark pixels and stay on the Mac.
+HOUSE_PROVIDERS = ("mapillary", "kartaview", "panoramax")
+
+
+def house_input_paths(region: str) -> list[str]:
+    """What ``scripts/filter_frontage_photos.py`` (``paths_for``) reads for one region."""
+    if region == "sf-corridor":
+        page, catalog = "docs/sf-corridor-3d.json", "data/sf_corridor"
+    else:
+        page, catalog = f"docs/app-regions/{region}/sf-corridor-3d.json", f"data/regions/{region}/catalog"
+    terrain = page.rsplit("/", 1)[0] + "/sf-corridor-terrain"
+    return [page, f"{terrain}.json", f"{terrain}.bin", f"{catalog}/observations"]
 
 
 def cell_command(cell: str, stage: str, *, gap: bool) -> list[list[str]]:
@@ -164,7 +182,8 @@ def house_batch(number: int, sample: int, previous: str | None, *, device: str =
                    resource="gpu", command=steps,
                    depends=[previous] if previous else [],
                    restore_from=[previous] if previous else ["migrate:house-state"],
-                   shared=["frontage-models", "frontage-inputs"], save=list(HOUSE_STATE),
+                   shared=["frontage-models", "frontage-inputs", "house-inputs"],
+                   save=list(HOUSE_STATE),
                    # The filter only adds to its pixel store (put_if_absent); the matcher reads the
                    # review JPEGs. 43 of the state's 56 GB stay in the bucket, referenced.
                    carry=["build/frontage-live/pixel-store"],

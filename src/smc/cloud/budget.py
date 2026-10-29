@@ -19,6 +19,7 @@ up, plus storage charged daily from the bytes the checkpoints have stored.
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -37,6 +38,9 @@ class Budget:
     monthly_usd: float = 300.0
     #: Reaching this stops everything; must be at least ``monthly_usd``.
     hard_monthly_usd: float = 400.0
+    #: A warning is raised when rented workers have sat idle this much today, or when less than
+    #: this is left of the day's or the month's budget (:func:`warnings`).
+    warn_usd: float = 0.5
 
     def __post_init__(self):
         if self.hard_monthly_usd < self.monthly_usd:
@@ -61,6 +65,35 @@ def status(queue: Queue, budget: Budget, now: float | None = None) -> dict:
             "daily_usd": budget.daily_usd, "monthly_usd": budget.monthly_usd,
             "hard_monthly_usd": budget.hard_monthly_usd,
             "hard_stop": month >= budget.hard_monthly_usd}
+
+
+def charge_idle(queue: Queue, workers: list[dict], busy: set[str], seconds: float,
+                now: float) -> float:
+    """Add ``seconds`` of every live worker that held no job (booting included) to today's idle
+    spend, and return today's total. Not a charge: the instance time is already counted."""
+    day = day_start(now)
+    row = json.loads(queue.get_meta("idle_spend") or "{}")
+    if row.get("day") != day:
+        row = {"day": day, "usd": 0.0}
+    row["usd"] += sum(w["hourly_usd"] for w in workers if w["id"] not in busy) * max(0.0, seconds) / 3600
+    queue.set_meta("idle_spend", json.dumps(row))
+    return row["usd"]
+
+
+def warnings(s: dict, budget: Budget, idle_today: float, now: float) -> list[dict]:
+    """What the owner should hear about, each with a key that is stable for the day (the
+    watchdog reports a key once)."""
+    day = datetime.fromtimestamp(now, UTC).date().isoformat()
+    out = []
+    if idle_today >= budget.warn_usd:
+        out.append({"key": f"idle:{day}", "text": f"rented workers sat idle: ${idle_today:.2f} today"})
+    if budget.daily_usd - s["today_usd"] < budget.warn_usd:
+        out.append({"key": f"daily:{day}", "text": f"today's budget nearly spent: ${s['today_usd']:.2f} "
+                                                   f"of ${budget.daily_usd:.2f}"})
+    if budget.monthly_usd - s["month_usd"] < budget.warn_usd:
+        out.append({"key": f"monthly:{day[:7]}", "text": f"the month's budget nearly spent: "
+                                                         f"${s['month_usd']:.2f} of ${budget.monthly_usd:.2f}"})
+    return out
 
 
 #: How far ahead a launch looks: the next hour of every running worker and the new one.
