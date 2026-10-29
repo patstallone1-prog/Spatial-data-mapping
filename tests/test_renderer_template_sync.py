@@ -18,7 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_every_installed_city_uses_the_current_house_and_collision_code() -> None:
     current = _page_js()
     pages = [ROOT / "docs/app-model.html", *sorted((ROOT / "docs/app-regions").glob("*/app-model.html"))]
-    assert len(pages) == 8
+    # One viewer per built region; cloud releases add regions (docs/app-regions.json).
+    built = [r for r in json.loads((ROOT / "docs/app-regions.json").read_text())["regions"] if r.get("built")]
+    assert {ROOT / "docs" / r["path"] for r in built} == set(pages)
     for page in pages:
         text = page.read_text()
         for name in ("wallPanels", "regularHomeWindows", "buildHomeShell", "batchHomeShell",

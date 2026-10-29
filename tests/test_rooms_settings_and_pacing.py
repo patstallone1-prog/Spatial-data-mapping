@@ -178,7 +178,10 @@ def test_one_world_search_reaches_every_region_and_no_region_is_chosen() -> None
     assert len(index["regions"]) == len(built) >= 2
     names = {r["name"] for r in index["regions"]}
     regions_with_rows = {index["regions"][row[3]]["name"] for row in index["addresses"]}
-    assert regions_with_rows == names, "every built region's addresses are searchable"
+    # A cloud-released cell of open land or a suburb OpenStreetMap has no addresses for has none
+    # to search; every region built here does.
+    local = {r["name"] for r in built if r.get("published_via") != "cloud release"}
+    assert local <= regions_with_rows <= names, "every built region's addresses are searchable"
     js = _page_js()
     assert "new URL(\"search-index.json\"" in js and "elsewhere.addresses" in js
     # Travelling to a hit elsewhere loads that region's full model; no picker to choose it from.

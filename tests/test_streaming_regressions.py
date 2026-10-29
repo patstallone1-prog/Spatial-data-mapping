@@ -57,7 +57,9 @@ def test_committed_cell_indexes_match_their_current_sources():
 def test_generated_viewers_pin_the_matching_streaming_module():
     digest = hashlib.sha256((ROOT / "docs/world-streaming.mjs").read_bytes()).hexdigest()[:16]
     pages = [ROOT / "docs/app-model.html", *(ROOT / "docs/app-regions").glob("*/app-model.html")]
-    assert len(pages) == 8
+    # One viewer per built region; cloud releases add regions (docs/app-regions.json).
+    built = [r for r in json.loads((ROOT / "docs/app-regions.json").read_text())["regions"] if r.get("built")]
+    assert {ROOT / "docs" / r["path"] for r in built} == set(pages)
     for page in pages:
         assert f'world-streaming.mjs?rev={digest}' in page.read_text(), page
 
