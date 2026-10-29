@@ -104,6 +104,14 @@ def materialise(publisher: Publisher, release: dict, repo: Path, cells: list[str
             pass
 
 
+def unbuilt(repo: Path, release: dict) -> list[str]:
+    """The released cells whose app page has not been built from their data: each new one, and
+    one a promotion that stopped part way listed in regions.json without fetching (its page then
+    had no land mask and its addresses no search entry -- release f4fcedf5, 2026-10-29)."""
+    return sorted(cell for cell in release.get("cells", {})
+                  if not (repo / "docs/app-regions" / cell / "app-landwater.bin").is_file())
+
+
 def commit_paths(repo: Path, cells: list[str]) -> list[str]:
     """The changed files to commit: small files only, and none of a cell's data."""
     out = subprocess.run(["git", "status", "--porcelain", "-uall", "docs"], cwd=repo,
@@ -151,6 +159,7 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
     if not release and interiors is None:
         return {"changed": False, "reason": "nothing released"}
     added: list[str] = []
+    fetched: list[str] = []
     if release:
         map_path = repo / "docs/asset-map.json"
         previous = json.loads(map_path.read_text()) if map_path.exists() else None
@@ -160,8 +169,9 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
         registry = json.loads((repo / "data/regions/regions.json").read_text())
         added = update_regions(index, release, registry)
         index_path.write_text(json.dumps(index, indent=1) + "\n")
-        if added:
-            materialise(publisher, release, repo, added)
+        fetched = unbuilt(repo, release)
+        if fetched:
+            materialise(publisher, release, repo, fetched)
     furnished = promote_interiors(repo, interiors) if interiors is not None else None
     if rebuild:
         for cmd in ([sys.executable, "scripts/build_sf_corridor_3d.py", "--page-only", "--detail", "app",
@@ -169,7 +179,7 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
             subprocess.run(cmd, cwd=repo, check=True)
     version = release["version"] if release else time.strftime("interiors-%Y%m%d-%H%M%S", time.gmtime())
     return {"changed": True, "version": version, "added": added, "interiors": furnished,
-            "paths": commit_paths(repo, added)}
+            "paths": commit_paths(repo, fetched)}
 
 
 def _github(method: str, url: str, token: str, body: dict) -> dict:

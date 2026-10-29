@@ -37,8 +37,9 @@ PY = "python"
 #: share one folder and one journal, so they run one after another; cells run side by side.
 BASE_CHAIN = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "audit")
 #: After the audit: the photographs, the ground and the facade textures read against the built
-#: page, the page built again with them, then the lidar's trees planted on the page it serves.
-ENRICH_CHAIN = ("colours", "survey", "ground", "facades", "rebuild", "trees")
+#: page, the page built again with them, then the lidar's trees planted on the page it serves
+#: and every roof's colour read from above (the aerial photographs: no street photo needed).
+ENRICH_CHAIN = ("colours", "survey", "ground", "facades", "rebuild", "trees", "roofs")
 CELL_CHAIN = BASE_CHAIN + ENRICH_CHAIN
 
 
@@ -91,6 +92,8 @@ RULES: dict[str, StageRule] = {
                        stall_s=2700, optional=True, max_attempts=3),
     "facades": StageRule("cpu", 8 * 3600, network_bound=True, stall_s=2700, optional=True,
                          max_attempts=3),
+    "roofs": StageRule("cpu", 3600, network_bound=True, stall_s=1800, optional=True,
+                       max_attempts=3),
 }
 OPTIONAL_STAGES = tuple(name for name, rule in RULES.items() if rule.optional)
 PER_WORKER_CAPS = {name: rule.per_worker for name, rule in RULES.items() if rule.per_worker}
@@ -183,6 +186,16 @@ def publish_job(cell: str, gate: str, priority: int = 100) -> JobSpec:
     return JobSpec(id=f"cell:{cell}:publish", kind="publish", subject=cell, stage="publish",
                    resource="control", depends=[gate], restore_from=[gate],
                    save=[f"data/regions/{cell}"], priority=priority, max_attempts=6)
+
+
+def republish_job(cell: str, gate: str, last: str, priority: int = 100) -> JobSpec:
+    """A published cell again, with what stages added after its gate made: the gate's verdict
+    (restored first; publication reads it) under the chain's new end (restored over it)."""
+    stage = last.rsplit(":", 1)[-1]
+    return JobSpec(id=f"cell:{cell}:publish-{stage}", kind="publish", subject=cell,
+                   stage=f"publish-{stage}", resource="control", depends=[gate, last],
+                   restore_from=[gate, last], save=[f"data/regions/{cell}"], priority=priority,
+                   max_attempts=6)
 
 
 def house_batch(number: int, sample: int, previous: str | None, *, device: str = "cuda",

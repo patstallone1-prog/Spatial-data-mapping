@@ -63,6 +63,10 @@ OAM_SEARCH = "https://api.openaerialmap.org/meta"
 #: Drone mosaics older than this are not preferred to the 2025 survey: streets change.
 OAM_SINCE = "2020-01-01"
 OAM_READ_M = 0.1
+#: GDAL's remote reads (NOAA's and the drone mosaics' cloud-optimised GeoTIFFs) with a deadline.
+#: Without one a stalled connection waits forever: a 2 km cell's fetch sat for 70 minutes.
+REMOTE = {"GDAL_HTTP_TIMEOUT": 60, "GDAL_HTTP_CONNECTTIMEOUT": 15, "GDAL_HTTP_MAX_RETRY": 3,
+          "GDAL_HTTP_RETRY_DELAY": 2}
 
 
 def _get(url: str, timeout: float = 60) -> bytes:
@@ -119,7 +123,7 @@ def read_noaa(bounds: tuple[float, float, float, float]) -> tuple[np.ndarray, fl
     for url, (tw, ts, te, tn) in noaa_tiles():
         if te <= w or tw >= e or tn <= s or ts >= n:
             continue
-        with rasterio.Env(GDAL_HTTP_MAX_RETRY=3, GDAL_HTTP_RETRY_DELAY=2), rasterio.open("/vsicurl/" + url) as src:
+        with rasterio.Env(**REMOTE), rasterio.open("/vsicurl/" + url) as src:
             part = src.read(window=from_bounds(w, s, e, n, src.transform), boundless=True, fill_value=0,
                             out_shape=(src.count, size, size))
         fresh = part[4] > out[4]
@@ -169,7 +173,7 @@ def read_oam(image: dict, bounds: tuple[float, float, float, float]) -> tuple[np
     w, s, e, n = bounds
     size = round((e - w) / OAM_READ_M)
     # The warp is made onto the square itself: a warped VRT will not read outside its own frame.
-    with rasterio.open("/vsicurl/" + image["uuid"]) as src, \
+    with rasterio.Env(**REMOTE), rasterio.open("/vsicurl/" + image["uuid"]) as src, \
             WarpedVRT(src, crs=CRS, transform=transform_from(w, s, e, n, size, size), width=size, height=size,
                       resampling=Resampling.average, nodata=0) as vrt:
         data = vrt.read()
@@ -232,14 +236,18 @@ def fetch_square(region: str, sq: tuple[int, int], oam: list[dict]) -> dict | No
     return None
 
 
-def fetch_region(region: str, bbox: dict, *, workers: int = WORKERS, refresh: bool = False) -> dict:
+def fetch_region(region: str, bbox: dict, *, workers: int = WORKERS, refresh: bool = False,
+                 drone: bool = True) -> dict:
+    """The region's squares. ``drone=False`` passes over OpenAerialMap's mosaics: a reading that
+    wants a roof's colour, not a kerb's edge, gains nothing at 0.1 m over NOAA's or NAIP's, and a
+    mosaic's 0.1 m window of a far-off file is the slowest read there is."""
     folder = OUT / region
     folder.mkdir(parents=True, exist_ok=True)
     manifest_path = folder / "manifest.json"
     old = json.loads(manifest_path.read_text()) if manifest_path.exists() and not refresh else {"squares": []}
     done = {tuple(r["square"]): r for r in old["squares"] if (folder / f"{r['square'][0]}_{r['square'][1]}.rgb.tif").exists()}
     todo = [sq for sq in squares(bbox) if sq not in done]
-    oam = oam_images(bbox)
+    oam = oam_images(bbox) if drone else []
     sources = {s.key: asdict(s) for s in (NOAA_SF_2025, NAIP_2022)}
     sources.update({oam_source(i).key: asdict(oam_source(i)) for i in oam})
     with ThreadPoolExecutor(workers) as pool:

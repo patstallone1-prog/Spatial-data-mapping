@@ -58,13 +58,13 @@ from smc.net import use_certifi  # noqa: E402
 use_certifi()
 
 STAGES = ("discover", "osm", "terrain", "lidar", "imagery", "official", "build", "reconstruct", "audit",
-          "colours", "survey", "ground", "facades", "rebuild", "trees")
+          "colours", "survey", "ground", "facades", "rebuild", "trees", "roofs")
 #: What the facade and ground-cover runners added to a built region, as stages: the photographs'
 #: colours and survey, the ground cover and the facade textures, the page built again with
 #: them, then the lidar's trees planted on the ground it serves. Each judges a region on what it could find; an empty answer -- no
 #: photographs of a street, no city tree inventory -- is recorded, not failed, and the parity
 #: gate weighs it (smc.cloud.gate). So is an audit with no city kerb lines to measure against.
-EMPTY_IS_AN_ANSWER = ("audit", "colours", "survey", "ground", "trees", "facades")
+EMPTY_IS_AN_ANSWER = ("audit", "colours", "survey", "ground", "trees", "facades", "roofs")
 # The visual pilot requires licensed aerial images and surveyed truth.  Routine
 # region ingestion still finishes when that opt-in stage has no such inputs.
 DEFAULT_STAGES = tuple(stage for stage in STAGES if stage != "reconstruct")
@@ -170,6 +170,8 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
                   [site / ("app-sf-corridor-ground.json" if corridor else "sf-corridor-ground.json")]),
         "facades": ([PY, "scripts/enrich_region.py", "facades", region.name],
                     [site / "sf-corridor-chunks.json"]),
+        "roofs": ([PY, "scripts/enrich_region.py", "roofs", region.name],
+                  [site / "sf-corridor-roofs.json"]),
     }
 
 
@@ -228,6 +230,7 @@ DEPENDS_ON = {
     "facades": ("build",),
     "rebuild": ("colours", "survey", "ground", "facades"),
     "trees": ("rebuild",),
+    "roofs": ("rebuild",),
 }
 
 

@@ -87,11 +87,11 @@ def test_the_plan_is_every_gap_cell_and_named_region_and_resubmitting_adds_nothi
     q = Queue(tmp_path / "q.sqlite")
     store = LocalStore(tmp_path / "private")
     first = submit_plan(q, ROOT, store, cells=[gap[0]["name"]], house_batches=2)
-    # Eight base stages, six enrichment stages, the gate, the publication, two batches.
-    assert first["added"] == 8 + 6 + 2 + 2
+    # Eight base stages, seven enrichment stages, the gate, the publication, two batches.
+    assert first["added"] == 8 + 7 + 2 + 2
     stages = [j["stage"] for j in q.jobs(subject=gap[0]["name"], kind="cell_stage")]
-    assert stages[-6:] == ["colours", "survey", "ground", "facades", "rebuild", "trees"]
-    assert q.job(f"cell:{gap[0]['name']}:gate")["depends"] == [f"cell:{gap[0]['name']}:trees"]
+    assert stages[-7:] == ["colours", "survey", "ground", "facades", "rebuild", "trees", "roofs"]
+    assert q.job(f"cell:{gap[0]['name']}:gate")["depends"] == [f"cell:{gap[0]['name']}:roofs"]
     assert submit_plan(q, ROOT, store, cells=[gap[0]["name"]], house_batches=2)["added"] == 0
     q.close()
 
@@ -107,7 +107,30 @@ def test_a_grown_chain_moves_a_held_gate_to_its_new_end(tmp_path):
     q._db.execute("UPDATE jobs SET state='held' WHERE id=?", (f"cell:{name}:gate",))
     submit_plan(q, ROOT, LocalStore(tmp_path / "private"), cells=[name])
     gate = q.job(f"cell:{name}:gate")
-    assert gate["state"] == "pending" and gate["depends"] == [f"cell:{name}:trees"]
+    assert gate["state"] == "pending" and gate["depends"] == [f"cell:{name}:roofs"]
+    assert q.job(f"cell:{name}:publish-roofs") is None, "an unpublished cell is gated afresh"
+    q.close()
+
+
+def test_a_cell_published_before_its_chain_grew_is_published_again_with_its_verdict(tmp_path):
+    """The roofs (or any stage added later) reach a released cell without a second gate, so a
+    reviewer's approval stands: one more publication restores the gate, then the new end."""
+    from smc.cloud.stages import gate_job, publish_job
+
+    q = Queue(tmp_path / "q.sqlite")
+    store = LocalStore(tmp_path / "private")
+    name = json.loads((ROOT / "data/regions/gap-plan.json").read_text())["jobs"][0]["name"]
+    q.submit(gate_job(name, f"cell:{name}:trees"), state="done",
+             output={"tree": "t-gated", "decision": "approved", "reviewer": "owner"})
+    q.submit(publish_job(name, f"cell:{name}:gate"), state="done", output={"tree": "t-gated"})
+    submit_plan(q, ROOT, store, cells=[name])
+    gate = q.job(f"cell:{name}:gate")
+    assert gate["state"] == "done" and gate["output"]["decision"] == "approved"
+    again = q.job(f"cell:{name}:publish-roofs")
+    assert again["kind"] == "publish" and again["state"] == "pending"
+    assert again["depends"] == [f"cell:{name}:gate", f"cell:{name}:roofs"]
+    assert again["spec"]["restore_from"] == again["depends"], "the verdict first, the roofs over it"
+    assert submit_plan(q, ROOT, store, cells=[name])["added"] == 0
     q.close()
 
 
@@ -263,6 +286,13 @@ def test_site_promotion_lists_new_cells_and_commits_none_of_their_data(tmp_path)
     (repo / "docs/app-regions/gap-a").mkdir(parents=True)
     (repo / "docs/app-regions/gap-a/app-model.html").write_text("<html>")
     assert commit_paths(repo, ["gap-a"]) == ["docs/app-regions/gap-a/app-model.html", "docs/asset-map.json"]
+    # A cell listed by a promotion that stopped part way is still fetched: its page has no mask yet.
+    from smc.cloud.site import unbuilt
+
+    release["cells"]["gap-b"] = {}
+    assert unbuilt(repo, release) == ["gap-a", "gap-b"]
+    (repo / "docs/app-regions/gap-a/app-landwater.bin").write_bytes(b"\0")
+    assert unbuilt(repo, release) == ["gap-b"]
 
 
 def test_estimates_divide_network_bound_work_by_the_slots():
