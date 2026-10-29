@@ -6356,6 +6356,111 @@
     -122.5065603,
     37.7415473
    ]
+  },
+  "240219342": {
+   "file": "../inferred-stores/retail-osm-240219342.json",
+   "origin_lon_lat": [
+    -122.427251,
+    37.7682034
+   ]
+  },
+  "775827045": {
+   "file": "../inferred-stores/retail-osm-775827045.json",
+   "origin_lon_lat": [
+    -122.26054,
+    37.8129998
+   ]
+  },
+  "219058329": {
+   "file": "../inferred-stores/retail-osm-219058329.json",
+   "origin_lon_lat": [
+    -122.4888471,
+    37.7541184
+   ]
+  },
+  "1262642420": {
+   "file": "../inferred-stores/retail-osm-1262642420.json",
+   "origin_lon_lat": [
+    -122.4233079,
+    37.7899593
+   ]
+  },
+  "26135377": {
+   "file": "../inferred-stores/retail-osm-26135377.json",
+   "origin_lon_lat": [
+    -122.4329693,
+    37.8043561
+   ]
+  },
+  "28941473": {
+   "file": "../inferred-stores/retail-osm-28941473.json",
+   "origin_lon_lat": [
+    -122.4740961,
+    37.7434424
+   ]
+  },
+  "480561233": {
+   "file": "../inferred-stores/retail-osm-480561233.json",
+   "origin_lon_lat": [
+    -122.4237535,
+    37.7633039
+   ]
+  },
+  "256903893": {
+   "file": "../inferred-stores/retail-osm-256903893.json",
+   "origin_lon_lat": [
+    -122.4344907,
+    37.7627488
+   ]
+  },
+  "288387363": {
+   "file": "houses/sf-corridor/osm-288387363.json",
+   "origin_lon_lat": [
+    -122.4271164,
+    37.806587
+   ]
+  },
+  "288387358": {
+   "file": "houses/sf-corridor/osm-288387358.json",
+   "origin_lon_lat": [
+    -122.4273596,
+    37.8070677
+   ]
+  },
+  "262106868": {
+   "file": "houses/sf-corridor/osm-262106868.json",
+   "origin_lon_lat": [
+    -122.43927,
+    37.7930222
+   ]
+  },
+  "262106873": {
+   "file": "houses/sf-corridor/osm-262106873.json",
+   "origin_lon_lat": [
+    -122.439535,
+    37.7929872
+   ]
+  },
+  "262111825": {
+   "file": "houses/sf-corridor/osm-262111825.json",
+   "origin_lon_lat": [
+    -122.4377035,
+    37.7923499
+   ]
+  },
+  "262426952": {
+   "file": "houses/sf-corridor/osm-262426952.json",
+   "origin_lon_lat": [
+    -122.446555,
+    37.7920374
+   ]
+  },
+  "262426961": {
+   "file": "houses/sf-corridor/osm-262426961.json",
+   "origin_lon_lat": [
+    -122.4468186,
+    37.7919704
+   ]
   }
  }
 }

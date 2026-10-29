@@ -134,6 +134,23 @@ def house_input_paths(region: str) -> list[str]:
     return [page, f"{terrain}.json", f"{terrain}.bin", f"{catalog}/observations"]
 
 
+def local_interior_batch(region: str, index: int, revision: str, input_digest: str,
+                         priority: int = 100) -> JobSpec:
+    """Independent CPU layout batch, using the same leased/checkpointed worker as facades.
+
+    A completed batch records failures too: acceptance is per house, not a fake all-pass
+    job. Only accepted hypotheses can subsequently be published by the existing publisher.
+    All command/save paths are repository-relative and work unchanged on a cloud worker.
+    """
+    out = f"build/interior-production/{revision}"
+    return JobSpec(id=f"interior:{region}:{index}:{revision}:{input_digest}", kind="house_batch",
+                   subject=region, stage="interior", resource="cpu", priority=priority,
+                   command=[[PY, "scripts/run_interior_engine.py", "--regions", region,
+                             "--max-area", "500", "--marina-first", "--batch-index", str(index),
+                             "--batch-key", input_digest, "--out", out]],
+                   save=[f"{out}/{region}/batch-{index:03d}-{input_digest}"], timeout_s=3600)
+
+
 def cell_command(cell: str, stage: str, *, gap: bool) -> list[list[str]]:
     if gap:
         return [[PY, "scripts/ingest_gap_region.py", cell, "--allow-intake", "--stages", stage]]

@@ -69,6 +69,8 @@ def validate_house(house: dict) -> dict:
             if (
                 o["leaf_count"]
                 and not o.get("entrance")
+                and not o.get("unit_entrance")
+                and not o.get("garage_access")
                 and not any(
                     rooms.get(key, {}).get("kind")
                     in {"bedroom", "primary_bedroom", "full_bathroom", "toilet", "office"}
@@ -94,7 +96,8 @@ def validate_house(house: dict) -> dict:
             if not shapes[o["room_id"]].buffer(0.002).covers(p):
                 errors.append(f"object outside room {o['id']}")
             if o["support"]["kind"] == "floor":
-                if abs(o["position_m"][1] - floor["elevation_m"]) > 0.001:
+                room_y = rooms[o["room_id"]].get("elevation_m", floor["elevation_m"])
+                if abs(o["position_m"][1] - room_y) > 0.001:
                     errors.append(f"floating floor object {o['id']}")
                 for portal in floor["openings"]:
                     if o["room_id"] in portal["rooms"] and p.intersects(shape(portal["clearance"])):
@@ -199,15 +202,13 @@ def validate_house(house: dict) -> dict:
         lo, hi = stair["from_level"], stair["to_level"]
         lower, upper = house["storeys"][lo], house["storeys"][hi]
         core = shape(stair["footprint"])
-        edges.append((f"{house['id']}:L{lo}:stair", f"{house['id']}:L{hi}:stair"))
+        from_room = stair.get("from_room", f"{house['id']}:L{lo}:stair")
+        to_room = stair.get("to_room", f"{house['id']}:L{hi}:stair")
+        edges.append((from_room, to_room))
         if stair.get("access_segment"):
             access = shape(stair["access_segment"])
-            for floor in (lower, upper):
-                portals = [
-                    shape(o["segment"])
-                    for o in floor["openings"]
-                    if f"{house['id']}:L{floor['level']}:stair" in o["rooms"]
-                ]
+            for floor, room_id in ((lower, from_room), (upper, to_room)):
+                portals = [shape(o["segment"]) for o in floor["openings"] if room_id in o["rooms"]]
                 if not any(line.buffer(0.003).covers(access) for line in portals):
                     errors.append("stair flight exit is walled off")
                 if any(
@@ -231,7 +232,11 @@ def validate_house(house: dict) -> dict:
             errors.append("stairs exceed configured geometric limits")
         if abs(stair["steps"][-1]["top_m"] - upper["elevation_m"]) > 0.001:
             errors.append("stairs do not meet upper floor elevation")
-    if len(house["stairs"]) != len(house["storeys"]) - 1:
+    required = len(house["storeys"]) - 1
+    count = len(house["stairs"])
+    if count < required or (
+        house.get("schema") != "kerbside.inferred_residential/1" and count != required
+    ):
         errors.append("storeys are missing stair connections")
     reached = {"outside"}
     while True:

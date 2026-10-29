@@ -1,0 +1,9 @@
+{
+  "schema": "kerbside.interior_envelopes/1",
+  "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+  "canonical_source_sha256": "15d3edf7b2140e399fa61d8557f721087642cda586eb5e001e65333df6828b4a",
+  "buildings": {},
+  "rejected": {
+    "retail-osm-775827045": "no habitable shell"
+  }
+}

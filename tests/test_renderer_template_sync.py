@@ -85,8 +85,13 @@ def test_entire_app_module_and_release_manifest_match_authoritative_source() -> 
     assert set(release["consumers"]) == {str(p.relative_to(ROOT / "docs")) for p in pages}
     for page in pages:
         text = page.read_text()
-        assert f'name="kerbside-renderer-sha256" content="{source_hash}"' in text
+        consumer_hash = release["consumer_renderer_sha256"][str(page.relative_to(ROOT / "docs"))]
+        assert f'name="kerbside-renderer-sha256" content="{consumer_hash}"' in text
         assert release["consumers"][str(page.relative_to(ROOT / "docs"))] == hashlib.sha256(page.read_bytes()).hexdigest()
+        if page.name == "meta.html":
+            # The Quest build is independent: Mac-only releases intentionally leave it alone.
+            continue
+        assert consumer_hash == source_hash
         module = text.split('<script type="module">', 1)[1].split("</script>", 1)[0]
         # These three routes are the only supported consumer substitutions.
         module = module.replace('const PAYLOAD_URL = "sf-corridor-3d.json";', 'const PAYLOAD_URL = asset("sf-corridor-3d.json");')

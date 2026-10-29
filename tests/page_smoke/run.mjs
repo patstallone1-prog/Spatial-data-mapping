@@ -16,12 +16,14 @@ function stub(name = "stub") {
       if (p === Symbol.iterator) return function* () {};
       if (p === Symbol.hasInstance) return () => false;
       if (p === "then") return undefined;
-      if (p === "length") return 0;
+      // Vector3.length() is a method, unlike array/function length. Preserve its
+      // chain identity through clone/sub so real grounded fence rails can boot.
+      if (p === "length") return name === "Vector3" ? () => 0 : 0;
       if (p === "toJSON") return () => null;
-      return stub(String(p));
+      return stub(name === "Vector3" ? name : String(p));
     },
-    apply() { return stub(); },
-    construct() { return stub(); },
+    apply() { return stub(name); },
+    construct() { return stub(name); },
     set() { return true; },
     has() { return true; },
   });

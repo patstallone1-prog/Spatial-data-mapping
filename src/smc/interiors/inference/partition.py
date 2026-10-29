@@ -14,6 +14,7 @@ from shapely import affinity
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 
+from smc.interiors.inference.memo import geometry_cached
 from smc.interiors.inference.model import HouseInput
 
 HALL_WIDTH = 1.12
@@ -37,20 +38,22 @@ def lines(g) -> list[LineString]:
     return [p for x in getattr(g, "geoms", []) for p in lines(x)]
 
 
+@geometry_cached
 def width(p: Polygon) -> float:
     q = list(p.minimum_rotated_rectangle.exterior.coords)
     return min(math.dist(q[i], q[i + 1]) for i in range(4))
 
 
+@geometry_cached
 def shared(a, b):
     return a.boundary.intersection(b.boundary.buffer(1e-6, cap_style=2))
 
 
-def split_candidates(p: Polygon, hall, count: int):
+def split_candidates(p: Polygon, hall, count: int, compact=False):
     x0, y0, x1, y1 = p.bounds
     for axis in (0, 1):
         lo, hi = ((x0, x1), (y0, y1))[axis]
-        for f in (0.5, 0.4, 0.6, 0.3, 0.7):
+        for f in (0.5, 0.4, 0.6, 0.3, 0.7, 0.42, 0.58) if compact else (0.5, 0.4, 0.6, 0.3, 0.7):
             v = lo + (hi - lo) * f
             cutter = (
                 box(v - HALL_WIDTH / 2, y0 - 1, v + HALL_WIDTH / 2, y1 + 1)
@@ -63,7 +66,9 @@ def split_candidates(p: Polygon, hall, count: int):
                 continue
             if hall is not None and shared(seam, hall).length < HALL_WIDTH * 0.7:
                 continue
-            if any(q.area < 7 or width(q) < 2.25 for q in parts):
+            if any(q.area < 7 or width(q) < (1.5 if compact else 2.25) for q in parts):
+                continue
+            if compact and max(width(q) for q in parts) < 2.25:
                 continue
             areas = sorted(q.area for q in parts)
             # A remaining one-room leaf may be a bathroom; leave enough area for beds elsewhere.
@@ -72,21 +77,28 @@ def split_candidates(p: Polygon, hall, count: int):
             yield score, parts, seam
 
 
-def subdivide(regions: list[Polygon], hall, count: int):
+def subdivide(regions: list[Polygon], hall, count: int, compact=False):
+    parts, result_hall = _subdivide(tuple(regions), hall, count, compact)
+    return list(parts), result_hall
+
+
+@geometry_cached
+def _subdivide(regions: tuple[Polygon, ...], hall, count: int, compact=False):
     regions = list(regions)
     while len(regions) < count:
         choices = []
         for i, p in enumerate(regions):
-            for cost, parts, seam in split_candidates(p, hall, count - len(regions) + 1):
+            for cost, parts, seam in split_candidates(p, hall, count - len(regions) + 1, compact):
                 choices.append((cost - p.area / 200, i, parts, seam))
         if not choices:
             raise ValueError("not enough space for the requested room program and circulation")
         _, i, parts, seam = min(choices, key=lambda c: c[0])
         regions[i : i + 1] = parts
         hall = unary_union([hall, seam])
-    return regions, hall
+    return tuple(regions), hall
 
 
+@geometry_cached
 def open_split(p: Polygon, ratio: float = 0.5, preferred_axis: int = 0) -> tuple[Polygon, Polygon]:
     """Split functional zones with no wall or corridor between them."""
     x0, y0, x1, y1 = p.bounds
@@ -200,7 +212,7 @@ def _partition_candidates(
                         )
                         utility = n > 1 and private[0].area > 24 and not spec.office
                         count = beds + 1 + int(spec.office) + int(utility)
-                        private, hall = subdivide(private, hall, count)
+                        private, hall = subdivide(private, hall, count, spec.compact_program)
                         # Kitchen and dining share a wide boundary and open directly to living.
                         living, rest = open_split(public, 0.52, public_axis)
                         if rest.distance(entrance) + 0.05 < living.distance(entrance):
@@ -209,7 +221,7 @@ def _partition_candidates(
                         rooms.extend([("living", living), ("kitchen", kitchen), ("dining", dining)])
                     else:
                         beds = math.ceil(bed_left / (n - level))
-                        private, hall = subdivide(parts, hall, beds + 1)
+                        private, hall = subdivide(parts, hall, beds + 1, spec.compact_program)
                     private.sort(key=lambda q: q.area)
                     bath = private.pop(0)
                     # A compact ground floor WC is allowed only when a full bath exists above.

@@ -75,6 +75,8 @@ build/building-colours/
 # Checkpoint parts for the semantic pass; compacted into semantics-000.parquet when it ends.
 data/observation_enrichment/semantics-parts/
 node_modules/
+node_modules
+.kerbside-index.json
 # Rendered from .env.local; carries the EOS client secret.
 unreal/Kerbside/Config/DefaultEngine.ini
 unreal/Kerbside/Binaries/
@@ -155,3 +157,7 @@ cloud/infra/terraform/*.tfstate*
 # Overture places pulls and their per-region joins (scripts/fetch_places.py); kept in the private bucket.
 data/places
 data/ortho
+# Local residential program reviews are separate from the fixed acceptance cohort.
+/docs/inferred-residential/overrides/
+
+/docs/inferred-stores/overrides/

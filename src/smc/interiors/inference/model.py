@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -53,14 +54,72 @@ class HouseInput:
     total_height_m: float | None = None
     source: str = "user supplied footprint"
     envelope: dict | None = None
+    households: int = 1
+    units_per_floor: tuple[int, ...] | None = None
+    garages: tuple[dict, ...] = ()
+    garage_cars: int | None = None
+    garage_mode: str = "auto"
+    entrance_level: int = 0
+    compact_program: bool = False
+    apartment_layout: str = "auto"
+    units_by_floor: tuple[tuple[str, ...], ...] | None = None
 
     def __post_init__(self) -> None:
         polygon(self.footprint)
+        if type(self.entrance_level) is not int or not 0 <= self.entrance_level < len(self.storeys):
+            raise ValueError("entrance_level must identify a supplied floor")
+        if type(self.households) is not int or not 1 <= self.households <= 20:
+            raise ValueError("residential inference accepts one to twenty separate households")
+        if self.apartment_layout not in {"auto", "perimeter", "compact", "shared_hall"}:
+            raise ValueError("unknown apartment layout strategy")
+        if self.units_by_floor is not None:
+            if len(self.units_by_floor) != len(self.storeys):
+                raise ValueError("units_by_floor must describe every supplied floor")
+            if any(not isinstance(row, (list, tuple)) for row in self.units_by_floor):
+                raise ValueError("units_by_floor rows must be lists of household labels")
+            labels = [label for row in self.units_by_floor for label in row]
+            if any(
+                not isinstance(label, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", label)
+                for label in labels
+            ):
+                raise ValueError(
+                    "apartment labels must be letters, numbers, underscores or hyphens"
+                )
+            if len(set(labels)) != self.households or any(
+                len(set(row)) != len(row) for row in self.units_by_floor
+            ):
+                raise ValueError("units_by_floor must name every household once per occupied floor")
+            for label in set(labels):
+                levels = [i for i, row in enumerate(self.units_by_floor) if label in row]
+                if levels != list(range(min(levels), max(levels) + 1)):
+                    raise ValueError(
+                        "a private multi-floor apartment must occupy contiguous levels"
+                    )
+        if self.units_per_floor is not None and (
+            len(self.units_per_floor) != len(self.storeys)
+            or any(type(n) is not int or not 0 <= n <= 20 for n in self.units_per_floor)
+            or (self.units_by_floor is None and sum(self.units_per_floor) != self.households)
+            or (
+                self.units_by_floor is not None
+                and self.units_per_floor != tuple(map(len, self.units_by_floor))
+            )
+        ):
+            raise ValueError(
+                "units_per_floor must allocate every household across the supplied floors"
+            )
+        if self.garage_cars is not None and (
+            type(self.garage_cars) is not int or not 1 <= self.garage_cars <= 4
+        ):
+            raise ValueError("garage_cars must be an integer from one to four")
+        if self.garage_mode not in {"auto", "room", "floor"}:
+            raise ValueError("garage_mode must be auto, room or floor")
+        if self.garage_cars and not self.garages:
+            raise ValueError("garage capacity needs recorded garage openings; none may be invented")
         if not self.id or not 1 <= len(self.storeys) <= 6:
             raise ValueError("single-family v1 accepts an id and one to six storeys")
         for s in self.storeys:
-            if not math.isfinite(s.height_m) or not 2.4 <= s.height_m <= 7:
-                raise ValueError("storey heights must be finite and 2.4-7 m")
+            if not math.isfinite(s.height_m) or not 2.3 <= s.height_m <= 7:
+                raise ValueError("storey heights must be finite and 2.3-7 m")
             p = polygon(s.footprint if s.footprint is not None else self.footprint)
             if p.area < 48:
                 raise ValueError("single-family v1 requires at least 48 m² per storey")
@@ -88,6 +147,10 @@ class HouseInput:
     def from_json(cls, row: dict) -> HouseInput:
         if row.get("units", "metres") != "metres":
             raise ValueError("convert input coordinates to local metres before inference")
+        if row.get("units_by_floor") is not None and any(
+            not isinstance(labels, (list, tuple)) for labels in row["units_by_floor"]
+        ):
+            raise ValueError("units_by_floor rows must be lists of household labels")
         return cls(
             envelope=row.get("envelope"),
             id=str(row["id"]),
@@ -104,6 +167,17 @@ class HouseInput:
             office=row.get("office", False),
             total_height_m=row.get("total_height_m"),
             source=row.get("source", "user input"),
+            households=row.get("households", row.get("families", 1)),
+            units_per_floor=tuple(row["units_per_floor"]) if "units_per_floor" in row else None,
+            garages=tuple(row.get("garages", (row.get("envelope") or {}).get("garages", []))),
+            garage_cars=row.get("garage_cars"),
+            garage_mode=row.get("garage_mode", "auto"),
+            entrance_level=row.get("entrance_level", 0),
+            compact_program=bool(row.get("compact_program", False)),
+            apartment_layout=row.get("apartment_layout", "auto"),
+            units_by_floor=tuple(tuple(labels) for labels in row["units_by_floor"])
+            if row.get("units_by_floor") is not None
+            else None,
         )
 
 
@@ -113,8 +187,23 @@ def stamp_inference(document: dict, confidence: float) -> dict:
     for floor in document.get("storeys", []):
         groups.append([floor])
         groups.extend(floor.get(key, []) for key in ("rooms", "objects", "openings", "walls"))
+        groups.extend(
+            floor.get(key, []) for key in ("surface_patches", "level_changes", "outdoor_areas")
+        )
+        groups.extend(change.get("steps", []) for change in floor.get("level_changes", []))
     groups.append(document.get("stairs", []))
+    groups.extend(
+        o.get("stock", [])
+        for floor in document.get("storeys", [])
+        for o in floor.get("objects", [])
+    )
+    groups.extend(
+        document.get(key, [])
+        for key in ("residential_units", "garages", "ramps", "elevators", "sections", "checkouts")
+    )
+    groups.extend(garage.get("parking_bays", []) for garage in document.get("garages", []))
     groups.extend(stair.get("steps", []) for stair in document.get("stairs", []))
+    groups.extend(floor.get("parking_bays", []) for floor in document.get("storeys", []))
     envelope = document.get("envelope") or {}
     groups.extend(envelope.get(key, []) for key in ("windows", "balconies"))
     for rows in groups:

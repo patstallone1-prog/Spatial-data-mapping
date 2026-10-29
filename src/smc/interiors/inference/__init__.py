@@ -1,4 +1,4 @@
-"""Footprint-constrained, explicitly inferred single-family interiors.
+"""Footprint-constrained inferred houses, small apartment buildings and garages.
 
 The source-plan adapters in ``smc.interiors`` remain observations of their source drawings.
 This package creates hypotheses and never writes into those observed templates.

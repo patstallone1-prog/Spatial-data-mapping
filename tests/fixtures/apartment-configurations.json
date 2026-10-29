@@ -1,0 +1,518 @@
+[
+  {
+    "id": "irregular-single-apartment",
+    "name": "Irregular Single Apartment",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            12.0
+          ],
+          [
+            10.0,
+            12.0
+          ],
+          [
+            10.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.0
+      }
+    ],
+    "households": 1,
+    "units_by_floor": [
+      [
+        "home"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      0.8,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "three-stacked-apartments",
+    "name": "Three Stacked Apartments",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      },
+      {
+        "height_m": 3.0
+      }
+    ],
+    "households": 3,
+    "units_by_floor": [
+      [
+        "ground"
+      ],
+      [
+        "middle"
+      ],
+      [
+        "top"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      0.8,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "eight-double-loaded",
+    "name": "Eight Double Loaded",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            26.0,
+            0.0
+          ],
+          [
+            26.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            26.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 8,
+    "units_by_floor": [
+      [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      [
+        "E",
+        "F",
+        "G",
+        "H"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      13,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "mixed-duplex-and-singles",
+    "name": "Mixed Duplex And Singles",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            18.0,
+            0.0
+          ],
+          [
+            18.0,
+            19.0
+          ],
+          [
+            0.0,
+            19.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            18.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 3,
+    "units_by_floor": [
+      [
+        "duplex",
+        "lower"
+      ],
+      [
+        "duplex",
+        "upper"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      0.8,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "one-below-two",
+    "name": "One Below Two",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            14.0,
+            0.0
+          ],
+          [
+            14.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            14.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.0
+      },
+      {
+        "height_m": 2.8
+      }
+    ],
+    "households": 3,
+    "units_by_floor": [
+      [
+        "solo"
+      ],
+      [
+        "left",
+        "right"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      0.8,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "irregular-two-below-three",
+    "name": "Irregular Two Below Three",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            27.0,
+            0.0
+          ],
+          [
+            27.0,
+            20.0
+          ],
+          [
+            22.0,
+            20.0
+          ],
+          [
+            22.0,
+            26.0
+          ],
+          [
+            0.0,
+            26.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.0
+      },
+      {
+        "height_m": 2.9,
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                25.0,
+                0.0
+              ],
+              [
+                25.0,
+                19.0
+              ],
+              [
+                20.0,
+                19.0
+              ],
+              [
+                20.0,
+                24.0
+              ],
+              [
+                0.0,
+                24.0
+              ],
+              [
+                0.0,
+                0.0
+              ]
+            ]
+          ]
+        }
+      }
+    ],
+    "households": 5,
+    "units_by_floor": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "C",
+        "D",
+        "E"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      0.8,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "six-stacked-pairs",
+    "name": "Six Stacked Pairs",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            20.0,
+            0.0
+          ],
+          [
+            20.0,
+            19.0
+          ],
+          [
+            0.0,
+            19.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 3.0
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 6,
+    "units_by_floor": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "C",
+        "D"
+      ],
+      [
+        "E",
+        "F"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      10,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  },
+  {
+    "id": "four-below-two-duplexes",
+    "name": "Four Below Two Duplexes",
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            26.0,
+            0.0
+          ],
+          [
+            26.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            26.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "storeys": [
+      {
+        "height_m": 3.1
+      },
+      {
+        "height_m": 2.9
+      }
+    ],
+    "households": 4,
+    "units_by_floor": [
+      [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      [
+        "A",
+        "D"
+      ]
+    ],
+    "apartment_layout": "shared_hall",
+    "entrance": [
+      13,
+      0
+    ],
+    "source": "synthetic apartment configuration, not a measured building"
+  }
+]

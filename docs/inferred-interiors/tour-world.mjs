@@ -6,14 +6,22 @@ export function segmentDistance(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.
 export class TourWorld {
  constructor(house,doors=[]){this.house=house;this.doors=doors;this.radius=.25;}
  level(feet){return this.house.storeys.filter(f=>f.elevation_m<=feet+.22).at(-1)||this.house.storeys[0];}
- surface(x,z,feet){let best=null;for(const f of this.house.storeys)if(f.elevation_m<=feet+.22&&inPolygon(x,z,f.inside)&&!(f.slab_holes||[]).some(p=>inPolygon(x,z,p)))best=f.elevation_m;
- for(const stair of this.house.stairs)for(const s of stair.steps)if(s.top_m<=feet+.22&&(inPolygon(x,z,s.footprint)||s.footprint.coordinates[0].slice(1).some((b,i)=>segmentDistance(x,z,s.footprint.coordinates[0][i],b)<1e-5))&&(best===null||s.top_m>best))best=s.top_m;
+ surface(x,z,feet){let best=null;for(const f of this.house.storeys)if((inPolygon(x,z,f.inside)||(f.outdoor_areas||[]).some(a=>inPolygon(x,z,a.polygon)))&&!(f.slab_holes||[]).some(p=>inPolygon(x,z,p))){
+  const patch=(f.surface_patches||[]).find(p=>inPolygon(x,z,p.polygon)),y=patch?.elevation_m??f.elevation_m;if(y<=feet+.22&&(best===null||y>best))best=y;}
+
+ for(const stair of [...this.house.stairs,...this.house.storeys.flatMap(f=>f.level_changes||[])])for(const s of stair.steps)if(s.top_m<=feet+.22&&(inPolygon(x,z,s.footprint)||s.footprint.coordinates[0].slice(1).some((b,i)=>segmentDistance(x,z,s.footprint.coordinates[0][i],b)<1e-5))&&(best===null||s.top_m>best))best=s.top_m;
+ for(const ramp of this.house.ramps||[])if(inPolygon(x,z,ramp.footprint)){
+  const [a,b]=[ramp.start_m,ramp.end_m],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
+  const y=ramp.bottom_m+t*(ramp.top_m-ramp.bottom_m);if(y<=feet+.22&&(best===null||y>best))best=y;
+ }
  return best;
  }
  clear(x,z,feet){const f=this.level(feet),r=this.radius;
- if(!inPolygon(x,z,f.inside))return false;
+ const domain=(x,z)=>inPolygon(x,z,f.inside)||(f.outdoor_areas||[]).some(a=>inPolygon(x,z,a.polygon));
+ if(!domain(x,z))return false;
+ if(f.outdoor_areas)for(let i=0;i<8;i++)if(!domain(x+Math.cos(i*Math.PI/4)*r,z+Math.sin(i*Math.PI/4)*r))return false;
  // A window stays a wall at walking height. Balconies need an evidenced door to be walkable.
- for(const ring of f.inside.coordinates)for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r)return false;
+ for(const ring of f.inside.coordinates)for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r&&!(f.outdoor_areas&&f.openings.some(o=>{if(!o.entrance)return false;const [a,b]=o.segment.coordinates,dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz),t=((x-a[0])*dx+(z-a[1])*dz)/L;return t>r&&t<L-r&&segmentDistance(x,z,a,b)<r+.08;})))return false;
  for(const w of f.walls){const c=w.segment.coordinates;for(let i=0;i<c.length-1;i++)if(segmentDistance(x,z,c[i],c[i+1])<r+.05)return false;}
  for(const o of f.objects)if(o.support.kind==='floor'&&o.position_m[1]+o.size_m[1]>feet+.18){
   if(inPolygon(x,z,o.footprint))return false;const ring=o.footprint.coordinates[0];for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r)return false;
@@ -28,6 +36,17 @@ export class TourWorld {
   if(attempt(p.x+dx/n,p.z+dz/n))continue;
   attempt(p.x+dx/n,p.z);attempt(p.x,p.z+dz/n);
  }return p;}
+ liftStop(position,targetLevel){
+  const lift=(this.house.elevators||[]).find(l=>l.levels.includes(targetLevel)&&segmentDistance(position.x,position.z,...l.door_segment.coordinates)<3);
+  if(!lift)throw Error('Stand near the lift doors to change floors');
+  return this.liftLanding(targetLevel,lift);
+ }
+ liftLanding(level,lift=(this.house.elevators||[])[0]){
+  if(!lift?.levels.includes(level))throw Error('No lift on this floor');
+  const f=this.house.storeys.find(f=>f.level===level),ring=lift.footprint.coordinates[0],x=ring.slice(0,-1).reduce((s,p)=>s+p[0],0)/(ring.length-1),z=ring.slice(0,-1).reduce((s,p)=>s+p[1],0)/(ring.length-1);
+  if(!this.clear(x,z,f.elevation_m))throw Error('Lift landing is obstructed');
+  return {x,z,y:f.elevation_m};
+ }
  viewYaw(p){const f=this.level(p.y);let best={distance:-1,yaw:0};
  for(let i=0;i<48;i++){const yaw=i*Math.PI/24;let d=.15;
   for(;d<10;d+=.1){const x=p.x-Math.sin(yaw)*d,z=p.z-Math.cos(yaw)*d;
@@ -36,8 +55,8 @@ export class TourWorld {
  }return best.yaw;
  }
  spawn(level=0,roomId=null){const f=this.house.storeys[level],rooms=roomId?f.rooms.filter(r=>r.id===roomId):[...f.rooms].sort((a,b)=>(a.kind==='hallway'?-1:0)-(b.kind==='hallway'?-1:0));
- for(const room of rooms){const ring=room.polygon.coordinates[0],xs=ring.map(p=>p[0]),zs=ring.map(p=>p[1]);
-  const points=[];for(let x=Math.min(...xs)+.35;x<Math.max(...xs);x+=.22)for(let z=Math.min(...zs)+.35;z<Math.max(...zs);z+=.22)if(inPolygon(x,z,room.polygon)&&this.surface(x,z,f.elevation_m)===f.elevation_m&&this.clear(x,z,f.elevation_m))points.push({x,z,y:f.elevation_m});
-  if(points.length){const entrance=f.openings.find(o=>o.entrance),line=entrance?.segment.coordinates;const c=line?[(line[0][0]+line[1][0])/2,(line[0][1]+line[1][1])/2]:[ring.reduce((s,p)=>s+p[0],0)/ring.length,ring.reduce((s,p)=>s+p[1],0)/ring.length];points.sort((a,b)=>Math.hypot(a.x-c[0],a.z-c[1])-Math.hypot(b.x-c[0],b.z-c[1]));return points[0];}
+ for(const room of rooms){const roomY=room.elevation_m??f.elevation_m;const ring=room.polygon.coordinates[0],xs=ring.map(p=>p[0]),zs=ring.map(p=>p[1]);
+  const points=[];for(let x=Math.min(...xs)+.35;x<Math.max(...xs);x+=.22)for(let z=Math.min(...zs)+.35;z<Math.max(...zs);z+=.22)if(inPolygon(x,z,room.polygon)&&this.surface(x,z,roomY)===roomY&&this.clear(x,z,roomY))points.push({x,z,y:roomY});
+  if(points.length){const entrance=f.openings.find(o=>o.entrance&&o.rooms.includes(room.id))||f.openings.find(o=>o.unit_entrance&&o.rooms.includes(room.id))||f.openings.find(o=>o.entrance),line=entrance?.segment.coordinates;const c=line?[(line[0][0]+line[1][0])/2,(line[0][1]+line[1][1])/2]:[ring.reduce((s,p)=>s+p[0],0)/ring.length,ring.reduce((s,p)=>s+p[1],0)/ring.length];points.sort((a,b)=>Math.hypot(a.x-c[0],a.z-c[1])-Math.hypot(b.x-c[0],b.z-c[1]));return points[0];}
  }throw Error('No clear standing position on this floor');}
 }

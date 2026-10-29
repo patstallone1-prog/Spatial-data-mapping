@@ -19,6 +19,7 @@ from smc.interiors.inference.efficiency import (
     trim_blind_ends,
 )
 from smc.interiors.inference.furnish import RoomFurnisher
+from smc.interiors.inference.memo import inference_session
 from smc.interiors.inference.model import HouseInput, geo, stamp_inference
 from smc.interiors.inference.partition import lines, partition_candidates, shared, width
 from smc.interiors.inference.style import door_finish, house_style, room_materials
@@ -113,7 +114,9 @@ def opening(
     }
 
 
-def connect(rooms: list[dict], footprint, entrance, level: int, stair_access=None) -> list[dict]:
+def connect(
+    rooms: list[dict], footprint, entrance, level: int, stair_access=None, entrance_level=0
+) -> list[dict]:
     connections = []
     hall = next(r for r in rooms if r["kind"] == "hallway")
     for room in rooms:
@@ -156,7 +159,7 @@ def connect(rooms: list[dict], footprint, entrance, level: int, stair_access=Non
         for line in lines(shared(a["shape"], b["shape"])):
             if line.length > 0.9:
                 connections.append(opening(a, b, line, "full_access", len(connections)))
-    if level == 0:
+    if level == entrance_level:
         candidates = [r for r in rooms if r["kind"] in PUBLIC]
         if entrance is not None:
             room = min(candidates, key=lambda r: r["shape"].distance(Point(entrance)))
@@ -311,7 +314,12 @@ def _build(
                     portals = [
                         o
                         for o in connect(
-                            preview, floor["inside"], spec.entrance, level, stair_access
+                            preview,
+                            floor["inside"],
+                            spec.entrance,
+                            level,
+                            stair_access,
+                            spec.entrance_level,
                         )
                         if room["id"] in o["rooms"]
                     ]
@@ -361,13 +369,17 @@ def _build(
         )
         efficiency["laundry_reused_m2"] = 0.0
         if not laundry_installed:
-            preliminary = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+            preliminary = connect(
+                rooms, floor["inside"], spec.entrance, level, stair_access, spec.entrance_level
+            )
             rooms, reused = hall_laundry_niche(rooms, preliminary, wet_fits)
             efficiency["laundry_reused_m2"] = reused
             laundry_installed = reused > 0
         efficiency["hallway_reclaimed_m2"] = 0.0
         for _ in range(8):
-            preliminary = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+            preliminary = connect(
+                rooms, floor["inside"], spec.entrance, level, stair_access, spec.entrance_level
+            )
             rooms, reclaimed = reclaim_hallway(rooms, preliminary, partition.angle)
             rooms, tails = trim_blind_ends(rooms, preliminary)
             reclaimed += tails
@@ -380,7 +392,9 @@ def _build(
             efficiency["half_baths_added"] += added
         for i, r in enumerate(rooms):
             r["materials"] = room_materials(style, r["kind"], i)
-        openings = connect(rooms, floor["inside"], spec.entrance, level, stair_access)
+        openings = connect(
+            rooms, floor["inside"], spec.entrance, level, stair_access, spec.entrance_level
+        )
         for o in openings:
             if o["leaf_count"]:
                 room = next(r for r in rooms if r["id"] == o["rooms"][0])
@@ -547,22 +561,40 @@ def refresh_assets(house: dict, catalog: Catalog | None = None) -> dict:
     house["estimated_furniture_cost_usd"] = sum(
         item["asset"]["estimated_cost_usd"] for f in house["storeys"] for item in f["objects"]
     )
-    house["validation"] = validate_house(house)
+    if house.get("schema") == "kerbside.inferred_residential/1":
+        from smc.interiors.inference.residential_validate import validate_residential
+
+        house["validation"] = validate_residential(house)
+    else:
+        house["validation"] = validate_house(house)
     return house
 
 
-def infer_house(spec: HouseInput, catalog: Catalog | None = None) -> dict:
+@inference_session
+def infer_house(
+    spec: HouseInput, catalog: Catalog | None = None, *, style: dict | None = None
+) -> dict:
     """Return a validated hypothesis, or fail explicitly with candidate diagnostics.
 
     The same seed/program/search is used for every address; no house-specific tuning.
     """
     from smc.interiors.inference.validate import validate_house
 
+    if (
+        spec.households > 1
+        or spec.garages
+        or spec.units_per_floor is not None
+        or spec.units_by_floor is not None
+        or spec.apartment_layout != "auto"
+    ):
+        from smc.interiors.inference.residential import infer_residential
+
+        return infer_residential(spec, catalog)
     catalog = catalog or Catalog()
     area = sum(
         (s.footprint if s.footprint is not None else spec.footprint).area for s in spec.storeys
     )
-    style = house_style(spec.id, area, spec.neighborhood_price_per_sqft)
+    style = style or house_style(spec.id, area, spec.neighborhood_price_per_sqft)
     failures = []
     candidates = partition_candidates(spec)
     attempt = 0
