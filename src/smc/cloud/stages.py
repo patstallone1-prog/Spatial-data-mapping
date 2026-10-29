@@ -58,13 +58,18 @@ class StageRule:
     optional: bool = False
     #: Work folders kept with the cell (``{cell}`` filled in) so a retry resumes, not restarts.
     keep: tuple[str, ...] = ()
+    #: At most this many of the stage at once on one worker (0: no limit) -- a service that
+    #: throttles by address turns a worker's burst into timeouts (:meth:`.queue.Queue.lease`).
+    per_worker: int = 0
 
 
 RULES: dict[str, StageRule] = {
     "discover": StageRule("cpu", 900, shared=("lidar-index",), network_bound=True),
     # Overpass throttles a worker's burst of cells; the queue's backoff (to two hours) spaces
     # the retries, and eight tries is about four hours of them before a person is asked.
-    "osm": StageRule("cpu", 1800, max_attempts=8, network_bound=True),
+    # Two at once per worker: overpass-api.de serves an address two queries at a time, and 164
+    # osm attempts (21 hours) had timed out or been refused in a burst (2026-10-29).
+    "osm": StageRule("cpu", 1800, max_attempts=8, network_bound=True, per_worker=2),
     "terrain": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "lidar": StageRule("cpu", 8 * 3600, shared=("lidar-index",), network_bound=True),
     "imagery": StageRule("cpu", 3 * 3600, network_bound=True),
@@ -88,6 +93,7 @@ RULES: dict[str, StageRule] = {
                          max_attempts=3),
 }
 OPTIONAL_STAGES = tuple(name for name, rule in RULES.items() if rule.optional)
+PER_WORKER_CAPS = {name: rule.per_worker for name, rule in RULES.items() if rule.per_worker}
 
 #: Shared inputs that are not in git and are not re-fetched by the stage that reads them.
 #: ``smc.cloud.migrate`` uploads each once; workers restore the ones a stage names.
@@ -109,6 +115,10 @@ SHARED_INPUTS: dict[str, tuple[str, ...]] = {
 HOUSE_STATE = ("build/frontage-live", "build/facade-match")
 HOUSE_REGIONS = ("sf-corridor", "sf-mission", "sf-haight-castro", "sf-sunset", "oakland-downtown",
                  "berkeley-downtown", "palo-alto-downtown", "san-jose-downtown")
+#: Photographs screened per region in one house batch. A batch's fixed cost is minutes -- the
+#: models loaded, the matcher's journal read, the state saved -- whatever it screens; 24 a region
+#: spent most of a batch on that (2026-10-29). Each photograph is screened exactly as before.
+HOUSE_SAMPLE = 72
 #: Photograph providers whose rows go to the cloud: openly licensed and fetched there by the
 #: filter itself. PandaSet's rows point at local benchmark pixels and stay on the Mac.
 HOUSE_PROVIDERS = ("mapillary", "kartaview", "panoramax")

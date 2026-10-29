@@ -14,6 +14,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -86,8 +87,9 @@ def _load_index(root: Path) -> dict:
 
 
 def _save_index(root: Path, index: dict) -> None:
+    # Jobs packed on one pod share the root; each writes its own part, and the last rename wins.
     path = root / INDEX
-    tmp = path.with_name(f".{path.name}.part")
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.part")
     tmp.write_text(json.dumps(index, separators=(",", ":")))
     os.replace(tmp, path)
 

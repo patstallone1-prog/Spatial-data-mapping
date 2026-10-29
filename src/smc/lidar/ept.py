@@ -28,6 +28,7 @@ import os
 import tempfile
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,6 +40,11 @@ USGS_LIDAR_PUBLIC = "https://s3-us-west-2.amazonaws.com/usgs-lidar-public"
 
 #: The San Francisco collection. Its cube covers the whole city and then some.
 SF_DATASET = "CA_SanFrancisco_1_B23"
+#: Point-cloud nodes downloaded at once for one query. A query is tens of nodes, each a wait on
+#: the bucket rather than work for the CPU (2026-10-29: lidar was the cloud's longest stage,
+#: a node at a time); they are still decoded and joined in the tree's own order, so a cloud
+#: is the same however its nodes arrived.
+FETCH_THREADS = int(os.environ.get("KERBSIDE_EPT_THREADS", "8"))
 
 #: ASPRS classification codes. Only these two carry ground truth about a kerb: the classifier's
 #: "ground" is the road and footway surface, and unclassified holds what it declined to call
@@ -230,12 +236,22 @@ class EptReader:
         north: list[np.ndarray] = []
         up: list[np.ndarray] = []
         classes: list[np.ndarray] = []
-        for key in self._nodes(box, max_depth):
+        def node(key: str) -> bytes | urllib.error.HTTPError:
             try:
-                raw = self._get(f"ept-data/{key}.laz")
-            except urllib.error.HTTPError:
+                return self._get(f"ept-data/{key}.laz")
+            except urllib.error.HTTPError as exc:  # a missing node: handed back, decided below
+                return exc
+
+        keys = self._nodes(box, max_depth)
+        if FETCH_THREADS > 1 and len(keys) > 1:
+            with ThreadPoolExecutor(max_workers=min(FETCH_THREADS, len(keys))) as pool:
+                fetched = list(pool.map(node, keys))
+        else:
+            fetched = [node(key) for key in keys]
+        for raw in fetched:
+            if isinstance(raw, urllib.error.HTTPError):
                 if self.strict:
-                    raise
+                    raise raw
                 continue
             las = laspy.read(io.BytesIO(raw))  # type: ignore[arg-type]
             x = np.asarray(las.x, dtype=np.float64)

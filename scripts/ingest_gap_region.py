@@ -44,7 +44,9 @@ def main():
         registry["regions"].append({"name": job["name"], "bbox": job["bbox"],
                                     "city": job["adapter"], "description": job["reason"]})
         atomic_json(path, registry)
-    return 0 if ingester.ingest(Region(job["name"], BBox(*job["bbox"]), job["reason"]), stages) else 1
+    if ingester.ingest(Region(job["name"], BBox(*job["bbox"]), job["reason"]), stages):
+        return 0
+    return ingester.DEAD_END if job["name"] in ingester.DEAD_ENDS else 1
 
 
 if __name__ == "__main__":

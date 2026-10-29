@@ -96,3 +96,33 @@ def overpass(query: str, purpose: str, attempts: int = 3) -> dict:
                 last = exc
         time.sleep(10 * 2 ** attempt)
     raise RuntimeError(f"Overpass unavailable for {purpose}: {last}")
+
+
+def ordered_prefetch(fetch, items, workers: int):
+    """``(item, result)`` for each item, in the items' order, with up to ``workers`` fetched
+    ahead at once; a fetch that raised yields its exception as the result. For a loop that
+    waits on the network an item at a time but must consume in order (a journal, a seeded
+    sample): the waits overlap and everything downstream is as it was."""
+    from collections import deque
+    from concurrent.futures import ThreadPoolExecutor
+
+    def guarded(item):
+        try:
+            return fetch(item)
+        except Exception as exc:
+            return exc
+
+    items = iter(items)
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        window: deque = deque()
+        for item in items:
+            window.append((item, pool.submit(guarded, item)))
+            if len(window) >= max(1, workers):
+                break
+        while window:
+            item, future = window.popleft()
+            result = future.result()
+            following = next(items, None)
+            if following is not None:
+                window.append((following, pool.submit(guarded, following)))
+            yield item, result

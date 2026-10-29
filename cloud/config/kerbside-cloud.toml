@@ -88,7 +88,9 @@ image = "ghcr.io/patstallone1-prog/kerbside-gpu:${KERBSIDE_IMAGE_TAG}"
 max_workers = 1
 slots = 1
 idle_minutes = 3
-max_hours = 12
+# A fresh GPU pod restores the house state (57 GB, about 50 minutes) before its first batch; a
+# warm one restores nothing (2026-10-29). Replaced once a day, not twice.
+max_hours = 24
 min_billed_hours = 0
 disk_gb = 120
 extra = { cloud_type = "SECURE", interruptible = false, cuda_versions = ["13.0"], gpu_types = ["NVIDIA L4", "NVIDIA RTX PRO 4000 Blackwell", "NVIDIA A40", "NVIDIA RTX A6000", "NVIDIA GeForce RTX 3090"] }
