@@ -301,3 +301,16 @@ def test_runpod_reports_its_prepaid_balance():
 
     assert RunPodProvider("tok", request=request).balance() == -0.0855
     assert calls == [("POST", "https://api.runpod.io/graphql", {"query": "query { myself { clientBalance } }"})]
+
+
+def test_workers_are_stopped_before_the_provider_balance_runs_out(tmp_path):
+    """At $0 the provider deletes every pod, the controller's too: workers go first."""
+    clock, q, stub, sched = setup(tmp_path, max_workers=2)
+    jobs(q, 2)
+    stub.balance = lambda: 50.0
+    assert len(sched.tick()["launched"]) == 2
+    stub.balance = lambda: 0.05  # under half an hour of two workers at $0.06/h
+    clock.t += 301
+    report = sched.tick()
+    assert sorted(r for _, r in report["stopped"]) == ["provider balance low"] * 2
+    assert not q.workers() and not stub.live
