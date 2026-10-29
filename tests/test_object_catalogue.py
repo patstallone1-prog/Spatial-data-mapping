@@ -26,7 +26,9 @@ def _named_surfaces() -> set[str]:
                 r"\bsurface\s*:\s*[\"'`]([a-z0-9_: ]+)[\"'`]",
                 r"addGround\([^;]*?,\s*\"([a-z0-9_:]+)\"\)",
                 r"placeParkModule\([^;]*?,\s*\"([a-z0-9_:]+)\"\)",
-                r"[\"'](furniture:[a-z_]+)[\"']\s*:"]
+                r"[\"'](furniture:[a-z_]+)[\"']\s*:",
+                # The exterior editor's drawing helpers take the surface as their last argument.
+                r"\b(?:box|plane|shapeMesh)\([^;\n]*?,\s*\"([a-z0-9_:]+)\"(?:,\s*[^;\n]*)?\);"]
     for path in sources:
         text = path.read_text()
         for pattern in patterns:

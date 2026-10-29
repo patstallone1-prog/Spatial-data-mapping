@@ -82,12 +82,22 @@ def rows_for(payload: dict, index: int) -> tuple[list, list, list]:
 
 def main() -> None:
     index = json.loads((DOCS / "app-regions.json").read_text())["regions"]
+    target = DOCS / "search-index.json"
+    # A cloud cell's payload is in the bucket, not here: its rows are carried from the index its
+    # release wrote (smc.cloud.site), so a rebuild here does not take it out of search.
+    previous = json.loads(target.read_text()) if target.exists() else {}
+    before = {r["name"]: n for n, r in enumerate(previous.get("regions", []))}
     regions, corners, addresses, places = [], [], [], []
     for region in index:
         if not region.get("built"):
             continue
         path = payload_for(region)
         if path is None:
+            if region["name"] in before:
+                old, i = before[region["name"]], len(regions)
+                regions.append(previous["regions"][old])
+                for rows, kept in ((corners, "corners"), (addresses, "addresses"), (places, "places")):
+                    rows += [[*row[:3], i, *row[4:]] for row in previous.get(kept, []) if row[3] == old]
             continue
         i = len(regions)
         regions.append({"name": region["name"], "title": region.get("title") or region["name"]})
@@ -103,7 +113,6 @@ def main() -> None:
         places += p
     out = {"schema": "kerbside.search_index/1", "regions": regions, "corners": corners,
            "addresses": addresses, "places": places}
-    target = DOCS / "search-index.json"
     target.write_text(json.dumps(out, separators=(",", ":")) + "\n")
     print(f"search index: {len(regions)} regions, {len(corners):,} corners, {len(addresses):,} addresses, "
           f"{len(places):,} places, "
