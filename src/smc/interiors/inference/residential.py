@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import copy
+import heapq
 import math
 from dataclasses import replace
-from itertools import combinations, pairwise, product
+from itertools import combinations, pairwise
 
 from shapely import affinity, set_precision
 from shapely.errors import GEOSException
@@ -17,6 +18,7 @@ from smc.interiors.inference.engine import PUBLIC, infer_house, opening, stairs
 from smc.interiors.inference.furnish import RoomFurnisher
 from smc.interiors.inference.garages import furnish_garage, garage_door, garage_plans
 from smc.interiors.inference.level_changes import garage_transition
+from smc.interiors.inference.memo import inference_session
 from smc.interiors.inference.model import HouseInput, StoreyInput, geo, stamp_inference
 from smc.interiors.inference.partition import lines, shared, width
 from smc.interiors.inference.style import door_finish, house_style, room_materials
@@ -225,6 +227,11 @@ def _single_room_garage(spec, plans, catalog, style):
 
 def _allocations(spec, garage_floor):
     n = len(spec.storeys)
+    if spec.units_by_floor is not None:
+        counts = tuple(map(len, spec.units_by_floor))
+        if garage_floor and counts[0]:
+            raise ValueError("garage-only floor has residential units assigned")
+        return [counts]
     if spec.units_per_floor is not None:
         if garage_floor and spec.units_per_floor[0]:
             raise ValueError("garage-only floor has residential units assigned")
@@ -235,27 +242,26 @@ def _allocations(spec, garage_floor):
         # Duplex/triplex homes keep one owner across contiguous levels. Common stairs
         # remain available to the other homes without entering those private levels.
         return [tuple(([0] if garage_floor else []) + [1] * (n - int(garage_floor)))]
+
+    def compositions(total, floors):
+        if floors == 1:
+            if total >= 1:
+                yield (total,)
+            return
+        for first in range(1, total - floors + 2):
+            for rest in compositions(total - first, floors - 1):
+                yield (first, *rest)
+
     choices = []
-    for counts in product(range(spec.households + 1), repeat=n):
-        if (
-            sum(counts) != spec.households
-            or (garage_floor and counts[0])
-            or (not garage_floor and not counts[0])
-        ):
-            continue
-        if any(c == 0 for c in counts[1:]):
-            continue
-        score = (
-            max(counts)
-            - min(counts[1:] if garage_floor else counts)
-            + sum(c * c for c in counts) * 0.1
-        )
+    for occupied in compositions(spec.households, n - int(garage_floor)):
+        counts = (0, *occupied) if garage_floor else occupied
+        score = max(counts) - min(occupied) + sum(c * c for c in counts) * 0.1
         choices.append((score, counts))
     if not choices:
         raise ValueError(
             "floor program needs more independent homes than requested; supply units_per_floor"
         )
-    return [c for _, c in sorted(choices)[:3]]
+    return [c for _, c in heapq.nsmallest(3, choices)]
 
 
 def _courtyard_grid(spec, plans, angle, counts):
@@ -314,6 +320,10 @@ def _courtyard_grid(spec, plans, angle, counts):
 
 def _partition_building(spec, plans, angle, side, counts, style, compact=False):
     """One common strip and staircase shared by floors; unit polygons retain the outline."""
+    if compact == "shared_hall":
+        from smc.interiors.inference.shared_hall import shared_hall_frames
+
+        return shared_hall_frames(spec, plans, angle, side, counts)
     if compact == "grid":
         return _courtyard_grid(spec, plans, angle, counts)
     origin = spec.footprint.centroid.coords[0]
@@ -362,7 +372,13 @@ def _partition_building(spec, plans, angle, side, counts, style, compact=False):
     frames = []
     for level, (inside, local, count) in enumerate(zip(insides, locals, counts, strict=True)):
         # One-family homes above a garage use the common flight only to reach the home.
-        shared_level = spec.households > 1 or level <= 1
+        shared_level = (
+            spec.households > 1
+            or level <= 1
+            or spec.units_by_floor is not None
+            or spec.units_per_floor is not None
+            or spec.apartment_layout != "auto"
+        )
         lobby = _tidy(local.intersection(band)) if shared_level else None
         if core is not None and shared_level:
             lobby = _tidy(lobby.difference(core))
@@ -556,7 +572,12 @@ def _compose(spec, plans, frames, counts, catalog, style, garage_floor):
         elev += s.height_m
     units = []
     groups = []
-    if spec.households == 1:
+    if spec.units_by_floor is not None:
+        for label in dict.fromkeys(label for row in spec.units_by_floor for label in row):
+            levels = [i for i, row in enumerate(spec.units_by_floor) if label in row]
+            regions = [frames[i]["regions"][spec.units_by_floor[i].index(label)] for i in levels]
+            groups.append((f"{spec.id}:unit:{label}", levels, regions))
+    elif spec.households == 1:
         levels = [i for i, c in enumerate(counts) if c]
         groups = [(f"{spec.id}:unit:1", levels, [frames[i]["regions"][0] for i in levels])]
     elif (
@@ -654,6 +675,14 @@ def _compose(spec, plans, frames, counts, catalog, style, garage_floor):
             "not_an_as_built_survey": True,
         },
     )
+    if spec.apartment_layout != "auto" or spec.units_by_floor is not None:
+        result["apartment_program"] = {
+            "layout": spec.apartment_layout,
+            "units_by_floor": [list(row) for row in spec.units_by_floor]
+            if spec.units_by_floor is not None
+            else None,
+            "units_per_floor": list(counts),
+        }
     _attach_garages(result, plans, catalog)
     # Common amenities stay in common rooms and cannot displace an entry or stair approach.
     laundry_installed = False
@@ -687,6 +716,7 @@ def _compose(spec, plans, frames, counts, catalog, style, garage_floor):
     return result
 
 
+@inference_session
 def infer_residential(spec, catalog=None):
     from smc.interiors.inference.residential_validate import validate_residential
 
@@ -698,7 +728,14 @@ def infer_residential(spec, catalog=None):
         spec.neighborhood_price_per_sqft,
     )
     failures = []
-    if spec.households == 1 and plans and spec.garage_mode != "floor" and spec.entrance_level == 0:
+    if (
+        spec.households == 1
+        and plans
+        and spec.garage_mode != "floor"
+        and spec.entrance_level == 0
+        and spec.apartment_layout == "auto"
+        and spec.units_by_floor is None
+    ):
         try:
             result = _single_room_garage(spec, plans, catalog, style)
             stamp_inference(result, 0.2)
@@ -733,8 +770,14 @@ def infer_residential(spec, catalog=None):
     rect = list(spec.footprint.minimum_rotated_rectangle.exterior.coords)
     a, b = max(pairwise(rect), key=lambda ab: math.dist(*ab))
     base = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+    strategies = {
+        "auto": (False, True, "grid", "shared_hall"),
+        "perimeter": (False,),
+        "compact": (True,),
+        "shared_hall": ("shared_hall",),
+    }
     for counts in _allocations(spec, garage_floor):
-        for compact in (False, True, "grid"):
+        for compact in strategies[spec.apartment_layout]:
             for rotation in (0, 90, 180, 270):
                 for side in (0, 1):
                     try:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -60,17 +61,48 @@ class HouseInput:
     garage_mode: str = "auto"
     entrance_level: int = 0
     compact_program: bool = False
+    apartment_layout: str = "auto"
+    units_by_floor: tuple[tuple[str, ...], ...] | None = None
 
     def __post_init__(self) -> None:
         polygon(self.footprint)
         if type(self.entrance_level) is not int or not 0 <= self.entrance_level < len(self.storeys):
             raise ValueError("entrance_level must identify a supplied floor")
-        if type(self.households) is not int or not 1 <= self.households <= 5:
-            raise ValueError("residential inference accepts one to five separate households")
+        if type(self.households) is not int or not 1 <= self.households <= 20:
+            raise ValueError("residential inference accepts one to twenty separate households")
+        if self.apartment_layout not in {"auto", "perimeter", "compact", "shared_hall"}:
+            raise ValueError("unknown apartment layout strategy")
+        if self.units_by_floor is not None:
+            if len(self.units_by_floor) != len(self.storeys):
+                raise ValueError("units_by_floor must describe every supplied floor")
+            if any(not isinstance(row, (list, tuple)) for row in self.units_by_floor):
+                raise ValueError("units_by_floor rows must be lists of household labels")
+            labels = [label for row in self.units_by_floor for label in row]
+            if any(
+                not isinstance(label, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", label)
+                for label in labels
+            ):
+                raise ValueError(
+                    "apartment labels must be letters, numbers, underscores or hyphens"
+                )
+            if len(set(labels)) != self.households or any(
+                len(set(row)) != len(row) for row in self.units_by_floor
+            ):
+                raise ValueError("units_by_floor must name every household once per occupied floor")
+            for label in set(labels):
+                levels = [i for i, row in enumerate(self.units_by_floor) if label in row]
+                if levels != list(range(min(levels), max(levels) + 1)):
+                    raise ValueError(
+                        "a private multi-floor apartment must occupy contiguous levels"
+                    )
         if self.units_per_floor is not None and (
             len(self.units_per_floor) != len(self.storeys)
-            or any(type(n) is not int or not 0 <= n <= 5 for n in self.units_per_floor)
-            or sum(self.units_per_floor) != self.households
+            or any(type(n) is not int or not 0 <= n <= 20 for n in self.units_per_floor)
+            or (self.units_by_floor is None and sum(self.units_per_floor) != self.households)
+            or (
+                self.units_by_floor is not None
+                and self.units_per_floor != tuple(map(len, self.units_by_floor))
+            )
         ):
             raise ValueError(
                 "units_per_floor must allocate every household across the supplied floors"
@@ -115,6 +147,10 @@ class HouseInput:
     def from_json(cls, row: dict) -> HouseInput:
         if row.get("units", "metres") != "metres":
             raise ValueError("convert input coordinates to local metres before inference")
+        if row.get("units_by_floor") is not None and any(
+            not isinstance(labels, (list, tuple)) for labels in row["units_by_floor"]
+        ):
+            raise ValueError("units_by_floor rows must be lists of household labels")
         return cls(
             envelope=row.get("envelope"),
             id=str(row["id"]),
@@ -138,6 +174,10 @@ class HouseInput:
             garage_mode=row.get("garage_mode", "auto"),
             entrance_level=row.get("entrance_level", 0),
             compact_program=bool(row.get("compact_program", False)),
+            apartment_layout=row.get("apartment_layout", "auto"),
+            units_by_floor=tuple(tuple(labels) for labels in row["units_by_floor"])
+            if row.get("units_by_floor") is not None
+            else None,
         )
 
 
