@@ -54,6 +54,7 @@ TRANSIENT = (
     "Connection refused",
     "Remote disconnected",
     "IncompleteRead",
+    "Max retries exceeded",         # urllib3's pool, once its own retries are spent
     "502",
     "503",
     "504",
@@ -175,7 +176,9 @@ def main() -> int:
         key = f"{cx}:{cy}"
         centre_lon = lon0 + (cx + 0.5) * CELL_M / kx
         centre_lat = lat0 + (cy + 0.5) * CELL_M / ky
-        reader = EptReader(dataset, cache_dir=cache_root / key)
+        # Not cached: the cell's tiles were written and fsynced one by one, then deleted unread
+        # once it was measured (or before a retry).
+        reader = EptReader(dataset, cache_dir=cache_root / key, cache=False)
         failure = ""
         for attempt in range(CELL_TRIES):
             try:
