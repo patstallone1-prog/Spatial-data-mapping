@@ -211,7 +211,7 @@ def test_cloud_init_powers_the_server_off_when_the_worker_exits():
 def test_jobs_are_packed_onto_the_fewest_workers_and_work_arriving_lifts_the_packing(tmp_path):
     """Rented time always has work: with nothing ready, a worker whose jobs would fit on the
     others stops leasing (and is stopped once empty); new work lifts that before a new rental."""
-    clock, q, stub, sched = setup(tmp_path, max_workers=2, slots=4)
+    _clock, q, _stub, sched = setup(tmp_path, max_workers=2, slots=4)
     jobs(q, 6)
     assert len(sched.tick()["launched"]) == 2
     a, b = (w["id"] for w in q.workers())
@@ -244,7 +244,7 @@ def test_jobs_are_packed_onto_the_fewest_workers_and_work_arriving_lifts_the_pac
 
 
 def test_a_second_worker_needs_min_fill_jobs_of_its_own(tmp_path):
-    clock, q, stub, sched = setup(tmp_path, max_workers=3, slots=4, min_fill=3)
+    _clock, q, _stub, sched = setup(tmp_path, max_workers=3, slots=4, min_fill=3)
     jobs(q, 4)
     assert len(sched.tick()["launched"]) == 1
     (w,) = q.workers()
@@ -261,7 +261,7 @@ def test_a_second_worker_needs_min_fill_jobs_of_its_own(tmp_path):
 
 
 def test_idle_rented_time_and_a_nearly_spent_budget_raise_warnings(tmp_path):
-    clock, q, stub, sched = setup(tmp_path, budget=Budget(daily_usd=10, monthly_usd=100,
+    clock, q, _stub, sched = setup(tmp_path, budget=Budget(daily_usd=10, monthly_usd=100,
                                                           hard_monthly_usd=100, warn_usd=0.004))
     jobs(q, 1)
     report = sched.tick()

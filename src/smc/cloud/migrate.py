@@ -31,8 +31,15 @@ from pathlib import Path
 
 from .checkpoint import EXCLUDE, get_pointer, push_tree, set_pointer
 from .inventory import classify
-from .stages import (HOUSE_PROVIDERS, HOUSE_REGIONS, HOUSE_STATE, INTERIOR_OUT, RESTAURANT_STATE,
-                     SHARED_INPUTS, house_input_paths)
+from .stages import (
+    HOUSE_PROVIDERS,
+    HOUSE_REGIONS,
+    HOUSE_STATE,
+    INTERIOR_OUT,
+    RESTAURANT_STATE,
+    SHARED_INPUTS,
+    house_input_paths,
+)
 from .store import ObjectStore, open_store
 
 POINT_EXCLUDE = (*EXCLUDE, "points")
