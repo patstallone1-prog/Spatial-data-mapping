@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""The two enrichment stages that are more than one command: a region's lidar trees and its
-facade textures (``scripts/ingest_region.py`` stages ``trees`` and ``facades``).
+"""The enrichment stages that are more than one command: a region's lidar trees, its facade
+textures and its roofs from above (``scripts/ingest_region.py`` stages ``trees``, ``facades``
+and ``roofs``).
 
     python scripts/enrich_region.py facades <region>   # rank the chunks, texture every ready one
     python scripts/enrich_region.py trees <region>     # plant the lidar's trees on its ground
+    python scripts/enrich_region.py roofs <region>     # read every roof off the aerial photographs
 
 ``facades`` is ``scripts/run_facades_regions_background.sh`` for one region, without the loop
 forever: the chunks are surveyed once, then each chunk with anything to read is textured; a
@@ -101,12 +103,25 @@ def trees(region: str) -> int:
         shutil.rmtree(scratch / region, ignore_errors=True)
 
 
+def roofs(region: str) -> int:
+    """Every roof's colour, decks and planting from the aerial photographs (NOAA's 0.25 m where
+    it flew, NAIP's 0.6 m elsewhere; no drone mosaics, see ``ortho.fetch_region``). The squares
+    are read into ``data/ortho/<region>`` and removed once the roofs are written: the cell's
+    checkpoint carries the readings, not the photographs."""
+    try:
+        if run("scripts/fetch_ortho.py", "--region", region, "--no-drone"):
+            return 1
+        return run("scripts/build_ortho_roofs.py", "--region", region)
+    finally:
+        shutil.rmtree(ROOT / "data" / "ortho" / region, ignore_errors=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("step", choices=["facades", "trees"])
+    ap.add_argument("step", choices=["facades", "trees", "roofs"])
     ap.add_argument("region")
     args = ap.parse_args()
-    return facades(args.region) if args.step == "facades" else trees(args.region)
+    return {"facades": facades, "trees": trees, "roofs": roofs}[args.step](args.region)
 
 
 if __name__ == "__main__":
