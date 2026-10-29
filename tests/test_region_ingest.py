@@ -123,6 +123,30 @@ def test_the_ingestion_journals_every_stage_and_resumes(tmp_path: Path, monkeypa
     assert (tmp_path / "data" / "regions" / region.name / "ingest.log").exists()
 
 
+def test_a_dead_end_stage_is_passed_on_as_exit_2_and_a_flaky_one_is_not(tmp_path: Path, monkeypatch):
+    """Exit 2 (nothing to build here) reaches the worker as 2, which quarantines without retrying;
+    any other failure stays 1 and is retried."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import ingest_region
+
+    monkeypatch.setattr(ingest_region, "ROOT", tmp_path)
+    monkeypatch.setattr(ingest_region, "DEAD_ENDS", set())
+    region = Region(name="water-cell", bbox=BBox(south=37.79, west=-122.29, north=37.80, east=-122.28), description="a test")
+    base = tmp_path / "data" / "regions" / region.name
+    base.mkdir(parents=True)
+    exit_code = {"code": 2}
+    monkeypatch.setattr(ingest_region, "stage_commands", lambda _r: {
+        "osm": ([sys.executable, "-c", f"import sys; sys.exit({exit_code['code']})"], [base / "osm_ways.json"])})
+    monkeypatch.setattr(ingest_region, "get_region", lambda _name: region)
+    monkeypatch.setattr(sys, "argv", ["ingest_region.py", region.name, "--stages", "osm"])
+    assert ingest_region.main() == ingest_region.DEAD_END == 2
+
+    ingest_region.DEAD_ENDS.clear()
+    exit_code["code"] = 1
+    (base / "ingest.json").unlink()
+    assert ingest_region.main() == 1
+
+
 def test_the_orchestrator_plans_every_stage_for_a_named_region():
     out = subprocess.run([sys.executable, str(ROOT / "scripts" / "ingest_region.py"), "oakland-downtown", "--dry-run", "--force"],
                          cwd=ROOT, capture_output=True, text=True, timeout=120)

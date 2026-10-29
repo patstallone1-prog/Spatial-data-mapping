@@ -229,6 +229,7 @@ def main() -> int:
     # that returns no ground in its first PROBE_TILES tiles is set aside for the next.
     tiles = 0
     dataset = None
+    unavailable = 0
     for candidate in candidates:
         reader = EptReader(candidate)
         print(f"region {region.name}, lidar collection {candidate}", flush=True)
@@ -261,6 +262,7 @@ def main() -> int:
             if isinstance(cloud, Exception):  # a missing tile is a hole, not a halt
                 lat, lon = mid_lat + (ty + TILE_M / 2) / KY, mid_lon + (tx + TILE_M / 2) / kx
                 print(f"  tile at {lat:.4f},{lon:.4f} unavailable: {cloud}", flush=True)
+                unavailable += 1
                 continue
             tiles += 1
             if tiles == PROBE_TILES and not (count > 0).any():
@@ -287,7 +289,9 @@ def main() -> int:
             break
     if dataset is None:
         print(f"no lidar collection had ground over {region.name}: tried {candidates}", file=sys.stderr)
-        return 1
+        # Every tile answered and none held ground: a retry reads the same tiles (exit 2, not
+        # retried). A tile that did not answer might next time.
+        return 1 if unavailable else 2
 
     height = np.full((rows, cols), np.nan, dtype=np.float64)
     known = count >= MIN_CELL_POINTS

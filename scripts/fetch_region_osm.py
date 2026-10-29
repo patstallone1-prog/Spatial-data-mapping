@@ -97,7 +97,7 @@ def main() -> int:
         # Open water, or a cell nothing has been mapped in: there is nothing to build here, and
         # an empty fetch is never written over the cache.
         print(f"{region.name}: OpenStreetMap has nothing in this cell's bounds; not built", file=sys.stderr)
-        return 1
+        return 2  # the count answered nought; a retry asks the same question
     if expected is not None:
         floor = max(1, math.floor(expected * COUNT_TOLERANCE))
         print(f"{region.name}: {expected} elements counted; the fetch must bring at least {floor}")

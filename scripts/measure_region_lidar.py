@@ -252,7 +252,7 @@ def main() -> int:
         return 1
     if not args.limit_cells and profile_count == 0:
         print(f"{region.name}: no curb profiles measured; refusing a successful lidar stage", file=sys.stderr)
-        return 1
+        return 2  # every cell was read and none had a kerb: a retry measures the same nothing
     if not args.limit_cells:
         if len(done) != len(by_cell):
             print(f"{region.name}: only {len(done)}/{len(by_cell)} lidar cells complete", file=sys.stderr)
