@@ -18,6 +18,7 @@ import os
 import shutil
 import tempfile
 import threading
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -156,6 +157,10 @@ class LocalStore(ObjectStore):
         path.with_name(f".{path.name}.meta").unlink(missing_ok=True)
 
 
+#: Tries at a whole object read whose stream broke (not a missing key, not a refusal).
+GET_TRIES = 4
+
+
 class R2Store(ObjectStore):
     """A Cloudflare R2 bucket through its S3 API (``pip install -e ".[cloud]"`` for boto3).
 
@@ -206,9 +211,13 @@ class R2Store(ObjectStore):
                    secret_access_key=env[f"{prefix}_SECRET_ACCESS_KEY"],
                    endpoint_url=env.get("S3_ENDPOINT_URL") or None, region=env["AWS_REGION"])
 
+    @staticmethod
+    def _code(exc) -> str:
+        # A ClientError's response; a dropped stream's exception carries ``response=None``.
+        return (getattr(exc, "response", None) or {}).get("Error", {}).get("Code", "")
+
     def _missing(self, exc) -> bool:
-        code = getattr(exc, "response", {}).get("Error", {}).get("Code", "")
-        return code in ("NoSuchKey", "404", "NotFound")
+        return self._code(exc) in ("NoSuchKey", "404", "NotFound")
 
     def put(self, key, data, *, content_type="application/octet-stream", cache_control=None,
             if_match=None, if_none_match=False) -> str:
@@ -224,8 +233,7 @@ class R2Store(ObjectStore):
         try:
             out = self.client.put_object(**args)
         except Exception as exc:  # botocore.exceptions.ClientError, without importing it here
-            code = getattr(exc, "response", {}).get("Error", {}).get("Code", "")
-            if code in ("PreconditionFailed", "412", "ConditionalRequestConflict"):
+            if self._code(exc) in ("PreconditionFailed", "412", "ConditionalRequestConflict"):
                 raise PreconditionFailed(key) from exc
             raise
         return out["ETag"].strip('"')
@@ -237,12 +245,18 @@ class R2Store(ObjectStore):
             return self.put(key, body, **kw)
 
     def get(self, key: str) -> bytes:
-        try:
-            return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
-        except Exception as exc:
-            if self._missing(exc):
-                raise KeyError(key) from None
-            raise
+        # The client retries a request, not the body's read: a stream dropped halfway (a timeout,
+        # a reset) is asked for again here, as a whole.
+        for attempt in range(GET_TRIES):
+            try:
+                return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+            except Exception as exc:
+                if self._missing(exc):
+                    raise KeyError(key) from None
+                if self._code(exc) or attempt == GET_TRIES - 1:
+                    raise
+                time.sleep(2 ** attempt)
+        raise AssertionError("unreachable")
 
     def head(self, key: str) -> Head | None:
         try:
