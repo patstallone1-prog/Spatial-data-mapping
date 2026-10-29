@@ -86,6 +86,7 @@ class Scheduler:
         self.clock = clock
         self.last: dict = {}
         self._ticked_at: float | None = None
+        self._balance: tuple[float, float | None] | None = None  # (asked at, prepaid balance)
 
     def _provider(self, pool: Pool) -> Provider:
         return self.providers[pool.provider]
@@ -208,7 +209,8 @@ class Scheduler:
                 for _ in range(max(0, want)):
                     if launches >= self.settings.max_launches_per_tick:
                         break
-                    allowed, why = money.may_launch(self.queue, self.settings.budget, pool, now)
+                    allowed, why = money.may_launch(self.queue, self.settings.budget, pool, now,
+                                                    balance=self.balance(now))
                     if not allowed:
                         report.setdefault("held_back", []).append(f"{name}: {why}")
                         break
@@ -232,8 +234,9 @@ class Scheduler:
         self._ticked_at = now
         idle = money.charge_idle(self.queue, live, busy_ids, min(seconds, 300), now)
         report["idle_today_usd"] = round(idle, 4)
+        report["balance_usd"] = self.balance(now)
         report["warnings"] = money.warnings(money.status(self.queue, self.settings.budget, now),
-                                            self.settings.budget, idle, now)
+                                            self.settings.budget, idle, now, report["balance_usd"])
         raised = set(json.loads(self.queue.get_meta("warned") or "[]"))
         for w in report["warnings"]:
             if w["key"] not in raised:
@@ -242,6 +245,23 @@ class Scheduler:
         self.queue.set_meta("warned", json.dumps(sorted(raised)[-50:]))
         self.last = report
         return report
+
+    def balance(self, now: float) -> float | None:
+        """The lowest prepaid balance among the providers in use, asked at most every 5 minutes."""
+        if self._balance and now - self._balance[0] < 300:
+            return self._balance[1]
+        values = []
+        for name in {pool.provider for pool in self.settings.pools.values()}:
+            provider = self.providers.get(name)
+            try:
+                value = provider.balance() if provider else None
+            except ProviderError as exc:
+                log.warning("balance of %s unknown: %s", name, exc)
+                value = None
+            if value is not None:
+                values.append(value)
+        self._balance = (now, min(values) if values else None)
+        return self._balance[1]
 
     def _pack(self, report: dict) -> set[str]:
         """The workers that take no new job (``meta packing``, read by the lease endpoint)."""

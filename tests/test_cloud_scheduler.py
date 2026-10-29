@@ -274,3 +274,30 @@ def test_idle_rented_time_and_a_nearly_spent_budget_raise_warnings(tmp_path):
     q.charge("instance", 9.999, "elsewhere")
     report = sched.tick()
     assert {w["key"].split(":")[0] for w in report["warnings"]} == {"idle", "daily"}
+
+
+def test_a_low_provider_balance_refuses_launches_and_warns(tmp_path):
+    """At $0 RunPod deletes every pod, the controller's too (2026-10-29): a pod the balance
+    cannot keep for an hour is not started, and a balance under warn_usd is a warning."""
+    clock, q, stub, sched = setup(tmp_path)
+    stub.balance = lambda: 0.05
+    jobs(q, 2)
+    report = sched.tick()
+    assert report["launched"] == [] and report["balance_usd"] == 0.05
+    assert any("balance" in h for h in report["held_back"])
+    assert [w["key"].split(":")[0] for w in report["warnings"]] == ["balance"]
+    stub.balance = lambda: 50.0
+    clock.t += 301  # asked again after five minutes
+    report = sched.tick()
+    assert len(report["launched"]) == 2 and report["warnings"] == []
+
+
+def test_runpod_reports_its_prepaid_balance():
+    calls = []
+
+    def request(method, url, token, body=None):
+        calls.append((method, url, body))
+        return {"data": {"myself": {"clientBalance": -0.0855}}}
+
+    assert RunPodProvider("tok", request=request).balance() == -0.0855
+    assert calls == [("POST", "https://api.runpod.io/graphql", {"query": "query { myself { clientBalance } }"})]
