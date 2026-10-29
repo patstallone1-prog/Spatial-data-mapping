@@ -23,10 +23,12 @@ def main() -> int:
     ap.add_argument("--region", nargs="+", default=["sf-corridor"])
     ap.add_argument("--refresh", action="store_true")
     ap.add_argument("--workers", type=int, default=ortho.WORKERS)
+    ap.add_argument("--no-drone", action="store_true", help="NOAA and NAIP only (roof colours)")
     args = ap.parse_args()
     names = PUBLISHED if args.region == ["all"] else args.region
     for name in names:
-        manifest = ortho.fetch_region(name, region_paths(name).bbox(), workers=args.workers, refresh=args.refresh)
+        manifest = ortho.fetch_region(name, region_paths(name).bbox(), workers=args.workers, refresh=args.refresh,
+                                      drone=not args.no_drone)
         by = collections.Counter(r["source"] for r in manifest["squares"])
         print(name, dict(by), "missing", len(manifest["missing"]), flush=True)
     return 0

@@ -28,6 +28,7 @@ from .stages import (
     interior_batch,
     interior_collect,
     publish_job,
+    republish_job,
     restaurant_collect,
     restaurant_round,
 )
@@ -166,6 +167,11 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         gate = gate_job(name, previous, priority)
         added += queue.submit(gate, replace=True) == "added"
         added += queue.submit(publish_job(name, gate.id, priority), replace=True) == "added"
+        # A cell published before its chain grew keeps its verdict (and a reviewer's approval);
+        # what the new stages made reaches the release through one more publication of it.
+        passed = queue.job(gate.id)
+        if passed and passed["state"] == "done" and (passed["depends"] or []) != [previous]:
+            added += queue.submit(republish_job(name, gate.id, previous, priority)) == "added"
     previous = None
     house = get_pointer(private, "house-state")
     if house:
