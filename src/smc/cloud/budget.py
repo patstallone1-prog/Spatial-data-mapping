@@ -80,11 +80,15 @@ def charge_idle(queue: Queue, workers: list[dict], busy: set[str], seconds: floa
     return row["usd"]
 
 
-def warnings(s: dict, budget: Budget, idle_today: float, now: float) -> list[dict]:
+def warnings(s: dict, budget: Budget, idle_today: float, now: float,
+             balance: float | None = None) -> list[dict]:
     """What the owner should hear about, each with a key that is stable for the day (the
     watchdog reports a key once)."""
     day = datetime.fromtimestamp(now, UTC).date().isoformat()
     out = []
+    if balance is not None and balance < budget.warn_usd:
+        out.append({"key": f"balance:{day}", "text": f"RunPod balance ${balance:.2f}: at $0 RunPod deletes "
+                                                     "every pod, the controller's too. Top it up."})
     if idle_today >= budget.warn_usd:
         out.append({"key": f"idle:{day}", "text": f"rented workers sat idle: ${idle_today:.2f} today"})
     if budget.daily_usd - s["today_usd"] < budget.warn_usd:
@@ -106,9 +110,15 @@ def over_daily(queue: Queue, budget: Budget, now: float | None = None) -> bool:
     return status(queue, budget, now)["today_usd"] >= budget.daily_usd
 
 
-def may_launch(queue: Queue, budget: Budget, pool: Pool, now: float | None = None) -> tuple[bool, str]:
+def may_launch(queue: Queue, budget: Budget, pool: Pool, now: float | None = None,
+               balance: float | None = None) -> tuple[bool, str]:
     now = now or queue.clock()
     s = status(queue, budget, now)
+    if balance is not None:
+        # A pod the provider's prepaid balance cannot keep for an hour is deleted mid-job.
+        hour = sum(w["hourly_usd"] for w in queue.workers()) + pool.hourly_usd
+        if balance < hour:
+            return False, f"provider balance ${balance:.2f} would not cover the next hour (${hour:.2f})"
     if s["hard_stop"]:
         return False, f"hard monthly limit reached (${s['month_usd']:.2f} of ${budget.hard_monthly_usd:.2f})"
     # The least this launch can cost: its billed minimum, or a quarter of an hour.

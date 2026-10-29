@@ -83,6 +83,10 @@ class Provider:
     def list(self) -> list[Instance]:
         raise NotImplementedError
 
+    def balance(self) -> float | None:
+        """Prepaid credit left, where the provider has one (None: no such limit, or unknown)."""
+        return None
+
 
 def _request(method: str, url: str, token: str, body: dict | None = None, timeout: float = 60):
     data = json.dumps(body).encode() if body is not None else None
@@ -208,6 +212,14 @@ class RunPodProvider(Provider):
 
     def terminate(self, instance_id):
         self._request("DELETE", f"{self.API}/pods/{instance_id}", self.token)
+
+    def balance(self):
+        """The account's prepaid balance. At zero RunPod deletes every pod -- the controller's
+        too -- which is how the whole system stopped on 2026-10-29 (balance -$0.09)."""
+        out = self._request("POST", "https://api.runpod.io/graphql", self.token,
+                            {"query": "query { myself { clientBalance } }"})
+        value = ((out or {}).get("data") or {}).get("myself", {}).get("clientBalance")
+        return float(value) if value is not None else None
 
     def list(self):
         found = self._request("GET", f"{self.API}/pods", self.token)
