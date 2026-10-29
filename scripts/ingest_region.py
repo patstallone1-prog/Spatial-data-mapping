@@ -68,6 +68,13 @@ EMPTY_IS_AN_ANSWER = ("audit", "colours", "survey", "ground", "trees", "facades"
 # The visual pilot requires licensed aerial images and surveyed truth.  Routine
 # region ingestion still finishes when that opt-in stage has no such inputs.
 DEFAULT_STAGES = tuple(stage for stage in STAGES if stage != "reconstruct")
+
+#: A stage that exits with this has found there is nothing to build (open water, no lidar
+#: collection with ground, no kerb), and running it again finds the same. The cloud worker
+#: quarantines on it at once instead of spending three more tries.
+DEAD_END = 2
+#: Regions whose last failed stage was a dead end, for :func:`main`'s exit code.
+DEAD_ENDS: set[str] = set()
 PY = sys.executable
 #: The imagery harvest of a dense district can run for hours against a throttled service.
 #: It gets this long; then it is stopped and the catalogue is built from what the journal
@@ -151,7 +158,8 @@ def stage_commands(region: Region) -> dict[str, tuple[list[str], list[Path]]]:
         "audit": ([PY, "scripts/audit_corridor_render.py", "--page", str(site / "sf-corridor-3d.json"),
                    "--official", str(site / "sf-corridor-official.json"), "--ground", str(site / "sf-corridor-ground.json"),
                    "--baseline", str(base / "audit_baseline.json")], [base / "audit_baseline.json"]),
-        "colours": ([PY, "scripts/build_building_colours.py", "--region", region.name],
+        # Eight threads: a building's colour is mostly a wait for its photographs (2026-10-29).
+        "colours": ([PY, "scripts/build_building_colours.py", "--region", region.name, "--workers", "8"],
                     [official / "building_colours.json"]),
         "survey": ([PY, "scripts/build_facade_survey.py", "--region", region.name],
                    [official / "facade_survey.json"]),
@@ -518,6 +526,8 @@ def ingest(region: Region, stages: list[str], *, force: bool = False, dry_run: b
             # only what is printed here reaches the job's saved log.
             for line in log_tail(log):
                 print(f"  {stage:9s} | {line}")
+            if code == DEAD_END:
+                DEAD_ENDS.add(region.name)
             ok = False
             break
     return ok
@@ -576,7 +586,7 @@ def main() -> int:
             failed.append(region.name)
     if failed:
         print(f"failed: {', '.join(failed)}", file=sys.stderr)
-        return 1
+        return DEAD_END if DEAD_ENDS.issuperset(failed) else 1
     return 0
 
 

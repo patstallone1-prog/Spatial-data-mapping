@@ -34,6 +34,9 @@ from .queue import Queue
 
 log = logging.getLogger("kerbside.scheduler")
 
+#: Hours of the running workers' spend the provider balance must cover, or they are stopped.
+BALANCE_RESERVE_H = 0.5
+
 
 @dataclass
 class Settings:
@@ -154,6 +157,15 @@ class Scheduler:
             self.queue.set_meta("paused", "hard budget limit")
             self.last = report
             return report
+        # The provider's prepaid balance: at $0 RunPod deletes every pod, the controller's too
+        # (2026-10-29). Under half an hour of what is running, the workers are stopped -- their
+        # jobs go back to the queue -- so the controller and its queue outlive the balance.
+        balance = self.balance(now)
+        burn = sum(w["hourly_usd"] for w in self.queue.workers()) + self.settings.controller_hourly_usd
+        if balance is not None and self.queue.workers() and balance < burn * BALANCE_RESERVE_H:
+            for worker in self.queue.workers():
+                self._stop(worker, "provider balance low")
+                report["stopped"].append((worker["id"], "provider balance low"))
         if self.queue.get_meta("paused") == "hard budget limit":
             # A new month (or a raised limit): the stop was the budget's, and the budget allows.
             self.queue.set_meta("paused", "")

@@ -56,7 +56,7 @@ from .providers import (
 from .publish import Publisher
 from .queue import Queue
 from .scheduler import Scheduler, Settings, work_waiting
-from .stages import CELL_CHAIN, ENRICH_CHAIN
+from .stages import CELL_CHAIN, ENRICH_CHAIN, HOUSE_SAMPLE, PER_WORKER_CAPS
 from .store import ObjectStore, open_store
 
 log = logging.getLogger("kerbside.controller")
@@ -534,7 +534,7 @@ def _handler(ctl: Controller):
                     return self._send(200, {"ok": True})
                 plan = {"cells": body.get("cells"),
                         "house_batches": int(body.get("house_batches", 0)),
-                        "house_sample": int(body.get("house_sample", 24)),
+                        "house_sample": int(body.get("house_sample", HOUSE_SAMPLE)),
                         "interiors": bool(body.get("interiors", False)),
                         "restaurant_rounds": int(body.get("restaurant_rounds", 0)),
                         "house_ahead": int(body.get("house_ahead", 0))}
@@ -556,7 +556,8 @@ def _handler(ctl: Controller):
                         or worker in json.loads(q.get_meta("packing") or "[]")):
                     return self._send(200, {"lease": None})
                 lease = q.lease(worker, body.get("resources") or [me.get("resource", "cpu")],
-                                float(body.get("ttl", ctl.c.lease_ttl_s)), me.get("instance_type"))
+                                float(body.get("ttl", ctl.c.lease_ttl_s)), me.get("instance_type"),
+                                caps=PER_WORKER_CAPS)
                 return self._send(200, {"lease": lease})
             if self.path == "/api/heartbeat":
                 return self._send(200, {"ok": q.heartbeat(body["job"], worker, int(body["token"]),

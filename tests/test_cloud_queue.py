@@ -204,3 +204,34 @@ def test_cells_are_found_by_what_their_failures_said(q):
         q.fail(expected, "w", lease["token"],
                "RuntimeError: set MAPILLARY_TOKEN" if expected == "c:survey" else "timed out")
     assert q.failed_with("MAPILLARY_TOKEN", ("survey",)) == ["c"]
+
+
+def test_a_worker_is_offered_the_next_stage_of_its_own_cell_first(q):
+    """Its restored files and photo cache are on its disk; another worker would fetch them."""
+    q.submit(job("a:colours", priority=100))
+    q.submit(job("a:survey", ["a:colours"], priority=100))
+    lease = q.lease("w2", ["cpu"], 60)
+    q.complete("a:colours", "w2", lease["token"], {"tree": "t"})
+    q.submit(job("b:colours", priority=50))  # an earlier cell's work, ready now too
+    assert q.lease("w2", ["cpu"], 60)["job"]["id"] == "a:survey"
+    assert q.lease("w1", ["cpu"], 60)["job"]["id"] == "b:colours"
+
+
+def test_a_retry_keeps_its_place_rather_than_following_its_worker(q):
+    q.submit(job("a:lidar", priority=100))
+    q.submit(job("b:lidar", priority=50))
+    lease = q.lease("w", ["cpu"], 60)
+    assert lease["job"]["id"] == "b:lidar"
+    q.fail("b:lidar", "w", lease["token"], "exit 1")
+    q.clock_.t += 3600
+    assert q.lease("w", ["cpu"], 60)["job"]["id"] == "b:lidar"  # by priority, as before
+
+
+def test_a_capped_stage_is_not_leased_past_its_limit_on_one_worker(q):
+    for c in ("a", "b", "c"):
+        q.submit(job(f"{c}:osm", priority=100))
+    q.submit(job("d:lidar", priority=200))
+    caps = {"osm": 2}
+    got = [q.lease("w", ["cpu"], 60, caps=caps)["job"]["id"] for _ in range(3)]
+    assert got == ["a:osm", "b:osm", "d:lidar"]  # the third osm waits for a slot of its own
+    assert q.lease("other", ["cpu"], 60, caps=caps)["job"]["id"] == "c:osm"
