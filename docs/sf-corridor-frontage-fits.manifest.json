@@ -1,9 +1,9 @@
 {
  "schema": "kerbside.facade_fit_tiles/1",
- "version": "66f2056e995b817c",
+ "version": "44b64f3318b4c4c4",
  "base": "",
  "tile_degrees": 0.01,
- "houses": 4059,
+ "houses": 4060,
  "tiles": [
   {
    "region": "berkeley-downtown",
@@ -561,10 +561,10 @@
     -122.4097389,
     37.8001187
    ],
-   "count": 218,
-   "path": "fits/sf-corridor/-12242_3779-d9d46988b2c5.json",
-   "sha256": "d9d46988b2c5e50aabec8e8c4e3b1c0057c87ea224fc91bce9005934709308b6",
-   "bytes": 1386720
+   "count": 219,
+   "path": "fits/sf-corridor/-12242_3779-b76579bc5c96.json",
+   "sha256": "b76579bc5c9612775395f8f31fdb913024c9440d08ef63b9871631813467f569",
+   "bytes": 1390821
   },
   {
    "region": "sf-corridor",
