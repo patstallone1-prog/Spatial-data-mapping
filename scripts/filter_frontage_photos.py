@@ -622,6 +622,7 @@ def review_samples(args, summaries, policy):
                 queued_providers.add(candidate["observation"]["provider"])
     focus = focus_order()
     batch = fair_batch(pending, records, args.sample, focus)
+    args.selected_this_pass = len(batch)
     batch_groups = Counter()
     emit(args.output / "pixel-worker.json", {
         "status": "screening", "pid": os.getpid(), "at": datetime.now(UTC),
@@ -845,8 +846,13 @@ def review_samples(args, summaries, policy):
 
     # In durable mode even rejected scratch pixels stay until the complete
     # batch's archival acknowledgement. The checkpoint owns local cleanup.
-    cleanup = (prune_rejected(args.output) if WORKSPACE is None else
-               {"files_removed": 0, "basis": "deferred_to_verified_external_batch_ack"})
+    if WORKSPACE is not None:
+        cleanup = {"files_removed": 0, "basis": "deferred_to_verified_external_batch_ack"}
+    elif not (args.output / "pixel-store").is_dir():
+        # Nothing has ever been screened into this output: there is nothing to prune.
+        cleanup = {"files_removed": 0, "basis": "nothing_screened"}
+    else:
+        cleanup = prune_rejected(args.output)
     emit(args.output / "retention.json", cleanup)
     for r in records:
         if r["status"] == "pixel_rejected" and WORKSPACE is None:
@@ -1050,7 +1056,16 @@ def main():
                 break  # Finish local selection, not another region after eject.
         if WORKSPACE and not WORKSPACE.ready():
             continue
+        missing = [s["region"] for s in summaries if s.get("status") == "missing_input"]
+        if summaries and len(missing) == len(summaries):
+            # Every region without its map or catalogue is a broken install, not a quiet pass:
+            # the cloud's first house batches "succeeded" this way, screening nothing.
+            raise SystemExit(f"no region has its map and photo catalogue: {', '.join(missing)}")
+        for region in missing:
+            print(f"{region}: missing map or photo catalogue, skipped", flush=True)
         counts = review_samples(args, summaries, policy) if args.sample else {}
+        print(f"screened {getattr(args, 'selected_this_pass', 0)} this pass; journal {dict(counts)}",
+              flush=True)
         if WORKSPACE:
             checkpoint = WORKSPACE.checkpoint(now.isoformat(), clean_pixels=True)
             if checkpoint:

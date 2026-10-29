@@ -49,12 +49,12 @@ class Stub(Provider):
         return list(self.live.values())
 
 
-def setup(tmp_path, *, budget=None, max_workers=3, slots=1):
+def setup(tmp_path, *, budget=None, max_workers=3, slots=1, min_fill=1):
     clock = Clock()
     q = Queue(tmp_path / "q.sqlite", clock=clock)
     stub = Stub(clock)
     pool = Pool("cpu", "stub", "cpx32", 0.06, "img", max_workers=max_workers, slots=slots,
-                idle_minutes=10, min_billed_hours=1)
+                idle_minutes=10, min_billed_hours=1, min_fill=min_fill)
     sched = Scheduler(q, {"stub": stub}, Settings(pools={"cpu": pool},
                                                     budget=budget or Budget(25, 300, 400)),
                       lambda wid, pool: {"KERBSIDE_BOOT_TOKEN": "x"}, clock=clock)
@@ -83,7 +83,9 @@ def test_workers_start_for_ready_work_up_to_the_pool_and_stop_when_idle(tmp_path
     for w in q.workers():
         q.seen(w["id"])
     stopped = sched.tick()["stopped"]
-    assert {r for _, r in stopped} == {"idle"} and not stub.live and not q.workers()
+    # Two emptied by packing (nothing ready, and the load fits one fewer), the last by idling.
+    assert sorted(r for _, r in stopped) == ["idle", "packed", "packed"]
+    assert not stub.live and not q.workers()
 
 
 def test_an_instance_the_queue_does_not_know_is_deleted(tmp_path):
@@ -203,3 +205,72 @@ def test_cloud_init_powers_the_server_off_when_the_worker_exits():
     text = worker_cloud_init(Pool("cpu", "hetzner", "cpx32", 0.06, "img"), {"A": "1"})
     assert text.startswith("#cloud-config") and "poweroff" in text and "0600" in text
     json.dumps(text)
+
+
+
+def test_jobs_are_packed_onto_the_fewest_workers_and_work_arriving_lifts_the_packing(tmp_path):
+    """Rented time always has work: with nothing ready, a worker whose jobs would fit on the
+    others stops leasing (and is stopped once empty); new work lifts that before a new rental."""
+    clock, q, stub, sched = setup(tmp_path, max_workers=2, slots=4)
+    jobs(q, 6)
+    assert len(sched.tick()["launched"]) == 2
+    a, b = (w["id"] for w in q.workers())
+    for w in (a, b):
+        q.seen(w)
+    for worker, n in ((a, 4), (b, 2)):
+        for _ in range(n):
+            q.lease(worker, ["cpu"], 600)
+
+    def finish(worker, n):
+        for j in [j for j in q.jobs(state="leased") if j["lease_owner"] == worker][:n]:
+            q.complete(j["id"], worker, j["lease_token"], {"tree": "t"})
+
+    finish(b, 1)
+    assert "packing" not in sched.tick()  # 5 jobs do not fit on one worker of 4 slots
+    finish(a, 3)
+    report = sched.tick()  # 1 + 1 do
+    assert len(report["packing"]) == 1 and report["stopped"] == []  # still holding its job
+    packed = report["packing"][0]
+    assert packed in json.loads(q.get_meta("packing"))
+    q.submit(JobSpec(id="late:terrain", kind="cell_stage", subject="late", stage="terrain",
+                     resource="cpu", command=[["true"]]))
+    report = sched.tick()
+    assert report["launched"] == [] and json.loads(q.get_meta("packing")) == []
+    finish(a, 1)
+    finish(b, 1)
+    q.lease(a, ["cpu"], 600)
+    report = sched.tick()  # nothing ready, the empty worker packs and is stopped at once
+    assert report["stopped"] == [(b, "packed")]
+
+
+def test_a_second_worker_needs_min_fill_jobs_of_its_own(tmp_path):
+    clock, q, stub, sched = setup(tmp_path, max_workers=3, slots=4, min_fill=3)
+    jobs(q, 4)
+    assert len(sched.tick()["launched"]) == 1
+    (w,) = q.workers()
+    q.seen(w["id"])
+    while q.lease(w["id"], ["cpu"], 600):
+        pass
+    for i in range(2):
+        q.submit(JobSpec(id=f"x{i}:terrain", kind="cell_stage", subject=f"x{i}", stage="terrain",
+                         resource="cpu", command=[["true"]]))
+    assert sched.tick()["launched"] == []  # two jobs wait for a free slot rather than a new pod
+    q.submit(JobSpec(id="x2:terrain", kind="cell_stage", subject="x2", stage="terrain",
+                     resource="cpu", command=[["true"]]))
+    assert len(sched.tick()["launched"]) == 1
+
+
+def test_idle_rented_time_and_a_nearly_spent_budget_raise_warnings(tmp_path):
+    clock, q, stub, sched = setup(tmp_path, budget=Budget(daily_usd=10, monthly_usd=100,
+                                                          hard_monthly_usd=100, warn_usd=0.004))
+    jobs(q, 1)
+    report = sched.tick()
+    assert report["warnings"] == [] and report["idle_today_usd"] == 0
+    for _ in range(2):  # a booting worker holds no job: its time is idle
+        clock.t += 300
+        report = sched.tick()
+    assert report["idle_today_usd"] == pytest.approx(0.01)
+    assert [w["key"].split(":")[0] for w in report["warnings"]] == ["idle"]
+    q.charge("instance", 9.999, "elsewhere")
+    report = sched.tick()
+    assert {w["key"].split(":")[0] for w in report["warnings"]} == {"idle", "daily"}

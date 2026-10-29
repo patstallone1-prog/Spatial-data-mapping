@@ -61,6 +61,8 @@ async function load() {
   document.getElementById("spend").innerHTML = `${usd(b.today_usd)} <span class="muted">today</span>`;
   document.getElementById("budget").innerHTML = `${usd(b.month_usd)} this month of ${usd(b.monthly_usd)} · hard stop ${usd(b.hard_monthly_usd)}` + (b.hard_stop ? ' <b class="bad">STOPPED</b>' : "");
   document.getElementById("estimate").textContent = `≈ ${usd(s.estimate.remaining_usd)} to finish what is queued (${s.estimate.basis})`;
+  document.getElementById("estimate").innerHTML += `<br>idle rented time today ${usd(s.idle_today_usd || 0)}` +
+    (s.warnings || []).map((w) => `<br><b class="warn">⚠ ${esc(w.text)}</b>`).join("");
   const r = s.release || {};
   document.getElementById("release").innerHTML = r.version ? `live <code>${esc(r.version)}</code> since ${new Date(r.at * 1000).toLocaleString()}` + (r.rolled_back_from ? ` <span class="warn">rolled back from ${esc(r.rolled_back_from)}</span>` : "") : "nothing published yet";
   const states = ["pending","leased","failed","held","quarantined","done","cancelled"];

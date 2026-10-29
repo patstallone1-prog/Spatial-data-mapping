@@ -14,7 +14,9 @@ def test_background_proposals_cannot_overwrite_served_frontage_artifacts():
     runner = (root / "scripts/run_frontage_workers.py").read_text()
     assert '"--publish-to", str(ROOT / "build/facade-match/candidate-published-fits.json")' in runner
     filter_source = (root / "scripts/filter_frontage_photos.py").read_text()
-    assert 'prune_rejected(args.output) if WORKSPACE is None' in filter_source
+    # A durable working set defers pruning to the checkpoint; only scratch output is pruned.
+    assert 'if WORKSPACE is not None:\n        cleanup = {"files_removed": 0' in filter_source
+    assert "        cleanup = prune_rejected(args.output)" in filter_source
 
 
 def workspace(tmp_path, mounted):

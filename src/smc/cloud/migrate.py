@@ -6,7 +6,8 @@ content-addressed tree (:mod:`.checkpoint`) with a pointer the plan and the work
 * ``pointers/cell-<name>.json``   -- a cell's folder as its stages left it (``data/regions/<name>``,
   which for a gap cell is a link to the drive). The plan records every stage its journal shows
   done as done, so nothing finished is run again.
-* ``pointers/shared-<name>.json`` -- an input no stage re-fetches (:data:`.stages.SHARED_INPUTS`).
+* ``pointers/shared-<name>.json`` -- an input no stage re-fetches (:data:`.stages.SHARED_INPUTS`);
+  ``shared-house-inputs`` is built by :func:`migrate_house_inputs`.
 * ``pointers/house-state.json``   -- the house pipeline's journals and fits.
 * ``pointers/interiors-state-<region>.json`` -- the interior engine's finished batches
   (``build/inferred-interiors/<region>``); the plan records each batch with a manifest done.
@@ -30,7 +31,8 @@ from pathlib import Path
 
 from .checkpoint import EXCLUDE, get_pointer, push_tree, set_pointer
 from .inventory import classify
-from .stages import HOUSE_STATE, INTERIOR_OUT, RESTAURANT_STATE, SHARED_INPUTS
+from .stages import (HOUSE_PROVIDERS, HOUSE_REGIONS, HOUSE_STATE, INTERIOR_OUT, RESTAURANT_STATE,
+                     SHARED_INPUTS, house_input_paths)
 from .store import ObjectStore, open_store
 
 POINT_EXCLUDE = (*EXCLUDE, "points")
@@ -62,6 +64,8 @@ def migrate_cell(store: ObjectStore, root: Path, name: str, *, with_points: bool
 
 
 def migrate_shared(store: ObjectStore, root: Path, name: str, known: set[str] | None = None) -> dict:
+    if name == "house-inputs":
+        return migrate_house_inputs(store, root, known)
     paths = [p for p in SHARED_INPUTS[name] if (root / p).exists()]
     if not paths:
         return {"shared": name, "skipped": "not present here"}
@@ -70,6 +74,62 @@ def migrate_shared(store: ObjectStore, root: Path, name: str, known: set[str] | 
     set_pointer(store, f"shared-{name}", stats.tree, paths=paths)
     return {"shared": name, "tree": stats.tree, "files": stats.files, "bytes": stats.bytes_total,
             "sent": stats.bytes_sent}
+
+
+HOUSE_POSES = "data/observation_enrichment/mapillary_poses.jsonl"
+
+
+def migrate_house_inputs(store: ObjectStore, root: Path, known: set[str] | None = None, *,
+                         regions: tuple[str, ...] = HOUSE_REGIONS) -> dict:
+    """The house filter's maps and catalogues, at the paths it reads them from. A catalogue is
+    rewritten with only :data:`.stages.HOUSE_PROVIDERS`' rows; maps and poses are linked as
+    they are. A region missing here is left out (and named), not an error."""
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+
+    root = Path(root)
+    with tempfile.TemporaryDirectory() as tmp:
+        farm = Path(tmp)
+        paths, missing, dropped = [], [], 0
+        for region in regions:
+            page, *rest = house_input_paths(region)
+            if not (root / page).is_file():
+                missing.append(region)
+                continue
+            for rel in (page, *rest):
+                source, target = root / rel, farm / rel
+                if rel.endswith("/observations"):
+                    parts = sorted(source.glob("*.parquet"))
+                    if not parts:
+                        missing.append(region)
+                        break
+                    target.mkdir(parents=True, exist_ok=True)
+                    for part in parts:
+                        table = pq.read_table(part)
+                        kept = table.filter(pc.is_in(table["provider"],
+                                                     value_set=pa.array(HOUSE_PROVIDERS)))
+                        dropped += table.num_rows - kept.num_rows
+                        pq.write_table(kept, target / part.name)
+                elif source.is_file():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.symlink_to(source.resolve())
+                else:
+                    continue
+                paths.append(rel)
+        if (root / HOUSE_POSES).is_file():
+            (farm / HOUSE_POSES).parent.mkdir(parents=True, exist_ok=True)
+            (farm / HOUSE_POSES).symlink_to((root / HOUSE_POSES).resolve())
+            paths.append(HOUSE_POSES)
+        if not paths:
+            return {"shared": "house-inputs", "skipped": "not present here"}
+        _refuse_restricted(paths)
+        stats = push_tree(store, farm, paths, known=known)
+    set_pointer(store, "shared-house-inputs", stats.tree, paths=paths, missing=missing,
+                providers=list(HOUSE_PROVIDERS))
+    return {"shared": "house-inputs", "tree": stats.tree, "files": stats.files,
+            "bytes": stats.bytes_total, "sent": stats.bytes_sent, "missing": missing,
+            "rows_left_out": dropped}
 
 
 def migrate_house_state(store: ObjectStore, run_dir: Path, known: set[str] | None = None, *,
