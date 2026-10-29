@@ -9,14 +9,19 @@ Each tick:
    gone and its leases failed. A worker silent past its grace is deleted as hung.
 3. **Budget**: at the hard limit every worker is stopped and nothing is launched (until the
    month turns); past today's limit every worker drains and nothing is launched until tomorrow.
-4. **Retire** workers idle past their pool's idle time, or older than its ``max_hours`` once they
+4. **Pack**: with nothing ready, a pool whose jobs would fit on one worker fewer stops leasing to
+   its emptiest worker, which is stopped as soon as it is empty; rented time always has work
+   (2026-10-28, the owner). Work arriving lifts the packing before anything new is rented.
+5. **Retire** workers idle past their pool's idle time, or older than its ``max_hours`` once they
    finish what they hold.
-5. **Launch** workers where ready jobs outnumber free slots, one pool at a time, each launch
-   checked against the budget.
+6. **Launch** workers where ready jobs outnumber free slots, one pool at a time, each launch
+   checked against the budget; a second worker needs ``min_fill`` jobs of its own.
+7. **Warn** when today's idle time has cost ``budget.warn_usd`` or a budget is nearly spent.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import secrets
@@ -80,6 +85,7 @@ class Scheduler:
         self.bootstrap = bootstrap
         self.clock = clock
         self.last: dict = {}
+        self._ticked_at: float | None = None
 
     def _provider(self, pool: Pool) -> Provider:
         return self.providers[pool.provider]
@@ -160,7 +166,10 @@ class Scheduler:
                 if worker["state"] not in ("starting", "stopping", "draining"):
                     self.queue.set_worker(worker["id"], state="draining")
 
-        # 4. retire idle and old workers
+        # 4. pack
+        packing = self._pack(report)
+
+        # 5. retire idle, emptied and old workers
         for worker in self.queue.workers():
             pool = self.settings.pools.get(worker["resource"])
             if pool is None or worker["state"] in ("starting", "stopping"):
@@ -170,16 +179,17 @@ class Scheduler:
             too_old = now - worker["created_at"] > pool.max_hours * 3600
             nothing_ready = self.queue.ready_count(pool.name) == 0
             draining = worker["state"] == "draining"
-            if not busy and (too_old or paused or draining
+            packed = worker["id"] in packing
+            if not busy and (too_old or paused or draining or packed
                              or (idle_for > pool.idle_minutes * 60 and nothing_ready)):
                 reason = ("too old" if too_old else "paused" if paused
-                          else "daily budget" if draining else "idle")
+                          else "daily budget" if draining else "packed" if packed else "idle")
                 self._stop(worker, reason)
                 report["stopped"].append((worker["id"], reason))
             elif too_old:
                 self.queue.set_worker(worker["id"], state="draining")
 
-        # 5. launch
+        # 6. launch
         launches = 0
         if not paused and not spent_today:
             for name, pool in self.settings.pools.items():
@@ -191,8 +201,10 @@ class Scheduler:
                 free = sum(pool.slots - self._busy_slots(w["id"]) for w in workers
                            if w["state"] != "starting") + pool.slots * sum(
                     1 for w in workers if w["state"] == "starting")
-                want = min(pool.max_workers - len(workers),
-                           math.ceil(max(0, ready - free) / pool.slots))
+                overflow = max(0, ready - free)
+                if workers and overflow < pool.min_fill:
+                    continue
+                want = min(pool.max_workers - len(workers), math.ceil(overflow / pool.slots))
                 for _ in range(max(0, want)):
                     if launches >= self.settings.max_launches_per_tick:
                         break
@@ -212,8 +224,45 @@ class Scheduler:
                     report["launched"].append(worker_id)
                     launches += 1
         money.charge_storage(self.queue, now)
+
+        # 7. warn
+        live = self.queue.workers()
+        busy_ids = {j["lease_owner"] for j in self.queue.jobs(state="leased")}
+        seconds = now - self._ticked_at if self._ticked_at is not None else 0.0
+        self._ticked_at = now
+        idle = money.charge_idle(self.queue, live, busy_ids, min(seconds, 300), now)
+        report["idle_today_usd"] = round(idle, 4)
+        report["warnings"] = money.warnings(money.status(self.queue, self.settings.budget, now),
+                                            self.settings.budget, idle, now)
+        raised = set(json.loads(self.queue.get_meta("warned") or "[]"))
+        for w in report["warnings"]:
+            if w["key"] not in raised:
+                log.warning("%s", w["text"])
+                raised.add(w["key"])
+        self.queue.set_meta("warned", json.dumps(sorted(raised)[-50:]))
         self.last = report
         return report
+
+    def _pack(self, report: dict) -> set[str]:
+        """The workers that take no new job (``meta packing``, read by the lease endpoint)."""
+        live = self.queue.workers()
+        packing = set(json.loads(self.queue.get_meta("packing") or "[]")) & {w["id"] for w in live}
+        for name, pool in self.settings.pools.items():
+            workers = [w for w in live if w["resource"] == name
+                       and w["state"] not in ("starting", "stopping", "draining", "leaving")]
+            if self.queue.ready_count(name):
+                packing -= {w["id"] for w in workers}
+                continue
+            held = [w for w in workers if w["id"] not in packing]
+            load = {w["id"]: self._busy_slots(w["id"]) for w in held}
+            while len(held) > 1 and sum(load[w["id"]] for w in held) <= (len(held) - 1) * pool.slots:
+                # The emptiest, and of those the youngest (the oldest is nearest its max_hours).
+                worker = min(held, key=lambda w: (load[w["id"]], -w["created_at"]))
+                held.remove(worker)
+                packing.add(worker["id"])
+                report.setdefault("packing", []).append(worker["id"])
+        self.queue.set_meta("packing", json.dumps(sorted(packing)))
+        return packing
 
     def _busy_slots(self, worker_id: str) -> int:
         return sum(1 for j in self.queue.jobs(state="leased") if j["lease_owner"] == worker_id)
