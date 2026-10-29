@@ -124,8 +124,8 @@ def house_input_paths(region: str) -> list[str]:
     return [page, f"{terrain}.json", f"{terrain}.bin", f"{catalog}/observations"]
 
 
-def interior_batch(region: str, index: int, revision: str, input_digest: str,
-                   priority: int = 100) -> JobSpec:
+def local_interior_batch(region: str, index: int, revision: str, input_digest: str,
+                         priority: int = 100) -> JobSpec:
     """Independent CPU layout batch, using the same leased/checkpointed worker as facades.
 
     A completed batch records failures too: acceptance is per house, not a fake all-pass

@@ -1,7 +1,7 @@
 {
   "schema": "kerbside.interior_envelopes/1",
   "canonical_rules_sha256": "2ccc3a1ca3aff0109b6bcf141e935b619a07ed13c8ba31f502ade0eb3a09495d",
-  "canonical_source_sha256": "ad4f8b4c359ce773685d4fb3e431af5451279187dd273fcdfc0723a823372b35",
+  "canonical_source_sha256": "63305808f937fcffba88fe24dc0bd397ef73b1a299f4b87ad159537aca6cdd00",
   "buildings": {
     "osm-460228342": {
       "id": "osm-460228342",

@@ -24,7 +24,7 @@ from run_interior_engine import BATCH, REGIONS, eligible
 
 from smc.cloud.local import LocalQueueTransport
 from smc.cloud.queue import Queue
-from smc.cloud.stages import interior_batch
+from smc.cloud.stages import local_interior_batch
 from smc.cloud.store import LocalStore
 from smc.cloud.worker import Worker
 
@@ -48,7 +48,7 @@ def jobs(rev: str):
         rows.sort(key=lambda r: r.get('priority_area') != 'Marina')
         for i in range(0, len(rows), BATCH):
             digest = hashlib.sha256(json.dumps(rows[i:i+BATCH], sort_keys=True).encode()).hexdigest()[:16]
-            yield interior_batch(region, i // BATCH, rev, digest, priority)
+            yield local_interior_batch(region, i // BATCH, rev, digest, priority)
             priority += 1
 
 

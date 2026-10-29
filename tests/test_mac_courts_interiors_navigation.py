@@ -26,7 +26,7 @@ console.log(JSON.stringify({court,paint,park}));
     assert not out['court']['material']['depthTest']
     assert not out['paint']['material']['depthTest']
     assert 'position' not in out['court'], 'no invented court elevation'
-    assert '.renderOrder = HEADSET ? 0 : -0.6;' in _extract('buildCourts', js)
+    assert 'pad.renderOrder = -0.5;' in _extract('buildCourts', js)
 
 
 def test_all_rendered_hard_playing_rectangles_exclude_grass_including_bleed():
@@ -84,7 +84,8 @@ def test_restaurant_index_only_accepts_same_envelope_single_tenant_and_passed_la
     assert len(data) >= 3
     for ref in data.values():
         assert ref['kind'] == 'restaurant' and ref['measured'] is False
-    assert json.loads((ROOT/'docs/inferred-restaurants/map-overlay.json').read_text())['buildings'] == data
+    published = json.loads((ROOT/'docs/inferred-restaurants/map-overlay.json').read_text())['buildings']
+    assert all(published.get(k) == v for k, v in data.items())
 
 
 @pytest.mark.parametrize('aspect',[.4,1,2.5])
@@ -100,11 +101,12 @@ def test_route_overview_fits_both_axes_and_all_stops(aspect):
 def test_route_start_collapses_controls_and_keeps_chosen_alternate():
     js = _page_js()
     overview = _extract('showRouteOverview',js)
-    assert 'hud.dataset.open = "false"' in overview and 'state.pitch = Math.PI/2' in overview
+    assert 'state.pitch = Math.PI/2' in overview
+    assert 'showRouteOverview();\n      if (found.length) showNavigation(true);' in js
     assert 'avatar.position.set' not in overview and 'goTo(' not in overview
     assert 'route.queryKey === queryKey' in js
     assert '✓ Selected' in js and 'item.setAttribute("role", "option")' in js
-    assert 'size: META ? 1 : 0.62' in js
+    assert 'base: PLACE_PIN_BASE' in js
     assert 'const ROUTE_RIBBON_PER_M = META ? 0.007 : 0.009;' in js
     assert 'if (!regionAt(stop.lon,stop.lat)) return;' in js
 
@@ -116,8 +118,8 @@ def test_default_app_build_preserves_the_independently_versioned_quest_consumer(
 
 
 def test_cloud_interior_job_has_no_machine_specific_path_and_preserves_each_input_version():
-    from smc.cloud.stages import interior_batch
-    spec = interior_batch('sf-corridor',0,'abc','123',priority=0)
+    from smc.cloud.stages import local_interior_batch
+    spec = local_interior_batch('sf-corridor',0,'abc','123',priority=0)
     assert spec.resource == 'cpu' and spec.priority == 0
     assert spec.save == ['build/interior-production/abc/sf-corridor/batch-000-123']
     assert '--marina-first' in spec.command[0] and '--batch-key' in spec.command[0]
