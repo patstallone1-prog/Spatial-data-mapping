@@ -528,7 +528,7 @@ def tuned(html: str, detail: str) -> str:
                           ("FOLIAGE_MOTION", "foliage-motion.mjs"), ("FOREST_FLOOR", "forest-floor.mjs"),
                           ("GLOBE", "globe.mjs"), ("TELEPORT_MAP", "teleport-map.mjs"), ("META_XR", "meta-xr.mjs"),
                           ("OBJECT_CATALOGUE", "object-catalogue.mjs"), ("OBJECT_CATALOGUE_DATA", "object-catalogue.json"),
-                          ("EXTERIOR_EDITOR", "exterior-editor.mjs")):
+                          ("EXTERIOR_EDITOR", "exterior-editor.mjs"), ("MULTIPLAYER", "multiplayer.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     html = html.replace("/*__RELEASE_MODULE_SCOPE__*/", release_module_scope(html), 1)
     swaps = DETAIL_TUNING.get(detail) or {}
@@ -3100,6 +3100,7 @@ input::placeholder { color:#9ca3af; }
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="explore" aria-pressed="false" title="Explore (E): the walker is put away and the arrows move the view anywhere; turned off, the walker stands where you are">Explore</button>
       <button id="reset">Reset view</button>
+      <button id="play-together" title="Walk the same streets with friends: share a room link and see each other's walkers">Play together</button>
     </div>
     <button type="button" id="settings-toggle" class="settings-open" aria-controls="settings-page" aria-expanded="false">⚙ Settings</button>
   </div>
@@ -35630,6 +35631,7 @@ function animate(now) {
   if(grassStrands&&grassSurfaceAt){const focus=state.firstPerson?avatar.position:state.target;
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
+  if (multiplayer?.session?.tick(now)) lastMovedAt = now;
   updateCompass(now);
   if (sunDial.open && frameCount % 30 === 0) drawSunDial();
   if (frameCount % 30 === 0) updateRouteWidth();
@@ -36987,10 +36989,16 @@ function exteriorEditorContext() {
     openingsOn: exteriorOpeningsOn,
     wallColourOf: (feature) => `#${new THREE.Color(HOME_RENDER.get(String(feature.osm_id))?.tint ?? (feature.colour || 0xc8c2b8)).getHexString()}`,
     wallColour: "#c8c2b8",
+    groundAt: (x, z) => terrainGroundAt(x, z),
     publishedEdit: (id) => PUBLISHED_EXTERIOR_EDITS?.edits?.[id] || null,
-    addToWorld: (group) => groups.mapped3d.add(group),
+    // An edit's stairs are ground: the walker climbs them like a stoop (exterior-editor stairSurface).
+    addToWorld: (group) => {
+      groups.mapped3d.add(group);
+      for (const surface of group.userData.standing || []) standingSurfaces.add(surface);
+    },
     removeFromWorld: (group) => {
       group.parent?.remove(group);
+      for (const surface of group.userData.standing || []) standingSurfaces.delete(surface);
       group.traverse((o) => { o.geometry?.dispose(); });
     },
     lookAtWall: (wall) => {
@@ -37005,6 +37013,8 @@ function exteriorEditorContext() {
     hideOriginal: (feature) => {
       const drawn = exteriorEditGroups.get(String(feature.osm_id));
       if (drawn) drawn.visible = false;
+      // The editor's preview stands in for it, stairs and all.
+      for (const surface of drawn?.userData.standing || []) standingSurfaces.delete(surface);
     },
     editsChanged: (id, edit) => drawSavedExteriorEdit(id, edit === undefined ? localExteriorEdits()[id] || PUBLISHED_EXTERIOR_EDITS?.edits?.[id] : edit),
     notify: (text) => { if (addrBox) { addrBox.textContent = text; addrBox.hidden = false; } },
@@ -37015,8 +37025,9 @@ async function drawSavedExteriorEdit(id, edit) {
   if (old) { exteriorEditorContext().removeFromWorld(old); exteriorEditGroups.delete(id); }
   if (!edit) return;
   const library = await exteriorEditorLibrary();
-  const group = library.drawEdit(exteriorEditorContext(), edit);
-  if (group) { groups.mapped3d.add(group); exteriorEditGroups.set(id, group); }
+  const context = exteriorEditorContext();
+  const group = library.drawEdit(context, edit);
+  if (group) { context.addToWorld(group); exteriorEditGroups.set(id, group); }
 }
 async function openExteriorEditor(feature) {
   if (META || !feature || feature.kind !== "building") return;
@@ -37049,6 +37060,43 @@ if (!META) {
   for (const id of EXTERIOR_EDITS.keys()) drawSavedExteriorEdit(id, EXTERIOR_EDITS.get(id));
 }
 
+// Other people's walkers in the same world (docs/multiplayer.mjs): a room is a link, the walkers
+// travel peer to peer, and there is no server of ours. Not on the headset or a guest region.
+var multiplayer = { session: null };
+{
+  const button = document.getElementById("play-together");
+  if (META || ATTACH) button?.remove();
+  else {
+    const library = () => import(sharedAsset("multiplayer.mjs?rev=__MULTIPLAYER_HASH__"));
+    let was = null; // the walker's last place, to tell walking from standing
+    const context = {
+      THREE, root, buildAvatar: buildCharacterAvatar, avatarScale: AVATAR_SCALE, standY: AVATAR_STAND_Y,
+      page: location.pathname,
+      me: () => {
+        const p = avatar.position, moving = Boolean(was) && Math.hypot(p.x - was.x, p.z - was.z) > 0.01;
+        was = { x: p.x, z: p.z };
+        return { x: p.x, z: p.z, feet: p.y - AVATAR_STAND_Y, yaw: avatar.rotation.y, moving,
+          stairs: moving && Boolean(avatar.userData.onStairs) };
+      },
+      toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
+      fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
+      groundAt: (x, z) => walkerGroundAt(x, z),
+      requestFrame,
+    };
+    Object.assign(multiplayer, {
+      goTo: (x, z) => goTo(new THREE.Vector3(x + 1.5, 0, z + 1.5), { travel: true, zoom: true }),
+      notify: (text) => { if (addrBox) { addrBox.textContent = text; addrBox.hidden = false; } },
+      onJoin: () => button.setAttribute("aria-pressed", "true"),
+      onLeave: () => button.setAttribute("aria-pressed", "false"),
+    });
+    const open = async (room) => (await library()).openPanel(context, multiplayer, { room });
+    button?.addEventListener("click", () => open());
+    const invited = new URLSearchParams(location.search).get("room");
+    if (invited) open(invited);
+    addEventListener("pagehide", () => multiplayer.session?.leave());
+  }
+}
+
 window.kerbside = {
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
@@ -37058,7 +37106,7 @@ window.kerbside = {
   outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
-  pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById,
+  pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById, multiplayer,
   // The landscape (forest floor, scans) and the globe, for inspection.
   get natureWorld() { return natureWorld; }, get globe() { return globe; }, teleportTrip,
   // The corner pieces: how many cuts were decided and how many pieces laid between them.

@@ -78,3 +78,42 @@ def test_the_page_draws_saved_edits_and_leaves_its_own_front_off_an_edited_wall(
     assert "dropEditedWallGarages(way); dropStorefrontGarages(way);" in source
     published = json.loads((ROOT / "docs/sf-corridor-exterior-edits.json").read_text())
     assert published["schema"] == "kerbside.exterior_edits/1"
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to load the module")
+def test_drawn_stairs_are_ground_the_walker_climbs_tread_by_tread_and_are_marked_inferred() -> None:
+    """A person's stairs are walked like a stoop's (a standing surface, kind "stairs"), not
+    passed through, and say they were drawn rather than measured."""
+    script = """
+const m = await import(process.argv[1]);
+// A wall along +x from the origin, facing +z, its foot 10 m up; a door 1.8 m up, 10 steps.
+const wall = { ax: 0, az: 0, ux: 1, uz: 0, nx: 0, nz: 1, base: 10 };
+const out = {};
+for (const direction of ["front", "left", "right"]) {
+  const s = m.stairSurface(wall, { u: 2, v: 1.8, w: 1, h: 2.1, stairs: { steps: 10, direction } }, 0.05);
+  const at = (x, z) => s(x, z);
+  out[direction] = { landing: at(2.5, 0.5), flags: [s.stairs, s.inferred, s.priority, s.label],
+    first: direction === "front" ? at(2.5, 0.95 + 0.1) : direction === "left" ? at(1.85 - 0.1, 0.5) : at(3.15 + 0.1, 0.5),
+    last: direction === "front" ? at(2.5, 0.95 + 8 * 0.28 + 0.1) : direction === "left" ? at(1.85 - 8 * 0.28 - 0.1, 0.5) : at(3.15 + 8 * 0.28 + 0.1, 0.5),
+    off: direction === "front" ? at(2.5, 0.95 + 9 * 0.28 + 0.1) : at(2.5, 3), behind: at(2.5, -0.2), aside: at(8, 0.5) };
+}
+console.log(JSON.stringify(out));
+"""
+    result = subprocess.run([NODE, "--input-type=module", "-e", script, (ROOT / "docs/exterior-editor.mjs").as_uri()],
+                            capture_output=True, text=True, check=True)
+    for direction, s in json.loads(result.stdout).items():
+        assert s["flags"] == [True, True, 1, "Stairs (inferred)"], direction
+        assert s["landing"] == pytest.approx(11.8), direction  # the door's sill
+        assert s["first"] == pytest.approx(11.8 - 0.18), direction  # one riser down
+        assert s["last"] == pytest.approx(10.18), direction  # the bottom tread, one riser up
+        assert s["off"] is None and s["behind"] is None and s["aside"] is None, direction
+
+
+def test_an_edits_stairs_join_the_walkers_ground_and_leave_it_with_the_edit() -> None:
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    assert "standing.push(stairSurface(wall, o, front, recess, ctx.groundAt));" in editor
+    assert "groundAt: (x, z) => terrainGroundAt(x, z)," in source
+    assert "for (const surface of group.userData.standing || []) standingSurfaces.add(surface);" in source
+    assert "for (const surface of group.userData.standing || []) standingSurfaces.delete(surface);" in source
+    assert "if (group) { context.addToWorld(group); exteriorEditGroups.set(id, group); }" in source

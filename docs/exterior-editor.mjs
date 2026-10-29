@@ -338,6 +338,7 @@ export function drawEdit(ctx, edit) {
   plane(0, 0, SKIN_OUT_M, wall.length, wall.height, ctx.wallMaterial ? ctx.wallMaterial(wallColour)
     : flat(wallColour, { roughness: 0.92 }), "wall");
   const front = SKIN_OUT_M + 0.005;
+  const standing = [];
   for (const o of edit.openings) {
     const recess = Math.max(0, Math.min(1.5, o.recess_m || 0));
     if (recess > 0) {
@@ -370,7 +371,10 @@ export function drawEdit(ctx, edit) {
       box(o.u - 0.08, o.v, out, 0.08, o.h + 0.08, 0.06, trim, "door");
       box(o.u + o.w, o.v, out, 0.08, o.h + 0.08, 0.06, trim, "door");
       if (o.style !== "arched") box(o.u - 0.08, o.v + o.h, out, o.w + 0.16, 0.08, 0.06, trim, "door");
-      if (o.stairs?.steps > 0 && o.v > 0.05) drawStairs(o, front + recess, box, flat);
+      if (o.stairs?.steps > 0 && o.v > 0.05) {
+        drawStairs(o, front + recess, box, flat);
+        standing.push(stairSurface(wall, o, front, recess, ctx.groundAt));
+      }
     } else if (o.type === "garage") {
       const colour = o.colour || WOOD;
       plane(o.u, o.v, out, o.w, o.h, mat(`garage|${o.style}|${colour}`, () => new THREE.MeshStandardMaterial({
@@ -387,6 +391,8 @@ export function drawEdit(ctx, edit) {
     }
   }
   group.updateMatrixWorld(true);
+  // What the walker stands on: the page adds these to its standing surfaces, as it does a stoop's.
+  group.userData.standing = standing;
   return group;
 }
 
@@ -397,25 +403,58 @@ function drawStairs(o, out, box, flat) {
   const rise = o.v / n, tread = 0.28, width = o.w + 0.3, landing = 0.9;
   const stone = flat(o.stairs.colour || "#9a958c", { roughness: 0.95 }), rail = flat("#2a2a2a");
   const u0 = o.u - 0.15;
-  box(u0, 0, out, width, o.v, landing, stone, "stair");
+  box(u0, 0, out, width, o.v, landing, stone, "inferred:stairs");
   const dir = o.stairs.direction || "front";
   for (let k = 1; k < n; k += 1) {
     const top = o.v - k * rise;
-    if (dir === "front") box(u0, 0, out + landing + (k - 1) * tread, width, top, tread, stone, "stair");
+    if (dir === "front") box(u0, 0, out + landing + (k - 1) * tread, width, top, tread, stone, "inferred:stairs");
     else {
       const s = dir === "left" ? -1 : 1;
       const u = s < 0 ? u0 - k * tread : u0 + width + (k - 1) * tread;
-      box(u, 0, out, tread, top, landing, stone, "stair");
+      box(u, 0, out, tread, top, landing, stone, "inferred:stairs");
     }
   }
   if (o.stairs.rail) {
     const posts = dir === "front"
       ? [[u0, out + landing + (n - 1) * tread], [u0 + width - 0.04, out + landing + (n - 1) * tread], [u0, out + landing], [u0 + width - 0.04, out + landing]]
       : [[u0, out + landing - 0.04], [u0 + width - 0.04, out + landing - 0.04]];
-    for (const [u, z] of posts) box(u, 0, z, 0.04, o.v + 0.95, 0.04, rail, "railing");
-    if (dir === "front") for (const u of [u0, u0 + width - 0.04]) box(u, o.v + 0.9, out, 0.04, 0.04, landing + (n - 1) * tread, rail, "railing");
-    else box(u0, o.v + 0.9, out + landing - 0.04, width, 0.04, 0.04, rail, "railing");
+    for (const [u, z] of posts) box(u, 0, z, 0.04, o.v + 0.95, 0.04, rail, "inferred:railing");
+    if (dir === "front") for (const u of [u0, u0 + width - 0.04]) box(u, o.v + 0.9, out, 0.04, 0.04, landing + (n - 1) * tread, rail, "inferred:railing");
+    else box(u0, o.v + 0.9, out + landing - 0.04, width, 0.04, 0.04, rail, "inferred:railing");
   }
+}
+
+//: The same stairs as ground the walker climbs (the page's standing surfaces; see addStoop): the
+//: height of the tread under a point, or null off them. Built to drawStairs' measurements, with the
+//: indent's floor at the sill, and marked inferred -- a person drew them, nobody measured them.
+//: ``groundAt`` lifts a tread the pavement covers (a sloping lot) to the pavement: no step down.
+export function stairSurface(wall, o, front, recess = 0, groundAt = null) {
+  const n = Math.max(1, Math.min(20, Math.round(o.stairs.steps)));
+  const rise = o.v / n, tread = 0.28, width = o.w + 0.3, landing = 0.9, u0 = o.u - 0.15;
+  const out = front + recess, dir = o.stairs.direction || "front", sill = wall.base + o.v;
+  const surface = (x, z) => {
+    const dx = x - wall.ax, dz = z - wall.az;
+    const u = dx * wall.ux + dz * wall.uz, d = dx * wall.nx + dz * wall.nz;
+    if (d < 0) return null;
+    if (d < out) return recess > 0 && u >= o.u && u <= o.u + o.w ? sill : null;
+    if (d <= out + landing && u >= u0 && u <= u0 + width) return sill;
+    let k;
+    if (dir === "front") {
+      if (u < u0 || u > u0 + width) return null;
+      k = Math.ceil((d - out - landing) / tread);
+    } else {
+      if (d > out + landing) return null;
+      k = Math.ceil(dir === "left" ? (u0 - u) / tread : (u - u0 - width) / tread);
+    }
+    if (!(k >= 1 && k < n)) return null;
+    const ground = groundAt?.(x, z);
+    return Number.isFinite(ground) ? Math.max(sill - k * rise, ground) : sill - k * rise;
+  };
+  surface.priority = 1;
+  surface.stairs = true;
+  surface.inferred = true;
+  surface.label = "Stairs (inferred)";
+  return surface;
 }
 
 // ---- the panel -----------------------------------------------------------------------------------

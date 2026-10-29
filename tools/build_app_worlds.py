@@ -143,6 +143,9 @@ def main() -> None:
         terrain_source = target if name == "oakland-downtown" else DOCS / "regions" / name
         payload_source = target if (target / "sf-corridor-3d.json").exists() else terrain_source
         support = build_visual_support(payload_source, terrain_source, target, "app-landwater.bin")
+        if not support and (target / "app-landwater.bin").is_file():
+            # A cloud cell: its payload is in the bucket, and its support file came with its release.
+            support = "app-landwater.bin"
         page = app_page(
             template,
             title=region["title"],
@@ -173,7 +176,7 @@ def main() -> None:
                          *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
-                         DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json", DOCS / "exterior-editor.mjs",
+                         DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json", DOCS / "exterior-editor.mjs", DOCS / "multiplayer.mjs",
                          DOCS / "meta-xr.mjs", DOCS / "meta.webmanifest",
                          *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
                          DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
