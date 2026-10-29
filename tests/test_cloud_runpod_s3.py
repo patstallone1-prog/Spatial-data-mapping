@@ -266,3 +266,44 @@ def test_every_call_to_the_controller_names_itself_so_cloudflare_lets_it_through
                       "KERBSIDE_WORKER_ID": "w", "KERBSIDE_BOOT_TOKEN": "b"})
     worker.HttpTransport("https://p-8080.proxy.runpod.net", "w", "t").lease([], 60)
     assert seen == [USER_AGENT, USER_AGENT] and "urllib" not in USER_AGENT.lower()
+
+
+def test_a_read_whose_stream_breaks_is_asked_for_again_and_a_missing_key_is_not(monkeypatch):
+    """A dropped body (an exception with ``response=None``) was not retried by the client and
+    crashed the missing-key check; a promote of twenty cells died on one."""
+    from smc.cloud import store as st
+
+    class Dropped(Exception):
+        response = None
+
+    class Missing(Exception):
+        def __init__(self):
+            super().__init__("NoSuchKey")
+            self.response = {"Error": {"Code": "NoSuchKey"}}
+
+    class Body:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def read(self):
+            if self.fail:
+                raise Dropped("Read timed out")
+            return b"payload"
+
+    calls = []
+
+    class Client:
+        def get_object(self, Bucket, Key):
+            calls.append(Key)
+            if Key == "gone":
+                raise Missing()
+            return {"Body": Body(fail=len(calls) < 3)}
+
+    monkeypatch.setattr(st.time, "sleep", lambda s: None)
+    s = object.__new__(st.R2Store)
+    s.client, s.bucket = Client(), "b"
+    assert s.get("x") == b"payload" and len(calls) == 3
+    calls.clear()
+    with pytest.raises(KeyError):
+        s.get("gone")
+    assert calls == ["gone"]
