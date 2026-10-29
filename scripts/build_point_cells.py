@@ -87,6 +87,47 @@ def disk_ok(path: Path) -> bool:
     return shutil.disk_usage(path).free / 1024 ** 3 >= MIN_FREE_GB
 
 
+def region_cells(region) -> tuple[float, float, float, float, list[tuple[int, int]]]:
+    """The region's 120 m cells about its centre: (lat0, lon0, kx, ky, [(cx, cy)...])."""
+    lat0, lon0 = region.bbox.centre
+    kx = 111_320.0 * math.cos(math.radians(lat0))
+    ky = 111_320.0
+    b = region.bbox
+    cx0, cx1 = math.floor((b.west - lon0) * kx / CELL_M), math.floor((b.east - lon0) * kx / CELL_M)
+    cy0, cy1 = math.floor((b.south - lat0) * ky / CELL_M), math.floor((b.north - lat0) * ky / CELL_M)
+    return lat0, lon0, kx, ky, [(cx, cy) for cx in range(cx0, cx1 + 1) for cy in range(cy0, cy1 + 1)]
+
+
+def stored_points(xyz: np.ndarray, classes: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+    """What a cell's store keeps of its points: int16 centimetres above ``base_z`` (sorted along a
+    coarse grid), their classes, and ``base_z`` -- full density up to 6 m above ground, thinned
+    above. ``find_lidar_trees.py`` reads the same points without writing them."""
+    grid, origin, gcell = ground_heights(xyz, classes)
+    hag = height_above_ground(xyz, grid, origin, gcell)
+    standing_up = classes != CLASS_GROUND
+    full = standing_up & (hag < KEEP_FULL_BELOW_M)
+    keep = np.zeros(len(xyz), dtype=bool)
+    keep[full] = True
+    for band, size in (((standing_up & (hag >= KEEP_FULL_BELOW_M)
+                         & (hag < KEEP_THINNED_BELOW_M)), MID_THIN_M),
+                       (~standing_up | (hag >= KEEP_THINNED_BELOW_M), THIN_M)):
+        rows = np.flatnonzero(band)
+        if not rows.size:
+            continue
+        keys = np.floor(xyz[rows] / size).astype(np.int64)
+        _, first = np.unique(np.column_stack([keys, classes[rows]]), axis=0,
+                             return_index=True)
+        keep[rows[first]] = True
+    half = CELL_M / 2 + OVERLAP_M
+    keep &= (np.abs(xyz[:, 0]) <= half) & (np.abs(xyz[:, 1]) <= half)
+    kept = xyz[keep]
+    base_z = float(kept[:, 2].min()) if len(kept) else 0.0
+    cm = np.round((kept - [0.0, 0.0, base_z]) * 100).astype(np.int16)
+    # Sorted along a coarse grid, neighbours sit together and compress far better.
+    order = np.lexsort((cm[:, 2], cm[:, 0] // 200, cm[:, 1] // 200))
+    return cm[order], classes[keep][order], base_z
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("region")
@@ -111,14 +152,8 @@ def main() -> int:
                 continue
             if not row.get("retry") and not row.get("error"):
                 done.add(row["cell"])
-    lat0, lon0 = region.bbox.centre
-    kx = 111_320.0 * math.cos(math.radians(lat0))
-    ky = 111_320.0
-    b = region.bbox
-    cx0, cx1 = math.floor((b.west - lon0) * kx / CELL_M), math.floor((b.east - lon0) * kx / CELL_M)
-    cy0, cy1 = math.floor((b.south - lat0) * ky / CELL_M), math.floor((b.north - lat0) * ky / CELL_M)
-    cells = [(cx, cy) for cx in range(cx0, cx1 + 1) for cy in range(cy0, cy1 + 1)
-             if f"{cx}:{cy}" not in done]
+    lat0, lon0, kx, ky, cells = region_cells(region)
+    cells = [(cx, cy) for cx, cy in cells if f"{cx}:{cy}" not in done]
     if args.limit_cells:
         cells = cells[:args.limit_cells]
     paths = region_paths(region.name)
@@ -182,33 +217,11 @@ def main() -> int:
         # Store: full density up to 15 m above ground, the rest thinned.
         stored = 0
         if len(xyz):
-            grid, origin, gcell = ground_heights(xyz, classes)
-            hag = height_above_ground(xyz, grid, origin, gcell)
-            standing_up = classes != CLASS_GROUND
-            full = standing_up & (hag < KEEP_FULL_BELOW_M)
-            keep = np.zeros(len(xyz), dtype=bool)
-            keep[full] = True
-            for band, size in (((standing_up & (hag >= KEEP_FULL_BELOW_M)
-                                 & (hag < KEEP_THINNED_BELOW_M)), MID_THIN_M),
-                               (~standing_up | (hag >= KEEP_THINNED_BELOW_M), THIN_M)):
-                rows = np.flatnonzero(band)
-                if not rows.size:
-                    continue
-                keys = np.floor(xyz[rows] / size).astype(np.int64)
-                _, first = np.unique(np.column_stack([keys, classes[rows]]), axis=0,
-                                     return_index=True)
-                keep[rows[first]] = True
-            half = CELL_M / 2 + OVERLAP_M
-            keep &= (np.abs(xyz[:, 0]) <= half) & (np.abs(xyz[:, 1]) <= half)
-            stored = int(keep.sum())
-            kept = xyz[keep]
-            base_z = float(kept[:, 2].min()) if stored else 0.0
-            cm = np.round((kept - [0.0, 0.0, base_z]) * 100).astype(np.int16)
-            # Sorted along a coarse grid, neighbours sit together and compress far better.
-            order = np.lexsort((cm[:, 2], cm[:, 0] // 200, cm[:, 1] // 200))
+            cm, kept_classes, base_z = stored_points(xyz, classes)
+            stored = len(cm)
             np.savez_compressed(
                 root / f"{key}.npz",
-                xyz_cm=cm[order], classification=classes[keep][order],
+                xyz_cm=cm, classification=kept_classes,
                 source=np.zeros(stored, dtype=np.uint8),
                 meta=np.frombuffer(json.dumps({
                     "cell": key, "origin_lon": centre_lon, "origin_lat": centre_lat,

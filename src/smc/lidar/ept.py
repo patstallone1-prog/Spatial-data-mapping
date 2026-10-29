@@ -26,14 +26,15 @@ import json
 import math
 import os
 import tempfile
+import threading
 import urllib.error
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
 import laspy
 import numpy as np
+import urllib3
 
 #: The 3DEP public bucket. Requester-pays does not apply here; this mirror is free to read.
 USGS_LIDAR_PUBLIC = "https://s3-us-west-2.amazonaws.com/usgs-lidar-public"
@@ -44,7 +45,41 @@ SF_DATASET = "CA_SanFrancisco_1_B23"
 #: the bucket rather than work for the CPU (2026-10-29: lidar was the cloud's longest stage,
 #: a node at a time); they are still decoded and joined in the tree's own order, so a cloud
 #: is the same however its nodes arrived.
-FETCH_THREADS = int(os.environ.get("KERBSIDE_EPT_THREADS", "8"))
+FETCH_THREADS = int(os.environ.get("KERBSIDE_EPT_THREADS", "16"))
+
+#: One kept-alive connection pool for the process. A tile is a couple of hundred kilobytes, and
+#: a new TLS handshake for each one (``urlopen``) was half of its time; the bucket also reset
+#: handshakes now and then under sixteen at once. Dropped connections and the bucket's 5xx are
+#: retried here with a backoff; a 404 (a node the listing names but the bucket lacks) is not.
+_POOL: urllib3.PoolManager | None = None
+_POOL_LOCK = threading.Lock()
+
+
+def _pool() -> urllib3.PoolManager:
+    global _POOL
+    with _POOL_LOCK:
+        if _POOL is None:
+            try:
+                import certifi
+                ca = certifi.where()
+            except ImportError:
+                ca = None
+            _POOL = urllib3.PoolManager(
+                maxsize=4 * FETCH_THREADS, ca_certs=ca,
+                retries=urllib3.Retry(total=4, backoff_factor=0.5,
+                                      status_forcelist=(500, 502, 503, 504), allowed_methods=("GET",)))
+        return _POOL
+
+
+def _download(url: str, timeout_s: float) -> bytes:
+    response = _pool().request("GET", url, timeout=timeout_s)
+    if response.status >= 400:
+        raise urllib.error.HTTPError(url, response.status, response.reason or "", response.headers,
+                                     io.BytesIO(response.data))
+    length = response.headers.get("Content-Length")
+    if length is not None and int(length) != len(response.data):
+        raise OSError("truncated EPT response is not valid reference evidence")
+    return response.data
 
 #: ASPRS classification codes. Only these two carry ground truth about a kerb: the classifier's
 #: "ground" is the road and footway surface, and unclassified holds what it declined to call
@@ -122,11 +157,14 @@ class EptReader:
         cache_dir: Path | None = None,
         timeout_s: float = 90.0,
         strict: bool = False,
+        cache: bool = True,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/{dataset}"
         self._cache = cache_dir or Path("build/lidar-cache") / dataset
         self._timeout = timeout_s
         self.strict = strict
+        #: False: tiles are fetched and handed back, never written (a pass that reads each once).
+        self.cache = cache
         self._hierarchy: dict[str, dict[str, int]] = {}
         self._info: dict | None = None
         self.tiles_fetched = 0
@@ -147,14 +185,14 @@ class EptReader:
 
     def _get(self, path: str, *, binary: bool = True) -> bytes | str:
         cached = self._cache / path
-        if cached.exists():
+        if self.cache and cached.exists():
             self.tiles_cached += 1
             return cached.read_bytes() if binary else cached.read_text()
-        with urllib.request.urlopen(f"{self._url}/{path}", timeout=self._timeout) as response:
-            payload = response.read()
-            length = response.headers.get("Content-Length")
-            if length is not None and int(length) != len(payload):
-                raise OSError("truncated EPT response is not valid reference evidence")
+        payload = _download(f"{self._url}/{path}", self._timeout)
+        if not self.cache:
+            self.tiles_fetched += 1
+            self.bytes_fetched += len(payload)
+            return payload if binary else payload.decode("utf-8")
         cached.parent.mkdir(parents=True, exist_ok=True)
         # ENOSPC or interruption must not leave an apparently complete cache entry.
         temporary = None

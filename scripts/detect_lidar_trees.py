@@ -51,7 +51,12 @@ def read_cell(path: Path) -> tuple[np.ndarray, np.ndarray, dict]:
 
 
 def cell_trees(path: Path, rings: list[np.ndarray], boxes: np.ndarray) -> list[dict]:
-    xyz, classes, meta = read_cell(path)
+    return trees_in(*read_cell(path), rings, boxes)
+
+
+def trees_in(xyz: np.ndarray, classes: np.ndarray, meta: dict, rings: list[np.ndarray],
+             boxes: np.ndarray) -> list[dict]:
+    """One cell's trees, as rows: its points in the cell's local metres, ``meta`` its store's."""
     lon0, lat0 = meta["origin_lon"], meta["origin_lat"]
     kx = 111_320.0 * math.cos(math.radians(lat0))
     ky = 111_320.0

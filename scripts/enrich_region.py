@@ -11,10 +11,10 @@ chunk that fails is listed in ``site/facades/.failed`` and passed over, as the r
 
 ``trees`` plants only where the ground cover has no tree from a city inventory: San Francisco's
 twenty-seven thousand street trees are the city's own and complete at the kerb, so a cell there
-is not read from the lidar a second time for them. Elsewhere the region's lidar is read into
-point cells (``build_point_cells.py``, kept outside the region's folder so the checkpoint does
-not carry them), its crowns found (``detect_lidar_trees.py``) and planted on the ground the page
-serves (``tools/plant_lidar_trees.py``). A region whose lidar finds no crown is answered, not
+is not read from the lidar a second time for them. Elsewhere the region's lidar is read cell by
+cell and its crowns found as it is read (``find_lidar_trees.py``: the points the point-cell store
+would keep, without storing them), then planted on the ground the page serves
+(``tools/plant_lidar_trees.py``). A region whose lidar finds no crown is answered, not
 failed: the parity gate weighs a cell with no trees.
 """
 
@@ -86,11 +86,12 @@ def trees(region: str) -> int:
     scratch = POINTS_SCRATCH
     env = {"SMC_POINTS_ROOT": str(scratch)}
     try:
-        if run("scripts/build_point_cells.py", region, env=env):
-            return 1
-        if run("scripts/detect_lidar_trees.py", region, env=env):
+        code = run("scripts/find_lidar_trees.py", region, env=env)
+        if code == 3:
             print(f"{region}: no crowns found in its lidar", flush=True)
             return 0
+        if code:
+            return 1
         found = scratch / region / "points" / "trees.jsonl"
         kept = ROOT / "data" / "regions" / region / "points" / "trees.jsonl"
         kept.parent.mkdir(parents=True, exist_ok=True)
