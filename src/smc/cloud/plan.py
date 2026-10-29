@@ -126,6 +126,16 @@ def submit_restaurants(queue: Queue, private: ObjectStore, rounds: int) -> int:
     return added
 
 
+def published_trees(queue: Queue) -> dict[str, str]:
+    """Each published cell's newest published tree: a later publication (``publish-<stage>``,
+    after its chain grew) over its first."""
+    trees: dict[str, str] = {}
+    for job in sorted(queue.jobs(kind="publish"), key=lambda j: (j["subject"], j["id"] != f"cell:{j['subject']}:publish")):
+        if job["state"] == "done" and (job.get("output") or {}).get("tree"):
+            trees[job["subject"]] = job["output"]["tree"]
+    return trees
+
+
 def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[str] | None = None,
                 house_batches: int = 0, house_sample: int = HOUSE_SAMPLE, interiors: bool = False,
                 restaurant_rounds: int = 0, house_ahead: int = 0) -> dict:
@@ -173,6 +183,13 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         if passed and passed["state"] == "done" and (passed["depends"] or []) != [previous]:
             added += queue.submit(republish_job(name, gate.id, previous, priority)) == "added"
     previous = None
+    # The house filter screens every published cell beside its eight regions, which have run out
+    # of photographs; the cells' maps and catalogues come from their own saved trees.
+    cells_for_houses: tuple[str, ...] = ()
+    if house_batches or house_ahead:
+        from .migrate import house_cells_input
+
+        cells_for_houses = tuple(house_cells_input(private, published_trees(queue)).get("cells", ()))
     house = get_pointer(private, "house-state")
     if house:
         queue.submit(JobSpec(id="migrate:house-state", kind="migrate", subject="houses",
@@ -183,7 +200,7 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         finished = sum(1 for j in queue.jobs(kind="house_batch") if j["state"] == "done")
         house_batches = max(house_batches, finished + house_ahead)
     for number in range(1, house_batches + 1):
-        spec = house_batch(number, house_sample, previous)
+        spec = house_batch(number, house_sample, previous, cells=cells_for_houses)
         # replace: a batch not yet run takes the current spec (a finished or running one is kept).
         added += queue.submit(spec, replace=True) == "added"
         previous = spec.id
