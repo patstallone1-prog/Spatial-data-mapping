@@ -396,13 +396,19 @@ export function openHome(ctx) {
   };
   addEventListener("keydown", keys, true);
   const ready = ctx.whenReady?.() || Promise.resolve();
-  ready.then(() => { status.className = "status"; status.replaceChildren(el("i"), "World ready"); });
+  // Until it is ready, the world's own progress line: it loads behind the lobby from the start.
+  const progress = setInterval(() => {
+    const line = ctx.progress?.();
+    if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 48));
+  }, 400);
+  ready.then(() => { clearInterval(progress); status.className = "status"; status.replaceChildren(el("i"), "World ready"); });
   go.focus();
 
   function closeHome(enter = false) {
     if (!open) return;
     open = null;
     removeEventListener("keydown", keys, true);
+    clearInterval(progress);
     unsubscribe?.(); offParty?.();
     stageAvatar.dispose();
     root.remove();

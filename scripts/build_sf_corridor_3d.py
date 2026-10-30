@@ -37951,10 +37951,10 @@ function homeContext() {
     look: { set: afterReady((look) => applyWalkerLook(look)) },
     spawn: {
       get: readSpawn,
-      useWalker: () => spawnHere(),
-      clear: () => { try { localStorage.removeItem(SPAWN_KEY); } catch { /* private mode */ } },
+      useWalker: () => { const spawn = spawnHere(); if (spawn) stagedSpawn = JSON.stringify(readSpawn()); return spawn; },
+      clear: () => { try { localStorage.removeItem(SPAWN_KEY); } catch { /* private mode */ } WORLD_READY.then(stageWorld); },
       pickInWorld: afterReady(() => homeModule.then((home) => home.spawnBar({
-        onSet: () => { const spawn = spawnHere(); if (addrBox && spawn) { addrBox.textContent = `Spawn point set${spawn.label ? `: ${spawn.label}` : ""}.`; addrBox.hidden = false; } },
+        onSet: () => { const spawn = spawnHere(); if (spawn) stagedSpawn = JSON.stringify(readSpawn()); if (addrBox && spawn) { addrBox.textContent = `Spawn point set${spawn.label ? `: ${spawn.label}` : ""}.`; addrBox.hidden = false; } },
       }))),
     },
     contributor: { get: () => contributorMode, set: (on) => setContributorMode(on) },
@@ -37962,17 +37962,38 @@ function homeContext() {
     openSettings: afterReady(() => document.getElementById("settings-toggle")?.click()),
     openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
     whenReady: () => WORLD_READY,
-    onOpen: () => document.body.classList.add("home-open"),
-    onClose: ({ enter }) => { document.body.classList.remove("home-open"); if (enter) WORLD_READY.then(enterWorld); },
+    //: How the world is coming on, as the page's own progress line says it (null once it is up).
+    progress: () => { const box = document.getElementById("progress"); return box && !box.hidden ? box.textContent.trim() : null; },
+    onOpen: () => {
+      document.body.classList.add("home-open");
+      tellAppShell(true);
+      WORLD_READY.then(() => { if (document.body.classList.contains("home-open")) stageWorld(); });
+    },
+    onClose: ({ enter }) => { document.body.classList.remove("home-open"); tellAppShell(false); if (enter) WORLD_READY.then(stageWorld); },
   };
 }
-//: Explore world: to the spawn point if one is set, otherwise down to the walker where it stands.
-function enterWorld() {
-  if (readSpawn() && !spawnApplied) { applySpawn(); return; }
-  state.target.copy(avatar.position);
-  state.dist = ARRIVAL_DIST;
-  state.pitch = Math.min(state.pitch, 0.45);
-  placeCamera();
+//: The app (docs/app.html) holds the model in a frame; its tab bar stands aside for the home screen.
+function tellAppShell(open) {
+  try { if (window.parent !== window) window.parent.postMessage({ kerbside: "home", open }, location.origin); } catch { /* not ours */ }
+}
+//: Where Explore world puts you -- the spawn point if one is set, otherwise down to the walker
+//: where it stands -- taken while the home screen is still up: the camera goes there behind the
+//: lobby, so the street-level detail streams in while you choose, and Explore world has only to
+//: lift the lobby off it. Taken once per spawn point: back home and out again leaves you where
+//: you were.
+var stagedSpawn;
+function stageWorld() {
+  const spawn = readSpawn(), key = JSON.stringify(spawn), fresh = stagedSpawn !== key;
+  stagedSpawn = key;
+  if (spawn) {
+    if (fresh) { spawnApplied = false; applySpawn(); }
+  } else if (fresh || Math.hypot(state.target.x - avatar.position.x, state.target.z - avatar.position.z) > 30) {
+    // The walker, wherever it has got to since (a location fix can move it after the first frame).
+    state.target.copy(avatar.position);
+    state.dist = ARRIVAL_DIST;
+    state.pitch = Math.min(state.pitch, 0.45);
+    placeCamera();
+  }
   requestFrame();
 }
 pageIsReady();
