@@ -1,0 +1,94 @@
+{
+  "schema": "kerbside.storefront_brand_assets/1",
+  "assets": {
+    "safeway": {
+      "path": "safeway-logo.png",
+      "source_url": "https://images.albertsons-media.com/is/image/ABS/nav-safeway-logo?fmt=png-alpha",
+      "discovered_at": "https://www.safeway.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "7a9d93a7b7af805d4e8231849ba73757df200e39e3142d8a752f059bcf484f25",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "subway": {
+      "path": "subway-logo.jpg",
+      "source_url": "https://mma.prnewswire.com/media/431103/Subway_Logo.jpg",
+      "discovered_at": "https://newsroom.subway.com/2024-11-12-Subway-Unveils-New-Global-Restaurant-Design",
+      "retrieved_at": "2026-10-29",
+      "sha256": "2a84bc73a6fcc806ad7fd9aeaf1f4fdc182f90e546dcbaf5cdb32bffb32963c5",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront",
+      "display_box_px": [
+        8,
+        87,
+        384,
+        78
+      ],
+      "presentation": "Texture UV excludes master-image white margins; original asset bytes unchanged."
+    },
+    "seven_eleven": {
+      "path": "seven-eleven-horizontal.jpg",
+      "source_url": "https://images.contentstack.io/v3/assets/blt79dc99fad342cc45/blt080544b49732c1b4/633f08c159c8ec116d13f087/7_Eleven_Horizontal_2022_RGB_1639377127_8977.jpeg",
+      "discovered_at": "https://corp.7-eleven.com/corp/media-kit",
+      "retrieved_at": "2026-10-29",
+      "sha256": "4a81ded5c2f44d82d65fefaaae9b1a8b69288b9748bdc1f77088cf7d019faece",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront",
+      "display_box_px": [
+        60,
+        501,
+        1080,
+        198
+      ],
+      "presentation": "Texture UV excludes white master margins; artwork bytes unchanged."
+    },
+    "whole_foods": {
+      "path": "whole-foods-logo.svg",
+      "source_url": "https://www.wholefoodsmarket.com/",
+      "discovered_at": "https://www.wholefoodsmarket.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "cb909e4fe115c01ac3c8141d5e406a52cb59d6c5ec005c2559bc3f07828c380b",
+      "transform": "none; Whole Foods is the unmodified inline SVG element from its official header",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "chase": {
+      "path": "chase-logo.svg",
+      "source_url": "https://www.chase.com/content/dam/unified-assets/logo/chase/chase-logo/additional-file-formats/logo_chase_headerfooter.svg",
+      "discovered_at": "https://www.chase.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "223b2225e3034e5bd670ca02415885f498a862c53092569ee2e2da5b7050946a",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "chipotle": {
+      "path": "chipotle-logo.svg",
+      "source_url": "https://www.chipotle.com/content/experience-fragments/chipotle/us/en/xf-header/master/_jcr_content/root/container_712714414/image_411084835.coreimg.svg/1689182077517/cmg-medallion-logo.svg",
+      "discovered_at": "https://www.chipotle.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "e4bd47f46d31e3c98533c8ed2c172bd5996e1699f780c35749f661f907fe183c",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "starbucks": {
+      "path": "starbucks-siren.svg",
+      "source_url": "https://www.starbucks.ca/assets/icons/siren.svg",
+      "discovered_at": "https://www.starbucks.ca/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "d9a5c1a69d25655ddabd353883e0c0798f75cb45e3a1811fb340862b15bbaee5",
+      "transform": "none",
+      "usage": "brand identification; Starbucks trademark",
+      "scope": "exact official Siren artwork, not a surveyed storefront",
+      "display_size_px": [
+        512,
+        512
+      ],
+      "presentation": "Explicit square display viewport for the original viewBox; master bytes/path artwork unchanged."
+    }
+  }
+}
