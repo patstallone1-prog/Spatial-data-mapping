@@ -116,8 +116,11 @@ input::placeholder { color:#9ca3af; }
   .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
   .meta { grid-template-columns:repeat(2, 1fr); }
 }
+/* Contributor tools are off unless turned on (the home screen's Contributor tools). */
+body:not(.contributor) [data-contributor]{display:none !important}
+body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="69eaaaf8f6df61de17c309ec6aff78f30078173bd309e453b35c0ab791b8b7d7" />
+<meta name="kerbside-renderer-sha256" content="57623b58d86073d0e4f78691cae4f50b1a0a5e379dda38d78845a213aeb653aa" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -179,19 +182,19 @@ input::placeholder { color:#9ca3af; }
     <div class="toolbar">
       <button type="button" data-layer="streets" aria-pressed="true">Streets</button>
       <button type="button" data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
-      <button type="button" data-layer="coverage" aria-pressed="true">Coverage</button>
-      <button type="button" data-layer="observations" aria-pressed="true">Photos</button>
-      <button type="button" data-layer="sequences" aria-pressed="true">Sequences</button>
-      <button type="button" data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
+      <button type="button" data-contributor data-layer="coverage" aria-pressed="true">Coverage</button>
+      <button type="button" data-contributor data-layer="observations" aria-pressed="true">Photos</button>
+      <button type="button" data-contributor data-layer="sequences" aria-pressed="true">Sequences</button>
+      <button type="button" data-contributor data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
       <button type="button" data-layer="facades" aria-pressed="true">Photo facades</button>
       <button type="button" data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
       <button type="button" data-layer="furniture" aria-pressed="false">Street furniture</button>
-      <button type="button" data-layer="official" aria-pressed="false">Official geometry</button>
-      <button type="button" data-layer="chunks" aria-pressed="false">Chunks</button>
+      <button type="button" data-contributor data-layer="official" aria-pressed="false">Official geometry</button>
+      <button type="button" data-contributor data-layer="chunks" aria-pressed="false">Chunks</button>
       <button type="button" data-layer="districts" aria-pressed="true">Districts</button>
     </div>
   </section>
-  <section class="group" id="controls">
+  <section class="group" id="controls" data-contributor>
     <h2>Coverage</h2>
     <div class="toolbar"><button type="button" data-layer="gaps" aria-pressed="false">Show gaps</button></div>
     <p class="note" id="gapnote"></p>
@@ -200,7 +203,7 @@ input::placeholder { color:#9ca3af; }
     <p class="note" id="furniturenote"></p>
     <p class="note" id="detailnote"></p>
   </section>
-  <section class="group">
+  <section class="group" data-contributor>
     <h2>This region</h2>
     <div class="note" id="regionnote"></div>
     <div class="meta">
@@ -212,7 +215,7 @@ input::placeholder { color:#9ca3af; }
       <div class="stat"><b id="measured">0</b><span>measured curb</span></div>
     </div>
   </section>
-  <section class="group">
+  <section class="group" data-contributor>
     <h2>Legend</h2>
     <div class="legend">
       <span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
@@ -454,6 +457,37 @@ function viaStore(href) {
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
 const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
+//: This device's account (docs/kerbside-account.mjs): who is editing, and whether verified.
+let accountModule = null;
+const accountLibrary = () => (accountModule ??= import(sharedAsset("kerbside-account.mjs?rev=1f194325e666e57b")));
+// ---- the home screen ---------------------------------------------------------------------------
+//
+// The app opens on its home screen (docs/home-lobby.mjs) while the world loads behind it: your
+// avatar, your party, and Explore world. A link that already says where to go -- a place (?at=),
+// an invitation (?room=), a walk on from another region -- goes straight in.
+let homeModule = null;
+//: The walker's model: the home screen shows it on its platform before the world is built.
+const WALKER_MODEL_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
+const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=e78f3a2f6fe4ef67")));
+let worldIsReady = null, pageIsReady = null;
+//: Settled with the first frame drawn and the page's own code all run (the first frame can come
+//: before the module has reached its end): what the home screen's buttons wait for.
+const WORLD_READY = Promise.all([new Promise((resolve) => { worldIsReady = resolve; }),
+                                 new Promise((resolve) => { pageIsReady = resolve; })]);
+const HOME_SKIPPED = META || ATTACH || (() => {
+  try {
+    const query = new URLSearchParams(location.search);
+    return query.get("home") === "0" || query.has("at") || query.has("room") || query.has("inspect")
+      || Boolean(sessionStorage.getItem("kerbside:region-arrival")) || Boolean(sessionStorage.getItem("kerbside:meta-resume"));
+  } catch { return false; }
+})();
+//: Contributor tools (the survey layers, the region's numbers, capture) are off unless turned on.
+const CONTRIBUTOR_KEY = "kerbside:contributor";
+let contributorMode = (() => { try { return localStorage.getItem(CONTRIBUTOR_KEY) === "1"; } catch { return false; } })();
+document.body.classList.toggle("contributor", contributorMode);
+if (!HOME_SKIPPED) Promise.all([homeLibrary(), accountLibrary().catch(() => null)])
+  .then(([home, account]) => home.openHome({ ...homeContext(), account }))
+  .catch((error) => console.warn("Home screen failed to load", error));
 const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=8039059ee78b488c"));
 //: How much of the world is held, and how wide a square is built in full round the walker. A
 //: desktop or laptop (not a phone or a tablet, and 8 GB or more where the browser says) builds an
@@ -888,15 +922,26 @@ applyStorefrontNames(DATA, STORE_NAMES);
 //: What people drew on their own fronts (docs/exterior-editor.mjs): the edits published for
 //: everyone (scripts/merge_exterior_edits.py), and over them this browser's own.
 const EXTERIOR_EDITS_KEY = "kerbside:exterior-edits:v1";
-const PUBLISHED_EXTERIOR_EDITS = await fetch(asset("sf-corridor-exterior-edits.json"), { cache: "no-cache" })
-  .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+// The canonical edits -- what verified editors saved, for everyone -- asked for beside the
+// published file, so a building's own windows give way to them as it is built.
+const [PUBLISHED_EXTERIOR_EDITS, CANONICAL_EXTERIOR_EDITS] = await Promise.all([
+  fetch(asset("sf-corridor-exterior-edits.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  META || ATTACH ? {} : accountLibrary().then((m) => m.canonicalEdits()).catch(() => ({})),
+]);
+//: The newer of two edits of one building (by when each was saved).
+const newerEdit = (a, b) => (!a ? b || null : !b ? a : String(b.updated || "") > String(a.updated || "") ? b : a);
+const publishedExteriorEdit = (id) => newerEdit(PUBLISHED_EXTERIOR_EDITS?.edits?.[id], CANONICAL_EXTERIOR_EDITS?.[id]);
 function localExteriorEdits() {
   try { return JSON.parse(localStorage.getItem(EXTERIOR_EDITS_KEY) || "{}") || {}; } catch { return {}; }
 }
-const EXTERIOR_EDITS = new Map(Object.entries({
-  ...(PUBLISHED_EXTERIOR_EDITS?.schema === "kerbside.exterior_edits/1" ? PUBLISHED_EXTERIOR_EDITS.edits || {} : {}),
-  ...(META ? {} : localExteriorEdits()),
-}));
+const EXTERIOR_EDITS = new Map();
+{
+  const published = PUBLISHED_EXTERIOR_EDITS?.schema === "kerbside.exterior_edits/1" ? PUBLISHED_EXTERIOR_EDITS.edits || {} : {};
+  const local = META ? {} : localExteriorEdits();
+  for (const id of new Set([...Object.keys(published), ...Object.keys(CANONICAL_EXTERIOR_EDITS || {}), ...Object.keys(local)])) {
+    EXTERIOR_EDITS.set(id, newerEdit(publishedExteriorEdit(id), local[id]));
+  }
+}
 const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { cache: "no-cache" })
   .then((r) => r.ok ? r.json() : { assigned: {} })
   .catch(() => ({ assigned: {} }));
@@ -8416,56 +8461,8 @@ async function loadPhotoMaterialLibrary() {
 // caller): decoding forty-odd photographs in the middle of the build was a second at once of
 // every core, on top of the build itself.
 
-function roofTexture(seed, base, archetype) {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#" + base.toString(16).padStart(6, "0");
-  ctx.fillRect(0, 0, size, size);
-
-  // Tar/gravel and patching: from above, this is the difference between a roof and a flat lid.
-  for (let i = 0; i < size * size * 0.16; i += 1) {
-    ctx.fillStyle = random(seed + i * 19) < 0.5 ? "rgba(0,0,0,0.16)" : "rgba(255,255,255,0.10)";
-    ctx.fillRect(random(seed + i * 23) * size, random(seed + i * 29) * size, 1, 1);
-  }
-  ctx.strokeStyle = "rgba(0,0,0,0.22)";
-  ctx.lineWidth = 1;
-  for (let x = 16 + Math.floor(random(seed + 3) * 12); x < size; x += 28) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 8, size); ctx.stroke();
-  }
-
-  // Nothing else. Roof furniture used to be painted in here, and a roof texture repeats: this
-  // tile was laid two and a half times across every roof, so a house with an array had six
-  // copies of it at arbitrary size, clipped at the tile edges and squared to nothing. Panels,
-  // decks, planters and plant are now geometry in metres -- see addRoofFurniture -- and this is
-  // back to being what it says it is, which is the surface.
-  //
-  // A drain, though: every flat roof in the city has one, it is genuinely part of the surface,
-  // and it is the one thing here that is allowed to repeat.
-  ctx.fillStyle = "rgba(0,0,0,0.30)";
-  ctx.beginPath();
-  ctx.arc(size * 0.5 + (random(seed + 91) - 0.5) * 30, size * 0.5 + (random(seed + 93) - 0.5) * 30,
-          3.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2.5, 2.5);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
 
 const ROOF_CACHE = new Map();
-function roofTextureFor(tint, seed, archetype) {
-  // The colour used to be baked into the texture, which gave 2,891 distinct roof textures --
-  // one per building colour -- and 2,891 things that could not share a draw call. The texture
-  // is now neutral and the building's own colour arrives as a vertex colour, so four archetypes
-  // times four variants is the whole set.
-  const key = `${archetype || "generic"}-${Math.floor(random(seed + 13) * 4)}`;
-  if (!ROOF_CACHE.has(key)) ROOF_CACHE.set(key, roofTexture(seed, 0xd8d8d8, archetype));
-  return ROOF_CACHE.get(key);
-}
 
 function southWindowTexture(seed) {
   const canvas = document.createElement("canvas");
@@ -15327,45 +15324,6 @@ function solarArray(group, roof, top, seed, feature_is_big = false) {
   return true;
 }
 
-function roofDeck(group, roof, top, seed) {
-  // Decking, a rail round it, and furniture in the places furniture goes: benches against the
-  // rail, a table in the middle, planters along one edge.
-  const M = deckMaterials();
-  const variant = Math.floor(random(seed + 511) * 3);
-  const w = Math.min(roof.width - 2.4, 4.5 + random(seed + 512) * 5.5);
-  const d = Math.min(roof.depth - 2.4, 3.5 + random(seed + 513) * 4.5);
-  if (w < 2.5 || d < 2.5) return false;
-  const ca = (random(seed + 514) - 0.5) * Math.max(0, roof.width - w - 2.0) * 0.7;
-  const cb = (random(seed + 515) - 0.5) * Math.max(0, roof.depth - d - 2.0) * 0.7;
-  const put = (a, b, bw, bh, bd, material, y) => {
-    const [x, z] = roof.at(ca + a, cb + b);
-    slab(group, x, y, z, bw, bh, bd, material, roof.rotY);
-  };
-  put(0, 0, w, 0.12, d, M.plank, top);
-  // The rail: four thin runs, not a solid box, so it reads as a rail from above and from below.
-  for (const [oa, ob, rw, rd] of [[0, -d / 2, w, 0.06], [0, d / 2, w, 0.06],
-                                  [-w / 2, 0, 0.06, d], [w / 2, 0, 0.06, d]]) {
-    put(oa, ob, rw, 1.05, rd, M.rail, top + 0.12);
-  }
-  if (variant === 0) {
-    // Benches down both long sides.
-    for (const side of [-1, 1]) put(0, side * (d / 2 - 0.45), w * 0.7, 0.44, 0.42, M.seat, top + 0.12);
-  } else if (variant === 1) {
-    // A table with seats either side.
-    put(0, 0, 1.5, 0.72, 0.85, M.seat, top + 0.12);
-    for (const side of [-1, 1]) put(0, side * 0.95, 1.5, 0.42, 0.36, M.seat, top + 0.12);
-  } else {
-    // A bench along one side and planters along the other.
-    put(0, -(d / 2 - 0.45), w * 0.6, 0.44, 0.42, M.seat, top + 0.12);
-    const boxes = Math.max(2, Math.min(8, Math.floor(w / 1.1)));
-    for (let i = 0; i < boxes; i += 1) {
-      const a = -w / 2 + (i + 0.5) * (w / boxes);
-      put(a, d / 2 - 0.4, w / boxes - 0.15, 0.42, 0.42, M.planter, top + 0.12);
-      put(a, d / 2 - 0.4, w / boxes - 0.25, 0.30, 0.30, M.leaf, top + 0.54);
-    }
-  }
-  return true;
-}
 
 function roofGarden(group, roof, top, seed) {
   // Planter boxes in rows, because that is how a roof garden is built: you cannot put soil on a
@@ -15415,27 +15373,564 @@ function roofPlant(group, roof, top, seed) {
   return true;
 }
 
-function roofStair(group, roof, top, seed) {
-  // The bulkhead over the stair. Nearly every flat roof you can walk out onto has one, and it
-  // is the single most common thing standing on a San Francisco roof.
-  const M = deckMaterials();
-  const w = 2.0 + random(seed + 541) * 0.8;
-  const d = 1.6 + random(seed + 542) * 0.8;
-  if (roof.width < w + 2 || roof.depth < d + 2) return false;
-  const [x, z] = roof.at((random(seed + 543) - 0.5) * (roof.width - w - 1.6) * 0.7,
-                         (random(seed + 544) - 0.5) * (roof.depth - d - 1.6) * 0.7);
-  slab(group, x, top, z, w, 2.3, d, M.hut, roof.rotY);
-  return true;
-}
 
 //: A roof the aerial photograph read with enough of it in sun to trust the colour.
 const ROOF_READ_MIN_LIT = 0.3;
+//: An aerial mosaic sees every roof through the air under the aircraft, which adds its own light
+//: to every pixel -- blue most of all -- and is exposed for the ground, so the brightest roofs
+//: clip. Read straight, 43% of the corridor's roofs were lighter than 0.7 and a tar roof came out
+//: mid grey: the city looked whitewashed from above. Each source's haze is its darkest roofs'
+//: excess over the darkest a real roof is (dark-object subtraction, per channel, per source --
+//: the NOAA flight and a NAIP year differ), and the highlights are rolled off above a knee.
+const ROOF_DARKEST_SRGB = 0.10;
+const ROOF_KNEE_L = 0.55;
+const ROOF_HIGHLIGHT_ROLL = 0.45;
+const ROOF_SATURATION_LIFT = 1.25;
+//: Tar is near black, but a roof drawn black reads from above as a hole in the city (see
+//: ROOF_LIGHTNESS_FLOOR): its granules and laps carry it the rest of the way.
+const ROOF_TAR_FLOOR = 0.24;
+const ROOF_TONE = (() => {
+  const bySource = new Map();
+  for (const read of Object.values(ORTHO_ROOFS?.roofs || {})) {
+    if (!/^#[0-9a-f]{6}$/.test(read?.c || "")) continue;
+    const key = String(read.gsd ?? "?");
+    if (!bySource.has(key)) bySource.set(key, [[], [], []]);
+    const channels = bySource.get(key);
+    for (let i = 0; i < 3; i += 1) channels[i].push(parseInt(read.c.slice(1 + 2 * i, 3 + 2 * i), 16) / 255);
+  }
+  const haze = new Map();
+  for (const [key, channels] of bySource) {
+    if (channels[0].length < 40) continue;
+    haze.set(key, channels.map((values) => {
+      values.sort((a, b) => a - b);
+      return Math.max(0, Math.min(0.45, values[Math.floor((values.length - 1) * 0.02)] - ROOF_DARKEST_SRGB));
+    }));
+  }
+  return haze;
+})();
+function correctedRoofColour(read) {
+  const rgb = [1, 3, 5].map((i) => parseInt(read.c.slice(i, i + 2), 16) / 255);
+  const haze = ROOF_TONE.get(String(read.gsd ?? "?"));
+  if (haze) for (let i = 0; i < 3; i += 1) rgb[i] = Math.max(0, Math.min(1, (rgb[i] - haze[i]) / (1 - haze[i])));
+  const colour = new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
+  const hsl = {};
+  colour.getHSL(hsl, THREE.SRGBColorSpace);
+  const l = hsl.l > ROOF_KNEE_L ? ROOF_KNEE_L + (hsl.l - ROOF_KNEE_L) * ROOF_HIGHLIGHT_ROLL : hsl.l;
+  colour.setHSL(hsl.h, Math.min(1, hsl.s * ROOF_SATURATION_LIFT), Math.max(ROOF_TAR_FLOOR, l), THREE.SRGBColorSpace);
+  return colour;
+}
 function roofReadingFor(feature) {
   const read = feature?.osm_id == null ? null : ORTHO_ROOFS?.roofs?.[String(feature.osm_id)];
   return read && read.lit >= ROOF_READ_MIN_LIT && /^#[0-9a-f]{6}$/.test(read.c) ? read : null;
 }
 
-function addRoofFurniture(group, feature, seed, height, areaM2) {
+// ---- what a roof is made of ----
+//
+// A flat roof here is one of four things, and from above they read differently: torch-down or
+// built-up tar (near black, in rolls with lapped seams, granules), a single-ply membrane (white or
+// grey, welded seams, dirt where water stands), poured concrete (a smooth trowelled slab with
+// control joints -- not the broom-finished pavement the ground is drawn with) and ballast gravel.
+// A pitched roof is shingle, clay tile or standing-seam metal. Each has its own texture; the
+// colour still rides on the vertices, so the textures stay neutral and few.
+const ROOF_SURFACES = {
+  tar: { roughness: 0.86, metalness: 0.02 },
+  membrane: { roughness: 0.68, metalness: 0.0 },
+  concrete: { roughness: 0.9, metalness: 0.0 },
+  gravel: { roughness: 0.98, metalness: 0.0 },
+  shingle: { roughness: 0.95, metalness: 0.0 },
+  tile: { roughness: 0.82, metalness: 0.0 },
+  metal: { roughness: 0.42, metalness: 0.55 },
+};
+//: What a roof nobody has photographed is likely to be, and its colour (sRGB), by what the
+//: building is: a house's flat roof here is as often tar as it is a white or grey membrane; an
+//: office or a warehouse is mostly membrane and ballast.
+const ROOF_SURFACE_PRIORS = {
+  residential: [["tar", 0.38, 0x464543], ["membrane", 0.27, 0xbfc0bb], ["gravel", 0.2, 0x7d776e], ["concrete", 0.15, 0x97958f]],
+  generic: [["tar", 0.34, 0x3d3c3b], ["membrane", 0.3, 0xc2c3be], ["gravel", 0.2, 0x7b766d], ["concrete", 0.16, 0x99978f]],
+  office: [["membrane", 0.45, 0xc6c7c2], ["gravel", 0.25, 0x807a70], ["tar", 0.18, 0x403f3d], ["concrete", 0.12, 0x9b9993]],
+  industrial: [["membrane", 0.4, 0xbdbeb9], ["metal", 0.2, 0x8a8f92], ["tar", 0.25, 0x3f3e3c], ["gravel", 0.15, 0x7c776e]],
+  retail: [["membrane", 0.42, 0xc3c4bf], ["tar", 0.3, 0x3e3d3b], ["gravel", 0.18, 0x7d786f], ["concrete", 0.1, 0x9a988f]],
+};
+//: The surface a roof's corrected colour says it is.
+function roofSurfaceOf(colour, pitched, archetype) {
+  const hsl = {};
+  colour.getHSL(hsl, THREE.SRGBColorSpace);
+  const warm = hsl.s > 0.22 && (hsl.h < 0.11 || hsl.h > 0.95);
+  if (pitched) {
+    if (warm && hsl.l > 0.28) return "tile";
+    if (archetype === "industrial" && hsl.s < 0.08 && hsl.l > 0.45) return "metal";
+    return "shingle";
+  }
+  if (hsl.l < 0.34) return "tar";
+  if (hsl.l > 0.6) return "membrane";
+  if (hsl.s < 0.07) return hsl.l > 0.5 ? "concrete" : "gravel";
+  return warm ? "tar" : "gravel";
+}
+//: The roof's surface and colour: from the photograph, corrected, where it was read; otherwise
+//: what that kind of building's roof usually is, seeded so it keeps between reloads.
+function roofFinishFor(feature, seed, tint, pitched = false) {
+  const read = roofReadingFor(feature);
+  if (read) {
+    const colour = correctedRoofColour(read);
+    return { colour, surface: roofSurfaceOf(colour, pitched, feature.archetype), read: true };
+  }
+  if (pitched) {
+    const colour = new THREE.Color(tint);
+    const hsl = {};
+    colour.getHSL(hsl, THREE.SRGBColorSpace);
+    colour.setHSL(hsl.h, hsl.s * 0.5, Math.max(ROOF_LIGHTNESS_FLOOR, Math.min(0.45, hsl.l * 0.6)), THREE.SRGBColorSpace);
+    return { colour, surface: "shingle", read: false };
+  }
+  const priors = ROOF_SURFACE_PRIORS[feature.archetype] || ROOF_SURFACE_PRIORS.generic;
+  let draw = random(seed + 977), pick = priors[priors.length - 1];
+  for (const prior of priors) { if ((draw -= prior[1]) <= 0) { pick = prior; break; } }
+  const colour = new THREE.Color().setHex(pick[2], THREE.SRGBColorSpace);
+  // A little of the building in it, and a little of its own: no two tar roofs are one black.
+  colour.lerp(new THREE.Color(tint), 0.08);
+  const hsl = {};
+  colour.getHSL(hsl, THREE.SRGBColorSpace);
+  colour.setHSL(hsl.h, hsl.s, Math.max(ROOF_TAR_FLOOR, Math.min(0.82, hsl.l + (random(seed + 979) - 0.5) * 0.08)), THREE.SRGBColorSpace);
+  return { colour, surface: pick[0], read: false };
+}
+
+//: Roof caps carry UVs of metres / 20 (FACADE_UV) and the texture repeats 2.5 times in that, so
+//: one tile is eight metres of roof: 256 pixels, about three centimetres each.
+const ROOF_TILE_M = 8;
+function roofSurfaceTexture(surface, variant) {
+  const size = 256, px = size / ROOF_TILE_M;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext("2d");
+  const seed = 7001 + variant * 131 + surface.length * 17;
+  const speck = (count, dark, light, w = 1) => {
+    for (let i = 0; i < count; i += 1) {
+      g.fillStyle = random(seed + i * 19) < 0.5 ? dark : light;
+      g.fillRect(random(seed + i * 23) * size, random(seed + i * 29) * size, w, w);
+    }
+  };
+  const blotches = (count, colour, rMin, rMax) => {
+    for (let i = 0; i < count; i += 1) {
+      const x = random(seed + 300 + i * 7) * size, y = random(seed + 400 + i * 11) * size;
+      const r = (rMin + random(seed + 500 + i) * (rMax - rMin)) * px;
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, colour);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grad;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  };
+  if (surface === "tar") {
+    // Rolls a metre wide, lapped: a lighter granule band and a dark line at each lap.
+    g.fillStyle = "#d4d4d4"; g.fillRect(0, 0, size, size);
+    speck(size * size * 0.35, "rgba(0,0,0,0.22)", "rgba(255,255,255,0.16)");
+    for (let y = 0; y < size; y += px) {
+      g.fillStyle = "rgba(0,0,0,0.30)"; g.fillRect(0, y, size, 1.5);
+      g.fillStyle = "rgba(255,255,255,0.10)"; g.fillRect(0, y + 2, size, 0.08 * px);
+    }
+    blotches(5, "rgba(0,0,0,0.20)", 0.4, 1.4);   // patches and blisters
+    blotches(3, "rgba(255,255,255,0.08)", 0.8, 2.0);
+  } else if (surface === "membrane") {
+    // Sheets 1.8 m wide, heat-welded (a narrow raised seam), and the dirt of standing water.
+    g.fillStyle = "#f2f2f0"; g.fillRect(0, 0, size, size);
+    speck(size * size * 0.04, "rgba(0,0,0,0.05)", "rgba(255,255,255,0.05)");
+    for (let x = (variant % 2) * 0.6 * px; x < size; x += 1.8 * px) {
+      g.fillStyle = "rgba(0,0,0,0.12)"; g.fillRect(x, 0, 1.2, size);
+      g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(x + 1.3, 0, 1, size);
+    }
+    blotches(6, "rgba(70,62,50,0.16)", 0.6, 1.8);
+    blotches(2, "rgba(40,40,40,0.10)", 1.5, 3.0);
+  } else if (surface === "concrete") {
+    // A trowelled slab: smooth, faint swirls, control joints every four metres. The ground's
+    // concrete is a broom finish with aggregate; this is not.
+    g.fillStyle = "#e4e3df"; g.fillRect(0, 0, size, size);
+    speck(size * size * 0.06, "rgba(0,0,0,0.035)", "rgba(255,255,255,0.04)");
+    g.strokeStyle = "rgba(255,255,255,0.06)"; g.lineWidth = 3;
+    for (let i = 0; i < 14; i += 1) {
+      const x = random(seed + 900 + i) * size, y = random(seed + 950 + i) * size;
+      g.beginPath(); g.arc(x, y, (0.5 + random(seed + 990 + i)) * px, 0, Math.PI * (0.6 + random(seed + 991 + i))); g.stroke();
+    }
+    g.fillStyle = "rgba(0,0,0,0.22)";
+    for (let k = 0; k < size; k += 4 * px) { g.fillRect(k, 0, 1.2, size); g.fillRect(0, k, size, 1.2); }
+    blotches(3, "rgba(60,56,50,0.07)", 1.0, 2.5);
+  } else if (surface === "gravel") {
+    g.fillStyle = "#c9c6c0"; g.fillRect(0, 0, size, size);
+    for (let i = 0; i < size * size * 0.22; i += 1) {
+      const t = random(seed + i * 31);
+      g.fillStyle = t < 0.33 ? "rgba(0,0,0,0.26)" : t < 0.66 ? "rgba(255,255,255,0.28)" : "rgba(120,100,80,0.22)";
+      const r = 0.8 + random(seed + i * 37) * 1.6;
+      g.beginPath(); g.arc(random(seed + i * 41) * size, random(seed + i * 43) * size, r, 0, Math.PI * 2); g.fill();
+    }
+  } else if (surface === "shingle") {
+    g.fillStyle = "#cfcfcf"; g.fillRect(0, 0, size, size);
+    const course = 0.14 * px * 1.4, tab = 0.33 * px * 1.4;
+    for (let row = 0, y = 0; y < size; row += 1, y += course) {
+      for (let x = (row % 2) * tab / 2 - tab; x < size; x += tab) {
+        const k = random(seed + row * 97 + Math.floor(x));
+        g.fillStyle = `rgba(0,0,0,${0.04 + k * 0.16})`;
+        g.fillRect(x + 1, y + 1, tab - 2, course - 2);
+      }
+      g.fillStyle = "rgba(0,0,0,0.28)"; g.fillRect(0, y + course - 1.5, size, 1.5);
+    }
+    speck(size * size * 0.12, "rgba(0,0,0,0.12)", "rgba(255,255,255,0.10)");
+  } else if (surface === "tile") {
+    g.fillStyle = "#e0dad4"; g.fillRect(0, 0, size, size);
+    const course = 0.35 * px, w = 0.25 * px;
+    for (let row = 0, y = 0; y < size; row += 1, y += course) {
+      for (let x = (row % 2) * w / 2; x < size; x += w) {
+        const grad = g.createLinearGradient(x, 0, x + w, 0);
+        grad.addColorStop(0, "rgba(0,0,0,0.20)"); grad.addColorStop(0.5, "rgba(255,255,255,0.18)"); grad.addColorStop(1, "rgba(0,0,0,0.24)");
+        g.fillStyle = grad; g.fillRect(x, y, w, course - 1);
+      }
+      g.fillStyle = "rgba(0,0,0,0.32)"; g.fillRect(0, y + course - 2, size, 2);
+    }
+  } else {
+    // Standing-seam metal: a rib every half metre.
+    g.fillStyle = "#dcdcdc"; g.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 0.5 * px) {
+      g.fillStyle = "rgba(255,255,255,0.4)"; g.fillRect(x, 0, 1.5, size);
+      g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(x + 1.5, 0, 1.5, size);
+    }
+    blotches(3, "rgba(90,60,40,0.10)", 1.0, 2.0);
+  }
+  // A drain: every flat roof has one, and it is the one thing allowed to repeat.
+  if (["tar", "membrane", "concrete", "gravel"].includes(surface)) {
+    g.fillStyle = "rgba(0,0,0,0.35)";
+    g.beginPath();
+    g.arc(size * (0.5 + (random(seed + 91) - 0.5) * 0.3), size * (0.5 + (random(seed + 93) - 0.5) * 0.3), 0.12 * px, 0, Math.PI * 2);
+    g.fill();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(20 / ROOF_TILE_M, 20 / ROOF_TILE_M);
+  texture.anisotropy = 4;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+function roofSurfaceTextureFor(surface, seed) {
+  const key = `${surface}-${Math.floor(random(seed + 13) * 3)}`;
+  if (!ROOF_CACHE.has(key)) ROOF_CACHE.set(key, roofSurfaceTexture(surface, Number(key.slice(-1))));
+  return ROOF_CACHE.get(key);
+}
+
+// ---- what stands on a flat roof: decks and rooms ----
+//
+// A roof plan is worked out for each flat roof, then drawn: a deck that fits the roof (its own
+// outline drawn in from the parapet and cut to the end of the roof it is on, or the rectangle
+// the photograph saw), planked along the roof, with glass railings -- and wood screens where a
+// row house has neighbours either side; and rooms on the roof, a stair house or a penthouse, in
+// one of several shapes and of a size that suits the roof. Each piece is real geometry in metres,
+// merged by material like the buildings (addMerged), so a city of them is a handful of draws.
+//
+// Plan coordinates are the roof rectangle's (roofRectangle): ``a`` down the roof, ``b`` across.
+
+function roofRing(feature) {
+  const ring = feature.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  if (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring.pop();
+  return ring;
+}
+const ringArea = (ring) => {
+  let twice = 0;
+  for (let i = 0; i < ring.length; i += 1) {
+    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length];
+    twice += ax * bz - bx * az;
+  }
+  return twice / 2;
+};
+//: The outline drawn in by ``d`` metres (mitred), or null where that turns it inside out.
+function roofInset(ring, d) {
+  const sign = ringArea(ring) > 0 ? 1 : -1;
+  const n = ring.length, out = [];
+  for (let i = 0; i < n; i += 1) {
+    const p = ring[(i + n - 1) % n], q = ring[i], r = ring[(i + 1) % n];
+    const e1 = [q[0] - p[0], q[1] - p[1]], e2 = [r[0] - q[0], r[1] - q[1]];
+    const l1 = Math.hypot(...e1), l2 = Math.hypot(...e2);
+    if (l1 < 1e-6 || l2 < 1e-6) continue;
+    // Inward normals: left of each edge for an anticlockwise ring (x, z).
+    const n1 = [-e1[1] / l1 * sign, e1[0] / l1 * sign], n2 = [-e2[1] / l2 * sign, e2[0] / l2 * sign];
+    const bis = [n1[0] + n2[0], n1[1] + n2[1]], bl = Math.hypot(...bis);
+    if (bl < 1e-6) continue;
+    const cos = (bis[0] * n1[0] + bis[1] * n1[1]) / bl;
+    const k = d / Math.max(cos, 0.35);
+    out.push([q[0] + bis[0] / bl * k, q[1] + bis[1] / bl * k]);
+  }
+  if (out.length < 3 || Math.sign(ringArea(out)) !== sign || Math.abs(ringArea(out)) < 2) return null;
+  if (!out.every(([x, z]) => pointInRing(x, z, ring))) return null;
+  return out;
+}
+//: The part of a ring on the near side of a line (Sutherland-Hodgman): keeps nx*x + nz*z <= c.
+function clipRing(ring, nx, nz, c) {
+  const out = [], side = (p) => nx * p[0] + nz * p[1] - c;
+  for (let i = 0; i < ring.length; i += 1) {
+    const p = ring[i], q = ring[(i + 1) % ring.length], sp = side(p), sq = side(q);
+    if (sp <= 0) out.push(p);
+    if ((sp < 0 && sq > 0) || (sp > 0 && sq < 0)) {
+      const t = sp / (sp - sq);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+  }
+  return out.length >= 3 ? out : null;
+}
+//: A prism over a ring (x, z) from y0 to y1: its top and its sides, UVs in metres down ``angle``
+//: (so planks and seams run the way the roof does), every vertex coloured ``colour`` if given.
+function prismGeometry(ring, y0, y1, { angle = 0, top = true, sides = true, colour = null, uvScale = 1 } = {}) {
+  const pos = [], uv = [], ca = Math.cos(angle), sa = Math.sin(angle);
+  const tri = (a, b, c) => { pos.push(...a, ...b, ...c); };
+  if (top) {
+    const contour = ring.map(([x, z]) => new THREE.Vector2(x, z));
+    const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
+    for (const [i, j, k] of triangles) {
+      // Wound to face up whichever way the ring runs.
+      const [a, b, c] = [ring[i], ring[j], ring[k]];
+      const up = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0;
+      const order = up ? [a, b, c] : [a, c, b];
+      for (const [x, z] of order) {
+        pos.push(x, y1, z);
+        uv.push((x * ca + z * sa) * uvScale, (-x * sa + z * ca) * uvScale);
+      }
+    }
+  }
+  if (sides) {
+    const ccw = ringArea(ring) > 0;
+    let run = 0;
+    for (let i = 0; i < ring.length; i += 1) {
+      const p = ring[i], q = ring[(i + 1) % ring.length], len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      const [a, b] = ccw ? [q, p] : [p, q];
+      const quad = [[a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]]];
+      const u0 = run * uvScale, u1 = (run + len) * uvScale, v0 = y0 * uvScale * 0, v1 = (y1 - y0) * uvScale;
+      tri(quad[0], quad[1], quad[2]); uv.push(u0, v0, u1, v0, u1, v1);
+      tri(quad[0], quad[2], quad[3]); uv.push(u0, v0, u1, v1, u0, v1);
+      run += len;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  if (colour) {
+    const c = new THREE.Color(colour), colours = new Float32Array(pos.length);
+    for (let i = 0; i < pos.length; i += 3) { colours[i] = c.r; colours[i + 1] = c.g; colours[i + 2] = c.b; }
+    geometry.setAttribute("color", new THREE.BufferAttribute(colours, 3));
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+}
+//: A thin upright panel along a segment (glass, a screen): both faces, UVs in metres.
+function panelGeometry(p, q, y0, y1, thick = 0.02) {
+  const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  const nx = -(q[1] - p[1]) / len * thick / 2, nz = (q[0] - p[0]) / len * thick / 2;
+  return prismGeometry([[p[0] + nx, p[1] + nz], [q[0] + nx, q[1] + nz], [q[0] - nx, q[1] - nz], [p[0] - nx, p[1] - nz]], y0, y1);
+}
+
+function roofPlanMaterials() {
+  if (roofPlanMaterials._cache) return roofPlanMaterials._cache;
+  const canvasTex = (w, h, paint, repeat = 1) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    paint(canvas.getContext("2d"), w, h);
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repeat, repeat);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  // Planks 14 cm wide with 6 mm gaps, one texture metre square; each board its own weathering.
+  const planks = canvasTex(256, 256, (g, w, h) => {
+    const board = h / (1 / 0.146);
+    for (let y = 0, i = 0; y < h; y += board, i += 1) {
+      const k = random(8100 + i * 7);
+      g.fillStyle = `rgb(${150 + k * 40},${108 + k * 30},${72 + k * 22})`;
+      g.fillRect(0, y, w, board);
+      for (let s = 0; s < 40; s += 1) {
+        g.fillStyle = `rgba(60,36,18,${0.05 + random(8200 + i * 61 + s) * 0.08})`;
+        g.fillRect(random(8300 + i * 67 + s) * w, y + random(8400 + i * 71 + s) * board, 20 + random(8500 + s) * 60, 1);
+      }
+      g.fillStyle = "rgba(25,15,8,0.75)"; g.fillRect(0, y + board - 1.6, w, 1.6);
+      const joint = random(8600 + i) * w;
+      g.fillRect(joint, y, 1.2, board);
+    }
+  });
+  // Wood screen: horizontal slats, 9 cm with 2 cm gaps.
+  const slats = canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = "rgb(40,26,16)"; g.fillRect(0, 0, w, h);
+    const slat = h * 0.09 / 0.11 / 9;
+    for (let y = 0, i = 0; y < h; y += h / 9, i += 1) {
+      const k = random(8700 + i);
+      g.fillStyle = `rgb(${126 + k * 30},${86 + k * 22},${54 + k * 16})`;
+      g.fillRect(0, y, w, slat * 0.82);
+    }
+  });
+  // A room's walls: a band of windows at sill height, frames, a door in each tile's corner.
+  const roomWall = canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = "#e8e6e2"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 3000; i += 1) { g.fillStyle = random(8800 + i) < 0.5 ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"; g.fillRect(random(8900 + i) * w, random(9000 + i) * h, 2, 2); }
+    // One tile is three metres along and three high (UVs are metres / 3).
+    const m = w / 3;
+    g.fillStyle = "rgba(40,52,60,0.92)"; g.fillRect(0.35 * m, h - 2.35 * m, 2.3 * m, 1.25 * m);
+    g.strokeStyle = "rgba(245,245,240,0.9)"; g.lineWidth = 4;
+    g.strokeRect(0.35 * m, h - 2.35 * m, 2.3 * m, 1.25 * m);
+    g.beginPath(); g.moveTo(1.5 * m, h - 2.35 * m); g.lineTo(1.5 * m, h - 1.1 * m); g.stroke();
+    g.fillStyle = "rgba(255,255,255,0.22)"; g.fillRect(0.4 * m, h - 2.3 * m, 0.5 * m, 1.15 * m);
+    g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(0, h - 3 * m, w, 0.12 * m);  // the coping
+  });
+  const make = (name, options) => {
+    const material = new THREE.MeshStandardMaterial(options);
+    material.name = `roof-${name}`;
+    return material;
+  };
+  return (roofPlanMaterials._cache = {
+    deck: make("deck", { map: planks, roughness: 0.88 }),
+    screen: make("screen", { map: slats, roughness: 0.9 }),
+    glass: make("glass", { color: 0xbcd6de, transparent: true, opacity: 0.3, roughness: 0.06, metalness: 0.15,
+                           side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.4 }),
+    cap: make("rail-cap", { color: 0x9aa2a6, roughness: 0.38, metalness: 0.75 }),
+    room: make("room", { map: roomWall, vertexColors: true, roughness: 0.86 }),
+    roomRoof: make("room-roof", { map: roofSurfaceTextureFor("membrane", 1), color: 0xb9bab5, roughness: 0.7 }),
+  });
+}
+const mergeRoof = (key, geometry, material) => addMerged(`roof|plan-${key}`, new THREE.Mesh(geometry, material), "roof_furniture");
+
+//: A room's outline in roof-plan coordinates: the shapes rooms on roofs here are built in.
+const ROOM_SHAPES = {
+  box: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]],
+  ell: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d * 0.05], [0, d * 0.05], [0, d / 2], [-w / 2, d / 2]],
+  rounded: (w, d) => {
+    const r = Math.min(w, d) / 2, pts = [];
+    for (let i = 0; i <= 10; i += 1) { const t = -Math.PI / 2 + Math.PI * i / 10; pts.push([w / 2 - r + r * Math.cos(t), r * Math.sin(t) * (d / 2) / r]); }
+    for (let i = 0; i <= 10; i += 1) { const t = Math.PI / 2 + Math.PI * i / 10; pts.push([-w / 2 + r + r * Math.cos(t), r * Math.sin(t) * (d / 2) / r]); }
+    return pts;
+  },
+  octagon: (w, d) => {
+    const c = Math.min(w, d) * 0.28;
+    return [[-w / 2 + c, -d / 2], [w / 2 - c, -d / 2], [w / 2, -d / 2 + c], [w / 2, d / 2 - c],
+            [w / 2 - c, d / 2], [-w / 2 + c, d / 2], [-w / 2, d / 2 - c], [-w / 2, -d / 2 + c]];
+  },
+  angled: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2 - Math.min(w * 0.35, d * 0.6), d / 2], [-w / 2, d / 2]],
+};
+
+//: What goes on this flat roof. Null when nothing does (too small, not flat, not rectangular
+//: enough to walk on).
+function planRoof(feature, roof, seed, areaM2) {
+  const ring = roofRing(feature);
+  const walkable = roofInset(ring, 0.6);
+  if (!walkable || roof.fill < 0.55) return null;
+  const read = roofReadingFor(feature);
+  const homeish = ["residential", "generic", "hotel"].includes(feature.archetype || "generic");
+  const plan = { ring, walkable, deck: null, rooms: [] };
+  // Which end of the roof the deck is at; rooms go at the other.
+  const end = random(seed + 1201) < 0.5 ? -1 : 1;
+  const cos = Math.cos(roof.angle), sin = Math.sin(roof.angle);
+  const toPlan = ([x, z]) => [(x - roof.x) * cos + (z - roof.z) * sin, -(x - roof.x) * sin + (z - roof.z) * cos];
+  // A deck the photograph saw: its rectangle, kept inside the roof.
+  if (read?.deck?.rects?.length) {
+    const [lon, lat, length, width, bearing] = read.deck.rects[0];
+    const [cx, cy] = xy(lon, lat), t = (bearing * Math.PI) / 180, ux = Math.sin(t), uz = -Math.cos(t);
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [
+      cx + ux * i * length / 2 - uz * j * width / 2, -cy + uz * i * length / 2 + ux * j * width / 2]);
+    const inside = corners.filter(([x, z]) => pointInRing(x, z, walkable)).length >= 3;
+    if (inside) plan.deck = { ring: corners, seen: true };
+  } else if (!read && homeish && areaM2 >= 40 && random(seed + 1203) < 0.42) {
+    // An inferred deck: the roof's own shape, drawn in, over one end of it.
+    const share = 0.38 + random(seed + 1205) * 0.32;
+    const cut = end * (roof.width / 2 - roof.width * share);
+    // Keep the side where end * a >= end * cut: the half-plane -end*a <= -end*cut, in world terms.
+    const nx = -end * cos, nz = -end * sin;
+    const c = nx * roof.x + nz * roof.z - end * cut;
+    const clipped = clipRing(roofInset(ring, 1.0) || walkable, nx, nz, c);
+    if (clipped && Math.abs(ringArea(clipped)) >= 6) plan.deck = { ring: clipped, seen: false };
+  }
+  if (plan.deck) {
+    // A row house has neighbours on both long sides: its deck is screened there in wood, the
+    // street and the yard ends in glass.
+    const rowHouse = roof.depth < 9.5 && roof.fill > 0.85 && homeish;
+    plan.deck.edges = plan.deck.ring.map((p, i) => {
+      const q = plan.deck.ring[(i + 1) % plan.deck.ring.length];
+      const along = Math.abs(((q[0] - p[0]) * cos + (q[1] - p[1]) * sin) / Math.hypot(q[0] - p[0], q[1] - p[1]));
+      return { p, q, kind: rowHouse && along > 0.85 ? "screen" : "glass" };
+    });
+  }
+  // Rooms: nearly every walkable flat roof has a stair house; a big one may carry a penthouse.
+  const sizes = [];
+  if (areaM2 >= 140 && homeish && random(seed + 1211) < 0.22) {
+    sizes.push({ w: roof.width * (0.26 + random(seed + 1213) * 0.16), d: roof.depth * (0.4 + random(seed + 1215) * 0.3), h: 2.8 + random(seed + 1217) * 0.4 });
+  }
+  if (random(seed + 1219) < (homeish ? 0.55 : 0.4)) sizes.push({ w: 2.0 + random(seed + 1221) * 0.9, d: 1.7 + random(seed + 1223) * 0.8, h: 2.35 + random(seed + 1225) * 0.25 });
+  const shapes = Object.keys(ROOM_SHAPES);
+  for (const [k, size] of sizes.entries()) {
+    const big = size.w > 3.2;
+    const shape = big ? shapes[Math.floor(random(seed + 1231 + k) * shapes.length)] : (random(seed + 1233 + k) < 0.75 ? "box" : "angled");
+    const outline = ROOM_SHAPES[shape](size.w, size.d);
+    // Tried at the far end from the deck first, then nearer the middle; kept where it fits.
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const a = -end * (roof.width / 2 - size.w / 2 - 1.0 - attempt * 0.12 * roof.width);
+      const b = (random(seed + 1241 + attempt + k * 7) - 0.5) * Math.max(0, roof.depth - size.d - 1.6);
+      const turn = random(seed + 1251 + k) < 0.5 ? 0 : Math.PI;
+      const ct = Math.cos(turn), st = Math.sin(turn);
+      const world = outline.map(([u, v]) => roof.at(a + u * ct - v * st, b + u * st + v * ct));
+      const clearOfDeck = !plan.deck || world.every(([x, z]) => !pointInRing(x, z, plan.deck.ring));
+      const clearOfRooms = plan.rooms.every((r) => world.every(([x, z]) => !pointInRing(x, z, r.ring)));
+      if (world.every(([x, z]) => pointInRing(x, z, walkable)) && clearOfDeck && clearOfRooms) {
+        plan.rooms.push({ ring: world, shape, h: size.h, kind: big ? "penthouse" : "stair" });
+        break;
+      }
+    }
+  }
+  // Toward the street the penthouse is set back: the planning code here asks for it, and a
+  // room flush with the front parapet is the one that reads as a mistake.
+  void toPlan;
+  return plan.deck || plan.rooms.length ? plan : null;
+}
+
+function drawRoofPlan(group, plan, roof, top, tint, seed) {
+  const M = roofPlanMaterials(), D = deckMaterials(), y = top + BUILDING_LIFT_M;
+  if (plan.deck) {
+    const deckTop = y + 0.14;
+    mergeRoof("deck", prismGeometry(plan.deck.ring, y, deckTop, { angle: roof.angle + Math.PI / 2 }), M.deck);
+    for (const edge of plan.deck.edges) {
+      const len = Math.hypot(edge.q[0] - edge.p[0], edge.q[1] - edge.p[1]);
+      if (len < 0.3) continue;
+      if (edge.kind === "screen") {
+        mergeRoof("screen", panelGeometry(edge.p, edge.q, deckTop, deckTop + 1.8, 0.06), M.screen);
+      } else {
+        mergeRoof("glass", panelGeometry(edge.p, edge.q, deckTop + 0.06, deckTop + 1.04, 0.015), M.glass);
+        mergeRoof("cap", panelGeometry(edge.p, edge.q, deckTop + 1.04, deckTop + 1.09, 0.06), M.cap);
+      }
+      // Posts, a metre and a half apart, whichever the railing.
+      const posts = Math.max(1, Math.round(len / 1.5));
+      for (let i = 0; i <= posts; i += 1) {
+        const t = i / posts, x = edge.p[0] + (edge.q[0] - edge.p[0]) * t, z = edge.p[1] + (edge.q[1] - edge.p[1]) * t;
+        slab(group, x, top + 0.14, z, 0.05, edge.kind === "screen" ? 1.85 : 1.09, 0.05, D.rack, roof.rotY);
+      }
+    }
+    // Furniture where furniture goes: a table and two benches at the deck's middle.
+    let cx = 0, cz = 0;
+    for (const [x, z] of plan.deck.ring) { cx += x; cz += z; }
+    cx /= plan.deck.ring.length; cz /= plan.deck.ring.length;
+    if (Math.abs(ringArea(plan.deck.ring)) > 9 && pointInRing(cx, cz, plan.deck.ring)) {
+      slab(group, cx, top + 0.14, cz, 1.4, 0.72, 0.8, D.seat, roof.rotY);
+      for (const side of [-1, 1]) {
+        const [bx, bz] = [cx - Math.sin(roof.angle) * side * 0.9, cz + Math.cos(roof.angle) * side * 0.9];
+        slab(group, bx, top + 0.14, bz, 1.4, 0.42, 0.34, D.seat, roof.rotY);
+      }
+      if (random(seed + 1301) < 0.6) {
+        const [px, pz] = plan.deck.ring[Math.floor(random(seed + 1303) * plan.deck.ring.length)];
+        const [qx, qz] = [cx + (px - cx) * 0.8, cz + (pz - cz) * 0.8];
+        slab(group, qx, top + 0.14, qz, 0.6, 0.5, 0.6, D.planter, roof.rotY);
+        slab(group, qx, top + 0.64, qz, 0.5, 0.45, 0.5, D.leaf, roof.rotY);
+      }
+    }
+  }
+  for (const room of plan.rooms) {
+    // Its walls the building's colour, a little lighter (it is newer), on its windows texture.
+    const wall = new THREE.Color(tint);
+    const hsl = {};
+    wall.getHSL(hsl, THREE.SRGBColorSpace);
+    wall.setHSL(hsl.h, hsl.s * 0.85, Math.min(0.85, hsl.l * 1.08 + 0.04), THREE.SRGBColorSpace);
+    mergeRoof("room", prismGeometry(room.ring, y, y + room.h, { top: false, colour: wall, uvScale: 1 / 3 }), M.room);
+    mergeRoof("room-roof", prismGeometry(room.ring, y + room.h, y + room.h + 0.12, { angle: roof.angle, uvScale: 1 / 20 }), M.roomRoof);
+  }
+}
+
+function addRoofFurniture(group, feature, seed, height, areaM2, tint = 0xc8c2b8) {
   // Nothing goes on a roof too small to stand on, and nothing goes on a roof that is not flat
   // enough to be a rectangle -- which is the check that stopped solar arrays appearing on
   // L-shaped and triangular footprints.
@@ -15445,7 +15940,17 @@ function addRoofFurniture(group, feature, seed, height, areaM2) {
   const uses = ROOF_USE[feature.archetype] || ROOF_USE.generic;
   const top = height;
   let placed = 0;
+  // The deck and the rooms on the roof come from its plan (planRoof), which fits them to the
+  // roof's own outline and to each other; the rest is laid out below as before.
+  const plan = planRoof(feature, roof, seed, areaM2);
+  if (plan) {
+    drawRoofPlan(group, plan, roof, top, tint, seed);
+    placed += (plan.deck ? 1 : 0) + (plan.rooms.length ? 1 : 0);
+  }
   for (const [use, chance] of uses) {
+    if (use === "deck" || use === "stair") continue;
+    if (plan?.deck && use === "garden") continue;
+    if (plan?.rooms.length && use === "solar" && areaM2 < 300) continue;
     // A distinct draw per use. Keyed on the name's length, "solar", "stair" and "plant" are all
     // five letters and drew the same number, so solar and the stair bulkhead were perfectly
     // correlated -- every roof with panels had a stair hut and no roof had one without.
@@ -15459,14 +15964,10 @@ function addRoofFurniture(group, feature, seed, height, areaM2) {
       // thing that looked wrong, and refusing is cheaper than pretending.
       if (!roof.squarish || areaM2 < 90) continue;
       if (solarArray(group, roof, top, seed, areaM2 > 900)) placed += 1;
-    } else if (use === "deck") {
-      if (roofDeck(group, roof, top, seed)) placed += 1;
     } else if (use === "garden") {
       if (roof.squarish && roofGarden(group, roof, top, seed)) placed += 1;
     } else if (use === "plant") {
       if (roofPlant(group, roof, top, seed)) placed += 1;
-    } else if (use === "stair") {
-      if (roofStair(group, roof, top, seed)) placed += 1;
     }
     // A roof carries one main use plus a stair, not four at once.
     if (placed >= 2) break;
@@ -15973,24 +16474,30 @@ function buildingMesh(feature) {
   // far smaller step than it looks, and the floor of 0.22 was being read as a linear lightness,
   // which is sRGB 0.50 -- so a dark roof was not being stopped from going black, it was being
   // pushed up to mid grey, and every roof in the city ended up the same pale tone.
-  const roofTint = new THREE.Color(tint);
   // Where the aerial photograph saw this roof in sun, its colour is the roof's own
-  // (scripts/build_ortho_roofs.py): tar, gravel, white membrane, clay tile.
-  const roofRead = roofReadingFor(feature);
-  if (roofRead) {
-    roofTint.set(roofRead.c);
+  // (scripts/build_ortho_roofs.py), with the haze taken back out (correctedRoofColour); and the
+  // roof is drawn as what that colour says it is -- tar, membrane, concrete, gravel, shingle,
+  // tile or metal (roofFinishFor). A roof nobody photographed is what roofs like it are.
+  const pitched = Boolean(feature.shape?.parts?.some?.((p) => p.roof && p.roof !== "flat"));
+  const finish = kind === "outbuilding" ? null : roofFinishFor(feature, seed, tint, pitched);
+  const roofTint = new THREE.Color(tint);
+  if (finish) {
+    roofTint.copy(finish.colour);
   } else {
     const hsl = {};
     roofTint.getHSL(hsl, THREE.SRGBColorSpace);
     roofTint.setHSL(hsl.h, hsl.s, Math.max(ROOF_LIGHTNESS_FLOOR, hsl.l * 0.86),
                     THREE.SRGBColorSpace);
   }
+  const surfaceFinish = finish ? ROOF_SURFACES[finish.surface] : null;
   const roof = new THREE.MeshStandardMaterial({
     map: kind === "outbuilding" ? outbuildingRoofTexture(seed)
-      : roofTextureFor(tint, seed, feature.archetype),
+      : roofSurfaceTextureFor(finish.surface, seed),
     color: 0xffffff, transparent: opacity < 1, opacity,
-    roughness: 0.97, metalness: material.name === "metal" ? 0.5 : 0.03,
+    roughness: surfaceFinish ? surfaceFinish.roughness : 0.97,
+    metalness: surfaceFinish ? surfaceFinish.metalness : material.name === "metal" ? 0.5 : 0.03,
   });
+  if (finish) roof.userData.roofSurface = finish.surface;
   const walls = new THREE.MeshStandardMaterial({
     map: kind === "outbuilding" ? outbuildingTexture(seed)
       : isHome ? bareFacadeTextureFor(material, seed) : facadeTextureFor(material, seed),
@@ -16111,7 +16618,7 @@ function buildingMesh(feature) {
     photoOpeningParts(group,feature,!isHome);
     // Plant and solar want a flat roof the size of the outline, which a building in parts or
     // with a courtyard does not have.
-    if (!shaped) addRoofFurniture(group, feature, seed, height, areaM2);
+    if (!shaped) addRoofFurniture(group, feature, seed, height, areaM2, wallColour.getHex());
     addShopfronts(feature, seed, height, tint);
     addBuildingNamePlaque(group, feature, seed, height, tint);
   }
@@ -27118,7 +27625,7 @@ const AVATAR_SCALE = 1.0;
 const AVATAR_STAND_Y = AVATAR_RADIUS * AVATAR_SCALE;      // the rig's origin, feet on the ground
 const AVATAR_EYE_Y = AVATAR_HEIGHT * AVATAR_SCALE * 0.93;  // where the first-person camera sits
 const ARRIVAL_DIST = 45;       // close enough that a 126 mm kerb is a step rather than a line
-const DEMO_CHARACTER_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
+const DEMO_CHARACTER_URL = WALKER_MODEL_URL;
 const DEMO_CHARACTER_SOURCE = "Three.js Soldier.glb demo avatar with skinned idle/walk/run clips";
 let avatarMixer = null;
 let avatarActions = {};
@@ -27291,6 +27798,7 @@ function loadDemoCharacterAvatar(rig) {
       avatarActions[clip.name] = avatarMixer.clipAction(clip);
     }
     rig.userData.demoCharacterLoaded = true;
+    if (walkerLook) applyWalkerLook(walkerLook);
     rig.userData.demoCharacterSource = DEMO_CHARACTER_SOURCE;
     rig.userData.motionBridge = "Unreal target: ARDY/MotionBricks policy output retargeted to this avatar rig.";
     setAvatarAction("Idle");
@@ -32828,6 +33336,7 @@ function animate(now) {
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
   if (progress && !progress.hidden) progress.hidden = true;
+  worldIsReady?.();
   markLoadSurvived(); // only after BOTH the streets and asynchronous ground have finished
   if(natureWorld?.tick(now,camera,state.firstPerson?avatar.position:state.target))lastMovedAt=now;
   globe?.update(camera);
@@ -32869,7 +33378,7 @@ function animate(now) {
   // (A material given a new picture after it went in -- a photographed facade arriving -- is
   // still found by this pass.)
   if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
-  renderer.render(scene, camera);
+  if (!worldPaused) renderer.render(scene, camera);
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
 }
@@ -34119,11 +34628,18 @@ if (!ATTACH) await loadTileTree();
 // point at it and press E. The module keeps the panel and the edit; the page tells it what the
 // building's walls are and what it drew on them, and draws every saved edit on load.
 let exteriorEditorModule = null;
-const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=b6d9b153eaba844f")));
+const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=dc3ae8f3aef073f4")));
 const exteriorEditGroups = new Map();
 const buildingWayById = new Map((DATA.ways || []).filter((w) => w.kind === "building").map((w) => [String(w.osm_id), w]));
 //: A building's walls for the editor: the street-facing ones first, nearest the street first,
 //: then the rest, widest first. Each runs left to right as seen from outside it.
+//: Exterior edits as drawn in the world, in a group of their own that stays when this page lets its
+//: region go to the streamed world (releaseHostWorld): an edit stays on its building whichever
+//: window draws the building, and the editor's preview with it.
+const exteriorEditRoot = new THREE.Group();
+exteriorEditRoot.name = "exterior-edits";
+exteriorEditRoot.userData.bayWide = true;
+root.add(exteriorEditRoot);
 function exteriorWalls(feature) {
   const ring = feature.points.slice();
   if (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring.pop();
@@ -34147,7 +34663,11 @@ function exteriorWalls(feature) {
     const street = d < 40 && !buildingAt(mx + nx, mz + nz);
     walls.push({ a, b, ax: pa[0], az: pa[1], ux, uz, nx, nz, length, height, base, street, streetDistance: street ? d : Infinity });
   }
-  return walls.sort((p, q) => (p.streetDistance - q.streetDistance) || (q.length - p.length));
+  // The front first: the street walls, a whole face before a corner's chamfer or a jog in the
+  // wall (under three metres), the nearer the street the sooner, a longer face counting for some.
+  const rank = (w) => (w.street ? 0 : 2) + (w.street && w.length < 3 ? 1 : 0);
+  return walls.sort((p, q) => (rank(p) - rank(q)) || ((p.street ? p.streetDistance - 0.25 * p.length : 0)
+    - (q.street ? q.streetDistance - 0.25 * q.length : 0)) || (q.length - p.length));
 }
 function exteriorWallFromEdit(edit) {
   const feature = buildingWayById.get(String(edit.osm_id));
@@ -34229,10 +34749,10 @@ function exteriorEditorContext() {
     wallColourOf: (feature) => `#${new THREE.Color(HOME_RENDER.get(String(feature.osm_id))?.tint ?? (feature.colour || 0xc8c2b8)).getHexString()}`,
     wallColour: "#c8c2b8",
     groundAt: (x, z) => terrainGroundAt(x, z),
-    publishedEdit: (id) => PUBLISHED_EXTERIOR_EDITS?.edits?.[id] || null,
+    publishedEdit: (id) => publishedExteriorEdit(id),
     // An edit's stairs are ground: the walker climbs them like a stoop (exterior-editor stairSurface).
     addToWorld: (group) => {
-      groups.mapped3d.add(group);
+      exteriorEditRoot.add(group);
       for (const surface of group.userData.standing || []) standingSurfaces.add(surface);
     },
     removeFromWorld: (group) => {
@@ -34255,7 +34775,9 @@ function exteriorEditorContext() {
       // The editor's preview stands in for it, stairs and all.
       for (const surface of drawn?.userData.standing || []) standingSurfaces.delete(surface);
     },
-    editsChanged: (id, edit) => drawSavedExteriorEdit(id, edit === undefined ? localExteriorEdits()[id] || PUBLISHED_EXTERIOR_EDITS?.edits?.[id] : edit),
+    editsChanged: (id, edit) => drawSavedExteriorEdit(id, edit === undefined ? newerEdit(publishedExteriorEdit(id), localExteriorEdits()[id]) : edit),
+    renderWallStill,
+    pauseWorld: (paused) => { worldPaused = paused; if (!paused) requestFrame(); },
     notify: (text) => { if (addrBox) { addrBox.textContent = text; addrBox.hidden = false; } },
   };
 }
@@ -34271,7 +34793,45 @@ async function drawSavedExteriorEdit(id, edit) {
 async function openExteriorEditor(feature) {
   if (META || !feature || feature.kind !== "building") return;
   hideAddress();
-  (await exteriorEditorLibrary()).open(exteriorEditorContext(), feature);
+  const [library, account] = await Promise.all([exteriorEditorLibrary(), accountLibrary().catch(() => null)]);
+  library.open({ ...exteriorEditorContext(), account }, feature);
+}
+//: While the editor covers the screen the live view is not drawn (the world still streams and
+//: builds round the wall it looks at); the editor's still is drawn instead.
+var worldPaused = false;
+const stillCamera = new THREE.PerspectiveCamera(50, 1, 0.3, 6000);
+//: The wall being edited, seen square-on from the street, rendered into ``canvas``: the page's own
+//: renderer from a camera of its own, the part of the frame the canvas shows cut from it. Things
+//: between the camera and the wall more than three metres out from it (street trees, a parked
+//: van) are left out by the near plane, so the wall is what you see.
+function renderWallStill(wall, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const ratio = Math.min(devicePixelRatio || 1, 2);
+  const w = Math.max(2, Math.round(rect.width * ratio)), h = Math.max(2, Math.round(rect.height * ratio));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const source = renderer.domElement, sw = source.width, sh = source.height;
+  if (!sw || !sh) return false;
+  const target = w / h, sourceAspect = sw / sh;
+  const cropW = target < sourceAspect ? sh * target : sw, cropH = target < sourceAspect ? sh : sw / target;
+  const fh = cropH / sh, tan = Math.tan((stillCamera.fov * Math.PI) / 360);
+  const needH = (wall.height + 1.4) * 1.12, needW = wall.length * 1.25;
+  const visible = Math.max(needH, needW / target) / fh;
+  const distance = Math.max(6, visible / (2 * tan));
+  const mx = wall.ax + wall.ux * wall.length / 2, mz = wall.az + wall.uz * wall.length / 2;
+  const ground = wall.base, eye = ground + Math.min(wall.height * 0.45, 1.7 + distance * 0.08);
+  stillCamera.aspect = sourceAspect;
+  stillCamera.near = Math.max(0.3, distance - 3.0);
+  stillCamera.far = distance + 4000;
+  stillCamera.position.set(mx + wall.nx * distance, eye, mz + wall.nz * distance);
+  stillCamera.lookAt(mx, ground + wall.height / 2, mz);
+  stillCamera.updateProjectionMatrix();
+  const walkerShown = avatar.visible;
+  avatar.visible = false;
+  renderer.render(scene, stillCamera);
+  avatar.visible = walkerShown;
+  const g = canvas.getContext("2d");
+  g.drawImage(source, (sw - cropW) / 2, (sh - cropH) / 2, cropW, cropH, 0, 0, w, h);
+  return true;
 }
 //: The way into the editor from a building's card: a button on it.
 function offerExteriorEdit(feature) {
@@ -34325,8 +34885,22 @@ var multiplayer = { session: null };
     Object.assign(multiplayer, {
       goTo: (x, z) => goTo(new THREE.Vector3(x + 1.5, 0, z + 1.5), { travel: true, zoom: true }),
       notify: (text) => { if (addrBox) { addrBox.textContent = text; addrBox.hidden = false; } },
-      onJoin: () => button.setAttribute("aria-pressed", "true"),
-      onLeave: () => button.setAttribute("aria-pressed", "false"),
+    });
+    const listeners = new Set();
+    const told = () => { for (const fn of listeners) try { fn(); } catch {} };
+    Object.assign(multiplayer, {
+      onJoin: (session) => { button?.setAttribute("aria-pressed", "true"); session?.onChange(told); told(); },
+      onLeave: () => { button?.setAttribute("aria-pressed", "false"); told(); },
+      // For the home screen: join a party by code (a new one when empty), leave it, hear of it.
+      join: async (code, name) => {
+        const lib = await library();
+        multiplayer.session?.leave();
+        multiplayer.session = await lib.join(context, { room: lib.cleanRoomCode(code) || lib.newRoomCode(), name: lib.cleanName(name) || "Walker" });
+        multiplayer.onJoin(multiplayer.session);
+        return multiplayer.session;
+      },
+      leave: () => { multiplayer.session?.leave(); multiplayer.session = null; multiplayer.onLeave(); },
+      listen: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
     });
     const open = async (room) => (await library()).openPanel(context, multiplayer, { room });
     button?.addEventListener("click", () => open());
@@ -34335,6 +34909,134 @@ var multiplayer = { session: null };
     addEventListener("pagehide", () => multiplayer.session?.leave());
   }
 }
+
+// ---- the home screen's side of the page ----------------------------------------------------------
+//
+// What docs/home-lobby.mjs asks of the page. Called as the page starts, before most of the world
+// exists: anything that needs the world waits for its first frame (WORLD_READY).
+var worldReadyNow = false;
+WORLD_READY.then(() => { worldReadyNow = true; if (!contributorMode) setContributorMode(false); });
+//: The avatar's look (home-lobby LOOKS): its outfit tints the walker; a ring at its feet in its
+//: team's colour.
+var walkerLook = null;
+function applyWalkerLook(look) {
+  walkerLook = look;
+  if (typeof avatar === "undefined" || !look) return;
+  avatar.traverse((node) => {
+    if (!node.isMesh || node.name === "contact-shadow" || node.userData.teamRing) return;
+    if (!avatar.userData.demoCharacterLoaded || !node.parent || node.parent === avatar) return;
+    node.userData.baseColour ??= node.material.color.getHex();
+    if (!node.userData.ownMaterial) { node.material = node.material.clone(); node.userData.ownMaterial = true; }
+    node.material.color.set(node.userData.baseColour).multiply(new THREE.Color(look.outfit));
+  });
+  let ring = avatar.children.find((c) => c.userData.teamRing);
+  if (!ring) {
+    ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.025, 8, 48),
+      new THREE.MeshBasicMaterial({ color: look.team, transparent: true, opacity: 0.85, depthWrite: false }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = -0.86;
+    ring.userData.teamRing = true;
+    avatar.add(ring);
+  }
+  ring.material.color.set(look.team);
+}
+if (!META && !ATTACH) homeLibrary().then((home) => applyWalkerLook(home.loadLook())).catch(() => {});
+//: Contributor layers: the survey's own, for people building the map.
+var CONTRIBUTOR_LAYERS = ["coverage", "observations", "sequences", "kerbs", "official", "chunks", "gaps"];
+var CONTRIBUTOR_DEFAULT_ON = new Set(["coverage", "observations", "sequences", "kerbs"]);
+function setContributorMode(on) {
+  contributorMode = on;
+  try { localStorage.setItem(CONTRIBUTOR_KEY, on ? "1" : "0"); } catch { /* private mode */ }
+  document.body.classList.toggle("contributor", on);
+  if (!worldReadyNow) return;
+  for (const layer of CONTRIBUTOR_LAYERS) {
+    if (!groups[layer]) continue;
+    const visible = on && CONTRIBUTOR_DEFAULT_ON.has(layer);
+    if (visible) ensureLazyLayer(layer);
+    groups[layer].visible = visible;
+    document.querySelector(`button[data-layer="${layer}"]`)?.setAttribute("aria-pressed", String(visible));
+  }
+  requestFrame();
+}
+//: Where Explore world puts you: a place you chose, kept on this device.
+var SPAWN_KEY = "kerbside:spawn";
+function readSpawn() {
+  try {
+    const spawn = JSON.parse(localStorage.getItem(SPAWN_KEY) || "null");
+    return spawn && Number.isFinite(spawn.lon) && Number.isFinite(spawn.lat) ? spawn : null;
+  } catch { return null; }
+}
+function spawnLabelAt(x, z) {
+  let best = null;
+  for (const c of DATA.intersections || []) {
+    if (!c.a || !c.b) continue;
+    const [cx, cy] = xy(c.lon, c.lat), d = Math.hypot(cx - x, -cy - z);
+    if (!best || d < best.d) best = { d, label: `${c.a} & ${c.b}` };
+  }
+  return best && best.d < 250 ? `Near ${best.label}` : null;
+}
+function spawnHere() {
+  if (!worldReadyNow) return false;
+  const lon = avatar.position.x / metersPerLon + midLon, lat = -avatar.position.z / metersPerLat + midLat;
+  const spawn = { lon: +lon.toFixed(7), lat: +lat.toFixed(7), yaw: state.yaw,
+    label: spawnLabelAt(avatar.position.x, avatar.position.z), page: location.pathname };
+  try { localStorage.setItem(SPAWN_KEY, JSON.stringify(spawn)); } catch { return false; }
+  return spawn;
+}
+var spawnApplied = false;
+function applySpawn() {
+  const spawn = readSpawn();
+  if (!spawn || spawnApplied) return;
+  spawnApplied = true;
+  const [x, y] = xy(spawn.lon, spawn.lat);
+  if (!tileOwnGround(spawn.lon, spawn.lat)) window.kerbsideOpenFullRegionAt?.(spawn.lon, spawn.lat);
+  goTo(new THREE.Vector3(x, 0, -y), { travel: true, zoom: true });
+  if (Number.isFinite(spawn.yaw)) { state.yaw = spawn.yaw; placeCamera(); }
+}
+function homeContext() {
+  const afterReady = (fn) => (...args) => WORLD_READY.then(() => fn(...args));
+  return {
+    THREE, GLTFLoader, modelUrl: WALKER_MODEL_URL,
+    regionTitle: document.title.replace(/^Kerbside\s*/, "").replace(/\s*3D$/, ""),
+    account: null,
+    multiplayer: {
+      session: () => (typeof multiplayer !== "undefined" && multiplayer?.session) || null,
+      join: async (code, name) => { await WORLD_READY; return multiplayer.join(code, name); },
+      leave: () => { if (worldReadyNow) multiplayer.leave(); },
+      onChange: (fn) => {
+        let off = null, gone = false;
+        WORLD_READY.then(() => { if (!gone) off = multiplayer.listen(fn); fn(); });
+        return () => { gone = true; off?.(); };
+      },
+    },
+    look: { set: afterReady((look) => applyWalkerLook(look)) },
+    spawn: {
+      get: readSpawn,
+      useWalker: () => spawnHere(),
+      clear: () => { try { localStorage.removeItem(SPAWN_KEY); } catch { /* private mode */ } },
+      pickInWorld: afterReady(() => homeModule.then((home) => home.spawnBar({
+        onSet: () => { const spawn = spawnHere(); if (addrBox && spawn) { addrBox.textContent = `Spawn point set${spawn.label ? `: ${spawn.label}` : ""}.`; addrBox.hidden = false; } },
+      }))),
+    },
+    contributor: { get: () => contributorMode, set: (on) => setContributorMode(on) },
+    openMap: afterReady(() => { const fold = document.getElementById("fold"); if (fold && fold.getAttribute("aria-expanded") !== "true") fold.click(); }),
+    openSettings: afterReady(() => document.getElementById("settings-toggle")?.click()),
+    openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
+    whenReady: () => WORLD_READY,
+    onOpen: () => document.body.classList.add("home-open"),
+    onClose: ({ enter }) => { document.body.classList.remove("home-open"); if (enter) WORLD_READY.then(enterWorld); },
+  };
+}
+//: Explore world: to the spawn point if one is set, otherwise down to the walker where it stands.
+function enterWorld() {
+  if (readSpawn() && !spawnApplied) { applySpawn(); return; }
+  state.target.copy(avatar.position);
+  state.dist = ARRIVAL_DIST;
+  state.pitch = Math.min(state.pitch, 0.45);
+  placeCamera();
+  requestFrame();
+}
+pageIsReady();
 
 window.kerbside = {
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
@@ -35081,6 +35783,10 @@ function releaseModuleScope() {
   try { hostWorldActive = null; } catch (error) { /* kept */ }
   try { regionStreamingReady = null; } catch (error) { /* kept */ }
   try { attaching = null; } catch (error) { /* kept */ }
+  try { accountModule = null; } catch (error) { /* kept */ }
+  try { homeModule = null; } catch (error) { /* kept */ }
+  try { worldIsReady = null; } catch (error) { /* kept */ }
+  try { contributorMode = null; } catch (error) { /* kept */ }
   try { globe = null; } catch (error) { /* kept */ }
   try { teleportOverlay = null; } catch (error) { /* kept */ }
   try { natureWorld = null; } catch (error) { /* kept */ }
@@ -35181,7 +35887,14 @@ function releaseModuleScope() {
   try { routeDrawnOver = null; } catch (error) { /* kept */ }
   try { metaXR = null; } catch (error) { /* kept */ }
   try { exteriorEditorModule = null; } catch (error) { /* kept */ }
+  try { worldPaused = null; } catch (error) { /* kept */ }
   try { multiplayer = null; } catch (error) { /* kept */ }
+  try { worldReadyNow = null; } catch (error) { /* kept */ }
+  try { walkerLook = null; } catch (error) { /* kept */ }
+  try { CONTRIBUTOR_LAYERS = null; } catch (error) { /* kept */ }
+  try { CONTRIBUTOR_DEFAULT_ON = null; } catch (error) { /* kept */ }
+  try { SPAWN_KEY = null; } catch (error) { /* kept */ }
+  try { spawnApplied = null; } catch (error) { /* kept */ }
   try { EXTERIOR_EDITS.clear(); } catch (error) { /* kept */ }
   try { lazyLayerBuilders.clear(); } catch (error) { /* kept */ }
   try { lazyLayersWanted.clear(); } catch (error) { /* kept */ }
