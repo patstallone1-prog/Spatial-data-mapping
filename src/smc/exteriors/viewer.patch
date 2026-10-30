@@ -1,0 +1,121 @@
+diff --git a/scripts/build_sf_corridor_3d.py b/scripts/build_sf_corridor_3d.py
+index b12bfb591..5e44eb365 100644
+--- a/scripts/build_sf_corridor_3d.py
++++ b/scripts/build_sf_corridor_3d.py
+@@ -3750,6 +3750,35 @@ const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), {
+ // tiles over this page's area are fetched -- each named by its content's hash, so cached for good.
+ // The whole city's fits in one file was 67 MB fetched by every page before it drew a building.
+ const FRONTAGE_FITS = await loadFrontageFits();
++// Optional research-backed storefront bundle. An ordinary/published payload has no opt-in,
++// so this does not fetch assets or change existing worlds until an explicit reviewed build.
++const STORE_EXTERIOR_RUNTIME = await loadStoreExteriorBundle();
++async function loadStoreExteriorBundle() {
++  const config=DATA.storefront_exteriors;
++  if(config?.manifest!=="storefront-exteriors.json" || config?.renderer!=="renderer.mjs"
++     || config?.assets!=="assets/")return null;
++  try {
++    const [collection, module, assets] = await Promise.all([
++      fetch(asset(config.manifest)).then(r=>r.ok?r.json():null),
++      import(asset(config.renderer)),
++      fetch(asset(`${config.assets || "assets/"}manifest.json`)).then(r=>r.ok?r.json():null),
++    ]);
++    if(collection?.schema!=="kerbside.storefront_exteriors/1" || !assets)return null;
++    const base=new URL(asset(config.assets || "assets/"),location.href).href;
++    const renderer=await module.createExteriorRenderer(THREE,assets,base);
++    return {collection,renderer,bound:module.boundExterior};
++  } catch(error) {
++    console.warn("Storefront review bundle unavailable; retaining original renderer",error);
++    return null;
++  }
++}
++function storeExteriorFor(feature) {
++  if(feature._storeExteriorDisabled || !STORE_EXTERIOR_RUNTIME)return null;
++  return STORE_EXTERIOR_RUNTIME.bound(feature,STORE_EXTERIOR_RUNTIME.collection);
++}
++window.kerbsideStorefrontExteriors=()=>({enabled:Boolean(STORE_EXTERIOR_RUNTIME),
++  buildings:Object.keys(STORE_EXTERIOR_RUNTIME?.collection?.buildings || {}).length,
++  missingAssets:STORE_EXTERIOR_RUNTIME?.renderer?.missingAssets || [],canonicalGeometryModified:false});
+ const MUNICIPAL_CONTEXT = await (async()=>{
+   const index=await fetch(sharedAsset("municipal-context.manifest.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null);
+   const b=DATA.bbox, found=index?.regions?.find(r=>r.bbox[0]<b.north && r.bbox[2]>b.south && r.bbox[1]<b.east && r.bbox[3]>b.west);
+@@ -16226,6 +16255,11 @@ function photoOpeningParts(group,feature,includeWindows=false) {
+   const out=frontageNormalFor(fit);if(!out)return;
+   const tx=dx/L,tz=dz/L,[nx,nz]=out,yaw=-Math.atan2(tz,tx);
+   for(const o of fit.openings || []) {
++    if(typeof storeExteriorFor==="function") {
++      const exterior=storeExteriorFor(feature);
++      if(exterior?.facades.some(f=>f.openings.some(p=>p.v<f.band_height_m
++        && p.kerbside_source_record && JSON.stringify(p.kerbside_source_record)===JSON.stringify(o))))continue;
++    }
+     // By role (coarse_openings.py): a window outline above the ground storey, a door at any other
+     // way in on foot. The garages are drawn as garage doors with their kerb (addPhotoGarages),
+     // the entry by the door system with its stair or alcove and gate, a gate as part of its entry.
+@@ -16761,6 +16795,7 @@ function buildShed(sink, at, width, colour, slot, atlas) {
+ }
+
+ function addShopfronts(feature, seed, height, tint) {
++  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
+   const shops = feature.shops;
+   if (!shops || !shops.length) return;
+   // Only where a shopfront can be: a ground floor with room above the glass for a sign.
+@@ -16802,6 +16837,7 @@ function buildingNameTrade(feature) {
+ }
+
+ function addBuildingNamePlaque(group, feature, seed, height, tint) {
++  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
+   const name = feature.name;
+   if (!name || height < 4.8) return;
+   const clean = cleanName(name);
+@@ -16871,6 +16907,7 @@ function garagesOnWall(feature, wall) {
+ }
+
+ function addGroundFacadeDetail(group, feature, seed, height, tint) {
++  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
+   // Never place an extra invented front door/shop backdrop on a reviewed photo front.
+   if(frontageFitFor(feature))return;
+   // A building with businesses in it, or of a business's kind, gets its storefronts; a house
+@@ -17472,6 +17509,7 @@ function addStorefronts(group, feature, seed, height, tint) {
+
+
+ function addSouthFacadeDetail(group, feature, seed, height) {
++  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
+   if (!(feature.archetype === "residential" || feature.archetype === "generic")) return;
+   if (height < 6) return;
+   const candidates = footprintWalls(feature.points)
+@@ -18250,15 +18288,26 @@ function buildingMesh(feature) {
+     if (hillLift !== 0) archetype.position.y = hillLift;
+     return archetype;
+   }
+-  const geom = new THREE.ExtrudeGeometry(shape, {
++  let geom = new THREE.ExtrudeGeometry(shape, {
+     depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
+   });
+   geom.rotateX(-Math.PI / 2);
+   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
++  let exteriorPlan=typeof storeExteriorFor==="function" ? storeExteriorFor(feature) : null, exteriorOrigin=null;
++  if(exteriorPlan && (Math.abs(exteriorPlan.height_m-height)>.001 || !exteriorPlan.origin_lon_lat)) {
++    feature._storeExteriorDisabled=true;exteriorPlan=null;
++  }
++  if(exteriorPlan) {
++    const [x,y]=xy(...exteriorPlan.origin_lon_lat);
++    exteriorOrigin={x,y:hillLift,z:-y};
++    const original=geom;
++    geom=STORE_EXTERIOR_RUNTIME.renderer.cutWallBands(original,exteriorPlan,exteriorOrigin);
++    original.dispose();
++  }
+   // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
+   // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
+   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
+-    && !hasStorefront(feature);
++    && !hasStorefront(feature) && !exteriorPlan;
+   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
+                                 feature.osm_id, isHome, feature);
+   const style = ARCHETYPE_STYLE[feature.archetype];
+@@ -18408,6 +18457,7 @@ function buildingMesh(feature) {
+     // No shopfront, no bay windows, no balconies. A garden workshop has a door and a roof, and
+     // the detail passes are what made these read as houses in the first place.
+   } else {
++    if(exteriorPlan) STORE_EXTERIOR_RUNTIME.renderer.mount(group,exteriorPlan,exteriorOrigin);
+     addGroundFacadeDetail(group, feature, seed, height, tint);
+     addSouthFacadeDetail(group, feature, seed, height);
+     photoDetailParts(group, feature);
