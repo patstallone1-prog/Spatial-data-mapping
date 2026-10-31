@@ -23,6 +23,16 @@ export function createStationRenderer(THREE, exteriors) {
     const id='brand|'+key;if(!materials.has(id))materials.set(id,new THREE.MeshStandardMaterial({map,transparent:true,alphaTest:.05,depthWrite:false,side:THREE.DoubleSide}));
     return {material:materials.get(id),aspect:map.userData.displayAspect||map.image.width/map.image.height};
   };
+  const identityText=(text,ink='#ffffff')=>{
+    const key=['identity',text,ink].join('|');if(materials.has(key))return materials.get(key);
+    const c=document.createElement('canvas');c.width=1536;c.height=256;const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
+    let size=200;ctx.font=`700 ${size}px Arial`;
+    while(ctx.measureText(text).width>1460&&size>24){size-=2;ctx.font=`700 ${size}px Arial`;}
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=ink;ctx.fillText(text,768,128);
+    const map=new THREE.CanvasTexture(c);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;ownedTextures.add(map);
+    const m=new THREE.MeshStandardMaterial({map,transparent:true,alphaTest:.05,depthWrite:false,side:THREE.DoubleSide});
+    m.userData.stationIdentity=text;materials.set(key,m);return m;
+  };
   const priceBoard=prices=>{
     const key='prices|'+JSON.stringify(prices.rows);if(materials.has(key))return materials.get(key);
     const c=document.createElement('canvas');c.width=1024;c.height=1024;const ctx=c.getContext('2d');ctx.fillStyle='#142823';ctx.fillRect(0,0,1024,1024);
@@ -67,14 +77,18 @@ export function createStationRenderer(THREE, exteriors) {
         box(center,c.underside_m+.26,L,.30,.08,accent,heading);box(center,c.underside_m+.07,L,.06,.08,mat(colors[1]),heading);
       }
       for(const p of c.supports){pole(p,c.underside_m,.16,mat('#b5b8b1'));box(p,c.underside_m-.10,1.2,.2,.45,silver);}
-      const a=ring[0],b=ring[1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);const normal=[(b[1]-a[1])/L,-(b[0]-a[0])/L];
-      // Determine exterior normal from ring winding, without mirroring lettering.
       const area=ring.slice(1).reduce((s,p,i)=>s+ring[i][0]*p[1]-p[0]*ring[i][1],0);
-      if(area<0){normal[0]*=-1;normal[1]*=-1;}
-      const center=[(a[0]+b[0])/2+normal[0]*.065,(a[1]+b[1])/2+normal[1]*.065];
-      plane(center,c.underside_m+.24,Math.min(3.2,L*.7),.42,normal,label(plan.style.name,'#ffffff',colors[0]));
-      const art=artwork(plan.brand);
-      if(art&&L>6){const tangent=[-normal[1],normal[0]],p=[center[0]+tangent[0]*2.15,center[1]+tangent[1]*2.15];plane(p,c.underside_m+.24,.65,.40,normal,white);plane([p[0]+normal[0]*.006,p[1]+normal[1]*.006],c.underside_m+.24,Math.min(.60,.36*art.aspect),Math.min(.36,.60/art.aspect),normal,art.material);}
+      // A canopy can be approached from either road: identify every usable fascia.
+      for(let edge=1;edge<ring.length;edge++){
+        const a=ring[edge-1],b=ring[edge],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<2.4)continue;
+        const normal=[(b[1]-a[1])/L,-(b[0]-a[0])/L];if(area<0){normal[0]*=-1;normal[1]*=-1;}
+        const center=[(a[0]+b[0])/2+normal[0]*.065,(a[1]+b[1])/2+normal[1]*.065];
+        const art=artwork(plan.brand),width=Math.min(4.4,L-.6),logoW=art?Math.min(.72,.34*art.aspect):0,gap=art?.18:0;
+        const tangent=[-normal[1],normal[0]],textW=width-logoW-gap;
+        const at=u=>[center[0]+tangent[0]*u,center[1]+tangent[1]*u];
+        plane(at(-(logoW+gap)/2),c.underside_m+.26,textW,.30,normal,identityText(plan.style.name,plan.style.identity_ink||'#ffffff'));
+        if(art){const p=at(width/2-logoW/2);plane(p,c.underside_m+.26,logoW+.05,.35,normal,white);plane([p[0]+normal[0]*.006,p[1]+normal[1]*.006],c.underside_m+.26,logoW,Math.min(.32,logoW/art.aspect),normal,art.material);}
+      }
     }
     for(const b of plan.bays){
       const ring=b.polygon.coordinates[0];for(let i=1;i<ring.length;i++)line(ring[i-1],ring[i],.022,.065,mat(b.kind==='ev_bay'?'#e3e7df':'#bfc3b9'));
@@ -90,6 +104,7 @@ export function createStationRenderer(THREE, exteriors) {
           const n=f.normal,u=[-n[1],n[0]],at=(x,y,z)=>[c[0]+u[0]*x+n[0]*z,c[1]+u[1]*x+n[1]*z,y];
           const panel=at(-.15,1.65,.337);plane(panel,1.65,.72,.44,n,label('SALE $0.00\nGALLONS 0.000','#9dbfc1','#162829'));
           const pay=at(-.15,1.20,.344);plane(pay,1.20,.36,.21,n,label('TAP / CARD','#f2f2dc','#263035'));
+          const brand=at(0,2.08,.371);plane(brand,2.08,1.1,.16,n,identityText(plan.style.name,plan.style.identity_ink||'#ffffff'));
           for(let i=0;i<3;i++){const p=at(-.4+i*.24,.94,.344);plane(p,.94,.20,.18,n,label(String([87,89,91][i]),'#242a27','#f3cd43'));}
           // Each hose stays on the same dispensing face as its assigned adjacent lane.
           tube([at(.5,1.98,.38),at(.78,1.62,.42),at(.83,.55,.48),at(.58,.38,.48),at(.41,.85,.42),at(.43,1.13,.41)],.035,rubber);
@@ -127,7 +142,12 @@ export function createStationRenderer(THREE, exteriors) {
       box(c,2.4,2.15,3.7,.4,white,h);box(c,4.4,2.15,.45,.43,accent,h);pole(c,1.1,.14,silver);
       const prices=s.prices;
       for(const sign of [1,-1]){const normal=n.map(v=>v*sign),p=[c[0]+normal[0]*.222,c[1]+normal[1]*.222],art=artwork(plan.brand);
-        if(art){plane(p,4.4,1.98,.42,normal,white);plane([p[0]+normal[0]*.008,p[1]+normal[1]*.008],4.4,Math.min(1.9,.37*art.aspect),Math.min(.37,1.9/art.aspect),normal,art.material);}else plane(p,4.4,1.98,.4,normal,label(plan.style.name));
+        if(art){
+          const u=[-normal[1],normal[0]],logoW=Math.min(.58,.35*art.aspect),textW=1.85-logoW;
+          const logo=[p[0]+u[0]*(.98-logoW/2),p[1]+u[1]*(.98-logoW/2)];
+          plane(logo,4.4,logoW+.04,.40,normal,white);plane([logo[0]+normal[0]*.008,logo[1]+normal[1]*.008],4.4,logoW,Math.min(.35,logoW/art.aspect),normal,art.material);
+          plane([p[0]-u[0]*(logoW+.1)/2,p[1]-u[1]*(logoW+.1)/2],4.4,textW,.34,normal,identityText(plan.style.name,plan.style.identity_ink||'#ffffff'));
+        }else plane(p,4.4,1.98,.34,normal,identityText(plan.style.name,plan.style.identity_ink||'#ffffff'));
         plane(p,2.6,1.95,2.0,normal,priceBoard(prices));plane(p,1.35,1.95,.36,normal,label(prices.illustrative?'SAMPLE · USD / GAL':'USD / GAL','#202e30'));
       }
     }

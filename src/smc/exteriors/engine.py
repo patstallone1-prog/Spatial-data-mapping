@@ -288,7 +288,13 @@ def _signs(face, tenant, profile, brand, source):
         "canopy_letters",
     }:
         raise ValueError("unsupported storefront sign type")
-    doors = [o for o in face["openings"] if o["component_kind"] == "door"]
+    doors = [
+        o
+        for o in face["openings"]
+        if o["component_kind"] == "door"
+        and o["v"] + min(o["h"], 2) <= band + 0.002
+        and o.get("role") not in {"balcony", "service", "service_entry", "emergency_exit"}
+    ]
     door = doors[0] if doors else None
     if width < 3.15 and not institutional:
         kind = "door_vinyl"
@@ -321,26 +327,32 @@ def _signs(face, tenant, profile, brand, source):
                 local = dict(tenant, sign_type="door_vinyl")
                 return _signs(face, local, profile, brand, {})
             return []
-        entry_center = door["u"] + door["w"] / 2 if door else (lo + hi) / 2
-        entry_aligned = institutional or face["category"] == "grocery" or kind == "plaque"
-        a, b = (
-            min(
-                choices,
-                key=lambda ab: (
-                    max(ab[0] - entry_center, entry_center - ab[1], 0),
-                    -(ab[1] - ab[0]),
-                ),
-            )
-            if entry_aligned
-            else max(choices, key=lambda ab: ab[1] - ab[0])
+        # Center over the span of entrances, independent of their count or leaf split.
+        entry_center = (
+            (min(d["u"] for d in doors) + max(d["u"] + d["w"] for d in doors)) / 2
+            if doors
+            else (lo + hi) / 2
+        )
+        centered = [
+            ab for ab in choices if 2 * min(entry_center - ab[0], ab[1] - entry_center) >= 0.28
+        ]
+        a, b = min(
+            centered or choices,
+            key=lambda ab: (
+                max(ab[0] - entry_center, entry_center - ab[1], 0),
+                -min(entry_center - ab[0], ab[1] - entry_center),
+                -(ab[1] - ab[0]),
+            ),
         )
         max_width = 1.45 if kind == "plaque" else 3.2 if institutional else 9
         w = min((b - a) * 0.9, max_width)
+        if centered:
+            w = min(w, 2 * min(entry_center - a, b - entry_center))
         if w < 0.28:
             return []
         if kind == "blade":
             w = min(w, 0.7)
-        center = min(max(entry_center, a + w / 2), b - w / 2) if entry_aligned else (a + b) / 2
+        center = min(max(entry_center, a + w / 2), b - w / 2)
         rect = {"u": center - w / 2, "w": w, "v": bottom, "h": h}
     sign = {
         "id": f"{face['id']}:identity",

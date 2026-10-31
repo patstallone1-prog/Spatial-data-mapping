@@ -121,3 +121,13 @@ price-sign and convenience-store views, cars/canopy/approach controls and evenin
 [127.0.0.1:8799/stations.html](http://127.0.0.1:8799/stations.html). The builder retains a
 rejection ledger and reports station counts separately. It refuses output in public docs.
 No deployment, push, original world rebuild or existing preview restart is required.
+
+### Visible fuel-chain identity
+
+Fuel canopy identity now appears on every usable canopy edge, rather than only the
+first polygon edge. Chevron, Shell, ARCO and 76 retain their distinct color kits, with
+readable identity on both dispenser faces and the price pylon. Archived official artwork
+is used where available, alongside tightly framed lettering; Shell uses red lettering
+on its yellow fascia. These are inferred identity treatments and do not alter lot shape,
+vehicle-space ownership or supplied store identity. Attached-store signs use the same
+entrance-centered placement rule as other storefronts.

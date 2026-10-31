@@ -2368,7 +2368,8 @@
         "fuel-dispenser-kit"
       ],
       "hardware": "multi_product_dispenser",
-      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone",
+      "identity_ink": "#dc2429"
     },
     "arco": {
       "name": "ARCO",

@@ -180,3 +180,13 @@ No public release, push, map-overlay update or deployment is part of this pass.
 Fuel/EV lot programs, attached corner stores and the added chain families are documented
 in [Fuel and EV exteriors](31-fuel-and-ev-exteriors.md). The expanded local review uses
 port 8799. The older report and port 8798 instructions describe the previous review build.
+
+### Default entrance alignment
+
+Inferred signs above a store now center on its customer entrance. Multiple customer
+entrances on the same frontage use the midpoint of the complete entrance span. Signs
+shrink symmetrically before shifting away from that center; protected architecture and
+existing openings still constrain placement. Upper-floor/balcony and service/emergency
+doors do not pull a customer sign away from its entrance. Supplied sign placements retain
+their original coordinates. Plaques and door lettering retain their appropriate clear
+pier/door placement when a sign cannot fit above an entry.

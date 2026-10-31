@@ -312,10 +312,11 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           batch.add(new THREE.PlaneGeometry(0.61, sign.h), m, faceAt);
           box(u, v + sign.h * 0.7, 0.23, 0.04, 0.04, 0.5, frame);
         } else if(sign.brand_layout==='icon_and_wordmark'){
-          const extent=Math.min(sign.w,sign.h*8), start=sign.u+(sign.w-extent)/2, depth=panel?.205:.085;
-          plane(start+sign.h/2,v,depth,sign.h,sign.h,m);
+          const iconH=Math.min(sign.h,sign.w/3),extent=Math.min(sign.w,iconH*8), start=u-extent/2, depth=panel?.205:.085;
+          plane(start+iconH/2,v,depth,iconH,iconH,m);
           const text=signMaterial(f,{...sign,asset:null,brand_layout:null,ink:panel?p.accent:undefined,text:sign.wordmark||'STARBUCKS'});
-          plane(start+sign.h+(extent-sign.h)/2,v,depth,extent-sign.h-.18,sign.h,text);
+          const gap=Math.min(.18,extent*.08);
+          plane(start+iconH+gap+(extent-iconH-gap)/2,v,depth,extent-iconH-gap,iconH,text);
         } else if(sign.icon==='arches' && sign.w>sign.h*4){
           // Parametric motif from the reference kit, not archived official logo artwork.
           const extent=Math.min(sign.w,sign.h*12),start=u-extent/2,h=sign.h,depth=panel?.205:.09;

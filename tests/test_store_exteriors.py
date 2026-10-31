@@ -323,3 +323,73 @@ console.log('bound');
         ).strip()
         == "bound"
     )
+
+
+def sign_case(doors, **frontage):
+    return ExteriorInput.from_json(
+        dict(
+            id="entry-centered-sign",
+            footprint=mapping(box(0, 0, 20, 12)),
+            height_m=4,
+            tenants=[dict(id="A", name="Neighborhood Store", category="shop", sign_type="fascia")],
+            frontages=[
+                dict(
+                    edge=3,
+                    tenant_id="A",
+                    role="public",
+                    openings=doors,
+                    openings_complete=True,
+                    **frontage,
+                )
+            ],
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "doors",
+    [
+        [dict(kind="door", u=15, w=1.2, v=0, h=2.35)],
+        [
+            dict(kind="door", u=2, w=1.1, v=0, h=2.35),
+            dict(kind="door", u=12, w=2.4, v=0, h=2.35, leaf_count=2),
+        ],
+        [dict(kind="door", u=18.4, w=1, v=0, h=2.35)],
+    ],
+)
+def test_default_sign_centers_on_entrance_span_and_shrinks_before_shifting(doors):
+    p = infer_exterior(sign_case(doors))
+    assert p["validation"]["passed"]
+    s = p["facades"][0]["signs"][0]
+    target = (min(d["u"] for d in doors) + max(d["u"] + d["w"] for d in doors)) / 2
+    assert s["u"] + s["w"] / 2 == pytest.approx(target)
+    assert 0 <= s["u"] < s["u"] + s["w"] <= 20
+
+
+def test_default_sign_respects_protected_detail_and_preserves_source_sign_position():
+    doors = [dict(kind="door", u=15, w=1.2, v=0, h=2.35)]
+    protected = dict(u=14, w=3, v=3, h=0.8, kind="balcony")
+    p = infer_exterior(sign_case(doors, protected_rectangles=[protected]))
+    assert p["validation"]["passed"]
+    s = p["facades"][0]["signs"][0]
+    assert s["u"] + s["w"] <= protected["u"] or s["u"] >= protected["u"] + protected["w"]
+    observed = dict(id="observed-sign", kind="fascia", u=0.3, w=3, v=3.1, h=0.5, measured=True)
+    p = infer_exterior(sign_case(doors, signs=[observed], signs_complete=True))
+    s = p["facades"][0]["signs"][0]
+    assert p["validation"]["passed"] and s["u"] == 0.3 and s["source_record"] == observed
+
+
+def test_sign_alignment_uses_customer_entries_not_upper_or_service_doors():
+    doors = [
+        dict(kind="door", u=15, w=1.2, v=0, h=2.35),
+        dict(kind="door", u=2, w=1.2, v=4.2, h=2.35, role="balcony"),
+        dict(kind="door", u=5, w=1.2, v=0, h=2.35, role="emergency_exit"),
+    ]
+    base = sign_case(doors)
+    spec = ExteriorInput(
+        base.id, base.footprint, 8, base.tenants, base.frontages, ground_height_m=4
+    )
+    p = infer_exterior(spec)
+    s = p["facades"][0]["signs"][0]
+    assert p["validation"]["passed"]
+    assert s["u"] + s["w"] / 2 == pytest.approx(15.6)
