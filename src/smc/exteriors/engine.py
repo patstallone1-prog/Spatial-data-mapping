@@ -142,6 +142,8 @@ def _openings(face, profile, tenant, source):
     reserved = source.get("protected_rectangles", [])
     if not any(o["component_kind"] == "door" for o in rows) and not face.get("paired_entry_ledger"):
         width = min(2.4 if face["category"] == "grocery" and hi - lo > 8 else 1.05, hi - lo)
+        if profile.get("entrance_width_m"):
+            width = min(profile["entrance_width_m"] if hi - lo > 3.1 else 1.05, hi - lo)
         height = min(2.35, band - 0.15)
         options = _free(lo, hi, rows + reserved, 0, height, 0.18)
         candidates = [
@@ -441,6 +443,7 @@ def infer_exterior(spec: ExteriorInput):
             "frontage_basis": source.get("basis", "caller supplied tenant frontage"),
             "protected_rectangles": copy.deepcopy(source.get("protected_rectangles", [])),
             "observed_bands": copy.deepcopy(source.get("bands", [])),
+            "door_style": profile.get("door_style"),
             "glazing_cluster_m": brand.get("glazing_cluster_m") if brand else None,
         }
         from smc.exteriors.interiors import opaque_room_zones, paired_entries
@@ -456,6 +459,21 @@ def infer_exterior(spec: ExteriorInput):
         )
         face["openings"] = _openings(face, profile, tenant, source)
         face["signs"] = _signs(face, tenant, profile, brand, source)
+        if profile.get("barber_pole") and face["role"] == "public":
+            spaces = _free(
+                face["u0"] + 0.18,
+                face["u1"] - 0.18,
+                face["openings"] + face["signs"] + face["protected_rectangles"],
+                1.25,
+                2.25,
+                gap=0.1,
+            )
+            spaces = [(a, b) for a, b in spaces if b - a >= 0.26]
+            if spaces:
+                a, b = max(spaces, key=lambda ab: ab[1] - ab[0])
+                face["barber_pole"] = dict(
+                    u=(a + b) / 2 - 0.1, v=1.3, w=0.2, h=0.85, evidence=_proof(refs)
+                )
         if brand:
             face["identity_components"] = copy.deepcopy(brand["components"])
             face["portal_colour"] = (

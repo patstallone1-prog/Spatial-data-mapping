@@ -76,6 +76,8 @@ def category(value, tags=None):
         ("pharmacy", {"pharmacy", "chemist", "drugstore"}),
         ("bank", {"bank", "credit", "financial"}),
         ("laundry", {"laundry", "laundromat", "cleaning", "cleaners"}),
+        ("jewelry", {"jewelry", "jewellery", "jeweler", "jeweller"}),
+        ("barber", {"barber", "barbershop", "barbers"}),
         ("salon", {"salon", "beauty", "hairdresser", "nail", "barber", "spa"}),
         ("books", {"books", "bookstore", "bookshop", "stationery", "gallery", "music"}),
         ("hardware", {"hardware", "doityourself", "locksmith", "bicycle", "electronics"}),

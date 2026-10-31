@@ -1,0 +1,35 @@
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import {OrbitControls} from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import {RoomEnvironment} from 'https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+import {Reflector} from 'https://esm.sh/three@0.160.0/examples/jsm/objects/Reflector.js';
+import {createExteriorRenderer} from './exterior-renderer.mjs';
+import {createSpecialtyRenderer} from './specialty-renderer.mjs';
+import {createSpecialtyTour,initialShopYaw,shopSpawn} from './specialty-tour.mjs';
+const $=id=>document.getElementById(id),canvas=$('view');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#c9d6d8');const env=new THREE.PMREMGenerator(renderer);scene.environment=env.fromScene(new RoomEnvironment(),.04).texture;env.dispose();
+const camera=new THREE.PerspectiveCamera(50,1,.06,3000),controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.minDistance=.35;
+const hemi=new THREE.HemisphereLight('#e1f0f8','#9e8e72',1.2);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff1d6',2.0);sun.position.set(-15,25,12);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshStandardMaterial({color:'#c8c7bc',roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.03;scene.add(ground);
+const payload=await fetch('./specialty-shops.json',{cache:'no-store'}).then(r=>r.json()),assets=await fetch('./assets/manifest.json',{cache:'no-store'}).then(r=>r.json());
+const ext=await createExteriorRenderer(THREE,assets,new URL('./assets/',location.href).href,{glassOpacity:.24}),runtime=createSpecialtyRenderer(THREE,ext,{Reflector});
+for(const p of Object.values(payload.shops))$('case').add(new Option(`${p.kind} · ${p.id}`,p.id));
+let built,current,tour,position,walking=false,yaw=0,pitch=0;const keys=new Set();
+function clear(){if(built){built.traverse(o=>{o.geometry?.dispose();if(o.getRenderTarget){o.getRenderTarget().dispose();o.material.dispose();}});scene.remove(built);}}
+function overview(){walking=false;controls.enabled=true;built.userData.ceiling.visible=false;$('ceiling').checked=false;const b=new THREE.Box3().setFromObject(built),c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3()),r=Math.max(s.x,s.z,6);camera.position.set(c.x+r*.55,r*.8,c.z+r*.65);controls.target.set(c.x,.6,c.z);controls.update();$('caption').textContent='Open ceiling · Drag to orbit · Scroll to inspect details';}
+function exterior(){walking=false;controls.enabled=true;built.userData.ceiling.visible=true;$('ceiling').checked=true;const f=current.exterior.facades[0],L=Math.hypot(f.b[0]-f.a[0],f.b[1]-f.a[1]),u=(f.u0+f.u1)/2,x=f.a[0]+(f.b[0]-f.a[0])*u/L,z=-(f.a[1]+(f.b[1]-f.a[1])*u/L),d=Math.max(7,L*.85);controls.target.set(x,1.6,z);camera.position.set(x+f.normal[0]*d,2,z-f.normal[1]*d);controls.update();$('caption').textContent='Shared source windows and entrance · Drag to orbit';}
+function enter(room=null){try{position=shopSpawn(tour,room);walking=true;controls.enabled=false;built.userData.ceiling.visible=true;$('ceiling').checked=true;yaw=initialShopYaw(tour,position,room);pitch=room?-.28:-.06;updateCamera();$('caption').textContent='Walk with W A S D · Drag to look · Arrow keys turn';$('error').textContent='';}catch(e){$('error').textContent=e.message;}}
+function updateCamera(){camera.position.set(position.x,position.y+1.60,-position.z);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);}
+function build(){clear();walking=false;current=payload.shops[$('case').value];built=runtime.mount(scene,current);tour=createSpecialtyTour(current,built.userData.doors);
+$('name').textContent=current.exterior.facades[0].name;$('category').textContent=current.kind.replace('_',' ');$('grade').textContent='Inferred layout · Original shell retained';$('details').textContent='One shared entrance/window ledger · '+current.style.name;
+$('stats').textContent=`${current.storeys[0].objects.length} fixture assemblies · ${current.storeys[0].rooms.length} connected areas · ${current.exterior.height_m.toFixed(1)} m source height`;
+$('room').replaceChildren(...current.storeys[0].rooms.map(r=>new Option(r.kind,r.id)));$('doors').checked=true;
+$('sources').replaceChildren(...current.references.map(s=>{const li=document.createElement('li'),a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener';a.textContent=s.title;li.append(a);return li;}));$('error').textContent=ext.missingAssets.map(k=>'Missing artwork: '+k).join('\n');overview();}
+$('case').addEventListener('change',build);$('overview').addEventListener('click',overview);$('exterior').addEventListener('click',exterior);$('walk').addEventListener('click',()=>enter());$('visit').addEventListener('click',()=>enter($('room').value));$('ceiling').addEventListener('change',()=>{built.userData.ceiling.visible=$('ceiling').checked;});
+$('doors').addEventListener('change',()=>{for(const d of built.userData.doors){d.open=$('doors').checked;d.leaf.rotation.y=d.open?d.openAngle:0;}});
+$('night').addEventListener('change',()=>{scene.background.set($('night').checked?'#1b2a35':'#c9d6d8');sun.intensity=$('night').checked?.12:2;hemi.intensity=$('night').checked?.3:1.2;});
+addEventListener('keydown',e=>{if(walking&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())){keys.add(e.key.toLowerCase());e.preventDefault();}}});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
+let dragging=false;canvas.addEventListener('pointerdown',e=>{if(walking){dragging=true;canvas.setPointerCapture(e.pointerId);}});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointermove',e=>{if(walking&&dragging){yaw-=e.movementX*.004;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.004));updateCamera();}});
+function resize(){const r=canvas.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}new ResizeObserver(resize).observe(canvas);resize();let previous=performance.now();
+renderer.setAnimationLoop(now=>{const dt=Math.min(.04,(now-previous)/1000);previous=now;if(walking){if(keys.has('arrowleft'))yaw+=dt*1.5;if(keys.has('arrowright'))yaw-=dt*1.5;const f=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0),side=(keys.has('d')?1:0)-(keys.has('a')?1:0);const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*side)*dt*1.6,dz=(Math.cos(yaw)*f+Math.sin(yaw)*side)*dt*1.6;position=tour.move(position,dx,dz);updateCamera();}else controls.update();renderer.render(scene,camera);});
+if(Object.keys(payload.shops).length)build();else $('error').textContent='No valid shop layouts; inspect the rejection ledger.';

@@ -83,6 +83,17 @@ def validate_exterior(plan):
                 current.get(k) != value for k, value in original.items()
             ):
                 errors.append("observed signage changed or disappeared")
+        pole = f.get("barber_pole")
+        if pole and (
+            pole["u"] < f["u0"]
+            or pole["u"] + pole["w"] > f["u1"]
+            or pole["v"] < 0
+            or pole["v"] + pole["h"] > f["band_height_m"]
+            or any(
+                _overlaps(pole, o) for o in f["openings"] + f["signs"] + f["protected_rectangles"]
+            )
+        ):
+            errors.append("barber pole masks opening or protected detail")
         for s in f["signs"]:
             if not all(
                 isinstance(s.get(k), (int, float)) and math.isfinite(s[k])

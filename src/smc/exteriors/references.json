@@ -1,6 +1,6 @@
 {
   "schema": "kerbside.storefront_references/1",
-  "version": "2026-10-30",
+  "version": "2026-10-31",
   "curation": {
     "scope": "Bay Area storefront and institutional exterior qualitative reference library",
     "not_a_representative_survey": true,
@@ -862,6 +862,118 @@
         "Manufacturer describes upgradeable payment terminals and multiple grade configurations.",
         "A generic dispenser form does not establish a specific installed model; hanging hardware and grade configuration can differ."
       ]
+    },
+    {
+      "id": "jewelry-showcase",
+      "title": "Full-vision commercial display showcase",
+      "url": "https://www.subastralinc.com/full-vision-display-case-h342.html",
+      "organization": "Subastral",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Glazed display areas and enclosed storage bases are separate components.",
+        "Case lighting and merchandising visibility guide the rendered glass/velvet/jewelry arrangement; no exact product replica is claimed."
+      ]
+    },
+    {
+      "id": "salon-odin",
+      "title": "Odin shampoo unit",
+      "url": "https://beauty.takarabelmont.com/odin-shampoo-unit/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "A contoured reclining seat and tilting bowl form a coordinated backwash unit.",
+        "Basin and chair need to remain aligned; styling chairs are a separate product type."
+      ]
+    },
+    {
+      "id": "salon-stations",
+      "title": "Salon stations and cabinetry look book",
+      "url": "https://beauty.takarabelmont.com/wp-content/uploads/2017/12/takara-belmont-look-book.pdf",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Styling stations pair mirrors with work surfaces and storage.",
+        "Shampoo storage includes towel and hamper provision; these are functional zones rather than decorative boxes."
+      ]
+    },
+    {
+      "id": "salon-one",
+      "title": "THE ONE integrated salon station",
+      "url": "https://beauty.takarabelmont.co.jp/products/the-one/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Integrated equipment exists, but a generic salon is not assumed to use that proprietary product.",
+        "Rendered independent stations retain coordinated chair, mirror, worktop and stylist space."
+      ]
+    },
+    {
+      "id": "laundry-planning",
+      "title": "Commercial laundromat planning and design",
+      "url": "https://speedqueencommercial.com/en-us/laundry-planning-design/",
+      "organization": "Speed Queen / Alliance Laundry Systems",
+      "kind": "manufacturer_guide",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Store dimensions, windows, doors, utilities and equipment mix are planned together.",
+        "Folding tables, seating, machine banks and utility schedules are distinct program elements."
+      ]
+    },
+    {
+      "id": "laundry-layout-lessons",
+      "title": "Five laundromat design lessons",
+      "url": "https://speedqueencommercial.com/en-us/news/five-laundromat-design-lessons-from-alliance-laundrys-design-team/",
+      "organization": "Alliance Laundry Systems",
+      "kind": "manufacturer_guide",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Overcrowding is a common error; irregular and narrow stores require different arrangements.",
+        "Sightlines from storefront windows into aisles are useful in unattended stores."
+      ]
+    },
+    {
+      "id": "laundry-specs",
+      "title": "Commercial laundry literature archive",
+      "url": "https://speedqueencommercial.com/en-us/manuals-brochures/",
+      "organization": "Speed Queen / Alliance Laundry Systems",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Stacked dryer and washer-extractor specifications are separate from household machines.",
+        "Product specifications do not establish measured installed equipment or site utility compliance."
+      ]
+    },
+    {
+      "id": "sf-barbershop",
+      "title": "San Francisco barbershop merchant reference",
+      "url": "https://www.thebarbershopsf.com/about",
+      "organization": "The Barbershop SF",
+      "kind": "merchant_reference",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Hair and beard services support a barber-specific program rather than a generic retail display layout.",
+        "A merchant identity does not establish exact floor-plan dimensions."
+      ]
     }
   ],
   "categories": {
@@ -1236,11 +1348,14 @@
         "painted_wood"
       ],
       "references": [
-        "credo",
+        "salon-stations",
+        "salon-odin",
+        "salon-one",
         "sf-formula"
       ],
       "privacy": true,
-      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "framed_glazed"
     },
     "pharmacy": {
       "family": "retail",
@@ -1307,16 +1422,16 @@
     "laundry": {
       "family": "service",
       "front_glazing_fraction": [
-        0.55,
+        0.6,
         0.78
       ],
       "sill_m": [
-        0.35,
-        0.65
+        0.32,
+        0.52
       ],
       "module_width_m": [
-        1.4,
-        2.5
+        1.8,
+        2.8
       ],
       "sign_types": [
         "lightbox",
@@ -1329,11 +1444,15 @@
         "metal_panel"
       ],
       "references": [
-        "sf-calle24",
-        "sf-formula"
+        "laundry-planning",
+        "laundry-layout-lessons",
+        "laundry-specs",
+        "sf-calle24"
       ],
       "privacy": false,
-      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "cart_access_glazed",
+      "entrance_width_m": 1.8
     },
     "hardware": {
       "family": "retail",
@@ -1640,6 +1759,75 @@
       ],
       "privacy": false,
       "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "jewelry": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.42,
+        0.62
+      ],
+      "sill_m": [
+        0.62,
+        0.85
+      ],
+      "module_width_m": [
+        1.8,
+        3.0
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia",
+        "painted_letters"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "tile"
+      ],
+      "references": [
+        "jewelry-showcase",
+        "sf-formula",
+        "sf-transparency"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "secure_glazed",
+      "entrance_width_m": 1.1
+    },
+    "barber": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.5,
+        0.76
+      ],
+      "sill_m": [
+        0.3,
+        0.65
+      ],
+      "module_width_m": [
+        1.3,
+        2.3
+      ],
+      "sign_types": [
+        "door_vinyl",
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "tile",
+        "painted_wood"
+      ],
+      "references": [
+        "sf-barbershop",
+        "salon-stations",
+        "salon-odin",
+        "sf-formula"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "timber_glazed",
+      "barber_pole": true
     }
   },
   "brands": {
