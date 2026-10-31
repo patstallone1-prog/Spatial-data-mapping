@@ -28,8 +28,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
       -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" -DGUI_ENABLED=OFF -DOPENGL_ENABLED=OFF -DTESTS_ENABLED=OFF \
  && cmake --build /src/build && cmake --install /src/build --prefix /opt/colmap \
  && mkdir -p /opt/colmap/lib \
- && ldd /opt/colmap/bin/colmap | awk '/=> \//{print $3}' \
-      | grep -vE '/(libc|libm|libpthread|libdl|librt|libcuda)\.so|ld-linux' | xargs -I{} cp -L {} /opt/colmap/lib/
+ && for lib in $(ldd /opt/colmap/bin/colmap | awk '/=> \//{print $3}' \
+        | grep -vE '/(libc|libm|libpthread|libdl|librt|libcuda)\.so|ld-linux'); do \
+      [ -e "/opt/colmap/lib/$(basename "$lib")" ] || cp -L "$lib" /opt/colmap/lib/; done
 
 FROM nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
 
@@ -40,7 +41,7 @@ ARG RUNPODCTL_VERSION=1.14.4
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     KERBSIDE_ROOT=/app HF_HOME=/app/build/hf-cache VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3.12 python3.12-venv git ca-certificates curl tini \
+ && apt-get install -y --no-install-recommends python3.12 python3.12-venv python3.12-dev g++ git ca-certificates curl tini \
       libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/* \
  && python3.12 -m venv /opt/venv \
