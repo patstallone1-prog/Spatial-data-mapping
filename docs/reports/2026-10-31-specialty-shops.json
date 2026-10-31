@@ -1,0 +1,778 @@
+{
+  "date": "2026-10-31",
+  "schema": "kerbside.specialty_shop_verification/1",
+  "source_world": "docs/sf-corridor-3d.json",
+  "source_world_sha256": "980ff8b313bef4d2f08cab14b34a2b587c08e0d88cbb6cd40970033c9dda6f3e",
+  "selected": [
+    "jewelry-standard",
+    "jewelry-narrow",
+    "jewelry-concave",
+    "jewelry-rotated",
+    "jewelry-corner",
+    "jewelry-observed",
+    "barber-standard",
+    "barber-narrow",
+    "barber-concave",
+    "barber-rotated",
+    "barber-corner",
+    "barber-observed",
+    "salon-standard",
+    "salon-narrow",
+    "salon-concave",
+    "salon-rotated",
+    "salon-corner",
+    "salon-observed",
+    "laundry-standard",
+    "laundry-narrow",
+    "laundry-concave",
+    "laundry-rotated",
+    "laundry-corner",
+    "laundry-observed",
+    "mapped-260954034",
+    "mapped-260976389",
+    "mapped-272632321",
+    "mapped-263226203",
+    "mapped-333814487",
+    "mapped-263358968",
+    "mapped-259258678",
+    "mapped-256060012",
+    "mapped-262257204",
+    "mapped-262752244",
+    "mapped-258683197",
+    "mapped-263216544"
+  ],
+  "accepted": [
+    "jewelry-standard",
+    "jewelry-narrow",
+    "jewelry-concave",
+    "jewelry-rotated",
+    "jewelry-corner",
+    "jewelry-observed",
+    "barber-standard",
+    "barber-narrow",
+    "barber-concave",
+    "barber-rotated",
+    "barber-corner",
+    "barber-observed",
+    "salon-standard",
+    "salon-narrow",
+    "salon-concave",
+    "salon-rotated",
+    "salon-corner",
+    "salon-observed",
+    "laundry-standard",
+    "laundry-narrow",
+    "laundry-concave",
+    "laundry-rotated",
+    "laundry-corner",
+    "laundry-observed",
+    "mapped-260976389",
+    "mapped-333814487",
+    "mapped-263358968",
+    "mapped-262257204"
+  ],
+  "rejected": [
+    {
+      "id": "mapped-260954034",
+      "reason": "coarse cleaners classification does not establish self-service laundry"
+    },
+    {
+      "id": "mapped-272632321",
+      "reason": "coarse salon classification needs a specific service program"
+    },
+    {
+      "id": "mapped-256060012",
+      "reason": "coarse cleaners classification does not establish self-service laundry"
+    },
+    {
+      "id": "mapped-262752244",
+      "reason": "large building needs a supplied tenant boundary"
+    },
+    {
+      "id": "mapped-258683197",
+      "reason": "large building needs a supplied tenant boundary"
+    },
+    {
+      "id": "mapped-263216544",
+      "reason": "large building needs a supplied tenant boundary"
+    },
+    {
+      "id": "mapped-263226203",
+      "reason": "no valid specialty layout: source entry meets staff/core zone; try another layout frame; mapped-263226203:public: no reachable shampoo_station fits"
+    },
+    {
+      "id": "mapped-259258678",
+      "reason": "no valid specialty layout: source entry meets staff/core zone; try another layout frame; mapped-259258678:public: no reachable styling_station fits; public floor, staff area and WC do not fit"
+    }
+  ],
+  "synthetic_selected": 24,
+  "synthetic_accepted": 24,
+  "mapped_selected": 12,
+  "mapped_accepted": 4,
+  "browser": {
+    "cases": [
+      {
+        "id": "jewelry-standard",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "jewelry-narrow",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "jewelry-concave",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "jewelry-rotated",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "jewelry-corner",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "jewelry-observed",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-standard",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-narrow",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-concave",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-rotated",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-corner",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "barber-observed",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-standard",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-narrow",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-concave",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-rotated",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-corner",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "salon-observed",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-standard",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-narrow",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-concave",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-rotated",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-corner",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "laundry-observed",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "mapped-260976389",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "mapped-333814487",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "mapped-263358968",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      },
+      {
+        "id": "mapped-262257204",
+        "walk": true,
+        "staff": true,
+        "toilet": true
+      }
+    ],
+    "logs": []
+  },
+  "geometry": {
+    "three_revision": "160",
+    "cases": [
+      {
+        "id": "jewelry-standard",
+        "meshes": 44,
+        "triangles": 59930,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "jewelry-narrow",
+        "meshes": 44,
+        "triangles": 35424,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "jewelry-concave",
+        "meshes": 44,
+        "triangles": 66618,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "jewelry-rotated",
+        "meshes": 44,
+        "triangles": 55870,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "jewelry-corner",
+        "meshes": 46,
+        "triangles": 60042,
+        "shared_aperture_checks": 7,
+        "finite_geometry": true
+      },
+      {
+        "id": "jewelry-observed",
+        "meshes": 45,
+        "triangles": 59634,
+        "shared_aperture_checks": 2,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-standard",
+        "meshes": 43,
+        "triangles": 17080,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-narrow",
+        "meshes": 42,
+        "triangles": 12132,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-concave",
+        "meshes": 42,
+        "triangles": 17108,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-rotated",
+        "meshes": 43,
+        "triangles": 18218,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-corner",
+        "meshes": 41,
+        "triangles": 13548,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "barber-observed",
+        "meshes": 41,
+        "triangles": 16738,
+        "shared_aperture_checks": 2,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-standard",
+        "meshes": 40,
+        "triangles": 15172,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-narrow",
+        "meshes": 39,
+        "triangles": 11772,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-concave",
+        "meshes": 40,
+        "triangles": 15320,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-rotated",
+        "meshes": 40,
+        "triangles": 16430,
+        "shared_aperture_checks": 7,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-corner",
+        "meshes": 40,
+        "triangles": 13128,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "salon-observed",
+        "meshes": 37,
+        "triangles": 14902,
+        "shared_aperture_checks": 2,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-standard",
+        "meshes": 47,
+        "triangles": 102008,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-narrow",
+        "meshes": 47,
+        "triangles": 61134,
+        "shared_aperture_checks": 2,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-concave",
+        "meshes": 47,
+        "triangles": 115178,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-rotated",
+        "meshes": 47,
+        "triangles": 101586,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-corner",
+        "meshes": 49,
+        "triangles": 102182,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "laundry-observed",
+        "meshes": 47,
+        "triangles": 101312,
+        "shared_aperture_checks": 2,
+        "finite_geometry": true
+      },
+      {
+        "id": "mapped-260976389",
+        "meshes": 39,
+        "triangles": 18616,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "mapped-333814487",
+        "meshes": 39,
+        "triangles": 18612,
+        "shared_aperture_checks": 6,
+        "finite_geometry": true
+      },
+      {
+        "id": "mapped-263358968",
+        "meshes": 40,
+        "triangles": 18716,
+        "shared_aperture_checks": 5,
+        "finite_geometry": true
+      },
+      {
+        "id": "mapped-262257204",
+        "meshes": 47,
+        "triangles": 133322,
+        "shared_aperture_checks": 4,
+        "finite_geometry": true
+      }
+    ]
+  },
+  "tour": {
+    "cases": [
+      {
+        "id": "jewelry-standard",
+        "connected_rooms": 3,
+        "work_targets": 16,
+        "reachable_samples": 1855,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "jewelry-narrow",
+        "connected_rooms": 3,
+        "work_targets": 12,
+        "reachable_samples": 834,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "jewelry-concave",
+        "connected_rooms": 3,
+        "work_targets": 17,
+        "reachable_samples": 1917,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "jewelry-rotated",
+        "connected_rooms": 3,
+        "work_targets": 15,
+        "reachable_samples": 1890,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "jewelry-corner",
+        "connected_rooms": 3,
+        "work_targets": 16,
+        "reachable_samples": 1863,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "jewelry-observed",
+        "connected_rooms": 3,
+        "work_targets": 16,
+        "reachable_samples": 1855,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-standard",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1709,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-narrow",
+        "connected_rooms": 3,
+        "work_targets": 11,
+        "reachable_samples": 789,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-concave",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1812,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-rotated",
+        "connected_rooms": 3,
+        "work_targets": 15,
+        "reachable_samples": 1631,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-corner",
+        "connected_rooms": 3,
+        "work_targets": 12,
+        "reachable_samples": 1865,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "barber-observed",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1709,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-standard",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1709,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-narrow",
+        "connected_rooms": 3,
+        "work_targets": 11,
+        "reachable_samples": 789,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-concave",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1812,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-rotated",
+        "connected_rooms": 3,
+        "work_targets": 15,
+        "reachable_samples": 1631,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-corner",
+        "connected_rooms": 3,
+        "work_targets": 12,
+        "reachable_samples": 1865,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "salon-observed",
+        "connected_rooms": 3,
+        "work_targets": 14,
+        "reachable_samples": 1709,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-standard",
+        "connected_rooms": 3,
+        "work_targets": 25,
+        "reachable_samples": 1672,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-narrow",
+        "connected_rooms": 3,
+        "work_targets": 17,
+        "reachable_samples": 734,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-concave",
+        "connected_rooms": 3,
+        "work_targets": 27,
+        "reachable_samples": 1689,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-rotated",
+        "connected_rooms": 3,
+        "work_targets": 24,
+        "reachable_samples": 1720,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-corner",
+        "connected_rooms": 3,
+        "work_targets": 25,
+        "reachable_samples": 1660,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "laundry-observed",
+        "connected_rooms": 3,
+        "work_targets": 25,
+        "reachable_samples": 1662,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "mapped-260976389",
+        "connected_rooms": 3,
+        "work_targets": 17,
+        "reachable_samples": 1954,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "mapped-333814487",
+        "connected_rooms": 3,
+        "work_targets": 17,
+        "reachable_samples": 2918,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "mapped-263358968",
+        "connected_rooms": 3,
+        "work_targets": 17,
+        "reachable_samples": 3685,
+        "wall_collision": true,
+        "door_collision": true
+      },
+      {
+        "id": "mapped-262257204",
+        "connected_rooms": 3,
+        "work_targets": 30,
+        "reachable_samples": 3154,
+        "wall_collision": true,
+        "door_collision": true
+      }
+    ]
+  },
+  "http": {
+    "specialty.html": {
+      "status": 200,
+      "bytes": 3618
+    },
+    "specialty-shops.json": {
+      "status": 200,
+      "bytes": 3013564
+    },
+    "specialty-preview.mjs": {
+      "status": 200,
+      "bytes": 7080
+    },
+    "specialty-renderer.mjs": {
+      "status": 200,
+      "bytes": 19789
+    },
+    "specialty-tour.mjs": {
+      "status": 200,
+      "bytes": 2212
+    },
+    "tour-world.mjs": {
+      "status": 200,
+      "bytes": 6070
+    },
+    "exterior-renderer.mjs": {
+      "status": 200,
+      "bytes": 24056
+    },
+    "assets/manifest.json": {
+      "status": 200,
+      "bytes": 7059
+    }
+  },
+  "tests": {
+    "broad": {
+      "passed": 122,
+      "log_summary": "122 passed in 93.30s; overlapping focused suite"
+    },
+    "focused": {
+      "passed": 77,
+      "log_summary": "77 passed in 20.13s"
+    },
+    "post_navigation": {
+      "passed": 7,
+      "log_summary": "7 passed in 2.44s"
+    }
+  },
+  "library": {
+    "references": 69,
+    "categories": 27,
+    "storefront_brands": 21,
+    "station_brands": 10
+  },
+  "limitations": [
+    "Synthetic layouts are not as-built accuracy measurements.",
+    "Mapped full-ground-floor tenant boundaries remain unverified.",
+    "Only a ground-floor specialty tenant is furnished.",
+    "Reference vendor features guide representative procedural assemblies; exact product dimensions and site identity are not asserted.",
+    "One live mirror per active hair-service scene; remaining mirrors use environment-lit surfaces."
+  ],
+  "published_snapshots_modified": false,
+  "deployed": false,
+  "pushed": false
+}

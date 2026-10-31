@@ -102,7 +102,7 @@ export class Batch {
   finish(group, evidence) {
     for (const [material, list] of this.parts) {
       const g = new this.THREE.BufferGeometry();
-      for (const name of ['position', 'normal', 'uv']) {
+      for (const name of ['position', 'normal', 'uv', 'color']) {
         const rows = list.map(p => p.attributes[name]);
         if (rows.some(a => !a)) continue;
         const data = new Float32Array(rows.reduce((n, a) => n + a.array.length, 0));
@@ -252,6 +252,16 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
             box(x, o.v + 1.20, 0.10, 0.022, 0.022, 0.11, pull);
           }
           box(u, o.v + 0.16, 0.06, o.w - t * 2, 0.27, 0.035, frame);
+          if(f.door_style==='timber_glazed'){
+            const timber=material('#76523b',.7);
+            box(o.u+t/2,v,.065,t*1.6,o.h,.055,timber);box(o.u+o.w-t/2,v,.065,t*1.6,o.h,.055,timber);
+            box(u,o.v+.38,.065,o.w-t,.4,.055,timber);box(u,o.v+o.h-.04,.065,o.w,.08,.055,timber);
+            box(u,o.v+o.h*.77,.06,o.w,.035,.045,timber);
+          }
+          if(f.door_style==='secure_glazed'){
+            box(u,o.v+o.h-.18,.09,.15,.07,.08,pull);
+            box(o.u+.13,o.v+1.05,.09,.05,.17,.04,pull);
+          }
           if(f.portal_colour){
             const portal=material(f.portal_colour,.5);
             box(o.u-.07,v,.075,.09,o.h+.18,.17,portal);box(o.u+o.w+.07,v,.075,.09,o.h+.18,.17,portal);
@@ -264,6 +274,20 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           if (o.privacy_fraction) plane(u, o.v + o.h * o.privacy_fraction / 2, 0.028, o.w - t, o.h * o.privacy_fraction, material('#c8d1cd', 0.7));
           box(u, o.v - 0.03, 0.07, o.w + 0.14, 0.07, 0.20, trim);
         }
+      }
+      if(f.barber_pole){
+        const b=f.barber_pole,u=b.u+b.w/2,v=b.v+b.h/2;
+        box(u,v,.09,.08,b.h+.12,.12,frame);
+        const pole=new THREE.CylinderGeometry(b.w/2,b.w/2,b.h,24,24),pos=pole.attributes.position;
+        const colours=[];for(let i=0;i<pos.count;i++){
+          const angle=Math.atan2(pos.getZ(i),pos.getX(i));
+          const k=((angle/(Math.PI*2)+pos.getY(i)*2.7)%1+1)%1;
+          const c=new THREE.Color(k<.25?'#b62d34':k<.5?'#faf4df':k<.75?'#284e91':'#faf4df');colours.push(c.r,c.g,c.b);
+        }
+        pole.setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
+        if(!materialCache.has('barber-stripes'))materialCache.set('barber-stripes',new THREE.MeshStandardMaterial({vertexColors:true,roughness:.28}));
+        batch.add(pole,materialCache.get('barber-stripes'),matrix.clone().multiply(new THREE.Matrix4().makeTranslation(u,v,.24)));
+        for(const y of [b.v,b.v+b.h])box(u,y,.24,b.w+.04,.055,b.w+.04,frame);
       }
       // Finish changes stop at the actual door/window apertures.
       const baseHeight = 0.18;

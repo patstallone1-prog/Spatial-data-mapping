@@ -74,7 +74,11 @@ def test_classification_distinguishes_institutions_and_brand_names_are_not_subst
 def test_fixed_programs_pass_without_geometry_replacement_or_dropped_categories(cohort):
     rows, plans = cohort
     assert len(rows) == len(plans) == 48
-    assert {r["tenants"][0]["category"] for r in rows} >= set(library()["categories"])
+    # Keep the original 48 identities fixed. New specialties have their own fixed cohort.
+    assert {r["tenants"][0]["category"] for r in rows} >= set(library()["categories"]) - {
+        "jewelry",
+        "barber",
+    }
     for row in rows:
         p = plans[row["id"]]
         assert validate_exterior(p)["passed"], (p["id"], p["validation"])

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kerbside · Specialty shop lab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eae8e1;color:#26352e;font:15px/1.5 system-ui,sans-serif}header{height:76px;background:#183a30;color:#f1f0e8;display:flex;align-items:center;justify-content:space-between;padding:0 26px}h1{font-size:20px;margin:0;letter-spacing:.01em}header span{font-size:12px;color:#cbd7c9}main{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 76px)}aside{padding:22px;background:#faf8f0;overflow:auto;border-right:1px solid #c9cabc}label{display:block;font-size:12px;font-weight:650;margin:12px 0 5px}select,button{font:inherit;border:1px solid #a7b6a7;border-radius:5px;background:white;padding:8px;width:100%;color:#1e392d}button{cursor:pointer;margin-top:9px;background:#e0e9da}button:hover{background:#cfdfc7}input{accent-color:#275842}h2{font-size:15px;margin:18px 0 4px}p{font-size:12px;color:#52645b}a{color:#285d47}ul{padding-left:17px;font-size:12px}li{margin:8px 0}.badge{display:inline-block;font-size:11px;border-radius:12px;background:#d9e7d0;padding:4px 9px;margin-top:13px}.stage{position:relative;overflow:hidden}canvas{display:block;width:100%;height:100%}.caption{position:absolute;bottom:18px;left:20px;max-width:600px;background:#faf8f0ed;padding:12px 17px;border-radius:6px;box-shadow:0 2px 12px #0002;pointer-events:none}.caption b{display:block;font-size:17px}.caption small{color:#496052}.controls{display:flex;gap:10px;align-items:center}.controls label{font-weight:400;font-size:13px;margin:0}.stats{font-size:12px;color:#5d6c5d;border-top:1px solid #d7dccd;margin-top:15px;padding-top:10px}#error{color:#a32126;white-space:pre-wrap}.reference{font-size:12px;margin-top:12px;border-top:1px solid #d7dccd;padding-top:10px}@media(max-width:800px){main{grid-template-columns:230px 1fr}aside{padding:15px}header{padding:0 15px}header span{display:none}}
+</style>
+<header><div><h1>Kerbside · Specialty shop lab</h1><span>Jewelry · Barber & salon · Laundry · Paired interior / exterior</span></div><span>Source geometry preserved · Proposed exterior details</span></header>
+<main><aside>
+<label for="case">Shop / geometry case</label><select id="case" aria-label="Shop layout"></select>
+<button id="exterior">Exterior</button><button id="overview">Interior overview</button><button id="walk">Walk inside</button>
+<label for="room">Tour destination</label><select id="room" aria-label="Tour destination"></select><button id="visit">Go to area</button>
+<div class="controls"><input id="ceiling" type="checkbox"><label for="ceiling">Show ceiling</label></div>
+<div class="controls"><input id="doors" type="checkbox" checked><label for="doors">Staff doors open</label></div>
+<p>Walk: W A S D · Drag to look · Arrow keys to turn. Fixtures and walls block movement.</p>
+<div class="controls" style="margin-top:16px"><input id="night" type="checkbox"><label for="night">Evening light</label></div>
+
+<div class="badge" id="grade">Loading cases…</div>
+<h2 id="category"></h2><p id="details"></p><div class="stats" id="stats"></div>
+<div class="reference"><strong>Design references</strong><ul id="sources"></ul></div><p id="error" role="alert"></p>
+</aside><div class="stage"><canvas id="view" aria-label="Paired specialty store interior and exterior"></canvas><div class="caption"><b id="name">Loading shops…</b><small id="caption">Drag to orbit · Scroll to move closer</small></div></div></main>
+<script type="module" src="specialty-preview.mjs"></script>
+</html>
