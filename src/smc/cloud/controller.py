@@ -15,6 +15,7 @@ Endpoints (JSON over HTTPS; TLS is the reverse proxy's, ``cloud/infra``)::
     GET  /api/status     the dashboard's numbers                 (ops token)
     POST /api/review     approve, reject or rerun a held job     (ops token)
     POST /api/redo       a finished job and its chain, again     (ops token)
+    POST /api/defer      set a cell aside, or bring it back      (ops token)
     POST /api/plan       submit or extend the plan               (ops token)
     GET  /               the dashboard                           (ops token)
     GET  /healthz        liveness, no auth
@@ -26,6 +27,7 @@ is refused, so a stale instance cannot lease. Operators use ``KERBSIDE_OPS_TOKEN
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import hmac
 import json
@@ -42,6 +44,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import budget as money
+from . import stuck
 from .checkpoint import pull_tree, push_tree, set_pointer
 from .gate import evaluate
 from .plan import submit_plan
@@ -95,6 +98,11 @@ class Config:
     #: Job kinds that wait however long the queue is (interior_batch while the houses and cells
     #: go first). Set from the config on every start, so a redeploy cannot forget it.
     paused_kinds: tuple[str, ...] = ()
+    #: Gates and publications run at once: each waits mostly on the buckets and the public
+    #: origin, and one at a time left 190 finished cells waiting days for theirs (2026-10-31).
+    control_slots: int = 1
+    #: Setting stuck cells aside (:mod:`.stuck`); None never does.
+    defer: stuck.Policy | None = field(default_factory=stuck.Policy)
 
     @classmethod
     def load(cls, path: Path, env=os.environ) -> Config:
@@ -143,7 +151,54 @@ class Config:
             hourly_usd=raw["controller"].get("hourly_usd", 0.0),
             sleep_after_min=raw["controller"].get("sleep_after_min", 0.0),
             replan_h=raw["controller"].get("replan_h", 24.0),
-            paused_kinds=tuple(raw["controller"].get("paused_kinds", [])))
+            paused_kinds=tuple(raw["controller"].get("paused_kinds", [])),
+            control_slots=int(raw["controller"].get("control_slots", 1)),
+            defer=_defer_policy(raw["controller"].get("defer", {})))
+
+
+def _defer_policy(raw: dict) -> stuck.Policy | None:
+    """``[controller.defer]``: the policy's numbers, or ``enabled = false`` for none."""
+    raw = dict(raw)
+    if not raw.pop("enabled", True):
+        return None
+    return stuck.Policy(**raw)
+
+
+class _Lane:
+    """Gates and publications share the lane; a collect, which pushes trees it reads across
+    cells, has it alone. A collect waiting stops new jobs joining, so it is not starved."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._running = 0
+        self._alone = False
+        self._waiting = 0
+
+    @contextlib.contextmanager
+    def shared(self):
+        with self._cond:
+            self._cond.wait_for(lambda: not self._alone and not self._waiting)
+            self._running += 1
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._running -= 1
+                self._cond.notify_all()
+
+    @contextlib.contextmanager
+    def alone(self):
+        with self._cond:
+            self._waiting += 1
+            self._cond.wait_for(lambda: not self._alone and not self._running)
+            self._waiting -= 1
+            self._alone = True
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._alone = False
+                self._cond.notify_all()
 
 
 def _need(env, key):
@@ -177,7 +232,8 @@ class Controller:
         self.stop = threading.Event()
         self.threads: list[threading.Thread] = []
         self.server: ThreadingHTTPServer | None = None
-        self._control_lock = threading.Lock()
+        self._lane = _Lane()
+        self._deferred_at = 0.0
 
     # -- workers' credentials ----------------------------------------------------------------
 
@@ -221,13 +277,14 @@ class Controller:
     # -- gates and publication, run here ---------------------------------------------------
 
     def control_once(self) -> str | None:
-        """Lease and run one gate or publish job; returns its id, or None if none was ready."""
-        with self._control_lock:
-            # Gates and publication run here without heartbeats: an hour's lease covers the
-            # largest cell's audit, and a controller that dies mid-job loses it to the next one.
-            lease = self.queue.lease("controller", ["control"], 3600)
-            if not lease:
-                return None
+        """Lease and run one gate or publish job; returns its id, or None if none was ready.
+        ``control_slots`` of these run at once (:class:`_Lane`)."""
+        # Gates and publication run here without heartbeats: an hour's lease covers the
+        # largest cell's audit, and a controller that dies mid-job loses it to the next one.
+        lease = self.queue.lease("controller", ["control"], 3600)
+        if not lease:
+            return None
+        with self._lane.alone() if lease["job"]["kind"] == "collect" else self._lane.shared():
             spec, token = lease["job"], lease["token"]
             cell = spec["subject"]
             try:
@@ -318,6 +375,28 @@ class Controller:
     def _tick(self) -> None:
         self.scheduler.tick()
         self.housekeeping()
+        self.defer_stuck_cells()
+
+    def defer_stuck_cells(self) -> dict[str, str]:
+        """Every ``defer.every_s``: set aside the cells stuck past any finished one (:mod:`.stuck`)."""
+        policy, now = self.c.defer, self.clock()
+        if policy is None or now - self._deferred_at < policy.every_s:
+            return {}
+        self._deferred_at = now
+        found = stuck.defer_stuck(self.queue, now, policy)
+        if found:
+            log.warning("deferred %d stuck cells: %s", len(found), found)
+            record = json.loads(self.queue.get_meta("deferred_cells") or "{}")
+            record.update({cell: {"at": now, "why": why} for cell, why in found.items()})
+            self.queue.set_meta("deferred_cells", json.dumps(record))
+        return found
+
+    def undefer(self, cell: str, operator: str) -> list[str]:
+        sent = self.queue.undefer_subject(cell, operator)
+        record = json.loads(self.queue.get_meta("deferred_cells") or "{}")
+        record.pop(cell, None)
+        self.queue.set_meta("deferred_cells", json.dumps(record))
+        return sent
 
     def _control_loop(self) -> None:
         while not self.stop.is_set():
@@ -349,7 +428,8 @@ class Controller:
             threading.Thread(target=self.server.serve_forever, daemon=True, name="http"),
             threading.Thread(target=self._loop, args=(self.c.tick_s, self._tick, "tick"),
                              daemon=True, name="scheduler"),
-            threading.Thread(target=self._control_loop, daemon=True, name="control"),
+            *(threading.Thread(target=self._control_loop, daemon=True, name=f"control-{i}")
+              for i in range(max(1, self.c.control_slots))),
             threading.Thread(target=self._loop, args=(self.c.backup_s, self.backup, "backup"),
                              daemon=True, name="backup"),
         ]
@@ -384,7 +464,7 @@ class Controller:
             c = cells.setdefault(j["subject"], {"done": 0, "of": 0, "state": "pending", "stage": None})
             c["of"] += 1
             c["done"] += j["state"] == "done"
-            if j["state"] in ("leased", "failed", "held", "quarantined") or (
+            if j["state"] in ("leased", "failed", "held", "quarantined", "deferred") or (
                     j["state"] == "pending" and c["stage"] is None):
                 c["stage"], c["state"] = j["stage"], j["state"]
         finished = [k for k, v in cells.items() if v["done"] == v["of"]]
@@ -412,7 +492,10 @@ class Controller:
             workers.append({**w, "age_s": round(alive), "utilisation": round(min(1.0, busy / alive), 3)})
         return {
             "at": now, "counts": q.counts(), "cells": {"total": len(cells), "finished": len(finished),
+                                                       "deferred": sum(v["state"] == "deferred"
+                                                                       for v in cells.values()),
                                                        "detail": cells},
+            "deferred": json.loads(q.get_meta("deferred_cells") or "{}"),
             "houses": {s: n for s, n in q.counts().get("house_batch", {}).items()},
             "interiors": {s: n for s, n in q.counts().get("interior_batch", {}).items()},
             "restaurants": {s: n for s, n in q.counts().get("restaurant_round", {}).items()},
@@ -511,7 +594,8 @@ def _handler(ctl: Controller):
             if self.path == "/api/bootstrap":
                 env = ctl.redeem_boot(body.get("worker", ""), body.get("boot", ""))
                 return self._send(200, {"env": env}) if env else self._send(403, {"error": "refused"})
-            if self.path in ("/api/review", "/api/plan", "/api/requeue", "/api/pause", "/api/redo"):
+            if self.path in ("/api/review", "/api/plan", "/api/requeue", "/api/pause", "/api/redo",
+                             "/api/defer"):
                 if not self._ops():
                     return self._send(401, {"error": "ops token required"})
                 if self.path == "/api/review":
@@ -529,6 +613,16 @@ def _handler(ctl: Controller):
                         sent = {c: q.redo(f"cell:{c}:{start}", operator, note) for c in cells}
                         return self._send(200, {"ok": True, "cells": sent})
                     return self._send(200, {"ok": True, "jobs": q.redo(body["job"], operator, note)})
+                if self.path == "/api/defer":
+                    operator = body.get("operator", "ops")
+                    if body.get("undo"):
+                        return self._send(200, {"ok": True, "jobs": ctl.undefer(body["cell"], operator)})
+                    why = body.get("reason") or "set aside by an operator"
+                    jobs = q.defer_subject(body["cell"], operator, why)
+                    record = json.loads(q.get_meta("deferred_cells") or "{}")
+                    record[body["cell"]] = {"at": ctl.clock(), "why": why}
+                    q.set_meta("deferred_cells", json.dumps(record))
+                    return self._send(200, {"ok": True, "jobs": jobs})
                 if self.path == "/api/pause":
                     q.set_meta("paused", body.get("reason", ""))
                     return self._send(200, {"ok": True})

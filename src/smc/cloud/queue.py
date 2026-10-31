@@ -15,6 +15,8 @@ States::
     held         a gate held it for review; its dependants wait for a person
     quarantined  failed for good (or ``max_attempts`` times); nothing else waits on its fate
     cancelled    withdrawn by an operator
+    deferred     its cell is set aside (:mod:`.stuck`): not run, not counted as blocked, kept
+                 through replans, until an operator brings the cell back
 
 A job's dependants run only once it is ``done``. A quarantined or held job blocks only its own
 dependants: every unrelated job carries on. An *optional* job whose tries run out is not
@@ -247,7 +249,7 @@ class Queue:
                 self._event(db, "submit", spec.id, {"state": state or "pending"})
                 return "added"
             if (row["spec_digest"] == digest or not replace
-                    or row["state"] in ("leased", "done")):
+                    or row["state"] in ("leased", "done", "deferred")):
                 return "kept"
             db.execute(
                 "UPDATE jobs SET spec=?, spec_digest=?, depends=?, priority=?, max_attempts=?,"
@@ -545,6 +547,63 @@ class Queue:
                 f" WHERE j.stage IN ({','.join('?' * len(stages))}) AND a.error LIKE ?",
                 (*stages, f"%{pattern}%")).fetchall()
         return sorted(r["subject"] for r in rows)
+
+    def defer_subject(self, subject: str, operator: str, reason: str) -> list[str]:
+        """Set a cell aside: every job of it not done, running or held for review is deferred.
+        Returns the jobs deferred."""
+        now = self.clock()
+        with self._tx() as db:
+            ids = [r["id"] for r in db.execute(
+                "SELECT id FROM jobs WHERE subject=? AND state IN ('pending','failed','quarantined') ORDER BY id",
+                (subject,))]
+            for job_id in ids:
+                db.execute("UPDATE jobs SET state='deferred', error=?, updated_at=? WHERE id=?",
+                           (f"deferred: {reason}", now, job_id))
+            if ids:
+                self._event(db, "defer", subject, {"operator": operator, "reason": reason, "jobs": ids})
+        return ids
+
+    def undefer_subject(self, subject: str, operator: str) -> list[str]:
+        """Bring a deferred cell back: its jobs pending again, their attempts reset."""
+        now = self.clock()
+        with self._tx() as db:
+            ids = [r["id"] for r in db.execute(
+                "SELECT id FROM jobs WHERE subject=? AND state='deferred' ORDER BY id", (subject,))]
+            for job_id in ids:
+                db.execute("UPDATE jobs SET state='pending', attempts=0, not_before=0, error=NULL,"
+                           " updated_at=? WHERE id=?", (now, job_id))
+            if ids:
+                self._event(db, "undefer", subject, {"operator": operator, "jobs": ids})
+        return ids
+
+    def cell_usage(self) -> dict[str, dict]:
+        """Per cell, from its stages: worker seconds spent (every attempt, failed ones too), when
+        its first stage started and how long from then to its last stage's end, whether every
+        stage is done, whether one is running, and since when its oldest quarantined stage has
+        been quarantined."""
+        with self._lock:
+            out: dict[str, dict] = {}
+            for r in self._db.execute(
+                    "SELECT j.subject, SUM(COALESCE(a.seconds, COALESCE(a.ended_at, ?) - a.started_at)) spent,"
+                    " MIN(a.started_at) first, MAX(a.ended_at) last FROM attempts a JOIN jobs j ON j.id = a.job_id"
+                    " WHERE j.kind='cell_stage' GROUP BY j.subject", (self.clock(),)):
+                wall = (r["last"] - r["first"]) if r["last"] and r["first"] else 0.0
+                out[r["subject"]] = {"worker_s": r["spent"] or 0.0, "first_start": r["first"], "wall_s": wall,
+                                     "finished": True, "running": False, "quarantined_since": None,
+                                     "deferred": False}
+            for r in self._db.execute(
+                    "SELECT subject, state, updated_at FROM jobs WHERE kind='cell_stage'"):
+                cell = out.setdefault(r["subject"], {"worker_s": 0.0, "first_start": None, "wall_s": 0.0,
+                                                     "finished": True,
+                                                     "running": False, "quarantined_since": None,
+                                                     "deferred": False})
+                cell["finished"] &= r["state"] == "done"
+                cell["running"] |= r["state"] == "leased"
+                cell["deferred"] |= r["state"] == "deferred"
+                if r["state"] == "quarantined":
+                    since = cell["quarantined_since"]
+                    cell["quarantined_since"] = r["updated_at"] if since is None else min(since, r["updated_at"])
+        return out
 
     def cancel(self, job_id: str, operator: str) -> bool:
         now = self.clock()
