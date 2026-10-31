@@ -245,6 +245,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--restaurant-rounds", type=int, default=0)
     p.add_argument("--house-ahead", type=int, default=0,
                    help="keep this many house batches queued past the last finished")
+    p.add_argument("--mesh", default="",
+                   help="cells to build the measured world mesh for, in 200 m blocks (comma list)")
     p.add_argument("--standing", action="store_true",
                    help="the controller resubmits this plan every replan_h hours")
     sub.add_parser("status")
@@ -306,7 +308,8 @@ def main(argv: list[str] | None = None) -> int:
         body = {"cells": cells,
                 "house_batches": args.house_batches, "house_sample": args.house_sample,
                 "interiors": args.interiors, "restaurant_rounds": args.restaurant_rounds,
-                "house_ahead": args.house_ahead, "standing": args.standing}
+                "house_ahead": args.house_ahead, "standing": args.standing,
+                "mesh_cells": [c for c in args.mesh.split(",") if c]}
         print(json.dumps(_ops("/api/plan", body)))
         return 0
     if args.cmd == "status":

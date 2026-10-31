@@ -537,7 +537,8 @@ def _handler(ctl: Controller):
                         "house_sample": int(body.get("house_sample", HOUSE_SAMPLE)),
                         "interiors": bool(body.get("interiors", False)),
                         "restaurant_rounds": int(body.get("restaurant_rounds", 0)),
-                        "house_ahead": int(body.get("house_ahead", 0))}
+                        "house_ahead": int(body.get("house_ahead", 0)),
+                        "mesh_cells": list(body.get("mesh_cells") or [])}
                 result = submit_plan(q, ctl.c.root, ctl.c.private, **plan)
                 if body.get("standing"):
                     # Resubmitted by the controller every replan_h hours (housekeeping).

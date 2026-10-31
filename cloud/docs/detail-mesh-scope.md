@@ -81,3 +81,28 @@ At the $60 daily limit the corridor and the 8 regions take about 2–3 weeks of 
 - **Thin coverage:** measured detail only appears where people photographed. The drawn houses remain everywhere else, so the map is a mix, labelled by source.
 - **Gaussian splats instead of a mesh:** they look more photographic for less work, but have no surfaces to walk on or edit, and cost more memory on the headset. A mesh is recommended, with splats possible later for the far view.
 - **Decision needed:** whether to start phase 1 now. It needs the GPU image built (about 15 minutes of CI) and about $15.
+
+## Build started (2026-10-30)
+
+The owner said start. What exists now, in `src/smc/worldmesh/` and `scripts/build_world_mesh.py`:
+
+- **Any block.** A block is a rectangle and an origin (`block.py`). It owns the triangles whose centroids fall inside it, so blocks laid edge to edge cover the world exactly once. A cell is cut into ~200 m blocks (`tiles_of`), and each block is built on its own, in any order, on any machine.
+- **Photographs** (`photos.py`): Mapillary frames in a 40 m halo, at original resolution, one folder per sequence, each with its SHA-256, licence and creator. The only thinning drops near-repeats (closer than 1 m to the last kept frame in a sequence) and 360 frames.
+- **Solve** (`reconstruct.py`): COLMAP 4 from the command line, resumable phase by phase.
+  - The sparse half runs anywhere, including this Mac's CPU build: full-size SIFT, neighbour and sequence pairs, mapping, then alignment to the block's metres.
+  - Each camera sits 2.2 m above the USGS 3DEP ground where it stood (`ground.py`).
+  - The dense half (full-size patch-match, fusion, depth-13 Poisson, about 2.4 cm cells) needs CUDA COLMAP. The GPU image now builds COLMAP 4.2.1 with CUDA (sm 8.6/8.9/9.0).
+- **Tiles** (`tiles.py`):
+  - **Leaves** hold every master triangle, whole and undecimated. Positions are 16-bit per tile (rounding is measured: about 0.2 mm for a 120 m test block), and textures are kept byte for byte.
+  - **Parents** are simplified with meshoptimizer to about one leaf's size, with borders locked. Their error is the simplifier's measured value in metres.
+  - **Encoding:** everything is compressed with EXT_meshopt_compression and KHR_mesh_quantization, and a 3D Tiles 1.1 tileset plus a manifest are written. A test block came to about 4.5 bytes a triangle with colour and normals, and loads seamlessly in three.js r160 through its meshopt decoder.
+- **Check** (`check.py`): the scope's gate.
+  - Hold a block when under 60% of its cameras register, or when it sits a median over 0.15 m or a p95 over 0.5 m from the lidar.
+  - A block with no lidar given is held as unmeasured.
+- **Cloud:** `smc-cloud plan --mesh <cells>` queues two jobs per block. `mesh:<block>:photos` runs on CPU; `mesh:<block>:solve` runs on GPU and does the solve, tiles and check. Both are optional, and neither publishes anything.
+
+Still to do:
+- Feed each block's lidar to the check from the cell's archived points.
+- Texture the master mesh (OpenMVS TextureMesh). Leaves are vertex-coloured until then.
+- The viewer loader (phase 3).
+- The pilot run itself, which needs RunPod credit.
