@@ -89,3 +89,14 @@ def test_cloud_jobs_fetch_on_cpu_and_solve_on_gpu():
     assert photos.optional and solve.optional
     assert photos.command[0][-1] == "photos" and solve.command[0][-1] == "solve,tiles,check"
     assert photos.save == solve.save == ["build/worldmesh/sf-corridor-3-4"]
+
+
+def test_walls_count_as_lidar_truth_and_foliage_does_not():
+    from smc.worldmesh.lidar import planar
+
+    rng = np.random.default_rng(3)
+    wall = np.column_stack([rng.random(3000) * 10, np.full(3000, 5.0) + rng.normal(0, 0.01, 3000),
+                            rng.random(3000) * 8])
+    crown = rng.normal([20, 20, 6], 1.5, (3000, 3))
+    keep = planar(np.vstack([wall, crown]))
+    assert keep[:3000].mean() > 0.9 and keep[3000:].mean() < 0.1

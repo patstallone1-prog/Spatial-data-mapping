@@ -12,7 +12,7 @@ Stages (each resumes from what is already in the work folder, build/worldmesh/<n
     photos   find the frames in the block's halo, thin near-repeats, fetch originals
     solve    COLMAP: features, matches, sparse model, alignment; dense and mesh with CUDA
     tiles    the master mesh as a lossless-at-the-leaves 3D Tiles pyramid (tiles/)
-    check    the mesh against the lidar (--lidar): passed or held, with reasons
+    check    the mesh against the block's USGS 3DEP lidar (or --lidar): passed or held
 
 Needs MAPILLARY_TOKEN in the environment for ``photos``.
 """
@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from smc.worldmesh import check, photos, reconstruct  # noqa: E402
 from smc.worldmesh.block import Block, block_for_region, parse_bbox, tiles_of  # noqa: E402
 from smc.worldmesh.ground import GEOID_BAY_M, fetch_ground  # noqa: E402
+from smc.worldmesh.lidar import points_for as lidar_for  # noqa: E402
 from smc.worldmesh.tiles import tile_mesh  # noqa: E402
 
 STAGES = ("photos", "solve", "tiles", "check")
@@ -86,9 +87,13 @@ def build(block: Block, work: Path, stages: list[str], *, lidar: Path | None, ma
         if mesh is None:
             state["check"] = {"passed": False, "reasons": ["no master mesh"]}
         else:
-            points = load_lidar(lidar, block) if lidar else None
+            if lidar:
+                points, source = load_lidar(lidar, block), str(lidar)
+            else:
+                points, source = lidar_for(block, ROOT)
             share = (state.get("solve") or {}).get("registered_share")
-            state["check"] = check.judge(mesh, registered_share=share, lidar=points).to_json()
+            state["check"] = {**check.judge(mesh, registered_share=share, lidar=points).to_json(),
+                              "lidar": source}
         print("check:", json.dumps(state["check"]), flush=True)
     state_path.write_text(json.dumps(state, indent=1))
     return state

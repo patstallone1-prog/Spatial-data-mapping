@@ -312,7 +312,7 @@ def worldmesh_jobs(cell: str, block: str, bbox: tuple[float, float, float, float
     solve = JobSpec(id=solve_id, kind="mesh_block", subject=cell, stage="mesh-solve",
                     resource="gpu",
                     command=[[PY, "scripts/build_world_mesh.py", *where, "--stages", "solve,tiles,check"]],
-                    depends=[photos_id], restore_from=[photos_id], save=[folder],
+                    depends=[photos_id], restore_from=[photos_id], save=[folder], shared=["lidar-index"],
                     timeout_s=12 * 3600, max_attempts=2, priority=priority, stall_s=5400, optional=True)
     return [photos, solve]
 
