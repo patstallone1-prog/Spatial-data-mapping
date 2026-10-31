@@ -25,6 +25,7 @@ def build_bundle(
     viewer_html=None,
     support_site=None,
     selected_ids=None,
+    station_inputs=(),
 ):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -33,6 +34,47 @@ def build_bundle(
         target = "index.html" if name == "preview.html" else name
         shutil.copyfile(str(package.joinpath(name)), out / target)
     shutil.copytree(str(package.joinpath("assets")), out / "assets", dirs_exist_ok=True)
+    if station_inputs:
+        from smc.exteriors.stations import infer_station
+
+        index = out / "index.html"
+        index.write_text(
+            index.read_text().replace(
+                "<main><aside>",
+                '<main><aside><p><a href="stations.html">Fuel &amp; EV stations</a></p>',
+            )
+        )
+
+        stations, station_rejected = {}, []
+        for row in station_inputs:
+            key = str(row["id"])
+            if key in stations or any(r["id"] == key for r in station_rejected):
+                raise ValueError("duplicate station identity")
+            try:
+                plan = infer_station(row)
+                if plan["validation"]["passed"]:
+                    stations[key] = plan
+                else:
+                    station_rejected.append(dict(id=key, errors=plan["validation"]["errors"]))
+            except (ValueError, KeyError, TypeError) as exc:
+                station_rejected.append(dict(id=key, errors=[str(exc)]))
+        (out / "station-scenes.json").write_text(
+            json.dumps(
+                dict(
+                    schema="kerbside.station_scenes/1",
+                    selected=[str(r["id"]) for r in station_inputs],
+                    stations=stations,
+                    rejected=station_rejected,
+                ),
+                indent=2,
+            )
+            + "\n"
+        )
+        for name in ("station-renderer.mjs", "station-preview.mjs", "station-preview.html"):
+            shutil.copyfile(
+                str(package.joinpath(name)),
+                out / ("stations.html" if name.endswith("html") else name),
+            )
     plans, rejected = {}, []
     candidates = [
         (str(row["id"]), "synthetic", lambda row=row: ExteriorInput.from_json(row))
@@ -102,6 +144,10 @@ def build_bundle(
         "rejected": rejected,
         "buildings": plans,
     }
+    if station_inputs:
+        manifest["station_summary"] = dict(
+            selected=len(station_inputs), passed=len(stations), rejected=station_rejected
+        )
     (out / "storefront-exteriors.json").write_text(json.dumps(manifest, indent=2) + "\n")
     if world:
         # A separate experimental payload opts into the renderer. Never rewrite the source world.

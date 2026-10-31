@@ -1,6 +1,6 @@
 {
   "schema": "kerbside.storefront_references/1",
-  "version": "2026-10-29",
+  "version": "2026-10-30",
   "curation": {
     "scope": "Bay Area storefront and institutional exterior qualitative reference library",
     "not_a_representative_survey": true,
@@ -608,6 +608,259 @@
       "observations": [
         "Merchant photographs document the drive-in diner tradition, broad customer glazing and neon identity.",
         "Historic and current-format examples are not a universal contemporary diner elevation."
+      ]
+    },
+    {
+      "id": "chargepoint-layout",
+      "title": "Express 250 Civil and Mechanical Design",
+      "url": "https://docs.chargepoint.com/cpdocs-sec/content/3-dc/express-250/sdg/civil-mechanical-design.htm",
+      "organization": "ChargePoint",
+      "kind": "manufacturer_guide",
+      "location": "Product-specific, North America",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Express 250 enclosure height 2.230 m and width 0.71 m are documented product dimensions.",
+        "Cable reach radius is 3.76 m for this product. Cable reach and service clearance are distinct.",
+        "Bollards should not interfere with holsters or cables; the guide states no bollard within 457 mm on-center."
+      ]
+    },
+    {
+      "id": "tesla-parking",
+      "title": "Supercharging Other EVs",
+      "url": "https://www.tesla.com/support/charging/supercharging-other-evs",
+      "organization": "Tesla",
+      "kind": "manufacturer_guide",
+      "location": "North America",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Vehicle port positions vary. Short-cable stations can require an adjacent stall; avoid diagonal parking.",
+        "V4 posts have longer cables than earlier posts. A brand name alone does not establish installed hardware generation."
+      ]
+    },
+    {
+      "id": "ea-harrison",
+      "title": "San Francisco indoor flagship station",
+      "url": "https://media.electrifyamerica.com/releases/241",
+      "organization": "Electrify America",
+      "kind": "built_project",
+      "location": "928 Harrison Street, San Francisco",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "An indoor flagship is a distinct site form; not every charging station is a gas-style outdoor canopy.",
+        "Hardware and bay count must be taken from the individual site rather than copied from a flagship."
+      ]
+    },
+    {
+      "id": "evgo-hardware",
+      "title": "Next-generation charging system announcement",
+      "url": "https://www.evgo.com/press-release/evgo-announces-next-generation-charging-system-capable-of-750kw/",
+      "organization": "EVgo",
+      "kind": "future_product_announcement",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "The September 2026 announcement describes a future design expected to be unveiled in 2027.",
+        "Do not render that future product as an observed current installation. Existing cabinet and dispenser forms vary by hardware."
+      ]
+    },
+    {
+      "id": "chevron-extra",
+      "title": "ExtraMile storefront and experience",
+      "url": "https://www.chevronextramile.com/",
+      "organization": "Chevron ExtraMile",
+      "kind": "merchant_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official storefront photograph shows a separate ExtraMile convenience-store identity; fuel branding is not automatically the store name.",
+        "Glazed customer entry and shop windows are separate from the pump canopy."
+      ]
+    },
+    {
+      "id": "chevron-image",
+      "title": "Chevron Image Stewardship Guide",
+      "url": "https://www.southeastpetro.com/wp-content/uploads/2015/07/ImageStewardshipGuideChevron.pdf",
+      "organization": "Chevron, distributed by Southeast Petro",
+      "kind": "historical_brand_guide",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Historical blue and white canopy, column and dispenser identity components.",
+        "Use as a kit reference only, not evidence of a current remodel at any particular site."
+      ]
+    },
+    {
+      "id": "shell-image",
+      "title": "Shell station rebrand fabrication",
+      "url": "https://standart-tim.com/en/projects/shell-station-rebrand",
+      "organization": "StandartTIM",
+      "kind": "sign_fabricator",
+      "location": "Outside Bay Area",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Project photographs document yellow/red canopy, pecten identity and separate price totems.",
+        "The fabricator distinguishes canopy signs, totems and convenience-store branding."
+      ]
+    },
+    {
+      "id": "arco-identity",
+      "title": "ARCO Southwest official identity",
+      "url": "https://www.arco.com/en-us/southwest/",
+      "organization": "ARCO",
+      "kind": "merchant_reference",
+      "location": "Western United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Blue ARCO wordmark and red diamond identity; official site separately links ampm.",
+        "The fuel and convenience-store brands are separate fields."
+      ]
+    },
+    {
+      "id": "ampm-proposal",
+      "title": "ARCO ampm color elevations and site proposal",
+      "url": "https://chicoca.gov/documents/Government/Boards--Commissions/Planning-Commission/2021/06-17-21arco_ampm_staff_report_and_attachments.pdf",
+      "organization": "City of Chico",
+      "kind": "historic_approved_proposal",
+      "location": "Chico, California",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "The staff report describes a variation on the ampm prototype, not one universal store shell.",
+        "Site plan and color elevations distinguish canopy, pump lanes and convenience-store building."
+      ]
+    },
+    {
+      "id": "76-identity",
+      "title": "76 official identity",
+      "url": "https://www.76.com/",
+      "organization": "76 / Phillips 66",
+      "kind": "merchant_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Orange roundel with blue 76 numerals provides identity independent of store shape.",
+        "Official site distinguishes fuel station identity from rewards offers; no promotional price is copied into the inferred sign."
+      ]
+    },
+    {
+      "id": "target-design",
+      "title": "New store strategy and design",
+      "url": "https://corporate.target.com/news-features/article/2022/11/new-store-design",
+      "organization": "Target",
+      "kind": "brand_design_program",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official exterior images show large red identity, neutral wall materials and a glazed public entrance.",
+        "Local adaptation means a red logo does not justify repainting every observed facade red."
+      ]
+    },
+    {
+      "id": "target-local",
+      "title": "Bridgehampton local design adaptation",
+      "url": "https://corporate.target.com/news-features/article/2026/10/bridgehampton-target-store",
+      "organization": "Target",
+      "kind": "built_project",
+      "location": "Bridgehampton, New York; comparison only",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Gray shingles, white externally lit bullseye and gray bollards depart from the usual red identity under local design rules.",
+        "Observed site appearance overrides the default brand palette."
+      ]
+    },
+    {
+      "id": "mcdonalds-design",
+      "title": "McDonalds investor overview and restaurant exterior",
+      "url": "https://corporate.mcdonalds.com/content/dam/sites/corp/nfl/pdf/Investor%20Overview%20Deck_v2025.3.3.pdf",
+      "organization": "McDonalds",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official photograph shows separate McDonalds wordmark and golden-arches identity on a contemporary restaurant exterior.",
+        "No universal roof, drive-through or parking layout follows from the brand name."
+      ]
+    },
+    {
+      "id": "inout-history",
+      "title": "In-N-Out official history",
+      "url": "https://www.in-n-out.com/history",
+      "organization": "In-N-Out Burger",
+      "kind": "merchant_reference",
+      "location": "California and western US",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official history records the arrow identity introduced in 1954 and crossed-palm tradition beginning in 1972.",
+        "History photographs show recognizable red, white and yellow components; historic designs are not proof of a current site remodel."
+      ]
+    },
+    {
+      "id": "tacobell-lighting",
+      "title": "Taco Bell exterior lighting project",
+      "url": "https://solidstateluminaires.com/gallery/taco-bell-franchise?GR=1&IN=0&PG=galleries",
+      "organization": "Solid State Luminaires",
+      "kind": "lighting_fabricator",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Project photographs and description identify purple exterior LED lighting behind slats.",
+        "Purple accent lighting is a component, not a reason to color all walls purple."
+      ]
+    },
+    {
+      "id": "costco-story",
+      "title": "The Costco Story",
+      "url": "https://www.costco.com/wcsstore/CostcoUSBCCatalogAssetStore/Attachment/A-CostcoStory-Base-0617.pdf",
+      "organization": "Costco Wholesale",
+      "kind": "brand_publication",
+      "location": "United States; historical publication",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official exterior photograph shows large warehouse identity and entrance labeling.",
+        "Warehouse service walls and loading areas do not imply a continuous glazed retail frontage."
+      ]
+    },
+    {
+      "id": "bestbuy-store",
+      "title": "Best Buy store exterior project photography",
+      "url": "https://corporate.bestbuy.com/2022/best-buys-sustainability-successes-featured-in-ted-countdown/headline-2/",
+      "organization": "Best Buy",
+      "kind": "merchant_reference",
+      "location": "The Woodlands, Texas; comparison only",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official store photographs document the brand on a site-specific retail shell.",
+        "Blue and yellow identity are restricted to an entrance/sign treatment rather than an invented blue building."
+      ]
+    },
+    {
+      "id": "fuel-dispenser-kit",
+      "title": "Encore standard-flow dispenser family",
+      "url": "https://www.gilbarco.com/us/en/technology/retail-fuel-dispensers/encore-standard-flow-dispensers",
+      "organization": "Gilbarco Veeder-Root",
+      "kind": "manufacturer_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": "ATM-style interface and hanging-hardware configurations",
+      "observations": [
+        "Manufacturer describes upgradeable payment terminals and multiple grade configurations.",
+        "A generic dispenser form does not establish a specific installed model; hanging hardware and grade configuration can differ."
       ]
     }
   ],
@@ -1831,6 +2084,427 @@
       "asset": null,
       "scope": "repeatable identity components; site shell and current remodel status remain unverified",
       "confidence": 0.55
+    },
+    "extramile": {
+      "name": "ExtraMile",
+      "aliases": [
+        "extramile",
+        "extra mile"
+      ],
+      "category": "corner_store",
+      "colors": [
+        "#ed6a22",
+        "#f3eadb",
+        "#233e61"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "chevron-extra"
+      ],
+      "components": [
+        "orange storefront identity",
+        "separate fuel and store brands"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "ampm": {
+      "name": "ampm",
+      "aliases": [
+        "ampm",
+        "am pm"
+      ],
+      "category": "corner_store",
+      "colors": [
+        "#e45224",
+        "#f3e9d3",
+        "#263b6a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "arco-identity",
+        "ampm-proposal"
+      ],
+      "components": [
+        "orange and red store identity",
+        "local prototype adaptation"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "target": {
+      "name": "Target",
+      "aliases": [
+        "target"
+      ],
+      "category": "shop",
+      "colors": [
+        "#cc0000",
+        "#f3efe7",
+        "#4d4b48"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "target-design",
+        "target-local"
+      ],
+      "components": [
+        "red bullseye identity",
+        "neutral shell and glazed customer entry"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "icon": "target",
+      "asset": "target",
+      "brand_layout": "icon_and_wordmark",
+      "wordmark": "target",
+      "glazing_cluster_m": 14
+    },
+    "mcdonalds": {
+      "name": "McDonald's",
+      "aliases": [
+        "mcdonalds",
+        "mcdonald s"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#c92325",
+        "#ffc72c",
+        "#363534"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "mcdonalds-design"
+      ],
+      "components": [
+        "golden arches identity",
+        "dark modern frames; restrained red accents"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "icon": "arches"
+    },
+    "in_n_out": {
+      "name": "In-N-Out Burger",
+      "aliases": [
+        "in n out",
+        "in n out burger"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#c72229",
+        "#ffca20",
+        "#f6f1e4"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "inout-history"
+      ],
+      "components": [
+        "red white yellow identity",
+        "arrow sign; local shell retained"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "taco_bell": {
+      "name": "Taco Bell",
+      "aliases": [
+        "taco bell"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#682985",
+        "#f3edf1",
+        "#343237"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "tacobell-lighting"
+      ],
+      "components": [
+        "purple accent slats and lighting",
+        "neutral wall field"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "costco": {
+      "name": "Costco Wholesale",
+      "aliases": [
+        "costco",
+        "costco wholesale"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#c8212c",
+        "#f1eee7",
+        "#265b90"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "costco-story"
+      ],
+      "components": [
+        "large warehouse wordmark",
+        "solid service walls; articulated entry"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "asset": "costco",
+      "glazing_cluster_m": 14
+    },
+    "best_buy": {
+      "name": "Best Buy",
+      "aliases": [
+        "best buy"
+      ],
+      "category": "shop",
+      "colors": [
+        "#174a8b",
+        "#ffe000",
+        "#e3e0d8"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "bestbuy-store"
+      ],
+      "components": [
+        "blue entrance identity",
+        "yellow tag accent; local shell retained"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "glazing_cluster_m": 14
+    }
+  },
+  "station_brands": {
+    "chevron": {
+      "name": "Chevron",
+      "aliases": [
+        "chevron"
+      ],
+      "colors": [
+        "#0064a8",
+        "#e12836",
+        "#f0f2ef"
+      ],
+      "references": [
+        "chevron-image",
+        "chevron-extra",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "shell": {
+      "name": "Shell",
+      "aliases": [
+        "shell"
+      ],
+      "colors": [
+        "#ffd500",
+        "#dc2429",
+        "#f2f1e6"
+      ],
+      "references": [
+        "shell-image",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "arco": {
+      "name": "ARCO",
+      "aliases": [
+        "arco"
+      ],
+      "colors": [
+        "#0b448f",
+        "#e52b34",
+        "#eeefec"
+      ],
+      "references": [
+        "arco-identity",
+        "ampm-proposal",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "76": {
+      "name": "76",
+      "aliases": [
+        "76",
+        "union 76"
+      ],
+      "colors": [
+        "#ee6b22",
+        "#17529c",
+        "#eeefed"
+      ],
+      "references": [
+        "76-identity",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "tesla": {
+      "name": "Tesla Supercharger",
+      "aliases": [
+        "tesla",
+        "tesla supercharger",
+        "supercharger"
+      ],
+      "colors": [
+        "#e82127",
+        "#f5f5f2",
+        "#23272b"
+      ],
+      "references": [
+        "tesla-parking"
+      ],
+      "hardware": "tesla_v4",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "chargepoint": {
+      "name": "ChargePoint",
+      "aliases": [
+        "chargepoint"
+      ],
+      "colors": [
+        "#ee7823",
+        "#f1f0eb",
+        "#3d4143"
+      ],
+      "references": [
+        "chargepoint-layout"
+      ],
+      "hardware": "chargepoint_express250",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "electrify_america": {
+      "name": "Electrify America",
+      "aliases": [
+        "electrify america"
+      ],
+      "colors": [
+        "#55b642",
+        "#f1f3ee",
+        "#18455e"
+      ],
+      "references": [
+        "ea-harrison"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "evgo": {
+      "name": "EVgo",
+      "aliases": [
+        "evgo"
+      ],
+      "colors": [
+        "#2576ae",
+        "#82bc42",
+        "#f4f3e9"
+      ],
+      "references": [
+        "evgo-hardware"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "generic_fuel": {
+      "name": "Fuel",
+      "aliases": [
+        "fuel"
+      ],
+      "colors": [
+        "#285e73",
+        "#d87b24",
+        "#e9ece8"
+      ],
+      "references": [
+        "chevron-image",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "generic_ev": {
+      "name": "EV charging",
+      "aliases": [
+        "ev charging"
+      ],
+      "colors": [
+        "#3d8059",
+        "#f1f2ed",
+        "#333b40"
+      ],
+      "references": [
+        "chargepoint-layout",
+        "tesla-parking"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
     }
   }
 }

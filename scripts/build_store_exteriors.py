@@ -17,6 +17,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--world", type=Path, help="canonical Kerbside JSON payload, read-only")
     parser.add_argument("--inputs", type=Path, help="explicit local-metre facade programs")
+    parser.add_argument(
+        "--stations", type=Path, help="explicit fuel/EV site programs in local metres"
+    )
+    parser.add_argument("--extra-inputs", type=Path, help="additional fixed chain facade programs")
     parser.add_argument("--fits", type=Path, help="optional geometry-bound reviewed facade fits")
     parser.add_argument(
         "--selected-ids", type=Path, help="fixed mapped cohort JSON with an ids list"
@@ -34,8 +38,8 @@ def main():
         "--support-site", type=Path, help="read-only local support asset aliases for --viewer-copy"
     )
     args = parser.parse_args()
-    if not args.world and not args.inputs:
-        parser.error("supply --world or --inputs")
+    if not args.world and not args.inputs and not args.stations:
+        parser.error("supply --world, --inputs or --stations")
     if args.viewer_copy and not args.world:
         parser.error("--viewer-copy requires a canonical --world payload")
     if not 0 <= args.limit <= 5000:
@@ -46,7 +50,9 @@ def main():
         parser.error("this review builder cannot write into the published docs tree")
     manifest = build_bundle(
         args.out,
-        inputs=json.loads(args.inputs.read_text()) if args.inputs else (),
+        inputs=(json.loads(args.inputs.read_text()) if args.inputs else [])
+        + (json.loads(args.extra_inputs.read_text()) if args.extra_inputs else []),
+        station_inputs=json.loads(args.stations.read_text()) if args.stations else (),
         world=json.loads(args.world.read_text()) if args.world else None,
         fits=json.loads(args.fits.read_text()) if args.fits else None,
         limit=args.limit,
@@ -65,6 +71,7 @@ def main():
                 "passed": len(manifest["buildings"]),
                 "rejected": manifest["rejected"],
                 "output": str(args.out),
+                "stations": manifest.get("station_summary"),
             },
             indent=2,
         )

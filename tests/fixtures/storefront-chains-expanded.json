@@ -1,0 +1,370 @@
+[
+  {
+    "id": "chain-extramile",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "ExtraMile",
+        "brand": "extramile",
+        "category": "corner_store"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-ampm",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "ampm",
+        "brand": "ampm",
+        "category": "corner_store"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-target",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.0,
+            0.0
+          ],
+          [
+            35.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            35.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 7,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Target",
+        "brand": "target",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-mcdonalds",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "McDonald's",
+        "brand": "mcdonalds",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-in_n_out",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "In-N-Out Burger",
+        "brand": "in_n_out",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-taco_bell",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            15.0,
+            0.0
+          ],
+          [
+            15.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            15.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Taco Bell",
+        "brand": "taco_bell",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-costco",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            48.0,
+            0.0
+          ],
+          [
+            48.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            48.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 7,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Costco Wholesale",
+        "brand": "costco",
+        "category": "grocery"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "chain-best_buy",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.0,
+            0.0
+          ],
+          [
+            35.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            35.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 7,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Best Buy",
+        "brand": "best_buy",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 2,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  }
+]

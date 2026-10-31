@@ -1,0 +1,1121 @@
+[
+  {
+    "id": "fuel-chevron",
+    "name": "chevron",
+    "kind": "fuel",
+    "brand": "chevron",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.0,
+              25.0
+            ],
+            [
+              38.0,
+              35.0
+            ],
+            [
+              22.0,
+              35.0
+            ],
+            [
+              22.0,
+              25.0
+            ],
+            [
+              38.0,
+              25.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "ExtraMile",
+          "category": "corner_store",
+          "brand": "extramile"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "fuel-shell",
+    "name": "shell",
+    "kind": "fuel",
+    "brand": "shell",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.0,
+              25.0
+            ],
+            [
+              38.0,
+              35.0
+            ],
+            [
+              22.0,
+              35.0
+            ],
+            [
+              22.0,
+              25.0
+            ],
+            [
+              38.0,
+              25.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "Food Mart",
+          "category": "corner_store",
+          "brand": null
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "fuel-arco",
+    "name": "arco",
+    "kind": "fuel",
+    "brand": "arco",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.0,
+              25.0
+            ],
+            [
+              38.0,
+              35.0
+            ],
+            [
+              22.0,
+              35.0
+            ],
+            [
+              22.0,
+              25.0
+            ],
+            [
+              38.0,
+              25.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "ampm",
+          "category": "corner_store",
+          "brand": "ampm"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "fuel-76",
+    "name": "76",
+    "kind": "fuel",
+    "brand": "76",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              38.0,
+              25.0
+            ],
+            [
+              38.0,
+              35.0
+            ],
+            [
+              22.0,
+              35.0
+            ],
+            [
+              22.0,
+              25.0
+            ],
+            [
+              38.0,
+              25.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "Food Mart",
+          "category": "corner_store",
+          "brand": null
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "ev-tesla",
+    "name": "tesla",
+    "kind": "ev",
+    "brand": "tesla",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0
+  },
+  {
+    "id": "ev-chargepoint",
+    "name": "chargepoint",
+    "kind": "ev",
+    "brand": "chargepoint",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0
+  },
+  {
+    "id": "ev-electrify_america",
+    "name": "electrify_america",
+    "kind": "ev",
+    "brand": "electrify_america",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0
+  },
+  {
+    "id": "ev-evgo",
+    "name": "evgo",
+    "kind": "ev",
+    "brand": "evgo",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0
+  },
+  {
+    "id": "fuel-compact",
+    "name": "fuel-compact",
+    "kind": "fuel",
+    "brand": null,
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            24.0,
+            0.0
+          ],
+          [
+            24.0,
+            23.0
+          ],
+          [
+            0.0,
+            23.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            24.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 4,
+    "heading_degrees": 0
+  },
+  {
+    "id": "ev-compact",
+    "name": "ev-compact",
+    "kind": "ev",
+    "brand": null,
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            17.0,
+            0.0
+          ],
+          [
+            17.0,
+            16.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            17.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 4,
+    "heading_degrees": 0
+  },
+  {
+    "id": "fuel-concave",
+    "name": "shell",
+    "kind": "fuel",
+    "brand": "shell",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            25.0
+          ],
+          [
+            24.0,
+            25.0
+          ],
+          [
+            24.0,
+            40.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0
+  },
+  {
+    "id": "ev-obstacle",
+    "name": "chargepoint",
+    "kind": "ev",
+    "brand": "chargepoint",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            22.0
+          ],
+          [
+            0.0,
+            22.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 0,
+    "obstacles": [
+      {
+        "id": "retained-planter",
+        "polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                15.0,
+                5.0
+              ],
+              [
+                15.0,
+                15.0
+              ],
+              [
+                11.0,
+                15.0
+              ],
+              [
+                11.0,
+                5.0
+              ],
+              [
+                15.0,
+                5.0
+              ]
+            ]
+          ]
+        },
+        "measured": true,
+        "source_id": "fixture-planter"
+      }
+    ]
+  },
+  {
+    "id": "tesla-v3-backin",
+    "name": "tesla",
+    "kind": "ev",
+    "brand": "tesla",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            24.0,
+            0.0
+          ],
+          [
+            24.0,
+            17.0
+          ],
+          [
+            0.0,
+            17.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            24.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 6,
+    "heading_degrees": 0,
+    "charger_family": "tesla_v3"
+  },
+  {
+    "id": "two-row-ev",
+    "name": "electrify_america",
+    "kind": "ev",
+    "brand": "electrify_america",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            26.0,
+            0.0
+          ],
+          [
+            26.0,
+            35.0
+          ],
+          [
+            0.0,
+            35.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            26.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 14,
+    "heading_degrees": 0
+  },
+  {
+    "id": "observed-bays",
+    "name": "chargepoint",
+    "kind": "ev",
+    "brand": "chargepoint",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            25.0,
+            0.0
+          ],
+          [
+            25.0,
+            19.0
+          ],
+          [
+            0.0,
+            19.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            25.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 4,
+    "heading_degrees": 0,
+    "parking_stalls": [
+      {
+        "id": "measured-0",
+        "center": [
+          5.0,
+          8.5
+        ],
+        "length_m": 6,
+        "width_m": 3,
+        "heading_degrees": 90,
+        "measured": true,
+        "source_id": "fixture-stall-survey",
+        "captured_at": "2026-10-30"
+      },
+      {
+        "id": "measured-1",
+        "center": [
+          8.4,
+          8.5
+        ],
+        "length_m": 6,
+        "width_m": 3,
+        "heading_degrees": 90,
+        "measured": true,
+        "source_id": "fixture-stall-survey",
+        "captured_at": "2026-10-30"
+      },
+      {
+        "id": "measured-2",
+        "center": [
+          11.8,
+          8.5
+        ],
+        "length_m": 6,
+        "width_m": 3,
+        "heading_degrees": 90,
+        "measured": true,
+        "source_id": "fixture-stall-survey",
+        "captured_at": "2026-10-30"
+      },
+      {
+        "id": "measured-3",
+        "center": [
+          15.2,
+          8.5
+        ],
+        "length_m": 6,
+        "width_m": 3,
+        "heading_degrees": 90,
+        "measured": true,
+        "source_id": "fixture-stall-survey",
+        "captured_at": "2026-10-30"
+      }
+    ]
+  },
+  {
+    "id": "observed-pump-faces",
+    "name": "chevron",
+    "kind": "fuel",
+    "brand": "chevron",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            28.0,
+            0.0
+          ],
+          [
+            28.0,
+            28.0
+          ],
+          [
+            0.0,
+            28.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            28.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 4,
+    "heading_degrees": 0,
+    "fuel_islands": [
+      {
+        "id": "source-A",
+        "center": [
+          9,
+          9
+        ],
+        "heading_degrees": 0,
+        "measured": true,
+        "source_id": "fixture-pump-survey"
+      },
+      {
+        "id": "source-B",
+        "center": [
+          19,
+          9
+        ],
+        "heading_degrees": 0,
+        "measured": true,
+        "source_id": "fixture-pump-survey"
+      }
+    ],
+    "prices": {
+      "currency": "USD",
+      "unit": "US_gallon",
+      "source_id": "fixture-price-photo",
+      "measured": true,
+      "captured_at": "2026-10-30",
+      "rows": [
+        {
+          "grade": "Regular",
+          "price": 4.599,
+          "payment": "cash"
+        },
+        {
+          "grade": "Regular",
+          "price": 4.699,
+          "payment": "credit"
+        },
+        {
+          "grade": "Premium",
+          "price": 5.099,
+          "payment": "all"
+        }
+      ]
+    }
+  },
+  {
+    "id": "rotated-fuel-27",
+    "name": "chevron",
+    "kind": "fuel",
+    "brand": "chevron",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.640260967534715,
+            18.159619989581874
+          ],
+          [
+            17.48064097795284,
+            53.799880957116585
+          ],
+          [
+            -18.159619989581874,
+            35.640260967534715
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            35.640260967534715,
+            18.159619989581874
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 27,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.508485425669313,
+              39.52680209481198
+            ],
+            [
+              17.968580428273846,
+              48.436867336695656
+            ],
+            [
+              3.712476041259956,
+              41.17301934086291
+            ],
+            [
+              8.252381038655423,
+              32.26295409897923
+            ],
+            [
+              22.508485425669313,
+              39.52680209481198
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "ExtraMile",
+          "category": "corner_store",
+          "brand": "extramile"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "rotated-ev--39",
+    "name": "tesla",
+    "kind": "ev",
+    "brand": "tesla",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            24.86867076662307,
+            -20.138252513594797
+          ],
+          [
+            38.71371936971949,
+            -3.041041361541435
+          ],
+          [
+            13.845048603096423,
+            17.09721115205336
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            24.86867076662307,
+            -20.138252513594797
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": -39
+  },
+  {
+    "id": "rotated-fuel-91",
+    "name": "chevron",
+    "kind": "fuel",
+    "brand": "chevron",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -0.6980962574913391,
+            39.99390780625565
+          ],
+          [
+            -40.692004063746985,
+            39.29581154876431
+          ],
+          [
+            -39.99390780625565,
+            -0.6980962574913391
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            -0.6980962574913391,
+            39.99390780625565
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 91,
+    "store": {
+      "id": "attached-shop",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -25.659383823526554,
+              37.55790225501078
+            ],
+            [
+              -35.65786077509046,
+              37.38337819063795
+            ],
+            [
+              -35.37862227209393,
+              21.385815068135688
+            ],
+            [
+              -25.38014532053002,
+              21.56033913250852
+            ],
+            [
+              -25.659383823526554,
+              37.55790225501078
+            ]
+          ]
+        ]
+      },
+      "height_m": 3.8,
+      "tenants": [
+        {
+          "id": "retail",
+          "name": "ExtraMile",
+          "category": "corner_store",
+          "brand": "extramile"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "retail",
+          "role": "public"
+        }
+      ]
+    }
+  },
+  {
+    "id": "rotated-ev-173",
+    "name": "tesla",
+    "kind": "ev",
+    "brand": "tesla",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -31.761476852522303,
+            3.8998189889647215
+          ],
+          [
+            -34.44260240743555,
+            -17.936196347144364
+          ],
+          [
+            -2.681125554913246,
+            -21.836015336109085
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            -31.761476852522303,
+            3.8998189889647215
+          ]
+        ]
+      ]
+    },
+    "requested_bays": 8,
+    "heading_degrees": 173
+  }
+]

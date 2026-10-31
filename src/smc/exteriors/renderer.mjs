@@ -92,7 +92,7 @@ function holePath(THREE, o, band) {
   return p;
 }
 
-class Batch {
+export class Batch {
   constructor(THREE) {this.THREE = THREE; this.parts = new Map();}
   add(g, m, matrix) {
     const q = g.index ? g.toNonIndexed() : g.clone(); q.applyMatrix4(matrix); g.dispose();
@@ -150,7 +150,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
     return materialCache.get(key);
   };
   const signMaterial = (face, sign) => {
-    const key = ['sign',face.name,sign.text,sign.kind,sign.asset,sign.illumination,face.palette.accent,face.economics.tier].join('|');
+    const key = ['sign',face.name,sign.text,sign.kind,sign.asset,sign.illumination,sign.ink,face.palette.accent,face.economics.tier].join('|');
     if (materialCache.has(key)) return materialCache.get(key);
     let map = textures.get(sign.asset);
     if (!map) {
@@ -160,7 +160,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
       const serif = !face.brand && ['restaurant', 'books', 'bakery', 'hotel'].includes(face.category);
       const onWall=['painted_letters','entry_letters','door_vinyl','channel_letters'].includes(sign.kind);
       const darkBackground=face.identity_band && new THREE.Color(face.identity_band.colour).getHSL({}).l<.4;
-      ctx.fillStyle = onWall && !darkBackground ? face.palette.accent : face.palette.letter;
+      ctx.fillStyle = sign.ink || (onWall && !darkBackground ? face.palette.accent : face.palette.letter);
       const brandFonts={trader_joes:'"Cooper Black",Georgia,serif',peets:'Georgia,serif',
         walgreens:'"Brush Script MT","Apple Chancery",cursive',philz:'Georgia,serif'};
       const weight = quiet ? 500 : 700, font = brandFonts[face.brand] || (serif ? 'Georgia, serif' : 'Arial, sans-serif');
@@ -312,10 +312,19 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           batch.add(new THREE.PlaneGeometry(0.61, sign.h), m, faceAt);
           box(u, v + sign.h * 0.7, 0.23, 0.04, 0.04, 0.5, frame);
         } else if(sign.brand_layout==='icon_and_wordmark'){
-          const extent=Math.min(sign.w,sign.h*8), start=sign.u+(sign.w-extent)/2;
-          plane(start+sign.h/2,v,.085,sign.h,sign.h,m);
-          const text=signMaterial(f,{...sign,asset:null,brand_layout:null,text:'STARBUCKS'});
-          plane(start+sign.h+(extent-sign.h)/2,v,.085,extent-sign.h-.18,sign.h,text);
+          const extent=Math.min(sign.w,sign.h*8), start=sign.u+(sign.w-extent)/2, depth=panel?.205:.085;
+          plane(start+sign.h/2,v,depth,sign.h,sign.h,m);
+          const text=signMaterial(f,{...sign,asset:null,brand_layout:null,ink:panel?p.accent:undefined,text:sign.wordmark||'STARBUCKS'});
+          plane(start+sign.h+(extent-sign.h)/2,v,depth,extent-sign.h-.18,sign.h,text);
+        } else if(sign.icon==='arches' && sign.w>sign.h*4){
+          // Parametric motif from the reference kit, not archived official logo artwork.
+          const extent=Math.min(sign.w,sign.h*12),start=u-extent/2,h=sign.h,depth=panel?.205:.09;
+          for(let i=0;i<2;i++){
+            const a=start+i*h*.7,b=a+h*.7;
+            const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(a,v-h*.5,depth),new THREE.Vector3((a+b)/2,v+h*1.5,depth),new THREE.Vector3(b,v-h*.5,depth));
+            batch.add(new THREE.TubeGeometry(curve,24,h*.045,8,false),material('#ffc72c',.4),matrix);
+          }
+          plane(start+h*1.6+(extent-h*1.6)/2,v,depth,extent-h*1.6,h,m);
         } else {
           if(!textures.has(sign.asset)){const aspect=map.image.width/map.image.height;w=Math.min(w,h*aspect);h=Math.min(h,w/aspect);}
           plane(u,v,sign.canopy?sign.canopy.depth_m+.024:panel?.185:.085,w,h,m);
@@ -326,7 +335,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
     group.userData = {inferredExterior: plan.id, sources: plan.references, missingAssets: [...missingAssets]};
     target.add(group); return group;
   };
-  return {mount, missingAssets, cutWallBands: (g, p, o) => cutExteriorWallBands(THREE, g, p, o),
+  return {mount, missingAssets, brandTexture: key => textures.get(key), cutWallBands: (g, p, o) => cutExteriorWallBands(THREE, g, p, o),
     dispose() {for (const m of materialCache.values()) {if (m.map && ![...textures.values()].includes(m.map)) m.map.dispose(); m.dispose();} for (const t of textures.values()) t.dispose();}};
 }
 

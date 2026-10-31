@@ -39,7 +39,7 @@ def test_reference_library_has_primary_sources_and_explicit_limits():
     assert data["curation"]["not_a_representative_survey"] is True
     for source in data["sources"]:
         assert source["url"].startswith("https://") and source["observations"]
-        assert source["reviewed_at"] == "2026-10-29"
+        assert "2026-10-29" <= source["reviewed_at"] <= data["version"]
     for profile in data["categories"].values():
         assert "not surveyed" in profile["parameter_basis"]
     assert "historic_approved_proposal" in {r["kind"] for r in data["sources"]}
