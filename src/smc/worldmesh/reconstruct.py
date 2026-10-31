@@ -58,6 +58,22 @@ def colmap_has_cuda() -> bool:
     return "with CUDA" in first
 
 
+#: Memory one CPU matching thread holds: two pictures' 16k-18k descriptors compared all against
+#: all is a distance matrix of about 1.3 GB, and the matcher keeps more than one. Ten threads,
+#: then five, got it killed on a 16 GB Mac (2026-10-30); the GPU matcher needs no cap.
+CPU_MATCH_THREAD_GB = 3.5
+
+
+def cpu_match_threads() -> int:
+    import os
+
+    try:
+        total_gb = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30
+    except (ValueError, OSError):
+        total_gb = 8.0
+    return max(1, min(os.cpu_count() or 1, int(total_gb * 0.5 / CPU_MATCH_THREAD_GB)))
+
+
 def _run(args: list[str], log: Path) -> None:
     with log.open("a") as handle:
         handle.write("$ " + " ".join(args) + "\n")
@@ -152,7 +168,8 @@ def solve(work: Path, block: Block, frames: list[Frame], *, ground: Ground | Non
     if not matches_done.exists():
         _run([exe, "matches_importer", "--database_path", str(database), "--match_list_path", str(pairs),
               "--match_type", "pairs", "--FeatureMatching.use_gpu", use_gpu,
-              "--FeatureMatching.guided_matching", "1"], log)
+              "--FeatureMatching.guided_matching", "1",
+              "--FeatureMatching.num_threads", str(-1 if cuda else cpu_match_threads())], log)
         matches_done.touch()
     sparse = work / "sparse"
     if not sparse.exists() or _biggest_model(sparse) is None:
