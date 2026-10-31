@@ -255,6 +255,10 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--note")
     rq = sub.add_parser("requeue")
     rq.add_argument("job")
+    df = sub.add_parser("defer", help="set a stuck cell aside (or --undo to bring it back)")
+    df.add_argument("cell")
+    df.add_argument("--undo", action="store_true")
+    df.add_argument("--reason")
     rd = sub.add_parser("redo")
     rd.add_argument("job", nargs="?")
     rd.add_argument("--failed-with", help="every cell whose enrichment failed with this in its log")
@@ -321,6 +325,10 @@ def main(argv: list[str] | None = None) -> int:
         body.update({"failed_with": args.failed_with, "from_stage": args.from_stage} if args.failed_with
                     else {"job": args.job})
         print(json.dumps(_ops("/api/redo", body), indent=1))
+        return 0
+    if args.cmd == "defer":
+        print(json.dumps(_ops("/api/defer", {"cell": args.cell, "undo": args.undo, "reason": args.reason,
+                                             "operator": os.environ.get("USER", "ops")}), indent=1))
         return 0
     if args.cmd == "requeue":
         print(json.dumps(_ops("/api/requeue", {"job": args.job, "operator": os.environ.get("USER", "ops")})))

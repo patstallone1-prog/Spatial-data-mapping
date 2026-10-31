@@ -638,6 +638,11 @@ def fetch_osm(bbox: BBox, *, attempts: int = 3, minimum_elements: int = OSM_MIN_
         time.sleep(30 * (attempt + 1))
     if data is None:
         raise RuntimeError(f"every Overpass mirror refused the query: {last}. Not building from that.")
+    return osm_ways_from(data, bbox)
+
+
+def osm_ways_from(data: dict[str, Any], bbox: BBox) -> list[dict[str, Any]]:
+    """An Overpass answer -- or Overture's features put in its shape -- as the builder's ways."""
     ways = []
     # Coastlines cannot be turned into water until the buildings are known, because which side
     # of one is wet is decided by which side has no buildings on it.
