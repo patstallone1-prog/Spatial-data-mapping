@@ -10,7 +10,8 @@ centroids fall inside them, so their tiles meet without overlapping.
 
 Stages (each resumes from what is already in the work folder, build/worldmesh/<name>/):
     photos   find the frames in the block's halo, thin near-repeats, fetch originals
-    solve    COLMAP: features, matches, sparse model, alignment; dense and mesh with CUDA
+    solve    COLMAP: features, matches, sparse model, alignment; with CUDA, dense, anchored
+             to the lidar, meshed
     tiles    the master mesh as a lossless-at-the-leaves 3D Tiles pyramid (tiles/)
     check    the mesh against the block's USGS 3DEP lidar (or --lidar): passed or held
 
@@ -65,7 +66,10 @@ def build(block: Block, work: Path, stages: list[str], *, lidar: Path | None, ma
         print("photos:", json.dumps(state["photos"]), flush=True)
     if "solve" in stages:
         frames = photos.read_manifest(work)
-        state["solve"] = reconstruct.solve(work, block, frames, ground=ground)
+        points = None
+        if reconstruct.colmap_has_cuda():  # the dense cloud is anchored to it before meshing
+            points = load_lidar(lidar, block) if lidar else lidar_for(block, ROOT)[0]
+        state["solve"] = reconstruct.solve(work, block, frames, ground=ground, lidar=points)
         reconstruct.write_report(work, state["solve"])
         print("solve:", json.dumps(state["solve"]), flush=True)
     mesh = None

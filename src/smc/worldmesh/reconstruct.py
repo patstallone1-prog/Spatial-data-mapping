@@ -12,6 +12,7 @@ centimetre cells, so the master mesh holds everything the photographs can say.
     sparse     incremental structure from motion, the frames' positions as priors: cameras, points
     aligned    the model moved into the block's east-north-up metres by the frames' positions
     dense      stereo depth for every picture, fused to a coloured point cloud (needs CUDA)
+    anchored   the cloud moved rigidly onto the block's lidar (anchor.py)
     mesh       a watertight Poisson surface, trimmed back to where points support it
 
 The sparse half runs anywhere (this Mac's COLMAP has no CUDA); the dense half needs a CUDA
@@ -213,7 +214,7 @@ def registered_images(model: Path) -> int:
 
 
 def solve(work: Path, block: Block, frames: list[Frame], *, ground: Ground | None = None,
-          gpu: bool | None = None, dense: bool | None = None) -> dict:
+          lidar: np.ndarray | None = None, gpu: bool | None = None, dense: bool | None = None) -> dict:
     """Run every phase not yet done. Returns what was made and what was measured."""
     exe = colmap()
     cuda = colmap_has_cuda() if gpu is None else gpu
@@ -287,9 +288,17 @@ def solve(work: Path, block: Block, frames: list[Frame], *, ground: Ground | Non
         _run([exe, "stereo_fusion", "--workspace_path", str(workspace), "--workspace_format", "COLMAP",
               "--input_type", "geometric", "--output_path", str(fused),
               "--StereoFusion.max_image_size", "-1"], log)
+    source = fused
+    if lidar is not None and len(lidar):
+        source, record = workspace / "fused-anchored.ply", work / "anchor.json"
+        if not source.exists():
+            from smc.worldmesh.anchor import anchor_cloud
+
+            record.write_text(json.dumps(anchor_cloud(fused, source, lidar).to_json(), indent=1))
+        report["anchor"] = json.loads(record.read_text())
     mesh = work / "mesh.ply"
     if not mesh.exists():
-        _run([exe, "poisson_mesher", "--input_path", str(fused), "--output_path", str(mesh),
+        _run([exe, "poisson_mesher", "--input_path", str(source), "--output_path", str(mesh),
               "--PoissonMeshing.depth", str(POISSON_DEPTH), "--PoissonMeshing.trim", str(POISSON_TRIM)], log)
     report["mesh"] = str(mesh.relative_to(work))
     return report
