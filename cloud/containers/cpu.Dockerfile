@@ -22,7 +22,7 @@ WORKDIR /app
 # Dependencies first, so a code change does not reinstall them.
 COPY pyproject.toml ./
 RUN mkdir -p src/smc && touch src/smc/__init__.py \
- && pip install -e ".[dev,nature,curb-photo,cloud,interiors]" \
+ && pip install -e ".[dev,nature,curb-photo,cloud,interiors,worldmesh]" \
  && rm -rf src
 COPY . .
 RUN pip install --no-deps -e . && smc-cloud --help >/dev/null

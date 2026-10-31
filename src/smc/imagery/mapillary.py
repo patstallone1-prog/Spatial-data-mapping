@@ -271,6 +271,17 @@ class MapillaryProvider:
 
     # -- catalogue ----------------------------------------------------------------------------
 
+    def region_rows(self, bbox: BBox) -> Iterator[dict]:
+        """The API's own image records in a box, each once (``FIELDS``, with the signed
+        ``thumb_original_url``, which expires: fetch the pixels soon after)."""
+        self.require_credential()
+        seen: set[str] = set()
+        for row in self._images(bbox):
+            image_id = _s(row.get("id"))
+            if image_id and image_id not in seen:
+                seen.add(image_id)
+                yield row
+
     def iter_region_observations(
         self, region: Region, *, progress: Callable[[str], None] | None = None
     ) -> Iterator[Observation]:

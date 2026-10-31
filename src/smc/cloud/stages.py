@@ -286,3 +286,33 @@ def restaurant_collect(last: str) -> JobSpec:
     return JobSpec(id=f"restaurants:collect:{last.split(':')[-1]}", kind="collect", subject="restaurants",
                    stage="restaurants-latest", resource="control", depends=[last], restore_from=[last],
                    save=[RESTAURANT_STATE], priority=330, max_attempts=3)
+
+
+# ---- the measured world mesh -----------------------------------------------------------------
+#
+# A cell's mesh (scripts/build_world_mesh.py, cloud/docs/detail-mesh-scope.md) is built in
+# blocks of about WORLDMESH_BLOCK_M, each in two jobs: its photographs fetched on a CPU worker
+# (waiting on the network is not GPU time), then on the GPU the solve, the tile pyramid and the
+# check against the lidar. A block's work folder is its saved tree, pictures included: the
+# lossless record its tiles came from. Nothing reaches the site from here; publishing a block's
+# tiles is a reviewed step, like a house's.
+WORLDMESH_OUT = "build/worldmesh"
+WORLDMESH_BLOCK_M = 200.0
+
+
+def worldmesh_jobs(cell: str, block: str, bbox: tuple[float, float, float, float], *,
+                   priority: int = 400) -> list[JobSpec]:
+    folder = f"{WORLDMESH_OUT}/{block}"
+    where = ["--bbox=" + ",".join(f"{v:.7f}" for v in bbox), "--name", block]
+    photos_id, solve_id = f"mesh:{block}:photos", f"mesh:{block}:solve"
+    photos = JobSpec(id=photos_id, kind="mesh_block", subject=cell, stage="mesh-photos",
+                     resource="cpu", command=[[PY, "scripts/build_world_mesh.py", *where, "--stages", "photos"]],
+                     save=[folder], timeout_s=3 * 3600, max_attempts=4, priority=priority,
+                     stall_s=2700, optional=True, env={"KERBSIDE_NETWORK_BOUND": "1"})
+    solve = JobSpec(id=solve_id, kind="mesh_block", subject=cell, stage="mesh-solve",
+                    resource="gpu",
+                    command=[[PY, "scripts/build_world_mesh.py", *where, "--stages", "solve,tiles,check"]],
+                    depends=[photos_id], restore_from=[photos_id], save=[folder],
+                    timeout_s=12 * 3600, max_attempts=2, priority=priority, stall_s=5400, optional=True)
+    return [photos, solve]
+
