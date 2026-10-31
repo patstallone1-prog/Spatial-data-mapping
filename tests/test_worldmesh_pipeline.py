@@ -100,3 +100,33 @@ def test_walls_count_as_lidar_truth_and_foliage_does_not():
     crown = rng.normal([20, 20, 6], 1.5, (3000, 3))
     keep = planar(np.vstack([wall, crown]))
     assert keep[:3000].mean() > 0.9 and keep[3000:].mean() < 0.1
+
+
+def test_the_solver_starts_from_each_runs_lens_and_position(tmp_path):
+    import sqlite3
+
+    from smc.worldmesh.reconstruct import RADIAL, seed_intrinsics, write_pose_priors
+
+    database = tmp_path / "colmap.db"
+    with sqlite3.connect(database) as db:   # the columns COLMAP 4 writes
+        db.execute("CREATE TABLE cameras (camera_id INTEGER PRIMARY KEY, model INTEGER, width INTEGER,"
+                   " height INTEGER, params BLOB, prior_focal_length INTEGER)")
+        db.execute("CREATE TABLE images (image_id INTEGER PRIMARY KEY, name TEXT, camera_id INTEGER)")
+        db.execute("CREATE TABLE pose_priors (pose_prior_id INTEGER PRIMARY KEY, corr_data_id INTEGER,"
+                   " corr_sensor_id INTEGER, corr_sensor_type INTEGER, position BLOB,"
+                   " position_covariance BLOB, gravity BLOB, coordinate_system INTEGER)")
+        db.execute("INSERT INTO cameras VALUES (1, 2, 4000, 3000, ?, 0)", (np.zeros(4).tobytes(),))
+        db.execute("INSERT INTO images VALUES (1, 's1/1.jpg', 1), (2, 's1/2.jpg', 1)")
+        db.execute("INSERT INTO pose_priors VALUES (1, 1, 1, 0, ?, NULL, NULL, -1)", (np.full(3, np.nan).tobytes(),))
+    frames = [frame(1), frame(2, lat=37.8006 + 9e-5)]
+    block = Block("t", -122.437, 37.8003, -122.436, 37.801)
+    assert seed_intrinsics(database, frames) == 1
+    assert write_pose_priors(database, frames, block, None) == 2
+    with sqlite3.connect(database) as db:
+        model, params, prior = db.execute("SELECT model, params, prior_focal_length FROM cameras").fetchone()
+        rows = db.execute("SELECT corr_data_id, position, coordinate_system FROM pose_priors ORDER BY 1").fetchall()
+    assert (model, prior) == (RADIAL, 0)
+    assert np.frombuffer(params) == pytest.approx([3200, 2000, 1500, 0, 0])   # 0.8 of the larger side
+    assert [r[2] for r in rows] == [1, 1]                                      # cartesian, the block's frame
+    a, b = (np.frombuffer(r[1]) for r in rows)
+    assert b[1] - a[1] == pytest.approx(10.0, abs=0.1)                         # 9e-5 degrees north

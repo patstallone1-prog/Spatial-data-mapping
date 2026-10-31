@@ -9,7 +9,7 @@ centimetre cells, so the master mesh holds everything the photographs can say.
     pairs      which pictures to match: neighbours in space and along each sequence
     features   SIFT on the originals (on the GPU when COLMAP has CUDA)
     matches    the pairs, geometrically verified
-    sparse     incremental structure from motion: cameras and points
+    sparse     incremental structure from motion, the frames' positions as priors: cameras, points
     aligned    the model moved into the block's east-north-up metres by the frames' positions
     dense      stereo depth for every picture, fused to a coloured point cloud (needs CUDA)
     mesh       a watertight Poisson surface, trimmed back to where points support it
@@ -137,6 +137,76 @@ def _biggest_model(sparse: Path) -> Path | None:
     return best
 
 
+#: COLMAP's RADIAL camera (f, cx, cy, k1, k2): the same distortion as Mapillary's perspective
+#: camera (OpenSfM's), whose focal is a fraction of the larger side.
+RADIAL = 3
+
+
+def seed_intrinsics(database: Path, frames: list[Frame]) -> int:
+    """Start each folder's camera from its sequence's lens as Mapillary's SfM calibrated it.
+
+    Left to itself COLMAP guesses every lens at 1.2x the larger side; an action camera's wide
+    lens is a third of that. Only a start: held fixed as a prior (``prior_focal_length``), it
+    stopped images registering in the Chestnut trial, so the mapper is left to refine it.
+    """
+    import sqlite3
+
+    lens: dict[str, list[tuple[float, float, float]]] = {}
+    for f in frames:
+        if f.focal and f.path:
+            lens.setdefault(f.path.split("/")[0], []).append((f.focal, f.k1 or 0.0, f.k2 or 0.0))
+    seeded = 0
+    with sqlite3.connect(database) as db:
+        folders = dict(db.execute("SELECT camera_id, MIN(name) FROM images GROUP BY camera_id").fetchall())
+        for camera_id, width, height in db.execute("SELECT camera_id, width, height FROM cameras").fetchall():
+            values = lens.get(str(folders.get(camera_id, "")).split("/")[0])
+            if not values:
+                continue
+            focal, k1, k2 = np.median(np.array(values), axis=0)
+            params = np.array([focal * max(width, height), width / 2, height / 2, k1, k2], np.float64)
+            db.execute("UPDATE cameras SET model = ?, params = ?, prior_focal_length = 0 WHERE camera_id = ?",
+                       (RADIAL, params.tobytes(), camera_id))
+            seeded += 1
+    return seeded
+
+
+#: How far a frame's recorded position may be from where it was: Mapillary's SfM positions are
+#: good to a metre or two across; the height is the 3DEP ground plus the camera's mount.
+PRIOR_STD_HORIZONTAL_M = 2.0
+PRIOR_STD_VERTICAL_M = 1.0
+CARTESIAN = 1  # COLMAP's PosePrior::CoordinateSystem
+CAMERA_SENSOR = 0
+
+
+def write_pose_priors(database: Path, frames: list[Frame], block: Block, ground: Ground | None) -> int:
+    """Every picture's position in the block's frame, as the mapper's pose prior.
+
+    Straight-line sequences give structure from motion almost no parallax along the street: in
+    the Chestnut trial (2026-10-31) the mapper shrank 66 m of a rear-facing car camera's run to
+    2 m, and the model aligned at a 19 m median error. With the positions as priors the
+    reconstruction is built in metres in the block's frame and every run kept its length; what
+    is left is a steady offset per run (1-12 m there), each capture's own GPS bias, which the
+    matches between runs settle and the lidar check measures.
+    """
+    import sqlite3
+
+    xyz = frame_positions(frames, block, ground)
+    covariance = np.diag([PRIOR_STD_HORIZONTAL_M ** 2, PRIOR_STD_HORIZONTAL_M ** 2, PRIOR_STD_VERTICAL_M ** 2])
+    unknown = np.full(3, np.nan)
+    written = 0
+    with sqlite3.connect(database) as db:
+        db.execute("DELETE FROM pose_priors")
+        for image_id, name, camera_id in db.execute("SELECT image_id, name, camera_id FROM images").fetchall():
+            if name not in xyz:
+                continue
+            db.execute("INSERT INTO pose_priors (corr_data_id, corr_sensor_id, corr_sensor_type, position,"
+                       " position_covariance, gravity, coordinate_system) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (image_id, camera_id, CAMERA_SENSOR, xyz[name].astype(np.float64).tobytes(),
+                        covariance.astype(np.float64).tobytes(), unknown.tobytes(), CARTESIAN))
+            written += 1
+    return written
+
+
 def registered_images(model: Path) -> int:
     with (model / "images.bin").open("rb") as handle:
         return int.from_bytes(handle.read(8), "little")
@@ -164,6 +234,10 @@ def solve(work: Path, block: Block, frames: list[Frame], *, ground: Ground | Non
               "--FeatureExtraction.use_gpu", use_gpu, "--FeatureExtraction.max_image_size", "-1",
               "--SiftExtraction.max_num_features", str(SIFT_FEATURES)], log)
         features_done.touch()
+    seeded = work / ".intrinsics"
+    if not seeded.exists():
+        report["seeded_cameras"] = seed_intrinsics(database, frames)
+        seeded.touch()
     matches_done = work / ".matches"
     if not matches_done.exists():
         _run([exe, "matches_importer", "--database_path", str(database), "--match_list_path", str(pairs),
@@ -175,8 +249,11 @@ def solve(work: Path, block: Block, frames: list[Frame], *, ground: Ground | Non
     if not sparse.exists() or _biggest_model(sparse) is None:
         shutil.rmtree(sparse, ignore_errors=True)
         sparse.mkdir()
-        _run([exe, "mapper", "--database_path", str(database), "--image_path", str(images),
-              "--output_path", str(sparse)], log)
+        report["pose_priors"] = write_pose_priors(database, frames, block, ground)
+        # Plain (not robust) priors: with the robust loss a run's matches still outvoted its
+        # positions and two runs shrank to a third of their length.
+        _run([exe, "pose_prior_mapper", "--database_path", str(database), "--image_path", str(images),
+              "--output_path", str(sparse), "--use_robust_loss_on_prior_position", "0"], log)
     model = _biggest_model(sparse)
     if model is None:
         raise RuntimeError("structure from motion registered no model")
