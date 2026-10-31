@@ -174,7 +174,11 @@ def _openings(face, profile, tenant, source):
     available = _free(lo, hi, rows + reserved + face.get("opaque_room_zones", []), sill, head, 0.18)
     public_doors = [o for o in rows if o["component_kind"] == "door"]
     zones = source.get("glazing_zones")
-    if zones is None and public_doors and face["category"] in {"grocery", "corner_store"}:
+    if (
+        zones is None
+        and public_doors
+        and (face["category"] in {"grocery", "corner_store"} or face.get("glazing_cluster_m"))
+    ):
         span = hi - lo
         if span > (14 if face["category"] == "grocery" else 7):
             cluster = (
@@ -182,6 +186,7 @@ def _openings(face, profile, tenant, source):
                 if face["category"] == "grocery"
                 else min(8, span * 0.65)
             )
+            cluster = face.get("glazing_cluster_m") or cluster
             zones = [
                 {"u": max(lo, d["u"] + d["w"] / 2 - cluster / 2), "w": cluster}
                 for d in public_doors
@@ -343,6 +348,7 @@ def _signs(face, tenant, profile, brand, source):
         "text": tenant["name"],
         **rect,
         "asset": brand.get("asset") if brand else None,
+        "icon": brand.get("icon") if brand else None,
         "evidence": _proof(refs),
         "illumination": "none"
         if institutional
@@ -423,6 +429,7 @@ def infer_exterior(spec: ExteriorInput):
             "frontage_basis": source.get("basis", "caller supplied tenant frontage"),
             "protected_rectangles": copy.deepcopy(source.get("protected_rectangles", [])),
             "observed_bands": copy.deepcopy(source.get("bands", [])),
+            "glazing_cluster_m": brand.get("glazing_cluster_m") if brand else None,
         }
         from smc.exteriors.interiors import opaque_room_zones, paired_entries
 
@@ -467,6 +474,11 @@ def infer_exterior(spec: ExteriorInput):
                 for sign in face["signs"]:
                     if sign.get("asset") == "starbucks" and sign["kind"] != "blade":
                         sign["brand_layout"] = "icon_and_wordmark"
+            elif brand.get("brand_layout"):
+                for sign in face["signs"]:
+                    if sign.get("asset") and sign["kind"] != "blade":
+                        sign["brand_layout"] = brand["brand_layout"]
+                        sign["wordmark"] = brand.get("wordmark", brand["name"])
         if brand_id == "seven_eleven" and face["signs"]:
             face["identity_stripes"] = ["#ec7625", "#008061", "#d62330"]
         face["source_input"] = copy.deepcopy(source)

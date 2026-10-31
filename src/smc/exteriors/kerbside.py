@@ -14,6 +14,13 @@ from smc.interiors.kerbside import mapped_geometry
 
 
 def from_kerbside(way, streets=(), fit=None, *, region="sf-corridor"):
+    if way.get("archetype") == "gas_station" or way.get("tags", {}).get("building") in {
+        "roof",
+        "carport",
+    }:
+        raise ValueError(
+            "station/canopy geometry requires a separate lot program, not retail walls"
+        )
     shell = mapped_geometry(way, region=region)
     lon, lat = shell["origin_lon_lat"]
     scale = 111320 * math.cos(math.radians(lat))

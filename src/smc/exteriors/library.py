@@ -19,7 +19,11 @@ def normal(text):
 def library():
     data = json.loads(files("smc.exteriors").joinpath("references.json").read_text())
     ids = {r["id"] for r in data["sources"]}
-    for row in [*data["categories"].values(), *data["brands"].values()]:
+    for row in [
+        *data["categories"].values(),
+        *data["brands"].values(),
+        *data.get("station_brands", {}).values(),
+    ]:
         if not row["references"] or not set(row["references"]) <= ids:
             raise ValueError("exterior profile has missing reference evidence")
     return data

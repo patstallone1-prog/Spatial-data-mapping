@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-30",
+  "deployment": false,
+  "sources": 61,
+  "storefront_chain_families": 21,
+  "station_chain_families": 8,
+  "official_artwork_assets": 12,
+  "stations": {
+    "selected": [
+      "fuel-chevron",
+      "fuel-shell",
+      "fuel-arco",
+      "fuel-76",
+      "ev-tesla",
+      "ev-chargepoint",
+      "ev-electrify_america",
+      "ev-evgo",
+      "fuel-compact",
+      "ev-compact",
+      "fuel-concave",
+      "ev-obstacle",
+      "tesla-v3-backin",
+      "two-row-ev",
+      "observed-bays",
+      "observed-pump-faces",
+      "rotated-fuel-27",
+      "rotated-ev--39",
+      "rotated-fuel-91",
+      "rotated-ev-173"
+    ],
+    "passed": 20,
+    "rejected": [],
+    "total_bays": 145
+  },
+  "storefronts": {
+    "selected": 76,
+    "passed": 76,
+    "rejected": []
+  },
+  "tests": {
+    "broad_regression_passed": 337,
+    "broad_regression_seconds": 277.21,
+    "final_focused_passed": 51,
+    "final_focused_seconds": 8.82,
+    "overlapping_runs": true
+  },
+  "browser": {
+    "station_cases": 20,
+    "storefront_cases": 76,
+    "reported_errors": 0,
+    "missing_artwork": 0,
+    "controls_verified": [
+      "overview",
+      "forecourt",
+      "store entrance",
+      "price sign",
+      "dispenser detail",
+      "cars across case changes",
+      "canopy",
+      "approaches",
+      "evening light"
+    ]
+  },
+  "real_three_geometry": {
+    "revision": "160",
+    "cases": 20,
+    "maximum_visible_meshes": 51,
+    "triangles": 221406,
+    "all_finite": true,
+    "lot_bounds_preserved": true,
+    "identity_panels_checked": 31
+  },
+  "canonical_world_sha256": "980ff8b313bef4d2f08cab14b34a2b587c08e0d88cbb6cd40970033c9dda6f3e",
+  "limits": [
+    "Twenty station programs are fixed synthetic geometry cases, not claimed as-built Bay Area sites.",
+    "A canopy/building is not a parcel; complete Kerbside station generation requires a site boundary.",
+    "Default fuel prices are illustrative; observed prices require explicit provenance.",
+    "Vehicle approaches are planar corridors; no construction or vehicle-kinematics certification.",
+    "Representative port reach does not assert compatibility with every EV."
+  ]
+}

@@ -4,8 +4,8 @@
 polygon and tenant frontage. It generates windows, entrances, frames, material treatments
 and business identity while keeping the canonical footprint and height unchanged.
 
-The curated database contains 43 primary/reference sources, 25 category profiles, 13 chain
-identity families and seven archived official brand assets. Sources include municipal
+The curated database contains 61 primary/reference sources, 25 category profiles, 21 chain
+identity families and twelve archived official brand assets. Sources include municipal
 elevations, original architect and sign-fabricator portfolios, merchant documentation and
 brand guides. Bay Area examples include San Francisco, Oakland, South San Francisco,
 Albany, Los Gatos and Lafayette. Out-of-region comparisons are labeled explicitly.
@@ -35,7 +35,7 @@ Glazing ranges, module widths and price-to-finish mappings are explicit engineer
 They are not measured prevalence statistics, current legal requirements or a calibrated
 claim of visual accuracy. Observed geometry always takes priority. Full site replicas need
 site-specific observations; the engine does not label an inferred facade an exact replica.
-The seven official artwork masters retain their original bytes. Subway's white margin is
+The official artwork masters retain their original bytes. Subway's white margin is
 excluded with texture UVs, and the Siren receives an explicit display viewport without
 altering its archived SVG paths. Other fallback lettering is not represented as exact
 proprietary typography.
@@ -176,3 +176,7 @@ directory, with read-only aliases for existing support assets. It does not repla
 source world or public viewer. The CLI refuses output in the published `docs` tree.
 
 No public release, push, map-overlay update or deployment is part of this pass.
+
+Fuel/EV lot programs, attached corner stores and the added chain families are documented
+in [Fuel and EV exteriors](31-fuel-and-ev-exteriors.md). The expanded local review uses
+port 8799. The older report and port 8798 instructions describe the previous review build.
