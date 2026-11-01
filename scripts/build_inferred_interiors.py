@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 from shapely import affinity
-from shapely.geometry import Polygon, box, mapping, shape
+from shapely.geometry import LineString, Polygon, box, mapping, shape
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -128,6 +128,32 @@ def update_overlay(path: Path, overlay: dict) -> None:
     write(path, {"schema": "kerbside.inferred_house_overlay/1", "buildings": existing}, indent=1)
 
 
+#: An outside door this close to a party wall's span opens onto the next building.
+PARTY_WALL_REACH_M = 0.3
+
+
+def party_wall_conflicts(house: dict) -> list[str]:
+    """The outside doors of a house that stand on one of its party walls (the envelope's
+    ``party_walls``: spans of a wall the next building stands against)."""
+    spans = []
+    for wall in (house.get("envelope") or {}).get("party_walls", []):
+        (ax, ay), (bx, by) = wall["a"], wall["b"]
+        length = math.hypot(bx - ax, by - ay)
+        if length > 0:
+            ux, uy = (bx - ax) / length, (by - ay) / length
+            spans.append(LineString([(ax + ux * wall["u0"], ay + uy * wall["u0"]),
+                                     (ax + ux * wall["u1"], ay + uy * wall["u1"])]))
+    out = []
+    for storey in house["storeys"]:
+        for opening in storey["openings"]:
+            if "outside" not in opening["rooms"] or not opening.get("segment"):
+                continue
+            middle = shape(opening["segment"]).interpolate(0.5, normalized=True)
+            if any(span.distance(middle) < PARTY_WALL_REACH_M for span in spans):
+                out.append(opening["id"])
+    return out
+
+
 def resolve_residential_envelope(row, envelope):
     """Preserve the world height when a recorded garage sits a storey below the home."""
     import copy
@@ -232,6 +258,9 @@ def main() -> None:
                     raise ValueError("asset refresh failed physical validation")
             else:
                 house = infer_house(HouseInput.from_json(row), catalog)
+            conflicts = party_wall_conflicts(house)
+            if conflicts:
+                raise ValueError("an outside door opens onto a party wall: " + ", ".join(conflicts))
             house["name"] = row.get("name", row["id"])
             house["input_evidence"] = row
             house["provenance"]["geometry"] = {

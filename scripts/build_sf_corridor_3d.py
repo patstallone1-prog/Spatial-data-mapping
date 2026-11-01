@@ -17310,9 +17310,21 @@ function streetDistanceFacing(wall) {
 //: Clear wall either side of a door and between a door and a garage.
 const DOOR_CLEAR_M = 0.35;
 const DOOR_LEAF_M = 1.05;
-//: Where a house's front door goes: a wall and a position along it, clear of every garage.
+//: Whether the next building stands against a wall (a party wall): another footprint 0.15 m
+//: outside it -- the probe the window rule keeps windows off with (homeWindowLayout) -- at its
+//: middle or a third of the way either side. Both houses of a touching pair keep it solid.
+function partyWall(feature, wall) {
+  return [-1 / 3, 0, 1 / 3].some((t) => {
+    const p = wallPoint(wall, t * wall.span, 0.15), other = buildingAt(p.x, p.z);
+    return other && other !== feature;
+  });
+}
+//: Where a house's front door goes: a wall and a position along it, clear of every garage. A
+//: party wall never has it while the house has any other wall long enough.
 function frontDoorSpot(feature) {
-  const walls = footprintWalls(feature.points).filter((w) => w.span >= DOOR_LEAF_M + 2 * DOOR_CLEAR_M);
+  const long = footprintWalls(feature.points).filter((w) => w.span >= DOOR_LEAF_M + 2 * DOOR_CLEAR_M);
+  const open = long.filter((w) => !partyWall(feature, w));
+  const walls = open.length ? open : long;
   if (!walls.length) return null;
   const garageWall = walls.map((w) => ({ w, g: garagesOnWall(feature, w) }))
     .filter((r) => r.g.length).sort((a, b) => b.g.length - a.g.length)[0];
@@ -17325,7 +17337,8 @@ function frontDoorSpot(feature) {
   if (garageWall) order.push(garageWall.w);
   order.push(...facing);
   const best = bestFacadeWall(feature, true);
-  if (best) order.push(best);
+  if (best && (walls !== open || !partyWall(feature, best))) order.push(best);
+  order.push(...walls);
   for (const wall of order) {
     const garages = garagesOnWall(feature, wall);
     const free = (u) => Math.abs(u) <= wall.span / 2 - DOOR_LEAF_M / 2 - DOOR_CLEAR_M
@@ -32058,7 +32071,49 @@ function requestGeneratedInteriors() {
         if (entry.interior) removeInterior(entry);
       }
     }
-  }).catch(error => console.warn("kerbside: generated pilot unavailable", error));
+  }).catch(error => console.warn("kerbside: generated pilot unavailable", error))
+    .finally(() => requestStoreInteriors(base));
+}
+//: The engine's houses beyond the site's own (scripts/run_interior_engine.py --homes --store):
+//: each a gzipped file in the public store, listed by the overlay tile of its 0.02 degree square
+//: (interiors/overlay/<tile>.json, named in its index.json). Only this store's own files are read.
+const STORE_HOUSE_FILE = /^interiors\/houses\/[a-z0-9-]+\/osm-[0-9]+\.json$/;
+const STORE_TILE_KEY = /^-?[0-9]{1,5}_-?[0-9]{1,5}$/;
+function storeInteriorBase() {
+  if (!ASSET_MAP?.base) return null;
+  // The site's /store path where the store lets this page read it; the store itself otherwise.
+  const origins = ASSET_MAP.origins;
+  const ours = !origins || origins.includes("*") || origins.includes(location.origin);
+  const root = ours ? ASSET_MAP.base : ASSET_MAP.origin;
+  return root ? new URL(`${root.replace(/\/+$/, "")}/`, location.href) : null;
+}
+function requestStoreInteriors(base) {
+  const store = storeInteriorBase();
+  if (!store) return;
+  fetch(new URL("interiors/overlay/index.json", store), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).then(index => {
+      const deg = Number(index?.tile_deg);
+      if (!(deg > 0)) return;
+      // The squares this page's own buildings stand in, of those the store has houses for.
+      const listed = new Set(Object.keys(index.tiles || {}).filter(k => STORE_TILE_KEY.test(k)));
+      const wanted = new Set();
+      for (const entry of footprintById.values()) {
+        const c = entry.way.centroid || entry.way.points?.[0];
+        const key = c && `${Math.floor(c[0] / deg)}_${Math.floor(c[1] / deg)}`;
+        if (key && listed.has(key)) wanted.add(key);
+      }
+      return Promise.all([...wanted].map(key => fetch(new URL(`interiors/overlay/${key}.json`, store))
+        .then(r => r.ok ? r.json() : null).then(tile => {
+          for (const [id, ref] of Object.entries(tile?.buildings || {})) {
+            if (!STORE_HOUSE_FILE.test(String(ref?.file))) continue;
+            const entry = footprintById.get(id);
+            // The site's own accepted interior, where it has one, stays.
+            if (!entry || entry.generatedInteriorRef || entry.way.parkFacility || entry.way._structure) continue;
+            entry.generatedInteriorRef = {...ref, base, fileBase: store};
+            if (entry.interior) removeInterior(entry);
+          }
+        }).catch(() => {})));
+    }).catch(error => console.warn("kerbside: store interiors unavailable", error));
 }
 function requestGeneratedInterior(entry) {
   if (entry.generatedInteriorPending) return;
@@ -32069,7 +32124,7 @@ function requestGeneratedInterior(entry) {
     import(new URL("kerbside-adapter.mjs", ref.base).href)
   ]);
   Promise.all([generatedInteriorModules,
-    fetch(new URL(ref.file, ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); })
+    fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); })
   ]).then(([[rendererModule, adapter], house]) => {
     if (!house.validation?.passed || house.grade !== "inferred") throw new Error("invalid generated hypothesis");
     if (entry.interior) removeInterior(entry);

@@ -43,7 +43,7 @@ class ObjectStore:
 
     def put(self, key: str, data: bytes, *, content_type: str = "application/octet-stream",
             cache_control: str | None = None, if_match: str | None = None,
-            if_none_match: bool = False) -> str:
+            if_none_match: bool = False, content_encoding: str | None = None) -> str:
         raise NotImplementedError
 
     def put_file(self, key: str, path: Path, **kw) -> str:
@@ -99,7 +99,7 @@ class LocalStore(ObjectStore):
         return self.root / key
 
     def put(self, key, data, *, content_type="application/octet-stream", cache_control=None,
-            if_match=None, if_none_match=False) -> str:
+            if_match=None, if_none_match=False, content_encoding=None) -> str:
         path = self._path(key)
         with self._lock:
             current = self.head(key)
@@ -113,6 +113,8 @@ class LocalStore(ObjectStore):
                 f.write(data)
             os.replace(tmp, path)
             meta = {"content_type": content_type, "cache_control": cache_control}
+            if content_encoding:
+                meta["content_encoding"] = content_encoding
             path.with_name(f".{path.name}.meta").write_text(json.dumps(meta))
         return hashlib.sha256(data).hexdigest()
 
@@ -220,12 +222,15 @@ class R2Store(ObjectStore):
         return self._code(exc) in ("NoSuchKey", "404", "NotFound")
 
     def put(self, key, data, *, content_type="application/octet-stream", cache_control=None,
-            if_match=None, if_none_match=False) -> str:
+            if_match=None, if_none_match=False, content_encoding=None) -> str:
         # Integrity is checked end to end instead: a content-addressed object is named by its
         # sha256, and every reader hashes what it fetched (checkpoint.py).
         args = {"Bucket": self.bucket, "Key": key, "Body": data, "ContentType": content_type}
         if cache_control:
             args["CacheControl"] = cache_control
+        if content_encoding:
+            # Stored compressed and served as-is: the browser inflates it (a gzipped house).
+            args["ContentEncoding"] = content_encoding
         if if_match is not None:
             args["IfMatch"] = if_match
         if if_none_match:

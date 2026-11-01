@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import crypto from 'node:crypto';
 const root=new URL('../',import.meta.url),read=p=>JSON.parse(fs.readFileSync(new URL(p,root),'utf8'));
 const source=fs.readFileSync(new URL('scripts/build_sf_corridor_3d.py',root),'utf8');
-const names=['random','xy','pageToTerrain','rawTerrainHeightAt','groundBaseFor','entryFloorY','insideFootprint','buildingAt','frontageNormalFor','frontageFitFor','homeStoreyCount','homeStoreyHeight','regularHomeWindows','frontageWindowsOnEdge','editedEdge','homeWindowLayout','photographedEdge','balconyPart','balconyProposal','inferredBalconies','footprintWalls','bestFacadeWall','wallPoint','garagesOnWall','streetDistanceFacing','frontDoorSpot','indexJunctionVertices','isUnmarkedService','isTunnelWay','distanceToSegmentSquared','garageSpansOnEdge','doorOn','photoEntryDoor','settleDoors'];
+const names=['random','xy','pageToTerrain','rawTerrainHeightAt','groundBaseFor','entryFloorY','insideFootprint','buildingAt','frontageNormalFor','frontageFitFor','homeStoreyCount','homeStoreyHeight','regularHomeWindows','frontageWindowsOnEdge','editedEdge','homeWindowLayout','photographedEdge','balconyPart','balconyProposal','inferredBalconies','footprintWalls','bestFacadeWall','wallPoint','garagesOnWall','streetDistanceFacing','partyWall','frontDoorSpot','indexJunctionVertices','isUnmarkedService','isTunnelWay','distanceToSegmentSquared','garageSpansOnEdge','doorOn','photoEntryDoor','settleDoors'];
 const withGarages=process.argv.includes('--with-garages');
 if(withGarages)names.push('normaliseGarages','cutOnWall','cutDrawnWidth','drivewayZone','outwardBearing','pointInRing','fitOpeningOnOutline','addPhotoGarages');
 const functions=names.map(n=>{const match=source.match(new RegExp(`function ${n}\\([^\n]*?\{[^\n]*?\}[^\n]*$`,'m')) || source.match(new RegExp(`function ${n}\\([^]*?\\n}`));if(!match)throw Error(`missing canonical ${n}`);return match[0];}).join('\n');
@@ -40,17 +40,30 @@ const layout=homeWindowLayout(entry,{base,height:Number(way.height_m),seed});if(
 const [ox,oy]=xy(...row.origin_lon_lat),local=p=>[p[0]-ox,-p[1]-oy];
 const count=homeStoreyCount(entry,layout.top-layout.floor),height=(layout.top-layout.floor)/count;
 const windows=layout.edges.flatMap(e=>e.windows.map((o,i)=>({...o,id:row.id+':window:'+e.edge+':'+i,edge:e.edge,a:local(e.a),b:local(e.b),v:o.v-layout.floor,normal:[-e.nx,e.nz]})));
+// Party walls: the spans of each wall whose outside, 0.15 m out (the probe the window rule
+// keeps windows off with), is another building. Each house of a touching pair records the
+// same wall from its own side, so both are solid there and neither opens a door onto it.
+const party_walls=[];for(const e of layout.edges){const n=Math.max(3,Math.ceil(e.length/.25));let run=null;
+for(let i=0;i<=n;i++){const u=e.length*i/n,nb=buildingAt(e.a[0]+e.ux*u-e.nx*.15,e.a[1]+e.uz*u-e.nz*.15),id=nb&&String(nb.osm_id)!==String(way.osm_id)?String(nb.osm_id):null;
+if(run&&run.neighbour!==id){if(run.u1-run.u0>=.5)party_walls.push(run);run=null;}
+if(id&&!run)run={edge:e.edge,a:local(e.a),b:local(e.b),u0:u,u1:u,neighbour:id};else if(run)run.u1=u;}
+if(run&&run.u1-run.u0>=.5)party_walls.push(run);}
 const fit=frontageFitFor(way),balconies=[];
 if(fit){const [ax,ay]=xy(...fit.a),[bx,by]=xy(...fit.b),L=Math.hypot(bx-ax,by-ay),out=frontageNormalFor(fit);const reviewed=(fit.details||[]).filter(d=>d.render&&['balcony','fire_escape'].includes(d.kind));
 for(const d of reviewed.length?fit.details||[]:inferredBalconies(fit,L)){if(!out||(!d.inferred&&(!d.render||!d.visible||!d.reviewer||d.image_sha256!==fit.image_sha256))||!['balcony','fire_escape'].includes(d.kind)||![d.u,d.w,d.depth_m].every(Number.isFinite)||d.depth_m<=0||d.depth_m>2.5)continue;
 for(const y of d.platform_heights_m||[])if(y>0&&y<=fit.height_m-1.2)balconies.push({...d,a:local([ax,-ay]),b:local([bx,-by]),normal:[out[0],-out[1]],elevation_m:base+y-layout.floor,grade:d.inferred?'image_proposal_not_measured':'reviewed_image_on_prior_geometry'});}}
 if(!fit&&way.height_m>7.5&&random(seed+701)<.34){const wall=footprintWalls(way.points).filter(w=>w.nz>.38&&w.span>5.5).sort((a,b)=>b.span-a.span)[0];if(wall){const parts=[];balconyPart(parts,wall,base+Math.min(way.height_m-1.1,3.2*1.2),seed);const width=Math.min(3.4,Math.max(2,wall.span*.24)),along=(random(seed+19)-.5)*wall.span*.28,c=wallPoint(wall,along,0),tx=Math.cos(wall.yaw),tz=-Math.sin(wall.yaw);balconies.push({kind:'balcony',a:local([c.x-tx*width/2,c.z-tz*width/2]),b:local([c.x+tx*width/2,c.z+tz*width/2]),u:0,w:width,depth_m:.72,normal:[wall.nx,-wall.nz],elevation_m:base+Math.min(way.height_m-1.1,3.2*1.2)-layout.floor,colour:'#d4d0c2',grade:'procedural_not_measured',parts:parts.map(p=>({...p,position:[...local([p.x,p.z])],bottom_m:p.y-layout.floor}))});}}
-const door=entry.doors[0],entrance=door?local([door.cx,door.cz]):row.entrance;
+// The entrance is the first door that is not on a party wall: the plan's doors, then the
+// page's own street-door rule (which never picks a wall against the next building), then the caller's.
+const onParty=q=>party_walls.some(w=>{const L=Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a[1]),ux=(w.b[0]-w.a[0])/L,uy=(w.b[1]-w.a[1])/L,t=(q[0]-w.a[0])*ux+(q[1]-w.a[1])*uy;
+return t>=w.u0-.3&&t<=w.u1+.3&&Math.abs((q[0]-w.a[0])*uy-(q[1]-w.a[1])*ux)<.3;});
+const spot=frontDoorSpot(way),spotAt=spot?(p=>local([p.x,p.z]))(wallPoint(spot.wall,spot.along)):null;
+const entrance=[...entry.doors.map(d=>local([d.cx,d.cz])),spotAt,row.entrance].find(q=>q&&!onParty(q))||null;
 const garages=RESIDENTIAL_MODE?(way.garages||[]).map((g,i)=>{const [gx,gy]=xy(...g.a),[hx,hy]=xy(...g.b),L=Math.hypot(hx-gx,hy-gy),w=Math.min(g.w,L*.9),u=Math.max(w/2,Math.min(L-w/2,g.t*L));
  const ground=rawTerrainHeightAt(gx+(hx-gx)*u/L,-gy-(hy-gy)*u/L);
  return {id:g.id||row.id+':garage:'+i,a:local([gx,-gy]),b:local([hx,-hy]),u:u-w/2,w,h:Number.isFinite(g.h)?g.h:GARAGE_HEIGHT_M,v:ground-layout.floor,
  source_id:g.id||'kerb-cut:'+g.s,basis:g.photo?'photographed_on_prior_geometry':'kerb_cut_projection',grade:g.photo?'image_on_prior_geometry':'inferred_from_measured_kerb',measured:false,confidence:g.photo?.55:.25,freshness:null,corroboration_count:g.photo?1:0};}):[];
-return {id:row.id,windows,balconies,entrance,...(RESIDENTIAL_MODE?{garages}:{}),storeys:Array.from({length:count},()=>({height_m:height})),floor_y_m:layout.floor,shell_base_y_m:base,shell_top_y_m:layout.top,footprint:{type:'Polygon',coordinates:[entry.local.map(local)]},source:'Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail',measured:false,confidence:.25,freshness:null,corroboration_count:0};
+return {id:row.id,windows,balconies,party_walls,entrance,...(RESIDENTIAL_MODE?{garages}:{}),storeys:Array.from({length:count},()=>({height_m:height})),floor_y_m:layout.floor,shell_base_y_m:base,shell_top_y_m:layout.top,footprint:{type:'Polygon',coordinates:[entry.local.map(local)]},source:'Kerbside homeWindowLayout / photoDetailParts / addSouthFacadeDetail',measured:false,confidence:.25,freshness:null,corroboration_count:0};
 }catch(error){return {id:row.id,rejected:error.message};}})`,context);
 const rejected=Object.fromEntries(result.filter(r=>r?.rejected).map(r=>[r.id,r.rejected])),built=result.filter(r=>r&&!r.rejected);
 for(const row of built)for(const element of [...row.windows,...row.balconies]){element.confidence??=.25;element.measured=false;element.freshness=null;element.corroboration_count=0;}
