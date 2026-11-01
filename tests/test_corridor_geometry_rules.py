@@ -872,11 +872,15 @@ def test_every_roof_use_has_a_stated_frequency_and_variants() -> None:
     assert residential, table
     solar = re.search(r'\["solar",\s*([0-9.]+)\]', residential.group(1))
     assert solar and float(solar.group(1)) <= 0.10, residential.group(1)
-    # Two to five renderings of each, so a street does not repeat one deck down its length.
-    for name, marker in (("roofDeck", "variant === 0"), ("roofGarden", "variant === 0")):
-        body = _extract(name, js)
-        assert marker in body, name
-        assert "variant === 1" in body, name
+    # Two to five renderings of each, so a street does not repeat one garden down its length.
+    body = _extract("roofGarden", js)
+    assert "variant === 0" in body and "variant === 1" in body
+    # Decks and rooms come from a roof plan: a deck fitted to the roof's own outline with glass
+    # railings (wood screens between row houses), and rooms in several shapes.
+    plan = _extract("planRoof", js)
+    assert "roofInset(ring, 1.0)" in plan and "clipRing(" in plan and '"screen" : "glass"' in plan
+    shapes = js[js.index("const ROOM_SHAPES = {"):js.index("};", js.index("const ROOM_SHAPES = {"))]
+    assert len(re.findall(r"^  (\w+): \(w, d\)", shapes, flags=re.M)) >= 4, shapes
 
 
 def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:

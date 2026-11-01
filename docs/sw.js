@@ -2,7 +2,7 @@
  * Keeps the installed app shell launchable without a connection. The 3D world
  * streams on demand, from the network, and is never stored here.
  */
-const VERSION = "961f103aee6ea9ae";
+const VERSION = "9f48b04950135856";
 const CACHE = "kerbside-shell-" + VERSION;
 const SHELL = [
   "./app.html",
@@ -35,15 +35,20 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  let upgrade = false;
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE
-        && (isOldRuntimeCache(k) || k.startsWith("kerbside-shell-")))
-        .map((k) => caches.delete(k))))
+      .then((keys) => {
+        const old = keys.filter((k) => k !== CACHE && (isOldRuntimeCache(k) || k.startsWith("kerbside-shell-")));
+        upgrade = old.length > 0;
+        return Promise.all(old.map((k) => caches.delete(k)));
+      })
       .then(() => self.clients.claim())
       // A new version takes over at once: every open window -- an installed app left open for
-      // days included, whatever version of the page it is running -- is reopened on it.
-      .then(() => self.clients.matchAll({ type: "window" }))
+      // days included, whatever version of the page it is running -- is reopened on it. Not on
+      // a first visit: there is no older version open, and reopening would throw away the world
+      // the page has been loading behind its home screen since it opened.
+      .then(() => (upgrade ? self.clients.matchAll({ type: "window" }) : []))
       .then((windows) => Promise.all(windows.map((client) => client.navigate(client.url).catch(() => null))))
   );
 });

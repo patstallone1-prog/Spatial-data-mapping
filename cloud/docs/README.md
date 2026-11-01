@@ -136,10 +136,20 @@ smc-cloud plan --cells none --interiors --restaurant-rounds 10   # the interior 
 smc-cloud status                                  # or open https://<controller>/ with the ops token
 smc-cloud review list
 smc-cloud requeue cell:<cell>:<stage>             # after fixing a quarantined job
+smc-cloud defer <cell> [--undo]                   # set a stuck cell aside, or bring it back
 smc-cloud release check | rollback
 ```
 
 Recovery and limits:
+
+- **Stuck cells are deferred** (`smc.cloud.stuck`, `[controller.defer]`): a cell with a stage
+  quarantined for two hours, or past the worker time or wall time of the costliest finished
+  cell by 25%, is set aside. Its jobs are not run, not counted as blocked and survive replans;
+  `status` lists them under `deferred` with why. On 2026-10-31 that was 71 cells: bay water,
+  salt ponds, collections with no ground, and streets whose lidar holds no kerbs.
+- **Overpass down:** the map stage falls back to Overture Maps (`smc.regions.overture_osm`),
+  the same streets and buildings as open GeoParquet; the cell's `osm_source.json` says which.
+- **Publishing:** gates and publications run `control_slots` at once on the controller.
 
 - **Crashes:** a worker that stops heartbeating loses its lease within two minutes. The job runs
   elsewhere from the last finished stage's checkpoint, and a late report from the old worker is

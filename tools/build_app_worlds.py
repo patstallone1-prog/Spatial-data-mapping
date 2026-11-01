@@ -187,6 +187,7 @@ def main(*, desktop_only: bool = True) -> None:
                          DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
                          DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
                          DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json", DOCS / "exterior-editor.mjs", DOCS / "multiplayer.mjs",
+                         DOCS / "kerbside-account.mjs", DOCS / "home-lobby.mjs",
                          *sorted((DOCS / "inferred-interiors").glob("*.mjs")),
                          DOCS / "inferred-interiors/map-overlay.json",
                          DOCS / "inferred-restaurants/map-overlay.json",

@@ -93,21 +93,41 @@ def main() -> int:
     caps = json.loads(caps_path.read_text()) if caps_path.exists() else {}
     b = region.bbox
     expected = expected_elements(builder["overpass_query"](region.bbox))
-    if expected == 0:
-        # Open water, or a cell nothing has been mapped in: there is nothing to build here, and
-        # an empty fetch is never written over the cache.
-        print(f"{region.name}: OpenStreetMap has nothing in this cell's bounds; not built", file=sys.stderr)
-        return 2  # the count answered nought; a retry asks the same question
-    if expected is not None:
-        floor = max(1, math.floor(expected * COUNT_TOLERANCE))
-        print(f"{region.name}: {expected} elements counted; the fetch must bring at least {floor}")
+    ways, source = None, {"source": "overpass"}
+    if expected != 0:
+        if expected is not None:
+            floor = max(1, math.floor(expected * COUNT_TOLERANCE))
+            print(f"{region.name}: {expected} elements counted; the fetch must bring at least {floor}")
+        else:
+            floor = response_floor(caps, [b.south, b.west, b.north, b.east])
+        try:
+            ways = builder["fetch_osm"](region.bbox, minimum_elements=floor)
+        except RuntimeError as exc:
+            print(f"{region.name}: Overpass refused ({exc}); asking Overture", file=sys.stderr)
     else:
-        floor = response_floor(caps, [b.south, b.west, b.north, b.east])
-    ways = builder["fetch_osm"](region.bbox, minimum_elements=floor)
+        # OpenStreetMap has nothing here. Overture may still: its footprints include buildings
+        # traced from imagery that nobody has mapped.
+        print(f"{region.name}: OpenStreetMap has nothing in this cell's bounds; asking Overture")
+    if ways is None:
+        from smc.regions import overture_osm
+
+        found = overture_osm.elements(region.bbox)
+        counts = overture_osm.summary(found)
+        print(f"{region.name}: Overture {overture_osm.RELEASE}: {counts}")
+        if not counts["streets"] and not counts["buildings"]:
+            # Open water or empty land: nothing to build, and an empty map is never written
+            # over the cache. The cell stops here, and the controller defers it.
+            print(f"{region.name}: neither OpenStreetMap nor Overture has a street or a building "
+                  "in this cell; not built", file=sys.stderr)
+            return 2
+        ways = builder["osm_ways_from"]({"elements": found}, region.bbox)
+        source = {**overture_osm.SOURCE, **counts}
     out = (ROOT / "data" / "sf_corridor" / "stats" / "osm_ways.json" if region.name == SF_CORRIDOR.name
            else ROOT / "data" / "regions" / region.name / "osm_ways.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(ways, indent=2) + "\n", encoding="utf-8")
+    # Which map the cell was built from, and whose it is to credit.
+    out.with_name("osm_source.json").write_text(json.dumps(source, indent=1) + "\n", encoding="utf-8")
     kinds = {}
     for way in ways:
         kinds[way.get("kind")] = kinds.get(way.get("kind"), 0) + 1

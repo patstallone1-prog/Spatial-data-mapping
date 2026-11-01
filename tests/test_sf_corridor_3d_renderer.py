@@ -143,7 +143,7 @@ def test_a_way_without_a_highway_tag_is_not_a_street() -> None:
     """
     source = _source()
     namespace = runpy.run_path(str(SOURCE))
-    body = source.split("def fetch_osm(", 1)[1].split("\ndef ", 1)[0]
+    body = source.split("def osm_ways_from(", 1)[1].split("\ndef ", 1)[0]
     assert 'if not highway and tags.get("footway") not in ("sidewalk", "crossing"):' in body
     assert '"kind": "poi", "name": tags.get("name"),' in body
 

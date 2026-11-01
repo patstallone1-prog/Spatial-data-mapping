@@ -196,7 +196,7 @@
       "court": "ground.court", "park:play_surface": "ground.court", "park:skatepark_surface": "ground.court",
       "nature_trail": "ground.trail", "nature_forest_floor": "ground.forest_floor", "beach": "ground.sand", "pier": "ground.deck",
       "water": "water.body",
-      "building": "building.exterior", "garage": "building.exterior", "roof": "building.exterior", "wall": "building.exterior",
+      "building": "building.exterior", "garage": "building.exterior", "roof": "building.exterior", "shingle": "building.exterior", "wall": "building.exterior",
       "plane": "building.exterior", "facade": "building.exterior", "reconstructed": "building.exterior", "structure": "building.exterior",
       "park_facility": "building.exterior", "park_facility:roof_slab": "building.exterior", "park_facility:corrugation": "building.exterior",
       "park_facility:louvre": "building.exterior", "park_facility:detail": "building.facade_detail", "detail": "building.facade_detail",

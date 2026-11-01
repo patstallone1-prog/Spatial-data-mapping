@@ -32,6 +32,18 @@ replan_h = 24
 # Kinds that wait (2026-10-28, the owner): the interior engine's house batches and restaurant
 # rounds stand aside so the cells and the house exteriors finish first. Remove to resume.
 paused_kinds = ["interior_batch", "restaurant_round"]
+# Gates and publications at once on the controller: each mostly waits on the buckets. One at a
+# time left 190 finished cells days from the site (2026-10-31).
+control_slots = 4
+
+# Cells stuck past anything a finished cell took are set aside (smc.cloud.stuck): a stage
+# quarantined this long, or more worker time / wall time than the costliest finished cell by
+# the margin. `smc-cloud defer CELL --undo` brings one back.
+[controller.defer]
+quarantined_after_h = 2
+margin = 1.25
+min_worker_h = 12
+min_wall_h = 48
 
 [stores]
 private = "s3://${S3_PRIVATE_BUCKET}"   # kerbside: no public access at all

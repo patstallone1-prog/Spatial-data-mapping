@@ -4,10 +4,15 @@
 // as the edit goes. People correct their own houses; nobody else's guess stands over theirs.
 //
 // The page hands over what it knows (``ctx``: THREE, the building's walls, the windows and doors
-// it drew, the camera) and this module keeps everything else: the panel, the elevation, the
-// edit itself, and the meshes that draw it. An edit is kept in this browser
-// (localStorage, ``EDITS_KEY``) and drawn on every load; "Export" writes it to a file that
-// scripts/merge_exterior_edits.py publishes for everyone (docs/sf-corridor-exterior-edits.json).
+// it drew, a still of the wall rendered from the street) and this module keeps everything else:
+// the editor, the elevation, the edit itself, and the meshes that draw it. The editor fills the
+// screen: on one side a still of the wall being edited, re-rendered from the world the moment
+// anything changes, so you see the effect; on the other the options. It opens on the street
+// side, seen from outside.
+//
+// "Save changes" is the one way an edit is kept: in this browser always (localStorage,
+// ``EDITS_KEY``), and -- from a verified editor's account (docs/kerbside-account.mjs) -- in the
+// canonical world everyone's page draws (supabase/kerbside_exterior_edits.sql).
 //
 // Lengths are metres. On the wall, ``u`` runs left to right as seen from the street and ``v`` up
 // from the foot of the wall.
@@ -460,8 +465,26 @@ export function stairSurface(wall, o, front, recess = 0, groundAt = null) {
 // ---- the panel -----------------------------------------------------------------------------------
 
 const CSS = `
-#xedit{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);z-index:40;display:flex;flex-direction:column;
-  background:var(--panel,#fff);color:var(--ink,#16202a);box-shadow:-8px 0 30px rgba(0,0,0,.25);font:13px/1.4 system-ui,sans-serif}
+#xedit-shell{position:fixed;inset:0;z-index:90;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);
+  background:#0d1117;font:13px/1.4 system-ui,sans-serif}
+#xedit-still{position:relative;min-width:0;min-height:0;background:#1b2229;overflow:hidden}
+#xedit-still canvas{width:100%;height:100%;display:block;object-fit:cover}
+#xedit-still .cap{position:absolute;left:14px;right:14px;bottom:12px;display:flex;align-items:center;gap:8px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);font-size:13px}
+#xedit-still .cap span{flex:1}
+#xedit-still .cap button{border:1px solid rgba(255,255,255,.4);background:rgba(13,17,23,.55);color:#fff;border-radius:999px;
+  width:34px;height:34px;font-size:15px;cursor:pointer;backdrop-filter:blur(6px)}
+#xedit-still .cap button:hover{background:rgba(31,111,235,.75)}
+#xedit-still .badge{position:absolute;top:12px;left:14px;padding:4px 10px;border-radius:999px;background:rgba(13,17,23,.6);color:#fff;font-size:12px}
+#xedit-still .badge.live{background:rgba(31,111,235,.85)}
+#xedit{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;
+  background:var(--panel,#fff);color:var(--ink,#16202a);box-shadow:-8px 0 30px rgba(0,0,0,.35)}
+@media (max-width:820px){#xedit-shell{grid-template-columns:1fr;grid-template-rows:38vh 1fr}}
+#xedit .acct{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:12px;background:#f3f5f8;border-bottom:1px solid rgba(0,0,0,.08)}
+#xedit .acct b{font-weight:600} #xedit .acct .ok{color:#1a7f37} #xedit .acct .who{flex:1}
+#xedit .acct input{flex:1;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid rgba(0,0,0,.2);font:inherit}
+#xedit footer .save{background:#1f6feb;color:#fff;border-color:#1f6feb;font-weight:600;padding:7px 14px}
+#xedit footer .save:hover{background:#1a5fcc}
 #xedit header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.1)}
 #xedit header b{flex:1;font-size:14px}
 #xedit .bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-bottom:1px solid rgba(0,0,0,.08)}
@@ -486,7 +509,9 @@ const CSS = `
 #xedit footer .msg{flex:1;font-size:12px;opacity:.75}
 #xedit .hint{font-size:12px;opacity:.7;margin:4px 0}
 @media (prefers-color-scheme:dark){#xedit{background:#161b22;color:#e6edf3}#xedit button{background:#21262d;border-color:#30363d}
-  #xedit button:hover{background:#2b3139}#xedit .wall{background:#0d1117}#xedit svg{background:#2b333b}}
+  #xedit button:hover{background:#2b3139}#xedit .wall{background:#0d1117}#xedit svg{background:#2b333b}
+  #xedit .acct{background:#0d1117;border-color:#30363d}#xedit .acct input{background:#0d1117;color:inherit;border-color:#30363d}
+  #xedit .acct .ok{color:#3fb950}}
 `;
 
 const el = (tag, attrs = {}, ...children) => {
@@ -534,6 +559,10 @@ export function open(ctx, feature) {
   buildPanel(state);
   redraw(state);
   ctx.lookAtWall(walls[wallIndex]);
+  ctx.pauseWorld?.(true);
+  // The world round the wall is still arriving (its photographed facade, the trees): the still
+  // is taken again as it comes in, then only when the edit changes.
+  state.settling = [400, 1500, 3500, 7000].map((ms) => setTimeout(() => renderStill(state), ms));
 }
 
 export function close() {
@@ -542,7 +571,11 @@ export function close() {
   current = null;
   if (s.group) s.ctx.removeFromWorld(s.group);
   removeEventListener("keydown", s.keys);
-  s.panel?.remove();
+  for (const t of s.settling || []) clearTimeout(t);
+  clearTimeout(s.rebuild);
+  s.unsubscribe?.();
+  s.shell?.remove();
+  s.ctx.pauseWorld?.(false);
   // What is saved is drawn as the page draws every saved edit; what is not, is gone.
   s.ctx.editsChanged?.(s.id);
 }
@@ -597,17 +630,25 @@ function buildPanel(state) {
     e.openings.push(o);
     state.selected = o.id;
   });
+  // The still: the wall as the world draws it, from the street, taken again on every change.
+  const still = el("canvas", { "aria-label": "The wall as it looks in the world" });
+  const badge = el("div", { class: "badge" }, "The wall, from the street");
+  const stillPane = el("section", { id: "xedit-still", "aria-label": "The wall being edited" }, still, badge,
+    el("div", { class: "cap" },
+      tool("◀", "The previous wall", () => switchWall(state, -1)),
+      wallLabel,
+      tool("▶", "The next wall", () => switchWall(state, 1))));
+  state.still = still;
+  state.badge = badge;
+  const acct = el("div", { class: "acct" });
+  state.acct = acct;
   const panel = el("aside", { id: "xedit", "aria-label": "Exterior editor" },
     el("header", {}, el("b", {}, `Edit exterior — ${address}`),
-      tool("✕", "Close the editor", () => close())),
+      tool("✕", "Close the editor (Esc)", () => close())),
+    acct,
     el("div", { class: "wall" },
-      el("div", { class: "row" },
-        tool("◀", "The previous wall", () => switchWall(state, -1)),
-        wallLabel,
-        tool("▶", "The next wall", () => switchWall(state, 1)),
-        tool("View", "Look at this wall", () => ctx.lookAtWall(state.walls[state.wallIndex]))),
       elevation,
-      el("div", { class: "hint" }, "Click to select, drag to move, drag a corner to resize. Double-click the wall to add a window there.")),
+      el("div", { class: "hint" }, "Click to select, drag to move, drag a corner to resize. Double-click the wall to add a window there. Every change shows on the wall at once.")),
     el("div", { class: "bar" },
       tool("+ Window", "Add a window", () => add("window")),
       tool("+ Door", "Add a door", () => add("door")),
@@ -619,11 +660,18 @@ function buildPanel(state) {
       tool("↷", "Redo (⇧⌘Z)", () => redo(state))),
     inspector,
     el("footer", {}, msg,
-      tool("Reset", "Back to the front as it was drawn before any edit", () => reset(state)),
-      tool("Export", "Download this edit to send in, so everyone sees it", () => exportEdit(state)),
-      el("button", { class: "on", title: "Keep this edit in this browser and draw it", on: { click: () => save(state) } }, "Save")));
-  document.body.append(panel);
+      tool("Start over", "Back to the front as it was drawn before any edit", () => reset(state)),
+      el("button", { class: "save", title: "Keep this edit (⌘S): on this device, and for everyone when your account is verified",
+        on: { click: () => save(state) } }, "Save changes")));
+  const shell = el("div", { id: "xedit-shell", role: "dialog", "aria-modal": "true", "aria-label": `Edit exterior — ${address}` }, stillPane, panel);
+  document.body.append(shell);
+  state.shell = shell;
   state.panel = panel;
+  drawAccount(state);
+  if (ctx.account) {
+    state.unsubscribe = ctx.account.onAccountChange(() => drawAccount(state));
+    ctx.account.recheck();
+  }
   state.wallLabel = wallLabel;
   state.svg = elevation;
   state.inspector = inspector;
@@ -631,11 +679,12 @@ function buildPanel(state) {
     if (!current || e.target instanceof HTMLInputElement) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selected) { e.preventDefault(); remove(state); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); (e.shiftKey ? redo : undo)(state); }
+    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(state); }
     else if (e.key === "Escape") { if (state.matchFrom) { state.matchFrom = null; redraw(state); } else close(); }
   };
   addEventListener("keydown", state.keys);
   wireElevation(state);
-  state.msg(state.edit.openings.length ? "Showing the front as drawn. Edit, then Save." : "Nothing is drawn on this wall yet: add windows and doors.");
+  state.msg(state.edit.openings.length ? "Showing the front as drawn. Edit it, then Save changes." : "Nothing is drawn on this wall yet: add windows and doors.");
 }
 
 function switchWall(state, step) {
@@ -648,6 +697,8 @@ function switchWall(state, step) {
   state.ctx.hideOriginal?.(state.feature, wall);
   state.ctx.lookAtWall(wall);
   redraw(state);
+  for (const t of state.settling || []) clearTimeout(t);
+  state.settling = [500, 2000].map((ms) => setTimeout(() => renderStill(state), ms));
 }
 
 function selectedOpening(state) { return state.edit.openings.find((o) => o.id === state.selected) || null; }
@@ -681,6 +732,7 @@ function redo(state) {
 function reset(state) {
   if (!confirm("Remove your edit of this building and go back to the front as it was drawn?")) return;
   forgetEdit(state.id);
+  if (state.ctx.account?.account().verified) state.ctx.account.removeCanonicalEdit(state.id);
   snapshot(state);
   state.edit = startingEdit(state.ctx, state.feature, state.walls[state.wallIndex]);
   state.ctx.editsChanged?.(state.id);
@@ -689,23 +741,55 @@ function reset(state) {
   redraw(state);
   state.msg("Reset. The page's own front is back after a reload.");
 }
-function save(state) {
+//: Save changes: on this device always; in the canonical world too from a verified account.
+async function save(state) {
   state.edit.updated = new Date().toISOString();
   state.edit.length_m = fix(state.walls[state.wallIndex].length);
-  if (saveEdit(state.edit)) {
-    state.dirty = false;
-    state.ctx.editsChanged?.(state.id, state.edit);
-    state.msg("Saved in this browser. Export it to send it in for everyone.");
-  } else state.msg("This browser would not keep it (private window?). Export it instead.");
+  const local = saveEdit(state.edit);
+  state.ctx.editsChanged?.(state.id, state.edit);
+  state.dirty = false;
+  const who = state.ctx.account?.account();
+  if (!who?.verified) {
+    state.msg(local ? "Saved on this device. Verify your account to change it for everyone."
+      : "This browser would not keep it (private window?): it is drawn until you leave.");
+    return;
+  }
+  state.msg("Saving for everyone…");
+  const out = await state.ctx.account.saveCanonicalEdit(state.edit);
+  if (current !== state) return;
+  state.msg(out.canonical ? `Saved for everyone, as ${who.editor || "a verified editor"}.`
+    : `Saved on this device; not for everyone yet (${out.why}). Save again to retry.`);
 }
-function exportEdit(state) {
-  const body = JSON.stringify({ ...state.edit, exported: new Date().toISOString(), page: location.pathname,
-    address: state.feature.address?.formatted || null }, null, 1);
-  const url = URL.createObjectURL(new Blob([body], { type: "application/json" }));
-  const a = el("a", { href: url, download: `exterior-edit-${state.id}.json` });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  state.msg("Downloaded. Send the file in to have it published for everyone.");
+
+function drawAccount(state) {
+  const box = state.acct, account = state.ctx.account;
+  if (!box) return;
+  if (!account) { box.replaceChildren(el("span", { class: "who" }, "Saves stay on this device.")); return; }
+  const who = account.account();
+  if (who.verified) {
+    box.replaceChildren(el("span", { class: "who" }, el("span", { class: "ok" }, "✔ Verified editor "), el("b", {}, who.editor || who.name || "")),
+      el("span", {}, "Saves change the world for everyone."));
+    return;
+  }
+  const input = el("input", { type: "password", placeholder: "Paste your editor key", autocomplete: "off", "aria-label": "Editor key" });
+  const go = el("button", { type: "button", title: "Check the key and keep it on this device" }, "Verify");
+  const verify = async () => {
+    go.disabled = true;
+    const out = await account.verify(input.value);
+    go.disabled = false;
+    if (!out.ok) state.msg(out.why); else state.msg(`Verified as ${out.name}. Save changes now updates the world for everyone.`);
+  };
+  go.addEventListener("click", verify);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); verify(); } });
+  box.replaceChildren(el("span", { class: "who" }, "Not verified: saves stay on this device."), input, go);
+}
+
+//: The still on the left: the page renders the wall from the street into it.
+function renderStill(state) {
+  if (current !== state || !state.still) return;
+  const ok = state.ctx.renderWallStill?.(state.walls[state.wallIndex], state.still);
+  state.badge.textContent = ok === false ? "The wall (still loading)" : state.dirty ? "Preview: not saved yet" : "The wall, from the street";
+  state.badge.classList.toggle("live", Boolean(state.dirty));
 }
 
 // ---- the elevation ---------------------------------------------------------------------------
@@ -968,5 +1052,6 @@ function redraw(state, full = true) {
     if (state.group) state.ctx.removeFromWorld(state.group);
     state.group = drawEdit(state.ctx, state.edit);
     if (state.group) state.ctx.addToWorld(state.group);
+    requestAnimationFrame(() => renderStill(state));
   }, 60);
 }

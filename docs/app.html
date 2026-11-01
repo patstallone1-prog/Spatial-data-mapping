@@ -212,6 +212,8 @@
       overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.22);
     }
     body:has(#v-map.on) .tab { min-width: 72px; padding: 8px 12px; }
+    /* The model's home screen has its own buttons where these would sit: they come back with the world. */
+    body.model-home:has(#v-map.on) nav.tabs { display: none; }
   }
 </style>
 </head>
@@ -1443,6 +1445,7 @@ function watchModel() {
   });
   const tick = () => {
     let done = false;
+    let home = false;
     let text = "";
     let failure = null;
     try {
@@ -1450,6 +1453,9 @@ function watchModel() {
       const ready = w && w.kerbsideReady;
       failure = w && w.kerbsideBoot && w.kerbsideBoot.error;
       done = Boolean(ready && ready.streets && ready.ground);
+      // The model's home screen, once it is up, is the front of the app: it says itself how the
+      // world behind it is coming on, so this cover goes and the world keeps loading under it.
+      home = Boolean(w && w.document && w.document.getElementById("home"));
       const box = w && w.document && w.document.getElementById("progress");
       text = (box && !box.hidden && box.textContent) || "";
     } catch (err) {
@@ -1468,7 +1474,7 @@ function watchModel() {
     }
     if (retry) retry.hidden = true;
     let target = shown;
-    if (done) {
+    if (done || home) {
       target = 1;
     } else if (text) {
       const inside = (text.match(/(\d+)\s*%/) || [])[1];
@@ -1485,7 +1491,7 @@ function watchModel() {
     shown = Math.max(shown, Math.min(1, target));
     fill.style.width = (shown * 100).toFixed(0) + "%";
     pct.textContent = (shown * 100).toFixed(0) + "%";
-    if (done && !completed) {
+    if ((done || home) && !completed) {
       completed = true;
       stageOut.textContent = "Ready";
       cover.classList.add("done");
@@ -1496,6 +1502,11 @@ function watchModel() {
   tick();
 }
 watchModel();
+// The model says when its home screen opens and closes (build_sf_corridor_3d.py homeContext).
+addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.kerbside !== "home") return;
+  document.body.classList.toggle("model-home", Boolean(e.data.open));
+});
 
 /* ============ tabs ============ */
 document.querySelectorAll(".tab").forEach((tab) => {
