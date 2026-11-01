@@ -448,7 +448,23 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0
+    "corroboration_count": 0,
+    "party_walls": [
+      {
+        "edge": 3,
+        "a": [
+          -1.9967540903626286,
+          -6.968631999965567
+        ],
+        "b": [
+          -3.536101957085066,
+          2.437908000014488
+        ],
+        "u0": 0,
+        "u1": 9.287260724274637,
+        "neighbour": "460228341"
+      }
+    ]
   },
   "style": {
     "id": "heritage",

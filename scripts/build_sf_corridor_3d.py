@@ -32080,12 +32080,9 @@ function requestGeneratedInteriors() {
 const STORE_HOUSE_FILE = /^interiors\/houses\/[a-z0-9-]+\/osm-[0-9]+\.json$/;
 const STORE_TILE_KEY = /^-?[0-9]{1,5}_-?[0-9]{1,5}$/;
 function storeInteriorBase() {
-  if (!ASSET_MAP?.base) return null;
-  // The site's /store path where the store lets this page read it; the store itself otherwise.
-  const origins = ASSET_MAP.origins;
-  const ours = !origins || origins.includes("*") || origins.includes(location.origin);
-  const root = ours ? ASSET_MAP.base : ASSET_MAP.origin;
-  return root ? new URL(`${root.replace(/\/+$/, "")}/`, location.href) : null;
+  // The site's own /store path: every deployment rewrites it to the store, so it is read from
+  // this page's origin (the store's CORS lets only the site itself read the store directly).
+  return ASSET_MAP?.base ? new URL(`${ASSET_MAP.base.replace(/\/+$/, "")}/`, location.href) : null;
 }
 function requestStoreInteriors(base) {
   const store = storeInteriorBase();

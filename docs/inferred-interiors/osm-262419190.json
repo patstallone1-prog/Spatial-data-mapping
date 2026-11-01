@@ -872,7 +872,23 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0
+    "corroboration_count": 0,
+    "party_walls": [
+      {
+        "edge": 0,
+        "a": [
+          -8.145349284248823,
+          0.08905599945876475
+        ],
+        "b": [
+          -9.429605218892902,
+          8.170887999777733
+        ],
+        "u0": 0,
+        "u1": 8.183234188696314,
+        "neighbour": "262419185"
+      }
+    ]
   },
   "style": {
     "id": "coastal",
