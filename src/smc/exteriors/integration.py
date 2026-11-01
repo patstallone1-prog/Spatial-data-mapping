@@ -1,42 +1,20 @@
-"""Opt-in viewer instrumentation; leave the authoritative legacy source/hash untouched."""
+"""The map viewer's storefront hooks, now part of the viewer itself.
+
+They were kept as a patch applied to build copies while the exteriors were under review; on
+2026-10-31 the owner put them on the live site, so the hooks live in the authoritative viewer
+(scripts/build_sf_corridor_3d.py) and the site's storefront manifest turns them on for the worlds
+it covers (scripts/publish_store_exteriors.py). A page with none over its area loads nothing more.
+"""
 
 from __future__ import annotations
 
-from importlib.resources import files
+HOOKS = ("async function loadStoreExteriorBundle()", "function storeExteriorFor(feature)",
+         "STORE_EXTERIOR_RUNTIME.renderer.mount(group,exteriorPlan,exteriorOrigin)")
 
 
 def instrument_viewer(html: str) -> str:
-    """Apply reviewed storefront hooks to a build copy, never edit the source viewer.
-
-    The context checks intentionally fail on an incompatible viewer revision. A future
-    renderer refactor must review the adapter rather than silently patching another site.
-    """
-    patch = files("smc.exteriors").joinpath("viewer.patch").read_text()
-    hunks, before, after = [], [], []
-    for line in patch.splitlines(keepends=True):
-        if line.startswith("@@"):
-            if before:
-                hunks.append(("".join(before), "".join(after)))
-            before, after = [], []
-        elif line.startswith(("diff ", "index ", "---", "+++")):
-            continue
-        elif line == "\n":
-            # Empty context lines omit their redundant space in the stored patch.
-            before.append(line)
-            after.append(line)
-        elif line.startswith(" "):
-            before.append(line[1:])
-            after.append(line[1:])
-        elif line.startswith("-"):
-            before.append(line[1:])
-        elif line.startswith("+"):
-            after.append(line[1:])
-    if before:
-        hunks.append(("".join(before), "".join(after)))
-    if not hunks:
-        raise ValueError("exterior integration patch is empty")
-    for old, new in hunks:
-        if html.count(old) != 1:
-            raise ValueError("viewer revision differs; review storefront integration context")
-        html = html.replace(old, new, 1)
+    """The viewer, checked to carry the storefront hooks (it has them natively now)."""
+    missing = [hook for hook in HOOKS if hook not in html]
+    if missing:
+        raise ValueError(f"viewer lacks the storefront hooks: {missing}")
     return html

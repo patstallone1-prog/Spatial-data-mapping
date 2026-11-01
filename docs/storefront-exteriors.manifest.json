@@ -1,0 +1,119 @@
+{
+ "schema": "kerbside.storefront_exterior_tiles/1",
+ "renderer_sha256": "635d3e783b1bef6d",
+ "buildings": 6229,
+ "tiles": [
+  {
+   "world": "app-regions/berkeley-downtown/sf-corridor-3d.json",
+   "path": "app-regions/berkeley-downtown/storefront-exteriors.json",
+   "bbox": [
+    -122.275,
+    37.865,
+    -122.255,
+    37.88
+   ],
+   "buildings": 388,
+   "rejected": 11,
+   "bytes": 2123218,
+   "sha256": "18bdbc34bfda4a22"
+  },
+  {
+   "world": "app-regions/oakland-downtown/sf-corridor-3d.json",
+   "path": "app-regions/oakland-downtown/storefront-exteriors.json",
+   "bbox": [
+    -122.285,
+    37.785,
+    -122.26,
+    37.815
+   ],
+   "buildings": 662,
+   "rejected": 13,
+   "bytes": 3760185,
+   "sha256": "c77bf3abf559dd87"
+  },
+  {
+   "world": "app-regions/palo-alto-downtown/sf-corridor-3d.json",
+   "path": "app-regions/palo-alto-downtown/storefront-exteriors.json",
+   "bbox": [
+    -122.17,
+    37.44,
+    -122.155,
+    37.452
+   ],
+   "buildings": 199,
+   "rejected": 1,
+   "bytes": 1051134,
+   "sha256": "2fde6aae3a9c2b3b"
+  },
+  {
+   "world": "app-regions/san-jose-downtown/sf-corridor-3d.json",
+   "path": "app-regions/san-jose-downtown/storefront-exteriors.json",
+   "bbox": [
+    -121.905,
+    37.325,
+    -121.875,
+    37.345
+   ],
+   "buildings": 450,
+   "rejected": 7,
+   "bytes": 2574284,
+   "sha256": "fb02624ffdfe1c94"
+  },
+  {
+   "world": "app-regions/sf-haight-castro/sf-corridor-3d.json",
+   "path": "app-regions/sf-haight-castro/storefront-exteriors.json",
+   "bbox": [
+    -122.455,
+    37.755,
+    -122.43,
+    37.765
+   ],
+   "buildings": 133,
+   "rejected": 6,
+   "bytes": 565640,
+   "sha256": "45719ba8210e0d36"
+  },
+  {
+   "world": "app-regions/sf-mission/sf-corridor-3d.json",
+   "path": "app-regions/sf-mission/storefront-exteriors.json",
+   "bbox": [
+    -122.4275,
+    37.748,
+    -122.405,
+    37.77
+   ],
+   "buildings": 811,
+   "rejected": 25,
+   "bytes": 3890559,
+   "sha256": "b3f0da99f0a6c18e"
+  },
+  {
+   "world": "app-regions/sf-sunset/sf-corridor-3d.json",
+   "path": "app-regions/sf-sunset/storefront-exteriors.json",
+   "bbox": [
+    -122.51,
+    37.74,
+    -122.47,
+    37.765
+   ],
+   "buildings": 403,
+   "rejected": 23,
+   "bytes": 1811459,
+   "sha256": "c12040fc07a57811"
+  },
+  {
+   "world": "sf-corridor-3d.json",
+   "path": "storefront-exteriors.json",
+   "bbox": [
+    -122.4475,
+    37.786,
+    -122.392,
+    37.8095
+   ],
+   "buildings": 3183,
+   "rejected": 139,
+   "bytes": 16336768,
+   "sha256": "fac607fb14f6aac0"
+  }
+ ]
+}

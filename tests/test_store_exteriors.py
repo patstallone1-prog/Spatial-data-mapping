@@ -300,10 +300,10 @@ def test_bundle_keeps_fixed_rejections_and_never_mutates_input_world(cohort, tmp
     assert len(result["selected"]) == 3 and len(result["rejected"]) == 1
     assert result["rejected"][0]["id"] == rows[1]["id"]
     assert (tmp_path / "index.html").is_file() and (tmp_path / "renderer.mjs").is_file()
-    assert (
-        json.loads((tmp_path / "world.json").read_text())["storefront_exteriors"]["renderer"]
-        == "renderer.mjs"
-    )
+    assert json.loads((tmp_path / "world.json").read_text()) == before
+    tiles = json.loads((tmp_path / "storefront-exteriors.manifest.json").read_text())["tiles"]
+    assert [t["path"] for t in tiles] == ["storefront-exteriors.json"]
+    assert (tmp_path / "storefront-renderer.mjs").is_file() and (tmp_path / "storefront-assets/manifest.json").is_file()
 
 
 def test_runtime_binding_rejects_stale_and_displaced_facades(tmp_path):
@@ -397,3 +397,24 @@ def test_sign_alignment_uses_customer_entries_not_upper_or_service_doors():
     s = p["facades"][0]["signs"][0]
     assert p["validation"]["passed"]
     assert s["u"] + s["w"] / 2 == pytest.approx(15.6)
+
+
+def test_live_manifest_keeps_what_the_viewer_binds_and_drops_the_review_working(tmp_path):
+    from smc.exteriors.bundle import runtime_manifest
+
+    way = mapped_way()
+    plan = infer_exterior(from_kerbside(way))
+    slim = runtime_manifest(dict(schema="kerbside.storefront_exteriors/1", selected=["1234"],
+                                 rejected=[], buildings={"1234": plan}))["buildings"]["1234"]
+    face = slim["facades"][0]
+    assert "evidence" not in face and "references" not in face and "basis" not in face["economics"]
+    assert face["a"] == plan["facades"][0]["a"] and slim["canonical_points"] == plan["canonical_points"]
+    assert len(json.dumps(slim)) < len(json.dumps(plan)) / 2
+    path = tmp_path / "binding.json"
+    path.write_text(json.dumps(dict(way=way, plan=slim)))
+    js = f"""
+import fs from 'node:fs';import {{boundExterior}} from {json.dumps(RENDERER)};
+const d=JSON.parse(fs.readFileSync(process.argv[1]));
+console.log(boundExterior(d.way,{{buildings:{{1234:d.plan}}}}) ? 'bound' : 'rejected');
+"""
+    assert subprocess.check_output(["node", "--input-type=module", "-e", js, str(path)], text=True).strip() == "bound"

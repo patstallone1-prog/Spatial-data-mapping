@@ -3424,6 +3424,11 @@ let worldIsReady = null, pageIsReady = null;
 //: before the module has reached its end): what the home screen's buttons wait for.
 const WORLD_READY = Promise.all([new Promise((resolve) => { worldIsReady = resolve; }),
                                  new Promise((resolve) => { pageIsReady = resolve; })]);
+//: Loaded through, not merely drawn: resolved once everything round the spawn is fetched, built
+//: and held still for a moment (the check is at the end of the page). The home screen, opened
+//: well before that, waits on it.
+let worldLoaded = null, worldLoadedNow = false;
+const WORLD_LOADED = new Promise((resolve) => { worldLoaded = resolve; });
 const HOME_SKIPPED = META || ATTACH || (() => {
   try {
     const query = new URLSearchParams(location.search);
@@ -3900,6 +3905,61 @@ const MATERIAL_ASSIGNMENTS = await fetch(asset("sf-corridor-materials.json"), { 
 // tiles over this page's area are fetched -- each named by its content's hash, so cached for good.
 // The whole city's fits in one file was 67 MB fetched by every page before it drew a building.
 const FRONTAGE_FITS = await loadFrontageFits();
+// Researched storefront exteriors (smc.exteriors; docs/30-storefront-exterior-inference.md),
+// published by scripts/publish_store_exteriors.py the way the frontage fits are: a small shared
+// manifest names each world's plans by its area, and only those over this page's are fetched.
+// The worlds themselves are not rewritten (their bytes are what names and fits are bound to).
+// The renderer and its chain marks have fixed names beside the manifest, and a plan file must be
+// a storefront-exteriors.json on this site, so a manifest can never point the page at other code;
+// with no manifest, or none over this area, nothing more loads and the map draws as before.
+const STOREFRONT_PLAN_PATH=/^(?:(?:regions|app-regions)\/[a-z0-9-]+\/)?storefront-exteriors\.json$/;
+async function loadStoreExteriorBundle() {
+  const index=await fetch(sharedAsset("storefront-exteriors.manifest.json"),{cache:"no-cache"})
+    .then(r=>r.ok?r.json():null).catch(()=>null);
+  if(index?.schema!=="kerbside.storefront_exterior_tiles/1" || !Array.isArray(index.tiles))return null;
+  const b=LIGHT_SPEC ? {west:LIGHT_SPEC.box[0],south:LIGHT_SPEC.box[1],east:LIGHT_SPEC.box[2],north:LIGHT_SPEC.box[3]} : DATA.bbox;
+  const wanted=index.tiles.filter(t=>typeof t?.path==="string" && STOREFRONT_PLAN_PATH.test(t.path)
+    && Array.isArray(t.bbox) && (!b || (t.bbox[0]<=b.east && t.bbox[2]>=b.west && t.bbox[1]<=b.north && t.bbox[3]>=b.south)));
+  if(!wanted.length)return null;
+  try {
+    const [plans, module, assets] = await Promise.all([
+      Promise.all(wanted.map(t=>fetch(sharedAsset(`${t.path}?v=${encodeURIComponent(t.sha256 || "")}`))
+        .then(r=>r.ok?r.json():null).catch(()=>null))),
+      import(sharedAsset(`storefront-renderer.mjs?v=${encodeURIComponent(index.renderer_sha256 || "")}`)),
+      fetch(sharedAsset("storefront-assets/manifest.json")).then(r=>r.ok?r.json():null),
+    ]);
+    // Worlds overlap (the Mission is inside the corridor): each keeps its own plans, and a
+    // building takes the first that fits the shell it is drawn with.
+    const collections=plans.filter(c=>c?.schema==="kerbside.storefront_exteriors/1" && c.buildings);
+    if(!collections.length || !assets)return null;
+    const base=new URL(sharedAsset("storefront-assets/"),location.href).href;
+    const renderer=await module.createExteriorRenderer(THREE,assets,base);
+    return {collections,renderer,bound:module.boundExterior};
+  } catch(error) {
+    console.warn("Storefront exteriors unavailable; retaining original renderer",error);
+    return null;
+  }
+}
+const STORE_EXTERIOR_RUNTIME = await loadStoreExteriorBundle();
+//: The researched exterior for this building, or null: none in the bundle, a front a person
+//: drew (theirs wins), or a shell it no longer fits (buildingMesh turns it off).
+const storeExteriorBound=new WeakMap();
+function storeExteriorFor(feature) {
+  if(feature._storeExteriorDisabled || feature.exteriorEdit || !STORE_EXTERIOR_RUNTIME)return null;
+  // Asked of a building by every detail pass it has; the shell it is matched against does not
+  // change while the feature lives, so the match is made once.
+  if(!storeExteriorBound.has(feature)) {
+    let plan=null;
+    for(const collection of STORE_EXTERIOR_RUNTIME.collections) {
+      if((plan=STORE_EXTERIOR_RUNTIME.bound(feature,collection)))break;
+    }
+    storeExteriorBound.set(feature,plan);
+  }
+  return storeExteriorBound.get(feature);
+}
+window.kerbsideStorefrontExteriors=()=>({enabled:Boolean(STORE_EXTERIOR_RUNTIME),
+  buildings:(STORE_EXTERIOR_RUNTIME?.collections || []).reduce((n,c)=>n+Object.keys(c.buildings).length,0),
+  missingAssets:STORE_EXTERIOR_RUNTIME?.renderer?.missingAssets || [],canonicalGeometryModified:false});
 const MUNICIPAL_CONTEXT = await (async()=>{
   const index=await fetch(sharedAsset("municipal-context.manifest.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null);
   const b=DATA.bbox, found=index?.regions?.find(r=>r.bbox[0]<b.north && r.bbox[2]>b.south && r.bbox[1]<b.east && r.bbox[3]>b.west);
@@ -16383,6 +16443,11 @@ function photoOpeningParts(group,feature,includeWindows=false) {
   const out=frontageNormalFor(fit);if(!out)return;
   const tx=dx/L,tz=dz/L,[nx,nz]=out,yaw=-Math.atan2(tz,tx);
   for(const o of fit.openings || []) {
+    if(typeof storeExteriorFor==="function") {
+      const exterior=storeExteriorFor(feature);
+      if(exterior?.facades.some(f=>f.openings.some(p=>p.v<f.band_height_m
+        && p.kerbside_source_record && JSON.stringify(p.kerbside_source_record)===JSON.stringify(o))))continue;
+    }
     // By role (coarse_openings.py): a window outline above the ground storey, a door at any other
     // way in on foot. The garages are drawn as garage doors with their kerb (addPhotoGarages),
     // the entry by the door system with its stair or alcove and gate, a gate as part of its entry.
@@ -16941,6 +17006,7 @@ const SEATING_CLEAR_M = 2.6;
 const UMBRELLA_COLOURS = [0xf1ede2, 0x2f5d43, 0x9b2a24, 0x23364f, 0xd9a441, 0x3b3b3b];
 
 function addShopfronts(feature, seed, height, tint) {
+  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   const shops = feature.shops;
   if (!shops || !shops.length || feature.exteriorEdit) return;
   // Only where a shopfront can be: a ground floor with room above the glass for a sign. A
@@ -17109,6 +17175,7 @@ function buildingNameTrade(feature) {
 }
 
 function addBuildingNamePlaque(group, feature, seed, height, tint) {
+  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   const name = feature.name;
   if (!name || height < 4.8) return;
   const clean = cleanName(name);
@@ -17181,6 +17248,7 @@ function garagesOnWall(feature, wall) {
 }
 
 function addGroundFacadeDetail(group, feature, seed, height, tint) {
+  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   // Never place an extra invented front door/shop backdrop on a reviewed photo front, nor on a
   // front a person drew themselves (its doors and shopfronts are theirs).
   if(frontageFitFor(feature) || feature.exteriorEdit)return;
@@ -17909,6 +17977,7 @@ function addStorefronts(group, feature, seed, height, tint) {
 
 
 function addSouthFacadeDetail(group, feature, seed, height) {
+  if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   if (!(feature.archetype === "residential" || feature.archetype === "generic")) return;
   if (height < 6) return;
   const candidates = footprintWalls(feature.points)
@@ -19372,15 +19441,28 @@ function buildingMesh(feature) {
     if (hillLift !== 0) archetype.position.y = hillLift;
     return archetype;
   }
-  const geom = shaped ? shaped.geometry : new THREE.ExtrudeGeometry(shape, {
+  let geom = shaped ? shaped.geometry : new THREE.ExtrudeGeometry(shape, {
     depth: height, bevelEnabled: false, UVGenerator: FACADE_UV,
   });
   if (!shaped) geom.rotateX(-Math.PI / 2);
   if (hillLift !== 0) { geom.translate(0, hillLift, 0); feature._hillLiftM = +hillLift.toFixed(2); }
+  // A researched storefront cuts its ground band out of the plain extruded shell it was fitted
+  // to; a shaped roof's shell, or a height that has moved, keeps the original renderer.
+  let exteriorPlan=typeof storeExteriorFor==="function" ? storeExteriorFor(feature) : null, exteriorOrigin=null;
+  if(exteriorPlan && (shaped || Math.abs(exteriorPlan.height_m-height)>.001 || !exteriorPlan.origin_lon_lat)) {
+    feature._storeExteriorDisabled=true;exteriorPlan=null;
+  }
+  if(exteriorPlan) {
+    const [x,y]=xy(...exteriorPlan.origin_lon_lat);
+    exteriorOrigin={x,y:hillLift,z:-y};
+    const original=geom;
+    geom=STORE_EXTERIOR_RUNTIME.renderer.cutWallBands(original,exteriorPlan,exteriorOrigin);
+    original.dispose();
+  }
   // A house: a home with no shop in it. Its walls carry no painted windows; its real windows are
   // drawn on them (homeWindowLayout), the same ones its shell opens when the walker is there.
   const isHome = kind === "building" && ["residential", "generic"].includes(feature.archetype)
-    && !hasStorefront(feature) && !shaped;
+    && !hasStorefront(feature) && !shaped && !exteriorPlan;
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
                                 feature.osm_id, isHome, feature);
   const style = ARCHETYPE_STYLE[feature.archetype];
@@ -19556,6 +19638,7 @@ function buildingMesh(feature) {
     // No shopfront, no bay windows, no balconies. A garden workshop has a door and a roof, and
     // the detail passes are what made these read as houses in the first place.
   } else {
+    if(exteriorPlan) STORE_EXTERIOR_RUNTIME.renderer.mount(group,exteriorPlan,exteriorOrigin);
     addGroundFacadeDetail(group, feature, seed, height, tint);
     addSouthFacadeDetail(group, feature, seed, height);
     photoDetailParts(group, feature);
@@ -37966,9 +38049,19 @@ function homeContext() {
     openMap: afterReady(() => { const fold = document.getElementById("fold"); if (fold && fold.getAttribute("aria-expanded") !== "true") fold.click(); }),
     openSettings: afterReady(() => document.getElementById("settings-toggle")?.click()),
     openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
-    whenReady: () => WORLD_READY,
-    //: How the world is coming on, as the page's own progress line says it (null once it is up).
-    progress: () => { const box = document.getElementById("progress"); return box && !box.hidden ? box.textContent.trim() : null; },
+    //: Loaded through (WORLD_LOADED), not just drawn: the lobby lets no one in before.
+    whenReady: () => WORLD_LOADED,
+    //: How the world is coming on: the page's own progress line while it builds, then what it is
+    //: still fetching round the spawn (null once it is all in).
+    progress: () => {
+      const box = document.getElementById("progress");
+      const drawing = box && !box.hidden && box.textContent.trim();
+      if (drawing) return drawing;
+      if (worldLoadedNow) return null;
+      if (!worldReadyNow) return "Drawing the world";
+      const waiting = worldLoadWaiting();
+      return waiting.length ? `Loading ${waiting.join(", ")}` : "Settling the world";
+    },
     onOpen: () => {
       document.body.classList.add("home-open");
       tellAppShell(true);
@@ -38001,6 +38094,41 @@ function stageWorld() {
   }
   requestFrame();
 }
+//: Loaded through, not only drawn. The first frame (WORLD_READY) says the world can be seen;
+//: this says everything round the spawn is in and working -- its square of detail attached, the
+//: cells, ground tiles and facade pictures fetched, the walker's figure and the object catalogue
+//: (what stops it) loaded -- and has stayed so for a moment, since the detail check asks for the
+//: next square a beat after the camera moves. The home screen holds every way into the world
+//: until then (the owner, 2026-10-31: never into a world still assembling, however finished
+//: it looks).
+const SETTLED_FOR_MS = 2000;
+let catalogueSettled = false;
+objectCatalogueReady.finally(() => { catalogueSettled = true; });
+function worldLoadWaiting() {
+  const waiting = [];
+  if (!worldReadyNow) return ["drawing the world"];
+  const cells = worldCellCache.snapshot();
+  if (attaching || attachWanted) waiting.push("the streets round you");
+  if (activeGuest && !activeGuest.ready) waiting.push(activeGuest.region?.title || "the region round you");
+  if (cells.active || cells.queued) waiting.push(`map cells (${(cells.active || 0) + (cells.queued || 0)})`);
+  if (tileInFlight || tileQueue.length) waiting.push(`ground (${tileInFlight + tileQueue.length} tiles)`);
+  if (facadeQueue.length || facadeInFlight) waiting.push(`facades (${facadeQueue.length + facadeInFlight})`);
+  if (avatar.userData.demoCharacterLoaded === undefined) waiting.push("your walker");
+  if (!catalogueSettled) waiting.push("what stops the walker");
+  return waiting;
+}
+WORLD_READY.then(() => {
+  let settledSince = 0;
+  const check = () => {
+    const now = performance.now();
+    if (worldLoadWaiting().length) settledSince = 0;
+    else settledSince ||= now;
+    if (settledSince && now - settledSince >= SETTLED_FOR_MS) { worldLoadedNow = true; worldLoaded(); return; }
+    setTimeout(check, 250);
+  };
+  check();
+});
+window.kerbsideLoadState = () => ({ loaded: worldLoadedNow, waiting: worldLoadedNow ? [] : worldLoadWaiting() });
 pageIsReady();
 
 window.kerbside = {

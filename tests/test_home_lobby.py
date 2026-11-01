@@ -35,3 +35,25 @@ def test_first_install_does_not_reopen_the_loading_world():
         worker = (ROOT / path).read_text()
         assert "upgrade = old.length > 0;" in worker
         assert '(upgrade ? self.clients.matchAll({ type: "window" }) : [])' in worker
+
+
+def test_no_way_into_the_world_until_it_is_loaded_through():
+    # Drawn is not loaded: the lobby waits for everything round the spawn, held for a moment.
+    assert "whenReady: () => WORLD_LOADED," in RENDERER
+    waiting = RENDERER[RENDERER.index("function worldLoadWaiting()"):]
+    waiting = waiting[:waiting.index("\n}\n")]
+    for need in ("attaching || attachWanted", "activeGuest && !activeGuest.ready", "cells.active || cells.queued",
+                 "tileInFlight || tileQueue.length", "facadeQueue.length || facadeInFlight",
+                 "demoCharacterLoaded === undefined", "!catalogueSettled"):
+        assert need in waiting, need
+    assert "now - settledSince >= SETTLED_FOR_MS" in RENDERER
+    # The lobby opens long before the page's end: the promise it waits on must exist by then.
+    assert RENDERER.index("const WORLD_LOADED = new Promise") < RENDERER.index("home.openHome({ ...homeContext()")
+    lobby = (ROOT / "docs/home-lobby.mjs").read_text()
+    assert "if (!open || !loaded) return false;" in lobby
+    # Every button that leaves the lobby for the world waits with it, and says so.
+    leaving = [line for line in lobby.splitlines() if "closeHome(" in line and "function closeHome" not in line]
+    assert len(leaving) >= 5
+    for line in leaving:
+        assert "needs-world" in line or "e.key === \"Enter\"" in line or "close: () =>" in line, line
+    assert 'root.classList.remove("world-loading")' in lobby

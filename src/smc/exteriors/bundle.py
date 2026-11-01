@@ -150,13 +150,18 @@ def build_bundle(
         )
     (out / "storefront-exteriors.json").write_text(json.dumps(manifest, indent=2) + "\n")
     if world:
-        # A separate experimental payload opts into the renderer. Never rewrite the source world.
+        # The map finds the plans as the live site does (scripts/publish_store_exteriors.py): by a
+        # manifest over the world's area, with the renderer and marks at the names it accepts.
+        # The world itself is copied untouched.
         prepared = copy.deepcopy(world)
-        prepared["storefront_exteriors"] = {
-            "manifest": "storefront-exteriors.json",
-            "renderer": "renderer.mjs",
-            "assets": "assets/",
-        }
+        b = world.get("bbox") or {}
+        (out / "storefront-exteriors.manifest.json").write_text(json.dumps({
+            "schema": "kerbside.storefront_exterior_tiles/1",
+            "tiles": [{"path": "storefront-exteriors.json", "buildings": len(plans),
+                       "bbox": [b.get("west", -180), b.get("south", -90), b.get("east", 180), b.get("north", 90)]}],
+        }, indent=1) + "\n")
+        shutil.copyfile(out / "renderer.mjs", out / "storefront-renderer.mjs")
+        shutil.copytree(out / "assets", out / "storefront-assets", dirs_exist_ok=True)
         (out / "world.json").write_text(json.dumps(prepared, separators=(",", ":")) + "\n")
         if viewer_html:
             from smc.exteriors.integration import instrument_viewer
@@ -172,3 +177,52 @@ def build_bundle(
                     if not target.exists() and not target.is_symlink():
                         target.symlink_to(source.resolve(), target_is_directory=source.is_dir())
     return manifest
+
+
+#: What the map viewer reads of a plan (renderer.mjs: boundExterior, mount). The rest -- every
+#: reference's citation, the geometry evidence, the validation's working -- is the review
+#: browser's, and was two thirds of the bytes: 62 MB for San Francisco's 3,183 storefronts.
+RUNTIME_KEYS = ("schema", "id", "canonical_geometry_modified", "canonical_points", "height_m",
+                "origin_lon_lat", "footprint", "facades", "evidence", "geometry_sha256",
+                "content_sha256", "reference_version", "replica_status", "not_an_as_built_survey")
+
+
+#: Within a facade: the per-part working the review browser shows, which the viewer never reads.
+FACADE_REVIEW_KEYS = {"evidence", "references", "frontage_basis", "basis"}
+#: Compared exactly (renderer.mjs boundExterior against the footprint ring; the viewer's photo
+#: openings against their source record), so kept to the bit.
+EXACT_KEYS = {"a", "b", "kerbside_source_record"}
+
+
+def _runtime_facade(value, key=None):
+    """A facade as the viewer reads it: millimetres are plenty for a placed door or sign."""
+    if key in EXACT_KEYS:
+        return value
+    if isinstance(value, dict):
+        return {k: _runtime_facade(v, k) for k, v in value.items() if k not in FACADE_REVIEW_KEYS}
+    if isinstance(value, list):
+        return [_runtime_facade(v, key) for v in value]
+    if isinstance(value, float):
+        return round(value, 6 if key == "normal" else 3)
+    return value
+
+
+def runtime_manifest(manifest):
+    """The manifest the live map loads: the passing plans, with only what the renderer reads.
+    A reference is named by its id (the review build keeps the citations)."""
+    buildings = {}
+    for key, plan in manifest["buildings"].items():
+        slim = {k: plan[k] for k in RUNTIME_KEYS if k in plan}
+        if "facades" in slim:
+            slim["facades"] = _runtime_facade(slim["facades"])
+        slim["validation"] = {"passed": bool(plan.get("validation", {}).get("passed"))}
+        slim["references"] = [r.get("id") if isinstance(r, dict) else r for r in plan.get("references") or []]
+        buildings[key] = slim
+    return {
+        "schema": manifest["schema"],
+        "canonical_geometry_modified": False,
+        "selection": manifest.get("selection"),
+        "selected": len(manifest.get("selected") or []),
+        "rejected": len(manifest.get("rejected") or []),
+        "buildings": buildings,
+    }
