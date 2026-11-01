@@ -1,0 +1,452 @@
+{
+ "schema": "kerbside.highway_sign_tiles/1",
+ "renderer_sha256": "dcfeac6594da40fd",
+ "source": "OpenStreetMap contributors (ODbL): motorway_junction, ramp destination tags, gantries",
+ "bbox": [
+  -122.53,
+  37.3,
+  -121.855,
+  37.9
+ ],
+ "signs": 2514,
+ "kinds": {
+  "exit_direction": 743,
+  "advance_guide": 487,
+  "gore": 746,
+  "route_marker": 538
+ },
+ "tiles": [
+  {
+   "path": "highway-signs/w1226-n378.json",
+   "bbox": [
+    -122.6,
+    37.8,
+    -122.5,
+    37.9
+   ],
+   "signs": 28,
+   "bytes": 12108,
+   "sha256": "6709e016da9fc317"
+  },
+  {
+   "path": "highway-signs/w1225-n375.json",
+   "bbox": [
+    -122.5,
+    37.5,
+    -122.4,
+    37.6
+   ],
+   "signs": 16,
+   "bytes": 7124,
+   "sha256": "2898989331995f1e"
+  },
+  {
+   "path": "highway-signs/w1225-n376.json",
+   "bbox": [
+    -122.5,
+    37.6,
+    -122.4,
+    37.7
+   ],
+   "signs": 147,
+   "bytes": 63939,
+   "sha256": "6b3597266b5f1294"
+  },
+  {
+   "path": "highway-signs/w1225-n377.json",
+   "bbox": [
+    -122.5,
+    37.7,
+    -122.4,
+    37.8
+   ],
+   "signs": 114,
+   "bytes": 49304,
+   "sha256": "807a89f32f938703"
+  },
+  {
+   "path": "highway-signs/w1225-n378.json",
+   "bbox": [
+    -122.5,
+    37.8,
+    -122.4,
+    37.9
+   ],
+   "signs": 39,
+   "bytes": 17042,
+   "sha256": "c5f1ceb1c79aad99"
+  },
+  {
+   "path": "highway-signs/w1224-n374.json",
+   "bbox": [
+    -122.4,
+    37.4,
+    -122.3,
+    37.5
+   ],
+   "signs": 7,
+   "bytes": 2971,
+   "sha256": "e60ab7344caa3523"
+  },
+  {
+   "path": "highway-signs/w1224-n375.json",
+   "bbox": [
+    -122.4,
+    37.5,
+    -122.3,
+    37.6
+   ],
+   "signs": 119,
+   "bytes": 51769,
+   "sha256": "9b018d117e0689d1"
+  },
+  {
+   "path": "highway-signs/w1224-n376.json",
+   "bbox": [
+    -122.4,
+    37.6,
+    -122.3,
+    37.7
+   ],
+   "signs": 36,
+   "bytes": 15684,
+   "sha256": "fc6b547f9639d5dc"
+  },
+  {
+   "path": "highway-signs/w1224-n377.json",
+   "bbox": [
+    -122.4,
+    37.7,
+    -122.3,
+    37.8
+   ],
+   "signs": 42,
+   "bytes": 18261,
+   "sha256": "3af8a3bee6c9579a"
+  },
+  {
+   "path": "highway-signs/w1224-n378.json",
+   "bbox": [
+    -122.4,
+    37.8,
+    -122.3,
+    37.9
+   ],
+   "signs": 70,
+   "bytes": 30745,
+   "sha256": "d51d9d3a8635c71e"
+  },
+  {
+   "path": "highway-signs/w1223-n374.json",
+   "bbox": [
+    -122.3,
+    37.4,
+    -122.2,
+    37.5
+   ],
+   "signs": 78,
+   "bytes": 33742,
+   "sha256": "6eab6017a0f89d91"
+  },
+  {
+   "path": "highway-signs/w1223-n375.json",
+   "bbox": [
+    -122.3,
+    37.5,
+    -122.2,
+    37.6
+   ],
+   "signs": 56,
+   "bytes": 24424,
+   "sha256": "ab8cf4df09412b70"
+  },
+  {
+   "path": "highway-signs/w1223-n377.json",
+   "bbox": [
+    -122.3,
+    37.7,
+    -122.2,
+    37.8
+   ],
+   "signs": 66,
+   "bytes": 28676,
+   "sha256": "026e06458e066863"
+  },
+  {
+   "path": "highway-signs/w1223-n378.json",
+   "bbox": [
+    -122.3,
+    37.8,
+    -122.2,
+    37.9
+   ],
+   "signs": 166,
+   "bytes": 71262,
+   "sha256": "bc78b331daac2394"
+  },
+  {
+   "path": "highway-signs/w1222-n373.json",
+   "bbox": [
+    -122.2,
+    37.3,
+    -122.1,
+    37.4
+   ],
+   "signs": 41,
+   "bytes": 17716,
+   "sha256": "99edb380242f3126"
+  },
+  {
+   "path": "highway-signs/w1222-n374.json",
+   "bbox": [
+    -122.2,
+    37.4,
+    -122.1,
+    37.5
+   ],
+   "signs": 59,
+   "bytes": 25628,
+   "sha256": "dd95bfdb05d3b7e9"
+  },
+  {
+   "path": "highway-signs/w1222-n376.json",
+   "bbox": [
+    -122.2,
+    37.6,
+    -122.1,
+    37.7
+   ],
+   "signs": 73,
+   "bytes": 32298,
+   "sha256": "f7d5912df4ac5791"
+  },
+  {
+   "path": "highway-signs/w1222-n377.json",
+   "bbox": [
+    -122.2,
+    37.7,
+    -122.1,
+    37.8
+   ],
+   "signs": 119,
+   "bytes": 51751,
+   "sha256": "3e84d8b898d02b96"
+  },
+  {
+   "path": "highway-signs/w1222-n378.json",
+   "bbox": [
+    -122.2,
+    37.8,
+    -122.1,
+    37.9
+   ],
+   "signs": 49,
+   "bytes": 21188,
+   "sha256": "413ae1bd59be100c"
+  },
+  {
+   "path": "highway-signs/w1221-n373.json",
+   "bbox": [
+    -122.1,
+    37.3,
+    -122.0,
+    37.4
+   ],
+   "signs": 181,
+   "bytes": 78425,
+   "sha256": "31bea13744985eaa"
+  },
+  {
+   "path": "highway-signs/w1221-n374.json",
+   "bbox": [
+    -122.1,
+    37.4,
+    -122.0,
+    37.5
+   ],
+   "signs": 66,
+   "bytes": 28410,
+   "sha256": "0c23501d0e33cd39"
+  },
+  {
+   "path": "highway-signs/w1221-n375.json",
+   "bbox": [
+    -122.1,
+    37.5,
+    -122.0,
+    37.6
+   ],
+   "signs": 59,
+   "bytes": 25965,
+   "sha256": "43dd7ffb366e7b91"
+  },
+  {
+   "path": "highway-signs/w1221-n376.json",
+   "bbox": [
+    -122.1,
+    37.6,
+    -122.0,
+    37.7
+   ],
+   "signs": 67,
+   "bytes": 28756,
+   "sha256": "d3c953a4abeb6213"
+  },
+  {
+   "path": "highway-signs/w1221-n377.json",
+   "bbox": [
+    -122.1,
+    37.7,
+    -122.0,
+    37.8
+   ],
+   "signs": 8,
+   "bytes": 3531,
+   "sha256": "f76b6fb5960f7d7c"
+  },
+  {
+   "path": "highway-signs/w1221-n378.json",
+   "bbox": [
+    -122.1,
+    37.8,
+    -122.0,
+    37.9
+   ],
+   "signs": 58,
+   "bytes": 25130,
+   "sha256": "b43274247c1af550"
+  },
+  {
+   "path": "highway-signs/w1220-n373.json",
+   "bbox": [
+    -122.0,
+    37.3,
+    -121.9,
+    37.4
+   ],
+   "signs": 289,
+   "bytes": 125697,
+   "sha256": "dbd57055c113cdb1"
+  },
+  {
+   "path": "highway-signs/w1220-n374.json",
+   "bbox": [
+    -122.0,
+    37.4,
+    -121.9,
+    37.5
+   ],
+   "signs": 123,
+   "bytes": 53249,
+   "sha256": "6d0eac1576425e6c"
+  },
+  {
+   "path": "highway-signs/w1220-n375.json",
+   "bbox": [
+    -122.0,
+    37.5,
+    -121.9,
+    37.6
+   ],
+   "signs": 61,
+   "bytes": 26385,
+   "sha256": "b487b8a96d783683"
+  },
+  {
+   "path": "highway-signs/w1220-n376.json",
+   "bbox": [
+    -122.0,
+    37.6,
+    -121.9,
+    37.7
+   ],
+   "signs": 29,
+   "bytes": 12691,
+   "sha256": "1c151c10597be47d"
+  },
+  {
+   "path": "highway-signs/w1220-n377.json",
+   "bbox": [
+    -122.0,
+    37.7,
+    -121.9,
+    37.8
+   ],
+   "signs": 40,
+   "bytes": 17540,
+   "sha256": "7dcfeaab2bb08c83"
+  },
+  {
+   "path": "highway-signs/w1220-n378.json",
+   "bbox": [
+    -122.0,
+    37.8,
+    -121.9,
+    37.9
+   ],
+   "signs": 19,
+   "bytes": 8270,
+   "sha256": "69b58fea0fe30198"
+  },
+  {
+   "path": "highway-signs/w1219-n373.json",
+   "bbox": [
+    -121.9,
+    37.3,
+    -121.8,
+    37.4
+   ],
+   "signs": 93,
+   "bytes": 40346,
+   "sha256": "e67c51d6f9371dc9"
+  },
+  {
+   "path": "highway-signs/w1219-n374.json",
+   "bbox": [
+    -121.9,
+    37.4,
+    -121.8,
+    37.5
+   ],
+   "signs": 39,
+   "bytes": 17517,
+   "sha256": "ed8c6c2d89c3ada1"
+  },
+  {
+   "path": "highway-signs/w1219-n375.json",
+   "bbox": [
+    -121.9,
+    37.5,
+    -121.8,
+    37.6
+   ],
+   "signs": 24,
+   "bytes": 10657,
+   "sha256": "5f923b7c86fb2919"
+  },
+  {
+   "path": "highway-signs/w1219-n376.json",
+   "bbox": [
+    -121.9,
+    37.6,
+    -121.8,
+    37.7
+   ],
+   "signs": 17,
+   "bytes": 7433,
+   "sha256": "b42fdd70745f821b"
+  },
+  {
+   "path": "highway-signs/w1219-n377.json",
+   "bbox": [
+    -121.9,
+    37.7,
+    -121.8,
+    37.8
+   ],
+   "signs": 16,
+   "bytes": 6947,
+   "sha256": "86cdf3c55fc5305a"
+  }
+ ]
+}

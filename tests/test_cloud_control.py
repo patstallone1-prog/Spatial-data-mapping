@@ -286,6 +286,9 @@ def test_site_promotion_lists_new_cells_and_commits_none_of_their_data(tmp_path)
     (repo / "docs/app-regions/gap-a").mkdir(parents=True)
     (repo / "docs/app-regions/gap-a/app-model.html").write_text("<html>")
     assert commit_paths(repo, ["gap-a"]) == ["docs/app-regions/gap-a/app-model.html", "docs/asset-map.json"]
+    # Its storefronts are the one file of its folder the site serves itself.
+    (repo / "docs/regions/gap-a/storefront-exteriors.json").write_text("{}")
+    assert "docs/regions/gap-a/storefront-exteriors.json" in commit_paths(repo, ["gap-a"])
     # A cell listed by a promotion that stopped part way is still fetched: its page has no mask yet.
     from smc.cloud.site import unbuilt
 

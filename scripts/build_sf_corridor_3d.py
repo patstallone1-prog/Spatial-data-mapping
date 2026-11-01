@@ -4441,16 +4441,23 @@ function registerLazyLayer(layer, builder) {
   lazyLayerBuilders.set(layer, { builder, promise: null });
   if (lazyLayersWanted.has(layer)) ensureLazyLayer(layer);
 }
+//: Layers that open with another: the freeway signs are street furniture.
+const LAZY_COMPANIONS = { furniture: ["highway_signs"] };
+//: Layers built (or given up on) -- the home screen waits for the ones that are open.
+const lazyLayersSettled = new Set();
 function ensureLazyLayer(layer) {
   lazyLayersWanted.add(layer);
+  for (const companion of LAZY_COMPANIONS[layer] || []) ensureLazyLayer(companion);
   const entry = lazyLayerBuilders.get(layer);
   if (!entry || entry.promise) return;
+  lazyLayersSettled.delete(layer);
   entry.promise = Promise.resolve()
     .then(entry.builder)
     .catch((err) => {
       console.warn(`Could not build ${layer} layer`, err);
       entry.promise = null;
-    });
+    })
+    .finally(() => lazyLayersSettled.add(layer));
 }
 
 const bbox = DATA.bbox;
@@ -30022,6 +30029,38 @@ registerLazyLayer("furniture", async () => {
   renderStreetFurniture(furniture, transit, creatives);
 });
 
+// Freeway guide signs (smc.highways; scripts/build_highway_signs.py), inferred from
+// OpenStreetMap's exits and their ramps' destinations and published the way the storefronts
+// are: a small shared manifest names each tile by its area, and only the tiles over this page's
+// are fetched. A tile must be a highway-signs/<name>.json on this site and the renderer has one
+// fixed name beside the manifest, so a manifest can never point the page at other code.
+const HIGHWAY_SIGN_TILE_PATH = /^highway-signs\/[a-z0-9-]+\.json$/;
+registerLazyLayer("highway_signs", async () => {
+  const index=await fetch(sharedAsset("highway-signs.manifest.json"),{cache:"no-cache"})
+    .then(r=>r.ok?r.json():null).catch(()=>null);
+  if(index?.schema!=="kerbside.highway_sign_tiles/1" || !Array.isArray(index.tiles))return;
+  const b=LIGHT_SPEC ? {west:LIGHT_SPEC.box[0],south:LIGHT_SPEC.box[1],east:LIGHT_SPEC.box[2],north:LIGHT_SPEC.box[3]} : DATA.bbox;
+  const wanted=index.tiles.filter(t=>typeof t?.path==="string" && HIGHWAY_SIGN_TILE_PATH.test(t.path)
+    && Array.isArray(t.bbox) && t.bbox[0]<=b.east && t.bbox[2]>=b.west && t.bbox[1]<=b.north && t.bbox[3]>=b.south);
+  if(!wanted.length)return;
+  const [tiles, module] = await Promise.all([
+    Promise.all(wanted.map(t=>fetch(sharedAsset(`${t.path}?v=${encodeURIComponent(t.sha256 || "")}`))
+      .then(r=>r.ok?r.json():null).catch(()=>null))),
+    import(sharedAsset(`highway-sign-renderer.mjs?v=${encodeURIComponent(index.renderer_sha256 || "")}`)),
+  ]);
+  // A sign a few hundred metres outside the page still stands on its ground: the half-mile
+  // sign for an exit inside it, seen down the road.
+  const m=0.004;
+  const signs=tiles.flatMap(t=>t?.schema==="kerbside.highway_signs/1" && Array.isArray(t.signs) ? t.signs : [])
+    .filter(s=>Array.isArray(s?.p) && s.p[0]>=b.west-m && s.p[0]<=b.east+m && s.p[1]>=b.south-m && s.p[1]<=b.north+m);
+  if(!signs.length)return;
+  const group=module.buildHighwaySigns(THREE,signs,{
+    place:(lon,lat)=>{const [x,y]=xy(lon,lat);return {x,z:-y};},
+    ground:(x,z)=>groundLiftAt(x,z), decks:(x,z)=>elevatedRoadsAt(x,z), maxPanels:HEADSET ? 60 : 240});
+  groups.furniture.add(group);
+  window.kerbsideHighwaySigns=()=>group.userData.summary;
+});
+
 registerLazyLayer("coverage", () => {
 for (const c of DATA.coverage) {
   const height = 10 + 92 * Math.min(1, c.score || 0);
@@ -38115,6 +38154,12 @@ function worldLoadWaiting() {
   if (facadeQueue.length || facadeInFlight) waiting.push(`facades (${facadeQueue.length + facadeInFlight})`);
   if (avatar.userData.demoCharacterLoaded === undefined) waiting.push("your walker");
   if (!catalogueSettled) waiting.push("what stops the walker");
+  // The street furniture and the freeway signs open with the city (groups.furniture), asked for
+  // once the ground is down: held for too, until they are drawn or given up on.
+  if (groups.furniture.visible && !window.kerbsideReady?.ground) waiting.push("the ground");
+  if (groups.furniture.visible) for (const [layer, label] of [["furniture", "street furniture"], ["highway_signs", "freeway signs"]]) {
+    if (lazyLayersWanted.has(layer) && lazyLayerBuilders.has(layer) && !lazyLayersSettled.has(layer)) waiting.push(label);
+  }
   return waiting;
 }
 WORLD_READY.then(() => {

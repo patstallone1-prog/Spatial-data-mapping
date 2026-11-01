@@ -29,12 +29,14 @@ sleep_after_min = 20
 # The standing plan (smc-cloud plan --standing) is submitted again this often: new house
 # batches, new interior batches, a chain that has grown.
 replan_h = 24
-# Kinds that wait (2026-10-28, the owner): the interior engine's house batches and restaurant
-# rounds stand aside so the cells and the house exteriors finish first. Remove to resume.
-paused_kinds = ["interior_batch", "restaurant_round"]
+# Kinds that wait. 2026-10-28 (the owner): the interior engine's house batches and restaurant
+# rounds stood aside so the cells and the house exteriors finished first; resumed 2026-11-01 with
+# the cells done. The measured world mesh's blocks wait (the owner, 2026-11-01). Remove to resume.
+paused_kinds = ["mesh_block"]
 # Gates and publications at once on the controller: each mostly waits on the buckets. One at a
-# time left 190 finished cells days from the site (2026-10-31).
-control_slots = 4
+# time left 190 finished cells days from the site (2026-10-31); four took ten minutes a
+# publication for 101 approved cells (2026-11-01), so eight.
+control_slots = 8
 
 # Cells stuck past anything a finished cell took are set aside (smc.cloud.stuck): a stage
 # quarantined this long, or more worker time / wall time than the costliest finished cell by

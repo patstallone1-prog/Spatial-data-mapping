@@ -204,7 +204,7 @@
       "interior_door": "building.door", "park_facility:door": "building.door", "park_facility:rollup_door": "building.door",
       "park_facility:rollup_rib": "building.door", "interior_door_reveal": "building.door",
       "park_facility:sign": "building.sign", "sign": "building.sign", "street_cafe": "furniture.street_cafe", "furniture:sign_plate": "furniture.sign_plate",
-      "furniture:sign_back": "furniture.sign_plate", "furniture:billboard": "building.billboard", "roof_furniture": "building.roof_fixture",
+      "furniture:sign_back": "furniture.sign_plate", "furniture:highway_sign": "furniture.sign_plate", "furniture:sign_gantry": "furniture.sign_post", "furniture:billboard": "building.billboard", "roof_furniture": "building.roof_fixture",
       "park_facility:drinking_fountain": "furniture.drinking_fountain",
       "interior": "interior.floor", "interior_storey": "interior.floor", "interior_base_floor": "interior.floor",
       "interior_threshold": "interior.floor", "interior_wall_paint": "interior.wall", "interior_ceiling": "interior.ceiling",

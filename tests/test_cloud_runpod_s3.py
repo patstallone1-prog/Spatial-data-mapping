@@ -81,8 +81,8 @@ def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_
     # The owner's $60 a day (2026-10-29), everything counted (the controller's pod too: it sleeps
     # idle), and a warning at 50 cents.
     assert cfg.budget.daily_usd <= 60 and cfg.budget.warn_usd == 0.5 and cfg.budget.hard_monthly_usd <= 310 and cfg.hourly_usd and cfg.sleep_after_min
-    # The interior engine waits while the cells and houses go first.
-    assert set(cfg.paused_kinds) == {"interior_batch", "restaurant_round"}
+    # The cells done, the interior engine runs (2026-11-01); the world mesh's blocks wait.
+    assert set(cfg.paused_kinds) == {"mesh_block"}
 
 
 @needs_boto3
