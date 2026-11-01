@@ -26,6 +26,7 @@ import json
 import shutil
 import sys
 import tempfile
+import urllib.request
 from importlib.resources import files
 from pathlib import Path
 
@@ -43,21 +44,41 @@ PLANS = "storefront-exteriors.json"
 def default_worlds() -> list[Path]:
     """Every world a page reads (tools/build_search_index.py payload_for): the corridor, each app
     region's own expanded copy, and a website region's data only where the app has no copy --
-    plans bind to the exact shell they were inferred from, and the copies differ."""
+    plans bind to the exact shell they were inferred from, and the copies differ. A cloud cell's
+    world is in the bucket (docs/asset-map.json), and is read from there when not on disk."""
     worlds = [DOCS / "sf-corridor-3d.json"]
     app = sorted(DOCS.glob("app-regions/*/sf-corridor-3d.json"))
     worlds += app
     have = {p.parent.name for p in app}
-    worlds += [p for p in sorted(DOCS.glob("regions/*/sf-corridor-3d.json")) if p.parent.name not in have]
+    regions = {p.parent.name for p in DOCS.glob("regions/*/sf-corridor-3d.json")}
+    stored = {k.split("/")[1] for k in cloud_files() if k.startswith("regions/") and k.endswith("/sf-corridor-3d.json")}
+    worlds += [DOCS / "regions" / name / "sf-corridor-3d.json" for name in sorted((regions | stored) - have)]
     return worlds
+
+
+def cloud_files() -> dict:
+    path = DOCS / "asset-map.json"
+    return json.loads(path.read_text()).get("files", {}) if path.exists() else {}
+
+
+def world_bytes(world_path: Path) -> bytes | None:
+    """The world as the page reads it: from this checkout, or the cell's object in the bucket."""
+    if world_path.is_file():
+        return world_path.read_bytes()
+    amap = json.loads((DOCS / "asset-map.json").read_text())
+    obj = amap.get("files", {}).get(str(world_path.relative_to(DOCS)))
+    if not obj or not amap.get("origin"):
+        return None
+    with urllib.request.urlopen(f"{amap['origin'].rstrip('/')}/{obj}", timeout=120) as response:
+        return response.read()
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def publish(world_path: Path) -> dict | None:
-    world = json.loads(world_path.read_bytes())
+def publish(world_path: Path, raw: bytes) -> dict | None:
+    world = json.loads(raw)
     with tempfile.TemporaryDirectory() as tmp:
         manifest = build_bundle(Path(tmp), world=world, limit=LIMIT)
     slim = runtime_manifest(manifest)
@@ -65,29 +86,16 @@ def publish(world_path: Path) -> dict | None:
     if not slim["buildings"]:
         plans.unlink(missing_ok=True)
         return None
+    plans.parent.mkdir(parents=True, exist_ok=True)  # a cloud cell's folder holds only its plans
     plans.write_text(json.dumps(slim, separators=(",", ":")) + "\n")
     b = world["bbox"]
     return {"world": str(world_path.relative_to(DOCS)), "path": str(plans.relative_to(DOCS)),
             "bbox": [b["west"], b["south"], b["east"], b["north"]], "buildings": len(slim["buildings"]),
-            "rejected": slim["rejected"], "bytes": plans.stat().st_size, "sha256": sha256(plans)}
+            "rejected": slim["rejected"], "bytes": plans.stat().st_size, "sha256": sha256(plans),
+            "source_sha256": hashlib.sha256(raw).hexdigest()}
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("worlds", nargs="*", type=Path)
-    args = parser.parse_args()
-    previous = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
-    tiles = {t["world"]: t for t in previous.get("tiles", [])}
-    for path in args.worlds or default_worlds():
-        path = path.resolve()
-        if not path.is_file():
-            print(json.dumps({"world": str(path), "skipped": "no payload"}), flush=True)
-            continue
-        tile = publish(path)
-        tiles.pop(str(path.relative_to(DOCS)), None)
-        if tile:
-            tiles[tile["world"]] = tile
-        print(json.dumps(tile or {"world": str(path), "storefronts": 0}), flush=True)
+def write_manifest(tiles: dict) -> None:
     tiles = {k: t for k, t in tiles.items() if (DOCS / t["path"]).exists()}
     package = files("smc.exteriors")
     shutil.copyfile(str(package.joinpath("renderer.mjs")), DOCS / "storefront-renderer.mjs")
@@ -99,6 +107,31 @@ def main() -> int:
         "buildings": sum(t["buildings"] for t in tiles.values()),
         "tiles": sorted(tiles.values(), key=lambda t: t["world"]),
     }, indent=1) + "\n")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("worlds", nargs="*", type=Path)
+    args = parser.parse_args()
+    previous = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
+    tiles = {t["world"]: t for t in previous.get("tiles", [])}
+    for path in args.worlds or default_worlds():
+        path = path.resolve()
+        raw = world_bytes(path)
+        if raw is None:
+            print(json.dumps({"world": str(path), "skipped": "no payload"}), flush=True)
+            continue
+        key = str(path.relative_to(DOCS))
+        done = tiles.get(key)
+        if done and done.get("source_sha256") == hashlib.sha256(raw).hexdigest() and (DOCS / done["path"]).exists():
+            continue  # plans already made from exactly this world
+        tile = publish(path, raw)
+        tiles.pop(key, None)
+        if tile:
+            tiles[tile["world"]] = tile
+        write_manifest(tiles)  # each world as it is done: a long run that stops keeps its work
+        print(json.dumps(tile or {"world": str(path), "storefronts": 0}), flush=True)
+    write_manifest(tiles)
     return 0
 
 

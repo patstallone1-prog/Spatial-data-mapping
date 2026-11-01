@@ -418,3 +418,26 @@ const d=JSON.parse(fs.readFileSync(process.argv[1]));
 console.log(boundExterior(d.way,{{buildings:{{1234:d.plan}}}}) ? 'bound' : 'rejected');
 """
     assert subprocess.check_output(["node", "--input-type=module", "-e", js, str(path)], text=True).strip() == "bound"
+
+
+def test_publish_writes_a_cloud_cells_plans_beside_where_its_world_is_served(tmp_path, monkeypatch):
+    import runpy
+
+    script = runpy.run_path(str(ROOT / "scripts/publish_store_exteriors.py"), run_name="publish")
+    publish, write_manifest = script["publish"], script["write_manifest"]
+    docs = tmp_path / "docs"
+    (docs / "storefront-assets").mkdir(parents=True)
+    for fn in (publish, write_manifest):
+        monkeypatch.setitem(fn.__globals__, "DOCS", docs)
+    monkeypatch.setitem(write_manifest.__globals__, "MANIFEST", docs / "storefront-exteriors.manifest.json")
+    world = {"bbox": {"west": -122.44, "south": 37.78, "east": -122.42, "north": 37.80}, "ways": [mapped_way()]}
+    raw = json.dumps(world).encode()
+    # A cell in the bucket has no folder here: the plans are all this checkout holds of it.
+    tile = publish(docs / "regions/cell-a/sf-corridor-3d.json", raw)
+    assert tile["path"] == "regions/cell-a/storefront-exteriors.json" and tile["buildings"] == 1
+    assert tile["source_sha256"] == hashlib.sha256(raw).hexdigest()
+    assert tile["bbox"] == [-122.44, 37.78, -122.42, 37.80]
+    write_manifest({tile["world"]: tile, "gone": {**tile, "path": "regions/gone/storefront-exteriors.json"}})
+    manifest = json.loads((docs / "storefront-exteriors.manifest.json").read_text())
+    assert [t["path"] for t in manifest["tiles"]] == [tile["path"]] and manifest["buildings"] == 1
+    assert (docs / "storefront-renderer.mjs").is_file() and (docs / "storefront-assets/manifest.json").is_file()
