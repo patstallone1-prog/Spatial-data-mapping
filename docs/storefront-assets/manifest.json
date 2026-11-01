@@ -1,0 +1,144 @@
+{
+  "schema": "kerbside.storefront_brand_assets/1",
+  "assets": {
+    "safeway": {
+      "path": "safeway-logo.png",
+      "source_url": "https://images.albertsons-media.com/is/image/ABS/nav-safeway-logo?fmt=png-alpha",
+      "discovered_at": "https://www.safeway.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "7a9d93a7b7af805d4e8231849ba73757df200e39e3142d8a752f059bcf484f25",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "subway": {
+      "path": "subway-logo.jpg",
+      "source_url": "https://mma.prnewswire.com/media/431103/Subway_Logo.jpg",
+      "discovered_at": "https://newsroom.subway.com/2024-11-12-Subway-Unveils-New-Global-Restaurant-Design",
+      "retrieved_at": "2026-10-29",
+      "sha256": "2a84bc73a6fcc806ad7fd9aeaf1f4fdc182f90e546dcbaf5cdb32bffb32963c5",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront",
+      "display_box_px": [
+        8,
+        87,
+        384,
+        78
+      ],
+      "presentation": "Texture UV excludes master-image white margins; original asset bytes unchanged."
+    },
+    "seven_eleven": {
+      "path": "seven-eleven-horizontal.jpg",
+      "source_url": "https://images.contentstack.io/v3/assets/blt79dc99fad342cc45/blt080544b49732c1b4/633f08c159c8ec116d13f087/7_Eleven_Horizontal_2022_RGB_1639377127_8977.jpeg",
+      "discovered_at": "https://corp.7-eleven.com/corp/media-kit",
+      "retrieved_at": "2026-10-29",
+      "sha256": "4a81ded5c2f44d82d65fefaaae9b1a8b69288b9748bdc1f77088cf7d019faece",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront",
+      "display_box_px": [
+        60,
+        501,
+        1080,
+        198
+      ],
+      "presentation": "Texture UV excludes white master margins; artwork bytes unchanged."
+    },
+    "whole_foods": {
+      "path": "whole-foods-logo.svg",
+      "source_url": "https://www.wholefoodsmarket.com/",
+      "discovered_at": "https://www.wholefoodsmarket.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "cb909e4fe115c01ac3c8141d5e406a52cb59d6c5ec005c2559bc3f07828c380b",
+      "transform": "none; Whole Foods is the unmodified inline SVG element from its official header",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "chase": {
+      "path": "chase-logo.svg",
+      "source_url": "https://www.chase.com/content/dam/unified-assets/logo/chase/chase-logo/additional-file-formats/logo_chase_headerfooter.svg",
+      "discovered_at": "https://www.chase.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "223b2225e3034e5bd670ca02415885f498a862c53092569ee2e2da5b7050946a",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "chipotle": {
+      "path": "chipotle-logo.svg",
+      "source_url": "https://www.chipotle.com/content/experience-fragments/chipotle/us/en/xf-header/master/_jcr_content/root/container_712714414/image_411084835.coreimg.svg/1689182077517/cmg-medallion-logo.svg",
+      "discovered_at": "https://www.chipotle.com/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "e4bd47f46d31e3c98533c8ed2c172bd5996e1699f780c35749f661f907fe183c",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "starbucks": {
+      "path": "starbucks-siren.svg",
+      "source_url": "https://www.starbucks.ca/assets/icons/siren.svg",
+      "discovered_at": "https://www.starbucks.ca/",
+      "retrieved_at": "2026-10-29",
+      "sha256": "d9a5c1a69d25655ddabd353883e0c0798f75cb45e3a1811fb340862b15bbaee5",
+      "transform": "none",
+      "usage": "brand identification; Starbucks trademark",
+      "scope": "exact official Siren artwork, not a surveyed storefront",
+      "display_size_px": [
+        512,
+        512
+      ],
+      "presentation": "Explicit square display viewport for the original viewBox; master bytes/path artwork unchanged."
+    },
+    "target": {
+      "path": "target-bullseye.png",
+      "source_url": "https://corporate.target.com/getmedia/2c5f1cba-8bd7-47e1-96dd-46ddf3f50881/Target_Bullseye-Logo_Red_transparent_220px.png?width=220",
+      "discovered_at": "https://corporate.target.com/",
+      "retrieved_at": "2026-10-30",
+      "sha256": "30f3689bfbaccf8b0c0cae3537b7fd311c91e14216786a96ad4d578d7e0f4bab",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "costco": {
+      "path": "costco-logo.avif",
+      "source_url": "https://gdx-assets.costco.com/adobe/assets/urn:aaid:aem:700b4244-1830-4bb4-8c15-89ec75777531/as/Costco-logo-HEX.avif",
+      "discovered_at": "https://www.costco.com/",
+      "retrieved_at": "2026-10-30",
+      "sha256": "f9cf8f2eeddc7bbe60fc7e5424eff36592db94f5bc6489f9f92b11f69f26c1cd",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "76": {
+      "path": "76-logo.png",
+      "source_url": "https://www.76.com/wp-content/themes/fuels-redesign/assets/logos/e76-default.png",
+      "discovered_at": "https://www.76.com/",
+      "retrieved_at": "2026-10-30",
+      "sha256": "21584e018b08a75007a6dea954e336a844d83c56aa853e33473f23a82f567722",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with owners",
+      "scope": "exact supplied brand asset, not a surveyed storefront"
+    },
+    "chevron": {
+      "path": "chevron-logo.svg",
+      "source_url": "https://www.chevronwithtechron.com/content/dam/external/chevron/en_us/marketing-support/web-images/chevron-with-techron/logo.svg",
+      "discovered_at": "https://www.chevronwithtechron.com/",
+      "retrieved_at": "2026-10-30",
+      "sha256": "5ad2f42ac527250ef84861ea75f5f42356dcaac03ca53563d0a9989008db8371",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with owners",
+      "scope": "exact supplied brand asset, not a surveyed station"
+    },
+    "arco": {
+      "path": "arco-logo.png",
+      "source_url": "https://www.arco.com/img/nav-arco-logo.png",
+      "discovered_at": "https://www.arco.com/en-us/southwest/",
+      "retrieved_at": "2026-10-30",
+      "sha256": "70cbf9137cb5fcacb96f1a0fa998f2a10bdc7ff0dfc98325345a5e2a3b49a065",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with owners",
+      "scope": "exact supplied brand asset, not a surveyed station"
+    }
+  }
+}

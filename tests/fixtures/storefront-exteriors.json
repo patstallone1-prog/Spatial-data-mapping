@@ -1,0 +1,2438 @@
+[
+  {
+    "id": "category-cafe",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Cafe",
+        "category": "cafe"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-diner",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            12,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Diner",
+        "category": "diner"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-restaurant",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Restaurant",
+        "category": "restaurant"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-fast_food",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Fast Food",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-pizza",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Pizza",
+        "category": "pizza"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-bakery",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Bakery",
+        "category": "bakery"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-bar",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            6,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Bar",
+        "category": "bar"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-grocery",
+    "height_m": 6,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            42,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Grocery",
+        "category": "grocery"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-corner_store",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            6,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Corner Store",
+        "category": "corner_store"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-clothing",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Clothing",
+        "category": "clothing"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-books",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Books",
+        "category": "books"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-salon",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Salon",
+        "category": "salon"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-pharmacy",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Pharmacy",
+        "category": "pharmacy"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-bank",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Bank",
+        "category": "bank"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-laundry",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Laundry",
+        "category": "laundry"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-hardware",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Hardware",
+        "category": "hardware"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-florist",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Florist",
+        "category": "florist"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-office",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Office",
+        "category": "office"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-senior_living",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Senior Living",
+        "category": "senior_living"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-clinic",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Clinic",
+        "category": "clinic"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-hotel",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Hotel",
+        "category": "hotel"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-civic",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Civic",
+        "category": "civic"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-school",
+    "height_m": 15,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            16,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example School",
+        "category": "school"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-industrial",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Industrial",
+        "category": "industrial"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "category-shop",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Example Shop",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-starbucks",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Starbucks",
+        "category": "cafe",
+        "brand": "starbucks"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-starbucks_reserve",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Starbucks Reserve",
+        "category": "cafe",
+        "brand": "starbucks_reserve"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-subway",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Subway",
+        "category": "fast_food",
+        "brand": "subway"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-safeway",
+    "height_m": 5.5,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            40,
+            0
+          ],
+          [
+            40,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Safeway",
+        "category": "grocery",
+        "brand": "safeway"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-whole_foods",
+    "height_m": 5.5,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            40,
+            0
+          ],
+          [
+            40,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Whole Foods Market",
+        "category": "grocery",
+        "brand": "whole_foods"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-trader_joes",
+    "height_m": 5.5,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            40,
+            0
+          ],
+          [
+            40,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Trader Joe's",
+        "category": "grocery",
+        "brand": "trader_joes"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-peets",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Peet's Coffee",
+        "category": "cafe",
+        "brand": "peets"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-philz",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Philz Coffee",
+        "category": "cafe",
+        "brand": "philz"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-seven_eleven",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "7-Eleven",
+        "category": "corner_store",
+        "brand": "seven_eleven"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-chipotle",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Chipotle",
+        "category": "fast_food",
+        "brand": "chipotle"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-chase",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Chase",
+        "category": "bank",
+        "brand": "chase"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-cvs",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "CVS Pharmacy",
+        "category": "pharmacy",
+        "brand": "cvs"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "chain-walgreens",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9.5,
+            0
+          ],
+          [
+            9.5,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Walgreens",
+        "category": "pharmacy",
+        "brand": "walgreens"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "cost-budget",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Juniper Dining",
+        "category": "restaurant",
+        "average_spend_per_person": 14,
+        "currency": "USD"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "cost-standard",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Juniper Dining",
+        "category": "restaurant",
+        "average_spend_per_person": 32,
+        "currency": "USD"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "cost-premium",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Juniper Dining",
+        "category": "restaurant",
+        "average_spend_per_person": 65,
+        "currency": "USD"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "cost-luxury",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Juniper Dining",
+        "category": "restaurant",
+        "average_spend_per_person": 125,
+        "currency": "USD"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "skinny-door-sign",
+    "height_m": 2.6,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1.9,
+            0
+          ],
+          [
+            1.9,
+            16
+          ],
+          [
+            0,
+            16
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Needle Cafe",
+        "category": "cafe"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public"
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "concave-observed",
+    "height_m": 9,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            5,
+            15
+          ],
+          [
+            0,
+            15
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Corner Table",
+        "category": "cafe"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public",
+        "openings": [
+          {
+            "id": "window-a",
+            "kind": "window",
+            "u": 0.4,
+            "w": 2.2,
+            "v": 0.6,
+            "h": 2.0,
+            "measured": true,
+            "source_id": "fixture-observation"
+          },
+          {
+            "id": "door-a",
+            "kind": "door",
+            "u": 3.1,
+            "w": 1.1,
+            "v": 0,
+            "h": 2.35,
+            "measured": true
+          },
+          {
+            "id": "window-b",
+            "kind": "window",
+            "u": 4.8,
+            "w": 3.7,
+            "v": 0.4,
+            "h": 2.7,
+            "measured": true
+          }
+        ],
+        "openings_complete": true,
+        "protected_rectangles": [
+          {
+            "u": 5,
+            "w": 3,
+            "v": 3.2,
+            "h": 1.2,
+            "kind": "balcony"
+          }
+        ],
+        "bands": [
+          {
+            "bottom_m": 0,
+            "top_m": 1,
+            "colour": "#7d4136"
+          },
+          {
+            "bottom_m": 1,
+            "top_m": 3.9,
+            "colour": "#e0d2b6"
+          }
+        ]
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "three-neighbor-tenants",
+    "height_m": 9,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            20,
+            0
+          ],
+          [
+            20,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Slim Repairs",
+        "category": "shop"
+      },
+      {
+        "id": "B",
+        "name": "Harbor Cafe",
+        "category": "cafe"
+      },
+      {
+        "id": "C",
+        "name": "Pages Books",
+        "category": "books"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "u0": 0,
+        "u1": 3
+      },
+      {
+        "edge": 0,
+        "tenant_id": "B",
+        "u0": 3,
+        "u1": 10
+      },
+      {
+        "edge": 0,
+        "tenant_id": "C",
+        "u0": 10,
+        "u1": 20
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "garage-and-service",
+    "height_m": 6,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            14,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Neighborhood Market",
+        "category": "corner_store"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public",
+        "openings": [
+          {
+            "id": "recorded-garage",
+            "kind": "garage",
+            "u": 0.4,
+            "w": 4.8,
+            "v": 0,
+            "h": 2.5,
+            "measured": true
+          }
+        ]
+      },
+      {
+        "edge": 2,
+        "tenant_id": "tenant",
+        "role": "service",
+        "openings": [
+          {
+            "id": "loading",
+            "kind": "loading",
+            "u": 1,
+            "w": 3.6,
+            "v": 0,
+            "h": 3,
+            "measured": true
+          }
+        ]
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "complete-observed-front",
+    "height_m": 4.2,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Subway",
+        "category": "fast_food",
+        "brand": "subway"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public",
+        "openings_complete": true,
+        "signs_complete": true,
+        "openings": [
+          {
+            "id": "source-window",
+            "kind": "window",
+            "u": 0.3,
+            "w": 3.1,
+            "v": 0.35,
+            "h": 2.3,
+            "measured": true
+          },
+          {
+            "id": "source-door",
+            "kind": "door",
+            "u": 4.1,
+            "w": 1.2,
+            "v": 0,
+            "h": 2.5,
+            "measured": true
+          }
+        ],
+        "signs": [
+          {
+            "id": "source-sign",
+            "kind": "fascia",
+            "text": "Subway",
+            "u": 0.6,
+            "w": 5.5,
+            "v": 3,
+            "h": 0.6,
+            "measured": true,
+            "asset": "subway"
+          }
+        ]
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  },
+  {
+    "id": "arched-entry",
+    "height_m": 4.5,
+    "units": "metres",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            7.4,
+            0
+          ],
+          [
+            7.4,
+            14
+          ],
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "tenants": [
+      {
+        "id": "tenant",
+        "name": "Arcade Books",
+        "category": "books"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "tenant",
+        "role": "public",
+        "openings": [
+          {
+            "id": "arch-display",
+            "kind": "window",
+            "u": 0.4,
+            "w": 2.8,
+            "v": 0.55,
+            "h": 2.6,
+            "shape": "arched",
+            "arch_rise_m": 0.45,
+            "measured": true
+          }
+        ]
+      }
+    ],
+    "source": "fixed synthetic exterior program, not a measured store"
+  }
+]

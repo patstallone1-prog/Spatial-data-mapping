@@ -89,6 +89,7 @@ const CSS = `
 #home .side button{align-self:flex-start}
 #home .status{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#9fb0c2}
 #home .status i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5dff6a;margin-right:6px;box-shadow:0 0 8px #5dff6a}
+#home.world-loading .needs-world{opacity:.45;cursor:wait;filter:grayscale(.6)}
 #home .status.loading i{background:#ffd21a;box-shadow:0 0 8px #ffd21a;animation:hblink 1s infinite}
 @keyframes hblink{50%{opacity:.3}}
 #home .sheet{position:absolute;right:28px;bottom:110px;width:min(420px,calc(100vw - 32px));max-height:min(70vh,640px);overflow:auto;padding:18px 18px 16px;
@@ -353,7 +354,7 @@ export function openHome(ctx) {
     const label = current ? current.label || `${current.lat.toFixed(5)}, ${current.lon.toFixed(5)}` : "The middle of the area (default)";
     sheet("Set spawn point", el("p", {}, "Where Explore world puts you. ", el("b", {}, `Now: ${label}`)),
       el("div", { class: "tools" },
-        el("button", { class: "hb", type: "button", on: { click: () => { closeHome(); ctx.spawn.pickInWorld(); } } }, "Choose in the world…"),
+        el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.spawn.pickInWorld(); } } }, "Choose in the world…"),
         el("button", { class: "hb", type: "button", on: { click: () => { ctx.spawn.useWalker(); spawnSheet(); } } }, "Where my walker is now"),
         el("button", { class: "hb", type: "button", disabled: !current, on: { click: () => { ctx.spawn.clear(); spawnSheet(); } } }, "Back to the default")));
   };
@@ -366,13 +367,13 @@ export function openHome(ctx) {
     } } }, on ? "Contributor tools: on" : "Contributor tools: off");
     sheet("Contributor tools", el("p", {}, "For people helping to build the map: the survey layers (coverage, photographs, sequences, measured kerbs), the region's numbers, and the capture app. Most visits don't need them."),
       el("div", { class: "tools" }, toggle,
-        el("button", { class: "hb", type: "button", on: { click: () => { closeHome(); ctx.openMap(); } } }, "Map, search and directions"),
-        el("button", { class: "hb", type: "button", on: { click: () => { closeHome(); ctx.openSettings(); } } }, "Settings and layers"),
+        el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.openMap(); } } }, "Map, search and directions"),
+        el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.openSettings(); } } }, "Settings and layers"),
         el("button", { class: "hb", type: "button", on: { click: () => ctx.openCapture() } }, "Capture photographs (opens the capture app)")));
   };
 
   const mpButton = el("button", { class: "hb", type: "button", on: { click: () => multiplayerSheet() } }, "Multiplayer");
-  const go = el("button", { class: "hb go", type: "button", on: { click: () => closeHome(true) } }, "Explore world", el("small", {}, ctx.regionTitle || "The Bay Area"));
+  const go = el("button", { class: "hb go needs-world", type: "button", "aria-disabled": "true", on: { click: () => closeHome(true) } }, "Explore world", el("small", {}, ctx.regionTitle || "The Bay Area"));
   const bottom = el("div", { class: "bottom" },
     el("div", { class: "side" }, status,
       el("button", { class: "hb", type: "button", on: { click: () => toolsSheet() } }, "Contributor tools")),
@@ -395,17 +396,27 @@ export function openHome(ctx) {
     else if (e.key === "Escape") { if (sheetHost.firstChild) sheetHost.replaceChildren(); }
   };
   addEventListener("keydown", keys, true);
+  // Nothing leaves the lobby for the world until the world is loaded through -- every square
+  // round the spawn fetched and built, the walker and what stops it in -- not merely drawn.
   const ready = ctx.whenReady?.() || Promise.resolve();
+  let loaded = false;
+  root.classList.add("world-loading");
   // Until it is ready, the world's own progress line: it loads behind the lobby from the start.
   const progress = setInterval(() => {
     const line = ctx.progress?.();
-    if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 48));
+    if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 64));
   }, 400);
-  ready.then(() => { clearInterval(progress); status.className = "status"; status.replaceChildren(el("i"), "World ready"); });
+  ready.then(() => {
+    loaded = true;
+    root.classList.remove("world-loading");
+    go.removeAttribute("aria-disabled");
+    clearInterval(progress); status.className = "status"; status.replaceChildren(el("i"), "World ready");
+  });
   go.focus();
 
+  //: Returns whether the lobby closed: not while the world is still loading.
   function closeHome(enter = false) {
-    if (!open) return;
+    if (!open || !loaded) return false;
     open = null;
     removeEventListener("keydown", keys, true);
     clearInterval(progress);
@@ -415,6 +426,7 @@ export function openHome(ctx) {
     const back = el("button", { id: "home-return", type: "button", title: "Back to the home screen", on: { click: () => openHome(ctx) } }, "⌂ Home");
     document.body.append(back);
     ctx.onClose?.({ enter });
+    return true;
   }
   open = { close: () => closeHome(false), root };
   ctx.onOpen?.();

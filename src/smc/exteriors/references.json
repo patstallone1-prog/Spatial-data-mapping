@@ -1,0 +1,2699 @@
+{
+  "schema": "kerbside.storefront_references/1",
+  "version": "2026-10-31",
+  "curation": {
+    "scope": "Bay Area storefront and institutional exterior qualitative reference library",
+    "not_a_representative_survey": true,
+    "dimensions": "All profile geometry ranges are explicit inference priors, not measured facts or legal requirements.",
+    "photo_policy": "Reference URLs and original observations only; third-party project photographs and plan sheets are not redistributed.",
+    "replica_policy": "Only unchanged supplied brand assets or caller-observed facade components may be exact; generic chain shells are never labeled replicas."
+  },
+  "sources": [
+    {
+      "id": "sf-formula",
+      "title": "Formula Retail Storefront Design",
+      "url": "https://sfplanning.org/sites/default/files/documents/publications/Guide_FormulaRetail_Commission.pdf",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Storefront Components and Formula Retail Storefront Design",
+      "observations": [
+        "Storefront bays distinguish piers, bulkheads, glazing, transoms and entrances.",
+        "Retain historic components when inserting chain identity; a brand does not imply a replacement building shell."
+      ]
+    },
+    {
+      "id": "sf-historic",
+      "title": "Downtown Historic Design Standards",
+      "url": "https://sfplanning.org/sites/default/files/documents/publications/Downtown_Historic_Design_Standards.pdf",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Awnings, Canopies, and Marquees",
+      "observations": [
+        "Awnings fit between piers and should leave transoms visible.",
+        "Sloped awnings and signs belong to individual storefront bays, not across unrelated tenants."
+      ]
+    },
+    {
+      "id": "sf-transparency",
+      "title": "Standards for Storefront Transparency",
+      "url": "https://sfplanning.org/resource/standards-storefront-transparency",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Front display glazing remains visually open rather than fully covered by invented posters.",
+        "The guidance concerns storefront visibility, not a measurement of any existing store."
+      ]
+    },
+    {
+      "id": "sf-calle24",
+      "title": "Calle 24 Special Area Design Guidelines",
+      "url": "https://sfplanning.org/sites/default/files/documents/citywide/calle-24-special-area-design-guidelines/calle_24_design_guidelines.pdf",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco Mission",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Neighborhood signs include awnings, painted signs and multilingual business identity.",
+        "Laundromat examples combine an overhead identity band and limited window lettering."
+      ]
+    },
+    {
+      "id": "starbucks-identity",
+      "title": "Starbucks Creative Expression: Logos and Color",
+      "url": "https://creative.starbucks.com/?edition=starter",
+      "organization": "Starbucks",
+      "kind": "brand_guideline",
+      "location": "Global",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "The Siren and wordmark are distinct brand elements.",
+        "Greens, neutrals and a restrained type system provide recognizable identity.",
+        "This reference is a visual identity guide, not a universal exterior elevation."
+      ]
+    },
+    {
+      "id": "starbucks-sf",
+      "title": "Starbucks Bay Area projects",
+      "url": "https://www.msasf.com/rt-starbucks",
+      "organization": "MSA architecture + design",
+      "kind": "built_project",
+      "location": "San Francisco Chestnut, Mission & Main, Market",
+      "reviewed_at": "2026-10-29",
+      "locator": "Mission & Main exterior photograph; visually inspected",
+      "observations": [
+        "Mission & Main photograph: tall black-framed glazing with transom, a deep soffit and gold-toned illuminated lettering.",
+        "Reserve locations and standard coffeehouses have different expressions.",
+        "Existing structure and local conditions drive individual site detailing."
+      ]
+    },
+    {
+      "id": "starbucks-local",
+      "title": "Starbucks Store Design",
+      "url": "https://en.starbucks.vn/coffeehouse/store-design/",
+      "organization": "Starbucks",
+      "kind": "brand_guideline",
+      "location": "Global",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Designs respond to neighborhood character and use local materials.",
+        "Do not assert that every Starbucks has the same facade."
+      ]
+    },
+    {
+      "id": "subway-identity",
+      "title": "Subway visual identity",
+      "url": "https://turnerduckworth.com/work/subway",
+      "organization": "Turner Duckworth",
+      "kind": "brand_designer",
+      "location": "Global",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Arrow-ended logotype and yellow/green identity were developed as a coordinated system.",
+        "Signage is part of a wider environmental identity; the type is custom."
+      ]
+    },
+    {
+      "id": "subway-2024",
+      "title": "Subway Unveils New Global Restaurant Design",
+      "url": "https://newsroom.subway.com/2024-11-12-Subway-Unveils-New-Global-Restaurant-Design",
+      "organization": "Subway",
+      "kind": "prototype",
+      "location": "Global",
+      "reviewed_at": "2026-10-29",
+      "locator": "Exterior media item 19669; visually inspected, a design rendering not a built-site survey",
+      "observations": [
+        "Published exterior concept has a green fascia with yellow/white dimensional wordmark, white cladding and a glass front with green-framed entry.",
+        "Front glazing and solid side wall have different functions.",
+        "Fresh Forward 2.0 rollout does not establish the remodel status of a particular Bay Area store."
+      ]
+    },
+    {
+      "id": "subway-fabrication",
+      "title": "Subway Fresh Forward signage",
+      "url": "https://www.vgsonline.com/portfolio/subway",
+      "organization": "Visual Graphic Systems",
+      "kind": "fabricator",
+      "location": "Global",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Signage was prototyped and value-engineered as a repeatable franchise system."
+      ]
+    },
+    {
+      "id": "safeway-ssf",
+      "title": "Safeway Shopping Center 180 El Camino Real",
+      "url": "https://ci-ssf-ca.legistar.com/LegislationDetail.aspx?FullText=1&GUID=C91B96B4-717A-4E1E-A8E9-1DABF1940327&ID=3269780",
+      "organization": "City of South San Francisco",
+      "kind": "historic_approved_proposal",
+      "location": "South San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Approved Project Plans, cover rendering visually inspected; October 2017 approval",
+      "observations": [
+        "Customer-facing elevation combines broad glass storefront bays with brick and plaster framing.",
+        "Loading and back-of-house side/rear walls are different from the public front.",
+        "Approved plan shows dark lettering and a red S medallion; it does not prove the present-day as-built condition."
+      ]
+    },
+    {
+      "id": "safeway-spec",
+      "title": "Safeway sign specifications, Oakley",
+      "url": "https://d3n9y02raazwpg.cloudfront.net/oakley/da030dd0-c92e-47cd-8b87-dadfc12fbed1-cd570418-cb00-4b7a-9e50-80f71e682aee-1742414974.pdf",
+      "organization": "City of Oakley planning packet",
+      "kind": "sign_specification",
+      "location": "Oakley",
+      "reviewed_at": "2026-10-29",
+      "locator": "SAFEWAY SIGN SPECIFICATIONS; indexed text, dimensions not transcribed",
+      "observations": [
+        "Sign specification calls for LED channel letters/logo and maintaining letter height-to-width ratios.",
+        "Sign size is site dependent, not a fixed fraction of every Safeway."
+      ]
+    },
+    {
+      "id": "wholefoods-oakland",
+      "title": "Whole Foods Market Oakland",
+      "url": "https://lowneyarch.com/work/whole-foods-market-oakland/",
+      "organization": "Lowney Architecture",
+      "kind": "built_project",
+      "location": "Oakland",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Historic facade is retained in an adaptive reuse.",
+        "A steel and glass connection links the store with rooftop and street-level parking.",
+        "This facade cannot be copied as a standard suburban Whole Foods shell."
+      ]
+    },
+    {
+      "id": "wholefoods-rollout",
+      "title": "Whole Foods Market national program",
+      "url": "https://www.brrarch.com/portfolio/grocery-stores/whole-foods-market/",
+      "organization": "BRR Architecture",
+      "kind": "architect_program",
+      "location": "United States including California",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Exterior design is coordinated with developers and location-specific goals.",
+        "Neighborhood context varies across the chain."
+      ]
+    },
+    {
+      "id": "traderjoes-program",
+      "title": "Trader Joes market program",
+      "url": "https://jhai-architect.com/index.php/projects/commercial/retail-markets/trader-joes-company",
+      "organization": "JHAI",
+      "kind": "architect_program",
+      "location": "California and other markets",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Work covers many existing and new market shells, including exterior elevations.",
+        "Practical adaptation and city requirements differ by location."
+      ]
+    },
+    {
+      "id": "traderjoes-signs",
+      "title": "Trader Joes Signage",
+      "url": "https://www.rogerchandesign.com/work/traderjoes",
+      "organization": "Roger Chan Design",
+      "kind": "brand_designer",
+      "location": "United States",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Brand lettering coexists with local illustrated and hand-made sign treatments.",
+        "Do not replace every location with an identical architectural shell."
+      ]
+    },
+    {
+      "id": "peets-chestnut",
+      "title": "Peets 2078–2080 Chestnut Street",
+      "url": "https://sfplanning.s3.amazonaws.com/default/files/meetingarchive/planning_dept/commissions.sfplanning.org/cpcpackets/2013.0245C.pdf",
+      "organization": "SF Planning / Crome Architecture",
+      "kind": "historic_approved_proposal",
+      "location": "San Francisco Marina",
+      "reviewed_at": "2026-10-29",
+      "locator": "2013 packet p36, sheet A3.1; visually inspected",
+      "observations": [
+        "Proposed elevation retains a historic entry, tile base and upper decorative facade.",
+        "New glazing aligns with existing glazing; signs avoid historic tile.",
+        "Street-level transparency is documented as 72.6 percent for this proposal, not a chain-wide ratio."
+      ]
+    },
+    {
+      "id": "peets-prototype",
+      "title": "Peets Coffee prototype program",
+      "url": "https://chipman.design/work2/peets-coffee",
+      "organization": "Chipman Design Architecture",
+      "kind": "architect_program",
+      "location": "Los Gatos and rollout markets",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Prototype kit balances wood, stone, tile and metal.",
+        "Drive-through and walk-in formats differ and retain site-specific adaptation."
+      ]
+    },
+    {
+      "id": "philz-program",
+      "title": "Designing the Community Coffee House",
+      "url": "https://www.dewberry.com/projects/philz-coffee",
+      "organization": "Dewberry",
+      "kind": "architect_program",
+      "location": "California including Lafayette",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "A large finish catalogue is used to keep individual stores distinct.",
+        "Local graphics and site-specific colors sit within a consistent coffeehouse identity."
+      ]
+    },
+    {
+      "id": "seven-identity",
+      "title": "7-Eleven Brand Identity",
+      "url": "https://design.deutsch.com/7-Eleven",
+      "organization": "Deutsch Design",
+      "kind": "brand_designer",
+      "location": "United States",
+      "reviewed_at": "2026-10-29",
+      "locator": "Store.jpg on the original designer portfolio; visually inspected",
+      "observations": [
+        "Three colored stripes remain an important identity device.",
+        "The identity update is not evidence for a store-specific remodel.",
+        "The published storefront example has orange above green above red, interrupted by centered identity on a white fascia over brick and glass."
+      ],
+      "visual_url": "https://freight.cargo.site/t/original/i/983f3babdbc0f455c02a3668f4863441cb5534462c440bb88e86ef7d56729c34/Store.jpg"
+    },
+    {
+      "id": "seven-media",
+      "title": "7-Eleven Media Kit",
+      "url": "https://corp.7-eleven.com/corp/media-kit",
+      "organization": "7-Eleven",
+      "kind": "brand_media",
+      "location": "United States",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Official brand graphics and store imagery provide reference for logo/stripe identity."
+      ]
+    },
+    {
+      "id": "chipotle-program",
+      "title": "Chipotle Eco Concept Pilot",
+      "url": "https://ia.design/projects/chipotle",
+      "organization": "IA Interior Architects",
+      "kind": "prototype",
+      "location": "United States",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Wood and metal form a restrained repeatable kit of parts.",
+        "Pickup-focused and dine-in flows can use different shells; atmosphere is not excessive signage."
+      ]
+    },
+    {
+      "id": "chipotle-sites",
+      "title": "Chipotle rollout projects",
+      "url": "https://www.wickarch.com/hospitality-portfolio/chipotle-restaurant-architecture",
+      "organization": "Wick Architecture + Design",
+      "kind": "architect_program",
+      "location": "California",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Prototype components are tailored to each site rather than changing the brand identity."
+      ]
+    },
+    {
+      "id": "chase-historic",
+      "title": "JPMorgan Chase Savannah",
+      "url": "https://bdgllp.com/portfolio/jpmorgan-chase-savannah/",
+      "organization": "BDG Architects",
+      "kind": "built_project",
+      "location": "Savannah, out-of-region comparison",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Historic storefront and entry details are retained rather than replaced with a generic bank box."
+      ]
+    },
+    {
+      "id": "bank-signs",
+      "title": "Bank and Financial Institution Signage",
+      "url": "https://sweetsign.com/industry/banking-and-financial-institution-signage",
+      "organization": "Sweet Sign Systems",
+      "kind": "fabricator",
+      "location": "United States, out-of-region comparison",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Channel letters, logos, wayfinding and ATM identity are distinct sign components."
+      ]
+    },
+    {
+      "id": "cvs-portola",
+      "title": "CVS 701 Portola Drive elevations",
+      "url": "https://commissions.sfplanning.org/cpcpackets/2011.0084C.pdf",
+      "organization": "SF Planning",
+      "kind": "historic_approved_proposal",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "CVS 1983, sheet A-3; indexed text, historical proposal",
+      "observations": [
+        "The plan differentiates clear customer glazing from stockroom walls.",
+        "A metal canopy and cornice articulate a corner retail facade."
+      ]
+    },
+    {
+      "id": "walgreens-variation",
+      "title": "Walgreens Los Angeles elevations",
+      "url": "https://cityclerk.lacity.org/onlinedocs/2011/11-0191_app_2-3-11.pdf",
+      "organization": "City of Los Angeles",
+      "kind": "historic_approved_proposal",
+      "location": "Los Angeles, out-of-region comparison",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Pharmacy identity and window arrangements vary by elevation and existing structure.",
+        "Legacy operating-hour and photo-service claims are not reused as current advertisements."
+      ]
+    },
+    {
+      "id": "anchor-oyster",
+      "title": "Anchor Oyster Bar Legacy Business",
+      "url": "https://www.sfheritage.org/news/legacy-business-spotlight-anchor-oyster-bar-babylon-burning-and-veritable-vegetable/",
+      "organization": "SF Heritage",
+      "kind": "original_documentation",
+      "location": "San Francisco Castro",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "The small restaurant has a broad plate-glass window and a blue awning.",
+        "A narrow business can be recognizable without a large plastic fascia."
+      ]
+    },
+    {
+      "id": "bix",
+      "title": "Bix Restaurant",
+      "url": "https://www.sfheritage.org/heritage-in-the-neighborhoods/bix-restaurant/",
+      "organization": "SF Heritage",
+      "kind": "original_documentation",
+      "location": "San Francisco Jackson Square",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "A discreet alley entrance and a characteristic neon sign identify an upscale restaurant.",
+        "High price does not automatically imply huge windows or oversized signage."
+      ]
+    },
+    {
+      "id": "gino-carlo",
+      "title": "Gino and Carlo",
+      "url": "https://www.sfheritage.org/events/heritage-happy-hour-at-gino-and-carlo/",
+      "organization": "SF Heritage",
+      "kind": "original_documentation",
+      "location": "San Francisco North Beach",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "A distinctive projecting neon blade sign identifies the bar."
+      ]
+    },
+    {
+      "id": "little-joes",
+      "title": "Little Joes Pizza",
+      "url": "https://www.sfheritage.org/heritage-in-the-neighborhoods/legacy-business-spotlight-little-joes-pizza/",
+      "organization": "SF Heritage",
+      "kind": "original_documentation",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Historic neon identity is a meaningful pizza-shop variant, not a universal requirement."
+      ]
+    },
+    {
+      "id": "great-wall",
+      "title": "Great Wall Hardware",
+      "url": "https://www.sfheritage.org/news/legacy-business-spotlight-albert-chow-and-great-wall-hardware/",
+      "organization": "SF Heritage",
+      "kind": "original_documentation",
+      "location": "San Francisco Parkside",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Exterior includes bilingual business identification and a practical overhead sign."
+      ]
+    },
+    {
+      "id": "stout-books",
+      "title": "William Stout Architectural Books",
+      "url": "https://stoutbooks.com/pages/about",
+      "organization": "William Stout Architectural Books",
+      "kind": "merchant",
+      "location": "San Francisco Jackson Square",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "A historic storefront provides the setting for a specialist bookstore.",
+        "Display identity should leave the building architecture legible."
+      ]
+    },
+    {
+      "id": "credo",
+      "title": "Credo Beauty flagship",
+      "url": "https://www.studio-bba.com/portfolio/credo-beauty",
+      "organization": "Studio BBA",
+      "kind": "built_project",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Expansive operable glazing and a generous entry alcove connect the store to the street.",
+        "Textured neutral plaster is punctuated by the brand color."
+      ]
+    },
+    {
+      "id": "florist",
+      "title": "Rossi and Rovetti Flower Shop",
+      "url": "https://www.toddverwers.com/rossi-and-rovetti-flower-shop",
+      "organization": "Todd Verwers Architects",
+      "kind": "built_project",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Contemporary flower display and flexible retail bins distinguish the flower-shop program."
+      ]
+    },
+    {
+      "id": "lamar",
+      "title": "La Mar",
+      "url": "https://www.casscaldersmith.com/restaurants/la-mar",
+      "organization": "Cass Calder Smith",
+      "kind": "built_project",
+      "location": "San Francisco waterfront",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "A glass canopy and large entrance identity are inserted within a historic pier facade.",
+        "Restaurant context can change sign scale more than cuisine does."
+      ]
+    },
+    {
+      "id": "brucato",
+      "title": "Brucato Amaro",
+      "url": "https://www.studio-bba.com/portfolio/brucato-amaro",
+      "organization": "Studio BBA",
+      "kind": "built_project",
+      "location": "San Francisco Mission",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Restaurant entry and shipping/receiving are adjacent but perform different roles.",
+        "Tiled materials and neon/vertical identity are shown in project documentation."
+      ]
+    },
+    {
+      "id": "belmont-albany",
+      "title": "Belmont Village Albany",
+      "url": "https://hkit.com/portfolio/belmont-village-albany/",
+      "organization": "HKIT Architects",
+      "kind": "built_project",
+      "location": "Albany",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Senior living is a multi-storey residential/institutional envelope with a distinct common entrance.",
+        "Ground parking and upper residential windows must not be converted into storefront display glass."
+      ]
+    },
+    {
+      "id": "belmont-signs",
+      "title": "Belmont Village signage program",
+      "url": "https://charlaine.com/projects/belmont-village-senior-living/",
+      "organization": "Charlaine Architectural Signage",
+      "kind": "fabricator",
+      "location": "California and Illinois",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Identity letters, plaques, directories, addresses and wayfinding form a coordinated campus sign system.",
+        "Advertising across every window is not the institutional program."
+      ]
+    },
+    {
+      "id": "medical-directory",
+      "title": "Forest Avenue Medical Center wayfinding",
+      "url": "https://clearlinesigns.com/blog/posts/forest-avenue-medical-center-wayfinding-directory-signage",
+      "organization": "Clear Line Signs",
+      "kind": "fabricator",
+      "location": "San Jose",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Multi-tenant medical uses need a shared directory and entrance/wayfinding identity.",
+        "A directory is different from individual shop advertisements."
+      ]
+    },
+    {
+      "id": "office-guidance",
+      "title": "Office, Business Park, Institutional and Industrial Design",
+      "url": "https://landuse.saccounty.gov/dg/ch5/",
+      "organization": "Sacramento County",
+      "kind": "design_guideline",
+      "location": "Sacramento, out-of-region comparison",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Signage is coordinated with architecture and landscaping.",
+        "Office and institutional identity is organized at entrances rather than repeated storefront advertisements."
+      ]
+    },
+    {
+      "id": "cafe-practice",
+      "title": "Coffee shop design practice",
+      "url": "https://www.studiobanaa.com/insights/how-to-start-a-coffee-shop-or-cafe-an-architects-perspective/",
+      "organization": "Studio BANAA",
+      "kind": "architect_practice",
+      "location": "Bay Area",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Brand and environmental graphics are separate from the shell.",
+        "Existing chain spaces can be reused with different independent cafe identities."
+      ]
+    },
+    {
+      "id": "mels-history",
+      "title": "Mels Drive-In history and exterior documentation",
+      "url": "https://melsdrive-in.com/history/",
+      "organization": "Mels Drive-In",
+      "kind": "merchant",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Historic restaurant photographs and neon identity",
+      "observations": [
+        "Merchant photographs document the drive-in diner tradition, broad customer glazing and neon identity.",
+        "Historic and current-format examples are not a universal contemporary diner elevation."
+      ]
+    },
+    {
+      "id": "chargepoint-layout",
+      "title": "Express 250 Civil and Mechanical Design",
+      "url": "https://docs.chargepoint.com/cpdocs-sec/content/3-dc/express-250/sdg/civil-mechanical-design.htm",
+      "organization": "ChargePoint",
+      "kind": "manufacturer_guide",
+      "location": "Product-specific, North America",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Express 250 enclosure height 2.230 m and width 0.71 m are documented product dimensions.",
+        "Cable reach radius is 3.76 m for this product. Cable reach and service clearance are distinct.",
+        "Bollards should not interfere with holsters or cables; the guide states no bollard within 457 mm on-center."
+      ]
+    },
+    {
+      "id": "tesla-parking",
+      "title": "Supercharging Other EVs",
+      "url": "https://www.tesla.com/support/charging/supercharging-other-evs",
+      "organization": "Tesla",
+      "kind": "manufacturer_guide",
+      "location": "North America",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Vehicle port positions vary. Short-cable stations can require an adjacent stall; avoid diagonal parking.",
+        "V4 posts have longer cables than earlier posts. A brand name alone does not establish installed hardware generation."
+      ]
+    },
+    {
+      "id": "ea-harrison",
+      "title": "San Francisco indoor flagship station",
+      "url": "https://media.electrifyamerica.com/releases/241",
+      "organization": "Electrify America",
+      "kind": "built_project",
+      "location": "928 Harrison Street, San Francisco",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "An indoor flagship is a distinct site form; not every charging station is a gas-style outdoor canopy.",
+        "Hardware and bay count must be taken from the individual site rather than copied from a flagship."
+      ]
+    },
+    {
+      "id": "evgo-hardware",
+      "title": "Next-generation charging system announcement",
+      "url": "https://www.evgo.com/press-release/evgo-announces-next-generation-charging-system-capable-of-750kw/",
+      "organization": "EVgo",
+      "kind": "future_product_announcement",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "The September 2026 announcement describes a future design expected to be unveiled in 2027.",
+        "Do not render that future product as an observed current installation. Existing cabinet and dispenser forms vary by hardware."
+      ]
+    },
+    {
+      "id": "chevron-extra",
+      "title": "ExtraMile storefront and experience",
+      "url": "https://www.chevronextramile.com/",
+      "organization": "Chevron ExtraMile",
+      "kind": "merchant_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official storefront photograph shows a separate ExtraMile convenience-store identity; fuel branding is not automatically the store name.",
+        "Glazed customer entry and shop windows are separate from the pump canopy."
+      ]
+    },
+    {
+      "id": "chevron-image",
+      "title": "Chevron Image Stewardship Guide",
+      "url": "https://www.southeastpetro.com/wp-content/uploads/2015/07/ImageStewardshipGuideChevron.pdf",
+      "organization": "Chevron, distributed by Southeast Petro",
+      "kind": "historical_brand_guide",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Historical blue and white canopy, column and dispenser identity components.",
+        "Use as a kit reference only, not evidence of a current remodel at any particular site."
+      ]
+    },
+    {
+      "id": "shell-image",
+      "title": "Shell station rebrand fabrication",
+      "url": "https://standart-tim.com/en/projects/shell-station-rebrand",
+      "organization": "StandartTIM",
+      "kind": "sign_fabricator",
+      "location": "Outside Bay Area",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Project photographs document yellow/red canopy, pecten identity and separate price totems.",
+        "The fabricator distinguishes canopy signs, totems and convenience-store branding."
+      ]
+    },
+    {
+      "id": "arco-identity",
+      "title": "ARCO Southwest official identity",
+      "url": "https://www.arco.com/en-us/southwest/",
+      "organization": "ARCO",
+      "kind": "merchant_reference",
+      "location": "Western United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Blue ARCO wordmark and red diamond identity; official site separately links ampm.",
+        "The fuel and convenience-store brands are separate fields."
+      ]
+    },
+    {
+      "id": "ampm-proposal",
+      "title": "ARCO ampm color elevations and site proposal",
+      "url": "https://chicoca.gov/documents/Government/Boards--Commissions/Planning-Commission/2021/06-17-21arco_ampm_staff_report_and_attachments.pdf",
+      "organization": "City of Chico",
+      "kind": "historic_approved_proposal",
+      "location": "Chico, California",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "The staff report describes a variation on the ampm prototype, not one universal store shell.",
+        "Site plan and color elevations distinguish canopy, pump lanes and convenience-store building."
+      ]
+    },
+    {
+      "id": "76-identity",
+      "title": "76 official identity",
+      "url": "https://www.76.com/",
+      "organization": "76 / Phillips 66",
+      "kind": "merchant_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Orange roundel with blue 76 numerals provides identity independent of store shape.",
+        "Official site distinguishes fuel station identity from rewards offers; no promotional price is copied into the inferred sign."
+      ]
+    },
+    {
+      "id": "target-design",
+      "title": "New store strategy and design",
+      "url": "https://corporate.target.com/news-features/article/2022/11/new-store-design",
+      "organization": "Target",
+      "kind": "brand_design_program",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official exterior images show large red identity, neutral wall materials and a glazed public entrance.",
+        "Local adaptation means a red logo does not justify repainting every observed facade red."
+      ]
+    },
+    {
+      "id": "target-local",
+      "title": "Bridgehampton local design adaptation",
+      "url": "https://corporate.target.com/news-features/article/2026/10/bridgehampton-target-store",
+      "organization": "Target",
+      "kind": "built_project",
+      "location": "Bridgehampton, New York; comparison only",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Gray shingles, white externally lit bullseye and gray bollards depart from the usual red identity under local design rules.",
+        "Observed site appearance overrides the default brand palette."
+      ]
+    },
+    {
+      "id": "mcdonalds-design",
+      "title": "McDonalds investor overview and restaurant exterior",
+      "url": "https://corporate.mcdonalds.com/content/dam/sites/corp/nfl/pdf/Investor%20Overview%20Deck_v2025.3.3.pdf",
+      "organization": "McDonalds",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official photograph shows separate McDonalds wordmark and golden-arches identity on a contemporary restaurant exterior.",
+        "No universal roof, drive-through or parking layout follows from the brand name."
+      ]
+    },
+    {
+      "id": "inout-history",
+      "title": "In-N-Out official history",
+      "url": "https://www.in-n-out.com/history",
+      "organization": "In-N-Out Burger",
+      "kind": "merchant_reference",
+      "location": "California and western US",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official history records the arrow identity introduced in 1954 and crossed-palm tradition beginning in 1972.",
+        "History photographs show recognizable red, white and yellow components; historic designs are not proof of a current site remodel."
+      ]
+    },
+    {
+      "id": "tacobell-lighting",
+      "title": "Taco Bell exterior lighting project",
+      "url": "https://solidstateluminaires.com/gallery/taco-bell-franchise?GR=1&IN=0&PG=galleries",
+      "organization": "Solid State Luminaires",
+      "kind": "lighting_fabricator",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Project photographs and description identify purple exterior LED lighting behind slats.",
+        "Purple accent lighting is a component, not a reason to color all walls purple."
+      ]
+    },
+    {
+      "id": "costco-story",
+      "title": "The Costco Story",
+      "url": "https://www.costco.com/wcsstore/CostcoUSBCCatalogAssetStore/Attachment/A-CostcoStory-Base-0617.pdf",
+      "organization": "Costco Wholesale",
+      "kind": "brand_publication",
+      "location": "United States; historical publication",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official exterior photograph shows large warehouse identity and entrance labeling.",
+        "Warehouse service walls and loading areas do not imply a continuous glazed retail frontage."
+      ]
+    },
+    {
+      "id": "bestbuy-store",
+      "title": "Best Buy store exterior project photography",
+      "url": "https://corporate.bestbuy.com/2022/best-buys-sustainability-successes-featured-in-ted-countdown/headline-2/",
+      "organization": "Best Buy",
+      "kind": "merchant_reference",
+      "location": "The Woodlands, Texas; comparison only",
+      "reviewed_at": "2026-10-30",
+      "locator": null,
+      "observations": [
+        "Official store photographs document the brand on a site-specific retail shell.",
+        "Blue and yellow identity are restricted to an entrance/sign treatment rather than an invented blue building."
+      ]
+    },
+    {
+      "id": "fuel-dispenser-kit",
+      "title": "Encore standard-flow dispenser family",
+      "url": "https://www.gilbarco.com/us/en/technology/retail-fuel-dispensers/encore-standard-flow-dispensers",
+      "organization": "Gilbarco Veeder-Root",
+      "kind": "manufacturer_reference",
+      "location": "United States",
+      "reviewed_at": "2026-10-30",
+      "locator": "ATM-style interface and hanging-hardware configurations",
+      "observations": [
+        "Manufacturer describes upgradeable payment terminals and multiple grade configurations.",
+        "A generic dispenser form does not establish a specific installed model; hanging hardware and grade configuration can differ."
+      ]
+    },
+    {
+      "id": "jewelry-showcase",
+      "title": "Full-vision commercial display showcase",
+      "url": "https://www.subastralinc.com/full-vision-display-case-h342.html",
+      "organization": "Subastral",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Glazed display areas and enclosed storage bases are separate components.",
+        "Case lighting and merchandising visibility guide the rendered glass/velvet/jewelry arrangement; no exact product replica is claimed."
+      ]
+    },
+    {
+      "id": "salon-odin",
+      "title": "Odin shampoo unit",
+      "url": "https://beauty.takarabelmont.com/odin-shampoo-unit/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "A contoured reclining seat and tilting bowl form a coordinated backwash unit.",
+        "Basin and chair need to remain aligned; styling chairs are a separate product type."
+      ]
+    },
+    {
+      "id": "salon-stations",
+      "title": "Salon stations and cabinetry look book",
+      "url": "https://beauty.takarabelmont.com/wp-content/uploads/2017/12/takara-belmont-look-book.pdf",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Styling stations pair mirrors with work surfaces and storage.",
+        "Shampoo storage includes towel and hamper provision; these are functional zones rather than decorative boxes."
+      ]
+    },
+    {
+      "id": "salon-one",
+      "title": "THE ONE integrated salon station",
+      "url": "https://beauty.takarabelmont.co.jp/products/the-one/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Integrated equipment exists, but a generic salon is not assumed to use that proprietary product.",
+        "Rendered independent stations retain coordinated chair, mirror, worktop and stylist space."
+      ]
+    },
+    {
+      "id": "laundry-planning",
+      "title": "Commercial laundromat planning and design",
+      "url": "https://speedqueencommercial.com/en-us/laundry-planning-design/",
+      "organization": "Speed Queen / Alliance Laundry Systems",
+      "kind": "manufacturer_guide",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Store dimensions, windows, doors, utilities and equipment mix are planned together.",
+        "Folding tables, seating, machine banks and utility schedules are distinct program elements."
+      ]
+    },
+    {
+      "id": "laundry-layout-lessons",
+      "title": "Five laundromat design lessons",
+      "url": "https://speedqueencommercial.com/en-us/news/five-laundromat-design-lessons-from-alliance-laundrys-design-team/",
+      "organization": "Alliance Laundry Systems",
+      "kind": "manufacturer_guide",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Overcrowding is a common error; irregular and narrow stores require different arrangements.",
+        "Sightlines from storefront windows into aisles are useful in unattended stores."
+      ]
+    },
+    {
+      "id": "laundry-specs",
+      "title": "Commercial laundry literature archive",
+      "url": "https://speedqueencommercial.com/en-us/manuals-brochures/",
+      "organization": "Speed Queen / Alliance Laundry Systems",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Stacked dryer and washer-extractor specifications are separate from household machines.",
+        "Product specifications do not establish measured installed equipment or site utility compliance."
+      ]
+    },
+    {
+      "id": "sf-barbershop",
+      "title": "San Francisco barbershop merchant reference",
+      "url": "https://www.thebarbershopsf.com/about",
+      "organization": "The Barbershop SF",
+      "kind": "merchant_reference",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Hair and beard services support a barber-specific program rather than a generic retail display layout.",
+        "A merchant identity does not establish exact floor-plan dimensions."
+      ]
+    }
+  ],
+  "categories": {
+    "cafe": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.64,
+        0.84
+      ],
+      "sill_m": [
+        0.25,
+        0.55
+      ],
+      "module_width_m": [
+        1.5,
+        2.7
+      ],
+      "sign_types": [
+        "awning_valance",
+        "channel_letters",
+        "painted_letters"
+      ],
+      "materials": [
+        "painted_wood",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "starbucks-sf",
+        "peets-chestnut",
+        "cafe-practice"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "diner": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.7,
+        0.88
+      ],
+      "sill_m": [
+        0.5,
+        0.8
+      ],
+      "module_width_m": [
+        2.3,
+        3.5
+      ],
+      "sign_types": [
+        "lightbox",
+        "neon",
+        "fascia"
+      ],
+      "materials": [
+        "tile",
+        "enamel_metal",
+        "stucco"
+      ],
+      "references": [
+        "mels-history",
+        "sf-formula",
+        "sf-calle24"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "restaurant": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.5,
+        0.73
+      ],
+      "sill_m": [
+        0.5,
+        0.85
+      ],
+      "module_width_m": [
+        1.3,
+        2.3
+      ],
+      "sign_types": [
+        "awning_valance",
+        "painted_letters",
+        "channel_letters"
+      ],
+      "materials": [
+        "painted_wood",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "anchor-oyster",
+        "lamar",
+        "bix"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "fast_food": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.55,
+        0.78
+      ],
+      "sill_m": [
+        0.15,
+        0.45
+      ],
+      "module_width_m": [
+        1.5,
+        2.5
+      ],
+      "sign_types": [
+        "lightbox",
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "subway-2024",
+        "chipotle-program"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "pizza": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.45,
+        0.7
+      ],
+      "sill_m": [
+        0.55,
+        0.9
+      ],
+      "module_width_m": [
+        1.4,
+        2.4
+      ],
+      "sign_types": [
+        "lightbox",
+        "awning_valance",
+        "neon"
+      ],
+      "materials": [
+        "tile",
+        "painted_wood",
+        "brick"
+      ],
+      "references": [
+        "little-joes",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "bakery": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.58,
+        0.8
+      ],
+      "sill_m": [
+        0.35,
+        0.65
+      ],
+      "module_width_m": [
+        1.5,
+        2.8
+      ],
+      "sign_types": [
+        "painted_letters",
+        "awning_valance",
+        "fascia"
+      ],
+      "materials": [
+        "painted_wood",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "cafe-practice",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "bar": {
+      "family": "hospitality",
+      "front_glazing_fraction": [
+        0.23,
+        0.48
+      ],
+      "sill_m": [
+        0.8,
+        1.15
+      ],
+      "module_width_m": [
+        0.8,
+        1.6
+      ],
+      "sign_types": [
+        "neon",
+        "blade",
+        "painted_letters"
+      ],
+      "materials": [
+        "painted_wood",
+        "brick",
+        "tile"
+      ],
+      "references": [
+        "gino-carlo",
+        "bix",
+        "brucato"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "grocery": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.3,
+        0.58
+      ],
+      "sill_m": [
+        0.15,
+        0.55
+      ],
+      "module_width_m": [
+        2.8,
+        4.8
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia",
+        "lightbox"
+      ],
+      "materials": [
+        "stucco",
+        "brick",
+        "metal_panel"
+      ],
+      "references": [
+        "safeway-ssf",
+        "wholefoods-oakland"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "corner_store": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.4,
+        0.65
+      ],
+      "sill_m": [
+        0.4,
+        0.75
+      ],
+      "module_width_m": [
+        1.3,
+        2.3
+      ],
+      "sign_types": [
+        "lightbox",
+        "fascia",
+        "awning_valance"
+      ],
+      "materials": [
+        "tile",
+        "stucco",
+        "painted_wood"
+      ],
+      "references": [
+        "seven-identity",
+        "sf-calle24",
+        "sf-transparency"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "clothing": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.62,
+        0.83
+      ],
+      "sill_m": [
+        0.25,
+        0.5
+      ],
+      "module_width_m": [
+        1.6,
+        3.0
+      ],
+      "sign_types": [
+        "channel_letters",
+        "painted_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "metal_panel"
+      ],
+      "references": [
+        "credo",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "books": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.45,
+        0.72
+      ],
+      "sill_m": [
+        0.45,
+        0.75
+      ],
+      "module_width_m": [
+        1.2,
+        2.2
+      ],
+      "sign_types": [
+        "painted_letters",
+        "fascia",
+        "awning_valance"
+      ],
+      "materials": [
+        "painted_wood",
+        "brick",
+        "stucco"
+      ],
+      "references": [
+        "stout-books",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "salon": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.5,
+        0.76
+      ],
+      "sill_m": [
+        0.3,
+        0.65
+      ],
+      "module_width_m": [
+        1.3,
+        2.3
+      ],
+      "sign_types": [
+        "door_vinyl",
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "tile",
+        "painted_wood"
+      ],
+      "references": [
+        "salon-stations",
+        "salon-odin",
+        "salon-one",
+        "sf-formula"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "framed_glazed"
+    },
+    "pharmacy": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.35,
+        0.6
+      ],
+      "sill_m": [
+        0.4,
+        0.7
+      ],
+      "module_width_m": [
+        1.5,
+        2.5
+      ],
+      "sign_types": [
+        "channel_letters",
+        "lightbox",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "brick"
+      ],
+      "references": [
+        "cvs-portola",
+        "walgreens-variation"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "bank": {
+      "family": "service",
+      "front_glazing_fraction": [
+        0.45,
+        0.68
+      ],
+      "sill_m": [
+        0.35,
+        0.75
+      ],
+      "module_width_m": [
+        1.5,
+        2.7
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque",
+        "fascia"
+      ],
+      "materials": [
+        "stone",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "chase-historic",
+        "bank-signs"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "laundry": {
+      "family": "service",
+      "front_glazing_fraction": [
+        0.6,
+        0.78
+      ],
+      "sill_m": [
+        0.32,
+        0.52
+      ],
+      "module_width_m": [
+        1.8,
+        2.8
+      ],
+      "sign_types": [
+        "lightbox",
+        "fascia",
+        "awning_valance"
+      ],
+      "materials": [
+        "tile",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "laundry-planning",
+        "laundry-layout-lessons",
+        "laundry-specs",
+        "sf-calle24"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "cart_access_glazed",
+      "entrance_width_m": 1.8
+    },
+    "hardware": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.35,
+        0.62
+      ],
+      "sill_m": [
+        0.5,
+        0.9
+      ],
+      "module_width_m": [
+        1.4,
+        2.4
+      ],
+      "sign_types": [
+        "fascia",
+        "lightbox",
+        "painted_letters"
+      ],
+      "materials": [
+        "stucco",
+        "brick",
+        "painted_wood"
+      ],
+      "references": [
+        "great-wall",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "florist": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.6,
+        0.82
+      ],
+      "sill_m": [
+        0.2,
+        0.5
+      ],
+      "module_width_m": [
+        1.5,
+        2.7
+      ],
+      "sign_types": [
+        "painted_letters",
+        "awning_valance",
+        "fascia"
+      ],
+      "materials": [
+        "painted_wood",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "florist",
+        "sf-formula"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "office": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.32,
+        0.55
+      ],
+      "sill_m": [
+        0.65,
+        1.0
+      ],
+      "module_width_m": [
+        1.0,
+        1.8
+      ],
+      "sign_types": [
+        "plaque",
+        "entry_letters",
+        "door_vinyl"
+      ],
+      "materials": [
+        "stone",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "office-guidance",
+        "medical-directory"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "senior_living": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.25,
+        0.45
+      ],
+      "sill_m": [
+        0.75,
+        1.05
+      ],
+      "module_width_m": [
+        1.0,
+        1.7
+      ],
+      "sign_types": [
+        "entry_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stucco",
+        "stone",
+        "brick"
+      ],
+      "references": [
+        "belmont-albany",
+        "belmont-signs"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "clinic": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.3,
+        0.52
+      ],
+      "sill_m": [
+        0.65,
+        1.0
+      ],
+      "module_width_m": [
+        1.0,
+        1.9
+      ],
+      "sign_types": [
+        "entry_letters",
+        "plaque",
+        "door_vinyl"
+      ],
+      "materials": [
+        "stucco",
+        "stone",
+        "metal_panel"
+      ],
+      "references": [
+        "medical-directory",
+        "office-guidance"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "hotel": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.36,
+        0.58
+      ],
+      "sill_m": [
+        0.5,
+        0.85
+      ],
+      "module_width_m": [
+        1.2,
+        2.3
+      ],
+      "sign_types": [
+        "entry_letters",
+        "plaque",
+        "canopy_letters"
+      ],
+      "materials": [
+        "stone",
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "sf-formula",
+        "office-guidance"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "civic": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.25,
+        0.48
+      ],
+      "sill_m": [
+        0.7,
+        1.05
+      ],
+      "module_width_m": [
+        1.1,
+        1.9
+      ],
+      "sign_types": [
+        "entry_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "brick",
+        "stucco"
+      ],
+      "references": [
+        "office-guidance",
+        "sf-formula"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "school": {
+      "family": "institution",
+      "front_glazing_fraction": [
+        0.28,
+        0.48
+      ],
+      "sill_m": [
+        0.75,
+        1.1
+      ],
+      "module_width_m": [
+        1.0,
+        1.8
+      ],
+      "sign_types": [
+        "entry_letters",
+        "plaque"
+      ],
+      "materials": [
+        "brick",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "office-guidance",
+        "sf-formula"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "industrial": {
+      "family": "service",
+      "front_glazing_fraction": [
+        0.12,
+        0.3
+      ],
+      "sill_m": [
+        1.0,
+        1.3
+      ],
+      "module_width_m": [
+        0.9,
+        1.6
+      ],
+      "sign_types": [
+        "plaque",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "office-guidance",
+        "brucato"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "shop": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.45,
+        0.7
+      ],
+      "sill_m": [
+        0.4,
+        0.75
+      ],
+      "module_width_m": [
+        1.3,
+        2.5
+      ],
+      "sign_types": [
+        "fascia",
+        "painted_letters",
+        "door_vinyl"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "tile"
+      ],
+      "references": [
+        "sf-formula",
+        "sf-transparency"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics"
+    },
+    "jewelry": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.42,
+        0.62
+      ],
+      "sill_m": [
+        0.62,
+        0.85
+      ],
+      "module_width_m": [
+        1.8,
+        3.0
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia",
+        "painted_letters"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "tile"
+      ],
+      "references": [
+        "jewelry-showcase",
+        "sf-formula",
+        "sf-transparency"
+      ],
+      "privacy": false,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "secure_glazed",
+      "entrance_width_m": 1.1
+    },
+    "barber": {
+      "family": "retail",
+      "front_glazing_fraction": [
+        0.5,
+        0.76
+      ],
+      "sill_m": [
+        0.3,
+        0.65
+      ],
+      "module_width_m": [
+        1.3,
+        2.3
+      ],
+      "sign_types": [
+        "door_vinyl",
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "tile",
+        "painted_wood"
+      ],
+      "references": [
+        "sf-barbershop",
+        "salon-stations",
+        "salon-odin",
+        "sf-formula"
+      ],
+      "privacy": true,
+      "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
+      "door_style": "timber_glazed",
+      "barber_pole": true
+    }
+  },
+  "brands": {
+    "starbucks": {
+      "name": "Starbucks",
+      "aliases": [
+        "starbucks",
+        "starbucks coffee"
+      ],
+      "category": "cafe",
+      "colors": [
+        "#006241",
+        "#f1f0eb",
+        "#202b26"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "blade"
+      ],
+      "materials": [
+        "painted_wood",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "starbucks-identity",
+        "starbucks-sf",
+        "starbucks-local"
+      ],
+      "components": [
+        "separate circular identity and wordmark",
+        "dark frames",
+        "green accents; local shell retained"
+      ],
+      "asset": "starbucks",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "starbucks_reserve": {
+      "name": "Starbucks Reserve",
+      "aliases": [
+        "starbucks reserve"
+      ],
+      "category": "cafe",
+      "colors": [
+        "#272725",
+        "#b49a65",
+        "#b8b1a5"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "blade"
+      ],
+      "materials": [
+        "metal_panel",
+        "stone",
+        "painted_wood"
+      ],
+      "references": [
+        "starbucks-sf"
+      ],
+      "components": [
+        "gold-toned identity",
+        "black metal frames",
+        "tall transom glazing when shell permits"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "subway": {
+      "name": "Subway",
+      "aliases": [
+        "subway"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#008938",
+        "#ffc600",
+        "#f4f3ec"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "subway-identity",
+        "subway-2024",
+        "subway-fabrication"
+      ],
+      "components": [
+        "green sign portal",
+        "yellow and white arrow-ended wordmark",
+        "white side cladding",
+        "front glazing and transom"
+      ],
+      "asset": "subway",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "safeway": {
+      "name": "Safeway",
+      "aliases": [
+        "safeway"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#ce202f",
+        "#f0e9d8",
+        "#3d3b36"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "stucco",
+        "brick",
+        "stone"
+      ],
+      "references": [
+        "safeway-ssf",
+        "safeway-spec"
+      ],
+      "components": [
+        "red S medallion",
+        "separate wordmark",
+        "articulated public entrance",
+        "solid service elevation"
+      ],
+      "asset": "safeway",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "whole_foods": {
+      "name": "Whole Foods Market",
+      "aliases": [
+        "whole foods",
+        "whole foods market"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#006f46",
+        "#ece6d7",
+        "#665545"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "painted_wood",
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "wholefoods-oakland",
+        "wholefoods-rollout"
+      ],
+      "components": [
+        "green identity",
+        "natural material accents",
+        "site-specific shell and entrance glazing"
+      ],
+      "asset": "whole_foods",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "trader_joes": {
+      "name": "Trader Joe's",
+      "aliases": [
+        "trader joe's",
+        "trader joes"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#b51f2b",
+        "#f2e8d4",
+        "#545045"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "painted_letters"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "brick"
+      ],
+      "references": [
+        "traderjoes-program",
+        "traderjoes-signs"
+      ],
+      "components": [
+        "red wordmark",
+        "local sign character",
+        "practical adapted market shell"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "peets": {
+      "name": "Peet's Coffee",
+      "aliases": [
+        "peet's",
+        "peets",
+        "peet's coffee",
+        "peets coffee",
+        "peet's coffee & tea"
+      ],
+      "category": "cafe",
+      "colors": [
+        "#322b24",
+        "#d9cbb2",
+        "#79624a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "blade"
+      ],
+      "materials": [
+        "painted_wood",
+        "tile",
+        "stone"
+      ],
+      "references": [
+        "peets-chestnut",
+        "peets-prototype"
+      ],
+      "components": [
+        "warm neutral identity",
+        "dark frames",
+        "tile/wood/metal detailing",
+        "historic and contemporary variants"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "philz": {
+      "name": "Philz Coffee",
+      "aliases": [
+        "philz",
+        "philz coffee"
+      ],
+      "category": "cafe",
+      "colors": [
+        "#32536b",
+        "#e4d7bc",
+        "#4d3528"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "painted_letters"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "brick"
+      ],
+      "references": [
+        "philz-program"
+      ],
+      "components": [
+        "recognizable name",
+        "eclectic local finish choices; no universal facade"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "seven_eleven": {
+      "name": "7-Eleven",
+      "aliases": [
+        "7 eleven",
+        "7-eleven",
+        "7eleven"
+      ],
+      "category": "corner_store",
+      "colors": [
+        "#008061",
+        "#ec7625",
+        "#d62330"
+      ],
+      "sign_types": [
+        "fascia",
+        "lightbox"
+      ],
+      "materials": [
+        "brick",
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "seven-identity",
+        "seven-media"
+      ],
+      "components": [
+        "orange green red stripe band",
+        "official logo",
+        "glass front with limited promotional coverage"
+      ],
+      "asset": "seven_eleven",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "chipotle": {
+      "name": "Chipotle",
+      "aliases": [
+        "chipotle",
+        "chipotle mexican grill"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#a51f24",
+        "#d4c7b3",
+        "#343432"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco",
+        "painted_wood"
+      ],
+      "references": [
+        "chipotle-program",
+        "chipotle-sites"
+      ],
+      "components": [
+        "red medallion",
+        "restrained metal and wood material kit",
+        "site-adapted public entry"
+      ],
+      "asset": "chipotle",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "chase": {
+      "name": "Chase",
+      "aliases": [
+        "chase",
+        "chase bank",
+        "jpmorgan chase"
+      ],
+      "category": "bank",
+      "colors": [
+        "#117aca",
+        "#ecebe6",
+        "#30363d"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "chase-historic",
+        "bank-signs"
+      ],
+      "components": [
+        "blue octagon and wordmark",
+        "entry/ATM hierarchy",
+        "existing architectural character retained"
+      ],
+      "asset": "chase",
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "cvs": {
+      "name": "CVS Pharmacy",
+      "aliases": [
+        "cvs",
+        "cvs pharmacy",
+        "cvs/pharmacy"
+      ],
+      "category": "pharmacy",
+      "colors": [
+        "#cc0000",
+        "#f1eeeb",
+        "#504f4b"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "brick"
+      ],
+      "references": [
+        "cvs-portola"
+      ],
+      "components": [
+        "red identity",
+        "clear public glazing",
+        "separate stockroom wall"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "walgreens": {
+      "name": "Walgreens",
+      "aliases": [
+        "walgreens"
+      ],
+      "category": "pharmacy",
+      "colors": [
+        "#c52228",
+        "#eee7da",
+        "#4b4540"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "brick",
+        "metal_panel"
+      ],
+      "references": [
+        "walgreens-variation"
+      ],
+      "components": [
+        "red script-style name",
+        "site-specific customer frontage",
+        "service walls remain distinct"
+      ],
+      "asset": null,
+      "scope": "repeatable identity components; site shell and current remodel status remain unverified",
+      "confidence": 0.55
+    },
+    "extramile": {
+      "name": "ExtraMile",
+      "aliases": [
+        "extramile",
+        "extra mile"
+      ],
+      "category": "corner_store",
+      "colors": [
+        "#ed6a22",
+        "#f3eadb",
+        "#233e61"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "chevron-extra"
+      ],
+      "components": [
+        "orange storefront identity",
+        "separate fuel and store brands"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "ampm": {
+      "name": "ampm",
+      "aliases": [
+        "ampm",
+        "am pm"
+      ],
+      "category": "corner_store",
+      "colors": [
+        "#e45224",
+        "#f3e9d3",
+        "#263b6a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "arco-identity",
+        "ampm-proposal"
+      ],
+      "components": [
+        "orange and red store identity",
+        "local prototype adaptation"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "target": {
+      "name": "Target",
+      "aliases": [
+        "target"
+      ],
+      "category": "shop",
+      "colors": [
+        "#cc0000",
+        "#f3efe7",
+        "#4d4b48"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "target-design",
+        "target-local"
+      ],
+      "components": [
+        "red bullseye identity",
+        "neutral shell and glazed customer entry"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "icon": "target",
+      "asset": "target",
+      "brand_layout": "icon_and_wordmark",
+      "wordmark": "target",
+      "glazing_cluster_m": 14
+    },
+    "mcdonalds": {
+      "name": "McDonald's",
+      "aliases": [
+        "mcdonalds",
+        "mcdonald s"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#c92325",
+        "#ffc72c",
+        "#363534"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "mcdonalds-design"
+      ],
+      "components": [
+        "golden arches identity",
+        "dark modern frames; restrained red accents"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "icon": "arches"
+    },
+    "in_n_out": {
+      "name": "In-N-Out Burger",
+      "aliases": [
+        "in n out",
+        "in n out burger"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#c72229",
+        "#ffca20",
+        "#f6f1e4"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "tile",
+        "stucco"
+      ],
+      "references": [
+        "inout-history"
+      ],
+      "components": [
+        "red white yellow identity",
+        "arrow sign; local shell retained"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "taco_bell": {
+      "name": "Taco Bell",
+      "aliases": [
+        "taco bell"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#682985",
+        "#f3edf1",
+        "#343237"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "tacobell-lighting"
+      ],
+      "components": [
+        "purple accent slats and lighting",
+        "neutral wall field"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5
+    },
+    "costco": {
+      "name": "Costco Wholesale",
+      "aliases": [
+        "costco",
+        "costco wholesale"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#c8212c",
+        "#f1eee7",
+        "#265b90"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "costco-story"
+      ],
+      "components": [
+        "large warehouse wordmark",
+        "solid service walls; articulated entry"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "asset": "costco",
+      "glazing_cluster_m": 14
+    },
+    "best_buy": {
+      "name": "Best Buy",
+      "aliases": [
+        "best buy"
+      ],
+      "category": "shop",
+      "colors": [
+        "#174a8b",
+        "#ffe000",
+        "#e3e0d8"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "bestbuy-store"
+      ],
+      "components": [
+        "blue entrance identity",
+        "yellow tag accent; local shell retained"
+      ],
+      "scope": "repeatable identity components; current site shell and hardware unverified",
+      "confidence": 0.5,
+      "glazing_cluster_m": 14
+    }
+  },
+  "station_brands": {
+    "chevron": {
+      "name": "Chevron",
+      "aliases": [
+        "chevron"
+      ],
+      "colors": [
+        "#0064a8",
+        "#e12836",
+        "#f0f2ef"
+      ],
+      "references": [
+        "chevron-image",
+        "chevron-extra",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "shell": {
+      "name": "Shell",
+      "aliases": [
+        "shell"
+      ],
+      "colors": [
+        "#ffd500",
+        "#dc2429",
+        "#f2f1e6"
+      ],
+      "references": [
+        "shell-image",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone",
+      "identity_ink": "#dc2429"
+    },
+    "arco": {
+      "name": "ARCO",
+      "aliases": [
+        "arco"
+      ],
+      "colors": [
+        "#0b448f",
+        "#e52b34",
+        "#eeefec"
+      ],
+      "references": [
+        "arco-identity",
+        "ampm-proposal",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "76": {
+      "name": "76",
+      "aliases": [
+        "76",
+        "union 76"
+      ],
+      "colors": [
+        "#ee6b22",
+        "#17529c",
+        "#eeefed"
+      ],
+      "references": [
+        "76-identity",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "tesla": {
+      "name": "Tesla Supercharger",
+      "aliases": [
+        "tesla",
+        "tesla supercharger",
+        "supercharger"
+      ],
+      "colors": [
+        "#e82127",
+        "#f5f5f2",
+        "#23272b"
+      ],
+      "references": [
+        "tesla-parking"
+      ],
+      "hardware": "tesla_v4",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "chargepoint": {
+      "name": "ChargePoint",
+      "aliases": [
+        "chargepoint"
+      ],
+      "colors": [
+        "#ee7823",
+        "#f1f0eb",
+        "#3d4143"
+      ],
+      "references": [
+        "chargepoint-layout"
+      ],
+      "hardware": "chargepoint_express250",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "electrify_america": {
+      "name": "Electrify America",
+      "aliases": [
+        "electrify america"
+      ],
+      "colors": [
+        "#55b642",
+        "#f1f3ee",
+        "#18455e"
+      ],
+      "references": [
+        "ea-harrison"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "evgo": {
+      "name": "EVgo",
+      "aliases": [
+        "evgo"
+      ],
+      "colors": [
+        "#2576ae",
+        "#82bc42",
+        "#f4f3e9"
+      ],
+      "references": [
+        "evgo-hardware"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "generic_fuel": {
+      "name": "Fuel",
+      "aliases": [
+        "fuel"
+      ],
+      "colors": [
+        "#285e73",
+        "#d87b24",
+        "#e9ece8"
+      ],
+      "references": [
+        "chevron-image",
+        "fuel-dispenser-kit"
+      ],
+      "hardware": "multi_product_dispenser",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    },
+    "generic_ev": {
+      "name": "EV charging",
+      "aliases": [
+        "ev charging"
+      ],
+      "colors": [
+        "#3d8059",
+        "#f1f2ed",
+        "#333b40"
+      ],
+      "references": [
+        "chargepoint-layout",
+        "tesla-parking"
+      ],
+      "hardware": "generic_dc",
+      "scope": "reference-backed components, inferred site configuration; no hardware generation asserted from network alone"
+    }
+  }
+}

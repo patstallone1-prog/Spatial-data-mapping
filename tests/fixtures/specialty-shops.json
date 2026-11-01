@@ -1,0 +1,1354 @@
+[
+  {
+    "id": "jewelry-standard",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "jewelry-narrow",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            4.8,
+            0.0
+          ],
+          [
+            4.8,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.8,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "jewelry-concave",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            8.0
+          ],
+          [
+            7.0,
+            8.0
+          ],
+          [
+            7.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "jewelry-rotated",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.714505706319011,
+            4.635342674190487
+          ],
+          [
+            1.019010732488307,
+            15.778517583317946
+          ],
+          [
+            -6.695494973830704,
+            11.14317490912746
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.714505706319011,
+            4.635342674190487
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "jewelry-corner",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      },
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "secondary",
+        "openings_complete": true,
+        "openings": [
+          {
+            "kind": "window",
+            "u": 1,
+            "w": 2.6,
+            "v": 0.65,
+            "h": 1.85,
+            "measured": true,
+            "source_id": "fixture-side-window"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "jewelry-observed",
+    "kind": "jewelry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Atelier Gem & Gold",
+        "category": "jewelry",
+        "fitout_tier": "premium"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public",
+        "openings_complete": true,
+        "openings": [
+          {
+            "id": "measured-entry",
+            "kind": "door",
+            "u": 5.5,
+            "w": 1.05,
+            "v": 0,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 1,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          },
+          {
+            "id": "measured-window",
+            "kind": "window",
+            "u": 0.6,
+            "w": 3.8,
+            "v": 0.75,
+            "h": 1.9,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "barber-standard",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "barber-narrow",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            4.8,
+            0.0
+          ],
+          [
+            4.8,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.8,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "barber-concave",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            8.0
+          ],
+          [
+            7.0,
+            8.0
+          ],
+          [
+            7.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "barber-rotated",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.714505706319011,
+            4.635342674190487
+          ],
+          [
+            1.019010732488307,
+            15.778517583317946
+          ],
+          [
+            -6.695494973830704,
+            11.14317490912746
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.714505706319011,
+            4.635342674190487
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "barber-corner",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      },
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "secondary",
+        "openings_complete": true,
+        "openings": [
+          {
+            "kind": "window",
+            "u": 1,
+            "w": 2.6,
+            "v": 0.65,
+            "h": 1.85,
+            "measured": true,
+            "source_id": "fixture-side-window"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "barber-observed",
+    "kind": "barber",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Juniper Barber Co.",
+        "category": "barber",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public",
+        "openings_complete": true,
+        "openings": [
+          {
+            "id": "measured-entry",
+            "kind": "door",
+            "u": 5.5,
+            "w": 1.05,
+            "v": 0,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 1,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          },
+          {
+            "id": "measured-window",
+            "kind": "window",
+            "u": 0.6,
+            "w": 3.8,
+            "v": 0.45,
+            "h": 1.9,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "salon-standard",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "salon-narrow",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            4.8,
+            0.0
+          ],
+          [
+            4.8,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.8,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "salon-concave",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            8.0
+          ],
+          [
+            7.0,
+            8.0
+          ],
+          [
+            7.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "salon-rotated",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.714505706319011,
+            4.635342674190487
+          ],
+          [
+            1.019010732488307,
+            15.778517583317946
+          ],
+          [
+            -6.695494973830704,
+            11.14317490912746
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.714505706319011,
+            4.635342674190487
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "salon-corner",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      },
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "secondary",
+        "openings_complete": true,
+        "openings": [
+          {
+            "kind": "window",
+            "u": 1,
+            "w": 2.6,
+            "v": 0.65,
+            "h": 1.85,
+            "measured": true,
+            "source_id": "fixture-side-window"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "salon-observed",
+    "kind": "salon",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Willow Hair Studio",
+        "category": "salon",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public",
+        "openings_complete": true,
+        "openings": [
+          {
+            "id": "measured-entry",
+            "kind": "door",
+            "u": 5.5,
+            "w": 1.05,
+            "v": 0,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 1,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          },
+          {
+            "id": "measured-window",
+            "kind": "window",
+            "u": 0.6,
+            "w": 3.8,
+            "v": 0.45,
+            "h": 1.9,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "laundry-standard",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "laundry-narrow",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            4.8,
+            0.0
+          ],
+          [
+            4.8,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.8,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "laundry-concave",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            8.0
+          ],
+          [
+            7.0,
+            8.0
+          ],
+          [
+            7.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "laundry-rotated",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.714505706319011,
+            4.635342674190487
+          ],
+          [
+            1.019010732488307,
+            15.778517583317946
+          ],
+          [
+            -6.695494973830704,
+            11.14317490912746
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.714505706319011,
+            4.635342674190487
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "laundry-corner",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      },
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "secondary",
+        "openings_complete": true,
+        "openings": [
+          {
+            "kind": "window",
+            "u": 1,
+            "w": 2.6,
+            "v": 0.65,
+            "h": 1.85,
+            "measured": true,
+            "source_id": "fixture-side-window"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "laundry-observed",
+    "kind": "laundry",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.0,
+            0.0
+          ],
+          [
+            9.0,
+            13.0
+          ],
+          [
+            0.0,
+            13.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "ground_height_m": 3.8,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Bay Wash Laundry",
+        "category": "laundry",
+        "fitout_tier": "standard"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public",
+        "openings_complete": true,
+        "openings": [
+          {
+            "id": "measured-entry",
+            "kind": "door",
+            "u": 5.5,
+            "w": 1.6,
+            "v": 0,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 2,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          },
+          {
+            "id": "measured-window",
+            "kind": "window",
+            "u": 0.6,
+            "w": 3.8,
+            "v": 0.45,
+            "h": 1.9,
+            "measured": true,
+            "source_id": "fixture-facade-survey"
+          }
+        ]
+      }
+    ]
+  }
+]
