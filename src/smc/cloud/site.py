@@ -9,7 +9,8 @@ lists its areas from ``app-regions.json``; a new cell needs an entry there and i
 3. lay the cell's files out under ``docs/regions/<cell>/`` -- for the page build only -- and run
    the documented rebuild (``build_sf_corridor_3d.py --page-only --detail app`` then
    ``tools/build_app_worlds.py``);
-4. with ``--interiors``, publish the interior engine's collected batches and restaurant rounds
+4. infer the new cells' storefront exteriors (:func:`publish_storefronts`); with
+   ``--interiors``, publish the interior engine's collected batches and restaurant rounds
    (:func:`promote_interiors`), and with ``--houses`` the houses the newest house batch accepted
    (:func:`promote_houses`), before the rebuild;
 5. commit only the small files (the map, the indexes, the pages and their release record), never
@@ -114,6 +115,23 @@ def unbuilt(repo: Path, release: dict) -> list[str]:
                   if not (repo / "docs/app-regions" / cell / "app-landwater.bin").is_file())
 
 
+#: A cell's researched storefront exteriors (scripts/publish_store_exteriors.py): the one file of
+#: a cell's folder the site serves itself, beside the shared manifest that names it.
+STOREFRONT_PLANS = "storefront-exteriors.json"
+
+
+def publish_storefronts(repo: Path, cells: list[str]) -> dict:
+    """The new cells' storefronts, inferred from the worlds just laid out for the page build and
+    written beside them, the shared manifest updated (the worlds are read, never rewritten)."""
+    worlds = [f"docs/regions/{c}/sf-corridor-3d.json" for c in cells
+              if (repo / "docs/regions" / c / "sf-corridor-3d.json").exists()]
+    if not worlds:
+        return {"worlds": 0}
+    subprocess.run([sys.executable, "scripts/publish_store_exteriors.py", *worlds], cwd=repo, check=True)
+    manifest = json.loads((repo / "docs/storefront-exteriors.manifest.json").read_text())
+    return {"worlds": len(worlds), "storefronts": manifest.get("buildings")}
+
+
 def commit_paths(repo: Path, cells: list[str]) -> list[str]:
     """The changed files to commit: small files only, and none of a cell's data."""
     out = subprocess.run(["git", "status", "--porcelain", "-uall", "docs"], cwd=repo,
@@ -124,7 +142,8 @@ def commit_paths(repo: Path, cells: list[str]) -> list[str]:
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         parts = path.split("/")
-        if len(parts) >= 3 and parts[0] == "docs" and parts[1] == "regions" and parts[2] in cells:
+        if (len(parts) >= 3 and parts[0] == "docs" and parts[1] == "regions" and parts[2] in cells
+                and parts[-1] != STOREFRONT_PLANS):
             continue  # the cell's data: served from R2 through the asset map
         if Path(path).suffix in SMALL_SUFFIXES or path.endswith("app-landwater.bin"):
             paths.append(path)
@@ -220,6 +239,8 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
         fetched = unbuilt(repo, release)
         if fetched:
             materialise(publisher, release, repo, fetched)
+    # Store exteriors first (the owner, 2026-11-01): every new cell opens with its storefronts.
+    storefronts = publish_storefronts(repo, fetched) if fetched else None
     furnished = promote_interiors(repo, interiors) if interiors is not None else None
     fitted = promote_houses(repo, houses) if houses is not None else None
     if rebuild:
@@ -227,7 +248,7 @@ def promote(repo: Path, publisher: Publisher | None, *, rebuild: bool = True,
                      "--out", "build/app-viewer.html"], [sys.executable, "tools/build_app_worlds.py"]):
             subprocess.run(cmd, cwd=repo, check=True)
     version = release["version"] if release else time.strftime("site-%Y%m%d-%H%M%S", time.gmtime())
-    return {"changed": True, "version": version, "added": added, "interiors": furnished,
+    return {"changed": True, "version": version, "added": added, "storefronts": storefronts, "interiors": furnished,
             "houses": fitted, "paths": commit_paths(repo, fetched)}
 
 
