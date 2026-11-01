@@ -22,6 +22,7 @@ from .stages import (
     ENRICH_CHAIN,
     HOUSE_SAMPLE,
     INTERIOR_OUT,
+    WORLDMESH_BLOCK_M,
     cell_job,
     gate_job,
     house_batch,
@@ -31,6 +32,7 @@ from .stages import (
     republish_job,
     restaurant_collect,
     restaurant_round,
+    worldmesh_jobs,
 )
 from .store import ObjectStore
 
@@ -138,7 +140,8 @@ def published_trees(queue: Queue) -> dict[str, str]:
 
 def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[str] | None = None,
                 house_batches: int = 0, house_sample: int = HOUSE_SAMPLE, interiors: bool = False,
-                restaurant_rounds: int = 0, house_ahead: int = 0) -> dict:
+                restaurant_rounds: int = 0, house_ahead: int = 0,
+                mesh_cells: list[str] | None = None) -> dict:
     """Submit (or re-submit) the plan. ``cells`` limits it to those names, in plan order.
     ``house_ahead`` keeps that many house batches queued past the last one finished, so the
     house chain goes on for as long as the plan is resubmitted (the controller does, daily)."""
@@ -208,4 +211,13 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         added += submit_interiors(queue, private, interior_batch_counts(root))
     if restaurant_rounds:
         added += submit_restaurants(queue, private, restaurant_rounds)
-    return {"cells": len(planned), "added": added, "kept": kept, "recorded_done": recorded}
+    mesh_blocks = 0
+    for cell in mesh_cells or []:
+        from smc.worldmesh.block import block_for_region, tiles_of
+
+        for block in tiles_of(block_for_region(cell, root), WORLDMESH_BLOCK_M):
+            for spec in worldmesh_jobs(cell, block.name, (block.west, block.south, block.east, block.north)):
+                added += queue.submit(spec) == "added"
+            mesh_blocks += 1
+    return {"cells": len(planned), "added": added, "kept": kept, "recorded_done": recorded,
+            "mesh_blocks": mesh_blocks}
