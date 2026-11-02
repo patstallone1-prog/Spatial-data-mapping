@@ -314,3 +314,29 @@ def test_workers_are_stopped_before_the_provider_balance_runs_out(tmp_path):
     report = sched.tick()
     assert sorted(r for _, r in report["stopped"]) == ["provider balance low"] * 2
     assert not q.workers() and not stub.live
+
+
+def test_the_provider_balance_is_never_spent_below_its_floor(tmp_path):
+    """The owner, 2026-11-02, away from top-ups: RunPod's balance holds at $1. No worker starts
+    into the floor, the running ones stop before it, and then the controller has nothing to do
+    (it sleeps; the watchdog wakes it after a top-up)."""
+    from smc.cloud.scheduler import AT_FLOOR, work_waiting
+
+    clock, q, stub, sched = setup(tmp_path, max_workers=2)
+    sched.settings.controller_hourly_usd = 0.063
+    jobs(q, 2)
+    stub.balance = lambda: 1.05  # an hour of one worker would go under $1
+    report = sched.tick()
+    assert report["launched"] == [] and any("floor" in h for h in report["held_back"])
+    assert [w["key"].split(":")[0] for w in report["warnings"]] == ["balance"]
+    stub.balance = lambda: 50.0
+    clock.t += 301
+    assert len(sched.tick()["launched"]) == 2
+    stub.balance = lambda: 1.08  # under half an hour of both workers and the controller above $1
+    clock.t += 301
+    report = sched.tick()
+    assert sorted(r for _, r in report["stopped"]) == ["provider balance low"] * 2
+    assert report["launched"] == [] and not q.workers()  # and none started again in their place
+    busy, why = work_waiting(q, sched.settings, balance=1.02)
+    assert not busy and why.startswith(AT_FLOOR), why
+    assert work_waiting(q, sched.settings, balance=50.0) == (True, "cpu work is ready")

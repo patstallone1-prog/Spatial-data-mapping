@@ -53,15 +53,25 @@ class Settings:
     extra: dict = field(default_factory=dict)
 
 
-def work_waiting(queue: Queue, settings: Settings, now: float | None = None) -> tuple[bool, str]:
+#: work_waiting's answer when the provider balance is at its floor: the controller sleeps at once.
+AT_FLOOR = "provider balance at its floor"
+
+
+def work_waiting(queue: Queue, settings: Settings, now: float | None = None,
+                 balance: float | None = None) -> tuple[bool, str]:
     """Whether the controller has anything it could do now: a worker running or a job leased,
     a gate or publication ready, or a pool's ready work the budget would launch a worker for.
-    The controller sleeps when this has been false a while; the watchdog wakes it when true."""
+    The controller sleeps when this has been false a while; the watchdog wakes it when true.
+    ``balance`` (the provider's prepaid balance) at its floor is nothing to do, once the
+    workers are gone: the controller's own half hour must fit above it too."""
     now = now or queue.clock()
     if queue.workers():
         return True, "workers running"
     if queue.jobs(state="leased"):
         return True, "a job is leased"
+    floor = settings.budget.balance_floor_usd
+    if balance is not None and balance - floor < settings.controller_hourly_usd * BALANCE_RESERVE_H:
+        return False, f"{AT_FLOOR}: ${balance:.2f} of ${floor:.2f}"
     status = money.status(queue, settings.budget, now)
     if status["hard_stop"]:
         return False, "hard monthly limit reached"
@@ -71,7 +81,8 @@ def work_waiting(queue: Queue, settings: Settings, now: float | None = None) -> 
         return True, "a gate or publication is ready"
     for name, pool in settings.pools.items():
         if queue.ready_count(name):
-            allowed, why = money.may_launch(queue, settings.budget, pool, now)
+            allowed, why = money.may_launch(queue, settings.budget, pool, now, balance=balance,
+                                            controller_hourly_usd=settings.controller_hourly_usd)
             if allowed:
                 return True, f"{name} work is ready"
             return False, f"{name} work waits on the budget: {why}"
@@ -158,11 +169,13 @@ class Scheduler:
             self.last = report
             return report
         # The provider's prepaid balance: at $0 RunPod deletes every pod, the controller's too
-        # (2026-10-29). Under half an hour of what is running, the workers are stopped -- their
-        # jobs go back to the queue -- so the controller and its queue outlive the balance.
+        # (2026-10-29). Under half an hour of what is running above the floor, the workers are
+        # stopped -- their jobs go back to the queue -- and then the controller sleeps
+        # (work_waiting), so the balance stays at the floor and nothing is deleted.
         balance = self.balance(now)
         burn = sum(w["hourly_usd"] for w in self.queue.workers()) + self.settings.controller_hourly_usd
-        if balance is not None and self.queue.workers() and balance < burn * BALANCE_RESERVE_H:
+        floor = self.settings.budget.balance_floor_usd
+        if balance is not None and self.queue.workers() and balance - floor < burn * BALANCE_RESERVE_H:
             for worker in self.queue.workers():
                 self._stop(worker, "provider balance low")
                 report["stopped"].append((worker["id"], "provider balance low"))
@@ -222,7 +235,8 @@ class Scheduler:
                     if launches >= self.settings.max_launches_per_tick:
                         break
                     allowed, why = money.may_launch(self.queue, self.settings.budget, pool, now,
-                                                    balance=self.balance(now))
+                                                    balance=self.balance(now),
+                                                    controller_hourly_usd=self.settings.controller_hourly_usd)
                     if not allowed:
                         report.setdefault("held_back", []).append(f"{name}: {why}")
                         break
