@@ -227,7 +227,11 @@ def main():
         )
     round["status"] = "complete"
     write(history_path, history)
-    if any(not r["passed"] for r in round["results"]):
+    # A restaurant that fails stays in the history and is tried again in a later round, so one
+    # failure does not fail the round (as a cloud job, a failed round is never saved, so every
+    # retry repeats it and the rounds after it wait for good). Only a round where nothing passed,
+    # which says the engine itself is broken, fails.
+    if round["results"] and not any(r["passed"] for r in round["results"]):
         raise SystemExit(1)
 
 
