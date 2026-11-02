@@ -3234,12 +3234,19 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
 <script>
 // Available even if a module import fails before the renderer can initialize.
 window.kerbsideBoot = { startedAt: Date.now(), error: null };
+// A failure while the map is loading stops the load (the app puts its loading cover back with a
+// Retry). Once the streets are up it is only logged: a texture or a part that failed to come in
+// later -- an avatar's hair, say -- had sent a player in the world back to that cover (2026-11-02).
+const bootFailed = (text, detail) => {
+  if (window.kerbsideReady?.streets) { console.warn("after loading:", text, detail); return; }
+  window.kerbsideBoot.error = text;
+};
 window.addEventListener("error", event => {
   if (event.target === window || event.target?.tagName === "SCRIPT")
-    window.kerbsideBoot.error = "The renderer could not finish loading. Please retry the map.";
+    bootFailed("The renderer could not finish loading. Please retry the map.", event.error || event.target?.src);
 }, true);
-window.addEventListener("unhandledrejection", () => {
-  window.kerbsideBoot.error = "A map resource failed to load. Please check the connection and retry.";
+window.addEventListener("unhandledrejection", event => {
+  bootFailed("A map resource failed to load. Please check the connection and retry.", event.reason);
 });
 </script>
 <script type="module">
@@ -4069,10 +4076,16 @@ document.getElementById("detailnote").textContent = DETAIL_MANIFEST.shards.lengt
 
 const canvas = document.getElementById("scene");
 if (!ATTACH) {
+  // The browser takes the context back under memory pressure and usually returns it (the
+  // renderer rebuilds what it drew): only one not back in ten seconds stops the map.
+  let contextLostTimer = 0;
   canvas.addEventListener("webglcontextlost", () => {
-    window.kerbsideBoot.error = "The graphics context was interrupted. Please retry the map.";
+    clearTimeout(contextLostTimer);
+    contextLostTimer = setTimeout(() => {
+      window.kerbsideBoot.error = "The graphics context was interrupted. Please retry the map.";
+    }, 10000);
   });
-  canvas.addEventListener("webglcontextrestored", () => { window.kerbsideBoot.error = null; });
+  canvas.addEventListener("webglcontextrestored", () => { clearTimeout(contextLostTimer); window.kerbsideBoot.error = null; });
 }
 // A logarithmic depth buffer, because this scene spans five orders of magnitude: a 126 mm kerb
 // has to stay distinct from the road it sits on while a two-kilometre corridor is on screen. With
@@ -36496,6 +36509,7 @@ let lastInputAt = performance.now();
 for (const type of ["pointerdown", "pointermove", "wheel", "keydown", "touchstart"])
   addEventListener(type, () => { lastInputAt = performance.now(); }, { passive: true });
 let lastFrameDrawnAt = 0, lastMovedAt = performance.now();
+const homeScreenUp = () => document.body.classList.contains("home-open");
 const lastDrawnEye = new THREE.Matrix4();
 //: How long a frame may be withheld before a timer stands in for it.
 const FRAME_STAND_IN_MS = 500;
@@ -36526,7 +36540,10 @@ function animate(now) {
   // The frame-rate cap, and the idle rate when nothing moves.
   const eye = camera.matrixWorld.elements, drawn = lastDrawnEye.elements;
   for (let i = 0; i < 16; i += 1) if (Math.abs(eye[i] - drawn[i]) > 1e-4) { lastMovedAt = now; break; }
-  const idle = now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors;
+  // Behind the home screen the world is out of sight: drawn at the idle rate however the
+  // creator's sliders and the spinning figure move the pointer, which had drawn it at full rate
+  // and left the creator seconds behind the hand (2026-11-02). Streaming still goes on.
+  const idle = homeScreenUp() || (now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors);
   const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
   if (!xrFrame && interval && now - lastFrameDrawnAt < interval - 2) return;
   lastFrameDrawnAt = now;

@@ -158,7 +158,8 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
     const group = new THREE.Group();
     group.name = "avatar";
     let body = null, bodyMesh = null, bodySex = null, animations = [], worn = new Map(), fullIndex = null;
-    let token = 0;
+    let token = 0, coversKey = null, coloursKey = null;
+    const tints = new Map();
 
     async function setBody(sex) {
       const g = await gltf(cat.bodies[sex].file);
@@ -231,11 +232,14 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
         for (const mesh of w.meshes) {
           if (item.slot === "eyes") { mesh.material.map = eye; mesh.material.needsUpdate = true; }
           if (item.slot === "hair" || item.slot === "eyebrows" || item.slot === "facial_hair") {
-            mesh.material = avatar.hair_colour ? tintMaterial(w.base.get(mesh), avatar.hair_colour) : w.base.get(mesh);
+            const base = w.base.get(mesh), key = `${base.uuid}|${avatar.hair_colour}`;
+            if (avatar.hair_colour && !tints.has(key)) tints.set(key, tintMaterial(base, avatar.hair_colour));
+            mesh.material = avatar.hair_colour ? tints.get(key) : base;
           }
-          if (item.slot === "outfit" && outfitTint) {
-            mesh.material = w.base.get(mesh).clone();
-            mesh.material.color.set(outfitTint);
+          if (item.slot === "outfit") {
+            const base = w.base.get(mesh), key = `${base.uuid}|${outfitTint}`;
+            if (outfitTint && !tints.has(key)) tints.set(key, base.clone().setValues({ color: outfitTint }));
+            mesh.material = outfitTint ? tints.get(key) : base;
           }
         }
       }
@@ -245,6 +249,11 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
       if (opts.outfitTint !== undefined) outfitTint = opts.outfitTint;
       avatar = sanitizeAvatar(next, cat);
       const mine = ++token;
+      // A slider moves only shapes and height: drawn at once, nothing loaded or re-made.
+      const want = wornItems(avatar, cat);
+      const parts = JSON.stringify([avatar.body, want.map((i) => i.id).sort()]);
+      const colours = JSON.stringify([avatar.skin, avatar.eyes, avatar.hair_colour, outfitTint]);
+      if (avatar.body === bodySex && parts === coversKey && colours === coloursKey) { applyShape(); return figure; }
       if (avatar.body !== bodySex) {
         const b = await setBody(avatar.body);
         if (mine !== token) return;
@@ -264,7 +273,6 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
         bodySex = avatar.body;
         group.add(body);
       }
-      const want = wornItems(avatar, cat);
       const loaded = await Promise.all(want.filter((i) => !worn.has(i.id)).map(async (i) => [i, await gltf(i.files[avatar.body])]));
       if (mine !== token) return;
       for (const [id, w] of worn) {
@@ -277,8 +285,9 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
         worn.set(item.id, { meshes, base: new Map(meshes.map((m) => [m, m.material])) });
       }
       applyShape();
-      applyCovers();
+      if (parts !== coversKey) { applyCovers(); coversKey = parts; }
       await applyColours(mine);
+      if (mine === token) coloursKey = colours;
       return figure;
     }
 
