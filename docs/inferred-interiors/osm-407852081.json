@@ -380,7 +380,8 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0
+    "corroboration_count": 0,
+    "party_walls": []
   },
   "style": {
     "id": "coastal",

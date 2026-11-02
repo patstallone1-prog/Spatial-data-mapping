@@ -796,7 +796,23 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0
+    "corroboration_count": 0,
+    "party_walls": [
+      {
+        "edge": 0,
+        "a": [
+          -4.037489548238682,
+          -7.491836000543003
+        ],
+        "b": [
+          -6.42127967322017,
+          9.061447999902157
+        ],
+        "u0": 0.24961260542422145,
+        "u1": 16.724044563422837,
+        "neighbour": "262096336"
+      }
+    ]
   },
   "style": {
     "id": "warm_oak",

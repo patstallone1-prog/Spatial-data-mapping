@@ -273,6 +273,28 @@ def interior_collect(region: str, batches: list[str], migrated: str | None) -> J
                    priority=310, max_attempts=3)
 
 
+#: Where a home batch (run_interior_engine.py --homes) is made on a worker.
+HOMES_OUT = "build/interior-homes"
+
+
+def home_batch(region: str, index: int, key: str, *, priority: int = 290) -> JobSpec:
+    """One batch of the every-home interior run, the Mac's batch for batch: ``key`` is the hash
+    of the inputs the Mac froze for it, and the job refuses to run on any other."""
+    folder = f"{HOMES_OUT}/{region}/batch-{index:03d}"
+    return JobSpec(id=f"homes:{region}:{index:04d}", kind="home_batch", subject=region,
+                   stage=f"batch-{index:03d}", resource="cpu",
+                   command=[[PY, "scripts/run_interior_engine.py", "--homes", "--batch", f"{region}:{index}",
+                             "--batch-key", key, "--out", HOMES_OUT]],
+                   save=[folder], timeout_s=2 * 3600, max_attempts=3, priority=priority)
+
+
+def home_publish(batch: JobSpec) -> JobSpec:
+    """The batch's accepted houses into the public store (the controller holds its keys)."""
+    return JobSpec(id=f"{batch.id}:store", kind="home_publish", subject=batch.subject,
+                   stage=f"{batch.stage}-store", resource="control", depends=[batch.id],
+                   restore_from=[batch.id], save=batch.save, priority=batch.priority, max_attempts=3)
+
+
 def restaurant_round(number: int, previous: str | None, *, priority: int = 320) -> JobSpec:
     return JobSpec(id=f"restaurant:round-{number:05d}", kind="restaurant_round", subject="restaurants",
                    stage=f"round-{number:05d}", resource="cpu",

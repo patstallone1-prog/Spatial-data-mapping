@@ -1,0 +1,513 @@
+{
+ "version": 1,
+ "credit": "MakeHuman system assets (CC0, Data Collection AB, Joel Palmius, Jonas Hauquier) and MakeHuman community bodyparts05 (CC0); bodies made with MPFB.",
+ "skins": {
+  "male": [
+   "young_caucasian_male",
+   "middleage_caucasian_male",
+   "old_caucasian_male",
+   "young_african_male",
+   "middleage_african_male",
+   "old_african_male",
+   "young_asian_male",
+   "middleage_asian_male",
+   "old_asian_male"
+  ],
+  "female": [
+   "young_caucasian_female",
+   "middleage_caucasian_female",
+   "old_caucasian_female",
+   "young_african_female",
+   "middleage_african_female",
+   "old_african_female",
+   "young_asian_female",
+   "middleage_asian_female",
+   "old_asian_female"
+  ]
+ },
+ "eye_colours": [
+  "brown",
+  "brownlight",
+  "blue",
+  "lightblue",
+  "bluegreen",
+  "green",
+  "grey"
+ ],
+ "items": [
+  {
+   "id": "eyes/low-poly",
+   "slot": "eyes",
+   "label": "Eyes",
+   "folder": "eyes",
+   "asset": "low-poly",
+   "mpfb_type": "Eyes",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "default": true
+  },
+  {
+   "id": "eyelashes/eyelashes01",
+   "slot": "eyelashes",
+   "label": "Eyelashes",
+   "folder": "eyelashes",
+   "asset": "eyelashes01",
+   "mpfb_type": "Eyelashes",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "default": true
+  },
+  {
+   "id": "eyebrows/eyebrow001",
+   "slot": "eyebrows",
+   "label": "Natural",
+   "folder": "eyebrows",
+   "asset": "eyebrow001",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "default": true
+  },
+  {
+   "id": "eyebrows/eyebrow003",
+   "slot": "eyebrows",
+   "label": "Arched",
+   "folder": "eyebrows",
+   "asset": "eyebrow003",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "eyebrows/eyebrow006",
+   "slot": "eyebrows",
+   "label": "Thick",
+   "folder": "eyebrows",
+   "asset": "eyebrow006",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "eyebrows/eyebrow008",
+   "slot": "eyebrows",
+   "label": "Thin",
+   "folder": "eyebrows",
+   "asset": "eyebrow008",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "eyebrows/eyebrow010",
+   "slot": "eyebrows",
+   "label": "Straight",
+   "folder": "eyebrows",
+   "asset": "eyebrow010",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "eyebrows/eyebrow012",
+   "slot": "eyebrows",
+   "label": "Bushy",
+   "folder": "eyebrows",
+   "asset": "eyebrow012",
+   "mpfb_type": "Eyebrows",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/short01",
+   "slot": "hair",
+   "label": "Crew cut",
+   "folder": "hair",
+   "asset": "short01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/short02",
+   "slot": "hair",
+   "label": "Short side part",
+   "folder": "hair",
+   "asset": "short02",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/short03",
+   "slot": "hair",
+   "label": "Short textured",
+   "folder": "hair",
+   "asset": "short03",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/short04",
+   "slot": "hair",
+   "label": "Short swept",
+   "folder": "hair",
+   "asset": "short04",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/bob01",
+   "slot": "hair",
+   "label": "Bob",
+   "folder": "hair",
+   "asset": "bob01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/bob02",
+   "slot": "hair",
+   "label": "Long bob",
+   "folder": "hair",
+   "asset": "bob02",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/long01",
+   "slot": "hair",
+   "label": "Long",
+   "folder": "hair",
+   "asset": "long01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/ponytail01",
+   "slot": "hair",
+   "label": "Ponytail",
+   "folder": "hair",
+   "asset": "ponytail01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/braid01",
+   "slot": "hair",
+   "label": "Braid",
+   "folder": "hair",
+   "asset": "braid01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hair/afro01",
+   "slot": "hair",
+   "label": "Afro",
+   "folder": "hair",
+   "asset": "afro01",
+   "mpfb_type": "Hair",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "facial_hair/culturalibre_faun_beard",
+   "slot": "facial_hair",
+   "label": "Full beard",
+   "folder": "clothes",
+   "asset": "culturalibre_faun_beard",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "credit": "culturalibre, MakeHuman community (CC0)"
+  },
+  {
+   "id": "facial_hair/rehmanpolanski_beard_viking",
+   "slot": "facial_hair",
+   "label": "Long beard",
+   "folder": "clothes",
+   "asset": "rehmanpolanski_beard_viking",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "credit": "RehmanPolanski, MakeHuman community (CC0)"
+  },
+  {
+   "id": "facial_hair/rehmanpolanski_moustache_viking",
+   "slot": "facial_hair",
+   "label": "Moustache",
+   "folder": "clothes",
+   "asset": "rehmanpolanski_moustache_viking",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "credit": "RehmanPolanski, MakeHuman community (CC0)"
+  },
+  {
+   "id": "outfit/male_casualsuit01",
+   "slot": "outfit",
+   "label": "Casual 1",
+   "folder": "clothes",
+   "asset": "male_casualsuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_casualsuit02",
+   "slot": "outfit",
+   "label": "Casual 2",
+   "folder": "clothes",
+   "asset": "male_casualsuit02",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_casualsuit03",
+   "slot": "outfit",
+   "label": "Casual 3",
+   "folder": "clothes",
+   "asset": "male_casualsuit03",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_casualsuit04",
+   "slot": "outfit",
+   "label": "Casual 4",
+   "folder": "clothes",
+   "asset": "male_casualsuit04",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_casualsuit05",
+   "slot": "outfit",
+   "label": "Casual 5",
+   "folder": "clothes",
+   "asset": "male_casualsuit05",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_casualsuit06",
+   "slot": "outfit",
+   "label": "Casual 6",
+   "folder": "clothes",
+   "asset": "male_casualsuit06",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_elegantsuit01",
+   "slot": "outfit",
+   "label": "Suit",
+   "folder": "clothes",
+   "asset": "male_elegantsuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/male_worksuit01",
+   "slot": "outfit",
+   "label": "Work clothes",
+   "folder": "clothes",
+   "asset": "male_worksuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male"
+   ]
+  },
+  {
+   "id": "outfit/female_casualsuit01",
+   "slot": "outfit",
+   "label": "Casual 1",
+   "folder": "clothes",
+   "asset": "female_casualsuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "female"
+   ]
+  },
+  {
+   "id": "outfit/female_casualsuit02",
+   "slot": "outfit",
+   "label": "Casual 2",
+   "folder": "clothes",
+   "asset": "female_casualsuit02",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "female"
+   ]
+  },
+  {
+   "id": "outfit/female_elegantsuit01",
+   "slot": "outfit",
+   "label": "Dress",
+   "folder": "clothes",
+   "asset": "female_elegantsuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "female"
+   ]
+  },
+  {
+   "id": "outfit/female_sportsuit01",
+   "slot": "outfit",
+   "label": "Sportswear",
+   "folder": "clothes",
+   "asset": "female_sportsuit01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes01",
+   "slot": "shoes",
+   "label": "Shoes 1",
+   "folder": "clothes",
+   "asset": "shoes01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes02",
+   "slot": "shoes",
+   "label": "Shoes 2",
+   "folder": "clothes",
+   "asset": "shoes02",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes03",
+   "slot": "shoes",
+   "label": "Shoes 3",
+   "folder": "clothes",
+   "asset": "shoes03",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes04",
+   "slot": "shoes",
+   "label": "Shoes 4",
+   "folder": "clothes",
+   "asset": "shoes04",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes05",
+   "slot": "shoes",
+   "label": "Shoes 5",
+   "folder": "clothes",
+   "asset": "shoes05",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "shoes/shoes06",
+   "slot": "shoes",
+   "label": "Shoes 6",
+   "folder": "clothes",
+   "asset": "shoes06",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  },
+  {
+   "id": "hat/fedora01",
+   "slot": "hat",
+   "label": "Fedora",
+   "folder": "clothes",
+   "asset": "fedora01",
+   "mpfb_type": "Clothes",
+   "bodies": [
+    "male",
+    "female"
+   ]
+  }
+ ]
+}

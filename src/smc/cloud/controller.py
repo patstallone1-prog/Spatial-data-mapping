@@ -312,6 +312,11 @@ class Controller:
                                 files=stats.files, bytes=stats.bytes_total)
                     self.queue.complete(spec["id"], "controller", token,
                                         {"tree": stats.tree, "pointer": spec["stage"], "files": stats.files})
+                elif spec["kind"] == "home_publish":
+                    # A home batch's accepted houses into the public store, merged into its tiles.
+                    put = _interior_runner(self.c.root).publish_to_store(
+                        self.c.root / spec["save"][0], self.c.public)
+                    self.queue.complete(spec["id"], "controller", token, {"tree": tree, "houses": put})
                 else:
                     self.queue.fail(spec["id"], "controller", token,
                                     f"no control handler for {spec['kind']}", permanent=True)
@@ -520,6 +525,16 @@ class Controller:
         }
 
 
+def _interior_runner(root: Path):
+    """scripts/run_interior_engine.py as a module (it is a script, not a package)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("run_interior_engine", root / "scripts/run_interior_engine.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _chain(spec: dict, queue: Queue) -> list[str]:
     stages = [j["stage"] for j in queue.jobs(subject=spec["subject"], kind="cell_stage")]
     return stages or list(CELL_CHAIN)
@@ -632,7 +647,8 @@ def _handler(ctl: Controller):
                         "interiors": bool(body.get("interiors", False)),
                         "restaurant_rounds": int(body.get("restaurant_rounds", 0)),
                         "house_ahead": int(body.get("house_ahead", 0)),
-                        "mesh_cells": list(body.get("mesh_cells") or [])}
+                        "mesh_cells": list(body.get("mesh_cells") or []),
+                        "homes": dict(body.get("homes") or {})}
                 result = submit_plan(q, ctl.c.root, ctl.c.private, **plan)
                 if body.get("standing"):
                     # Resubmitted by the controller every replan_h hours (housekeeping).

@@ -247,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="keep this many house batches queued past the last finished")
     p.add_argument("--mesh", default="",
                    help="cells to build the measured world mesh for, in 200 m blocks (comma list)")
+    p.add_argument("--homes", type=Path,
+                   help="JSON {region: [[batch index, input key], ...]}: the every-home run's batches for the cloud")
     p.add_argument("--standing", action="store_true",
                    help="the controller resubmits this plan every replan_h hours")
     sub.add_parser("status")
@@ -313,7 +315,8 @@ def main(argv: list[str] | None = None) -> int:
                 "house_batches": args.house_batches, "house_sample": args.house_sample,
                 "interiors": args.interiors, "restaurant_rounds": args.restaurant_rounds,
                 "house_ahead": args.house_ahead, "standing": args.standing,
-                "mesh_cells": [c for c in args.mesh.split(",") if c]}
+                "mesh_cells": [c for c in args.mesh.split(",") if c],
+                "homes": json.loads(args.homes.read_text()) if args.homes else {}}
         print(json.dumps(_ops("/api/plan", body)))
         return 0
     if args.cmd == "status":

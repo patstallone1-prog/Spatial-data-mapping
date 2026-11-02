@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from smc.exteriors.bundle import build_bundle, runtime_manifest  # noqa: E402
+from smc.exteriors.library import library  # noqa: E402
 
 LIMIT = 5000
 DOCS = ROOT / "docs"
@@ -92,7 +93,7 @@ def publish(world_path: Path, raw: bytes) -> dict | None:
     return {"world": str(world_path.relative_to(DOCS)), "path": str(plans.relative_to(DOCS)),
             "bbox": [b["west"], b["south"], b["east"], b["north"]], "buildings": len(slim["buildings"]),
             "rejected": slim["rejected"], "bytes": plans.stat().st_size, "sha256": sha256(plans),
-            "source_sha256": hashlib.sha256(raw).hexdigest()}
+            "source_sha256": hashlib.sha256(raw).hexdigest(), "references": library()["version"]}
 
 
 def write_manifest(tiles: dict) -> None:
@@ -123,8 +124,11 @@ def main() -> int:
             continue
         key = str(path.relative_to(DOCS))
         done = tiles.get(key)
-        if done and done.get("source_sha256") == hashlib.sha256(raw).hexdigest() and (DOCS / done["path"]).exists():
-            continue  # plans already made from exactly this world
+        # Plans already made from exactly this world, with this reference library (a chain added
+        # to it changes which storefronts wear an identity).
+        if (done and done.get("source_sha256") == hashlib.sha256(raw).hexdigest()
+                and done.get("references") == library()["version"] and (DOCS / done["path"]).exists()):
+            continue
         tile = publish(path, raw)
         tiles.pop(key, None)
         if tile:

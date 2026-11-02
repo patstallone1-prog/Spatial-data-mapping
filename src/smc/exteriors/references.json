@@ -1,6 +1,6 @@
 {
   "schema": "kerbside.storefront_references/1",
-  "version": "2026-10-31",
+  "version": "2026-11-01",
   "curation": {
     "scope": "Bay Area storefront and institutional exterior qualitative reference library",
     "not_a_representative_survey": true,
@@ -973,6 +973,201 @@
       "observations": [
         "Hair and beard services support a barber-specific program rather than a generic retail display layout.",
         "A merchant identity does not establish exact floor-plan dimensions."
+      ]
+    },
+    {
+      "id": "bofa-colors",
+      "title": "Bank of America logo colors",
+      "url": "https://brandpalettes.com/bank-of-america-logo-colors/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Navy #012169 (PMS 280 C) and red #E31837 (PMS 199 C); a second site gives the same red."
+      ]
+    },
+    {
+      "id": "wellsfargo-colors",
+      "title": "Wells Fargo logo colors",
+      "url": "https://brandpalettes.com/wells-fargo-logo-colors/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Red and gold/yellow identity; sources give red near #D71E28 and gold #FFCD11-#FCCC44."
+      ]
+    },
+    {
+      "id": "citi-colors",
+      "title": "The Citibank logo",
+      "url": "https://fabrikbrands.com/branding-matters/logofile/citibank-logo-history-citybank-logo-symbol/",
+      "organization": "Fabrik Brands",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Blue wordmark with red arc on white; blue near #003B70, red near #D9261C."
+      ]
+    },
+    {
+      "id": "usbank-stadium-guide",
+      "title": "U.S. Bank Stadium logo branding guide",
+      "url": "https://usbankstadium.com/assets/doc/U.S.-Bank-Stadium-Logo-Branding-Guide-d7d863d2cd.pdf",
+      "organization": "U.S. Bank Stadium",
+      "kind": "brand_guideline",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "U.S. Bank Blue PMS 2748 (#0C2074) and red #DE162B; a stadium guide, so the bank's own storefronts may differ."
+      ]
+    },
+    {
+      "id": "jackinthebox-colors",
+      "title": "Jack in the Box color codes",
+      "url": "https://brandpalettes.com/jack-in-the-box-color-codes/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Red #E51837, dark red #B50A37, grey #D0DCDB and white."
+      ]
+    },
+    {
+      "id": "burgerking-2021",
+      "title": "Burger King rebrand by Jones Knowles Ritchie",
+      "url": "https://www.itsnicethat.com/news/burger-king-rebrand-jkr-graphic-design-070121",
+      "organization": "It's Nice That",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "2021 identity palette named Fiery Red, Flaming Orange and BBQ Brown, drawn from flame grilling; third-party guides give #D62300 and #FF8732 (the brown is a reconstruction)."
+      ]
+    },
+    {
+      "id": "pandaexpress-colors",
+      "title": "Panda Express color codes",
+      "url": "https://brandpalettes.com/panda-express-color-codes/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Red #C02827 with black and white; other sources give reds #C8102E-#D1282E."
+      ]
+    },
+    {
+      "id": "kfc-colors",
+      "title": "KFC logo colors",
+      "url": "https://brandpalettes.com/kfc-logo-colors/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Red is most often #E4002B ('KFC Red'); Colonel portrait in a red apron on white."
+      ]
+    },
+    {
+      "id": "roundtable-2019",
+      "title": "Round Table Pizza goes black, white 'n red all over",
+      "url": "https://www.pizzamarketplace.com/news/round-table-pizza-goes-black-white-n-red-all-over",
+      "organization": "Pizza Marketplace",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "The 2019 'Pizza Royalty' rebrand drew on black, white and red; no official hex is published."
+      ]
+    },
+    {
+      "id": "publicstorage-trademark",
+      "title": "Self-storage giants battle over the color orange",
+      "url": "https://www.insideselfstorage.com/facility-operators/self-storage-giants-u-haul-and-public-storage-battle-over-the-use-of-the-color-orange",
+      "organization": "Inside Self-Storage",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Public Storage claims orange trade dress; a logo catalogue samples it near #ED7100 with white lettering on an orange field."
+      ]
+    },
+    {
+      "id": "oreilly-colors",
+      "title": "O'Reilly Automotive logo colors",
+      "url": "https://brandpalettes.com/oreilly-automotive-logo-colors/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Shamrock green #009D57 with white and black; one source adds red #CD2029."
+      ]
+    },
+    {
+      "id": "fedex-colors",
+      "title": "FedEx doubles down on purple and orange",
+      "url": "https://ttnews.com/articles/fedex-doubles-down-purple-and-orange",
+      "organization": "Transport Topics",
+      "kind": "brand_publication",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Purple and orange are FedEx's core colours; palettes give orange #FF6600 and purple between #4D148C and #660099."
+      ]
+    },
+    {
+      "id": "att-colors",
+      "title": "AT&T color codes",
+      "url": "https://brandpalettes.com/att-color-codes/",
+      "organization": "Brand Palettes",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Globe blue #00A8E0 (PMS 298 C) with a black wordmark; the globe's stripes are blue and white."
+      ]
+    },
+    {
+      "id": "tmobile-colors",
+      "title": "Metro by T-Mobile brand genome",
+      "url": "https://brand-genome.github.io/brands/metro-by-t-mobile/",
+      "organization": "Brand Genome",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "T-Mobile Magenta C0 M100 Y0 K0, R226 G0 B116, #E20074, PMS Process Magenta."
+      ]
+    },
+    {
+      "id": "groceryoutlet-colors",
+      "title": "Grocery Outlet Holding colors",
+      "url": "https://coloropedia.com/grocery-outlet-holding-colors-logo-codes/",
+      "organization": "Coloropedia",
+      "kind": "brand_media",
+      "location": "Global",
+      "reviewed_at": "2026-11-01",
+      "locator": "search-result summary of a third-party palette page; not the brand's own guideline",
+      "observations": [
+        "Cardinal red #B81F34 and corn yellow #F4C607 with white; another catalogue samples #AA1D3A and #EDB62E."
       ]
     }
   ],
@@ -2520,6 +2715,514 @@
       "scope": "repeatable identity components; current site shell and hardware unverified",
       "confidence": 0.5,
       "glazing_cluster_m": 14
+    },
+    "bank_of_america": {
+      "name": "Bank of America",
+      "aliases": [
+        "bank of america",
+        "bank of america financial center",
+        "bofa"
+      ],
+      "category": "bank",
+      "colors": [
+        "#012169",
+        "#e31837",
+        "#f4f4f2"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "bofa-colors",
+        "bank-signs",
+        "sf-formula"
+      ],
+      "components": [
+        "flag-stripe mark beside a navy wordmark",
+        "red/navy on light fascia",
+        "entry/ATM hierarchy"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "wells_fargo": {
+      "name": "Wells Fargo",
+      "aliases": [
+        "wells fargo",
+        "wells fargo bank"
+      ],
+      "category": "bank",
+      "colors": [
+        "#d71e28",
+        "#ffcd11",
+        "#f4f2ee"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "wellsfargo-colors",
+        "bank-signs",
+        "sf-formula"
+      ],
+      "components": [
+        "gold letters on a red field",
+        "entry/ATM hierarchy"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "citibank": {
+      "name": "Citibank",
+      "aliases": [
+        "citibank",
+        "citi",
+        "citibank branch"
+      ],
+      "category": "bank",
+      "colors": [
+        "#003b70",
+        "#d9261c",
+        "#f4f4f2"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "citi-colors",
+        "bank-signs",
+        "sf-formula"
+      ],
+      "components": [
+        "blue wordmark under a red arc",
+        "entry/ATM hierarchy"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "us_bank": {
+      "name": "U.S. Bank",
+      "aliases": [
+        "us bank",
+        "u s bank",
+        "u.s. bank"
+      ],
+      "category": "bank",
+      "colors": [
+        "#0c2074",
+        "#de162b",
+        "#f4f4f2"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "plaque"
+      ],
+      "materials": [
+        "stone",
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "usbank-stadium-guide",
+        "bank-signs",
+        "sf-formula"
+      ],
+      "components": [
+        "blue shield and wordmark with red accent",
+        "entry/ATM hierarchy"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.45
+    },
+    "jack_in_the_box": {
+      "name": "Jack in the Box",
+      "aliases": [
+        "jack in the box"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#e51837",
+        "#b50a37",
+        "#d0dcdb"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "lightbox"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "tile"
+      ],
+      "references": [
+        "jackinthebox-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "red box mark",
+        "drive-through and counter signage"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "burger_king": {
+      "name": "Burger King",
+      "aliases": [
+        "burger king"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#d62300",
+        "#ff8732",
+        "#f5ebdc",
+        "#502314"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "lightbox"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "brick"
+      ],
+      "references": [
+        "burgerking-2021",
+        "sf-formula"
+      ],
+      "components": [
+        "bun-and-wordmark logo",
+        "warm red/orange on cream"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "panda_express": {
+      "name": "Panda Express",
+      "aliases": [
+        "panda express"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#c02827",
+        "#1a1a1a",
+        "#f4f1ea"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "lightbox"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "tile"
+      ],
+      "references": [
+        "pandaexpress-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "panda mark beside red wordmark"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "kfc": {
+      "name": "KFC",
+      "aliases": [
+        "kfc",
+        "kentucky fried chicken"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#e4002b",
+        "#f6f6f6",
+        "#1a1a1a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "lightbox"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel",
+        "brick"
+      ],
+      "references": [
+        "kfc-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "Colonel portrait and red wordmark",
+        "red and white striping"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "round_table_pizza": {
+      "name": "Round Table Pizza",
+      "aliases": [
+        "round table pizza",
+        "round table"
+      ],
+      "category": "pizza",
+      "colors": [
+        "#1a1a1a",
+        "#f4f2ee",
+        "#c8102e"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "painted_wood",
+        "brick"
+      ],
+      "references": [
+        "roundtable-2019",
+        "sf-formula"
+      ],
+      "components": [
+        "black/white wordmark with red accent"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.35
+    },
+    "public_storage": {
+      "name": "Public Storage",
+      "aliases": [
+        "public storage"
+      ],
+      "category": "industrial",
+      "colors": [
+        "#ed7100",
+        "#ffffff",
+        "#3d3d3d"
+      ],
+      "sign_types": [
+        "fascia",
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "publicstorage-trademark"
+      ],
+      "components": [
+        "white lettering on an orange band",
+        "orange roll-up doors"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "oreilly_auto_parts": {
+      "name": "O'Reilly Auto Parts",
+      "aliases": [
+        "oreilly auto parts",
+        "oreilly",
+        "oreilly automotive"
+      ],
+      "category": "hardware",
+      "colors": [
+        "#009d57",
+        "#ffffff",
+        "#1a1a1a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "oreilly-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "green fascia band with white letters"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "fedex_office": {
+      "name": "FedEx Office",
+      "aliases": [
+        "fedex office",
+        "fedex office print ship center",
+        "fedex"
+      ],
+      "category": "shop",
+      "colors": [
+        "#4d148c",
+        "#ff6600",
+        "#f4f4f4"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "fedex-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "purple 'Fed' with orange 'Ex' wordmark"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "att": {
+      "name": "AT&T Store",
+      "aliases": [
+        "at t",
+        "att",
+        "at t store",
+        "at amp t"
+      ],
+      "category": "shop",
+      "colors": [
+        "#00a8e0",
+        "#1a1a1a",
+        "#f4f4f4"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "blade"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco",
+        "stone"
+      ],
+      "references": [
+        "att-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "striped blue globe and black wordmark"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
+    },
+    "t_mobile": {
+      "name": "T-Mobile",
+      "aliases": [
+        "t mobile",
+        "tmobile",
+        "t mobile store"
+      ],
+      "category": "shop",
+      "colors": [
+        "#e20074",
+        "#ffffff",
+        "#1a1a1a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "blade"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "tmobile-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "magenta T mark and wordmark"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.45
+    },
+    "metro_by_t_mobile": {
+      "name": "Metro by T-Mobile",
+      "aliases": [
+        "metro by t mobile",
+        "metropcs",
+        "metro pcs"
+      ],
+      "category": "shop",
+      "colors": [
+        "#e20074",
+        "#ffffff",
+        "#1a1a1a"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "metal_panel",
+        "stucco"
+      ],
+      "references": [
+        "tmobile-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "Metro wordmark with T-Mobile magenta"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.35
+    },
+    "grocery_outlet": {
+      "name": "Grocery Outlet",
+      "aliases": [
+        "grocery outlet",
+        "grocery outlet bargain market"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#b81f34",
+        "#f4c607",
+        "#ffffff"
+      ],
+      "sign_types": [
+        "channel_letters",
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panel"
+      ],
+      "references": [
+        "groceryoutlet-colors",
+        "sf-formula"
+      ],
+      "components": [
+        "red wordmark with yellow accent"
+      ],
+      "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
+      "confidence": 0.4
     }
   },
   "station_brands": {
