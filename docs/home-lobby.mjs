@@ -329,7 +329,9 @@ function avatarStage(ctx, host, look) {
       ringMaterial.color.set(next.team); glowMaterial.color.set(next.team);
       if (creator(next) || model !== soldier) show(next); else tint(next.outfit);
     },
-    dispose() { shown++; cancelAnimationFrame(raf); figure?.dispose(); renderer.dispose(); renderer.domElement.remove(); },
+    // Its WebGL context is handed back at once, not when collected: two contexts at once
+    // (this and the world's) are what the browser takes back first under memory pressure.
+    dispose() { shown++; cancelAnimationFrame(raf); figure?.dispose(); renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); },
   };
 }
 
