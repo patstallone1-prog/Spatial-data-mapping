@@ -150,3 +150,35 @@ def test_a_front_door_never_stands_on_a_party_wall_while_another_wall_will_take_
     spot = _extract("frontDoorSpot", _page_js())
     assert "const open = long.filter((w) => !partyWall(feature, w));" in spot
     assert "walls !== open || !partyWall(feature, best)" in spot
+
+
+def test_a_tile_another_run_wrote_keeps_its_houses_when_this_run_adds_to_it(tmp_path) -> None:
+    import gzip
+
+    from smc.cloud.store import LocalStore
+    engine = _engine()
+    store = LocalStore(tmp_path / "store")
+    key = engine.tile_key(-122.4, 37.8)
+    # The cloud put house 7 in this square; the Mac's run (no ledger of it) adds house 1.
+    other = {"schema": "kerbside.inferred_house_overlay/1", "tile": key,
+             "buildings": {"7": {"file": "interiors/houses/sf-sunset/osm-7.json", "origin_lon_lat": [-122.4, 37.8]}}}
+    store.put(f"interiors/overlay/{key}.json", gzip.compress(json.dumps(other).encode()))
+    store.put("interiors/overlay/index.json", gzip.compress(json.dumps(
+        {"schema": "kerbside.inferred_house_tiles/1", "tile_deg": engine.TILE_DEG, "tiles": {key: 1, "1_1": 4}}).encode()))
+    _batch(tmp_path / "out/sf-sunset/batch-000", {"1": {"grade": "inferred", "validation": {"passed": True}}})
+    assert engine.publish_to_store(tmp_path / "out/sf-sunset/batch-000", store) == 1
+    tile = json.loads(gzip.decompress(store.get(f"interiors/overlay/{key}.json")))
+    assert set(tile["buildings"]) == {"1", "7"}
+    index = json.loads(gzip.decompress(store.get("interiors/overlay/index.json")))
+    assert index["tiles"] == {key: 2, "1_1": 4}
+
+
+def test_a_cloud_home_batch_is_the_macs_batch_and_its_houses_are_stored_by_the_controller() -> None:
+    from smc.cloud.stages import home_batch, home_publish
+    batch = home_batch("sf-sunset", 7, "abcd1234abcd1234")
+    command = batch.command[0]
+    assert command[command.index("--batch") + 1] == "sf-sunset:7" and "--homes" in command
+    assert command[command.index("--batch-key") + 1] == "abcd1234abcd1234"
+    assert batch.resource == "cpu" and batch.save == ["build/interior-homes/sf-sunset/batch-007"]
+    store = home_publish(batch)
+    assert store.resource == "control" and store.depends == [batch.id] and store.restore_from == [batch.id]

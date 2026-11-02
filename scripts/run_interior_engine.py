@@ -183,11 +183,31 @@ def _gzipped(value) -> bytes:
 _store_lock = threading.Lock()
 
 
-def publish_to_store(folder: Path, store, out: Path) -> int:
-    """Put a finished batch's accepted houses into the public store, rewrite the overlay tiles
-    that list them, and leave only the batch's manifest, overlay and log on disk. Returns how
-    many went in. The run's own ledger of the store (``<out>/store-overlay.json``) is what the
-    tiles are written from, so a tile always lists every house put in its square."""
+def _merge_json(store, key: str, change) -> dict:
+    """Read a gzipped JSON object from the store, change it, and write it back only if nobody
+    else wrote it in between (If-Match / If-None-Match): the Mac's run and the cloud's batches
+    write the same overlay tiles and index, and neither may drop what the other put there."""
+    sys.path.insert(0, str(ROOT / "src"))
+    from smc.cloud.store import PreconditionFailed
+    for _ in range(20):
+        head = store.head(key)
+        current = json.loads(gzip.decompress(store.get(key))) if head else None
+        value = change(current)
+        try:
+            store.put(key, _gzipped(value), content_type="application/json", content_encoding="gzip",
+                      cache_control="public, max-age=300",
+                      **({"if_match": head.etag} if head else {"if_none_match": True}))
+            return value
+        except PreconditionFailed:
+            time.sleep(0.2)
+    raise RuntimeError(f"{key}: kept changing under this write")
+
+
+def publish_to_store(folder: Path, store, out: Path | None = None) -> int:
+    """Put a finished batch's accepted houses into the public store, add them to the overlay
+    tiles that list them and to the tiles' index, and leave only the batch's manifest, overlay
+    and log on disk. Returns how many went in. Each tile is merged, not rewritten, so houses
+    put by any other run stay listed. ``<out>/store-overlay.json`` keeps this run's own ledger."""
     if (folder / "store.json").exists() or not (folder / "manifest.json").exists():
         return 0
     region = folder.parent.name
@@ -206,23 +226,28 @@ def publish_to_store(folder: Path, store, out: Path) -> int:
         store.put(key, _gzipped(house), content_type="application/json", content_encoding="gzip",
                   cache_control="public, max-age=3600")
         put[osm_id] = {"file": key, "origin_lon_lat": refs[osm_id]["origin_lon_lat"]}
-    with _store_lock:
-        ledger_path = out / "store-overlay.json"
-        ledger = json.loads(ledger_path.read_text()) if ledger_path.exists() else {}
-        ledger.update(put)
-        tiles: dict[str, dict] = {}
-        for osm_id, ref in ledger.items():
-            tiles.setdefault(tile_key(*ref["origin_lon_lat"]), {})[osm_id] = ref
-        for key in sorted({tile_key(*ref["origin_lon_lat"]) for ref in put.values()}):
-            store.put(f"{STORE_OVERLAY}/{key}.json", _gzipped(
-                {"schema": "kerbside.inferred_house_overlay/1", "tile": key, "buildings": tiles[key]}),
-                content_type="application/json", content_encoding="gzip", cache_control="public, max-age=300")
-        if put:
-            store.put(f"{STORE_OVERLAY}/index.json", _gzipped(
-                {"schema": "kerbside.inferred_house_tiles/1", "tile_deg": TILE_DEG,
-                 "tiles": {k: len(v) for k, v in sorted(tiles.items())}}),
-                content_type="application/json", content_encoding="gzip", cache_control="public, max-age=300")
-        ledger_path.write_text(json.dumps(ledger, separators=(",", ":")))
+    by_tile: dict[str, dict] = {}
+    for osm_id, ref in put.items():
+        by_tile.setdefault(tile_key(*ref["origin_lon_lat"]), {})[osm_id] = ref
+    counts = {}
+    for key, houses in sorted(by_tile.items()):
+        def add(tile, key=key, houses=houses):
+            tile = tile or {"schema": "kerbside.inferred_house_overlay/1", "tile": key, "buildings": {}}
+            tile["buildings"].update(houses)
+            return tile
+        counts[key] = len(_merge_json(store, f"{STORE_OVERLAY}/{key}.json", add)["buildings"])
+    if counts:
+        def index(value):
+            value = value or {"schema": "kerbside.inferred_house_tiles/1", "tile_deg": TILE_DEG, "tiles": {}}
+            value["tiles"] = dict(sorted({**value["tiles"], **counts}.items()))
+            return value
+        _merge_json(store, f"{STORE_OVERLAY}/index.json", index)
+    if out is not None:
+        with _store_lock:
+            ledger_path = out / "store-overlay.json"
+            ledger = json.loads(ledger_path.read_text()) if ledger_path.exists() else {}
+            ledger.update(put)
+            ledger_path.write_text(json.dumps(ledger, separators=(",", ":")))
     (folder / "store.json").write_text(json.dumps({"houses": sorted(put)}))
     for path in folder.iterdir():
         if path.is_file() and path.name not in {"manifest.json", "map-overlay.json", "run.log", "store.json"}:
@@ -261,6 +286,12 @@ def publish(out: Path, published: Path = PUBLISHED) -> int:
     return added
 
 
+def batch_key(rows: list[dict]) -> str:
+    """The SHA-256 prefix of a batch's inputs: a cloud job carries the Mac's, and refuses to run
+    if the selection it computes itself differs."""
+    return hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:16]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--regions", nargs="*", default=REGIONS)
@@ -285,9 +316,12 @@ def main() -> None:
         return
     if args.batch:
         region, index = args.batch.rsplit(":", 1)
-        rows = eligible(region)[int(index) * BATCH:(int(index) + 1) * BATCH]
+        chosen = home_selection(region, args.out, max_area=args.max_area) if args.homes else eligible(region)
+        rows = chosen[int(index) * BATCH:(int(index) + 1) * BATCH]
         if not rows:
             raise SystemExit(f"{region} has no batch {index}")
+        if args.batch_key and batch_key(rows) != args.batch_key:
+            raise SystemExit(f"{region} {index}: inputs differ from the planned batch; replan")
         line = run_batch(region, int(index), rows, args.out)
         print(line, flush=True)
         # A batch held for disk, or one whose engine exited without a manifest, is not done.
