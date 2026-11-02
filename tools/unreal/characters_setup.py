@@ -4,7 +4,7 @@ Prebuilt, not made here. Two of Epic's sources, in order:
 
 * **MetaHumans** -- the presets that ship with the MetaHumanCharacter plugin (Ada, Bo, Celeste,
   ...), rigged and textured by Epic's cloud service and assembled in the editor (the
-  scratchpad's mh_build.py; that step needs the editor with a GPU, not a commandlet). Each built
+  metahuman_presets.py; that step needs the editor with a GPU, not a commandlet). Each built
   one is a Blueprint whose body, face and clothes follow the walker's animated mesh.
 * **Epic's mannequins** -- Manny and Quinn from the third-person template, the same skeleton and
   animation, in different colours, filling whatever places the MetaHumans have not.
@@ -19,6 +19,7 @@ RosterNames, Animation), which AKerbsideWalker reads. ``-KerbsideCharacter=<name
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import unreal
@@ -26,6 +27,7 @@ import unreal
 #: The presets wanted first, chosen to be varied in age, build and appearance.
 METAHUMANS = ("Ada", "Bo", "Celeste", "Isaiah", "Jorge", "Lani", "Omari", "Sunita", "Trey", "Vivian")
 BUILT = "/Game/Characters/MetaHumans/Built"
+UNPACKED = "/Game/Characters/MetaHumans/Unpacked"
 MANNEQUINS = "/Game/Characters/Mannequins"
 VARIANTS = "/Game/Characters/Roster"
 ANIMATION = "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
@@ -53,8 +55,9 @@ def built_metahumans() -> list[tuple[str, str]]:
     """(name, class path) for each preset whose assembled Blueprint is in the project."""
     found = []
     for name in METAHUMANS:
-        for candidate in (f"{BUILT}/{name}/BP_{name}", f"{BUILT}/BP_{name}"):
-            if _exists(candidate):
+        for candidate in (f"{BUILT}/{name}/BP_{name}", f"{UNPACKED}/{name}/BP_{name}",
+                          f"{BUILT}/BP_{name}"):
+            if _exists(candidate) and unreal.EditorAssetLibrary.load_blueprint_class(candidate):
                 found.append((name, f"{candidate}.BP_{name}_C"))
                 break
     return found
@@ -87,6 +90,9 @@ def mannequin_variant(name: str, mesh: str, material: str, colour: tuple) -> str
 
 def roster() -> list[tuple[str, str]]:
     chosen = built_metahumans()[:ROSTER_SIZE]
+    if os.environ.get("KERBSIDE_REQUIRE_METAHUMANS") == "1" and len(chosen) != ROSTER_SIZE:
+        missing = sorted(set(METAHUMANS) - {name for name, _ in chosen})
+        raise RuntimeError(f"MetaHuman roster incomplete: {missing}")
     for name, mesh, material, colour in MANNEQUIN_VARIANTS:
         if len(chosen) >= ROSTER_SIZE:
             break
