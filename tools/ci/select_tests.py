@@ -21,6 +21,23 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT_TEST = "tests/test_width_vs_kerb.py"
 CODE = {".py", ".mjs", ".js", ".cpp", ".h", ".cs"}
+# Preserve the established lint boundary. The giant embedded-JS map builder was
+# never in Ruff's blocking scope; test routing must not introduce baseline failures.
+LINT_PREFIXES = ("src/", "tests/", "tools/ci/")
+LINT_FILES = {
+    "scripts/build_terrain.py",
+    "tools/unreal/install_runtime.py",
+    "tools/unreal/setup_world.py",
+    "tools/unreal/axis_probe.py",
+    "tools/unreal/check_automation.py",
+    "tools/unreal/validate_world.py",
+}
+
+
+def lint_owned(path: str) -> bool:
+    return path.endswith(".py") and (path.startswith(LINT_PREFIXES) or path in LINT_FILES)
+
+
 RULES = [
     (
         ["tools/ci/**", ".github/workflows/**"],
@@ -312,7 +329,7 @@ def select(root: Path, changed: list[str], paths: set[str], *, previous=None, fu
         "node": [t for t in tests if t.endswith(".mjs")],
         "audit": AUDIT_TEST in tests,
         "visual_publish": "tests/test_visual_publish.py" in tests,
-        "lint": sorted(p for p in changed if p.endswith(".py") and (root / p).is_file()),
+        "lint": sorted(p for p in changed if lint_owned(p) and (root / p).is_file()),
         "modules": dict(sorted(groups.items())),
         "reasons": {t: sorted(reasons[t]) for t in tests},
         "uncovered": sorted(uncovered),

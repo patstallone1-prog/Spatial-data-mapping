@@ -12,7 +12,9 @@ Python scripts that merely copy frontend assets do not pull all their unrelated 
 tests into an avatar-only edit. Mock-repository path strings are not real dependencies.
 
 Only selected pytest files and Node test files run. The corridor audit runs only if its
-own test or a dependency changes. Changed Python files are linted. An unaffected required
+own test or a dependency changes. Changed Python files within the established blocking lint scope are linted (src/tests,
+the existing terrain/Unreal tool allowlist, and the new CI helpers). The embedded-JS map
+builder retains its previous lint boundary; its affected module tests still run. An unaffected required
 check reports its reason for doing no work; it never invokes empty `pytest` (which would
 otherwise discover everything). A failed/missing plan fails all three required checks.
 New executable files with no test ownership fail selection and must gain tests or an

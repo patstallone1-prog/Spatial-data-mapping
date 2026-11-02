@@ -287,3 +287,24 @@ def test_imported_function_does_not_match_an_unrelated_script_with_same_name(tmp
         },
     )
     assert not select(tmp_path, ["scripts/helper.py"], paths)["python"]
+
+
+def test_test_routing_preserves_the_existing_blocking_lint_scope(tmp_path):
+    paths = project(
+        tmp_path,
+        {
+            "scripts/build_sf_corridor_3d.py": "pass",
+            "scripts/build_terrain.py": "pass",
+            "src/smc/model.py": "pass",
+            "tools/ci/select_tests.py": "pass",
+            "tests/test_map.py": "pass",
+        },
+    )
+    p = select(tmp_path, sorted(paths), paths)
+    assert p["lint"] == [
+        "scripts/build_terrain.py",
+        "src/smc/model.py",
+        "tests/test_map.py",
+        "tools/ci/select_tests.py",
+    ]
+    assert "tests/test_map.py" in p["python"]
