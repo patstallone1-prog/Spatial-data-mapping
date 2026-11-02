@@ -71,12 +71,19 @@ def asset_map(release: dict, previous: dict | None = None) -> dict:
 
 
 def update_regions(index: dict, release: dict, registry: dict) -> list[str]:
-    """Add each published cell to the region index; returns the names added."""
-    known = {r["name"] for r in index["regions"]}
+    """Add each published cell to the region index; returns the names added. A region listed
+    before its cells came from the cloud (sf-richmond: listed, its own build failed) is switched
+    on, or its app page is never built (release 28d61f17, 2026-11-02)."""
+    known = {r["name"]: r for r in index["regions"]}
     meta = {r["name"]: r for r in registry.get("regions", [])}
     added = []
     for cell in sorted(release.get("cells", {})):
         if cell in known:
+            entry = known[cell]
+            if not entry.get("built"):
+                entry.update(path=f"regions/{cell}/sf-corridor-3d.html", built=True,
+                             published_via="cloud release", release=release["version"])
+                added.append(cell)
             continue
         info = meta.get(cell, {})
         index["regions"].append({

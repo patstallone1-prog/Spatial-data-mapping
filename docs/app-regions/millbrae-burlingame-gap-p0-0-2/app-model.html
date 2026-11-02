@@ -120,7 +120,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="bd0259190c365f9e6f72b4d92ccb3ee82e1c2f8911598751c73bc53fe75e9a5c" />
+<meta name="kerbside-renderer-sha256" content="e0b46f7062e14bdc743b3dab900d205d6b740c5af063f8567493f6db91adad6e" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -468,7 +468,7 @@ const accountLibrary = () => (accountModule ??= import(sharedAsset("kerbside-acc
 let homeModule = null;
 //: The walker's model: the home screen shows it on its platform before the world is built.
 const WALKER_MODEL_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
-const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=d37dd2f592f80f2b")));
+const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=454ee71ef478b1c6")));
 //: The avatar creator's figures (docs/avatar-builder.mjs): MakeHuman bodies and parts kept in
 //: the store under avatars/, shared by the home screen's creator and the walker.
 let avatarBuilderModule = null;
@@ -35249,6 +35249,7 @@ function applySpawn() {
   goTo(new THREE.Vector3(x, 0, -y), { travel: true, zoom: true });
   if (Number.isFinite(spawn.yaw)) { state.yaw = spawn.yaw; placeCamera(); }
 }
+let homeLoadPeak = 0, homeLoadShown = 0;
 function homeContext() {
   const afterReady = (fn) => (...args) => WORLD_READY.then(() => fn(...args));
   return {
@@ -35280,6 +35281,15 @@ function homeContext() {
     openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
     //: Loaded through (WORLD_LOADED), not just drawn: the lobby lets no one in before.
     whenReady: () => WORLD_LOADED,
+    //: How far along, 0..1, for the loading screen's bar: a tenth until the first frame, then the
+    //: share of what was being waited on (items, tiles, cells) that has come in. Never goes back.
+    fraction: () => {
+      if (worldLoadedNow) return 1;
+      if (!worldReadyNow) return homeLoadShown = Math.max(homeLoadShown, 0.1);
+      const left = worldLoadWaiting().reduce((n, item) => n + (Number(item.match(/\((\d+)/)?.[1]) || 1), 0);
+      homeLoadPeak = Math.max(homeLoadPeak, left);
+      return homeLoadShown = Math.max(homeLoadShown, 0.25 + 0.7 * (1 - left / Math.max(1, homeLoadPeak)));
+    },
     //: How the world is coming on: the page's own progress line while it builds, then what it is
     //: still fetching round the spawn (null once it is all in).
     progress: () => {
@@ -36226,6 +36236,7 @@ function releaseModuleScope() {
   try { CONTRIBUTOR_DEFAULT_ON = null; } catch (error) { /* kept */ }
   try { SPAWN_KEY = null; } catch (error) { /* kept */ }
   try { spawnApplied = null; } catch (error) { /* kept */ }
+  try { homeLoadPeak = null; } catch (error) { /* kept */ }
   try { stagedSpawn = null; } catch (error) { /* kept */ }
   try { catalogueSettled = null; } catch (error) { /* kept */ }
   try { EXTERIOR_EDITS.clear(); } catch (error) { /* kept */ }

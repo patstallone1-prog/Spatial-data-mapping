@@ -111,7 +111,7 @@
    "name": "sf-richmond",
    "title": "Inner and Central Richmond",
    "path": "regions/sf-richmond/sf-corridor-3d.html",
-   "built": false,
+   "built": true,
    "city": "san-francisco",
    "description": "Inner and Central Richmond: the avenues, Geary, fog, few tall buildings",
    "bbox": [
@@ -125,7 +125,9 @@
     "osm": "failed"
    },
    "active": {},
-   "note": "built from the map alone"
+   "note": "built from the map alone",
+   "published_via": "cloud release",
+   "release": "28d61f17f2c0f7c6"
   },
   {
    "name": "sf-sunset",
@@ -2946,6 +2948,1638 @@
    ],
    "published_via": "cloud release",
    "release": "af6cd718d892d886"
+  },
+  {
+   "name": "alameda-gap-p0-0-1",
+   "title": "alameda gap p0 0 1",
+   "path": "regions/alameda-gap-p0-0-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.75245777937477,
+    -122.29,
+    37.77491555874955,
+    -122.26159434408216
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-0-2",
+   "title": "alameda gap p0 0 2",
+   "path": "regions/alameda-gap-p0-0-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.77491555874955,
+    -122.29,
+    37.785,
+    -122.26159434408216
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-1-1",
+   "title": "alameda gap p0 1 1",
+   "path": "regions/alameda-gap-p0-1-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.75245777937477,
+    -122.26159434408216,
+    37.77491555874955,
+    -122.2331886881643
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-2-1",
+   "title": "alameda gap p0 2 1",
+   "path": "regions/alameda-gap-p0-2-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.75245777937477,
+    -122.2331886881643,
+    37.77491555874955,
+    -122.20478303224645
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-2-2",
+   "title": "alameda gap p0 2 2",
+   "path": "regions/alameda-gap-p0-2-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.77491555874955,
+    -122.2331886881643,
+    37.785,
+    -122.20478303224645
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-3-1",
+   "title": "alameda gap p0 3 1",
+   "path": "regions/alameda-gap-p0-3-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.75245777937477,
+    -122.20478303224645,
+    37.77491555874955,
+    -122.2
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "alameda-gap-p0-3-2",
+   "title": "alameda gap p0 3 2",
+   "path": "regions/alameda-gap-p0-3-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Continue Posey Tube approach into Alameda",
+   "bbox": [
+    37.77491555874955,
+    -122.20478303224645,
+    37.785,
+    -122.2
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "belmont-san-carlos-gap-p0-0-0",
+   "title": "belmont san carlos gap p0 0 0",
+   "path": "regions/belmont-san-carlos-gap-p0-0-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Connect San Mateo and Redwood City",
+   "bbox": [
+    37.45,
+    -122.33,
+    37.47245777937478,
+    -122.30170395328321
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-0-1",
+   "title": "daly south sf gap p0 0 1",
+   "path": "regions/daly-south-sf-gap-p0-0-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.62245777937478,
+    -122.5,
+    37.64491555874955,
+    -122.47163398339094
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-0-2",
+   "title": "daly south sf gap p0 0 2",
+   "path": "regions/daly-south-sf-gap-p0-0-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.64491555874955,
+    -122.5,
+    37.66737333812433,
+    -122.47163398339094
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "daly-south-sf-gap-p0-4-1",
+   "title": "daly south sf gap p0 4 1",
+   "path": "regions/daly-south-sf-gap-p0-4-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Daly City, South SF, San Bruno; coast and airport screened before intake",
+   "bbox": [
+    37.62245777937478,
+    -122.38653593356378,
+    37.64491555874955,
+    -122.375
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-0-11",
+   "title": "east bay south gap p0 0 11",
+   "path": "regions/east-bay-south-gap-p0-0-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -122.2,
+    37.76949335249731,
+    -122.171638375221
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-0-12",
+   "title": "east bay south gap p0 0 12",
+   "path": "regions/east-bay-south-gap-p0-0-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -122.2,
+    37.785,
+    -122.171638375221
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-0-9",
+   "title": "east bay south gap p0 0 9",
+   "path": "regions/east-bay-south-gap-p0-0-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.2,
+    37.724577793747756,
+    -122.171638375221
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-1-10",
+   "title": "east bay south gap p0 1 10",
+   "path": "regions/east-bay-south-gap-p0-1-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -122.171638375221,
+    37.74703557312253,
+    -122.14327675044198
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-1-11",
+   "title": "east bay south gap p0 1 11",
+   "path": "regions/east-bay-south-gap-p0-1-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -122.171638375221,
+    37.76949335249731,
+    -122.14327675044198
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-1-12",
+   "title": "east bay south gap p0 1 12",
+   "path": "regions/east-bay-south-gap-p0-1-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -122.171638375221,
+    37.785,
+    -122.14327675044198
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-1-8",
+   "title": "east bay south gap p0 1 8",
+   "path": "regions/east-bay-south-gap-p0-1-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -122.171638375221,
+    37.70212001437298,
+    -122.14327675044198
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-1-9",
+   "title": "east bay south gap p0 1 9",
+   "path": "regions/east-bay-south-gap-p0-1-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.171638375221,
+    37.724577793747756,
+    -122.14327675044198
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-10",
+   "title": "east bay south gap p0 2 10",
+   "path": "regions/east-bay-south-gap-p0-2-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -122.14327675044198,
+    37.74703557312253,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-11",
+   "title": "east bay south gap p0 2 11",
+   "path": "regions/east-bay-south-gap-p0-2-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -122.14327675044198,
+    37.76949335249731,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-12",
+   "title": "east bay south gap p0 2 12",
+   "path": "regions/east-bay-south-gap-p0-2-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -122.14327675044198,
+    37.785,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-7",
+   "title": "east bay south gap p0 2 7",
+   "path": "regions/east-bay-south-gap-p0-2-7/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.65720445562343,
+    -122.14327675044198,
+    37.679662234998204,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-8",
+   "title": "east bay south gap p0 2 8",
+   "path": "regions/east-bay-south-gap-p0-2-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -122.14327675044198,
+    37.70212001437298,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-2-9",
+   "title": "east bay south gap p0 2 9",
+   "path": "regions/east-bay-south-gap-p0-2-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.14327675044198,
+    37.724577793747756,
+    -122.11491512566298
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-3-2",
+   "title": "east bay south gap p0 3 2",
+   "path": "regions/east-bay-south-gap-p0-3-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -122.11491512566298,
+    37.56737333812433,
+    -122.08655350088397
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-3-4",
+   "title": "east bay south gap p0 3 4",
+   "path": "regions/east-bay-south-gap-p0-3-4/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5898311174991,
+    -122.11491512566298,
+    37.61228889687388,
+    -122.08655350088397
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-3-8",
+   "title": "east bay south gap p0 3 8",
+   "path": "regions/east-bay-south-gap-p0-3-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -122.11491512566298,
+    37.70212001437298,
+    -122.08655350088397
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-3-9",
+   "title": "east bay south gap p0 3 9",
+   "path": "regions/east-bay-south-gap-p0-3-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.11491512566298,
+    37.724577793747756,
+    -122.08655350088397
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-1",
+   "title": "east bay south gap p0 4 1",
+   "path": "regions/east-bay-south-gap-p0-4-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -122.08655350088397,
+    37.54491555874955,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-10",
+   "title": "east bay south gap p0 4 10",
+   "path": "regions/east-bay-south-gap-p0-4-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -122.08655350088397,
+    37.74703557312253,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-2",
+   "title": "east bay south gap p0 4 2",
+   "path": "regions/east-bay-south-gap-p0-4-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -122.08655350088397,
+    37.56737333812433,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-3",
+   "title": "east bay south gap p0 4 3",
+   "path": "regions/east-bay-south-gap-p0-4-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.56737333812433,
+    -122.08655350088397,
+    37.5898311174991,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-4",
+   "title": "east bay south gap p0 4 4",
+   "path": "regions/east-bay-south-gap-p0-4-4/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5898311174991,
+    -122.08655350088397,
+    37.61228889687388,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-4-9",
+   "title": "east bay south gap p0 4 9",
+   "path": "regions/east-bay-south-gap-p0-4-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.08655350088397,
+    37.724577793747756,
+    -122.05819187610496
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-0",
+   "title": "east bay south gap p0 5 0",
+   "path": "regions/east-bay-south-gap-p0-5-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -122.05819187610496,
+    37.522457779374776,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-1",
+   "title": "east bay south gap p0 5 1",
+   "path": "regions/east-bay-south-gap-p0-5-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -122.05819187610496,
+    37.54491555874955,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-10",
+   "title": "east bay south gap p0 5 10",
+   "path": "regions/east-bay-south-gap-p0-5-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -122.05819187610496,
+    37.74703557312253,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-2",
+   "title": "east bay south gap p0 5 2",
+   "path": "regions/east-bay-south-gap-p0-5-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -122.05819187610496,
+    37.56737333812433,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-3",
+   "title": "east bay south gap p0 5 3",
+   "path": "regions/east-bay-south-gap-p0-5-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.56737333812433,
+    -122.05819187610496,
+    37.5898311174991,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-4",
+   "title": "east bay south gap p0 5 4",
+   "path": "regions/east-bay-south-gap-p0-5-4/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5898311174991,
+    -122.05819187610496,
+    37.61228889687388,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-5-9",
+   "title": "east bay south gap p0 5 9",
+   "path": "regions/east-bay-south-gap-p0-5-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.05819187610496,
+    37.724577793747756,
+    -122.02983025132595
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-0",
+   "title": "east bay south gap p0 6 0",
+   "path": "regions/east-bay-south-gap-p0-6-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -122.02983025132595,
+    37.522457779374776,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-1",
+   "title": "east bay south gap p0 6 1",
+   "path": "regions/east-bay-south-gap-p0-6-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -122.02983025132595,
+    37.54491555874955,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-11",
+   "title": "east bay south gap p0 6 11",
+   "path": "regions/east-bay-south-gap-p0-6-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -122.02983025132595,
+    37.76949335249731,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-2",
+   "title": "east bay south gap p0 6 2",
+   "path": "regions/east-bay-south-gap-p0-6-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -122.02983025132595,
+    37.56737333812433,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-3",
+   "title": "east bay south gap p0 6 3",
+   "path": "regions/east-bay-south-gap-p0-6-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.56737333812433,
+    -122.02983025132595,
+    37.5898311174991,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-4",
+   "title": "east bay south gap p0 6 4",
+   "path": "regions/east-bay-south-gap-p0-6-4/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5898311174991,
+    -122.02983025132595,
+    37.61228889687388,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-5",
+   "title": "east bay south gap p0 6 5",
+   "path": "regions/east-bay-south-gap-p0-6-5/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.61228889687388,
+    -122.02983025132595,
+    37.63474667624865,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-8",
+   "title": "east bay south gap p0 6 8",
+   "path": "regions/east-bay-south-gap-p0-6-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -122.02983025132595,
+    37.70212001437298,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-6-9",
+   "title": "east bay south gap p0 6 9",
+   "path": "regions/east-bay-south-gap-p0-6-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.02983025132595,
+    37.724577793747756,
+    -122.00146862654694
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-0",
+   "title": "east bay south gap p0 7 0",
+   "path": "regions/east-bay-south-gap-p0-7-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -122.00146862654694,
+    37.522457779374776,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-1",
+   "title": "east bay south gap p0 7 1",
+   "path": "regions/east-bay-south-gap-p0-7-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -122.00146862654694,
+    37.54491555874955,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-10",
+   "title": "east bay south gap p0 7 10",
+   "path": "regions/east-bay-south-gap-p0-7-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -122.00146862654694,
+    37.74703557312253,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-11",
+   "title": "east bay south gap p0 7 11",
+   "path": "regions/east-bay-south-gap-p0-7-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -122.00146862654694,
+    37.76949335249731,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-12",
+   "title": "east bay south gap p0 7 12",
+   "path": "regions/east-bay-south-gap-p0-7-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -122.00146862654694,
+    37.785,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-2",
+   "title": "east bay south gap p0 7 2",
+   "path": "regions/east-bay-south-gap-p0-7-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -122.00146862654694,
+    37.56737333812433,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-3",
+   "title": "east bay south gap p0 7 3",
+   "path": "regions/east-bay-south-gap-p0-7-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.56737333812433,
+    -122.00146862654694,
+    37.5898311174991,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-4",
+   "title": "east bay south gap p0 7 4",
+   "path": "regions/east-bay-south-gap-p0-7-4/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5898311174991,
+    -122.00146862654694,
+    37.61228889687388,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-8",
+   "title": "east bay south gap p0 7 8",
+   "path": "regions/east-bay-south-gap-p0-7-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -122.00146862654694,
+    37.70212001437298,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-7-9",
+   "title": "east bay south gap p0 7 9",
+   "path": "regions/east-bay-south-gap-p0-7-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -122.00146862654694,
+    37.724577793747756,
+    -121.97310700176793
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-0",
+   "title": "east bay south gap p0 8 0",
+   "path": "regions/east-bay-south-gap-p0-8-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -121.97310700176793,
+    37.522457779374776,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-1",
+   "title": "east bay south gap p0 8 1",
+   "path": "regions/east-bay-south-gap-p0-8-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -121.97310700176793,
+    37.54491555874955,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-10",
+   "title": "east bay south gap p0 8 10",
+   "path": "regions/east-bay-south-gap-p0-8-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -121.97310700176793,
+    37.74703557312253,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-11",
+   "title": "east bay south gap p0 8 11",
+   "path": "regions/east-bay-south-gap-p0-8-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -121.97310700176793,
+    37.76949335249731,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-12",
+   "title": "east bay south gap p0 8 12",
+   "path": "regions/east-bay-south-gap-p0-8-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -121.97310700176793,
+    37.785,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-2",
+   "title": "east bay south gap p0 8 2",
+   "path": "regions/east-bay-south-gap-p0-8-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -121.97310700176793,
+    37.56737333812433,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-3",
+   "title": "east bay south gap p0 8 3",
+   "path": "regions/east-bay-south-gap-p0-8-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.56737333812433,
+    -121.97310700176793,
+    37.5898311174991,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-8",
+   "title": "east bay south gap p0 8 8",
+   "path": "regions/east-bay-south-gap-p0-8-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -121.97310700176793,
+    37.70212001437298,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-8-9",
+   "title": "east bay south gap p0 8 9",
+   "path": "regions/east-bay-south-gap-p0-8-9/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.70212001437298,
+    -121.97310700176793,
+    37.724577793747756,
+    -121.94474537698892
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-0",
+   "title": "east bay south gap p0 9 0",
+   "path": "regions/east-bay-south-gap-p0-9-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.5,
+    -121.94474537698892,
+    37.522457779374776,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-1",
+   "title": "east bay south gap p0 9 1",
+   "path": "regions/east-bay-south-gap-p0-9-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.522457779374776,
+    -121.94474537698892,
+    37.54491555874955,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-10",
+   "title": "east bay south gap p0 9 10",
+   "path": "regions/east-bay-south-gap-p0-9-10/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.724577793747756,
+    -121.94474537698892,
+    37.74703557312253,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-11",
+   "title": "east bay south gap p0 9 11",
+   "path": "regions/east-bay-south-gap-p0-9-11/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.74703557312253,
+    -121.94474537698892,
+    37.76949335249731,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-12",
+   "title": "east bay south gap p0 9 12",
+   "path": "regions/east-bay-south-gap-p0-9-12/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.76949335249731,
+    -121.94474537698892,
+    37.785,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-2",
+   "title": "east bay south gap p0 9 2",
+   "path": "regions/east-bay-south-gap-p0-9-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.54491555874955,
+    -121.94474537698892,
+    37.56737333812433,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p0-9-8",
+   "title": "east bay south gap p0 9 8",
+   "path": "regions/east-bay-south-gap-p0-9-8/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.679662234998204,
+    -121.94474537698892,
+    37.70212001437298,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p1-5-1",
+   "title": "east bay south gap p1 5 1",
+   "path": "regions/east-bay-south-gap-p1-5-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.474457779374774,
+    -121.98850840850439,
+    37.49691555874955,
+    -121.96021009020527
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p1-5-2",
+   "title": "east bay south gap p1 5 2",
+   "path": "regions/east-bay-south-gap-p1-5-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.49691555874955,
+    -121.98850840850439,
+    37.5,
+    -121.96021009020527
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p1-6-0",
+   "title": "east bay south gap p1 6 0",
+   "path": "regions/east-bay-south-gap-p1-6-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.452,
+    -121.96021009020527,
+    37.474457779374774,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p1-6-1",
+   "title": "east bay south gap p1 6 1",
+   "path": "regions/east-bay-south-gap-p1-6-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.474457779374774,
+    -121.96021009020527,
+    37.49691555874955,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "east-bay-south-gap-p1-6-2",
+   "title": "east bay south gap p1 6 2",
+   "path": "regions/east-bay-south-gap-p1-6-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "San Leandro, Hayward, Union City, Fremont; connect East Bay to South Bay",
+   "bbox": [
+    37.49691555874955,
+    -121.96021009020527,
+    37.5,
+    -121.94
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-1-2",
+   "title": "emeryville north oakland gap p0 1 2",
+   "path": "regions/emeryville-north-oakland-gap-p0-1-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.85991555874955,
+    -122.3015626015508,
+    37.865,
+    -122.2731252031016
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-2-2",
+   "title": "emeryville north oakland gap p0 2 2",
+   "path": "regions/emeryville-north-oakland-gap-p0-2-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.85991555874955,
+    -122.2731252031016,
+    37.865,
+    -122.2446878046524
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-3-1",
+   "title": "emeryville north oakland gap p0 3 1",
+   "path": "regions/emeryville-north-oakland-gap-p0-3-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.83745777937477,
+    -122.2446878046524,
+    37.85991555874955,
+    -122.235
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "emeryville-north-oakland-gap-p0-3-2",
+   "title": "emeryville north oakland gap p0 3 2",
+   "path": "regions/emeryville-north-oakland-gap-p0-3-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "alameda-county",
+   "description": "Connect Oakland and Berkeley",
+   "bbox": [
+    37.85991555874955,
+    -122.2446878046524,
+    37.865,
+    -122.235
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "millbrae-burlingame-gap-p0-2-2",
+   "title": "millbrae burlingame gap p0 2 2",
+   "path": "regions/millbrae-burlingame-gap-p0-2-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Peninsula connection south of SFO",
+   "bbox": [
+    37.59491555874955,
+    -122.36832820592456,
+    37.6,
+    -122.33999230888683
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "millbrae-burlingame-gap-p0-3-1",
+   "title": "millbrae burlingame gap p0 3 1",
+   "path": "regions/millbrae-burlingame-gap-p0-3-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Peninsula connection south of SFO",
+   "bbox": [
+    37.57245777937477,
+    -122.33999230888683,
+    37.59491555874955,
+    -122.31165641184911
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "millbrae-burlingame-gap-p0-4-1",
+   "title": "millbrae burlingame gap p0 4 1",
+   "path": "regions/millbrae-burlingame-gap-p0-4-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Peninsula connection south of SFO",
+   "bbox": [
+    37.57245777937477,
+    -122.31165641184911,
+    37.59491555874955,
+    -122.3
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "mountain-view-gap-p0-4-1",
+   "title": "mountain view gap p0 4 1",
+   "path": "regions/mountain-view-gap-p0-4-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.39245777937477,
+    -122.04192162105656,
+    37.41491555874955,
+    -122.04
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "mountain-view-gap-p0-4-2",
+   "title": "mountain view gap p0 4 2",
+   "path": "regions/mountain-view-gap-p0-4-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Palo Alto to Mountain View",
+   "bbox": [
+    37.41491555874955,
+    -122.04192162105656,
+    37.43,
+    -122.04
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "redwood-menlo-gap-p2-1-0",
+   "title": "redwood menlo gap p2 1 0",
+   "path": "regions/redwood-menlo-gap-p2-1-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "Redwood City, Menlo Park and Palo Alto approach",
+   "bbox": [
+    37.49,
+    -122.20169448390186,
+    37.5,
+    -122.17338896780372
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-0-1",
+   "title": "san mateo foster gap p0 0 1",
+   "path": "regions/san-mateo-foster-gap-p0-0-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.51245777937478,
+    -122.37,
+    37.53491555874955,
+    -122.34168500278788
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-0-2",
+   "title": "san mateo foster gap p0 0 2",
+   "path": "regions/san-mateo-foster-gap-p0-0-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.53491555874955,
+    -122.37,
+    37.55,
+    -122.34168500278788
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-1-3",
+   "title": "sunnyvale santa clara gap p1 1 3",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-1-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.412373338124326,
+    -122.01173700394517,
+    37.42,
+    -121.98347400789034
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-2-2",
+   "title": "sunnyvale santa clara gap p1 2 2",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-2-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.38991555874955,
+    -121.98347400789034,
+    37.412373338124326,
+    -121.9552110118355
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-2-3",
+   "title": "sunnyvale santa clara gap p1 2 3",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-2-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.412373338124326,
+    -121.98347400789034,
+    37.42,
+    -121.9552110118355
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-3-1",
+   "title": "sunnyvale santa clara gap p1 3 1",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-3-1/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.367457779374774,
+    -121.9552110118355,
+    37.38991555874955,
+    -121.92694801578067
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-3-3",
+   "title": "sunnyvale santa clara gap p1 3 3",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-3-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.412373338124326,
+    -121.9552110118355,
+    37.42,
+    -121.92694801578067
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-4-2",
+   "title": "sunnyvale santa clara gap p1 4 2",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-4-2/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.38991555874955,
+    -121.92694801578067,
+    37.412373338124326,
+    -121.9
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "sunnyvale-santa-clara-gap-p1-4-3",
+   "title": "sunnyvale santa clara gap p1 4 3",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-4-3/sf-corridor-3d.html",
+   "built": true,
+   "city": "santa-clara-county",
+   "description": "Connect Mountain View to San Jose",
+   "bbox": [
+    37.412373338124326,
+    -121.92694801578067,
+    37.42,
+    -121.9
+   ],
+   "published_via": "cloud release",
+   "release": "91f6af3f241eb252"
+  },
+  {
+   "name": "san-mateo-foster-gap-p0-4-0",
+   "title": "san mateo foster gap p0 4 0",
+   "path": "regions/san-mateo-foster-gap-p0-4-0/sf-corridor-3d.html",
+   "built": true,
+   "city": "san-mateo-county",
+   "description": "San Mateo, Foster City and bay shore",
+   "bbox": [
+    37.49,
+    -122.25674001115152,
+    37.51245777937478,
+    -122.23
+   ],
+   "published_via": "cloud release",
+   "release": "28d61f17f2c0f7c6"
   }
  ]
 }

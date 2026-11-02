@@ -38194,6 +38194,7 @@ function applySpawn() {
   goTo(new THREE.Vector3(x, 0, -y), { travel: true, zoom: true });
   if (Number.isFinite(spawn.yaw)) { state.yaw = spawn.yaw; placeCamera(); }
 }
+let homeLoadPeak = 0, homeLoadShown = 0;
 function homeContext() {
   const afterReady = (fn) => (...args) => WORLD_READY.then(() => fn(...args));
   return {
@@ -38225,6 +38226,15 @@ function homeContext() {
     openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
     //: Loaded through (WORLD_LOADED), not just drawn: the lobby lets no one in before.
     whenReady: () => WORLD_LOADED,
+    //: How far along, 0..1, for the loading screen's bar: a tenth until the first frame, then the
+    //: share of what was being waited on (items, tiles, cells) that has come in. Never goes back.
+    fraction: () => {
+      if (worldLoadedNow) return 1;
+      if (!worldReadyNow) return homeLoadShown = Math.max(homeLoadShown, 0.1);
+      const left = worldLoadWaiting().reduce((n, item) => n + (Number(item.match(/\((\d+)/)?.[1]) || 1), 0);
+      homeLoadPeak = Math.max(homeLoadPeak, left);
+      return homeLoadShown = Math.max(homeLoadShown, 0.25 + 0.7 * (1 - left / Math.max(1, homeLoadPeak)));
+    },
     //: How the world is coming on: the page's own progress line while it builds, then what it is
     //: still fetching round the spawn (null once it is all in).
     progress: () => {
