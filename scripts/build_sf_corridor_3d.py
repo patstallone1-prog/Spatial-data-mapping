@@ -529,7 +529,8 @@ def tuned(html: str, detail: str) -> str:
                           ("GLOBE", "globe.mjs"), ("TELEPORT_MAP", "teleport-map.mjs"), ("META_XR", "meta-xr.mjs"),
                           ("OBJECT_CATALOGUE", "object-catalogue.mjs"), ("OBJECT_CATALOGUE_DATA", "object-catalogue.json"),
                           ("EXTERIOR_EDITOR", "exterior-editor.mjs"), ("MULTIPLAYER", "multiplayer.mjs"),
-                          ("KERBSIDE_ACCOUNT", "kerbside-account.mjs"), ("HOME_LOBBY", "home-lobby.mjs")):
+                          ("KERBSIDE_ACCOUNT", "kerbside-account.mjs"), ("HOME_LOBBY", "home-lobby.mjs"),
+                          ("AVATAR_BUILDER", "avatar-builder.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     html = html.replace("/*__RELEASE_MODULE_SCOPE__*/", release_module_scope(html), 1)
     swaps = DETAIL_TUNING.get(detail) or {}
@@ -3419,6 +3420,12 @@ let homeModule = null;
 //: The walker's model: the home screen shows it on its platform before the world is built.
 const WALKER_MODEL_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
 const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=__HOME_LOBBY_HASH__")));
+//: The avatar creator's figures (docs/avatar-builder.mjs): MakeHuman bodies and parts kept in
+//: the store under avatars/, shared by the home screen's creator and the walker.
+let avatarBuilderModule = null;
+const avatarBuilder = () => (avatarBuilderModule ??= import(sharedAsset("avatar-builder.mjs?rev=__AVATAR_BUILDER_HASH__"))
+  .then((m) => m.createAvatarBuilder({ THREE, GLTFLoader, base: new URL("avatars", storeInteriorBase() || new URL("/store/", location.href)).href }))
+  .catch((error) => { avatarBuilderModule = null; throw error; }));
 let worldIsReady = null, pageIsReady = null;
 //: Settled with the first frame drawn and the page's own code all run (the first frame can come
 //: before the module has reached its end): what the home screen's buttons wait for.
@@ -30867,14 +30874,23 @@ function loadDemoCharacterAvatar(rig) {
       if (node.material) node.material.roughness = Math.max(node.material.roughness || 0, 0.62);
     });
     fitDemoCharacter(model);
+    // A creator figure already standing in (it loaded first) stays; the Soldier waits hidden.
+    const creator = walkerFigure?.holder.parent === rig ? walkerFigure.holder : null;
     for (const child of rig.children) {
-      if (child.name !== "contact-shadow") child.visible = false;
+      if (child.name !== "contact-shadow" && !child.userData.teamRing && child !== creator) child.visible = false;
     }
-    rig.add(model);
-    avatarMixer = new THREE.AnimationMixer(model);
-    avatarActions = {};
-    for (const clip of gltf.animations || []) {
-      avatarActions[clip.name] = avatarMixer.clipAction(clip);
+    rig.userData.soldierClips = gltf.animations || [];
+    if (creator) {
+      model.name = "soldier-figure";
+      model.visible = false;
+      rig.add(model);
+    } else {
+      rig.add(model);
+      avatarMixer = new THREE.AnimationMixer(model);
+      avatarActions = {};
+      for (const clip of gltf.animations || []) {
+        avatarActions[clip.name] = avatarMixer.clipAction(clip);
+      }
     }
     rig.userData.demoCharacterLoaded = true;
     if (walkerLook) applyWalkerLook(walkerLook);
@@ -30888,6 +30904,70 @@ function loadDemoCharacterAvatar(rig) {
   });
 }
 loadDemoCharacterAvatar(avatar);
+//: The walker as the figure made in Customize avatar, in place of the Soldier once its parts are
+//: loaded (the Soldier stays if they cannot be). Drawn by the Soldier's rule: the default body
+//: is AVATAR_HEIGHT tall, a shorter or taller one in proportion; it faces +z as the rig does.
+const CREATOR_DEFAULT_HEIGHT_M = 1.7;
+let walkerFigure = null, walkerFigureTurn = 0;
+async function showWalkerFigure(look) {
+  const mine = ++walkerFigureTurn;
+  const wanted = look && look.avatar?.model !== "soldier";
+  const soldier = avatar.getObjectByName("imported-realistic-demo-character");
+  try {
+    if (!wanted) throw null;
+    const builder = await avatarBuilder();
+    const tint = look.outfit && look.outfit.toLowerCase() !== "#ffffff" ? look.outfit : null;
+    if (!walkerFigure) {
+      const figure = await builder.build(look.avatar || {}, { outfitTint: tint });
+      const holder = new THREE.Group();
+      holder.name = "creator-figure";
+      holder.scale.setScalar(AVATAR_HEIGHT * AVATAR_SCALE / CREATOR_DEFAULT_HEIGHT_M);
+      holder.position.y = -AVATAR_RADIUS;
+      holder.add(figure.root);
+      walkerFigure = { figure, holder, clips: null };
+    } else {
+      await walkerFigure.figure.set(look.avatar || {}, { outfitTint: tint });
+    }
+    if (mine !== walkerFigureTurn) return;
+    const { figure, holder } = walkerFigure;
+    if (holder.parent !== avatar) {
+      // In for the Soldier, or for the boxes drawn until the Soldier loads.
+      for (const child of avatar.children) {
+        if (child.name !== "contact-shadow" && !child.userData.teamRing) child.visible = false;
+      }
+      if (soldier) soldier.name = "soldier-figure";
+      holder.name = "imported-realistic-demo-character";
+      holder.visible = true;
+      avatar.add(holder);
+    }
+    if (walkerFigure.clips !== figure.animations) {
+      walkerFigure.clips = figure.animations;
+      avatarMixer?.stopAllAction();
+      avatarMixer = new THREE.AnimationMixer(holder);
+      avatarActions = Object.fromEntries(figure.animations.map((clip) => [clip.name, avatarMixer.clipAction(clip)]));
+      avatarActiveAction = null;
+      setAvatarAction("Idle");
+    }
+    holder.traverse((node) => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+    requestFrame();
+  } catch (error) {
+    if (error) console.warn("Avatar creator unavailable; the walker stays the Soldier.", error);
+    if (mine !== walkerFigureTurn || !walkerFigure || walkerFigure.holder.parent !== avatar) return;
+    // Back to the Soldier.
+    walkerFigure.holder.removeFromParent();
+    walkerFigure.holder.name = "creator-figure";
+    const back = avatar.getObjectByName("soldier-figure");
+    if (back) { back.visible = true; back.name = "imported-realistic-demo-character"; }
+    else for (const child of avatar.children) child.visible = true;   // the boxes, until it loads
+    walkerFigure.clips = null;
+    if (back && avatar.userData.soldierClips) {
+      avatarMixer = new THREE.AnimationMixer(back);
+      avatarActions = Object.fromEntries(avatar.userData.soldierClips.map((clip) => [clip.name, avatarMixer.clipAction(clip)]));
+      avatarActiveAction = null;
+      setAvatarAction("Idle");
+    }
+  }
+}
 try {
   const saved = JSON.parse(sessionStorage.getItem("kerbside:region-arrival") || "null");
   if (saved && saved.path === location.pathname && Number.isFinite(saved.lon)
@@ -38040,7 +38120,10 @@ var walkerLook = null;
 function applyWalkerLook(look) {
   walkerLook = look;
   if (typeof avatar === "undefined" || !look) return;
-  avatar.traverse((node) => {
+  showWalkerFigure(look);
+  // The Soldier's own colours (a creator figure tints its outfit itself).
+  const soldier = avatar.getObjectByName("soldier-figure") || avatar.getObjectByName("imported-realistic-demo-character");
+  soldier?.traverse((node) => {
     if (!node.isMesh || node.name === "contact-shadow" || node.userData.teamRing) return;
     if (!avatar.userData.demoCharacterLoaded || !node.parent || node.parent === avatar) return;
     node.userData.baseColour ??= node.material.color.getHex();
@@ -38114,7 +38197,7 @@ function applySpawn() {
 function homeContext() {
   const afterReady = (fn) => (...args) => WORLD_READY.then(() => fn(...args));
   return {
-    THREE, GLTFLoader, modelUrl: WALKER_MODEL_URL,
+    THREE, GLTFLoader, modelUrl: WALKER_MODEL_URL, avatars: avatarBuilder,
     regionTitle: document.title.replace(/^Kerbside\s*/, "").replace(/\s*3D$/, ""),
     account: null,
     multiplayer: {

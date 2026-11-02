@@ -8,6 +8,10 @@
 // The page hands over what it knows (``ctx``): three.js and its glTF loader, the walker's model,
 // the account, multiplayer, the avatar's look and the spawn point, and what to do to enter the
 // world. This module keeps the screen.
+//
+// The avatar is made in Customize avatar: a MakeHuman figure from docs/avatar-builder.mjs (body,
+// height and build, face shape, skin, eyes, hair and its colour, facial hair, outfit, shoes, hat),
+// which the page hands over as ctx.avatars; or the original Soldier. It is kept with the look.
 
 export const LOOK_KEY = "kerbside:avatar-look";
 export const LOOKS = {
@@ -22,7 +26,10 @@ export function loadLook(storage = globalThis.localStorage) {
   try {
     const look = JSON.parse(storage.getItem(LOOK_KEY) || "null");
     const ok = (v, list) => list.some(([, hex]) => hex === v);
-    if (look && ok(look.outfit, LOOKS.outfit) && ok(look.team, LOOKS.team)) return look;
+    if (look && ok(look.outfit, LOOKS.outfit) && ok(look.team, LOOKS.team)) {
+      const obj = (v) => (v && typeof v === "object" ? v : null);
+      return { outfit: look.outfit, team: look.team, avatar: obj(look.avatar), lastCreator: obj(look.lastCreator) };
+    }
   } catch { /* private mode, or nothing kept */ }
   return { ...DEFAULT_LOOK };
 }
@@ -108,6 +115,20 @@ const CSS = `
 #home .hsw button{width:40px;height:40px;border:2px solid rgba(255,255,255,.2);cursor:pointer;
   clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
 #home .hsw button[aria-pressed=true]{border-color:#fff;box-shadow:inset 0 0 0 3px rgba(0,0,0,.35)}
+#home .sheet.creator{width:min(460px,calc(100vw - 32px));max-height:min(78vh,760px)}
+#home .htabs{display:flex;gap:4px;margin:0 0 6px;flex-wrap:wrap}
+#home .htabs button{flex:1;border:0;cursor:pointer;padding:9px 6px;font:700 14px/1 inherit;letter-spacing:.14em;text-transform:uppercase;
+  color:#9fb0c2;background:rgba(255,255,255,.05);border-bottom:3px solid transparent}
+#home .htabs button[aria-pressed=true]{color:#fff;background:rgba(255,255,255,.1);border-bottom-color:var(--team)}
+#home .hchips{display:flex;flex-wrap:wrap;gap:6px}
+#home .hchips button{border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px 11px;font:600 14px/1 inherit;letter-spacing:.06em;
+  color:#dce6ef;background:rgba(255,255,255,.05)}
+#home .hchips button[aria-pressed=true]{border-color:var(--team);color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px 0 var(--team)}
+#home .hchips button.sw{width:34px;height:34px;padding:0}
+#home .hrange{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:4px 0}
+#home .hrange span{font-size:14px;color:#c9d6e2;letter-spacing:.04em}
+#home .hrange input{width:100%;padding:0;accent-color:var(--team);background:none;border:0}
+#home .sheet small.credit{display:block;margin-top:14px;font-size:11px;color:#7f8fa0;letter-spacing:.02em;line-height:1.3}
 #home .code{font-size:30px;font-weight:700;letter-spacing:.3em;color:var(--team)}
 #home .tools{display:grid;gap:8px}
 #home .tools button{text-align:left}
@@ -174,13 +195,24 @@ function avatarStage(ctx, host, look) {
   scene.add(platform);
   const turn = new THREE.Group();
   scene.add(turn);
-  let model = null, mixer = null;
+  let model = null, mixer = null, soldier = null, figure = null, current = look, shown = 0;
   const tint = (outfit) => {
+    if (model !== soldier) return;
     model?.traverse((node) => {
       if (!node.isMesh) return;
       node.material = node.material.clone();
       node.material.color.set(outfit);
     });
+  };
+  const outfitTint = (l) => (l.outfit && l.outfit.toLowerCase() !== "#ffffff" ? l.outfit : null);
+  const creator = (l) => Boolean(ctx.avatars) && l.avatar?.model !== "soldier";
+  const play = (object, clips) => {
+    turn.clear();
+    turn.add(object);
+    model = object;
+    mixer = new THREE.AnimationMixer(object);
+    const idle = clips.find((a) => a.name === "Idle") || clips[0];
+    if (idle) mixer.clipAction(idle).play();
   };
   // A skinned figure's own bounds are its unposed vertices in bone space (a box a fifth of its
   // height): measured from each skinned mesh's posed bounding box instead, as the page does.
@@ -194,19 +226,45 @@ function avatarStage(ctx, host, look) {
     });
     return box;
   };
-  new ctx.GLTFLoader().load(ctx.modelUrl, (gltf) => {
-    model = gltf.scene;
-    const box = bounds(model);
-    const height = Math.max(0.1, box.max.y - box.min.y);
-    model.scale.setScalar(1.8 / height);
-    model.position.y = -bounds(model).min.y;
-    model.rotation.y = Math.PI;
-    turn.add(model);
-    tint(look.outfit);
-    mixer = new THREE.AnimationMixer(model);
-    const idle = gltf.animations.find((a) => a.name === "Idle") || gltf.animations[0];
-    if (idle) mixer.clipAction(idle).play();
-  }, undefined, () => { host.dataset.failed = "1"; });
+  const showSoldier = () => {
+    if (soldier) { play(soldier, soldier.userData.clips); tint(current.outfit); return; }
+    new ctx.GLTFLoader().load(ctx.modelUrl, (gltf) => {
+      soldier = gltf.scene;
+      soldier.userData.clips = gltf.animations;
+      const box = bounds(soldier);
+      const height = Math.max(0.1, box.max.y - box.min.y);
+      soldier.scale.setScalar(1.8 / height);
+      soldier.position.y = -bounds(soldier).min.y;
+      soldier.rotation.y = Math.PI;
+      if (!creator(current)) { play(soldier, gltf.animations); tint(current.outfit); }
+    }, undefined, () => { host.dataset.failed = "1"; });
+  };
+  // A creator figure faces +z and stands on its feet at its own size; the platform is sized
+  // for a 1.8 m figure, so every body is drawn at that scale (a shorter body stands shorter).
+  const show = async (l) => {
+    const mine = ++shown;
+    if (!creator(l)) { showSoldier(); return; }
+    try {
+      const builder = await ctx.avatars();
+      if (!figure) {
+        figure = await builder.build(l.avatar || {}, { outfitTint: outfitTint(l) });
+        figure.holder = new THREE.Group();
+        figure.holder.scale.setScalar(1.8 / 1.7);
+        figure.holder.add(figure.root);
+      } else {
+        await figure.set(l.avatar || {}, { outfitTint: outfitTint(l) });
+      }
+      if (mine !== shown) return;
+      if (model !== figure.holder || mixer?.getRoot() !== figure.holder || figure.clips !== figure.animations) {
+        figure.clips = figure.animations;
+        play(figure.holder, figure.animations);
+      }
+    } catch (error) {
+      console.warn("Avatar creator unavailable; showing the Soldier.", error);
+      if (mine === shown) showSoldier();
+    }
+  };
+  show(look);
   let yaw = -0.35, spin = 0.0025, dragging = null;
   renderer.domElement.addEventListener("pointerdown", (e) => { dragging = e.clientX; renderer.domElement.setPointerCapture(e.pointerId); spin = 0; });
   renderer.domElement.addEventListener("pointermove", (e) => { if (dragging === null) return; yaw += (e.clientX - dragging) * 0.012; dragging = e.clientX; });
@@ -230,8 +288,12 @@ function avatarStage(ctx, host, look) {
   };
   frame();
   return {
-    setLook(next) { ringMaterial.color.set(next.team); glowMaterial.color.set(next.team); tint(next.outfit); },
-    dispose() { cancelAnimationFrame(raf); renderer.dispose(); renderer.domElement.remove(); },
+    setLook(next) {
+      current = next;
+      ringMaterial.color.set(next.team); glowMaterial.color.set(next.team);
+      if (creator(next) || model !== soldier) show(next); else tint(next.outfit);
+    },
+    dispose() { shown++; cancelAnimationFrame(raf); figure?.dispose(); renderer.dispose(); renderer.domElement.remove(); },
   };
 }
 
@@ -332,21 +394,131 @@ export function openHome(ctx) {
       el("label", {}, "Name"), name, el("label", {}, "Party code"), code, el("div", { class: "acts" }, go));
   };
 
-  const customizeSheet = () => {
+  //: Customize avatar: the creator, a tab at a time. Every change shows on the platform at once
+  //: and is kept; the walker takes it when the change settles.
+  let creatorTab = "Body";
+  const customizeSheet = async () => {
+    if (!ctx.avatars) return colourSheet();
+    const wait = sheet("Customize avatar", el("p", {}, "Loading the parts…"));
+    let builder, cat;
+    try { builder = await ctx.avatars(); cat = await builder.catalogue(); } catch { return colourSheet("The avatar parts did not load; here are the colours."); }
+    if (sheetHost.firstChild !== wait) return;
+    const lib = builder;
+    const current = () => lib.sanitizeAvatar(look.avatar?.model === "soldier" ? { ...(look.lastCreator || {}) } : look.avatar || {}, cat);
+    let settle = 0;
+    const commit = (avatar, { now = false } = {}) => {
+      look = { ...look, avatar };
+      if (avatar.model !== "soldier") look.lastCreator = avatar;
+      saveLook(look);
+      stageAvatar?.setLook(look);
+      clearTimeout(settle);
+      settle = setTimeout(() => ctx.look?.set(look), now ? 0 : 400);
+    };
+    const change = (patch, opts) => { commit({ ...current(), ...patch, model: "creator" }, opts); draw(); };
+    const chips = (options, value, pick, { swatch = false } = {}) => el("div", { class: "hchips" },
+      options.map(([v, label, colour]) => el("button", { type: "button", "aria-pressed": String(v === value), title: label,
+        class: swatch ? "sw" : "", style: swatch ? `background:${colour || v || "#555"}` : "",
+        on: { click: () => pick(v) } }, swatch ? "" : label)));
+    const range = (label, value, min, max, step, onInput) => {
+      const input = el("input", { type: "range", min, max, step, value, "aria-label": label,
+        on: { input: () => onInput(+input.value, false), change: () => onInput(+input.value, true) } });
+      return el("div", { class: "hrange" }, el("span", {}, label), input);
+    };
+    const shape = (id) => (v, done) => {
+      const a = current();
+      commit({ ...a, model: "creator", sliders: { ...a.sliders, [id]: v } }, { now: done });
+    };
+    const items = (slot, a) => cat.items.filter((i) => i.slot === slot && i.files[a.body]).map((i) => [i.id, i.label]);
+    const skinLabel = (n) => n.replace(/_(male|female)$/, "").replace("middleage", "middle-aged").replace(/_/g, " ").replace("2", " II");
+    const tabs = {
+      Body: (a) => [
+        el("label", {}, "Body"), chips([["male", "Male"], ["female", "Female"]], a.body, (body) => {
+          commit({ ...lib.defaultAvatar(body), sliders: a.sliders, height: a.height, head: a.head, head_amount: a.head_amount, eyes: a.eyes, hair_colour: a.hair_colour });
+          draw();
+        }),
+        el("label", {}, "Build"),
+        range("Height", a.height, lib.HEIGHT_RANGE[0], lib.HEIGHT_RANGE[1], 0.01, (v, done) => commit({ ...current(), model: "creator", height: v }, { now: done })),
+        ...lib.SLIDERS.Body.map(([id, label, two]) => range(label, a.sliders[id] || 0, two ? -1 : 0, 1, 0.05, shape(id))),
+        el("label", {}, "Skin"), chips(cat.skins[a.body].map((n) => [n, skinLabel(n)]), a.skin, (skin) => change({ skin })),
+        el("label", {}, "Look"), el("div", { class: "acts" },
+          el("button", { class: "hb", type: "button", on: { click: () => change(randomAvatar(a.body)) } }, "Randomise"),
+          el("button", { class: "hb", type: "button", on: { click: () => change(lib.defaultAvatar(a.body)) } }, "Reset"),
+          el("button", { class: "hb", type: "button", "aria-pressed": "false", on: { click: () => {
+            commit({ model: "soldier" }, { now: true }); draw();
+          } } }, "Use the Soldier")),
+      ],
+      Face: (a) => [
+        el("label", {}, "Head shape"), chips(lib.HEAD_SHAPES, a.head, (head) => change({ head })),
+        a.head ? range("Strength", a.head_amount, 0, 1, 0.05, (v, done) => commit({ ...current(), model: "creator", head_amount: v }, { now: done })) : null,
+        el("label", {}, "Face"), ...lib.SLIDERS.Face.map(([id, label, two]) => range(label, a.sliders[id] || 0, two ? -1 : 0, 1, 0.05, shape(id))),
+        el("label", {}, "Features"), ...lib.SLIDERS.Features.map(([id, label, two]) => range(label, a.sliders[id] || 0, two ? -1 : 0, 1, 0.05, shape(id))),
+        el("label", {}, "Eye colour"), chips(Object.keys(cat.eye_files).map((c) => [c, c.replace("light", " light").replace("bluegreen", "blue-green")]), a.eyes, (eyes) => change({ eyes })),
+      ],
+      Hair: (a) => [
+        el("label", {}, "Hair"), chips([["", "None"], ...items("hair", a)], a.hair, (hair) => change({ hair })),
+        el("label", {}, "Hair colour"), chips(lib.HAIR_COLOURS.map(([hex, label]) => [hex, label, hex || "linear-gradient(135deg,#3b2618,#a8763f)"]), a.hair_colour, (hair_colour) => change({ hair_colour }), { swatch: true }),
+        el("label", {}, "Facial hair"), chips([["", "None"], ...items("facial_hair", a)], a.facial_hair, (facial_hair) => change({ facial_hair })),
+        el("label", {}, "Eyebrows"), chips(items("eyebrows", a), a.eyebrows, (eyebrows) => change({ eyebrows })),
+      ],
+      Outfit: (a) => [
+        el("label", {}, "Outfit"), chips(items("outfit", a), a.outfit, (outfit) => change({ outfit })),
+        el("label", {}, "Outfit colour"), swatches("outfit"),
+        el("label", {}, "Shoes"), chips([["", "Barefoot"], ...items("shoes", a)], a.shoes, (shoes) => change({ shoes })),
+        el("label", {}, "Hat"), chips([["", "None"], ...items("hat", a)], a.hat, (hat) => change({ hat })),
+      ],
+      Name: () => [
+        el("label", {}, "Name"), nameInput(), el("label", {}, "Team colour"), swatches("team"),
+        el("p", {}, "Your friends see your name over your walker."),
+      ],
+    };
+    const randomAvatar = (body) => {
+      const pick = (list) => list[Math.floor(Math.random() * list.length)];
+      const a = lib.defaultAvatar(body);
+      const opt = (slot, chance) => (Math.random() < chance ? pick(items(slot, a))?.[0] || "" : "");
+      const sliders = {};
+      for (const [id, , two] of Object.values(lib.SLIDERS).flat()) sliders[id] = +((two ? Math.random() * 2 - 1 : Math.random()) * 0.7).toFixed(2);
+      return { ...a, sliders, skin: pick(cat.skins[body]), eyes: pick(Object.keys(cat.eye_files)),
+        height: +(lib.HEIGHT_RANGE[0] + Math.random() * (lib.HEIGHT_RANGE[1] - lib.HEIGHT_RANGE[0])).toFixed(2),
+        head: pick(lib.HEAD_SHAPES)[0], head_amount: +(0.3 + Math.random() * 0.6).toFixed(2),
+        hair: opt("hair", 0.92), hair_colour: pick(lib.HAIR_COLOURS)[0], facial_hair: body === "male" ? opt("facial_hair", 0.45) : "",
+        eyebrows: pick(items("eyebrows", a))[0], outfit: pick(items("outfit", a))[0], shoes: pick(items("shoes", a))[0], hat: opt("hat", 0.15) };
+    };
+    const draw = () => {
+      const soldierOn = look.avatar?.model === "soldier";
+      const a = current();
+      const body = soldierOn && creatorTab !== "Name"
+        ? [el("p", {}, "You are the Soldier. Make your own figure instead:"),
+           el("div", { class: "acts" }, el("button", { class: "hb", type: "button", on: { click: () => change({}) } }, "Use my figure"))]
+        : tabs[creatorTab](a);
+      const s = sheet("Customize avatar",
+        el("div", { class: "htabs", role: "tablist" }, Object.keys(tabs).map((t) => el("button", { type: "button", role: "tab",
+          "aria-pressed": String(t === creatorTab), on: { click: () => { creatorTab = t; draw(); } } }, t))),
+        ...body, el("small", { class: "credit" }, `Figures: ${cat.credit}`));
+      s.classList.add("creator");
+    };
+    draw();
+  };
+
+  const nameInput = () => {
     const name = el("input", { value: who().editor || who().name || "", maxlength: 24, placeholder: "Your name", "aria-label": "Your name",
       on: { change: () => { ctx.account?.setName(name.value); drawPlayer(); } } });
-    const swatches = (kind) => el("div", { class: "hsw", role: "group", "aria-label": kind },
-      LOOKS[kind].map(([label, hex]) => el("button", { type: "button", title: label, "aria-label": label, "aria-pressed": String(look[kind] === hex),
-        style: `background:${hex}`, on: { click: (e) => {
-          look = { ...look, [kind]: hex };
-          saveLook(look);
-          stageAvatar?.setLook(look);
-          ctx.look?.set(look);
-          root.style.setProperty("--team", look.team);
-          for (const b of e.currentTarget.parentNode.children) b.setAttribute("aria-pressed", String(b === e.currentTarget));
-        } } })));
-    sheet("Customize avatar", el("p", {}, "Your name and colours, here and in the world. Your friends see your name over your walker."),
-      el("label", {}, "Name"), name, el("label", {}, "Outfit"), swatches("outfit"), el("label", {}, "Team colour"), swatches("team"));
+    return name;
+  };
+  const swatches = (kind) => el("div", { class: "hsw", role: "group", "aria-label": kind },
+    LOOKS[kind].map(([label, hex]) => el("button", { type: "button", title: label, "aria-label": label, "aria-pressed": String(look[kind] === hex),
+      style: `background:${hex}`, on: { click: (e) => {
+        look = { ...look, [kind]: hex };
+        saveLook(look);
+        stageAvatar?.setLook(look);
+        ctx.look?.set(look);
+        root.style.setProperty("--team", look.team);
+        for (const b of e.currentTarget.parentNode.children) b.setAttribute("aria-pressed", String(b === e.currentTarget));
+      } } })));
+
+  //: Without the creator (the page gave no avatars, or its parts did not load): name and colours.
+  const colourSheet = (note) => {
+    sheet("Customize avatar", el("p", {}, note || "Your name and colours, here and in the world. Your friends see your name over your walker."),
+      el("label", {}, "Name"), nameInput(), el("label", {}, "Outfit"), swatches("outfit"), el("label", {}, "Team colour"), swatches("team"));
   };
 
   const spawnSheet = () => {
