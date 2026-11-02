@@ -1,96 +1,148 @@
-# The build is held to what it measured last time.
-#
-# Three gates, and a merge to main needs all of them: ruff on the errors that matter (F, E7,
-# B, RUF -- the long lines are reported but do not block), the test suite, and the corridor
-# render audit against its committed baseline. The audit runs the renderer's own width and
-# crossing rules over the committed payload in docs/ and tests/test_width_vs_kerb.py holds
-# every figure to data/sf_corridor/audits/width_vs_kerb.json: a change may improve the numbers,
-# and when it does the baseline is regenerated on purpose
-# (`python scripts/audit_corridor_render.py --baseline`); it may not make them worse.
-#
-# Deployment is Vercel's: it serves docs/ from main once a merged PR has passed (vercel.json, tools/vercel/gate.mjs).
+# Required check names stay stable. PRs and merges run only the tests selected from
+# their diff; a manual full run is available without making every PR pay for it.
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Run every module instead of a changed-module plan
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: ruff
+  plan:
+    name: changed-module test plan
     runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.select.outputs.python }}
+      node: ${{ steps.select.outputs.node }}
+      audit: ${{ steps.select.outputs.audit }}
+      lint: ${{ steps.select.outputs.lint }}
+      visual_publish: ${{ steps.select.outputs.visual_publish }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select affected tests
+        id: select
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full }}
+        run: |
+          if [ "$FULL" = true ]; then
+            python tools/ci/select_tests.py --full --out test-plan.json
+          else
+            if [ -z "$BASE" ]; then BASE="$(git rev-parse HEAD^)"; fi
+            python tools/ci/select_tests.py --base "$BASE" --out test-plan.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: changed-module-test-plan
+          path: test-plan.json
+          if-no-files-found: error
+
+  lint:
+    name: ruff
+    needs: plan
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a valid test plan
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: test "$PLAN_RESULT" = success
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: changed-module-test-plan
+      - uses: actions/setup-python@v5
+        if: needs.plan.outputs.lint == 'true'
         with:
           python-version: "3.12"
       - run: pip install "ruff>=0.5"
-      # Real errors: undefined names, unused imports, bugbear traps, semicolon-joined statements.
-      - name: ruff (blocking)
-        run: ruff check src tests scripts/build_terrain.py tools/unreal/install_runtime.py tools/unreal/setup_world.py tools/unreal/axis_probe.py tools/unreal/check_automation.py tools/unreal/validate_world.py --ignore E501 --output-format github
-      # Line length is reported, so the count is visible, but does not fail the build; the
-      # renderer's embedded JavaScript has lines no formatter should touch.
-      - name: ruff line length (report only)
-        run: ruff check src tests --select E501 --statistics || true
+        if: needs.plan.outputs.lint == 'true'
+      - name: Lint changed Python modules
+        run: python tools/ci/run_selected.py --plan test-plan.json --kind lint
 
   tests:
     name: pytest
+    needs: plan
+    if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Require a valid test plan
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: test "$PLAN_RESULT" = success
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: changed-module-test-plan
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
       - uses: actions/setup-node@v4
+        if: needs.plan.outputs.python == 'true' || needs.plan.outputs.node == 'true'
         with:
           node-version: "22"
-      # The interior engine's tests need its geometry libraries (shapely, trimesh).
       - run: pip install -e ".[dev,interiors]"
-      - name: Validate published visual cells if present
+        if: needs.plan.outputs.python == 'true' || needs.plan.outputs.visual_publish == 'true'
+      - name: Validate affected published visual cells
+        if: needs.plan.outputs.visual_publish == 'true'
         run: python scripts/publish_visual_pilot.py
-      # The audit's baseline test (tests/test_width_vs_kerb.py) is its own job below so that a
-      # failure there reads as "the render got worse", not as a test failure among 800.
-      - run: pytest -q --ignore=tests/test_width_vs_kerb.py
+      - name: Test changed Python modules and their consumers
+        run: python tools/ci/run_selected.py --plan test-plan.json --kind python
+      - name: Test changed JavaScript modules and their consumers
+        run: python tools/ci/run_selected.py --plan test-plan.json --kind node
 
   audit:
     name: render audit vs baseline
+    needs: plan
+    if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Require a valid test plan
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: test "$PLAN_RESULT" = success
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+        if: needs.plan.outputs.audit == 'true'
         with:
           python-version: "3.12"
           cache: pip
       - uses: actions/setup-node@v4
+        if: needs.plan.outputs.audit == 'true'
         with:
           node-version: "22"
       - run: pip install -e ".[dev]"
-      - name: audit the committed payload
-        run: python scripts/audit_corridor_render.py > audit.json
-      - name: hold it to the baseline
-        run: pytest -q tests/test_width_vs_kerb.py
-      - name: summary
-        if: always()
+        if: needs.plan.outputs.audit == 'true'
+      - name: Audit the affected corridor renderer
+        if: needs.plan.outputs.audit == 'true'
         run: |
-          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json, pathlib
-          r = json.load(open("audit.json")); b = json.load(open("data/sf_corridor/audits/width_vs_kerb.json"))
-          w, c, x = r["widthVsKerb"], r["crosswalk"], r["crossSections"]
-          print("| measure | this build | baseline |\n|---|---|---|")
-          print(f"| width vs kerb, median abs (m) | {w['medianAbsM']:.3f} | {b['medianAbsM']:.3f} |")
-          print(f"| ways enveloped by the city's kerbs | {w['enveloped']} | {b['enveloped']} |")
-          print(f"| crossing legs on drawn kerb | {c['attachedShare']:.3f} | {b['crosswalkAttachedShare']:.3f} |")
-          print(f"| crossing ends at a ramp corner | {c['endsAtRampShare']:.3f} | {b['crosswalkEndsAtRampShare']:.3f} |")
-          print(f"| cross-section stations resolved | {x['resolvedShare']:.3f} | {b['crossSectionResolvedShare']:.3f} |")
-          PY
+          python scripts/audit_corridor_render.py > audit.json
+          python -m pytest -q tests/test_width_vs_kerb.py
+      - name: Unaffected audit
+        if: needs.plan.outputs.audit != 'true'
+        run: echo 'No corridor-audit dependency changed; no render audit launched.'
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && needs.plan.outputs.audit == 'true'
         with:
           name: audit-report
           path: audit.json
