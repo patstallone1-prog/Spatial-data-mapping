@@ -51,6 +51,7 @@ class Acquisition:
         self.iterator = self.steps()
         self.waiting = None
         self.handle = None
+        self.running = False
         self.next_tick = time.monotonic() + 2
 
     def record(self, name, stage, **fields):
@@ -64,7 +65,8 @@ class Acquisition:
 
     def blueprint(self, name):
         path = f"{ROOT}/Built/{name}/BP_{name}"
-        return path, self.ue.EditorAssetLibrary.load_blueprint_class(path)
+        library = self.ue.EditorAssetLibrary
+        return path, library.load_blueprint_class(path) if library.does_asset_exist(path) else None
 
     def steps(self):
         ue = self.ue
@@ -171,8 +173,11 @@ class Acquisition:
             self.ue.SystemLibrary.quit_editor()
 
     def tick(self, _delta):
-        if time.monotonic() < self.next_tick:
+        # Loading/compiling Epic assets pumps Slate recursively on this same thread.
+        # A nested callback must never advance the generator already executing here.
+        if self.running or time.monotonic() < self.next_tick:
             return
+        self.running = True
         self.next_tick = time.monotonic() + 1
         try:
             if self.waiting:
@@ -197,6 +202,8 @@ class Acquisition:
             )
             self.ue.log_error(str(error))
             self.finish()
+        finally:
+            self.running = False
 
 
 if __name__ == "__main__":

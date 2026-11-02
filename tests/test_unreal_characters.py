@@ -61,7 +61,7 @@ def test_auth_wait_returns_to_editor_frames_and_times_out_without_advancing(monk
         yield lambda: ready[0]
         pytest.fail("Pending authentication must not advance to textures or assembly")
 
-    job.iterator, job.waiting, job.next_tick = steps(), None, 0
+    job.iterator, job.waiting, job.next_tick, job.running = steps(), None, 0, False
     job.tick(0)
     clock[0] += 2
     job.tick(0)
@@ -73,3 +73,28 @@ def test_auth_wait_returns_to_editor_frames_and_times_out_without_advancing(monk
     assert row["stage"] == "failed" and "timed out" in row["error"]
     job.record("Bo", "ready", verified_class="BP_Bo_C")
     assert "error" not in json.loads(job.report.read_text())["presets"]["Bo"]
+
+
+def test_epic_asset_load_pumping_slate_cannot_reenter_acquisition(monkeypatch):
+    module = load("metahuman_presets", monkeypatch)
+    clock = [10.0]
+    monkeypatch.setattr(module.time, "monotonic", lambda: clock[0])
+    job = module.Acquisition.__new__(module.Acquisition)
+    job.finish = Mock()
+    job.record = Mock()
+    job.waiting, job.next_tick, job.running = None, 0, False
+    advanced = []
+
+    def steps():
+        advanced.append("open preset")
+        clock[0] += 10  # Asset loading lasts longer than the callback interval.
+        job.tick(0)  # Epic pumps Slate while the generator is inside asset loading.
+        advanced.append("request rig")
+        yield lambda: False
+
+    job.iterator = steps()
+    job.tick(0)
+    assert advanced == ["open preset", "request rig"]
+    assert job.waiting and not job.running
+    job.record.assert_not_called()
+    job.finish.assert_not_called()
