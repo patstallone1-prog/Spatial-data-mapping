@@ -120,7 +120,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="225bbd132258ecd44d52080cc7f14fd35655cb866c12269d25aa639232afd98f" />
+<meta name="kerbside-renderer-sha256" content="b34076724105c554a503e64f2e867184d7bde66b19bd6c8466c4e7e75ffb4dd9" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -282,13 +282,15 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
      and browsers cache it between visits. -->
 <script>
 // Available even if a module import fails before the renderer can initialize.
-window.kerbsideBoot = { startedAt: Date.now(), error: null };
+window.kerbsideBoot = { startedAt: Date.now(), error: null, errorKind: null,
+  rendered: false, contextLost: false };
 // A failure while the map is loading stops the load (the app puts its loading cover back with a
 // Retry). Once the streets are up it is only logged: a texture or a part that failed to come in
 // later -- an avatar's hair, say -- had sent a player in the world back to that cover (2026-11-02).
 const bootFailed = (text, detail) => {
-  if (window.kerbsideReady?.streets) { console.warn("after loading:", text, detail); return; }
+  if (window.kerbsideBoot.rendered) { console.warn("after loading:", text, detail); return; }
   window.kerbsideBoot.error = text;
+  window.kerbsideBoot.errorKind = "startup";
 };
 window.addEventListener("error", event => {
   if (event.target === window || event.target?.tagName === "SCRIPT")
@@ -1129,12 +1131,20 @@ if (!ATTACH) {
   // renderer rebuilds what it drew): only one not back in ten seconds stops the map.
   let contextLostTimer = 0;
   canvas.addEventListener("webglcontextlost", () => {
+    window.kerbsideBoot.contextLost = true;
     clearTimeout(contextLostTimer);
     contextLostTimer = setTimeout(() => {
       window.kerbsideBoot.error = "The graphics context was interrupted. Please retry the map.";
+      window.kerbsideBoot.errorKind = "graphics";
     }, 10000);
   });
-  canvas.addEventListener("webglcontextrestored", () => { clearTimeout(contextLostTimer); window.kerbsideBoot.error = null; });
+  canvas.addEventListener("webglcontextrestored", () => {
+    clearTimeout(contextLostTimer);
+    window.kerbsideBoot.contextLost = false;
+    if (window.kerbsideBoot.errorKind === "graphics") {
+      window.kerbsideBoot.error = null; window.kerbsideBoot.errorKind = null;
+    }
+  });
 }
 // A logarithmic depth buffer, because this scene spans five orders of magnitude: a 126 mm kerb
 // has to stay distinct from the road it sits on while a two-kilometre corridor is on screen. With
@@ -33648,9 +33658,23 @@ function animate(now) {
   // (A material given a new picture after it went in -- a photographed facade arriving -- is
   // still found by this pass.)
   if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
-  if (!worldPaused) renderer.render(scene, camera);
+  if (!worldPaused) {
+    renderer.render(scene, camera);
+    if (!ATTACH) markBootRendered();
+  }
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
+}
+
+// A nonessential callback can fail while the world is still building, then the
+// renderer completes normally. Retire that stale startup error only after an
+// actual frame succeeds with both streets and ground ready. Context loss keeps
+// its own failure state until the browser restores it.
+function markBootRendered() {
+  const boot = window.kerbsideBoot, ready = window.kerbsideReady;
+  if (!boot || !ready?.streets || !ready.ground || boot.contextLost) return;
+  boot.rendered = true;
+  if (boot.errorKind === "startup") { boot.error = null; boot.errorKind = null; }
 }
 
 // ---- the road surfaces as drawn --------------------------------------------------------------
