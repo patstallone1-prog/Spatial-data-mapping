@@ -34,6 +34,9 @@ def _run(body: str, names: tuple[str, ...]) -> dict:
         # The kerb cut a garage stands behind, and the driveway no tree stands in.
         consts += "\nconst GARAGE_CUT_MARGIN_M = 0.15;\nconst DRIVEWAY_ZONES = [];"
         names = (*names, "cutOnWall", "cutDrawnWidth", "drivewayZone", "inDriveway", "pointInRing")
+    if "frontDoorSpot" in names:
+        # A party wall never has the door; with buildingAt() empty, no wall is one.
+        names = (*names, "partyWall", "wallPoint")
     script = PREAMBLE + consts + "\n" + "\n".join(_extract(n, js) for n in names) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
