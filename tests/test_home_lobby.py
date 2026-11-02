@@ -1,4 +1,7 @@
-"""The home screen: up at once, with the world loading behind it from the moment the app opens."""
+"""The home screen: up at once on a still of the world, the world loading out of sight behind it."""
+import json
+import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,5 +58,38 @@ def test_no_way_into_the_world_until_it_is_loaded_through():
     leaving = [line for line in lobby.splitlines() if "closeHome(" in line and "function closeHome" not in line]
     assert len(leaving) >= 5
     for line in leaving:
-        assert "needs-world" in line or "e.key === \"Enter\"" in line or "close: () =>" in line, line
+        assert ("needs-world" in line or "e.key === \"Enter\"" in line or "close: () =>" in line
+                or "if (loaded) { closeHome(true)" in line or "if (loading)" in line), line
     assert 'root.classList.remove("world-loading")' in lobby
+
+
+def test_enter_world_goes_in_or_to_the_loading_screen():
+    lobby = (ROOT / "docs/home-lobby.mjs").read_text()
+    # One big way in, never disabled: in at once when ready, else the loading screen, which goes
+    # in by itself once the world is loaded.
+    assert '"Enter world"' in lobby and '"Explore world"' not in lobby
+    go = next(line for line in lobby.splitlines() if '"Enter world"' in line)
+    assert "aria-disabled" not in go and "needs-world" not in go and "enter()" in go
+    enter = lobby[lobby.index("function enter()"):]
+    enter = enter[:enter.index("\n  }\n")]
+    assert "if (loaded) { closeHome(true); return; }" in enter and "loadscreen" in enter
+    assert "if (loading) { loading.bar.style.width = \"100%\"; setTimeout(() => closeHome(true)" in lobby
+    assert "fraction: () =>" in RENDERER
+
+
+def test_the_home_screen_is_a_still_of_the_world_not_the_world_loading():
+    lobby = (ROOT / "docs/home-lobby.mjs").read_text()
+    assert "backdrop-filter" not in lobby          # nothing of the loading world shows through
+    assert "var(--shot,none) center/cover" in lobby
+    names = re.findall(r'\["([a-z-]+)", "[^"]+"\]', lobby[lobby.index("export const HOME_SHOTS"):lobby.index("const SHOT_KEY")])
+    assert len(names) == 10
+    for name in names:
+        shot = ROOT / "docs/home-shots" / f"{name}.jpg"
+        assert shot.is_file() and shot.stat().st_size < 600_000, name
+    # The next still each opening, wrapping round.
+    out = subprocess.run(["node", "--input-type=module", "-e", f"""
+      import {{ nextShot, HOME_SHOTS }} from {json.dumps((ROOT / "docs/home-lobby.mjs").as_uri())};
+      const kept = new Map(); const storage = {{ getItem: (k) => kept.get(k) ?? null, setItem: (k, v) => kept.set(k, v) }};
+      const seen = Array.from({{ length: HOME_SHOTS.length + 2 }}, () => nextShot(storage));
+      console.log(JSON.stringify(seen));"""], capture_output=True, text=True, check=True)
+    assert json.loads(out.stdout) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1]

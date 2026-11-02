@@ -278,6 +278,13 @@ def test_site_promotion_lists_new_cells_and_commits_none_of_their_data(tmp_path)
     index = {"regions": [{"name": "sf-mission"}]}
     added = update_regions(index, release, {"regions": [{"name": "gap-a", "bbox": [1, 2, 3, 4]}]})
     assert added == ["gap-a"] and index["regions"][-1]["bbox"] == [1, 2, 3, 4]
+    # A region listed unbuilt before the cloud released it is switched on, not skipped.
+    index = {"regions": [{"name": "gap-a", "built": False, "path": None, "title": "Gap A"}]}
+    assert update_regions(index, release, {}) == ["gap-a"]
+    assert index["regions"] == [{"name": "gap-a", "built": True, "path": "regions/gap-a/sf-corridor-3d.html",
+                                 "title": "Gap A", "published_via": "cloud release",
+                                 "release": release["version"]}]
+    assert update_regions(index, release, {}) == []
     repo = tmp_path / "repo"
     (repo / "docs/regions/gap-a").mkdir(parents=True)
     subprocess.run(["git", "init", "-q", str(repo)], check=True)

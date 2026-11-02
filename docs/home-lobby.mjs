@@ -9,6 +9,10 @@
 // the account, multiplayer, the avatar's look and the spawn point, and what to do to enter the
 // world. This module keeps the screen.
 //
+// Behind it is a still of the world (one of HOME_SHOTS, the next each time the app opens), never
+// the world itself loading: Enter world goes straight in when the world is ready, or to a loading
+// screen that goes in by itself once it is.
+//
 // The avatar is made in Customize avatar: a MakeHuman figure from docs/avatar-builder.mjs (body,
 // height and build, face shape, skin, eyes, hair and its colour, facial hair, outfit, shoes, hat),
 // which the page hands over as ctx.avatars; or the original Soldier. It is kept with the look.
@@ -21,6 +25,25 @@ export const LOOKS = {
          ["Plasma", "#b46bff"], ["Rose", "#ff4f9a"], ["Steel", "#c9d3dc"]],
 };
 export const DEFAULT_LOOK = { outfit: "#ffffff", team: "#ff7a1a" };
+//: The stills behind the home screen (docs/home-shots/, captured from the world itself), shown in
+//: turn: each opening of the app shows the next.
+export const HOME_SHOTS = [
+  ["marina", "The Marina, San Francisco"], ["financial-district", "The Financial District, San Francisco"],
+  ["north-beach", "North Beach, San Francisco"], ["mission-dolores", "Mission Dolores, San Francisco"],
+  ["castro", "The Castro, San Francisco"], ["sunset", "The Sunset, San Francisco"],
+  ["oakland", "Downtown Oakland"], ["berkeley", "Downtown Berkeley"],
+  ["palo-alto", "Downtown Palo Alto"], ["san-jose", "Downtown San José"],
+];
+const SHOT_KEY = "kerbside:home-shot";
+//: This opening's still: the one after the last shown (kept on this device), the first if none.
+export function nextShot(storage = globalThis.localStorage) {
+  let last = -1;
+  try { last = Number.parseInt(storage.getItem(SHOT_KEY) ?? "-1", 10); } catch { /* private mode */ }
+  const index = Number.isFinite(last) ? (last + 1 + HOME_SHOTS.length) % HOME_SHOTS.length : 0;
+  try { storage.setItem(SHOT_KEY, String(index)); } catch { /* private mode */ }
+  return index;
+}
+let shotThisOpening = null;
 
 export function loadLook(storage = globalThis.localStorage) {
   try {
@@ -41,9 +64,21 @@ const FONT = "https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&dis
 const CSS = `
 #home{position:fixed;inset:0;z-index:80;display:grid;grid-template-rows:auto 1fr auto;color:#eef3f8;
   font-family:Rajdhani,"Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;letter-spacing:.02em;
-  background:radial-gradient(120% 90% at 50% 62%,rgba(255,122,26,.20) 0%,rgba(10,14,22,.55) 42%,rgba(5,7,12,.92) 100%),
-             linear-gradient(180deg,rgba(6,9,15,.75),rgba(6,9,15,.35) 40%,rgba(6,9,15,.85));
-  backdrop-filter:blur(5px) saturate(1.1);-webkit-backdrop-filter:blur(5px) saturate(1.1);user-select:none}
+  background:radial-gradient(120% 90% at 50% 62%,rgba(255,122,26,.14) 0%,rgba(10,14,22,.30) 45%,rgba(5,7,12,.80) 100%),
+             linear-gradient(180deg,rgba(6,9,15,.70),rgba(6,9,15,.10) 35%,rgba(6,9,15,.10) 60%,rgba(6,9,15,.85)),
+             var(--shot,none) center/cover no-repeat,#070a10;user-select:none}
+#home .shotname{position:absolute;left:28px;bottom:6px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(220,230,240,.55);pointer-events:none}
+#home .loadscreen{position:absolute;inset:0;z-index:5;display:grid;place-items:center;align-content:center;gap:18px;padding:24px;
+  background:linear-gradient(180deg,rgba(5,7,12,.55),rgba(5,7,12,.82)),var(--shot,none) center/cover no-repeat,#070a10}
+#home .loadscreen h2{margin:0;font-size:clamp(34px,6vw,64px);font-weight:700;font-style:italic;letter-spacing:.14em;text-transform:uppercase;
+  background:linear-gradient(180deg,#fff 0%,#ffd7a8 55%,#ff7a1a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.6));text-align:center}
+#home .loadscreen .where{font-size:15px;letter-spacing:.3em;text-transform:uppercase;color:#c9d6e2;text-align:center}
+#home .loadscreen .bar{width:min(560px,82vw);height:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);overflow:hidden;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+#home .loadscreen .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffb13b,#ff7a1a);box-shadow:0 0 16px #ff7a1a;transition:width .4s}
+#home .loadscreen .line{min-height:1.3em;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#9fb0c2;text-align:center}
+#home .loadscreen button{justify-self:center}
 #home::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px),
              linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px) 0 0/80px 80px,
@@ -86,7 +121,8 @@ const CSS = `
 #home button.hb:hover,#home button.hb:focus-visible{filter:brightness(1.25);transform:translateY(-2px);outline:none}
 #home button.hb:active{transform:translateY(1px)}
 #home button.hb[aria-pressed=true]{background:linear-gradient(180deg,#3a4b60,#1e2a38)}
-#home button.go{font-size:34px;letter-spacing:.16em;padding:22px 36px;color:#1a1004;
+@keyframes hglow{50%{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -5px 0 rgba(120,40,0,.45),0 0 60px rgba(255,122,26,.9)}}
+#home button.go{font-size:46px;letter-spacing:.16em;padding:26px 44px;color:#1a1004;animation:hglow 2.4s ease-in-out infinite;
   background:linear-gradient(180deg,#ffe08a 0%,#ffb13b 45%,#ff7a1a 100%);
   box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -5px 0 rgba(120,40,0,.45),0 0 34px rgba(255,122,26,.55);
   clip-path:polygon(22px 0,100% 0,100% calc(100% - 22px),calc(100% - 22px) 100%,0 100%,0 22px)}
@@ -143,7 +179,7 @@ const CSS = `
 #spawn-bar button.ghost{background:#2a3646;color:#eef3f8}
 @media (max-width:820px){#home .stage{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}#home .party{flex-direction:row}
   #home .slot{width:min(110px,26vw)} #home .bottom{flex-direction:column;align-items:stretch} #home .menu .row{grid-template-columns:1fr}
-  #home button.go{font-size:26px}}
+  #home button.go{font-size:32px}}
 `;
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -545,7 +581,7 @@ export function openHome(ctx) {
   };
 
   const mpButton = el("button", { class: "hb", type: "button", on: { click: () => multiplayerSheet() } }, "Multiplayer");
-  const go = el("button", { class: "hb go needs-world", type: "button", "aria-disabled": "true", on: { click: () => closeHome(true) } }, "Explore world", el("small", {}, ctx.regionTitle || "The Bay Area"));
+  const go = el("button", { class: "hb go", type: "button", on: { click: () => enter() } }, "Enter world", el("small", {}, ctx.regionTitle || "The Bay Area"));
   const bottom = el("div", { class: "bottom" },
     el("div", { class: "side" }, status,
       el("button", { class: "hb", type: "button", on: { click: () => toolsSheet() } }, "Contributor tools")),
@@ -554,8 +590,11 @@ export function openHome(ctx) {
       el("div", { class: "row" }, mpButton,
         el("button", { class: "hb", type: "button", on: { click: () => customizeSheet() } }, "Customize avatar"),
         el("button", { class: "hb", type: "button", on: { click: () => spawnSheet() } }, "Set spawn point"))));
+  shotThisOpening ??= nextShot();
+  const [shotFile, shotName] = HOME_SHOTS[shotThisOpening];
+  root.style.setProperty("--shot", `url("${new URL(`home-shots/${shotFile}.jpg`, import.meta.url).href}")`);
   root.append(el("div", { class: "top" }, el("div", { class: "logo" }, "Kerbside", el("small", {}, "The Bay Area, down to the kerb")), el("div", { class: "grow" }), player),
-    stage, bottom, sheetHost);
+    stage, bottom, sheetHost, el("div", { class: "shotname" }, shotName));
   document.body.append(root);
   const stageAvatar = avatarStage(ctx, avatarBox, look);
   drawPlayer();
@@ -564,7 +603,7 @@ export function openHome(ctx) {
   drawParty();
   const keys = (e) => {
     if (e.target instanceof HTMLInputElement) return;
-    if (e.key === "Enter" && !sheetHost.firstChild) { e.preventDefault(); closeHome(true); }
+    if (e.key === "Enter" && !sheetHost.firstChild) { e.preventDefault(); enter(); }
     else if (e.key === "Escape") { if (sheetHost.firstChild) sheetHost.replaceChildren(); }
   };
   addEventListener("keydown", keys, true);
@@ -577,19 +616,41 @@ export function openHome(ctx) {
   const progress = setInterval(() => {
     const line = ctx.progress?.();
     if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 64));
+    if (loading) {
+      loading.line.textContent = line ? line.slice(0, 80) : "Almost there";
+      loading.bar.style.width = `${Math.round(100 * Math.max(0.04, Math.min(1, ctx.fraction?.() ?? 0)))}%`;
+    }
   }, 400);
   ready.then(() => {
     loaded = true;
     root.classList.remove("world-loading");
-    go.removeAttribute("aria-disabled");
     clearInterval(progress); status.className = "status"; status.replaceChildren(el("i"), "World ready");
+    if (loading) { loading.bar.style.width = "100%"; setTimeout(() => closeHome(true), 350); }
   });
   go.focus();
+
+  //: Enter world: in at once when the world is ready; otherwise the loading screen, which goes in
+  //: by itself when it is (Back returns to the home screen and leaves the world loading).
+  let loading = null;
+  function enter() {
+    if (loaded) { closeHome(true); return; }
+    if (loading) return;
+    sheetHost.replaceChildren();
+    const bar = el("i"), line = el("div", { class: "line" }, ctx.progress?.() || "Loading the world");
+    const back = el("button", { class: "hb", type: "button", on: { click: () => { loading.node.remove(); loading = null; go.focus(); } } }, "Back");
+    const node = el("section", { class: "loadscreen", role: "status", "aria-live": "polite" },
+      el("h2", {}, "Entering the world"), el("div", { class: "where" }, ctx.regionTitle || "The Bay Area"),
+      el("div", { class: "bar", role: "progressbar", "aria-label": "Loading the world" }, bar), line, back);
+    loading = { node, bar, line };
+    root.append(node);
+    back.focus();
+  }
 
   //: Returns whether the lobby closed: not while the world is still loading.
   function closeHome(enter = false) {
     if (!open || !loaded) return false;
     open = null;
+    loading = null;
     removeEventListener("keydown", keys, true);
     clearInterval(progress);
     unsubscribe?.(); offParty?.();

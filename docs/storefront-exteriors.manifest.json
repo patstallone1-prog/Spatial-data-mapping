@@ -1,7 +1,7 @@
 {
  "schema": "kerbside.storefront_exterior_tiles/1",
  "renderer_sha256": "635d3e783b1bef6d",
- "buildings": 15643,
+ "buildings": 18881,
  "tiles": [
   {
    "world": "app-regions/berkeley-downtown/sf-corridor-3d.json",
@@ -116,6 +116,54 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/alameda-gap-p0-0-1/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-0-1/storefront-exteriors.json",
+   "bbox": [
+    -122.29,
+    37.75245777937477,
+    -122.26159434408216,
+    37.77491555874955
+   ],
+   "buildings": 66,
+   "rejected": 1,
+   "bytes": 307962,
+   "sha256": "865f2a599e47fcf6",
+   "source_sha256": "707dad740dd2145b28b69211015ca0fde534fa051a222da04b24bad8cd2bf8ed",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/alameda-gap-p0-0-2/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-0-2/storefront-exteriors.json",
+   "bbox": [
+    -122.29,
+    37.77491555874955,
+    -122.26159434408216,
+    37.785
+   ],
+   "buildings": 57,
+   "rejected": 3,
+   "bytes": 298262,
+   "sha256": "4fcd78f17c1fab4c",
+   "source_sha256": "b19cc337f381b415812b7c1269bd3735ead5a291b1dc3a691a5d8e26bbebba3c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/alameda-gap-p0-1-1/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-1-1/storefront-exteriors.json",
+   "bbox": [
+    -122.26159434408216,
+    37.75245777937477,
+    -122.2331886881643,
+    37.77491555874955
+   ],
+   "buildings": 210,
+   "rejected": 6,
+   "bytes": 1184108,
+   "sha256": "06b3e1224459f69b",
+   "source_sha256": "23b6505eafca9109074344b6696e9d83f31f1886271aeb49cbfe4775fb3894bc",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/alameda-gap-p0-1-2/sf-corridor-3d.json",
    "path": "regions/alameda-gap-p0-1-2/storefront-exteriors.json",
    "bbox": [
@@ -148,6 +196,38 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/alameda-gap-p0-2-1/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-2-1/storefront-exteriors.json",
+   "bbox": [
+    -122.2331886881643,
+    37.75245777937477,
+    -122.20478303224645,
+    37.77491555874955
+   ],
+   "buildings": 108,
+   "rejected": 4,
+   "bytes": 614577,
+   "sha256": "795259e74355c7b5",
+   "source_sha256": "9d96408d29b1b005b1445d5ffb47efbeb626935c0e2e517de181186401ff1aef",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/alameda-gap-p0-2-2/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-2-2/storefront-exteriors.json",
+   "bbox": [
+    -122.2331886881643,
+    37.77491555874955,
+    -122.20478303224645,
+    37.785
+   ],
+   "buildings": 150,
+   "rejected": 5,
+   "bytes": 803904,
+   "sha256": "c9c7bfbbebb35303",
+   "source_sha256": "3c31530ee3107a80c9ef4d0346d562ae3b5b75ba5ed0397930614ef3fe547d76",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/alameda-gap-p0-3-0/sf-corridor-3d.json",
    "path": "regions/alameda-gap-p0-3-0/storefront-exteriors.json",
    "bbox": [
@@ -161,6 +241,54 @@
    "bytes": 71166,
    "sha256": "7d4e673ec856fc0f",
    "source_sha256": "01f66d474a3f69cb94a3c99f5d1f096b0bd4c47827e9254840c4e5224cd25645",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/alameda-gap-p0-3-1/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-3-1/storefront-exteriors.json",
+   "bbox": [
+    -122.20478303224645,
+    37.75245777937477,
+    -122.2,
+    37.77491555874955
+   ],
+   "buildings": 12,
+   "rejected": 1,
+   "bytes": 67482,
+   "sha256": "bd31902945d86c9c",
+   "source_sha256": "59577c7a71b7107ad85ce229167128483a2b006f5d27fc5fb7073e54b4e0381b",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/alameda-gap-p0-3-2/sf-corridor-3d.json",
+   "path": "regions/alameda-gap-p0-3-2/storefront-exteriors.json",
+   "bbox": [
+    -122.20478303224645,
+    37.77491555874955,
+    -122.2,
+    37.785
+   ],
+   "buildings": 5,
+   "rejected": 1,
+   "bytes": 31706,
+   "sha256": "361af9dd315dea04",
+   "source_sha256": "730c345c799ad03a9f0c46c2ae853009d365392fc4d9615044b288dcc374994c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/belmont-san-carlos-gap-p0-0-0/sf-corridor-3d.json",
+   "path": "regions/belmont-san-carlos-gap-p0-0-0/storefront-exteriors.json",
+   "bbox": [
+    -122.33,
+    37.45,
+    -122.30170395328321,
+    37.47245777937478
+   ],
+   "buildings": 2,
+   "rejected": 0,
+   "bytes": 6586,
+   "sha256": "838041f26fef655b",
+   "source_sha256": "02c5738b1f3ed7d1cf601c5960ad4576e0e77486626d4297bacf4172ce058114",
    "references": "2026-11-01"
   },
   {
@@ -273,6 +401,38 @@
    "bytes": 100559,
    "sha256": "4a49df909a06dcf3",
    "source_sha256": "47f47960b96710bc10b0d20c8653229a49a241ffcb1e0033251460bb814f0b50",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/daly-south-sf-gap-p0-0-1/sf-corridor-3d.json",
+   "path": "regions/daly-south-sf-gap-p0-0-1/storefront-exteriors.json",
+   "bbox": [
+    -122.5,
+    37.62245777937478,
+    -122.47163398339094,
+    37.64491555874955
+   ],
+   "buildings": 48,
+   "rejected": 0,
+   "bytes": 268765,
+   "sha256": "3cd154730ec61717",
+   "source_sha256": "929b363379d375aa0a5e568279bcf43f3f947f0387287f4fc65909bfe87b6f41",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/daly-south-sf-gap-p0-0-2/sf-corridor-3d.json",
+   "path": "regions/daly-south-sf-gap-p0-0-2/storefront-exteriors.json",
+   "bbox": [
+    -122.5,
+    37.64491555874955,
+    -122.47163398339094,
+    37.66737333812433
+   ],
+   "buildings": 35,
+   "rejected": 1,
+   "bytes": 244042,
+   "sha256": "77a27489e06632f2",
+   "source_sha256": "0af7f7a66364c78394d3f396f9026f4079da815ecc3da2a3f75abe9fa26c3602",
    "references": "2026-11-01"
   },
   {
@@ -532,6 +692,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/daly-south-sf-gap-p0-4-1/sf-corridor-3d.json",
+   "path": "regions/daly-south-sf-gap-p0-4-1/storefront-exteriors.json",
+   "bbox": [
+    -122.38653593356378,
+    37.62245777937478,
+    -122.375,
+    37.64491555874955
+   ],
+   "buildings": 3,
+   "rejected": 0,
+   "bytes": 14614,
+   "sha256": "c5e217d6fb7ba883",
+   "source_sha256": "683ad31b69ee32e78bbcae3db67cc4680e5dbc826f9f54500d4a03a58759d63f",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/daly-south-sf-gap-p0-4-2/sf-corridor-3d.json",
    "path": "regions/daly-south-sf-gap-p0-4-2/storefront-exteriors.json",
    "bbox": [
@@ -596,6 +772,166 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/east-bay-south-gap-p0-0-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-0-11/storefront-exteriors.json",
+   "bbox": [
+    -122.2,
+    37.74703557312253,
+    -122.171638375221,
+    37.76949335249731
+   ],
+   "buildings": 106,
+   "rejected": 2,
+   "bytes": 588195,
+   "sha256": "2e0ef1e0c2f6fa3d",
+   "source_sha256": "1df7fcd74e9d411159aba92b8419fac7516354bc080161b6857d03d756ad4cfd",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-0-12/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-0-12/storefront-exteriors.json",
+   "bbox": [
+    -122.2,
+    37.76949335249731,
+    -122.171638375221,
+    37.785
+   ],
+   "buildings": 56,
+   "rejected": 0,
+   "bytes": 300914,
+   "sha256": "20c92fcf0163e3d8",
+   "source_sha256": "0486659e3a8aa1f393e3fa851152997c21eb3d95cd42f20ade7d3af62bf10382",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-0-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-0-9/storefront-exteriors.json",
+   "bbox": [
+    -122.2,
+    37.70212001437298,
+    -122.171638375221,
+    37.724577793747756
+   ],
+   "buildings": 27,
+   "rejected": 1,
+   "bytes": 196302,
+   "sha256": "f46316320dbf35af",
+   "source_sha256": "d1140286fe8b1351a9698b866d32eb8d14a82e5c5f4adaf77b02fa61b16e8a0a",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-1-10/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-1-10/storefront-exteriors.json",
+   "bbox": [
+    -122.171638375221,
+    37.724577793747756,
+    -122.14327675044198,
+    37.74703557312253
+   ],
+   "buildings": 89,
+   "rejected": 1,
+   "bytes": 522623,
+   "sha256": "4f8eb1ad963a0b8b",
+   "source_sha256": "e52bf9d53b20da5848886522c4ead4bccbc49c23137b1094f6c1ea82e3dc696a",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-1-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-1-11/storefront-exteriors.json",
+   "bbox": [
+    -122.171638375221,
+    37.74703557312253,
+    -122.14327675044198,
+    37.76949335249731
+   ],
+   "buildings": 34,
+   "rejected": 1,
+   "bytes": 174603,
+   "sha256": "2479540dce2175a2",
+   "source_sha256": "31b9f0a5ddf2f5956748974d39a7380400d8bc967bf8241c425c41fee5e0763c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-1-12/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-1-12/storefront-exteriors.json",
+   "bbox": [
+    -122.171638375221,
+    37.76949335249731,
+    -122.14327675044198,
+    37.785
+   ],
+   "buildings": 3,
+   "rejected": 0,
+   "bytes": 14899,
+   "sha256": "6d5b467ddd5903a9",
+   "source_sha256": "fbd581b8a85907ad44202f5577848257a8e255345b663affff8ab631064c3239",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-1-8/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-1-8/storefront-exteriors.json",
+   "bbox": [
+    -122.171638375221,
+    37.679662234998204,
+    -122.14327675044198,
+    37.70212001437298
+   ],
+   "buildings": 5,
+   "rejected": 0,
+   "bytes": 33113,
+   "sha256": "f08392f8582d84c1",
+   "source_sha256": "7114d5cb036fe4c2ea7429530a6d5218252f01c80e7a305b584080f13260535f",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-1-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-1-9/storefront-exteriors.json",
+   "bbox": [
+    -122.171638375221,
+    37.70212001437298,
+    -122.14327675044198,
+    37.724577793747756
+   ],
+   "buildings": 81,
+   "rejected": 6,
+   "bytes": 520597,
+   "sha256": "23b1b15797800243",
+   "source_sha256": "50d389387bdf31a22de9ce6dd6ec57524d8edb498baa8383742c2ffa02ac9a44",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-2-10/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-2-10/storefront-exteriors.json",
+   "bbox": [
+    -122.14327675044198,
+    37.724577793747756,
+    -122.11491512566298,
+    37.74703557312253
+   ],
+   "buildings": 15,
+   "rejected": 0,
+   "bytes": 75406,
+   "sha256": "6267e6e6fe73c09c",
+   "source_sha256": "f0c2c18713074ba00e7899884f2c0a6e9812fd1a83925a2c4b3170a38809ca99",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-2-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-2-11/storefront-exteriors.json",
+   "bbox": [
+    -122.14327675044198,
+    37.74703557312253,
+    -122.11491512566298,
+    37.76949335249731
+   ],
+   "buildings": 3,
+   "rejected": 0,
+   "bytes": 13756,
+   "sha256": "ac1f6ee70499cc3c",
+   "source_sha256": "49558b680ef9dde4bd0e4ae4f8ab059a19b8424946f8b22c6af7111b66737553",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/east-bay-south-gap-p0-2-5/sf-corridor-3d.json",
    "path": "regions/east-bay-south-gap-p0-2-5/storefront-exteriors.json",
    "bbox": [
@@ -625,6 +961,70 @@
    "bytes": 25924,
    "sha256": "0086b44623e55d4d",
    "source_sha256": "2e79c2d7a6c8d2653e606c39b720e1f9f4c598daec6b9f941465c116284f6f86",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-2-7/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-2-7/storefront-exteriors.json",
+   "bbox": [
+    -122.14327675044198,
+    37.65720445562343,
+    -122.11491512566298,
+    37.679662234998204
+   ],
+   "buildings": 32,
+   "rejected": 2,
+   "bytes": 227428,
+   "sha256": "f3aac4b19a48b2bc",
+   "source_sha256": "f3a870962ad586a55c462b9ace6d2d1ea2d1b81f389bfd5c1beffdce98e8a736",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-2-8/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-2-8/storefront-exteriors.json",
+   "bbox": [
+    -122.14327675044198,
+    37.679662234998204,
+    -122.11491512566298,
+    37.70212001437298
+   ],
+   "buildings": 58,
+   "rejected": 5,
+   "bytes": 412866,
+   "sha256": "5d42e4d5f0724f3d",
+   "source_sha256": "12017c4fa8fc2a0c31f4f8526d46f0417adb3867fb8fc1079fbb35b85433b00a",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-2-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-2-9/storefront-exteriors.json",
+   "bbox": [
+    -122.14327675044198,
+    37.70212001437298,
+    -122.11491512566298,
+    37.724577793747756
+   ],
+   "buildings": 46,
+   "rejected": 1,
+   "bytes": 275500,
+   "sha256": "720dbeb023fa04d7",
+   "source_sha256": "9229d8dce1938a6be32cc87a407a528a6226112c2ac0105e5f736d5aa198e391",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-3-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-3-2/storefront-exteriors.json",
+   "bbox": [
+    -122.11491512566298,
+    37.54491555874955,
+    -122.08655350088397,
+    37.56737333812433
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 3686,
+   "sha256": "45e7a8b4ea284a5e",
+   "source_sha256": "7b75203dddc9e5ce3d7f17f453c020dbcdeac116dc5c4df53a721447122b4427",
    "references": "2026-11-01"
   },
   {
@@ -673,6 +1073,118 @@
    "bytes": 211944,
    "sha256": "fa7d46f7a3989ceb",
    "source_sha256": "04711d8e5ef87a1400e28791cd392d6246a436a0cab914c6d4cc4cc68e234bb3",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-3-8/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-3-8/storefront-exteriors.json",
+   "bbox": [
+    -122.11491512566298,
+    37.679662234998204,
+    -122.08655350088397,
+    37.70212001437298
+   ],
+   "buildings": 48,
+   "rejected": 3,
+   "bytes": 272493,
+   "sha256": "edb5fb6d7bbe2b43",
+   "source_sha256": "463bb23f51cd1e9a75a8538bd083179b101538274e5826993ac87e60f675163b",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-3-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-3-9/storefront-exteriors.json",
+   "bbox": [
+    -122.11491512566298,
+    37.70212001437298,
+    -122.08655350088397,
+    37.724577793747756
+   ],
+   "buildings": 8,
+   "rejected": 1,
+   "bytes": 45818,
+   "sha256": "86a4e30d7fa271b6",
+   "source_sha256": "8f2349d628a5fe178abe9bea6b81a3ff4ce4465e5581e2e2888fbf0658ad4fd3",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-4-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-1/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.522457779374776,
+    -122.05819187610496,
+    37.54491555874955
+   ],
+   "buildings": 6,
+   "rejected": 0,
+   "bytes": 47020,
+   "sha256": "4675ecb130cb783d",
+   "source_sha256": "2fc5d40c3c95e6211a1f8f2f8a82bfe16d8f2a8b4bb7ac90d94e46e9462e80f4",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-4-10/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-10/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.724577793747756,
+    -122.05819187610496,
+    37.74703557312253
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 6743,
+   "sha256": "d235771aab38badb",
+   "source_sha256": "c0c0689f25568eeee1387d8638136752d49a28dd7c666da31bdcb4fa97127295",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-4-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-2/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.54491555874955,
+    -122.05819187610496,
+    37.56737333812433
+   ],
+   "buildings": 4,
+   "rejected": 0,
+   "bytes": 23866,
+   "sha256": "5172d5f8ffd7e676",
+   "source_sha256": "006476f973700cbc0b8a002647985db207b5ebdc25b196df6b77fd63ad5bfa84",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-4-3/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-3/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.56737333812433,
+    -122.05819187610496,
+    37.5898311174991
+   ],
+   "buildings": 20,
+   "rejected": 2,
+   "bytes": 115481,
+   "sha256": "14e6c607383af385",
+   "source_sha256": "1c586ed1cedba67ad0b57d69f9d67b6a2bfb27240c5f3b2f97216b6bc240d2d9",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-4-4/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-4/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.5898311174991,
+    -122.05819187610496,
+    37.61228889687388
+   ],
+   "buildings": 86,
+   "rejected": 4,
+   "bytes": 574016,
+   "sha256": "9ba1273b077c06ac",
+   "source_sha256": "b0f2110306f6f6e9c318c06e4a88bb6b44dcccba2cd26debcadda3cb26a40392",
    "references": "2026-11-01"
   },
   {
@@ -740,6 +1252,102 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/east-bay-south-gap-p0-4-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-4-9/storefront-exteriors.json",
+   "bbox": [
+    -122.08655350088397,
+    37.70212001437298,
+    -122.05819187610496,
+    37.724577793747756
+   ],
+   "buildings": 33,
+   "rejected": 0,
+   "bytes": 119815,
+   "sha256": "e073dacb5d97ac40",
+   "source_sha256": "bca243b13b190d24d46d81e4db46b449a69f0a4cf4ac1cce78602008804e31c9",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-5-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-0/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.5,
+    -122.02983025132595,
+    37.522457779374776
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 8190,
+   "sha256": "22ba99d4d280b10a",
+   "source_sha256": "721694a17b2adb7bcd0990085cbe8bbe4b944115335209c3319695cdffd92cc5",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-5-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-1/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.522457779374776,
+    -122.02983025132595,
+    37.54491555874955
+   ],
+   "buildings": 12,
+   "rejected": 0,
+   "bytes": 77523,
+   "sha256": "45e3990c467cc4ae",
+   "source_sha256": "86461592d338b2483b0441d008eacee71b8c2d17625b23191d4cf457506a1e73",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-5-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-2/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.54491555874955,
+    -122.02983025132595,
+    37.56737333812433
+   ],
+   "buildings": 52,
+   "rejected": 1,
+   "bytes": 362098,
+   "sha256": "f2812f3363aec5d3",
+   "source_sha256": "d74a2c123b65bf567a40ab49e6b6b9c4996f8a9e063d9a9ef5b14d17ef3e879c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-5-3/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-3/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.56737333812433,
+    -122.02983025132595,
+    37.5898311174991
+   ],
+   "buildings": 26,
+   "rejected": 2,
+   "bytes": 175199,
+   "sha256": "9cc365d20ead2f51",
+   "source_sha256": "ecf3d0622afa05f366f6c103ee43c5f0bea804c61fce397451f07d813a6021f3",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-5-4/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-4/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.5898311174991,
+    -122.02983025132595,
+    37.61228889687388
+   ],
+   "buildings": 20,
+   "rejected": 0,
+   "bytes": 160818,
+   "sha256": "91e1ce157e93d88c",
+   "source_sha256": "84ffe75d150a9c99e09983173c96723c3643bcbf70c9438f7a83d83a18808199",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/east-bay-south-gap-p0-5-5/sf-corridor-3d.json",
    "path": "regions/east-bay-south-gap-p0-5-5/storefront-exteriors.json",
    "bbox": [
@@ -804,6 +1412,342 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/east-bay-south-gap-p0-5-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-5-9/storefront-exteriors.json",
+   "bbox": [
+    -122.05819187610496,
+    37.70212001437298,
+    -122.02983025132595,
+    37.724577793747756
+   ],
+   "buildings": 11,
+   "rejected": 0,
+   "bytes": 52164,
+   "sha256": "171c7d05774fc210",
+   "source_sha256": "11bfaaf208d1978cbe9c8cac7353164cd7f37dfa1ba25bb31a78ed2d0b33ea36",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-0/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.5,
+    -122.00146862654694,
+    37.522457779374776
+   ],
+   "buildings": 5,
+   "rejected": 0,
+   "bytes": 38358,
+   "sha256": "1d29ccc999de7f3e",
+   "source_sha256": "af106048366f83c9e597b8c623f26da1657f66309c2928775361bb5f7efcdf40",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-1/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.522457779374776,
+    -122.00146862654694,
+    37.54491555874955
+   ],
+   "buildings": 55,
+   "rejected": 2,
+   "bytes": 438150,
+   "sha256": "4324584e5b57453f",
+   "source_sha256": "3916e1896ca7facc8967c5915d9a6c8ab7ee057385398d74800e6c88214a0e2c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-11/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.74703557312253,
+    -122.00146862654694,
+    37.76949335249731
+   ],
+   "buildings": 2,
+   "rejected": 0,
+   "bytes": 9643,
+   "sha256": "b275f03d6fd717a6",
+   "source_sha256": "2e5901dccaf6625f6b80e32c219714ee17256d5fe82e2389cfa506bc847676c0",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-2/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.54491555874955,
+    -122.00146862654694,
+    37.56737333812433
+   ],
+   "buildings": 88,
+   "rejected": 3,
+   "bytes": 534211,
+   "sha256": "38db0f5c7aec3a57",
+   "source_sha256": "af6035ef9bc4ce8df4ae2dbe3e37cd496ed04be8ebe91a0787bcd63b38fbaf58",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-3/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-3/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.56737333812433,
+    -122.00146862654694,
+    37.5898311174991
+   ],
+   "buildings": 37,
+   "rejected": 2,
+   "bytes": 290042,
+   "sha256": "dc5b4cccec9dbf4a",
+   "source_sha256": "53536219ff420d028f948fb3150dae416693987c96c9c19750cda72a52c523ac",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-4/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-4/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.5898311174991,
+    -122.00146862654694,
+    37.61228889687388
+   ],
+   "buildings": 22,
+   "rejected": 0,
+   "bytes": 124072,
+   "sha256": "916184be2c3841f8",
+   "source_sha256": "c9da7ca0b6dae322688fa5a522b02a211e0f115a889c125622ec0bf87f2fe78f",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-6-5/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-6-5/storefront-exteriors.json",
+   "bbox": [
+    -122.02983025132595,
+    37.61228889687388,
+    -122.00146862654694,
+    37.63474667624865
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 5824,
+   "sha256": "ca5dfbed9fcb4084",
+   "source_sha256": "235de8a8b844b7ca913853d9d7c1e1d150ed064b7181d1abe5c40360bacfa3ec",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-0/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.5,
+    -121.97310700176793,
+    37.522457779374776
+   ],
+   "buildings": 51,
+   "rejected": 1,
+   "bytes": 416829,
+   "sha256": "c1b42c9607073183",
+   "source_sha256": "79907c845138cdf65c18546e3623d3335117a1a0fcc672bda23362770c52ed63",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-1/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.522457779374776,
+    -121.97310700176793,
+    37.54491555874955
+   ],
+   "buildings": 66,
+   "rejected": 4,
+   "bytes": 476995,
+   "sha256": "d66a9164dd27adef",
+   "source_sha256": "9e3699a2d8d08d961f61588278484a3882d128023dc681b81041e1544dfd0634",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-11/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.74703557312253,
+    -121.97310700176793,
+    37.76949335249731
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 5813,
+   "sha256": "9a392a2bdb359827",
+   "source_sha256": "e19f38ab62c1798189d248931b01a9e53efc8ba309d8a99155b399261dd62843",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-12/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-12/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.76949335249731,
+    -121.97310700176793,
+    37.785
+   ],
+   "buildings": 112,
+   "rejected": 6,
+   "bytes": 793469,
+   "sha256": "d33773a621e4f339",
+   "source_sha256": "86844a01260fca426f18df5a84dd1dcf1bfae65997b8c6b504180945ac5ca366",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-2/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.54491555874955,
+    -121.97310700176793,
+    37.56737333812433
+   ],
+   "buildings": 157,
+   "rejected": 7,
+   "bytes": 1061366,
+   "sha256": "a1e7e4b4cfa9c93b",
+   "source_sha256": "f070acd11a5e61f0086e1564667a62dd93587e100768b5f7a6388b0bb1beece2",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-7-3/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-7-3/storefront-exteriors.json",
+   "bbox": [
+    -122.00146862654694,
+    37.56737333812433,
+    -121.97310700176793,
+    37.5898311174991
+   ],
+   "buildings": 52,
+   "rejected": 0,
+   "bytes": 260814,
+   "sha256": "43f4e25896442081",
+   "source_sha256": "53fe516889224df14d64681530c1679ece1a9412788b15c2e281927c48000ebc",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-0/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.5,
+    -121.94474537698892,
+    37.522457779374776
+   ],
+   "buildings": 77,
+   "rejected": 5,
+   "bytes": 610529,
+   "sha256": "b532ce6c492875c4",
+   "source_sha256": "5cb217d83810f447e808b4d027e2edcf0e4016cdb250eab1cf9b7a5fc336154c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-1/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.522457779374776,
+    -121.94474537698892,
+    37.54491555874955
+   ],
+   "buildings": 108,
+   "rejected": 6,
+   "bytes": 630562,
+   "sha256": "61d7e5cf840b3122",
+   "source_sha256": "c9222814f4ed54f1714f2d3fd7f426eea5f3fa3156d91c0371a4f9526ef94c36",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-10/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-10/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.724577793747756,
+    -121.94474537698892,
+    37.74703557312253
+   ],
+   "buildings": 15,
+   "rejected": 0,
+   "bytes": 85111,
+   "sha256": "a569863a53c2b0c9",
+   "source_sha256": "4d42116f7599267d5081f7a46dbca270093541e35924f79f31550ae6f5ed234d",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-11/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.74703557312253,
+    -121.94474537698892,
+    37.76949335249731
+   ],
+   "buildings": 52,
+   "rejected": 1,
+   "bytes": 328668,
+   "sha256": "696faebbb64c18a3",
+   "source_sha256": "649d27720e1b2b1d254db17623be302d97be5ba318f21c40a9e76fdda0e060aa",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-12/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-12/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.76949335249731,
+    -121.94474537698892,
+    37.785
+   ],
+   "buildings": 64,
+   "rejected": 5,
+   "bytes": 474130,
+   "sha256": "ed4d0200d604fdc3",
+   "source_sha256": "238909be8f3da64821b1662c9dd945bd0e546db91398d626a982c6f106af82aa",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-2/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.54491555874955,
+    -121.94474537698892,
+    37.56737333812433
+   ],
+   "buildings": 33,
+   "rejected": 3,
+   "bytes": 225231,
+   "sha256": "a98cb0eb04bb05bc",
+   "source_sha256": "05ac8dd42a54805132d838d2a8793a1b0f3858e0126882978ac3732cc5bbff0c",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-3/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-3/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.56737333812433,
+    -121.94474537698892,
+    37.5898311174991
+   ],
+   "buildings": 7,
+   "rejected": 1,
+   "bytes": 33417,
+   "sha256": "81c4bab8ad9a3b8e",
+   "source_sha256": "73ad2da5b201379e1e17c0c27646b391ff7d77434d4964d22d0250e0b6cb6b0a",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/east-bay-south-gap-p0-8-5/sf-corridor-3d.json",
    "path": "regions/east-bay-south-gap-p0-8-5/storefront-exteriors.json",
    "bbox": [
@@ -836,6 +1780,118 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/east-bay-south-gap-p0-8-8/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-8/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.679662234998204,
+    -121.94474537698892,
+    37.70212001437298
+   ],
+   "buildings": 6,
+   "rejected": 0,
+   "bytes": 34758,
+   "sha256": "1c13d9f01871ba8d",
+   "source_sha256": "261095f92067eb5ffb0fefcf65e7e14bc4da1dc44e2f8fe67340318baf4aab87",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-8-9/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-8-9/storefront-exteriors.json",
+   "bbox": [
+    -121.97310700176793,
+    37.70212001437298,
+    -121.94474537698892,
+    37.724577793747756
+   ],
+   "buildings": 3,
+   "rejected": 0,
+   "bytes": 23536,
+   "sha256": "182966200bec6e5b",
+   "source_sha256": "c8fee67fc85c16794abef502c0df5f79b6fa91c179f583004c3553c27b7ed334",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-9-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-9-0/storefront-exteriors.json",
+   "bbox": [
+    -121.94474537698892,
+    37.5,
+    -121.94,
+    37.522457779374776
+   ],
+   "buildings": 10,
+   "rejected": 0,
+   "bytes": 70404,
+   "sha256": "7ac3d0f367e04a68",
+   "source_sha256": "3e095c1299e9ca6f3d32b545f9b6b28ffe52c610abeb76753c4b3f56e1ab08bc",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-9-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-9-1/storefront-exteriors.json",
+   "bbox": [
+    -121.94474537698892,
+    37.522457779374776,
+    -121.94,
+    37.54491555874955
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 5775,
+   "sha256": "cc452389d004d395",
+   "source_sha256": "350ad06bd3eff260cc4a7e00c550ac7d7aafb8e5d94f0bf88cda4c833cb9a75b",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-9-10/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-9-10/storefront-exteriors.json",
+   "bbox": [
+    -121.94474537698892,
+    37.724577793747756,
+    -121.94,
+    37.74703557312253
+   ],
+   "buildings": 12,
+   "rejected": 0,
+   "bytes": 59920,
+   "sha256": "43ddfa5f712d7a8e",
+   "source_sha256": "253e949bd749ed0c1c3d02d7221246fc9f4209f3ca6172a99442cc0d7c4e62d4",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-9-11/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-9-11/storefront-exteriors.json",
+   "bbox": [
+    -121.94474537698892,
+    37.74703557312253,
+    -121.94,
+    37.76949335249731
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 18799,
+   "sha256": "97e8f0f616df35fd",
+   "source_sha256": "2d3e0c5ff290f49563b87a6a8bd06dab76d74947d33397f68b2f72a0e91106b9",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p0-9-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p0-9-2/storefront-exteriors.json",
+   "bbox": [
+    -121.94474537698892,
+    37.54491555874955,
+    -121.94,
+    37.56737333812433
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 7022,
+   "sha256": "6c9667bcac251138",
+   "source_sha256": "9175bb9ac2f065bd0241d3327cbbf1c11d161000a6a0c6e26d85e7316a058ae9",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/east-bay-south-gap-p0-9-9/sf-corridor-3d.json",
    "path": "regions/east-bay-south-gap-p0-9-9/storefront-exteriors.json",
    "bbox": [
@@ -865,6 +1921,86 @@
    "bytes": 67377,
    "sha256": "738812651b5ef65f",
    "source_sha256": "a78ad7577f1e3d3e3e974cd59241fa751b065e272c51c77035d0a2912ead33f5",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p1-5-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p1-5-1/storefront-exteriors.json",
+   "bbox": [
+    -121.98850840850439,
+    37.474457779374774,
+    -121.96021009020527,
+    37.49691555874955
+   ],
+   "buildings": 2,
+   "rejected": 0,
+   "bytes": 12649,
+   "sha256": "cef5337be19ed0bc",
+   "source_sha256": "a828f9dbf3de186a300c3587935a107e7521bc44c6fe6c77a27e2f89e843db2d",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p1-5-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p1-5-2/storefront-exteriors.json",
+   "bbox": [
+    -121.98850840850439,
+    37.49691555874955,
+    -121.96021009020527,
+    37.5
+   ],
+   "buildings": 9,
+   "rejected": 0,
+   "bytes": 78469,
+   "sha256": "884877036e81b815",
+   "source_sha256": "f3375852738f83aa187664a23d1079c7908928200f53de5bd1f6ac740d270ee6",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p1-6-0/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p1-6-0/storefront-exteriors.json",
+   "bbox": [
+    -121.96021009020527,
+    37.452,
+    -121.94,
+    37.474457779374774
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 15588,
+   "sha256": "b3e7eec2b6e2da3f",
+   "source_sha256": "21c8392016aa5fad6ac30af7a5b21783f3ff7eaa7150a9a87c7094cb704d742f",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p1-6-1/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p1-6-1/storefront-exteriors.json",
+   "bbox": [
+    -121.96021009020527,
+    37.474457779374774,
+    -121.94,
+    37.49691555874955
+   ],
+   "buildings": 20,
+   "rejected": 0,
+   "bytes": 186422,
+   "sha256": "31459b2997b6eabd",
+   "source_sha256": "d165b5b3256cbb93cadb0edc62e67611a29e5d72382fce6f1a11abc24e6401d7",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/east-bay-south-gap-p1-6-2/sf-corridor-3d.json",
+   "path": "regions/east-bay-south-gap-p1-6-2/storefront-exteriors.json",
+   "bbox": [
+    -121.96021009020527,
+    37.49691555874955,
+    -121.94,
+    37.5
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 5894,
+   "sha256": "0f1e6239477ea213",
+   "source_sha256": "3dbdff7927228f22c51ae3bb18374f8435388ae766214b5eb1859eefd71a2585",
    "references": "2026-11-01"
   },
   {
@@ -916,6 +2052,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/emeryville-north-oakland-gap-p0-1-2/sf-corridor-3d.json",
+   "path": "regions/emeryville-north-oakland-gap-p0-1-2/storefront-exteriors.json",
+   "bbox": [
+    -122.3015626015508,
+    37.85991555874955,
+    -122.2731252031016,
+    37.865
+   ],
+   "buildings": 47,
+   "rejected": 3,
+   "bytes": 259994,
+   "sha256": "fb92d5e9de704804",
+   "source_sha256": "430e9f3e5f02d9a97b63ad60bf950aeb9363a5ae0752fa7b52ceb3ef3aedf399",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/emeryville-north-oakland-gap-p0-2-0/sf-corridor-3d.json",
    "path": "regions/emeryville-north-oakland-gap-p0-2-0/storefront-exteriors.json",
    "bbox": [
@@ -932,6 +2084,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/emeryville-north-oakland-gap-p0-2-2/sf-corridor-3d.json",
+   "path": "regions/emeryville-north-oakland-gap-p0-2-2/storefront-exteriors.json",
+   "bbox": [
+    -122.2731252031016,
+    37.85991555874955,
+    -122.2446878046524,
+    37.865
+   ],
+   "buildings": 57,
+   "rejected": 1,
+   "bytes": 310862,
+   "sha256": "d3e1f3408f983b8f",
+   "source_sha256": "ea5ff9bf6ca6b9e8bbe90fcb4941bd1e729b381eeb27641ed91b133eb68e339b",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/emeryville-north-oakland-gap-p0-3-0/sf-corridor-3d.json",
    "path": "regions/emeryville-north-oakland-gap-p0-3-0/storefront-exteriors.json",
    "bbox": [
@@ -945,6 +2113,38 @@
    "bytes": 45683,
    "sha256": "826428e47fc258cc",
    "source_sha256": "2db25715004e4bcf5afb59aa55829e130f9c2344edb0d5ce71de340e9a1fad8b",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/emeryville-north-oakland-gap-p0-3-1/sf-corridor-3d.json",
+   "path": "regions/emeryville-north-oakland-gap-p0-3-1/storefront-exteriors.json",
+   "bbox": [
+    -122.2446878046524,
+    37.83745777937477,
+    -122.235,
+    37.85991555874955
+   ],
+   "buildings": 9,
+   "rejected": 0,
+   "bytes": 54405,
+   "sha256": "f1550d11bf5afb1a",
+   "source_sha256": "02923b22e8363a0af72e23cd13a071d7602556c90856779825d29c853fca79e2",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/emeryville-north-oakland-gap-p0-3-2/sf-corridor-3d.json",
+   "path": "regions/emeryville-north-oakland-gap-p0-3-2/storefront-exteriors.json",
+   "bbox": [
+    -122.2446878046524,
+    37.85991555874955,
+    -122.235,
+    37.865
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 6916,
+   "sha256": "37451b475483b81c",
+   "source_sha256": "ba43b3fafaab85fdb4a9928fbc44741668d2b3e6eb3d78a309dff5ac9f2ac994",
    "references": "2026-11-01"
   },
   {
@@ -1060,6 +2260,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/millbrae-burlingame-gap-p0-2-2/sf-corridor-3d.json",
+   "path": "regions/millbrae-burlingame-gap-p0-2-2/storefront-exteriors.json",
+   "bbox": [
+    -122.36832820592456,
+    37.59491555874955,
+    -122.33999230888683,
+    37.6
+   ],
+   "buildings": 9,
+   "rejected": 0,
+   "bytes": 52688,
+   "sha256": "25edc6986c800514",
+   "source_sha256": "15bd894e7ae73e65bad6bd326ee2fb67478615b0bbdfa76b41ae426cc2f9dbc3",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/millbrae-burlingame-gap-p0-3-0/sf-corridor-3d.json",
    "path": "regions/millbrae-burlingame-gap-p0-3-0/storefront-exteriors.json",
    "bbox": [
@@ -1073,6 +2289,22 @@
    "bytes": 1027670,
    "sha256": "eccc0ed305e7e0b2",
    "source_sha256": "c6410b795f3af4f4b1ce6d6a5b873cc0a879130f6bede50e64b6a57ecbc564a3",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/millbrae-burlingame-gap-p0-3-1/sf-corridor-3d.json",
+   "path": "regions/millbrae-burlingame-gap-p0-3-1/storefront-exteriors.json",
+   "bbox": [
+    -122.33999230888683,
+    37.57245777937477,
+    -122.31165641184911,
+    37.59491555874955
+   ],
+   "buildings": 53,
+   "rejected": 0,
+   "bytes": 326691,
+   "sha256": "5d9bdbf038cb91bc",
+   "source_sha256": "f2c2d6efe3868e8505d39317421bd1dd685963cbd2657df5403f2fa9dc37ae1d",
    "references": "2026-11-01"
   },
   {
@@ -1281,6 +2513,22 @@
    "bytes": 74602,
    "sha256": "401b8e62b0b7130e",
    "source_sha256": "33baff39d5fcbb127f8e784d88bf5b5434c2c7a6c54e9630d79f24ad17e552d7",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/mountain-view-gap-p0-4-1/sf-corridor-3d.json",
+   "path": "regions/mountain-view-gap-p0-4-1/storefront-exteriors.json",
+   "bbox": [
+    -122.04192162105656,
+    37.39245777937477,
+    -122.04,
+    37.41491555874955
+   ],
+   "buildings": 8,
+   "rejected": 0,
+   "bytes": 43622,
+   "sha256": "8d5c50e87726c118",
+   "source_sha256": "e6bfc3ba58289fbfba2884d84dd09db429b2a5ad5a760a6807feec49d88a1e9f",
    "references": "2026-11-01"
   },
   {
@@ -1604,6 +2852,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/san-mateo-foster-gap-p0-0-1/sf-corridor-3d.json",
+   "path": "regions/san-mateo-foster-gap-p0-0-1/storefront-exteriors.json",
+   "bbox": [
+    -122.37,
+    37.51245777937478,
+    -122.34168500278788,
+    37.53491555874955
+   ],
+   "buildings": 6,
+   "rejected": 0,
+   "bytes": 25249,
+   "sha256": "fa06520961ff9bef",
+   "source_sha256": "6e9d4894e59694b693f55cc35cad41e643175dff429f2c4bb71c9a46fc3af6d4",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/san-mateo-foster-gap-p0-1-0/sf-corridor-3d.json",
    "path": "regions/san-mateo-foster-gap-p0-1-0/storefront-exteriors.json",
    "bbox": [
@@ -1745,6 +3009,22 @@
    "bytes": 120324,
    "sha256": "cb4c683e3a637d65",
    "source_sha256": "2719d5c703e825b8aeab59a3036e658227e70a26b1d4068a005f2cd58691ee7e",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/san-mateo-foster-gap-p0-4-0/sf-corridor-3d.json",
+   "path": "regions/san-mateo-foster-gap-p0-4-0/storefront-exteriors.json",
+   "bbox": [
+    -122.25674001115152,
+    37.49,
+    -122.23,
+    37.51245777937478
+   ],
+   "buildings": 114,
+   "rejected": 4,
+   "bytes": 764171,
+   "sha256": "b455ae14d8f30dd1",
+   "source_sha256": "febfc5eb8fd10e1442334438d90081e1edb853d69c7177f8fd6460c04fd04688",
    "references": "2026-11-01"
   },
   {
@@ -2260,6 +3540,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-1-3/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-1-3/storefront-exteriors.json",
+   "bbox": [
+    -122.01173700394517,
+    37.412373338124326,
+    -121.98347400789034,
+    37.42
+   ],
+   "buildings": 1,
+   "rejected": 0,
+   "bytes": 2845,
+   "sha256": "d2a7a07000f2e0e7",
+   "source_sha256": "bbe3605f00b90ad5c5bf355fae5790ff90f5a7ea24e4e96a17ce7e4b63097ba0",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/sunnyvale-santa-clara-gap-p1-2-0/sf-corridor-3d.json",
    "path": "regions/sunnyvale-santa-clara-gap-p1-2-0/storefront-exteriors.json",
    "bbox": [
@@ -2292,6 +3588,38 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-2-2/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-2-2/storefront-exteriors.json",
+   "bbox": [
+    -121.98347400789034,
+    37.38991555874955,
+    -121.9552110118355,
+    37.412373338124326
+   ],
+   "buildings": 98,
+   "rejected": 6,
+   "bytes": 568157,
+   "sha256": "d81b5fd051135f7e",
+   "source_sha256": "8e56e0c5db0145253d1ff4fb7624e9dced596669d3312da42a8a69e135d9c6b4",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-2-3/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-2-3/storefront-exteriors.json",
+   "bbox": [
+    -121.98347400789034,
+    37.412373338124326,
+    -121.9552110118355,
+    37.42
+   ],
+   "buildings": 16,
+   "rejected": 0,
+   "bytes": 123925,
+   "sha256": "30035aa3627acee4",
+   "source_sha256": "534aea128df61725e0260666e3de4965b79c198e1e2fa85b825cba6fb1f16c35",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/sunnyvale-santa-clara-gap-p1-3-0/sf-corridor-3d.json",
    "path": "regions/sunnyvale-santa-clara-gap-p1-3-0/storefront-exteriors.json",
    "bbox": [
@@ -2308,6 +3636,22 @@
    "references": "2026-11-01"
   },
   {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-3-1/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-3-1/storefront-exteriors.json",
+   "bbox": [
+    -121.9552110118355,
+    37.367457779374774,
+    -121.92694801578067,
+    37.38991555874955
+   ],
+   "buildings": 69,
+   "rejected": 4,
+   "bytes": 495938,
+   "sha256": "8828444c530d7218",
+   "source_sha256": "a5e5f9d5db1ab495c87d5cac8a02cb57013d9e22f26bb1ee227d166e183e54c4",
+   "references": "2026-11-01"
+  },
+  {
    "world": "regions/sunnyvale-santa-clara-gap-p1-3-2/sf-corridor-3d.json",
    "path": "regions/sunnyvale-santa-clara-gap-p1-3-2/storefront-exteriors.json",
    "bbox": [
@@ -2321,6 +3665,22 @@
    "bytes": 538343,
    "sha256": "0ae7aec199bfae8b",
    "source_sha256": "1e8ad0088d8207aebdae2b3884847cd533dbbcccd3cb9aed27dbe43d677a200e",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-3-3/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-3-3/storefront-exteriors.json",
+   "bbox": [
+    -121.9552110118355,
+    37.412373338124326,
+    -121.92694801578067,
+    37.42
+   ],
+   "buildings": 32,
+   "rejected": 0,
+   "bytes": 302806,
+   "sha256": "495961acfa745701",
+   "source_sha256": "797fefc528a8bfd62e110b486d745d77c2516fa3b044738da007756ee46b06cd",
    "references": "2026-11-01"
   },
   {
@@ -2353,6 +3713,38 @@
    "bytes": 683287,
    "sha256": "4ac5f07490ff8e37",
    "source_sha256": "3204f831c7ddb8905d9a30d1763d05122e55659f45fbf090a58acd5e1ff86c98",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-4-2/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-4-2/storefront-exteriors.json",
+   "bbox": [
+    -121.92694801578067,
+    37.38991555874955,
+    -121.9,
+    37.412373338124326
+   ],
+   "buildings": 52,
+   "rejected": 4,
+   "bytes": 374876,
+   "sha256": "ff610516dbb4f86a",
+   "source_sha256": "66441ce309894d7179c1df778e24d32852f0f8aa27148a4754e5a20fd59194b7",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/sunnyvale-santa-clara-gap-p1-4-3/sf-corridor-3d.json",
+   "path": "regions/sunnyvale-santa-clara-gap-p1-4-3/storefront-exteriors.json",
+   "bbox": [
+    -121.92694801578067,
+    37.412373338124326,
+    -121.9,
+    37.42
+   ],
+   "buildings": 14,
+   "rejected": 1,
+   "bytes": 112233,
+   "sha256": "fec2cb31644882ad",
+   "source_sha256": "9623c833d3b794328520c0d1fa1bfa078da6e80444d9605c0ceffd0e118616ee",
    "references": "2026-11-01"
   },
   {
