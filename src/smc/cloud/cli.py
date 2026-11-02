@@ -172,10 +172,10 @@ def cmd_watchdog(args) -> int:
             balance = provider.balance()
         except Exception as exc:  # a warning, whatever went wrong
             balance, warnings = None, [*warnings, {"key": f"balance-unknown:{name}", "text": f"{name} balance unknown: {exc}"}]
-        if balance is not None and balance < cfg.budget.warn_usd:
+        if balance is not None and balance < cfg.budget.balance_floor_usd + cfg.budget.warn_usd:
             day = time.strftime("%Y-%m-%d", time.gmtime(now))
-            warnings.append({"key": f"balance:{day}", "text": f"{name} balance ${balance:.2f}: at $0 every pod is "
-                                                               "deleted, the controller's too. Top it up."})
+            warnings.append({"key": f"balance:{day}", "text": f"{name} balance ${balance:.2f}: work stops at its "
+                                                               f"${cfg.budget.balance_floor_usd:.2f} floor until it is topped up."})
     warnings = list({w["key"]: w for w in warnings}.values())
     reported = set(state.get("warned", []))
     new = [w for w in warnings if w["key"] not in reported]
@@ -209,6 +209,10 @@ def wake_controller(cfg, private) -> dict:
     status = pod.get("desiredStatus")
     if status != "EXITED":
         return {"woke": False, "why": f"pod is {status}"}
+    try:
+        balance = provider.balance()
+    except Exception:  # unknown: the controller asks again itself, and sleeps at the floor
+        balance = None
     latest = private.get_json("queue/latest.json")
     if not latest:
         return {"woke": False, "why": "no queue backup"}
@@ -217,7 +221,8 @@ def wake_controller(cfg, private) -> dict:
         private.get_file(latest["key"], db)
         queue = Queue(db)
         try:
-            busy, why = work_waiting(queue, Settings(pools=cfg.pools, budget=cfg.budget))
+            busy, why = work_waiting(queue, Settings(pools=cfg.pools, budget=cfg.budget,
+                                                     controller_hourly_usd=cfg.hourly_usd), balance=balance)
         except sqlite3.Error as exc:
             busy, why = True, f"backup unreadable ({exc}); woken to look"
         finally:

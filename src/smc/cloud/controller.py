@@ -58,7 +58,7 @@ from .providers import (
 )
 from .publish import Publisher
 from .queue import Queue
-from .scheduler import Scheduler, Settings, work_waiting
+from .scheduler import AT_FLOOR, Scheduler, Settings, work_waiting
 from .stages import CELL_CHAIN, ENRICH_CHAIN, HOUSE_SAMPLE, PER_WORKER_CAPS
 from .store import ObjectStore, open_store
 
@@ -344,7 +344,7 @@ class Controller:
             out["replanned"] = submit_plan(self.queue, self.c.root, self.c.private,
                                            **json.loads(standing))
             self.queue.set_meta("planned_at", str(now))
-        busy, why = work_waiting(self.queue, self.scheduler.settings, now)
+        busy, why = work_waiting(self.queue, self.scheduler.settings, now, balance=self.scheduler.balance(now))
         out["work"] = why
         if busy:
             self.idle_since = None
@@ -354,7 +354,9 @@ class Controller:
         pod = os.environ.get("RUNPOD_POD_ID")
         # Asked once; again only if the pod is somehow still here ten minutes on.
         recently = now - self.slept_at < 600
-        if self.c.sleep_after_min and pod and idle_min >= self.c.sleep_after_min and not recently:
+        # At the balance floor it sleeps at once: every running minute spends below it.
+        due = idle_min >= self.c.sleep_after_min or why.startswith(AT_FLOOR)
+        if self.c.sleep_after_min and pod and due and not recently:
             self.slept_at = now
             log.warning("nothing to do for %.0f min (%s); stopping this pod until the watchdog "
                         "wakes it", idle_min, why)
