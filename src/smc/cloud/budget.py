@@ -41,6 +41,11 @@ class Budget:
     #: A warning is raised when rented workers have sat idle this much today, or when less than
     #: this is left of the day's or the month's budget (:func:`warnings`).
     warn_usd: float = 0.5
+    #: The provider's prepaid balance is never spent below this (the owner, 2026-11-02: "never
+    #: goes empty", for weeks without a top-up; at $0 RunPod deletes every pod). No worker is
+    #: started into it, the workers stop before it, and then the controller stops its own pod,
+    #: which has no volume, so a stopped one costs nothing and the balance holds.
+    balance_floor_usd: float = 1.0
 
     def __post_init__(self):
         if self.hard_monthly_usd < self.monthly_usd:
@@ -86,9 +91,9 @@ def warnings(s: dict, budget: Budget, idle_today: float, now: float,
     watchdog reports a key once)."""
     day = datetime.fromtimestamp(now, UTC).date().isoformat()
     out = []
-    if balance is not None and balance < budget.warn_usd:
-        out.append({"key": f"balance:{day}", "text": f"RunPod balance ${balance:.2f}: at $0 RunPod deletes "
-                                                     "every pod, the controller's too. Top it up."})
+    if balance is not None and balance < budget.balance_floor_usd + budget.warn_usd:
+        out.append({"key": f"balance:{day}", "text": f"RunPod balance ${balance:.2f}: work stops at its "
+                                                     f"${budget.balance_floor_usd:.2f} floor until it is topped up."})
     if idle_today >= budget.warn_usd:
         out.append({"key": f"idle:{day}", "text": f"rented workers sat idle: ${idle_today:.2f} today"})
     if budget.daily_usd - s["today_usd"] < budget.warn_usd:
@@ -111,14 +116,17 @@ def over_daily(queue: Queue, budget: Budget, now: float | None = None) -> bool:
 
 
 def may_launch(queue: Queue, budget: Budget, pool: Pool, now: float | None = None,
-               balance: float | None = None) -> tuple[bool, str]:
+               balance: float | None = None, controller_hourly_usd: float = 0.0) -> tuple[bool, str]:
     now = now or queue.clock()
     s = status(queue, budget, now)
     if balance is not None:
-        # A pod the provider's prepaid balance cannot keep for an hour is deleted mid-job.
-        hour = sum(w["hourly_usd"] for w in queue.workers()) + pool.hourly_usd
-        if balance < hour:
-            return False, f"provider balance ${balance:.2f} would not cover the next hour (${hour:.2f})"
+        # A pod the provider's prepaid balance cannot keep for an hour above its floor is
+        # stopped mid-job (or, at $0, deleted). The controller's hour counts too: the workers
+        # stop under half an hour of all three, so a launch never lands between the two.
+        hour = sum(w["hourly_usd"] for w in queue.workers()) + pool.hourly_usd + controller_hourly_usd
+        if balance - budget.balance_floor_usd < hour:
+            return False, (f"provider balance ${balance:.2f} would not cover the next hour (${hour:.2f}) "
+                           f"above its ${budget.balance_floor_usd:.2f} floor")
     if s["hard_stop"]:
         return False, f"hard monthly limit reached (${s['month_usd']:.2f} of ${budget.hard_monthly_usd:.2f})"
     # The least this launch can cost: its billed minimum, or a quarter of an hour.

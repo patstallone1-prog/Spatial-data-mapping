@@ -391,3 +391,25 @@ def test_an_idle_controller_resubmits_its_plan_then_stops_its_own_pod(ctl, monke
     # The controller's own tick may get there first; either way the pod is stopped once.
     assert out.get("sleeping", "nothing ready") == "nothing ready" and stopped == ["pod123"]
     assert ctl.c.private.get_json("queue/latest.json")
+
+
+def test_a_controller_at_the_balance_floor_stops_its_own_pod_at_once(ctl, monkeypatch):
+    """Every minute it runs at the floor spends below it, so it does not wait out sleep_after_min."""
+    from smc.cloud.scheduler import AT_FLOOR
+
+    stopped = []
+
+    class Pods:
+        def stop(self, pod):
+            stopped.append(pod)
+
+        def list(self):
+            return []
+
+    ctl.c.providers["runpod"] = Pods()
+    ctl.c.sleep_after_min = 20
+    ctl.scheduler.settings.controller_hourly_usd = 0.063
+    monkeypatch.setattr(ctl.scheduler, "balance", lambda now: 1.01)
+    monkeypatch.setenv("RUNPOD_POD_ID", "pod123")
+    out = ctl.housekeeping()
+    assert out["work"].startswith(AT_FLOOR) and stopped == ["pod123"]
