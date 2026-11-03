@@ -286,10 +286,22 @@ def publish(out: Path, published: Path = PUBLISHED) -> int:
     return added
 
 
+def _rounded(value):
+    if isinstance(value, float):
+        return round(value, 6)
+    if isinstance(value, dict):
+        return {k: _rounded(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_rounded(v) for v in value]
+    return value
+
+
 def batch_key(rows: list[dict]) -> str:
     """The SHA-256 prefix of a batch's inputs: a cloud job carries the Mac's, and refuses to run
-    if the selection it computes itself differs."""
-    return hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:16]
+    if the selection it computes itself differs. Numbers count to a micrometre: an image whose
+    geometry libraries were reinstalled drew the same footprints a last bit apart, and every
+    Sunset batch was refused (2026-11-03)."""
+    return hashlib.sha256(json.dumps(_rounded(rows), sort_keys=True).encode()).hexdigest()[:16]
 
 
 def main() -> None:
