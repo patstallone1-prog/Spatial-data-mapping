@@ -27,6 +27,16 @@ def test_no_unbounded_pytest_invocation_in_pr_workflow():
     assert "fetch-depth: 0" not in workflow
 
 
+def test_the_plan_reads_a_sparse_checkout_and_tests_run_in_parallel():
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+    plan = workflow.split("\n  lint:\n")[0]
+    assert "filter: blob:none" in plan and "sparse-checkout: |" in plan
+    for pattern in ["*.py", "*.mjs", "*.js", "*.html", "/tests/", "/tools/"]:
+        assert f"            {pattern}\n" in plan
+    pyproject = (ROOT / "pyproject.toml").read_text()
+    assert "pytest-xdist" in pyproject.split("dev = [")[1].split("]")[0]
+
+
 def test_test_plan_artifact_is_uploaded_even_if_selection_fails():
     workflow = (ROOT / ".github/workflows/ci.yml").read_text()
     assert "name: changed-module-test-plan" in workflow

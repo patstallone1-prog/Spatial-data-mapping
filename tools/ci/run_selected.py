@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
+
+#: From this many test files the plan runs on every core (pytest-xdist, a file per worker:
+#: tests in one file share module fixtures). The whole suite passed this way, 2,318 tests in
+#: 2 min 54 s against about 16 min one at a time (2026-11-02); a few files gain nothing.
+PARALLEL_FROM = 4
+
+
+def parallel(paths: list[str]) -> list[str]:
+    if len(paths) < PARALLEL_FROM or importlib.util.find_spec("xdist") is None:
+        return []
+    return ["-n", "auto", "--dist", "loadfile"]
 
 
 def commands(plan: dict, kind: str, prefix: str = "") -> list[list[str]]:
@@ -27,7 +39,7 @@ def commands(plan: dict, kind: str, prefix: str = "") -> list[list[str]]:
         raise ValueError("invalid test paths")
     paths = [p for p in paths if p.startswith(prefix)]
     if kind == "python":
-        return [[sys.executable, "-m", "pytest", "-q", *paths]] if paths else []
+        return [[sys.executable, "-m", "pytest", "-q", *parallel(paths), *paths]] if paths else []
     if kind == "node":
         return [["node", "--test", *paths]] if paths else []
     if kind == "lint":

@@ -32,7 +32,7 @@ interiors = ["shapely>=2.1,<3", "trimesh>=4,<6"]
 worldmesh = ["meshoptimizer==0.2.30a0", "trimesh>=4,<6", "rasterio>=1.4,<2", "laspy>=2.5,<3", "scipy>=1.14", "pillow>=10"]
 carla = ["carla>=0.9.15"]
 # Calibration/sequence-cache tests exercise the optional photo-curb optimizer in CI.
-dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5", "scipy>=1.14"]
+dev = ["pytest>=8", "pytest-xdist>=3.6", "mypy>=1.10", "ruff>=0.5", "scipy>=1.14"]
 scan-build = ["trimesh==5.1.1", "scipy==1.18.1", "remotezip==0.12.6"]
 reference-audit = ["indexed_gzip==1.10.3"]
 # Windowed public COG ingestion; never download a national raster to build the Bay atlas.
