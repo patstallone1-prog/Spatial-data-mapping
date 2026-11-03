@@ -277,14 +277,19 @@ def interior_collect(region: str, batches: list[str], migrated: str | None) -> J
 HOMES_OUT = "build/interior-homes"
 
 
-def home_batch(region: str, index: int, key: str, *, priority: int = 290) -> JobSpec:
+def home_batch(region: str, index: int, key: str, ids: list[str] | None = None, *,
+               priority: int = 290) -> JobSpec:
     """One batch of the every-home interior run, the Mac's batch for batch: ``key`` is the hash
-    of the inputs the Mac froze for it, and the job refuses to run on any other."""
+    of the inputs the Mac froze for it, and the job refuses to run on any other. ``ids`` names
+    the batch's homes, so the worker takes those whatever its build's site already furnishes:
+    without them a build with a newer overlay counted the region's homes afresh, every later
+    batch shifted, and 755 Sunset batches were quarantined on their keys (2026-11-02)."""
     folder = f"{HOMES_OUT}/{region}/batch-{index:03d}"
+    named = ["--batch-ids", ",".join(ids)] if ids else []
     return JobSpec(id=f"homes:{region}:{index:04d}", kind="home_batch", subject=region,
                    stage=f"batch-{index:03d}", resource="cpu",
                    command=[[PY, "scripts/run_interior_engine.py", "--homes", "--batch", f"{region}:{index}",
-                             "--batch-key", key, "--out", HOMES_OUT]],
+                             "--batch-key", key, *named, "--out", HOMES_OUT]],
                    save=[folder], timeout_s=2 * 3600, max_attempts=3, priority=priority)
 
 

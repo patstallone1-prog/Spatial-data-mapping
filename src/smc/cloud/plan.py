@@ -213,11 +213,12 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
         added += submit_interiors(queue, private, interior_batch_counts(root))
     if restaurant_rounds:
         added += submit_restaurants(queue, private, restaurant_rounds)
-    # The every-home interior run's batches the Mac hands over: {region: [[index, key], ...]}.
+    # The every-home interior run's batches the Mac hands over: {region: [[index, key, ids?], ...]}.
+    # replace: a batch not yet run (or quarantined on an old spec) takes the new one.
     for region, batches in (homes or {}).items():
-        for index, key in batches:
-            spec = home_batch(region, int(index), str(key))
-            added += queue.submit(spec) == "added"
+        for index, key, *ids in batches:
+            spec = home_batch(region, int(index), str(key), list(ids[0]) if ids else None)
+            added += queue.submit(spec, replace=True) in ("added", "replaced")
             added += queue.submit(home_publish(spec)) == "added"
     mesh_blocks = 0
     for cell in mesh_cells or []:

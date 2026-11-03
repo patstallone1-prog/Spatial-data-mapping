@@ -180,5 +180,8 @@ def test_a_cloud_home_batch_is_the_macs_batch_and_its_houses_are_stored_by_the_c
     assert command[command.index("--batch") + 1] == "sf-sunset:7" and "--homes" in command
     assert command[command.index("--batch-key") + 1] == "abcd1234abcd1234"
     assert batch.resource == "cpu" and batch.save == ["build/interior-homes/sf-sunset/batch-007"]
+    assert "--batch-ids" not in command
+    named = home_batch("sf-sunset", 7, "abcd1234abcd1234", ["11", "22"]).command[0]
+    assert named[named.index("--batch-ids") + 1] == "11,22"
     store = home_publish(batch)
     assert store.resource == "control" and store.depends == [batch.id] and store.restore_from == [batch.id]

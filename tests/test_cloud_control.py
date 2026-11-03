@@ -413,3 +413,20 @@ def test_a_controller_at_the_balance_floor_stops_its_own_pod_at_once(ctl, monkey
     monkeypatch.setenv("RUNPOD_POD_ID", "pod123")
     out = ctl.housekeeping()
     assert out["work"].startswith(AT_FLOOR) and stopped == ["pod123"]
+
+
+def test_home_batches_quarantined_on_a_moved_selection_run_again_named(tmp_path):
+    """A build with a newer overlay counted the region's homes afresh and every later batch's
+    key stopped matching (755 Sunset batches quarantined, 2026-11-02): a replan naming each
+    batch's homes replaces the quarantined job, and a finished one is left alone."""
+    q = Queue(tmp_path / "q.sqlite")
+    store = LocalStore(tmp_path / "private")
+    submit_plan(q, ROOT, store, cells=[], homes={"sf-sunset": [[3, "k3"], [4, "k4"]]})
+    q._db.execute("UPDATE jobs SET state='quarantined', attempts=3 WHERE id='homes:sf-sunset:0003'")
+    q._db.execute("UPDATE jobs SET state='done' WHERE id='homes:sf-sunset:0004'")
+    submit_plan(q, ROOT, store, cells=[], homes={"sf-sunset": [[3, "k3", ["11", "22"]], [4, "k4", ["33"]]]})
+    again = q.job("homes:sf-sunset:0003")
+    assert again["state"] == "pending" and again["attempts"] == 0
+    assert "11,22" in json.dumps(again["spec"])
+    assert q.job("homes:sf-sunset:0004")["state"] == "done"
+    q.close()
