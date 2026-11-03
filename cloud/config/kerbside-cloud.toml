@@ -31,8 +31,12 @@ sleep_after_min = 20
 replan_h = 24
 # Kinds that wait. 2026-10-28 (the owner): the interior engine's house batches and restaurant
 # rounds stood aside so the cells and the house exteriors finished first; resumed 2026-11-01 with
-# the cells done. The measured world mesh's blocks wait (the owner, 2026-11-01). Remove to resume.
-paused_kinds = ["mesh_block"]
+# the cells done. The measured world mesh's blocks wait (the owner, 2026-11-01). The house batches
+# wait too (2026-11-03): the last added no house (4,043 accepted, every one already published),
+# and a fresh GPU pod spends its first ~50 minutes restoring 57 GB at 1% GPU -- the owner saw
+# an A5000 rented at 1% and asked that nothing be paid for idle. With both waiting no GPU pod
+# is started. Remove to resume.
+paused_kinds = ["mesh_block", "house_batch"]
 # Gates and publications at once on the controller: each mostly waits on the buckets. One at a
 # time left 190 finished cells days from the site (2026-10-31); four took ten minutes a
 # publication for 101 approved cells (2026-11-01), so eight.
