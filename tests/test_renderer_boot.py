@@ -1,5 +1,7 @@
 """A recovered startup callback must not strand a rendered world behind Retry."""
+import hashlib
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -117,3 +119,22 @@ def test_frame_is_confirmed_after_rendering_and_never_while_paused():
     rendered = body.index("renderer.render(scene, camera);", start)
     confirm = body.index("if (!ATTACH) markBootRendered();", rendered)
     assert body[start:confirm].count("}") == 0
+
+
+def test_three_loads_from_the_site_not_a_cached_cdn_stub():
+    # esm.sh serves its three stub as immutable for a year and has retired the
+    # builds old stubs point at, so a cached stub fails boot for that profile.
+    page = (ROOT / "docs/app-model.html").read_text()
+    importmap = page.index('map.type = "importmap"')
+    assert importmap < page.index('<script type="module"')
+    vendor = ROOT / "docs/vendor/three-0.160.0"
+    for path in re.findall(r'from "(https://esm\.sh/three@0\.160\.0[^"]*)"', page):
+        relative = path.removeprefix("https://esm.sh/three@0.160.0").lstrip("/")
+        assert (vendor / (relative or "three.module.min.js")).exists(), path
+    assert (vendor / "LICENSE").exists()
+    entry = json.loads((ROOT / "docs/vendor/manifest.json").read_text())["three"]
+    shipped = {str(f.relative_to(vendor.parent)) for f in vendor.rglob("*.js")}
+    assert shipped == set(entry["files"])
+    for name, digest in entry["files"].items():
+        data = (ROOT / "docs/vendor" / name).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == digest, name

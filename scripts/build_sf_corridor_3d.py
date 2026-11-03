@@ -3232,6 +3232,25 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
      its previous version. Fetched, the page is a few kilobytes, the data changes independently,
      and browsers cache it between visits. -->
 <script>
+// three.js from the site itself (docs/vendor/three-0.160.0, r160 as published on npm, MIT), not
+// from esm.sh: its stub for three@0.160.0 is cached by a browser for a year, and builds it once
+// pointed to now answer 400, so an installed app holding an old stub stopped on "The renderer
+// could not finish loading" at every open while a fresh browser worked (2026-11-03). The map
+// sends every module's import of the esm.sh address -- this page's, a guest region's, the sky's
+// -- to the one local copy, found beside the region index as the shared files are. Before the
+// first module script, so it applies to all of them.
+(() => {
+  const index = document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json";
+  const three = new URL("vendor/three-0.160.0/", new URL(index, location.href)).href;
+  const map = document.createElement("script");
+  map.type = "importmap";
+  map.textContent = JSON.stringify({ imports: {
+    "three": three + "three.module.min.js",
+    "https://esm.sh/three@0.160.0": three + "three.module.min.js",
+    "https://esm.sh/three@0.160.0/examples/jsm/": three + "examples/jsm/",
+  } });
+  document.currentScript.after(map);
+})();
 // Available even if a module import fails before the renderer can initialize.
 window.kerbsideBoot = { startedAt: Date.now(), error: null, errorKind: null,
   rendered: false, contextLost: false };
