@@ -7,9 +7,12 @@
 name: cloud
 
 on:
+  # Workers run the whole repository's stages (scripts/, src/), not only the cloud package: a
+  # fix to scripts/run_interior_engine.py (#152) built no image and could not be deployed. On
+  # main, any of them builds; a pull request still builds only for the cloud's own files.
   push:
     branches: [main]
-    paths: ["src/smc/cloud/**", "cloud/**", "tests/test_cloud_*", "pyproject.toml", ".github/workflows/cloud.yml"]
+    paths: ["src/**", "scripts/**", "cloud/**", "tests/test_cloud_*", "pyproject.toml", ".github/workflows/cloud.yml"]
   pull_request:
     paths: ["src/smc/cloud/**", "cloud/**", "tests/test_cloud_*", "pyproject.toml", ".github/workflows/cloud.yml"]
   workflow_dispatch:
@@ -42,7 +45,7 @@ jobs:
       - name: the whole lifecycle inside the image
         run: docker run --rm kerbside-cpu:test selftest
       - name: push
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for tag in main "${GITHUB_SHA}"; do
@@ -71,7 +74,7 @@ jobs:
       - name: the whole lifecycle inside the image
         run: docker run --rm kerbside-gpu:test selftest
       - name: push
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           for tag in main "${GITHUB_SHA}"; do
