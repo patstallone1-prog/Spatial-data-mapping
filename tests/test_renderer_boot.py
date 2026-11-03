@@ -1,4 +1,5 @@
 """A recovered startup callback must not strand a rendered world behind Retry."""
+import hashlib
 import json
 import re
 import shutil
@@ -131,3 +132,9 @@ def test_three_loads_from_the_site_not_a_cached_cdn_stub():
         relative = path.removeprefix("https://esm.sh/three@0.160.0").lstrip("/")
         assert (vendor / (relative or "three.module.min.js")).exists(), path
     assert (vendor / "LICENSE").exists()
+    entry = json.loads((ROOT / "docs/vendor/manifest.json").read_text())["three"]
+    shipped = {str(f.relative_to(vendor.parent)) for f in vendor.rglob("*.js")}
+    assert shipped == set(entry["files"])
+    for name, digest in entry["files"].items():
+        data = (ROOT / "docs/vendor" / name).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == digest, name

@@ -52,6 +52,7 @@ RULES = [
         ["docs/app-regions/**", "docs/app-model.html"],
         ["tests/test_home_lobby.py", "tests/test_tunnel_app_release.py"],
     ),
+    (["docs/vendor/three-0.160.0/**"], ["tests/test_renderer_boot.py"]),
 ]
 
 
