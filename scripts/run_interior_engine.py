@@ -308,6 +308,8 @@ def main() -> None:
     parser.add_argument("--homes", action="store_true", help="every home-like footprint, not only house/detached")
     parser.add_argument("--store", help="the public store (s3://bucket) to put each batch's accepted houses in")
     parser.add_argument("--batch", help="REGION:INDEX -- run that one batch only (a cloud job)")
+    parser.add_argument("--batch-ids", default="", help="with --batch: the batch's homes (osm ids, comma separated), "
+                        "taken from the region's homes whatever the site furnishes now")
     parser.add_argument("--counts", action="store_true", help="print each region's batch count as JSON")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -316,8 +318,18 @@ def main() -> None:
         return
     if args.batch:
         region, index = args.batch.rsplit(":", 1)
-        chosen = home_selection(region, args.out, max_area=args.max_area) if args.homes else eligible(region)
-        rows = chosen[int(index) * BATCH:(int(index) + 1) * BATCH]
+        if args.batch_ids:
+            # Named: the planned homes, not the selection's slice, which moves whenever the
+            # published overlay furnishes more homes.
+            by_id = {row["osm_id"]: row for row in eligible(region, max_area=args.max_area, homes=args.homes)}
+            wanted = args.batch_ids.split(",")
+            missing = [i for i in wanted if i not in by_id]
+            if missing:
+                raise SystemExit(f"{region} {index}: homes no longer eligible: {', '.join(missing[:5])}; replan")
+            rows = [by_id[i] for i in wanted]
+        else:
+            chosen = home_selection(region, args.out, max_area=args.max_area) if args.homes else eligible(region)
+            rows = chosen[int(index) * BATCH:(int(index) + 1) * BATCH]
         if not rows:
             raise SystemExit(f"{region} has no batch {index}")
         if args.batch_key and batch_key(rows) != args.batch_key:
