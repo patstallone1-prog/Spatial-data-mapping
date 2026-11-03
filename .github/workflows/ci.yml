@@ -31,9 +31,26 @@ jobs:
       lint: ${{ steps.select.outputs.lint }}
       visual_publish: ${{ steps.select.outputs.visual_publish }}
     steps:
+      # The selector reads only source files and pages (tools/ci/select_tests.py): the tree's
+      # data (region JSON, land masks, the asset map; 2.3 of its 2.9 GB) is left out, which took
+      # this checkout from about a minute to seconds. Plans were identical either way for every
+      # recent PR (2026-11-02).
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            *.py
+            *.mjs
+            *.js
+            *.html
+            /tests/
+            /tools/
+            /*.toml
+            /*.cfg
+            /*.ini
+            /*.txt
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -66,7 +83,14 @@ jobs:
         env:
           PLAN_RESULT: ${{ needs.plan.result }}
         run: test "$PLAN_RESULT" = success
+      # Ruff reads Python only.
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            *.py
+            /*.toml
       - uses: actions/download-artifact@v4
         with:
           name: changed-module-test-plan
@@ -89,7 +113,14 @@ jobs:
         env:
           PLAN_RESULT: ${{ needs.plan.result }}
         run: test "$PLAN_RESULT" = success
+      # The whole tree only when something here runs (tests read region data); otherwise the
+      # runner script alone, to report that nothing was affected.
       - uses: actions/checkout@v4
+        if: needs.plan.outputs.python == 'true' || needs.plan.outputs.node == 'true' || needs.plan.outputs.visual_publish == 'true'
+      - uses: actions/checkout@v4
+        if: needs.plan.outputs.python != 'true' && needs.plan.outputs.node != 'true' && needs.plan.outputs.visual_publish != 'true'
+        with:
+          sparse-checkout: tools/ci
       - uses: actions/download-artifact@v4
         with:
           name: changed-module-test-plan
@@ -122,6 +153,7 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
         run: test "$PLAN_RESULT" = success
       - uses: actions/checkout@v4
+        if: needs.plan.outputs.audit == 'true'
       - uses: actions/setup-python@v5
         if: needs.plan.outputs.audit == 'true'
         with:

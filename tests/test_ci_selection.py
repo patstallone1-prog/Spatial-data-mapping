@@ -162,6 +162,17 @@ def test_audit_is_selected_only_when_its_dependencies_change(tmp_path):
     assert not select(tmp_path, ["tests/test_avatar.py"], paths)["audit"]
 
 
+def test_a_plan_of_several_files_runs_on_every_core(monkeypatch):
+    from tools.ci import run_selected
+
+    plan = {"schema": "kerbside.ci_test_plan/1", "python": [f"tests/test_{i}.py" for i in range(4)]}
+    monkeypatch.setattr(run_selected.importlib.util, "find_spec", lambda name: object())
+    assert commands(plan, "python")[0][3:7] == ["-q", "-n", "auto", "--dist"]
+    assert "-n" not in commands(plan | {"python": plan["python"][:1]}, "python")[0]
+    monkeypatch.setattr(run_selected.importlib.util, "find_spec", lambda name: None)
+    assert "-n" not in commands(plan, "python")[0]
+
+
 def test_empty_deleted_paths_and_shell_metacharacters_are_not_executed(tmp_path):
     p = {"schema": "kerbside.ci_test_plan/1", "python": ["tests/test_a space;name.py"]}
     assert commands(p, "python")[0][-1] == "tests/test_a space;name.py"
