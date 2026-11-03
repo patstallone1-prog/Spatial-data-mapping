@@ -185,3 +185,14 @@ def test_a_cloud_home_batch_is_the_macs_batch_and_its_houses_are_stored_by_the_c
     assert named[named.index("--batch-ids") + 1] == "11,22"
     store = home_publish(batch)
     assert store.resource == "control" and store.depends == [batch.id] and store.restore_from == [batch.id]
+
+
+def test_a_batch_key_ignores_float_noise_but_not_a_changed_home() -> None:
+    spec = importlib.util.spec_from_file_location("engine_runner", ROOT / "scripts/run_interior_engine.py")
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    row = {"osm_id": "1", "footprint": {"coordinates": [[[4.391429348590091, 4.4416679997013375]]]}, "shell_height_m": 6.0}
+    noisy = {**row, "footprint": {"coordinates": [[[4.391429348590092, 4.4416679997013371]]]}}
+    moved = {**row, "footprint": {"coordinates": [[[4.3915, 4.4416679997013375]]]}}
+    assert runner.batch_key([row]) == runner.batch_key([noisy])
+    assert runner.batch_key([row]) != runner.batch_key([moved])
