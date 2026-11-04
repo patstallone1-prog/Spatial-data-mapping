@@ -875,12 +875,39 @@ def test_every_roof_use_has_a_stated_frequency_and_variants() -> None:
     # Two to five renderings of each, so a street does not repeat one garden down its length.
     body = _extract("roofGarden", js)
     assert "variant === 0" in body and "variant === 1" in body
-    # Decks and rooms come from a roof plan: a deck fitted to the roof's own outline with glass
-    # railings (wood screens between row houses), and rooms in several shapes.
+    # Decks come from a roof plan: a deck fitted to the roof's own outline with glass railings
+    # (wood screens between row houses).
     plan = _extract("planRoof", js)
     assert "roofInset(ring, 1.0)" in plan and "clipRing(" in plan and '"screen" : "glass"' in plan
-    shapes = js[js.index("const ROOM_SHAPES = {"):js.index("};", js.index("const ROOM_SHAPES = {"))]
-    assert len(re.findall(r"^  (\w+): \(w, d\)", shapes, flags=re.M)) >= 4, shapes
+
+
+def test_no_room_is_invented_on_a_roof() -> None:
+    """A stair house or a windowed penthouse drawn by chance is a storey the house does not have."""
+    js = _page_js()
+    plan = _extract("planRoof", js)
+    assert "plan.rooms" not in plan and "rooms: []" not in plan and '"penthouse" : "stair"' not in plan
+    assert "return plan.deck ? plan : null;" in plan
+    assert "ROOM_SHAPES" not in js and "for (const room of plan.rooms)" not in js
+
+
+def test_a_flat_roof_stands_inside_a_parapet_in_the_house_colours() -> None:
+    """The walls run on past a flat roof, capped by a cornice, so the roof is part of the house."""
+    js = _page_js()
+    assert "const PARAPET = {" in js and "function parapetGeometry(" in js
+    build = _extract("buildingMesh", js)
+    assert 'if (kind === "building" && !shaped) {' in build
+    assert "parapetGeometry(roofRing(feature), hillLift + height, spec, wallColour, trim)" in build
+    # Merged with the roofs, so a house shell opening for the walker never hides it.
+    assert 'addMerged("roof", new THREE.Mesh(parapet, parapetMaterial()), "building");' in build
+
+
+def test_no_roof_is_drawn_green() -> None:
+    """Haze removal leaves grey roofs leaning green; a roof read through trees is the trees."""
+    js = _page_js()
+    sat = _extract("roofSaturation", js)
+    assert "ROOF_GREEN_HUE" in sat and "ROOF_MAX_SATURATION" in sat
+    assert "roofSaturation(hsl.h, hsl.s)" in _extract("correctedRoofColour", js)
+    assert "read.green >= ROOF_UNDER_TREES" in _extract("roofFinishFor", js)
 
 
 def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:

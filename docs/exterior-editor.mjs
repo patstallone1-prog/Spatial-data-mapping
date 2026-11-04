@@ -471,10 +471,14 @@ const CSS = `
 #xedit-still canvas{width:100%;height:100%;display:block;object-fit:cover}
 #xedit-still .cap{position:absolute;left:14px;right:14px;bottom:12px;display:flex;align-items:center;gap:8px;color:#fff;
   text-shadow:0 1px 3px rgba(0,0,0,.7);font-size:13px}
-#xedit-still .cap span{flex:1}
-#xedit-still .cap button{border:1px solid rgba(255,255,255,.4);background:rgba(13,17,23,.55);color:#fff;border-radius:999px;
-  width:34px;height:34px;font-size:15px;cursor:pointer;backdrop-filter:blur(6px)}
-#xedit-still .cap button:hover{background:rgba(31,111,235,.75)}
+#xedit-still .cap span{flex:1;text-align:center}
+#xedit-still .nav{position:absolute;top:50%;transform:translateY(-50%);border:1px solid rgba(255,255,255,.45);
+  background:rgba(13,17,23,.55);color:#fff;border-radius:999px;width:54px;height:54px;font-size:34px;line-height:1;
+  cursor:pointer;backdrop-filter:blur(6px);display:grid;place-items:center;padding:0 0 4px;z-index:2}
+#xedit-still .nav.prev{left:14px} #xedit-still .nav.next{right:14px}
+#xedit-still .nav:hover{background:rgba(31,111,235,.8)}
+#xedit-still .nav:disabled{display:none}
+@media (max-width:820px){#xedit-still .nav{width:44px;height:44px;font-size:28px}}
 #xedit-still .badge{position:absolute;top:12px;left:14px;padding:4px 10px;border-radius:999px;background:rgba(13,17,23,.6);color:#fff;font-size:12px}
 #xedit-still .badge.live{background:rgba(31,111,235,.85)}
 #xedit{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;
@@ -543,11 +547,9 @@ export function open(ctx, feature) {
   const walls = ctx.wallsOf(feature);
   if (!walls.length) { ctx.notify?.("This building has no wall the editor can open."); return; }
   const saved = loadEdits()[id] || ctx.publishedEdit?.(id);
-  let wallIndex = 0;
-  if (saved && validEdit(saved)) {
-    const k = walls.findIndex((w) => sameCorners(w, saved.wall));
-    if (k >= 0) wallIndex = k;
-  }
+  // Always the street wall first (the page sorts its walls front first), whichever wall was
+  // edited last: the arrows either side of the picture go round the rest.
+  const wallIndex = 0;
   const state = {
     ctx, feature, id, walls, wallIndex,
     edit: saved && validEdit(saved) && sameCorners(walls[wallIndex], saved.wall) ? structuredClone(saved)
@@ -634,10 +636,9 @@ function buildPanel(state) {
   const still = el("canvas", { "aria-label": "The wall as it looks in the world" });
   const badge = el("div", { class: "badge" }, "The wall, from the street");
   const stillPane = el("section", { id: "xedit-still", "aria-label": "The wall being edited" }, still, badge,
-    el("div", { class: "cap" },
-      tool("◀", "The previous wall", () => switchWall(state, -1)),
-      wallLabel,
-      tool("▶", "The next wall", () => switchWall(state, 1))));
+    tool("‹", "The previous wall (←)", () => switchWall(state, -1), { class: "nav prev", "aria-label": "Previous wall" }),
+    tool("›", "The next wall (→)", () => switchWall(state, 1), { class: "nav next", "aria-label": "Next wall" }),
+    el("div", { class: "cap" }, wallLabel));
   state.still = still;
   state.badge = badge;
   const acct = el("div", { class: "acct" });
@@ -681,6 +682,9 @@ function buildPanel(state) {
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); (e.shiftKey ? redo : undo)(state); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(state); }
     else if (e.key === "Escape") { if (state.matchFrom) { state.matchFrom = null; redraw(state); } else close(); }
+    else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !state.selected && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault(); switchWall(state, e.key === "ArrowLeft" ? -1 : 1);
+    }
   };
   addEventListener("keydown", state.keys);
   wireElevation(state);
@@ -908,7 +912,8 @@ function drawElevation(state) {
     }
     g.append(node);
   }
-  state.wallLabel.textContent = `Wall ${state.wallIndex + 1} of ${state.walls.length} · ${L.toFixed(1)} m × ${H.toFixed(1)} m${wall.street ? " · street side" : ""}`;
+  state.wallLabel.textContent = `${wall.street ? "Street wall" : "Wall"} ${state.wallIndex + 1} of ${state.walls.length} · ${L.toFixed(1)} m × ${H.toFixed(1)} m`;
+  for (const b of state.shell?.querySelectorAll(".nav") || []) b.disabled = state.walls.length < 2;
 }
 
 // ---- the inspector ------------------------------------------------------------------------------

@@ -188,6 +188,42 @@ export async function loadNatureAtlas(resolve) {
 //: beside developed land is put at the lowest of the ground round it (a lattice across the cells
 //: it corners), less a margin, so no triangle stands over any point of the cells it covers.
 export const CITY_COVER=new Set([21,22,23,24]);
+//: A wet corner the elevation model put well under all the water round it (a sample on a dam's
+//: face, a void in the model) sank toward the sea and left a notch of bank down to it in the
+//: middle of a lake: it is raised to the lowest water beside it. Only a lone pit: where two
+//: waters at different levels meet (a causeway between a reservoir's upper and lower lakes)
+//: some neighbours are at its own level, and it is left where it is.
+export const WATER_STEP_M=1.5;
+export function levelWater(level,wet,P,cols,rows){
+  const sunk=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const i=r*cols+c;if(!wet[i])continue;
+    let low=Infinity,count=0;
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr<0||rr>=rows||cc<0||cc>=cols)continue;
+      const j=rr*cols+cc;if(wet[j]){count++;low=Math.min(low,level[j]);}}
+    if(count>=3&&low>level[i]+WATER_STEP_M)sunk.push([i,low]);
+  }
+  for(const [i,low] of sunk){level[i]=low;P[3*i+1]=low;}
+}
+//: Where the water stands, at each corner of a ground tile: a wet corner's own height, and a dry
+//: corner beside water the highest water next to it (so a triangle from the bank down to the
+//: water knows where the waterline on it is); a dry corner nowhere near water, far under itself.
+//: The ground shader paints water only below that level (WATER_EDGE): a bank stays a bank.
+export const WATER_EDGE_DRY_M=50;
+export function waterLevels(level,wet,P,cols,rows){
+  const out=new Float32Array(cols*rows);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const i=r*cols+c;
+    if(wet[i]){out[i]=level[i];continue;}
+    let best=-Infinity;
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      const rr=r+dr,cc=c+dc;if(rr<0||rr>=rows||cc<0||cc>=cols)continue;
+      const j=rr*cols+cc;if(wet[j]&&level[j]>best)best=level[j];}
+    out[i]=Number.isFinite(best)?best:P[3*i+1]-WATER_EDGE_DRY_M;
+  }
+  return out;
+}
 export const COARSE_CITY_MARGIN_M=1;
 export function cityEnvelope(heights,developed,cols,rows,floorAt,margin=COARSE_CITY_MARGIN_M){
   const out=Float32Array.from(heights);
@@ -276,13 +312,13 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
       shader.uniforms.uNatureHost=hostBox || {value:new THREE.Vector4(1,1,0,0)};
       if(!coarse){shader.uniforms.uNatureCoast={value:m.userData.coastTexture};
         shader.uniforms.uNatureCoastBounds={value:m.userData.coastBounds};}
-      shader.vertexShader=shader.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vNatureWorld;"+(coarse?"":"\nattribute float natureOldY;attribute float natureWater;varying float vNatureWater;uniform float uNatureMorph;"))
-        .replace('#include <begin_vertex>','#include <begin_vertex>'+(coarse?'':'\ntransformed.y=mix(natureOldY,transformed.y,uNatureMorph);vNatureWater=natureWater;'))
+      shader.vertexShader=shader.vertexShader.replace("#include <common>","#include <common>\nvarying vec3 vNatureWorld;"+(coarse?"":"\nattribute float natureOldY;attribute float natureWater;attribute float natureLevel;varying float vNatureWater;varying float vNatureLevel;varying float vNatureLocalY;uniform float uNatureMorph;"))
+        .replace('#include <begin_vertex>','#include <begin_vertex>'+(coarse?'':'\ntransformed.y=mix(natureOldY,transformed.y,uNatureMorph);vNatureWater=natureWater;vNatureLevel=natureLevel;vNatureLocalY=transformed.y;'))
         .replace("#include <project_vertex>","#include <project_vertex>\nvNatureWorld=(modelMatrix*vec4(transformed,1.0)).xyz;");
       shader.fragmentShader=shader.fragmentShader.replace("#include <common>",`#include <common>
 varying vec3 vNatureWorld;
 uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform sampler2D uNatureCanopy;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest[${NATURE_GUEST_BOXES}];uniform vec4 uNatureHost;
-${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;varying float vNatureWater;'}
+${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;varying float vNatureWater;varying float vNatureLevel;varying float vNatureLocalY;'}
 float natureHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 float natureNoise(vec2 p){vec2 i=floor(p),a=fract(p);a=a*a*(3.0-2.0*a);return mix(mix(natureHash(i),natureHash(i+vec2(1,0)),a.x),mix(natureHash(i+vec2(0,1)),natureHash(i+vec2(1,1)),a.x),a.y);}`)
         .replace("#include <color_fragment>",`#include <color_fragment>
@@ -291,14 +327,18 @@ if(vNatureWorld.x>uNatureHost.x&&vNatureWorld.x<uNatureHost.z&&vNatureWorld.z>uN
 ${coarse?`if(texture2D(uNatureActive,(floor((vNatureWorld.xz-uNatureOrigin)/uNatureScale)+.5)/vec2(${maskCols}.,${maskRows}.)).r>.5)discard;`:""}
 vec2 natureUV=(((vNatureWorld.xz-uNatureOrigin)/uNatureScale)*50.+.5)/vec2(${f.cols}.,${f.rows}.);
 vec4 sourceCover=texture2D(uNatureCover,natureUV);
-diffuseColor.rgb=sourceCover.rgb;float natureWet=${coarse?'sourceCover.a':'vNatureWater'};
+diffuseColor.rgb=sourceCover.rgb;
+${coarse?'':`// Water is at its own level and no higher: a bank between a wet corner and a dry one is the
+// bank up to the waterline, not a sheet of water painted up the slope (WATER_EDGE).
+float natureLine=1.-smoothstep(.04,.22,vNatureLocalY-vNatureLevel);`}
+float natureWet=${coarse?'sourceCover.a':'step(.001,vNatureWater)*natureLine'};
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(${linearColour(COVER_COLOURS[11]).join(',')}),natureWet);
 ${coarse?'':`vec2 coastUV=(vNatureWorld.xz-uNatureCoastBounds.xy)/uNatureCoastBounds.zw;
 vec4 coast=texture2D(uNatureCoast,coastUV);
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(${linearColour(COVER_COLOURS.sand).join(',')}),smoothstep(.45,.55,coast.g));
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(${linearColour([.48,.47,.43]).join(',')}),smoothstep(.45,.55,coast.a));
 if(coast.b>.99){
-  float wet=smoothstep(.4975,.5025,coast.r);
+  float wet=smoothstep(.4975,.5025,coast.r)*natureLine;
   natureWet=wet;
   vec3 dry=mix(diffuseColor.rgb,vec3(${linearColour(COVER_COLOURS.sand).join(',')}),smoothstep(.45,.55,coast.g));
   diffuseColor.rgb=mix(dry,vec3(${linearColour(COVER_COLOURS[11]).join(',')}),wet);
@@ -343,7 +383,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
         // same flat normal/BRDF as the city water, independent of region bounds.
         .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(mix(normal,normalize(mat3(viewMatrix)*vec3(0.,1.,0.)),natureWet));');
     };
-    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v5-${coarse}`;return m;
+    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v6-${coarse}`;return m;
   }
   const coarseMaterial=terrainMaterial(true);
   const geoAt=(x,y)=>{const [lon,lat]=atlas.geographic(x,y);return toPage(lon,lat);};
@@ -364,7 +404,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
     return {...s,water:wet,p,height,natural,coastSigned:coastWater===null?null:(coastWater?1:-1)*coastDistance};
   };
   function groundMesh(x0,y0,x1,y1,step,mat){
-    const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[],wet=[];
+    const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[],wet=[],level=[];
     const coast=mat.vertexColors?new Uint8Array((nx+1)*(ny+1)*4):null;
     const coarse=!mat.vertexColors,heights=coarse?new Float32Array((nx+1)*(ny+1)):null,developed=coarse?new Uint8Array((nx+1)*(ny+1)):null;
     for(let r=0;r<=ny;r++)for(let c=0;c<=nx;c++){
@@ -372,12 +412,13 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
       const base=s.water?COVER_COLOURS[11]:s.natural==="beach" ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
       if(coarse){heights[r*(nx+1)+c]=s.height;developed[r*(nx+1)+c]=!s.water&&CITY_COVER.has(s.cover)?1:0;}
       P.push(s.p[0],s.height-.035,s.p[1]);C.push(...linearColour(base));
-      if(mat.vertexColors){old.push(surface(x,y,false,true).height-.035);wet.push(s.water?1:0);}
+      if(mat.vertexColors){old.push(surface(x,y,false,true).height-.035);wet.push(s.water?1:0);level.push(s.water?s.height-.035:NaN);}
       if(coast){const i=(r*(nx+1)+c)*4;
         coast[i]=s.coastSigned===null?128:Math.round(127.5+Math.max(-100,Math.min(100,s.coastSigned))*1.275);
         coast[i+1]=s.natural==='beach'?255:0;coast[i+2]=s.coastSigned===null?0:255;
         coast[i+3]=['bare_rock','scree','shingle'].includes(s.natural)?255:0;}
     }
+    if(level.length)levelWater(level,wet,P,nx+1,ny+1);
     if(coarse){
       const floor=cityEnvelope(heights,developed,nx+1,ny+1,(c,r)=>{
         const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r);let low=Infinity;
@@ -392,7 +433,8 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
     }
     const geometry=new THREE.BufferGeometry();geometry.setAttribute("position",new THREE.Float32BufferAttribute(P,3));
     if(old.length){geometry.setAttribute("natureOldY",new THREE.Float32BufferAttribute(old,1));
-      geometry.setAttribute("natureWater",new THREE.Float32BufferAttribute(wet,1));}
+      geometry.setAttribute("natureWater",new THREE.Float32BufferAttribute(wet,1));
+      geometry.setAttribute("natureLevel",new THREE.Float32BufferAttribute(waterLevels(level,wet,P,nx+1,ny+1),1));}
     geometry.setAttribute("color",new THREE.Float32BufferAttribute(C,3));geometry.setIndex(I);geometry.computeVertexNormals();geometry.computeBoundingSphere();
     if(coast){const tex=new THREE.DataTexture(coast,nx+1,ny+1,THREE.RGBAFormat);tex.needsUpdate=true;
       tex.minFilter=tex.magFilter=THREE.LinearFilter;mat.userData.coastTexture=tex;
