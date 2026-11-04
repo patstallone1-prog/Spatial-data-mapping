@@ -1,4 +1,5 @@
 """The home screen: up at once on a still of the world, the world loading out of sight behind it."""
+import itertools
 import json
 import re
 import subprocess
@@ -73,8 +74,55 @@ def test_enter_world_goes_in_or_to_the_loading_screen():
     enter = lobby[lobby.index("function enter()"):]
     enter = enter[:enter.index("\n  }\n")]
     assert "if (loaded) { closeHome(true); return; }" in enter and "loadscreen" in enter
-    assert "if (loading) { loading.bar.style.width = \"100%\"; setTimeout(() => closeHome(true)" in lobby
-    assert "fraction: () =>" in RENDERER
+    assert "if (loading) setTimeout(() => closeHome(true)" in lobby
+    # The bar is drawn every frame toward the world's fraction, and says how far it is.
+    assert "loading.frame = requestAnimationFrame(drawBar)" in lobby and "loading.pct.textContent" in lobby
+    assert "fraction: loadFraction" in RENDERER
+
+
+def _load_fraction(script):
+    """Run the page's loadFraction on a fake clock and progress line."""
+    code = RENDERER[RENDERER.index("const BOOT_STAGES"):RENDERER.index("window.kerbsideLoadFraction")]
+    prelude = """
+let clock = 0, line = "", worldReadyNow = false, worldLoadedNow = false, waiting = [];
+const performance = { now: () => clock };
+const document = { getElementById: () => ({ textContent: line }) };
+const worldLoadWaiting = () => waiting;
+"""
+    out = subprocess.run(["node", "-e", prelude + code + script], capture_output=True, text=True, check=True)
+    return json.loads(out.stdout)
+
+
+def test_the_loading_bar_moves_evenly_through_the_build():
+    # The stages as an app boot ran them (2026-11-03), sampled every quarter second.
+    seen = _load_fraction("""
+const timeline = [[0, "Loading the corridor…"], [9000, "Building the streets: 40%"], [11000, "Building the streets: 90%"],
+  [13000, "Standing the streets on the ground: 10%"], [18000, ""], [19000, "Standing the ground cover on the hill: 5%"],
+  [22000, "Standing the streets on the ground: 60%"], [27000, "Setting the pads on the pavement"],
+  [27500, "Painting the crossings and lanes on the road"]];
+const out = [];
+for (clock = 0; clock <= 40000; clock += 250) {
+  for (const [at, text] of timeline) if (clock >= at) line = text;
+  if (clock === 31000) { worldReadyNow = true; waiting = ["map cells (12)"]; }
+  if (clock === 34000) waiting = ["map cells (3)"];
+  if (clock === 38000) worldLoadedNow = true;
+  out.push(loadFraction());
+}
+process.stdout.write(JSON.stringify(out));
+""")
+    steps = [b - a for a, b in itertools.pairwise(seen)]
+    assert min(steps) >= 0                          # never back
+    assert max(steps[:-1]) < 0.06                   # no jumps: under 6% in a quarter second
+    assert seen[4 * 8] > 0.12                       # the fetch moves the bar, no figure needed
+    assert 0.7 <= seen[4 * 30] <= 0.8               # most of the bar is the build before the first frame
+    assert seen[-1] == 1
+
+
+def test_the_loading_bar_is_readable_before_the_build_reaches_the_page_end():
+    # The lobby opens early and polls: its state must exist before the home screen opens, or the
+    # read throws and the bar stands still for the whole build.
+    assert RENDERER.index("function loadFraction()") < RENDERER.index("home.openHome({ ...homeContext(), account })")
+    assert RENDERER.index("const bootLoad =") < RENDERER.index("home.openHome({ ...homeContext(), account })")
 
 
 def test_the_home_screen_is_a_still_of_the_world_not_the_world_loading():

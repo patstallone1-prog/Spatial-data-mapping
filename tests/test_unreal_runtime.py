@@ -196,7 +196,7 @@ def test_export_excludes_inactive_and_degenerate_buffers_without_losing_small_cu
     if not node:
         pytest.skip("Node required")
     code = """
-import {triangleRange, usableTriangle, exactIndex, deduplicateFaces} from './tools/unreal/geometry.mjs';
+import {triangleRange, usableTriangle, exactIndex, deduplicateFaces, alignAttributes} from './tools/unreal/geometry.mjs';
 import assert from 'node:assert/strict';
 assert.deepEqual(triangleRange({drawRange:{start:3,count:6}},12),[3,9]);
 assert.deepEqual(triangleRange({drawRange:{start:0,count:Infinity}},12),[0,12]);
@@ -221,6 +221,14 @@ assert.deepEqual(Array.from(indexed.getAttribute('position').array),Array.from(g
 indexed.setIndex([0,1,2,1,2,0,0,2,1]);
 assert.equal(deduplicateFaces(indexed),1);
 assert.deepEqual(indexed.index,[0,1,2,0,2,1]);
+// A part without vertex colour merges white beside a coloured one, not dropping the bucket.
+const plain = new Geometry().setAttribute('position',new Attribute(new Float32Array(9),3));
+const tinted = new Geometry().setAttribute('position',new Attribute(new Float32Array(9),3))
+  .setAttribute('color',new Attribute(new Float32Array(9).fill(.5),3)).setAttribute('uv1',new Attribute(new Float32Array(6).fill(2),2));
+alignAttributes([plain,tinted]);
+assert.deepEqual(Array.from(plain.getAttribute('color').array),Array(9).fill(1));
+assert.deepEqual(Array.from(plain.getAttribute('uv1').array),Array(6).fill(0));
+assert.deepEqual(Array.from(tinted.getAttribute('color').array),Array(9).fill(.5));
 """
     result = subprocess.run([node, "--input-type=module", "-e", code], cwd=ROOT, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr

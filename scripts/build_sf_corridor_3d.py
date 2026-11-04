@@ -3464,6 +3464,42 @@ const WORLD_READY = Promise.all([new Promise((resolve) => { worldIsReady = resol
 //: well before that, waits on it.
 let worldLoaded = null, worldLoadedNow = false;
 const WORLD_LOADED = new Promise((resolve) => { worldLoaded = resolve; });
+//: The loading screen's bar, 0..1, never back. Up to the first frame (0.8 of it) the build's own
+//: progress line, read against its stages as long as each took on an app boot (2026-11-03: 31 s
+//: to the first frame -- the fetch 9 s, the streets 4, standing them and the ground cover on the
+//: hill 14, the paint 4), creeping on through a stage that gives no figure; then the share of
+//: what was still coming in round the spawn. Declared here, before the home screen opens: read
+//: from state declared at the page's end it threw until the build got there, and the bar sat
+//: still for the whole build and then jumped.
+const BOOT_STAGES = [[/^Loading/, 0, 0.23, 9], [/^Building the streets/, 0.23, 0.33, 4],
+  [/^Standing the/, 0.33, 0.70, 14], [/^(Setting|Painting)/, 0.70, 0.80, 4]];
+const bootLoad = { shown: 0, stage: 0, since: performance.now(), figure: 0, peak: 0, readyAt: 0, at: performance.now() };
+function loadFraction() {
+  if (worldLoadedNow) return 1;
+  const now = performance.now();
+  const ease = (seconds, expected) => 1 - Math.exp(-seconds / Math.max(1, expected));
+  let target;
+  if (!worldReadyNow) {
+    const line = document.getElementById("progress")?.textContent?.trim() || "";
+    const found = BOOT_STAGES.findIndex(([re]) => re.test(line));
+    if (found > bootLoad.stage) { bootLoad.stage = found; bootLoad.since = now; bootLoad.figure = 0; }
+    if (found === bootLoad.stage) bootLoad.figure = Math.max(bootLoad.figure, Number(line.match(/(\d+)\s*%/)?.[1] || 0) / 100);
+    const [, from, to, expected] = BOOT_STAGES[bootLoad.stage];
+    const within = Math.max(bootLoad.figure, 0.95 * ease((now - bootLoad.since) / 1000, expected));
+    target = from + (to - from) * Math.min(1, within);
+  } else {
+    bootLoad.readyAt ||= now;
+    const left = worldLoadWaiting().reduce((n, item) => n + (Number(item.match(/\((\d+)/)?.[1]) || 1), 0);
+    bootLoad.peak = Math.max(bootLoad.peak, left);
+    const within = Math.max(1 - left / Math.max(1, bootLoad.peak), 0.9 * ease((now - bootLoad.readyAt) / 1000, 6));
+    target = 0.8 + 0.2 * Math.min(0.99, within);
+  }
+  // A stage that comes early, or a figure that leaps, is taken at a pace: never more than 15% a second.
+  const rise = 0.15 * Math.max(0, now - bootLoad.at) / 1000;
+  bootLoad.at = now;
+  return bootLoad.shown = Math.max(bootLoad.shown, Math.min(target, bootLoad.shown + rise));
+}
+window.kerbsideLoadFraction = loadFraction;
 const HOME_SKIPPED = META || ATTACH || (() => {
   try {
     const query = new URLSearchParams(location.search);
@@ -3488,7 +3524,12 @@ const worldStreaming = await import(sharedAsset("world-streaming.mjs?rev=__WORLD
 //: arrival after a jump is built small (220 m) so the block underfoot comes first.
 const metaLibrary = META ? await import(sharedAsset("meta-xr.mjs?rev=__META_XR_HASH__")) : null;
 const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(navigator.deviceMemory && navigator.deviceMemory < 8))
-  ? { radius: 400, arrival: 220, keep: 310, lead: 200, cellBytes: 384 * 1048576, cellConcurrency: 8, tileBytes: 320 * 1048576 }
+  // The square is the size the app's first build is (LIGHT_RADII_M[2]): a wider one here had the
+  // streaming throw the first world away and build it all again 50 m wider the moment it was
+  // drawn -- half a minute's work and a ten-second freeze, with nobody having moved.
+  // The lead no more than the square less `keep`: a walker who stops is still inside the
+  // keep line from every side, and is not built round again for standing still.
+  ? { radius: 350, arrival: 220, keep: 270, lead: 80, cellBytes: 384 * 1048576, cellConcurrency: 8, tileBytes: 320 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
 const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
@@ -4444,6 +4485,9 @@ Object.values(groups).forEach((g) => root.add(g));
   window.kerbsideFlyToRegion = flyToRegion;
   // The other built regions, as markers standing over their ground in the perimeter -- a
   // click on one opens it. What was rendered is visible from where you are, across the bay.
+  // One post shape and paint for every marker: a hundred and more regions made a material each.
+  const postGeometry = new THREE.CylinderGeometry(3, 3, 150, 8);
+  const postMaterial = new THREE.MeshStandardMaterial({ color: 0xe8f4ff, roughness: 0.6 });
   for (const region of list) {
     if (!region.built || region === current || !region.bbox) continue;
     const [south, west, north, east] = region.bbox;
@@ -4460,8 +4504,7 @@ Object.values(groups).forEach((g) => root.add(g));
     sprite.userData.surface = "region_marker";
     regionMarkers.add(sprite);
     // A post from the marker to the ground, so it reads as standing somewhere.
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 150, 8),
-                                new THREE.MeshStandardMaterial({ color: 0xe8f4ff, roughness: 0.6 }));
+    const post = new THREE.Mesh(postGeometry, postMaterial);
     post.position.set(x, 75 + PENINSULA_Y, -y);
     post.userData.hideWithin = REGION_MARKER_HIDE_M;
     regionMarkers.add(post);
@@ -6608,8 +6651,10 @@ async function liftOntoGroundAsync(object, label) {
       const b = mesh.geometry.boundingBox;
       wide = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > 2 * LIFT_SPLIT_M;
     }
+    const cutStarted = performance.now();
     const pieces = position && (position.count > LIFT_SPLIT_VERTICES || wide) && mesh.parent
       ? tileMesh(mesh, [LIFT_SPLIT_M, 2 * LIFT_SPLIT_M], LIFT_SPLIT_MIN_VERTICES) : null;
+    if (pieces) noteSlowLift("cutting", mesh, position, cutStarted);
     if (pieces) {
       const parent = mesh.parent;
       parent.remove(mesh);
@@ -6620,19 +6665,26 @@ async function liftOntoGroundAsync(object, label) {
       for (const piece of pieces) {
         parent.add(piece);
         piece.updateMatrixWorld(true);
+        const started = performance.now();
         lifted += liftOneMesh(piece);
+        noteSlowLift("standing a piece of", piece, piece.geometry?.getAttribute("position"), started);
         await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
       }
       continue;
     }
     const started = performance.now();
     lifted += liftOneMesh(mesh);
-    const took = performance.now() - started;
-    if (took > 500) console.info(`kerbside: standing one ${mesh.userData.surface || "mesh"} took ${Math.round(took)} ms`,
-      { vertices: position ? position.count : 0, groups: mesh.geometry?.groups?.length || 0, instanced: Boolean(mesh.isInstancedMesh) });
+    noteSlowLift("standing one", mesh, position, started);
     await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
   }
   return lifted;
+}
+//: A step of the stand that held the page for half a second or more, said in the console: the
+//: build yields only between steps, so one of these is a freeze of that long.
+function noteSlowLift(what, mesh, position, started) {
+  const took = performance.now() - started;
+  if (took > 500) console.info(`kerbside: ${what} ${mesh.userData.surface || "mesh"} took ${Math.round(took)} ms`,
+    { vertices: position ? position.count : 0, groups: mesh.geometry?.groups?.length || 0, instanced: Boolean(mesh.isInstancedMesh) });
 }
 const LIFT_SPLIT_VERTICES = 40000;
 const LIFT_SPLIT_M = 120;
@@ -7452,6 +7504,25 @@ function buildBayBridges(g) {
       ramp(line[line.length - 1], line[line.length - 2], h[h.length - 1], spec);
     counts.structures += 1;
     void total;
+  }
+  // A deck is laid a strip, a railing and a cable at a time, all in world place: sixteen
+  // hundred draws for a hundred and twenty thousand triangles. One mesh a material draws the same.
+  const pieces = new Map();
+  for (const mesh of out.children) {
+    if (!mesh.isMesh || mesh.isInstancedMesh) continue;
+    const key = `${mesh.material.uuid}|${mesh.userData.surface}`;
+    if (!pieces.has(key)) pieces.set(key, []);
+    pieces.get(key).push(mesh);
+  }
+  for (const list of pieces.values()) {
+    if (list.length < 2) continue;
+    const geometry = mergeParts(list.map((mesh) => mesh.geometry));
+    for (const mesh of list) out.remove(mesh);
+    if (!geometry) continue;
+    geometry.computeBoundingSphere();
+    const merged = new THREE.Mesh(geometry, list[0].material);
+    merged.userData.surface = list[0].userData.surface;
+    out.add(merged);
   }
   for (const [material, list] of boxes) {
     const mesh = new THREE.InstancedMesh(BOX, material, list.length);
@@ -11342,7 +11413,13 @@ const WINDOW_STYLES = [
   },
 ];
 
-const PHOTO_MATERIAL_IMAGES = new Map();
+//: The photographed materials and the facade canvases painted from them, held once for the page
+//: and every window streamed into it: each window's code is this module run again, and with its
+//: own maps each one decoded the photographs and painted every facade anew -- seconds of a
+//: build, and a texture a facade a window on the GPU. Shared textures are not disposed with a
+//: window (disposeTree) and the maps are not emptied with one (release).
+const SHARED_FACADES = globalThis.__kerbsideFacades ??= { photos: new Map(), facades: new Map(), bare: new Map() };
+const PHOTO_MATERIAL_IMAGES = SHARED_FACADES.photos;
 
 //: Photographed materials that are painted or stained in life -- the house's own colour is the
 //: paint -- against those whose colour is the material itself. A painted one is drawn as its
@@ -11420,8 +11497,8 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
   return texture;
 }
 
-const FACADE_CACHE = new Map();
-const bareWallMaps = new Map();
+const FACADE_CACHE = SHARED_FACADES.facades;
+const bareWallMaps = SHARED_FACADES.bare;
 function facadeTextureFor(material, seed) {
   // Twelve window arrangements times three lighting draws per material: enough that a terrace
   // of forty houses has no two the same next to each other, and few enough that the whole city
@@ -11432,7 +11509,7 @@ function facadeTextureFor(material, seed) {
   if (!FACADE_CACHE.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, style, variant);
-    texture.userData = { material, seed: effectiveSeed, style, variant };
+    texture.userData = { material, seed: effectiveSeed, style, variant, shared: true };
     FACADE_CACHE.set(key, texture);
   }
   return FACADE_CACHE.get(key);
@@ -11471,7 +11548,7 @@ function bareFacadeTextureFor(material, seed) {
   if (!bareWallMaps.has(key)) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, 0, variant, false);
-    texture.userData = { material, seed: effectiveSeed, style: 0, variant, bare: true };
+    texture.userData = { material, seed: effectiveSeed, style: 0, variant, bare: true, shared: true };
     bareWallMaps.set(key, texture);
   }
   return bareWallMaps.get(key);
@@ -11495,6 +11572,8 @@ async function loadPhotoMaterialLibrary() {
   }
   for (const [materialClass, rows] of byClass) {
     for (let variant = 0; variant < Math.min(MATERIAL_VARIANTS, rows.length); variant += 1) {
+      // Decoded already, for the page or an earlier window: the shared facades are painted with it.
+      if (PHOTO_MATERIAL_IMAGES.get(materialClass)?.[variant]) continue;
       const image = new Image();
       image.crossOrigin = "anonymous";
       image.src = sharedAsset(`materials/${rows[variant].file}`);
@@ -26044,6 +26123,9 @@ const groundReady = (async () => {
           const result=vegetationLibrary.clipOutsidePrisms(attributes,clipping[i]);baked.dispose();
           if(result.position.length){const g=new THREE.BufferGeometry();for(const [name,values] of Object.entries(result))g.setAttribute(name,new THREE.Float32BufferAttribute(values,attributes[name].size));
             g.computeBoundingSphere();clipped.push(g);}
+          // A tree cut at a wall is baked and clipped one at a time; a square's worth of them
+          // in one go held the page for two to four seconds of every window built.
+          await maybeYield("Planting the trees");
         }else{mesh.setMatrixAt(instance++, dummy.matrix);
           mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
@@ -32101,6 +32183,8 @@ const DOOR_HEIGHT_M = 2.1;
 //: Doors are drawn this far from the walker: far enough that one is not seen to appear.
 const DOOR_DRAW_M = 120;
 const INTERIOR_KEEP_M = 70;
+//: Rooms are drawn with the camera this near their house: in at an open door, not past it.
+const INTERIOR_DRAW_M = 15;
 const INTERIOR_WALL_INSET_M = 0.08;
 //: A room's paint on an outside wall (buildInterior) stands this much inside the shell's lining
 //: (twice it for every other room, so two rooms meeting at a partition never share a plane), and
@@ -33604,6 +33688,15 @@ function updateDoors(dt) {
   for (const entry of interiorsBuilt) {
     const cx = (entry.minX + entry.maxX) / 2, cz = (entry.minZ + entry.maxZ) / 2;
     if (Math.hypot(cx - x, cz - z) > INTERIOR_KEEP_M + Math.hypot(entry.maxX - entry.minX, entry.maxZ - entry.minZ) / 2) removeInterior(entry);
+  }
+  // Built within INTERIOR_KEEP_M so a step inside is instant, but drawn only from a few metres
+  // off: from the street the rooms are behind dark glass, and eight houses' rooms were a
+  // quarter of every frame's draws.
+  const ex = camera.position.x, ez = camera.position.z;
+  for (const entry of interiorsBuilt) {
+    if (!entry.interior?.group) continue;
+    const dx = Math.max(entry.minX - ex, 0, ex - entry.maxX), dz = Math.max(entry.minZ - ez, 0, ez - entry.maxZ);
+    entry.interior.group.visible = Math.hypot(dx, dz) < INTERIOR_DRAW_M;
   }
 }
 
@@ -38254,7 +38347,6 @@ function applySpawn() {
   goTo(new THREE.Vector3(x, 0, -y), { travel: true, zoom: true });
   if (Number.isFinite(spawn.yaw)) { state.yaw = spawn.yaw; placeCamera(); }
 }
-let homeLoadPeak = 0, homeLoadShown = 0;
 function homeContext() {
   const afterReady = (fn) => (...args) => WORLD_READY.then(() => fn(...args));
   return {
@@ -38286,15 +38378,8 @@ function homeContext() {
     openCapture: () => window.open(new URL("/app.html", location.origin).href, "_blank", "noopener"),
     //: Loaded through (WORLD_LOADED), not just drawn: the lobby lets no one in before.
     whenReady: () => WORLD_LOADED,
-    //: How far along, 0..1, for the loading screen's bar: a tenth until the first frame, then the
-    //: share of what was being waited on (items, tiles, cells) that has come in. Never goes back.
-    fraction: () => {
-      if (worldLoadedNow) return 1;
-      if (!worldReadyNow) return homeLoadShown = Math.max(homeLoadShown, 0.1);
-      const left = worldLoadWaiting().reduce((n, item) => n + (Number(item.match(/\((\d+)/)?.[1]) || 1), 0);
-      homeLoadPeak = Math.max(homeLoadPeak, left);
-      return homeLoadShown = Math.max(homeLoadShown, 0.25 + 0.7 * (1 - left / Math.max(1, homeLoadPeak)));
-    },
+    //: How far along, 0..1, for the loading screen's bar (loadFraction).
+    fraction: loadFraction,
     //: How the world is coming on: the page's own progress line while it builds, then what it is
     //: still fetching round the spawn (null once it is all in).
     progress: () => {
@@ -38649,7 +38734,7 @@ function disposeTree(object, all = false) {
     if (o.geometry && (all || !o.userData.sharedInteriorAsset)) o.geometry.dispose();
     for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
       for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"])
-        if (m[key] && m[key].dispose) m[key].dispose();
+        if (m[key] && m[key].dispose && !m[key].userData?.shared) m[key].dispose();
       m.dispose();
     }
   });
@@ -38904,7 +38989,10 @@ function checkDetailExpansion(now) {
   const speed=moved<60 ? moved : 0;
   // On the way, the square leads along it rather than along the last step.
   const ahead=routeAheadOf(lon,lat);
-  const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : detailPreviousFocus;
+  // A jump (a click across the map) is not a heading: led along it, the square was built 180 m
+  // past where the walker landed, which left them under `keep` from its far side, and it was
+  // built again round them at once -- two builds a click.
+  const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : moved<60 ? detailPreviousFocus : null;
   const request=worldStreaming.detailRequest(box,owner?.detailRadius || BUILD_WINDOW.radius,
     [lon,lat],[metersPerLon,metersPerLat],previous,[w,s,e,n],
     {...STREAM,speed,buildSeconds:owner?.buildSeconds || 8});
@@ -39034,11 +39122,13 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     // Plain before the first compile, the page's own world as well as the one coming in, so the
     // programs compiled behind the loading panel are the ones drawn.
     if (META) { headsetSimplify(holder.root); headsetSimplify(scene); }
-    if (META && renderer.compileAsync) {
+    // On a computer too: the window's first frame linked its shaders one after another, waiting
+    // on each (two seconds of a hop, measured 2026-11-03), and the walker stood frozen through it.
+    if (renderer.compileAsync) {
       holder.root.visible = true;
       const compiled = renderer.compileAsync(holder.root, camera, scene);
       holder.root.visible = false;
-      await Promise.race([compiled.catch(() => {}), new Promise((resolve) => setTimeout(resolve, 10000))]);
+      await Promise.race([compiled.catch(() => {}), new Promise((resolve) => setTimeout(resolve, META ? 10000 : 5000))]);
     }
     holder.ready = true;
     holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
@@ -39207,9 +39297,6 @@ window.kerbsideGuestApi = {
       typeof mappedCrossingGrid !== "undefined" ? mappedCrossingGrid : null,
       typeof bikeJoinGrid !== "undefined" ? bikeJoinGrid : null,
       typeof bikeAreaGrid !== "undefined" ? bikeAreaGrid : null,
-      typeof PHOTO_MATERIAL_IMAGES !== "undefined" ? PHOTO_MATERIAL_IMAGES : null,
-      typeof FACADE_CACHE !== "undefined" ? FACADE_CACHE : null,
-      typeof bareWallMaps !== "undefined" ? bareWallMaps : null,
       typeof ROOF_CACHE !== "undefined" ? ROOF_CACHE : null,
       typeof SOUTH_WINDOW_CACHE !== "undefined" ? SOUTH_WINDOW_CACHE : null,
       typeof ENTRY_CACHE !== "undefined" ? ENTRY_CACHE : null,
