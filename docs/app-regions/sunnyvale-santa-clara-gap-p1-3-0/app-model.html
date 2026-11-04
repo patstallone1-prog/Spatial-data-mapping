@@ -120,7 +120,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="3a26a09a65c045de3ee23f39e2fbbe7fdf29dd589ff221908266965abc521686" />
+<meta name="kerbside-renderer-sha256" content="663ccad549ff4c03a99a290f11196489cb14c20889075bd1a2e3f1ed6027cc7e" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -576,7 +576,9 @@ const STREAM = META ? { ...metaLibrary.META_STREAM } : (!deviceIsSmall() && !(na
   // The square is the size the app's first build is (LIGHT_RADII_M[2]): a wider one here had the
   // streaming throw the first world away and build it all again 50 m wider the moment it was
   // drawn -- half a minute's work and a ten-second freeze, with nobody having moved.
-  ? { radius: 350, arrival: 220, keep: 270, lead: 180, cellBytes: 384 * 1048576, cellConcurrency: 8, tileBytes: 320 * 1048576 }
+  // The lead no more than the square less `keep`: a walker who stops is still inside the
+  // keep line from every side, and is not built round again for standing still.
+  ? { radius: 350, arrival: 220, keep: 270, lead: 80, cellBytes: 384 * 1048576, cellConcurrency: 8, tileBytes: 320 * 1048576 }
   : { ...worldStreaming.DETAIL_SMALL, cellBytes: 48 * 1048576, cellConcurrency: 4, tileBytes: 48 * 1048576 };
 const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
@@ -3704,8 +3706,10 @@ async function liftOntoGroundAsync(object, label) {
       const b = mesh.geometry.boundingBox;
       wide = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > 2 * LIFT_SPLIT_M;
     }
+    const cutStarted = performance.now();
     const pieces = position && (position.count > LIFT_SPLIT_VERTICES || wide) && mesh.parent
       ? tileMesh(mesh, [LIFT_SPLIT_M, 2 * LIFT_SPLIT_M], LIFT_SPLIT_MIN_VERTICES) : null;
+    if (pieces) noteSlowLift("cutting", mesh, position, cutStarted);
     if (pieces) {
       const parent = mesh.parent;
       parent.remove(mesh);
@@ -3716,19 +3720,26 @@ async function liftOntoGroundAsync(object, label) {
       for (const piece of pieces) {
         parent.add(piece);
         piece.updateMatrixWorld(true);
+        const started = performance.now();
         lifted += liftOneMesh(piece);
+        noteSlowLift("standing a piece of", piece, piece.geometry?.getAttribute("position"), started);
         await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
       }
       continue;
     }
     const started = performance.now();
     lifted += liftOneMesh(mesh);
-    const took = performance.now() - started;
-    if (took > 500) console.info(`kerbside: standing one ${mesh.userData.surface || "mesh"} took ${Math.round(took)} ms`,
-      { vertices: position ? position.count : 0, groups: mesh.geometry?.groups?.length || 0, instanced: Boolean(mesh.isInstancedMesh) });
+    noteSlowLift("standing one", mesh, position, started);
     await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
   }
   return lifted;
+}
+//: A step of the stand that held the page for half a second or more, said in the console: the
+//: build yields only between steps, so one of these is a freeze of that long.
+function noteSlowLift(what, mesh, position, started) {
+  const took = performance.now() - started;
+  if (took > 500) console.info(`kerbside: ${what} ${mesh.userData.surface || "mesh"} took ${Math.round(took)} ms`,
+    { vertices: position ? position.count : 0, groups: mesh.geometry?.groups?.length || 0, instanced: Boolean(mesh.isInstancedMesh) });
 }
 const LIFT_SPLIT_VERTICES = 40000;
 const LIFT_SPLIT_M = 120;
@@ -23167,6 +23178,9 @@ const groundReady = (async () => {
           const result=vegetationLibrary.clipOutsidePrisms(attributes,clipping[i]);baked.dispose();
           if(result.position.length){const g=new THREE.BufferGeometry();for(const [name,values] of Object.entries(result))g.setAttribute(name,new THREE.Float32BufferAttribute(values,attributes[name].size));
             g.computeBoundingSphere();clipped.push(g);}
+          // A tree cut at a wall is baked and clipped one at a time; a square's worth of them
+          // in one go held the page for two to four seconds of every window built.
+          await maybeYield("Planting the trees");
         }else{mesh.setMatrixAt(instance++, dummy.matrix);
           mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
@@ -36030,7 +36044,10 @@ function checkDetailExpansion(now) {
   const speed=moved<60 ? moved : 0;
   // On the way, the square leads along it rather than along the last step.
   const ahead=routeAheadOf(lon,lat);
-  const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : detailPreviousFocus;
+  // A jump (a click across the map) is not a heading: led along it, the square was built 180 m
+  // past where the walker landed, which left them under `keep` from its far side, and it was
+  // built again round them at once -- two builds a click.
+  const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : moved<60 ? detailPreviousFocus : null;
   const request=worldStreaming.detailRequest(box,owner?.detailRadius || BUILD_WINDOW.radius,
     [lon,lat],[metersPerLon,metersPerLat],previous,[w,s,e,n],
     {...STREAM,speed,buildSeconds:owner?.buildSeconds || 8});

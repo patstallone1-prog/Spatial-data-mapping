@@ -1,6 +1,7 @@
 """Exercise real window/query code for the returning-app regressions, not copies."""
 import hashlib
 import json
+import re
 import subprocess
 
 import pytest
@@ -261,3 +262,36 @@ def test_a_fast_focus_asks_sooner_and_further_ahead():
     # Past the keep line a walker's next square is the ordinary lead ahead.
     assert walked_on == {"lon": 300, "lat": 0, "radius": 400}
     assert standing is None
+
+
+def _desktop_stream():
+    js = _page_js()
+    line = js[js.index("const STREAM = META"):js.index("const worldCellCache")]
+    roomy = re.search(r"\? \{ radius: (\d+), arrival: (\d+), keep: (\d+), lead: (\d+),", line)
+    radii = re.search(r"const LIGHT_RADII_M = \[([^\]]+)\]", js).group(1).split(",")
+    names = ["radius", "arrival", "keep", "lead"]
+    return dict(zip(names, map(int, roomy.groups()), strict=True)), [int(r) for r in radii]
+
+
+def test_a_computer_streams_the_square_the_app_first_built():
+    # Wider than the app's first square, the streamer threw the world away and built it again
+    # the moment it was drawn: half a minute's work and a ten-second freeze, nobody moving.
+    stream, radii = _desktop_stream()
+    assert stream["radius"] == radii[2]
+    result = run("""
+      import {detailRequest} from './docs/world-streaming.mjs';
+      const r=ROOMY.radius, metres=[1,1], region=[-5000,-5000,5000,5000], box=[-r,-r,r,r];
+      const roomy=ROOMY;
+      console.log(JSON.stringify([
+        detailRequest(box,r,[0,0],metres,null,region,{...roomy,speed:0}),
+        // Stopped after a walk: the walker a minimum lead behind the middle of a led square.
+        detailRequest([-r+roomy.lead,-r,r+roomy.lead,r],r,[0,0],metres,[0,0],region,{...roomy,speed:0})]));
+    """.replace("ROOMY", json.dumps(stream)))
+    assert result == [None, None]
+    assert stream["radius"] - stream["lead"] >= stream["keep"]
+
+
+def test_a_jump_across_the_map_is_not_led_along():
+    # A click that moves the walker is not a heading: the square is built round where they land.
+    js = _page_js()
+    assert "const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : moved<60 ? detailPreviousFocus : null;" in js

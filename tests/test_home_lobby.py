@@ -1,4 +1,5 @@
 """The home screen: up at once on a still of the world, the world loading out of sight behind it."""
+import itertools
 import json
 import re
 import subprocess
@@ -109,7 +110,7 @@ for (clock = 0; clock <= 40000; clock += 250) {
 }
 process.stdout.write(JSON.stringify(out));
 """)
-    steps = [b - a for a, b in zip(seen, seen[1:])]
+    steps = [b - a for a, b in itertools.pairwise(seen)]
     assert min(steps) >= 0                          # never back
     assert max(steps[:-1]) < 0.06                   # no jumps: under 6% in a quarter second
     assert seen[4 * 8] > 0.12                       # the fetch moves the bar, no figure needed
