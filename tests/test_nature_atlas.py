@@ -315,19 +315,21 @@ def test_water_is_painted_only_up_to_its_level_and_one_lake_is_one_level():
     up the slope; a stray low wet corner is raised to the water round it."""
     result = node(
         """
-// A 3 x 3 tile: the left column water at 90 m, one of its corners sunk to 0; the rest bank.
-const cols=3,rows=3,wet=[1,0,0,1,0,0,1,0,0],P=[];
-const h=[90,96,99,0,95,98,90,96,99];
-for(let i=0;i<9;i++)P.push(i%3,h[i],Math.floor(i/3));
-const level=h.map((y,i)=>wet[i]?y:NaN);
-n.levelWater(level,wet,P,cols,rows);
-const levels=Array.from(n.waterLevels(level,wet,P,cols,rows));
-console.log(JSON.stringify({raised:P[3*3+1],levels}));
+// A 4 x 3 tile: two columns of water at 90 m, one corner sunk to 0; then bank, and high ground.
+const tile=(h,wet)=>{const P=[];for(let i=0;i<12;i++)P.push(i%4,h[i],Math.floor(i/4));
+  const level=h.map((y,i)=>wet[i]?y:NaN);n.levelWater(level,wet,P,4,3);
+  return {P,levels:Array.from(n.waterLevels(level,wet,P,4,3))};};
+const wet=[1,1,0,0, 1,1,0,0, 1,1,0,0];
+const pit=tile([90,90,96,99, 0,90,95,99, 90,90,96,99],wet);
+// A causeway: the lower lake's corners at 85 beside the upper's at 90 stay at 85.
+const dam=tile([90,85,96,99, 90,85,95,99, 90,85,96,99],wet);
+console.log(JSON.stringify({raised:pit.P[3*4+1],levels:pit.levels,dam:[dam.P[3*1+1],dam.P[3*5+1]]}));
 """
     )
     assert result["raised"] == 90
-    assert result["levels"][:2] == [90, 90]            # the water, and the bank beside it
-    assert result["levels"][2] == 99 - 50              # a corner nowhere near water: never wet
+    assert result["levels"][1:3] == [90, 90]           # the water, and the bank beside it
+    assert result["levels"][3] == 99 - 50              # a corner nowhere near water: never wet
+    assert result["dam"] == [85, 85]
     runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
     assert "float natureLine=1.-smoothstep(.04,.22,vNatureLocalY-vNatureLevel);" in runtime
     assert "step(.001,vNatureWater)*natureLine" in runtime

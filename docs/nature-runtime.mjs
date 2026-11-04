@@ -188,25 +188,29 @@ export async function loadNatureAtlas(resolve) {
 //: beside developed land is put at the lowest of the ground round it (a lattice across the cells
 //: it corners), less a margin, so no triangle stands over any point of the cells it covers.
 export const CITY_COVER=new Set([21,22,23,24]);
+//: A wet corner the elevation model put well under all the water round it (a sample on a dam's
+//: face, a void in the model) sank toward the sea and left a notch of bank down to it in the
+//: middle of a lake: it is raised to the lowest water beside it. Only a lone pit: where two
+//: waters at different levels meet (a causeway between a reservoir's upper and lower lakes)
+//: some neighbours are at its own level, and it is left where it is.
+export const WATER_STEP_M=1.5;
+export function levelWater(level,wet,P,cols,rows){
+  const sunk=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const i=r*cols+c;if(!wet[i])continue;
+    let low=Infinity,count=0;
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr<0||rr>=rows||cc<0||cc>=cols)continue;
+      const j=rr*cols+cc;if(wet[j]){count++;low=Math.min(low,level[j]);}}
+    if(count>=3&&low>level[i]+WATER_STEP_M)sunk.push([i,low]);
+  }
+  for(const [i,low] of sunk){level[i]=low;P[3*i+1]=low;}
+}
 //: Where the water stands, at each corner of a ground tile: a wet corner's own height, and a dry
 //: corner beside water the highest water next to it (so a triangle from the bank down to the
 //: water knows where the waterline on it is); a dry corner nowhere near water, far under itself.
 //: The ground shader paints water only below that level (WATER_EDGE): a bank stays a bank.
 export const WATER_EDGE_DRY_M=50;
-//: One body of water is one level. A wet corner the elevation model put well under the water
-//: round it (a sample on a dam's face, a void in the model) sank to the sea and left a notch
-//: of bank down to it in the middle of a lake: it is raised to the water beside it.
-export const WATER_STEP_M=1.5;
-export function levelWater(level,wet,P,cols,rows){
-  for(let pass=0;pass<2;pass++)for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-    const i=r*cols+c;if(!wet[i])continue;
-    let best=level[i];
-    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
-      const rr=r+dr,cc=c+dc;if(rr<0||rr>=rows||cc<0||cc>=cols)continue;
-      const j=rr*cols+cc;if(wet[j]&&level[j]>best)best=level[j];}
-    if(best>level[i]+WATER_STEP_M){level[i]=best;P[3*i+1]=best;}
-  }
-}
 export function waterLevels(level,wet,P,cols,rows){
   const out=new Float32Array(cols*rows);
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
