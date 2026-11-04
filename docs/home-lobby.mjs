@@ -76,7 +76,8 @@ const CSS = `
 #home .loadscreen .where{font-size:15px;letter-spacing:.3em;text-transform:uppercase;color:#c9d6e2;text-align:center}
 #home .loadscreen .bar{width:min(560px,82vw);height:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);overflow:hidden;
   clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
-#home .loadscreen .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffb13b,#ff7a1a);box-shadow:0 0 16px #ff7a1a;transition:width .4s}
+#home .loadscreen .bar i{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,#ffb13b,#ff7a1a);box-shadow:0 0 16px #ff7a1a}
+#home .loadscreen .pct{font-size:44px;font-weight:700;letter-spacing:.06em;text-align:center;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 18px rgba(255,122,26,.6)}
 #home .loadscreen .line{min-height:1.3em;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#9fb0c2;text-align:center}
 #home .loadscreen button{justify-self:center}
 #home::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
@@ -618,16 +619,26 @@ export function openHome(ctx) {
   const progress = setInterval(() => {
     const line = ctx.progress?.();
     if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 64));
-    if (loading) {
-      loading.line.textContent = line ? line.slice(0, 80) : "Almost there";
-      loading.bar.style.width = `${Math.round(100 * Math.max(0.04, Math.min(1, ctx.fraction?.() ?? 0)))}%`;
-    }
+    if (loading) loading.line.textContent = line ? line.slice(0, 80) : "Almost there";
   }, 400);
+  // The bar is drawn every frame, eased toward the world's own fraction (which creeps on through
+  // a stage that gives no figure): read four times a second and set as it was, it stood still and
+  // then jumped.
+  let drawn = 0;
+  const drawBar = () => {
+    if (!loading) return;
+    const target = loaded ? 1 : Math.max(0.02, Math.min(1, ctx.fraction?.() ?? 0));
+    drawn += (target - drawn) * (loaded ? 0.25 : 0.08);
+    if (target - drawn < 0.001) drawn = target;
+    loading.bar.style.transform = `scaleX(${drawn.toFixed(4)})`;
+    loading.pct.textContent = `${Math.floor(drawn * 100)}%`;
+    loading.frame = requestAnimationFrame(drawBar);
+  };
   ready.then(() => {
     loaded = true;
     root.classList.remove("world-loading");
     clearInterval(progress); status.className = "status"; status.replaceChildren(el("i"), "World ready");
-    if (loading) { loading.bar.style.width = "100%"; setTimeout(() => closeHome(true), 350); }
+    if (loading) setTimeout(() => closeHome(true), 450);
   });
   go.focus();
 
@@ -639,12 +650,15 @@ export function openHome(ctx) {
     if (loading) return;
     sheetHost.replaceChildren();
     const bar = el("i"), line = el("div", { class: "line" }, ctx.progress?.() || "Loading the world");
-    const back = el("button", { class: "hb", type: "button", on: { click: () => { loading.node.remove(); loading = null; go.focus(); } } }, "Back");
+    const pct = el("div", { class: "pct", "aria-hidden": "true" }, "0%");
+    const back = el("button", { class: "hb", type: "button", on: { click: () => { cancelAnimationFrame(loading.frame); loading.node.remove(); loading = null; go.focus(); } } }, "Back");
     const node = el("section", { class: "loadscreen", role: "status", "aria-live": "polite" },
-      el("h2", {}, "Entering the world"), el("div", { class: "where" }, ctx.regionTitle || "The Bay Area"),
+      el("h2", {}, "Entering the world"), el("div", { class: "where" }, ctx.regionTitle || "The Bay Area"), pct,
       el("div", { class: "bar", role: "progressbar", "aria-label": "Loading the world" }, bar), line, back);
-    loading = { node, bar, line };
+    loading = { node, bar, line, pct, frame: 0 };
     root.append(node);
+    drawn = Math.max(0.02, Math.min(1, ctx.fraction?.() ?? 0));
+    drawBar();
     back.focus();
   }
 
@@ -652,6 +666,7 @@ export function openHome(ctx) {
   function closeHome(enter = false) {
     if (!open || !loaded) return false;
     open = null;
+    if (loading) cancelAnimationFrame(loading.frame);
     loading = null;
     removeEventListener("keydown", keys, true);
     clearInterval(progress);

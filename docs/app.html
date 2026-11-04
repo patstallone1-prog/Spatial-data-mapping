@@ -1474,8 +1474,14 @@ function watchModel() {
     }
     if (retry) retry.hidden = true;
     let target = shown;
+    let measured = null;
+    try { measured = frame.contentWindow.kerbsideLoadFraction?.() ?? null; } catch (err) { measured = null; }
     if (done || home) {
       target = 1;
+    } else if (measured !== null) {
+      // The model's own fraction: stage-weighted and creeping, so the bar moves evenly.
+      target = measured;
+      if (text) stageOut.textContent = text;
     } else if (text) {
       const inside = (text.match(/(\d+)\s*%/) || [])[1];
       const within = inside === undefined ? 0.5 : Math.min(1, Number(inside) / 100);

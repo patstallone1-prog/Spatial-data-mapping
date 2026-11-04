@@ -68,3 +68,26 @@ export function deduplicateFaces(geometry) {
   geometry.setIndex(keep);
   return (count - keep.length) / 3;
 }
+
+export function alignAttributes(geometries) {
+  // A merge needs every part to carry the same channels at the same width, or it returns
+  // nothing and the whole bucket leaves the tile. A part without vertex colour is filled
+  // white (the material colour shows unchanged); a missing uv or sway channel, zero.
+  const widths = new Map(), kinds = new Map();
+  for (const g of geometries) for (const [name, a] of Object.entries(g.attributes)) {
+    widths.set(name, Math.max(widths.get(name) || 0, a.itemSize));
+    if (!kinds.has(name)) kinds.set(name, a);
+  }
+  for (const g of geometries) {
+    const count = g.getAttribute("position").count;
+    for (const [name, width] of widths) {
+      const a = g.getAttribute(name), fill = name === "color" ? 1 : 0;
+      if (a && a.itemSize === width) continue;
+      const out = new Float32Array(count * width).fill(fill);
+      if (a) for (let i = 0; i < count; i += 1) for (let c = 0; c < a.itemSize; c += 1) out[i * width + c] = a.array[i * a.itemSize + c];
+      const Attribute = kinds.get(name).constructor;
+      g.setAttribute(name, new Attribute(out, width, false));
+    }
+  }
+  return geometries;
+}

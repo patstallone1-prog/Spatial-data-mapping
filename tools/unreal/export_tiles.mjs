@@ -25,7 +25,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import * as THREE_REAL from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { triangleRange, usableTriangle, exactIndex, deduplicateFaces } from "./geometry.mjs";
+import { triangleRange, usableTriangle, exactIndex, deduplicateFaces, alignAttributes } from "./geometry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -130,8 +130,11 @@ function pageModule() {
   const html = readFileSync(resolve(ROOT, WORLD, PAGE), "utf8");
   const start = html.indexOf('<script type="module">') + '<script type="module">'.length;
   let js = html.slice(start, html.indexOf("</script>", start));
-  js = js.replace(/^import \* as THREE from "[^"]+";/m, "const THREE = globalThis.__THREE;");
-  js = js.replace(/^import \{ GLTFLoader \} from "[^"]+";/m, "const GLTFLoader = globalThis.__THREE.GLTFLoader;");
+  // Imports are hoisted in the browser, so the page may use GLTFLoader above its import line
+  // (after a top-level await): the stand-ins go first, not where the imports stood.
+  js = js.replace(/^import \* as THREE from "[^"]+";/m, "");
+  js = js.replace(/^import \{ GLTFLoader \} from "[^"]+";/m, "");
+  js = "const THREE = globalThis.__THREE;\nconst GLTFLoader = globalThis.__THREE.GLTFLoader;\n" + js;
   // The page loads its shared modules (streaming, nature, grass, foliage) by dynamic import from
   // its own site; Node's loader takes files only, so each is read from docs/ where it is built.
   js = js.replace(/\bimport\((?=sharedAsset\(|asset\()/g, "globalThis.__kerbsideImport(");
@@ -346,8 +349,8 @@ async function main() {
     const surfaces = {};
     let spawn = null;
     for (const [matKey, bucket] of buckets) {
-      const flat = mergeGeometries(bucket.geometries, false);
-      if (!flat) continue;
+      const flat = mergeGeometries(alignAttributes(bucket.geometries), false);
+      if (!flat) throw new Error(`tile ${key} ${matKey}: parts would not merge`);
       // Indexed, with shared vertices found again: the page's merged surfaces repeat every
       // vertex per triangle, and a tile of them is three times the size it needs to be.
       const merged = exactIndex(flat);
@@ -395,4 +398,5 @@ async function main() {
   console.log(`wrote ${manifest.tiles.length} tiles to ${OUT} in ${((performance.now() - t0) / 1000).toFixed(0)} s`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// The page leaves its streaming and sky timers running; the tiles are written, so stop here.
+main().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
