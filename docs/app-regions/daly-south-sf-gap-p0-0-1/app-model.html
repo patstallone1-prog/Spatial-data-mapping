@@ -120,7 +120,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="663ccad549ff4c03a99a290f11196489cb14c20889075bd1a2e3f1ed6027cc7e" />
+<meta name="kerbside-renderer-sha256" content="38fdc7dd5a76fb35ec6c020d1ca0a7d6ab517839042c1c46b176b0d3027d9c4f" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -487,7 +487,7 @@ const sharedAsset = (name) => viaStore(new URL(name, new URL(
   document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
 //: This device's account (docs/kerbside-account.mjs): who is editing, and whether verified.
 let accountModule = null;
-const accountLibrary = () => (accountModule ??= import(sharedAsset("kerbside-account.mjs?rev=1f194325e666e57b")));
+const accountLibrary = () => (accountModule ??= import(sharedAsset("kerbside-account.mjs?rev=02c371aaee334b7b")));
 // ---- the home screen ---------------------------------------------------------------------------
 //
 // The app opens on its home screen (docs/home-lobby.mjs) while the world loads behind it: your
@@ -496,7 +496,7 @@ const accountLibrary = () => (accountModule ??= import(sharedAsset("kerbside-acc
 let homeModule = null;
 //: The walker's model: the home screen shows it on its platform before the world is built.
 const WALKER_MODEL_URL = "https://threejs.org/examples/models/gltf/Soldier.glb";
-const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=83c210f3de353d69")));
+const homeLibrary = () => (homeModule ??= import(sharedAsset("home-lobby.mjs?rev=5896031f43f98692")));
 //: The avatar creator's figures (docs/avatar-builder.mjs): MakeHuman bodies and parts kept in
 //: the store under avatars/, shared by the home screen's creator and the walker.
 let avatarBuilderModule = null;
@@ -584,7 +584,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=ac7f234d21358f04"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=4fb546a5fba1ad6f"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -3941,8 +3941,14 @@ if (PERIMETER && !NATURE) {
   console.info(`kerbside: perimeter ${PERIMETER.frame.cols}x${PERIMETER.frame.rows} cells, ${bridgeCounts.structures} bridges, ${bridgeCounts.towers} towers, ${bridgeCounts.piers} piers, ${bridgeCounts.ramps} viaducts down to the ground, ${bridgeCounts.headlands} headlands (${PERIMETER.source})`);
 }
 
+//: Water standing this far above the sea is not the sea: a reservoir in the hills, a lake in a
+//: park. The elevation model is flattened over water to the water's own surface, so that is the
+//: water's height. Every wet corner used to be put at sea level, which dug each lake in the hills
+//: out to the sea's height -- Crystal Springs a ninety-metre pit -- and its banks were cliffs
+//: down to it, painted half as water.
+const INLAND_WATER_ABOVE_SEA_M = 1.5;
 function natureVisualHeightAt(x,z,h,wet) {
-  if(wet)return SEA_Y-earthDrop(x,z);
+  if(wet)return (Number.isFinite(h) && h > SEA_Y + INLAND_WATER_ABOVE_SEA_M ? h : SEA_Y)-earthDrop(x,z);
   const y=rawTerrainHeightAt(x,z,h)-earthDrop(x,z);
   if(activeGuest?.ready && activeGuest.box) {
     const g=activeGuest,[gx,gz]=hostToGuest(g,x,z),b=g.box;
@@ -15632,9 +15638,25 @@ function correctedRoofColour(read) {
   const hsl = {};
   colour.getHSL(hsl, THREE.SRGBColorSpace);
   const l = hsl.l > ROOF_KNEE_L ? ROOF_KNEE_L + (hsl.l - ROOF_KNEE_L) * ROOF_HIGHLIGHT_ROLL : hsl.l;
-  colour.setHSL(hsl.h, Math.min(1, hsl.s * ROOF_SATURATION_LIFT), Math.max(ROOF_TAR_FLOOR, l), THREE.SRGBColorSpace);
+  colour.setHSL(hsl.h, roofSaturation(hsl.h, hsl.s), Math.max(ROOF_TAR_FLOOR, l), THREE.SRGBColorSpace);
   return colour;
 }
+//: No roof here is green, and few are blue. Taking the haze out takes more blue than red off a
+//: grey roof (the air is bluest), which leaves it leaning green; lifted 25% on top, a third of
+//: the roofs in the corridor came out mint -- a colour no tar, membrane or gravel is, and one no
+//: wall under it shares, so the roof read as a lid from some other building. Green and cyan are
+//: taken almost back to grey, blue halfway, and nothing is more saturated than a terracotta.
+const ROOF_GREEN_HUE = [0.14, 0.5];
+const ROOF_BLUE_HUE = [0.5, 0.72];
+const ROOF_MAX_SATURATION = 0.42;
+function roofSaturation(h, s) {
+  let out = s * ROOF_SATURATION_LIFT;
+  if (h > ROOF_GREEN_HUE[0] && h < ROOF_GREEN_HUE[1]) out *= 0.15;
+  else if (h >= ROOF_BLUE_HUE[0] && h < ROOF_BLUE_HUE[1]) out *= 0.5;
+  return Math.min(ROOF_MAX_SATURATION, out);
+}
+//: A roof read mostly through the crowns of the trees over it is the trees' colour, not its own.
+const ROOF_UNDER_TREES = 0.3;
 function roofReadingFor(feature) {
   const read = feature?.osm_id == null ? null : ORTHO_ROOFS?.roofs?.[String(feature.osm_id)];
   return read && read.lit >= ROOF_READ_MIN_LIT && /^#[0-9a-f]{6}$/.test(read.c) ? read : null;
@@ -15686,7 +15708,7 @@ function roofSurfaceOf(colour, pitched, archetype) {
 //: what that kind of building's roof usually is, seeded so it keeps between reloads.
 function roofFinishFor(feature, seed, tint, pitched = false) {
   const read = roofReadingFor(feature);
-  if (read) {
+  if (read && !(read.green >= ROOF_UNDER_TREES)) {
     const colour = correctedRoofColour(read);
     return { colour, surface: roofSurfaceOf(colour, pitched, feature.archetype), read: true };
   }
@@ -15828,13 +15850,12 @@ function roofSurfaceTextureFor(surface, seed) {
   return ROOF_CACHE.get(key);
 }
 
-// ---- what stands on a flat roof: decks and rooms ----
+// ---- what stands on a flat roof: decks, and the parapet round it ----
 //
 // A roof plan is worked out for each flat roof, then drawn: a deck that fits the roof (its own
 // outline drawn in from the parapet and cut to the end of the roof it is on, or the rectangle
 // the photograph saw), planked along the roof, with glass railings -- and wood screens where a
-// row house has neighbours either side; and rooms on the roof, a stair house or a penthouse, in
-// one of several shapes and of a size that suits the roof. Each piece is real geometry in metres,
+// row house has neighbours either side. No rooms: see planRoof. Each piece is real geometry in metres,
 // merged by material like the buildings (addMerged), so a city of them is a handful of draws.
 //
 // Plan coordinates are the roof rectangle's (roofRectangle): ``a`` down the roof, ``b`` across.
@@ -15936,6 +15957,83 @@ function panelGeometry(p, q, y0, y1, thick = 0.02) {
   return prismGeometry([[p[0] + nx, p[1] + nz], [q[0] + nx, q[1] + nz], [q[0] - nx, q[1] - nz], [p[0] - nx, p[1] - nz]], y0, y1);
 }
 
+//: The parapet round a flat roof, and the cornice on it. A flat roof cut off flush at the top of
+//: its walls is a lid: nothing joins it to the house, and in another colour it reads as a slab
+//: laid on some other building. Here a flat roof stands inside its walls -- the walls run on
+//: past it as a parapet (half a metre on a house, more on a block), capped by a cornice that
+//: stands proud of the wall and shades it, in the trim colour. That is how the roofs of this
+//: city are built, and it is what puts the roof on the house.
+const PARAPET = {
+  house: { rise: 0.55, thick: 0.2, cornice: 0.26, proud: 0.14 },
+  block: { rise: 0.85, thick: 0.25, cornice: 0.32, proud: 0.16 },
+  tower: { rise: 1.1, thick: 0.3, cornice: 0, proud: 0 },
+};
+function parapetMaterial() {
+  return (parapetMaterial._cache ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.02 }));
+}
+//: ``ring`` is the roof outline in world x, z; the parapet's foot is at ``y``. Mitred corners
+//: (a corner sharper than about 40 degrees is held to two and a half times the offset).
+function parapetGeometry(ring, y, spec, wall, trim) {
+  const n = ring.length;
+  if (n < 3) return null;
+  const sign = ringArea(ring) > 0 ? 1 : -1;
+  // Outward normal of edge i (from ring[i] to ring[i+1]).
+  const normals = [];
+  for (let i = 0; i < n; i += 1) {
+    const p = ring[i], q = ring[(i + 1) % n], len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    normals.push(len < 1e-6 ? null : [(q[1] - p[1]) / len * sign, -(q[0] - p[0]) / len * sign]);
+  }
+  const offset = (i, d) => {
+    let a = normals[(i + n - 1) % n], b = normals[i];
+    a ??= b; b ??= a;
+    if (!a) return [ring[i][0], ring[i][1]];
+    const m = [a[0] + b[0], a[1] + b[1]], ml = Math.hypot(...m);
+    if (ml < 1e-6) return [ring[i][0] + a[0] * d, ring[i][1] + a[1] * d];
+    const cos = (m[0] * a[0] + m[1] * a[1]) / ml, k = d / Math.max(cos, 0.4);
+    return [ring[i][0] + m[0] / ml * k, ring[i][1] + m[1] / ml * k];
+  };
+  const O = ring.map((p) => [p[0], p[1]]);
+  const I = ring.map((_, i) => offset(i, -spec.thick));
+  const C = ring.map((_, i) => offset(i, spec.proud));
+  const top = y + spec.rise, under = top - spec.cornice, capY = spec.cornice ? top + 0.06 : top;
+  const pos = [], col = [];
+  const wallIn = wall.clone().multiplyScalar(0.82);
+  // A quad p0 p1 (at y0) to p1 p0 (at y1), facing the side the winding gives.
+  const quad = (p0, y0a, p1, y0b, q1, y1b, q0, y1a, colour) => {
+    for (const [x, yy, z] of [[p0[0], y0a, p0[1]], [p1[0], y0b, p1[1]], [q1[0], y1b, q1[1]],
+                               [p0[0], y0a, p0[1]], [q1[0], y1b, q1[1]], [q0[0], y1a, q0[1]]]) {
+      pos.push(x, yy, z); col.push(colour.r, colour.g, colour.b);
+    }
+  };
+  // A level band between an inner and an outer edge, facing up or down. Which order of corners
+  // faces which way depends on which way round the (x, z) ring runs.
+  const band = (inI, inJ, outI, outJ, at, up, colour) => (up === sign > 0
+    ? quad(inI, at, inJ, at, outJ, at, outI, at, colour) : quad(outI, at, outJ, at, inJ, at, inI, at, colour));
+  for (let i = 0; i < n; i += 1) {
+    if (!normals[i]) continue;
+    const j = (i + 1) % n;
+    // Outward faces wind one way round an anticlockwise (x, z) ring and the other round a clockwise one.
+    const out = (a, b) => (sign > 0 ? [b, a] : [a, b]);
+    const [oa, ob] = out(O[i], O[j]), [ca, cb] = out(C[i], C[j]), [ia, ib] = out(I[j], I[i]);
+    const faceTop = spec.cornice ? under : top;
+    quad(oa, y, ob, y, ob, faceTop, oa, faceTop, wall);                           // the wall, on up
+    if (spec.cornice) {
+      quad(ca, under, cb, under, cb, capY, ca, capY, trim);                      // the cornice's face
+      band(O[i], O[j], C[i], C[j], under, false, trim);                          // its underside
+      band(I[i], I[j], C[i], C[j], capY, true, trim);                            // the coping, on top
+    } else {
+      band(I[i], I[j], O[i], O[j], top, true, trim);
+    }
+    quad(ia, y, ib, y, ib, capY, ia, capY, wallIn);                             // the inside, to the roof
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function roofPlanMaterials() {
   if (roofPlanMaterials._cache) return roofPlanMaterials._cache;
   const canvasTex = (w, h, paint, repeat = 1) => {
@@ -15975,19 +16073,6 @@ function roofPlanMaterials() {
       g.fillRect(0, y, w, slat * 0.82);
     }
   });
-  // A room's walls: a band of windows at sill height, frames, a door in each tile's corner.
-  const roomWall = canvasTex(256, 256, (g, w, h) => {
-    g.fillStyle = "#e8e6e2"; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 3000; i += 1) { g.fillStyle = random(8800 + i) < 0.5 ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"; g.fillRect(random(8900 + i) * w, random(9000 + i) * h, 2, 2); }
-    // One tile is three metres along and three high (UVs are metres / 3).
-    const m = w / 3;
-    g.fillStyle = "rgba(40,52,60,0.92)"; g.fillRect(0.35 * m, h - 2.35 * m, 2.3 * m, 1.25 * m);
-    g.strokeStyle = "rgba(245,245,240,0.9)"; g.lineWidth = 4;
-    g.strokeRect(0.35 * m, h - 2.35 * m, 2.3 * m, 1.25 * m);
-    g.beginPath(); g.moveTo(1.5 * m, h - 2.35 * m); g.lineTo(1.5 * m, h - 1.1 * m); g.stroke();
-    g.fillStyle = "rgba(255,255,255,0.22)"; g.fillRect(0.4 * m, h - 2.3 * m, 0.5 * m, 1.15 * m);
-    g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(0, h - 3 * m, w, 0.12 * m);  // the coping
-  });
   const make = (name, options) => {
     const material = new THREE.MeshStandardMaterial(options);
     material.name = `roof-${name}`;
@@ -15999,29 +16084,9 @@ function roofPlanMaterials() {
     glass: make("glass", { color: 0xbcd6de, transparent: true, opacity: 0.3, roughness: 0.06, metalness: 0.15,
                            side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.4 }),
     cap: make("rail-cap", { color: 0x9aa2a6, roughness: 0.38, metalness: 0.75 }),
-    room: make("room", { map: roomWall, vertexColors: true, roughness: 0.86 }),
-    roomRoof: make("room-roof", { map: roofSurfaceTextureFor("membrane", 1), color: 0xb9bab5, roughness: 0.7 }),
   });
 }
 const mergeRoof = (key, geometry, material) => addMerged(`roof|plan-${key}`, new THREE.Mesh(geometry, material), "roof_furniture");
-
-//: A room's outline in roof-plan coordinates: the shapes rooms on roofs here are built in.
-const ROOM_SHAPES = {
-  box: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]],
-  ell: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d * 0.05], [0, d * 0.05], [0, d / 2], [-w / 2, d / 2]],
-  rounded: (w, d) => {
-    const r = Math.min(w, d) / 2, pts = [];
-    for (let i = 0; i <= 10; i += 1) { const t = -Math.PI / 2 + Math.PI * i / 10; pts.push([w / 2 - r + r * Math.cos(t), r * Math.sin(t) * (d / 2) / r]); }
-    for (let i = 0; i <= 10; i += 1) { const t = Math.PI / 2 + Math.PI * i / 10; pts.push([-w / 2 + r + r * Math.cos(t), r * Math.sin(t) * (d / 2) / r]); }
-    return pts;
-  },
-  octagon: (w, d) => {
-    const c = Math.min(w, d) * 0.28;
-    return [[-w / 2 + c, -d / 2], [w / 2 - c, -d / 2], [w / 2, -d / 2 + c], [w / 2, d / 2 - c],
-            [w / 2 - c, d / 2], [-w / 2 + c, d / 2], [-w / 2, d / 2 - c], [-w / 2, -d / 2 + c]];
-  },
-  angled: (w, d) => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2 - Math.min(w * 0.35, d * 0.6), d / 2], [-w / 2, d / 2]],
-};
 
 //: What goes on this flat roof. Null when nothing does (too small, not flat, not rectangular
 //: enough to walk on).
@@ -16031,11 +16096,10 @@ function planRoof(feature, roof, seed, areaM2) {
   if (!walkable || roof.fill < 0.55) return null;
   const read = roofReadingFor(feature);
   const homeish = ["residential", "generic", "hotel"].includes(feature.archetype || "generic");
-  const plan = { ring, walkable, deck: null, rooms: [] };
-  // Which end of the roof the deck is at; rooms go at the other.
+  const plan = { ring, walkable, deck: null };
+  // Which end of the roof the deck is at.
   const end = random(seed + 1201) < 0.5 ? -1 : 1;
   const cos = Math.cos(roof.angle), sin = Math.sin(roof.angle);
-  const toPlan = ([x, z]) => [(x - roof.x) * cos + (z - roof.z) * sin, -(x - roof.x) * sin + (z - roof.z) * cos];
   // A deck the photograph saw: its rectangle, kept inside the roof.
   if (read?.deck?.rects?.length) {
     const [lon, lat, length, width, bearing] = read.deck.rects[0];
@@ -16064,36 +16128,12 @@ function planRoof(feature, roof, seed, areaM2) {
       return { p, q, kind: rowHouse && along > 0.85 ? "screen" : "glass" };
     });
   }
-  // Rooms: nearly every walkable flat roof has a stair house; a big one may carry a penthouse.
-  const sizes = [];
-  if (areaM2 >= 140 && homeish && random(seed + 1211) < 0.22) {
-    sizes.push({ w: roof.width * (0.26 + random(seed + 1213) * 0.16), d: roof.depth * (0.4 + random(seed + 1215) * 0.3), h: 2.8 + random(seed + 1217) * 0.4 });
-  }
-  if (random(seed + 1219) < (homeish ? 0.55 : 0.4)) sizes.push({ w: 2.0 + random(seed + 1221) * 0.9, d: 1.7 + random(seed + 1223) * 0.8, h: 2.35 + random(seed + 1225) * 0.25 });
-  const shapes = Object.keys(ROOM_SHAPES);
-  for (const [k, size] of sizes.entries()) {
-    const big = size.w > 3.2;
-    const shape = big ? shapes[Math.floor(random(seed + 1231 + k) * shapes.length)] : (random(seed + 1233 + k) < 0.75 ? "box" : "angled");
-    const outline = ROOM_SHAPES[shape](size.w, size.d);
-    // Tried at the far end from the deck first, then nearer the middle; kept where it fits.
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      const a = -end * (roof.width / 2 - size.w / 2 - 1.0 - attempt * 0.12 * roof.width);
-      const b = (random(seed + 1241 + attempt + k * 7) - 0.5) * Math.max(0, roof.depth - size.d - 1.6);
-      const turn = random(seed + 1251 + k) < 0.5 ? 0 : Math.PI;
-      const ct = Math.cos(turn), st = Math.sin(turn);
-      const world = outline.map(([u, v]) => roof.at(a + u * ct - v * st, b + u * st + v * ct));
-      const clearOfDeck = !plan.deck || world.every(([x, z]) => !pointInRing(x, z, plan.deck.ring));
-      const clearOfRooms = plan.rooms.every((r) => world.every(([x, z]) => !pointInRing(x, z, r.ring)));
-      if (world.every(([x, z]) => pointInRing(x, z, walkable)) && clearOfDeck && clearOfRooms) {
-        plan.rooms.push({ ring: world, shape, h: size.h, kind: big ? "penthouse" : "stair" });
-        break;
-      }
-    }
-  }
-  // Toward the street the penthouse is set back: the planning code here asks for it, and a
-  // room flush with the front parapet is the one that reads as a mistake.
-  void toPlan;
-  return plan.deck || plan.rooms.length ? plan : null;
+  // No room is invented on a roof. A stair house on more than half the flat roofs in the city
+  // and a penthouse with a band of windows round it on a fifth of the big ones were drawn by
+  // chance, and nobody had seen any of them: from the street and from the air each read as a
+  // storey the house does not have. The roof is the house's roof, and what stands on it is only
+  // what the photograph saw or what plainly goes there (plant on an office, a deck).
+  return plan.deck ? plan : null;
 }
 
 function drawRoofPlan(group, plan, roof, top, tint, seed) {
@@ -16135,15 +16175,6 @@ function drawRoofPlan(group, plan, roof, top, tint, seed) {
       }
     }
   }
-  for (const room of plan.rooms) {
-    // Its walls the building's colour, a little lighter (it is newer), on its windows texture.
-    const wall = new THREE.Color(tint);
-    const hsl = {};
-    wall.getHSL(hsl, THREE.SRGBColorSpace);
-    wall.setHSL(hsl.h, hsl.s * 0.85, Math.min(0.85, hsl.l * 1.08 + 0.04), THREE.SRGBColorSpace);
-    mergeRoof("room", prismGeometry(room.ring, y, y + room.h, { top: false, colour: wall, uvScale: 1 / 3 }), M.room);
-    mergeRoof("room-roof", prismGeometry(room.ring, y + room.h, y + room.h + 0.12, { angle: roof.angle, uvScale: 1 / 20 }), M.roomRoof);
-  }
 }
 
 function addRoofFurniture(group, feature, seed, height, areaM2, tint = 0xc8c2b8) {
@@ -16156,17 +16187,16 @@ function addRoofFurniture(group, feature, seed, height, areaM2, tint = 0xc8c2b8)
   const uses = ROOF_USE[feature.archetype] || ROOF_USE.generic;
   const top = height;
   let placed = 0;
-  // The deck and the rooms on the roof come from its plan (planRoof), which fits them to the
-  // roof's own outline and to each other; the rest is laid out below as before.
+  // The deck comes from the roof's plan (planRoof), which fits it to the roof's own outline;
+  // the rest is laid out below as before.
   const plan = planRoof(feature, roof, seed, areaM2);
   if (plan) {
     drawRoofPlan(group, plan, roof, top, tint, seed);
-    placed += (plan.deck ? 1 : 0) + (plan.rooms.length ? 1 : 0);
+    placed += 1;
   }
   for (const [use, chance] of uses) {
     if (use === "deck" || use === "stair") continue;
     if (plan?.deck && use === "garden") continue;
-    if (plan?.rooms.length && use === "solar" && areaM2 < 300) continue;
     // A distinct draw per use. Keyed on the name's length, "solar", "stair" and "plant" are all
     // five letters and drew the same number, so solar and the stair bulkhead were perfectly
     // correlated -- every roof with panels had a stair hut and no roof had one without.
@@ -16837,6 +16867,18 @@ function buildingMesh(feature) {
               new THREE.Mesh(slice, part.materialIndex === 0 ? roof : walls), "building");
   }
   geom.dispose();
+  // A flat roof stands inside its walls (PARAPET). Not on a building in parts, whose roofs are
+  // its own shapes, nor on an outbuilding or a shed.
+  if (kind === "building" && !shaped) {
+    const spec = isHome || height < 13 ? PARAPET.house : height <= 26 ? PARAPET.block : PARAPET.tower;
+    const trim = isHome ? wallColour.clone().lerp(new THREE.Color(0xf1ede3), 0.55)
+      : wallColour.clone().lerp(new THREE.Color(0x8a8780), 0.3);
+    const parapet = parapetGeometry(roofRing(feature), hillLift + height, spec, wallColour, trim);
+    if (parapet) {
+      addMerged("roof", new THREE.Mesh(parapet, parapetMaterial()), "building");
+      feature._treeClipRoof = hillLift + height + spec.rise + 0.06;
+    }
+  }
   if (kind === "outbuilding") {
     // No shopfront, no bay windows, no balconies. A garden workshop has a door and a roof, and
     // the detail passes are what made these read as houses in the first place.
@@ -35034,7 +35076,7 @@ if (!ATTACH) await loadTileTree();
 // point at it and press E. The module keeps the panel and the edit; the page tells it what the
 // building's walls are and what it drew on them, and draws every saved edit on load.
 let exteriorEditorModule = null;
-const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=dc3ae8f3aef073f4")));
+const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=4ddb7fb1ac9acbe8")));
 const exteriorEditGroups = new Map();
 const buildingWayById = new Map((DATA.ways || []).filter((w) => w.kind === "building").map((w) => [String(w.osm_id), w]));
 //: A building's walls for the editor: the street-facing ones first, nearest the street first,
@@ -35226,17 +35268,45 @@ function renderWallStill(wall, canvas) {
   const mx = wall.ax + wall.ux * wall.length / 2, mz = wall.az + wall.uz * wall.length / 2;
   const ground = wall.base, eye = ground + Math.min(wall.height * 0.45, 1.7 + distance * 0.08);
   stillCamera.aspect = sourceAspect;
-  stillCamera.near = Math.max(0.3, distance - 3.0);
+  // A street wall has the street in front of it: trees and vans more than three metres out are
+  // cut by the near plane. A side or back wall has the neighbour's house against it, so the cut
+  // is at its own face (the near plane is square to the wall), and the wall shows, not next door.
+  stillCamera.near = Math.max(0.3, distance - (wall.street ? 3.0 : 0.25));
   stillCamera.far = distance + 4000;
   stillCamera.position.set(mx + wall.nx * distance, eye, mz + wall.nz * distance);
   stillCamera.lookAt(mx, ground + wall.height / 2, mz);
   stillCamera.updateProjectionMatrix();
   const walkerShown = avatar.visible;
   avatar.visible = false;
+  // Nobody's rooms in the picture: a bed against the party wall next door is not this wall.
+  const roomsShown = interiorGroup.visible;
+  interiorGroup.visible = false;
   renderer.render(scene, stillCamera);
+  interiorGroup.visible = roomsShown;
   avatar.visible = walkerShown;
   const g = canvas.getContext("2d");
   g.drawImage(source, (sw - cropW) / 2, (sh - cropH) / 2, cropW, cropH, 0, 0, w, h);
+  // The wall being edited, picked out: the rest of the picture dimmed and the wall outlined, so
+  // which of a house's walls this is cannot be mistaken.
+  const corners = [[0, 0], [wall.length, 0], [wall.length, wall.height], [0, wall.height]].map(([u, v]) => {
+    const p = new THREE.Vector3(wall.ax + wall.ux * u, wall.base + v, wall.az + wall.uz * u).project(stillCamera);
+    return [((p.x + 1) / 2 * sw - (sw - cropW) / 2) * w / cropW, ((1 - p.y) / 2 * sh - (sh - cropH) / 2) * h / cropH];
+  });
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, w, h);
+  corners.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.fillStyle = "rgba(8,12,18,0.42)";
+  g.fill("evenodd");
+  g.beginPath();
+  corners.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+  g.closePath();
+  g.lineWidth = Math.max(2, 3 * ratio);
+  g.strokeStyle = "#ffb547";
+  g.setLineDash([10 * ratio, 6 * ratio]);
+  g.stroke();
+  g.restore();
   return true;
 }
 //: The way into the editor from a building's card: a button on it.

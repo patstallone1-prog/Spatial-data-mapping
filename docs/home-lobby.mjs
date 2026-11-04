@@ -543,6 +543,20 @@ export function openHome(ctx) {
       on: { change: () => { ctx.account?.setName(name.value); drawPlayer(); } } });
     return name;
   };
+  // Your name, from the corner: it was picked for you (kerbside-account autoName) and is yours to change.
+  const nameSheet = () => {
+    const input = nameInput();
+    sheet("Your name", el("p", {}, "Everyone sees it over your walker and in a party. One was picked for you; change it to anything."),
+      el("label", {}, "Name"), input,
+      el("button", { class: "hb", type: "button", on: { click: () => { ctx.account?.setName(""); input.value = who().editor || who().name || ""; drawPlayer(); } } }, "Pick another name"));
+    input.focus();
+  };
+  player.setAttribute("role", "button");
+  player.tabIndex = 0;
+  player.title = "Your name: click to change it";
+  player.style.cursor = "pointer";
+  player.addEventListener("click", nameSheet);
+  player.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); nameSheet(); } });
   const swatches = (kind) => el("div", { class: "hsw", role: "group", "aria-label": kind },
     LOOKS[kind].map(([label, hex]) => el("button", { type: "button", title: label, "aria-label": label, "aria-pressed": String(look[kind] === hex),
       style: `background:${hex}`, on: { click: (e) => {

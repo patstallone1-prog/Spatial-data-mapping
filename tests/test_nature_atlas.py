@@ -181,7 +181,7 @@ console.log(JSON.stringify({host,guest,legacy:earthDrop(60000,20000)>100}));
 def test_guest_boundary_join_is_continuous_without_moving_its_measured_geometry():
     result = node(
         """
-const SEA_Y=.1;function earthDrop(){return 0;}function rawTerrainHeightAt(){return 200;}
+const SEA_Y=.1,INLAND_WATER_ABOVE_SEA_M=1.5;function earthDrop(){return 0;}function rawTerrainHeightAt(){return 200;}
 const activeGuest={ready:true,box:[0,0,10,10],oy:10,api:{groundLiftAt:()=>100}};
 function hostToGuest(g,x,z){return [x,z];}
 """
@@ -189,7 +189,7 @@ function hostToGuest(g,x,z){return [x,z];}
         + """
 console.log(JSON.stringify({edge:natureVisualHeightAt(10,5,200,false),
  half:natureVisualHeightAt(70,5,200,false),far:natureVisualHeightAt(130,5,200,false),
- sea:natureVisualHeightAt(10,5,200,true)}));
+ sea:natureVisualHeightAt(10,5,-4,true)}));
 """
     )
     assert result == {"edge": 110, "half": 155, "far": 200, "sea": 0.1}
@@ -290,3 +290,44 @@ def test_published_atlas_covers_every_cell_and_has_identical_shared_edges():
             np.testing.assert_array_equal(sides[3], edges[c + 200, r][2])
         if (c, r + 200) in edges:
             np.testing.assert_array_equal(sides[1], edges[c, r + 200][0])
+
+
+def test_a_lake_in_the_hills_stands_at_its_own_level_not_the_seas():
+    """Every wet corner went to sea level: a reservoir in the hills was a pit with cliffs."""
+    js = _page_js()
+    height = _extract("natureVisualHeightAt", js)
+    assert "h > SEA_Y + INLAND_WATER_ABOVE_SEA_M ? h : SEA_Y" in height
+    result = node(
+        """
+const SEA_Y=0,INLAND_WATER_ABOVE_SEA_M=1.5,activeGuest=null;
+const earthDrop=()=>0,rawTerrainHeightAt=(x,z,h)=>h;
+"""
+        + height
+        + """
+console.log(JSON.stringify({lake:natureVisualHeightAt(0,0,92,true),sea:natureVisualHeightAt(0,0,-3,true),bank:natureVisualHeightAt(0,0,95,false)}));
+"""
+    )
+    assert result == {"lake": 92, "sea": 0, "bank": 95}
+
+
+def test_water_is_painted_only_up_to_its_level_and_one_lake_is_one_level():
+    """A bank between a wet corner and a dry one is bank above the waterline, not water painted
+    up the slope; a stray low wet corner is raised to the water round it."""
+    result = node(
+        """
+// A 3 x 3 tile: the left column water at 90 m, one of its corners sunk to 0; the rest bank.
+const cols=3,rows=3,wet=[1,0,0,1,0,0,1,0,0],P=[];
+const h=[90,96,99,0,95,98,90,96,99];
+for(let i=0;i<9;i++)P.push(i%3,h[i],Math.floor(i/3));
+const level=h.map((y,i)=>wet[i]?y:NaN);
+n.levelWater(level,wet,P,cols,rows);
+const levels=Array.from(n.waterLevels(level,wet,P,cols,rows));
+console.log(JSON.stringify({raised:P[3*3+1],levels}));
+"""
+    )
+    assert result["raised"] == 90
+    assert result["levels"][:2] == [90, 90]            # the water, and the bank beside it
+    assert result["levels"][2] == 99 - 50              # a corner nowhere near water: never wet
+    runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
+    assert "float natureLine=1.-smoothstep(.04,.22,vNatureLocalY-vNatureLevel);" in runtime
+    assert "step(.001,vNatureWater)*natureLine" in runtime

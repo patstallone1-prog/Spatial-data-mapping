@@ -49,10 +49,30 @@ function keyFromLink() {
   return match[1];
 }
 
+//: A name for someone who has not chosen one: a word and a Bay Area creature and a number, so a
+//: walker in a party, a lobby or a saved edit is somebody from the moment they arrive. It is kept
+//: on this device and can be changed like any other (setName); clearing it draws a new one.
+const NAME_WORDS = ["Coral", "Foggy", "Golden", "Misty", "Sunny", "Cedar", "Harbor", "Mossy", "Swift", "Quiet",
+  "Amber", "Breezy", "Copper", "Indigo", "Lucky", "Rusty", "Sandy", "Silver", "Tidal", "Velvet"];
+const NAME_CREATURES = ["Heron", "Otter", "Pelican", "Sea Lion", "Quail", "Coyote", "Egret", "Seal", "Crab", "Hawk",
+  "Raven", "Fox", "Gull", "Owl", "Deer", "Salmon", "Bobcat", "Sparrow", "Whale", "Plover"];
+export function autoName(random = Math.random) {
+  const pick = (list) => list[Math.floor(random() * list.length) % list.length];
+  return `${pick(NAME_WORDS)} ${pick(NAME_CREATURES)} ${10 + Math.floor(random() * 90)}`;
+}
+const cleanText = (name) => String(name || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 24);
+function startingName() {
+  const stored = cleanText(storage.get(NAME));
+  if (stored) return stored;
+  const name = autoName();
+  storage.set(NAME, name);
+  return name;
+}
+
 const listeners = new Set();
 let checking = null;
 const state = {
-  name: storage.get(NAME) || null,
+  name: startingName(),
   key: storage.get(KEY) || null,
   verified: storage.get(VERIFIED) === "1",
   editor: storage.get(VERIFIED) === "1" ? storage.get(NAME) : null,
@@ -64,7 +84,7 @@ export function onAccountChange(fn) { listeners.add(fn); return () => listeners.
 const changed = () => { for (const fn of listeners) try { fn(account()); } catch {} };
 
 export function setName(name) {
-  state.name = String(name || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 24) || null;
+  state.name = cleanText(name) || autoName();
   storage.set(NAME, state.name);
   changed();
 }

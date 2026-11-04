@@ -141,3 +141,31 @@ def test_the_home_screen_is_a_still_of_the_world_not_the_world_loading():
       const seen = Array.from({{ length: HOME_SHOTS.length + 2 }}, () => nextShot(storage));
       console.log(JSON.stringify(seen));"""], capture_output=True, text=True, check=True)
     assert json.loads(out.stdout) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1]
+
+
+def test_everyone_has_a_name_from_the_start_and_can_change_it():
+    """A name is picked for someone who has none, kept on the device, and theirs to change;
+    clearing it picks another rather than leaving them nameless."""
+    script = """
+const store = new Map();
+globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+globalThis.location = { hash: "", pathname: "/", search: "" };
+globalThis.history = { replaceState() {} };
+const m = await import(process.argv[1]);
+const first = m.account().name;
+m.setName("  Larry  ");
+const chosen = m.account().name, stored = store.get("kerbside:player-name");
+m.setName("");
+const cleared = m.account().name;
+let seq = [0, 0, 0.999];
+const fixed = m.autoName(() => seq.shift());
+console.log(JSON.stringify({ first, stored, chosen, cleared, fixed }));
+"""
+    out = json.loads(subprocess.run(["node", "--input-type=module", "-e", script, (ROOT / "docs/kerbside-account.mjs").as_uri()],
+                                    capture_output=True, text=True, check=True).stdout)
+    assert re.fullmatch(r"[A-Z][a-z]+ [A-Z][a-z]+( [A-Z][a-z]+)? \d{2}", out["first"]), out
+    assert out["chosen"] == "Larry" and out["stored"] == "Larry"
+    assert out["cleared"] and out["cleared"] != "Larry"
+    assert out["fixed"] == "Coral Heron 99"
+    lobby = (ROOT / "docs/home-lobby.mjs").read_text()
+    assert 'player.addEventListener("click", nameSheet);' in lobby and "Pick another name" in lobby

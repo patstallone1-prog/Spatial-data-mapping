@@ -117,3 +117,19 @@ def test_an_edits_stairs_join_the_walkers_ground_and_leave_it_with_the_edit() ->
     assert "for (const surface of group.userData.standing || []) standingSurfaces.add(surface);" in source
     assert "for (const surface of group.userData.standing || []) standingSurfaces.delete(surface);" in source
     assert "if (group) { context.addToWorld(group); exteriorEditGroups.set(id, group); }" in source
+
+
+def test_the_editor_opens_on_the_street_wall_with_arrows_either_side_of_the_wall() -> None:
+    """Always the street wall first; arrows on both sides of the picture (and the arrow keys)
+    go round the rest, and the picture picks out the wall being edited."""
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "const wallIndex = 0;" in editor
+    assert 'class: "nav prev"' in editor and 'class: "nav next"' in editor
+    assert "#xedit-still .nav.prev{left:14px} #xedit-still .nav.next{right:14px}" in editor
+    assert 'e.key === "ArrowLeft" || e.key === "ArrowRight"' in editor
+    # Street walls come first in the page's own order.
+    assert "const rank = (w) => (w.street ? 0 : 2)" in source
+    # The still: next door is cut away from a side wall, and the wall is outlined.
+    assert "distance - (wall.street ? 3.0 : 0.25)" in source
+    assert 'g.fill("evenodd");' in source and "interiorGroup.visible = false;" in source
