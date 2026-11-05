@@ -631,7 +631,8 @@ export function openHome(ctx) {
   root.classList.add("world-loading");
   // Until it is ready, the world's own progress line: it loads behind the lobby from the start.
   const progress = setInterval(() => {
-    const line = ctx.progress?.();
+    // The stage, without its own figure: the big percentage is the whole load's.
+    const line = ctx.progress?.()?.replace(/[:\s\u2014-]*\d+\s*%/g, "").trim();
     if (line && status.classList.contains("loading")) status.replaceChildren(el("i"), line.slice(0, 64));
     if (loading) loading.line.textContent = line ? line.slice(0, 80) : "Almost there";
   }, 400);

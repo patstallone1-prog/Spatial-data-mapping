@@ -71,19 +71,25 @@
              min-height: 340px; border-radius: 12px; overflow: hidden;
              background: #071013; border: 1px solid var(--line); }
   #model { width: 100%; height: 100%; border: 0; display: block; }
-  /* The loading cover sits over the model until the model says it is built. */
-  #mapload { position: absolute; inset: 0; display: grid; place-items: center;
-             background: #071013; transition: opacity .45s ease; z-index: 3; }
+  /* The loading cover sits over the model until the model's home screen opens: the same
+     "Entering the world" screen the home screen shows, so there is one loader, not two. */
+  #mapload { position: absolute; inset: 0; display: grid; place-items: center; z-index: 3;
+             background: linear-gradient(180deg, rgba(5,7,12,.55), rgba(5,7,12,.82)), #070a10;
+             transition: opacity .45s ease; font-family: "Rajdhani", "Barlow Condensed", system-ui, sans-serif; }
   #mapload.done { opacity: 0; pointer-events: none; }
-  .ml-card { width: min(420px, 82vw); text-align: left; }
-  .ml-title { font-weight: 650; font-size: 15px; color: var(--ink); margin-bottom: 4px; }
-  .ml-stage { font-size: 13px; color: var(--muted); min-height: 18px; margin-bottom: 10px; }
-  .ml-track { height: 6px; border-radius: 99px; background: #14242b; overflow: hidden; }
-  .ml-fill { height: 100%; width: 0%; border-radius: 99px; background: var(--accent);
-             transition: width .35s ease; }
-  .ml-pct { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px;
-            font-size: 12px; color: var(--muted); }
-  .ml-pct span:first-child { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .ml-card { display: grid; gap: 14px; justify-items: center; width: min(560px, 82vw); }
+  .ml-title { margin: 0; font-size: clamp(30px, 6vw, 58px); font-weight: 700; font-style: italic; letter-spacing: .14em;
+              text-transform: uppercase; text-align: center; color: transparent;
+              background: linear-gradient(180deg, #fff 0%, #ffd7a8 55%, #ff7a1a 100%); -webkit-background-clip: text; background-clip: text;
+              filter: drop-shadow(0 3px 0 rgba(0,0,0,.6)); }
+  .ml-where { font-size: 14px; letter-spacing: .3em; text-transform: uppercase; color: #c9d6e2; }
+  .ml-pct { font-size: 42px; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: #fff;
+            text-shadow: 0 0 18px rgba(255,122,26,.6); }
+  .ml-track { width: 100%; height: 12px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); overflow: hidden;
+              clip-path: polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px); }
+  .ml-fill { display: block; height: 100%; width: 100%; transform-origin: left; transform: scaleX(0);
+             background: linear-gradient(90deg, #ffb13b, #ff7a1a); box-shadow: 0 0 16px #ff7a1a; }
+  .ml-stage { min-height: 1.3em; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: #9fb0c2; text-align: center; }
   .view.on { display: flex; flex-direction: column; gap: 14px; }
 
   .card {
@@ -385,10 +391,11 @@
       <iframe id="model" title="Kerbside 3D" src="__MODEL_SRC__" loading="eager" allow="geolocation"></iframe>
       <div id="mapload" role="status" aria-live="polite">
         <div class="ml-card">
-          <div class="ml-title">Building the model</div>
-          <div class="ml-stage" id="ml-stage">Fetching the measurements&hellip;</div>
-          <div class="ml-track"><div class="ml-fill" id="ml-fill"></div></div>
-          <div class="ml-pct"><span id="ml-pct">0%</span><span id="ml-note">measured kerbs, lidar ground, photographed walls</span></div>
+          <h2 class="ml-title">Entering the world</h2>
+          <div class="ml-where">The Bay Area</div>
+          <div class="ml-pct" id="ml-pct" aria-hidden="true">0%</div>
+          <div class="ml-track" role="progressbar" aria-label="Loading the world"><i class="ml-fill" id="ml-fill"></i></div>
+          <div class="ml-stage" id="ml-stage">Loading the world&hellip;</div>
           <button id="ml-retry" type="button" hidden>Retry map</button>
         </div>
       </div>
@@ -1434,7 +1441,8 @@ function watchModel() {
   let shown = 0;
   let completed = false;
   frame.addEventListener("load", () => {
-    shown = 0; completed = false;
+    if (completed) nextFrame(drawBar);
+    shown = 0; drawn = 0; completed = false;
     cover.classList.remove("done"); cover.style.display = "";
     if (retry) retry.hidden = true;
   });
@@ -1443,6 +1451,18 @@ function watchModel() {
     retry.hidden = true;
     frame.contentWindow.location.reload();
   });
+  let drawn = 0;
+  let stopped = false;
+  // No frames to draw on (a page with no display, or the tests' stand-in): the bar stays put.
+  const nextFrame = fn => typeof requestAnimationFrame === "function" && requestAnimationFrame(fn);
+  const drawBar = () => {
+    drawn += (shown - drawn) * (shown >= 1 ? 0.25 : 0.08);
+    if (Math.abs(shown - drawn) < 0.001) drawn = shown;
+    fill.style.transform = "scaleX(" + drawn.toFixed(4) + ")";
+    if (!stopped) pct.textContent = Math.floor(drawn * 100) + "%";
+    if (!completed || drawn < 1) nextFrame(drawBar);
+  };
+  nextFrame(drawBar);
   const tick = () => {
     let done = false;
     let home = false;
@@ -1468,11 +1488,13 @@ function watchModel() {
       cover.classList.remove("done"); cover.style.display = "";
       stageOut.textContent = failure;
       pct.textContent = "Load stopped";
+      stopped = true;
       if (retry) retry.hidden = false;
       setTimeout(tick, 1000);
       return;
     }
     if (retry) retry.hidden = true;
+    stopped = false;
     let target = shown;
     let measured = null;
     try { measured = frame.contentWindow.kerbsideLoadFraction?.() ?? null; } catch (err) { measured = null; }
@@ -1481,22 +1503,22 @@ function watchModel() {
     } else if (measured !== null) {
       // The model's own fraction: stage-weighted and creeping, so the bar moves evenly.
       target = measured;
-      if (text) stageOut.textContent = text;
+      // The stage, not its own figure: the percentage above is the whole load's.
+      if (text) stageOut.textContent = text.replace(/[:\s\u2014-]*\d+\s*%/g, "").trim();
     } else if (text) {
       const inside = (text.match(/(\d+)\s*%/) || [])[1];
       const within = inside === undefined ? 0.5 : Math.min(1, Number(inside) / 100);
       const stage = MODEL_STAGES.find(([re]) => re.test(text));
       if (stage) {
         target = stage[1] + (stage[2] - stage[1]) * within;
-        stageOut.textContent = stage[3] + (inside === undefined ? "\u2026" : " \u2014 " + inside + "%");
+        stageOut.textContent = stage[3] + "\u2026";
       } else {
         stageOut.textContent = text;
       }
     }
-    // Never backwards: a later stage reporting 0% should not undo the bar.
+    // Never backwards: a later stage reporting 0% should not undo the bar. The bar itself is
+    // drawn every frame, eased toward this (drawBar), so it moves evenly, not in steps.
     shown = Math.max(shown, Math.min(1, target));
-    fill.style.width = (shown * 100).toFixed(0) + "%";
-    pct.textContent = (shown * 100).toFixed(0) + "%";
     if ((done || home) && !completed) {
       completed = true;
       stageOut.textContent = "Ready";
