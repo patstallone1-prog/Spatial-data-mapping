@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="f27d65f87bdd05453a5eb17b10a8357d7974d7091b193521957342da910488cc" />
+<meta name="kerbside-renderer-sha256" content="9e267c7e42bb40b4c74a23a08069f903ebac29039e9338e2c05c3aa73ea5f51b" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -470,8 +470,12 @@ const ASSET_BASE = ATTACH ? ATTACH.assets
 const IMMUTABLE_CHUNK = /\/chunks\/[0-9a-f]{24}\.[a-z0-9]+$/;
 const fetch = (input, init) => (IMMUTABLE_CHUNK.test(String(input?.url ?? input))
   ? globalThis.fetch(input, { ...init, cache: "force-cache" }) : globalThis.fetch(input, init));
-const ASSET_MAP = await fetch("/asset-map.json", { cache: "no-cache" })
-  .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+//: Fetched and parsed once for the page and every window attached to it. 435,000 names, 46 MB
+//: of JSON: each window ran this line again, parsed it again (0.2-0.3 s) and kept its own copy
+//: (85 MB) for as long as the page was open -- a window's code is never unloaded -- so twelve
+//: jumps held a gigabyte of the same map (measured 2026-11-05). It is only ever read.
+const ASSET_MAP = await (globalThis.__kerbsideAssetMap ??= fetch("/asset-map.json", { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : null)).catch(() => null));
 function viaStore(href) {
   const files = ASSET_MAP?.files;
   if (!files || !ASSET_MAP.base) return href;
@@ -586,7 +590,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=be4265b26bb93fb6"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=d7b1ace6f781ce02"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });
@@ -603,7 +607,7 @@ var globe = null;
 const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
   .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
 var natureWorld = null;
-const grassLibrary = await import(sharedAsset("grass-strands.mjs?rev=d404dc5a5460f17f"))
+const grassLibrary = await import(sharedAsset("grass-strands.mjs?rev=1263b2007f581260"))
   .catch(error=>{console.warn("kerbside: grass strands unavailable; retaining textured turf",error);return null;});
 var grassStrands = null;
 var grassSurfaceAt = null;
@@ -1533,6 +1537,9 @@ Object.values(groups).forEach((g) => root.add(g));
   // One post shape and paint for every marker: a hundred and more regions made a material each.
   const postGeometry = new THREE.CylinderGeometry(3, 3, 150, 8);
   const postMaterial = new THREE.MeshStandardMaterial({ color: 0xe8f4ff, roughness: 0.6 });
+  // And one draw for all the posts: 275 posts were 275 draw calls a frame from anywhere the
+  // markers stand in view. Each is an instance, put out (scaled to nothing) as its mesh was.
+  const postsAt = [];
   for (const region of list) {
     if (!region.built || region === current || !region.bbox) continue;
     const [south, west, north, east] = region.bbox;
@@ -1549,12 +1556,19 @@ Object.values(groups).forEach((g) => root.add(g));
     sprite.userData.surface = "region_marker";
     regionMarkers.add(sprite);
     // A post from the marker to the ground, so it reads as standing somewhere.
-    const post = new THREE.Mesh(postGeometry, postMaterial);
-    post.position.set(x, 75 + PENINSULA_Y, -y);
-    post.userData.hideWithin = REGION_MARKER_HIDE_M;
-    regionMarkers.add(post);
+    postsAt.push([x, 75 + PENINSULA_Y, -y]);
     // Regional extents are a loading boundary, not a physical rectangle on land
     // or sea. Keep the navigable signpost; do not draw a box through the ocean.
+  }
+  if (postsAt.length) {
+    const posts = new THREE.InstancedMesh(postGeometry, postMaterial, postsAt.length);
+    const m = new THREE.Matrix4();
+    postsAt.forEach(([x, y, z], i) => posts.setMatrixAt(i, m.makeTranslation(x, y, z)));
+    posts.computeBoundingSphere();
+    posts.userData.posts = postsAt;
+    posts.userData.postShown = postsAt.map(() => true);
+    posts.userData.hideWithin = REGION_MARKER_HIDE_M;
+    regionMarkers.add(posts);
   }
 })();
 //: Closer than this to a region's marker you are at the region, and the tile tree is drawing
@@ -2318,15 +2332,42 @@ function yieldFrame(progress) {
     // it began, and the build did one step a frame: 88% of a square's sixteen seconds waiting.
     const go = () => { if (!settled) { settled = true; lastYieldAt = performance.now(); resolve(); } };
     if (typeof document !== "undefined" && document.hidden) { yieldWaiters.push(go); yieldChannel.port2.postMessage(0); return; }
+    // One window's slice a frame. Every window -- this page's and each square attached to it --
+    // builds with its own budget, and two squares building at once took a slice each between
+    // the same two frames: twice the budget, and the walk stuttered while both were going
+    // (measured 2026-11-05). A window that finds another has had this frame waits for the next.
+    const turn = globalThis.__kerbsideBuildTurn || (globalThis.__kerbsideBuildTurn = { at: -1e9, owner: null, frame: -1 });
+    const take = () => {
+      if (settled) return;
+      const t = performance.now(), frames = globalThis.__kerbsideFrames ?? -1;
+      if (viewMoving() && turn.owner !== BUILD_OWNER && turn.frame === frames && t - turn.at < BUILD_TURN_WAIT_MS) {
+        setTimeout(take, 8);
+        return;
+      }
+      turn.at = t; turn.owner = BUILD_OWNER; turn.frame = frames;
+      go();
+    };
     // The rest: the build gives the machine this long between slices of work.
     // A frame when one comes, but never waiting on one: a browser on battery, or a tab it has
     // decided is in the background, stops handing out frames, and a build that waited fifty
     // milliseconds for each of thousands of yields then took the better part of an hour.
     const rest = QUALITY().restMs;
-    requestAnimationFrame(() => setTimeout(go, rest));
-    setTimeout(go, rest + 8);
+    requestAnimationFrame(() => setTimeout(take, rest));
+    setTimeout(take, rest + 8);
   });
 }
+//: This window, as the owner of a build slice (see yieldFrame).
+const BUILD_OWNER = {};
+//: How long a window waits for a frame to be drawn before it builds anyway: a page that draws no
+//: frames (one being exported, a browser holding them back) must still finish its build.
+const BUILD_TURN_WAIT_MS = 120;
+//: While the view moves -- a walk, a drag, a jump on its way -- the build takes a short slice, so
+//: a frame with a slice in it is still a frame of a walk rather than a stumble. At rest it takes
+//: the preset's full budget again.
+const MOVING_SLICE_MS = 8;
+const MOVING_HOLD_MS = 800;
+function viewMoving() { return performance.now() - (globalThis.__kerbsideMovedAt || -1e9) < MOVING_HOLD_MS; }
+function sliceBudget() { return viewMoving() ? Math.min(YIELD_BUDGET_MS, MOVING_SLICE_MS) : YIELD_BUDGET_MS; }
 const yieldChannel = new MessageChannel();
 const yieldWaiters = [];
 yieldChannel.port1.onmessage = () => { const go = yieldWaiters.shift(); if (go) go(); };
@@ -2334,7 +2375,7 @@ yieldChannel.port1.onmessage = () => { const go = yieldWaiters.shift(); if (go) 
 if (typeof yieldChannel.port1.unref === "function") yieldChannel.port1.unref();
 //: Yield only when the budget is spent: the caller can ask on every iteration.
 function maybeYield(progress) {
-  if (performance.now() - lastYieldAt < YIELD_BUDGET_MS) return null;
+  if (performance.now() - lastYieldAt < sliceBudget()) return null;
   return yieldFrame(progress);
 }
 //: The lift of the building being built. Its walls are lifted in their own geometry; the
@@ -3499,9 +3540,21 @@ function latticeAt(x, z) {
   return spacing;
 }
 
-function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_CHORD_M,
+//: refineForTerrain in one call; refineForTerrainSteps the same work yielding every few thousand
+//: triangles, for the lift of a window being built while someone walks (liftOntoGroundAsync): a
+//: forty-thousand-vertex piece refined in one go held a frame for 0.15-0.3 s (2026-11-05).
+function refineForTerrain(...args) { return runSteps(refineForTerrainSteps(...args)); }
+function runSteps(steps) { let r; while (!(r = steps.next()).done); return r.value; }
+//: A generator run between frames, inside the build's slice.
+async function runStepsSliced(steps) {
+  let r;
+  while (!(r = steps.next()).done) if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();
+  return r.value;
+}
+const REFINE_TRIANGLES_PER_STEP = 512;
+function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_CHORD_M,
                           minEdge = TERRAIN_REFINE_MIN_M, snapToTerrain = false,
-                          adaptive = false) {
+                          adaptive = false, keepSource = false) {
   const position = geometry.getAttribute("position");
   // A multi-material geometry's index ranges are its material groups; splitting would move them.
   if (!position || (geometry.groups && geometry.groups.length)) return geometry;
@@ -3627,9 +3680,13 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   const out = [];
   const stack = [];
   let split = 0;
+  let work = 0;
   for (let t = 0; t + 2 < index.length; t += 3) {
     stack.push(index[t], index[t + 1], index[t + 2]);
     while (stack.length) {
+      // Counted by the triangles examined, not those read in: one large triangle on a hill is
+      // cut into thousands.
+      if (++work % REFINE_TRIANGLES_PER_STEP === 0) yield;
       const c = stack.pop(), b = stack.pop(), a = stack.pop();
       const ab = Math.hypot(px(a) - px(b), pz(a) - pz(b));
       const bc = Math.hypot(px(b) - px(c), pz(b) - pz(c));
@@ -3658,7 +3715,7 @@ function refineForTerrain(geometry, maxEdge = TERRAIN_REFINE_M, chord = TERRAIN_
   names.forEach((n, k) => refined.setAttribute(n, new THREE.Float32BufferAttribute(arrays[k].subarray(0, lengths[k]), sizes[k])));
   refined.setIndex(out);
   refined.userData = geometry.userData;
-  geometry.dispose();
+  if (!keepSource) geometry.dispose();
   return refined;
 }
 
@@ -3924,16 +3981,12 @@ async function liftOntoGroundAsync(object, label) {
       for (const piece of pieces) {
         parent.add(piece);
         piece.updateMatrixWorld(true);
-        const started = performance.now();
-        lifted += liftOneMesh(piece);
-        noteSlowLift("standing a piece of", piece, piece.geometry?.getAttribute("position"), started);
+        lifted += await runStepsSliced(liftOneMeshSteps(piece));
         await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
       }
       continue;
     }
-    const started = performance.now();
-    lifted += liftOneMesh(mesh);
-    noteSlowLift("standing one", mesh, position, started);
+    lifted += await runStepsSliced(liftOneMeshSteps(mesh));
     await maybeYield(`${label}: ${Math.round(100 * i / meshes.length)}%`);
   }
   return lifted;
@@ -3949,7 +4002,8 @@ const LIFT_SPLIT_VERTICES = 40000;
 const LIFT_SPLIT_M = 120;
 const LIFT_SPLIT_MIN_VERTICES = 3000;
 const LIFT_M4 = new THREE.Matrix4(), LIFT_Q = new THREE.Quaternion(), LIFT_POS = new THREE.Vector3(), LIFT_SCL = new THREE.Vector3();
-function liftOneMesh(o) {
+function liftOneMesh(o) { return runSteps(liftOneMeshSteps(o)); }
+function* liftOneMeshSteps(o) {
   const m = LIFT_M4, q = LIFT_Q, pos = LIFT_POS, scl = LIFT_SCL;
   {
     if (!o.isMesh || o.userData.liftedOntoGround) return 0;
@@ -3969,14 +4023,18 @@ function liftOneMesh(o) {
     }
     if (!o.geometry || !o.geometry.getAttribute("position")) return 0;
     const [limit, chord, minEdge, snapToTerrain, adaptive] = TERRAIN_REFINE_BY_SURFACE[o.userData.surface] || [TERRAIN_REFINE_M, TERRAIN_CHORD_M];
-    o.geometry = refineForTerrain(o.geometry, limit, chord, minEdge, snapToTerrain, adaptive);
-    const attribute = o.geometry.getAttribute("position");
+    // Refined into its own geometry and swapped in whole, so a frame drawn meanwhile draws the
+    // mesh as it was, not half cut.
+    const source = o.geometry;
+    const refined = yield* refineForTerrainSteps(source, limit, chord, minEdge, snapToTerrain, adaptive, true);
+    const attribute = refined.getAttribute("position");
     // Vertices are lifted in the world frame; a mesh that is placed rather than built where
     // it stands gets the lift on its own local axes.
     const world = o.matrixWorld;
     const inverse = new THREE.Matrix3().setFromMatrix4(world.clone().invert());
     const v = new THREE.Vector3(), up = new THREE.Vector3();
     for (let i = 0; i < attribute.count; i += 1) {
+      if ((i & 4095) === 4095) yield;
       v.set(attribute.getX(i), attribute.getY(i), attribute.getZ(i)).applyMatrix4(world);
       // A cut road is lifted by its own level AFTER subdivision. Interpolating
       // a pre-lift delta and then sampling a different ground function produced
@@ -3994,12 +4052,14 @@ function liftOneMesh(o) {
     // no slope lighting. Recompute only terrain-conforming covers, not building walls.
     if (["park", "yard", "court", "plaza", "front_walk", "neutral_ground", "service_yard", "park:play_surface",
          "park:skatepark_surface"].includes(o.userData.surface) || String(o.userData.surface||'').startsWith('inferred:')) {
-      o.geometry.computeVertexNormals();
+      refined.computeVertexNormals();
     }
     // The bounds are what the culling reads; a tile lifted eighty metres up Nob Hill with the
     // sphere it had at sea level would vanish whenever the camera looked at it.
-    o.geometry.computeBoundingSphere();
-    if (o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    refined.computeBoundingSphere();
+    if (refined.boundingBox) refined.computeBoundingBox();
+    o.geometry = refined;
+    if (refined !== source) source.dispose();
     return 1;
   }
 }
@@ -5095,14 +5155,36 @@ function tileGroundAt(x, z) { return natureVisualHeightAt(x, z, null, false); }
 const TILE_BOX = new THREE.BoxGeometry(1, 1, 1);
 // Refined terrain must not bury an already-resident neighbouring city tile. Rebase its
 // display geometry in place, retaining every triangle and avoiding network re-downloads.
+//: The overview tiles stood again on ground that has just come in, a mesh at a time between
+//: frames: all of them in one call held a walking frame for a quarter of a second (2026-11-05).
+//: Each mesh keeps the ground it was last stood on, so a mesh done later is done the same.
+const natureHeightQueue = [], natureHeightQueued = new Set();
+let natureHeightPumping = false;
 function syncNatureTileHeights(boxes) {
   if(typeof TILES==="undefined")return;
   for(const tile of TILES.values()) {
     if(!tile.group)continue;
     const [w,s,e,n]=tile.bbox;
     if(!boxes.some(b=>w<b[2]&&e>b[0]&&s<b[3]&&n>b[1]))continue;
-    tile.group.traverse(o=>{
-      if(!o.isMesh)return;
+    tile.group.traverse(o=>{ if(o.isMesh && !natureHeightQueued.has(o)) { natureHeightQueued.add(o); natureHeightQueue.push(o); } });
+  }
+  if (!natureHeightPumping && natureHeightQueue.length) { natureHeightPumping = true; setTimeout(pumpNatureTileHeights, 0); }
+}
+//: The mesh being restood, part done: a large overview mesh is its new heights worked out over
+//: several slices and then set in one go, so it is never drawn half moved.
+let natureHeightSteps = null;
+function pumpNatureTileHeights() {
+  const until = performance.now() + 6;
+  while ((natureHeightSteps || natureHeightQueue.length) && performance.now() < until) {
+    if (!natureHeightSteps) { const o = natureHeightQueue.shift(); natureHeightQueued.delete(o); natureHeightSteps = restandNatureMeshSteps(o); }
+    if (natureHeightSteps.next().done) natureHeightSteps = null;
+  }
+  if (natureHeightSteps || natureHeightQueue.length) setTimeout(pumpNatureTileHeights, 0); else natureHeightPumping = false;
+}
+function restandNatureMesh(o) { for (const _ of restandNatureMeshSteps(o)); }
+function* restandNatureMeshSteps(o) {
+    {
+      if(!o.parent)return;
       if(o.userData.natureMassing) {
         const a=o.userData.natureMassing,m=new THREE.Matrix4();
         for(let i=0;i<o.count;i++){
@@ -5118,14 +5200,16 @@ function syncNatureTileHeights(boxes) {
           for(let i=b.first;i<b.end;i++)p.setY(i,p.getY(i)+delta);b.base=next;
         }
       }else if(o.userData.natureBases) {
-        const base=o.userData.natureBases;
+        const base=o.userData.natureBases,next=new Float64Array(p.count);
         for(let i=0;i<p.count;i++){
-          const next=tileGroundAt(p.getX(i),p.getZ(i));p.setY(i,p.getY(i)+next-base[i]);base[i]=next;
-        }o.geometry.computeVertexNormals();
+          if((i&2047)===2047)yield;
+          next[i]=tileGroundAt(p.getX(i),p.getZ(i));
+        }
+        for(let i=0;i<p.count;i++){p.setY(i,p.getY(i)+next[i]-base[i]);base[i]=next[i];}
+        o.geometry.computeVertexNormals();
       }else return;
       p.needsUpdate=true;o.geometry.computeBoundingSphere();
-    });
-  }
+    }
 }
 
 function tileMassing(rows, f, lonOf, latOf, material) {
@@ -5751,11 +5835,28 @@ function updateTileTree(now, eye = camera) {
   for (const marker of regionMarkers.children) {
     const within = marker.userData.hideWithin;
     if (!within) continue;
+    if (marker.userData.posts) { showRegionPosts(marker, eye, within); continue; }
     marker.visible = Math.hypot(eye.position.x - marker.position.x, eye.position.z - marker.position.z) > within;
   }
   tileStats.drawn = drawn.length;
   tileStats.deepest = drawn.reduce((d, t) => Math.max(d, t.depth), 0);
   prefetchTiles(drawn, eye);
+}
+
+//: The region posts, one instance each: out (scaled to nothing) within `within` of the eye.
+const regionPostMatrix = new THREE.Matrix4();
+function showRegionPosts(posts, eye, within) {
+  const { posts: at, postShown: shown } = posts.userData;
+  let changed = false;
+  for (let i = 0; i < at.length; i += 1) {
+    const show = Math.hypot(eye.position.x - at[i][0], eye.position.z - at[i][2]) > within;
+    if (show === shown[i]) continue;
+    shown[i] = show; changed = true;
+    regionPostMatrix.makeTranslation(at[i][0], at[i][1], at[i][2]);
+    if (!show) regionPostMatrix.scale(new THREE.Vector3(0, 0, 0));
+    posts.setMatrixAt(i, regionPostMatrix);
+  }
+  if (changed) posts.instanceMatrix.needsUpdate = true;
 }
 
 async function loadTileTree() {
@@ -6334,15 +6435,23 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
   mesh.updateMatrixWorld(true);
   const index = geometry.getIndex();
   const triangles = Math.floor((index ? index.count : position.count) / 3);
-  const vertexAt = (t, j) => index ? index.getX(t * 3 + j) : t * 3 + j;
+  // The arrays read once and directly: through getX and getComponent, a value at a time, the
+  // cutting was a fifth of a second a street mesh (2026-11-05). A plain attribute's array holds
+  // exactly what those return; an interleaved or normalised one is still read through them.
+  const plain = (a) => !a.isInterleavedBufferAttribute && !a.normalized;
+  const indexArray = index && plain(index) ? index.array : null;
+  const vertexAt = indexArray ? (t, j) => indexArray[t * 3 + j]
+    : (t, j) => index ? index.getX(t * 3 + j) : t * 3 + j;
   // Each triangle's centre, once; then the tile size at which the tiles are worth drawing.
   const centres = new Float32Array(triangles * 2);
   const v = new THREE.Vector3();
+  const P = plain(position) && position.itemSize === 3 ? position.array : null;
   for (let t = 0; t < triangles; t += 1) {
     let cx = 0, cz = 0;
     for (let j = 0; j < 3; j += 1) {
       const i = vertexAt(t, j);
-      v.set(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(mesh.matrixWorld);
+      if (P) v.set(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]); else v.set(position.getX(i), position.getY(i), position.getZ(i));
+      v.applyMatrix4(mesh.matrixWorld);
       cx += v.x; cz += v.z;
     }
     centres[t * 2] = cx / 3; centres[t * 2 + 1] = cz / 3;
@@ -6379,8 +6488,11 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
       const src = geometry.getAttribute(n);
       const size = src.itemSize;
       const arr = new Float32Array(order.length * size);
+      const A = plain(src) ? src.array : null;
       for (let a = 0; a < order.length; a += 1) {
-        for (let c = 0; c < size; c += 1) arr[a * size + c] = src.getComponent(order[a], c);
+        const o = order[a] * size;
+        if (A) for (let c = 0; c < size; c += 1) arr[a * size + c] = A[o + c];
+        else for (let c = 0; c < size; c += 1) arr[a * size + c] = src.getComponent(order[a], c);
       }
       g.setAttribute(n, new THREE.BufferAttribute(arr, size));
     }
@@ -8167,12 +8279,19 @@ function dashedLine(points, color, opacity, y) {
 const LABEL_SCREEN_H = { street: 0.030, district: 0.042 };
 const LABEL_RANGE_M = { street: 420, district: 6000 };
 
+//: A label held at three per cent of the view is 28 CSS pixels tall, 56 on a Retina screen,
+//: and its plate is three fifths of the canvas: 64 rows still give every screen pixel a texel
+//: of its own. At 128 the 275 region markers held 96 MB of pictures nobody could see the
+//: difference of. A district name stands larger and keeps the full canvas.
+const LABEL_CANVAS_SCALE = { street: 0.5, district: 1 };
 function labelSprite(text, color = "#edf5f5", kind = "street") {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 128;
+  const scale = LABEL_CANVAS_SCALE[kind] || LABEL_CANVAS_SCALE.street;
+  canvas.width = 512 * scale;
+  canvas.height = 128 * scale;
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.scale(scale, scale);   // laid out on the 512 x 128 plate it always was
+  ctx.clearRect(0, 0, 512, 128);
   ctx.fillStyle = "rgba(7, 16, 19, 0.70)";
   ctx.strokeStyle = "rgba(214, 231, 234, 0.26)";
   ctx.lineWidth = 3;
@@ -19674,7 +19793,9 @@ const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
 });
 let builtWays = 0;
 for (const way of DRAW_ORDER) {
- if ((++builtWays & 31) === 0) await maybeYield(`Building the streets: ${Math.round(100 * builtWays / DRAW_ORDER.length)}%`);
+ // The budget is asked after every way, not every thirty-second: a run of thirty-two buildings
+ // was a third of a second of a walking frame. Asking only reads the clock.
+ ++builtWays; if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame(`Building the streets: ${Math.round(100 * builtWays / DRAW_ORDER.length)}%`);
  const centralDeck = CENTRAL_FREEWAY_WAYS.includes(way) ? centralFreewayProfile(way) : null;
  WAY_LIFT = centralDeck || BRIDGE_LIFTS.get(way) || (["street","sidewalk","path","wall"].includes(way.kind)
    && !way.bridge && !(Number(way.layer)>0) && wayFollowsCut(way) ? cutRibbonLiftAt
@@ -20272,7 +20393,7 @@ function addDividedMedians() {
 // corner of every junction, which completes the corners no way ends at (addJunctionSquares).
 const cornersLaid = addPavementCorners();
 const squaresLaid = addJunctionSquares();
-if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
+if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const frontageFilled = addFrontageFill();
 //: The tactile pads at the crossings' ends, laid now that every pavement and corner piece is
 //: down, each on top of the pavement it stands on. They used to be laid with the crossing at
@@ -20544,7 +20665,7 @@ function fillRoadwayToKerbs() {
   }
   return counts;
 }
-if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
+if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const roadwayFilled = fillRoadwayToKerbs();
 
 function addClosedOfficialIslandSurfaces() {
@@ -20897,6 +21018,8 @@ function soilTexture() {
 }
 
 const GRASS_TEXTURES = new Map();
+//: Every window's lawns, painted once for the page (grassTexture). Not disposed with a window.
+const SHARED_GRASS = globalThis.__kerbsideGrass ??= new Map();
 //: A dozen kinds of lawn, told apart by how the grass grows on them rather than by a palette:
 //: how long the blades are, how many, how thick, how green, and how much of the ground shows
 //: through as straw and soil. Every lawn polygon draws one of these, chosen by a hash of its
@@ -20937,6 +21060,9 @@ function hslToBytes(h, s, l, out, at) {
 function grassTexture(kind = "yard", variant = 0) {
   const key = `${kind}:${variant}`;
   if (GRASS_TEXTURES.has(key)) return GRASS_TEXTURES.get(key);
+  // The same lawn in every window: each painted its own (a quarter of a million pixels and a
+  // few thousand blades a texture, a freeze of a walking frame each) and held its own on the GPU.
+  if (SHARED_GRASS.has(key)) { GRASS_TEXTURES.set(key, SHARED_GRASS.get(key)); return SHARED_GRASS.get(key); }
   // No pattern at any scale. This used to be a base green with a hundred soft patches, a set
   // of mowing lines and a field of blades, tiled every four metres -- and a patch or a mowing
   // line is a feature, so from any height the eye found the same feature every four metres
@@ -21036,7 +21162,9 @@ function grassTexture(kind = "yard", variant = 0) {
   texture.repeat.set(1, 1);
   texture.anisotropy = 8;
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.userData.shared = true;
   GRASS_TEXTURES.set(key, texture);
+  SHARED_GRASS.set(key, texture);
   return texture;
 }
 
@@ -21171,7 +21299,9 @@ function grassRasterRows(rings, west, south, width, height, step) {
   });
 }
 
-function grassHardMask(excludeAt, rings = null) {
+//: Async: a row at a time between frames -- the whole window in one go held a walking frame for
+//: 0.2-0.4 s (2026-11-05).
+async function grassHardMask(excludeAt, rings = null) {
   const b=typeof BUILD_WINDOW!=="undefined" && BUILD_WINDOW
     ? {west:BUILD_WINDOW.box[0],south:BUILD_WINDOW.box[1],east:BUILD_WINDOW.box[2],north:BUILD_WINDOW.box[3]} : bbox;
   const [bw, bs] = xy(b.west, b.south), [be, bn] = xy(b.east, b.north);
@@ -21188,6 +21318,7 @@ function grassHardMask(excludeAt, rings = null) {
   // grass mesh cannot contribute a fragment; querying them dominated startup.
   const rows = rings ? grassRasterRows(rings, west, south, width, height, step) : null;
   for (let iy = 0; iy < height; iy += 1) {
+    await maybeYield();
     const y = south + (iy + 0.5) * step;
     for (const [first, end] of rows ? rows[iy] : [[0, width]]) for (let ix = first; ix < end; ix += 1) {
       const x = west + (ix + 0.5) * step, z = -y;
@@ -23159,7 +23290,7 @@ const groundReady = (async () => {
   const grassRings = classifiedGround
     ? [...(ground.lawns || []), ...(ground.backyards || [])]
     : (ground.yards || []);
-  const grassMask = grassHardMask(excludeGrassAt,
+  const grassMask = await grassHardMask(excludeGrassAt,
     [...(ground.parks || []), ...grassRings].map((item) => item.p));
   if(grassLibrary){
     const grid=new Map();
@@ -23623,7 +23754,7 @@ function worldSupportedPieces(record, side) {
   flush();
   return pieces;
 }
-if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
+if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const worldSweepsDrawn = emitWorldSweeps();
 flushMerged(groups.streets, (key) => !isBuilt(key));
 flushMerged(groups.mapped3d, isBuilt);
@@ -23694,12 +23825,18 @@ if (worldSweepsDrawn || worldMeshesDrawn) {
 // flared over APRON_FLARE_M beyond the door on each side.
 //: Longest triangle edge left over a driveway's drop, so the ramp has vertices to bend on.
 const DROP_MAX_EDGE_M = 0.9;
-function subdivideNearDrops(geometry, grid, cell) {
+//: A generator: the build runs it between frames (dropKerbsAtDrivewaysSteps). The arrays of a
+//: plain attribute are read directly -- getX and getComponent a value at a time were most of its
+//: half second a window (2026-11-05); they return the same numbers.
+function* subdivideNearDropsSteps(geometry, grid, cell) {
   const source = geometry.getAttribute("position");
   // Quick test first: does any triangle of this mesh reach into a driveway at all?
   const index = geometry.getIndex();
   const triangles = index ? index.count / 3 : source.count / 3;
-  const vertexOf = (t, k) => (index ? index.getX(t * 3 + k) : t * 3 + k);
+  const plain = (a) => !a.isInterleavedBufferAttribute && !a.normalized;
+  const I = index && plain(index) ? index.array : null;
+  const vertexOf = I ? (t, k) => I[t * 3 + k] : (t, k) => (index ? index.getX(t * 3 + k) : t * 3 + k);
+  const SP = plain(source) && source.itemSize === 3 ? source.array : null;
   const dropsFor = (minX, maxX, minZ, maxZ) => {
     const found = new Set();
     for (let ix = Math.floor(minX / cell); ix <= Math.floor(maxX / cell); ix += 1) {
@@ -23714,11 +23851,12 @@ function subdivideNearDrops(geometry, grid, cell) {
   const near = new Uint8Array(triangles);
   let any = false;
   for (let t = 0; t < triangles; t += 1) {
+    if ((t & 8191) === 8191) yield;
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, high = false;
     for (let k = 0; k < 3; k += 1) {
       const v = vertexOf(t, k);
-      const x = source.getX(v), z = source.getZ(v);
-      if (source.getY(v) >= ROAD_TOP_M + 0.03) high = true;
+      const x = SP ? SP[v * 3] : source.getX(v), z = SP ? SP[v * 3 + 2] : source.getZ(v);
+      if ((SP ? SP[v * 3 + 1] : source.getY(v)) >= ROAD_TOP_M + 0.03) high = true;
       minX = Math.min(minX, x); maxX = Math.max(maxX, x);
       minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
     }
@@ -23747,12 +23885,16 @@ function subdivideNearDrops(geometry, grid, cell) {
     else { const m = mid(r, p); split(p, q, m, depth + 1); split(m, q, r, depth + 1); }
   };
   const attrs = names.map((n) => geometry.getAttribute(n));
+  const raw = attrs.map((a) => (plain(a) ? a.array : null));
   for (let t = 0; t < triangles; t += 1) {
+    if ((t & 4095) === 4095) yield;
     if (near[t]) { split(read(vertexOf(t, 0)), read(vertexOf(t, 1)), read(vertexOf(t, 2)), 0); continue; }
     for (let k = 0; k < 3; k += 1) {
       const v = vertexOf(t, k);
       for (let a = 0; a < attrs.length; a += 1) {
-        for (let c = 0; c < sizes[a]; c += 1) out[a].push(attrs[a].getComponent(v, c));
+        const A = raw[a], n = sizes[a], dst = out[a];
+        if (A) for (let c = 0; c < n; c += 1) dst.push(A[v * n + c]);
+        else for (let c = 0; c < n; c += 1) dst.push(attrs[a].getComponent(v, c));
       }
     }
   }
@@ -23787,11 +23929,13 @@ function photoKerbDrop(g) {
   photoDropStats.noKerb += 1;
   return null;
 }
-function dropKerbsAtDriveways(ways) {
+function* dropKerbsAtDrivewaysSteps(ways) {
   const cell = 6.0;
   const grid = new Map();
   let openings = 0;
+  let seen = 0;
   for (const way of ways) {
+    if ((++seen & 255) === 0) yield;
     // Every cut the city measured, whichever house's door it turned out to be.
     const cuts = way.kerb_cuts || way.garages;
     if (way.kind !== "building" || !cuts) continue;
@@ -23849,17 +23993,19 @@ function dropKerbsAtDriveways(ways) {
   if (!openings) return 0;
   const gutter = ROAD_TOP_M + 0.002;
   let lowered = 0;
-  groups.streets.traverse((o) => {
-    if (!o.isMesh || !["walk", "walk_narrow", "kerb"].includes(o.userData.surface)) return;
+  const dropped = [];
+  groups.streets.traverse((o) => { if (o.isMesh && ["walk", "walk_narrow", "kerb"].includes(o.userData.surface)) dropped.push(o); });
+  for (const o of dropped) {
     // The kerb and the pavement carry a vertex every few metres along the street. Lowering only
     // the ones inside a driveway let the drop run on, as one long slope, to the next vertex
     // outside it -- a diagonal slice out of the kerb metres long. The triangles over a driveway
     // are split first, so the drop is made exactly where the driveway is and nowhere else.
-    const finer = subdivideNearDrops(o.geometry, grid, cell);
+    const finer = yield* subdivideNearDropsSteps(o.geometry, grid, cell);
     if (finer !== o.geometry) { o.geometry.dispose(); o.geometry = finer; }
     const pos = o.geometry.getAttribute("position");
     let touched = false;
     for (let i = 0; i < pos.count; i += 1) {
+      if ((i & 8191) === 8191) yield;
       const y = pos.getY(i);
       if (y < ROAD_TOP_M + 0.03) continue;                 // a face's foot, already at the gutter
       const x = pos.getX(i);
@@ -23892,14 +24038,15 @@ function dropKerbsAtDriveways(ways) {
       o.geometry.computeVertexNormals();
       o.geometry.computeBoundingSphere();
     }
-  });
+    yield;
+  }
   return lowered;
 }
 // Before the lift, while every height is still the flat model's: the drop reads the gutter as
 // ROAD_TOP_M, and run after the lift it let every kerb and pavement near a driveway on a hill
 // down to sea level -- a crater at each garage, eighty metres deep on Nob Hill.
-if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
-const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);
+if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
+const kerbVerticesDropped = await runStepsSliced(dropKerbsAtDrivewaysSteps(DATA.ways));
 Object.assign(garageStats, { photoKerbCuts: photoDropStats.cut, photoKerbMissing: photoDropStats.noKerb });
 // Everything at ground level stands on the ground the lidar measured (the tunnels carry their own).
 await liftOntoGroundAsync(groups.streets, "Standing the streets on the ground");
@@ -34019,6 +34166,9 @@ function animate(now) {
     renderer.render(scene, camera);
     if (!ATTACH) markBootRendered();
   }
+  // For every window's build (yieldFrame, sliceBudget): a frame has been drawn, and when the
+  // view last moved.
+  if (!ATTACH) { globalThis.__kerbsideFrames = frameCount; globalThis.__kerbsideMovedAt = Math.max(lastMovedAt, lastInputAt); }
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
 }
@@ -35227,6 +35377,10 @@ setTimeout(() => { loadPhotoMaterialLibrary(); }, 1500);
 const geometryRecovery = await Promise.all([
   import(sharedAsset("recoverable-geometry.mjs")), import(sharedAsset("vendor/fflate-0.8.2.mjs")),
 ]).catch(error => { console.warn("Ground buffers retained: recovery codec unavailable", error); return null; });
+// The buffers are deflated in a worker, started from this site (never from the object store,
+// where the module itself may be read from: a worker must be the page's own origin).
+geometryRecovery?.[0].useCompressionWorker?.(new URL("recoverable-geometry-worker.mjs", new URL(
+  document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json", location.href)).href);
 const RELEASE_SURFACES = new Set(["walk", "walk_underlay", "walk_narrow", "marking", "crossing_edges",
   "road", "crossing", "bike", "curb_ramp", "tactile_warning", "parking_lot", "median"]);
 const RELEASE_BYTES_PER_FRAME = 24 << 20;
@@ -36144,7 +36298,8 @@ function emptyTree(object, all = false) {
     for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
       for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"]) {
         const image = m[key]?.image;
-        if (!image) continue;
+        // A picture every window draws with (a photographed facade, a lawn) stays with the page.
+        if (!image || m[key].userData?.shared) continue;
         if (typeof image.close === "function") image.close();
         else if (typeof HTMLCanvasElement !== "undefined" && image instanceof HTMLCanvasElement) image.width = image.height = 0;
       }
@@ -36589,6 +36744,8 @@ function releaseModuleScope() {
   try { tileInFlight = null; } catch (error) { /* kept */ }
   try { tileResidentBytes = null; } catch (error) { /* kept */ }
   try { TILE_OWN_BOXES = null; } catch (error) { /* kept */ }
+  try { natureHeightPumping = null; } catch (error) { /* kept */ }
+  try { natureHeightSteps = null; } catch (error) { /* kept */ }
   try { tileRingsActive = null; } catch (error) { /* kept */ }
   try { tileLastCamera = null; } catch (error) { /* kept */ }
   try { tileLastAt = null; } catch (error) { /* kept */ }

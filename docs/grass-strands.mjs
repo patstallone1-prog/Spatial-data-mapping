@@ -18,12 +18,17 @@ export function triangleGroundSampler(meshes,cell=4){
   for(const mesh of meshes){
     const p=mesh.geometry.getAttribute('position'),index=mesh.geometry.getIndex();
     const count=index?index.count:p.count;
+    // Read straight from plain arrays: through getX a value at a time, with lists made for every
+    // triangle, this was a tenth of a second of a window's build (2026-11-05). Same numbers.
+    const plain=a=>a&&!a.isInterleavedBufferAttribute&&!a.normalized;
+    const P=plain(p)&&p.itemSize===3?p.array:null,I=index&&plain(index)?index.array:null;
+    const vertex=n=>P?[P[n*3],P[n*3+1],P[n*3+2]]:[p.getX(n),p.getY(n),p.getZ(n)];
     for(let i=0;i<count;i+=3){
-      const v=[0,1,2].map(k=>{const n=index?index.getX(i+k):i+k;return [p.getX(n),p.getY(n),p.getZ(n)];});
-      const [a,b,c]=v,den=(b[2]-c[2])*(a[0]-c[0])+(c[0]-b[0])*(a[2]-c[2]);
+      const at=k=>index?(I?I[i+k]:index.getX(i+k)):i+k;
+      const a=vertex(at(0)),b=vertex(at(1)),c=vertex(at(2)),den=(b[2]-c[2])*(a[0]-c[0])+(c[0]-b[0])*(a[2]-c[2]);
       if(Math.abs(den)<1e-10)continue;
-      const minX=Math.floor(Math.min(...v.map(p=>p[0]))/cell),maxX=Math.floor(Math.max(...v.map(p=>p[0]))/cell);
-      const minZ=Math.floor(Math.min(...v.map(p=>p[2]))/cell),maxZ=Math.floor(Math.max(...v.map(p=>p[2]))/cell);
+      const minX=Math.floor(Math.min(a[0],b[0],c[0])/cell),maxX=Math.floor(Math.max(a[0],b[0],c[0])/cell);
+      const minZ=Math.floor(Math.min(a[2],b[2],c[2])/cell),maxZ=Math.floor(Math.max(a[2],b[2],c[2])/cell);
       for(let z=minZ;z<=maxZ;z++)for(let x=minX;x<=maxX;x++){
         const key=`${x}:${z}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push({a,b,c,den});
       }

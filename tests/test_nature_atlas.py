@@ -233,8 +233,13 @@ const mass={isMesh:true,userData:{natureMassing:new Float32Array(1)},count:1,
 mass.values[12]=5;mass.values[13]=2;
 const TILES=new Map([['a',{bbox:[0,0,1,1],group:{traverse:fn=>[road,house,mass].forEach(fn)}}]]);
 """
-        + _extract("syncNatureTileHeights", _page_js())
+        # Restood a mesh at a time between frames; here each pump runs at once, as the call did.
+        + "const setTimeout=(f)=>f();const natureHeightQueue = [], natureHeightQueued = new Set();"
+        + "let natureHeightPumping = false, natureHeightSteps = null;\n"
+        + "\n".join(_extract(name, _page_js()) for name in ("syncNatureTileHeights", "pumpNatureTileHeights",
+                                                            "restandNatureMesh", "restandNatureMeshSteps"))
         + """
+const road_=road;for(const o of [road,house,mass])o.parent={};
 syncNatureTileHeights([[0,0,1,1]]);ground=200;syncNatureTileHeights([[0,0,1,1]]);
 console.log(JSON.stringify({road:road.ys,house:house.ys,massing:mass.values[13],triangles:road.geometry.index.count}));
 """

@@ -57,7 +57,8 @@ def _page_js() -> str:
 
 
 def _extract(name: str, js: str) -> str:
-    head = f"function {name}("
+    # A generator (function*) is found by its star.
+    head = f"function {name}(" if f"function {name}(" in js else f"function* {name}("
     i = js.index(head)
     depth, body = 0, -1
     for k in range(i + len(head) - 1, len(js)):
