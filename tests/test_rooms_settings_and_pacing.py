@@ -199,7 +199,9 @@ def test_regions_are_built_in_this_page_not_loaded_as_another() -> None:
     assert "if (ATTACH) ATTACH.onRoot(root); else scene.add(root);" in js
     assert "if (!ATTACH) animate();" in js and "if (!ATTACH) await loadTileTree();" in js
     attach = _extract("attachRegion", js)
-    assert "location.assign" not in attach and "await import(holder.url)" in attach
+    assert "location.assign" not in attach and "await makeWindow(globalThis.__kerbsideGuest)" in attach
+    factory = _extract("guestFactory", js)
+    assert "export default async function kerbsideWindow(__kerbsideGuestIn)" in factory and "GUEST_FACTORIES.set(located, made)" in factory
     # A region page's own relative fetches are resolved against that page, not this one.
     assert "__kerbsideGuestIn.resolve" in attach
     # One region in full at a time: the one left behind is let go.

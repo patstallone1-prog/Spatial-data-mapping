@@ -46,7 +46,11 @@ def _extract(name: str, js: str) -> str:
     From its body, not from its declaration: a destructured parameter puts a brace in the
     signature, and matching from the first one closes the function before it has started.
     """
-    head = f"function {name}("
+    # A generator (function*) is extracted with its star. An async function is extracted without
+    # its "async" (callers that need it add it).
+    heads = [h for h in (f"function {name}(", f"function* {name}(") if h in js]
+    assert heads, f"{name} not found"
+    head = heads[0]
     i = js.index(head)
     depth = 0
     body = -1
@@ -3030,7 +3034,8 @@ const THREE = { Float32BufferAttribute, BufferGeometry };
     # Flat ground first: nothing bends, only length splits.
     parts.append("let TERRAIN_FRAME = null; let terrainHeightAt = () => 0; "
                  "let groundLiftAt = (x, z) => terrainHeightAt(x, z);")
-    parts.append(_extract("refineForTerrain", js))
+    parts.append(re.search(r"const REFINE_TRIANGLES_PER_STEP = [0-9]+;", js).group(0))
+    parts += [_extract(name, js) for name in ("runSteps", "refineForTerrainSteps", "refineForTerrain")]
     parts.append("""
 // Two triangles making a 40 m x 2 m strip, sharing the diagonal.
 const g = new BufferGeometry();
@@ -3151,8 +3156,9 @@ def test_grass_fragment_mask_catches_paths_inside_large_triangles() -> None:
         "DataTexture: class {constructor(data,width,height,format) {"
         "this.data=data;this.width=width;this.height=height;this.format=format;}},",
         "MeshStandardMaterial: class {constructor(options){this.options=options;}}};",
-        _extract("grassHardMask", js), _extract("maskedGrassMaterial", js),
-        "const mask=grassHardMask((x,z)=>x>1 && -z>1);",
+        "async function maybeYield(){}",
+        "async " + _extract("grassHardMask", js), _extract("maskedGrassMaterial", js),
+        "const mask=await grassHardMask((x,z)=>x>1 && -z>1);",
         "const material=maskedGrassMaterial(null,mask,0.97);",
         "const parkMaterial=maskedGrassMaterial(null,mask,0.97,true);",
         "const shader={uniforms:{},vertexShader:'#include <common>\\n#include <begin_vertex>',"

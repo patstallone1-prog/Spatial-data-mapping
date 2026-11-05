@@ -185,7 +185,7 @@ def test_houses_keep_their_colour_without_a_measured_height_and_roles_reach_the_
     gate = _extract("addGate", js)
     assert "if (!layout.ok) { gateStats.refused += 1;" in gate
     assert "if (!g.photo || !PHOTO_GARAGE_CERTAINTY.has(g.certainty)) continue;" in _extract(
-        "dropKerbsAtDriveways", js)
+        "dropKerbsAtDrivewaysSteps", js)
 
 
 # ---- the house in the frame, panes, mirroring, the stair out front ----

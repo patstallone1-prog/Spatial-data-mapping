@@ -109,10 +109,10 @@ def test_grass_stays_pixel_based_without_large_repeating_features():
 def test_park_follows_survey_grid_and_recomputes_slope_normals():
     js = _page_js()
     assert "park: [4.0, 0.05, 2.0, true]" in js
-    lifted = _extract("liftOneMesh", js)
+    lifted = _extract("liftOneMeshSteps", js)
     assert "groundLiftAt(v.x, v.z)" in lifted
     assert '"park", "yard", "court", "plaza", "front_walk"' in lifted
-    assert "o.geometry.computeVertexNormals();" in lifted
+    assert "refined.computeVertexNormals();" in lifted
 
 
 def test_all_worlds_and_gps_share_exterior_guard():

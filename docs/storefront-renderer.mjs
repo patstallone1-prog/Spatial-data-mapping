@@ -118,8 +118,43 @@ export class Batch {
   }
 }
 
+//: A sign's lettering, laid out on the 1536 x 256 board it always was -- the same size, the same
+//: place -- but drawn on a canvas only as big as the letters and their glow. The board around them
+//: was clear: 1.5 MB of nothing a sign, twice (the canvas and the GPU's copy), 243 signs half a
+//: gigabyte. The texture's repeat and offset put the letters back where the full board had them,
+//: and the clear margin kept round them is what the plane shows past their edges.
+export const SIGN_BOARD = [1536, 256];
+export function signLettering(THREE, text, ink, weight, font, glow = null, makeCanvas = () => document.createElement('canvas')) {
+  const [W, H] = SIGN_BOARD;
+  const probe = makeCanvas(); probe.width = probe.height = 1;
+  const p = probe.getContext('2d');
+  let size = 150; p.font = `${weight} ${size}px ${font}`;
+  while (p.measureText(text).width > 1430 && size > 24) {size -= 2; p.font = `${weight} ${size}px ${font}`;}
+  p.textAlign = 'center'; p.textBaseline = 'middle';
+  const m = p.measureText(text), pad = 4 + (glow ? 28 : 0);
+  const left = m.actualBoundingBoxLeft ?? m.width / 2, right = m.actualBoundingBoxRight ?? m.width / 2;
+  const up = m.actualBoundingBoxAscent ?? size * 0.6, down = m.actualBoundingBoxDescent ?? size * 0.6;
+  const x0 = Math.max(0, Math.floor(W / 2 - left - pad)), x1 = Math.min(W, Math.ceil(W / 2 + right + pad));
+  const y0 = Math.max(0, Math.floor(H / 2 - up - pad)), y1 = Math.min(H, Math.ceil(H / 2 + down + pad));
+  const canvas = makeCanvas(); canvas.width = Math.max(1, x1 - x0); canvas.height = Math.max(1, y1 - y0);
+  probe.width = probe.height = 0;
+  const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = ink; ctx.font = `${weight} ${size}px ${font}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if (glow) {ctx.shadowColor = glow; ctx.shadowBlur = 14;}
+  ctx.fillText(text, W / 2 - x0, H / 2 - y0);
+  const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  // Board UV (u, v) -> this canvas: x = u*W - x0, and (flipY) row = (1-v)*H - y0.
+  map.repeat.set(W / canvas.width, H / canvas.height);
+  map.offset.set(-x0 / canvas.width, (canvas.height - H + y0) / canvas.height);
+  map.wrapS = map.wrapT = THREE.ClampToEdgeWrapping;
+  map.userData.board = {x0, y0, w: canvas.width, h: canvas.height};
+  return map;
+}
+
 export async function createExteriorRenderer(THREE, assetManifest = {}, assetBase = '', options = {}) {
-  const materialCache = new Map(), textures = new Map(), missingAssets = [];
+  const materialCache = new Map(), textures = new Map(), letteringCache = new Map(), missingAssets = [];
   const loader = new THREE.TextureLoader();
   await Promise.all(Object.entries(assetManifest.assets || {}).map(async ([key, row]) => {
     try {
@@ -154,23 +189,19 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
     if (materialCache.has(key)) return materialCache.get(key);
     let map = textures.get(sign.asset);
     if (!map) {
-      const canvas = document.createElement('canvas'); canvas.width = 1536; canvas.height = 256;
-      const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
       const quiet = ['plaque', 'entry_letters', 'door_vinyl'].includes(sign.kind);
       const serif = !face.brand && ['restaurant', 'books', 'bakery', 'hotel'].includes(face.category);
       const onWall=['painted_letters','entry_letters','door_vinyl','channel_letters'].includes(sign.kind);
       const darkBackground=face.identity_band && new THREE.Color(face.identity_band.colour).getHSL({}).l<.4;
-      ctx.fillStyle = sign.ink || (onWall && !darkBackground ? face.palette.accent : face.palette.letter);
+      const ink = sign.ink || (onWall && !darkBackground ? face.palette.accent : face.palette.letter);
       const brandFonts={trader_joes:'"Cooper Black",Georgia,serif',peets:'Georgia,serif',
         walgreens:'"Brush Script MT","Apple Chancery",cursive',philz:'Georgia,serif'};
       const weight = quiet ? 500 : 700, font = brandFonts[face.brand] || (serif ? 'Georgia, serif' : 'Arial, sans-serif');
-      let size = 150; ctx.font = `${weight} ${size}px ${font}`;
-      while (ctx.measureText(sign.text).width > 1430 && size > 24) {size -= 2; ctx.font = `${weight} ${size}px ${font}`;}
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (sign.kind === 'neon') {ctx.shadowColor = face.palette.accent; ctx.shadowBlur = 14;}
-      ctx.fillText(sign.text, 768, 128);
-      map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
-      map.anisotropy = 8;
+      const glow = sign.kind === 'neon' ? face.palette.accent : null;
+      // The same lettering on two stores is one picture: a chain's name in the same ink and type.
+      const lettering = [sign.text, ink, weight, font, glow].join('|');
+      map = letteringCache.get(lettering) || signLettering(THREE, sign.text, ink, weight, font, glow);
+      letteringCache.set(lettering, map);
     }
     const m = new THREE.MeshStandardMaterial({map, transparent: true, alphaTest: 0.05,
       roughness: 0.45, side: THREE.DoubleSide, depthWrite: false,

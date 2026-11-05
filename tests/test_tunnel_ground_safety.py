@@ -278,8 +278,8 @@ console.log(JSON.stringify({buckets:MERGED.size,profile:[...MERGED.values()][0].
  plain:[...MERGED.values()][1].groundLift}));
 """, "addMerged")
     assert result == {"buckets": 2, "profile": 8, "plain": None}
-    lift = _extract("liftOneMesh", _page_js())
-    assert lift.index("refineForTerrain") < lift.index("o.userData.groundLiftFunction(v.x, v.z)")
+    lift = _extract("liftOneMeshSteps", _page_js())
+    assert lift.index("refineForTerrainSteps") < lift.index("o.userData.groundLiftFunction(v.x, v.z)")
 
 
 def test_only_unmeasured_approaches_replace_noisy_terrain_with_a_graded_visual_road():

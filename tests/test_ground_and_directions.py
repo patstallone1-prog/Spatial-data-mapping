@@ -33,7 +33,7 @@ def test_the_coarse_mesh_takes_the_envelope_and_the_tiles_the_landscapes_ground(
     assert "const floor=cityEnvelope(heights,developed,nx+1,ny+1," in runtime
     page = _page_js()
     assert "function tileGroundAt(x, z) { return natureVisualHeightAt(x, z, null, false); }" in page
-    sync = _extract("syncNatureTileHeights", page)
+    sync = _extract("restandNatureMeshSteps", page)
     assert "rawTerrainHeightAt" not in sync and sync.count("tileGroundAt(") == 3
 
 

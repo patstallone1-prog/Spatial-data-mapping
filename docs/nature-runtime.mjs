@@ -5,6 +5,9 @@ import {vegetationAssets,botanicalGeometry,BARK_GRAIN_URL} from './vegetation-ge
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
 const NEAR0=234,NEAR1=338,FAR0=780,FAR1=1066;
+//: How long one piece of the near-detail work (a ground tile, the heights under the city, the
+//: plants clipped to a house) may hold the page before it hands a frame back.
+const NATURE_SLICE_MS=6;
 export function plantLODWeights(range){const a=smooth(NEAR0,NEAR1,range),b=smooth(FAR0,FAR1,range);return [1-a,a-b,b];}
 export function hash2(x, y, salt = 0) {
   let h = Math.imul(x ^ salt, 374761393) ^ Math.imul(y, 668265263);
@@ -403,11 +406,19 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
     const height=heightAt(...p,s.height,wet);
     return {...s,water:wet,p,height,natural,coastSigned:coastWater===null?null:(coastWater?1:-1)*coastDistance};
   };
-  function groundMesh(x0,y0,x1,y1,step,mat){
+  // A near tile is 40,000 points sampled twice each: built in one go it held a walking frame for
+  // 0.2 s. The steps yield a row at a time; the boot's coarse tiles still build in one go.
+  function groundMesh(...args){const steps=groundMeshSteps(...args);let r;while(!(r=steps.next()).done);return r.value;}
+  async function groundMeshSliced(...args){
+    const steps=groundMeshSteps(...args);let r,t=performance.now();
+    while(!(r=steps.next()).done)if(performance.now()-t>NATURE_SLICE_MS){await new Promise(go=>setTimeout(go,0));t=performance.now();}
+    return r.value;
+  }
+  function* groundMeshSteps(x0,y0,x1,y1,step,mat){
     const nx=Math.ceil((x1-x0)/step),ny=Math.ceil((y1-y0)/step),P=[],C=[],I=[],old=[],wet=[],level=[];
     const coast=mat.vertexColors?new Uint8Array((nx+1)*(ny+1)*4):null;
     const coarse=!mat.vertexColors,heights=coarse?new Float32Array((nx+1)*(ny+1)):null,developed=coarse?new Uint8Array((nx+1)*(ny+1)):null;
-    for(let r=0;r<=ny;r++)for(let c=0;c<=nx;c++){
+    for(let r=0;r<=ny;r++,yield)for(let c=0;c<=nx;c++){
       const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r),s=surface(x,y,true,coarse);
       const base=s.water?COVER_COLOURS[11]:s.natural==="beach" ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
       if(coarse){heights[r*(nx+1)+c]=s.height;developed[r*(nx+1)+c]=!s.water&&CITY_COVER.has(s.cover)?1:0;}
@@ -629,7 +640,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const x0=tx*PLANT_TILE_M,y0=ty*PLANT_TILE_M;
     let yieldAt=performance.now();
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
-      if(c%8===0&&performance.now()-yieldAt>12){await new Promise(resolve=>setTimeout(resolve,0));yieldAt=performance.now();}
+      if(performance.now()-yieldAt>NATURE_SLICE_MS){await new Promise(resolve=>setTimeout(resolve,0));yieldAt=performance.now();}
       const a=acceptedTree(c,r,(x,y)=>atlas.ecologicalSample(x,y),blocked,candidateCache);
       if(a){const s=surface(a.x,a.y),h=a.height,R=a.radius,turn=hash2(c,r,41)*Math.PI*2;
         const key=`${a.species}:${hash2(c,r,47)>.5?1:0}`;
@@ -677,8 +688,10 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       if(["bare_rock","scree","shingle"].includes(s.natural)||(s.cover===31&&east&&west&&Math.abs(east.height-west.height)>5))rocks.push({p:[s.p[0],s.height+.25,s.p[1]],scale:[.7,.45,.8],turn:hash2(c,r)*6.28,colour:[.44,.42,.38]});
     }
     const group=new THREE.Group();group.userData.bayWide=true;
+    // The tile's meshes are made between frames too: the group is not drawn until it is done.
+    const breath=async()=>{if(performance.now()-yieldAt>NATURE_SLICE_MS){await new Promise(go=>setTimeout(go,0));yieldAt=performance.now();}};
     const midP=[],midS=[],midK=[],midA=[];
-    for(const [key,items] of trees){const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
+    for(const [key,items] of trees){await breath();const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
       const bark=Boolean(part.material.userData.barkStyle||!part.material.map);
       fadePlant(part.material);motion?.apply(part.material,bark?'bark':'leaves');
       const mesh=instances(part.geometry,part.material,items.map(v=>({...v,colour:part.colour.map(c=>c*v.shade)})));
@@ -690,7 +703,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       for(const v of items){midP.push(v.p[0],v.p[1]+v.scale[1]*.5,v.p[2]);midS.push(v.scale[1]);midK.push(speciesKeys.indexOf(species)*2+Number(variant));midA.push(v.scale[0]*2/v.scale[1]/(144/256));}
     }
     if(midP.length){const middle=treePoints(midP,midS,midK,midA,middleMaterial);middle.userData={surface:'nature_tree_middle',bayWide:true,inferred:true,liftedOntoGround:true};group.add(middle);}
-    for(const [kind,items] of shrubs){
+    for(const [kind,items] of shrubs){await breath();
       const scan=floorKit&&floorKit.SCAN_FOR[kind],grass=floorKit&&floorKit.GRASS_FOR[kind];
       if(grass){for(const v of items){const key=`${grass}:${v.variant%3}`;if(!wildGrass.has(key))wildGrass.set(key,[]);
         wildGrass.get(key).push({...v,scale:[v.scale[1]*1.2,v.scale[1]*1.2,v.scale[1]*1.2],colour:[v.shade,v.shade,v.shade]});}continue;}
@@ -705,7 +718,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const part=assets.undergrowth(kind);group.add(instances(part.geometry,midCardMaterial(part.material),items));continue;
       }
       const part=assets.undergrowth(kind);fadePlant(part.material);motion?.apply(part.material,'shrub');group.add(instances(part.geometry,part.material,items));}
-    for(const [key,items] of wildGrass){const [kind,variant]=key.split(':');const mesh=instances(midGrassGeometry(kind,Number(variant)),midGrassMaterial,items,MID_SCAN_RANGE[1]+5);
+    for(const [key,items] of wildGrass){await breath();const [kind,variant]=key.split(':');const mesh=instances(midGrassGeometry(kind,Number(variant)),midGrassMaterial,items,MID_SCAN_RANGE[1]+5);
       if(mesh){mesh.userData.surface='nature_wild_grass';group.add(mesh);}}
     for(const [kind,items] of [['log',logs]]){if(!items.length)continue;const part=assets.deadwood(kind);fadePlant(part.material);
       if(floorKit)floorKit.rangeFade(part.material,{fadeIn:floorBand,key:'mid-log-v1'});
@@ -713,7 +726,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const rockMesh=instances(sphere,leafMat,rocks);if(rockMesh){rockMesh.traverse(o=>{if(o.isMesh)o.userData.surface='nature_rock';});group.add(rockMesh);}
     const trailP=[],trailC=[],trailI=[];
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};
-    for(const w of nearbyWays(x0+PLANT_TILE_M/2,y0+PLANT_TILE_M/2)||[]){
+    for(const w of nearbyWays(x0+PLANT_TILE_M/2,y0+PLANT_TILE_M/2)||[]){await breath();
       const road=NATURE_ROADS.has(w.kind);
       if(!(w.trail||road)||w.grade_separated||w.area)continue;
       // A road of no stated surface is paved; a trail of none is earth. A road lies just under
@@ -798,7 +811,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       // Bounded concurrency and bounded decoded memory; every region uses identical near detail.
       for(const [key,tx,ty] of jobs){pending.add(key);try{
         const tile=await atlas.loadDetail(key);if(!tile)continue;
-        const mesh=groundMesh(tile.c*10,tile.r*10,(tile.c+tile.cols-1)*10,(tile.r+tile.rows-1)*10,10,terrainMaterial(false,tile.blend));
+        const mesh=await groundMeshSliced(tile.c*10,tile.r*10,(tile.c+tile.cols-1)*10,(tile.r+tile.rows-1)*10,10,terrainMaterial(false,tile.blend));
         mesh.userData.natureCoarse=false;
         const previous=detailMeshes.get(key);terrain.add(mesh);if(previous)drop(previous);detailMeshes.set(key,mesh);
         changed.push([tx,ty]);

@@ -152,14 +152,20 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
     indexedAt = performance.now();
   }
 
+  // A grid cell's key: a number, not a string -- a merged wall is tens of thousands of triangles,
+  // each filed by its cell, and a string per triangle made filing one a 60-70 ms step of the walk.
+  const cellKey = (cx, cz) => (cx + 32768) * 65536 + (cz + 32768);
+
   // Per mesh, once: where each instance (or, for a merged mesh, each triangle) is, by grid cell.
+  // A merged mesh's triangles are kept flat: xz corners six to a triangle (P), and each one's
+  // lowest and highest point (Y).
   function gridOf(c) {
     let g = grids.get(c.o);
     if (g && g.count === (c.o.isInstancedMesh ? c.o.count : 1) && g.version === c.o.matrixWorld.elements[12] + c.o.matrixWorld.elements[14]) return g;
     const o = c.o, cells = new Map(), put = (x, z, item) => {
-      const key = `${Math.floor(x / CELL_M)}:${Math.floor(z / CELL_M)}`;
-      if (!cells.has(key)) cells.set(key, []);
-      cells.get(key).push(item);
+      const key = cellKey(Math.floor(x / CELL_M), Math.floor(z / CELL_M));
+      const list = cells.get(key);
+      if (list) list.push(item); else cells.set(key, [item]);
     };
     o.updateWorldMatrix(true, false);
     if (o.isInstancedMesh) {
@@ -169,18 +175,32 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
       }
     } else if (c.solid) {
       const pos = o.geometry.getAttribute("position"), index = o.geometry.index, n = index ? index.count : pos.count;
-      const tri = [];
-      for (let t = 0; t + 2 < n; t += 3) {
-        const p = [];
+      const count = Math.floor(n / 3), P = new Float64Array(count * 6), Y = new Float64Array(count * 2);
+      // A plain position list is read straight from its array, placed with Vector3.applyMatrix4's
+      // own arithmetic in its order (so every corner is the same number it was).
+      const A = !pos.isInterleavedBufferAttribute && !pos.normalized && pos.itemSize === 3 ? pos.array : null;
+      const I = index && !index.isInterleavedBufferAttribute ? index.array : null, e = o.matrixWorld.elements;
+      for (let t = 0; t < count; t += 1) {
+        const k6 = t * 6;
         let y0 = Infinity, y1 = -Infinity;
         for (let k = 0; k < 3; k += 1) {
-          v.fromBufferAttribute(pos, index ? index.getX(t + k) : t + k).applyMatrix4(o.matrixWorld);
-          p.push(v.x, v.z); if (v.y < y0) y0 = v.y; if (v.y > y1) y1 = v.y;
+          let wx, wy, wz;
+          if (A && (I || !index)) {
+            const j = (I ? I[t * 3 + k] : t * 3 + k) * 3, x = A[j], y = A[j + 1], z = A[j + 2];
+            const w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+            wx = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+            wy = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+            wz = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+          } else {
+            v.fromBufferAttribute(pos, index ? index.getX(t * 3 + k) : t * 3 + k).applyMatrix4(o.matrixWorld);
+            wx = v.x; wy = v.y; wz = v.z;
+          }
+          P[k6 + 2 * k] = wx; P[k6 + 2 * k + 1] = wz; if (wy < y0) y0 = wy; if (wy > y1) y1 = wy;
         }
-        tri.push({ p, y0, y1 });
-        put((p[0] + p[2] + p[4]) / 3, (p[1] + p[3] + p[5]) / 3, tri.length - 1);
+        Y[2 * t] = y0; Y[2 * t + 1] = y1;
+        put((P[k6] + P[k6 + 2] + P[k6 + 4]) / 3, (P[k6 + 1] + P[k6 + 3] + P[k6 + 5]) / 3, t);
       }
-      cells.triangles = tri;
+      cells.triangles = { P, Y };
     } else {
       // A merged soft or descriptive mesh: known by where it is, not triangle by triangle.
       o.geometry.boundingSphere || o.geometry.computeBoundingSphere();
@@ -241,7 +261,7 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
       }
       const g = gridOf(c), gx = Math.floor(x / CELL_M), gz = Math.floor(z / CELL_M);
       for (let dx = -reach; dx <= reach; dx += 1) for (let dz = -reach; dz <= reach; dz += 1) {
-        for (const item of g.cells.get(`${gx + dx}:${gz + dz}`) || []) {
+        for (const item of g.cells.get(cellKey(gx + dx, gz + dz)) || []) {
           if (o.isInstancedMesh) {
             const out = instanceOutline(c, item, feet);
             if (!out) continue;
@@ -251,13 +271,13 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
             described.push({ c, i: item, d, low: out.low, high: out.high, ax: v.x, az: v.z });
             if (out.pts && (c.solid || c.soft)) colliders.push({ c, i: item, pts: out.pts });
           } else if (g.cells.triangles) {
-            const t = g.cells.triangles[item];
-            if (t.y1 <= feet + step || t.y0 >= feet + clearance) continue;
-            const d = Math.hypot((t.p[0] + t.p[2] + t.p[4]) / 3 - x, (t.p[1] + t.p[3] + t.p[5]) / 3 - z);
+            const { P, Y } = g.cells.triangles, k6 = item * 6, low = Y[2 * item], high = Y[2 * item + 1];
+            if (high <= feet + step || low >= feet + clearance) continue;
+            const ax = (P[k6] + P[k6 + 2] + P[k6 + 4]) / 3, az = (P[k6 + 1] + P[k6 + 3] + P[k6 + 5]) / 3;
+            const d = Math.hypot(ax - x, az - z);
             if (d > radius) continue;
-            colliders.push({ c, i: -1, pts: t.p });
-            if (!described.some((e) => e.c === c)) described.push({ c, i: -1, d, low: t.y0, high: t.y1,
-              ax: (t.p[0] + t.p[2] + t.p[4]) / 3, az: (t.p[1] + t.p[3] + t.p[5]) / 3 });
+            colliders.push({ c, i: -1, pts: P.subarray(k6, k6 + 6) });
+            if (!described.some((e) => e.c === c)) described.push({ c, i: -1, d, low, high, ax, az });
           } else if (g.cells.sphere) {
             const s = g.cells.sphere, d = Math.max(0, Math.hypot(s.center.x - x, s.center.z - z) - s.radius);
             if (d <= radius) described.push({ c, i: -1, d, low: s.center.y - s.radius, high: s.center.y + s.radius,

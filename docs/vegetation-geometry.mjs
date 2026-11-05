@@ -206,7 +206,30 @@ export function clipOutsidePrisms(attributes,prisms){
       if(ia!==ib){const t=da/(da-db);result.push(a.map((v,k)=>v+(b[k]-v)*t));}
     }return result;
   };
+  // A triangle every prism rejects outright -- nearly all of a crown, only the boughs at a wall
+  // are cut -- is copied as it is, read from the arrays without building a vertex list: built
+  // for every triangle, the lists were 0.2-0.5 s of a single tree (a walking frame frozen,
+  // 2026-11-05). What comes out is exactly what the full test made of the same triangle.
+  const P=attributes.position.array,pSize=attributes.position.size,live=prisms.filter(p=>p.length);
+  const rejects=(i)=>{
+    const a=i*pSize,b=(i+1)*pSize,c=(i+2)*pSize;
+    for(const prism of live){let out=false;
+      for(const p of prism){
+        if(p[0]*P[a]+p[1]*P[a+1]+p[2]*P[a+2]+p[3]<=1e-8&&p[0]*P[b]+p[1]*P[b+1]+p[2]*P[b+2]+p[3]<=1e-8
+          &&p[0]*P[c]+p[1]*P[c+1]+p[2]*P[c+2]+p[3]<=1e-8){out=true;break;}
+      }
+      if(!out)return false;
+    }return true;
+  };
+  const copyTriangle=(i)=>{
+    const a=i*pSize,b=(i+1)*pSize,c=(i+2)*pSize,u0=P[b]-P[a],u1=P[b+1]-P[a+1],u2=P[b+2]-P[a+2],
+      v0=P[c]-P[a],v1=P[c+1]-P[a+1],v2=P[c+2]-P[a+2];
+    if(Math.hypot(u1*v2-u2*v1,u2*v0-u0*v2,u0*v1-u1*v0)<1e-10)return;
+    for(let k=0;k<3;k++)names.forEach((name,j)=>{const arr=attributes[name].array,size=sizes[j],o=(i+k)*size,dst=out[name];
+      for(let e=0;e<size;e++)dst.push(arr[o+e]);});
+  };
   for(let i=0;i<attributes.position.array.length/3;i+=3){
+    if(rejects(i)){copyTriangle(i);continue;}
     let polys=[[vertex(i),vertex(i+1),vertex(i+2)]];
     for(const prism of prisms){
       if(!prism.length)continue;const next=[];
@@ -510,7 +533,19 @@ diffuseColor.a=min(1.0,diffuseColor.a*(1.0+${gain.toFixed(2)}*lod));}
 //: A card of leaves on twigs: { map, normalMap } textures, `size` pixels square. layout
 //: 'spray': a few twigs of large leaves, a branch-end seen close (street trees); 'crown': many
 //: twigs of smaller leaves, a piece of a crown (the landscape's trees).
+//: Painted once for the page: every window streamed in builds its own vegetation assets, and
+//: each painted these cards again (0.14 s a card, inside a walking frame) and kept its own copy
+//: on the GPU. They are the same card for the same arguments, so they are kept here, shared,
+//: and a window let go leaves them be (userData.shared).
+const LEAF_CARDS=new Map();
 export function leafCardTextures(THREE,{form='broad',layout='spray',size=1024,seed=1}={}){
+  const key=[form,layout,size,seed].join('|');let byThree=LEAF_CARDS.get(THREE);
+  if(!byThree)LEAF_CARDS.set(THREE,byThree=new Map());
+  if(!byThree.has(key)){const pair=paintLeafCard(THREE,{form,layout,size,seed});
+    for(const t of [pair.map,pair.normalMap])if(t)t.userData.shared=true;byThree.set(key,pair);}
+  return byThree.get(key);
+}
+function paintLeafCard(THREE,{form='broad',layout='spray',size=1024,seed=1}={}){
   const make=()=>{const cv=document.createElement('canvas');cv.width=cv.height=size;return cv;};
   const colour=make(),relief=make(),c=colour.getContext('2d'),h=relief.getContext('2d',{willReadFrequently:true});
   h.fillStyle='rgb(128,128,128)';h.fillRect(0,0,size,size);

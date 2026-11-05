@@ -97,7 +97,7 @@ def test_plaza_paving_follows_the_two_metre_lidar_grid() -> None:
     assert "plaza: [2.0, 0, 2.0, true]" in source
     # The fifth argument is the adaptive lattice, which plaza does not take: it asks for two
     # metres everywhere and two metres is already the finest the terrain grid can justify.
-    assert ("o.geometry = refineForTerrain(o.geometry, limit, chord, minEdge, snapToTerrain, adaptive);"
+    assert ("const refined = yield* refineForTerrainSteps(source, limit, chord, minEdge, snapToTerrain, adaptive, true);"
             in source)
     assert "TERRAIN_FRAME.x0 + TERRAIN_FRAME.step_m / 2" in source
 
@@ -322,7 +322,7 @@ def test_grass_texture_has_cached_realistic_variants() -> None:
     assert "ctx.createImageData(size, size)" in source
     assert "if (r1 < spec.brown) {" in source
     assert "mowStep" not in source and "parkPalettes" not in source
-    assert "texture.repeat.set(1, 1);\n  texture.anisotropy = 8;\n  texture.colorSpace = THREE.SRGBColorSpace;\n  GRASS_TEXTURES.set(key, texture);" in source
+    assert "texture.repeat.set(1, 1);\n  texture.anisotropy = 8;\n  texture.colorSpace = THREE.SRGBColorSpace;\n  texture.userData.shared = true;\n  GRASS_TEXTURES.set(key, texture);" in source
     assert "function grassVariantForRing(ring, count)" in source
     assert "const parkVariants = GRASS_VARIANTS;" in source
     assert "const yardVariants = GRASS_VARIANTS;" in source

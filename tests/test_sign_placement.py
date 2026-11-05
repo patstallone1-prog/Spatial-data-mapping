@@ -146,7 +146,8 @@ def test_the_page_draws_every_plate_through_the_one_placement_and_no_all_way_pla
     js = _page_js()
     assert 'label: "ALL WAY"' not in js, "no ALL WAY plaque is inferred"
     assert '!["all_way", "street_name"].includes(plateStyleFor(s))' in js
-    assert "addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads)" in js
+    assert "const plateRecords = officialSigns.concat(osmApproach, generic, corners);" in js
+    assert "addOfficialSignPlates(plateRecords, signalHeads)" in js
     assert "topsByFacing" not in js, "plates are one stack per post, not one per facing"
     body = _extract("addOfficialSignPlates", js)
     assert "placePlate(" in body and "registerPlate(" in body and "clearPostSpot(" in body

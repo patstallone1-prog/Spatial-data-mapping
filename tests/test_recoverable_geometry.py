@@ -94,3 +94,38 @@ def test_compression_waits_for_idle_and_a_release_reads_no_inflated_array():
       compressPending();
     '''
     subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, check=True)
+
+
+def test_buffers_are_deflated_in_a_worker_and_a_stale_answer_is_thrown_away():
+    """The deflate runs off the page's thread (recoverable-geometry-worker.mjs): the page copies
+    the bytes over and takes the result back. An answer for a version since edited is ignored;
+    with no worker the page still compresses, in idle slices."""
+    script = r'''
+      import assert from 'node:assert/strict';
+      import * as real from './docs/vendor/fflate-0.8.2.mjs';
+      const sent = [];
+      globalThis.requestIdleCallback = (fn) => setTimeout(() => fn({ timeRemaining: () => 10 }), 0);
+      globalThis.Worker = class { constructor(url, opts) { this.url = String(url); this.opts = opts; Worker.made = this; }
+        postMessage(m) { sent.push(m); setTimeout(() => this.onmessage({ data: { id: m.id, out: real.deflateSync(m.bytes, { level: 1 }) } }), 5); } };
+      const { makeRecoverable, useCompressionWorker } = await import('./docs/recoverable-geometry.mjs');
+      useCompressionWorker('https://site.test/recoverable-geometry-worker.mjs');
+      let deflates = 0, inflates = 0;
+      const codec = { deflateSync: (...a) => { deflates++; return real.deflateSync(...a); },
+                      inflateSync: (...a) => { inflates++; return real.inflateSync(...a); } };
+      class Attribute { constructor(array){this.array=array;this.version=0;} onUpload(fn){this.onUploadCallback=fn;} }
+      const a = new Attribute(new Float32Array(40000).fill(3)), b = new Attribute(new Float32Array(40000).fill(5));
+      makeRecoverable(a, codec); makeRecoverable(b, codec);
+      a.onUploadCallback(); b.onUploadCallback();
+      await new Promise((r) => setTimeout(r, 2));
+      assert.equal(Worker.made.url, 'https://site.test/recoverable-geometry-worker.mjs');
+      assert.equal(Worker.made.opts.type, 'module');
+      assert.equal(sent.length, 2, 'both sent to the worker');
+      b.array[0] = 9; b.version++;            // edited while its answer is on the way
+      await new Promise((r) => setTimeout(r, 30));
+      assert.equal(deflates, 0, 'nothing deflated on the page');
+      assert.equal(a.recoverableLength, 40000);
+      assert.equal(a.array[39999], 3, 'restored exactly');
+      assert.equal(inflates, 1, 'it had been packed: reading it inflated the worker\'s answer');
+      assert.equal(b.array[0], 9, 'the edit is kept, the stale answer dropped');
+    '''
+    subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, check=True)
