@@ -3449,3 +3449,29 @@ def test_a_pavement_is_not_one_slab_stamped_across_the_city():
     # the slab and one slab's ground shows the whole block squeezed into it.
     assert "/ SLAB_M" not in js, "a pavement UV is still in slab units"
     assert "const WALK_UV_M = SLAB_M * SLAB_BLOCK;" in js
+
+
+def test_inland_water_lies_at_its_own_level_and_its_own_size():
+    """A pond, a fountain or a reservoir above the sea is drawn at its shore's level, not
+    the sea's: its bed is cut below that level and the water is its mapped shape. A body too
+    small for the 2 m grid to draw is a round basin with a kerb of the same area, never a
+    square block of one or two grid cells."""
+    js = _page_js()
+    assert "const INLAND_WATER_MIN_ABOVE_SEA_M = 3.0" in js
+    assert "function inlandWaterAt(x, z)" in js
+    assert "const inland = apron > 0 ? 0 : inlandWaterAt(x, z);" in js
+    assert "if (inland === 1) return { y: edge - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: TERRAIN_BED };" in js
+    assert "INLAND_WATER_BASIN_CELLS" in js and "water.basin" in js
+    assert '"inland-water-rims"' in js
+
+
+def test_the_page_draws_no_loader_of_its_own():
+    """The app shell's "Entering the world" cover is the only loader; the page's own progress
+    line stays in the document for the shell to read but is never drawn."""
+    js = _page_js()
+    page = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
+    assert "#progress { position:fixed; width:1px; height:1px; overflow:hidden;" in page
+    shell = (ROOT / "tools" / "app_template.html").read_text()
+    assert "Entering the world" in shell and "const drawBar = () =>" in shell
+    assert "fill.style.width" not in shell
+    assert js

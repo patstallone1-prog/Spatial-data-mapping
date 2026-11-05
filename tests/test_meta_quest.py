@@ -133,7 +133,7 @@ def test_the_page_puts_the_headset_mode_together():
     assert "HEADSET_PENDING.set(m, m.map); m.map = null;" in source
     assert "headsetSettlePictures(); headsetSimplify(scene);" in source
     assert "if (META && on) return;   // no explore mode in the headset" in source
-    assert "options.travel && !META && !state.explore" in source
+    assert "teleportTrip" not in source   # no hop animation anywhere, headset included
     assert "if (META) return null;   // the headset holds only the blocks round you" in source
     assert "if (META) { tileFill.rect = null; return; }" in source
     # Always noon, whatever is asked of the sky later.

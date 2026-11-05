@@ -3063,7 +3063,9 @@ input::placeholder { color:#9ca3af; }
 #addr .addr-edit { margin-top:8px; border:0; border-radius:8px; padding:5px 10px; background:#1f6feb; color:#fff; font:inherit; cursor:pointer; }
 #nearby { position:fixed; left:16px; top:72px; z-index:9; width:min(340px, calc(100vw - 24px)); padding:9px 12px; border-radius:12px; background:rgba(17,24,39,.86); color:#fff; font-size:12px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none; }
 #nearby .head { font-weight:600; margin-bottom:4px; } #nearby .row { margin-top:5px; } #nearby .sub { color:#cbd5e1; font-size:11px; }
-#progress { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; color:var(--ink); padding:14px 22px; border-radius:14px; font-size:15px; box-shadow:var(--shadow); z-index:20; pointer-events:none; }
+/* The build's own line ("Building the streets: 62%"): read by the Entering the world screen (home-lobby
+   ctx.progress) and by screen readers, never drawn as a box of its own over the world. */
+#progress { position:fixed; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; pointer-events:none; }
 @media (max-width: 760px) {
   .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
   .meta { grid-template-columns:repeat(2, 1fr); }
@@ -3546,10 +3548,9 @@ const forestFloorLibrary = natureLibrary ? await import(sharedAsset("forest-floo
 const globeLibrary = natureLibrary ? await import(sharedAsset("globe.mjs?rev=__GLOBE_HASH__"))
   .catch(error => { console.warn("kerbside: globe unavailable", error); return null; }) : null;
 var globe = null;
-//: A long hop goes by the map (docs/teleport-map.mjs): the overlay, made on the first one.
-const teleportLibrary = natureLibrary ? await import(sharedAsset("teleport-map.mjs?rev=__TELEPORT_MAP_HASH__"))
-  .catch(error => { console.warn("kerbside: teleport map unavailable", error); return null; }) : null;
-var teleportOverlay = null;
+// No hop animation on a long move (it was docs/teleport-map.mjs: the camera pulled up into black,
+// a map played the hop, and the camera came back down). A click goes there at once; the new
+// place streams in round you.
 const NATURE = natureLibrary ? await natureLibrary.loadNatureAtlas(sharedAsset)
   .catch(error => { console.warn("kerbside: landscape evidence unavailable", error); return null; }) : null;
 var natureWorld = null;
@@ -4453,11 +4454,6 @@ Object.values(groups).forEach((g) => root.add(g));
   const REGION_FRAME = 1.4;
   function flyToRegion(region, { now = false } = {}) {
     const [south, west, north, east] = region.bbox;
-    if (!now && teleportLibrary && NATURE && typeof avatar !== "undefined" && !teleportOverlay?.busy) {
-      const [cx, cy] = xy((west + east) / 2, (south + north) / 2);
-      teleportTrip(avatar.position, { x: cx, z: -cy }, () => flyToRegion(region, { now: true }));
-      return;
-    }
     // An overview tile omits signs, lawns and other city details. Load that
     // city's complete survey, preserving the destination and view direction.
     attachRegion(region,{lon:(west+east)/2,lat:(south+north)/2});
@@ -4721,6 +4717,147 @@ if (LANDWATER) {
   }
   TERRAIN.visualData = visual;
   TERRAIN.visualInferredCount = inferred.length;
+}
+// ---- water that is not the sea ----------------------------------------------------------------
+//
+// The map's water is rasterised onto the 2 m grid (VISUAL_SUPPORT) and every water cell was drawn
+// as the sea, at the sea's height. A fountain on a plaza or a pond in a park is water at its own
+// level and its own shape: a twenty-square-metre fountain came out as a few square cells sunk to
+// sea level -- a square hole of blue -- and a lake up a hill as a pit with the sea at its bottom.
+// So the grid's water is taken a body at a time (each connected run of water cells): one whose
+// shore stands clear of the sea, and which does not run off the grid's edge, is inland water. Its
+// cells are its bed, let down under it, and it is drawn flat at the shore's level less a hand --
+// to the map's own outline where this page has it, else to the run's outline smoothed between
+// cell centres (marching squares), never as a block of squares. The sea is untouched.
+//: Three metres: a tidal marsh or a lagoon behind a beach (Crissy Field's stands two metres
+//: up at its shore) is the sea's own water and stays the sea.
+const INLAND_WATER_MIN_ABOVE_SEA_M = 3.0;
+//: The water stands this far under the lowest part of its shore (the 15th percentile, so one low
+//: return at a drain does not sink it), and its bed this far under the water.
+const INLAND_WATER_BELOW_SHORE_M = 0.12;
+const INLAND_WATER_BED_M = 0.6;
+//: A body of water this small (cells of 2 m) is a fountain or a garden pool: its water stands at
+//: the paving round it, a few centimetres proud, or the plaza drawn over it hides it.
+const INLAND_WATER_POOL_CELLS = 40;
+//: And a body this small with no outline of its own is drawn as a round basin (water.basin).
+const INLAND_WATER_BASIN_CELLS = 12;
+const INLAND_BASIN_RIM = { width: 0.3, rise: 0.3, segments: 28 };
+const INLAND_WATER = [];
+let INLAND_MASK = null;
+if (LANDWATER) {
+  const f = TERRAIN_FRAME, data = TERRAIN.data, vis = TERRAIN.visualData, cols = f.cols, rows = f.rows;
+  const sea = TERRAIN.meta.waterline?.surface_m ?? -0.14;
+  const label = new Int32Array(LANDWATER.length).fill(-1);
+  const stack = new Int32Array(LANDWATER.length);
+  const bodies = [];
+  for (let start = 0; start < LANDWATER.length; start += 1) {
+    if (LANDWATER[start] !== 1 || label[start] >= 0) continue;
+    const id = bodies.length, cells = [], shore = [];
+    let edge = false, top = 0, c0 = cols, c1 = 0, r0 = rows, r1 = 0;
+    label[start] = id; stack[top++] = start;
+    while (top) {
+      const i = stack[--top], r = Math.floor(i / cols), c = i - r * cols;
+      cells.push(i);
+      if (c < c0) c0 = c; if (c > c1) c1 = c; if (r < r0) r0 = r; if (r > r1) r1 = r;
+      if (r === 0 || c === 0 || r === rows - 1 || c === cols - 1) edge = true;
+      for (let dr = -1; dr <= 1; dr += 1) for (let dc = -1; dc <= 1; dc += 1) {
+        if (!dr && !dc) continue;
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= rows || cc >= cols) continue;
+        const j = rr * cols + cc;
+        if (LANDWATER[j] === 1) {
+          if (label[j] < 0 && (dr === 0 || dc === 0)) { label[j] = id; stack[top++] = j; }
+        } else if (data[j] !== f.nodata) shore.push(f.base_m + data[j] / 100);
+      }
+    }
+    bodies.push({ cells, shore, edge, c0, c1, r0, r1 });
+  }
+  const cellCentre = (c, r) => terrainToPage(f.x0 + (c + 0.5) * f.step_m, f.y0 + (r + 0.5) * f.step_m, f);
+  // The map's own outlines, where this page has them, by the body their middle is in.
+  const rings = new Map();
+  for (const way of DATA.ways || []) {
+    if (way.kind !== "water" || way.coastline_band || !Array.isArray(way.points) || way.points.length < 4) continue;
+    const ring = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    let cx = 0, cz = 0;
+    for (const [x, z] of ring) { cx += x; cz += z; }
+    const [east, north] = pageToTerrain(cx / ring.length, cz / ring.length, f);
+    const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
+    if (r < 0 || c < 0 || r >= rows || c >= cols || label[r * cols + c] < 0) continue;
+    const id = label[r * cols + c];
+    if (!rings.has(id)) rings.set(id, []);
+    rings.get(id).push(ring);
+  }
+  for (const [id, body] of bodies.entries()) {
+    if (body.edge || body.shore.length < 3) continue;
+    body.shore.sort((p, q) => p - q);
+    const pool = body.cells.length <= INLAND_WATER_POOL_CELLS;
+    const level = pool ? body.shore[Math.floor((body.shore.length - 1) * 0.5)] + 0.03
+      : body.shore[Math.floor((body.shore.length - 1) * 0.15)] - INLAND_WATER_BELOW_SHORE_M;
+    if (level < sea + INLAND_WATER_MIN_ABOVE_SEA_M) continue;
+    INLAND_MASK ??= new Uint8Array(LANDWATER.length);
+    const outlines = rings.get(id) || null;
+    for (const i of body.cells) {
+      const r = Math.floor(i / cols), c = i - r * cols;
+      const [x, z] = cellCentre(c, r);
+      const under = !outlines || outlines.some((ring) => pointInRing(x, z, ring));
+      // Under the water, its bed; a cell the raster put outside the map's outline, its shore.
+      INLAND_MASK[i] = under ? 1 : 2;
+      vis[i] = Math.round(((under ? level - INLAND_WATER_BED_M : level + INLAND_WATER_BELOW_SHORE_M) - f.base_m) * 100);
+    }
+    INLAND_WATER.push({ id, level, rings: outlines, body });
+  }
+  // The water's surface for a body with no outline of its own: the run's cells as a field of 1s
+  // and 0s at the cell centres, filled to the 0.5 contour, so its edge runs between centres on
+  // the diagonal where the run does -- a round pond comes out round, not as a stair of squares.
+  for (const water of INLAND_WATER) {
+    if (water.rings) continue;
+    // A pool of a few cells is a fountain's basin, and the cells say only where and how big:
+    // drawn from them it was a square or a diamond of blue two metres across. It is drawn as an
+    // ellipse of the same area along the cells' own spread, in a stone rim (water.basin).
+    if (water.body.cells.length <= INLAND_WATER_BASIN_CELLS) {
+      const pts = water.body.cells.map((i) => cellCentre(i % cols, Math.floor(i / cols)));
+      let mx = 0, mz = 0;
+      for (const [x, z] of pts) { mx += x; mz += z; }
+      mx /= pts.length; mz /= pts.length;
+      let sxx = 0, szz = 0, sxz = 0;
+      for (const [x, z] of pts) { sxx += (x - mx) ** 2; szz += (z - mz) ** 2; sxz += (x - mx) * (z - mz); }
+      const angle = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+      const l1 = (sxx + szz) / 2 + Math.hypot((sxx - szz) / 2, sxz), l2 = (sxx + szz) / 2 - Math.hypot((sxx - szz) / 2, sxz);
+      const area = water.body.cells.length * f.step_m * f.step_m;
+      const ratio = Math.min(2.5, Math.sqrt((l1 + 1) / (Math.max(0, l2) + 1)));
+      const b = Math.sqrt(area / (Math.PI * ratio)), a = b * ratio;
+      water.basin = { x: mx, z: mz, a, b, angle };
+      continue;
+    }
+    const { c0, c1, r0, r1 } = water.body;
+    const inside = (c, r) => r >= 0 && c >= 0 && r < rows && c < cols && label[r * cols + c] === water.id;
+    const tris = [];
+    for (let r = r0 - 1; r <= r1; r += 1) for (let c = c0 - 1; c <= c1; c += 1) {
+      // The square between four cell centres, corners anticlockwise from (c, r).
+      const corner = [[c, r], [c + 1, r], [c + 1, r + 1], [c, r + 1]];
+      const on = corner.map(([cc, rr]) => inside(cc, rr));
+      const count = on.filter(Boolean).length;
+      if (!count) continue;
+      const poly = [];
+      for (let k = 0; k < 4; k += 1) {
+        const [ca, ra] = corner[k], [cb, rb] = corner[(k + 1) % 4];
+        if (on[k]) poly.push([ca, ra]);
+        if (on[k] !== on[(k + 1) % 4]) poly.push([(ca + cb) / 2, (ra + rb) / 2]);
+      }
+      const page = poly.map(([cc, rr]) => terrainToPage(f.x0 + (cc + 0.5) * f.step_m, f.y0 + (rr + 0.5) * f.step_m, f));
+      for (let k = 1; k + 1 < page.length; k += 1) tris.push(page[0], page[k], page[k + 1]);
+    }
+    water.triangles = tris;
+  }
+}
+//: 1 inside a body of inland water (its bed), 2 on the grid's overspill round one (its shore),
+//: 0 elsewhere.
+function inlandWaterAt(x, z) {
+  if (!INLAND_MASK) return 0;
+  const f = TERRAIN_FRAME;
+  const [east, north] = pageToTerrain(x, z, f);
+  const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
+  return r >= 0 && r < f.rows && c >= 0 && c < f.cols ? INLAND_MASK[r * f.cols + c] : 0;
 }
 //: The earth is round, and over a Bay Area it shows. Eight kilometres out the ground is five
 //: metres below the plane you are standing on; at forty it is a hundred and twenty-five. Drawn
@@ -5671,6 +5808,8 @@ const TERRAIN_APRON_STEP_M = 32.0;
 const TERRAIN_APRON_DECAY_M = 700.0;
 const TERRAIN_LAND = new THREE.Color(0x62645b);
 const TERRAIN_SEA = new THREE.Color(0x2c6187);
+//: The ground under a pond, which shows at its edge through the shallows.
+const TERRAIN_BED = new THREE.Color(0x4a4a3c);
 //: Sand: the map's beaches in the atlas, and the low ground beside a beach in the grid.
 const TERRAIN_SAND = new THREE.Color(0xc9b98a);
 const TERRAIN_CONCRETE = new THREE.Color(0x85867e);
@@ -5782,8 +5921,11 @@ function backdropAt(x, z, apron = 0) {
   // perimeter, which has the map's coastline, says otherwise.
   const edge = trenchGroundAt(x, z);
   const wet = apron > 0 ? perimeterWaterAt(x, z) : null;
-  const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);
-  if (mappedWet === true || (mappedWet === null && (wet === true || (wet === null && edge < WATERLINE_M)))) {
+  const inland = apron > 0 ? 0 : inlandWaterAt(x, z);
+  // A pond's or a lake's bed, under its own water (INLAND_WATER); its overspill is shore.
+  if (inland === 1) return { y: edge - TERRAIN_MESH_UNDER_M - earthDrop(x, z), colour: TERRAIN_BED };
+  const mappedWet = apron > 0 || inland === 2 ? null : mappedWaterAt(x, z);
+  if (mappedWet === true || (mappedWet === null && inland !== 2 && (wet === true || (wet === null && edge < WATERLINE_M)))) {
     return { y: SEA_Y - 0.02 - earthDrop(x, z), colour: TERRAIN_SEA };
   }
   let h = edge;
@@ -6033,6 +6175,68 @@ if (TERRAIN_FRAME) {
   addBackdropTile(xsW, zsIn, apronOf); addBackdropTile(xsE, zsIn, apronOf);
   addBackdropTile(xsW, zsN, apronOf); addBackdropTile(xsE, zsN, apronOf);
   addBackdropTile(xsW, zsS, apronOf); addBackdropTile(xsE, zsS, apronOf);
+}
+// Inland water at its own shape and level, one mesh for the region (INLAND_WATER).
+if (INLAND_WATER.length) {
+  const position = [], rim = [];
+  const tri = (a, b, c, level) => {
+    const up = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0;
+    for (const [x, z] of up ? [a, b, c] : [a, c, b]) position.push(x, level - earthDrop(x, z), z);
+  };
+  for (const water of INLAND_WATER) {
+    for (const ring of water.rings || []) {
+      const flat = ring.slice();
+      const [p, q] = [flat[0], flat[flat.length - 1]];
+      if (Math.abs(p[0] - q[0]) < 1e-6 && Math.abs(p[1] - q[1]) < 1e-6) flat.pop();
+      if (flat.length < 3) continue;
+      for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(flat.map(([x, z]) => new THREE.Vector2(x, z)), []))
+        tri(flat[i], flat[j], flat[k], water.level);
+    }
+    const t = water.triangles || [];
+    for (let k = 0; k + 2 < t.length; k += 3) tri(t[k], t[k + 1], t[k + 2], water.level);
+    if (water.basin) {
+      const { x, z, a, b, angle } = water.basin, ca = Math.cos(angle), sa = Math.sin(angle), n = INLAND_BASIN_RIM.segments;
+      const at = (k, grow = 0) => {
+        const t2 = (k / n) * 2 * Math.PI, u = (a + grow) * Math.cos(t2), v = (b + grow) * Math.sin(t2);
+        return [x + u * ca - v * sa, z + u * sa + v * ca];
+      };
+      for (let k = 0; k < n; k += 1) tri([x, z], at(k), at(k + 1), water.level);
+      // The rim: a low stone kerb round the basin, its top and both its faces.
+      const w = INLAND_BASIN_RIM.width, y0 = water.level - 0.1, y1 = water.level + INLAND_BASIN_RIM.rise;
+      for (let k = 0; k < n; k += 1) {
+        const [p, q, P, Q] = [at(k), at(k + 1), at(k, w), at(k + 1, w)];
+        rim.push(...p, y1, ...P, y1, ...Q, y1, ...p, y1, ...Q, y1, ...q, y1);
+        rim.push(...p, y0, ...q, y0, ...q, y1, ...p, y0, ...q, y1, ...p, y1);
+        rim.push(...Q, y0, ...P, y0, ...P, y1, ...Q, y0, ...P, y1, ...Q, y1);
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  const water = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    color: TERRAIN_SEA, roughness: 0.62, metalness: 0.04, envMapIntensity: 0.5, side: THREE.DoubleSide }));
+  water.name = "inland-water";
+  water.userData.surface = "water";
+  water.userData.inlandWater = INLAND_WATER.length;
+  water.renderOrder = -1;
+  if (BUILD_WINDOW) applyBoxClip(water, detailClipBox);
+  root.add(water);
+  if (rim.length) {
+    // Pushed as (x, z, y) triples: put into x, y, z.
+    const xyz = new Float32Array(rim.length);
+    for (let i = 0; i < rim.length; i += 3) { xyz[i] = rim[i]; xyz[i + 1] = rim[i + 2] - earthDrop(rim[i], rim[i + 1]); xyz[i + 2] = rim[i + 1]; }
+    const kerb = new THREE.BufferGeometry();
+    kerb.setAttribute("position", new THREE.BufferAttribute(xyz, 3));
+    kerb.computeVertexNormals();
+    const stone = new THREE.Mesh(kerb, new THREE.MeshStandardMaterial({ color: 0xb9b4a8, roughness: 0.85, side: THREE.DoubleSide }));
+    stone.name = "inland-water-rims";
+    stone.userData.surface = "fountain_rim";
+    if (BUILD_WINDOW) applyBoxClip(stone, detailClipBox);
+    root.add(stone);
+  }
+  console.info(`kerbside: ${INLAND_WATER.length} ponds, fountains and lakes at their own level`);
 }
 //: The backdrop as one object for the ray that finds the ground under a click.
 const terrainMesh = terrainTiles.length ? new THREE.Group() : null;
@@ -31475,20 +31679,9 @@ function keepWalkerOutside() {
 //: where you put it until R or Reset view brings it back (var: goTo can run before gps exists).
 var GPS_LEASH = { on: true };
 // A click moves the walker without changing zoom; dragging and wheel zoom never move it.
-//: Further than this and the place is past what is drawn round the walker: the hop goes by the
-//: map, whose seven seconds are the time the new place has to stream in.
-const TELEPORT_MAP_M = 700;
 function goTo(landing, options = {}) {
-  if (landing && options.travel && !META && !state.explore && !ATTACH && teleportLibrary && NATURE
-      && typeof avatar !== "undefined" && !teleportOverlay?.busy
-      && Math.hypot(landing.x - avatar.position.x, landing.z - avatar.position.z) > TELEPORT_MAP_M) {
-    teleportTrip(avatar.position, landing, () => goToNow(landing, options));
-    return;
-  }
   goToNow(landing, options);
 }
-//: The trip: the camera pulls up and away into black, the map plays the hop, and the camera comes
-//: back down over the walker where it landed. `perform` moves the walker, behind the black.
 //: How long a detail window takes to build here, in seconds a square kilometre: from the windows
 //: built so far (smoothed), before any the page's own first build; DETAIL_FIRST_SECONDS for a
 //: region whose page has not been fetched yet (its code, its manifest, its first cells).
@@ -31516,18 +31709,6 @@ function detailCovers(at) {
   const boxes = owner?.windowBoxes || (owner?.windowBox ? [owner.windowBox] : BUILD_WINDOW ? [BUILD_WINDOW.box] : null);
   return !boxes || boxes.some((b) => lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3]);
 }
-//: How long the place at page point (x, z) will take to come in, in seconds: nothing where the
-//: window already has it; else an arrival window's build at the rate measured so far.
-function estimateDetailSeconds(at) {
-  if (detailCovers(at)) return 0.4;
-  const lon = midLon + at.x / metersPerLon, lat = midLat - at.z / metersPerLat;
-  const region = regionAt(lon, lat);
-  const side = 2 * STREAM.arrival, km2 = (side / 1000) ** 2;
-  const reference = (2 * (BUILD_WINDOW?.radius || STREAM.arrival) / 1000) ** 2;
-  const rate = detailSecondsPerKm2 ?? DETAIL_DEFAULT_SECONDS / reference;
-  // A window is asked for within a second of the landing (checkDetailExpansion).
-  return 1 + rate * km2 + (region && !detailRegionsSeen.has(region.name) ? DETAIL_FIRST_SECONDS : 0);
-}
 //: The page's own first window is the first measure of how fast this device builds: from the
 //: page starting to its streets and ground standing (fetching included, as an arrival's is).
 let firstBuildNoted = false;
@@ -31537,36 +31718,6 @@ function noteFirstBuild() {
   const started = window.kerbsideBoot?.startedAt;
   if (started) noteDetailBuild((Date.now() - started) / 1000, [BUILD_WINDOW.box]);
   if (REGION_INDEX.host) detailRegionsSeen.add(REGION_INDEX.host.name);
-}
-function teleportTrip(fromPage, toPage, perform) {
-  teleportOverlay ||= teleportLibrary.createTeleport({ map: teleportLibrary.drawBayMap(NATURE) });
-  const local = (p) => NATURE.local(midLon + p.x / metersPerLon, midLat - p.z / metersPerLat);
-  const start = { dist: state.dist, pitch: state.pitch };
-  let arrival = null;
-  return teleportOverlay.run({
-    from: local(fromPage), to: local(toPage),
-    perform: () => {
-      state.dist = start.dist; state.pitch = start.pitch; state.tilt = 0;
-      perform();
-      arrival = { dist: state.dist, pitch: state.pitch };
-    },
-    // In: no cell still coming, no window still building, the window round the walker built,
-    // and the plants round it standing.
-    ready: () => {
-      const s = worldCellCache.snapshot(), at = state.firstPerson ? avatar.position : state.target;
-      return !s.active && !s.queued && !attaching && detailCovers(at)
-        && (!natureWorld?.plantsReadyAt || natureWorld.plantsReadyAt(at.x, at.z));
-    },
-    estimate: () => estimateDetailSeconds(state.firstPerson ? avatar.position : state.target),
-    onPull: (u) => {
-      if (state.firstPerson) return;
-      state.dist = start.dist * (1 + 7 * u * u); state.pitch = start.pitch + (1.3 - start.pitch) * u; placeCamera();
-    },
-    onReturn: (u) => {
-      if (!arrival || state.firstPerson) return;
-      state.dist = arrival.dist * (1 + 5 * (1 - u) ** 2); state.pitch = arrival.pitch + (1.3 - arrival.pitch) * (1 - u); placeCamera();
-    },
-  });
 }
 function goToNow(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
@@ -38547,7 +38698,17 @@ window.kerbside = {
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById, multiplayer,
   // The landscape (forest floor, scans) and the globe, for inspection.
-  get natureWorld() { return natureWorld; }, get globe() { return globe; }, teleportTrip,
+  get natureWorld() { return natureWorld; }, get globe() { return globe; },
+  // Ponds, fountains and lakes drawn at their own level (INLAND_WATER), for inspection.
+  get inlandWater() {
+    const f = TERRAIN_FRAME;
+    return INLAND_WATER.map((w) => {
+      let e = 0, n = 0;
+      for (const i of w.body.cells) { e += i % f.cols; n += Math.floor(i / f.cols); }
+      const [x, z] = terrainToPage(f.x0 + (e / w.body.cells.length + 0.5) * f.step_m, f.y0 + (n / w.body.cells.length + 0.5) * f.step_m, f);
+      return { x, z, level: w.level, cells: w.body.cells.length, outline: Boolean(w.rings) };
+    });
+  },
   // The corner pieces: how many cuts were decided and how many pieces laid between them.
   recentred,
   junctionBoxes, insideJunctionBox, rampRecordAt, indexCurbRamps, cornerOf,
