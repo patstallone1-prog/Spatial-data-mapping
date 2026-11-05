@@ -4677,6 +4677,14 @@ function mappedBuiltAt(x, z) {
   const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
   return r >= 0 && r < f.rows && c >= 0 && c < f.cols && LANDWATER[r * f.cols + c] === 2;
 }
+//: The ground grid's whole-grid passes (the land repaired under missing returns, the water taken
+//: a body at a time) run before the build's own pacing is set up, and over a few million cells
+//: each: run straight through they were the longest frame of a jump (0.4-0.5 s). They give the
+//: frame back every GROUND_PASS_SLICE_MS, checking the clock every 16,384 cells.
+const GROUND_PASS_SLICE_MS = 6;
+let groundPassAt = performance.now();
+function groundPassDue() { return performance.now() - groundPassAt > GROUND_PASS_SLICE_MS; }
+async function groundPassYield() { await new Promise((resolve) => setTimeout(resolve, 0)); groundPassAt = performance.now(); }
 if (LANDWATER) {
   const f = TERRAIN_FRAME, original = TERRAIN.data, n = original.length;
   const visual = new Int16Array(original);
@@ -4686,7 +4694,9 @@ if (LANDWATER) {
   const measuredSurface = TERRAIN.meta.waterline?.surface_m;
   const flattened = measuredSurface == null ? null : Math.round((measuredSurface - f.base_m) * 100);
   let tail = 0;
+  groundPassAt = performance.now();
   for (let i = 0; i < n; i += 1) {
+    if ((i & 16383) === 0 && groundPassDue()) await groundPassYield();
     if (LANDWATER[i] === 1) continue;
     // A real low-lying shoreline must stay low. Only mapped dry structures repair cells
     // flattened by the older waterline pass; elsewhere, keep the lidar sample as measured.
@@ -4695,17 +4705,15 @@ if (LANDWATER) {
       missing[i] = 1;
     } else queue[tail++] = i;
   }
+  // Each cell hands its value on to its missing neighbours, left, right, up, down (in that order).
+  const take = (i, j) => { visual[j] = visual[i]; missing[j] = 0; inferred.push(j); queue[tail++] = j; };
   for (let head = 0; head < tail; head += 1) {
+    if ((head & 16383) === 0 && groundPassDue()) await groundPassYield();
     const i = queue[head], r = Math.floor(i / f.cols), c = i - r * f.cols;
-    const neighbours = [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
-      r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1];
-    for (const j of neighbours) {
-      if (j < 0 || !missing[j]) continue;
-      visual[j] = visual[i];
-      missing[j] = 0;
-      inferred.push(j);
-      queue[tail++] = j;
-    }
+    if (c > 0 && missing[i - 1]) take(i, i - 1);
+    if (c + 1 < f.cols && missing[i + 1]) take(i, i + 1);
+    if (r > 0 && missing[i - f.cols]) take(i, i - f.cols);
+    if (r + 1 < f.rows && missing[i + f.cols]) take(i, i + f.cols);
   }
   const fallback = Math.round(((measuredSurface ?? -0.14) + 1.0 - f.base_m) * 100);
   for (let i = 0; i < n; i += 1) {
@@ -4717,14 +4725,14 @@ if (LANDWATER) {
   // patches. Only inferred values move; every measured centimetre stays untouched.
   for (let pass = 0; pass < 8 && inferred.length; pass += 1) {
     const next = new Int16Array(visual);
-    for (const i of inferred) {
-      const r = Math.floor(i / f.cols), c = i - r * f.cols;
+    for (let k = 0; k < inferred.length; k += 1) {
+      if ((k & 16383) === 0 && groundPassDue()) await groundPassYield();
+      const i = inferred[k], r = Math.floor(i / f.cols), c = i - r * f.cols;
       let sum = 0, count = 0;
-      for (const j of [c > 0 ? i - 1 : -1, c + 1 < f.cols ? i + 1 : -1,
-        r > 0 ? i - f.cols : -1, r + 1 < f.rows ? i + f.cols : -1]) {
-        if (j < 0 || LANDWATER[j] === 1) continue;
-        sum += visual[j]; count += 1;
-      }
+      if (c > 0 && LANDWATER[i - 1] !== 1) { sum += visual[i - 1]; count += 1; }
+      if (c + 1 < f.cols && LANDWATER[i + 1] !== 1) { sum += visual[i + 1]; count += 1; }
+      if (r > 0 && LANDWATER[i - f.cols] !== 1) { sum += visual[i - f.cols]; count += 1; }
+      if (r + 1 < f.rows && LANDWATER[i + f.cols] !== 1) { sum += visual[i + f.cols]; count += 1; }
       if (count) next[i] = Math.round(sum / count);
     }
     visual.set(next);
@@ -4764,12 +4772,16 @@ if (LANDWATER) {
   const label = new Int32Array(LANDWATER.length).fill(-1);
   const stack = new Int32Array(LANDWATER.length);
   const bodies = [];
+  let visited = 0;
+  groundPassAt = performance.now();
   for (let start = 0; start < LANDWATER.length; start += 1) {
+    if ((start & 16383) === 0 && groundPassDue()) await groundPassYield();
     if (LANDWATER[start] !== 1 || label[start] >= 0) continue;
     const id = bodies.length, cells = [], shore = [];
     let edge = false, top = 0, c0 = cols, c1 = 0, r0 = rows, r1 = 0;
     label[start] = id; stack[top++] = start;
     while (top) {
+      if ((++visited & 16383) === 0 && groundPassDue()) await groundPassYield();
       const i = stack[--top], r = Math.floor(i / cols), c = i - r * cols;
       cells.push(i);
       if (c < c0) c0 = c; if (c > c1) c1 = c; if (r < r0) r0 = r; if (r > r1) r1 = r;
@@ -30444,7 +30456,18 @@ function addStreetLights(records,anchorFor=furnitureAnchor) {
   return { rows, drawn: rows.length, forms };
 }
 
-function renderStreetFurniture(furniture, transit = null, creatives = {}) {
+//: The plates' pictures, painted a slice at a time before they are placed. Each is painted once
+//: and kept by its style and legend (plateSlot), so placing them after only reads them back;
+//: painted inside the placement -- a few hundred legends measured word by word -- they were one
+//: frame of 0.2-0.4 s whenever the furniture arrived.
+async function prepaintPlates(records) {
+  for (const item of records) {
+    if (item && plateStyleFor(item) !== "street_name") plateSlot(item);
+    if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();
+  }
+}
+
+async function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
   junctionVertexGrid = null;
@@ -30490,9 +30513,13 @@ function renderStreetFurniture(furniture, transit = null, creatives = {}) {
   // approach plates, the corner blades, and OpenStreetMap's other signs where the city has none.
   const generic = officialSigns.length ? [] : signs.filter((s) => s.p);
   const corners = cornerStreetNameSigns();
-  const plates = addOfficialSignPlates(officialSigns.concat(osmApproach, generic, corners), signalHeads);
+  const plateRecords = officialSigns.concat(osmApproach, generic, corners);
+  await prepaintPlates(plateRecords);
+  const plates = addOfficialSignPlates(plateRecords, signalHeads);
+  await maybeYield();
   const posts = stops.concat(smallAds);
   const lights = addStreetLights(official.street_lights || []);
+  await maybeYield();
   // Sports lights keep their mapped anchors, never snap across a park to a street
   // kerb and never acquire cellular antennas merely because OSM calls them masts.
   const parkLights=addStreetLights(parkLightingRecords(inferred,HEADSET),item=>{
@@ -30567,7 +30594,7 @@ registerLazyLayer("furniture", async () => {
     .then((r) => (r.ok ? r.json() : null)).catch(() => null));
   const creatives=await fetch(sharedAsset("billboard-creatives.json"),{cache:"no-cache"})
     .then(r=>r.ok ? r.json() : {}).catch(()=>({}));
-  renderStreetFurniture(furniture, transit, creatives);
+  await renderStreetFurniture(furniture, transit, creatives);
 });
 
 // Freeway guide signs (smc.highways; scripts/build_highway_signs.py), inferred from
@@ -37057,7 +37084,10 @@ function animate(now) {
   // Behind the home screen the world is out of sight: drawn at the idle rate however the
   // creator's sliders and the spinning figure move the pointer, which had drawn it at full rate
   // and left the creator seconds behind the hand (2026-11-02). Streaming still goes on.
-  const idle = homeScreenUp() || (now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors);
+  // Not while a window is being sent to the GPU ahead of its handoff (runPreupload): a batch a
+  // frame, at the idle rate, a square took seconds longer to come in.
+  const idle = homeScreenUp() || (now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors
+    && !preuploadJobs?.length);
   const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
   if (!xrFrame && interval && now - lastFrameDrawnAt < interval - 2) return;
   lastFrameDrawnAt = now;
@@ -37108,14 +37138,84 @@ function animate(now) {
   // still found by this pass.)
   if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
   if (!worldPaused) {
+    if (!xrFrame) runPreupload();
     renderer.render(scene, camera);
     if (!ATTACH) markBootRendered();
   }
   // For every window's build (yieldFrame, sliceBudget): a frame has been drawn, and when the
   // view last moved.
   if (!ATTACH) { globalThis.__kerbsideFrames = frameCount; globalThis.__kerbsideMovedAt = Math.max(lastMovedAt, lastInputAt); }
+  if (!ATTACH) keepShaderPrograms();
   // Only an uncapped rate is a measure of how long a frame takes to draw.
   if (SETTINGS.fps === 0) adaptResolution(now);
+}
+
+//: A window's geometry and pictures uploaded ahead of its handoff (attachRegion), a batch a
+//: frame: the batch is drawn into one pixel at the corner of the frame about to be drawn over --
+//: with the scene's own lights, so its shaders are the ones already compiled -- and drawing it is
+//: what sends it to the GPU. The frame's own render then clears that pixel and draws the world.
+//: (var: the first frame can be drawn before this part of the module has run.)
+var PREUPLOAD_BYTES_PER_FRAME = 12 << 20, PREUPLOAD_LAYER = 30, PREUPLOAD_STALL_MS = 3000;
+var preuploadJobs = [];
+var preuploadViewport = new THREE.Vector4(), preuploadScissor = new THREE.Vector4();
+function preuploadWindow(root) {
+  if (!root) return Promise.resolve();
+  return new Promise((resolve) => preuploadJobs.push({ root, meshes: null, i: 0, resolve, at: performance.now() }));
+}
+function attributeBytes(geometry) {
+  let bytes = 0;
+  for (const a of Object.values(geometry.attributes || {})) {
+    const h = a.isInterleavedBufferAttribute ? a.data : a;
+    bytes += h.recoverableType ? h.recoverableLength * h.recoverableType.BYTES_PER_ELEMENT : (h.array?.byteLength || 0);
+  }
+  const i = geometry.index;
+  if (i) bytes += i.recoverableType ? i.recoverableLength * i.recoverableType.BYTES_PER_ELEMENT : (i.array?.byteLength || 0);
+  return bytes;
+}
+function runPreupload() {
+  if (!preuploadJobs?.length) return;
+  // A page that draws no frames for a while (hidden) lets the window go up when it is shown.
+  while (preuploadJobs.length && performance.now() - preuploadJobs[0].at > PREUPLOAD_STALL_MS && preuploadJobs[0].i) {
+    preuploadJobs.shift().resolve();
+  }
+  const job = preuploadJobs[0];
+  if (!job) return;
+  if (!job.meshes) {
+    job.meshes = [];
+    job.root.traverse((o) => { if ((o.isMesh || o.isLine || o.isPoints) && o.geometry && o.visible) job.meshes.push(o); });
+  }
+  const batch = [];
+  for (let bytes = 0; job.i < job.meshes.length && bytes < PREUPLOAD_BYTES_PER_FRAME;) {
+    const o = job.meshes[job.i++];
+    if (!o.parent || !o.geometry) continue;
+    batch.push(o); bytes += attributeBytes(o.geometry);
+  }
+  if (batch.length) {
+    const lights = [];
+    scene.traverse((o) => { if (o.isLight) lights.push(o); });
+    const culled = batch.map((o) => o.frustumCulled), mask = camera.layers.mask, shown = job.root.visible;
+    const autoShadow = renderer.shadowMap.autoUpdate, scissorTest = renderer.getScissorTest();
+    renderer.getViewport(preuploadViewport); renderer.getScissor(preuploadScissor);
+    try {
+      for (const o of batch) { o.layers.enable(PREUPLOAD_LAYER); o.frustumCulled = false; }
+      for (const l of lights) l.layers.enable(PREUPLOAD_LAYER);
+      camera.layers.set(PREUPLOAD_LAYER);
+      job.root.visible = true;
+      renderer.shadowMap.autoUpdate = false;
+      renderer.setViewport(0, 0, 1, 1); renderer.setScissor(0, 0, 1, 1); renderer.setScissorTest(true);
+      renderer.render(scene, camera);
+    } catch (error) { console.warn("kerbside: could not send a window ahead to the GPU", error); }
+    finally {
+      renderer.setViewport(preuploadViewport); renderer.setScissor(preuploadScissor); renderer.setScissorTest(scissorTest);
+      renderer.shadowMap.autoUpdate = autoShadow;
+      job.root.visible = shown;
+      camera.layers.mask = mask;
+      batch.forEach((o, k) => { o.layers.disable(PREUPLOAD_LAYER); o.frustumCulled = culled[k]; });
+      for (const l of lights) l.layers.disable(PREUPLOAD_LAYER);
+    }
+    job.at = performance.now();
+  }
+  if (job.i >= job.meshes.length) { preuploadJobs.shift(); job.resolve(); }
 }
 
 // A nonessential callback can fail while the world is still building, then the
@@ -39166,15 +39266,14 @@ function regionAt(lon, lat) {
   }
   return best;
 }
-function disposeTree(object, all = false) {
-  object.traverse((o) => {
+function disposeTree(object, all = false) { object.traverse((o) => disposeOne(o, all)); }
+function disposeOne(o, all = false) {
     if (o.geometry && (all || !o.userData.sharedInteriorAsset)) o.geometry.dispose();
     for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {
       for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap"])
         if (m[key] && m[key].dispose && !m[key].userData?.shared) m[key].dispose();
       m.dispose();
     }
-  });
 }
 //: The tiles over a region rebuilt, for which region is now drawn in full.
 function invalidateTilesTouching(boxes) {
@@ -39223,8 +39322,9 @@ function releaseHostWorld() {
 //: unloaded -- a script once run stays -- and whatever it still points at stays with it: two
 //: hundred megabytes a hop, measured, until these went. The GPU's copies went with dispose().
 //: `all`: a released window's own furniture models too -- they are shared only within it.
-function emptyTree(object, all = false) {
-  object.traverse((o) => {
+function emptyTree(object, all = false) { object.traverse((o) => emptyOne(o, all)); }
+function emptyOne(o, all = false) {
+  {
     if (o.userData.sharedInteriorAsset && !all) return;
     if (o.geometry) {
       for (const attribute of Object.values(o.geometry.attributes || {})) {
@@ -39249,26 +39349,86 @@ function emptyTree(object, all = false) {
         else if (typeof HTMLCanvasElement !== "undefined" && image instanceof HTMLCanvasElement) image.width = image.height = 0;
       }
     }
-  });
+  }
 }
+//: A window let go: out of the scene at once, and its GPU copies and arrays let go a few
+//: milliseconds at a time after. Done in one go, a whole square's thousands of meshes were
+//: disposed and emptied inside the frame that showed the next one (part of a jump's longest
+//: frame, 2026-11-05).
+const releasing = [];
+let releasePumping = false;
 function releaseGuest(g) {
   if (!g) return;
-  if (g.root) {
-    scene.remove(g.root); disposeTree(g.root, true);
-    try {
-      emptyTree(g.root, true);
-      // Every group let go of what it holds, not only the root: the window's code stays loaded
-      // and keeps its own groups (its rooms, its doors), and a model still on its way when the
-      // window went is hung on a group nothing then holds.
-      const all = [];
-      g.root.traverse((o) => { all.push(o); });
-      for (const o of all) { o.children.length = 0; o.parent = null; }
-    } catch (error) { console.warn("kerbside: released window kept its arrays", error); }
-  }
-  try { if (g.api && g.api.release) g.api.release(); } catch (error) { console.warn("kerbside: a released window kept some of its world", error); }
+  const root = g.root, api = g.api;
+  if (root) scene.remove(root);
   if (g.url) URL.revokeObjectURL(g.url);
   g.api = null;
   g.root = null;
+  if (!root && !api) return;
+  const all = [];
+  root?.traverse((o) => { all.push(o); });
+  releasing.push({ all, i: 0, api });
+  if (!releasePumping) { releasePumping = true; setTimeout(pumpRelease, 0); }
+}
+function pumpRelease() {
+  const until = performance.now() + 6;
+  while (releasing.length && performance.now() < until) {
+    const job = releasing[0];
+    if (job.i < job.all.length) {
+      const o = job.all[job.i++];
+      try { disposeOne(o, true); emptyOne(o, true); } catch (error) { console.warn("kerbside: released window kept its arrays", error); }
+      continue;
+    }
+    // Every group let go of what it holds, not only the root: the window's code stays loaded
+    // and keeps its own groups (its rooms, its doors), and a model still on its way when the
+    // window went is hung on a group nothing then holds.
+    for (const o of job.all) { o.children.length = 0; o.parent = null; }
+    try { if (job.api && job.api.release) job.api.release(); } catch (error) { console.warn("kerbside: a released window kept some of its world", error); }
+    releasing.shift();
+  }
+  if (releasing.length) setTimeout(pumpRelease, 0); else releasePumping = false;
+}
+//: Shader programs outlive the windows that first drew them. three.js destroys a program when the
+//: last material using it is disposed, so letting go of the window behind a jump threw away the
+//: programs the next window -- built from the same code, with the same materials -- needed again,
+//: and it linked 35-50 of them inside one frame (0.3-0.4 s) the first time it drew. Each program
+//: is held once more than its materials hold it; there are some two hundred kinds, small on the
+//: GPU, and past six hundred new ones are left to come and go as before. (The count is the
+//: function's own: the frame loop starts before the module's later declarations are reached.)
+function keepShaderPrograms() {
+  const programs = renderer.info.programs;
+  keepShaderPrograms.kept ??= 0;
+  if (!programs || keepShaderPrograms.kept >= 600) return;
+  for (const program of programs) {
+    if (program.kerbsideKept) continue;
+    program.kerbsideKept = true;
+    program.usedTimes++;
+    if (++keepShaderPrograms.kept >= 600) break;
+  }
+}
+//: A region page's code, compiled once and run as a function for each window. Run as a module
+//: of its own -- a new blob each time -- every window parsed and compiled two megabytes of code
+//: again inside the frame of a jump (0.3-0.5 s), and kept it, with everything its top-level names
+//: held, for as long as the page stayed open: a module cannot be unloaded. A function's scope goes
+//: when nothing holds it. Its two static imports (three.js and its loader) stay at the top of the
+//: one module; everything else is the function's body, with the window's stand-ins as its first
+//: lines, as the prelude was.
+const GUEST_FACTORIES = new Map();
+const GUEST_IMPORT = /^import\s[^;]*\sfrom\s"[^"]+";\s*$/;
+function guestFactory(located, prelude) {
+  let made = GUEST_FACTORIES.get(located);
+  if (!made) {
+    const imports = [], body = [];
+    for (const line of located.split("\n")) (GUEST_IMPORT.test(line) ? imports : body).push(line);
+    const inner = prelude.replace("const __kerbsideGuestIn = globalThis.__kerbsideGuest;\n", "");
+    const source = imports.join("\n") + "\nexport default async function kerbsideWindow(__kerbsideGuestIn) {\n"
+      + inner + body.join("\n") + "\n}\n";
+    const url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+    made = import(url).then((m) => m.default);
+    made.catch(() => GUEST_FACTORIES.delete(located));
+    GUEST_FACTORIES.set(located, made);
+  }
+  return made;
 }
 //: The page's code, ready to run attached: its document and window are stand-ins, so whatever
 //: it shows or listens for goes nowhere, and it shares this page's three.js (the same URL).
@@ -39531,8 +39691,8 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     // paths would be this page's, and the region would be built from this region's data.
     const located = code.replace(/fetch\("(?!https?:)([^"]+)"/g, 'fetch(__kerbsideGuestIn.resolve("$1")')
       .replace(/const (PAYLOAD_URL|GROUND_URL) = ("[^"]+");/g,'const $1 = __kerbsideGuestIn.resolve($2);');
-    holder.url = URL.createObjectURL(new Blob([prelude + located], { type: "text/javascript" }));
-    await import(holder.url);
+    const makeWindow = await guestFactory(located, prelude);
+    await makeWindow(globalThis.__kerbsideGuest);
     const api = stand.own.kerbsideGuestApi;
     if (!api || !holder.root) throw new Error(`${region.name} did not build`);
     holder.api = api;
@@ -39573,6 +39733,9 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
       holder.root.visible = false;
       await Promise.race([compiled.catch(() => {}), new Promise((resolve) => setTimeout(resolve, META ? 10000 : 5000))]);
     }
+    // And its buffers and pictures sent to the GPU a few megabytes a frame, before it is shown:
+    // shown first, the whole square went up in the one frame that showed it (a second or more).
+    if (!META) await preuploadWindow(holder.root);
     holder.ready = true;
     holder.buildSeconds=(performance.now()-holder.startedAt)/1000;
     noteDetailBuild(holder.buildSeconds, holder.windowBoxes || [holder.windowBox]);
@@ -39837,8 +40000,9 @@ window.kerbsideGuestApi = {
         else if (ArrayBuffer.isView(value)) delete record[key];
       }
     };
+    // The asset map is not this window's: every window reads the one the page fetched.
     for (const record of [DATA, OFFICIAL_GEOMETRY, WORLD_OBJECTS, PERIMETER, VISUAL_SUPPORT, STORE_NAMES, PARK_EVIDENCE,
-      ELECTRICAL_SPANS, INVENTORY_CROSSINGS, MUNICIPAL_CONTEXT, GROUND, FRONTAGE_FITS, MATERIAL_ASSIGNMENTS, ASSET_MAP,
+      ELECTRICAL_SPANS, INVENTORY_CROSSINGS, MUNICIPAL_CONTEXT, GROUND, FRONTAGE_FITS, MATERIAL_ASSIGNMENTS,
       INTERIORS]) try { emptyRecord(record); } catch (error) { /* a frozen one stays */ }
     GROUND = null;
     releaseModuleScope();
