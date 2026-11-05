@@ -177,6 +177,24 @@ def test_a_paused_kind_waits_and_the_rest_runs(tmp_path) -> None:
     assert q.lease("w", ["cpu"], 60)["job"]["id"] == "interior:a:000"
 
 
+def test_a_dropped_kind_is_cancelled_and_never_planned(tmp_path) -> None:
+    """The owner dropped the measured world mesh (2026-11-04): its waiting blocks are cancelled
+    and a plan that names mesh cells adds none, while other work is untouched."""
+    import json as _json
+
+    from smc.cloud.plan import mesh_cells_to_plan
+
+    q = Queue(tmp_path / "q.sqlite")
+    q.submit(JobSpec(id="mesh:a:b0:photos", kind="mesh_block", subject="a", stage="mesh-photos", resource="gpu"))
+    q.submit(JobSpec(id="cell:c:osm", kind="cell_stage", subject="c", stage="osm", resource="cpu"))
+    assert q.cancel_kind("mesh_block", "dropped_kinds") == 1
+    assert q.job("mesh:a:b0:photos")["state"] == "cancelled"
+    assert q.job("cell:c:osm")["state"] == "pending"
+    assert mesh_cells_to_plan(q, ["sf-marina"]) == ["sf-marina"]
+    q.set_meta("dropped_kinds", _json.dumps(["mesh_block"]))
+    assert mesh_cells_to_plan(q, ["sf-marina"]) == []
+
+
 def test_a_redo_sends_a_finished_job_and_its_whole_chain_back(q):
     for i, deps in (("c:audit", ()), ("c:colours", ["c:audit"]), ("c:survey", ["c:colours"]),
                     ("c:gate", ["c:survey"]), ("d:audit", ())):

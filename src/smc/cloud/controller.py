@@ -98,6 +98,9 @@ class Config:
     #: Job kinds that wait however long the queue is (interior_batch while the houses and cells
     #: go first). Set from the config on every start, so a redeploy cannot forget it.
     paused_kinds: tuple[str, ...] = ()
+    #: Job kinds dropped outright: their pending jobs are cancelled on every start and a plan
+    #: adds none (the measured world mesh, dropped by the owner 2026-11-04).
+    dropped_kinds: tuple[str, ...] = ()
     #: Gates and publications run at once: each waits mostly on the buckets and the public
     #: origin, and one at a time left 190 finished cells waiting days for theirs (2026-10-31).
     control_slots: int = 1
@@ -152,6 +155,7 @@ class Config:
             sleep_after_min=raw["controller"].get("sleep_after_min", 0.0),
             replan_h=raw["controller"].get("replan_h", 24.0),
             paused_kinds=tuple(raw["controller"].get("paused_kinds", [])),
+            dropped_kinds=tuple(raw["controller"].get("dropped_kinds", [])),
             control_slots=int(raw["controller"].get("control_slots", 1)),
             defer=_defer_policy(raw["controller"].get("defer", {})))
 
@@ -218,6 +222,9 @@ class Controller:
         restore_queue(config.private, config.db)
         self.queue = Queue(config.db, clock=clock, backoff_base_s=config.backoff_base_s)
         self.queue.set_meta("paused_kinds", json.dumps(sorted(config.paused_kinds)))
+        self.queue.set_meta("dropped_kinds", json.dumps(sorted(config.dropped_kinds)))
+        for kind in config.dropped_kinds:
+            self.queue.cancel_kind(kind, "dropped_kinds")
         self.publisher = Publisher(config.public, config.public_base, clock=clock,
                                    **({"answers": config.publish_answers}
                                       if config.publish_answers else {}))

@@ -37,6 +37,9 @@ replan_h = 24
 # an A5000 rented at 1% and asked that nothing be paid for idle. With both waiting no GPU pod
 # is started. Remove to resume.
 paused_kinds = ["mesh_block", "house_batch"]
+# Kinds dropped outright: pending jobs cancelled on start, none planned. The measured world
+# mesh (mesh_block) was dropped by the owner on 2026-11-04 -- stop attempting it on RunPod.
+dropped_kinds = ["mesh_block"]
 # Gates and publications at once on the controller: each mostly waits on the buckets. One at a
 # time left 190 finished cells days from the site (2026-10-31); four took ten minutes a
 # publication for 101 approved cells (2026-11-01), so eight.

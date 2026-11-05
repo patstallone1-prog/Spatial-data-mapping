@@ -614,6 +614,17 @@ class Queue:
                 self._event(db, "cancel", job_id, {"operator": operator})
         return bool(changed)
 
+    def cancel_kind(self, kind: str, operator: str) -> int:
+        """Cancel every pending or failed job of a kind (a kind the operator has dropped)."""
+        now = self.clock()
+        with self._tx() as db:
+            ids = [r[0] for r in db.execute(
+                "SELECT id FROM jobs WHERE kind=? AND state IN ('pending','failed')", (kind,))]
+            for job_id in ids:
+                db.execute("UPDATE jobs SET state='cancelled', updated_at=? WHERE id=?", (now, job_id))
+                self._event(db, "cancel", job_id, {"operator": operator})
+        return len(ids)
+
     # -- workers and money ------------------------------------------------------------------
 
     def add_worker(self, worker_id: str, provider: str, resource: str, instance_type: str,
