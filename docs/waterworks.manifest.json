@@ -1,0 +1,551 @@
+{
+ "schema": "kerbside.waterworks_tiles/1",
+ "renderer_sha256": "561941bdcc744797",
+ "sources": [
+  "OpenStreetMap contributors (ODbL): waterways, storage tanks, water towers, covered reservoirs, treatment plants, manholes, street junctions",
+  "Catch Basins (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Inlets (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Manholes (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Outfalls (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Pipelines (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Pump Stations (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "Sanitary Trunk Lines (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Culverts (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Discharge Points (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Gravity Mains (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Inlets (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Manholes (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Open Drains (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Pressurized Mains (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Storm Pump Stations (san-jose; City of San Jos\u00e9 open GIS (public REST service))",
+  "Stormwater inlets, drains and catch basins (san-francisco; PDDL 1.0 (DataSF; SFPUC Wastewater asset registry))",
+  "Surface Conveyances (SD) (palo-alto; City of Palo Alto open GIS (public feature service))",
+  "swInlet (berkeley; City of Berkeley open GIS (public feature service))"
+ ],
+ "totals": {
+  "streams": 5660,
+  "drains": 35155,
+  "lids": 19265,
+  "tanks": 476,
+  "basins": 43,
+  "plants": 44,
+  "underground": 192
+ },
+ "forms": {
+  "curb_grate": 34657,
+  "lid": 6726,
+  "grate": 322,
+  "round_grate": 43,
+  "curb_opening": 55,
+  "trench": 78
+ },
+ "lids_inferred": 11796,
+ "skipped_types": 239,
+ "gaps": [
+  "4646 of 11532 links lack an invert or a diameter",
+  "6577 of 6577 links lack an invert or a diameter",
+  "San Francisco's combined sewer mains and manholes are not published (SFPUC)",
+  "no pipes published here: only where the water enters and leaves"
+ ],
+ "tiles": [
+  {
+   "path": "waterworks/w1226-n375.json",
+   "bbox": [
+    -122.6,
+    37.5,
+    -122.5,
+    37.6
+   ],
+   "bytes": 1317,
+   "sha256": "bec531abb1476876",
+   "streams": 8
+  },
+  {
+   "path": "waterworks/w1226-n377.json",
+   "bbox": [
+    -122.6,
+    37.7,
+    -122.5,
+    37.8
+   ],
+   "bytes": 126135,
+   "sha256": "ce9949574bad5461",
+   "streams": 1,
+   "drains": 827,
+   "lids": 355,
+   "tanks": 2,
+   "underground": 6
+  },
+  {
+   "path": "waterworks/w1225-n375.json",
+   "bbox": [
+    -122.5,
+    37.5,
+    -122.4,
+    37.6
+   ],
+   "bytes": 16713,
+   "sha256": "238e8979658ca538",
+   "streams": 47,
+   "lids": 2,
+   "tanks": 5
+  },
+  {
+   "path": "waterworks/w1225-n376.json",
+   "bbox": [
+    -122.5,
+    37.6,
+    -122.4,
+    37.7
+   ],
+   "bytes": 101133,
+   "sha256": "6fd89ea74b718df8",
+   "streams": 216,
+   "lids": 27,
+   "tanks": 64,
+   "basins": 2,
+   "plants": 1,
+   "underground": 3
+  },
+  {
+   "path": "waterworks/w1225-n377.json",
+   "bbox": [
+    -122.5,
+    37.7,
+    -122.4,
+    37.8
+   ],
+   "bytes": 2790663,
+   "sha256": "0aa1b91a5577a877",
+   "streams": 80,
+   "drains": 16428,
+   "lids": 9378,
+   "tanks": 25,
+   "plants": 6,
+   "underground": 136
+  },
+  {
+   "path": "waterworks/w1225-n378.json",
+   "bbox": [
+    -122.5,
+    37.8,
+    -122.4,
+    37.9
+   ],
+   "bytes": 164500,
+   "sha256": "1c0b8ff678229d92",
+   "streams": 1,
+   "drains": 1004,
+   "lids": 513,
+   "tanks": 2,
+   "plants": 2,
+   "underground": 4
+  },
+  {
+   "path": "waterworks/w1224-n374.json",
+   "bbox": [
+    -122.4,
+    37.4,
+    -122.3,
+    37.5
+   ],
+   "bytes": 36436,
+   "sha256": "e6ce3213ae254879",
+   "streams": 83,
+   "lids": 3,
+   "tanks": 7,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1224-n375.json",
+   "bbox": [
+    -122.4,
+    37.5,
+    -122.3,
+    37.6
+   ],
+   "bytes": 156489,
+   "sha256": "a886dd3b973abbe3",
+   "streams": 413,
+   "lids": 34,
+   "tanks": 48,
+   "plants": 1,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1224-n376.json",
+   "bbox": [
+    -122.4,
+    37.6,
+    -122.3,
+    37.7
+   ],
+   "bytes": 28075,
+   "sha256": "e8ade63382930c25",
+   "streams": 99,
+   "lids": 10,
+   "tanks": 9,
+   "basins": 9,
+   "plants": 1
+  },
+  {
+   "path": "waterworks/w1224-n377.json",
+   "bbox": [
+    -122.4,
+    37.7,
+    -122.3,
+    37.8
+   ],
+   "bytes": 655825,
+   "sha256": "51934108296e7331",
+   "streams": 3,
+   "drains": 4071,
+   "lids": 1708,
+   "tanks": 5,
+   "basins": 16,
+   "plants": 1,
+   "underground": 23
+  },
+  {
+   "path": "waterworks/w1224-n378.json",
+   "bbox": [
+    -122.4,
+    37.8,
+    -122.3,
+    37.9
+   ],
+   "bytes": 16544,
+   "sha256": "3212251076be9f13",
+   "streams": 16,
+   "drains": 48,
+   "lids": 5,
+   "tanks": 4,
+   "plants": 1
+  },
+  {
+   "path": "waterworks/w1223-n374.json",
+   "bbox": [
+    -122.3,
+    37.4,
+    -122.2,
+    37.5
+   ],
+   "bytes": 152218,
+   "sha256": "5d7e41ea2d0cc4b4",
+   "streams": 416,
+   "lids": 86,
+   "tanks": 38,
+   "underground": 2
+  },
+  {
+   "path": "waterworks/w1223-n375.json",
+   "bbox": [
+    -122.3,
+    37.5,
+    -122.2,
+    37.6
+   ],
+   "bytes": 68358,
+   "sha256": "d3ebeda156b1a472",
+   "streams": 129,
+   "lids": 65,
+   "tanks": 11,
+   "plants": 9
+  },
+  {
+   "path": "waterworks/w1223-n377.json",
+   "bbox": [
+    -122.3,
+    37.7,
+    -122.2,
+    37.8
+   ],
+   "bytes": 67012,
+   "sha256": "ac965e859c0aea0f",
+   "streams": 209,
+   "drains": 1,
+   "lids": 56,
+   "tanks": 17,
+   "plants": 4
+  },
+  {
+   "path": "waterworks/w1223-n378.json",
+   "bbox": [
+    -122.3,
+    37.8,
+    -122.2,
+    37.9
+   ],
+   "bytes": 507814,
+   "sha256": "513fcb09e25d0bdb",
+   "streams": 279,
+   "drains": 2080,
+   "lids": 50,
+   "tanks": 21,
+   "basins": 13,
+   "plants": 2,
+   "underground": 2
+  },
+  {
+   "path": "waterworks/w1222-n373.json",
+   "bbox": [
+    -122.2,
+    37.3,
+    -122.1,
+    37.4
+   ],
+   "bytes": 107081,
+   "sha256": "683876ed70270840",
+   "streams": 93,
+   "drains": 236,
+   "lids": 42,
+   "tanks": 3
+  },
+  {
+   "path": "waterworks/w1222-n374.json",
+   "bbox": [
+    -122.2,
+    37.4,
+    -122.1,
+    37.5
+   ],
+   "bytes": 1711123,
+   "sha256": "5bd2b51bdce742ae",
+   "streams": 275,
+   "drains": 4667,
+   "lids": 1542,
+   "tanks": 11,
+   "basins": 1,
+   "plants": 5,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1222-n375.json",
+   "bbox": [
+    -122.2,
+    37.5,
+    -122.1,
+    37.6
+   ],
+   "bytes": 27042,
+   "sha256": "c1bad03f5655fef7",
+   "streams": 72
+  },
+  {
+   "path": "waterworks/w1222-n376.json",
+   "bbox": [
+    -122.2,
+    37.6,
+    -122.1,
+    37.7
+   ],
+   "bytes": 64538,
+   "sha256": "52c6e488659b4302",
+   "streams": 275,
+   "lids": 2,
+   "plants": 1
+  },
+  {
+   "path": "waterworks/w1222-n377.json",
+   "bbox": [
+    -122.2,
+    37.7,
+    -122.1,
+    37.8
+   ],
+   "bytes": 184750,
+   "sha256": "beb354c50ae6c297",
+   "streams": 480,
+   "lids": 83,
+   "tanks": 11,
+   "plants": 1,
+   "underground": 3
+  },
+  {
+   "path": "waterworks/w1221-n373.json",
+   "bbox": [
+    -122.1,
+    37.3,
+    -122.0,
+    37.4
+   ],
+   "bytes": 68517,
+   "sha256": "13a4c0ab34399748",
+   "streams": 140,
+   "drains": 7,
+   "lids": 50,
+   "tanks": 22,
+   "plants": 2,
+   "underground": 5
+  },
+  {
+   "path": "waterworks/w1221-n374.json",
+   "bbox": [
+    -122.1,
+    37.4,
+    -122.0,
+    37.5
+   ],
+   "bytes": 70988,
+   "sha256": "78c7649648826d4e",
+   "streams": 109,
+   "drains": 40,
+   "lids": 23,
+   "tanks": 29,
+   "plants": 1
+  },
+  {
+   "path": "waterworks/w1221-n375.json",
+   "bbox": [
+    -122.1,
+    37.5,
+    -122.0,
+    37.6
+   ],
+   "bytes": 113534,
+   "sha256": "640f474936a13c53",
+   "streams": 358,
+   "lids": 10,
+   "tanks": 25,
+   "plants": 1,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1221-n376.json",
+   "bbox": [
+    -122.1,
+    37.6,
+    -122.0,
+    37.7
+   ],
+   "bytes": 259996,
+   "sha256": "fc403b4bdf3f0893",
+   "streams": 580,
+   "lids": 21,
+   "tanks": 26,
+   "basins": 1,
+   "plants": 2,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1221-n377.json",
+   "bbox": [
+    -122.1,
+    37.7,
+    -122.0,
+    37.8
+   ],
+   "bytes": 186351,
+   "sha256": "c91e659da0df59ea",
+   "streams": 302,
+   "lids": 7,
+   "tanks": 7,
+   "basins": 1,
+   "plants": 1
+  },
+  {
+   "path": "waterworks/w1220-n373.json",
+   "bbox": [
+    -122.0,
+    37.3,
+    -121.9,
+    37.4
+   ],
+   "bytes": 1681592,
+   "sha256": "203e6dee4624a587",
+   "streams": 88,
+   "drains": 3361,
+   "lids": 3173,
+   "tanks": 48,
+   "plants": 2
+  },
+  {
+   "path": "waterworks/w1220-n374.json",
+   "bbox": [
+    -122.0,
+    37.4,
+    -121.9,
+    37.5
+   ],
+   "bytes": 376240,
+   "sha256": "774261c757daf75b",
+   "streams": 151,
+   "drains": 622,
+   "lids": 638,
+   "tanks": 12
+  },
+  {
+   "path": "waterworks/w1220-n375.json",
+   "bbox": [
+    -122.0,
+    37.5,
+    -121.9,
+    37.6
+   ],
+   "bytes": 82419,
+   "sha256": "7746d92552598427",
+   "streams": 289,
+   "lids": 8,
+   "tanks": 3,
+   "underground": 1
+  },
+  {
+   "path": "waterworks/w1220-n376.json",
+   "bbox": [
+    -122.0,
+    37.6,
+    -121.9,
+    37.7
+   ],
+   "bytes": 86654,
+   "sha256": "867e7ec63c4d4bdf",
+   "streams": 143,
+   "lids": 1,
+   "tanks": 2
+  },
+  {
+   "path": "waterworks/w1220-n377.json",
+   "bbox": [
+    -122.0,
+    37.7,
+    -121.9,
+    37.8
+   ],
+   "bytes": 108268,
+   "sha256": "f0e35532b643839e",
+   "streams": 288,
+   "lids": 26,
+   "tanks": 18,
+   "underground": 2
+  },
+  {
+   "path": "waterworks/w1219-n373.json",
+   "bbox": [
+    -121.9,
+    37.3,
+    -121.8,
+    37.4
+   ],
+   "bytes": 736516,
+   "sha256": "ddea7c3d87057563",
+   "streams": 15,
+   "drains": 1745,
+   "lids": 1333,
+   "tanks": 1
+  },
+  {
+   "path": "waterworks/w1219-n374.json",
+   "bbox": [
+    -121.9,
+    37.4,
+    -121.8,
+    37.5
+   ],
+   "bytes": 8070,
+   "sha256": "614efac40864c5f0",
+   "streams": 2,
+   "drains": 18,
+   "lids": 14
+  }
+ ]
+}

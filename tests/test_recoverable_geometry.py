@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_recoverable_geometry_preserves_exact_bits_across_reuploads_and_updates():
     script = r'''
       import assert from 'node:assert/strict';
-      import {makeRecoverable} from './docs/recoverable-geometry.mjs';
+      import {makeRecoverable, compressPending} from './docs/recoverable-geometry.mjs';
+      globalThis.requestIdleCallback = () => 0;   // nothing runs by itself: the test says when
       import * as codec from './docs/vendor/fflate-0.8.2.mjs';
       class Attribute {
         constructor(array){this.array=array;this.version=0;this.onUploadCallback=()=>{};}
@@ -25,12 +26,13 @@ def test_recoverable_geometry_preserves_exact_bits_across_reuploads_and_updates(
         assert.equal(makeRecoverable(a,codec),false); // shared attributes wrap only once
         for(let upload=0;upload<4;upload++){
           a.onUploadCallback(); // static upload, and subsequent context restoration
+          compressPending();
           assert.equal(a.array.constructor,Type);
           assert.equal(a.array.length,view.length);
           assert.deepEqual(bits(a.array),expected);
         }
         a.array[10]=7;a.version++;const edited=Buffer.from(bits(a.array));
-        a.onUploadCallback();assert.deepEqual(bits(a.array),edited);
+        a.onUploadCallback();compressPending();assert.deepEqual(bits(a.array),edited);
         a.array=new Uint32Array(4096).fill(99);a.version++;
         a.onUploadCallback();assert.equal(a.array[0],99);assert.equal(a.array.constructor,Uint32Array);
       }
@@ -38,7 +40,7 @@ def test_recoverable_geometry_preserves_exact_bits_across_reuploads_and_updates(
       const original=a.array;
       assert.equal(makeRecoverable(a,null),false);assert.equal(a.array,original);
       assert.equal(makeRecoverable(a,{...codec,deflateSync(){throw Error('codec failed')}}),true);
-      a.onUploadCallback();assert.equal(a.array,original);
+      a.onUploadCallback();compressPending();assert.equal(a.array,original);
       const interleaved=new Attribute(original);interleaved.isInterleavedBufferAttribute=true;
       assert.equal(makeRecoverable(interleaved,codec),false);
       assert.throws(()=>{a.array=null},TypeError);
@@ -62,3 +64,33 @@ def test_vendored_codec_hash_and_all_region_recovery_assets():
     release = json.loads((ROOT / "docs/runtime-release.json").read_text())
     for name, digest in release["runtime_assets_sha256"].items():
         assert hashlib.sha256((ROOT / "docs" / name).read_bytes()).hexdigest() == digest
+
+
+def test_compression_waits_for_idle_and_a_release_reads_no_inflated_array():
+    """Deflated in the upload callback, a new window's first frame compressed every street
+    buffer at once (0.85 s, the walker frozen mid-jump). It waits for idle time now, and a
+    released window learns a buffer's type and length without inflating it."""
+    script = r'''
+      import assert from 'node:assert/strict';
+      import {makeRecoverable, compressPending} from './docs/recoverable-geometry.mjs';
+      import * as real from './docs/vendor/fflate-0.8.2.mjs';
+      const idle = []; globalThis.requestIdleCallback = (fn) => idle.push(fn);
+      let deflates = 0, inflates = 0;
+      const codec = {deflateSync: (...a) => { deflates++; return real.deflateSync(...a); },
+                     inflateSync: (...a) => { inflates++; return real.inflateSync(...a); }};
+      class Attribute { constructor(array){this.array=array;this.version=0;} onUpload(fn){this.onUploadCallback=fn;} }
+      const a = new Attribute(new Float32Array(50000).fill(3));
+      makeRecoverable(a, codec);
+      a.onUploadCallback();
+      assert.equal(deflates, 0, 'nothing compressed inside the frame');
+      assert.equal(idle.length, 1);
+      idle.shift()({timeRemaining: () => 10});
+      assert.equal(deflates, 1);
+      assert.equal(a.recoverableType, Float32Array);
+      assert.equal(a.recoverableLength, 50000);
+      assert.equal(inflates, 0, 'type and length read without inflating');
+      assert.equal(a.array[49999], 3);
+      assert.equal(inflates, 1);
+      compressPending();
+    '''
+    subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, check=True)

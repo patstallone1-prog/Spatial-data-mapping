@@ -84,6 +84,8 @@ def test_the_controller_on_runpod_takes_its_pods_proxy_address_and_runs_its_own_
     # The cells done, the interior engine runs (2026-11-01); the world mesh's blocks wait, and the
     # house batches, which added nothing on a GPU at 1% (2026-11-03): no GPU pod is rented.
     assert set(cfg.paused_kinds) == {"mesh_block", "house_batch"}
+    # And the world mesh is dropped outright (2026-11-04): its blocks are cancelled, none planned.
+    assert cfg.dropped_kinds == ("mesh_block",)
 
 
 @needs_boto3

@@ -140,6 +140,12 @@ def published_trees(queue: Queue) -> dict[str, str]:
     return trees
 
 
+def mesh_cells_to_plan(queue: Queue, mesh_cells: list[str] | None) -> list[str]:
+    """The cells whose world-mesh blocks a plan adds: none once ``mesh_block`` is dropped."""
+    dropped = json.loads(queue.get_meta("dropped_kinds") or "[]")
+    return [] if "mesh_block" in dropped else list(mesh_cells or [])
+
+
 def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[str] | None = None,
                 house_batches: int = 0, house_sample: int = HOUSE_SAMPLE, interiors: bool = False,
                 restaurant_rounds: int = 0, house_ahead: int = 0,
@@ -221,7 +227,7 @@ def submit_plan(queue: Queue, root: Path, private: ObjectStore, *, cells: list[s
             added += queue.submit(spec, replace=True) in ("added", "replaced")
             added += queue.submit(home_publish(spec)) == "added"
     mesh_blocks = 0
-    for cell in mesh_cells or []:
+    for cell in mesh_cells_to_plan(queue, mesh_cells):
         from smc.worldmesh.block import block_for_region, tiles_of
 
         for block in tiles_of(block_for_region(cell, root), WORLDMESH_BLOCK_M):

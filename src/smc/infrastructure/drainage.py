@@ -121,7 +121,8 @@ LAYERS: list[Layer] = [
     Layer(Record("drainage:catch_basin", "Stormwater inlets, drains and catch basins", "socrata_table",
                  "jtgq-b7c5", host="data.sf.gov", geometry="location"),
           "node", "catch_basin", "combined", city="san-francisco", coverage=SAN_FRANCISCO,
-          fields={"id": "puc_maximo_asset_id", "type": "drain_type", "use": "system_use_code"},
+          fields={"id": "puc_maximo_asset_id", "type": "drain_type", "use": "system_use_code",
+                  "area": "analysis_neighborhood"},
           license="PDDL 1.0 (DataSF; SFPUC Wastewater asset registry)"),
 ]
 
@@ -189,6 +190,8 @@ def read_node(layer: Layer, feature: dict, n: int) -> dict | None:
         node["depth_m"] = round(node["rim_m"] - node["invert_m"], 3)
     if f.get("type") and props.get(f["type"]):
         node["type"] = props[f["type"]]
+    if f.get("area") and props.get(f["area"]):
+        node["area"] = props[f["area"]]
     if f.get("use") and props.get(f["use"]):
         node["system"] = {"STORM": "storm", "COMBINED": "combined", "SANITARY": "sanitary"}.get(
             str(props[f["use"]]).upper(), layer.system)

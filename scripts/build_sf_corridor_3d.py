@@ -4530,7 +4530,7 @@ function registerLazyLayer(layer, builder) {
   if (lazyLayersWanted.has(layer)) ensureLazyLayer(layer);
 }
 //: Layers that open with another: the freeway signs are street furniture.
-const LAZY_COMPANIONS = { furniture: ["highway_signs"] };
+const LAZY_COMPANIONS = { furniture: ["highway_signs", "waterworks"] };
 //: Layers built (or given up on) -- the home screen waits for the ones that are open.
 const lazyLayersSettled = new Set();
 function ensureLazyLayer(layer) {
@@ -23217,6 +23217,7 @@ function addDividedMedians() {
 // corner of every junction, which completes the corners no way ends at (addJunctionSquares).
 const cornersLaid = addPavementCorners();
 const squaresLaid = addJunctionSquares();
+if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
 const frontageFilled = addFrontageFill();
 //: The tactile pads at the crossings' ends, laid now that every pavement and corner piece is
 //: down, each on top of the pavement it stands on. They used to be laid with the crossing at
@@ -23488,6 +23489,7 @@ function fillRoadwayToKerbs() {
   }
   return counts;
 }
+if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
 const roadwayFilled = fillRoadwayToKerbs();
 
 function addClosedOfficialIslandSurfaces() {
@@ -26566,6 +26568,7 @@ function worldSupportedPieces(record, side) {
   flush();
   return pieces;
 }
+if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
 const worldSweepsDrawn = emitWorldSweeps();
 flushMerged(groups.streets, (key) => !isBuilt(key));
 flushMerged(groups.mapped3d, isBuilt);
@@ -26840,6 +26843,7 @@ function dropKerbsAtDriveways(ways) {
 // Before the lift, while every height is still the flat model's: the drop reads the gutter as
 // ROAD_TOP_M, and run after the lift it let every kerb and pavement near a driveway on a hill
 // down to sea level -- a crater at each garage, eighty metres deep on Nob Hill.
+if (performance.now() - lastYieldAt > YIELD_BUDGET_MS) await yieldFrame();   // between whole steps too (a hop's longest task)
 const kerbVerticesDropped = dropKerbsAtDriveways(DATA.ways);
 Object.assign(garageStats, { photoKerbCuts: photoDropStats.cut, photoKerbMissing: photoDropStats.noKerb });
 // Everything at ground level stands on the ground the lidar measured (the tunnels carry their own).
@@ -30449,6 +30453,54 @@ registerLazyLayer("highway_signs", async () => {
     ground:(x,z)=>groundLiftAt(x,z), decks:(x,z)=>elevatedRoadsAt(x,z), maxPanels:HEADSET ? 60 : 240});
   groups.furniture.add(group);
   window.kerbsideHighwaySigns=()=>group.userData.summary;
+});
+
+// Water above and below the street (smc.waterworks; scripts/build_waterworks.py): streams, the
+// gutter along every kerb, each storm drain as it is built and the wet line leading down to it,
+// sewer lids fixed in the road, water tanks and a treatment plant's clarifiers and basins.
+// Published as the freeway signs are: a manifest of tiles by area, and only the tiles over this
+// page are fetched. Each drain carries where its water goes (window.kerbsideDrainsNear).
+const WATERWORKS_TILE_PATH = /^waterworks\/[a-z0-9-]+\.json$/;
+registerLazyLayer("waterworks", async () => {
+  const index=await fetch(sharedAsset("waterworks.manifest.json"),{cache:"no-cache"})
+    .then(r=>r.ok?r.json():null).catch(()=>null);
+  if(index?.schema!=="kerbside.waterworks_tiles/1" || !Array.isArray(index.tiles))return;
+  const b=LIGHT_SPEC ? {west:LIGHT_SPEC.box[0],south:LIGHT_SPEC.box[1],east:LIGHT_SPEC.box[2],north:LIGHT_SPEC.box[3]} : DATA.bbox;
+  const wanted=index.tiles.filter(t=>typeof t?.path==="string" && WATERWORKS_TILE_PATH.test(t.path)
+    && Array.isArray(t.bbox) && t.bbox[0]<=b.east && t.bbox[2]>=b.west && t.bbox[1]<=b.north && t.bbox[3]>=b.south);
+  if(!wanted.length)return;
+  const [tiles, module] = await Promise.all([
+    Promise.all(wanted.map(t=>fetch(sharedAsset(`${t.path}?v=${encodeURIComponent(t.sha256 || "")}`))
+      .then(r=>r.ok?r.json():null).catch(()=>null))),
+    import(sharedAsset(`waterworks-renderer.mjs?v=${encodeURIComponent(index.renderer_sha256 || "")}`)),
+  ]);
+  // A window let go while its tiles were on their way has no ground left to stand them on.
+  if (ATTACH && !groups.furniture.parent) return;
+  const [w0,n0]=xy(b.west,b.north), [e0,s0]=xy(b.east,b.south);
+  const minX=Math.min(w0,e0), maxX=Math.max(w0,e0), minZ=Math.min(-n0,-s0), maxZ=Math.max(-n0,-s0);
+  const inArea=(x,z)=>x>=minX-30 && x<=maxX+30 && z>=minZ-30 && z<=maxZ+30;
+  // Each carriageway segment once (the grid files one under every cell it crosses).
+  const kerbSegments=()=>{ const seen=new Set(), out=[];
+    for(const bucket of carriagewayGrid.values())for(const seg of bucket){
+      if(seen.has(seg))continue; seen.add(seg);
+      // A driveway or a parking aisle has no gutter of its own, and a bore has none to show.
+      const way=seg[6]; if(way && (isUnmarkedService(way) || isTunnelWay(way)))continue;
+      if(inArea(seg[0],seg[1])||inArea(seg[2],seg[3]))out.push(seg);
+    }
+    return out; };
+  const builtAt=performance.now();
+  const group=module.buildWaterworks(THREE,tiles.filter(t=>t?.schema==="kerbside.waterworks/1"),{
+    place:(lon,lat)=>{const [x,y]=xy(lon,lat);return {x,z:-y};},
+    ground:(x,z)=>groundLiftAt(x,z), roadTop:ROAD_TOP_M, kerbH:renderedKerbHeight(null),
+    kerb:(x,z,reach)=>nearestKerbAt(x,z,reach), onRoad:(x,z,slack=0.4)=>insideCarriageway(x,z,slack),
+    wet:(x,z)=>mappedWaterAt(x,z)===true, kerbSegments, inArea, headset:HEADSET});
+  groups.furniture.add(group);
+  const w=group.userData.summary;
+  console.info(`kerbside: waterworks: ${w.drains} drains, ${w.lids} lids, ${w.streams} stream runs, `
+    +`${Math.round(w.gutters_m)} m of gutter, ${w.tanks+w.towers+w.clarifiers+w.digesters} tanks in ${Math.round(performance.now()-builtAt)} ms`);
+  window.kerbsideWaterworks=()=>({...group.userData.summary, plants:group.userData.plants,
+    underground:group.userData.underground.length});
+  window.kerbsideDrainsNear=(x,z,radius)=>group.userData.near(x,z,radius);
 });
 
 registerLazyLayer("coverage", () => {
@@ -39024,9 +39076,14 @@ function emptyTree(object, all = false) {
       for (const attribute of Object.values(o.geometry.attributes || {})) {
         // An interleaved attribute reads its array from the buffer it shares with others.
         const holder = attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
-        if (holder?.array?.length) { holder.array = new holder.array.constructor(0); holder.count = 0; }
+        // A compressed buffer says its type and length without being inflated to say them.
+        const Type = holder?.recoverableType, length = Type ? holder.recoverableLength : holder?.array?.length;
+        if (length) { holder.array = new (Type || holder.array.constructor)(0); holder.count = 0; }
       }
-      if (o.geometry.index?.array) { o.geometry.index.array = new o.geometry.index.array.constructor(0); o.geometry.index.count = 0; }
+      const index = o.geometry.index;
+      if (index && (index.recoverableType || index.array)) {
+        index.array = new (index.recoverableType || index.array.constructor)(0); index.count = 0;
+      }
     }
     if (o.isInstancedMesh && o.instanceMatrix) { o.instanceMatrix.array = new Float32Array(0); o.count = 0; }
     for (const m of o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []) {

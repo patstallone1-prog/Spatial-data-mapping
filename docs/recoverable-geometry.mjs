@@ -1,6 +1,26 @@
 // Keep static GPU buffers recoverable without retaining a second uncompressed city.
 // Compression is lossless; this does not simplify or quantize any geometry.
 const wrapped = new WeakSet();
+
+// Compression waits for idle time, a few milliseconds at a stretch. Done in the upload callback
+// it ran inside the frame that first drew a new window: every street buffer of the square
+// deflated at once, 0.85 s of one frame, the walker frozen mid-jump (measured 2026-11-04).
+const pending = [];
+let pumping = false;
+const SLICE_MS = 6;
+const later = (fn) => (typeof requestIdleCallback === 'function'
+  ? requestIdleCallback(fn, { timeout: 1000 }) : setTimeout(fn, 40));
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+function pump(deadline) {
+  pumping = false;
+  const budget = Math.max(2, Math.min(SLICE_MS, deadline?.timeRemaining ? deadline.timeRemaining() : SLICE_MS));
+  const until = now() + budget;
+  do { pending.shift()?.(); } while (pending.length && now() < until);
+  if (pending.length) schedule();
+}
+function schedule() { if (!pumping) { pumping = true; later(pump); } }
+//: Every compression still waiting, done now (tests; a page about to measure its memory).
+export function compressPending() { while (pending.length) pending.shift()(); }
 export function makeRecoverable(attribute, codec) {
   if (!attribute || wrapped.has(attribute) || !codec?.deflateSync || !codec?.inflateSync)
     return false;
@@ -31,8 +51,13 @@ export function makeRecoverable(attribute, codec) {
       packed = null; packedVersion = -1;
     },
   });
-  attribute.onUpload(function () {
-    if (previousUpload) previousUpload.call(this);
+  // What it holds, read without restoring it: emptying a released window must not inflate every
+  // buffer just to learn its type and length (0.26 s a release, measured).
+  Object.defineProperty(attribute, 'recoverableType', { configurable: true, get: () => Type });
+  Object.defineProperty(attribute, 'recoverableLength', { configurable: true, get: () => length });
+  let queued = false;
+  const compress = () => {
+    queued = false;
     if (!raw) return;
     try {
       if (!packed || packedVersion !== attribute.version) {
@@ -47,6 +72,13 @@ export function makeRecoverable(attribute, codec) {
       // Optional optimization only: if compression fails retain the real array.
       packed = null;
     }
+  };
+  attribute.onUpload(function () {
+    if (previousUpload) previousUpload.call(this);
+    if (!raw) return;
+    // Already packed at this version (a re-upload after a restore): let the copy go at once.
+    if (packed && packedVersion === attribute.version) { raw = null; return; }
+    if (!queued) { queued = true; pending.push(compress); schedule(); }
   });
   wrapped.add(attribute);
   return true;
