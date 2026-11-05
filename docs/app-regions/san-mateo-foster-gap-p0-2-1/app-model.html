@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="dbeed00587c12a9f7a57a2d8289e58de0ee4a994e105859d9c52c454ba287304" />
+<meta name="kerbside-renderer-sha256" content="58dc2a60e47df8af13d288ada8fbbc84e0d77c9a63654498f56960b0c9cf2746" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -619,7 +619,7 @@ const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
 //: tunnels and the forest's logs stop the walker, as before.
 const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
   import(sharedAsset("object-catalogue.mjs?rev=5826d83bbb545d32")),
-  fetch(sharedAsset("object-catalogue.json?rev=500e101e90968f93"))
+  fetch(sharedAsset("object-catalogue.json?rev=ffdf854d7e42fffa"))
     .then((r) => r.ok ? r.json() : Promise.reject(new Error(`object catalogue: ${r.status}`))),
 ]).then(([library, data]) => ({ library, catalogue: library.createCatalogue(data) }))
   .catch((error) => { console.warn("kerbside: object catalogue unavailable; only buildings and logs stop the walker", error); return null; });
