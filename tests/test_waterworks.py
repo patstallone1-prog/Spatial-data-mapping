@@ -159,3 +159,22 @@ process.stdout.write(JSON.stringify({summary: g.userData.summary, near, surfaces
     assert r["near"][0]["route"]["to"] == "Southeast Treatment Plant"
     assert {"waterworks:sewer_lid", "waterworks:storm_drain", "waterworks:gutter", "waterworks:stream",
             "waterworks:water_tank", "waterworks:clarifier", "waterworks:treatment_basin"} <= set(r["surfaces"])
+
+
+def test_the_build_files_each_thing_by_its_tile_to_a_tenth_of_a_metre():
+    import importlib.util
+
+    from smc.waterworks import MANIFEST_SCHEMA, SCHEMA
+
+    spec = importlib.util.spec_from_file_location("build_waterworks", ROOT / "scripts/build_waterworks.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    assert SCHEMA == "kerbside.waterworks/1" and MANIFEST_SCHEMA == "kerbside.waterworks_tiles/1"
+    assert build.tile_of(-122.4417, 37.8046) == (-1225, 378)
+    row = build._compact({"id": "x", "p": [-122.44171234, 37.80461234], "c": [[1.12345678, 2.12345678]]})
+    assert row["p"] == [-122.441712, 37.804612] and row["c"] == [[1.123457, 2.123457]]
+    inside = build.Area([(-122.45, 37.80, -122.43, 37.81)])
+    assert inside(-122.44, 37.805) and not inside(-122.40, 37.805)
+    routes = build.Routes()
+    assert routes.add({"to": "a"}) == 0 and routes.add({"to": "b"}) == 1 and routes.add({"to": "a"}) == 0
+    assert build.city_of("san-francisco:catch_basin:N-1") == "san-francisco" and build.city_of("osm:n1") is None
