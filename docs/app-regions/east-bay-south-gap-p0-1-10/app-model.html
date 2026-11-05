@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="0ea94249bbdec199adfe65316e2858ab5aeae628e2037f13cda7c062471c4644" />
+<meta name="kerbside-renderer-sha256" content="028117df4db58f2f1b4c2e0fee55da6e3dd056afbd5b44c82b24b74903f241c0" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -622,7 +622,7 @@ const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
 //: (docs/object-catalogue.mjs over docs/object-catalogue.json). Without it only the buildings,
 //: tunnels and the forest's logs stop the walker, as before.
 const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
-  import(sharedAsset("object-catalogue.mjs?rev=5826d83bbb545d32")),
+  import(sharedAsset("object-catalogue.mjs?rev=9f3a5c5c4637e37d")),
   fetch(sharedAsset("object-catalogue.json?rev=cb4b0ddf06b82afc"))
     .then((r) => r.ok ? r.json() : Promise.reject(new Error(`object catalogue: ${r.status}`))),
 ]).then(([library, data]) => ({ library, catalogue: library.createCatalogue(data) }))
