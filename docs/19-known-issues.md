@@ -51,11 +51,11 @@ plainly wrong at street level.
 **Ground inside blocks is a flat neutral.** Back yards, light wells and car parks are not mapped
 as anything, and the surface under them says only "not described".
 
-**Most regions have no detail payload.** Only 7 of the 254 folders under `docs/regions/` hold
-`sf-corridor-3d.json`: the Mission, the Sunset, Haight–Castro, and downtown Oakland, Berkeley,
-Palo Alto and San Jose. (The Marina corridor is the page's own.) For the rest, the Richmond and the gap regions included, the payload is 404
-locally and on the live site, though the region index lists them as built. Jumping there
-retries every few seconds, the "Loading … in full" notice never clears, and only roads draw.
+**Store-only regions do not load on a local server.** Most regions' payloads live only in the
+cloud store and are reached through `docs/asset-map.json`, which lets only the site's own origin
+read the store (`origins`). A page served from `127.0.0.1` falls back to `docs/regions/`, where
+only 7 regions have local copies, so the rest draw roads only and retry. Benchmark and sample
+those regions on the live site.
 
 **Highway interchanges are flat where they stack.** Decks are walkable and know they are
 highways (docs/34-bridges-and-highways.md), but crossing decks at different OSM layers are

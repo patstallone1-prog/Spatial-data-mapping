@@ -24,8 +24,8 @@ No ray hit a *different* building. A miss is a ray that hit nothing: a courtyard
 an L shape whose centroid falls outside its own footprint. The wrong street names are midpoints
 that land in a junction, where the cross street is equally right.
 
-The Richmond and three gap regions (Daly City, Alameda, Belmont) could not be sampled. They
-have no detail payload (doc 19).
+The Richmond and three gap regions (Daly City, Alameda, Belmont) were not sampled: their data
+lives only in the cloud store, which a local test server may not read (doc 19).
 
 ## Structures: do bridges and highways stand where they do?
 
@@ -50,7 +50,7 @@ See doc 34 for the full table.
 | Coyote Hills | Golden grass on the hills, green marsh, ponds | Reasonable; marsh colour could be truer |
 | Downtown Oakland | Towers, plazas, street trees, crossings | Reads correctly |
 | Mission interchanges | Decks present and walkable, but stacked levels drawn at one height | Plan in doc 34 |
-| Richmond, gap regions | Roads only | No payload (doc 19) |
+| Richmond, gap regions (local server) | Roads only | Store-only data, not readable from a local server (doc 19) |
 
 ## One edit, end to end
 
