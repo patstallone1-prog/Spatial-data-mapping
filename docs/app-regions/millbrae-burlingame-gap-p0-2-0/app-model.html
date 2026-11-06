@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="babcbdeb58bd689675f502b8a1839e156286909892c9dfe65c1a132d7d80b1be" />
+<meta name="kerbside-renderer-sha256" content="a3da52c48f47d75f8870310403deac6c44516f830ae2c55efc9e6e16cc03869a" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1598,8 +1598,8 @@ function registerLazyLayer(layer, builder) {
   lazyLayerBuilders.set(layer, { builder, promise: null });
   if (lazyLayersWanted.has(layer)) ensureLazyLayer(layer);
 }
-//: Layers that open with another: the freeway signs are street furniture.
-const LAZY_COMPANIONS = { furniture: ["highway_signs", "waterworks"] };
+//: Layers that open with another: the freeway signs and tolls are street furniture.
+const LAZY_COMPANIONS = { furniture: ["highway_signs", "highway_tolls", "waterworks"] };
 //: Layers built (or given up on) -- the home screen waits for the ones that are open.
 const lazyLayersSettled = new Set();
 function ensureLazyLayer(layer) {
@@ -19613,6 +19613,8 @@ for (const way of CENTRAL_FREEWAY_WAYS) {
   }
 }
 function centralFreewayProfile(way) {
+  // Solved with the interchanges it belongs to (solveDeckLevels); the old two-end line otherwise.
+  if (CENTRAL_SOLVED.has(way)) return CENTRAL_SOLVED.get(way);
   const pts = way.points || [];
   if (pts.length < 2) return null;
   const ends = [pts[0], pts[pts.length - 1]];
@@ -19748,7 +19750,7 @@ function isTransitCanopy(way) {
 }
 const REGION_BRIDGE_WAYS = (DATA.ways || []).filter((way) => way.kind === "street" && way.bridge && !way.tunnel
   && way.points && way.points.length >= 2 && !CENTRAL_FREEWAY_WAYS.includes(way)
-  && !/Transbay|Bus Ramp/i.test(way.name || "") && !(Number(way.layer) >= 2));
+  && !/Transbay|Bus Ramp/i.test(way.name || ""));
 const INFERRED_BRIDGE_CLEARANCE_M=4.8,REGION_DECK_DEPTH_M=1.2;
 function bridgeClearanceControls(ways) {
   const controls=new Map();
@@ -19785,9 +19787,162 @@ function bridgeClearanceProfile(base,abutments,controls) {
   lift.clearanceBasis="inferred_visual_not_measured";lift.clearanceControls=controls;
   return lift;
 }
+// ---- interchanges: every deck's height solved together ----------------------------------------
+//
+// A freeway interchange is a graph of decks joined end to end, crossing over each other on two
+// or three levels. Each deck used to be lifted on its own -- the Central Freeway at 5.2 m a
+// layer, the stacked connectors (OpenStreetMap layer 2 and 3) not at all -- so the Hairball's
+// ramps lay on the street and the decks that cross drew at one height. solveDeckLevels takes them
+// together (docs/34-bridges-and-highways.md):
+//
+// * each deck is a line of stations every DECK_STATION_M; decks that share an end node share
+//   that height exactly, and an end on an ordinary street is pinned to the street;
+// * a highway deck aims for ground + DECK_LEVEL_M per OpenStreetMap layer (Caltrans' 16.5 ft
+//   clearance over a freeway and the deck's depth); an ordinary bridge aims for the line between
+//   its abutments, as it always did;
+// * where two decks cross in plan, the one on the higher layer clears the lower by a level, and
+//   a deck clears every street it passes over (bridgeClearanceControls);
+// * no grade is steeper than 6% on a named freeway or 8% on a ramp or bridge.
+//
+// The heights are relaxed together (smoothing toward the targets, then each rule enforced in
+// turn) a fixed number of times, so the result is the same on every load. What it reaches is
+// reported (DECK_LEVEL_REPORT): every crossing's clearance, every deck's steepest grade.
+const DECK_LEVEL_M = 6.6, DECK_STATION_M = 10, DECK_GRADES = { mainline: 0.06, ramp: 0.08 };
+//: decks: [{ id, pts: [[x, z], ...], layer, highway, mainline, ends: [key, key], base?(x, z),
+//:   controls?: [{ x, z, target }] }]; pins: Map(key -> height); ground(x, z).
+//: Returns { profiles: Map(id -> (x, z) => height), stations: Map(id -> { pts, h }), report }.
+function solveDeckLevels(decks, { ground, pins = new Map(), level = 6.6, step = 10,
+  grades = { mainline: 0.06, ramp: 0.08 }, iterations = 260 } = {}) {
+  const lines = decks.map((d) => {
+    const pts = [d.pts[0]];
+    for (let i = 1; i < d.pts.length; i += 1) {
+      const [ax, az] = d.pts[i - 1], [bx, bz] = d.pts[i];
+      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / step));
+      for (let k = 1; k <= n; k += 1) pts.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]);
+    }
+    const s = [0];
+    for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const lv = Math.max(1, Number(d.layer) || 1);
+    const target = pts.map(([x, z]) => (d.highway || !d.base ? ground(x, z) + level * lv : d.base(x, z)));
+    const floor = pts.map(([x, z]) => ground(x, z));
+    const pinned = [pins.has(d.ends[0]) ? pins.get(d.ends[0]) : null, pins.has(d.ends[1]) ? pins.get(d.ends[1]) : null];
+    const h = target.slice();
+    if (pinned[0] !== null) h[0] = pinned[0];
+    if (pinned[1] !== null) h[h.length - 1] = pinned[1];
+    return { d, pts, s, h, target, floor, lv, pinned, grade: d.mainline ? grades.mainline : grades.ramp };
+  });
+  // Ends shared by decks: one height.
+  const ties = new Map();
+  lines.forEach((L, li) => L.d.ends.forEach((key, e) => {
+    if (!ties.has(key)) ties.set(key, []);
+    ties.get(key).push([li, e ? L.h.length - 1 : 0]);
+  }));
+  // Where two decks cross in plan, away from an end they share.
+  const crossings = [];
+  const box = lines.map((L) => L.pts.reduce((b, [x, z]) => [Math.min(b[0], x), Math.min(b[1], z), Math.max(b[2], x), Math.max(b[3], z)], [Infinity, Infinity, -Infinity, -Infinity]));
+  for (let a = 0; a < lines.length; a += 1) for (let b = a + 1; b < lines.length; b += 1) {
+    const A = lines[a], B = lines[b];
+    if (A.lv === B.lv) continue;
+    if (box[a][0] > box[b][2] || box[b][0] > box[a][2] || box[a][1] > box[b][3] || box[b][1] > box[a][3]) continue;
+    const shared = A.d.ends.filter((k) => B.d.ends.includes(k));
+    for (let i = 1; i < A.pts.length; i += 1) for (let j = 1; j < B.pts.length; j += 1) {
+      const [p0, p1] = [A.pts[i - 1], A.pts[i]], [q0, q1] = [B.pts[j - 1], B.pts[j]];
+      const rx = p1[0] - p0[0], rz = p1[1] - p0[1], sx = q1[0] - q0[0], sz = q1[1] - q0[1];
+      const den = rx * sz - rz * sx;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((q0[0] - p0[0]) * sz - (q0[1] - p0[1]) * sx) / den, u = ((q0[0] - p0[0]) * rz - (q0[1] - p0[1]) * rx) / den;
+      if (t < 0 || t > 1 || u < 0 || u > 1) continue;
+      const x = p0[0] + rx * t, z = p0[1] + rz * t;
+      if (shared.length && [A.pts[0], A.pts.at(-1)].some(([ex, ez]) => Math.hypot(ex - x, ez - z) < 25)) continue;
+      const [up, upI, upT, lo, loI, loT] = A.lv > B.lv ? [a, i, t, b, j, u] : [b, j, u, a, i, t];
+      crossings.push({ up, upI, upT, lo, loI, loT, x, z });
+    }
+  }
+  // A deck over a street: the street's clearance at the point of the deck over it.
+  const controls = [];
+  lines.forEach((L, li) => (L.d.controls || []).forEach((c) => {
+    let best = null;
+    for (let i = 1; i < L.pts.length; i += 1) {
+      const [ax, az] = L.pts[i - 1], [bx, bz] = L.pts[i];
+      const dx = bx - ax, dz = bz - az, n = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((c.x - ax) * dx + (c.z - az) * dz) / n));
+      const dist = Math.hypot(ax + dx * t - c.x, az + dz * t - c.z);
+      if (!best || dist < best.dist) best = { i, t, dist };
+    }
+    if (best && best.dist < 3) controls.push({ li, i: best.i, t: best.t, target: c.target });
+  }));
+  const at = (L, i, t) => L.h[i - 1] * (1 - t) + L.h[i] * t;
+  // The end heights every deck must meet: a pin (the street), or the decks' shared mean.
+  const endValues = () => {
+    const out = new Map();
+    for (const [key, members] of ties) out.set(key, pins.has(key) ? pins.get(key)
+      : members.reduce((sum, [li, i]) => sum + lines[li].h[i], 0) / members.length);
+    return out;
+  };
+  // A deck's heights: at least what it must clear (req), the least grade-limited profile over
+  // that (each requirement a cone of the road's grade), and no further than its grade from the
+  // heights its ends are held at. Exact for the grade by construction.
+  const shape = (L, req, ends) => {
+    const n = L.h.length, g = L.grade, h = L.h;
+    for (let i = 0; i < n; i += 1) h[i] = Math.max(h[i], req[i]);
+    const held = [[0, ends[0]], [n - 1, ends[1]]].filter(([, v]) => v !== null);
+    for (const [k, v] of held) for (let i = 0; i < n; i += 1) h[i] = Math.max(h[i], v - g * Math.abs(L.s[i] - L.s[k]));
+    for (let i = 1; i < n; i += 1) h[i] = Math.max(h[i], h[i - 1] - g * (L.s[i] - L.s[i - 1]));
+    for (let i = n - 2; i >= 0; i -= 1) h[i] = Math.max(h[i], h[i + 1] - g * (L.s[i + 1] - L.s[i]));
+    for (const [k, v] of held) for (let i = 0; i < n; i += 1) h[i] = Math.min(h[i], v + g * Math.abs(L.s[i] - L.s[k]));
+  };
+  for (let it = 0; it <= iterations; it += 1) {
+    if (it < iterations) for (const L of lines) {
+      const n = L.h.length;
+      for (let i = 1; i < n - 1; i += 1) L.h[i] += 0.5 * ((L.h[i - 1] + L.h[i + 1]) / 2 - L.h[i]) + 0.06 * (L.target[i] - L.h[i]);
+      for (const i of [0, n - 1]) L.h[i] += 0.2 * (L.target[i] - L.h[i]);
+    }
+    const ends = endValues();
+    const req = lines.map((L) => L.floor.slice());
+    for (const c of controls) { const r = req[c.li]; r[c.i - 1] = Math.max(r[c.i - 1], c.target); r[c.i] = Math.max(r[c.i], c.target); }
+    for (const c of crossings) {
+      const need = at(lines[c.lo], c.loI, c.loT) + level, r = req[c.up];
+      r[c.upI - 1] = Math.max(r[c.upI - 1], need); r[c.upI] = Math.max(r[c.upI], need);
+    }
+    lines.forEach((L, li) => shape(L, req[li], L.d.ends.map((k) => ends.get(k))));
+  }
+  const report = { decks: lines.length, crossings: crossings.length, minClearance: Infinity, maxGrade: 0, maxGradeOver: 0, endGap: 0,
+    streetControls: controls.length, minStreetMargin: Infinity };
+  for (const c of crossings) report.minClearance = Math.min(report.minClearance, at(lines[c.up], c.upI, c.upT) - at(lines[c.lo], c.loI, c.loT));
+  for (const c of controls) report.minStreetMargin = Math.min(report.minStreetMargin, at(lines[c.li], c.i, c.t) - c.target);
+  for (const L of lines) for (let i = 1; i < L.h.length; i += 1) {
+    const g = Math.abs(L.h[i] - L.h[i - 1]) / Math.max(1e-6, L.s[i] - L.s[i - 1]);
+    report.maxGrade = Math.max(report.maxGrade, g);
+    report.maxGradeOver = Math.max(report.maxGradeOver, g - L.grade);
+  }
+  for (const members of ties.values()) {
+    const hs = members.map(([li, i]) => lines[li].h[i]);
+    report.endGap = Math.max(report.endGap, Math.max(...hs) - Math.min(...hs));
+  }
+  const profiles = new Map(), stations = new Map();
+  for (const L of lines) {
+    const { pts, h } = L;
+    stations.set(L.d.id, { pts, h, s: L.s });
+    profiles.set(L.d.id, (x, z) => {
+      let best = null;
+      for (let i = 1; i < pts.length; i += 1) {
+        const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
+        const dx = bx - ax, dz = bz - az, n = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / n));
+        const dist = (ax + dx * t - x) ** 2 + (az + dz * t - z) ** 2;
+        if (!best || dist < best.dist) best = { dist, y: h[i - 1] + (h[i] - h[i - 1]) * t };
+      }
+      return best ? best.y : h[0];
+    });
+  }
+  return { profiles, stations, crossings, report };
+}
+var DECK_LEVEL_REPORT = null;
+//: The Central Freeway's decks as solved with the rest (centralFreewayProfile reads them).
+const CENTRAL_SOLVED = new Map();
 const BRIDGE_LIFTS = (() => {
   const lifts = new Map();
-  if (!REGION_BRIDGE_WAYS.length) return lifts;
+  if (!REGION_BRIDGE_WAYS.length && !CENTRAL_FREEWAY_WAYS.length) return lifts;
   const keyOf = (x, z) => `${Math.round(x * 2)}:${Math.round(z * 2)}`;
   const parent = REGION_BRIDGE_WAYS.map((_, i) => i);
   const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
@@ -19802,7 +19957,41 @@ const BRIDGE_LIFTS = (() => {
   ends.forEach((pair) => pair.forEach(([x, z]) => { const key = keyOf(x, z); counts.set(key, (counts.get(key) || 0) + 1); }));
   const groups = new Map();
   REGION_BRIDGE_WAYS.forEach((way, i) => { const g = find(i); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+  // The interchanges: every group with a highway's deck in it, and the Central Freeway, solved
+  // together (solveDeckLevels). An ordinary bridge's group is carried between its abutments.
+  const solvedWays = [];
   for (const members of groups.values()) {
+    if (members.some((i) => structureKindOf(REGION_BRIDGE_WAYS[i]) === "highway")) solvedWays.push(...members.map((i) => REGION_BRIDGE_WAYS[i]));
+  }
+  solvedWays.push(...CENTRAL_FREEWAY_WAYS);
+  if (solvedWays.length) {
+    const local = (p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; };
+    const pins = new Map();
+    const decks = solvedWays.map((way, i) => {
+      const keys = [way.points[0], way.points[way.points.length - 1]].map(bridgeNodeKey);
+      [way.points[0], way.points[way.points.length - 1]].forEach((p, e) => {
+        if (GROUND_JOIN_NODES.has(keys[e])) { const [x, z] = local(p); pins.set(keys[e], groundLiftAt(x, z)); }
+      });
+      return { id: i, pts: densifyWay(way.points, 3).map(local), layer: Number(way.layer) || 1, highway: true,
+        mainline: isHighwayName(way.name), ends: keys, controls: bridgeClearanceControls([way]) };
+    });
+    const solved = solveDeckLevels(decks, { ground: (x, z) => groundLiftAt(x, z), pins, level: DECK_LEVEL_M,
+      step: DECK_STATION_M, grades: DECK_GRADES });
+    DECK_LEVEL_REPORT = { ...solved.report, basis: "inferred: OpenStreetMap layers and shared nodes, Caltrans clearance and grade limits" };
+    solvedWays.forEach((way, i) => {
+      const lift = solved.profiles.get(i);
+      // Piers keep clear of whatever passes under: the streets, and the decks below.
+      const under = solved.crossings.filter((c) => c.up === i).map((c) => ({ x: c.x, z: c.z, half: (solvedWays[c.lo].road_m || 7) / 2 }));
+      lift.clearanceControls = [...bridgeClearanceControls([way]), ...under];
+      lift.clearanceBasis = "inferred_visual_not_measured";
+      lift.groundLiftKey = "deck:" + i;
+      lift.abutments = [];
+      lift.level = Number(way.layer) || 1;
+      if (CENTRAL_FREEWAY_WAYS.includes(way)) CENTRAL_SOLVED.set(way, lift); else lifts.set(way, lift);
+    });
+  }
+  for (const members of groups.values()) {
+    if (lifts.has(REGION_BRIDGE_WAYS[members[0]])) continue;
     const abutments = [];
     for (const i of members) for (const [x, z] of ends[i]) if (counts.get(keyOf(x, z)) === 1) abutments.push([x, z, groundLiftAt(x, z)]);
     if (!abutments.length) continue;
@@ -19867,7 +20056,7 @@ function addRegionBridgeStructures() {
             new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(nx, nz)),
             new THREE.Vector3(Math.max(1.2, half * 1.2), top - base, 1.1)));
         }
-        nextPier += 18;
+        nextPier += lift.level ? 32 : 18;   // a freeway viaduct's bents, an ordinary bridge's piers
       }
       s += len;
     }
@@ -27856,6 +28045,30 @@ registerLazyLayer("highway_signs", async () => {
   window.kerbsideHighwaySigns=()=>group.userData.summary;
 });
 
+// Toll plazas and gantries (smc.highways.tolls; scripts/build_highway_tolls.py): every bridge's
+// toll gantry, the booths still standing at the plazas and the canopies over them, from
+// OpenStreetMap's toll_gantry and toll_booth, oriented and sized by the freeway each stands on.
+// One small file for the whole Bay; the renderer has a fixed name beside it. The plazas stand at
+// the bridges' ends, past every detailed region, in the world the page draws itself (with the
+// bridges): so the page draws all of them, with the bridges, and a region's window none.
+registerLazyLayer("highway_tolls", async () => {
+  if (ATTACH) return;
+  const index=await fetch(sharedAsset("highway-tolls.json"),{cache:"no-cache"})
+    .then(r=>r.ok?r.json():null).catch(()=>null);
+  if(index?.schema!=="kerbside.highway_tolls/1" || !Array.isArray(index.tolls))return;
+  const tolls=index.tolls.filter(t=>Array.isArray(t?.p) && t.p.every(Number.isFinite));
+  if(!tolls.length)return;
+  const module=await import(sharedAsset(`highway-toll-renderer.mjs?v=${encodeURIComponent(index.renderer_sha256 || "")}`));
+  const group=module.buildTolls(THREE,tolls,{
+    place:(lon,lat)=>{const [x,y]=xy(lon,lat);return {x,z:-y};},
+    ground:(x,z)=>groundLiftAt(x,z), decks:(x,z)=>elevatedRoadsAt(x,z)});
+  // Bay-wide, as the bridges are: kept when the page lets its own world go for a window, and not
+  // clipped to the detail window's box (clipDetailWorld) -- every plaza stands outside it.
+  group.userData.bayWide = true;
+  root.add(group);
+  window.kerbsideHighwayTolls=()=>group.userData.summary;
+});
+
 // Water above and below the street (smc.waterworks; scripts/build_waterworks.py): streams, the
 // gutter along every kerb, each storm drain as it is built and the wet line leading down to it,
 // sewer lids fixed in the road, water tanks and a treatment plant's clarifiers and basins.
@@ -30315,6 +30528,15 @@ function moveWalker(mx, mz) {
   const segments = wallSegmentsNear(avatar.position.x + mx / 2, avatar.position.z + mz / 2);
   const p = { x: avatar.position.x, z: avatar.position.z };
   let feet=typeof walkerFeetY === "function" ? walkerFeetY() : null;
+  // The parapets of the deck underfoot (a streamed region's own decks where one is drawn).
+  {
+    const cx = avatar.position.x + mx / 2, cz = avatar.position.z + mz / 2;
+    const g = typeof guestUnder === "function" && activeGuest ? guestUnder(cx, cz) : null;
+    if (g?.ready && g.api.deckEdgeSegmentsNear && Number.isFinite(feet)) {
+      for (const [ax, az, bx, bz] of g.api.deckEdgeSegmentsNear(...hostToGuest(g, cx, cz), feet - g.oy))
+        segments.push([g.ox + ax * g.sx, g.oz + az, g.ox + bx * g.sx, g.oz + bz]);
+    } else if (!g) segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
+  }
   for (let i = 0; i < steps; i += 1) {
     const next = {x: p.x + mx / steps, z: p.z + mz / steps};
     const below=typeof occupiedTunnelAt === "function" ? occupiedTunnelAt(p.x,p.z,feet) : null;
@@ -34551,6 +34773,40 @@ function elevatedDecksAt(x, z) {
   }
   return out;
 }
+//: The parapets of the deck the walker is standing on, as wall segments (pushOutOfWalls): each
+//: deck's two edges at the width a person can stand on, in 3 m pieces, for the decks whose road
+//: is within a step of the feet. A piece is left open where another deck carries on beside it
+//: at the same height -- a ramp leaving the road, a deck joining the next -- and every deck
+//: overhead or underfoot is no wall at all, so the street under a viaduct walks freely.
+function deckEdgeSegmentsNear(x, z, feet) {
+  if (!Number.isFinite(feet) || !ELEVATED_ROADS) return [];
+  const out = [];
+  const near = new Set();
+  for (let ix = -1; ix <= 1; ix += 1) for (let iz = -1; iz <= 1; iz += 1)
+    for (const s of ELEVATED_ROADS.get(`${Math.floor(x / elevatedCellM()) + ix}:${Math.floor(z / elevatedCellM()) + iz}`) || []) near.add(s);
+  for (const s of near) {
+    const { ax, az, ay, bx, bz, by, half, info } = s;
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 0.05 || Math.min(Math.hypot(ax - x, az - z), Math.hypot(bx - x, bz - z)) > len + 12) continue;
+    // Only the deck underfoot: its road within a step of the feet somewhere along this piece.
+    if (feet < Math.min(ay, by) - 1.0 || feet > Math.max(ay, by) + 1.0) continue;
+    const reach = Math.max(half, info?.reach || 0);
+    const ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux;
+    const pieces = Math.max(1, Math.round(len / 3));
+    for (const side of [-1, 1]) for (let k = 0; k < pieces; k += 1) {
+      const t0 = k / pieces, t1 = (k + 1) / pieces, tm = (t0 + t1) / 2;
+      const top = ay + (by - ay) * tm;
+      if (Math.abs(top - feet) > 1.0) continue;
+      const px = ax + (bx - ax) * tm + nx * side * (reach + 0.8), pz = az + (bz - az) * tm + nz * side * (reach + 0.8);
+      if (elevatedDecksAt(px, pz).some((d) => Math.abs(d.top - top) < 1.2)) continue;
+      // Not over the ground: a deck's end on the street is no edge.
+      if (top - groundLiftAt(px, pz) < 1.0) continue;
+      out.push([ax + (bx - ax) * t0 + nx * side * reach, az + (bz - az) * t0 + nz * side * reach,
+        ax + (bx - ax) * t1 + nx * side * reach, az + (bz - az) * t1 + nz * side * reach]);
+    }
+  }
+  return out;
+}
 //: DECK_STEP_M, 0.6 m: how far above the feet a deck may be and still be stepped onto -- a ramp
 //: rises a few centimetres a step, a deck overhead is metres up. (Written into walkerGroundInfo:
 //: the walker can be asked for its ground before this part of the module has run.)
@@ -36377,6 +36633,7 @@ window.kerbside = {
   pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById, multiplayer,
   // The landscape (forest floor, scans) and the globe, for inspection.
   get natureWorld() { return natureWorld; }, get globe() { return globe; }, get activeGuest() { return activeGuest; },
+  get deckLevels() { return DECK_LEVEL_REPORT; }, deckEdgeSegmentsNear,
   // Ponds, fountains and lakes drawn at their own level (INLAND_WATER), for inspection.
   get inlandWater() {
     const f = TERRAIN_FRAME;
@@ -37248,6 +37505,7 @@ function releaseModuleScope() {
   try { drawnGroundRay = null; } catch (error) { /* kept */ }
   try { PARKING_ASPHALT = null; } catch (error) { /* kept */ }
   try { STREET_STANDING = null; } catch (error) { /* kept */ }
+  try { DECK_LEVEL_REPORT = null; } catch (error) { /* kept */ }
   try { TRANSIT_ISLAND_SPOTS = null; } catch (error) { /* kept */ }
   try { builtWays = null; } catch (error) { /* kept */ }
   try { tactilePadsLaid = null; } catch (error) { /* kept */ }
@@ -37417,6 +37675,7 @@ function releaseModuleScope() {
   try { CENTRAL_DECK_NODES.clear(); } catch (error) { /* kept */ }
   try { GROUND_JOIN_NODES.clear(); } catch (error) { /* kept */ }
   try { TRANSIT_CANOPIES.length = 0; } catch (error) { /* kept */ }
+  try { CENTRAL_SOLVED.clear(); } catch (error) { /* kept */ }
   try { roadFillGrid.clear(); } catch (error) { /* kept */ }
   try { GRASS_TEXTURES.clear(); } catch (error) { /* kept */ }
   try { TREE_LEAF_TEXTURES.clear(); } catch (error) { /* kept */ }
@@ -37491,6 +37750,7 @@ window.kerbsideGuestApi = {
   walkerFootprintBlocked,
   // Its buildings' exterior edits, drawn in its own world (openExteriorEditor on the page).
   exteriorEditorContext, hasExteriorBuilding: (id) => buildingWayById.has(String(id)),
+  deckEdgeSegmentsNear, deckLevels: () => DECK_LEVEL_REPORT,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
   toggleNearestDoor: operateNearestDoor,
