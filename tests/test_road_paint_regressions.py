@@ -29,7 +29,7 @@ def test_lane_paint_settles_on_actual_road_not_independent_terrain():
         "const crossing=mesh('crossing',[1,0,1, 1.1,0,1, 1,0,1.1]);",
         "const groups={streets:{traverse:f=>[road,lane,crossing].forEach(f)}};",
         "const SETTLE_CELL_M=2, SETTLE_COARSE_M=8; const settleKey=(x,z)=>Math.floor(x/2)*1048576+Math.floor(z/2);",
-        "function refineForTerrain(g){return g;} async function maybeYield(){}",
+        "function refineForTerrain(g){return g;} function* refineForTerrainSteps(g){return g;} async function runStepsSliced(s){let r;while(!(r=s.next()).done);return r.value;} async function maybeYield(){}",
         rules, "async " + _extract("settleOnto", js),
         "for(const rule of SETTLE_RULES)await settleOnto(rule);",
         "console.log(JSON.stringify([lane,crossing].map(m=>m.geometry.getAttribute().getY(0))));",
@@ -188,7 +188,7 @@ def _paint_surface_fixture(body):
         "function attribute(v){return {count:v.length/3,getX:i=>v[i*3],getY:i=>v[i*3+1],getZ:i=>v[i*3+2],setY:(i,y)=>v[i*3+1]=y};}",
         "function mesh(surface,v){const p=attribute(v);let idx=null;return {isMesh:true,userData:{surface},geometry:{getAttribute:()=>p,getIndex:()=>idx,setIndex:i=>{idx={count:i.length,getX:j=>i[j]};},computeBoundingSphere(){}}};}",
         "const SETTLE_CELL_M=2,SETTLE_COARSE_M=8;const settleKey=(x,z)=>Math.floor(x/2)*1048576+Math.floor(z/2);",
-        "function refineForTerrain(g){return g;}async function maybeYield(){}",
+        "function refineForTerrain(g){return g;} function* refineForTerrainSteps(g){return g;} async function runStepsSliced(s){let r;while(!(r=s.next()).done);return r.value;}async function maybeYield(){}",
         rules, "async " + _extract("settleOnto", js), body,
     ]))
 

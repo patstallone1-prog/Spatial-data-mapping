@@ -4677,6 +4677,25 @@ function mappedBuiltAt(x, z) {
   const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
   return r >= 0 && r < f.rows && c >= 0 && c < f.cols && LANDWATER[r * f.cols + c] === 2;
 }
+//: The next task, as soon as the browser will run one. A timer, except in a hidden page, where a
+//: timer is held to once a second (and to once a minute after five): there the next task is a
+//: message to itself, which is delivered at once. Every slice of background work that hands the
+//: thread back between steps comes back through here -- through a timer, a page left in another
+//: tab while it built (or a display that went to sleep) took six minutes over a build of 22 s.
+//: (A function: the work that uses it starts before the module's later declarations are reached.)
+function nextTask() {
+  return new Promise((resolve) => {
+    if (!globalThis.document?.hidden || typeof MessageChannel === "undefined") { setTimeout(resolve, 0); return; }
+    if (!nextTask.channel) {
+      const channel = new MessageChannel(), waiters = [];
+      channel.port1.onmessage = () => { const go = waiters.shift(); if (go) go(); };
+      if (typeof channel.port1.unref === "function") channel.port1.unref();
+      nextTask.channel = { waiters, port: channel.port2 };
+    }
+    nextTask.channel.waiters.push(resolve);
+    nextTask.channel.port.postMessage(0);
+  });
+}
 //: The ground grid's whole-grid passes (the land repaired under missing returns, the water taken
 //: a body at a time) run before the build's own pacing is set up, and over a few million cells
 //: each: run straight through they were the longest frame of a jump (0.4-0.5 s). They give the
@@ -4684,7 +4703,7 @@ function mappedBuiltAt(x, z) {
 const GROUND_PASS_SLICE_MS = 6;
 let groundPassAt = performance.now();
 function groundPassDue() { return performance.now() - groundPassAt > GROUND_PASS_SLICE_MS; }
-async function groundPassYield() { await new Promise((resolve) => setTimeout(resolve, 0)); groundPassAt = performance.now(); }
+async function groundPassYield() { await nextTask(); groundPassAt = performance.now(); }
 if (LANDWATER) {
   const f = TERRAIN_FRAME, original = TERRAIN.data, n = original.length;
   const visual = new Int16Array(original);
@@ -6502,6 +6521,34 @@ function latticeAt(x, z) {
 //: forty-thousand-vertex piece refined in one go held a frame for 0.15-0.3 s (2026-11-05).
 function refineForTerrain(...args) { return runSteps(refineForTerrainSteps(...args)); }
 function runSteps(steps) { let r; while (!(r = steps.next()).done); return r.value; }
+//: A geometry's bounding sphere worked out as computeBoundingSphere does it -- the centre of its
+//: box, the distance to the vertex farthest from that -- with a yield every 65,536 vertices: on
+//: a piece of a city's street surface the one call was a sixth of a second. (Morph targets or
+//: an interleaved or normalised position go to three.js itself.)
+function* boundingSphereSteps(geometry) {
+  const position = geometry.getAttribute("position");
+  if (!position || geometry.morphAttributes?.position || position.isInterleavedBufferAttribute
+      || position.normalized || position.itemSize !== 3) { geometry.computeBoundingSphere(); return; }
+  const A = position.array, n = position.count;
+  let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+  for (let i = 0; i < n; i += 1) {
+    if ((i & 65535) === 65535) yield;
+    const x = A[i * 3], y = A[i * 3 + 1], z = A[i * 3 + 2];
+    x0 = Math.min(x0, x); y0 = Math.min(y0, y); z0 = Math.min(z0, z);
+    x1 = Math.max(x1, x); y1 = Math.max(y1, y); z1 = Math.max(z1, z);
+  }
+  const empty = x1 < x0 || y1 < y0 || z1 < z0;
+  const cx = empty ? 0 : (x0 + x1) * 0.5, cy = empty ? 0 : (y0 + y1) * 0.5, cz = empty ? 0 : (z0 + z1) * 0.5;
+  let far = 0;
+  for (let i = 0; i < n; i += 1) {
+    if ((i & 65535) === 65535) yield;
+    const dx = cx - A[i * 3], dy = cy - A[i * 3 + 1], dz = cz - A[i * 3 + 2];
+    far = Math.max(far, dx * dx + dy * dy + dz * dz);
+  }
+  if (!geometry.boundingSphere) geometry.boundingSphere = new THREE.Sphere();
+  geometry.boundingSphere.center.set(cx, cy, cz);
+  geometry.boundingSphere.radius = Math.sqrt(far);
+}
 //: A generator run between frames, inside the build's slice.
 async function runStepsSliced(steps) {
   let r;
@@ -6612,6 +6659,29 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
   // Keyed by the pair as one number: a string key here was a third of the lift's time. The same
   // pair is always cut at the same parameter, so the key needs no more.
   const cuts = new Map();
+  // A store grown by doubling was copied whole in the middle of a step: at a city's size, a frame
+  // of a third of a second. One three quarters full is grown between steps instead, a slice at a
+  // time, the new one taking over once it has everything (a vertex is only ever added at the end,
+  // so what is already copied never changes). The doubling in cut() is only the fallback.
+  const GROW_SLICE = 1 << 21;
+  let growing = null;
+  const growStep = () => {
+    if (!growing) {
+      for (let k = 0; k < arrays.length; k += 1) {
+        if (lengths[k] > arrays[k].length * 0.75) {
+          growing = { k, from: arrays[k], to: new Float64Array(arrays[k].length * 2), copied: 0 };
+          break;
+        }
+      }
+      if (!growing) return;
+    }
+    const g = growing;
+    if (arrays[g.k] !== g.from) { growing = null; return; }
+    const end = Math.min(lengths[g.k], g.copied + GROW_SLICE);
+    g.to.set(g.from.subarray(g.copied, end), g.copied);
+    g.copied = end;
+    if (g.copied >= lengths[g.k]) { arrays[g.k] = g.to; growing = null; }
+  };
   const cut = (a, b, t0) => {
     const key = a < b ? a * 16777216 + b : b * 16777216 + a;
     let m = cuts.get(key);
@@ -6643,7 +6713,7 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
     while (stack.length) {
       // Counted by the triangles examined, not those read in: one large triangle on a hill is
       // cut into thousands.
-      if (++work % REFINE_TRIANGLES_PER_STEP === 0) yield;
+      if (++work % REFINE_TRIANGLES_PER_STEP === 0) { growStep(); yield; }
       const c = stack.pop(), b = stack.pop(), a = stack.pop();
       const ab = Math.hypot(px(a) - px(b), pz(a) - pz(b));
       const bc = Math.hypot(px(b) - px(c), pz(b) - pz(c));
@@ -6668,9 +6738,27 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
     }
   }
   if (!split) return geometry;
+  // Put together a slice at a time too: millions of values each way, read out in one go, were
+  // half a second of one frame. The index takes the type setIndex would give it (Uint16 while
+  // every vertex number is under 65,535).
   const refined = new THREE.BufferGeometry();
-  names.forEach((n, k) => refined.setAttribute(n, new THREE.Float32BufferAttribute(arrays[k].subarray(0, lengths[k]), sizes[k])));
-  refined.setIndex(out);
+  for (let k = 0; k < names.length; k += 1) {
+    const values = new Float32Array(lengths[k]);
+    for (let a = 0; a < lengths[k]; a += GROW_SLICE) {
+      values.set(arrays[k].subarray(a, Math.min(lengths[k], a + GROW_SLICE)), a);
+      yield;
+    }
+    refined.setAttribute(names[k], new THREE.BufferAttribute(values, sizes[k]));
+  }
+  const corners = new Uint32Array(out.length);
+  let highest = 0;
+  for (let a = 0; a < out.length; a += 1) {
+    const v = out[a];
+    corners[a] = v;
+    if (v > highest) highest = v;
+    if ((a & 1048575) === 1048575) yield;
+  }
+  refined.setIndex(new THREE.BufferAttribute(highest >= 65535 ? corners : new Uint16Array(corners), 1));
   refined.userData = geometry.userData;
   if (!keepSource) geometry.dispose();
   return refined;
@@ -6732,7 +6820,7 @@ async function settleOnto(rule) {
     // Cut to a metre first, across as well as along: a crossing's paint had two vertices across
     // its width, and the road under a junction is several ribbons folding at their own stations,
     // so between those two vertices the road rose through the paint as a dark notch.
-    if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);
+    if (rule.grid) o.geometry = await runStepsSliced(refineForTerrainSteps(o.geometry, rule.grid, 0));
     const position = o.geometry.getAttribute("position");
     const samples = [position];
     if (rule.occlude) {
@@ -6924,10 +7012,10 @@ async function liftOntoGroundAsync(object, label) {
       const b = mesh.geometry.boundingBox;
       wide = Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > 2 * LIFT_SPLIT_M;
     }
-    const cutStarted = performance.now();
     const pieces = position && (position.count > LIFT_SPLIT_VERTICES || wide) && mesh.parent
-      ? tileMesh(mesh, [LIFT_SPLIT_M, 2 * LIFT_SPLIT_M], LIFT_SPLIT_MIN_VERTICES) : null;
-    if (pieces) noteSlowLift("cutting", mesh, position, cutStarted);
+      ? await runStepsSliced(tileMeshSteps(mesh, [LIFT_SPLIT_M, 2 * LIFT_SPLIT_M], LIFT_SPLIT_MIN_VERTICES)) : null;
+    // Cut a step at a time, the mesh can have been let go (its window released) before the end.
+    if (pieces && !mesh.parent) { for (const piece of pieces) piece.geometry.dispose(); meshes[i] = null; continue; }
     if (pieces) {
       const parent = mesh.parent;
       parent.remove(mesh);
@@ -7013,7 +7101,7 @@ function* liftOneMeshSteps(o) {
     }
     // The bounds are what the culling reads; a tile lifted eighty metres up Nob Hill with the
     // sphere it had at sea level would vanish whenever the camera looked at it.
-    refined.computeBoundingSphere();
+    yield* boundingSphereSteps(refined);
     if (refined.boundingBox) refined.computeBoundingBox();
     o.geometry = refined;
     if (refined !== source) source.dispose();
@@ -8125,7 +8213,7 @@ function syncNatureTileHeights(boxes) {
     if(!boxes.some(b=>w<b[2]&&e>b[0]&&s<b[3]&&n>b[1]))continue;
     tile.group.traverse(o=>{ if(o.isMesh && !natureHeightQueued.has(o)) { natureHeightQueued.add(o); natureHeightQueue.push(o); } });
   }
-  if (!natureHeightPumping && natureHeightQueue.length) { natureHeightPumping = true; setTimeout(pumpNatureTileHeights, 0); }
+  if (!natureHeightPumping && natureHeightQueue.length) { natureHeightPumping = true; nextTask().then(pumpNatureTileHeights); }
 }
 //: The mesh being restood, part done: a large overview mesh is its new heights worked out over
 //: several slices and then set in one go, so it is never drawn half moved.
@@ -8136,7 +8224,7 @@ function pumpNatureTileHeights() {
     if (!natureHeightSteps) { const o = natureHeightQueue.shift(); natureHeightQueued.delete(o); natureHeightSteps = restandNatureMeshSteps(o); }
     if (natureHeightSteps.next().done) natureHeightSteps = null;
   }
-  if (natureHeightSteps || natureHeightQueue.length) setTimeout(pumpNatureTileHeights, 0); else natureHeightPumping = false;
+  if (natureHeightSteps || natureHeightQueue.length) nextTask().then(pumpNatureTileHeights); else natureHeightPumping = false;
 }
 function restandNatureMesh(o) { for (const _ of restandNatureMeshSteps(o)); }
 function* restandNatureMeshSteps(o) {
@@ -9383,7 +9471,10 @@ function inheritMesh(piece, mesh) {
   piece.frustumCulled = true;
   return piece;
 }
-function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_M],
+function tileMesh(...args) { return runSteps(tileMeshSteps(...args)); }
+//: The cutting, a step at a time (every 2,048 triangles, and each piece): a city's fine street
+//: surface is millions of triangles, and cut in one go it was a frame of nearly three seconds.
+function* tileMeshSteps(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_M],
                   minVertices = MERGE_TILE_MIN_VERTICES) {
   const geometry = mesh.geometry;
   const position = geometry.getAttribute("position");
@@ -9404,6 +9495,7 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
   const v = new THREE.Vector3();
   const P = plain(position) && position.itemSize === 3 ? position.array : null;
   for (let t = 0; t < triangles; t += 1) {
+    if ((t & 2047) === 2047) yield;
     let cx = 0, cz = 0;
     for (let j = 0; j < 3; j += 1) {
       const i = vertexAt(t, j);
@@ -9417,6 +9509,7 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
   for (const size of sizes) {
     const attempt = new Map();
     for (let t = 0; t < triangles; t += 1) {
+      if ((t & 2047) === 2047) yield;
       const key = Math.floor(centres[t * 2] / size) * 1048576 + Math.floor(centres[t * 2 + 1] / size);
       let list = attempt.get(key);
       if (!list) attempt.set(key, list = []);
@@ -9427,19 +9520,24 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
   if (!byTile || byTile.size < 2) return null;
   const names = ["position", "normal", "uv", "color"].filter((n) => geometry.getAttribute(n));
   const pieces = [];
+  // Each source vertex's number in the piece being cut (-1: not in it), one array for every
+  // piece, put back after each.
+  const remap = new Int32Array(position.count).fill(-1);
+  let work = 0;
   for (const tris of byTile.values()) {
-    const remap = new Map();
     const order = [];
     const idx = new Uint32Array(tris.length * 3);
     let k = 0;
     for (const t of tris) {
+      if ((++work & 2047) === 0) yield;
       for (let j = 0; j < 3; j += 1) {
         const i = vertexAt(t, j);
-        let m = remap.get(i);
-        if (m === undefined) { m = order.length; order.push(i); remap.set(i, m); }
+        let m = remap[i];
+        if (m < 0) { m = order.length; order.push(i); remap[i] = m; }
         idx[k++] = m;
       }
     }
+    for (const i of order) remap[i] = -1;
     const g = new THREE.BufferGeometry();
     for (const n of names) {
       const src = geometry.getAttribute(n);
@@ -9447,6 +9545,7 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
       const arr = new Float32Array(order.length * size);
       const A = plain(src) ? src.array : null;
       for (let a = 0; a < order.length; a += 1) {
+        if ((a & 65535) === 65535) yield;
         const o = order[a] * size;
         if (A) for (let c = 0; c < size; c += 1) arr[a * size + c] = A[o + c];
         else for (let c = 0; c < size; c += 1) arr[a * size + c] = src.getComponent(order[a], c);
@@ -9454,8 +9553,9 @@ function tileMesh(mesh, sizes = [MERGE_TILE_M, 2 * MERGE_TILE_M, 4 * MERGE_TILE_
       g.setAttribute(n, new THREE.BufferAttribute(arr, size));
     }
     g.setIndex(new THREE.BufferAttribute(idx, 1));
-    g.computeBoundingSphere();
+    yield* boundingSphereSteps(g);
     pieces.push(inheritMesh(new THREE.Mesh(g, mesh.material), mesh));
+    yield;
   }
   geometry.dispose();
   return pieces;
@@ -9470,7 +9570,8 @@ const FINE_SURFACE_CELL_M = {
   kerb: 150, walk_underlay: 200, bike: 200, court_line: 200,
 };
 const FINE_SURFACE_MIN_VERTICES = 4000;
-function cellFineSurfaces(group) {
+function cellFineSurfaces(group) { return runSteps(cellFineSurfacesSteps(group)); }
+function* cellFineSurfacesSteps(group) {
   const meshes = [];
   group.traverse((o) => {
     if (o.isMesh && !o.isInstancedMesh && o.geometry && FINE_SURFACE_CELL_M[o.userData.surface]) meshes.push(o);
@@ -9478,8 +9579,8 @@ function cellFineSurfaces(group) {
   let cut = 0;
   for (const mesh of meshes) {
     const size = FINE_SURFACE_CELL_M[mesh.userData.surface];
-    const pieces = tileMesh(mesh, [size, 2 * size, 4 * size], FINE_SURFACE_MIN_VERTICES);
-    if (!pieces) continue;
+    const pieces = yield* tileMeshSteps(mesh, [size, 2 * size, 4 * size], FINE_SURFACE_MIN_VERTICES);
+    if (!pieces || !mesh.parent) continue;
     const parent = mesh.parent;
     parent.remove(mesh);
     for (const piece of pieces) parent.add(piece);
@@ -23351,7 +23452,7 @@ function addDividedMedians() {
 const cornersLaid = addPavementCorners();
 const squaresLaid = addJunctionSquares();
 if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
-const frontageFilled = addFrontageFill();
+const frontageFilled = await runStepsSliced(addFrontageFillSteps());
 //: The tactile pads at the crossings' ends, laid now that every pavement and corner piece is
 //: down, each on top of the pavement it stands on. They used to be laid with the crossing at
 //: the crossing's own kerb height, and a kerb height is measured per way: where the street's
@@ -23658,8 +23759,11 @@ const officialIslandsLaid = addClosedOfficialIslandSurfaces();
 //: surveyed width, stopping at a house front or another carriageway, the same paving is laid at
 //: the same height (marked inferred: the survey says it is pavement, not what it looks like).
 //: A side whose width was never surveyed is left as it is.
-function addFrontageFill() {
+function addFrontageFill() { return runSteps(addFrontageFillSteps()); }
+//: A side of a street at a time (a city's frontage, filled in one go, was a fifth of a second).
+function* addFrontageFillSteps() {
   for (const { way, renderPoints, side, inner, walk, roadTop, color, opacity } of frontageSides) {
+    yield;
     // As far as the surveyed sidewalk reaches, or where it was not surveyed the width drawn.
     if (!(way.walk_m > 0)) frontageStats.unsurveyed += 1;
     const reach = inner + Math.max(walk, way.walk_m || 0);
@@ -24959,7 +25063,10 @@ function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = 
   }
 }
 
-function buildFences(ground) {
+function buildFences(ground) { return runSteps(buildFencesSteps(ground)); }
+//: A kind at a time, and 64 segments at a time inside one (each is tested along its run against
+//: the carriageway): a city's fences in one go were a fifth of a second.
+function* buildFencesSteps(ground) {
   // Segments arrive as flat metres in the same frame the world is laid out in, grouped by the
   // kind their block was assigned. One merged mesh per kind, so five draw calls for the city.
   const fences = ground.fences || {};
@@ -24970,7 +25077,9 @@ function buildFences(ground) {
     const positions = [];
     const uvs = [];
     const indices = [];
+    yield;
     for (let i = 0; i + 3 < flat.length; i += 4) {
+      if ((i & 255) === 252) yield;
       const ax = flat[i], az = -flat[i + 1];
       const bx = flat[i + 2], bz = -flat[i + 3];
       const span = Math.hypot(bx - ax, bz - az);
@@ -25806,11 +25915,15 @@ function seededShuffle(list, seed) {
 }
 //: Pack equipment into one outline. The first piece goes as near the middle as it fits; the rest
 //: wherever they fit, in a seeded order, until nothing more does or the playground is full.
-function fillPlayground(frame, rings, holes, plan, seed, sand, toddler, limit = 9, taken = []) {
+function fillPlayground(...args) { return runSteps(fillPlaygroundSteps(...args)); }
+//: The same packing, giving the frame back every 64 spots tried: a playground that is full is
+//: every spot tried against every piece left, and one park's was a fifth of a second.
+function* fillPlaygroundSteps(frame, rings, holes, plan, seed, sand, toddler, limit = 9, taken = []) {
   // Pieces already standing (mapped by OpenStreetMap) are obstacles in this frame, not fill.
   const placed = taken.map((t) => ({ ...t, fixed: true }));
   const step = 0.75;
-  const tryPlace = (kind, central) => {
+  let tried = 0;
+  const tryPlace = function* (kind, central) {
     const spec = PLAY_MODULES[kind];
     for (const turned of random(seed + kind.length) < 0.5 ? [false, true] : [true, false]) {
       const w = turned ? spec.d : spec.w, d = turned ? spec.w : spec.d;
@@ -25821,6 +25934,7 @@ function fillPlayground(frame, rings, holes, plan, seed, sand, toddler, limit = 
       const order = central ? spots.sort((a, b) => Math.hypot(a[0] - mu, a[1] - mv) - Math.hypot(b[0] - mu, b[1] - mv))
         : seededShuffle(spots, seed + placed.length * 97);
       for (const [u, v] of order) {
+        if ((++tried & 63) === 0) yield;
         if (rectFits(frame, rings, holes, placed, u, v, w, d, 0.6)) {
           placed.push({ kind, u, v, w, d, turned, toddler });
           return true;
@@ -25834,17 +25948,17 @@ function fillPlayground(frame, rings, holes, plan, seed, sand, toddler, limit = 
   let mains = 0;
   for (const kind of plan.main) {
     if (mains >= (area > 900 ? 2 : 1)) break;
-    if (tryPlace(kind, mains === 0)) mains += 1;
+    if (yield* tryPlace(kind, mains === 0)) mains += 1;
   }
   const fill = seededShuffle(plan.fill.filter((k) => k !== "sandpit" || sand || random(seed + 5) < 0.3), seed);
   if (sand) { fill.splice(fill.indexOf("sandpit"), 1); fill.unshift("sandpit"); }
   const filled = () => placed.filter((p) => !p.fixed).length + taken.length;
   // A big playground is a lot of equipment: the fill goes round again while there is room.
-  for (const kind of area > 600 ? [...fill, ...fill] : fill) { if (filled() >= limit) break; tryPlace(kind, false); }
+  for (const kind of area > 600 ? [...fill, ...fill] : fill) { if (filled() >= limit) break; yield* tryPlace(kind, false); }
   // Fill to fit: the small pieces again while there is room.
   for (const kind of ["springs", "balance", "house", "seesaw", "springs"]) {
     if (filled() >= limit) break;
-    tryPlace(kind, false);
+    yield* tryPlace(kind, false);
   }
   return placed.filter((p) => !p.fixed);
 }
@@ -26064,13 +26178,16 @@ function gridSpots(frame, rings, holes, w, d, gapU, gapV, margin, limit) {
   return spots.slice(0, limit);
 }
 
-function buildParkAreas(areas) {
+function buildParkAreas(areas) { return runSteps(buildParkAreasSteps(areas)); }
+//: A park at a time, and inside one, a slice of its playground packing at a time.
+function* buildParkAreasSteps(areas) {
   const stats = { playgrounds: 0, modules: 0, mapped_pieces: 0, gates: 0, fallback_gates: 0, dog_areas: 0,
     picnic_tables: 0, garden_beds: 0, fitness_stations: 0, skateparks: 0 };
   if (!areas || !areas.length) return stats;
   const surfaces = new Map();
   const picket = fenceSink(), chain = fenceSink();
   for (const area of areas) {
+    yield;
     const pts = pageRing(area.p);
     if (pts.length < 4) continue;
     const frame = areaFrame(pts);
@@ -26112,7 +26229,7 @@ function buildParkAreas(areas) {
           // Mapped pieces into this frame's own axes, as rectangles the fill must keep clear of.
           const obstacles = taken.map((t) => ({ kind: "mapped", w: t.w, d: t.d,
             u: t.x * zoneFrame.ux + t.z * zoneFrame.uz, v: -t.x * zoneFrame.uz + t.z * zoneFrame.ux }));
-          const placed = fillPlayground(zoneFrame, [pts, pass.ring], holes, plan, seed + pass.ring.length,
+          const placed = yield* fillPlaygroundSteps(zoneFrame, [pts, pass.ring], holes, plan, seed + pass.ring.length,
             Boolean(area.sand_play) || material === "sand", pass.age === "2-5",
             Math.max(4, Math.min(16, Math.round((area.area_m2 || 200) / 70))), obstacles);
           for (const m of placed) {
@@ -26371,7 +26488,7 @@ const groundReady = (async () => {
     }
   }
 
-  buildFences(ground);
+  await runStepsSliced(buildFencesSteps(ground));
 
   // ---- tree pits ----
   //
@@ -26531,7 +26648,7 @@ const groundReady = (async () => {
 
   buildCourts(ground);
   // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
-  window.kerbsideParkAreas = buildParkAreas(PARK_EVIDENCE?.areas || []);
+  window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   if(grassStrands&&grassLibrary){const meshes=[];
@@ -27024,7 +27141,7 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
   }
 }
 await settleOntoPavement();
-cellFineSurfaces(groups.streets);
+await runStepsSliced(cellFineSurfacesSteps(groups.streets));
 clipDetailWorld();
 groundReady.then(()=>clipDetailWorld());
 // The lowered houses' floors cut through whatever else is laid on the hill (INDOOR_CUT_SURFACES).
@@ -39368,7 +39485,7 @@ function releaseGuest(g) {
   const all = [];
   root?.traverse((o) => { all.push(o); });
   releasing.push({ all, i: 0, api });
-  if (!releasePumping) { releasePumping = true; setTimeout(pumpRelease, 0); }
+  if (!releasePumping) { releasePumping = true; nextTask().then(pumpRelease); }
 }
 function pumpRelease() {
   const until = performance.now() + 6;
@@ -39386,7 +39503,7 @@ function pumpRelease() {
     try { if (job.api && job.api.release) job.api.release(); } catch (error) { console.warn("kerbside: a released window kept some of its world", error); }
     releasing.shift();
   }
-  if (releasing.length) setTimeout(pumpRelease, 0); else releasePumping = false;
+  if (releasing.length) nextTask().then(pumpRelease); else releasePumping = false;
 }
 //: Shader programs outlive the windows that first drew them. three.js destroys a program when the
 //: last material using it is disposed, so letting go of the window behind a jump threw away the

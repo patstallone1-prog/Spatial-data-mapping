@@ -88,7 +88,7 @@ def test_crossing_paint_tracks_overlapping_road_triangles() -> None:
     """The crossing mesh is dense enough to stay above independently joined road ribbons."""
     source = _source()
     assert 'above: { crossing: 0.06, crossing_edges: 0.06, marking: 0.030 }, grid: 0.5' in source
-    assert "if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);" in source
+    assert "if (rule.grid) o.geometry = await runStepsSliced(refineForTerrainSteps(o.geometry, rule.grid, 0));" in source
 
 
 def test_plaza_paving_follows_the_two_metre_lidar_grid() -> None:

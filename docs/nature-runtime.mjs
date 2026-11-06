@@ -8,6 +8,14 @@ const NEAR0=234,NEAR1=338,FAR0=780,FAR1=1066;
 //: How long one piece of the near-detail work (a ground tile, the heights under the city, the
 //: plants clipped to a house) may hold the page before it hands a frame back.
 const NATURE_SLICE_MS=6;
+// The next task: a timer, but in a hidden page (where timers are held to once a second) a message
+// to itself, so a build left in another tab still finishes in seconds.
+let taskChannel=null;
+const nextTask=()=>new Promise(resolve=>{
+  if(!globalThis.document?.hidden||typeof MessageChannel==='undefined'){setTimeout(resolve,0);return;}
+  if(!taskChannel){const c=new MessageChannel(),waiters=[];c.port1.onmessage=()=>{const go=waiters.shift();if(go)go();};c.port1.unref?.();taskChannel={waiters,port:c.port2};}
+  taskChannel.waiters.push(resolve);taskChannel.port.postMessage(0);
+});
 export function plantLODWeights(range){const a=smooth(NEAR0,NEAR1,range),b=smooth(FAR0,FAR1,range);return [1-a,a-b,b];}
 export function hash2(x, y, salt = 0) {
   let h = Math.imul(x ^ salt, 374761393) ^ Math.imul(y, 668265263);
@@ -411,7 +419,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
   function groundMesh(...args){const steps=groundMeshSteps(...args);let r;while(!(r=steps.next()).done);return r.value;}
   async function groundMeshSliced(...args){
     const steps=groundMeshSteps(...args);let r,t=performance.now();
-    while(!(r=steps.next()).done)if(performance.now()-t>NATURE_SLICE_MS){await new Promise(go=>setTimeout(go,0));t=performance.now();}
+    while(!(r=steps.next()).done)if(performance.now()-t>NATURE_SLICE_MS){await nextTask();t=performance.now();}
     return r.value;
   }
   function* groundMeshSteps(x0,y0,x1,y1,step,mat){
@@ -526,7 +534,7 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
     // Global lattice, jittered positions, continuous canopy probabilities. The
     // 8 km draw batches do not affect probability, colour or species choice.
     for(let r=Math.ceil(by/24);r*24<Math.min(by+8000,(f.rows-1)*40);r++)for(let c=Math.ceil(bx/24);c*24<Math.min(bx+8000,(f.cols-1)*40);c++){
-      if(c%32===0&&performance.now()-yieldAt>12){await new Promise(resolve=>setTimeout(resolve,0));yieldAt=performance.now();}
+      if(c%32===0&&performance.now()-yieldAt>12){await nextTask();yieldAt=performance.now();}
       const raw=atlas.sample(c*24+12,r*24+12,false);
       if(!raw||raw.water||raw.canopy===null||raw.canopy<2||[0,12,22,23,24].includes(raw.cover))continue;
       const s=atlas.ecologicalSample(c*24+12,r*24+12),h=s.habitat;
@@ -543,7 +551,7 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
     const points=treePoints(P,S,K,A,distantMaterial);points.userData={bayWide:true,surface:'nature_canopy_proxy',inferred:true,
       confidence:'aggregate modelled canopy, not individual trees',provenance:'nature/ecology.json'};world.add(points);
     stats.farCanopyProxies+=P.length/3;
-    await new Promise(resolve=>setTimeout(resolve,0));
+    await nextTask();
   }stats.overviewReady=true;stats.overviewBuildMs=Math.round(performance.now()-overviewStarted);})().catch(error=>{stats.errors.push(String(error));console.warn('kerbside: overview vegetation unavailable',error);});
   function fadePlant(mat){
     if(mat.userData.natureFade)return;mat.userData.natureFade=true;
@@ -640,7 +648,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const x0=tx*PLANT_TILE_M,y0=ty*PLANT_TILE_M;
     let yieldAt=performance.now();
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
-      if(performance.now()-yieldAt>NATURE_SLICE_MS){await new Promise(resolve=>setTimeout(resolve,0));yieldAt=performance.now();}
+      if(performance.now()-yieldAt>NATURE_SLICE_MS){await nextTask();yieldAt=performance.now();}
       const a=acceptedTree(c,r,(x,y)=>atlas.ecologicalSample(x,y),blocked,candidateCache);
       if(a){const s=surface(a.x,a.y),h=a.height,R=a.radius,turn=hash2(c,r,41)*Math.PI*2;
         const key=`${a.species}:${hash2(c,r,47)>.5?1:0}`;
@@ -689,7 +697,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     const group=new THREE.Group();group.userData.bayWide=true;
     // The tile's meshes are made between frames too: the group is not drawn until it is done.
-    const breath=async()=>{if(performance.now()-yieldAt>NATURE_SLICE_MS){await new Promise(go=>setTimeout(go,0));yieldAt=performance.now();}};
+    const breath=async()=>{if(performance.now()-yieldAt>NATURE_SLICE_MS){await nextTask();yieldAt=performance.now();}};
     const midP=[],midS=[],midK=[],midA=[];
     for(const [key,items] of trees){await breath();const [species,variant]=key.split(':');for(const part of assets.tree(species,Number(variant))){
       const bark=Boolean(part.material.userData.barkStyle||!part.material.map);
@@ -816,7 +824,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const previous=detailMeshes.get(key);terrain.add(mesh);if(previous)drop(previous);detailMeshes.set(key,mesh);
         changed.push([tx,ty]);
         activeTexture.image.data[ty*maskCols+tx]=255;activeTexture.needsUpdate=true;
-      }finally{pending.delete(key);}await new Promise(r=>setTimeout(r,0));}
+      }finally{pending.delete(key);}await nextTask();}
       for(const [key,mesh] of detailMeshes)if(!desired.has(key)){
         const [tx,ty]=key.split(":").map(Number);activeTexture.image.data[ty*maskCols+tx]=0;activeTexture.needsUpdate=true;
         drop(mesh);detailMeshes.delete(key);atlas.detail.delete(key);changed.push([tx,ty]);
@@ -849,7 +857,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
           const began=performance.now(),old=plantGroups.get(key),next=await plants(tx,ty);if(old)drop(old);plantGroups.set(key,next);
           stats.plantTileMs=Math.round(performance.now()-began);
         }
-        await new Promise(r=>setTimeout(r,0));
+        await nextTask();
       }
       if(abandoned){lastX=Infinity;return;}
       for(const [key,group] of plantGroups)if(!plantDesired.has(key)){drop(group);plantGroups.delete(key);}

@@ -112,7 +112,7 @@ def test_facade_window_rows_end_at_roof_even_on_fractional_storeys() -> None:
 def test_tactile_warning_is_refined_and_settled_above_ramp_and_sidewalk() -> None:
     js = _page_js()
     assert 'above: { tactile_warning: 0.030, curb_ramp: 0.012 }, grid: 0.18' in js
-    assert 'if (rule.grid) o.geometry = refineForTerrain(o.geometry, rule.grid, 0);' in js
+    assert 'if (rule.grid) o.geometry = await runStepsSliced(refineForTerrainSteps(o.geometry, rule.grid, 0));' in js
 
 
 def test_inferred_vehicle_access_keeps_five_metre_clear_width() -> None:
@@ -3020,10 +3020,13 @@ class BufferGeometry {
   constructor() { this.attributes = {}; this.index = null; this.groups = []; this.userData = {}; }
   setAttribute(n, a) { this.attributes[n] = a; return this; }
   getAttribute(n) { return this.attributes[n]; }
-  setIndex(i) { this.index = { array: Uint32Array.from(i), count: i.length }; return this; }
+  setIndex(i) { this.index = i.isBufferAttribute ? i : { array: Uint32Array.from(i), count: i.length }; return this; }
   dispose() {}
 }
-const THREE = { Float32BufferAttribute, BufferGeometry };
+class BufferAttribute {
+  constructor(array, itemSize) { this.isBufferAttribute = true; this.array = array; this.itemSize = itemSize; this.count = array.length / itemSize; }
+}
+const THREE = { Float32BufferAttribute, BufferAttribute, BufferGeometry };
 """]
     # The desktop's cut (the headset's is coarser).
     parts.append("const HEADSET = false;")
