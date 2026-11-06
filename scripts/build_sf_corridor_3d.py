@@ -7471,15 +7471,18 @@ function buildBayBridges(g) {
     mesh.userData.surface = "bridge_cable";
     out.add(mesh);
   };
+  //: The bridge being built, by name (what its deck is, to the walker: elevatedDecksAt).
+  let deckName = null;
   //: The deck along a line, at heights h, with its lanes, walkways, railings and its underside.
   const deck = (stations, spec) => {
     const { width, lanes, walk, walkColor, railColor, depth = 2.2, median = false, structure = null } = spec;
     const half = width / 2, road = half - walk;
     // Where its road is, for what is laid on it (a route's line: elevatedRoadsAt). Built in the
     // atlas's heights and lowered by the Earth's curve, as the deck is.
+    const info = { kind: "bridge", name: spec.name || deckName, reach: half, walkway: road, walkTop: 0.22 };
     for (let i = 1; i < stations.length; i += 1) {
       const a = stations[i - 1], b = stations[i];
-      registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z), b.x, b.z, b.y - earthDrop(b.x, b.z), road);
+      registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z), b.x, b.z, b.y - earthDrop(b.x, b.z), road, info);
     }
     strip(stations, -road, road, 0, 0, lanesMaterial(lanes, median), 14);
     for (const side of [-1, 1]) {
@@ -7577,6 +7580,7 @@ function buildBayBridges(g) {
   const named = new Map();
   for (const way of ways) {
     const design = bridgeDesign(way.name);
+    deckName = way.name || null;
     if (design === "girder" || design === "trestle") continue;
     // The Bay Bridge's west span and its east span are two structures either side of the island.
     const key = design === "bay" ? (Math.min(...way.points.map((p) => p[0])) < -122.366 ? "bay_west" : "bay_east") : design;
@@ -7842,6 +7846,7 @@ function buildBayBridges(g) {
   // Every other bridge over the water: a girder deck on piers, or a trestle with its high-rise.
   for (const way of ways) {
     const design = bridgeDesign(way.name);
+    deckName = way.name || null;
     if (design !== "girder" && design !== "trestle") continue;
     const line = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
     const ds = [0];
@@ -11340,11 +11345,13 @@ const LABEL_RANGE_M = { street: 420, district: 6000 };
 //: A label held at three per cent of the view is 28 CSS pixels tall, 56 on a Retina screen,
 //: and its plate is three fifths of the canvas: 64 rows still give every screen pixel a texel
 //: of its own. At 128 the 275 region markers held 96 MB of pictures nobody could see the
-//: difference of. A district name stands larger and keeps the full canvas.
-const LABEL_CANVAS_SCALE = { street: 0.5, district: 1 };
+//: difference of. A district name stands larger and keeps the full canvas. (Written into the
+//: function, not a constant beside it: the region markers ask for labels from a callback that
+//: can run while the module is still on its way here -- a constant was not yet there, and the
+//: page failed to start.)
 function labelSprite(text, color = "#edf5f5", kind = "street") {
   const canvas = document.createElement("canvas");
-  const scale = LABEL_CANVAS_SCALE[kind] || LABEL_CANVAS_SCALE.street;
+  const scale = kind === "district" ? 1 : 0.5;
   canvas.width = 512 * scale;
   canvas.height = 128 * scale;
   const ctx = canvas.getContext("2d");
@@ -21649,6 +21656,26 @@ function walkerGroundInfo(x, z, referenceY) {
   const stair = typeof publicStairAt === "function" ? publicStairAt(x, z) : null;
   if (stair !== null) return { y: stair, kind: "stairs" };
   const lifted = groundLiftAt(x, z);
+  // On a bridge or a highway's deck: the highest deck within a step of the feet (a ramp is
+  // climbed onto; a viaduct overhead is walked under). Not knowing the feet -- a jump -- a deck
+  // is stood on only over water. A deck at its abutment, level with the ground, is the street.
+  const decks = typeof elevatedDecksAt === "function" ? elevatedDecksAt(x, z) : [];
+  if (decks.length) {
+    let deck = null;
+    for (const d of decks) {
+      const reachable = Number.isFinite(feet) ? d.top <= feet + 0.6   // a step (DECK_STEP_M)
+        : typeof mappedWaterAt === "function" && mappedWaterAt(x, z) === true;
+      if (reachable && (!deck || d.top > deck.top)) deck = d;
+    }
+    if (deck && deck.top > lifted + ROAD_TOP_M + 0.3) {
+      let y = deck.top;
+      if (deck.paved && typeof STREET_STANDING !== "undefined" && STREET_STANDING) {
+        const paved = pavementSurfaceAt(x, z);
+        if (paved !== null) y = deck.base + paved;
+      }
+      return { y, kind: deck.kind, structure: deck.name, walkway: deck.walkway };
+    }
+  }
   // On the pavement as it is laid, and on the road's surface: the walker stood on the bare
   // ground under both, its feet 19 cm into every pavement and 6 cm into every road.
   // (Only once the streets' part of the module has run: see STREET_STANDING.)
@@ -37358,11 +37385,15 @@ function markBootRendered() {
 var ELEVATED_ROADS;
 //: The grid's cell (a function: asked before this part of the module has run).
 function elevatedCellM() { return 40; }
-function registerElevatedSegment(ax, az, ay, bx, bz, by, half) {
+//: info: what the deck is -- { kind: "bridge" | "highway", name, reach (the half-width a person
+//: can stand on: the road and its walkways), walkway (the half-width where the walkway starts),
+//: walkTop (how far the walkway stands over the road), paved (a street drawn on its lift, whose
+//: pavements are the city's own: pavementSurfaceAt) }.
+function registerElevatedSegment(ax, az, ay, bx, bz, by, half, info = null) {
   if (!ELEVATED_ROADS) ELEVATED_ROADS = new Map();
   if (![ax, az, ay, bx, bz, by, half].every(Number.isFinite)) return;
-  const segment = { ax, az, ay, bx, bz, by, half };
-  const reach = half + 1;
+  const segment = { ax, az, ay, bx, bz, by, half, info };
+  const reach = Math.max(half, info?.reach || 0) + 1;
   for (let gx = Math.floor((Math.min(ax, bx) - reach) / elevatedCellM()); gx <= Math.floor((Math.max(ax, bx) + reach) / elevatedCellM()); gx += 1) {
     for (let gz = Math.floor((Math.min(az, bz) - reach) / elevatedCellM()); gz <= Math.floor((Math.max(az, bz) + reach) / elevatedCellM()); gz += 1) {
       const key = `${gx}:${gz}`;
@@ -37374,12 +37405,46 @@ function registerElevatedSegment(ax, az, ay, bx, bz, by, half) {
 function registerElevatedWay(way, lift) {
   if (!way.points || way.points.length < 2 || typeof lift !== "function") return;
   const half = (way.road_m || 7) / 2;
+  // The deck carries the street's pavements too (they are drawn on the same lift).
+  const walk = (way.walk_sides || []).length || way.walk_m ? Number(way.walk_m) || 2.4 : 0;
+  const info = { kind: structureKindOf(way), name: way.name || null, reach: half + walk, paved: true };
   const pts = densifyWay(way.points,3).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
   for (let i = 1; i < pts.length; i += 1) {
     const [ax, az] = pts[i - 1], [bx, bz] = pts[i];
-    registerElevatedSegment(ax, az, lift(ax, az) + ROAD_TOP_M, bx, bz, lift(bx, bz) + ROAD_TOP_M, half);
+    registerElevatedSegment(ax, az, lift(ax, az) + ROAD_TOP_M, bx, bz, lift(bx, bz) + ROAD_TOP_M, half, info);
   }
 }
+//: A deck is a highway's when it carries a freeway or one of its ramps -- by name, or stacked
+//: over another deck (OpenStreetMap layer 2 and up: an interchange) -- and a bridge's otherwise.
+//: (The payload keeps no road class: a name and a layer are what there is to go on.)
+function structureKindOf(way) {
+  if (/\b(Freeway|Highway|Expressway|Skyway|Interstate|Parkway)\b|^(I|US|CA|SR)[- ]\d/i.test(way.name || "")) return "highway";
+  return Number(way.layer) >= 2 ? "highway" : "bridge";
+}
+//: The decks a person could stand on at (x, z), each with what it is: its height (top), the lift
+//: under its road (base: a street's pavement stands on that), what kind of structure it is and
+//: its name. The road's own surfaces (elevatedRoadsAt) are unchanged; this is the walker's.
+function elevatedDecksAt(x, z) {
+  const bucket = ELEVATED_ROADS && ELEVATED_ROADS.get(`${Math.floor(x / elevatedCellM())}:${Math.floor(z / elevatedCellM())}`);
+  if (!bucket) return [];
+  const out = [];
+  for (const segment of bucket) {
+    const { ax, az, ay, bx, bz, by, half, info } = segment;
+    const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;
+    if (!(len2 > 0)) continue;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2));
+    const off = Math.hypot(x - ax - dx * t, z - az - dz * t);
+    if (off > Math.max(half, info?.reach || 0) + 0.3) continue;
+    const road = ay + (by - ay) * t;
+    const walkway = info?.walkway !== undefined && off > info.walkway;
+    out.push({ top: road + (walkway ? info.walkTop || 0 : 0), base: road - ROAD_TOP_M, kind: info?.kind || "bridge",
+      name: info?.name || null, paved: Boolean(info?.paved), walkway });
+  }
+  return out;
+}
+//: DECK_STEP_M, 0.6 m: how far above the feet a deck may be and still be stepped onto -- a ramp
+//: rises a few centimetres a step, a deck overhead is metres up. (Written into walkerGroundInfo:
+//: the walker can be asked for its ground before this part of the module has run.)
 //: The decks over (x, z): the height of each elevated road whose width covers the point.
 function elevatedRoadsAt(x, z) {
   const bucket = ELEVATED_ROADS && ELEVATED_ROADS.get(`${Math.floor(x / elevatedCellM())}:${Math.floor(z / elevatedCellM())}`);
@@ -39115,7 +39180,7 @@ window.kerbside = {
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
-  goTo, setFirstPerson, placeCamera, state, avatar, roadSurfacesAt, routeSurfaceHeights, elevatedRoadsAt, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
+  goTo, setFirstPerson, placeCamera, state, avatar, roadSurfacesAt, routeSurfaceHeights, elevatedRoadsAt, elevatedDecksAt, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
   outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
