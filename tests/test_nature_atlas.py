@@ -234,7 +234,7 @@ mass.values[12]=5;mass.values[13]=2;
 const TILES=new Map([['a',{bbox:[0,0,1,1],group:{traverse:fn=>[road,house,mass].forEach(fn)}}]]);
 """
         # Restood a mesh at a time between frames; here each pump runs at once, as the call did.
-        + "const setTimeout=(f)=>f();const natureHeightQueue = [], natureHeightQueued = new Set();"
+        + "const setTimeout=(f)=>f();const nextTask=()=>({then:(f)=>f()});const natureHeightQueue = [], natureHeightQueued = new Set();"
         + "let natureHeightPumping = false, natureHeightSteps = null;\n"
         + "\n".join(_extract(name, _page_js()) for name in ("syncNatureTileHeights", "pumpNatureTileHeights",
                                                             "restandNatureMesh", "restandNatureMeshSteps"))

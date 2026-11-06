@@ -96,7 +96,7 @@ def _run_fill(body: str) -> dict:
         _index_block(js),
         "const WALK_UV_M = 6;",
         _extract("filePavedShape", js), _extract("stampPavedRing", js), _extract("pavementSurfaceAt", js),
-        _extract("onPavedSegment", js), _extract("nearRing", js), _extract("addFrontageFill", js),
+        _extract("onPavedSegment", js), _extract("nearRing", js), _extract("runSteps", js), _extract("addFrontageFill", js), _extract("addFrontageFillSteps", js),
         # A street along x, its lon/lat in metres; the page's z is minus north.
         "const xy = (lon, lat) => [lon, lat];",
         "function densifyWay(points, step) { const out = []; const [a, b] = points;"
@@ -175,7 +175,7 @@ def test_the_walker_stands_on_the_pavement_and_the_road_as_laid() -> None:
 def test_every_street_side_goes_to_the_frontage_fill() -> None:
     js = _page_js()
     assert "for (const side of [1, -1]) frontageSides.push({ way, renderPoints, side, inner, walk, roadTop, color, opacity });" in js
-    assert "const frontageFilled = addFrontageFill();" in js
+    assert "const frontageFilled = await runStepsSliced(addFrontageFillSteps());" in js
     assert "const FRONTAGE_BRIDGE_M = 30;" in js
 
 

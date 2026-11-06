@@ -96,7 +96,7 @@ console.log(JSON.stringify({step,error,topError,triangles:sink.indices.length/3}
     assert result["error"] < 1e-9 and result["topError"] < 1e-9
     assert result["triangles"] >= 54
     js = _page_js()
-    assert "liftedOntoGround=true" in _extract("buildFences", js)
+    assert "liftedOntoGround=true" in _extract("buildFencesSteps", js)
     assert "liftedOntoGround:true" in _extract("emitFence", js)
     assert "groundedFencePanel" in _extract("fenceSink", js)
     assert "groundedFencePanel" in _extract("buildCourts", js)

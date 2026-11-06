@@ -257,7 +257,7 @@ def test_a_gate_goes_on_a_mapped_gate_else_where_a_path_arrives():
 def test_playground_fill_fits_inside_the_outline_without_overlaps():
     js = _page_js()
     helpers = "".join(_extract(name, js) for name in (
-        "insideRing", "areaFrame", "rectFits", "seededShuffle", "fillPlayground", "random"))
+        "insideRing", "areaFrame", "rectFits", "seededShuffle", "runSteps", "fillPlayground", "fillPlaygroundSteps", "random"))
     modules = js[js.index("const PLAY_MODULES = {"):js.index("const AGE_PLAN")]
     plans = js[js.index("const AGE_PLAN"):js.index("function insideRing")]
     result = run_js("""
@@ -326,7 +326,7 @@ console.log(JSON.stringify({gates:sink.gates.length,covering:covering.length,sou
 
 def test_page_wires_parks_paths_and_spans_into_the_scene():
     js = _page_js()
-    assert "buildParkAreas(PARK_EVIDENCE?.areas" in js
+    assert "buildParkAreasSteps(PARK_EVIDENCE?.areas" in js
     assert 'asset("sf-corridor-electrical.json")' in js
     network = _extract("addElectricalNetwork", js)
     assert "electricalSpans()" in network and "span.osm" in network
