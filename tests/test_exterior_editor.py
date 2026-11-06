@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import merge_exterior_edits as merge  # noqa: E402
 
 NODE = shutil.which("node")
+THREE = ROOT / "tools/unreal/node_modules/three/build/three.module.js"
 BUILDING = {"osm_id": 7, "kind": "building", "points": [[-122.4, 37.8], [-122.4001, 37.8], [-122.4001, 37.8001], [-122.4, 37.8001], [-122.4, 37.8]]}
 
 
@@ -133,3 +134,97 @@ def test_the_editor_opens_on_the_street_wall_with_arrows_either_side_of_the_wall
     # The still: next door is cut away from a side wall, and the wall is outlined.
     assert "distance - (wall.street ? 3.0 : 0.25)" in source
     assert 'g.fill("evenodd");' in source and "interiorGroup.visible = false;" in source
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to load the module")
+def test_a_new_opening_lands_clear_of_the_openings_already_on_the_wall_in_both_directions() -> None:
+    """A window tapped onto a wall whose 3.2 m row is full goes up a storey instead of on top of
+    the window there; a door goes beside the garage; nothing overlaps unless the wall is full."""
+    script = """
+const m = await import(process.argv[1]);
+const overlaps = (a, b) => a.u < b.u + b.w && b.u < a.u + a.w && a.v < b.v + b.h && b.v < a.v + a.h;
+const win = { w: 1, h: 1.5, v: 3.2 }, door = { w: 1, h: 2.1, v: 0 };
+const row = [{ type: "window", u: 0.3, v: 3.2, w: 1.2, h: 1.5 }, { type: "window", u: 1.9, v: 3.2, w: 1.2, h: 1.5 },
+             { type: "window", u: 3.5, v: 3.2, w: 1.2, h: 1.5 }, { type: "garage", u: 0.5, v: 0, w: 2.6, h: 2.2 }];
+const out = {};
+const up = m.freeSpot(row, 5, 9.5, win);
+out.up = { ...up, clear: !row.some((o) => overlaps(o, { ...win, ...up })) };
+const gap = m.freeSpot(row.slice(0, 1).concat(row.slice(2)), 5, 9.5, win);
+out.gap = { ...gap, clear: !row.some((o, i) => i !== 1 && overlaps(o, { ...win, ...gap })) };
+const d = m.freeSpot(row, 6, 9.5, door);
+out.door = { ...d, clear: !row.some((o) => overlaps(o, { ...door, ...d })) };
+const full = [{ type: "window", u: 0.1, v: 0.2, w: 4.8, h: 5.6 }];
+out.full = m.freeSpot(full, 5, 6, win);
+console.log(JSON.stringify(out));
+"""
+    result = subprocess.run([NODE, "--input-type=module", "-e", script, (ROOT / "docs/exterior-editor.mjs").as_uri()],
+                            capture_output=True, text=True, check=True)
+    spots = json.loads(result.stdout)
+    assert spots["up"]["clear"] and spots["up"]["v"] != 3.2  # the 3.2 m row is full: another storey
+    assert spots["gap"] == {"u": 2, "v": 3.2, "clear": True}  # the gap in the row, at the row's height
+    assert spots["door"]["clear"] and spots["door"]["v"] == 0  # at the pavement, beside the garage
+    assert 0 <= spots["full"]["v"] and spots["full"]["v"] + 1.5 <= 6  # a full wall: still on it
+
+
+@pytest.mark.skipif(NODE is None or not THREE.exists(), reason="node and three are needed to run the page's code")
+def test_the_editor_opens_on_the_colour_the_world_draws_and_keeps_its_finish() -> None:
+    """The wall colour the editor opens with is the drawn one -- the vertex tint times what the
+    cladding averages to -- not the house's tint alone or a default beige; and the skin it lays
+    over the wall has the world's finish, so opening the editor changes nothing visible."""
+    from test_street_infill import _extract, _page_js
+
+    js = _page_js()
+    code = "\n".join([
+        f"import * as THREE from {json.dumps(THREE.as_uri())};",
+        "const HOME_RENDER = new Map(), BUILDING_WALL_LOOK = new Map(), WALL_MAP_ALBEDO = new Map();",
+        "const BAY_M = 4.0;",
+        *(_extract(n, js) for n in ["wallMapAlbedo", "drawnWallColour", "exteriorWallMaterial"]),
+        """
+const stucco = new THREE.Texture(); stucco.userData = { flat: true };
+const brick = new THREE.Texture(); brick.userData = { bare: true };
+const windows = new THREE.Texture();
+WALL_MAP_ALBEDO.set(brick.uuid, new THREE.Color().setRGB(0.6, 0.5, 0.4, THREE.SRGBColorSpace));
+WALL_MAP_ALBEDO.set(windows.uuid, new THREE.Color().setRGB(0.8, 0.8, 0.8, THREE.SRGBColorSpace));
+const look = (tint, map) => ({ tint, map, rough: 0.77, metal: 0.04, env: 0.35, storey: 3.1 });
+BUILDING_WALL_LOOK.set("1", look(0x8a8172, stucco));
+BUILDING_WALL_LOOK.set("2", look(0xffffff, brick));
+BUILDING_WALL_LOOK.set("3", look(0xa09080, windows));
+HOME_RENDER.set("4", { tint: 0x112233 });
+const wall = { length: 8, height: 9.3 };
+const out = { colours: ["1", "2", "3", "4", "5"].map((id) => drawnWallColour({ osm_id: id, colour: id === "5" ? 0x445566 : undefined })) };
+const asOpened = exteriorWallMaterial(out.colours[1], { osm_id: "2" }, wall);
+const repainted = exteriorWallMaterial("#664433", { osm_id: "2" }, wall);
+const overpainted = exteriorWallMaterial("#336699", { osm_id: "2" }, wall);
+out.overpainted = { map: overpainted.map, colour: overpainted.color.getHexString(), rough: overpainted.roughness };
+const painted = exteriorWallMaterial(out.colours[0], { osm_id: "1" }, wall);
+out.asOpened = { tint: asOpened.color.getHexString(), repeat: [asOpened.map.repeat.x, asOpened.map.repeat.y],
+  rough: asOpened.roughness, env: asOpened.envMapIntensity, same: asOpened.map.source === brick.source };
+out.repainted = new THREE.Color(repainted.color).multiply(WALL_MAP_ALBEDO.get(brick.uuid)).getHexString();
+out.painted = painted.color.getHexString();
+out.windowed = exteriorWallMaterial(out.colours[2], { osm_id: "3" }, wall).map;
+out.unknown = exteriorWallMaterial("#ffffff", { osm_id: "9" }, wall);
+console.log(JSON.stringify(out));
+""",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", code], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr[-2000:]
+    r = json.loads(out.stdout)
+    # A painted house is its tint; brick is white times the brick; a windowed facade is its tint
+    # times the wall between the windows; a house without a record keeps the old answers.
+    assert r["colours"] == ["#8a8172", "#998066", "#7f7265", "#112233", "#445566"]
+    assert r["asOpened"] == {"tint": "ffffff", "repeat": [2, 3], "rough": 0.77, "env": 0.35, "same": True}
+    assert r["repainted"] == "664433"  # a new colour keeps the brick and averages to the colour picked
+    # One the brick cannot be tinted to (bluer than it) is paint over it, in the same finish.
+    assert r["overpainted"] == {"map": None, "colour": "336699", "rough": 0.77}
+    assert r["painted"] == "8a8172"
+    assert r["windowed"] is None  # painted-on windows are not laid over the editor's real ones
+    assert r["unknown"] is None
+
+
+def test_every_building_records_how_its_wall_is_drawn_for_the_editor() -> None:
+    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    assert "BUILDING_WALL_LOOK.set(String(feature.osm_id), {" in source
+    assert "wallColourOf: drawnWallColour," in source and "wallMaterial: exteriorWallMaterial," in source
+    assert "const skin = ctx.wallMaterial?.(wallColour, edit, wall) || flat(wallColour, { roughness: 0.92 });" in editor
+    assert "...freeSpot(e.openings, L, H, base)" in editor

@@ -9258,6 +9258,8 @@ const MERGED = new Map();
 // same windows and doors used by its interior. Keep reversible index ranges.
 const BUILDING_VISUAL_RANGES = new Map();
 const HOME_RENDER = new Map();
+//: Every building's wall as drawn: vertex tint, cladding map, finish (exterior editor).
+const BUILDING_WALL_LOOK = new Map();
 let BUILDING_VISUAL_ID = null;
 
 function materialKey(material) {
@@ -20214,6 +20216,20 @@ function buildingMesh(feature) {
     HOME_RENDER.set(id, { feature, material, seed, tint: wallColour.getHex(),
       height, base: hillLift, clockwise, appearanceBands });
     BUILDING_VISUAL_ID = id;
+  }
+  if (kind !== "outbuilding") {
+    // How the street front is drawn, for the exterior editor: the colour on the vertices and
+    // the cladding it multiplies, from the tallest band where the front is drawn in bands.
+    const banded = appearanceBands.some((b) => b.frontBasis) || frontageFitFor(feature);
+    const lead = banded ? appearanceBands.reduce((best, b) => (!best || b.top - b.bottom > best.top - best.bottom ? b : best), null) : null;
+    const lookMaterial = lead?.material || material;
+    BUILDING_WALL_LOOK.set(String(feature.osm_id), {
+      tint: lead ? new THREE.Color(lead.tint).getHex() : wallColour.getHex(),
+      map: lead ? bareFacadeTextureFor(lookMaterial, seed) : walls.map,
+      rough: lookMaterial.rough, metal: lookMaterial.metal,
+      env: lookMaterial.name === "glass" ? 1.6 : lookMaterial.name === "metal" ? 1.1 : 0.35,
+      storey: facadeStoreyMetres(height),
+    });
   }
   roof.color.setHex(0xffffff);
   walls.color.setHex(0xffffff);
@@ -38810,13 +38826,72 @@ function exteriorOpeningsOn(feature, wall) {
   }
   return out;
 }
+//: What a cladding map averages to, as a linear colour: its median texel, so the windows
+//: painted on a facade map do not count as wall. A flat map (a painted house) is white.
+const WALL_MAP_ALBEDO = new Map();
+function wallMapAlbedo(map) {
+  const white = new THREE.Color(1, 1, 1);
+  const image = map?.image;
+  if (!map || map.userData?.flat) return white;
+  if (WALL_MAP_ALBEDO.has(map.uuid)) return WALL_MAP_ALBEDO.get(map.uuid);
+  if (!image) return white;
+  let found = white;
+  try {
+    const n = 24, canvas = document.createElement("canvas");
+    canvas.width = canvas.height = n;
+    const c2 = canvas.getContext("2d", { willReadFrequently: true });
+    c2.drawImage(image, 0, 0, n, n);
+    const px = c2.getImageData(0, 0, n, n).data, ch = [[], [], []];
+    for (let i = 0; i < px.length; i += 4) for (let k = 0; k < 3; k += 1) ch[k].push(px[i + k]);
+    const median = (a) => a.sort((p, q) => p - q)[a.length >> 1] / 255;
+    found = new THREE.Color().setRGB(median(ch[0]), median(ch[1]), median(ch[2]), THREE.SRGBColorSpace);
+  } catch { found = white; } // an unreadable image (not yet decoded, or cross-origin)
+  WALL_MAP_ALBEDO.set(map.uuid, found);
+  return found;
+}
+//: The colour a building's wall is drawn in: its vertex tint times its cladding, in linear
+//: light, which is what reaches the screen before the lighting. The editor opens on this
+//: colour, so opening it changes nothing; a house the page has no record of keeps its own.
+function drawnWallColour(feature) {
+  const look = BUILDING_WALL_LOOK.get(String(feature.osm_id ?? feature));
+  if (!look) return `#${new THREE.Color(HOME_RENDER.get(String(feature.osm_id))?.tint ?? (feature.colour || 0xc8c2b8)).getHexString()}`;
+  return `#${new THREE.Color(look.tint).multiply(wallMapAlbedo(look.map)).getHexString()}`;
+}
+//: The editor's wall skin in the world's own finish: the same cladding (where the map has no
+//: painted windows, which the editor draws as real openings), roughness and reflection, tinted
+//: so that it averages to the chosen colour. Left as it opened, it is the world's wall exactly.
+function exteriorWallMaterial(colour, edit, wall) {
+  const look = BUILDING_WALL_LOOK.get(String(edit?.osm_id));
+  if (!look) return null;
+  const albedo = wallMapAlbedo(look.map);
+  const painted = new THREE.Color(colour);
+  const unchanged = painted.getHexString() === new THREE.Color(look.tint).multiply(albedo).getHexString();
+  const need = [painted.r / Math.max(albedo.r, 1e-3), painted.g / Math.max(albedo.g, 1e-3), painted.b / Math.max(albedo.b, 1e-3)];
+  const tint = unchanged ? new THREE.Color(look.tint) : new THREE.Color(...need);
+  // A colour the cladding cannot be tinted to (paler or bluer than the brick allows) is paint
+  // laid over it: flat, in the world's finish.
+  const reachable = unchanged || need.every((c) => c <= 1.0001);
+  const bare = reachable && look.map && (look.map.userData?.bare || look.map.userData?.flat);
+  let map = null;
+  if (bare) {
+    map = look.map.clone();
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set((wall?.length || 4) / BAY_M, (wall?.height || look.storey) / look.storey);
+    map.needsUpdate = true;
+  }
+  return new THREE.MeshStandardMaterial({
+    color: bare ? tint : painted, map, roughness: look.rough, metalness: look.metal,
+    envMapIntensity: look.env,
+  });
+}
 function exteriorEditorContext() {
   return {
     THREE,
     wallsOf: exteriorWalls,
     wallFromEdit: exteriorWallFromEdit,
     openingsOn: exteriorOpeningsOn,
-    wallColourOf: (feature) => `#${new THREE.Color(HOME_RENDER.get(String(feature.osm_id))?.tint ?? (feature.colour || 0xc8c2b8)).getHexString()}`,
+    wallColourOf: drawnWallColour,
+    wallMaterial: exteriorWallMaterial,
     wallColour: "#c8c2b8",
     groundAt: (x, z) => terrainGroundAt(x, z),
     publishedEdit: (id) => publishedExteriorEdit(id),
