@@ -4483,6 +4483,11 @@ Object.values(groups).forEach((g) => root.add(g));
     }
   }
   window.kerbsideFlyToRegion = flyToRegion;
+  // The markers are drawn with the module's labels and its tile tree, which this loader -- run
+  // beside the module, not after it -- can reach before the module has: it stopped there with
+  // a declaration not yet made, and the page reported that it had failed to start. So it waits
+  // for the whole module (regionStreamingReady, set as its last line).
+  while (!regionStreamingReady) await new Promise((resolve) => setTimeout(resolve, 100));
   // The other built regions, as markers standing over their ground in the perimeter -- a
   // click on one opens it. What was rendered is visible from where you are, across the bay.
   // One post shape and paint for every marker: a hundred and more regions made a material each.
@@ -37417,9 +37422,32 @@ function registerElevatedWay(way, lift) {
 //: A deck is a highway's when it carries a freeway or one of its ramps -- by name, or stacked
 //: over another deck (OpenStreetMap layer 2 and up: an interchange) -- and a bridge's otherwise.
 //: (The payload keeps no road class: a name and a layer are what there is to go on.)
+//: A freeway's name. (A function: the street build asks before this part of the module has run.)
+function isHighwayName(name) { return /\b(Freeway|Highway|Expressway|Skyway|Interstate|Parkway)\b|^(I|US|CA|SR)[- ]\d/i.test(name || ""); }
 function structureKindOf(way) {
-  if (/\b(Freeway|Highway|Expressway|Skyway|Interstate|Parkway)\b|^(I|US|CA|SR)[- ]\d/i.test(way.name || "")) return "highway";
-  return Number(way.layer) >= 2 ? "highway" : "bridge";
+  if (isHighwayName(way.name) || Number(way.layer) >= 2) return "highway";
+  return highwayRampWays().has(way) ? "highway" : "bridge";
+}
+//: The unnamed decks that are a freeway's ramps: chained, end to end, to a freeway's deck (an
+//: interchange's connectors carry no name of their own). Worked out once, from the ways.
+function highwayRampWays() {
+  if (highwayRampWays.found) return highwayRampWays.found;
+  const decks = (DATA.ways || []).filter((w) => w.kind === "street" && w.bridge && !w.tunnel && w.points && w.points.length >= 2);
+  const key = (p) => `${p[0].toFixed(6)}:${p[1].toFixed(6)}`;
+  const byNode = new Map();
+  for (const w of decks) for (const p of [w.points[0], w.points[w.points.length - 1]]) {
+    const k = key(p); if (!byNode.has(k)) byNode.set(k, []); byNode.get(k).push(w);
+  }
+  const found = new Set(), queue = decks.filter((w) => isHighwayName(w.name) || Number(w.layer) >= 2);
+  const seen = new Set(queue);
+  while (queue.length) {
+    const w = queue.shift();
+    for (const p of [w.points[0], w.points[w.points.length - 1]]) for (const n of byNode.get(key(p)) || []) {
+      if (seen.has(n) || n.name) continue;
+      seen.add(n); found.add(n); queue.push(n);
+    }
+  }
+  return (highwayRampWays.found = found);
 }
 //: The decks a person could stand on at (x, z), each with what it is: its height (top), the lift
 //: under its road (base: a street's pavement stands on that), what kind of structure it is and
@@ -39180,7 +39208,7 @@ window.kerbside = {
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,
   cutLiftAt, approachRoadAt, wayFollowsCut, APPROACH_CUTS, junctionBoxHulls,
-  goTo, setFirstPerson, placeCamera, state, avatar, roadSurfacesAt, routeSurfaceHeights, elevatedRoadsAt, elevatedDecksAt, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
+  goTo, setFirstPerson, placeCamera, state, avatar, roadSurfacesAt, routeSurfaceHeights, elevatedRoadsAt, elevatedDecksAt, structuresAt, walkerGroundInfo, walkPace, publicStairs, publicStairAt,
   outsideTerrainGrid, drawnGroundAt, returnToGps, GPS_LEASH, gps, followGps, onCrossingGround, busZonePieces, treeVariant, homeWindowLayout, HOME_RENDER, cullDetailByDistance, DETAIL_RANGE_M, mergeStats, THREE,
   xy, insideCarriageway, buildingAt,
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
@@ -39432,6 +39460,17 @@ window.kerbside = {
 
 //: An attached region's world: where it stands in this page, and what it answers.
 function hostToGuest(g, x, z) { return [(x - g.ox) / g.sx, z - g.oz]; }
+//: What is built at (x, z) over the ground, wherever it was built -- this page or the region
+//: attached over it: each deck with its height in this page's frame, what kind of structure it
+//: is (a bridge, a highway) and its name.
+function structuresAt(x, z) {
+  const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
+  if (guest && guest.api.elevatedDecksAt) {
+    const [gx, gz] = hostToGuest(guest, x, z);
+    return guest.api.elevatedDecksAt(gx, gz).map((d) => ({ ...d, top: d.top + guest.oy, base: d.base + guest.oy }));
+  }
+  return elevatedDecksAt(x, z);
+}
 function guestUnder(x, z) {
   const g = activeGuest;
   if (!g || !g.ready) return null;
@@ -40025,7 +40064,7 @@ window.kerbsideGuestApi = {
             Math.max(corners[0][0], corners[1][0]), Math.max(corners[0][1], corners[1][1])];
   })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
     return [x0, -y1, x1, -y0]; })(),
-  walkerGroundAt, walkerGroundInfo, walkableStairRecessAt, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
+  walkerGroundAt, walkerGroundInfo, elevatedDecksAt, walkableStairRecessAt, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
