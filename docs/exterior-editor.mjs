@@ -339,9 +339,11 @@ export function drawEdit(ctx, edit) {
     return mesh;
   };
   // The skin: the wall in its own colour over whatever the page drew on it.
+  // The page gives it the world's own finish (its cladding, roughness and reflection), so the
+  // wall left in the colour it opened with looks as it did before the editor opened.
   const wallColour = edit.wall_colour || ctx.wallColour;
-  plane(0, 0, SKIN_OUT_M, wall.length, wall.height, ctx.wallMaterial ? ctx.wallMaterial(wallColour)
-    : flat(wallColour, { roughness: 0.92 }), "wall");
+  const skin = ctx.wallMaterial?.(wallColour, edit, wall) || flat(wallColour, { roughness: 0.92 });
+  plane(0, 0, SKIN_OUT_M, wall.length, wall.height, skin, "wall");
   const front = SKIN_OUT_M + 0.005;
   const standing = [];
   for (const o of edit.openings) {
@@ -349,7 +351,8 @@ export function drawEdit(ctx, edit) {
     if (recess > 0) {
       // An indent: the wall round the opening stands forward of it -- jambs, a head and a floor --
       // so the door or the garage sits back from the face of the house.
-      const side = 0.22, wallMat = flat(wallColour, { roughness: 0.9 });
+      const side = 0.22, wallMat = skin.map ? flat(wallColour, { roughness: skin.roughness,
+        metalness: skin.metalness, envMapIntensity: skin.envMapIntensity }) : skin;
       box(o.u - side, o.v, front, side, o.h + side, recess, wallMat, "wall");
       box(o.u + o.w, o.v, front, side, o.h + side, recess, wallMat, "wall");
       box(o.u, o.v + o.h, front, o.w, side, recess, wallMat, "wall");
@@ -628,7 +631,7 @@ function buildPanel(state) {
       garage: { w: 2.6, h: 2.2, v: 0, style: "slat", colour: WOOD, recess_m: 0 },
       shopfront: { w: Math.min(6, L - 0.6), h: Math.min(3.4, H - 0.4), v: 0, style: "modern", colour: "#1f2a30", door_at: "centre", pair: false },
     }[type];
-    const o = { id: newId(type), type, u: freeSpot(e.openings, L, base), ...base };
+    const o = { id: newId(type), type, ...base, ...freeSpot(e.openings, L, H, base) };
     e.openings.push(o);
     state.selected = o.id;
   });
@@ -933,18 +936,38 @@ function swatchRow(label, colours, value, set) {
     ...colours.map((c) => el("button", { class: `sw${c === value ? " on" : ""}`, style: `background:${c}`, title: c, on: { click: () => set(c) } })),
     custom));
 }
-// Where a new opening goes: the middle of the widest stretch of wall its height band leaves
-// clear of the openings already there, so a new door does not land on the garage.
-function freeSpot(openings, length, box) {
-  const busy = openings.filter((o) => o.v < box.v + box.h && box.v < o.v + o.h)
-    .map((o) => [o.u - 0.15, o.u + o.w + 0.15]).sort((a, b) => a[0] - b[0]);
-  let best = null, at = 0.1;
-  for (const [a, b] of [...busy, [length - 0.1, length]]) {
-    if (a - at >= box.w && (!best || a - at > best[1] - best[0])) best = [at, a];
-    at = Math.max(at, b);
+// Where a new opening goes: the middle of the widest stretch of wall clear of the openings
+// already there (with a hand's width round each), at its own height if there is room; else at
+// the nearest storey that has room, a window in line with the windows already there. Only a
+// wall with no room anywhere takes the least crowded spot. So a new window does not land on
+// the one already at 3.2 m, and a new door does not land on the garage.
+export function freeSpot(openings, length, height, box) {
+  const PAD = 0.15, fits = (v) => v >= 0 && v + box.h <= Math.max(height - 0.15, box.h);
+  const rows = [box.v];
+  if (box.v > 0) {
+    for (const o of openings) if (o.type === "window") rows.push(o.v);
+    for (let k = 1; k <= 12; k += 1) rows.push(box.v + 3 * k, box.v - 3 * k, box.v + 1.5 * k, box.v - 1.5 * k);
   }
-  if (!best) return fix(Math.max(0.1, length / 2 - box.w / 2));
-  return fix((best[0] + best[1]) / 2 - box.w / 2);
+  const tried = [...new Set(rows.map(fix))].filter(fits).sort((p, q) => Math.abs(p - box.v) - Math.abs(q - box.v));
+  for (const v of tried) {
+    const busy = openings.filter((o) => o.v - PAD < v + box.h && v < o.v + o.h + PAD)
+      .map((o) => [o.u - PAD, o.u + o.w + PAD]).sort((a, b) => a[0] - b[0]);
+    let best = null, at = 0.1;
+    for (const [a, b] of [...busy, [length - 0.1, length]]) {
+      if (a - at >= box.w && (!best || a - at > best[1] - best[0])) best = [at, a];
+      at = Math.max(at, b);
+    }
+    if (best) return { u: fix((best[0] + best[1]) / 2 - box.w / 2), v };
+  }
+  // No room: the spot the existing openings cover least.
+  const v = fits(box.v) ? box.v : Math.max(0, fix(height - box.h - 0.15));
+  let pick = { u: fix(Math.max(0.1, length / 2 - box.w / 2)), v }, least = Infinity;
+  for (let u = 0.1; u + box.w <= length - 0.1 + 1e-9; u += 0.1) {
+    const covered = openings.reduce((sum, o) => sum + Math.max(0, Math.min(u + box.w, o.u + o.w) - Math.max(u, o.u))
+      * Math.max(0, Math.min(v + box.h, o.v + o.h) - Math.max(v, o.v)), 0);
+    if (covered < least - 1e-9) { least = covered; pick = { u: fix(u), v }; }
+  }
+  return pick;
 }
 function tiles(options, value, set, thumb) {
   return el("div", { class: "grid" }, ...Object.entries(options).map(([key, name]) =>
