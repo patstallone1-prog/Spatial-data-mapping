@@ -56,7 +56,7 @@ def test_click_moves_and_right_click_does_nothing():
     # No street names floating over the roads.
     assert 'labelAt(way.name' not in source
     assert 'if (d2 >= bestD2 || buildingAt(x, z)) continue;' in source
-    assert 'const mappedWet = apron > 0 ? null : mappedWaterAt(x, z);' in source
+    assert 'const mappedWet = apron > 0 || inland === 2 ? null : mappedWaterAt(x, z);' in source
     # Past the last street: plain grass at once, no grey fade and no grey town.
     assert 'const colour = sandy ? TERRAIN_SAND : TERRAIN_PLATE;' in source
     assert 'TERRAIN_APRON_COLOUR_M' not in source

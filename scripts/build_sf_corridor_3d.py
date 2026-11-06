@@ -33480,7 +33480,7 @@ function moveWalker(mx, mz) {
     if (g?.ready && g.api.deckEdgeSegmentsNear && Number.isFinite(feet)) {
       for (const [ax, az, bx, bz] of g.api.deckEdgeSegmentsNear(...hostToGuest(g, cx, cz), feet - g.oy))
         segments.push([g.ox + ax * g.sx, g.oz + az, g.ox + bx * g.sx, g.oz + bz]);
-    } else if (!g) segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
+    } else if (!g && typeof deckEdgeSegmentsNear === "function") segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
   }
   for (let i = 0; i < steps; i += 1) {
     const next = {x: p.x + mx / steps, z: p.z + mz / steps};

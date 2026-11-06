@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="a3da52c48f47d75f8870310403deac6c44516f830ae2c55efc9e6e16cc03869a" />
+<meta name="kerbside-renderer-sha256" content="dd004706e82bb07491f11fec60c2fbce318bb287bfca06a8a681b230235d38a5" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -30535,7 +30535,7 @@ function moveWalker(mx, mz) {
     if (g?.ready && g.api.deckEdgeSegmentsNear && Number.isFinite(feet)) {
       for (const [ax, az, bx, bz] of g.api.deckEdgeSegmentsNear(...hostToGuest(g, cx, cz), feet - g.oy))
         segments.push([g.ox + ax * g.sx, g.oz + az, g.ox + bx * g.sx, g.oz + bz]);
-    } else if (!g) segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
+    } else if (!g && typeof deckEdgeSegmentsNear === "function") segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
   }
   for (let i = 0; i < steps; i += 1) {
     const next = {x: p.x + mx / steps, z: p.z + mz / steps};
