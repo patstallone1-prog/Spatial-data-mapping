@@ -150,3 +150,42 @@ def test_vercel_deploys_nothing_that_has_not_passed() -> None:
     out = subprocess.run([NODE, str(ROOT / "tools/vercel/gate.mjs")], capture_output=True, text=True,
                          env={"VERCEL_GIT_COMMIT_REF": "some-branch", "PATH": "/usr/bin:/bin"}, timeout=30)
     assert out.returncode == 0 and "not deploying" in out.stdout
+
+
+def _gate_with_github(answers: str, conclusion: str = "success") -> subprocess.CompletedProcess:
+    """Run the gate for a main commit against a stub GitHub: `answers` says, look by look,
+    whether the merge commit is linked to its pull request yet ("n" not yet, "y" linked,
+    "b" GitHub answers busy with a 403)."""
+    sha = "a" * 40
+    stub = f"""
+let look = 0; const answers = {json.dumps(answers)};
+globalThis.fetch = async (url) => {{
+  const body = url.includes("/pulls")
+    ? (answers[Math.min(look++, answers.length - 1)] === "y"
+        ? [{{ number: 7, merged_at: "2026-11-06T11:15:25Z", base: {{ ref: "main" }}, merge_commit_sha: "{sha}", head: {{ sha: "b" }} }}]
+        : [])
+    : {{ check_runs: ["ruff", "pytest", "render audit vs baseline"].map((name) => (
+        {{ name, status: "completed", conclusion: {json.dumps(conclusion)}, completed_at: "2026-11-06T11:14:35Z" }})) }};
+  if (url.includes("/pulls") && answers[look - 1] === "b") return {{ ok: false, status: 403, json: async () => ({{}}) }};
+  return {{ ok: true, status: 200, json: async () => body }};
+}};
+"""
+    env = {"VERCEL_GIT_COMMIT_REF": "main", "VERCEL_GIT_COMMIT_SHA": sha, "PATH": "/usr/bin:/bin",
+           "GATE_POLL_S": "0.01", "GATE_WAIT_S": "1"}
+    return subprocess.run([NODE, "--import", "data:text/javascript," + stub.replace("\n", " "),
+                           str(ROOT / "tools/vercel/gate.mjs")], capture_output=True, text=True, env=env, timeout=30)
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the gate")
+def test_the_gate_waits_for_github_to_link_the_merge_to_its_pull_request() -> None:
+    out = _gate_with_github("nby")
+    assert out.returncode == 1, out.stdout + out.stderr        # 1 = deploy
+    assert out.stdout.count("gate: waiting") == 2 and "answered 403" in out.stdout and "deploying aaaaaaaa -- #7" in out.stdout
+
+
+@pytest.mark.skipif(NODE is None, reason="node is needed to run the gate")
+def test_the_gate_never_waits_on_a_failed_check_or_forever() -> None:
+    failed = _gate_with_github("y", conclusion="failure")
+    assert failed.returncode == 0 and "waiting" not in failed.stdout and "is failure on #7" in failed.stdout
+    never = _gate_with_github("n")
+    assert never.returncode == 0 and "not deploying" in never.stdout
