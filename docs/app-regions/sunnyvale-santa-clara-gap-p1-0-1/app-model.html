@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="d00a8f5b8882cdfec9eead5a7fe95d07344ee711bc79ca0ff7a00e3e04556436" />
+<meta name="kerbside-renderer-sha256" content="faf24c4cd3e35887a24bcb187ad8d86a63e84aa212c3f8a4606b9b6e40b9ec1e" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1011,7 +1011,8 @@ const EXTERIOR_EDITS_KEY = "kerbside:exterior-edits:v1";
 // published file, so a building's own windows give way to them as it is built.
 const [PUBLISHED_EXTERIOR_EDITS, CANONICAL_EXTERIOR_EDITS] = await Promise.all([
   fetch(asset("sf-corridor-exterior-edits.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-  META || ATTACH ? {} : accountLibrary().then((m) => m.canonicalEdits()).catch(() => ({})),
+  // A region drawn beside the page has the page's own (it fetched them): a verified edit shows there too.
+  META ? {} : ATTACH ? (ATTACH.canonicalEdits || {}) : accountLibrary().then((m) => m.canonicalEdits()).catch(() => ({})),
 ]);
 //: The newer of two edits of one building (by when each was saved).
 const newerEdit = (a, b) => (!a ? b || null : !b ? a : String(b.updated || "") > String(a.updated || "") ? b : a);
@@ -35914,11 +35915,33 @@ async function drawSavedExteriorEdit(id, edit) {
   const group = library.drawEdit(context, edit);
   if (group) { context.addToWorld(group); exteriorEditGroups.set(id, group); }
 }
+//: A building in the region drawn beside the page is that region's: its walls, its windows, its
+//: ground and the world its edit is drawn into are the region's own (its exteriorEditorContext),
+//: and only the camera and the still are the page's, in the page's metres. Taken from the page's
+//: own context, a region's building had no wall to draw on: every edit of it, the preview as you
+//: tap and the saved edit after, drew nothing.
+function guestWallToHost(g, w) {
+  let ux = w.ux * g.sx, uz = w.uz, nx = w.nx / g.sx, nz = w.nz;
+  const s = Math.hypot(ux, uz) || 1, t = Math.hypot(nx, nz) || 1;
+  ux /= s; uz /= s; nx /= t; nz /= t;
+  return { ...w, ax: w.ax * g.sx + g.ox, az: w.az + g.oz, ux, uz, nx, nz, length: w.length * s, base: w.base + g.oy };
+}
+function exteriorEditorContextFor(featureOrId) {
+  const host = exteriorEditorContext();
+  const id = String(featureOrId?.osm_id ?? featureOrId);
+  const g = activeGuest;
+  if (buildingWayById.has(id) || !g?.ready || !g.api.hasExteriorBuilding?.(id)) return host;
+  const inner = g.api.exteriorEditorContext();
+  return { ...inner,
+    lookAtWall: (wall) => host.lookAtWall(guestWallToHost(g, wall)),
+    renderWallStill: (wall, canvas) => renderWallStill(guestWallToHost(g, wall), canvas),
+    pauseWorld: host.pauseWorld, notify: host.notify };
+}
 async function openExteriorEditor(feature) {
   if (META || !feature || feature.kind !== "building") return;
   hideAddress();
   const [library, account] = await Promise.all([exteriorEditorLibrary(), accountLibrary().catch(() => null)]);
-  library.open({ ...exteriorEditorContext(), account }, feature);
+  library.open({ ...exteriorEditorContextFor(feature), account }, feature);
 }
 //: While the editor covers the screen the live view is not drawn (the world still streams and
 //: builds round the wall it looks at); the editor's still is drawn instead.
@@ -36278,7 +36301,7 @@ window.kerbside = {
   moveWalker, wallSegmentsNear, nearestDoor, doorsNear, toggleDoor, footprintById, requestInteriors, buildInterior,
   pickedFeature, openExteriorEditor, exteriorEditGroups, buildingWayById, multiplayer,
   // The landscape (forest floor, scans) and the globe, for inspection.
-  get natureWorld() { return natureWorld; }, get globe() { return globe; },
+  get natureWorld() { return natureWorld; }, get globe() { return globe; }, get activeGuest() { return activeGuest; },
   // Ponds, fountains and lakes drawn at their own level (INLAND_WATER), for inspection.
   get inlandWater() {
     const f = TERRAIN_FRAME;
@@ -36956,7 +36979,7 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
-      natureBacked:Boolean(NATURE), headset: META,
+      natureBacked:Boolean(NATURE), headset: META, canonicalEdits: CANONICAL_EXTERIOR_EDITS || {},
       detailWindow:{...centre,radius:holder.detailRadius,strip:holder.strip},cellCache:{
         load:(url,priority)=>worldCellCache.load(new URL(url,pageUrl).href,priority),
         snapshot:()=>worldCellCache.snapshot(),focus:()=>worldCellCache.focus()},
@@ -37389,6 +37412,8 @@ window.kerbsideGuestApi = {
     return [x0, -y1, x1, -y0]; })(),
   walkerGroundAt, walkerGroundInfo, elevatedDecksAt, walkableStairRecessAt, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
   walkerFootprintBlocked,
+  // Its buildings' exterior edits, drawn in its own world (openExteriorEditor on the page).
+  exteriorEditorContext, hasExteriorBuilding: (id) => buildingWayById.has(String(id)),
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
   toggleNearestDoor: operateNearestDoor,
