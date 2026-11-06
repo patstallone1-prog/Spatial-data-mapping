@@ -1,6 +1,6 @@
 // Source-backed bare earth and land cover. All individual plants/rocks are visual inference.
 // Public pure functions also run in Node regression tests; THREE is injected by the viewer.
-import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter,vegetatedCover} from './nature-ecology.mjs';
+import {SPECIES,UNDERGROWTH,LITTER,habitatMixture,speciesAt,field,undergrowthAt,smooth,treeSize,litterScatter,vegetatedCover,coverShares,habitatShares} from './nature-ecology.mjs';
 import {vegetationAssets,botanicalGeometry,BARK_GRAIN_URL} from './vegetation-geometry.mjs';
 import {createGrassStrands} from './grass-strands.mjs';
 // Keep each existing botanical LOD 30% farther out, without inventing more trees.
@@ -66,6 +66,12 @@ export const COVER_COLOURS = {
   52:[.45,.44,.28],71:[.50,.48,.29],81:[.44,.46,.25],82:[.43,.42,.25],
   90:[.27,.34,.24],95:[.38,.40,.25], sand:[.70,.64,.48],
 };
+//: Sand: a mapped beach, or barren ground (NLCD 31: under 15 per cent vegetation) at the shore --
+//: within the coastline's 100 m band and under 12 m up. Ocean Beach and Baker Beach are mostly
+//: unmapped polygons in the paths, and NLCD reads them as barren or wet: they are sand.
+export function beachAt(s){
+  return Boolean(s)&&(s.natural==="beach"||(s.cover===31&&s.coastSigned!==null&&s.coastSigned!==undefined&&Number.isFinite(s.height)&&s.height<12));
+}
 export function linearColour(rgb) {
   return rgb.map(v=>v<=.04045 ? v/12.92 : ((v+.055)/1.055)**2.4);
 }
@@ -96,7 +102,8 @@ export function treeCandidate(c, r, sample) {
   const y = (r+.5)*8 + (hash2(c,r,7)-.5)*3.5;
   const s = sample(x,y);
   if (!s || ![21,31,41,42,43,52,71,90,95].includes(s.cover) || s.water || !Number.isFinite(s.canopy)) return null;
-  const habitat=s.habitat,canopy=habitat?.canopy??s.canopy;
+  // The canopy its class can hold as trees: in scrub most of the satellite canopy is tall shrub.
+  const habitat=s.habitat,canopy=habitat?habitatShares(habitat).tree:s.canopy;
   // Barren margins receive stragglers only with nearby canopy evidence, never
   // from a random fill of a treeless beach, bare summit or developed road.
   if(s.cover===31&&(!habitat||habitat.forest+habitat.scrub<.08||canopy<3))return null;
@@ -307,8 +314,18 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   const coverTexture=new THREE.DataTexture(colourPixels,f.cols,f.rows,THREE.RGBAFormat);
   coverTexture.colorSpace=THREE.NoColorSpace;
   coverTexture.needsUpdate=true;coverTexture.minFilter=coverTexture.magFilter=THREE.LinearFilter;
-  const canopyTextureGrid=new THREE.DataTexture(Uint8Array.from(atlas.canopy,v=>v===255?0:Math.round(v*2.55)),f.cols,f.rows,THREE.RedFormat);
+  // The ground's tree crowns and its shrubs, cell by cell, from the class's statistics
+  // (nature-ecology.mjs COVER_STATS): a scrub cell's satellite canopy is mostly its shrubs.
+  // (A table by class and canopy value: 3.5 million cells looked up, not worked out.)
+  const treeLUT=new Uint8Array(256*256),shrubLUT=new Uint8Array(256*256);
+  for(let k=0;k<256;k++)for(let v=0;v<256;v++){const share=k===11||k===0?{tree:v===255?0:v,shrub:0}:coverShares(k,v);
+    treeLUT[k*256+v]=Math.round(Math.min(100,share.tree)*2.55);shrubLUT[k*256+v]=Math.round(share.shrub*255);}
+  const treeTexels=new Uint8Array(atlas.canopy.length),shrubTexels=new Uint8Array(atlas.canopy.length);
+  for(let i=0;i<atlas.canopy.length;i++){const j=atlas.plantCover[i]*256+atlas.canopy[i];treeTexels[i]=treeLUT[j];shrubTexels[i]=shrubLUT[j];}
+  const canopyTextureGrid=new THREE.DataTexture(treeTexels,f.cols,f.rows,THREE.RedFormat);
   canopyTextureGrid.needsUpdate=true;canopyTextureGrid.minFilter=canopyTextureGrid.magFilter=THREE.LinearFilter;
+  const shrubTextureGrid=new THREE.DataTexture(shrubTexels,f.cols,f.rows,THREE.RedFormat);
+  shrubTextureGrid.needsUpdate=true;shrubTextureGrid.minFilter=shrubTextureGrid.magFilter=THREE.LinearFilter;
   function terrainMaterial(coarse,morph={value:1}){
     const m=material.clone();
     if(coarse)m.vertexColors=false;
@@ -317,6 +334,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
       shader.uniforms.uNatureMorph=morph;
       shader.uniforms.uNatureCover={value:coverTexture};
       shader.uniforms.uNatureCanopy={value:canopyTextureGrid};
+      shader.uniforms.uNatureShrub={value:shrubTextureGrid};
       shader.uniforms.uNatureOrigin={value:new THREE.Vector2(...origin)};
       shader.uniforms.uNatureScale={value:new THREE.Vector2(end[0]-origin[0],end[1]-origin[1])};
       shader.uniforms.uNatureGuest=guestBox || {value:Array.from({length:NATURE_GUEST_BOXES},()=>new THREE.Vector4(1,1,0,0))};
@@ -328,7 +346,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
         .replace("#include <project_vertex>","#include <project_vertex>\nvNatureWorld=(modelMatrix*vec4(transformed,1.0)).xyz;");
       shader.fragmentShader=shader.fragmentShader.replace("#include <common>",`#include <common>
 varying vec3 vNatureWorld;
-uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform sampler2D uNatureCanopy;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest[${NATURE_GUEST_BOXES}];uniform vec4 uNatureHost;
+uniform sampler2D uNatureActive;uniform sampler2D uNatureCover;uniform sampler2D uNatureCanopy;uniform sampler2D uNatureShrub;uniform vec2 uNatureOrigin;uniform vec2 uNatureScale;uniform vec4 uNatureGuest[${NATURE_GUEST_BOXES}];uniform vec4 uNatureHost;
 ${coarse?'':'uniform sampler2D uNatureCoast;uniform vec4 uNatureCoastBounds;varying float vNatureWater;varying float vNatureLevel;varying float vNatureLocalY;'}
 float natureHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 float natureNoise(vec2 p){vec2 i=floor(p),a=fract(p);a=a*a*(3.0-2.0*a);return mix(mix(natureHash(i),natureHash(i+vec2(1,0)),a.x),mix(natureHash(i+vec2(0,1)),natureHash(i+vec2(1,1)),a.x),a.y);}`)
@@ -366,6 +384,25 @@ leafDelta=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*leafDelta;
 float leaf=(1.-smoothstep(.35,.55,length(leafDelta*vec2(2.,6.))))*step(.5,natureHash(litterCell+81.))*(1.-smoothstep(.05,.35,footprint))*smoothstep(.12,.45,texture2D(uNatureCanopy,natureUV).r);
 diffuseColor.rgb*=mix(.83+.20*soil+.16*grain+.22*micro,1.,natureWet);
 diffuseColor.rgb+=vec3(.018,.012,.004)*(leaf-.22)*(1.-natureWet);
+// Open scrub past the near shrubs: coyote brush and sage crowns at the cover the class's
+// statistics give (COVER_STATS), coming in as the shrub meshes go (NEAR0-NEAR1), so a scrub
+// hillside is shrubs at every distance and not bare ground past three hundred metres.
+float shrubCover=texture2D(uNatureShrub,natureUV).r;
+float shrubFar=smoothstep(${NEAR0}.,${NEAR1}.,distance(cameraPosition,vNatureWorld));
+vec2 shrubP=rotated/3.1;vec2 shrubI=floor(shrubP),shrubF=fract(shrubP);float shrubD=1.5;
+for(int sy=-1;sy<=1;sy++)for(int sx=-1;sx<=1;sx++){vec2 o=vec2(float(sx),float(sy));
+  vec2 h=vec2(natureHash(shrubI+o+5.1),natureHash(shrubI+o+23.7));shrubD=min(shrubD,length(o+.15+.7*h-shrubF));}
+float shrubSeen=1.-smoothstep(1.2,5.,footprint);
+float shrubR=sqrt(clamp(shrubCover,0.,1.)/3.1416)*1.15+.03;
+float shrubIn=1.-smoothstep(shrubR-.08,shrubR+.06,shrubD);
+float shrubAmount=mix(clamp(shrubCover*1.05,0.,1.),shrubIn,shrubSeen)*shrubFar*(1.-natureWet)${coarse?'':'*(1.-smoothstep(.45,.55,coast.g))'};
+// Sage among the coyote brush bush by bush, a little more of it on some slopes than others.
+float sageShare=.38+.22*natureNoise(rotated*.02+3.1);
+float sage=mix(sageShare,step(1.-sageShare,natureHash(shrubI+41.3)),shrubSeen)*.8;
+vec3 shrubColour=mix(vec3(0.0470,0.0783,0.0220),vec3(0.1626,0.1789,0.0835),sage);
+shrubColour*=mix(.92,1.16-.55*clamp(shrubD/max(shrubR,.05),0.,1.),shrubSeen)*(.88+.24*natureNoise(rotated*.37));
+diffuseColor.rgb*=mix(1.,.86,shrubFar*shrubCover*(1.-shrubIn)*shrubSeen*(1.-natureWet));
+diffuseColor.rgb=mix(diffuseColor.rgb,shrubColour,shrubAmount);
 // At kilometre scale a crown becomes sub-pixel, but a forest must not turn
 // into bare dirt. Filter the observed canopy fraction into its aggregate
 // appearance. The near-field substrate remains soil/litter, not green paint.
@@ -394,7 +431,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
         // same flat normal/BRDF as the city water, independent of region bounds.
         .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(mix(normal,normalize(mat3(viewMatrix)*vec3(0.,1.,0.)),natureWet));');
     };
-    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v6-${coarse}`;return m;
+    m.userData.ownedNature=!coarse;m.customProgramCacheKey=()=>`nature-ground-ecology-v9-${coarse}`;return m;
   }
   const coarseMaterial=terrainMaterial(true);
   const geoAt=(x,y)=>{const [lon,lat]=atlas.geographic(x,y);return toPage(lon,lat);};
@@ -428,13 +465,13 @@ diffuseColor.rgb=mix(diffuseColor.rgb,canopyAverage,unresolved*crownCover*(1.-na
     const coarse=!mat.vertexColors,heights=coarse?new Float32Array((nx+1)*(ny+1)):null,developed=coarse?new Uint8Array((nx+1)*(ny+1)):null;
     for(let r=0;r<=ny;r++,yield)for(let c=0;c<=nx;c++){
       const x=Math.min(x1,x0+step*c),y=Math.min(y1,y0+step*r),s=surface(x,y,true,coarse);
-      const base=s.water?COVER_COLOURS[11]:s.natural==="beach" ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
+      const beach=beachAt(s),base=s.water?COVER_COLOURS[11]:beach ? COVER_COLOURS.sand : COVER_COLOURS[s.cover]||COVER_COLOURS[0];
       if(coarse){heights[r*(nx+1)+c]=s.height;developed[r*(nx+1)+c]=!s.water&&CITY_COVER.has(s.cover)?1:0;}
       P.push(s.p[0],s.height-.035,s.p[1]);C.push(...linearColour(base));
       if(mat.vertexColors){old.push(surface(x,y,false,true).height-.035);wet.push(s.water?1:0);level.push(s.water?s.height-.035:NaN);}
       if(coast){const i=(r*(nx+1)+c)*4;
         coast[i]=s.coastSigned===null?128:Math.round(127.5+Math.max(-100,Math.min(100,s.coastSigned))*1.275);
-        coast[i+1]=s.natural==='beach'?255:0;coast[i+2]=s.coastSigned===null?0:255;
+        coast[i+1]=beach?255:0;coast[i+2]=s.coastSigned===null?0:255;
         coast[i+3]=['bare_rock','scree','shingle'].includes(s.natural)?255:0;}
     }
     if(level.length)levelWater(level,wet,P,nx+1,ny+1);
@@ -541,7 +578,7 @@ diffuseColor*=vec4(canopyLinear,canopy.a);`);
       if(h.forest+h.scrub+h.grass+h.wetland+h.developed*.6<.2)continue;
       for(let k=0;k<4;k++){
         const sx=c*24+(k%2)*12+2+hash2(c,r,887+k)*8,sy=r*24+Math.floor(k/2)*12+2+hash2(c,r,897+k)*8;
-        if(hash2(c,r,907+k)>Math.min(.9,h.canopy/60)||atlas.farBlocked(sx,sy))continue;
+        if(hash2(c,r,907+k)>Math.min(.9,habitatShares(h).tree/60)||atlas.farBlocked(sx,sy))continue;
         const at=surface(sx,sy);if(!at||at.water||blockedAt(...at.p,12))continue;
         const species=speciesAt(sx,sy,s.lon,s.lat,h),spec=SPECIES[species],{height,radius}=treeSize(spec,hash2(c,r,917+k),hash2(c,r,927+k));
         P.push(at.p[0],at.height+height*.5,at.p[1]);S.push(height);K.push(speciesKeys.indexOf(species)*2+(hash2(c,r,k+31)>.5?1:0));A.push(radius*2/height/(144/256));

@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="5187808d821cbe9de2471e558b247d85c8e31080b0a360aa1d1e90a909f00006" />
+<meta name="kerbside-renderer-sha256" content="d00a8f5b8882cdfec9eead5a7fe95d07344ee711bc79ca0ff7a00e3e04556436" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -590,7 +590,7 @@ const worldCellCache = ATTACH?.cellCache
   || new worldStreaming.CellCache({ maxBytes: STREAM.cellBytes, concurrency: STREAM.cellConcurrency });
 window.kerbsideStreaming = () => worldCellCache.snapshot();
 // One shared landscape for host and attached regions; failure retains the older backdrop.
-const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=93e22901aca8f093"))
+const natureLibrary = ATTACH ? null : await import(sharedAsset("nature-runtime.mjs?rev=5d6326618fa7aca2"))
   .catch(error => { console.warn("kerbside: landscape runtime unavailable", error); return null; });
 const vegetationLibrary = await import(sharedAsset("vegetation-geometry.mjs"))
   .catch(error => { console.warn("kerbside: tree wall clipping unavailable",error);return null; });

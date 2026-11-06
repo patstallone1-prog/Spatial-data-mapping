@@ -110,6 +110,74 @@ export function floorColour(habitat,cover,natural=null){
  }
  return total?out.map(v=>v/total):FLOOR_PALETTES.barren;
 }
+//: What each land-cover class is, as cover fractions seen from above: trees, shrubs, herbs
+//: (grass, forbs) and bare ground, with a range each and the shrubs' sizes. The bounds are
+//: NLCD's own class definitions -- forest is trees over 5 m on more than 20 per cent; shrub/scrub
+//: is woody cover under 5 m dominating the vegetation; grassland is herbs over 80 per cent of it;
+//: barren is under 15 per cent vegetation -- and the means are the Bay Area alliances the CNPS
+//: Manual of California Vegetation describes for them (coyote brush and coastal sage scrub:
+//: shrub cover 30 to 90 per cent, 0.5 to 3 m tall; annual and coastal prairie grassland; dune and
+//: beach: sparse). A per-class prior, cell by cell; no plant here is a surveyed individual.
+//: treeShare: how much of the canopy a USFS tree-canopy cell reports is trees. In a cell NLCD
+//: calls scrub or grass it cannot be mostly trees (it would be forest), and the satellite canopy
+//: model counts tall coyote brush and chaparral as canopy: there most of it is shrub.
+export const COVER_STATS={
+ 41:{tree:null,shrub:[.05,.15,.30],herb:[.05,.15,.40],treeShare:1},
+ 42:{tree:null,shrub:[.05,.15,.30],herb:[.02,.10,.30],treeShare:1},
+ 43:{tree:null,shrub:[.05,.15,.30],herb:[.05,.12,.35],treeShare:1},
+ 52:{tree:[0,.03,.15],shrub:[.30,.62,.90],herb:[.08,.25,.50],treeShare:.15,shrubHeight:[.8,2.8],shrubRadius:[.9,2.2]},
+ 71:{tree:[0,.02,.08],shrub:[0,.06,.15],herb:[.75,.88,.98],treeShare:.5,shrubHeight:[.5,1.4],shrubRadius:[.6,1.3]},
+ 81:{tree:[0,.01,.05],shrub:[0,.02,.08],herb:[.80,.92,.99],treeShare:.5,shrubHeight:[.5,1.2],shrubRadius:[.6,1.1]},
+ 82:{tree:[0,.01,.05],shrub:[0,.01,.05],herb:[.50,.80,.95],treeShare:.5,shrubHeight:[.4,1],shrubRadius:[.5,1]},
+ 31:{tree:[0,0,.03],shrub:[0,.03,.10],herb:[0,.05,.12],treeShare:.5,shrubHeight:[.3,.9],shrubRadius:[.4,.9]},
+ 90:{tree:null,shrub:[.10,.25,.50],herb:[.10,.30,.60],treeShare:.9,shrubHeight:[1,3],shrubRadius:[.8,1.8]},
+ 95:{tree:[0,.02,.10],shrub:[0,.08,.25],herb:[.60,.85,.98],treeShare:.3,shrubHeight:[.6,1.6],shrubRadius:[.6,1.2]},
+ 21:{tree:null,shrub:[0,.04,.12],herb:[.60,.80,.95],treeShare:1,shrubHeight:[.6,1.6],shrubRadius:[.6,1.3]},
+};
+const LEFTOVER_TO_SHRUB=.8;
+//: One cell's cover: the tree canopy (per cent) and the shrub cover (0-1). Canopy a cell's class
+//: cannot hold as trees goes to its shrubs, within the class's range.
+export function coverShares(cover,canopy){
+ const st=COVER_STATS[cover],c=canopy===255||!Number.isFinite(canopy)?0:canopy;
+ if(!st)return {tree:c,shrub:0};
+ const tree=c*st.treeShare,[lo,mean,hi]=st.shrub;
+ return {tree,shrub:clamp(mean+LEFTOVER_TO_SHRUB*(c-tree)/100,lo,hi)};
+}
+//: The same over a habitat's blend of classes (habitatMixture's classes), so it has no edge.
+export function habitatShares(h){
+ if(!h||!h.classes)return {tree:h?.canopy??0,shrub:0};
+ let tree=0,shrub=0,total=0;const c=h.canopy??0;
+ for(const [k,w] of Object.entries(h.classes)){const st=COVER_STATS[k];if(!st&&k!=='11'&&k!=='22'&&k!=='23'&&k!=='24')continue;
+  const s=st?coverShares(Number(k),c):{tree:c,shrub:0};tree+=s.tree*w;shrub+=s.shrub*w;total+=w;}
+ return total?{tree:tree/total,shrub:shrub/total}:{tree:c,shrub:0};
+}
+//: The shrubs of open scrub and grassland, cell by cell, matched to the class's statistics. Each
+//: 4 m slot (16 square metres) holds one shrub at most: its crown radius r is drawn from the
+//: class's range, and it is there with probability target x 16 / (pi r^2), so over a cell the
+//: crowns cover the target fraction on average. The target swings with a 60 m patch field whose
+//: mean is one, so there are thickets and glades without the cell's total moving.
+export const SCRUB_SLOT_M2=16;
+export function scrubAt(x,y,s){
+ const h=s?.habitat;if(!s||s.water||!h)return null;
+ // Not on sand: a mapped beach, or barren ground at the shore (the runtime's beachAt).
+ if(s.natural==='beach'||(s.cover===31&&s.coastSigned!==null&&s.coastSigned!==undefined&&s.height<12))return null;
+ const {shrub}=habitatShares(h);if(shrub<=.005)return null;
+ let best=null,bw=0;for(const [k,w] of Object.entries(h.classes||{}))if(COVER_STATS[k]?.shrubRadius&&w>bw){bw=w;best=COVER_STATS[k];}
+ if(!best)return null;
+ const u=noiseHash(Math.floor(x*2),Math.floor(y*2),541),v=noiseHash(Math.floor(x*2),Math.floor(y*2),547);
+ const patch=.4+1.2*field(x,y,60,557);              // mean 1
+ // In a thicket one slot's shrub must cover more than a lone bush can: the crowns there run
+ // together into clumps, up to a fifth past the class's widest single crown.
+ const need=Math.sqrt(shrub*patch*SCRUB_SLOT_M2/Math.PI);
+ const radius=Math.max(best.shrubRadius[0]+u*(best.shrubRadius[1]-best.shrubRadius[0]),Math.min(need,best.shrubRadius[1]*1.2));
+ const p=Math.min(1,shrub*patch*SCRUB_SLOT_M2/(Math.PI*radius*radius));
+ if(noiseHash(Math.floor(x*2),Math.floor(y*2),509)>p)return null;
+ const selector=noiseHash(Math.floor(x),Math.floor(y),521);
+ // Coyote brush the commonest; California sagebrush grey on the drier, sunnier ground; toyon now and then.
+ const kind=h.scrub>.25?(selector<.58?'coyote_brush':selector<.88?'sagebrush':'toyon'):(selector<.7?'coyote_brush':'sagebrush');
+ const height=best.shrubHeight[0]+(.35*u+.65*v)*(best.shrubHeight[1]-best.shrubHeight[0]);
+ return {kind,height,radius,certainty:'inferred-cover-statistics',patch,target:shrub};
+}
 //: What grows under and between the trees, by habitat: Bay Area understoreys as the CNPS
 //: vegetation descriptions give them. A visual prior: no plant here is an observed individual.
 export const UNDERGROWTH={
@@ -128,6 +196,8 @@ export const UNDERGROWTH={
 export function undergrowthAt(x,y,s,boost=1){
  const h=s?.habitat;if(!s||s.water||!h||h.canopy===null||[0,11,12,22,23,24].includes(s.cover))return null;
  const patch=field(x,y,34,503),canopy=clamp(h.canopy/100),forest=clamp(h.forest+(h.developed||0)*canopy*.65);
+ // Open scrub, grassland, beach and barren: the shrubs their class's statistics give (scrubAt).
+ if(forest<.35&&h.wetland<.35&&h.classes)return scrubAt(x,y,s);
  const moisture=clamp((s.moisture??.5)*.7+forest*.25+h.wetland*.5);
  // A forest floor is mostly understorey, thinning only in the deepest shade; open scrub is
  // nearly continuous shrub. Patchy, so there are glades and thickets rather than a lawn of

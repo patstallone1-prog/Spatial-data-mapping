@@ -305,3 +305,47 @@ def test_every_limb_starts_on_its_trunk_and_the_trunk_stands_in_the_ground():
     console.log(JSON.stringify({bad:bad.slice(0,8),count:bad.length,feet:Math.max(...feet)}))""")
     assert r["count"] == 0, r["bad"]
     assert r["feet"] < 0
+
+
+def test_scrub_and_grass_hold_little_of_their_satellite_canopy_as_trees():
+    # NLCD: forest is trees over 5 m on more than 20 per cent; a scrub or grass cell cannot be
+    # mostly trees, so the canopy the USFS model reports there is mostly shrub.
+    result = node("""
+const out={};for(const [k,c] of [[42,40],[52,21],[71,10],[31,4]])out[k]=e.coverShares(k,c);
+console.log(JSON.stringify(out));
+""")
+    assert result["42"]["tree"] == 40
+    assert result["52"]["tree"] < 5 and result["52"]["shrub"] > 0.6
+    assert result["71"]["tree"] <= 5 and result["71"]["shrub"] <= 0.15
+    assert result["31"]["shrub"] <= 0.10
+
+
+def test_open_country_shrubs_cell_by_cell_match_their_class_statistics():
+    result = node("""
+const run=(classes,cover,canopy)=>{const h={forest:0,scrub:cover===52?1:0,grass:cover===71?1:0,barren:cover===31?1:0,
+  wetland:0,developed:0,classes,canopy};let area=0,slots=0;const cells=new Map();
+ for(let y=0;y<2000;y+=4)for(let x=0;x<2000;x+=4){slots++;const a=e.scrubAt(x+1.3,y+2.1,{habitat:h,cover,water:false});
+  const crown=a?Math.min(16,Math.PI*a.radius**2):0;area+=crown;const k=`${Math.floor(x/40)}:${Math.floor(y/40)}`;cells.set(k,(cells.get(k)||0)+crown);}
+ const v=[...cells.values()].map(a=>a/1600).sort((a,b)=>a-b);
+ return {target:e.habitatShares(h).shrub,realised:area/(slots*16),p10:v[Math.floor(v.length*.1)],p90:v[Math.floor(v.length*.9)]};};
+console.log(JSON.stringify({scrub:run({52:1},52,21),grass:run({71:1},71,5),barren:run({31:1},31,0),
+ beach:e.scrubAt(10,10,{habitat:{scrub:0,classes:{31:1},canopy:0},cover:31,water:false,coastSigned:-30,height:2})}));
+""")
+    for kind in ["scrub", "grass", "barren"]:
+        r = result[kind]
+        assert abs(r["realised"] - r["target"]) / r["target"] < 0.10, (kind, r)
+    # Thickets and glades: cells vary, but round the class's own range.
+    assert result["scrub"]["p90"] - result["scrub"]["p10"] > 0.25
+    assert 0.30 <= result["scrub"]["p10"] and result["scrub"]["p90"] <= 1.0
+    assert result["beach"] is None
+
+
+def test_scrub_is_drawn_past_the_near_shrubs_and_barren_shore_is_sand():
+    runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
+    assert "uNatureShrub" in runtime and "smoothstep(${NEAR0}.,${NEAR1}.,distance(cameraPosition,vNatureWorld))" in runtime
+    assert "habitatShares(habitat).tree" in runtime and "habitatShares(h).tree/60" in runtime
+    result = node("""
+console.log(JSON.stringify([n.beachAt({cover:31,coastSigned:-20,height:3}),n.beachAt({cover:31,coastSigned:null,height:3}),
+ n.beachAt({cover:52,coastSigned:-20,height:3}),n.beachAt({cover:31,coastSigned:5,height:40}),n.beachAt({natural:'beach'})]));
+""")
+    assert result == [True, False, False, False, True]
