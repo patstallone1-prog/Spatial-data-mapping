@@ -15,7 +15,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from test_street_infill import _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]

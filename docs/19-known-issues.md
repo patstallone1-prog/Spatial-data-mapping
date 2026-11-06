@@ -15,6 +15,9 @@ and several were fixed once already and came back in a different form.
 | Road texture with tiled joints | A floor of grey squares with a lighter edge on each | Uniform grain, no structure at tile scale |
 | Broken yellow everywhere | A dotted line down every street including one-ways | Yellow only between opposing traffic; white and broken between same-direction lanes |
 | A subset of highway types queried | Whole blocks black where motorway, trunk and link roads should be | Every road class in the Overpass query |
+| Exterior edits in a streamed region | Tapping "+ Window" changed the editor's diagram but not the wall; a saved edit never appeared in the world | The editor works in the region's own frame (`exteriorEditorContextFor`); regions draw the verified edits too |
+| Bridges drawn but not walkable | A jump to the Golden Gate landed in the water; walkers stood on the street under every deck | Decks registered with their kind and name; the walker stands on the deck within a step of the feet (`walkerGroundInfo`) |
+| Scrub drawn as trees | The Marin Headlands were tall eucalyptus on bare ground, and bare past 300 m | NLCD class bounds on the tree canopy; a shrub layer past the near plants (`COVER_STATS`) |
 
 ## Open
 
@@ -47,6 +50,27 @@ plainly wrong at street level.
 
 **Ground inside blocks is a flat neutral.** Back yards, light wells and car parks are not mapped
 as anything, and the surface under them says only "not described".
+
+**Most regions have no detail payload.** Only 7 of the 254 folders under `docs/regions/` hold
+`sf-corridor-3d.json`: the Mission, the Sunset, Haight–Castro, and downtown Oakland, Berkeley,
+Palo Alto and San Jose. (The Marina corridor is the page's own.) For the rest, the Richmond and the gap regions included, the payload is 404
+locally and on the live site, though the region index lists them as built. Jumping there
+retries every few seconds, the "Loading … in full" notice never clears, and only roads draw.
+
+**Highway interchanges are flat where they stack.** Decks are walkable and know they are
+highways (docs/34-bridges-and-highways.md), but crossing decks at different OSM layers are
+drawn at nearly one height, z-fight from afar, and have no piers between levels. The plan for
+multi-level interchanges is in doc 34.
+
+**The exterior editor recolours the wall on opening.** The editor redraws the edited wall in
+the colour it reads for the building (`wallColourOf`). That can be lighter than the facade the
+world draws, so a wall changes colour the moment the editor opens, before anything is changed.
+A new window's default spot can also overlap a window above it.
+
+**Open country is drawn from class statistics.** Scrub, grass, beach and barren ground follow
+NLCD's class definitions and Bay Area alliance statistics
+(docs/35-open-country-land-cover.md), not measured plant heights. The lidar canopy-height tiles
+that would make it measured are not built yet.
 
 ## How to inspect
 
