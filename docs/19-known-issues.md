@@ -18,6 +18,7 @@ and several were fixed once already and came back in a different form.
 | Exterior edits in a streamed region | Tapping "+ Window" changed the editor's diagram but not the wall; a saved edit never appeared in the world | The editor works in the region's own frame (`exteriorEditorContextFor`); regions draw the verified edits too |
 | Bridges drawn but not walkable | A jump to the Golden Gate landed in the water; walkers stood on the street under every deck | Decks registered with their kind and name; the walker stands on the deck within a step of the feet (`walkerGroundInfo`) |
 | Scrub drawn as trees | The Marin Headlands were tall eucalyptus on bare ground, and bare past 300 m | NLCD class bounds on the tree canopy; a shrub layer past the near plants (`COVER_STATS`) |
+| Editor recolouring the wall | Opening the editor turned 1535 Francisco's wall pale beige (53/255 lighter than the world drew it) before anything changed; a new window could land on the one at 3.2 m | The skin takes the world's finish and cladding (`exteriorWallMaterial`, `BUILDING_WALL_LOOK`), opening on the drawn colour (`drawnWallColour`): 1.5/255 now. `freeSpot` clears openings in height as well as along the wall |
 
 ## Open
 
@@ -61,11 +62,6 @@ those regions on the live site.
 highways (docs/34-bridges-and-highways.md), but crossing decks at different OSM layers are
 drawn at nearly one height, z-fight from afar, and have no piers between levels. The plan for
 multi-level interchanges is in doc 34.
-
-**The exterior editor recolours the wall on opening.** The editor redraws the edited wall in
-the colour it reads for the building (`wallColourOf`). That can be lighter than the facade the
-world draws, so a wall changes colour the moment the editor opens, before anything is changed.
-A new window's default spot can also overlap a window above it.
 
 **Open country is drawn from class statistics.** Scrub, grass, beach and barren ground follow
 NLCD's class definitions and Bay Area alliance statistics
