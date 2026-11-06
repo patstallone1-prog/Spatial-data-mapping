@@ -19,6 +19,7 @@ and several were fixed once already and came back in a different form.
 | Bridges drawn but not walkable | A jump to the Golden Gate landed in the water; walkers stood on the street under every deck | Decks registered with their kind and name; the walker stands on the deck within a step of the feet (`walkerGroundInfo`) |
 | Scrub drawn as trees | The Marin Headlands were tall eucalyptus on bare ground, and bare past 300 m | NLCD class bounds on the tree canopy; a shrub layer past the near plants (`COVER_STATS`) |
 | Editor recolouring the wall | Opening the editor turned 1535 Francisco's wall pale beige (53/255 lighter than the world drew it) before anything changed; a new window could land on the one at 3.2 m | The skin takes the world's finish and cladding (`exteriorWallMaterial`, `BUILDING_WALL_LOOK`), opening on the drawn colour (`drawnWallColour`): 1.5/255 now. `freeSpot` clears openings in height as well as along the wall |
+| Stacked interchanges flat | The Mission's layer 2 and 3 connectors lay on the street; crossing decks drew at one height | `solveDeckLevels`: a level (6.6 m) between crossing decks, grades held exactly; parapets stop the walker on the deck underfoot (`deckEdgeSegmentsNear`) |
 
 ## Open
 
@@ -58,10 +59,10 @@ read the store (`origins`). A page served from `127.0.0.1` falls back to `docs/r
 only 7 regions have local copies, so the rest draw roads only and retry. Benchmark and sample
 those regions on the live site.
 
-**Highway interchanges are flat where they stack.** Decks are walkable and know they are
-highways (docs/34-bridges-and-highways.md), but crossing decks at different OSM layers are
-drawn at nearly one height, z-fight from afar, and have no piers between levels. The plan for
-multi-level interchanges is in doc 34.
+**Interchange heights are rules, not measurements.** Decks on several levels are solved
+together and clear each other (doc 34), but their heights come from OpenStreetMap layers and
+Caltrans clearances and grades, not lidar. A few ramps cannot meet every rule (reported in
+`deckLevels()`).
 
 **Open country is drawn from class statistics.** Scrub, grass, beach and barren ground follow
 NLCD's class definitions and Bay Area alliance statistics

@@ -94,7 +94,7 @@ def test_a_plants_round_tanks_are_clarifiers_and_digesters():
 
 def test_the_page_loads_the_waterworks_with_the_street_furniture():
     source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
-    assert 'const LAZY_COMPANIONS = { furniture: ["highway_signs", "waterworks"] };' in source
+    assert 'const LAZY_COMPANIONS = { furniture: ["highway_signs", "highway_tolls", "waterworks"] };' in source
     assert 'registerLazyLayer("waterworks", async () => {' in source
     assert "const WATERWORKS_TILE_PATH = /^waterworks\\/[a-z0-9-]+\\.json$/;" in source
     assert "kerb:(x,z,reach)=>nearestKerbAt(x,z,reach)" in source
