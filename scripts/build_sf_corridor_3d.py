@@ -7599,6 +7599,7 @@ function buildBayBridges(g) {
 
   // The Golden Gate.
   if (named.has("golden_gate")) {
+    deckName = named.get("golden_gate").find((w) => w.name)?.name || "Golden Gate Bridge";
     const { pts, length } = bridgeCentreline(named.get("golden_gate"));
     // Run it south to north: its south anchorage is the end with the smaller latitude.
     const line = pts[0][1] > pts[pts.length - 1][1] ? pts : pts.slice().reverse();
@@ -7696,6 +7697,7 @@ function buildBayBridges(g) {
 
   // The Bay Bridge's west span: twin suspension spans, double deck, grey.
   if (named.has("bay_west")) {
+    deckName = named.get("bay_west").find((w) => w.name)?.name || "San Francisco–Oakland Bay Bridge (west span)";
     const { pts } = bridgeCentreline(named.get("bay_west"));
     // San Francisco to the island: west to east.
     const line = pts[0][0] < pts[pts.length - 1][0] ? pts : pts.slice().reverse();
@@ -7769,6 +7771,7 @@ function buildBayBridges(g) {
 
   // The Bay Bridge's east span: the self-anchored suspension span and the Skyway, white.
   if (named.has("bay_east")) {
+    deckName = named.get("bay_east").find((w) => w.name)?.name || "San Francisco–Oakland Bay Bridge (east span)";
     const { pts } = bridgeCentreline(named.get("bay_east"));
     const line = pts[0][0] < pts[pts.length - 1][0] ? pts : pts.slice().reverse();   // the island to Oakland
     const ds = [0];
@@ -7816,6 +7819,7 @@ function buildBayBridges(g) {
 
   // Richmond-San Rafael: grey cantilever trusses over the channels, double-decked, on a trestle.
   if (named.has("richmond")) {
+    deckName = named.get("richmond").find((w) => w.name)?.name || "Richmond–San Rafael Bridge";
     const { pts } = bridgeCentreline(named.get("richmond"));
     const line = pts[0][0] > pts[pts.length - 1][0] ? pts : pts.slice().reverse();   // Richmond (east) first
     const ds = [0];
@@ -21667,9 +21671,11 @@ function walkerGroundInfo(x, z, referenceY) {
   const decks = typeof elevatedDecksAt === "function" ? elevatedDecksAt(x, z) : [];
   if (decks.length) {
     let deck = null;
+    // Over the water: the city's own water map where it has one, the Bay's outline past it.
+    const overWater = !Number.isFinite(feet) && ((typeof mappedWaterAt === "function" ? mappedWaterAt(x, z) : null)
+      ?? (typeof perimeterWaterAt === "function" && perimeterWaterAt(x, z))) === true;
     for (const d of decks) {
-      const reachable = Number.isFinite(feet) ? d.top <= feet + 0.6   // a step (DECK_STEP_M)
-        : typeof mappedWaterAt === "function" && mappedWaterAt(x, z) === true;
+      const reachable = Number.isFinite(feet) ? d.top <= feet + 0.6 : overWater;   // a step (DECK_STEP_M)
       if (reachable && (!deck || d.top > deck.top)) deck = d;
     }
     if (deck && deck.top > lifted + ROAD_TOP_M + 0.3) {
@@ -32112,8 +32118,11 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
   // tunnel. The orbit target and the walker's feet both stand on it.
   // Destination height, not the previous location's feet, selects the level. A
   // surface click above a tunnel must not teleport the walker into its bore.
+  // A jump to a bridge's span (no pick: search, the map) stands on its deck, not in the water
+  // under it: with no height, walkerGroundInfo stands on a deck over the water.
   const landingY=Number.isFinite(pickedHeight) && Math.hypot(pickedX-landing.x,pickedZ-landing.z)<.01
-    ? pickedHeight : groundLiftAt(landing.x,landing.z);
+    ? pickedHeight : typeof elevatedDecksAt === "function" && elevatedDecksAt(landing.x,landing.z).length
+      ? null : groundLiftAt(landing.x,landing.z);
   const ground = walkerGroundAt(landing.x, landing.z, landingY);
   if (travel) {
     avatar.position.set(landing.x, AVATAR_STAND_Y + ground, landing.z);
