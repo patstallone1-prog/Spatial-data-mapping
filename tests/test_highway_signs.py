@@ -136,7 +136,7 @@ def test_the_page_reads_only_this_sites_sign_tiles_and_its_own_renderer():
         assert not pattern.match(foreign), foreign
     assert 'import(sharedAsset(`highway-sign-renderer.mjs?v=' in page
     # They are street furniture: they open with it, and the home screen waits for both.
-    assert 'const LAZY_COMPANIONS = { furniture: ["highway_signs", "waterworks"] };' in page
+    assert 'const LAZY_COMPANIONS = { furniture: ["highway_signs", "highway_tolls", "waterworks"] };' in page
     assert '["highway_signs", "freeway signs"]' in page
 
 
