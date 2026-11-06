@@ -4483,6 +4483,11 @@ Object.values(groups).forEach((g) => root.add(g));
     }
   }
   window.kerbsideFlyToRegion = flyToRegion;
+  // The markers are drawn with the module's labels and its tile tree, which this loader -- run
+  // beside the module, not after it -- can reach before the module has: it stopped there with
+  // a declaration not yet made, and the page reported that it had failed to start. So it waits
+  // for the whole module (regionStreamingReady, set as its last line).
+  while (!regionStreamingReady) await new Promise((resolve) => setTimeout(resolve, 100));
   // The other built regions, as markers standing over their ground in the perimeter -- a
   // click on one opens it. What was rendered is visible from where you are, across the bay.
   // One post shape and paint for every marker: a hundred and more regions made a material each.
@@ -11239,11 +11244,13 @@ const LABEL_RANGE_M = { street: 420, district: 6000 };
 //: A label held at three per cent of the view is 28 CSS pixels tall, 56 on a Retina screen,
 //: and its plate is three fifths of the canvas: 64 rows still give every screen pixel a texel
 //: of its own. At 128 the 275 region markers held 96 MB of pictures nobody could see the
-//: difference of. A district name stands larger and keeps the full canvas.
-const LABEL_CANVAS_SCALE = { street: 0.5, district: 1 };
+//: difference of. A district name stands larger and keeps the full canvas. (Written into the
+//: function, not a constant beside it: the region markers ask for labels from a callback that
+//: can run while the module is still on its way here -- a constant was not yet there, and the
+//: page failed to start.)
 function labelSprite(text, color = "#edf5f5", kind = "street") {
   const canvas = document.createElement("canvas");
-  const scale = LABEL_CANVAS_SCALE[kind] || LABEL_CANVAS_SCALE.street;
+  const scale = kind === "district" ? 1 : 0.5;
   canvas.width = 512 * scale;
   canvas.height = 128 * scale;
   const ctx = canvas.getContext("2d");
