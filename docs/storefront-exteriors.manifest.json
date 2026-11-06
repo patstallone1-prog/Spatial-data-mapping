@@ -1,7 +1,7 @@
 {
  "schema": "kerbside.storefront_exterior_tiles/1",
  "renderer_sha256": "6e2798cf47e69ceb",
- "buildings": 18881,
+ "buildings": 19043,
  "tiles": [
   {
    "world": "app-regions/berkeley-downtown/sf-corridor-3d.json",
@@ -2369,6 +2369,22 @@
    "bytes": 916221,
    "sha256": "d451fd2a463e9c44",
    "source_sha256": "c28d7a64bd52ce773b1c52e842287c2d98fe7b8288edb9da63d0ead50d4ee820",
+   "references": "2026-11-01"
+  },
+  {
+   "world": "regions/mountain-view-gap-p0-1-0/sf-corridor-3d.json",
+   "path": "regions/mountain-view-gap-p0-1-0/storefront-exteriors.json",
+   "bbox": [
+    -122.12673040526414,
+    37.37,
+    -122.09846081052828,
+    37.39245777937477
+   ],
+   "buildings": 162,
+   "rejected": 7,
+   "bytes": 795536,
+   "sha256": "9fef3a9bed3a6638",
+   "source_sha256": "bd1813bc9c02a360ced410990f10c2cd399d161cfb2bf2e8609cbf9bfe27351d",
    "references": "2026-11-01"
   },
   {
