@@ -92,3 +92,17 @@ def test_the_page_loads_the_tolls_with_the_street_furniture() -> None:
     published = json.loads((ROOT / "docs/highway-tolls.json").read_text())
     assert published["schema"] == "kerbside.highway_tolls/1" and published["kinds"]["toll_gantry"] >= 10
     assert (ROOT / "docs/highway-toll-renderer.mjs").read_text() == (ROOT / "src/smc/highways/toll_renderer.mjs").read_text()
+
+
+def test_the_build_script_publishes_the_records_and_its_renderer(tmp_path, monkeypatch) -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_highway_tolls
+
+    monkeypatch.setattr(build_highway_tolls, "OUT", tmp_path / "highway-tolls.json")
+    monkeypatch.setattr(build_highway_tolls, "RENDERER", tmp_path / "highway-toll-renderer.mjs")
+    body = build_highway_tolls.publish(infer_tolls(plaza()), (-122.4, 37.7, -122.2, 37.9))
+    written = json.loads((tmp_path / "highway-tolls.json").read_text())
+    assert written == body and written["kinds"] == {"toll_booth": 2, "toll_canopy": 1, "toll_gantry": 1}
+    renderer = (tmp_path / "highway-toll-renderer.mjs").read_bytes()
+    assert renderer == (ROOT / "src/smc/highways/toll_renderer.mjs").read_bytes()
+    assert written["renderer_sha256"] == build_highway_tolls.sha256(tmp_path / "highway-toll-renderer.mjs")
