@@ -227,4 +227,51 @@ def test_every_building_records_how_its_wall_is_drawn_for_the_editor() -> None:
     assert "BUILDING_WALL_LOOK.set(String(feature.osm_id), {" in source
     assert "wallColourOf: drawnWallColour," in source and "wallMaterial: exteriorWallMaterial," in source
     assert "const skin = ctx.wallMaterial?.(wallColour, edit, wall) || flat(wallColour, { roughness: 0.92 });" in editor
-    assert "...freeSpot(e.openings, L, H, base)" in editor
+    assert "...freeSpot(e.openings, L, H, box)" in editor
+
+
+def test_the_editor_offers_windows_doors_steps_garages_and_shopfronts_to_add() -> None:
+    script = f"""
+const m = await import({json.dumps((ROOT / "docs/exterior-editor.mjs").as_uri())});
+console.log(JSON.stringify(m.PALETTE.map((p) => [p.key, p.type])));
+"""
+    out = json.loads(subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, check=True).stdout)
+    kinds = {t for _k, t in out}
+    keys = {k for k, _t in out}
+    assert kinds == {"window", "door", "garage", "shopfront"}
+    assert {"window", "arched", "round", "door", "double_door", "steps", "garage", "shopfront"} <= keys
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    # The palette sits above the wall's drawing, which is capped so the tools stay on screen.
+    panel = editor[editor.index("function buildPanel(state) {"):editor.index("function switchWall(state, step) {")]
+    assert panel.index('el("div", { class: "add" }') < panel.index('el("div", { class: "wall" }')
+    assert "#xedit svg.elev{height:min(34vh,340px)}" in editor
+
+
+def test_nothing_real_changes_until_the_edit_is_confirmed() -> None:
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    body = lambda name: editor[editor.index(f"function {name}("):].split("\n}\n", 1)[0]  # noqa: E731
+    # Undo and redo are buttons on the panel, and the draft knows what is unconfirmed.
+    panel = body("buildPanel")
+    assert 'state.undoButton = tool("↶"' in panel and 'state.redoButton = tool("↷"' in panel
+    assert '"Confirm changes"' in panel and "Paste your editor key" not in editor and "account.verify" not in editor
+    redraw = body("redraw")
+    assert "state.dirty = JSON.stringify(state.edit) !== state.savedJSON;" in redraw
+    assert "state.saveButton.disabled = !state.dirty;" in redraw
+    # Start over and Discard change only the draft; only Confirm writes or removes anything.
+    for name in ("reset", "discard"):
+        assert "forgetEdit" not in body(name) and "saveEdit" not in body(name) and "CanonicalEdit" not in body(name)
+    save = body("save")
+    assert "forgetEdit(state.id)" in save and "removeCanonicalEdit" in save and "saveCanonicalEdit" in save
+    # Closing with unconfirmed changes asks first.
+    assert 'if (!force && s.dirty && !confirm("Close the editor and drop the changes you have not confirmed?")) return false;' in editor
+    assert "if (close() === false) return;" in editor
+
+
+def test_each_redraw_frees_the_preview_it_replaces_and_the_still_draws_only_the_street() -> None:
+    editor = (ROOT / "docs/exterior-editor.mjs").read_text()
+    assert "group.userData.materials = [...new Set([...materials.values(), skin])];" in editor
+    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    assert "for (const m of group.userData.materials || []) {" in page
+    assert "if (m?.map?.userData?.editClone) m.map.dispose();" in page
+    assert "map.userData = { ...map.userData, editClone: true };" in page
+    assert "stillCamera.far = distance + 320;" in page

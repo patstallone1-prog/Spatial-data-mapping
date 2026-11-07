@@ -31136,11 +31136,16 @@ function placeCamera() {
   const z = Math.cos(state.yaw) * Math.cos(state.pitch) * state.dist;
   const y = Math.sin(state.pitch) * state.dist;
   camera.position.copy(state.target).add(new THREE.Vector3(x, y, z));
-  // Looking at something outside from inside a house -- the orbit swung through a wall -- puts
-  // the view straight above it instead, at the same distance.
-  if (orbitInsideBuilding(camera.position, state.target)) {
-    camera.position.set(state.target.x + Math.sin(state.yaw) * state.dist * 1e-3, state.target.y + state.dist,
-      state.target.z + Math.cos(state.yaw) * state.dist * 1e-3);
+  // A building between what the view looks at and where the camera would stand stops the camera
+  // short of it, as its wall would stop you: turning the view round a house shows its wall, never
+  // the rooms behind it. The distance asked for is kept, so turning back out lets the view out.
+  cameraPulledIn = false;
+  // From further out (the overview, a city from the air) nothing is pulled in: a tower near what
+  // the view looks at would otherwise drag the camera down to the street.
+  const blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(state.target, camera.position) : null;
+  if (blocked !== null) {
+    camera.position.sub(state.target).setLength(blocked).add(state.target);
+    cameraPulledIn = true;
   }
   constrainWorldCamera();
   camera.lookAt(state.target);
@@ -31154,7 +31159,8 @@ function fitViewToAltitude() {
   if (META) return;   // the headset's short view and its haze (META_VIEW) are fixed
   const h = Math.max(0, camera.position.y);
   const far = Math.max(FAR_M, Math.sqrt(2 * EARTH_RADIUS_M * h + h * h) * 1.15 + h);
-  const near = state.firstPerson ? 0.12 : Math.max(0.5, Math.min(h * 0.002, 4000));
+  // Pulled in against a wall, the near plane comes in with the camera, so it does not cut into it.
+  const near = state.firstPerson || cameraPulledIn ? 0.12 : Math.max(0.5, Math.min(h * 0.002, 4000));
   if (Math.abs(far - camera.far) > far * 0.02 || Math.abs(near - camera.near) > near * 0.05) {
     camera.far = far; camera.near = near; camera.updateProjectionMatrix();
   }
@@ -31196,16 +31202,57 @@ function constrainWorldCamera() {
   const minimum=surface+.35;
   if(Number.isFinite(minimum))camera.position.y=Math.max(camera.position.y,minimum);
 }
-//: The orbit camera is inside a building's walls, below its roof, while what it looks at is not
-//: in that building.
-function orbitInsideBuilding(position, target) {
-  try {
-    const house = buildingAt(position.x, position.z);
-    if (!house || buildingAt(target.x, target.z) === house) return false;
-    const top = groundLiftAt(position.x, position.z) + (Number(house.height_m) || 10.5) + 0.5;
-    return position.y < top;
-  } catch {
-    return false;   // the footprints are not indexed yet
+//: The orbit view stands this far short of a wall it would otherwise go through; and no building is
+//: taller than ORBIT_TALLEST_M over what the view looks at (the line is not followed above it).
+var ORBIT_WALL_GAP_M = 0.45;
+var ORBIT_TALLEST_M = 340;
+var ORBIT_BLOCK_REACH_M = 300;
+var cameraPulledIn = false;
+//: The building at (x, z) in this page's metres -- this page's own or the region's drawn over it --
+//: and the height of its roof, or null.
+function orbitBuildingTop(x, z) {
+  const g = typeof guestUnder === "function" ? guestUnder(x, z) : null;
+  if (g?.api.buildingTopAt) {
+    const hit = g.api.buildingTopAt(...hostToGuest(g, x, z));
+    return hit ? { way: hit.way, top: hit.top + g.oy } : null;
+  }
+  return buildingTopAt(x, z);
+}
+//: The building at (x, z) in this world's own metres, with its roof height over the ground.
+function buildingTopAt(x, z) {
+  let way = null;
+  try { way = buildingAt(x, z); } catch { return null; }   // the footprints are not indexed yet
+  if (!way) return null;
+  return { way, top: groundLiftAt(x, z) + (Number(way.height_m) || 10.5) + 0.3 };
+}
+//: How far from ``target`` the orbit camera may stand on the line out to ``position`` before it
+//: would be inside a building below its roof (less ORBIT_WALL_GAP_M, and clear of the wall to
+//: either side), or null when nothing is in the way. The building the target is in (the walker
+//: indoors) is not in the way: that view is the walker's own.
+function orbitBlockedAt(target, position) {
+  const dx = position.x - target.x, dy = position.y - target.y, dz = position.z - target.z;
+  const length = Math.hypot(dx, dy, dz);
+  if (!(length > 0.6)) return null;
+  const home = orbitBuildingTop(target.x, target.z)?.way || null;
+  const ux = dx / length, uy = dy / length, uz = dz / length;
+  const ceiling = target.y + ORBIT_TALLEST_M;
+  const inWall = (x, y, z) => { const hit = orbitBuildingTop(x, z); return Boolean(hit && hit.way !== home && y < hit.top); };
+  const side = (s) => [target.x + ux * s, target.y + uy * s, target.z + uz * s];
+  // Room to either side: a view along a wall at a slant would otherwise have it in its near plane.
+  const crowded = (s) => {
+    const [x, y, z] = side(s);
+    return [[0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]].some(([ox, oz]) => inWall(x + ox, y, z + oz));
+  };
+  const backOff = (stop) => {
+    while (stop > 0.3 && crowded(stop)) stop -= 0.25;
+    return Math.max(0.3, stop);
+  };
+  for (let t = 0.3; ; t += t < 40 ? 0.3 : t < 150 ? 0.8 : 2) {
+    const at = Math.min(t, length), y = target.y + uy * at;
+    if (y > ceiling && uy >= 0) return null;
+    // Back from the wall along the line, then until the camera has room to either side.
+    if (inWall(target.x + ux * at, y, target.z + uz * at)) return backOff(Math.max(0.3, at - ORBIT_WALL_GAP_M));
+    if (at >= length) return crowded(length) ? backOff(length) : null;
   }
 }
 function setFirstPerson(on) {
@@ -38733,6 +38780,43 @@ function applyMetaMemoryPlan(plan) {
   }
   console.info(`kerbside: memory ${plan.level}: ${(metaMemory().total / 1073741824).toFixed(2)} GiB; square ${2 * plan.radius} m`);
 }
+//: On a computer the page watches its own heap as the headset build does (META_MEMORY): a
+//: Chrome tab is ended by the browser at about 4 GiB of script heap, and the page had been
+//: reaching 3-4.5 GiB after a few jumps -- the freezes and the crash while editing a house.
+//: Over ``aim`` the caches it can rebuild from the network (world cells, terrain tiles) are
+//: halved and trimmed, again every look while it stays over; over ``emergency`` the square
+//: round you is built again at its smallest (the window it replaces, and what only it held,
+//: goes once the new one stands); under ``restoreBelow`` the budgets come back.
+const DESKTOP_MEMORY = { aim: 2.6 * 1073741824, emergency: 3.3 * 1073741824, restoreBelow: 1.9 * 1073741824, everyMs: 4000 };
+const desktopMemory = { level: "ok", cellBytes: worldCellCache.maxBytes, tileBytes: TILE_RESIDENT_BUDGET, radius: STREAM.radius, sheds: 0 };
+function desktopMemoryTick() {
+  const used = performance.memory?.usedJSHeapSize;
+  if (!(used > 0) || document.hidden) return;
+  const D = DESKTOP_MEMORY, M = desktopMemory;
+  if (used >= D.aim) {
+    worldCellCache.maxBytes = Math.max(32 * 1048576, Math.round(worldCellCache.maxBytes / 2));
+    worldCellCache.evict();
+    TILE_RESIDENT_BUDGET = Math.max(16 * 1048576, Math.round(TILE_RESIDENT_BUDGET / 2));
+    evictTiles();
+    M.sheds += 1;
+    const emergency = used >= D.emergency && M.level !== "emergency" && !attaching;
+    M.level = used >= D.emergency ? "emergency" : "over";
+    if (emergency) {
+      STREAM.radius = Math.max(150, Math.round(M.radius * 0.6));
+      const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+      const region = regionAt(lon, lat);
+      if (region) attachRegion(region, { lon, lat }, STREAM.radius, true);
+    }
+    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${M.level}: caches trimmed`);
+  } else if (used < D.restoreBelow && M.level !== "ok") {
+    worldCellCache.maxBytes = M.cellBytes;
+    TILE_RESIDENT_BUDGET = M.tileBytes;
+    STREAM.radius = M.radius;
+    M.level = "ok";
+  }
+}
+window.kerbsideMemory = () => ({ ...desktopMemory, heap: performance.memory?.usedJSHeapSize || null, limits: DESKTOP_MEMORY });
+if (!META && !ATTACH && performance.memory) setInterval(desktopMemoryTick, DESKTOP_MEMORY.everyMs);
 if (META) {
   for (const id of ["hud", "settings-toggle", "settings-page", "compass", "addr", "route-end", "fold"]) {
     const element = document.getElementById(id);
@@ -39131,6 +39215,7 @@ function exteriorWallMaterial(colour, edit, wall) {
   let map = null;
   if (bare) {
     map = look.map.clone();
+    map.userData = { ...map.userData, editClone: true };   // this wall's own: freed with the edit
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set((wall?.length || 4) / BAY_M, (wall?.height || look.storey) / look.storey);
     map.needsUpdate = true;
@@ -39160,6 +39245,13 @@ function exteriorEditorContext() {
       group.parent?.remove(group);
       for (const surface of group.userData.standing || []) standingSurfaces.delete(surface);
       group.traverse((o) => { o.geometry?.dispose(); });
+      // Its materials are its own (the shared door and garage pictures are not), and so is the
+      // cladding cut to this wall's size: the editor redraws on every change, and each drawing
+      // left behind had kept its materials and a copy of the texture on the GPU.
+      for (const m of group.userData.materials || []) {
+        if (m?.map?.userData?.editClone) m.map.dispose();
+        m?.dispose?.();
+      }
     },
     lookAtWall: (wall) => {
       if (state.firstPerson) setFirstPerson(false);
@@ -39247,7 +39339,9 @@ function renderWallStill(wall, canvas) {
   // cut by the near plane. A side or back wall has the neighbour's house against it, so the cut
   // is at its own face (the near plane is square to the wall), and the wall shows, not next door.
   stillCamera.near = Math.max(0.3, distance - (wall.street ? 3.0 : 0.25));
-  stillCamera.far = distance + 4000;
+  // Only the street round the wall is drawn: the rest of the world is culled by the far plane
+  // (the sky is the scene's background, not geometry), so a still costs a block, not the city.
+  stillCamera.far = distance + 320;
   stillCamera.position.set(mx + wall.nx * distance, eye, mz + wall.nz * distance);
   stillCamera.lookAt(mx, ground + wall.height / 2, mz);
   stillCamera.updateProjectionMatrix();
@@ -40433,6 +40527,7 @@ window.kerbsideGuestApi = {
   // Its buildings' exterior edits, drawn in its own world (openExteriorEditor on the page).
   exteriorEditorContext, hasExteriorBuilding: (id) => buildingWayById.has(String(id)),
   deckEdgeSegmentsNear, deckLevels: () => DECK_LEVEL_REPORT,
+  buildingTopAt,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   tick: guestTick,
   toggleNearestDoor: operateNearestDoor,

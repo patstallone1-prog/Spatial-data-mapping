@@ -10,9 +10,12 @@
 // anything changes, so you see the effect; on the other the options. It opens on the street
 // side, seen from outside.
 //
-// "Save changes" is the one way an edit is kept: in this browser always (localStorage,
-// ``EDITS_KEY``), and -- from a verified editor's account (docs/kerbside-account.mjs) -- in the
-// canonical world everyone's page draws (supabase/kerbside_exterior_edits.sql).
+// Nothing real changes while you edit: the edit is a draft, drawn on the building and in the still
+// so you see it, undone and redone with the buttons (or ⌘Z / ⇧⌘Z), and dropped if you close
+// without confirming. "Confirm changes" is the one way an edit is kept: in this browser always
+// (localStorage, ``EDITS_KEY``), and -- from an account the owner has verified on the backend
+// (docs/kerbside-account.mjs) -- in the canonical world everyone's page draws
+// (supabase/kerbside_exterior_edits.sql). There is no sign-in and no code to type.
 //
 // Lengths are metres. On the wall, ``u`` runs left to right as seen from the street and ``v`` up
 // from the foot of the wall.
@@ -401,6 +404,9 @@ export function drawEdit(ctx, edit) {
   group.updateMatrixWorld(true);
   // What the walker stands on: the page adds these to its standing surfaces, as it does a stoop's.
   group.userData.standing = standing;
+  // The materials this drawing made (not the shared door and garage pictures): the page frees
+  // them with it, so an edit redrawn on every change does not pile them up.
+  group.userData.materials = [...new Set([...materials.values(), skin])];
   return group;
 }
 
@@ -500,6 +506,13 @@ const CSS = `
 #xedit button:disabled{opacity:.45;cursor:default}
 #xedit .wall{padding:8px 14px;background:#e9edf1}
 #xedit svg{width:100%;height:auto;display:block;touch-action:none;background:#cfd8df;border-radius:8px}
+#xedit svg.elev{height:min(34vh,340px)}
+#xedit header button{padding:4px 9px;font-size:15px;line-height:1}
+#xedit .add{padding:8px 14px 10px;border-bottom:1px solid rgba(0,0,0,.08)}
+#xedit .add h4{margin:2px 0 6px}
+#xedit .add .grid{grid-template-columns:repeat(auto-fill,minmax(66px,1fr))}
+#xedit .add .tile svg{width:30px;height:34px}
+#xedit footer .discard:not(:disabled){border-color:#b42318;color:#b42318}
 #xedit .body{flex:1;overflow:auto;padding:10px 14px}
 #xedit h4{margin:12px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;opacity:.65}
 #xedit .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -544,7 +557,7 @@ let current = null;
 //: Open the editor on ``feature``: the page's own description of its walls and what it drew on
 //: them comes through ``ctx`` (the page's exteriorEditorContext).
 export function open(ctx, feature) {
-  close();
+  if (close() === false) return;
   if (!document.getElementById("xedit-css")) document.head.append(el("style", { id: "xedit-css" }, CSS));
   const id = String(feature.osm_id);
   const walls = ctx.wallsOf(feature);
@@ -559,6 +572,8 @@ export function open(ctx, feature) {
       : startingEdit(ctx, feature, walls[wallIndex]),
     selected: null, matchFrom: null, undo: [], redo: [], group: null, dirty: false,
   };
+  // What is confirmed (saved, or as drawn): the draft is compared with it to know what is changed.
+  state.savedJSON = JSON.stringify(state.edit);
   current = state;
   ctx.hideOriginal?.(feature, walls[wallIndex]);
   buildPanel(state);
@@ -570,9 +585,12 @@ export function open(ctx, feature) {
   state.settling = [400, 1500, 3500, 7000].map((ms) => setTimeout(() => renderStill(state), ms));
 }
 
-export function close() {
-  if (!current) return;
+//: Close the editor. A draft with changes not confirmed is dropped only when you say so
+//: (``force`` skips the question: the page closing it for you). Returns false when kept open.
+export function close({ force = false } = {}) {
+  if (!current) return true;
   const s = current;
+  if (!force && s.dirty && !confirm("Close the editor and drop the changes you have not confirmed?")) return false;
   current = null;
   if (s.group) s.ctx.removeFromWorld(s.group);
   removeEventListener("keydown", s.keys);
@@ -583,6 +601,7 @@ export function close() {
   s.ctx.pauseWorld?.(false);
   // What is saved is drawn as the page draws every saved edit; what is not, is gone.
   s.ctx.editsChanged?.(s.id);
+  return true;
 }
 
 function sameCorners(wall, ref) {
@@ -606,12 +625,80 @@ function snapshot(state) {
   state.undo.push(JSON.stringify(state.edit));
   if (state.undo.length > 80) state.undo.shift();
   state.redo = [];
-  state.dirty = true;
 }
 function change(state, fn) {
   snapshot(state);
   fn();
   redraw(state);
+}
+
+//: What the Add palette offers: windows in a few shapes, doors, a door up steps, a garage door
+//: and a shopfront -- each placed clear of what is on the wall already (freeSpot) and selected,
+//: so it can be dragged where it goes and sized at once.
+export const PALETTE = [
+  { key: "window", label: "Window", type: "window", set: { shape: "rectangle" } },
+  { key: "arched", label: "Arched", type: "window", set: { shape: "arched", panes: { cols: 2, rows: 3 } } },
+  { key: "round", label: "Round", type: "window", set: { shape: "round", w: 0.9, h: 0.9, panes: { cols: 1, rows: 1 } } },
+  { key: "bay", label: "Wide", type: "window", set: { shape: "rectangle", w: 2.2, h: 1.6, panes: { cols: 3, rows: 1 } } },
+  { key: "door", label: "Door", type: "door", set: { style: "panel" } },
+  { key: "glass_door", label: "Glass door", type: "door", set: { style: "half_glass" } },
+  { key: "double_door", label: "Double door", type: "door", set: { style: "french", w: 1.7 } },
+  { key: "steps", label: "Steps", type: "door", set: { stairs: { steps: 3, direction: "front", rail: true }, v: 0.54 } },
+  { key: "garage", label: "Garage", type: "garage", set: {} },
+  { key: "shopfront", label: "Shopfront", type: "shopfront", set: {} },
+];
+function paletteThumb(item) {
+  const s = svgEl("svg", { viewBox: "-0.1 -0.1 1.2 1.6", "aria-hidden": "true" });
+  const box = (x, y, w, h, fill, stroke = "#777") => s.append(svgEl("rect", { x, y, width: w, height: h, fill, stroke, "stroke-width": 0.04 }));
+  if (item.type === "window") return shapeThumb(item.set.shape);
+  if (item.key === "steps") {
+    box(0.3, 0.1, 0.4, 0.75, DOOR_COLOURS[0]);
+    for (let k = 0; k < 3; k += 1) box(0.15 - k * 0.08, 0.85 + k * 0.2, 0.7 + k * 0.16, 0.2, "#9a958c");
+  } else if (item.type === "door") {
+    const pair = item.key === "double_door";
+    box(pair ? 0.1 : 0.25, 0.15, pair ? 0.8 : 0.5, 1.3, pair ? "#2f4a37" : DOOR_COLOURS[0]);
+    if (item.key !== "door") box(pair ? 0.18 : 0.33, 0.25, pair ? 0.64 : 0.34, 0.5, "#9fb4bf");
+    if (pair) s.append(svgEl("line", { x1: 0.5, y1: 0.15, x2: 0.5, y2: 1.45, stroke: "#777", "stroke-width": 0.04 }));
+  } else if (item.type === "garage") {
+    box(0.02, 0.5, 0.96, 0.95, WOOD);
+    for (let y = 0.7; y < 1.45; y += 0.2) s.append(svgEl("line", { x1: 0.02, y1: y, x2: 0.98, y2: y, stroke: "#5a3a1e", "stroke-width": 0.03 }));
+  } else {
+    box(0.02, 0.35, 0.96, 1.1, "#1f2a30");
+    box(0.08, 0.42, 0.3, 0.95, "#9fb4bf"); box(0.62, 0.42, 0.3, 0.95, "#9fb4bf"); box(0.42, 0.5, 0.16, 0.95, "#5f7684");
+  }
+  return s;
+}
+//: A new opening of ``type`` (with ``set`` over its defaults) on the wall, clear of the rest.
+function addOpening(state, type, set = {}) {
+  change(state, () => {
+    const e = state.edit, L = state.walls[state.wallIndex].length, H = state.walls[state.wallIndex].height;
+    const base = {
+      window: { w: 1.0, h: 1.5, v: Math.min(H - 1.8, 3.2), shape: "rectangle", panes: { cols: 2, rows: 2 }, glass: "#5f7684", frame: "#f2f0ea" },
+      door: { w: 1.0, h: 2.1, v: 0, style: "panel", colour: "#6b3427", recess_m: 0, stairs: { steps: 0, direction: "front", rail: true } },
+      garage: { w: 2.6, h: 2.2, v: 0, style: "slat", colour: WOOD, recess_m: 0 },
+      shopfront: { w: Math.min(6, L - 0.6), h: Math.min(3.4, H - 0.4), v: 0, style: "modern", colour: "#1f2a30", door_at: "centre", pair: false },
+    }[type];
+    const box = { ...base, ...structuredClone(set) };
+    box.w = Math.min(box.w, Math.max(0.3, L - 0.2));
+    const o = { id: newId(type), type, ...box, ...freeSpot(e.openings, L, H, box) };
+    e.openings.push(o);
+    state.selected = o.id;
+  });
+}
+//: The palette's Steps: stairs up to the selected door (raised to their top), or a new door with
+//: three steps when no door is selected.
+function addSteps(state, item) {
+  const o = selectedOpening(state);
+  if (o?.type === "door") {
+    const wall = state.walls[state.wallIndex];
+    change(state, () => {
+      const steps = Math.max(3, o.stairs?.steps || 0);
+      o.stairs = { direction: "front", rail: true, ...(o.stairs || {}), steps };
+      if (o.v < 0.1) o.v = Math.min(fix(steps * 0.18), fix(wall.height - o.h));
+    });
+    return state.msg("Steps added to the door: set how many and which way below.");
+  }
+  addOpening(state, item.type, item.set);
 }
 
 function buildPanel(state) {
@@ -620,21 +707,9 @@ function buildPanel(state) {
   const wallLabel = el("span");
   const msg = el("span", { class: "msg" });
   state.msg = (text) => { msg.textContent = text; };
-  const elevation = svgEl("svg", { role: "img", "aria-label": "The wall, as seen from the street" });
+  const elevation = svgEl("svg", { class: "elev", role: "img", "aria-label": "The wall, as seen from the street" });
   const inspector = el("div", { class: "body" });
-  const tool = (label, title, fn, attrs = {}) => el("button", { title, on: { click: fn }, ...attrs }, label);
-  const add = (type) => change(state, () => {
-    const e = state.edit, L = state.walls[state.wallIndex].length, H = state.walls[state.wallIndex].height;
-    const base = {
-      window: { w: 1.0, h: 1.5, v: Math.min(H - 1.8, 3.2), shape: "rectangle", panes: { cols: 2, rows: 2 }, glass: "#5f7684", frame: "#f2f0ea" },
-      door: { w: 1.0, h: 2.1, v: 0, style: "panel", colour: "#6b3427", recess_m: 0, stairs: { steps: 0, direction: "front", rail: true } },
-      garage: { w: 2.6, h: 2.2, v: 0, style: "slat", colour: WOOD, recess_m: 0 },
-      shopfront: { w: Math.min(6, L - 0.6), h: Math.min(3.4, H - 0.4), v: 0, style: "modern", colour: "#1f2a30", door_at: "centre", pair: false },
-    }[type];
-    const o = { id: newId(type), type, ...base, ...freeSpot(e.openings, L, H, base) };
-    e.openings.push(o);
-    state.selected = o.id;
-  });
+  const tool = (label, title, fn, attrs = {}) => el("button", { title, "aria-label": attrs["aria-label"] || title, on: { click: fn }, ...attrs }, label);
   // The still: the wall as the world draws it, from the street, taken again on every change.
   const still = el("canvas", { "aria-label": "The wall as it looks in the world" });
   const badge = el("div", { class: "badge" }, "The wall, from the street");
@@ -646,27 +721,28 @@ function buildPanel(state) {
   state.badge = badge;
   const acct = el("div", { class: "acct" });
   state.acct = acct;
+  state.undoButton = tool("↶", "Undo (⌘Z)", () => undo(state));
+  state.redoButton = tool("↷", "Redo (⇧⌘Z)", () => redo(state));
+  state.discardButton = tool("Discard", "Drop the changes not confirmed yet (they can be undone)", () => discard(state), { class: "discard" });
+  state.saveButton = el("button", { class: "save", title: "Keep this edit (⌘S): nothing changes until you confirm",
+    on: { click: () => save(state) } }, "Confirm changes");
+  const palette = el("div", { class: "grid" }, ...PALETTE.map((item) =>
+    el("button", { class: "tile", title: `Add: ${item.label.toLowerCase()}`, on: { click: () => (item.key === "steps" ? addSteps(state, item) : addOpening(state, item.type, item.set)) } },
+      paletteThumb(item), item.label)));
   const panel = el("aside", { id: "xedit", "aria-label": "Exterior editor" },
-    el("header", {}, el("b", {}, `Edit exterior — ${address}`),
+    el("header", {}, el("b", {}, `Edit exterior — ${address}`), state.undoButton, state.redoButton,
       tool("✕", "Close the editor (Esc)", () => close())),
     acct,
+    el("div", { class: "add" }, el("h4", {}, "Add"), palette),
     el("div", { class: "wall" },
       elevation,
-      el("div", { class: "hint" }, "Click to select, drag to move, drag a corner to resize. Double-click the wall to add a window there. Every change shows on the wall at once.")),
+      el("div", { class: "hint" }, "Click to select, drag to move, drag a corner to resize, Shift to move freely. Double-click the wall to add a window there.")),
     el("div", { class: "bar" },
-      tool("+ Window", "Add a window", () => add("window")),
-      tool("+ Door", "Add a door", () => add("door")),
-      tool("+ Garage", "Add a garage door", () => add("garage")),
-      tool("+ Shopfront", "Add a shopfront: glass and a shop door", () => add("shopfront")),
       tool("Duplicate", "A copy of the selected one beside it", () => duplicate(state)),
       tool("Delete", "Delete the selected one (Delete key)", () => remove(state)),
-      tool("↶", "Undo (⌘Z)", () => undo(state)),
-      tool("↷", "Redo (⇧⌘Z)", () => redo(state))),
+      tool("Start over", "Back to the front as the page drew it (confirm to keep it)", () => reset(state))),
     inspector,
-    el("footer", {}, msg,
-      tool("Start over", "Back to the front as it was drawn before any edit", () => reset(state)),
-      el("button", { class: "save", title: "Keep this edit (⌘S): on this device, and for everyone when your account is verified",
-        on: { click: () => save(state) } }, "Save changes")));
+    el("footer", {}, msg, state.discardButton, state.saveButton));
   const shell = el("div", { id: "xedit-shell", role: "dialog", "aria-modal": "true", "aria-label": `Edit exterior — ${address}` }, stillPane, panel);
   document.body.append(shell);
   state.shell = shell;
@@ -683,6 +759,7 @@ function buildPanel(state) {
     if (!current || e.target instanceof HTMLInputElement) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selected) { e.preventDefault(); remove(state); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); (e.shiftKey ? redo : undo)(state); }
+    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") { e.preventDefault(); redo(state); }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(state); }
     else if (e.key === "Escape") { if (state.matchFrom) { state.matchFrom = null; redraw(state); } else close(); }
     else if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !state.selected && !e.metaKey && !e.ctrlKey) {
@@ -691,7 +768,7 @@ function buildPanel(state) {
   };
   addEventListener("keydown", state.keys);
   wireElevation(state);
-  state.msg(state.edit.openings.length ? "Showing the front as drawn. Edit it, then Save changes." : "Nothing is drawn on this wall yet: add windows and doors.");
+  state.msg(state.edit.openings.length ? "Showing the front as drawn. Nothing changes until you confirm." : "Nothing is drawn on this wall yet: add windows and doors.");
 }
 
 function switchWall(state, step) {
@@ -701,6 +778,7 @@ function switchWall(state, step) {
   const saved = loadEdits()[state.id];
   state.edit = saved && validEdit(saved) && sameCorners(wall, saved.wall) ? structuredClone(saved) : startingEdit(state.ctx, state.feature, wall);
   state.selected = null; state.undo = []; state.redo = []; state.dirty = false;
+  state.savedJSON = JSON.stringify(state.edit);
   state.ctx.hideOriginal?.(state.feature, wall);
   state.ctx.lookAtWall(wall);
   redraw(state);
@@ -736,66 +814,79 @@ function redo(state) {
   state.edit = JSON.parse(state.redo.pop());
   redraw(state);
 }
+//: Start over: the draft goes back to the front as the page drew it. Nothing is removed until you
+//: confirm it (and it can be undone like any change).
 function reset(state) {
-  if (!confirm("Remove your edit of this building and go back to the front as it was drawn?")) return;
-  forgetEdit(state.id);
-  if (state.ctx.account?.account().verified) state.ctx.account.removeCanonicalEdit(state.id);
-  snapshot(state);
-  state.edit = startingEdit(state.ctx, state.feature, state.walls[state.wallIndex]);
-  state.ctx.editsChanged?.(state.id);
-  state.selected = null;
-  state.dirty = false;
-  redraw(state);
-  state.msg("Reset. The page's own front is back after a reload.");
+  change(state, () => {
+    state.edit = startingEdit(state.ctx, state.feature, state.walls[state.wallIndex]);
+    state.selected = null;
+  });
+  state.msg("Back to the front as the page drew it. Confirm changes to keep that, or undo.");
 }
-//: Save changes: on this device always; in the canonical world too from a verified account.
+//: Discard: the draft goes back to what was last confirmed (undoable too).
+function discard(state) {
+  if (!state.dirty) return;
+  change(state, () => { state.edit = JSON.parse(state.savedJSON); state.selected = null; });
+  state.msg("Changes dropped. Undo brings them back.");
+}
+//: An edit as it would draw: what is on the wall and its colour, not ids or dates.
+function drawnAs(edit) {
+  return JSON.stringify({ colour: edit.wall_colour, openings: edit.openings.map(({ id, ...o }) => o) });
+}
+//: Confirm changes: the only thing that changes anything real. On this device always; in the
+//: canonical world too from an account the owner has verified. A draft that is the page's own
+//: front again (Start over, confirmed) removes the edit instead.
 async function save(state) {
+  if (!state.dirty) return state.msg("Nothing to confirm: no changes yet.");
+  const who = state.ctx.account?.account();
+  const original = startingEdit(state.ctx, state.feature, state.walls[state.wallIndex]);
+  if (drawnAs(state.edit) === drawnAs(original)) {
+    forgetEdit(state.id);
+    state.savedJSON = JSON.stringify(state.edit);
+    redraw(state);
+    if (!who?.verified) return state.msg("Your edit is removed on this device: the page's own front is back.");
+    state.msg("Removing your edit for everyone…");
+    const out = await state.ctx.account.removeCanonicalEdit(state.id);
+    if (current === state) state.msg(out.canonical ? "Removed for everyone: the page's own front is back." : `Removed on this device; not for everyone yet (${out.why || "refused"}).`);
+    return;
+  }
   state.edit.updated = new Date().toISOString();
   state.edit.length_m = fix(state.walls[state.wallIndex].length);
   const local = saveEdit(state.edit);
   state.ctx.editsChanged?.(state.id, state.edit);
-  state.dirty = false;
-  const who = state.ctx.account?.account();
+  state.savedJSON = JSON.stringify(state.edit);
+  redraw(state);
   if (!who?.verified) {
-    state.msg(local ? "Saved on this device. Verify your account to change it for everyone."
+    state.msg(local ? "Confirmed on this device. It changes the world for everyone once the owner verifies this account."
       : "This browser would not keep it (private window?): it is drawn until you leave.");
     return;
   }
   state.msg("Saving for everyone…");
   const out = await state.ctx.account.saveCanonicalEdit(state.edit);
   if (current !== state) return;
-  state.msg(out.canonical ? `Saved for everyone, as ${who.editor || "a verified editor"}.`
-    : `Saved on this device; not for everyone yet (${out.why}). Save again to retry.`);
+  state.msg(out.canonical ? `Confirmed for everyone, as ${who.editor || "a verified editor"}.`
+    : `Confirmed on this device; not for everyone yet (${out.why}). Confirm again to retry.`);
 }
 
 function drawAccount(state) {
   const box = state.acct, account = state.ctx.account;
   if (!box) return;
-  if (!account) { box.replaceChildren(el("span", { class: "who" }, "Saves stay on this device.")); return; }
+  if (!account) { box.replaceChildren(el("span", { class: "who" }, "Confirmed changes stay on this device.")); return; }
   const who = account.account();
   if (who.verified) {
     box.replaceChildren(el("span", { class: "who" }, el("span", { class: "ok" }, "✔ Verified editor "), el("b", {}, who.editor || who.name || "")),
-      el("span", {}, "Saves change the world for everyone."));
+      el("span", {}, "Confirmed changes update the world for everyone."));
     return;
   }
-  const input = el("input", { type: "password", placeholder: "Paste your editor key", autocomplete: "off", "aria-label": "Editor key" });
-  const go = el("button", { type: "button", title: "Check the key and keep it on this device" }, "Verify");
-  const verify = async () => {
-    go.disabled = true;
-    const out = await account.verify(input.value);
-    go.disabled = false;
-    if (!out.ok) state.msg(out.why); else state.msg(`Verified as ${out.name}. Save changes now updates the world for everyone.`);
-  };
-  go.addEventListener("click", verify);
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); verify(); } });
-  box.replaceChildren(el("span", { class: "who" }, "Not verified: saves stay on this device."), input, go);
+  box.replaceChildren(el("span", { class: "who" }, "Account ", el("b", {}, who.name || ""),
+    ": confirmed changes stay on this device until the owner verifies this account."));
 }
 
 //: The still on the left: the page renders the wall from the street into it.
 function renderStill(state) {
   if (current !== state || !state.still) return;
   const ok = state.ctx.renderWallStill?.(state.walls[state.wallIndex], state.still);
-  state.badge.textContent = ok === false ? "The wall (still loading)" : state.dirty ? "Preview: not saved yet" : "The wall, from the street";
+  state.badge.textContent = ok === false ? "The wall (still loading)" : state.dirty ? "Preview: not confirmed yet" : "The wall, from the street";
   state.badge.classList.toggle("live", Boolean(state.dirty));
 }
 
@@ -1074,12 +1165,24 @@ function scale(o, k) {
 function redraw(state, full = true) {
   drawElevation(state);
   if (full) drawInspector(state);
-  clearTimeout(state.rebuild);
+  state.dirty = JSON.stringify(state.edit) !== state.savedJSON;
+  if (state.undoButton) {
+    state.undoButton.disabled = !state.undo.length;
+    state.redoButton.disabled = !state.redo.length;
+    state.discardButton.disabled = !state.dirty;
+    state.saveButton.disabled = !state.dirty;
+  }
+  // The preview on the building is rebuilt at most every so often while a drag goes on (the drag
+  // itself redraws only the elevation): each rebuild is new meshes and a new still of the world.
+  state.rebuildWanted = true;
+  if (state.rebuild) return;
   state.rebuild = setTimeout(() => {
-    if (current !== state) return;
+    state.rebuild = null;
+    if (current !== state || !state.rebuildWanted) return;
+    state.rebuildWanted = false;
     if (state.group) state.ctx.removeFromWorld(state.group);
     state.group = drawEdit(state.ctx, state.edit);
     if (state.group) state.ctx.addToWorld(state.group);
     requestAnimationFrame(() => renderStill(state));
-  }, 60);
+  }, full ? 60 : 160);
 }
