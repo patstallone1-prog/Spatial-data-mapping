@@ -26,6 +26,7 @@ def build_bundle(
     support_site=None,
     selected_ids=None,
     station_inputs=(),
+    dealership_inputs=(),
 ):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -75,6 +76,18 @@ def build_bundle(
                 str(package.joinpath(name)),
                 out / ("stations.html" if name.endswith("html") else name),
             )
+    dealer_summary = None
+    if dealership_inputs:
+        from smc.exteriors.dealerships import build_dealership_bundle
+
+        dealer_summary = build_dealership_bundle(out, dealership_inputs)
+        index = out / "index.html"
+        index.write_text(
+            index.read_text().replace(
+                "<main><aside>",
+                '<main><aside><p><a href="dealerships.html">Car dealerships</a></p>',
+            )
+        )
     plans, rejected = {}, []
     candidates = [
         (str(row["id"]), "synthetic", lambda row=row: ExteriorInput.from_json(row))
@@ -144,6 +157,8 @@ def build_bundle(
         "rejected": rejected,
         "buildings": plans,
     }
+    if dealer_summary:
+        manifest["dealership_summary"] = dealer_summary
     if station_inputs:
         manifest["station_summary"] = dict(
             selected=len(station_inputs), passed=len(stations), rejected=station_rejected
@@ -155,11 +170,27 @@ def build_bundle(
         # The world itself is copied untouched.
         prepared = copy.deepcopy(world)
         b = world.get("bbox") or {}
-        (out / "storefront-exteriors.manifest.json").write_text(json.dumps({
-            "schema": "kerbside.storefront_exterior_tiles/1",
-            "tiles": [{"path": "storefront-exteriors.json", "buildings": len(plans),
-                       "bbox": [b.get("west", -180), b.get("south", -90), b.get("east", 180), b.get("north", 90)]}],
-        }, indent=1) + "\n")
+        (out / "storefront-exteriors.manifest.json").write_text(
+            json.dumps(
+                {
+                    "schema": "kerbside.storefront_exterior_tiles/1",
+                    "tiles": [
+                        {
+                            "path": "storefront-exteriors.json",
+                            "buildings": len(plans),
+                            "bbox": [
+                                b.get("west", -180),
+                                b.get("south", -90),
+                                b.get("east", 180),
+                                b.get("north", 90),
+                            ],
+                        }
+                    ],
+                },
+                indent=1,
+            )
+            + "\n"
+        )
         shutil.copyfile(out / "renderer.mjs", out / "storefront-renderer.mjs")
         shutil.copytree(out / "assets", out / "storefront-assets", dirs_exist_ok=True)
         (out / "world.json").write_text(json.dumps(prepared, separators=(",", ":")) + "\n")
@@ -182,9 +213,22 @@ def build_bundle(
 #: What the map viewer reads of a plan (renderer.mjs: boundExterior, mount). The rest -- every
 #: reference's citation, the geometry evidence, the validation's working -- is the review
 #: browser's, and was two thirds of the bytes: 62 MB for San Francisco's 3,183 storefronts.
-RUNTIME_KEYS = ("schema", "id", "canonical_geometry_modified", "canonical_points", "height_m",
-                "origin_lon_lat", "footprint", "facades", "evidence", "geometry_sha256",
-                "content_sha256", "reference_version", "replica_status", "not_an_as_built_survey")
+RUNTIME_KEYS = (
+    "schema",
+    "id",
+    "canonical_geometry_modified",
+    "canonical_points",
+    "height_m",
+    "origin_lon_lat",
+    "footprint",
+    "facades",
+    "evidence",
+    "geometry_sha256",
+    "content_sha256",
+    "reference_version",
+    "replica_status",
+    "not_an_as_built_survey",
+)
 
 
 #: Within a facade: the per-part working the review browser shows, which the viewer never reads.
@@ -216,7 +260,9 @@ def runtime_manifest(manifest):
         if "facades" in slim:
             slim["facades"] = _runtime_facade(slim["facades"])
         slim["validation"] = {"passed": bool(plan.get("validation", {}).get("passed"))}
-        slim["references"] = [r.get("id") if isinstance(r, dict) else r for r in plan.get("references") or []]
+        slim["references"] = [
+            r.get("id") if isinstance(r, dict) else r for r in plan.get("references") or []
+        ]
         buildings[key] = slim
     return {
         "schema": manifest["schema"],

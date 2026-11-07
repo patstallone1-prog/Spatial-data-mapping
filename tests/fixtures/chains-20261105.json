@@ -1,0 +1,1106 @@
+[
+  {
+    "id": "new-chain-toyota",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Toyota",
+        "brand": "toyota",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-honda",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Honda",
+        "brand": "honda",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-ford",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Ford",
+        "brand": "ford",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-nissan",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Nissan",
+        "brand": "nissan",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-mazda",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Mazda",
+        "brand": "mazda",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-kia",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Kia",
+        "brand": "kia",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-bmw",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "BMW",
+        "brand": "bmw",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-lexus",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Lexus",
+        "brand": "lexus",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-mercedes_benz",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            36.0,
+            0.0
+          ],
+          [
+            36.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            36.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Mercedes-Benz",
+        "brand": "mercedes_benz",
+        "category": "car_dealership"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-ups_store",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.5,
+            0.0
+          ],
+          [
+            9.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "The UPS Store",
+        "brand": "ups_store",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-home_depot",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            46.0,
+            0.0
+          ],
+          [
+            46.0,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            46.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "The Home Depot",
+        "brand": "home_depot",
+        "category": "hardware"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-petco",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            13.5,
+            0.0
+          ],
+          [
+            13.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            13.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Petco",
+        "brand": "petco",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-sephora",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            7.5,
+            0.0
+          ],
+          [
+            7.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "SEPHORA",
+        "brand": "sephora",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-dominos",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            9.5,
+            0.0
+          ],
+          [
+            9.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Domino’s",
+        "brand": "dominos",
+        "category": "pizza"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-wingstop",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            11.5,
+            0.0
+          ],
+          [
+            11.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            11.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Wingstop",
+        "brand": "wingstop",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-daiso",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            13.5,
+            0.0
+          ],
+          [
+            13.5,
+            24.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            13.5,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "DAISO",
+        "brand": "daiso",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 3,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-walmart",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            42,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Walmart",
+        "brand": "walmart",
+        "category": "grocery"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-dunkin",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Dunkin’",
+        "brand": "dunkin",
+        "category": "cafe"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-panera",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            12,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Panera Bread",
+        "brand": "panera",
+        "category": "bakery"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-popeyes",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            14,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Popeyes",
+        "brand": "popeyes",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-jersey_mikes",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Jersey Mike’s",
+        "brand": "jersey_mikes",
+        "category": "fast_food"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-lowes",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            42,
+            0
+          ],
+          [
+            42,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 6.2,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Lowe’s",
+        "brand": "lowes",
+        "category": "hardware"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-ace_hardware",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            12,
+            0
+          ],
+          [
+            12,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Ace Hardware",
+        "brand": "ace_hardware",
+        "category": "hardware"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  },
+  {
+    "id": "new-chain-ulta",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            14,
+            22
+          ],
+          [
+            0,
+            22
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ]
+    },
+    "height_m": 4.3,
+    "tenants": [
+      {
+        "id": "A",
+        "name": "Ulta Beauty",
+        "brand": "ulta",
+        "category": "shop"
+      }
+    ],
+    "frontages": [
+      {
+        "edge": 0,
+        "tenant_id": "A",
+        "role": "public"
+      }
+    ]
+  }
+]

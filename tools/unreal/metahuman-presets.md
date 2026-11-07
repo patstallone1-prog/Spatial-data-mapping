@@ -41,3 +41,20 @@ It discovers both the original `Unpacked/Ada` and the new `Built/<Name>` directo
 refuses an incomplete ten-MetaHuman roster, and writes the native player's config.
 No mannequin substitution is allowed in this strict mode. Binary assets remain in
 the Unreal project, outside Git. This does not convert native assets into browser avatars.
+
+For a resumable one-process-at-a-time batch, use `batch_metahumans.py` with `--project`,
+`--engine`, `--xcode`, `--volume` and `--reports` paths. It verifies each preset in a fresh
+process and installs the strict native roster only after all nine additions pass. Reports
+and logs belong on the external volume and stay private. An already launched first preset
+can be followed with `--adopt-pid`; never pass an unrelated editor PID.
+
+For an interrupted source save whose texture-ready flag was persisted too early, set
+`KERBSIDE_MH_REFRESH_TEXTURES=Bo` (a comma-separated preset list) for one recovery run.
+This refreshes texture sources without deleting the saved character or replacing its rig.
+Readiness now waits for Unreal's assembly gate as well as the texture flag. On a failure
+with pending callbacks, the editor is retained and the batch stops for attention; it does
+not tear down registered character data or start a second editor over the same project.
+
+The batch driver allows four hours per cold assembly phase by default (`--phase-timeout`
+sets an explicit bound). Adopting an already running editor only waits; the full 8 GiB
+internal swap reserve is checked again before every subsequent editor launch.

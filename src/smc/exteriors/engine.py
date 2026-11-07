@@ -90,6 +90,9 @@ def _palette(identity, kind, brand, tier, observed=None):
             wall, frame = "#8a7660", "#aeb5b1"
         elif brand["name"] == "Chipotle":
             wall = "#bbb8af"
+    if brand:
+        wall = brand.get("wall_color", wall)
+        frame = brand.get("frame_color", frame)
     if observed:
         wall = observed
     if kind == "diner" and not brand:
@@ -169,7 +172,13 @@ def _openings(face, profile, tenant, source):
                 }
             )
     sill = _between(identity, "sill", profile["sill_m"])
-    tall = band > 4.3 and face["category"] in {"grocery", "cafe", "diner", "clothing"}
+    tall = band > 4.3 and face["category"] in {
+        "grocery",
+        "cafe",
+        "diner",
+        "clothing",
+        "car_dealership",
+    }
     head = min(4.0 if tall else 2.75, band - (1.15 if tall else 0.72))
     if head - sill < 0.65:
         return rows
@@ -317,6 +326,8 @@ def _signs(face, tenant, profile, brand, source):
                 else 0.55
             )
         )
+        if brand and brand.get("sign_height_m"):
+            h = min(float(brand["sign_height_m"]), max(0.25, band - 2.95))
         top = min(band - 0.12, band - 0.2 if band > 4.3 else 3.65)
         bottom = top - h
         if kind == "plaque":
@@ -359,7 +370,7 @@ def _signs(face, tenant, profile, brand, source):
     sign = {
         "id": f"{face['id']}:identity",
         "kind": kind,
-        "text": tenant["name"],
+        "text": brand.get("sign_text", tenant["name"]) if brand else tenant["name"],
         **rect,
         "asset": brand.get("asset") if brand else None,
         "icon": brand.get("icon") if brand else None,
@@ -486,7 +497,8 @@ def infer_exterior(spec: ExteriorInput):
                     "w": face["u1"] - face["u0"] - 0.1,
                     "v": sign["v"] - 0.1,
                     "h": face["band_height_m"] - 0.06 - sign["v"] + 0.1,
-                    "colour": {
+                    "colour": brand.get("sign_background")
+                    or {
                         "starbucks": "#233e31",
                         "starbucks_reserve": "#2c2c29",
                         "subway": "#008938",

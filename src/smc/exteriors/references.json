@@ -1,6 +1,6 @@
 {
   "schema": "kerbside.storefront_references/1",
-  "version": "2026-11-01",
+  "version": "2026-11-05",
   "curation": {
     "scope": "Bay Area storefront and institutional exterior qualitative reference library",
     "not_a_representative_survey": true,
@@ -239,7 +239,7 @@
     },
     {
       "id": "peets-chestnut",
-      "title": "Peets 2078–2080 Chestnut Street",
+      "title": "Peets 2078\u20132080 Chestnut Street",
       "url": "https://sfplanning.s3.amazonaws.com/default/files/meetingarchive/planning_dept/commissions.sfplanning.org/cpcpackets/2013.0245C.pdf",
       "organization": "SF Planning / Crome Architecture",
       "kind": "historic_approved_proposal",
@@ -1169,6 +1169,357 @@
       "observations": [
         "Cardinal red #B81F34 and corn yellow #F4C607 with white; another catalogue samples #AA1D3A and #EDB62E."
       ]
+    },
+    {
+      "id": "toyota-image-ii",
+      "title": "Toyota Image USA II core elements",
+      "url": "https://www.toyotaimageusaii.com/image-usa-ii",
+      "organization": "Southeast Toyota Distributors",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Silver ACM facade and red soffit band; illuminated entry portal identifies the showroom."
+      ]
+    },
+    {
+      "id": "honda-blue-stage",
+      "title": "Honda Blue Stage retail architecture",
+      "url": "https://changeupinc.com/work/honda/",
+      "organization": "ChangeUp (Honda design partner)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Glazed frontage; exterior vehicle presentation; flexible formats and a distinct blue entrance canopy."
+      ]
+    },
+    {
+      "id": "ford-signature-architect",
+      "title": "Murray Ford Signature facility",
+      "url": "https://cscde.com/project/murray-ford/",
+      "organization": "CSC Design (project architect)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Blue Oval marks on the entry tower and brand wall; separate dealer insignia; service access distinct from reception."
+      ]
+    },
+    {
+      "id": "nissan-retail-concept",
+      "title": "Nissan Retail Concept",
+      "url": "https://global.nissannews.com/en/releases/nissan-introduces-new-retail-concept-at-dealerships-worldwide",
+      "organization": "Nissan",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Red exterior identity elements and a dedicated delivery space; site-specific rollout of global retail concept."
+      ]
+    },
+    {
+      "id": "mazda-retail-evolution",
+      "title": "300th Retail Evolution dealership",
+      "url": "https://news.mazdausa.com/2024-05-07-Mazda-Continues-to-Elevate-Customer-Experience-With-300th-Open-Concept-Dealership",
+      "organization": "Mazda North American Operations",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Open showroom format; premium restrained presentation with separate consultation and service experiences."
+      ]
+    },
+    {
+      "id": "kia-changeup",
+      "title": "Kia flagship retail design",
+      "url": "https://changeupinc.com/work/kia-flagship/",
+      "organization": "ChangeUp (Kia design partner)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Modern identity, expansive glazing and EV display; flagship is a reference, not a universal building template."
+      ]
+    },
+    {
+      "id": "bmw-retail-next",
+      "title": "Retail.Next premium design identity",
+      "url": "https://www.press.bmwgroup.com/canada/article/attachment/T0456844EN/646613",
+      "organization": "BMW Group",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Warm open showroom and integrated digital tools; modernization is a rollout, not evidence that every Bay Area dealer has remodeled."
+      ]
+    },
+    {
+      "id": "lexus-l-finesse",
+      "title": "Lexus flagship design",
+      "url": "https://www.lexus.co.za/discover/about-lexus/news/lexus-embraces-its-l-finesse-design-philosophy-with-new-flagship-dealership",
+      "organization": "Lexus",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Minimal high-end finishes and natural daylight; sales and service spaces remain differentiated. South African reference informs qualitative style only."
+      ]
+    },
+    {
+      "id": "mercedes-graft",
+      "title": "International retail Mercedes-Benz",
+      "url": "https://graftlab.com/en/projects/retail-mercedes-benz",
+      "organization": "GRAFT (retail design architect)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Restrained, refined retail surfaces with integrated media; no claim that a specific local dealer uses this generation."
+      ]
+    },
+    {
+      "id": "ups-modern",
+      "title": "Modern UPS Store design",
+      "url": "https://www.upsstore.com/about/pressroom/the-ups-store-unveils-new-and-modern-store-design",
+      "organization": "The UPS Store",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Transparent open workshop; bright blue and yellow accents; lockers may be near the front entry."
+      ]
+    },
+    {
+      "id": "home-depot-investor-photo",
+      "title": "Home Depot investor presentation exterior",
+      "url": "https://ir.homedepot.com/~/media/Files/H/HomeDepot-IR/2023/2023-iac/chip-devine.pdf",
+      "organization": "The Home Depot",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Photo: orange lettering over masonry, orange metal entrance canopy, paired glazed entrance and exterior garden merchandise."
+      ]
+    },
+    {
+      "id": "petco-contractor",
+      "title": "Petco Patriot Place exterior renovation",
+      "url": "https://combuild.com/portfolio/petco-patriot-place/",
+      "organization": "Commonwealth Building (project contractor)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Glazed entrance, facade using EIFS, bamboo composite planking and stone veneer, prefabricated metal canopy."
+      ]
+    },
+    {
+      "id": "sephora-interbrand",
+      "title": "Sephora identity and storefront",
+      "url": "https://www.interbrand.com/work/sephora/",
+      "organization": "Interbrand (brand design agency)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Black fascia with white uppercase wordmark and flame; black and white striped store elements."
+      ]
+    },
+    {
+      "id": "dominos-theater",
+      "title": "Domino\u2019s Pizza Theater design",
+      "url": "https://ir.dominos.com/news-releases/news-release-details/dominos-pizza-unveils-new-logo-store-future",
+      "organization": "Domino\u2019s Pizza",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Red and blue domino tile identity; visible pizza preparation and compact carryout formats rather than assumed full dining rooms."
+      ]
+    },
+    {
+      "id": "wingstop-materials",
+      "title": "Wingstop material case study",
+      "url": "https://www.creativematerialscorp.com/wp-content/uploads/2026/06/Wingstop_Case-Study_2026.pdf",
+      "organization": "Creative Materials (Wingstop supplier)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "Custom green and grey tile; repeatable brand materials. Window dimensions remain inferred, not surveyed from this interior material study."
+      ]
+    },
+    {
+      "id": "daiso-us",
+      "title": "Daiso US brand and stores",
+      "url": "https://daisous.com/",
+      "organization": "Daiso USA",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page or project imagery",
+      "observations": [
+        "White DAISO identity on strong pink/red sign field; existing shopfront shell varies by location."
+      ]
+    },
+    {
+      "id": "walmart-2025-identity",
+      "title": "Walmart updated identity and store rollout",
+      "url": "https://corporate.walmart.com/news/2025/01/13/walmart-introduces-updated-look-and-feel-a-testament-to-heritage-and-innovation",
+      "organization": "Walmart",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Blue identity and yellow spark retained in a refreshed wordmark; store rollout is gradual, not evidence every location has converted."
+      ]
+    },
+    {
+      "id": "walmart-entrances",
+      "title": "Walmart optimized store entrances",
+      "url": "https://corporate.walmart.com/news/2020/09/30/reimagining-store-design-to-help-customers-better-navigate-the-omni-shopping-experience",
+      "organization": "Walmart",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Distinct entrance identity and external wayfinding; new app-related signage language is a reference generation, not a measured facade."
+      ]
+    },
+    {
+      "id": "dunkin-nextgen",
+      "title": "Dunkin Next Generation restaurants",
+      "url": "https://news.dunkindonuts.com/blog/dunkin-1000-next-gen",
+      "organization": "Dunkin",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Open modern store design, dedicated mobile pickup, orange and pink identity; drive-through provision varies by location."
+      ]
+    },
+    {
+      "id": "panera-official-palette",
+      "title": "Panera brand portal color palette",
+      "url": "https://www.panerabread.com/content/Brand-Portal/home/home/color.html",
+      "organization": "Panera Bread",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Primary Panera Green #576C1D and Soft White #F4F3E6; accent shades are used sparingly, not as a single color over the entire cafe."
+      ]
+    },
+    {
+      "id": "panera-architect",
+      "title": "Panera flexible exterior design program",
+      "url": "https://pohwarchitects.com/Projects/panera-bread",
+      "organization": "POH+W Architects",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Multiple bakery-cafe projects use a flexible program with varying exteriors; glazed cafe fronts and warm materials are qualitative priors."
+      ]
+    },
+    {
+      "id": "popeyes-current-logo",
+      "title": "Popeyes official logo assets",
+      "url": "https://news.popeyes.com/media-assets/logos-fonts",
+      "organization": "Popeyes",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Current supplied Popeyes wordmark; logo identification is independent of an older restaurant remodel generation."
+      ]
+    },
+    {
+      "id": "popeyes-visual-id",
+      "title": "Popeyes visual identity rollout",
+      "url": "https://www.weare500degrees.com/popeyes-visual-id",
+      "organization": "500 Degrees (Popeyes design partner)",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "New visual identity rollout across restaurant communications. Current orange identity must not be confused with the 2008 mixed-height legacy mark."
+      ]
+    },
+    {
+      "id": "jerseymikes-real-estate",
+      "title": "Jersey Mike\u2019s official real-estate photos",
+      "url": "https://www.jerseymikes.com/real-estate/photos",
+      "organization": "Jersey Mike\u2019s Subs",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Gallery includes strip-center and nontraditional formats with glazed entries and separate brand signage; do not force a detached prototype onto an inline shop."
+      ]
+    },
+    {
+      "id": "lowes-investor-exterior",
+      "title": "Lowe\u2019s investor presentation store photographs",
+      "url": "https://corporate.lowes.com/sites/lowes-corp/files/2022-12/ceo-presentation.pdf",
+      "organization": "Lowe\u2019s",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Corporate photographs show blue house-shaped identity on a predominantly solid big-box shell, with customer entrance glazing concentrated near the entry."
+      ]
+    },
+    {
+      "id": "ace-independent-shell",
+      "title": "Ace Hardware independently operated store format",
+      "url": "https://www.acehardware.com/store-details/09249",
+      "organization": "Ace Hardware",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Hardware/lumber operator uses its own building configuration. Ace identity does not imply one standardized facade or erase a local owner name."
+      ]
+    },
+    {
+      "id": "ulta-store-openings",
+      "title": "Ulta Beauty store openings",
+      "url": "https://careers.ulta.com/events-and-store-openings",
+      "organization": "Ulta Beauty",
+      "kind": "brand_or_design_partner",
+      "location": "program reference; local adoption unverified",
+      "reviewed_at": "2026-11-05",
+      "locator": "publisher page, gallery or corporate presentation",
+      "observations": [
+        "Store identity uses orange Ulta Beauty presentation; retail shells and storefront glazing vary. No local opening date or hours are inferred."
+      ]
     }
   ],
   "categories": {
@@ -2023,6 +2374,38 @@
       "parameter_basis": "inferred design priors; qualitative references, not surveyed dimensions or prevalence statistics",
       "door_style": "timber_glazed",
       "barber_pole": true
+    },
+    "car_dealership": {
+      "family": "automotive",
+      "front_glazing_fraction": [
+        0.7,
+        0.88
+      ],
+      "sill_m": [
+        0.12,
+        0.25
+      ],
+      "module_width_m": [
+        2.0,
+        3.6
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass",
+        "stone"
+      ],
+      "references": [
+        "toyota-image-ii",
+        "honda-blue-stage",
+        "ford-signature-architect"
+      ],
+      "privacy": false,
+      "entrance_width_m": 2.2,
+      "door_style": "double_glazed",
+      "parameter_basis": "inferred display and circulation priors; not surveyed dimensions or prevalence statistics"
     }
   },
   "brands": {
@@ -3223,6 +3606,852 @@
       ],
       "scope": "third-party palette colours and generic sign components; site shell, current remodel and sign geometry unverified",
       "confidence": 0.4
+    },
+    "toyota": {
+      "name": "Toyota",
+      "aliases": [
+        "toyota",
+        "toyota dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#d71920",
+        "#d4d7d8",
+        "#303336"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "toyota-image-ii"
+      ],
+      "components": [
+        "silver ACM skin",
+        "red soffit accent",
+        "illuminated entrance portal",
+        "separate dealer name"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Toyota",
+      "architecture": "entry_portal",
+      "asset": "toyota",
+      "wall_color": "#d4d7d8",
+      "sign_background": "#d4d7d8",
+      "sign_height_m": 1.0
+    },
+    "honda": {
+      "name": "Honda",
+      "aliases": [
+        "honda",
+        "honda cars"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#0067ac",
+        "#f1f3f4",
+        "#33383c"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "honda-blue-stage"
+      ],
+      "components": [
+        "blue entrance canopy",
+        "glass showroom",
+        "separate dealer name"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Honda",
+      "architecture": "blue_canopy",
+      "wall_color": "#f1f3f4",
+      "sign_background": "#f4f4ef",
+      "asset": "honda",
+      "sign_height_m": 1.0
+    },
+    "ford": {
+      "name": "Ford",
+      "aliases": [
+        "ford",
+        "ford dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#003478",
+        "#eeeeeb",
+        "#4b5053"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "ford-signature-architect"
+      ],
+      "components": [
+        "Blue Oval identity",
+        "entry tower",
+        "separate service signage"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Ford",
+      "architecture": "brand_tower",
+      "wall_color": "#eeeeeb",
+      "sign_background": "#003478",
+      "asset": "ford",
+      "sign_height_m": 1.0
+    },
+    "nissan": {
+      "name": "Nissan",
+      "aliases": [
+        "nissan",
+        "nissan dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#c3002f",
+        "#dededb",
+        "#292c2e"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "nissan-retail-concept"
+      ],
+      "components": [
+        "red identity portal",
+        "glazed sales frontage",
+        "delivery zone"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Nissan",
+      "architecture": "entry_portal",
+      "asset": "nissan",
+      "wall_color": "#dededb",
+      "sign_background": "#c3002f",
+      "sign_height_m": 1.0
+    },
+    "mazda": {
+      "name": "Mazda",
+      "aliases": [
+        "mazda",
+        "mazda dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#363a3d",
+        "#d8d5ce",
+        "#eeeeeb"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "mazda-retail-evolution"
+      ],
+      "components": [
+        "dark framed showroom",
+        "bright wordmark",
+        "open premium display"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Mazda",
+      "architecture": "dark_fascia",
+      "wall_color": "#d8d5ce",
+      "sign_background": "#f0efeb",
+      "asset": "mazda",
+      "brand_layout": "icon_and_wordmark",
+      "wordmark": "Mazda",
+      "sign_height_m": 1.0
+    },
+    "kia": {
+      "name": "Kia",
+      "aliases": [
+        "kia",
+        "kia dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#20262a",
+        "#deded8",
+        "#f2f0e9"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "kia-changeup"
+      ],
+      "components": [
+        "modern black/white wordmark field",
+        "glazed EV display",
+        "consultation area"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Kia",
+      "architecture": "dark_fascia",
+      "wall_color": "#deded8",
+      "sign_background": "#20262a",
+      "asset": "kia",
+      "sign_height_m": 1.0
+    },
+    "bmw": {
+      "name": "BMW",
+      "aliases": [
+        "bmw",
+        "bmw dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#1c69d4",
+        "#f0efeb",
+        "#31383b"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "bmw-retail-next"
+      ],
+      "components": [
+        "restrained light fascia",
+        "BMW identity over entry",
+        "warm showroom"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "BMW",
+      "architecture": "light_fascia",
+      "wall_color": "#f0efeb",
+      "sign_background": "#f0efeb",
+      "sign_height_m": 1.0
+    },
+    "lexus": {
+      "name": "Lexus",
+      "aliases": [
+        "lexus",
+        "lexus dealership"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#303639",
+        "#d6d2c9",
+        "#a39479"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "stone",
+        "glass"
+      ],
+      "references": [
+        "lexus-l-finesse"
+      ],
+      "components": [
+        "subtle high contrast wordmark",
+        "stone and glass entry",
+        "daylight sales lounge"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Lexus",
+      "architecture": "light_fascia",
+      "wall_color": "#d6d2c9",
+      "sign_background": "#f7f6f0",
+      "asset": "lexus",
+      "sign_height_m": 1.0
+    },
+    "mercedes_benz": {
+      "name": "Mercedes-Benz",
+      "aliases": [
+        "mercedes benz",
+        "mercedes-benz"
+      ],
+      "category": "car_dealership",
+      "colors": [
+        "#20272b",
+        "#d4d7d9",
+        "#f0f0ed"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "mercedes-graft"
+      ],
+      "components": [
+        "dark brand fascia",
+        "glazed showroom",
+        "separate dealer name"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Mercedes-Benz",
+      "architecture": "dark_fascia",
+      "wall_color": "#d4d7d9",
+      "sign_background": "#20272b",
+      "asset": "mercedes_benz",
+      "brand_layout": "icon_and_wordmark",
+      "wordmark": "Mercedes-Benz",
+      "sign_height_m": 1.0
+    },
+    "ups_store": {
+      "name": "The UPS Store",
+      "aliases": [
+        "the ups store",
+        "ups store"
+      ],
+      "category": "shop",
+      "colors": [
+        "#4b90cc",
+        "#f7c842",
+        "#40413b"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "metal_panels",
+        "glass"
+      ],
+      "references": [
+        "ups-modern"
+      ],
+      "components": [
+        "high contrast fascia identity",
+        "transparent service frontage"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "The UPS Store"
+    },
+    "home_depot": {
+      "name": "The Home Depot",
+      "aliases": [
+        "the home depot",
+        "home depot"
+      ],
+      "category": "hardware",
+      "colors": [
+        "#e85c12",
+        "#e8d2b4",
+        "#5b5149"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "brick",
+        "metal_panels"
+      ],
+      "references": [
+        "home-depot-investor-photo"
+      ],
+      "components": [
+        "orange identity lettering",
+        "orange entry canopy",
+        "solid warehouse service wall"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "The Home Depot"
+    },
+    "petco": {
+      "name": "Petco",
+      "aliases": [
+        "petco",
+        "petco health and wellness"
+      ],
+      "category": "shop",
+      "colors": [
+        "#153c67",
+        "#eeece7",
+        "#b39878"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "stucco",
+        "wood"
+      ],
+      "references": [
+        "petco-contractor"
+      ],
+      "components": [
+        "blue identity field",
+        "wood accents",
+        "glazed pet care entry"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Petco",
+      "asset": "petco",
+      "sign_background": "#eeefea"
+    },
+    "sephora": {
+      "name": "SEPHORA",
+      "aliases": [
+        "sephora"
+      ],
+      "category": "shop",
+      "colors": [
+        "#171717",
+        "#faf8f3",
+        "#333333"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "metal_panels",
+        "stone"
+      ],
+      "references": [
+        "sephora-interbrand"
+      ],
+      "components": [
+        "white uppercase lettering on black",
+        "black and white entry piers"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "SEPHORA",
+      "wall_color": "#f3f0e9",
+      "sign_background": "#171717",
+      "asset": "sephora"
+    },
+    "dominos": {
+      "name": "Domino\u2019s",
+      "aliases": [
+        "dominos",
+        "dominos pizza",
+        "domino\u2019s",
+        "domino\u2019s pizza"
+      ],
+      "category": "pizza",
+      "colors": [
+        "#006491",
+        "#e31837",
+        "#f8f8f2"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "brick",
+        "metal_panels"
+      ],
+      "references": [
+        "dominos-theater"
+      ],
+      "components": [
+        "red blue tile identity",
+        "carryout glazing",
+        "open preparation sightline"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Domino\u2019s"
+    },
+    "wingstop": {
+      "name": "Wingstop",
+      "aliases": [
+        "wingstop"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#1d633b",
+        "#eeeeeb",
+        "#303737"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "brick",
+        "metal_panels"
+      ],
+      "references": [
+        "wingstop-materials"
+      ],
+      "components": [
+        "green identity",
+        "compact glazed ordering frontage"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "Wingstop"
+    },
+    "daiso": {
+      "name": "DAISO",
+      "aliases": [
+        "daiso",
+        "daiso japan"
+      ],
+      "category": "shop",
+      "colors": [
+        "#d62461",
+        "#faf7f3",
+        "#434343"
+      ],
+      "sign_types": [
+        "fascia"
+      ],
+      "materials": [
+        "metal_panels",
+        "stucco"
+      ],
+      "references": [
+        "daiso-us"
+      ],
+      "components": [
+        "white wordmark on pink red field",
+        "retail display glazing"
+      ],
+      "scope": "reference-backed identity; local shell, fit, brand generation and remodeling remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximations; not certified brand color specifications",
+      "sign_text": "DAISO",
+      "asset": "daiso"
+    },
+    "walmart": {
+      "name": "Walmart",
+      "aliases": [
+        "walmart",
+        "wal mart",
+        "walmart supercenter"
+      ],
+      "category": "grocery",
+      "colors": [
+        "#0053e2",
+        "#ffc220",
+        "#e3e5e3"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "stucco"
+      ],
+      "references": [
+        "walmart-2025-identity",
+        "walmart-entrances"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Walmart",
+      "sign_background": "#0053e2",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "glazing_cluster_m": 12,
+      "asset": "walmart"
+    },
+    "dunkin": {
+      "name": "Dunkin\u2019",
+      "aliases": [
+        "dunkin",
+        "dunkin donuts",
+        "dunkin\u2019"
+      ],
+      "category": "cafe",
+      "colors": [
+        "#f36c21",
+        "#d71983",
+        "#f3eee6"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "brick",
+        "metal_panels"
+      ],
+      "references": [
+        "dunkin-nextgen"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Dunkin\u2019",
+      "sign_background": "#f8f5ef",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "asset": "dunkin"
+    },
+    "panera": {
+      "name": "Panera Bread",
+      "aliases": [
+        "panera",
+        "panera bread"
+      ],
+      "category": "bakery",
+      "colors": [
+        "#576c1d",
+        "#f4f3e6",
+        "#1d4321"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "brick",
+        "wood"
+      ],
+      "references": [
+        "panera-official-palette",
+        "panera-architect"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Panera Bread",
+      "sign_background": "#576c1d",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "publisher palette"
+    },
+    "popeyes": {
+      "name": "Popeyes",
+      "aliases": [
+        "popeyes",
+        "popeyes louisiana kitchen"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#ef6b25",
+        "#f4e9da",
+        "#595340"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "stucco",
+        "brick"
+      ],
+      "references": [
+        "popeyes-current-logo",
+        "popeyes-visual-id"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Popeyes",
+      "sign_background": "#f8f2e7",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "asset": "popeyes"
+    },
+    "jersey_mikes": {
+      "name": "Jersey Mike\u2019s",
+      "aliases": [
+        "jersey mikes",
+        "jersey mikes subs",
+        "jersey mike\u2019s",
+        "jersey mike\u2019s subs"
+      ],
+      "category": "fast_food",
+      "colors": [
+        "#144e8b",
+        "#d02b3e",
+        "#f7f3e8"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "brick",
+        "metal_panels"
+      ],
+      "references": [
+        "jerseymikes-real-estate"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Jersey Mike\u2019s",
+      "sign_background": "#f8f5ef",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "asset": "jersey_mikes",
+      "sign_height_m": 0.8
+    },
+    "lowes": {
+      "name": "Lowe\u2019s",
+      "aliases": [
+        "lowes",
+        "lowes home improvement",
+        "lowe\u2019s",
+        "lowe\u2019s home improvement"
+      ],
+      "category": "hardware",
+      "colors": [
+        "#17417a",
+        "#eeece5",
+        "#656f76"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "metal_panels",
+        "brick"
+      ],
+      "references": [
+        "lowes-investor-exterior"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Lowe\u2019s",
+      "sign_background": "#17417a",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "glazing_cluster_m": 12,
+      "asset": "lowes"
+    },
+    "ace_hardware": {
+      "name": "Ace Hardware",
+      "aliases": [
+        "ace",
+        "ace hardware"
+      ],
+      "category": "hardware",
+      "colors": [
+        "#c82127",
+        "#f2eee5",
+        "#545753"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "brick",
+        "stucco"
+      ],
+      "references": [
+        "ace-independent-shell"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Ace Hardware",
+      "sign_background": "#f6f2ea",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "asset": "ace_hardware"
+    },
+    "ulta": {
+      "name": "Ulta Beauty",
+      "aliases": [
+        "ulta",
+        "ulta beauty"
+      ],
+      "category": "shop",
+      "colors": [
+        "#e46b28",
+        "#f7eee4",
+        "#a95a35"
+      ],
+      "sign_types": [
+        "channel_letters"
+      ],
+      "materials": [
+        "stucco",
+        "metal_panels"
+      ],
+      "references": [
+        "ulta-store-openings"
+      ],
+      "components": [
+        "separate legible brand identity",
+        "entrance-aligned sign",
+        "source-specific glazed frontage"
+      ],
+      "sign_text": "Ulta Beauty",
+      "sign_background": "#f7eee4",
+      "scope": "reference-backed identity; local geometry and remodel generation remain unverified",
+      "confidence": 0.5,
+      "color_basis": "render approximation from cited publisher imagery; not an exact specification",
+      "asset": "ulta"
     }
   },
   "station_brands": {
