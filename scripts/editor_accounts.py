@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Make a verified exterior editor: someone whose saved edits change the world everyone sees.
+"""Verified exterior editors: accounts whose saved edits change the world everyone sees.
 
-    editor_accounts.py --make "Larry"     # a new key; prints the SQL line, writes the private link
+Every device makes its own account (docs/kerbside-account.mjs) and registers it, unverified,
+under its name -- there is no code to hand out and nothing to type. Verify one on the backend:
 
-The key never goes into the database or the repository: the SQL line stores its SHA-256
-(supabase/kerbside_exterior_edits.sql checks a key against it), and the key itself is written
-only into a private link under build/editor-keys/, which the editor opens once on each device
-(docs/kerbside-account.mjs reads it and takes it out of the address bar). To revoke a key:
-``update kerbside_editors set verified = false where name = '...';``
+    editor_accounts.py --verify "Coral Heron 47"   # prints the SQL line to run in Supabase
+    editor_accounts.py --unverify "Coral Heron 47"
+
+(or tick ``verified`` on its row in kerbside_editors). The name is the one the editor and the
+home screen show for that device. ``--make NAME`` still makes an old-style key and private link
+for a device that cannot reach the store to register.
 """
 
 from __future__ import annotations
@@ -29,6 +31,12 @@ def sql_line(name: str, key: str) -> str:
             "on conflict (key_sha256) do update set name = excluded.name, verified = true;")
 
 
+def verify_line(name: str, verified: bool = True) -> str:
+    """The line that marks the device account called ``name`` verified (or not)."""
+    quoted = name.replace("'", "''")
+    return f"update kerbside_editors set verified = {'true' if verified else 'false'} where name = '{quoted}';"
+
+
 def make(name: str) -> tuple[str, Path]:
     key = secrets.token_urlsafe(32)
     KEYS.mkdir(parents=True, exist_ok=True)
@@ -41,8 +49,14 @@ def make(name: str) -> tuple[str, Path]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--make", metavar="NAME", required=True)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--verify", metavar="NAME", help="the SQL that verifies the account of that name")
+    group.add_argument("--unverify", metavar="NAME", help="the SQL that stops that account writing")
+    group.add_argument("--make", metavar="NAME", help="an old-style key and private link")
     args = parser.parse_args()
-    line, path = make(args.make)
-    print(line)
-    print(f"-- private link written to {path} (not printed here)")
+    if args.make:
+        line, path = make(args.make)
+        print(line)
+        print(f"-- private link written to {path} (not printed here)")
+    else:
+        print(verify_line(args.verify or args.unverify, bool(args.verify)))

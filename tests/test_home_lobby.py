@@ -169,3 +169,50 @@ console.log(JSON.stringify({ first, stored, chosen, cleared, fixed }));
     assert out["fixed"] == "Coral Heron 99"
     lobby = (ROOT / "docs/home-lobby.mjs").read_text()
     assert 'player.addEventListener("click", nameSheet);' in lobby and "Pick another name" in lobby
+
+
+def test_a_device_makes_its_own_account_and_the_owner_verifies_it_on_the_backend():
+    """No sign-in and no code: the device's secret is made once and kept, registered under its
+    name, and verified only by the store's answer (the owner ticks it on the backend)."""
+    script = """
+const store = new Map(), calls = [];
+globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+globalThis.location = { hash: "", pathname: "/", search: "" };
+globalThis.history = { replaceState() {} };
+globalThis.document = {};
+let verified = false;
+globalThis.fetch = async (url, init) => {
+  const name = url.split("/rpc/")[1], body = JSON.parse(init.body);
+  calls.push([name, Object.keys(body).sort()]);
+  const out = name === "kerbside_register_device" ? { registered: true, verified, name: body.name }
+    : name === "kerbside_editor_whoami" ? { registered: true, verified, name: "Larry" } : null;
+  return { ok: true, status: 200, text: async () => JSON.stringify(out) };
+};
+const m = await import(process.argv[1]);
+await new Promise((r) => setTimeout(r, 20));
+const secret = store.get("kerbside:editor-key");
+const before = m.account();
+verified = true;                       // the owner ticks the account in the dashboard
+const after = await m.recheck();
+console.log(JSON.stringify({ secret: secret?.length, kept: store.get("kerbside:editor-key") === secret, before, after,
+  calls, exports: Object.keys(m).sort() }));
+"""
+    out = json.loads(subprocess.run(["node", "--input-type=module", "-e", script, (ROOT / "docs/kerbside-account.mjs").as_uri()],
+                                    capture_output=True, text=True, check=True).stdout)
+    assert out["secret"] >= 40 and out["kept"]
+    assert out["before"]["registered"] and not out["before"]["verified"]
+    assert out["after"]["verified"] and out["after"]["editor"] == "Larry"
+    assert out["calls"][0] == ["kerbside_register_device", ["key", "name"]]
+    assert "verify" not in out["exports"] and "signOutEditor" not in out["exports"]
+    sql = (ROOT / "supabase/kerbside_device_accounts.sql").read_text()
+    assert "insert into kerbside_editors (key_sha256, name, verified, last_seen) values (digest_hex, btrim(clean), false, now());" in sql
+    assert "grant execute on function kerbside_register_device(text, text) to anon, authenticated;" in sql
+
+
+def test_the_owner_verifies_an_account_by_its_name():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("editor_accounts", ROOT / "scripts/editor_accounts.py")
+    accounts = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(accounts)
+    assert accounts.verify_line("Coral Heron 47") == "update kerbside_editors set verified = true where name = 'Coral Heron 47';"
+    assert accounts.verify_line("O'Hara Otter 12", False) == "update kerbside_editors set verified = false where name = 'O''Hara Otter 12';"

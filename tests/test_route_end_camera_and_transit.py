@@ -58,22 +58,39 @@ console.log(JSON.stringify({ near: at(100), mid: at(2000), far: at(20000) }));
     assert "const ROUTE_RIBBON_MAX_SCALE = 60;" in js
 
 
-def test_the_view_goes_above_the_walker_rather_than_inside_a_house() -> None:
+def test_a_building_stops_the_view_at_its_wall_rather_than_letting_it_inside() -> None:
     js = _page_js()
-    out = _node(_extract("orbitInsideBuilding", js) + """
-const house = { height_m: 9 };
-function buildingAt(x, z) { return x > 10 && x < 20 ? house : null; }
+    out = _node("var ORBIT_WALL_GAP_M = 0.45, ORBIT_TALLEST_M = 340;\n" + _extract("orbitBuildingTop", js)
+                + _extract("buildingTopAt", js) + _extract("orbitBlockedAt", js) + """
+const house = { height_m: 9 }, shed = { height_m: 3 };
+// A house from x 10 to 20 (z -5 to 5); a shed from z 2 to 6 alongside the line x 0..8.
+function buildingAt(x, z) {
+  if (x > 10 && x < 20 && z > -5 && z < 5) return house;
+  if (x > 0 && x < 8 && z > 2 && z < 6) return shed;
+  return null;
+}
 function groundLiftAt() { return 0; }
+const guestUnder = () => null;
+const v = (x, y, z) => ({ x, y, z });
 console.log(JSON.stringify({
-  inside: orbitInsideBuilding({ x: 15, y: 4, z: 0 }, { x: 0, y: 1, z: 0 }),
-  overRoof: orbitInsideBuilding({ x: 15, y: 12, z: 0 }, { x: 0, y: 1, z: 0 }),
-  walkerIndoors: orbitInsideBuilding({ x: 15, y: 4, z: 0 }, { x: 12, y: 1, z: 0 }),
+  wall: orbitBlockedAt(v(0, 1, 0), v(30, 4, 0)),
+  overRoof: orbitBlockedAt(v(0, 1, 0), v(30, 30, 0)),
+  walkerIndoors: orbitBlockedAt(v(12, 1, 0), v(30, 4, 0)),
+  clear: orbitBlockedAt(v(0, 1, -20), v(30, 4, -20)),
+  besideShed: orbitBlockedAt(v(0, 1, 1.75), v(6, 1, 1.75)),
 }));
 """)
-    assert out == {"inside": True, "overRoof": False, "walkerIndoors": False}
+    # Stopped short of the house wall at x = 10 (less the gap), not behind it inside the house.
+    t = out["wall"]
+    assert t is not None and 9.0 < t < 10.0 * (30.15 / 30) - 0.4, out
+    assert out["overRoof"] is None and out["walkerIndoors"] is None and out["clear"] is None
+    # Along the shed's wall 0.25 m off it, the camera keeps a hand's width clear of it to the side.
+    assert out["besideShed"] is not None and out["besideShed"] <= 0.3 + 1e-9, out
     place = _extract("placeCamera", js)
-    assert "if (orbitInsideBuilding(camera.position, state.target))" in place
-    assert "state.target.y + state.dist" in place
+    assert "orbitBlockedAt(state.target, camera.position)" in place and "state.dist <= ORBIT_BLOCK_REACH_M" in place
+    assert "state.firstPerson || cameraPulledIn ? 0.12" in _extract("fitViewToAltitude", js)
+    # A region drawn over the page answers for its own buildings.
+    assert "buildingTopAt,\n  eligibleLanding," in js
 
 
 def test_a_pin_brings_you_in_as_close_as_a_right_click() -> None:
