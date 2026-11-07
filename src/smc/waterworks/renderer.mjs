@@ -117,6 +117,10 @@ function lidTexture(THREE, doc, word) {
   return c ? asColour(THREE, new THREE.CanvasTexture(c)) : null;
 }
 
+//: How far over the road the gutter pan is laid: clear of where the road's chords and its own
+//: part on a hill (see the gutters, below).
+export const GUTTER_LIFT_M = 0.03;
+
 // -- the drawing ------------------------------------------------------------------------------------------
 
 export function buildWaterworks(THREE, tiles, {
@@ -217,7 +221,14 @@ export function buildWaterworks(THREE, tiles, {
   // ---- gutters: a concrete pan along every kerb, falling to the kerb ---------------------------------------
   if (!headset) {
     const pos = [], idx = [];
-    const step = 2;   // the terrain grid's own step, so the pan follows the road it lies on
+    // A metre a vertex, half the terrain grid's step, and a hand's width over the ground. The
+    // road under it is cut on the terrain grid and runs straight between its nodes; the pan,
+    // sampled every two metres at a few millimetres over the ground, ran straight between points
+    // of its own, and on a hill the two crossed: the asphalt came up through the pan in patches
+    // and the grey strip along the kerb was left in jagged pieces (Walnut Street by the Oxford
+    // Tract). Over the road by GUTTER_LIFT_M it clears the road's own chords; a pan is flush with
+    // the road, and three centimetres under a thirteen-centimetre kerb does not read as a step.
+    const step = 1;
     for (const seg of kerbSegments()) {
       const [ax, az, bx, bz, half] = seg;
       const len = Math.hypot(bx - ax, bz - az);
@@ -235,8 +246,8 @@ export function buildWaterworks(THREE, tiles, {
           if (!kerbed) { open = false; continue; }
           const y = level(ex, ez) + roadTop;
           const base = pos.length / 3;
-          pos.push(ex - nx * 0.01, y + 0.003, ez - nz * 0.01,
-            ex - nx * SIZE.gutter, y + 0.007, ez - nz * SIZE.gutter);
+          pos.push(ex - nx * 0.01, y + GUTTER_LIFT_M, ez - nz * 0.01,
+            ex - nx * SIZE.gutter, y + GUTTER_LIFT_M + 0.004, ez - nz * SIZE.gutter);
           if (open) idx.push(base - 2, base - 1, base, base - 1, base + 1, base);
           counts.gutters_m += open ? step : 0;
           open = true;
@@ -298,13 +309,13 @@ export function buildWaterworks(THREE, tiles, {
         SIZE.curbOpening + 0.06, 0.02, 0.025));
       // The dished apron the gutter falls into, round the inlet.
       const ax = seat.kx - seat.nx * SIZE.apronAcross / 2, az = seat.kz - seat.nz * SIZE.apronAcross / 2;
-      placed.apron.push(pose(ax, road + 0.009, az, yaw, SIZE.apronAlong, 1, SIZE.apronAcross));
+      placed.apron.push(pose(ax, road + GUTTER_LIFT_M + 0.006, az, yaw, SIZE.apronAlong, 1, SIZE.apronAcross));
       // The gutter's wet line leading down to it from the side (or sides) it drains.
       for (const { side } of uphillSides(seat, level)) {
         for (let i = 0; i <= 6; i += 1) {
           const t = 0.5 + (SIZE.wetRun - 0.5) * (i / 6), w = 0.24 * (1 - i / 7) + 0.04;
           const cx = seat.kx + seat.ax * t * side - seat.nx * 0.1, cz = seat.kz + seat.az * t * side - seat.nz * 0.1;
-          const y = level(cx, cz) + roadTop + 0.011;
+          const y = level(cx, cz) + roadTop + GUTTER_LIFT_M + 0.008;   // on the pan, not under it
           const base = wetPos.length / 3;
           wetPos.push(cx, y, cz, cx - seat.nx * w, y, cz - seat.nz * w);
           if (i) wetIdx.push(base - 2, base - 1, base, base - 1, base + 1, base);
@@ -312,7 +323,7 @@ export function buildWaterworks(THREE, tiles, {
       }
     }
     if (d.f === "curb_opening") continue;
-    const y = seat.atKerb ? road + 0.02 : surfaceAt(seat.x, seat.z) + 0.02;
+    const y = seat.atKerb ? road + GUTTER_LIFT_M + 0.017 : surfaceAt(seat.x, seat.z) + 0.02;
     if (d.f === "round_grate") placed.round.push(tag(pose(seat.x, y, seat.z, hash(d.id) * Math.PI, SIZE.roundGrate, 1, SIZE.roundGrate), basis));
     else if (d.f === "trench") placed.trench.push(tag(pose(seat.x, y, seat.z, yaw, SIZE.trenchAlong, 1, SIZE.trenchAcross), basis));
     else placed.grate.push(tag(pose(seat.x, y, seat.z, yaw, SIZE.grateAlong, 1, SIZE.grateAcross), basis));

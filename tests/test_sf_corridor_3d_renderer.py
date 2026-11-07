@@ -513,6 +513,8 @@ def test_a_tunnel_is_what_the_lidar_says_it_is_and_its_mouths_are_where_the_hill
     assert 'function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }' in source
     # Buildings stand on the lowest ground under their footprint; trees and posts on the ground.
     assert "const hillLift = groundBaseFor(feature.points);" in source
+    # ...and are as tall over the median ground at their foot as the lidar measured them.
+    assert "groundRiseFor(feature.points, hillLift)" in source
     if PAGE_DATA.exists():
         deployed = json.loads(PAGE_DATA.read_text(encoding="utf-8"))
         by_kind = {}
