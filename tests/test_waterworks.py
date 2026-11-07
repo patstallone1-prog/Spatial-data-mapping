@@ -178,3 +178,27 @@ def test_the_build_files_each_thing_by_its_tile_to_a_tenth_of_a_metre():
     routes = build.Routes()
     assert routes.add({"to": "a"}) == 0 and routes.add({"to": "b"}) == 1 and routes.add({"to": "a"}) == 0
     assert build.city_of("san-francisco:catch_basin:N-1") == "san-francisco" and build.city_of("osm:n1") is None
+
+
+def test_the_gutter_pan_lies_clear_of_the_road_and_its_drain_on_the_pan():
+    # On a hill the road (cut on the terrain grid) and a pan a few millimetres over the ground
+    # crossed between their vertices, and the asphalt broke the grey pan into jagged pieces along
+    # the kerb. It is laid GUTTER_LIFT_M over the road, a vertex a metre, with the drain on it.
+    r = _node("""
+const tile = {schema: "kerbside.waterworks/1", drains: [{id: "d1", p: [0.0001, 0], f: "curb_grate", s: "storm"}]};
+const place = (lon, lat) => ({x: lon * 88000, z: -lat * 111000});
+const kerb = (x, z) => ({x: x, z: 5, nx: 0, nz: 1, ax: 1, az: 0});
+const ground = (x, z) => 0.08 * x;
+const g = W.buildWaterworks(THREE, [tile], {place, ground, kerb, document: null, roadTop: 0.06,
+  kerbSegments: () => [[0, 0, 40, 0, 5]]});
+const pan = g.children.find(c => c.name === "waterworks-gutters");
+const p = pan.geometry.getAttribute("position");
+let low = Infinity, xs = new Set();
+for (let i = 0; i < p.count; i += 1) { low = Math.min(low, p.getY(i) - ground(p.getX(i), p.getZ(i)) - 0.06); xs.add(Math.round(p.getX(i))); }
+process.stdout.write(JSON.stringify({low, lift: W.GUTTER_LIFT_M, vertices: xs.size}));
+""")
+    assert r["lift"] == 0.03
+    assert r["low"] >= 0.03 - 1e-6, "every vertex of the pan over the road by the lift"
+    assert r["vertices"] >= 40, "a vertex a metre along the kerb"
+    source = RENDERER.read_text()
+    assert "road + GUTTER_LIFT_M + 0.017" in source and "road + GUTTER_LIFT_M + 0.006" in source

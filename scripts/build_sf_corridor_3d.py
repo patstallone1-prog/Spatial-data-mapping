@@ -5293,6 +5293,36 @@ function groundBaseFor(points) {
   }
   return Number.isFinite(low) ? low : 0;
 }
+//: How far the ground a building's height was measured from stands above the ground it is
+//: drawn from. The lidar height is the roof over the median ground return in the footprint's
+//: box and four metres round it (smc.lidar.region.building_height), and the building is drawn
+//: up from the lowest corner so that no corner floats. On a slope the two differ, and drawn
+//: from the low corner with the measured height the roof came out short by the difference:
+//: the Oxford Research Unit at Walnut and Delaware, on five metres of fall, stood with its
+//: roof under the uphill pavement and looked buried. Sampled the way the measure is, on a grid
+//: over the same box, the median of the terrain there; capped, so a bad terrain cell cannot
+//: stand a house on stilts.
+var BUILDING_FOOT_PAD_M = 4, BUILDING_RISE_MAX_M = 12, BUILDING_FOOT_SAMPLES = 400;
+function groundRiseFor(points, low = groundBaseFor(points)) {
+  if (!TERRAIN_FRAME || !points || points.length < 3) return 0;
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const p of points) {
+    const [x, y] = xy(p[0], p[1]);
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, -y); z1 = Math.max(z1, -y);
+  }
+  x0 -= BUILDING_FOOT_PAD_M; x1 += BUILDING_FOOT_PAD_M; z0 -= BUILDING_FOOT_PAD_M; z1 += BUILDING_FOOT_PAD_M;
+  const step = Math.max(2, Math.sqrt((x1 - x0) * (z1 - z0) / BUILDING_FOOT_SAMPLES));
+  const heights = [];
+  for (let x = x0; x <= x1 + 1e-6; x += step)
+    for (let z = z0; z <= z1 + 1e-6; z += step) {
+      const h = terrainHeightAt(x, z);
+      if (Number.isFinite(h)) heights.push(h);
+    }
+  if (!heights.length || !Number.isFinite(low)) return 0;
+  heights.sort((a, b) => a - b);
+  const median = heights[heights.length >> 1];
+  return Math.max(0, Math.min(BUILDING_RISE_MAX_M, median - low));
+}
 //: The build hands the browser a frame every so often. Without that the whole corridor was one
 //: synchronous run of half a minute or more, which on a phone is "Page unresponsive" and a
 //: kill; with it the same work takes a little longer and shows its progress.
@@ -18696,6 +18726,8 @@ function parkingMesh(feature, seed) {
   return group;
 }
 
+//: The archetypes drawn as a lot at one level, not as a building rising off the hill.
+var ARCHETYPE_LOT_KINDS = new Set(["gas_station", "park", "mini_golf", "parking"]);
 function placeArchetypeMesh(feature, seed) {
   if (feature.archetype === "gas_station") return gasStationMesh(feature, seed);
   if (feature.archetype === "park" || feature.archetype === "mini_golf") return parkMesh(feature, seed);
@@ -20059,12 +20091,17 @@ function buildingMesh(feature) {
   // Drawn as its parts where OpenStreetMap maps them, and as tall as the tallest of them.
   const shaped = feature.shape && kind === "building" ? shapedBuildingGeometry(feature, height) : null;
   if (shaped) height = shaped.top;
-  // Seeded from the footprint, so a building keeps its material and colour between reloads.
-  const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   // A building stands on the hill at the height the lidar measured the ground there -- the
   // lowest ground under its footprint, so no corner floats. A car park or a filling station
   // is a lot at one level, and stands at the same height with everything on it.
   const hillLift = groundBaseFor(feature.points);
+  // Its roof is where it was measured: the height over the median ground at its foot, so
+  // drawn from the low corner it is that much taller (groundRiseFor). Not a car park or a
+  // filling station (a lot at one level), nor a building drawn as its mapped parts.
+  const rise = !shaped && !ARCHETYPE_LOT_KINDS.has(feature.archetype) ? groundRiseFor(feature.points, hillLift) : 0;
+  if (rise > 0.05) { height += rise; feature._groundRiseM = +rise.toFixed(2); }
+  // Seeded from the footprint, so a building keeps its material and colour between reloads.
+  const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
   // Runtime-only clearance extent, shared with the tree/house intersection cut.
   feature._treeClipBase=hillLift;feature._treeClipRoof=hillLift+height;
   BUILDING_LIFT_M = hillLift;
@@ -26701,9 +26738,18 @@ const groundReady = (async () => {
   if (neutralServiceGeom) {
     // An unbuilt parcel is not evidence of lawn. Keep it as a restrained hardscape
     // fallback until city land-use or imagery resolves it.
-    addGround(new THREE.Mesh(neutralServiceGeom, new THREE.MeshStandardMaterial({
+    // A fallback is the last thing that should show: drawn first after the terrain, without
+    // a depth test, and under the fills inferred from imagery, so every mapped surface on the
+    // parcel paints over it. It used to be depth-tested at its own few millimetres over the
+    // ground, above a car park's (PARKING_Y) asphalt, and the two follow the hill on different
+    // tessellations: the parcel's grey paving won here and lost there, and the Oxford Tract car
+    // park at Walnut and Delaware was a grey slab with blotches of its own asphalt and stalls
+    // breaking through. The parcel is the whole lot, so the slab was the lot's size.
+    const neutralMesh = addGround(new THREE.Mesh(neutralServiceGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xa6a39a, roughness: 0.98, metalness: 0.0, side: THREE.DoubleSide,
+      depthTest: false,
     })), "neutral_ground");
+    neutralMesh.renderOrder = -1.6;
   }
   const serviceGeom = ringGeometry(serviceRings.map((y) => y.p), SERVICE_YARD_Y);
   if (serviceGeom) {
@@ -31105,9 +31151,14 @@ const OVERVIEW = { yaw: -0.45, pitch: 1.1, dist: 12500, look: 0.0, tilt: 0 };
 //: How far the view turns up or down: just short of straight up and straight down (exactly
 //: vertical, "up" is undefined and the view would spin).
 const LOOK_LIMIT = 1.55;
-//: The orbit's lowest pitch. Dragged on past it, the camera stays where it is and the view
-//: tilts up (state.tilt) -- to the sky overhead at most.
+//: The orbit's lowest pitch. Dragged on past it the view stops, as it stops at the ground
+//: (ORBIT_GROUND_CLEAR_M). It used to tilt up instead (state.tilt), so that a drag that met the
+//: ground kept going and swung the view round to the sky: it read as the camera bouncing off
+//: the street and spinning, and it is gone. ``state.tilt`` stays 0; a saved view's is cleared.
 const ORBIT_MIN_PITCH = 0.25;
+//: How far over the ground the orbit camera stops: swung down towards a hill, or round to the
+//: uphill side of the walker, it comes to rest this high over the ground instead of under it.
+var ORBIT_GROUND_CLEAR_M = 0.8, cameraOnGround = false;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
@@ -31146,6 +31197,17 @@ function placeCamera() {
   if (blocked !== null) {
     camera.position.sub(state.target).setLength(blocked).add(state.target);
     cameraPulledIn = true;
+  }
+  // The ground stops it too. Not under the ground (a walker in a tunnel or a station has its
+  // own bore to keep the camera in: constrainWorldCamera), and not from the air.
+  cameraOnGround = false;
+  if (state.dist <= ORBIT_BLOCK_REACH_M && typeof groundLiftAt === "function") {
+    const floor = groundLiftAt(camera.position.x, camera.position.z);
+    const under = groundLiftAt(state.target.x, state.target.z);
+    if (Number.isFinite(floor) && !(state.target.y < under - 1) && camera.position.y < floor + ORBIT_GROUND_CLEAR_M) {
+      camera.position.y = floor + ORBIT_GROUND_CLEAR_M;
+      cameraOnGround = true;
+    }
   }
   constrainWorldCamera();
   camera.lookAt(state.target);
@@ -31223,7 +31285,9 @@ function buildingTopAt(x, z) {
   let way = null;
   try { way = buildingAt(x, z); } catch { return null; }   // the footprints are not indexed yet
   if (!way) return null;
-  return { way, top: groundLiftAt(x, z) + (Number(way.height_m) || 10.5) + 0.3 };
+  // The roof as drawn, where it has been (a building on a slope is drawn taller than its
+  // measured height from its low corner: groundRiseFor).
+  return { way, top: (way._treeClipRoof ?? groundLiftAt(x, z) + (Number(way.height_m) || 10.5)) + 0.3 };
 }
 //: How far from ``target`` the orbit camera may stand on the line out to ``position`` before it
 //: would be inside a building below its roof (less ORBIT_WALL_GAP_M, and clear of the wall to
@@ -31290,10 +31354,12 @@ canvas.addEventListener("pointermove", (e) => {
   if (state.firstPerson) {
     state.look = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, state.look - dy * 0.004));
   } else {
-    // Pitch and tilt are one motion: below the lowest pitch the drag tilts the view up instead.
-    const v = state.pitch - (state.tilt || 0) + dy * 0.004;
-    state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, v));
-    state.tilt = Math.max(0, Math.min(ORBIT_MAX_TILT, ORBIT_MIN_PITCH - v));
+    // The drag stops at the lowest pitch, and at the ground: a drag on down holds the view
+    // where it is rather than tilting it up (ORBIT_MIN_PITCH), and does not wind the pitch on
+    // under the ground either, so dragging back up moves the view at once.
+    const v = state.pitch + dy * 0.004;
+    if (!(cameraOnGround && v < state.pitch)) state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, v));
+    state.tilt = 0;
   }
   last = [e.clientX, e.clientY];
   placeCamera();
@@ -32139,8 +32205,8 @@ function pickRayBuilding(origin,direction) {
   const seen=new Set();
   for(const bucket of footprintGrid.values())for(const entry of bucket) {
     if(seen.has(entry))continue;seen.add(entry);
-    const floor=groundBaseFor(entry.way.points);
-    const t=worldStreaming.rayPrism(origin,direction,entry.local,floor,floor+Math.max(3,entry.way.height_m || 10.5));
+    const floor=entry.way._treeClipBase??groundBaseFor(entry.way.points);
+    const t=worldStreaming.rayPrism(origin,direction,entry.local,floor,entry.way._treeClipRoof??(floor+Math.max(3,entry.way.height_m || 10.5)));
     if(t===null || t>=bestT)continue;
     const x=origin[0]+t*direction[0],z=origin[2]+t*direction[2];
     if(BUILD_WINDOW && !BUILD_WINDOW.inside(midLon+x/metersPerLon,midLat-z/metersPerLat))continue;

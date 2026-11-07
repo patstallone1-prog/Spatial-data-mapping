@@ -36,9 +36,11 @@ def test_the_view_looks_straight_up_and_down() -> None:
     js = _page_js()
     assert "const LOOK_LIMIT = 1.55;" in js
     assert "state.look = Math.max(-LOOK_LIMIT, Math.min(LOOK_LIMIT, state.look - dy * 0.004));" in js
-    # Orbiting, the drag past the lowest pitch tilts the view up to the sky.
-    assert "state.tilt = Math.max(0, Math.min(ORBIT_MAX_TILT, ORBIT_MIN_PITCH - v));" in js
-    assert "if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));" in js
+    # Orbiting, the drag stops at the lowest pitch and at the ground: it no longer tilts the
+    # view up past it, which swung a drag that met the street round to the sky.
+    assert "ORBIT_MIN_PITCH - v" not in js
+    assert "if (!(cameraOnGround && v < state.pitch)) state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, v));" in js
+    assert "state.tilt = 0;" in js
     # Looked at along cos/sin rather than tan, so straight up does not fly off to infinity.
     assert "Math.cos(state.look)" in _extract("placeCamera", js)
 
