@@ -78,6 +78,7 @@ def test_fixed_programs_pass_without_geometry_replacement_or_dropped_categories(
     assert {r["tenants"][0]["category"] for r in rows} >= set(library()["categories"]) - {
         "jewelry",
         "barber",
+        "car_dealership",
     }
     for row in rows:
         p = plans[row["id"]]

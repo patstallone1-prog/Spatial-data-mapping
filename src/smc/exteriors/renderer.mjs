@@ -366,12 +366,13 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           const faceAt = at.clone().multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.027));
           batch.add(new THREE.PlaneGeometry(0.61, sign.h), m, faceAt);
           box(u, v + sign.h * 0.7, 0.23, 0.04, 0.04, 0.5, frame);
-        } else if(sign.brand_layout==='icon_and_wordmark'){
-          const iconH=Math.min(sign.h,sign.w/3),extent=Math.min(sign.w,iconH*8), start=u-extent/2, depth=panel?.205:.085;
-          plane(start+iconH/2,v,depth,iconH,iconH,m);
+        } else if(sign.brand_layout==='icon_and_wordmark' && textures.has(sign.asset)){
+          const iconH=Math.min(sign.h,sign.w/3),extent=Math.min(sign.w,iconH*8),start=u-extent/2,depth=panel?.205:.085;
+          const aspect=map.userData.displayAspect||map.image.width/map.image.height,iconW=Math.min(iconH*aspect,extent*.3);
+          plane(start+iconW/2,v,depth,iconW,Math.min(iconH,iconW/aspect),m);
           const text=signMaterial(f,{...sign,asset:null,brand_layout:null,ink:panel?p.accent:undefined,text:sign.wordmark||'STARBUCKS'});
           const gap=Math.min(.18,extent*.08);
-          plane(start+iconH+gap+(extent-iconH-gap)/2,v,depth,extent-iconH-gap,iconH,text);
+          plane(start+iconW+gap+(extent-iconW-gap)/2,v,depth,extent-iconW-gap,iconH,text);
         } else if(sign.icon==='arches' && sign.w>sign.h*4){
           // Parametric motif from the reference kit, not archived official logo artwork.
           const extent=Math.min(sign.w,sign.h*12),start=u-extent/2,h=sign.h,depth=panel?.205:.09;

@@ -139,6 +139,223 @@
       "transform": "none",
       "usage": "brand identification; trademarks remain with owners",
       "scope": "exact supplied brand asset, not a surveyed station"
+    },
+    "toyota": {
+      "path": "toyota-logo.svg",
+      "source_url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:caee6520-2e75-4408-b632-247c747a3e53/as/VIS_toyota_logo_horiz_black_RGB_2023.svg",
+      "discovered_at": "https://www.toyota.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "70e3fcceb11139497f826946b241b6a3a73935da396fb8e9725f0b5f271a9709",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand artwork, not a surveyed storefront"
+    },
+    "nissan": {
+      "path": "nissan-logo.svg",
+      "source_url": "https://www.nissanusa.com/content/dam/Nissan/us/nissan-next-logo-tm.svg",
+      "discovered_at": "https://www.nissanusa.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "3bb6e0b0bc4125c1c17e5dfa190c49fec26a2ea7f2195379a91d6d3269d3f501",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand artwork, not a surveyed storefront"
+    },
+    "daiso": {
+      "path": "daiso-logo.svg",
+      "source_url": "https://daisous.com/cdn/shop/files/footer_daiso_logo.svg?v=1755222270&width=760",
+      "discovered_at": "https://daisous.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "540ca6551d6be01830633c645aa4c144a60532f383fd176f7f06e8fa1bf4161b",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied brand artwork, not a surveyed storefront"
+    },
+    "kia": {
+      "path": "kia-logo.svg",
+      "source_url": "https://www.kia.com/us/content/dam/kia/us/common/kia_logo_white.svg",
+      "discovered_at": "https://www.kia.com/us/en",
+      "retrieved_at": "2026-11-05",
+      "sha256": "f43eb786e06e01fb2398d00f99619ce307b7b582e62ba2a728830876a5b12f1f",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; local facade adoption not established"
+    },
+    "sephora": {
+      "path": "sephora-logo.svg",
+      "source_url": "https://d338ucc43w64ir.cloudfront.net/wp-content/uploads/2025/10/02212115/Sephora_logo.svg",
+      "discovered_at": "https://www.interbrand.com/work/sephora/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "310b971f447037013a91e7c5d6f4c8e129561501b7b64df63eaf7c739b4826df",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; local facade adoption not established"
+    },
+    "petco": {
+      "path": "petco-logo.png",
+      "source_url": "https://corporate.petco.com/image/Petco_Logo_Navy.png",
+      "discovered_at": "https://corporate.petco.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "3ecf0889ff79949ff818f7a7299ec4663f5b6375743181035ac0799c99dd4198",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; local facade adoption not established",
+      "display_box_px": [
+        0,
+        119,
+        991,
+        278
+      ],
+      "presentation": "Texture UV excludes uniform master-image margins; archived image bytes unchanged."
+    },
+    "mazda": {
+      "path": "mazda-logo.png",
+      "source_url": "https://www.mazdausa.com/siteassets/images/home/4218-update/mazda-brandmark-black.png?w=180",
+      "discovered_at": "https://www.mazdausa.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "7d6ead235961993d3cf66d8c094557f11776477c5470f45bcc11a078c3a74008",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; local facade adoption not established"
+    },
+    "lexus": {
+      "path": "lexus-logo.jpg",
+      "source_url": "https://tmna.assetscs.toyota.com/is/image/lexusaemcs/lexus/images/brand/Lexus_logo_4E4ABD922583A135140CD1AC3C6CAFF83B074DF4-864x600.jpg?wid=680&hei=452",
+      "discovered_at": "https://www.lexus.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "72de00e8bed043691bfccfdf04f4f59a6eb92392c590dd1923845f73b94bc5cd",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; local facade adoption not established",
+      "display_box_px": [
+        33,
+        13,
+        608,
+        425
+      ],
+      "presentation": "Texture UV excludes uniform master-image margins; archived image bytes unchanged."
+    },
+    "honda": {
+      "path": "honda-logo.svg",
+      "source_url": "https://global.honda/en/",
+      "discovered_at": "https://global.honda/en/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "d27ad152dc1d0d48f66f7eb44d4f6be6fcfa82905c39bd5c641c5206c3611cf1",
+      "transform": "extracted embedded SVG; paths and colors unchanged",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "HONDA wordmark selected by texture UVs from publisher header; campaign taglines excluded; not a measured dealership sign",
+      "display_size_px": [
+        2175,
+        200
+      ],
+      "display_box_px": [
+        0,
+        0,
+        900,
+        110
+      ]
+    },
+    "ford": {
+      "path": "ford-logo.jpg",
+      "source_url": "https://www.manual-arg.ford.com/img/logo-ford-01.jpg",
+      "discovered_at": "https://www.manual-arg.ford.com/material-descargable.html",
+      "retrieved_at": "2026-11-05",
+      "sha256": "62c933db2d1f57a51e2407f8eaf54f5bf2063bfe4fc6fd6ba3cc43e19b089ad1",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork, not a measured facade",
+      "display_box_px": [
+        65,
+        55,
+        371,
+        142
+      ],
+      "presentation": "Texture UV excludes uniform master-image margins; archived image bytes unchanged."
+    },
+    "mercedes_benz": {
+      "path": "mercedes_benz-logo.svg",
+      "source_url": "https://media.mercedes-benz.com/assets/img/mb_logo_star.svg",
+      "discovered_at": "https://media.mercedes-benz.com/en",
+      "retrieved_at": "2026-11-05",
+      "sha256": "be9f132184cf11645bfb4f721761e72499578d474e3d4d8eb5f7d42d2799b7e5",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork, not a measured facade"
+    },
+    "walmart": {
+      "path": "walmart-logo.jpg",
+      "source_url": "https://corporate.walmart.com/content/dam/corporate/images/newsroom/2025/01/13/walmart-introduces-updated-look-and-feel-a-testament-to-heritage-and-innovation/wordmark-white-on-true-blue.jpg",
+      "discovered_at": "https://corporate.walmart.com/news/2025/01/13/walmart-introduces-updated-look-and-feel-a-testament-to-heritage-and-innovation/press-center",
+      "retrieved_at": "2026-11-05",
+      "sha256": "87bdece868a80a01b1ebaa0ce1cc985437384da12f6e9819aa85f59ac1452a8b",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified",
+      "display_box_px": [
+        266,
+        233,
+        468,
+        94
+      ]
+    },
+    "dunkin": {
+      "path": "dunkin-logo.svg",
+      "source_url": "https://news.dunkindonuts.com/media/themes/638531a8b3aed3201b2014ff/fonts/dunkin-logo-color-outline.svg",
+      "discovered_at": "https://news.dunkindonuts.com/blog/dunkin-1000-next-gen",
+      "retrieved_at": "2026-11-05",
+      "sha256": "4fd6b14b5cfaabbe4a7c20afb94d07474b258dfc4ed9973dc25ea3692a19bc32",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified"
+    },
+    "jersey_mikes": {
+      "path": "jersey_mikes-logo.svg",
+      "source_url": "https://www.jerseymikes.com/_nuxt/master-logo.HPKhujUP.svg",
+      "discovered_at": "https://www.jerseymikes.com/real-estate/photos",
+      "retrieved_at": "2026-11-05",
+      "sha256": "f72f5533b64316ad9ca80a1256d59d514e14b2adbd4906af8482833f6845ef03",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified"
+    },
+    "lowes": {
+      "path": "lowes-logo.svg",
+      "source_url": "https://corporate.lowes.com/sites/lowes-corp/files/lowes-corp/lowes-white-logo.svg",
+      "discovered_at": "https://corporate.lowes.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "e744ec4b60d55a3b3325bda2852cadd6be6edf4f09123653fb5b7cc8e25920eb",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified"
+    },
+    "ace_hardware": {
+      "path": "ace_hardware-logo.svg",
+      "source_url": "https://newsroom.acehardware.com/images/ace-logo.svg",
+      "discovered_at": "https://newsroom.acehardware.com/",
+      "retrieved_at": "2026-11-05",
+      "sha256": "91a6a5c138f97f3efeb0ac35ad4fb45b92cf8f4de1402fd8a8ac9fcbf97c471c",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified"
+    },
+    "ulta": {
+      "path": "ulta-logo.svg",
+      "source_url": "https://cms.jibecdn.com/prod/ulta/assets/HEADER-LOGO_IMG-en-us-1587415346302.svg",
+      "discovered_at": "https://careers.ulta.com/events-and-store-openings",
+      "retrieved_at": "2026-11-05",
+      "sha256": "a2ee1dbde687560448dc8fbae2f863ad1bc7dd6f4ed1e329c658bda796b4b878",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork; location-specific sign generation unverified"
+    },
+    "popeyes": {
+      "path": "popeyes-logo.png",
+      "source_url": "https://cdn.prod.website-files.com/62e81a6c2171bd40143e605c/62f174b367ac32279c6c37be_Logo-Resize%20(1).png",
+      "discovered_at": "https://news.popeyes.com/media-assets/logos-fonts",
+      "retrieved_at": "2026-11-05",
+      "sha256": "95ddfc810ca8ad93036162f50ff9eada92d198af5f4126be160e7f760015c6cd",
+      "transform": "none",
+      "usage": "brand identification; trademarks remain with their owners",
+      "scope": "exact supplied artwork, local sign generation unverified"
     }
   }
 }

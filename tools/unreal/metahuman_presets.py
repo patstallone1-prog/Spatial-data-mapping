@@ -57,7 +57,7 @@ class Acquisition:
     def record(self, name, stage, **fields):
         # New attempts must not retain an old failure next to a successful result.
         row = self.state["presets"].setdefault(name, {})
-        for key in ("error", "traceback"):
+        for key in ("error", "traceback", "editor_retained_for_pending_requests"):
             row.pop(key, None)
         row.update(stage=stage, at=time.time(), **fields)
         write_report(self.report, self.state)
@@ -115,7 +115,8 @@ class Acquisition:
                 yield lambda character=character: character.get_editor_property(
                     "has_face_dna_blendshapes"
                 )
-            if not character.get_editor_property("has_high_resolution_textures"):
+            refresh = name in os.environ.get("KERBSIDE_MH_REFRESH_TEXTURES", "").split(",")
+            if refresh or not character.get_editor_property("has_high_resolution_textures"):
                 self.record(name, "download_textures")
                 params = ue.MetaHumanCharacterTextureRequestParams()
                 params.set_editor_properties({"blocking": False, "report_progress": True})
@@ -123,10 +124,22 @@ class Acquisition:
                 yield lambda character=character: character.get_editor_property(
                     "has_high_resolution_textures"
                 )
+            # The property can become true inside a face/body texture callback, before
+            # its native request has unwound. CanBuildMetaHuman also checks both cloud
+            # request queues and rigging state. Keep the editor object registered until
+            # that authoritative gate passes, including across re-entrant Slate frames.
+            self.record(name, "wait_for_assembly_ready")
+            yield lambda character=character: self.subsystem.can_build_meta_human(character, False)
             if not lib.save_loaded_asset(character):
                 raise RuntimeError("Character save failed; inspect Saved staging volume")
-            if not self.subsystem.can_build_meta_human(character, True):
-                raise RuntimeError("Character is not ready for assembly")
+            if not self.subsystem.can_build_meta_human(character, False):
+                yield lambda character=character: self.subsystem.can_build_meta_human(
+                    character, False
+                )
+            # Autorig/texture generation can leave large unreferenced transient meshes.
+            # Drain them only after cloud callbacks settled, with the character still
+            # registered. This changes neither source resolution nor runtime quality.
+            ue.SystemLibrary.collect_garbage()
             self.record(name, "assemble")
             params = ue.MetaHumanCharacterEditorBuildParameters()
             params.set_editor_properties(
@@ -168,6 +181,19 @@ class Acquisition:
         if self.handle is not None:
             self.ue.unregister_slate_post_tick_callback(self.handle)
             self.handle = None
+        if (
+            self.character
+            and self.subsystem.is_object_added_for_editing(self.character)
+            and not self.subsystem.can_build_meta_human(self.character, False)
+        ):
+            # Never tear down CharacterDataMap while Epic still owns cloud callbacks.
+            # A timed-out/error phase remains inspectable in the editor; the batch driver
+            # stops instead of opening another editor or counting an incomplete asset.
+            row = self.state["presets"].setdefault(getattr(self, "name", self.names[0]), {})
+            row["editor_retained_for_pending_requests"] = True
+            write_report(self.report, self.state)
+            self.ue.log_warning("MetaHuman editor retained: requests may still be completing")
+            return
         self.release()
         if os.environ.get("KERBSIDE_MH_QUIT") == "1":
             self.ue.SystemLibrary.quit_editor()

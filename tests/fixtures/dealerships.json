@@ -1,0 +1,1069 @@
+[
+  {
+    "id": "toyota-wide",
+    "name": "Toyota Wide",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            80.0,
+            0.0
+          ],
+          [
+            80.0,
+            70.0
+          ],
+          [
+            0.0,
+            70.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            80.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "toyota-wide-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              65.0,
+              40.0
+            ],
+            [
+              65.0,
+              62.0
+            ],
+            [
+              18.0,
+              62.0
+            ],
+            [
+              18.0,
+              40.0
+            ],
+            [
+              65.0,
+              40.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Toyota Wide",
+          "brand": "toyota",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        },
+        {
+          "edge": 0,
+          "tenant_id": "dealer",
+          "role": "service",
+          "openings": [
+            {
+              "id": "toyota-service",
+              "kind": "garage",
+              "u": 5,
+              "w": 3.5,
+              "v": 0,
+              "h": 3.3,
+              "inferred": false,
+              "source_id": "synthetic:service-door"
+            }
+          ]
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "honda-trapezoid",
+    "name": "Honda Trapezoid",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            70.0,
+            0.0
+          ],
+          [
+            61.0,
+            65.0
+          ],
+          [
+            8.0,
+            65.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "honda-trapezoid-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              55.0,
+              38.0
+            ],
+            [
+              55.0,
+              59.0
+            ],
+            [
+              18.0,
+              59.0
+            ],
+            [
+              18.0,
+              38.0
+            ],
+            [
+              55.0,
+              38.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Honda Trapezoid",
+          "brand": "honda",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "ford-l-lot",
+    "name": "Ford L Lot",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            80.0,
+            0.0
+          ],
+          [
+            80.0,
+            65.0
+          ],
+          [
+            40.0,
+            65.0
+          ],
+          [
+            40.0,
+            80.0
+          ],
+          [
+            0.0,
+            80.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "ford-l-lot-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              65.0,
+              37.0
+            ],
+            [
+              65.0,
+              57.0
+            ],
+            [
+              20.0,
+              57.0
+            ],
+            [
+              20.0,
+              37.0
+            ],
+            [
+              65.0,
+              37.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Ford L Lot",
+          "brand": "ford",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "nissan-courtyard",
+    "name": "Nissan Courtyard",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            85.0,
+            0.0
+          ],
+          [
+            85.0,
+            75.0
+          ],
+          [
+            0.0,
+            75.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        [
+          [
+            45.0,
+            8.0
+          ],
+          [
+            60.0,
+            8.0
+          ],
+          [
+            60.0,
+            22.0
+          ],
+          [
+            45.0,
+            22.0
+          ],
+          [
+            45.0,
+            8.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "nissan-courtyard-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              70.0,
+              43.0
+            ],
+            [
+              70.0,
+              67.0
+            ],
+            [
+              18.0,
+              67.0
+            ],
+            [
+              18.0,
+              43.0
+            ],
+            [
+              70.0,
+              43.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Nissan Courtyard",
+          "brand": "nissan",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "mazda-compact",
+    "name": "Mazda Compact",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            38.0
+          ],
+          [
+            0.0,
+            38.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            32.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "mazda-compact-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              10.0,
+              25.0
+            ],
+            [
+              30.0,
+              25.0
+            ],
+            [
+              30.0,
+              36.0
+            ],
+            [
+              18.0,
+              36.0
+            ],
+            [
+              18.0,
+              33.0
+            ],
+            [
+              10.0,
+              33.0
+            ],
+            [
+              10.0,
+              25.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Mazda Compact",
+          "brand": "mazda",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 0,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "bmw-angled",
+    "name": "Bmw Angled",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            77.14505706319011,
+            46.353426741904876
+          ],
+          [
+            30.806384211060966,
+            100.17468089213209
+          ],
+          [
+            -36.05266524370379,
+            60.001711049147865
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "bmw-angled-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              33.56923732450497,
+              70.33566879934435
+            ],
+            [
+              22.753437751393832,
+              88.3361821140887
+            ],
+            [
+              -15.819090780201218,
+              65.15946874313627
+            ],
+            [
+              -5.003291207090083,
+              47.15895542839191
+            ],
+            [
+              33.56923732450497,
+              70.33566879934435
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Bmw Angled",
+          "brand": "bmw",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            3.4286692028084493,
+            2.0601522996402166
+          ],
+          [
+            -0.6916353964719839,
+            8.917490705257116
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "kia-deep",
+    "name": "Kia Deep",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            45.0,
+            0.0
+          ],
+          [
+            45.0,
+            85.0
+          ],
+          [
+            0.0,
+            85.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            45.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "kia-deep-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              42.0,
+              60.0
+            ],
+            [
+              42.0,
+              80.0
+            ],
+            [
+              13.0,
+              80.0
+            ],
+            [
+              13.0,
+              60.0
+            ],
+            [
+              42.0,
+              60.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Kia Deep",
+          "brand": "kia",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "lexus-notched-shell",
+    "name": "Lexus Notched Shell",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            65.0,
+            0.0
+          ],
+          [
+            65.0,
+            65.0
+          ],
+          [
+            0.0,
+            65.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            65.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "lexus-notched-shell-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              16.0,
+              38.0
+            ],
+            [
+              60.0,
+              38.0
+            ],
+            [
+              60.0,
+              62.0
+            ],
+            [
+              40.0,
+              62.0
+            ],
+            [
+              40.0,
+              55.0
+            ],
+            [
+              16.0,
+              55.0
+            ],
+            [
+              16.0,
+              38.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Lexus Notched Shell",
+          "brand": "lexus",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 0,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "mercedes-irregular",
+    "name": "Mercedes Irregular",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            73.0,
+            0.0
+          ],
+          [
+            73.0,
+            45.0
+          ],
+          [
+            55.0,
+            67.0
+          ],
+          [
+            0.0,
+            67.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "mercedes-irregular-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              51.0,
+              38.0
+            ],
+            [
+              51.0,
+              60.0
+            ],
+            [
+              15.0,
+              60.0
+            ],
+            [
+              15.0,
+              38.0
+            ],
+            [
+              51.0,
+              38.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Mercedes Irregular",
+          "brand": "mercedes_benz",
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  },
+  {
+    "id": "independent-tiny",
+    "name": "Independent Tiny",
+    "units": "metres",
+    "site_polygon": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            22.0,
+            0.0
+          ],
+          [
+            22.0,
+            25.0
+          ],
+          [
+            0.0,
+            25.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            22.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "requested_display_cars": 100,
+    "building": {
+      "id": "independent-tiny-shell",
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              21.0,
+              16.0
+            ],
+            [
+              21.0,
+              24.0
+            ],
+            [
+              7.0,
+              24.0
+            ],
+            [
+              7.0,
+              16.0
+            ],
+            [
+              21.0,
+              16.0
+            ]
+          ]
+        ]
+      },
+      "height_m": 6.2,
+      "tenants": [
+        {
+          "id": "dealer",
+          "name": "Independent Tiny",
+          "brand": null,
+          "category": "car_dealership"
+        }
+      ],
+      "frontages": [
+        {
+          "edge": 3,
+          "tenant_id": "dealer",
+          "role": "public"
+        }
+      ]
+    },
+    "driveways": [
+      {
+        "points": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "width_m": 6.5,
+        "source_id": "fixture:driveway",
+        "inferred": true
+      }
+    ],
+    "geometry_evidence": {
+      "source": "synthetic stress cohort",
+      "inferred": true
+    }
+  }
+]
