@@ -207,3 +207,12 @@ console.log(JSON.stringify({ secret: secret?.length, kept: store.get("kerbside:e
     sql = (ROOT / "supabase/kerbside_device_accounts.sql").read_text()
     assert "insert into kerbside_editors (key_sha256, name, verified, last_seen) values (digest_hex, btrim(clean), false, now());" in sql
     assert "grant execute on function kerbside_register_device(text, text) to anon, authenticated;" in sql
+
+
+def test_the_owner_verifies_an_account_by_its_name():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("editor_accounts", ROOT / "scripts/editor_accounts.py")
+    accounts = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(accounts)
+    assert accounts.verify_line("Coral Heron 47") == "update kerbside_editors set verified = true where name = 'Coral Heron 47';"
+    assert accounts.verify_line("O'Hara Otter 12", False) == "update kerbside_editors set verified = false where name = 'O''Hara Otter 12';"
