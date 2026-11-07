@@ -52,6 +52,8 @@ def category(value, tags=None):
         detailed = category(raw)
         if detailed != "shop":
             return detailed
+    if value in {"car", "cars"}:
+        return "car_dealership"
     if value in data["categories"]:
         return value
     tags = tags or {}
@@ -63,6 +65,7 @@ def category(value, tags=None):
         ("school", {"school", "university", "college", "kindergarten"}),
         ("civic", {"government", "library", "civic", "community", "townhall"}),
         ("hotel", {"hotel", "motel", "hostel", "lodging"}),
+        ("car_dealership", {"dealership", "automotive_sales"}),
         ("industrial", {"industrial", "warehouse", "workshop", "repair", "storage"}),
         ("diner", {"diner"}),
         ("pizza", {"pizza", "pizzeria"}),
