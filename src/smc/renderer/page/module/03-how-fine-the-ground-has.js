@@ -893,9 +893,24 @@ if (PERIMETER && !NATURE) {
 //: out to the sea's height -- Crystal Springs a ninety-metre pit -- and its banks were cliffs
 //: down to it, painted half as water.
 const INLAND_WATER_ABOVE_SEA_M = 1.5;
+//: The cuttings a bridge's approach runs through (buildBayBridges registers them): the ground
+//: over its road is taken down to it, and sloped back up at about 45 degrees either side. The
+//: 3DEP ground at 10 m smooths a road cut away, so the Golden Gate's road ran on into the hill
+//: north of the span. Segments {ax, az, ay, bx, bz, by, half, box}, in the atlas's heights.
+var BRIDGE_CUTS;
+function bridgeCutHeight(x,z,y) {
+  if(!BRIDGE_CUTS)return y;
+  for(const c of BRIDGE_CUTS){
+    if(x<c.box[0]||x>c.box[2]||z<c.box[1]||z>c.box[3])continue;
+    const dx=c.bx-c.ax,dz=c.bz-c.az,L=dx*dx+dz*dz,t=L?Math.max(0,Math.min(1,((x-c.ax)*dx+(z-c.az)*dz)/L)):0;
+    const d=Math.hypot(x-c.ax-dx*t,z-c.az-dz*t),limit=c.ay+(c.by-c.ay)*t-.35+Math.max(0,d-c.half-2)*.9;
+    if(y>limit)y=limit;
+  }
+  return y;
+}
 function natureVisualHeightAt(x,z,h,wet) {
   if(wet)return (Number.isFinite(h) && h > SEA_Y + INLAND_WATER_ABOVE_SEA_M ? h : SEA_Y)-earthDrop(x,z);
-  const y=rawTerrainHeightAt(x,z,h)-earthDrop(x,z);
+  const y=bridgeCutHeight(x,z,rawTerrainHeightAt(x,z,h))-earthDrop(x,z);
   if(activeGuest?.ready && activeGuest.box) {
     const g=activeGuest,[gx,gz]=hostToGuest(g,x,z),b=g.box;
     const distance=Math.max(0,b[0]-gx,gx-b[2],b[1]-gz,gz-b[3]);
@@ -917,6 +932,8 @@ if (NATURE) {
     heightAt:natureVisualHeightAt,
     waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
+    // A bridge's own deck is drawn by the bridges: its road is not laid again on the ground under it.
+    underDeck:(x,z)=>typeof elevatedDecksAt==="function"&&elevatedDecksAt(x,z).length>0,
     hostBox,guestBox:indoorCut.guestBox,onHeightsChanged:syncNatureTileHeights,motion:natureMotion,
     forestFloor:forestFloorLibrary,loadModel:(url)=>new GLTFLoader().loadAsync(url),overview:!HEADSET});
   natureWorld.hostBox=hostBox;natureWorld.localBounds=localBounds.clone();
@@ -927,5 +944,6 @@ if (NATURE) {
     globe=globeLibrary.createGlobe(THREE,{parent:scene,lon0:midLon,lat0:midLat,maskUrl:sharedAsset("world/land-mask.png"),cap:cap+3000});
   }
   if(PERIMETER)buildBayBridges(TERRAIN_FRAME);
+  if(BRIDGE_CUTS?.length)natureWorld.invalidate(); // ground already laid is cut again
 }
 

@@ -191,17 +191,47 @@ function buildBayBridges(g) {
       registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z), b.x, b.z, b.y - earthDrop(b.x, b.z), road, info);
     }
     strip(stations, -road, road, 0, 0, lanesMaterial(lanes, median), 14);
+    const railMat = mat(railColor, { metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide });
     for (const side of [-1, 1]) {
       strip(stations, side * road, side * half, 0.22, 0.22, mat(walkColor, { roughness: 0.85, side: THREE.DoubleSide }));
       strip(stations, side * road, side * road, 0, 0.22, mat(BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
-      // The railing: a rail and the bars under it.
-      strip(stations, side * half, side * half, 1.25, 1.35, mat(railColor, { metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide }));
-      strip(stations, side * half, side * half, 0.22, 1.25, trussMaterial(railColor), 1.4);
+      // The railing: a solid top rail and a mid rail (box sections, not a flat ribbon), posts,
+      // and the bars between them. It was one painted strip: a fence of paper from the walkway.
+      rail(stations, side * (half - 0.06), 1.2, 1.36, 0.14, railMat);
+      rail(stations, side * (half - 0.06), 0.62, 0.7, 0.08, railMat);
+      strip(stations, side * (half - 0.06), side * (half - 0.06), 0.22, 1.2, trussMaterial(railColor), 1.4);
+      posts(stations, side * (half - 0.06), 0.22, 1.36, 0.14, railColor, 2.6);
+      // Between the lanes and the walkway, where it is wide enough to walk, a steel traffic
+      // barrier on posts: the walkway is a path of its own, not the road's verge.
+      if (walk >= 1.5) {
+        rail(stations, side * (road + 0.12), 0.62, 0.95, 0.12, mat(BRIDGE_PAINT.railGrey, { metalness: 0.6, roughness: 0.35, side: THREE.DoubleSide }));
+        posts(stations, side * (road + 0.12), 0.22, 0.95, 0.14, BRIDGE_PAINT.railGrey, 3.2);
+      }
       // The deck's edge.
       strip(stations, side * half, side * half, -depth, 0.22, mat(structure || BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
     }
     strip(stations, -half, half, -depth, -depth, mat(structure || BRIDGE_PAINT.concrete, { side: THREE.DoubleSide }));
   };
+  //: A rail along the deck: a box section `w` wide at offset `off`, from y0 to y1 over the deck.
+  function rail(stations, off, y0, y1, w, material) {
+    strip(stations, off - w / 2, off - w / 2, y0, y1, material);
+    strip(stations, off + w / 2, off + w / 2, y0, y1, material);
+    strip(stations, off - w / 2, off + w / 2, y1, y1, material);
+  }
+  //: Posts along the deck every `spacing` metres at offset `off`, from y0 to y1 over the deck.
+  function posts(stations, off, y0, y1, w, color, spacing) {
+    let s = 0, next = spacing / 2;
+    for (let i = 1; i < stations.length; i += 1) {
+      const a = stations[i - 1], b = stations[i], len = Math.hypot(b.x - a.x, b.z - a.z);
+      while (next <= s + len) {
+        const t = (next - s) / (len || 1), y = a.y + (b.y - a.y) * t;
+        addBox(mat(color, { metalness: 0.5, roughness: 0.4 }), a.x + (b.x - a.x) * t + a.rx * off, y + (y0 + y1) / 2, a.z + (b.z - a.z) * t + a.rz * off,
+          w, y1 - y0, w, Math.atan2(a.ux, a.uz));
+        next += spacing;
+      }
+      s += len;
+    }
+  }
   //: Stations along a line: position, height, the way across (r) and the way along (u).
   const stationsFor = (line, heights) => line.map(([x, z], i) => {
     const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
@@ -385,13 +415,35 @@ function buildBayBridges(g) {
     }
     // The anchorages, and the headlands the bridge lands on at either end.
     for (const [s, back] of [[0, -1], [total, 1]]) {
-      const p = at(s);
-      addBox(mat(BRIDGE_PAINT.concrete), p.x + p.ux * back * 20, p.y - 12, p.z + p.uz * back * 20, 40, 30, 50, Math.atan2(p.ux, p.uz));
+      const p = at(s), yaw = Math.atan2(p.ux, p.uz);
+      // The anchorage: a mass of concrete under the deck's end, down to the ground. It stood
+      // 3 m over the road, a block of stone across the bridge where it met the land.
+      const ax = p.x + p.ux * back * 20, az = p.z + p.uz * back * 20, top = p.y - spec.depth - 0.3;
+      const foot = Math.min(groundAt(ax, az), top - 6) - 4;
+      addBox(mat(BRIDGE_PAINT.concrete), ax, (top + foot) / 2, az, spec.width - 3, top - foot, 50, yaw);
       // Clear of the towers, which stand in the water off Fort Point and Lime Point.
       headland(p.x + p.ux * back * 230, p.z + p.uz * back * 230, p.y - 0.15, 300);
-      // The roadway on across the headland's top.
-      const runOn = [[p.x, p.z], [p.x + p.ux * back * 180, p.z + p.uz * back * 180]];
-      deck(stationsFor(runOn, [p.y, p.y]), { ...spec, structure: BRIDGE_PAINT.concrete });
+      // The roadway on to the land: it leaves the span at the span's height and meets the
+      // ground's road at no more than a 6 per cent grade, on piers while it is over it. A level
+      // 180 m of deck ran on into the hillside or out over the slope before.
+      const runOn = [], heights = [];
+      let met = -1;
+      for (let d = 0; d <= 600; d += 10) {
+        const x = p.x + p.ux * back * d, z = p.z + p.uz * back * d, g = groundAt(x, z) - 0.05;
+        const h = Math.max(p.y - 0.06 * d, Math.min(p.y + 0.06 * d, g));
+        runOn.push([x, z]); heights.push(h);
+        if (Math.abs(h - g) < 0.3) { if (met < 0) met = d; if (d - met >= 30) break; } else met = -1;
+      }
+      // The cutting it runs through, where the ground stands over its road.
+      if (!BRIDGE_CUTS) BRIDGE_CUTS = [];
+      for (let i = 1; i < runOn.length; i += 1) {
+        const [ax2, az2] = runOn[i - 1], [bx2, bz2] = runOn[i], pad = spec.width / 2 + 70;
+        BRIDGE_CUTS.push({ ax: ax2, az: az2, ay: heights[i - 1], bx: bx2, bz: bz2, by: heights[i], half: spec.width / 2,
+          box: [Math.min(ax2, bx2) - pad, Math.min(az2, bz2) - pad, Math.max(ax2, bx2) + pad, Math.max(az2, bz2) + pad] });
+      }
+      const runSt = stationsFor(runOn, heights);
+      deck(runSt, { ...spec, structure: BRIDGE_PAINT.concrete });
+      piers(runSt, 40, spec.width, BRIDGE_PAINT.concrete, (d) => d < 50);
     }
     counts.structures += 1;
   }

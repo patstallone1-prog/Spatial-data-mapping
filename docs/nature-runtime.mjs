@@ -59,6 +59,112 @@ export function pathTileCoordinates(key) {
   if(!match)throw new Error(`Invalid landscape path tile: ${key}`);
   return [Number(match[1]),Number(match[2])];
 }
+//: The towns beyond the built regions: every OpenStreetMap building in the landscape's frame
+//: that no region draws (scripts/build_nature_buildings.py). Marin's hillside houses, its small
+//: towns and the farms in the hills were bare ground and trees before: the landscape's paths kept
+//: buildings only to clear plants away from them, and never drew one.
+export const NATURE_BUILDING_KINDS={0:'other',1:'house',2:'apartments',3:'commercial',4:'industrial',5:'outbuilding',6:'civic'};
+//: Decode one KBL2 tile into buildings in the atlas's local metres: {kind, height, roof, ring}.
+export function decodeNatureBuildings(buffer,col,row,tileM=4000){
+  const bytes=buffer instanceof Uint8Array?buffer:new Uint8Array(buffer),view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+  if(String.fromCharCode(...bytes.subarray(0,4))!=='KBL2')throw new Error('Not a KBL2 buildings tile');
+  let at=4;const count=view.getUint32(at,true);at+=4;
+  const varint=()=>{let v=0,shift=0,b;do{b=bytes[at++];v+=(b&127)*2**shift;shift+=7;}while(b&128);return v;};
+  const signed=()=>{const z=varint();return z%2?-(z+1)/2:z/2;};
+  const ox=col*tileM-50,oy=row*tileM-50,out=new Array(count);
+  for(let i=0;i<count;i++){
+    const n=varint(),kind=bytes[at++],height=varint()/10,roof=bytes[at++];
+    let x=view.getUint16(at,true),y=view.getUint16(at+2,true);at+=4;
+    const ring=[[ox+x/8,oy+y/8]];
+    for(let k=1;k<n;k++){x+=signed();y+=signed();ring.push([ox+x/8,oy+y/8]);}
+    out[i]={kind,height,roof,ring};
+  }
+  if(at!==bytes.length)throw new Error('KBL2 tile length mismatch');
+  return out;
+}
+const WALLS={1:[[.84,.79,.70],[.90,.89,.85],[.70,.63,.52],[.58,.64,.68],[.54,.43,.34],[.78,.71,.57],[.72,.74,.70],[.62,.55,.46],[.80,.68,.58]],
+  2:[[.86,.81,.73],[.80,.78,.74],[.72,.64,.56],[.90,.88,.84]],3:[[.84,.82,.77],[.75,.73,.70],[.88,.80,.68]],
+  4:[[.68,.69,.68],[.60,.62,.64],[.74,.72,.66]],5:[[.62,.53,.44],[.77,.74,.68],[.55,.50,.46]],6:[[.90,.87,.80],[.80,.74,.66]],0:[[.80,.78,.74],[.72,.70,.66]]};
+const PITCHED=[[.31,.31,.33],[.40,.31,.27],[.47,.42,.37],[.29,.34,.37],[.36,.36,.34]],FLAT_ROOF=[.52,.52,.50];
+function pick(list,seed){return list[Math.abs(Math.floor(seed))%list.length];}
+function ringArea(ring){let a=0;for(let i=0;i<ring.length;i++){const p=ring[i],q=ring[(i+1)%ring.length];a+=p[0]*q[1]-q[0]*p[1];}return a/2;}
+//: Walls, and a roof by the building's kind and shape: a small house or shed of four corners
+//: is gabled along its long side; another small house is hipped to its centre when every
+//: corner sees it; anything else is flat. Each building stands on the lowest ground under its
+//: corners, so a hillside house shows its downhill storey, as Marin's do. `ground(x, y)` gives
+//: {p:[pageX, pageZ], height} for a local point, or null. `facade` carries, per vertex, the
+//: distance along the wall, the height above the base and the wall's height (windows by shader);
+//: roofs carry -1.
+export function natureBuildingArrays(buildings,ground,colourOf=c=>c){
+  const pos=[],col=[],fac=[],idx=[];
+  const vert=(p,y,c,f)=>{pos.push(p[0],y,p[1]);col.push(...c);fac.push(...f);return pos.length/3-1;};
+  let drawn=0;
+  for(const b of buildings){
+    let ring=b.ring;if(ring.length<3)continue;
+    const ground_=ring.map(p=>ground(p[0],p[1]));if(ground_.some(g=>!g))continue;
+    let lo=Infinity,hi=-Infinity;for(const g of ground_){lo=Math.min(lo,g.height);hi=Math.max(hi,g.height);}
+    if(hi-lo>12)continue; // a footprint across a cliff or a mis-sampled seam: left out
+    // Most of Marin's houses are mapped only as "a building": a small one, and low, is a house.
+    const area=Math.abs(ringArea(ring)),kind=b.kind===0&&area<320&&b.height<=8?1:b.kind;
+    const seed=Math.round(ring[0][0]*7+ring[0][1]*13),wall=colourOf(pick(WALLS[kind]||WALLS[0],seed));
+    const base=lo-.4,eave=Math.max(lo+b.height,hi+Math.min(b.height,2.6)),wallH=eave-base;
+    const windows=kind===5?0:1;
+    // Walls: per edge a quad, its own vertices so its normal is flat.
+    let u=0;
+    for(let i=0;i<ring.length;i++){
+      const a=ground_[i].p,c=ground_[(i+1)%ring.length].p,L=Math.hypot(c[0]-a[0],c[1]-a[1]);
+      const v0=vert(a,base,wall,[windows?u:-1,0,wallH]),v1=vert(c,base,wall,[windows?u+L:-1,0,wallH]);
+      const v2=vert(c,eave,wall,[windows?u+L:-1,wallH,wallH]),v3=vert(a,eave,wall,[windows?u:-1,wallH,wallH]);
+      idx.push(v0,v1,v2,v0,v2,v3);u+=L;
+    }
+    const pts=ground_.map(g=>g.p),pitched=b.roof!==2&&(b.roof===1||kind===1||kind===5)&&area<450;
+    const roofC=colourOf(pitched?pick(PITCHED,seed>>3):FLAT_ROOF),none=[-1,-1,-1];
+    if(pitched&&ring.length===4){
+      // Gable: the ridge joins the middles of the two short ends.
+      const e=[0,1,2,3].map(i=>Math.hypot(pts[(i+1)%4][0]-pts[i][0],pts[(i+1)%4][1]-pts[i][1]));
+      const s=e[0]+e[2]<e[1]+e[3]?0:1,span=(s?e[1]+e[3]:e[0]+e[2])/2,rise=Math.min(3.2,Math.max(.8,span*.32));
+      const mid=(i,j)=>[(pts[i][0]+pts[j][0])/2,(pts[i][1]+pts[j][1])/2];
+      // Ends are edges s and s+2 (short); the ridge runs between their middles.
+      const m0=mid(s,(s+1)%4),m1=mid((s+2)%4,(s+3)%4),top=eave+rise;
+      const [A,B,C,D]=[pts[s],pts[(s+1)%4],pts[(s+2)%4],pts[(s+3)%4]];
+      // Slopes: B-C side and D-A side; gable triangles at the ends, in the wall's colour.
+      for(const [p,q,r,t] of [[B,C,m1,m0],[D,A,m0,m1]]){const a=vert(p,eave,roofC,none),b2=vert(q,eave,roofC,none),c=vert(r,top,roofC,none),d=vert(t,top,roofC,none);idx.push(a,b2,c,a,c,d);}
+      for(const [p,q,r] of [[A,B,m0],[C,D,m1]]){const a=vert(p,eave,wall,none),b2=vert(q,eave,wall,none),c=vert(r,top,wall,none);idx.push(a,b2,c);}
+    }else{
+      let cx=0,cz=0;for(const p of pts){cx+=p[0];cz+=p[1];}cx/=pts.length;cz/=pts.length;
+      const sign=Math.sign(ringArea(pts)),star=pitched&&pts.every((p,i)=>{const q=pts[(i+1)%pts.length];return Math.sign((p[0]-cx)*(q[1]-cz)-(q[0]-cx)*(p[1]-cz))===sign;});
+      if(star){
+        const top=eave+Math.min(2.6,Math.max(.8,Math.sqrt(area)*.22)),apex=[cx,cz];
+        for(let i=0;i<pts.length;i++){const a=vert(pts[i],eave,roofC,none),b2=vert(pts[(i+1)%pts.length],eave,roofC,none),c=vert(apex,top,roofC,none);idx.push(a,b2,c);}
+      }else{
+        const tri=earcut(pts);const start=pos.length/3;for(const p of pts)vert(p,eave,roofC,none);
+        for(const t of tri)idx.push(start+t);
+      }
+    }
+    drawn++;
+  }
+  return {position:pos,color:col,facade:fac,index:idx,drawn};
+}
+//: Ear clipping for a simple ring (no holes): triangle indices into it.
+export function earcut(pts){
+  const n=pts.length,out=[];if(n<3)return out;
+  const order=[...Array(n).keys()];if(ringArea(pts)<0)order.reverse();
+  const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  const inside=(p,a,b,c)=>cross(a,b,p)>=0&&cross(b,c,p)>=0&&cross(c,a,p)>=0;
+  let guard=0;
+  while(order.length>3&&guard++<n*n){
+    let cut=false;
+    for(let i=0;i<order.length;i++){
+      const ia=order[(i+order.length-1)%order.length],ib=order[i],ic=order[(i+1)%order.length],a=pts[ia],b=pts[ib],c=pts[ic];
+      if(cross(a,b,c)<=1e-9)continue;
+      if(order.some(j=>j!==ia&&j!==ib&&j!==ic&&inside(pts[j],a,b,c)))continue;
+      out.push(ia,ib,ic);order.splice(i,1);cut=true;break;
+    }
+    if(!cut)break;
+  }
+  if(order.length===3)out.push(...order);
+  return out;
+}
 export const COVER_COLOURS = {
   0:[.36,.34,.29], 11:[44/255,97/255,135/255], 12:[.83,.85,.84],
   21:[.52,.51,.34],22:[.43,.43,.37],23:[.43,.43,.40],24:[.40,.40,.38],
@@ -256,16 +362,24 @@ export function cityEnvelope(heights,developed,cols,rows,floorAt,margin=COARSE_C
 //: The roads the landscape lays itself, where nothing else draws them (outside the city and the
 //: regions, as its trails): a fire road through the Presidio was kept clear of every plant and
 //: drawn as nothing, a bare strip of blurred ground twenty metres wide. Motorways and trunk
-//: roads are left out: they stand on embankments and viaducts a draped ribbon cannot follow.
+//: roads were left out (they stand on embankments and viaducts a draped ribbon cannot follow),
+//: and the highway north of the Golden Gate simply stopped at the bridge: they are laid on the
+//: ground now, a bridge of theirs too, and only a tunnel is left out.
 export const NATURE_ROADS=new Set(['service','unclassified','residential','living_street','road','tertiary','tertiary_link',
-  'secondary','secondary_link','primary','primary_link']);
+  'secondary','secondary_link','primary','primary_link','motorway','motorway_link','trunk','trunk_link']);
+//: A way under the ground, which the landscape does not draw over it.
+export function natureTunnel(w){const t=w.source_tags?.tunnel;return Boolean(t&&t!=='no');}
 //: The width of a road nobody measured, by its class (OpenStreetMap's own guidance and the city's
 //: streets); it was 7 m for everything, a driveway as wide as a two-lane street. Unpaved, narrower.
 export const INFERRED_ROAD_WIDTH_M={service:4,unclassified:6,residential:7,living_street:5,road:6,tertiary:8,
-  tertiary_link:6,secondary:10,secondary_link:7,primary:12,primary_link:8};
+  tertiary_link:6,secondary:10,secondary_link:7,primary:12,primary_link:8,motorway:15,motorway_link:6,trunk:12,trunk_link:6};
+//: A highway's lanes are mapped more often than its width: 3.6 m a lane, and its shoulders.
+const LANE_M=3.6,SHOULDERS_M={motorway:3.5,trunk:2.5,motorway_link:1.5,trunk_link:1.5,primary:1.5};
 export const UNPAVED=new Set(['dirt','ground','earth','gravel','fine_gravel','compacted','sand','unpaved','grass','mud','pebblestone']);
 export function inferredWidth(w){
   if(w.width_source!=='inferred'||w.trail||!INFERRED_ROAD_WIDTH_M[w.kind])return w.width_m;
+  const lanes=Number.parseInt(w.source_tags?.lanes,10);
+  if(lanes>0&&lanes<12&&SHOULDERS_M[w.kind]!==undefined)return lanes*LANE_M+SHOULDERS_M[w.kind];
   return UNPAVED.has(w.surface)?Math.min(3.5,INFERRED_ROAD_WIDTH_M[w.kind]):INFERRED_ROAD_WIDTH_M[w.kind];
 }
 //: A fallen log this thick (radius, metres) or more is climbed round, not walked through. Every
@@ -277,7 +391,7 @@ export function logHit(o,x,z,r){
   const L=o.dx*o.dx+o.dz*o.dz,t=L>0?Math.max(-1,Math.min(1,((x-o.x)*o.dx+(z-o.z)*o.dz)/L)):0;
   return Math.hypot(x-(o.x+o.dx*t),z-(o.z+o.dz*t))<o.r+r;
 }
-export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null,overview=true}) {
+export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,waterAt,blockedAt,underDeck=()=>false,guestBox,hostBox,onHeightsChanged=()=>{},motion=null,forestFloor=null,loadModel=null,overview=true}) {
   const world=new THREE.Group();world.name="nature-atlas-v1";world.userData.bayWide=true;root.add(world);
   const terrain=new THREE.Group(),features=new THREE.Group();world.add(terrain,features);
   const f=atlas.f,detailMeshes=new Map(),plantGroups=new Map(),pending=new Set(),pathTiles=new Map();
@@ -657,6 +771,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const s=surface(x,y),p=s?.p;
     if(!s||s.water||blockedAt(...p,radius))return true;
     const ways=nearbyWays(x,y);if(!ways)return true; // no plants before clearance evidence arrives
+    if(buildingAt(x,y,radius+.8))return true;
     const entries=pathTiles.get(`${Math.floor(x/4000)}-${Math.floor(y/4000)}`)?.grid.get(`${Math.floor(x/50)}:${Math.floor(y/50)}`)||[];
     for(const entry of entries){
       const w=entry.w;
@@ -773,11 +888,13 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     const trailColours={asphalt:[.29,.30,.29],concrete:[.57,.56,.51],stone:[.52,.50,.45],paving_stones:[.54,.49,.42],gravel:[.54,.49,.39],sand:[.68,.60,.44],ground:[.47,.37,.24],dirt:[.47,.37,.24],unknown:[.47,.37,.24]};
     for(const w of nearbyWays(x0+PLANT_TILE_M/2,y0+PLANT_TILE_M/2)||[]){await breath();
       const road=NATURE_ROADS.has(w.kind);
-      if(!(w.trail||road)||w.grade_separated||w.area)continue;
+      // A road's bridge is laid on the ground under it (a gap in the road was worse); a
+      // footbridge, which would lie across the road it spans, and a tunnel are not.
+      if(!(w.trail||road)||w.area||w.tunnel||w.grade_separated&&!road)continue;
       // A road of no stated surface is paved; a trail of none is earth. A road lies just under
       // the trails, so a path crossing it shows.
       const finish=w.kind==='steps'&&w.surface==='unknown'?'stone':road&&!UNPAVED.has(w.surface)&&!trailColours[w.surface]||road&&w.surface==='unknown'?'asphalt':w.surface;
-      const col=linearColour(trailColours[finish]||trailColours.unknown),half=w.width_m/2,lift=road?.028:.035;
+      const col=linearColour(trailColours[finish]||trailColours.unknown),half=w.width_m/2,lift=road?(w.kind.startsWith('motorway')||w.kind.startsWith('trunk')?.022:.028):.035;
       for(let i=1;i<w.local.length;i++){
         const a=w.local[i-1],b=w.local[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<.01)continue;
         // Intersect each segment with this tile before subdivision: no repeated full paths.
@@ -791,7 +908,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         for(let k=Math.floor(low*n);k<Math.ceil(high*n);k++){
           const ta=Math.max(low,k/n),tb=Math.min(high,(k+1)/n),tm=w.kind==='steps'?(k+.5)/n:(ta+tb)/2;
           const mx=a[0]+(b[0]-a[0])*tm,my=a[1]+(b[1]-a[1])*tm,mid=surface(mx,my);
-          if(!mid||mid.water||blockedAt(...mid.p,0))continue;
+          if(!mid||mid.water||blockedAt(...mid.p,0)||w.grade_separated&&underDeck(...mid.p))continue;
           const base=trailP.length/3;
           for(const [t,side] of [[ta,-1],[tb,-1],[tb,1],[ta,1]]){
             const x=a[0]+(b[0]-a[0])*t+nx*half*side,y=a[1]+(b[1]-a[1])*t+(b[0]-a[0])/L*half*side,s=surface(x,y);
@@ -831,12 +948,108 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
         const k=`${c}:${r}`;if(!data.grid.has(k))data.grid.set(k,[]);data.grid.get(k).push(entry);
       }
     };
-    for(const w of data.ways){w.local=w.points.map(p=>atlas.local(...p));w.width_m=inferredWidth(w);
+    for(const w of data.ways){w.local=w.points.map(p=>atlas.local(...p));w.width_m=inferredWidth(w);w.tunnel=natureTunnel(w);
       w.localHoles=(w.holes||[]).map(ring=>ring.map(p=>atlas.local(...p)));delete w.holes;
       if(w.area){const xs=w.local.map(p=>p[0]),ys=w.local.map(p=>p[1]);insert({w,area:true},Math.min(...xs)-7,Math.min(...ys)-7,Math.max(...xs)+7,Math.max(...ys)+7);}
       else for(let i=1;i<w.local.length;i++){const a=w.local[i-1],b=w.local[i],R=w.natural==="coastline"?100:w.width_m/2+7;insert({w,a,b},Math.min(a[0],b[0])-R,Math.min(a[1],b[1])-R,Math.max(a[0],b[0])+R,Math.max(a[1],b[1])+R);}
       delete w.points;delete w.source_tags;
     }data.decodedBytes=file.decoded_bytes;pathTiles.set(key,data);floorStale=true;
+  }
+  // ---- The towns: buildings beyond the regions (nature/buildings.json), in 500 m chunks round
+  // the walker, each a single mesh. Their footprints keep plants out and stop the walker.
+  const BUILDING_CHUNK_M=500,BUILDING_RANGE_M=overview?2200:900,buildingTiles=new Map(),buildingChunks=new Map();
+  let buildingsManifest=null;
+  const buildingsReady=fetch(atlas.resolve("nature/buildings.json"),{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(m=>buildingsManifest=m).catch(e=>stats.errors.push(String(e)));
+  async function loadBuildings(x,y){
+    await buildingsReady;if(!buildingsManifest)return;
+    const key=`${Math.floor(x/4000)}-${Math.floor(y/4000)}`;if(buildingTiles.has(key))return;
+    const file=buildingsManifest.tiles[key];
+    if(!file){buildingTiles.set(key,{grid:new Map(),chunks:new Map()});return;}
+    buildingTiles.set(key,null); // loading
+    const [tc,tr]=pathTileCoordinates(key);let list;
+    try{list=decodeNatureBuildings(await decodedAsset(atlas.resolve,file),tc,tr,buildingsManifest.tile_m||4000);}
+    catch(e){stats.errors.push(String(e));buildingTiles.set(key,{grid:new Map(),chunks:new Map()});return;}
+    const grid=new Map(),chunks=new Map();
+    for(const b of list){
+      let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity,cx=0,cy=0;
+      for(const [px,py] of b.ring){x0=Math.min(x0,px);y0=Math.min(y0,py);x1=Math.max(x1,px);y1=Math.max(y1,py);cx+=px;cy+=py;}
+      b.box=[x0,y0,x1,y1];b.c=[cx/b.ring.length,cy/b.ring.length];
+      const ck=`${Math.floor(b.c[0]/BUILDING_CHUNK_M)}:${Math.floor(b.c[1]/BUILDING_CHUNK_M)}`;
+      if(!chunks.has(ck))chunks.set(ck,[]);chunks.get(ck).push(b);
+      for(let r=Math.floor(y0/50);r<=Math.floor(y1/50);r++)for(let c=Math.floor(x0/50);c<=Math.floor(x1/50);c++){
+        const k=`${c}:${r}`;if(!grid.has(k))grid.set(k,[]);grid.get(k).push(b);}
+    }
+    buildingTiles.set(key,{grid,chunks,decodedBytes:file.decoded_bytes});floorStale=true;
+  }
+  //: The building whose footprint (grown by r) holds local point (x, y); `drawnOnly` asks only
+  //: for one the landscape drew (the rest are the city's, or left out).
+  function buildingAt(x,y,r=0,drawnOnly=false){
+    const list=buildingTiles.get(`${Math.floor(x/4000)}-${Math.floor(y/4000)}`)?.grid.get(`${Math.floor(x/50)}:${Math.floor(y/50)}`);
+    if(!list)return null;
+    for(const b of list){
+      if(drawnOnly&&!b.drawn)continue;
+      if(x<b.box[0]-r||x>b.box[2]+r||y<b.box[1]-r||y>b.box[3]+r)continue;
+      if(pointInRing(x,y,b.ring))return b;
+      if(r>0)for(let i=0;i<b.ring.length;i++)if(segmentDistance(x,y,b.ring[i],b.ring[(i+1)%b.ring.length])<r)return b;
+    }
+    return null;
+  }
+  const buildingMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.86,metalness:0,side:THREE.DoubleSide});
+  buildingMaterial.onBeforeCompile=shader=>{
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 facade;\nvarying vec3 vFacade;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvFacade=facade;');
+    // Windows: a pane every 3.4 m along a wall, a storey every 3.1 m from 0.9 m up, none in
+    // the top 0.6 m; a darker plinth at the foot. Roofs carry -1 and are left alone.
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vFacade;')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+      if(vFacade.x>=0.){float u=fract(vFacade.x/3.4),v=vFacade.y,fl=fract((v-.9)/3.1);
+        if(v>.9&&v<vFacade.z-.6&&u>.3&&u<.7&&fl>.22&&fl<.68)diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.06,.08,.1),.82);
+        else if(v<.55)diffuseColor.rgb*=.72;}`);
+  };
+  buildingMaterial.customProgramCacheKey=()=>'nature-buildings-v1';
+  function dropChunk(group){group.removeFromParent();group.geometry?.dispose();for(const b of group.userData.buildings||[])b.drawn=false;}
+  async function buildingChunk(cx,cy){
+    const tile=buildingTiles.get(`${Math.floor(cx*BUILDING_CHUNK_M/4000)}-${Math.floor(cy*BUILDING_CHUNK_M/4000)}`);
+    const list=tile?.chunks.get(`${cx}:${cy}`)||[],boxes=[hostBox?.value,guestBox?.value],keep=[];
+    let t=performance.now();
+    for(const b of list){
+      if(performance.now()-t>NATURE_SLICE_MS){await nextTask();t=performance.now();}
+      const s=surface(...b.c);if(!s)continue;
+      // The city and the regions draw their own; the landscape's stand only where theirs do not.
+      if(!visibleNatureGround(s.p[0],s.p[1],false,boxes,false)||blockedAt(...s.p,0)||underDeck(...s.p))continue;
+      keep.push(b);
+    }
+    const arrays=natureBuildingArrays(keep,(x,y)=>{const g=surface(x,y);return g?{p:g.p,height:g.height}:null;},linearColour);
+    if(!arrays.index.length)return null;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(arrays.position,3));
+    g.setAttribute('color',new THREE.Float32BufferAttribute(arrays.color,3));
+    g.setAttribute('facade',new THREE.Float32BufferAttribute(arrays.facade,3));
+    g.setIndex(arrays.index);g.computeVertexNormals();g.computeBoundingSphere();
+    const mesh=new THREE.Mesh(g,buildingMaterial);mesh.receiveShadow=true;
+    for(const b of keep)b.drawn=true;
+    mesh.userData={surface:'nature_building',buildings:keep,count:arrays.drawn,inferred:true,bayWide:true,
+      provenance:'OpenStreetMap footprints (ODbL); heights mapped or inferred by kind and area; roofs and windows inferred'};
+    return mesh;
+  }
+  async function updateBuildings(ax,ay,force){
+    const desired=new Set(),jobs=[],R=BUILDING_RANGE_M,c0=Math.floor((ax-R)/BUILDING_CHUNK_M),c1=Math.floor((ax+R)/BUILDING_CHUNK_M);
+    for(let cy=Math.floor((ay-R)/BUILDING_CHUNK_M);cy<=Math.floor((ay+R)/BUILDING_CHUNK_M);cy++)for(let cx=c0;cx<=c1;cx++){
+      const d=Math.hypot((cx+.5)*BUILDING_CHUNK_M-ax,(cy+.5)*BUILDING_CHUNK_M-ay);if(d>R+BUILDING_CHUNK_M*.71)continue;
+      const key=`${cx}:${cy}`;desired.add(key);
+      const fine=detailMeshes.has(`${Math.floor(cx*BUILDING_CHUNK_M/2000)}:${Math.floor(cy*BUILDING_CHUNK_M/2000)}`),have=buildingChunks.get(key);
+      if(!have||force||(fine&&!have.fine))jobs.push([d,cx,cy,key,fine]);
+    }
+    jobs.sort((a,b)=>a[0]-b[0]);
+    for(const [d,cx,cy,key,fine] of jobs){
+      if(Math.hypot(requested[0]-ax,requested[1]-ay)>600)return false;
+      const next=await buildingChunk(cx,cy),old=buildingChunks.get(key);if(old?.mesh)dropChunk(old.mesh);
+      if(next){next.castShadow=d<800;features.add(next);}
+      buildingChunks.set(key,{mesh:next,fine});await nextTask();
+    }
+    for(const [key,chunk] of buildingChunks)if(!desired.has(key)){if(chunk.mesh)dropChunk(chunk.mesh);buildingChunks.delete(key);}
+    stats.buildings=[...buildingChunks.values()].reduce((n,c)=>n+(c.mesh?.userData.count||0),0);stats.buildingChunks=buildingChunks.size;
+    return true;
   }
   async function update(x,z){
     const [lon,lat]=fromPage(x,z),[ax,ay]=atlas.local(lon,lat);
@@ -845,7 +1058,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     working=true;lastX=ax;lastY=ay;
     const version=forceVersion,force=version!==builtVersion,changed=[];
     try{
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)await loadPaths(ax+dx*2100,ay+dy*2100);
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){await loadPaths(ax+dx*2100,ay+dy*2100);await loadBuildings(ax+dx*2100,ay+dy*2100);}
       const desired=new Set(),cx=Math.floor(ax/2000),cy=Math.floor(ay/2000);
       const jobs=[];
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -898,12 +1111,14 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       }
       if(abandoned){lastX=Infinity;return;}
       for(const [key,group] of plantGroups)if(!plantDesired.has(key)){drop(group);plantGroups.delete(key);}
+      if(!await updateBuildings(ax,ay,force)){lastX=Infinity;return;}
       stats.trees=stats.shrubs=stats.rocks=stats.trails=stats.wildGrass=stats.deadwood=0;for(const group of plantGroups.values())for(const k of ["trees","shrubs","rocks","trails","wildGrass","deadwood"])stats[k]+=group.userData.counts[k]||0;
       stats.detailTiles=detailMeshes.size;stats.plantTiles=plantGroups.size;
       // Retain only the actual 3x3 query set, not every path tile visited during a flight.
       const pathDesired=new Set();for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
         pathDesired.add(`${Math.floor((ax+dx*2100)/4000)}-${Math.floor((ay+dy*2100)/4000)}`);
       for(const key of pathTiles.keys())if(!pathDesired.has(key))pathTiles.delete(key);
+      for(const [key,tile] of buildingTiles)if(tile&&!pathDesired.has(key))buildingTiles.delete(key);
       stats.decodedPathBytes=[...pathTiles.values()].reduce((n,p)=>n+(p.decodedBytes||0),0);
       stats.decodedHeightBytes=[...atlas.detail.values()].reduce((n,p)=>n+p.data.byteLength,0);
       builtVersion=version;if(forceVersion!==version)lastX=Infinity;
@@ -937,6 +1152,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       const [ax,ay]=atlas.local(...fromPage(x,z)),tx=Math.floor(ax/PLANT_TILE_M),ty=Math.floor(ay/PLANT_TILE_M);
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         for(const o of plantGroups.get(`${tx+dx}:${ty+dy}`)?.userData.obstacles||[])if(logHit(o,x,z,r))return true;}
+      if(buildingAt(ax,ay,r,true))return true;
       return Boolean(floor?.blockedAt?.(x,z,r));},
     //: Whether the plants within `radius` metres of page point (x, z) are standing.
     plantsReadyAt(x,z,radius=220){const [ax,ay]=atlas.local(...fromPage(x,z));

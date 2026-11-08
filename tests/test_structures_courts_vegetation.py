@@ -158,11 +158,12 @@ def test_a_fire_road_is_drawn_its_own_width_and_finish() -> None:
               "const w=(kind,surface,width_source='inferred',trail=false)=>inferredWidth({kind,surface,width_m:7,width_source,trail});\n"
               "console.log(JSON.stringify({dirtService:w('service','dirt'),service:w('service','unknown'),"
               "street:w('residential','asphalt'),measured:w('service','dirt','mapped'),trail:w('footway','dirt','inferred',true),"
-              "roads:NATURE_ROADS.has('service')&&!NATURE_ROADS.has('motorway')}));")
+              "roads:NATURE_ROADS.has('service')&&NATURE_ROADS.has('motorway')}));")
     out = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
     got = json.loads(out.stdout)
     assert got == {"dirtService": 3.5, "service": 4, "street": 7, "measured": 7, "trail": 7, "roads": True}
     runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
-    assert "if(!(w.trail||road)||w.grade_separated||w.area)continue;" in runtime
+    # A road's bridge is laid on the ground (a gap was worse); a footbridge and a tunnel are not.
+    assert "if(!(w.trail||road)||w.area||w.tunnel||w.grade_separated&&!road)continue;" in runtime
     assert "w.width_m=inferredWidth(w);" in runtime
