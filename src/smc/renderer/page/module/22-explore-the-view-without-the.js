@@ -788,8 +788,39 @@ function groundAt(clientX, clientY) {
   ray.setFromCamera(pointer, camera);
   return groundOnRay();
 }
-//: The ground the picking ray (`ray`, set by the caller) meets first.
+//: What the picking ray meets first: the ground under it (groundUnderRay), or a deck over that
+//: ground -- a bridge's, a highway's, an upper deck over a lower -- where the ray passes down
+//: through the deck's surface on its way. A click on the Bay Bridge stands you on the bridge, on
+//: the deck you clicked, not in the water under it.
 function groundOnRay() {
+  const ground = groundUnderRay();
+  if (!ground || typeof structuresAt !== "function") return ground;
+  const deck = deckOnRay(ground.distanceTo(ray.ray.origin));
+  return deck || ground;
+}
+//: Where the ray first comes down through a deck's top, nearer than ``limit``, or null. Stepped
+//: along the ray, finer near the eye, each step asking what is built there (structuresAt).
+function deckOnRay(limit) {
+  const o = ray.ray.origin, d = ray.ray.direction;
+  if (d.y > -0.002) return null;
+  let s = 0, previous = null;
+  while (s <= limit) {
+    const x = o.x + d.x * s, y = o.y + d.y * s, z = o.z + d.z * s;
+    if (previous) {
+      for (const k of structuresAt(x, z)) {
+        if (previous.y >= k.top - 0.05 && y <= k.top + 0.05) {
+          const t = (previous.y - k.top) / Math.max(1e-6, previous.y - y);
+          return new THREE.Vector3(previous.x + (x - previous.x) * t, k.top, previous.z + (z - previous.z) * t);
+        }
+      }
+    }
+    previous = { x, y, z };
+    s += Math.max(0.4, s * 0.004);
+  }
+  return null;
+}
+//: The ground the picking ray (`ray`, set by the caller) meets first.
+function groundUnderRay() {
   const guestMeshes=solids=>activeGuest?.ready && activeGuest.api.tunnelWalkMeshes
     ? activeGuest.api.tunnelWalkMeshes(solids) : [];
   const blocker=ray.intersectObjects(tunnelWalkMeshes(true).concat(guestMeshes(true)),false)[0]?.distance ?? Infinity;
@@ -1014,6 +1045,10 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
     ? pickedHeight : typeof elevatedDecksAt === "function" && elevatedDecksAt(landing.x,landing.z).length
       ? null : groundLiftAt(landing.x,landing.z);
   const ground = walkerGroundAt(landing.x, landing.z, landingY);
+  if (travel && typeof walkerOnWater === "function" && walkerOnWater(landing.x, landing.z, ground)) {
+    if (addrBox) { addrBox.textContent = "That is open water: click the shore, a pier or a bridge's deck."; addrBox.hidden = false; }
+    return;
+  }
   if (travel) {
     avatar.position.set(landing.x, AVATAR_STAND_Y + ground, landing.z);
     if (zoom) state.dist = ARRIVAL_DIST;
@@ -1075,6 +1110,31 @@ function showAddress(feature, clientX, clientY) {
   addrBox.style.top = `${Math.min(clientY + 12, innerHeight - box.height - 12)}px`;
   return true;
 }
+
+//: Every level a walker could stand on at (x, z), lowest first: the ground (the street, the
+//: pavement, the hill) and each deck over it -- a highway's, a bridge's, both of the Bay Bridge's.
+function levelsAt(x, z) {
+  const out = [walkerGroundAt(x, z, -1e6)];
+  for (const d of (typeof structuresAt === "function" ? structuresAt(x, z) : [])) out.push(d.top);
+  out.sort((a, b) => a - b);
+  return out.filter((y, i) => i === 0 || y - out[i - 1] > 1.5);
+}
+//: PageUp / PageDown: to the next level up or down where you stand -- onto the bridge over the
+//: street, down from the upper deck to the lower, back to the ground.
+addEventListener("keydown", (e) => {
+  if ((e.key !== "PageUp" && e.key !== "PageDown") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || state.explore) return;
+  if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding)) return;
+  const x = avatar.position.x, z = avatar.position.z, feet = walkerFeetY();
+  const levels = levelsAt(x, z);
+  const next = e.key === "PageUp" ? levels.find((y) => y > feet + 1) : [...levels].reverse().find((y) => y < feet - 1);
+  e.preventDefault();
+  if (next === undefined) return;
+  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(x, z, next);
+  state.target.copy(avatar.position);
+  placeCamera();
+  if (addrBox) { addrBox.textContent = `Level ${levels.indexOf(next) + 1} of ${levels.length} here (${Math.round(next)} m)`; addrBox.hidden = false; }
+});
 
 canvas.addEventListener("contextmenu", (e) => {
   // No teleport on a right click: on a trackpad a two-finger tap is a right click, and one

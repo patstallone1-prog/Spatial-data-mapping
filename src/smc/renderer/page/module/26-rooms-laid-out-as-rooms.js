@@ -1511,6 +1511,10 @@ function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
   if (state.explore) { exploreStep(dt); return; }
+  // At the wheel the arrows are the pedals and the wheel (docs/city/view.mjs); riding in a party
+  // member's car, the walker goes where that car goes.
+  if (typeof livingCity !== "undefined" && livingCity?.driving) { livingCity.drive(dt, held); updateAvatarMixer(dt); return; }
+  if (typeof livingCity !== "undefined" && livingCity?.riding) { updateAvatarMixer(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
   if (!held.size) {
@@ -1537,7 +1541,9 @@ function stepAvatar(now) {
   avatar.userData.grade=pace.grade;
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
   // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
-  const surfaceSpeed=walkSurfaceSpeed(scaled,pace);
+  // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
+  const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
+  const surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace;
   move.multiplyScalar(surfaceSpeed * dt);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
   requestInteriors();
@@ -1547,6 +1553,7 @@ function stepAvatar(now) {
   const lat = midLat - avatar.position.z / metersPerLat;
   if (window.kerbsideOpenFullRegionAt && window.kerbsideOpenFullRegionAt(lon, lat)) return;
   avatar.userData.lastMoving=moved>0;
+  if (typeof livingCity !== "undefined") livingCity?.walked?.(moved, dt);
   animateAvatar(moved, move, moved>0);
   updateAvatarMixer(dt);
   state.target.copy(avatar.position);

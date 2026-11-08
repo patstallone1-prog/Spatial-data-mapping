@@ -294,6 +294,8 @@ function animate(now) {
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
   if (multiplayer?.session?.tick(now)) lastMovedAt = now;
+  if (typeof livingCity !== "undefined" && livingCity?.tick(now) && (livingCity.driving || state.dist < 600)) lastMovedAt = now;
+  if (typeof livingCity !== "undefined" && livingCity && (livingCity.driving || livingCity.riding)) avatar.visible = false;
   updateCompass(now);
   if (sunDial.open && frameCount % 30 === 0) drawSunDial();
   if (frameCount % 30 === 0) updateRouteWidth();

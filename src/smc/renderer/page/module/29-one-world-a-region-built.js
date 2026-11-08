@@ -624,6 +624,8 @@ window.kerbsideGuestApi = {
   deckEdgeSegmentsNear, deckLevels: () => DECK_LEVEL_REPORT,
   buildingTopAt,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
+  // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
+  cityWays: () => DATA.ways, insideCarriageway, mappedWaterAt, cityInlandAt,
   tick: guestTick,
   toggleNearestDoor: operateNearestDoor,
   setRootInverse(matrix) {

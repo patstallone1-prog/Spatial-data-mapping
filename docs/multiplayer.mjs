@@ -57,7 +57,18 @@ export function readState(m) {
     feet: finite(m.feet) ? m.feet : null, above: finite(m.above) ? Math.max(-2, Math.min(50, m.above)) : 0,
     yaw: finite(m.yaw) ? m.yaw : 0, moving: Boolean(m.moving), stairs: Boolean(m.stairs),
     page: typeof m.page === "string" ? m.page.slice(0, 200) : "", seq: finite(m.seq) ? m.seq : 0,
+    car: readCar(m.car),
   };
+}
+//: The car a walker is in, if any (docs/city/view.mjs): what it is and its colour, whether they
+//: drive it, and whose car they ride in.
+export function readCar(c) {
+  if (!c || typeof c !== "object") return null;
+  const id = (v) => (typeof v === "string" && v.length <= 64 ? v : null);
+  return { model: typeof c.model === "string" ? c.model.slice(0, 24) : "economy",
+    colour: typeof c.colour === "string" && /^#[0-9a-f]{6}$/i.test(c.colour) ? c.colour : "#888888",
+    driving: Boolean(c.driving), riding: id(c.riding), plate: typeof c.plate === "string" ? c.plate.slice(0, 10) : "",
+    city: id(c.city), seats: Number.isInteger(c.seats) ? Math.max(1, Math.min(60, c.seats)) : 5 };
 }
 
 //: Where a remote walker is drawn at ``t``: between the two samples either side of it, or the
@@ -80,22 +91,29 @@ export function sampleAt(samples, t) {
 
 // ---- transports --------------------------------------------------------------------------------
 
-function tabTransport(room, onMessage) {
+// Two channels each way: the walkers ("walker"), and the party's city ("city": the commands
+// players send the party's host and the state it sends back, docs/city/view.mjs).
+function tabTransport(room, onMessage, onCity) {
   if (typeof BroadcastChannel !== "function") return null;
   const channel = new BroadcastChannel(`kerbside-room:${room}`);
+  const city = new BroadcastChannel(`kerbside-room:${room}:city`);
   channel.onmessage = (e) => onMessage(e.data);
-  return { name: "this browser", send: (m) => channel.postMessage(m), close: () => channel.close() };
+  city.onmessage = (e) => onCity(e.data);
+  return { name: "this browser", send: (m) => channel.postMessage(m), sendCity: (m) => city.postMessage(m),
+    close: () => { channel.close(); city.close(); } };
 }
 
-async function peerTransport(room, onMessage, onPeers, load = (url) => import(url)) {
+async function peerTransport(room, onMessage, onPeers, load = (url) => import(url), onCity = () => {}) {
   const { joinRoom } = await load(TRYSTERO);
   const net = joinRoom({ appId: APP_ID, password: room }, room);
   const action = net.makeAction("walker");
+  const city = net.makeAction("city");
   const peers = new Set();
   action.onMessage = (data) => onMessage(data);
+  city.onMessage = (data) => onCity(data);
   net.onPeerJoin = (id) => { peers.add(id); onPeers(peers.size); };
   net.onPeerLeave = (id) => { peers.delete(id); onPeers(peers.size); };
-  return { name: "online", send: (m) => action.send(m), close: () => net.leave(), peers: () => peers.size };
+  return { name: "online", send: (m) => action.send(m), sendCity: (m) => city.send(m), close: () => net.leave(), peers: () => peers.size };
 }
 
 // ---- the session -------------------------------------------------------------------------------
@@ -114,6 +132,8 @@ export async function join(ctx, { room, name, online = true, now = () => perform
   let seq = 0, lastSent = 0, lastKey = "", status = "", closed = false;
   const me = { id, name: cleanName(name) || "Walker", colour: colourFor(id) };
   const changed = () => { for (const f of listeners) f(session.players()); };
+  const cityListeners = new Set();
+  const receiveCity = (m) => { if (!closed && m && typeof m === "object" && m.from !== id) for (const f of cityListeners) try { f(m); } catch (error) { console.warn("kerbside: city message", error); } };
 
   const receive = (raw) => {
     const m = readState(raw);
@@ -129,6 +149,8 @@ export async function join(ctx, { room, name, online = true, now = () => perform
     if (m.seq <= peer.seq) return; // the same message by both routes, or out of order
     peer.seq = m.seq;
     if (m.name !== peer.name) { peer.name = m.name; relabel(ctx, peer); changed(); }
+    // In a car: the walker is drawn as its driver or rider, by the city (ctx.drawCar).
+    if (JSON.stringify(m.car) !== JSON.stringify(peer.car || null)) { peer.car = m.car; ctx.carChanged?.(peer); changed(); }
     const [x, z] = ctx.fromLonLat(m.lon, m.lat);
     // Same page: the sender's own height. Elsewhere: on this page's ground, as high above it.
     const feet = m.page === ctx.page && m.feet !== null ? m.feet : (ctx.groundAt(x, z) ?? 0) + m.above;
@@ -147,12 +169,12 @@ export async function join(ctx, { room, name, online = true, now = () => perform
     changed();
   };
 
-  const tab = tabTransport(code, receive);
+  const tab = tabTransport(code, receive, receiveCity);
   if (tab) transports.push(tab);
   if (online) {
     status = "connecting";
     try {
-      transports.push(await peerTransport(code, receive, () => changed(), load));
+      transports.push(await peerTransport(code, receive, () => changed(), load, receiveCity));
       status = "online";
     } catch (error) {
       status = `online unavailable (${error.message || error}); this browser's tabs only`;
@@ -169,8 +191,13 @@ export async function join(ctx, { room, name, online = true, now = () => perform
       return url.href;
     },
     players() {
-      return [...peers.values()].map((p) => ({ id: p.id, name: p.name, colour: p.colour,
-        at: p.samples.length ? { x: p.samples.at(-1).x, z: p.samples.at(-1).z } : null }));
+      return [...peers.values()].map((p) => ({ id: p.id, name: p.name, colour: p.colour, car: p.car || null,
+        at: p.samples.length ? { x: p.samples.at(-1).x, z: p.samples.at(-1).z, y: p.samples.at(-1).y, yaw: p.samples.at(-1).yaw } : null }));
+    },
+    //: The party's city channel: send to everyone in the room, hear from them.
+    city: {
+      send(message) { for (const t of transports) { try { t.sendCity?.({ ...message, from: id }); } catch { /* a closed peer */ } } },
+      listen(f) { cityListeners.add(f); return () => cityListeners.delete(f); },
     },
     onChange(f) { listeners.add(f); return () => listeners.delete(f); },
     rename(text) { me.name = cleanName(text) || me.name; lastKey = ""; },
@@ -184,8 +211,9 @@ export async function join(ctx, { room, name, online = true, now = () => perform
         const ground = ctx.groundAt(here.x, here.z);
         const message = { v: SCHEMA, id, name: me.name, lon: +lon.toFixed(7), lat: +lat.toFixed(7),
           feet: +here.feet.toFixed(2), above: ground === null || ground === undefined ? 0 : +(here.feet - ground).toFixed(2),
-          yaw: +here.yaw.toFixed(3), moving: Boolean(here.moving), stairs: Boolean(here.stairs), page: ctx.page };
-        const key = `${message.lon},${message.lat},${message.feet},${message.yaw},${message.moving},${me.name}`;
+          yaw: +here.yaw.toFixed(3), moving: Boolean(here.moving), stairs: Boolean(here.stairs), page: ctx.page,
+          car: here.car || null };
+        const key = `${message.lon},${message.lat},${message.feet},${message.yaw},${message.moving},${me.name},${JSON.stringify(message.car)}`;
         // Ten a second while anything changes; once a second otherwise, so a new peer sees us.
         if ((key !== lastKey && t - lastSent >= 1000 / SEND_HZ) || t - lastSent >= 1000) {
           message.seq = ++seq;
@@ -201,7 +229,9 @@ export async function join(ctx, { room, name, online = true, now = () => perform
         if (!s) continue;
         peer.avatar.position.set(s.x, ctx.standY + s.y, s.z);
         peer.avatar.rotation.y = s.yaw;
-        animateWalker(peer.avatar, s.moving, s.stairs, t);
+        peer.at = s;
+        animateWalker(peer.avatar, s.moving && !peer.car, s.stairs, t);
+        ctx.placeCar?.(peer, s);
         moving ||= s.moving || t - peer.heard < INTERP_DELAY_MS * 2;
       }
       return moving;

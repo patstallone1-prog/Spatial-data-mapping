@@ -706,9 +706,11 @@ var multiplayer = { session: null };
       me: () => {
         const p = avatar.position, moving = Boolean(was) && Math.hypot(p.x - was.x, p.z - was.z) > 0.01;
         was = { x: p.x, z: p.z };
-        return { x: p.x, z: p.z, feet: p.y - AVATAR_STAND_Y, yaw: avatar.rotation.y, moving,
-          stairs: moving && Boolean(avatar.userData.onStairs) };
+        return { x: p.x, z: p.z, feet: p.y - AVATAR_STAND_Y, yaw: livingCity?.driving ? state.yaw : avatar.rotation.y, moving,
+          stairs: moving && Boolean(avatar.userData.onStairs), car: livingCity?.carState?.() || null };
       },
+      // A walker in a car is drawn as the car (docs/city/view.mjs).
+      placeCar: (peer, s) => livingCity?.placePeerCar(peer, s),
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
