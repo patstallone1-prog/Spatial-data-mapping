@@ -76,7 +76,9 @@ def test_a_route_under_way_shows_its_steps_where_the_sidebar_was_and_draws_over_
     assert "if (object.isGroup) object.renderOrder = order;" in on_top and "o.material.transparent = true" in on_top
     assert "group.renderOrder = tile.depth;" in js
     assert "const PLACE_PIN_BASE = 0.45, PLACE_PIN_NEAR_M = 125;" in js
-    assert "pinStops();\n    return true;" in js and "stop || (i === 0 ? here() : null)" in _extract("pinStops", js)
+    # The to/from bar pins each end as it is chosen (the top search pins its place, no route).
+    assert "if (i === 0) walkerToStart(place);\n        pinStops();" in js
+    assert "stop || (i === 0 ? here() : null)" in _extract("pinStops", js)
 
 
 @pytest.mark.skipif(NODE is None, reason="node is not installed")
