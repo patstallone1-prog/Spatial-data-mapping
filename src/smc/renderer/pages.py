@@ -152,7 +152,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
                          docs / "inferred-restaurants/map-overlay.json",
                          docs / "meta-xr.mjs", docs / "meta.webmanifest",
                          *sorted((docs / "nature/models").glob("*")), *sorted((docs / "world").glob("*")),
-                         docs / "nature/manifest.json", docs / "nature/paths.json",
+                         docs / "nature/manifest.json", docs / "nature/paths.json", docs / "nature/buildings.json",
                          *sorted((docs / "nature/bark").glob("*")),
                          *sorted(path for path in (docs / "vendor").rglob("*") if path.is_file())]
         },

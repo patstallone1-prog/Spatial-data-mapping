@@ -186,6 +186,7 @@ const SEA_Y=.1,INLAND_WATER_ABOVE_SEA_M=1.5;function earthDrop(){return 0;}funct
 const activeGuest={ready:true,box:[0,0,10,10],oy:10,api:{groundLiftAt:()=>100}};
 function hostToGuest(g,x,z){return [x,z];}
 """
+        + "var BRIDGE_CUTS;\n" + _extract("bridgeCutHeight", _page_js())
         + _extract("natureVisualHeightAt", _page_js())
         + """
 console.log(JSON.stringify({edge:natureVisualHeightAt(10,5,200,false),
@@ -308,6 +309,7 @@ def test_a_lake_in_the_hills_stands_at_its_own_level_not_the_seas():
 const SEA_Y=0,INLAND_WATER_ABOVE_SEA_M=1.5,activeGuest=null;
 const earthDrop=()=>0,rawTerrainHeightAt=(x,z,h)=>h;
 """
+        + "var BRIDGE_CUTS;\n" + _extract("bridgeCutHeight", js)
         + height
         + """
 console.log(JSON.stringify({lake:natureVisualHeightAt(0,0,92,true),sea:natureVisualHeightAt(0,0,-3,true),bank:natureVisualHeightAt(0,0,95,false)}));
