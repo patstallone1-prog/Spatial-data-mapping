@@ -161,3 +161,11 @@ data/ortho
 /docs/inferred-residential/overrides/
 
 /docs/inferred-stores/overrides/
+
+# Generated from the renderer's source by the deploy (Vercel runs tools/build_deploy_pages.py)
+# and by the local build (tools/build_app_worlds.py): never committed. docs/meta.html is
+# released on its own and stays.
+/docs/app-model.html
+/docs/app-regions/*/app-model.html
+/docs/runtime-release.json
+/docs/sw.js

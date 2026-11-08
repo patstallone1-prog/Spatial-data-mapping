@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "",
-  "buildCommand": "echo 'docs/ is built locally by tools/build_all.sh and committed; nothing to build'",
+  "buildCommand": "python3 tools/build_deploy_pages.py",
   "ignoreCommand": "node tools/vercel/gate.mjs",
   "outputDirectory": "docs",
   "cleanUrls": false,

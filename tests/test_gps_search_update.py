@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,7 +77,7 @@ def test_a_searched_place_is_gone_to_and_pinned_with_no_directions() -> None:
     js = _page_js()
     travel = _extract("travelTo", js) if "function travelTo" in js else js[js.index("function travelTo"):]
     assert travel.index("window.kerbsideShowPlace(place)") < travel.index("kerbsideOpenFullRegionAt")
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     show = page[page.index("window.kerbsideShowPlace = (place) => {"):]
     show = show[:show.index("\n  };") + 4]
     # The walker is taken there, outside at the address, and the place pinned.
@@ -89,7 +90,7 @@ def test_a_searched_place_is_gone_to_and_pinned_with_no_directions() -> None:
 
 
 def test_a_start_chosen_in_the_directions_puts_the_walker_there() -> None:
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     start = page[page.index("  function walkerToStart(place) {"):]
     start = start[:start.index("\n  }\n") + 4]
     # Outside, at the address, as a search puts it; never into a building.

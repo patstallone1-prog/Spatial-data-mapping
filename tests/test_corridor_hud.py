@@ -1,8 +1,8 @@
 """The viewer's sidebar holds what is wanted at once; everything else is on the settings page."""
 
-from pathlib import Path
+from smc.renderer.template import RENDERER_SOURCE
 
-SOURCE = Path(__file__).resolve().parents[1] / "scripts" / "build_sf_corridor_3d.py"
+SOURCE = RENDERER_SOURCE
 DOCS = SOURCE.parents[1] / "docs"
 
 

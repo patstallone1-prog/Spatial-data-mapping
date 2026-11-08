@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_files
 from smc.world import catalogue
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,7 @@ MODULE = ROOT / "docs/object-catalogue.mjs"
 
 def _named_surfaces() -> set[str]:
     """Every surface name the page and the landscape write as a literal."""
-    sources = [ROOT / "scripts/build_sf_corridor_3d.py", *sorted((ROOT / "docs").glob("*.mjs"))]
+    sources = [*renderer_files(), *sorted((ROOT / "docs").glob("*.mjs"))]
     names: set[str] = set()
     patterns = [r"userData\.surface\s*=\s*[\"'`]([a-z0-9_: ]+)[\"'`]",
                 r"\bsurface\s*:\s*[\"'`]([a-z0-9_: ]+)[\"'`]",

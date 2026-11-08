@@ -2,8 +2,9 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
+import { rendererSource } from '../tools/renderer-source.mjs';
 const root=new URL('../',import.meta.url),read=p=>JSON.parse(fs.readFileSync(new URL(p,root),'utf8'));
-const source=fs.readFileSync(new URL('scripts/build_sf_corridor_3d.py',root),'utf8');
+const source=rendererSource();
 const names=['random','xy','pageToTerrain','rawTerrainHeightAt','groundBaseFor','entryFloorY','insideFootprint','buildingAt','frontageNormalFor','frontageFitFor','homeStoreyCount','homeStoreyHeight','regularHomeWindows','frontageWindowsOnEdge','editedEdge','homeWindowLayout','photographedEdge','balconyPart','balconyProposal','inferredBalconies','footprintWalls','bestFacadeWall','wallPoint','garagesOnWall','streetDistanceFacing','partyWall','frontDoorSpot','indexJunctionVertices','isUnmarkedService','isTunnelWay','distanceToSegmentSquared','garageSpansOnEdge','doorOn','photoEntryDoor','settleDoors'];
 const withGarages=process.argv.includes('--with-garages');
 if(withGarages)names.push('normaliseGarages','cutOnWall','cutDrawnWidth','drivewayZone','outwardBearing','pointInRing','fitOpeningOnOutline','addPhotoGarages');

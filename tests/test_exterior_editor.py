@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -72,7 +74,7 @@ console.log(JSON.stringify(out));
 
 
 def test_the_page_draws_saved_edits_and_leaves_its_own_front_off_an_edited_wall() -> None:
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert 'import(sharedAsset("exterior-editor.mjs?rev=__EXTERIOR_EDITOR_HASH__"))' in source
     assert "if (editedEdge(entry.way, a, b)) { edges.push(" in source
     assert "if(frontageFitFor(feature) || feature.exteriorEdit)return;" in source
@@ -111,7 +113,7 @@ console.log(JSON.stringify(out));
 
 
 def test_an_edits_stairs_join_the_walkers_ground_and_leave_it_with_the_edit() -> None:
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     editor = (ROOT / "docs/exterior-editor.mjs").read_text()
     assert "standing.push(stairSurface(wall, o, front, recess, ctx.groundAt));" in editor
     assert "groundAt: (x, z) => terrainGroundAt(x, z)," in source
@@ -124,7 +126,7 @@ def test_the_editor_opens_on_the_street_wall_with_arrows_either_side_of_the_wall
     """Always the street wall first; arrows on both sides of the picture (and the arrow keys)
     go round the rest, and the picture picks out the wall being edited."""
     editor = (ROOT / "docs/exterior-editor.mjs").read_text()
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "const wallIndex = 0;" in editor
     assert 'class: "nav prev"' in editor and 'class: "nav next"' in editor
     assert "#xedit-still .nav.prev{left:14px} #xedit-still .nav.next{right:14px}" in editor
@@ -222,7 +224,7 @@ console.log(JSON.stringify(out));
 
 
 def test_every_building_records_how_its_wall_is_drawn_for_the_editor() -> None:
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     editor = (ROOT / "docs/exterior-editor.mjs").read_text()
     assert "BUILDING_WALL_LOOK.set(String(feature.osm_id), {" in source
     assert "wallColourOf: drawnWallColour," in source and "wallMaterial: exteriorWallMaterial," in source
@@ -270,7 +272,7 @@ def test_nothing_real_changes_until_the_edit_is_confirmed() -> None:
 def test_each_redraw_frees_the_preview_it_replaces_and_the_still_draws_only_the_street() -> None:
     editor = (ROOT / "docs/exterior-editor.mjs").read_text()
     assert "group.userData.materials = [...new Set([...materials.values(), skin])];" in editor
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "for (const m of group.userData.materials || []) {" in page
     assert "if (m?.map?.userData?.editClone) m.map.dispose();" in page
     assert "map.userData = { ...map.userData, editClone: true };" in page

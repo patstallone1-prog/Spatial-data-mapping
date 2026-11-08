@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -86,7 +88,7 @@ console.log(JSON.stringify({{ summary: group.userData.summary, readers: readers.
 
 
 def test_the_page_loads_the_tolls_with_the_street_furniture() -> None:
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert 'registerLazyLayer("highway_tolls", async () => {' in page
     assert 'const module=await import(sharedAsset(`highway-toll-renderer.mjs?v=' in page
     published = json.loads((ROOT / "docs/highway-tolls.json").read_text())

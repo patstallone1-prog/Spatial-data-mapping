@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +56,7 @@ def test_a_route_request_and_its_answer_are_read_as_valhalla_means_them() -> Non
 
 
 def test_a_route_under_way_shows_its_steps_where_the_sidebar_was_and_draws_over_everything() -> None:
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     # The steps panel: in the hud beside the map, scrollable, back to the options and closable.
     for needle in ('<section class="panel" id="nav-panel" hidden', 'id="nav-back"', 'id="nav-close"',
                    '<ol id="nav-steps"></ol>', 'id="route-show-steps"'):
@@ -134,7 +135,7 @@ def test_a_transit_itinerary_is_read_into_steps_walking_and_transfers() -> None:
 
 
 def test_there_are_no_preference_switches_only_tags() -> None:
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert 'id="route-hills"' not in page and 'id="route-stairs"' not in page
     assert 'data-mode="transit"' in page and '"https://api.transitous.org"' in page
 
@@ -151,7 +152,7 @@ def test_directions_never_follow_what_the_page_draws_and_say_where_they_come_fro
     surfaces = _extract("roadSurfacesAt", js)
     assert "elevatedRoadsAt(x, z)" in surfaces and "tunnelFloorAt(x, z)" in surfaces
     assert "registerElevatedWay(way, WAY_LIFT)" in js and "registerElevatedSegment(a.x, a.z, a.y - earthDrop(a.x, a.z)" in js
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "OpenStreetMap contributors" in page and "The stops you enter are sent to those servers" in page
 
 

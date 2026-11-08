@@ -8,6 +8,7 @@ import pytest
 from smc.official.integration import integrate_inventory, road_edge_check
 from smc.official.regional_evidence import digest
 from smc.regions.gaps import plan_gaps, subtract
+from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -118,7 +119,7 @@ def test_pavement_keeps_holes_and_curb_colours_do_not_invent_policy():
 
 
 def test_stream_handoff_keeps_old_world_until_ready_and_updates_all_search_regions():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     attach = source.split("async function attachRegion(")[1].split("window.kerbsideAttachRegion")[0]
     assert attach.index("await api.ready()") < attach.index("releaseHostWorld()")
     assert "TILE_OWN_BOXES = holder.windowBoxes.map((b) => b.slice())" in attach
@@ -187,7 +188,7 @@ def test_moved_sun_takes_observed_weather_and_a_future_hour_the_day_befores():
 
 
 def test_directions_build_a_full_detail_strip_along_the_route():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     strip = source.split("const ROUTE_STRIP = {")[1].split("window.kerbsideRouteStrip")[0]
     # A few blocks wide, cut into pieces each a box, within a bounded area beside the core.
     assert "halfM: 100" in strip and "maxBoxes: BOX_SET_MAX - 1" in strip and "km2:" in strip

@@ -1,4 +1,4 @@
-# Vercel serves docs/ as it is committed (vercel.json: outputDirectory docs, no build).
+# Vercel serves docs/ (vercel.json: outputDirectory docs) after building the app pages into it.
 # Nothing else in the repository is part of the site: the source, the tests, the Unreal
 # project and the data pipeline stay out of the deployment.
 /*
@@ -8,6 +8,21 @@
 !/tools
 /tools/*
 !/tools/vercel
+# The build (vercel.json buildCommand) writes the app pages, runtime-release.json and sw.js
+# from the renderer's page source, the worker template and the native plugin's sources.
+!/tools/build_deploy_pages.py
+!/tools/pwa
+!/src
+/src/*
+!/src/smc
+/src/smc/*
+!/src/smc/__init__.py
+!/src/smc/renderer
+!/unreal
+/unreal/*
+!/unreal/Plugins
+/unreal/Plugins/*
+!/unreal/Plugins/KerbsideWorld
 # Inside docs/, only what the app and its install page use is served: the project's notes and
 # reports, and the build's own indexes, are kept in the repository and never published.
 /docs/*.md

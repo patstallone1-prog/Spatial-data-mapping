@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -136,7 +138,7 @@ def test_floor_colours_include_brown_forest_and_distinct_nonforest_types():
 
 
 def test_street_tree_layout_and_near_far_ground_sampling_share_one_source():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "treeBuildingPrisms" in source and "clipOutsidePrisms(attributes,clipping[i])" in source
     assert "dummy.position.set(x, 0, -y);" in source
     assert "random(i * 7 + kind.length)" in source
@@ -264,7 +266,7 @@ def test_every_fallen_trunk_blocks_but_the_undergrowth_does_not():
     blocked = floor.split("blockedAt(x,z,r=.25)")[1][:900]
     assert "d.plants" not in blocked and "d.branches" not in blocked, "plants, grass and branches never block"
     assert "for(const v of d.logs)" in blocked, "the near floor's own logs block where they are drawn"
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "natureWorld.deadwoodBlocked(nextX, nextZ, WALKER_DEADWOOD_RADIUS_M)" in page
     assert "!natureWorld.deadwoodBlocked(p.x, p.z, WALKER_DEADWOOD_RADIUS_M)" in page, "never trapped inside one"
 
@@ -272,7 +274,7 @@ def test_every_fallen_trunk_blocks_but_the_undergrowth_does_not():
 def test_both_tree_systems_use_the_painted_leaves_and_their_relief():
     veg = (ROOT / "docs/vegetation-geometry.mjs").read_text()
     assert "leafCardTextures(THREE,{form:leafForm,layout:'crown'" in veg and "normalMap:normalOf(species)" in veg
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert 'vegetationLibrary.leafCardTextures(THREE, { form: "street", layout: "spray"' in page
     assert "normalMap: leafNormal" in page
 

@@ -6,7 +6,8 @@ import subprocess
 
 import pytest
 
-from tests.test_corridor_geometry_rules import NODE, ROOT, _extract, _page_js
+from smc.renderer.template import renderer_source
+from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
 
@@ -69,7 +70,7 @@ console.log(JSON.stringify([out, capped, state.zoom, camera.fov, near, street]))
     assert out[1] == 5000 and out[2] == 2 and out[3] == 35
     assert "const WHEEL_ZOOM_PER_UNIT = 0.0025;" in js and "e.ctrlKey ? TRACKPAD_PINCH_PER_UNIT" in js
     assert "zoomBy((pinchSpread / spread) ** TOUCH_PINCH_POWER)" in js
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "touch-action:none;" in page[page.index("#scene {"):][:200], "two fingers zoom the map, not the page"
 
 

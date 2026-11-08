@@ -98,7 +98,8 @@ jobs:
         if: needs.plan.outputs.lint == 'true'
         with:
           python-version: "3.12"
-      - run: pip install "ruff>=0.5"
+      # The ruff pinned in pyproject's dev extra, the one place its version is set.
+      - run: pip install "$(python tools/ci/ruff_pin.py)"
         if: needs.plan.outputs.lint == 'true'
       - name: Lint changed Python modules
         run: python tools/ci/run_selected.py --plan test-plan.json --kind lint

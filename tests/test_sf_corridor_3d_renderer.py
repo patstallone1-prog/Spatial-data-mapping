@@ -2,8 +2,10 @@ import json
 import runpy
 from pathlib import Path
 
+from smc.renderer.template import RENDERER_SOURCE
+
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
+SOURCE = RENDERER_SOURCE
 GROUND_SOURCE = ROOT / "scripts" / "build_ground_cover.py"
 PAGE_DATA = ROOT / "docs" / "sf-corridor-3d.json"
 

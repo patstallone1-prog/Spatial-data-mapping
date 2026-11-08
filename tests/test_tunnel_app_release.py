@@ -6,6 +6,8 @@ import json
 import runpy
 from pathlib import Path
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -28,7 +30,7 @@ def test_archived_heights_are_the_payload_not_the_uniform_visual_override() -> N
     archived = json.loads((ROOT / "data/curb_measurement/sf_per_way_heights_archive.json").read_text())
     assert archived == expected
     assert archived["count"] > 4_000
-    renderer = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    renderer = renderer_source()
     assert "const KERB_RENDER_UNIFORM = true;" in renderer
 
 
@@ -51,13 +53,13 @@ def test_central_freeway_remains_an_elevated_bridge() -> None:
     central = [w for w in payload["ways"] if w.get("name") == "Central Freeway"]
     assert len(central) >= 6
     assert all(w.get("bridge") and not w.get("tunnel") for w in central)
-    renderer = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    renderer = renderer_source()
     assert "function centralFreewayProfile(way)" in renderer
     assert 'support.userData.provenance = "inferred_visual";' in renderer
 
 
 def test_ground_mask_shader_injects_float_literals() -> None:
-    renderer = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    renderer = renderer_source()
     shader = renderer.split("function maskedGrassMaterial(", 1)[1].split("function ringGeometry(", 1)[0]
     assert "const glslFloat = (value) => Number(value).toFixed(8);" in shader
     for extent in ("hardMask.west", "hardMask.east - hardMask.west",

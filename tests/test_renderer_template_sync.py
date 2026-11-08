@@ -6,6 +6,7 @@ import re
 import runpy
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -57,9 +58,42 @@ def test_every_published_viewer_has_valid_module_syntax():
 
 def test_app_build_uses_source_not_an_old_viewer_cache() -> None:
     source = (ROOT / "tools/build_app_worlds.py").read_text()
-    assert 'renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))' in source
-    assert 'template = renderer["tuned"](renderer["HTML"], "app")' in source
+    assert "template = app_template()" in source
+    assert "write_app_pages(DOCS, desktop_only=desktop_only, template=template)" in source
     assert 'template = VIEWER.read_text' not in source
+    # The deploy writes the same pages from the same source, with nothing but the standard library.
+    pages = (ROOT / "src/smc/renderer/pages.py").read_text()
+    assert 'return tuned(page_template(), "app")' in pages
+    deploy = (ROOT / "tools/build_deploy_pages.py").read_text()
+    assert "write_app_pages(DOCS)" in deploy
+    vercel = json.loads((ROOT / "vercel.json").read_text())
+    assert vercel["buildCommand"] == "python3 tools/build_deploy_pages.py"
+
+
+def test_the_generated_pages_are_not_kept_in_the_repository() -> None:
+    ignored = (ROOT / ".gitignore").read_text()
+    for path in ("/docs/app-model.html", "/docs/app-regions/*/app-model.html", "/docs/runtime-release.json", "/docs/sw.js"):
+        assert path in ignored
+    tracked = subprocess.run(["git", "ls-files", "docs/app-model.html", "docs/sw.js", "docs/runtime-release.json",
+                              "docs/app-regions/*/app-model.html"], cwd=ROOT, capture_output=True, text=True, check=False)
+    assert tracked.stdout.strip() == ""
+
+
+def test_the_deploy_build_needs_only_the_standard_library() -> None:
+    """Vercel's build machine has Python and none of the pipeline's packages."""
+    probe = (
+        "import sys, importlib.abc\n"
+        "class Block(importlib.abc.MetaPathFinder):\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name.split('.')[0] in {'numpy', 'h3', 'pyarrow', 'shapely', 'PIL', 'scipy'}:\n"
+        "            raise ImportError(name)\n"
+        "sys.meta_path.insert(0, Block())\n"
+        f"sys.path.insert(0, {str(ROOT / 'src')!r})\n"
+        "import smc.renderer.pages, smc.renderer.template, smc.renderer.tuning\n"
+        "print('ok')\n"
+    )
+    out = subprocess.run([sys.executable, "-I", "-c", probe], capture_output=True, text=True, check=False)
+    assert out.stdout.strip() == "ok", out.stderr
 
 
 def test_geometry_audit_uses_the_renderers_service_width_table() -> None:
@@ -98,3 +132,36 @@ def test_entire_app_module_and_release_manifest_match_authoritative_source() -> 
         module = module.replace('const GROUND_URL = "app-sf-corridor-ground.json";', 'const GROUND_URL = asset("sf-corridor-ground.json");')
         module = re.sub(r'const TILE_BASE = "[^"]*";', 'const TILE_BASE = "tiles/";', module)
         assert module == expected, f"stale shared renderer module: {page}"
+
+
+def test_the_page_is_its_shell_with_the_module_parts_joined_in_name_order() -> None:
+    from smc.renderer import template
+
+    parts = template.module_parts()
+    assert len(parts) >= 2 and [p.name for p in parts] == sorted(p.name for p in parts)
+    shell = template.SHELL.read_text(encoding="utf-8")
+    assert shell.count(template.MODULE_MARKER) == 1
+    page = template.page_template()
+    module = "".join(p.read_text(encoding="utf-8") for p in parts)
+    assert page == shell.replace(template.MODULE_MARKER, module, 1)
+    assert template.MODULE_MARKER not in page
+    head = shell.partition(template.MODULE_MARKER)[0]
+    assert '<script type="module">' in head[-400:], "the parts are joined inside the page's module script"
+
+
+def test_vercel_uploads_every_file_the_deploy_build_reads() -> None:
+    from smc.renderer import template
+
+    needed = [ROOT / "tools/build_deploy_pages.py", ROOT / "tools/pwa/sw.js", ROOT / "src/smc/__init__.py",
+              *sorted((ROOT / "src/smc/renderer").glob("*.py")), template.SHELL, *template.module_parts(),
+              *sorted(p for p in (ROOT / "unreal/Plugins/KerbsideWorld").rglob("*") if p.is_file())]
+    paths = "\n".join(str(p.relative_to(ROOT)) for p in needed) + "\n"
+    dropped = subprocess.run(
+        ["git", "-c", "core.excludesFile=.vercelignore", "check-ignore", "--no-index", "--stdin"],
+        cwd=ROOT, input=paths, capture_output=True, text=True).stdout.split()
+    assert dropped == [], f".vercelignore keeps these from the build: {dropped}"
+    gone = subprocess.run(
+        ["git", "-c", "core.excludesFile=.vercelignore", "check-ignore", "--no-index", "--stdin"],
+        cwd=ROOT, input="scripts/build_sf_corridor_3d.py\nsrc/smc/city/world.py\ntests/conftest.py\n",
+        capture_output=True, text=True).stdout.split()
+    assert len(gone) == 3, "the rest of the source stays out of the deployment"

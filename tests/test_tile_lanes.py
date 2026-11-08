@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from smc.renderer.template import renderer_source
 from smc.tiles.compile import assets_for, lane_boundaries, lane_lines
 from smc.tiles.tree import Frame
 
@@ -65,7 +66,7 @@ def test_only_the_finest_tiles_carry_lanes_and_the_index_calls_them_derived():
 
 
 def test_the_page_draws_the_lane_layers():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "function tileLaneLines(rows, kind, f, material)" in source
     assert 'tileLaneLines(layers.lanes_white, "white"' in source
     assert 'tileLaneLines(layers.lanes_yellow, "yellow"' in source

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from smc.buildings.lidar_heights import AGREE_M, adopt_lidar_height
+from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,7 +31,7 @@ def test_a_guess_takes_the_lidar(source):
 
 
 def test_the_page_still_treats_a_confirmed_height_as_stated():
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "|| feature.height_osm_m != null;" in page
     assert '"height_osm_m"' in page
 

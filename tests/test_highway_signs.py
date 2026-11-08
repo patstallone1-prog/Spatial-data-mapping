@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from smc.highways.signs import Osm, cardinal, from_overpass, infer_signs, parse_routes
+from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
 THREE = ROOT / "tools/unreal/node_modules/three/build/three.module.js"
@@ -127,7 +128,7 @@ def test_overpass_answers_become_the_same_network():
 
 
 def test_the_page_reads_only_this_sites_sign_tiles_and_its_own_renderer():
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     literal = re.search(r"const HIGHWAY_SIGN_TILE_PATH = /(.+)/;", page).group(1).replace("\\\\", "\\")
     pattern = re.compile(literal)
     assert pattern.match("highway-signs/w1225-n377.json")

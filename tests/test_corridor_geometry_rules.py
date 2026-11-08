@@ -26,9 +26,10 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
+from smc.renderer.template import RENDERER_SOURCE, renderer_source
 
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = RENDERER_SOURCE
 NODE = shutil.which("node")
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is needed to run the renderer's own code")
 
@@ -3439,7 +3440,7 @@ def test_the_bore_carries_the_road_through_it():
 
 def test_the_street_furniture_the_map_has_is_actually_asked_for():
     """A bus stop is a highway tag, not an amenity, and was never fetched in any region."""
-    source = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     query = source[source.index("def overpass_query"):source.index('");out geom;"')]
     for tag in ('node["highway"="bus_stop"]', 'node["traffic_sign"]',
                 'node["highway"="street_lamp"]', 'public_transport'):
@@ -3478,7 +3479,7 @@ def test_the_page_draws_no_loader_of_its_own():
     """The app shell's "Entering the world" cover is the only loader; the page's own progress
     line stays in the document for the shell to read but is never drawn."""
     js = _page_js()
-    page = (ROOT / "scripts" / "build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "#progress { position:fixed; width:1px; height:1px; overflow:hidden;" in page
     shell = (ROOT / "tools" / "app_template.html").read_text()
     assert "Entering the world" in shell and "const drawBar = () =>" in shell

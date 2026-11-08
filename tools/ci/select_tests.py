@@ -21,21 +21,38 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT_TEST = "tests/test_width_vs_kerb.py"
 CODE = {".py", ".mjs", ".js", ".cpp", ".h", ".cs"}
-# Preserve the established lint boundary. The giant embedded-JS map builder was
-# never in Ruff's blocking scope; test routing must not introduce baseline failures.
-LINT_PREFIXES = ("src/", "tests/", "tools/ci/")
-LINT_FILES = {
-    "scripts/build_terrain.py",
-    "tools/unreal/install_runtime.py",
-    "tools/unreal/setup_world.py",
-    "tools/unreal/axis_probe.py",
-    "tools/unreal/check_automation.py",
-    "tools/unreal/validate_world.py",
-}
+
+
+def _glob_regex(pattern: str) -> re.Pattern[str]:
+    """A ruff `include` glob as a regex: `**` spans directories (none included), `*` does not."""
+    out, i = "", 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out, i = out + "(?:.*/)?", i + 3
+        elif pattern.startswith("**", i):
+            out, i = out + ".*", i + 2
+        elif pattern[i] == "*":
+            out, i = out + "[^/]*", i + 1
+        elif pattern[i] == "?":
+            out, i = out + "[^/]", i + 1
+        else:
+            out, i = out + re.escape(pattern[i]), i + 1
+    return re.compile(out + r"\Z")
+
+
+def _lint_scope() -> list[re.Pattern[str]]:
+    """The lint scope, read from the one place it is configured: pyproject's [tool.ruff]."""
+    import tomllib
+
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    return [_glob_regex(glob) for glob in config["tool"]["ruff"]["include"]]
+
+
+LINT_SCOPE = _lint_scope()
 
 
 def lint_owned(path: str) -> bool:
-    return path.endswith(".py") and (path.startswith(LINT_PREFIXES) or path in LINT_FILES)
+    return any(pattern.match(path) for pattern in LINT_SCOPE)
 
 
 RULES = [
@@ -54,6 +71,16 @@ RULES = [
     ),
     (["docs/vendor/three-0.160.0/**"], ["tests/test_renderer_boot.py"]),
 ]
+#: Files a module reads by directory rather than by name: a change to one of them is a change to
+#: each module named here, and selects those modules' consumers. The page's shell and module
+#: parts are joined by smc.renderer.template (and tools/renderer-source.mjs for Node).
+READ_BY_DIRECTORY = {
+    "src/smc/renderer/page/": (
+        "src/smc/renderer/template.py",
+        "scripts/build_sf_corridor_3d.py",
+        "tools/renderer-source.mjs",
+    ),
+}
 
 
 def git(root: Path, *args: str) -> str:
@@ -300,6 +327,10 @@ def select(root: Path, changed: list[str], paths: set[str], *, previous=None, fu
     global_inputs = {"pyproject.toml", "pytest.ini", "setup.cfg", "setup.py", "requirements.txt"}
     for path in changed:
         chosen = graph.consumers(path) & available
+        for prefix, readers in READ_BY_DIRECTORY.items():
+            if path.startswith(prefix):
+                for reader in readers:
+                    chosen |= graph.consumers(reader) & available
         for prefixes, patterns in RULES:
             if any(fnmatch.fnmatchcase(path, prefix) for prefix in prefixes):
                 chosen |= {
