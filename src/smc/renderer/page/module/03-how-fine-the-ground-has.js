@@ -930,7 +930,10 @@ if (NATURE) {
     toPage:(lon,lat)=>{const [x,y]=xy(lon,lat);return [x,-y];},
     fromPage:(x,z)=>[midLon+x/metersPerLon,midLat-z/metersPerLat],
     heightAt:natureVisualHeightAt,
-    waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : perimeterWaterAt(x,z)===true || s.water),
+    // The Bay's outline is a coarse grid: past the coastline's own 100 m band it laid square
+    // blocks of water over Marin's shore (Horseshoe Bay, Sausalito). Where the land cover says
+    // land (NLCD 21 and up, 30 m), it is land.
+    waterAt:(x,z,s)=>mappedWaterAt(x,z) ?? (s.coastOverride ? s.water : s.water || (perimeterWaterAt(x,z)===true && !(s.cover>=21))),
     blockedAt:(x,z)=>inCity(x,z)||mappedBuiltAt(x,z)||Boolean(typeof guestUnder==="function"&&guestUnder(x,z)),
     // A bridge's own deck is drawn by the bridges: its road is not laid again on the ground under it.
     underDeck:(x,z)=>typeof elevatedDecksAt==="function"&&elevatedDecksAt(x,z).length>0,

@@ -94,11 +94,37 @@ export function inHours(hours, t) {
 //: The jurisdictions over (lon, lat), nearest first: city (if any), county, state, nation.
 export function jurisdictionAt(R, lon, lat, fallbackCounty = null) {
   const J = R.jurisdictions;
+  // The real outlines when they are loaded (jurisdictions.json): a city or town, else its
+  // county's unincorporated land. The boxes are the fallback.
+  if (R.boundaries) {
+    const B = R.boundaries;
+    const holds = (b) => lon >= b.box[0] && lat >= b.box[1] && lon <= b.box[2] && lat <= b.box[3] && inRings(lon, lat, b.rings);
+    const area0 = B.counties.find(holds) || null;
+    // A city and county in one (San Francisco) has no town outline of its own: the county's is it.
+    const town = B.cities.find(holds) || (area0 && J.cities.find((c) => c.name === area0.name && c.county === area0.id)) || null;
+    const area = (town?.county && B.counties.find((c) => c.id === town.county)) || area0;
+    if (town || area) {
+      // A town the rules know keeps the rules' id (its taxes and laws are keyed by it).
+      const known = town && J.cities.find((c) => c.id === town.id || c.name === town.name);
+      const city = known?.id || town?.id || null, county = area?.id || known?.county || "county:san-francisco";
+      return { city, county, chain: [city, county, J.state, J.nation].filter(Boolean),
+        name: town ? town.name : `${area.name} County`, unincorporated: !town };
+    }
+  }
   const city = J.cities.find((c) => lon >= c.box[0] && lat >= c.box[1] && lon <= c.box[2] && lat <= c.box[3]) || null;
   const county = city?.county || (fallbackCounty && `county:${String(fallbackCounty).replace(/^county:/, "").replace(/-county$/, "")}`) || "county:san-francisco";
   const chain = [city?.id, county, J.state, J.nation].filter(Boolean);
   const countyName = J.counties.find((c) => c.id === county)?.name || county;
   return { city: city?.id || null, county, chain, name: city ? city.name : `${countyName} County` };
+}
+//: Whether (x, y) is inside the rings (even-odd: a hole is a ring inside another).
+export function inRings(x, y, rings) {
+  let hit = false;
+  for (const ring of rings) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [ax, ay] = ring[i], [bx, by] = ring[j];
+    if ((ay > y) !== (by > y) && x < (bx - ax) * (y - ay) / (by - ay) + ax) hit = !hit;
+  }
+  return hit;
 }
 //: The first value in ``table`` along a jurisdiction chain.
 export function along(table, chain, fallback = undefined) {

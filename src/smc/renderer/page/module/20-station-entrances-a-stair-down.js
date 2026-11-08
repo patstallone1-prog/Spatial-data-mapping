@@ -716,7 +716,10 @@ function approachCrosswalk(a) {
       for (const pose of crossingDrawGrid.get(`${cx}:${cz}`) || []) {
         // An unmarked crossing is a place to cross with nothing painted: no bar behind it.
         if (pose.tag === "unmarked") continue;
-        if (crossingBearingDifference(pose.bearing, legBearing) < (55 * Math.PI) / 180) continue;
+        // Square to the approach, within 20 degrees: at 35 a leg read askew off a kink by the
+        // junction (Post at Powell, 38 degrees out) took the crossing for its own, and its stop
+        // bar was laid across the junction on the leg's line -- two long white bars in an X.
+        if (crossingBearingDifference(pose.bearing, legBearing) < (70 * Math.PI) / 180) continue;
         const along = (pose.x - a.jx) * a.ux + (pose.z - a.jz) * a.uz;
         const side = (pose.x - a.jx) * rx + (pose.z - a.jz) * rz;
         if (along < 1.5 || along > 24 || Math.abs(side) > a.half + 2.5) continue;
@@ -782,6 +785,7 @@ function paintRoadLegends() {
     // The lanes arriving: the right half of a two-way street, all of a one-way one.
     const o0 = a.oneway ? -a.half + 0.25 : 0.2, o1 = a.half - 0.25;
     if (o1 - o0 < ROAD_LEGEND.laneMin - 0.6) continue;
+    if (o1 - o0 > 4 * ROAD_LEGEND.laneMax) continue;   // wider than four lanes: not a road's arrivals
     const at = (along, side) => [a.jx + a.ux * along + rx * side, a.jz + a.uz * along + rz * side];
     const b0 = crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing, b1 = b0 + ROAD_LEGEND.barWidth;
     const bar = [at(b0, o0), at(b0, o1), at(b1, o1), at(b1, o0)];

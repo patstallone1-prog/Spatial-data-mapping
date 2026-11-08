@@ -28,6 +28,18 @@ button.primary:hover { background:#1d4ed8; }
 .hud-top { display:flex; gap:8px; align-self:flex-start; }
 #route-end { pointer-events:auto; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; background:#2563eb; color:#fff; border:0; padding:0 14px; }
 #fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; }
+/* Explore or City: one switch, a thumb sliding under the mode that is on. Explore is the map --
+   search, directions, the free view; City is the game -- your body, wallet, job, car, the shops. */
+.mode-switch { position:relative; display:grid; grid-template-columns:1fr 1fr; pointer-events:auto; min-height:44px; border-radius:12px; background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); padding:3px; }
+.mode-switch[hidden] { display:none; }
+.mode-switch::before { content:""; position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px); border-radius:9px; background:var(--accent); transition:transform .22s ease; }
+.mode-switch[data-mode="city"]::before { transform:translateX(100%); background:#16a34a; }
+.mode-switch button { position:relative; z-index:1; border:0; background:none; min-width:66px; font-weight:600; border-radius:9px; color:var(--muted); }
+.mode-switch button[aria-checked="true"] { color:#fff; background:none; }
+body[data-mode="explore"] #city-vitals, body[data-mode="explore"] #city-actions, body[data-mode="explore"] #city-side { display:none !important; }
+body[data-mode="city"] #route-panel, body[data-mode="city"] #explore, body[data-mode="city"] #city-open { display:none !important; }
+body[data-mode="explore"] #city-dock { display:none !important; }
+#city-dock #city { position:static; width:auto; max-height:none; box-shadow:none; border:0; padding:0; margin:0; background:none; }
 .bar { display:flex; align-items:center; gap:10px; }
 .bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
 .bar h1::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--brand); margin-right:8px; vertical-align:1px; }
@@ -126,6 +138,10 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
 <div id="progress" hidden>Loading the corridor&hellip;</div>
 <div class="hud" id="hud" data-open="false">
   <div class="hud-top"><button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
+  <div class="mode-switch" id="mode-switch" role="radiogroup" aria-label="Mode" data-mode="explore" hidden>
+    <button type="button" role="radio" data-mode="explore" aria-checked="true" title="Explore: the map, search, directions and the free view">Explore</button>
+    <button type="button" role="radio" data-mode="city" aria-checked="false" title="City: your body, wallet, job, car and the shops, and the keys that act on them">City</button>
+  </div>
   <button type="button" id="route-end" hidden title="End the route (Esc)">✕ End route</button></div>
   <div class="panel" id="map-sidebar">
     <div class="bar"><h1>Kerbside</h1></div>
@@ -155,6 +171,7 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
       <ol class="steps" id="route-steps" hidden></ol>
       <button type="button" id="route-show-steps" class="primary" hidden>Step-by-step directions →</button>
     </div>
+    <div class="group" id="city-dock" aria-label="The living city"></div>
     <div class="toolbar actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="explore" aria-pressed="false" title="Explore (E): the walker is put away and the arrows move the view anywhere; turned off, the walker stands where you are">Explore</button>

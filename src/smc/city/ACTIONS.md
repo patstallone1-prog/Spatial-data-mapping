@@ -35,6 +35,20 @@ Status:
 * **Core**: in the rules and world code, without its own control yet.
 * **Planned**: not built.
 
+## The two modes
+
+A switch at the top left, beside the menu button, sets the mode. The choice is remembered on
+this device.
+
+* **Explore:** the map. The sidebar ("☰ Map") holds search, directions, first person, the free
+  view (E), Reset view and Play together. The city's bars, its action buttons and its keys are
+  off.
+* **City:** the game. The sidebar ("☰ City") holds the city panel (you, your wallet, job, home,
+  car, the laws). The bars and action buttons show, and the keys below act. Directions and the
+  free view are put away. Pressing E switches back to Explore.
+
+The people and the traffic are out in both modes.
+
 ## The keys
 
 | Key | Action | Bar button shown when |

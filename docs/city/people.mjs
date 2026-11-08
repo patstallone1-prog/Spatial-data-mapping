@@ -386,11 +386,26 @@ export function daySchedule(R, person, day, weekday, places) {
 const TRAFFIC_BY_HOUR = [0.15, 0.1, 0.08, 0.08, 0.12, 0.25, 0.55, 0.9, 1.0, 0.8, 0.65, 0.65, 0.7, 0.65, 0.65, 0.75, 0.9, 1.0, 0.9, 0.7, 0.55, 0.45, 0.35, 0.25];
 const TRAFFIC_MIX = [["economy", 0.3], ["sedan", 0.18], ["suv", 0.12], ["compact_ev", 0.1], ["pickup", 0.05], ["taxi", 0.08], ["delivery_van", 0.1], ["box_truck", 0.04], ["bus", 0.02], ["patrol", 0.01]];
 
+//: People out on foot by the hour, as a share of the busiest (noon to early evening).
+const WALK_BY_HOUR = [0.08, 0.05, 0.03, 0.03, 0.04, 0.1, 0.25, 0.55, 0.75, 0.7, 0.75, 0.9, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 0.95, 0.8, 0.6, 0.45, 0.3, 0.15];
+const CLOTHES = ["#2e4057", "#8d3b3b", "#3f6e4a", "#d9d4c7", "#1f1f24", "#6b4f8a", "#b9773a", "#4b7da8", "#9aa3ab", "#c2405a", "#e3c45c", "#355c5a"];
+//: How busy a place is, by the rules' density (docs/city/rules.json): the default, or the busiest
+//: hotspot the point (lon, lat) is in. ``kind`` is "walkers" or "traffic".
+export function densityAt(R, lon, lat, kind) {
+  const D = R.density;
+  if (!D) return 1;
+  let m = D.default?.[kind] ?? 1;
+  for (const h of D.hotspots || []) {
+    const [s, w, n, e] = h.bbox;
+    if (lat >= s && lat <= n && lon >= w && lon <= e) m = Math.max(m, h[kind] ?? m);
+  }
+  return m;
+}
 //: The district in motion: ``at(ms, focus)`` lists the people out of doors and the vehicles on
 //: the streets within reach of ``focus``, each where it is at that moment.
 export class Crowd {
-  constructor(R, streets, places, people, { seed = "district", timeAt }) {
-    this.R = R; this.streets = streets; this.people = people; this.seed = seed; this.timeAt = timeAt;
+  constructor(R, streets, places, people, { seed = "district", timeAt, toLonLat = null }) {
+    this.R = R; this.streets = streets; this.people = people; this.seed = seed; this.timeAt = timeAt; this.toLonLat = toLonLat;
     this.places = places; this.place = new Map(places.map((p) => [p.id, p]));
     this.nodes = places.length ? places.map((p) => p.node) : [];
     this.driveNodes = streets.nodes.map((n, i) => (n.drive ? i : -1)).filter((i) => i >= 0);
@@ -510,7 +525,8 @@ export class Crowd {
     if (list) return list;
     list = [];
     const r = rng(this.seed, "traffic", cell, s);
-    const count = Math.floor(density * Math.min(3, nodes.length / 40) + r());
+    const busy = this.densityOfCell(cell, 400, "traffic");
+    const count = Math.floor(density * busy * Math.min(3, nodes.length / 40) + r());
     for (let k = 0; k < count; k += 1) {
       const a = nodes[Math.floor(r() * nodes.length)];
       const ang = r() * Math.PI * 2, dist = 300 + r() * 700;
@@ -539,6 +555,67 @@ export class Crowd {
     return list;
   }
   //: Everyone out of doors and every vehicle within ``reach`` of ``focus`` at ``ms``.
+  //: The rules' density over a square (its middle), cached.
+  densityOfCell(cell, CELL, kind) {
+    if (!this.toLonLat || !this.R.density) return 1;
+    this._density ??= new Map();
+    const key = `${kind}:${CELL}:${cell}`;
+    if (!this._density.has(key)) {
+      const [i, j] = cell.split(",").map(Number);
+      const [lon, lat] = this.toLonLat((i + 0.5) * CELL, (j + 0.5) * CELL);
+      this._density.set(key, densityAt(this.R, lon, lat, kind));
+    }
+    return this._density.get(key);
+  }
+  //: Street life: the people on the pavements who are not the district's residents at their
+  //: business -- passers-by, shoppers, people out for the air. So many to a 150 m square of
+  //: streets by the hour and the place (rules.json density), each walking out and back along a
+  //: way of a few hundred metres for ten minutes or so, and seeded by the square and the ten
+  //: minutes, so two browsers draw the same people. The residents' own days are too thin on the
+  //: ground to fill a street: a thousand of them over five kilometres of city left it empty.
+  streetLife(t, focus, reach) {
+    const D = this.R.density, out = [];
+    if (!D) return out;
+    const CELL = 150, GEN = 600, tsec = t.ms / 1000, hour = WALK_BY_HOUR[Math.floor(t.minute / 60) % 24];
+    const cx = Math.floor(focus.x / CELL), cz = Math.floor(focus.z / CELL), rr = Math.ceil(reach / CELL);
+    this._walkers ??= new Map();
+    for (let i = -rr; i <= rr; i += 1) for (let j = -rr; j <= rr; j += 1) {
+      const ci = cx + i, cj = cz + j;
+      if (Math.hypot((ci + 0.5) * CELL - focus.x, (cj + 0.5) * CELL - focus.z) > reach + CELL) continue;
+      const nodes = this.cellDriveNodes(ci, cj, CELL);
+      if (!nodes.length) continue;
+      const cell = `${ci},${cj}`;
+      const count = Math.round((D.walkers_per_cell || 0) * this.densityOfCell(cell, CELL, "walkers") * hour * Math.min(1, nodes.length / 10));
+      for (let k = 0; k < count; k += 1) {
+        // Each walker's ten minutes begin at its own moment, so they do not all change at once.
+        const gen = Math.floor((tsec + k * 47) / GEN), key = `${cell}:${k}:${gen}`;
+        let w = this._walkers.get(key);
+        if (w === undefined) {
+          const r = rng(this.seed, "walk", key);
+          const a = nodes[Math.floor(r() * nodes.length)], na = this.streets.nodes[a];
+          const ang = r() * Math.PI * 2, dist = 120 + r() * 300;
+          const b = this.streets.nearest(na.x + Math.cos(ang) * dist, na.z + Math.sin(ang) * dist, "walk", 150);
+          const route = b === null || b === a ? null : this.streets.route(a, b, "walk");
+          w = route && route.length > 20 ? { key, route, start: gen * GEN - k * 47, phase: r() * route.length * 2, pace: 1.05 + r() * 0.5,
+            side: r() < 0.5 ? 1 : -1, person: { id: `walk:${key}`, height: 1.55 + r() * 0.35, pace: 1.05 + r() * 0.5, uniform: CLOTHES[Math.floor(r() * CLOTHES.length)] } } : null;
+          if (this._walkers.size > 6000) this._walkers.delete(this._walkers.keys().next().value);
+          this._walkers.set(key, w);
+        }
+        if (!w) continue;
+        const pos = this.walkerAt(w, tsec);
+        if (Math.hypot(pos.x - focus.x, pos.z - focus.z) > reach) continue;
+        out.push({ id: w.person.id, person: w.person, walker: w, ...pos });
+      }
+    }
+    return out;
+  }
+  //: Where a passer-by is at ``tsec``: out and back along the way, on the pavement.
+  walkerAt(w, tsec) {
+    const L = w.route.length, d = (w.phase + (tsec - w.start) * w.pace) % (2 * L), forward = d <= L;
+    const pos = alongRoute(w.route, forward ? d : 2 * L - d, (half) => (forward ? 1 : -1) * w.side * (half + 1.7));
+    if (!forward) pos.yaw += Math.PI;
+    return { ...pos, moving: true, mode: "walk", activity: "passing by" };
+  }
   at(ms, focus, reach = this.R.routine.visible_radius_m) {
     const t = this.timeAt(ms);
     const people = [], vehicles = [];
@@ -550,6 +627,7 @@ export class Crowd {
       else people.push(entry);
     }
     vehicles.push(...this.traffic(t, focus, reach));
+    people.push(...this.streetLife(t, focus, Math.min(reach, this.R.density?.walk_radius_m ?? reach)));
     return { time: t, people, vehicles };
   }
 }

@@ -538,6 +538,12 @@ for (const way of DRAW_ORDER) {
     continue;
   }
   const isPath = way.kind === "path";
+  // A path across a plaza the map draws as paving (Union Square): the paving is the path. Laid
+  // as kerb-height slabs on it, nineteen footways crossed and overlapped in a tangle of edges.
+  if (isPath && pathInsidePlaza(way)) continue;
+  // A short path mapped over the carriageway is a crossing (its markings are the crossing's
+  // own): drawn as a kerb-height slab it lay diagonally across Powell and Post.
+  if (isPath && pathMostlyOnRoad(way)) continue;
   const isCrossing = way.kind === "crossing";
   // A few OpenStreetMap ways tagged as crossings run the length of a block -- a path across a
   // plaza, a mis-tagged footway. Painted as ladders they laid bars clear across the scene.
@@ -994,3 +1000,86 @@ deferredTactilePads.length = 0;
 const junctionBoxes = addJunctionBoxes();
 const mediansLaid = addDividedMedians();
 
+//: The plazas: paths mapped as closed areas of some size (a square's paving), as lon/lat rings.
+function plazaRings() {
+  if (plazaRings.found) return plazaRings.found;
+  const out = [];
+  for (const w of DATA.ways || []) {
+    const pts = w.points;
+    if (w.kind !== "path" || !pts || pts.length < 4) continue;
+    const [a, b] = [pts[0], pts[pts.length - 1]];
+    if (Math.abs(a[0] - b[0]) > 1e-7 || Math.abs(a[1] - b[1]) > 1e-7) continue;
+    let area = 0;
+    for (let i = 0; i < pts.length; i += 1) {
+      const [ax, ay] = xy(...pts[i]), [bx, by] = xy(...pts[(i + 1) % pts.length]);
+      area += ax * by - bx * ay;
+    }
+    if (Math.abs(area) / 2 < 600) continue;
+    let w0 = Infinity, s0 = Infinity, e0 = -Infinity, n0 = -Infinity;
+    for (const [lon, lat] of pts) { w0 = Math.min(w0, lon); e0 = Math.max(e0, lon); s0 = Math.min(s0, lat); n0 = Math.max(n0, lat); }
+    out.push({ ring: pts, box: [w0, s0, e0, n0], way: w });
+  }
+  return (plazaRings.found = out);
+}
+//: Whether an open path lies across a plaza: most of its points inside one (not the plaza's own
+//: outline).
+function pathInsidePlaza(way) {
+  const pts = way.points;
+  if (!pts || pts.length < 2) return false;
+  for (const p of plazaRings()) {
+    if (p.way === way) return false;
+    let inside = 0;
+    for (const [lon, lat] of pts) {
+      if (lon < p.box[0] || lon > p.box[2] || lat < p.box[1] || lat > p.box[3]) continue;
+      let hit = false;
+      for (let i = 0, j = p.ring.length - 1; i < p.ring.length; j = i++) {
+        const [ax, ay] = p.ring[i], [bx, by] = p.ring[j];
+        if ((ay > lat) !== (by > lat) && lon < (bx - ax) * (lat - ay) / (by - ay) + ax) hit = !hit;
+      }
+      if (hit) inside += 1;
+    }
+    if (inside >= Math.max(2, pts.length * 0.6)) return true;
+  }
+  return false;
+}
+
+//: The streets' centrelines in page metres, by 25 m cell, with their half-widths.
+function streetSegmentGrid() {
+  if (streetSegmentGrid.grid) return streetSegmentGrid.grid;
+  const grid = new Map(), CELL = 25;
+  for (const w of DATA.ways || []) {
+    if (w.kind !== "street" || !w.points || w.points.length < 2 || w.bridge || w.tunnel) continue;
+    const half = (w.road_m || (w.lanes || 2) * 3.3) / 2;
+    const pts = w.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    for (let i = 1; i < pts.length; i += 1) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], seg = { ax, az, bx, bz, half };
+      for (let gx = Math.floor((Math.min(ax, bx) - half) / CELL); gx <= Math.floor((Math.max(ax, bx) + half) / CELL); gx += 1)
+        for (let gz = Math.floor((Math.min(az, bz) - half) / CELL); gz <= Math.floor((Math.max(az, bz) + half) / CELL); gz += 1) {
+          const k = `${gx}:${gz}`; if (!grid.has(k)) grid.set(k, []); grid.get(k).push(seg);
+        }
+    }
+  }
+  return (streetSegmentGrid.grid = grid);
+}
+//: Whether a short path (under 40 m) lies half or more on a street's carriageway.
+function pathMostlyOnRoad(way) {
+  const pts = (way.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  let length = 0;
+  for (let i = 1; i < pts.length; i += 1) length += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  if (!(length > 0) || length > 40) return false;
+  const grid = streetSegmentGrid();
+  let on = 0, n = 0;
+  for (let i = 1; i < pts.length; i += 1) {
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i], steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.5));
+    for (let k = 0; k <= steps; k += 1) {
+      const x = ax + (bx - ax) * k / steps, z = az + (bz - az) * k / steps;
+      n += 1;
+      for (const s of grid.get(`${Math.floor(x / 25)}:${Math.floor(z / 25)}`) || []) {
+        const dx = s.bx - s.ax, dz = s.bz - s.az, L = dx * dx + dz * dz;
+        const t = L ? Math.max(0, Math.min(1, ((x - s.ax) * dx + (z - s.az) * dz) / L)) : 0;
+        if (Math.hypot(x - s.ax - dx * t, z - s.az - dz * t) < s.half - 0.5) { on += 1; break; }
+      }
+    }
+  }
+  return on >= n * 0.5;
+}

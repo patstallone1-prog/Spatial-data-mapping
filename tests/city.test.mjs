@@ -614,3 +614,74 @@ test("a shop's staff stand behind its counter", () => {
   const L = counterLine(inside);
   assert.ok(L.staff > L.counter && L.counter > L.front && L.back > L.staff);
 });
+
+// ---- street life, density, where you are, and the vehicles (2026-11-08) ------------------------
+import { densityAt } from "../docs/city/people.mjs";
+import * as THREE from "../docs/vendor/three-0.160.0/three.module.min.js";
+import { VEHICLE_DIMS, vehicleParts } from "../docs/city/vehicles.mjs";
+
+function gridStreets(n = 8, step = 100) {
+  const ways = [];
+  for (let i = 0; i <= n; i += 1) {
+    // Every junction a shared point, as the map's ways have them.
+    const along = Array.from({ length: n + 1 }, (_, j) => j * step);
+    ways.push({ kind: "street", pts: along.map((v) => [i * step, v]), lanes: 2, oneway: 0, id: `v${i}` });
+    ways.push({ kind: "street", pts: along.map((v) => [v, i * step]), lanes: 2, oneway: 0, id: `h${i}` });
+  }
+  return new Streets(ways);
+}
+
+test("the Marina is a hotspot: more passers-by and more traffic than the default", () => {
+  assert.equal(densityAt(R, -122.437, 37.803, "walkers"), 3.2);
+  assert.equal(densityAt(R, -122.437, 37.803, "traffic"), 2.4);
+  assert.equal(densityAt(R, -122.27, 37.80, "walkers"), 1);
+});
+
+test("street life fills the pavements near you, on the pavement, the same in every browser", () => {
+  const streets = gridStreets();
+  const noon = Date.UTC(2026, 9, 6, 19, 0);   // 12:00 in San Francisco
+  const make = (lon, lat) => new Crowd(R, streets, [], [], { seed: "grid", timeAt: (ms) => cityTime(ms, R.clock.zone), toLonLat: () => [lon, lat] });
+  const quiet = make(-122.27, 37.80).streetLife(cityTime(noon, R.clock.zone), { x: 400, z: 400 }, 260);
+  const marina = make(-122.437, 37.803).streetLife(cityTime(noon, R.clock.zone), { x: 400, z: 400 }, 260);
+  assert.ok(quiet.length >= 15, `${quiet.length} passers-by`);
+  assert.ok(marina.length > quiet.length * 2, `${marina.length} in the Marina against ${quiet.length}`);
+  // On the pavements, beside the carriageways: all but those crossing at a corner.
+  let inRoad = 0;
+  for (const p of marina) {
+    assert.ok(Math.hypot(p.x - 400, p.z - 400) <= 260);
+    const offX = Math.abs(p.x - Math.round(p.x / 100) * 100), offZ = Math.abs(p.z - Math.round(p.z / 100) * 100);
+    if (Math.min(offX, offZ) < 3) inRoad += 1;
+  }
+  assert.ok(inRoad <= marina.length * 0.12, `${inRoad} of ${marina.length} in the road`);
+  const again = make(-122.437, 37.803).streetLife(cityTime(noon, R.clock.zone), { x: 400, z: 400 }, 260);
+  assert.deepEqual(again.map((p) => p.id), marina.map((p) => p.id));
+  // A second on, everyone has moved a step and is the same person.
+  const later = make(-122.437, 37.803);
+  const a = later.streetLife(cityTime(noon, R.clock.zone), { x: 400, z: 400 }, 260)[0];
+  const b = later.walkerAt(a.walker, noon / 1000 + 1);
+  assert.ok(Math.hypot(b.x - a.x, b.z - a.z) > 0.8 && Math.hypot(b.x - a.x, b.z - a.z) < 1.8);
+});
+
+test("where you are: the real outlines, a town in its county, San Francisco a city and county", () => {
+  const Rb = { ...R, boundaries: JSON.parse(readFileSync(new URL("../docs/city/jurisdictions.json", import.meta.url))) };
+  assert.equal(jurisdictionAt(Rb, -122.545, 37.906).name, "Mill Valley");
+  assert.equal(jurisdictionAt(Rb, -122.545, 37.906).county, "county:marin");
+  assert.equal(jurisdictionAt(Rb, -122.52, 37.83).name, "Marin County");           // the Headlands
+  assert.deepEqual(jurisdictionAt(Rb, -122.4084, 37.7881).chain.slice(0, 2), ["city:san-francisco", "county:san-francisco"]);
+  // Without the outlines, the boxes: the Headlands were San Francisco.
+  assert.equal(jurisdictionAt(R, -122.52, 37.83).name, "San Francisco");
+});
+
+test("every kind of vehicle is built to its size, with glass and an inside", () => {
+  for (const [kind, [w, h, l]] of Object.entries(VEHICLE_DIMS)) {
+    const parts = vehicleParts(THREE, kind), box = new THREE.Box3();
+    for (const slot of ["paint", "glass", "fixed"]) {
+      assert.ok(parts[slot].getAttribute("position").count > 0, `${kind} ${slot}`);
+      parts[slot].computeBoundingBox(); box.union(parts[slot].boundingBox);
+      assert.ok(!parts[slot].getAttribute("position").array.some(Number.isNaN));
+    }
+    assert.ok(Math.abs(box.max.z - box.min.z - l) < 0.2, `${kind} length`);
+    assert.ok(Math.abs(box.max.y - h) < 0.25 && box.min.y >= -0.01, `${kind} height`);
+    assert.ok(box.max.x - box.min.x < w + 0.5, `${kind} width`);
+  }
+});
