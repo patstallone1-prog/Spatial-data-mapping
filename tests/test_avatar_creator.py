@@ -12,9 +12,10 @@ from pathlib import Path
 import pytest
 
 from smc.cloud.store import LocalStore
+from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
-RENDERER = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+RENDERER = renderer_source()
 LOBBY = (ROOT / "docs/home-lobby.mjs").read_text()
 
 CATALOGUE = {

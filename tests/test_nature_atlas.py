@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from smc.renderer.template import renderer_source
 from smc.terrain.nature import validate_layers, write_array
 from tests.test_world_object_renderer import _extract, _page_js
 
@@ -248,9 +249,9 @@ console.log(JSON.stringify({road:road.ys,house:house.ys,massing:mass.values[13],
 
 
 def test_runtime_is_fingerprinted_and_not_an_older_regional_template():
-    builder = (ROOT / "tools/build_app_worlds.py").read_text()
-    assert 'DOCS / "nature-runtime.mjs"' in builder
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    builder = (ROOT / "src/smc/renderer/pages.py").read_text()
+    assert 'docs / "nature-runtime.mjs"' in builder
+    source = renderer_source()
     assert 'import(sharedAsset("nature-runtime.mjs?rev=__NATURE_RUNTIME_HASH__"))' in source
     assert "if (PERIMETER && !NATURE)" in source
 

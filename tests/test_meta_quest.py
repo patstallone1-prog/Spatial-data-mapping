@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 GiB = 1024 ** 3
 
@@ -116,7 +118,7 @@ def test_the_menu_is_search_directions_and_reset_and_its_rows_are_hit_where_draw
 
 
 def test_the_page_puts_the_headset_mode_together():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "const META = !ATTACH && document.querySelector('meta[name=\"kerbside-mode\"]')?.content === \"meta\";" in source
     assert "const STREAM = META ? { ...metaLibrary.META_STREAM }" in source
     assert "logarithmicDepthBuffer: !META" in source
@@ -168,7 +170,7 @@ def test_the_headset_draws_only_what_you_could_see_and_builds_its_squares_lean()
     one frame a second: what stands past the far plane, the Bay-wide canopy, rooms you are not
     in, and small things far off are left out of the drawing, and the squares built for the
     headset are cut coarser, keep only their own fences and grow no grass blades."""
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "const HEADSET = META || Boolean(ATTACH?.headset);" in source
     assert "natureBacked:Boolean(NATURE), headset: META," in source
     assert "const TERRAIN_CHORD_M = HEADSET ? 0.6 : 0.25;" in source
@@ -186,7 +188,7 @@ def test_the_headset_compiles_a_square_before_showing_it_and_builds_no_bay_canop
     """Measured on a Quest 3: once every shader had compiled and the Bay-wide canopy had finished
     building in the background, the square drew at 90 frames a second; before, each surface
     first seen stalled the headset and the canopy took a slice of every frame for minutes."""
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "const compiled = renderer.compileAsync(holder.root, camera, scene);" in source
     assert "overview:!HEADSET});" in source
     nature = (ROOT / "docs/nature-runtime.mjs").read_text()

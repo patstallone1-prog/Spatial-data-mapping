@@ -18,11 +18,14 @@ install-dev:
 test:
 	PYTHONPATH=src $(PY) -m pytest tests -q
 
+# The same ruff, rules and scope as CI: all of them are in pyproject.toml.
+RUFF := $(shell python3 tools/ci/ruff_pin.py)
+
 lint:
-	uv run --with ruff ruff check src tests
+	uvx "$(RUFF)" check
 
 format:
-	uv run --with ruff ruff check src tests --fix
+	uvx "$(RUFF)" check --fix
 
 typecheck:
 	uv run --with mypy mypy src

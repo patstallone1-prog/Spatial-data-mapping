@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from smc.waterworks.drains import (
     PointGrid,
     drain_form,
@@ -93,7 +94,7 @@ def test_a_plants_round_tanks_are_clarifiers_and_digesters():
 
 
 def test_the_page_loads_the_waterworks_with_the_street_furniture():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert 'const LAZY_COMPANIONS = { furniture: ["highway_signs", "highway_tolls", "waterworks"] };' in source
     assert 'registerLazyLayer("waterworks", async () => {' in source
     assert "const WATERWORKS_TILE_PATH = /^waterworks\\/[a-z0-9-]+\\.json$/;" in source

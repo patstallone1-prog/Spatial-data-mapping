@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -192,7 +194,7 @@ def test_the_plan_lasts_the_build_and_a_little_more_within_the_stretch():
 
 
 def test_page_wires_the_floor_globe_and_trip():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     for needle in ['"forest-floor.mjs?rev=__FOREST_FLOOR_HASH__"', '"globe.mjs?rev=__GLOBE_HASH__"',
                    "forestFloor:forestFloorLibrary", "function fitViewToAltitude()"]:
         assert needle in source

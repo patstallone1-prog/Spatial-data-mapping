@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 from test_street_infill import _extract, _page_js
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="node is needed to run the renderer's own code")
 
@@ -88,7 +90,7 @@ console.log(JSON.stringify(out));
 
 
 def test_the_bay_bridges_register_named_decks_and_a_jump_lands_on_them():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     for key in ["golden_gate", "bay_west", "bay_east", "richmond"]:
         assert f'deckName = named.get("{key}").find((w) => w.name)?.name' in source
     assert "elevatedDecksAt(landing.x,landing.z).length\n      ? null : groundLiftAt(landing.x,landing.z)" in source
@@ -98,7 +100,7 @@ def test_the_bay_bridges_register_named_decks_and_a_jump_lands_on_them():
 def test_a_region_buildings_edit_is_drawn_in_that_regions_world_with_the_canonical_edits():
     # The app's buildings are mostly in the region drawn beside the page: the editor works in
     # that region's frame, so the preview as you tap and the saved edit are both on its wall.
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert "library.open({ ...exteriorEditorContextFor(feature), account }, feature);" in source
     assert "exteriorEditorContext, hasExteriorBuilding: (id) => buildingWayById.has(String(id))," in source
     assert "renderWallStill: (wall, canvas) => renderWallStill(guestWallToHost(g, wall), canvas)" in source

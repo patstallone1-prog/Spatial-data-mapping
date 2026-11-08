@@ -7,6 +7,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
     "photo_kerb_heights", ROOT / "scripts/curbmeasure/photo_kerb_heights.py"
@@ -80,7 +82,7 @@ def test_a_reading_between_two_streets_or_from_too_few_images_is_not_used():
 
 
 def test_builder_takes_photo_heights_only_below_city_and_lidar():
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     block = source[source.index('photo_path = lidar_dir / "kerb_heights_photo.json"') :]
     block = block[: block.index("return dict(counts)")]
     assert 'photo.get("accepted")' in block and 'way.get("kerb_m")' in block

@@ -30,8 +30,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from smc.renderer.template import RENDERER_SOURCE
+
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
+SOURCE = RENDERER_SOURCE
 PAGE_DATA = ROOT / "docs" / "sf-corridor-3d.json"
 GROUND_DATA = ROOT / "docs" / "sf-corridor-ground.json"
 OFFICIAL_DATA = ROOT / "docs" / "sf-corridor-official.json"

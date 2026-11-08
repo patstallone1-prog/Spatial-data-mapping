@@ -26,6 +26,11 @@ IMPLEMENTATION_FILES = (
     "src/smc/facades/house_extent.py",
     "src/smc/facades/view_store.py",
     "scripts/build_sf_corridor_3d.py",
+    "src/smc/renderer/tuning.py",
+    # The page the builder writes, which draws the fits: its shell and its module, in order.
+    *(str(path.relative_to(Path(__file__).resolve().parents[3]))
+      for path in sorted((Path(__file__).resolve().parents[1] / "renderer" / "page").rglob("*"))
+      if path.suffix in (".html", ".js")),
 )
 
 

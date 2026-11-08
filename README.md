@@ -257,7 +257,7 @@ region in the registry and keeps a journal so it can resume.
 | Ground from the lidar | `scripts/build_terrain.py` | `sf-corridor-terrain.{bin,json}` |
 | Kerbs, heights, portals from the lidar | `scripts/measure_region_lidar.py`, `measure_curbs_lidar.py`, `measure_tunnel_portals.py` | `official/*.json` |
 | Ground cover, furniture, colours | `scripts/build_ground_cover.py`, `build_street_furniture.py`, `build_building_colours.py` | sidecars |
-| The page | `scripts/build_sf_corridor_3d.py [--region <name>] [--reuse-osm]` | `sf-corridor-3d.{html,json}` and the shards; sets the grid's water (`smc.terrain.waterline`) |
+| The page | `scripts/build_sf_corridor_3d.py [--region <name>] [--reuse-osm]` | `sf-corridor-3d.{html,json}` and the shards; sets the grid's water (`smc.terrain.waterline`). The viewer's page itself lives in `src/smc/renderer/page/` (`shell.html` and the module parts `module/NN-*.js`, joined in name order) |
 | The country round every region | `scripts/build_perimeter.py` | `sf-corridor-perimeter.json`, one atlas copied beside every built page |
 | The Bay Area, coarse to fine | `scripts/build_tiles.py` | `tiles/` — one quadtree over the whole area, from the skyline down to the street, built from the regions themselves |
 | Publish | `tools/build_app.py`, `tools/build_landing.py`, `tools/build_pages.py [--map-only --out <dir>]` | `docs/` |
@@ -269,12 +269,15 @@ twice, and a rebuild with the cached map (`--reuse-osm`) reclassifies rather tha
 
 ```bash
 make install-dev
-make check                                   # lint + tests
+make check                                   # lint (ruff, configured once in pyproject.toml) + tests
+make lint                                    # the pinned ruff over the scope pyproject.toml lists
 .venv/bin/python scripts/build_sf_corridor_3d.py --reuse-osm   # rebuild docs/sf-corridor-3d.*
 .venv/bin/python scripts/build_perimeter.py                    # the five-mile country round every region
 .venv/bin/python scripts/build_tiles.py                        # the Bay Area as a tile tree
 tools/build_all.sh                                           # build every page into docs/
-# Deploy: push main. Vercel builds nothing; it serves docs/ (vercel.json, .vercelignore).
+python tools/build_deploy_pages.py           # the app pages, runtime-release.json and sw.js (not committed)
+python -m smc.city --hours 6                 # Kerbside V2's city core on a synthetic district
+# Deploy: push main. Vercel runs tools/build_deploy_pages.py (standard library only), then serves docs/.
 tools/shots/shoot.sh docs/sf-corridor-3d.html spots.json sheet.png       # photograph it before deploying
 ```
 

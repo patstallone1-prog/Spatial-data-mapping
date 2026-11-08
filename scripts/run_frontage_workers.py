@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from smc.facades.version import implementation_sha256  # noqa: E402
+from smc.renderer.template import RENDERER_SOURCE  # noqa: E402
 from smc.storage.external_volume import volume_ready  # noqa: E402
 
 REGIONS = [
@@ -99,7 +100,7 @@ def stop_process(process):
             process.wait(timeout=1)
 
 
-def full_run_approved(path: Path | None, renderer: Path) -> bool:
+def full_run_approved(path: Path | None, renderer: Path | object) -> bool:
     if path is None or not path.is_file():
         return False
     try:
@@ -262,9 +263,8 @@ def main():
                     },
                 )
             else:
-                full = full_run_approved(
-                    args.full_run_approval, ROOT / "scripts/build_sf_corridor_3d.py"
-                )
+                # The whole renderer: the builder and the page it writes (smc.renderer.template).
+                full = full_run_approved(args.full_run_approval, RENDERER_SOURCE)
                 wanted = proposal_batch_size(full, args.full_private_proposals)
                 if sample is not None and sample != wanted:
                     stop_children()

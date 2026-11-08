@@ -17,6 +17,7 @@ from smc.cloud.checkpoint import cas_key, pull_tree, push_tree, read_tree
 from smc.cloud.publish import Publisher
 from smc.cloud.selftest import _Public
 from smc.cloud.store import LocalStore, PreconditionFailed
+from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -134,7 +135,7 @@ def test_withdrawing_a_cell_keeps_the_rest(tmp_path):
 
 
 def _render_function(name: str) -> str:
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     start = source.index(f"function {name}(")
     depth, i = 0, source.index("{", start)
     while True:

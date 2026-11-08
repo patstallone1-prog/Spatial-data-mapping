@@ -14,8 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import RENDERER_SOURCE
+
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
+SOURCE = RENDERER_SOURCE
 NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(NODE is None, reason="node is needed to run the renderer's own code")
 

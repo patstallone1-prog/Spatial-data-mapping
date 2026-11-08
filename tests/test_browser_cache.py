@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import RENDERER_SOURCE
+
 
 def test_returning_visitor_cache_behaviors():
     node = shutil.which("node")
@@ -34,7 +36,7 @@ def test_published_worker_is_the_current_source_policy():
 def test_mutable_detail_shards_revalidate_across_all_app_consumers():
     root = Path(__file__).resolve().parents[1]
     pages = [
-        root / "scripts/build_sf_corridor_3d.py",
+        RENDERER_SOURCE,
         root / "docs/app-model.html",
         *sorted((root / "docs/app-regions").glob("*/app-model.html")),
     ]

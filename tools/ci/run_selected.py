@@ -44,7 +44,8 @@ def commands(plan: dict, kind: str, prefix: str = "") -> list[list[str]]:
         return [["node", "--test", *paths]] if paths else []
     if kind == "lint":
         return (
-            [["ruff", "check", *paths, "--ignore", "E501", "--output-format", "github"]]
+            # Everything else -- rules, ignores, scope -- is pyproject's [tool.ruff].
+            [["ruff", "check", *paths, "--output-format", "github"]]
             if paths
             else []
         )

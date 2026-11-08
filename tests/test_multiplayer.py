@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
 NODE = shutil.which("node")
 THREE = ROOT / "tools/unreal/node_modules/three/build/three.module.js"
@@ -89,7 +91,7 @@ console.log(JSON.stringify({ mid: m.sampleAt(samples, 50), after: m.sampleAt(sam
 
 
 def test_the_page_offers_play_together_and_ticks_it_each_frame() -> None:
-    source = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    source = renderer_source()
     assert '<button id="play-together"' in source
     assert 'import(sharedAsset("multiplayer.mjs?rev=__MULTIPLAYER_HASH__"))' in source
     assert "if (multiplayer?.session?.tick(now)) lastMovedAt = now;" in source

@@ -8,10 +8,11 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from tests.test_world_object_renderer import _extract
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+SOURCE = renderer_source()
 BOOT = SOURCE[SOURCE.index("window.kerbsideBoot ="):SOURCE.index("</script>",
               SOURCE.index("window.kerbsideBoot ="))]
 FRAME = _extract("markBootRendered", SOURCE)

@@ -5,8 +5,10 @@ import re
 import subprocess
 from pathlib import Path
 
+from smc.renderer.template import renderer_source
+
 ROOT = Path(__file__).resolve().parents[1]
-RENDERER = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+RENDERER = renderer_source()
 
 
 def test_home_opens_before_the_world_streams_in():

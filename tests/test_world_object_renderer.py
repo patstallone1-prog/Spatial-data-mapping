@@ -24,11 +24,12 @@ from smc.geometry.extrusion import ProfileKey, SplineExtrusion, kerb_profile, re
 from smc.geometry.spline import CurveSamples, PiecewisePath
 from smc.reconstruction.geo import EnuFrame
 from smc.reconstruction.geometry_fit import decide, fit_curb_line
+from smc.renderer.template import RENDERER_SOURCE
 from smc.world.compile import web_record
 from smc.world.object import EvidenceRef
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "scripts" / "build_sf_corridor_3d.py"
+SOURCE = RENDERER_SOURCE
 NODE = shutil.which("node")
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is needed to run the page's code")
 

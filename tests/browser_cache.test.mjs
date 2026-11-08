@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { rendererSource } from '../tools/renderer-source.mjs';
 
 const worker = readFileSync(new URL('../tools/pwa/sw.js', import.meta.url), 'utf8');
-const source = readFileSync(new URL('../scripts/build_sf_corridor_3d.py', import.meta.url), 'utf8');
+const source = rendererSource();
 const loadCode = source.slice(source.indexOf('const LOAD_MARK_KEY'), source.indexOf('//: The square:'));
 const origin = 'https://kerbside.example/';
 const oldName = 'kerbside-0123456789abcdef';

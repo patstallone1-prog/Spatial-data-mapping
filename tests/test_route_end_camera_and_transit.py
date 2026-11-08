@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +38,7 @@ console.log(JSON.stringify({ seven: decodePolyline6(seven, 7),
 
 def test_a_route_ends_from_a_button_by_the_map_controls_or_escape() -> None:
     js = _page_js()
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert 'id="route-end" hidden title="End the route (Esc)"' in page
     assert 'document.getElementById("route-end").addEventListener("click", endRoute);' in js
     assert 'if (e.key !== "Escape" || !route.results.length) return;' in js

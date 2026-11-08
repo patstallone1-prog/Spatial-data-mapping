@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from smc.renderer.template import renderer_source
 from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,7 @@ def test_a_bus_zone_near_a_corner_runs_parallel_to_its_street_not_on_the_diagona
     assert (r["nx"], r["nz"]) == (0, 1), "square to the street, on the stop's side"
     assert (r["x"], r["z"]) == (10, 5), "the kerb square off the centreline"
     assert r["passthrough"] is None
-    page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
+    page = renderer_source()
     assert "const kerb = streetSquareKerb(nearestKerbAt(x, z, 25));" in page
     assert ".map((run) => run.map(streetSquareKerb))" in page
 

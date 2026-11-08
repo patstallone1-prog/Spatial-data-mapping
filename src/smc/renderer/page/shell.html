@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="kerbside-assets" content="" />
+<meta name="kerbside-routing" content="" />
+<meta name="kerbside-regions" content="regions.json" />
+<title>Kerbside SF Corridor 3D</title>
+<style>
+:root { color-scheme: light; --brand:#8c844c; --bg:#eef1f4; --panel:#ffffff; --line:#e5e7eb; --ink:#111827; --muted:#6b7280;
+  --soft:#f3f4f6; --accent:#2563eb; --accent-soft:#eff6ff; --green:#16a34a; --amber:#d97706; --cyan:#0891b2;
+  --shadow:0 12px 32px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.06); }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow:hidden; -webkit-font-smoothing:antialiased; }
+#scene { position:fixed; inset:0; display:block; width:100vw; height:100vh; touch-action:none; }
+button { color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:background .15s, border-color .15s, box-shadow .15s; }
+button:hover { background:var(--soft); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+button[aria-pressed=true] { background:var(--accent-soft); border-color:#bfdbfe; color:#1d4ed8; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button.primary:hover { background:#1d4ed8; }
+/* The sidebar: what is wanted at once -- where to go, how to get there, how to look. */
+.hud { position:fixed; top:16px; left:16px; bottom:16px; width:min(340px, calc(100vw - 32px)); display:flex; flex-direction:column; gap:10px; pointer-events:none; z-index:8; }
+.hud .panel { flex:0 1 auto; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:14px; }
+.hud[data-open="false"] .panel { display:none; }
+.panel { pointer-events:auto; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+.hud-top { display:flex; gap:8px; align-self:flex-start; }
+#route-end { pointer-events:auto; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; background:#2563eb; color:#fff; border:0; padding:0 14px; }
+#fold { align-self:flex-start; pointer-events:auto; min-width:48px; min-height:44px; border-radius:12px; box-shadow:var(--shadow); font-weight:600; }
+.bar { display:flex; align-items:center; gap:10px; }
+.bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
+.bar h1::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--brand); margin-right:8px; vertical-align:1px; }
+.group > h2, .sheet h2 { margin:0 0 8px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+input[type=search], input[type=text], select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--soft); color:var(--ink); font:inherit; font-size:14px; }
+input[type=search]:focus, input[type=text]:focus, select:focus { background:#fff; border-color:#93c5fd; }
+input::placeholder { color:#9ca3af; }
+#region { font-size:13px; padding:8px 10px; }
+.hits { list-style:none; margin:6px 0 0; padding:0; max-height:200px; overflow:auto; }
+.hits li { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--muted); }
+.hits li:hover, .hits li[aria-selected=true] { background:var(--soft); color:var(--ink); }
+.toolbar { display:flex; flex-wrap:wrap; gap:8px; }
+.toolbar.actions button { flex:1; }
+.settings-open { margin-top:auto; width:100%; color:var(--muted); }
+/* Directions */
+.seg { display:flex; background:var(--soft); border-radius:10px; padding:3px; gap:3px; }
+.seg button { flex:1; border:0; background:transparent; padding:7px 0; border-radius:8px; }
+.seg button[aria-pressed=true] { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(15,23,42,.12); }
+.stop { position:relative; display:flex; gap:6px; align-items:center; margin-top:6px; }
+.stop .dot { width:10px; height:10px; border-radius:50%; flex:none; background:#9ca3af; }
+.stop:first-child .dot { background:var(--green); } .stop:last-child .dot { background:#dc2626; }
+.stop input { padding:8px 10px; font-size:13px; }
+.stop button { padding:6px 8px; border:0; background:transparent; color:var(--muted); }
+.stop .hits { position:absolute; left:16px; right:0; top:100%; z-index:5; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+.stop .hits:empty { display:none; }
+.routes .tags { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 2px; }
+.routes .tag { font-style:normal; font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; background:#eef2ff; color:#3730a3; }
+.routes .tag-fastest { background:#ecfdf5; color:#047857; }
+.routes small { color:var(--muted); font-weight:500; margin-left:4px; }
+.routes { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.routes li { border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; }
+.routes li[aria-selected=true] { border:2px solid #2563eb; background:#eff6ff; box-shadow:inset 4px 0 #2563eb; }
+.routes .route-choice { color:#1d4ed8; font-weight:700; margin:0 8px 0 0; }
+.routes b { font-size:15px; } .routes span { color:var(--muted); font-size:12px; margin-left:8px; }
+.steps { margin:8px 0 0; padding-left:18px; font-size:12px; color:#374151; max-height:220px; overflow:auto; }
+.hud .panel[hidden] { display:none; }
+/* The route under way: its steps in the sidebar's place, the map beside them. */
+#nav-panel { flex:1 1 auto; min-height:0; gap:10px; }
+#nav-panel header { display:flex; align-items:center; gap:8px; }
+#nav-panel header h2 { margin:0; flex:1; font-size:16px; }
+#nav-panel header button { min-height:36px; border-radius:10px; }
+#nav-summary { font-size:13px; color:var(--muted); margin:0; }
+#nav-summary b { color:var(--ink); font-size:20px; margin-right:6px; }
+#nav-steps { list-style:none; margin:0; padding:0 4px 0 0; flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  display:flex; flex-direction:column; }
+#nav-steps li { display:grid; grid-template-columns:32px 1fr; gap:2px 10px; padding:10px 2px; border-bottom:1px solid var(--line); font-size:13px; line-height:1.4; }
+#nav-steps li:last-child { border-bottom:0; }
+#nav-steps .turn { grid-row:span 2; width:32px; height:32px; border-radius:50%; background:var(--accent-soft); color:#1d4ed8;
+  display:grid; place-items:center; font-size:17px; font-weight:700; }
+#nav-steps .far { color:var(--muted); font-size:12px; }
+#route-show-steps { width:100%; margin-top:8px; }
+.note { color:var(--muted); font-size:12px; line-height:1.5; margin:6px 0 0; }
+/* The settings page: everything that is not wanted at once. */
+.sheet { position:fixed; top:16px; right:16px; bottom:16px; width:min(380px, calc(100vw - 32px)); z-index:45; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:20px; }
+.sheet[hidden] { display:none; }
+.sheet .page-link { margin-top:10px; width:100%; text-align:left; }
+.sheet .page-link.back { margin:0 0 6px; width:auto; }
+.sheet[data-page="controls"] > section:not(#controls-help) { display:none; }
+.sheet[data-page="controls"] > #controls-help { display:block; }
+.sheet .subpage[hidden] { display:none; }
+.sheet dl.controls { display:grid; grid-template-columns:minmax(110px, 40%) 1fr; gap:6px 12px; margin:0 0 14px; font-size:13px; }
+.sheet dl.controls dt { font-weight:600; }
+.sheet dl.controls dd { margin:0; color:var(--muted); }
+.sheet kbd { display:inline-block; min-width:1.4em; padding:1px 5px; border:1px solid #d1d5db; border-bottom-width:2px; border-radius:5px; background:#f9fafb; font:600 12px/1.4 system-ui,sans-serif; text-align:center; color:#111827; }
+.sheet header { display:flex; align-items:center; justify-content:space-between; }
+.sheet header h1 { margin:0; font-size:18px; font-weight:700; }
+.sheet label.row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:8px 0; font-size:14px; }
+.sheet label.row select { width:auto; min-width:150px; }
+.meta { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+.stat { background:var(--soft); border-radius:10px; padding:8px; min-width:0; }
+.stat b { display:block; font-size:16px; font-variant-numeric:tabular-nums; }
+.stat span { color:var(--muted); font-size:10px; text-transform:uppercase; }
+.legend { display:flex; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; }
+.key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.sw { width:10px; height:10px; border-radius:50%; background:var(--accent); }
+#tip { color:#374151; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:12px; line-height:1.5; }
+#addr { position:fixed; z-index:9; max-width:280px; padding:10px 12px; border-radius:12px; background:rgba(17,24,39,.94); color:#fff; font-size:12px; line-height:1.45; box-shadow:var(--shadow); pointer-events:none; }
+#addr b { font-size:13px; } #addr .sub { color:#fff; }
+#addr .addr-edit { margin-top:8px; border:0; border-radius:8px; padding:5px 10px; background:#1f6feb; color:#fff; font:inherit; cursor:pointer; }
+#nearby { position:fixed; left:16px; top:72px; z-index:9; width:min(340px, calc(100vw - 24px)); padding:9px 12px; border-radius:12px; background:rgba(17,24,39,.86); color:#fff; font-size:12px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none; }
+#nearby .head { font-weight:600; margin-bottom:4px; } #nearby .row { margin-top:5px; } #nearby .sub { color:#cbd5e1; font-size:11px; }
+/* The build's own line ("Building the streets: 62%"): read by the Entering the world screen (home-lobby
+   ctx.progress) and by screen readers, never drawn as a box of its own over the world. */
+#progress { position:fixed; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; pointer-events:none; }
+@media (max-width: 760px) {
+  .hud { width:calc(100vw - 32px); bottom:auto; max-height:72vh; }
+  .meta { grid-template-columns:repeat(2, 1fr); }
+}
+/* Contributor tools are off unless turned on (the home screen's Contributor tools). */
+body:not(.contributor) [data-contributor]{display:none !important}
+body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="progress" hidden>Loading the corridor&hellip;</div>
+<div class="hud" id="hud" data-open="false">
+  <div class="hud-top"><button id="fold" aria-expanded="false" aria-controls="map-sidebar" aria-label="Open map controls" title="Map controls">☰ Map</button>
+  <button type="button" id="route-end" hidden title="End the route (Esc)">✕ End route</button></div>
+  <div class="panel" id="map-sidebar">
+    <div class="bar"><h1>Kerbside</h1></div>
+    <div class="group" id="regiongroup" hidden>
+      <select id="region" aria-label="Region"></select>
+    </div>
+    <div class="group">
+      <input id="find" type="search" autocomplete="off" aria-label="Search" placeholder="Search a place, address or corner" />
+      <ul id="hits" class="hits"></ul>
+    </div>
+    <div class="group" id="route-panel">
+      <h2>Directions</h2>
+      <div class="seg" role="group" aria-label="Travel mode">
+        <button type="button" data-mode="walk" aria-pressed="true">Walk</button>
+        <button type="button" data-mode="bike" aria-pressed="false">Bike</button>
+        <button type="button" data-mode="drive" aria-pressed="false">Drive</button>
+        <button type="button" data-mode="transit" aria-pressed="false">Transit</button>
+      </div>
+      <div id="route-stops"></div>
+      <div class="toolbar" style="margin-top:8px">
+        <button type="button" id="route-add">+ Stop</button>
+        <button type="button" id="route-go" class="primary" style="flex:1">Get directions</button>
+        <button type="button" id="route-clear" hidden>Clear</button>
+      </div>
+      <p class="note" id="route-status" role="status"></p>
+      <ul class="routes" id="route-results"></ul>
+      <ol class="steps" id="route-steps" hidden></ol>
+      <button type="button" id="route-show-steps" class="primary" hidden>Step-by-step directions →</button>
+    </div>
+    <div class="toolbar actions">
+      <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
+      <button id="explore" aria-pressed="false" title="Explore (E): the walker is put away and the arrows move the view anywhere; turned off, the walker stands where you are">Explore</button>
+      <button id="reset">Reset view</button>
+      <button id="play-together" title="Walk the same streets with friends: share a room link and see each other's walkers">Play together</button>
+    </div>
+    <button type="button" id="settings-toggle" class="settings-open" aria-controls="settings-page" aria-expanded="false">⚙ Settings</button>
+  </div>
+  <section class="panel" id="nav-panel" hidden aria-label="Step-by-step directions">
+    <header>
+      <button type="button" id="nav-back" title="Back to the route options">← Options</button>
+      <h2>Directions</h2>
+      <button type="button" id="nav-close" aria-label="Close the directions" title="Close (the route stays on the map)">✕</button>
+    </header>
+    <p id="nav-summary"></p>
+    <ol id="nav-steps"></ol>
+  </section>
+</div>
+<form class="panel sheet" id="settings-page" hidden aria-label="Settings">
+  <header><h1>Settings</h1><button type="button" id="settings-close" aria-label="Close settings">✕</button></header>
+  <section id="settings-display"><h2>Display</h2></section>
+  <section class="group">
+    <h2>Layers</h2>
+    <div class="toolbar">
+      <button type="button" data-layer="streets" aria-pressed="true">Streets</button>
+      <button type="button" data-layer="mapped3d" aria-pressed="true">3D Artifact</button>
+      <button type="button" data-contributor data-layer="coverage" aria-pressed="true">Coverage</button>
+      <button type="button" data-contributor data-layer="observations" aria-pressed="true">Photos</button>
+      <button type="button" data-contributor data-layer="sequences" aria-pressed="true">Sequences</button>
+      <button type="button" data-contributor data-layer="kerbs" aria-pressed="true">Measured kerbs</button>
+      <button type="button" data-layer="facades" aria-pressed="true">Photo facades</button>
+      <button type="button" data-layer="ground" aria-pressed="true">Ground &amp; trees</button>
+      <button type="button" data-layer="furniture" aria-pressed="false">Street furniture</button>
+      <button type="button" data-contributor data-layer="official" aria-pressed="false">Official geometry</button>
+      <button type="button" data-contributor data-layer="chunks" aria-pressed="false">Chunks</button>
+      <button type="button" data-layer="districts" aria-pressed="true">Districts</button>
+    </div>
+  </section>
+  <section class="group" id="controls" data-contributor>
+    <h2>Coverage</h2>
+    <div class="toolbar"><button type="button" data-layer="gaps" aria-pressed="false">Show gaps</button></div>
+    <p class="note" id="gapnote"></p>
+    <p class="note" id="facadenote"></p>
+    <p class="note" id="officialnote"></p>
+    <p class="note" id="furniturenote"></p>
+    <p class="note" id="detailnote"></p>
+  </section>
+  <section class="group" data-contributor>
+    <h2>This region</h2>
+    <div class="note" id="regionnote"></div>
+    <div class="meta">
+      <div class="stat"><b id="obs">0</b><span>observations</span></div>
+      <div class="stat"><b id="eligible">0</b><span>eligible</span></div>
+      <div class="stat"><b id="seq">0</b><span>sequences</span></div>
+      <div class="stat"><b id="cells">0</b><span>H3 cells</span></div>
+      <div class="stat"><b id="surfaces">0</b><span>surfaces</span></div>
+      <div class="stat"><b id="measured">0</b><span>measured curb</span></div>
+    </div>
+  </section>
+  <section class="group" data-contributor>
+    <h2>Legend</h2>
+    <div class="legend">
+      <span class="key"><span class="sw" style="background:#d6e7ea"></span>OSM street map</span>
+      <span class="key"><span class="sw" style="background:#9fb4bb"></span>covered 3D buildings</span>
+      <span class="key"><span class="sw" style="background:#ff4d8f"></span>curb bands</span>
+      <span class="key"><span class="sw" style="background:#ffffff;border:1px solid #d1d5db"></span>CV/depth backlog</span>
+      <span class="key"><span class="sw"></span>metadata observations</span>
+      <span class="key"><span class="sw" style="background:var(--green)"></span>high coverage cells</span>
+      <span class="key"><span class="sw" style="background:var(--amber)"></span>crossings</span>
+      <span class="key"><span class="sw" style="background:var(--cyan)"></span>sequence paths</span>
+    </div>
+  </section>
+  <section class="group">
+    <h2>Getting around</h2>
+    <div id="tip"><b>Click to move</b> without changing zoom. Drag to look around (you keep walking while you do), use arrow keys to walk, press F for first person, S for what is under the pointer, Enter to open a door or gate, 1, 2 or 3 to drop a pin (again to go back to it, then Delete to remove it), and wheel or pinch to zoom.</div>
+    <button type="button" class="page-link" id="controls-open" aria-controls="controls-help">Every control and what it does ›</button>
+  </section>
+  <section class="group subpage" id="controls-help" hidden aria-label="Controls">
+    <button type="button" class="page-link back" id="controls-back">‹ Back to settings</button>
+    <h2>Mouse and touch</h2>
+    <dl class="controls">
+      <dt>Click / tap the ground</dt><dd>Walk there. The zoom stays as it is.</dd>
+      <dt>Drag</dt><dd>Look around. You keep walking while you do.</dd>
+      <dt>Wheel / pinch</dt><dd>Zoom in and out.</dd>
+      <dt>Click a billboard</dt><dd>Opens what it advertises.</dd>
+      <dt>Click a region's marker</dt><dd>Flies you to that region.</dd>
+    </dl>
+    <h2>Keyboard</h2>
+    <dl class="controls">
+      <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Walk forward and back.</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Step left and right.</dd>
+      <dt><kbd>F</kbd></dt><dd>First person: see out of the walker's eyes, and back out.</dd>
+      <dt><kbd>E</kbd></dt><dd>Explore: the walker is put away and the arrows move the view anywhere; press again and the walker stands where you are.</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open or close the nearest door or gate.</dd>
+      <dt><kbd>S</kbd></dt><dd>What is under the pointer: a building's address, or a street's name and its cross streets. With the map panel closed.</dd>
+      <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Drop that pin on the ground under the pointer. Once it is down, the same key takes you back to it.</dd>
+      <dt><kbd>Shift</kbd> + <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Move that pin to the pointer.</dd>
+      <dt><kbd>R</kbd></dt><dd>Back to where you are: the walker to your location, following you again. Moving the walker yourself lets it go until then.</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close settings, or the address card.</dd>
+    </dl>
+    <p class="note">Keys do nothing to the map while you are typing in the search or directions boxes.</p>
+    <h2>Map panel</h2>
+    <dl class="controls">
+      <dt>☰ Map</dt><dd>Opens and closes the panel.</dd>
+      <dt>Search</dt><dd>Type a place or an address; <kbd>↑</kbd> <kbd>↓</kbd> to choose, <kbd>Enter</kbd> to show it. The walker stays where it is.</dd>
+      <dt>Directions</dt><dd>From and to, then Go: a route on the street network, drawn on the map.</dd>
+      <dt>First person</dt><dd>The same as <kbd>F</kbd>.</dd>
+      <dt>Explore</dt><dd>The same as <kbd>E</kbd>.</dd>
+      <dt>Reset view</dt><dd>Back out to the overview, with the walker where you are (when your location is on) or in the middle of the region.</dd>
+      <dt>⚙ Settings</dt><dd>This page: quality, frame rate, layers, your location and these controls.</dd>
+    </dl>
+    <button type="button" class="page-link" id="pins-clear">Clear pins</button>
+  </section>
+  <section class="group">
+    <h2>Directions</h2>
+    <p class="note">Routes are computed by <a href="https://valhalla.github.io/valhalla/" target="_blank" rel="noopener">Valhalla</a> on the legal OpenStreetMap street network (© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>), served by <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener">FOSSGIS</a>; transit by <a href="https://transitous.org" target="_blank" rel="noopener">Transitous</a> from the agencies' published timetables. The stops you enter are sent to those servers. Times are typical or scheduled, without live traffic. Never a path over what this map draws.</p>
+    <p class="note">Each route is tagged where it is clearly better than the fastest at something: <b>Fewest hills</b>, <b>Avoids stairs</b>, <b>Bike lane friendly</b>, <b>Fewest turns</b>, <b>Least walking</b>, <b>Fewest transfers</b>. A small difference earns no tag. A tag also moves a route up the list by how much it saves -- 300 ft less climbing counts about 6% of a bike ride's time.</p>
+  </section>
+</form>
+<div id="addr" hidden></div>
+<!-- The payload is fetched rather than inlined. At ten megabytes it dominated the repository:
+     eight rebuilds cost 82 MB of history, because a rewritten binary never deduplicates against
+     its previous version. Fetched, the page is a few kilobytes, the data changes independently,
+     and browsers cache it between visits. -->
+<script>
+// three.js from the site itself (docs/vendor/three-0.160.0, r160 as published on npm, MIT), not
+// from esm.sh: its stub for three@0.160.0 is cached by a browser for a year, and builds it once
+// pointed to now answer 400, so an installed app holding an old stub stopped on "The renderer
+// could not finish loading" at every open while a fresh browser worked (2026-11-03). The map
+// sends every module's import of the esm.sh address -- this page's, a guest region's, the sky's
+// -- to the one local copy, found beside the region index as the shared files are. Before the
+// first module script, so it applies to all of them.
+(() => {
+  const index = document.querySelector('meta[name="kerbside-regions"]')?.content || "regions.json";
+  const three = new URL("vendor/three-0.160.0/", new URL(index, location.href)).href;
+  const map = document.createElement("script");
+  map.type = "importmap";
+  map.textContent = JSON.stringify({ imports: {
+    "three": three + "three.module.min.js",
+    "https://esm.sh/three@0.160.0": three + "three.module.min.js",
+    "https://esm.sh/three@0.160.0/examples/jsm/": three + "examples/jsm/",
+  } });
+  document.currentScript.after(map);
+})();
+// Available even if a module import fails before the renderer can initialize.
+window.kerbsideBoot = { startedAt: Date.now(), error: null, errorKind: null,
+  rendered: false, contextLost: false };
+// A failure while the map is loading stops the load (the app puts its loading cover back with a
+// Retry). Once the streets are up it is only logged: a texture or a part that failed to come in
+// later -- an avatar's hair, say -- had sent a player in the world back to that cover (2026-11-02).
+const bootFailed = (text, detail) => {
+  if (window.kerbsideBoot.rendered) { console.warn("after loading:", text, detail); return; }
+  window.kerbsideBoot.error = text;
+  window.kerbsideBoot.errorKind = "startup";
+};
+window.addEventListener("error", event => {
+  if (event.target === window || event.target?.tagName === "SCRIPT")
+    bootFailed("The renderer could not finish loading. Please retry the map.", event.error || event.target?.src);
+}, true);
+window.addEventListener("unhandledrejection", event => {
+  bootFailed("A map resource failed to load. Please check the connection and retry.", event.reason);
+});
+</script>
+<script type="module">
+/*@kerbside-module-parts@*/
+</script>
+</body>
+</html>

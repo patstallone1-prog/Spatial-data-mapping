@@ -2,19 +2,21 @@
 
 The installed app uses the full renderer.  Existing website region datasets can be read in
 place; Oakland gets its expanded estuary build and its own data beside the app viewer.
+
+This builds the data the pages point at (each region's land/water grid, docs/app-regions.json,
+the search index) and then writes the pages themselves with smc.renderer.pages -- the same
+code the deploy runs (tools/build_deploy_pages.py), so a page is never kept in the repository.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
-import html
 import json
-import re
 import runpy
 import shutil
 from pathlib import Path
 
+from smc.renderer.pages import app_template, write_app_pages
 from smc.terrain.visual_support import write_visual_landwater
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,46 +24,6 @@ DOCS = ROOT / "docs"
 VIEWER = ROOT / "build" / "app-viewer.html"
 REGISTRY = ROOT / "data" / "regions" / "regions.json"
 APP_REGIONS = DOCS / "app-regions"
-
-
-def app_page(
-    template: str,
-    *,
-    title: str,
-    index: str,
-    assets: str = "",
-    tile_base: str = "tiles/",
-    local_payload: bool = False,
-    local_ground: bool = False,
-    visual_support: str = "",
-) -> str:
-    page = template.replace("Kerbside SF Corridor 3D", f"Kerbside {html.escape(title)} 3D")
-    # Identifies the shared source, not a region's last hand-edited/generated copy.
-    source_hash = hashlib.sha256(template.encode()).hexdigest()
-    page = page.replace("</head>",
-                        f'<meta name="kerbside-renderer-sha256" content="{source_hash}" />\n</head>', 1)
-    page = page.replace(
-        '<meta name="kerbside-regions" content="regions.json" />',
-        f'<meta name="kerbside-regions" content="{index}" />',
-        1,
-    )
-    page = page.replace(
-        '<meta name="kerbside-assets" content="" />',
-        f'<meta name="kerbside-assets" content="{assets}" />\n'
-        '<meta name="kerbside-app-mode" content="full-regional-view" />\n'
-        f'<meta name="kerbside-visual-support" content="{visual_support}" />',
-        1,
-    )
-    page = page.replace('const TILE_BASE = "tiles/";', f'const TILE_BASE = "{tile_base}";', 1)
-    # Every fetch of the payload and of the ground -- whole, or in its window cells -- goes to
-    # the one URL the page names for each.
-    if local_payload:
-        page = page.replace('const PAYLOAD_URL = asset("sf-corridor-3d.json");',
-                            'const PAYLOAD_URL = "sf-corridor-3d.json";', 1)
-    if local_ground:
-        page = page.replace('const GROUND_URL = asset("sf-corridor-ground.json");',
-                            'const GROUND_URL = "app-sf-corridor-ground.json";', 1)
-    return page
 
 
 def build_visual_support(
@@ -78,8 +40,7 @@ def build_visual_support(
 
 def main(*, desktop_only: bool = True) -> None:
     # Never ship a stale hand-built app-viewer cache over a newer renderer.
-    renderer = runpy.run_path(str(ROOT / "scripts/build_sf_corridor_3d.py"))
-    template = renderer["tuned"](renderer["HTML"], "app")
+    template = app_template()
     VIEWER.parent.mkdir(parents=True, exist_ok=True)
     VIEWER.write_text(template, encoding="utf-8")
     index = json.loads((DOCS / "regions.json").read_text(encoding="utf-8"))
@@ -87,30 +48,7 @@ def main(*, desktop_only: bool = True) -> None:
         entry["name"]: entry
         for entry in json.loads(REGISTRY.read_text(encoding="utf-8"))["regions"]
     }
-    sf_support = build_visual_support(DOCS, DOCS, DOCS, "app-sf-corridor-landwater.bin")
-    (DOCS / "app-model.html").write_text(
-        app_page(
-            template,
-            title="SF Corridor",
-            index="app-regions.json",
-            local_ground=(DOCS / "app-sf-corridor-ground.json").exists(),
-            visual_support=sf_support,
-        ),
-        encoding="utf-8",
-    )
-    # The headset version: the same renderer in its META mode (docs/meta-xr.mjs), the SF page's
-    # world, with its own web-app manifest so it can be installed on a Meta Quest.
-    meta_page = app_page(
-        template,
-        title="for Meta Quest",
-        index="app-regions.json",
-        local_ground=(DOCS / "app-sf-corridor-ground.json").exists(),
-        visual_support=sf_support,
-    ).replace("<title>Kerbside for Meta Quest 3D</title>", "<title>Kerbside for Meta Quest</title>", 1).replace(
-        "</head>", '<meta name="kerbside-mode" content="meta" />\n'
-              '<link rel="manifest" href="meta.webmanifest" />\n</head>', 1)
-    if not desktop_only:
-        (DOCS / "meta.html").write_text(meta_page, encoding="utf-8")
+    build_visual_support(DOCS, DOCS, DOCS, "app-sf-corridor-landwater.bin")
     published = 0
     for region in index["regions"]:
         if region["name"] == "sf-corridor":
@@ -124,7 +62,6 @@ def main(*, desktop_only: bool = True) -> None:
         name = region["name"]
         target = APP_REGIONS / name
         target.mkdir(parents=True, exist_ok=True)
-        assets = f"../../regions/{name}"
         if name == "oakland-downtown":
             site = ROOT / "data" / "regions" / name / "site"
             if (site / "sf-corridor-3d.json").exists():
@@ -138,118 +75,22 @@ def main(*, desktop_only: bool = True) -> None:
             elif not (target / "sf-corridor-3d.json").exists():
                 raise FileNotFoundError("expanded Oakland app world has not been built")
             # A clean checkout already carries the published app data. Rebuilding the
-            # viewer must not require the much larger private source world on disk.
-            assets = ""
+            # viewer must not require the much larger private source world on disk (its page
+            # reads its data from beside it: smc.renderer.pages.LOCAL_DATA_REGION).
             region["bbox"] = registry[name]["bbox"]
             region["title"] = "Downtown Oakland and the Oakland-Alameda tubes"
             region["description"] = registry[name]["description"]
         terrain_source = target if name == "oakland-downtown" else DOCS / "regions" / name
         payload_source = target if (target / "sf-corridor-3d.json").exists() else terrain_source
-        support = build_visual_support(payload_source, terrain_source, target, "app-landwater.bin")
-        if not support and (target / "app-landwater.bin").is_file():
-            # A cloud cell: its payload is in the bucket, and its support file came with its release.
-            support = "app-landwater.bin"
-        page = app_page(
-            template,
-            title=region["title"],
-            index="../../app-regions.json",
-            assets=assets,
-            tile_base="../../tiles/",
-            local_payload=(target / "sf-corridor-3d.json").exists(),
-            visual_support=support,
-        )
-        (target / "app-model.html").write_text(page, encoding="utf-8")
+        # The page names this grid when it is beside it (smc.renderer.pages); a cloud cell's
+        # payload is in the bucket, and its grid came with its release.
+        build_visual_support(payload_source, terrain_source, target, "app-landwater.bin")
         region["path"] = f"app-regions/{name}/app-model.html"
         published += 1
     (DOCS / "app-regions.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
     # The nearby render window must not remove names from global search.
     runpy.run_path(str(ROOT / "tools/build_search_index.py"))["main"]()
-    viewers = [DOCS / "app-model.html", DOCS / "meta.html", *sorted(APP_REGIONS.glob("*/app-model.html"))]
-    release = {
-        "schema": 1,
-        "authoritative_branch": "main",
-        "renderer_source": "scripts/build_sf_corridor_3d.py:HTML",
-        "renderer_sha256": hashlib.sha256(template.encode()).hexdigest(),
-        "consumers": {str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
-                      for path in viewers},
-        # Mac and Quest can deliberately ship different renderer revisions. A Mac release
-        # must neither overwrite the headset nor describe it as running the Mac's source.
-        "consumer_renderer_sha256": {
-            str(path.relative_to(DOCS)): re.search(
-                r'name="kerbside-renderer-sha256" content="([a-f0-9]+)"', path.read_text())[1]
-            for path in viewers
-        },
-        "runtime_assets_sha256": {
-            str(path.relative_to(DOCS)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in [DOCS / "recoverable-geometry.mjs", DOCS / "recoverable-geometry-worker.mjs", DOCS / "world-streaming.mjs",
-                         DOCS / "environment-runtime.mjs", DOCS / "sky-clock.mjs", DOCS / "sky-history.mjs", DOCS / "municipal-context.manifest.json",
-                         *sorted((DOCS / "municipal").glob("*.json")), DOCS / "nature-runtime.mjs",
-                         DOCS / "nature-ecology.mjs", DOCS / "vegetation-geometry.mjs", DOCS / "grass-strands.mjs", DOCS / "foliage-motion.mjs", DOCS / "nature/ecology.json",
-                         DOCS / "forest-floor.mjs", DOCS / "globe.mjs", DOCS / "teleport-map.mjs",
-                         DOCS / "object-catalogue.mjs", DOCS / "object-catalogue.json", DOCS / "exterior-editor.mjs", DOCS / "multiplayer.mjs",
-                         DOCS / "kerbside-account.mjs", DOCS / "home-lobby.mjs",
-                         *sorted((DOCS / "inferred-interiors").glob("*.mjs")),
-                         DOCS / "inferred-interiors/map-overlay.json",
-                         DOCS / "inferred-restaurants/map-overlay.json",
-                         DOCS / "meta-xr.mjs", DOCS / "meta.webmanifest",
-                         *sorted((DOCS / "nature/models").glob("*")), *sorted((DOCS / "world").glob("*")),
-                         DOCS / "nature/manifest.json", DOCS / "nature/paths.json",
-                         *sorted((DOCS / "nature/bark").glob("*")),
-                         *sorted(path for path in (DOCS / "vendor").rglob("*") if path.is_file())]
-        },
-        "native_source": "unreal/Plugins/KerbsideWorld",
-        "native_sources_sha256": {
-            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in sorted((ROOT / "unreal/Plugins/KerbsideWorld").rglob("*"))
-            if path.is_file() and path.suffix in (".cpp", ".h", ".cs", ".uplugin")
-        },
-        "app_shell_sha256": hashlib.sha256((DOCS / "app.html").read_bytes()).hexdigest(),
-        "photo_derived_houses": {
-            "count": json.loads((DOCS / "sf-corridor-frontage-fits.manifest.json").read_text())["houses"],
-            "manifest_sha256": hashlib.sha256((DOCS / "sf-corridor-frontage-fits.manifest.json").read_bytes()).hexdigest(),
-        },
-        "interior_engine": {
-            "houses": len(json.loads((DOCS / "inferred-interiors/map-overlay.json").read_text())["buildings"]),
-            "restaurants": len(json.loads((DOCS / "inferred-restaurants/map-overlay.json").read_text())["buildings"]),
-            "grade": "inferred; validated layout hypotheses, not measured real interiors",
-            "consumer": "Mac app only",
-        },
-        "native_geometry": "Derived exports retain their own renderer_sha256; rebuild before native import.",
-        "legacy_policy": "Other branches, regional website pages and build/app-viewer.html are not source templates.",
-    }
-    (DOCS / "runtime-release.json").write_text(json.dumps(release, indent=2) + "\n")
-    digest = hashlib.blake2b(digest_size=8)
-    app_assets = [DOCS / "app.html", DOCS / "app-model.html", DOCS / "app-regions.json",
-                  DOCS / "runtime-release.json", DOCS / "sf-corridor-frontage-fits.manifest.json"]
-    app_assets += [DOCS / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
-                                           "sf-corridor-furniture.json", "sf-corridor-building-shapes.json", "sf-corridor-islands.json", "sf-corridor-roofs.json")
-                   if (DOCS / name).exists()]
-    app_assets += [DOCS / "recoverable-geometry.mjs", DOCS / "recoverable-geometry-worker.mjs", DOCS / "sf-corridor-storefront-names.json",
-                   DOCS / "search-index.json", DOCS / "world-streaming.mjs", DOCS / "environment-runtime.mjs",
-                   DOCS / "sky-clock.mjs", DOCS / "sky-history.mjs", DOCS / "foliage-motion.mjs", DOCS / "municipal-context.manifest.json"]
-    app_assets += sorted((DOCS / "municipal").glob("*.json"))
-    app_assets += [DOCS / "billboard-creatives.json"] if (DOCS / "billboard-creatives.json").exists() else []
-    app_assets += sorted((DOCS / "billboards").glob("*"))
-    app_assets += sorted(path for directory in ("interior-assets", "inferred-interiors", "inferred-restaurants", "materials", "vendor")
-                         for path in (DOCS / directory).rglob("*") if path.is_file())
-    for name in ("app-sf-corridor-ground.json", "app-inventory-crossings.json"):
-        if (DOCS / name).exists():
-            app_assets.append(DOCS / name)
-    if sf_support:
-        app_assets.extend((DOCS / sf_support, (DOCS / sf_support).with_suffix(".json")))
-    app_assets += sorted(path for path in APP_REGIONS.rglob("*") if path.is_file())
-    for path in app_assets:
-        digest.update(str(path.relative_to(DOCS)).encode())
-        digest.update(str(path.stat().st_size).encode())
-        # A same-sized edit must invalidate the installed app's cache too.
-        digest.update(hashlib.blake2b(path.read_bytes(), digest_size=8).digest())
-    worker = (ROOT / "tools" / "pwa" / "sw.js").read_text(encoding="utf-8")
-    # A worker-policy change must migrate returning visitors even with unchanged world data.
-    digest.update(worker.encode("utf-8"))
-    for name in ("manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
-        digest.update(name.encode())
-        digest.update((DOCS / name).read_bytes())
-    (DOCS / "sw.js").write_text(worker.replace("__VERSION__", digest.hexdigest()), encoding="utf-8")
+    write_app_pages(DOCS, desktop_only=desktop_only, template=template)
     print(f"App-only worlds: {published} regional viewers; website files untouched")
 
 
