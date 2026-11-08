@@ -145,5 +145,5 @@ def test_the_page_is_its_shell_with_the_module_parts_joined_in_name_order() -> N
     module = "".join(p.read_text(encoding="utf-8") for p in parts)
     assert page == shell.replace(template.MODULE_MARKER, module, 1)
     assert template.MODULE_MARKER not in page
-    head, _, tail = shell.partition(template.MODULE_MARKER)
-    assert head.rstrip().endswith('<script type="module">') or '<script type="module">' in head[-400:]
+    head = shell.partition(template.MODULE_MARKER)[0]
+    assert '<script type="module">' in head[-400:], "the parts are joined inside the page's module script"
