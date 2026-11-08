@@ -8,14 +8,17 @@
 // instead of the walk while you drive; ``city.walkFactor()`` and ``city.walked(m, dt)`` as you walk.
 //
 // The controls (src/smc/city/ACTIONS.md has the whole plan): an action bar of what can be done
-// where you stand, each with its key -- B shop, G pick up, C car, T bus or taxi, J clock in or
-// out, D delivery, Z rest, I your bag, Shift sprint, H the controls -- and the three bars.
+// where you stand, each with its key -- B into a shop, G pick up, C car, T bus or taxi, J clock in
+// or out, V the task at work, K errands, D delivery, X strike, O homes on the market, Z rest,
+// I your things, Shift sprint, H the controls -- and the three bars.
 
 import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
-import { Crowd, SPEED_MS, Streets, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
+import { COUNTER_ROLES, Crowd, SPEED_MS, Streets, alongRoute, counterLine, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
+import { homeListings, mortgageTerms } from "./market.mjs";
+import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CityWorld } from "./world.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
@@ -47,6 +50,17 @@ export async function startCity(ctx) {
   fetch(ctx.asset("managed-lanes.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null))
     .then((json) => { if (json?.lanes) lanes = new LaneIndex(R, json.lanes, (lon, lat) => ctx.fromLonLat(lon, lat)); }).catch(() => {});
 
+  // What breaks and how hard it is to break: the object catalogue's archetypes (docs/object-catalogue.json).
+  const catalogue = await fetch(ctx.catalogueUrl || ctx.asset("object-catalogue.json")).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  R.objects = {};
+  for (const [id, a] of Object.entries(catalogue?.archetypes || {})) {
+    const d = a.durability || {};
+    if (d.level >= 2 && d.break_energy_j) R.objects[id] = { name: a.name, material: a.material, break_j: d.break_energy_j, health: d.health };
+  }
+  // The real bus stops and the routes that call at them.
+  let transitStops = null;
+  fetch(ctx.transitUrl || ctx.asset("transit-stops.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { transitStops = json?.stops || []; if (district.streets) makeLines(); }).catch(() => {});
+
   const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
 
@@ -65,7 +79,8 @@ export async function startCity(ctx) {
           area = Math.abs(area) / 2;
         }
         buildings.push({ id: String(way.osm_id), x, z, archetype: way.archetype, shops: way.shops || [], name: way.name || way.address?.formatted || null,
-          floors: Math.max(1, Math.round((way.height_m || 6) / R.real_estate.storey_m)), area, lon: way.centroid[0], lat: way.centroid[1] });
+          floors: Math.max(1, Math.round((way.height_m || 6) / R.real_estate.storey_m)), area, lon: way.centroid[0], lat: way.centroid[1],
+          tag: way.tags?.building || null, ring: Array.isArray(pts) && pts.length > 2 ? pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)) : null });
         continue;
       }
       if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -77,7 +92,14 @@ export async function startCity(ctx) {
       }
     }
     const streets = new Streets(ways);
+    // Each building's front: the wall facing the pavement it is reached from, its middle, the way
+    // in, and how deep the building runs from it -- where a shop's counter goes.
+    for (const b of buildings) {
+      const node = b.ring ? streets.nearest(b.x, b.z, "walk", 120) : null;
+      if (node !== null && node !== undefined) b.inside = frontOf(b.ring, b.x, b.z, streets.nodes[node]);
+    }
     const places = buildings.map((b) => placeFromBuilding(b, streets, R)).filter(Boolean);
+    for (const pl of places) { const b = buildings.find((x) => x.id === pl.id); pl.front = b?.inside || null; pl.ring = b?.ring || null; }
     for (const p of places) p.county = data.county;
     const people = generatePopulation(R, places, { seed: data.key, size: 1000 });
     district.key = data.key; district.streets = streets; district.places = places; district.people = people; district.county = data.county;
@@ -85,8 +107,51 @@ export async function startCity(ctx) {
     district.crowd = new Crowd(R, streets, places, people, { seed: data.key, timeAt });
     district.cameras = speedCameras(ways, data);
     district.candidates = null; district.foundDay = null; district.found = [];
+    district.listings = null; district.listingsWeek = null;
+    if (shop.place) leaveShop(true);
+    makeLines();
     drawCameras();
     ctx.log?.(`kerbside: the living city in ${data.key}: ${people.length} people, ${places.length} places, ${streets.size} street nodes`);
+  }
+  //: The bus lines through the district: the real routes' stops near its streets.
+  function makeLines() {
+    district.lines = []; district.stops = [];
+    if (!transitStops || !district.streets || !district.places.length) return;
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (const p of district.places) { x0 = Math.min(x0, p.x); z0 = Math.min(z0, p.z); x1 = Math.max(x1, p.x); z1 = Math.max(z1, p.z); }
+    const near = transitStops.filter((s) => { const [x, z] = ctx.fromLonLat(s.lon, s.lat); return x > x0 - 100 && x < x1 + 100 && z > z0 - 100 && z < z1 + 100; });
+    try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat)); } catch (error) { console.warn("kerbside: bus lines", error); }
+    district.stops = stopsOf(district.lines);
+    drawStops();
+    ctx.log?.(`kerbside: ${district.lines.length} bus routes through ${district.key}, ${district.stops.length} stops`);
+  }
+  //: A building's front from its outline (``ring``) and the pavement point it is reached from:
+  //: the middle of the wall facing it, the inward normal, half the wall's width and the depth.
+  function frontOf(ring, cx, cz, node) {
+    if (!ring || !node) return null;
+    let best = null;
+    for (let i = 0; i < ring.length; i += 1) {
+      const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 2.5) continue;
+      const t = Math.max(0, Math.min(1, ((node.x - ax) * (bx - ax) + (node.z - az) * (bz - az)) / (len * len)));
+      const px = ax + (bx - ax) * t, pz = az + (bz - az) * t, d = Math.hypot(node.x - px, node.z - pz);
+      if (!best || d < best.d) best = { d, ax, az, bx, bz, len };
+    }
+    if (!best) return null;
+    const mx = (best.ax + best.bx) / 2, mz = (best.az + best.bz) / 2;
+    let nx = -(best.bz - best.az) / best.len, nz = (best.bx - best.ax) / best.len;
+    if ((cx - mx) * nx + (cz - mz) * nz < 0) { nx = -nx; nz = -nz; }
+    // How far in the building runs from the front: the nearest wall the inward ray meets.
+    let depth = 30;
+    for (let i = 0; i < ring.length; i += 1) {
+      const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length];
+      const ex = bx - ax, ez = bz - az, den = nx * ez - nz * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((ax - mx) * ez - (az - mz) * ex) / den, u = ((ax - mx) * nz - (az - mz) * nx) / den;
+      if (t > 0.5 && u >= 0 && u <= 1) depth = Math.min(depth, t);
+    }
+    return { x: mx, z: mz, nx, nz, half: Math.min(6, best.len / 2), depth: Math.max(3, depth) };
   }
   //: Speed cameras on the arterials of a city that has them, spaced along each one.
   function speedCameras(ways, data) {
@@ -144,7 +209,8 @@ export async function startCity(ctx) {
     let n = 0;
     for (const p of list) {
       if (n >= MAX_PEOPLE) break;
-      const y = groundAt(p.x, p.z);
+      // Inside the shop you are in, on its floor.
+      const y = shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z);
       const s = p.person.height / 1.75;
       const b = base(p.x, y, p.z, p.yaw + Math.PI, s);
       const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
@@ -424,6 +490,9 @@ export async function startCity(ctx) {
       if (impact > H.crash_over_ms && performance.now() - (car.lastCrash || 0) > 1500) {
         car.lastCrash = performance.now();
         const amount = Math.round((impact - H.crash_over_ms) * H.crash_per_ms);
+        // What the car hit: the energy of the impact on it (a bench, a light, a bin).
+        const kg = { car: 1500, truck: 2600, van: 2500, bus: 13000 }[car.spec.kind] || 1500;
+        strikeKey(0.5 * kg * impact * impact);
         send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && Date.now() - r.fainted.at < 5000 ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
       car.speed *= 0.2;
@@ -594,51 +663,168 @@ export async function startCity(ctx) {
   }
 
   // ---- buses and taxis -------------------------------------------------------------------------
+  // Buses run their real routes on a timetable (docs/city/transit.mjs), standing at each stop for
+  // a few seconds: board at the stop while one stands there (T), ask for the next stop (T again)
+  // and you are let off there. A taxi is called to where you stand (T away from a passing one) and
+  // takes you where you ask, on the meter.
   const transit = { ride: null };
+  const TL = R.transit_lines;
+  const KERB = (half) => Math.max(1.7, half - 1.8);
+  let routeBuses = [];
+  const taxi = { id: null, phase: null, route: null, d: 0, at: null, dest: null, n: 0 };
+  //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
+  //: (Yours and the route buses first, so a crowded street's cap never leaves them out.)
+  function wheels() { return taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; }
   function nearestFare() {
-    const p = me(), reach = R.transit.board_reach_m;
+    const p = me();
     let best = null;
-    for (const v of visible.vehicles) {
+    for (const v of wheels()) {
       if (v.model !== "bus" && v.model !== "taxi") continue;
+      const route = String(v.id).startsWith("bus:"), mine = v.id === taxi.id;
+      if (route && !v.dwelling) continue;            // a route bus opens its doors at the stop
+      if (mine && taxi.phase !== "waiting") continue;
+      if (!route && !mine && district.lines?.length && v.model === "bus") continue;
+      const reach = route || mine ? TL.board_reach_m : R.transit.board_reach_m;
       const d = Math.hypot(v.x - p.x, v.z - p.z);
       if (d < reach && (!best || d < best.d)) best = { ...v, d };
     }
     return best;
   }
   async function board() {
-    if (transit.ride) return alight();
+    if (transit.ride) return transit.ride.route ? requestStop() : alight();
     if (car.active || car.riding) { notify("Get out of the car first (C)."); return; }
+    if (shop.place) { notify("Leave the shop first (Esc)."); return; }
     const v = nearestFare();
-    if (!v) { notify(`No bus or taxi within ${R.transit.board_reach_m} m. Wait at the kerb for one to come by.`); return; }
+    if (!v) { openSide("ride"); return; }
     const r = await send("board", { kind: v.model, vehicle: v.id });
     if (!r.ok) { notify(r.error); return; }
-    transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z };
+    transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
+    if (v.id === taxi.id) taxiToDestination();
     ctx.avatarVisible(false);
-    notify(v.model === "bus" ? `On the bus: ${R.fmt(R.transit.bus_fare)} paid. T to get off.` : `In a taxi: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km. T to get out and pay.`);
+    if (side?.kind === "ride") closeSide();
+    notify(transit.ride.route ? `On the ${v.route} toward ${v.nextName || "the end of the line"}: ${R.fmt(R.transit.bus_fare)} paid. T asks for the next stop.`
+      : v.id === taxi.id ? `In your taxi to ${taxi.dest?.name || "where you asked"}: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km.`
+        : `In a taxi: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km. T to get out and pay.`);
     refresh();
   }
-  async function alight() {
+  function requestStop() {
+    const ride = transit.ride;
+    if (!ride?.route) return;
+    ride.stop = !ride.stop;
+    const v = routeBuses.find((x) => x.id === ride.vehicle);
+    notify(ride.stop ? `Stop requested: off at ${v?.nextName || "the next stop"}.` : "Stop request cancelled.");
+  }
+  async function alight(v = null) {
     const ride = transit.ride;
     if (!ride) return;
     transit.ride = null;
     const r = await send("alight", { km: ride.km });
     ctx.avatarVisible(true);
-    const p = me();
-    ctx.moveAvatarTo(p.x + 2.2, p.z);
-    notify(r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : "Off the bus.") : r.error);
+    const p = me(), yaw = v?.yaw ?? ride.yaw ?? 0;
+    // Out at the stop's pole, or on the kerb side.
+    if (v?.pole && Math.hypot(v.pole.x - p.x, v.pole.z - p.z) < 30) ctx.moveAvatarTo(v.pole.x, v.pole.z);
+    else ctx.moveAvatarTo(p.x + Math.cos(yaw) * (ride.kind === "bus" ? 2.8 : 1.9), p.z - Math.sin(yaw) * (ride.kind === "bus" ? 2.8 : 1.9));
+    if (ride.vehicle === taxi.id) Object.assign(taxi, { phase: null, route: null, at: null, dest: null });
+    notify(r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : `Off the bus${v?.stopName ? ` at ${v.stopName}` : ""}.`) : r.error);
     refresh();
   }
-  //: Riding: you go where it goes. A vehicle gone from the street (its trip over) lets you off.
+  //: Riding: you go where it goes. A route bus lets you off at the stop you asked for; a
+  //: vehicle gone from the street (its trip over) lets you off where it was.
   function followRide() {
     const ride = transit.ride;
     if (!ride) return;
-    const v = visible.vehicles.find((x) => x.id === ride.vehicle);
+    const v = wheels().find((x) => x.id === ride.vehicle);
     if (!v) { if (performance.now() - ride.seen > 3000) alight(); return; }
     ride.seen = performance.now();
     ride.km += Math.hypot(v.x - ride.x, v.z - ride.z) / 1000;
-    ride.x = v.x; ride.z = v.z;
+    ride.x = v.x; ride.z = v.z; ride.yaw = v.yaw;
     ctx.moveAvatarTo(v.x, v.z);
     ctx.followYaw?.(v.yaw, 1 / 60);
+    if (ride.route && v.dwelling && ride.stop && v.stop !== ride.from) alight(v);
+    else if (ride.route && !v.dwelling) ride.from = -1;
+  }
+  //: A taxi called to where you stand, from a few hundred metres off, along the streets.
+  function callTaxi(dest) {
+    const s = district.streets;
+    if (!s || !dest) return;
+    if (transit.ride) { notify("You are riding already."); return; }
+    const here = me();
+    const meNode = s.nearest(here.x, here.z, "drive", 80);
+    if (meNode === null || meNode === undefined) { notify("No street a taxi can reach here: walk to the kerb."); return; }
+    const [lo, hi] = TL.taxi_hail_from_m, r = rng(myId, Date.now());
+    let route = null;
+    for (let k = 0; k < 600 && !route; k += 1) {
+      const i = Math.floor(r() * s.nodes.length) % s.nodes.length, n = s.nodes[i];
+      if (!n.drive) continue;
+      const d = Math.hypot(n.x - here.x, n.z - here.z);
+      if (d >= lo && d <= hi) route = s.route(i, meNode, "drive");
+    }
+    if (!route) { notify("No taxi can get to you here."); return; }
+    taxi.n += 1;
+    Object.assign(taxi, { id: `taxi:${myId}:${taxi.n}`, phase: "coming", route, d: 0, dest, since: performance.now() });
+    closeSide();
+    notify(`A yellow taxi is on its way, about ${Math.max(1, Math.round(route.length / TL.taxi_speed_ms / 60))} min. Wait at the kerb; T to get in when it pulls up.`);
+  }
+  function taxiToDestination() {
+    const s = district.streets, d = taxi.dest;
+    const a = s?.nearest(taxi.at.x, taxi.at.z, "drive", 80), b = s?.nearest(d.x, d.z, "drive", 250);
+    const route = a !== null && a !== undefined && b !== null && b !== undefined ? s.route(a, b, "drive") : null;
+    taxi.phase = "riding"; taxi.d = 0;
+    taxi.route = route || { pts: [[taxi.at.x, taxi.at.z]], s: [0], length: 0 };
+  }
+  function stepTaxi(dt) {
+    if (!taxi.phase || !taxi.route) { taxi.at = null; return; }
+    const R0 = taxi.route;
+    if (taxi.phase !== "waiting") {
+      // Slowing into the kerb at the end of the trip.
+      const left = R0.length - taxi.d;
+      taxi.d = Math.min(R0.length, taxi.d + Math.max(1.2, Math.min(TL.taxi_speed_ms, left / 2.5)) * dt);
+    }
+    const done = taxi.d >= R0.length - 0.05;
+    const pos = alongRoute(R0, taxi.d, KERB);
+    taxi.at = { id: taxi.id, model: "taxi", x: pos.x, z: pos.z, yaw: pos.yaw, speed: done ? 0 : TL.taxi_speed_ms, moving: !done, shade: 0 };
+    if (done && taxi.phase === "coming") { taxi.phase = "waiting"; taxi.waitSince = performance.now(); notify("Your taxi has pulled up: T to get in."); }
+    if (taxi.phase === "waiting" && performance.now() - taxi.waitSince > 180_000) { Object.assign(taxi, { phase: null, route: null, at: null }); notify("The taxi gave up waiting and left."); }
+    if (done && taxi.phase === "riding" && transit.ride?.vehicle === taxi.id && !taxi.paying) { taxi.paying = true; alight(taxi.at).finally(() => { taxi.paying = false; }); }
+  }
+  //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds.
+  function nextBuses(stop, ms) {
+    const out = [], t = ms / 1000;
+    for (const line of district.lines || []) {
+      const k = line.stops.findIndex((c) => Math.hypot(c.x - stop.x, c.z - stop.z) < 35);
+      if (k < 0) continue;
+      const waits = [];
+      for (let j = 0; j < line.buses; j += 1) {
+        const phase = ((t + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle;
+        for (const seg of line.timeline) {
+          if (seg.kind !== "dwell" || seg.stop !== k) continue;
+          const next = line.timeline[line.timeline.indexOf(seg) + 1];
+          const wait = ((seg.t0 - phase) % line.cycle + line.cycle) % line.cycle;
+          waits.push({ wait: phase >= seg.t0 && phase < seg.t1 ? 0 : wait, toward: next?.next !== undefined ? line.stops[next.next].name : "the end of the line" });
+        }
+      }
+      waits.sort((a, b) => a.wait - b.wait);
+      out.push({ route: line.route, next: waits.slice(0, 2) });
+    }
+    return out;
+  }
+  function nearestStop(reach = 80) {
+    const p = me();
+    let best = null;
+    for (const s of district.stops || []) { const d = Math.hypot(s.x - p.x, s.z - p.z); if (d < reach && (!best || d < best.d)) best = { ...s, d }; }
+    return best;
+  }
+  // Bus stops: a pole and a flag at each, in Muni's red and yellow.
+  const stopGroup = new THREE.Group(); stopGroup.name = "city-bus-stops"; group.add(stopGroup);
+  function drawStops() {
+    stopGroup.clear();
+    const list = district.stops || [];
+    if (!list.length) return;
+    const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.04, 0.05, 2.9, 6).translate(0, 1.45, 0), lambert({ color: 0x9aa1a6 }), list.length);
+    const flag = new THREE.InstancedMesh(box(0.05, 0.42, 0.62, 2.55), lambert({ color: 0xc8102e }), list.length);
+    const band = new THREE.InstancedMesh(box(0.06, 0.1, 0.62, 2.84), lambert({ color: 0xf2c300 }), list.length);
+    list.forEach((st, i) => { M.compose(V.set(st.x, groundAt(st.x, st.z), st.z), Q.identity(), S3.set(1, 1, 1)); pole.setMatrixAt(i, M); flag.setMatrixAt(i, M); band.setMatrixAt(i, M); });
+    stopGroup.add(pole, flag, band);
   }
 
   // ---- delivery gigs ---------------------------------------------------------------------------
@@ -687,8 +873,9 @@ export async function startCity(ctx) {
   async function workKey() {
     const p = self();
     if (!p?.job) { notify("No job: walk up to a shop that is hiring and take one (B, or the City panel's Here tab)."); return; }
-    const r = await send(p.clocked ? "clock_out" : "clock_in");
-    notify(r.ok ? (p.clocked ? "Clocked out and paid." : `At work as ${p.job.title.toLowerCase()}: ${R.fmt(p.job.pay / 6)} every 10 minutes, tax held back.`) : r.error);
+    const place = district.placeById?.get(p.job.place.id);
+    const r = await send(p.clocked ? "clock_out" : "clock_in", p.clocked ? {} : { spots: place ? spotsFor(place) : null });
+    notify(r.ok ? (p.clocked ? "Clocked out and paid for the time worked." : `At work as ${p.job.title.toLowerCase()}: tasks come every minute or so (V where the orange ring is). Paid ${R.fmt(p.job.pay / 6)} a 10 minutes worked, tax held back; idle 30 minutes and you are sent home.`) : r.error);
   }
   async function restKey() {
     const p = self();
@@ -697,6 +884,378 @@ export async function startCity(ctx) {
     if (r.ok) notify(r.resting ? (r.home ? "In bed at home: stamina comes back fastest. Walk on to get up." : "Resting: stamina comes back. Walk on to get up.") : "Up again.");
   }
 
+  // ---- inside a shop -------------------------------------------------------------------------------
+  // A shop's room behind its front: the floor, the walls (the front one glass), the counter across
+  // it, shelves at the back, tables where it serves food; the staff on shift behind the counter
+  // and the customers in front of it (people.mjs: indoorSpot). Seen through your own eyes.
+  const shop = { place: null, room: null, frame: null, was: false, staff: false };
+  const SHOP_TINT = { cafe: 0x8b5a3c, coffee: 0x8b5a3c, bakery: 0xb07a4a, restaurant: 0x6e3b2a, bar: 0x3d2a22, pub: 0x3d2a22, pharmacy: 0xdfe6ea, chemist: 0xdfe6ea,
+    hardware: 0x7d8a6a, doityourself: 0x7d8a6a, supermarket: 0xd9d4c6, convenience: 0xd9d4c6, clothes: 0xcbb9a8, books: 0x7a5a3a, florist: 0x6f9a6a };
+  function shopFrame(place) {
+    const I = place.front || place.inside;
+    if (!I) return null;
+    const L = counterLine(I);
+    const D = Math.min(I.depth, 14), W = Math.max(3, Math.min(12, I.half * 2));
+    // Local frame: u inward from the front, v along it (to the right seen from the street).
+    const lx = I.nz, lz = -I.nx;
+    const y = groundAt(I.x - I.nx * 0.8, I.z - I.nz * 0.8);
+    const at = (u, v) => ({ x: I.x + I.nx * u + lx * v, z: I.z + I.nz * u + lz * v });
+    return { I, L, D, W, lx, lz, y, at, local: (x, z) => ({ u: (x - I.x) * I.nx + (z - I.z) * I.nz, v: (x - I.x) * lx + (z - I.z) * lz }) };
+  }
+  function signTexture(text, bg = "#1d2a33", fg = "#f6f1e7") {
+    const c = doc.createElement("canvas"); c.width = 512; c.height = 96;
+    const g = c.getContext("2d"); g.fillStyle = bg; g.fillRect(0, 0, 512, 96);
+    g.fillStyle = fg; g.font = "600 46px system-ui,sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(text).slice(0, 22), 256, 50);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
+  }
+  function buildRoom(place, F) {
+    const g = new THREE.Group(); g.name = "city-shop-room";
+    g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
+    const kind = place.shops[0] || "shop";
+    const tint = SHOP_TINT[kind] ?? 0xcfc6b8;
+    // Unlit colours, shaded by hand: a light added to the scene would recompile every material in it.
+    const flat = (color, extra = {}) => new THREE.MeshBasicMaterial({ color, ...extra });
+    const lambert = (o) => flat(o.color, o.side ? { side: o.side } : {});
+    const wall = flat(0xe4ddd1, { side: THREE.BackSide }), sideWall = flat(0xd3cbbd, { side: THREE.BackSide });
+    const floor = flat(0x8a6f55, { side: THREE.BackSide });
+    const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
+    const glass = new THREE.MeshBasicMaterial({ color: 0xbfd9e6, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false });
+    // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
+    const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
+    g.add(shell);
+    const counter = new THREE.Mesh(box(F.L.width * 2, 1.0, 0.62, 0.5), lambert({ color: tint }));
+    counter.position.z = F.L.counter; counter.rotation.y = 0; g.add(counter);
+    const top = new THREE.Mesh(box(F.L.width * 2 + 0.1, 0.05, 0.72, 1.02), lambert({ color: 0xe9e4da })); top.position.z = F.L.counter; g.add(top);
+    const till = new THREE.Mesh(box(0.42, 0.28, 0.36, 1.19), lambert({ color: 0x24292e })); till.position.set(F.L.width * 0.5, 0, F.L.counter); g.add(till);
+    // Shelves along the back wall, stocked.
+    const shelfZ = Math.min(F.D - 0.3, F.L.back + 0.6);
+    for (const h0 of [0.45, 1.05, 1.65]) {
+      const shelf = new THREE.Mesh(box(F.W - 0.6, 0.04, 0.4, h0), lambert({ color: 0x6b5440 })); shelf.position.z = shelfZ; g.add(shelf);
+      const n = Math.max(4, Math.floor((F.W - 0.8) / 0.32));
+      const goods = new THREE.InstancedMesh(box(0.22, 0.26, 0.22, 0.13), lambert({ color: 0xffffff }), n);
+      const r = rng(place.id, "goods", h0);
+      for (let k = 0; k < n; k += 1) {
+        M.compose(V.set(-F.W / 2 + 0.5 + k * ((F.W - 1) / Math.max(1, n - 1)), h0 + 0.02, shelfZ), Q.identity(), S3.set(0.8 + r() * 0.4, 0.6 + r() * 0.8, 1));
+        goods.setMatrixAt(k, M); goods.setColorAt(k, C.setHSL(r(), 0.45, 0.5));
+      }
+      g.add(goods);
+    }
+    // Tables toward the window where it serves food or drink.
+    if (["cafe", "coffee", "restaurant", "bar", "pub", "bakery", "fast_food", "ice_cream"].includes(kind) && F.L.front > 1.4) {
+      const tables = Math.max(1, Math.floor(F.W / 2.2));
+      for (let k = 0; k < tables; k += 1) {
+        const tx = -F.W / 2 + (k + 0.5) * (F.W / tables);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.72, 8).translate(0, 0.36, 0), lambert({ color: 0x3a3a3a })); leg.position.set(tx, 0, 0.9); g.add(leg);
+        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 16).translate(0, 0.74, 0), lambert({ color: 0xd8cbb5 })); tableTop.position.set(tx, 0, 0.9); g.add(tableTop);
+      }
+    }
+    // The shop's name over the counter, and a light to see it all by.
+    const stores = storesAt(R, place.keys);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(F.W - 0.4, 3.2), 0.6), new THREE.MeshBasicMaterial({ map: signTexture(stores[0]?.name || place.name || "Shop"), side: THREE.DoubleSide }));
+    sign.position.set(0, 2.55, Math.min(F.D - 0.05, shelfZ + 0.18)); sign.rotation.y = Math.PI; g.add(sign);
+    for (const lx0 of [-F.W / 4, F.W / 4]) { const lamp = new THREE.Mesh(box(0.9, 0.05, 0.25, 3.15, lx0), flat(0xfffbe8)); lamp.position.z = F.D / 2; g.add(lamp); }
+    return g;
+  }
+  //: Into the shop beside you: through its door, into the room, the counter in front of you.
+  function enterShop(place, { asStaff = false } = {}) {
+    const F = shopFrame(place);
+    if (!F) return false;
+    if (car.active || transit.ride) return false;
+    leaveShop(true);
+    shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place);
+    shop.room = buildRoom(place, F); group.add(shop.room);
+    ctx.setFloor?.(F.y);
+    shop.was = Boolean(ctx.isFirstPerson?.());
+    ctx.firstPerson?.(true);
+    const start = F.at(0.7, 0);
+    ctx.placeAvatar(start.x, F.y, start.z, Math.atan2(-F.I.nx, -F.I.nz));
+    ctx.setPitch?.(-0.06);
+    notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. B for the counter${shop.staff ? ", V for your task" : ""}; walk out the door or Esc to leave.`);
+    refresh();
+    return true;
+  }
+  function leaveShop(quiet = false) {
+    if (!shop.place) return;
+    const F = shop.frame;
+    shop.room?.removeFromParent();
+    shop.room?.traverse((o) => { o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); } });
+    shop.place = null; shop.room = null; shop.frame = null;
+    ctx.setFloor?.(null);
+    if (!shop.was) ctx.firstPerson?.(false);
+    ctx.moveAvatarTo(F.I.x - F.I.nx * 1.6, F.I.z - F.I.nz * 1.6);
+    if (side?.kind === "store") closeSide();
+    if (!quiet) notify("Back out on the street.");
+    refresh();
+  }
+  function isMyWorkplace(place) { const j = self()?.job; return Boolean(j && place && j.place.id === place.id); }
+  //: Walking inside: the arrows as outside, kept to the room (and in front of the counter, unless
+  //: you work here); walking back out through the front leaves.
+  function walkInside(dt, held) {
+    const F = shop.frame;
+    if (!F) return false;
+    // On the shop's floor, whatever the ground under the building is.
+    if (Math.abs(me().y - ctx.standY - F.y) > 0.05) ctx.placeAvatar(me().x, F.y, me().z);
+    if (!held.size) return true;
+    const yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
+    let mx = 0, mz = 0;
+    if (held.has("ArrowUp")) { mx += fx; mz += fz; }
+    if (held.has("ArrowDown")) { mx -= fx; mz -= fz; }
+    if (held.has("ArrowRight")) { mx += rx; mz += rz; }
+    if (held.has("ArrowLeft")) { mx -= rx; mz -= rz; }
+    const len = Math.hypot(mx, mz);
+    if (!len) return true;
+    const speed = 1.5 * walkFactorNow();
+    const p = me();
+    const want = F.local(p.x + mx / len * speed * dt, p.z + mz / len * speed * dt);
+    if (want.u < 0.15) { leaveShop(); return true; }
+    const behind = shop.staff || isMyWorkplace(shop.place);
+    const was = F.local(p.x, p.z);
+    // The counter is in the way, but for its gap at the right-hand end where staff go through.
+    const gap = Math.abs(want.v - F.L.width) < 0.55 || want.v > F.L.width;
+    const crossing = (was.u < F.L.counter) !== (want.u < F.L.counter);
+    let u = want.u;
+    if (crossing && !(behind && gap)) u = was.u;
+    if (!behind) u = Math.min(u, F.L.counter - 0.45);
+    u = Math.max(0.2, Math.min(F.D - 0.35, u));
+    const v = Math.max(-F.W / 2 + 0.3, Math.min(F.W / 2 - 0.3, want.v));
+    const at = F.at(u, v);
+    ctx.placeAvatar(at.x, F.y, at.z);
+    walked(Math.hypot(at.x - p.x, at.z - p.z), dt);
+    return true;
+  }
+
+  // ---- a shift's work ------------------------------------------------------------------------------
+  // Each task is done where it is: at the counter (behind it), in the back, or at the kerb out
+  // front. Walk there and press V; stay till the bar fills. A stretch of a shift with nothing
+  // done is not paid, and three of them in a row send you home (world.mjs).
+  const taskRing = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.06, 8, 32).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff9f1c, fog: false }));
+  const taskPin = new THREE.Mesh(new THREE.OctahedronGeometry(0.18), new THREE.MeshBasicMaterial({ color: 0xff9f1c, fog: false }));
+  taskRing.visible = taskPin.visible = false; taskRing.name = "city-task"; group.add(taskRing, taskPin);
+  let working = null;   // {id, started, seconds}
+  function spotsFor(place) {
+    const F = place && shopFrame(place);
+    const node = place && district.streets?.nodes[place.node];
+    const kerb = F ? F.at(-1.4, 0) : node ? { x: node.x, z: node.z } : { x: place.x, z: place.z };
+    if (!F) return { counter: kerb, back: kerb, kerb };
+    return { counter: F.at(F.L.staff, 0), back: F.at(F.L.back, -F.L.width * 0.4), kerb };
+  }
+  const taskInside = (task) => ["counter", "back"].includes(task?.where) && shopFrame(district.placeById?.get(self()?.job?.place.id) || {});
+  async function taskKey() {
+    const p = self(), task = p?.clocked?.task;
+    if (!p?.clocked) { notify(p?.job ? "Clock in first (J) at your work." : "No job: take one at a shop that is hiring."); return; }
+    if (!task) { notify(`Nothing to do this minute: the next task comes soon (${p.clocked.tasks_total || 0} done this shift).`); return; }
+    const d = Math.hypot(me().x - task.x, me().z - task.z);
+    if (d > R.work_tasks.task_reach_m) {
+      const place = district.placeById?.get(p.job.place.id);
+      if (taskInside(task) && !shop.place && place && Math.hypot(me().x - place.x, me().z - place.z) < 40) { enterShop(place, { asStaff: true }); return; }
+      notify(`${task.label}: the orange ring, ${Math.round(d)} m ${task.where === "kerb" ? "out front" : task.where === "back" ? "in the back" : "behind the counter"}.`);
+      return;
+    }
+    if (working?.id === task.id) return;
+    const r = await send("task", {});
+    if (!r.ok) { notify(r.error); return; }
+    working = { id: task.id, started: performance.now(), seconds: task.seconds, label: task.label };
+    notify(`${task.label}…`);
+  }
+  async function stepWork() {
+    const p = self(), task = p?.clocked?.task;
+    if (!working) return;
+    if (!task || task.id !== working.id) { working = null; return; }
+    const d = Math.hypot(me().x - task.x, me().z - task.z);
+    if (d > R.work_tasks.task_reach_m * 1.6) { working = null; notify(`Stopped: ${task.label.toLowerCase()} is not done.`); return; }
+    if ((performance.now() - working.started) / 1000 < working.seconds || working.sending) return;
+    working.sending = true;
+    const r = await send("task", { done: true });
+    working = null;
+    notify(r.ok ? `Done: ${task.label.toLowerCase()}${r.tip ? ` (+${R.fmt(r.tip)} tip)` : ""}. ${r.done} this shift.` : r.error);
+  }
+  function drawTask(now) {
+    const task = self()?.clocked?.task;
+    const on = Boolean(task && task.x !== undefined);
+    taskRing.visible = taskPin.visible = on;
+    if (!on) return;
+    const inside = taskInside(task) && shop.frame;
+    const y = inside ? shop.frame.y : groundAt(task.x, task.z);
+    taskRing.position.set(task.x, y + 0.05, task.z);
+    taskPin.position.set(task.x, y + 1.9 + Math.sin(now / 300) * 0.1, task.z); taskPin.rotation.y = now / 500;
+  }
+
+  // ---- errands ---------------------------------------------------------------------------------------
+  // A neighbour wants something from the shops: buy it, bring it to their door (D there), and they
+  // pay you back what it cost and a fee by the distance.
+  const errandMarker = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 70, 20, 1, true).translate(0, 35, 0),
+    new THREE.MeshBasicMaterial({ color: 0xffb020, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  errandMarker.visible = false; errandMarker.renderOrder = 3; errandMarker.name = "city-errand"; group.add(errandMarker);
+  //: This hour's errands near you: a few residents, each wanting one to three things sold here.
+  function errandOffers() {
+    const E = R.errands, here = me(), hour = Math.floor(Date.now() / 3_600_000);
+    const sold = new Set();
+    for (const pl of district.places) for (const st of storesAt(R, pl.keys)) for (const id of st.items) sold.add(id);
+    const wanted = E.items.filter((i) => sold.has(i) && R.items[i]);
+    const homes = district.places.filter((x) => x.use === "residential").map((x) => ({ x, d: Math.hypot(x.x - here.x, x.z - here.z) }))
+      .filter((o) => o.d >= E.distance_m[0] && o.d <= E.distance_m[1]);
+    if (!wanted.length || !homes.length) return [];
+    const r = rng(district.key, myId, hour), out = [];
+    for (let k = 0; k < E.offers; k += 1) {
+      const home = homes[Math.floor(r() * homes.length) % homes.length].x;
+      const who = district.people.find((x) => x.home === home.id) || district.people[Math.floor(r() * district.people.length) % district.people.length];
+      const n = 1 + Math.floor(r() * 3), items = [];
+      for (let j = 0; j < n; j += 1) items.push(wanted[Math.floor(r() * wanted.length) % wanted.length]);
+      const km = Math.hypot(home.x - here.x, home.z - here.z) / 1000;
+      out.push({ id: `${hour}:${k}`, to: { id: home.id, x: home.x, z: home.z, name: address(home.name), who: who?.name || null }, items, km,
+        cost: items.reduce((a, i) => a + R.items[i].price, 0), fee: E.fee_base + Math.round(E.fee_per_km * km) });
+    }
+    return out;
+  }
+  async function errandKey() {
+    const p = self();
+    if (!p) { notify("Join the city first (City panel)."); return; }
+    if (p.errand) {
+      const d = Math.hypot(me().x - p.errand.to.x, me().z - p.errand.to.z);
+      if (d <= R.errands.reach_m) { const r = await send("deliver_errand"); notify(r.ok ? `Errand done: ${R.fmt(r.reimbursed)} back and a ${R.fmt(r.fee)} fee.` : r.error); return; }
+    }
+    openSide("errands");
+  }
+  function drawErrand(now) {
+    const e = self()?.errand;
+    errandMarker.visible = Boolean(e);
+    if (!e) return;
+    errandMarker.position.set(e.to.x, groundAt(e.to.x, e.to.z), e.to.z);
+    const far = Math.max(1, Math.hypot(me().x - e.to.x, me().z - e.to.z) / 120);
+    errandMarker.scale.set(far, 1, far);
+    errandMarker.material.opacity = 0.3 + 0.12 * Math.sin(now / 340);
+  }
+
+  // ---- what is in your hands, and a blow with it ----------------------------------------------------
+  // The catalogue's things near you (benches, lights, bins, trees, windows…) each take a blow by
+  // what you strike with and how strong you are, against what they are made of (rules.json: tools);
+  // they break once the energy taken reaches their break energy (object-catalogue.json). Broken
+  // things are gone until the city mends them; breaking what is not yours, seen, is vandalism.
+  let heldMesh = null, heldItem = null, lastStrike = 0;
+  function drawHeld() {
+    const item = self()?.hands || null;
+    if (item === heldItem) return;
+    heldItem = item;
+    heldMesh?.removeFromParent(); heldMesh = null;
+    if (!item) return;
+    const it = R.items[item] || {};
+    const long = Boolean(it.strike && it.strike !== "fists");
+    heldMesh = new THREE.Group(); heldMesh.name = "city-held";
+    if (long) {
+      const handle = new THREE.Mesh(box(0.04, it.strike === "sledgehammer" || it.strike === "axe" ? 0.85 : 0.38, 0.04, 0), lambert({ color: 0x7a5230 }));
+      const head = new THREE.Mesh(box(it.strike === "saw" ? 0.02 : 0.14, it.strike === "saw" ? 0.32 : 0.08, it.strike === "saw" ? 0.12 : 0.06, it.strike === "sledgehammer" || it.strike === "axe" ? 0.42 : 0.2), lambert({ color: 0x8b949c }));
+      heldMesh.add(handle, head);
+    } else heldMesh.add(new THREE.Mesh(box(0.14, 0.12, 0.1, 0), lambert({ color: thingColour(item) })));
+    const hand = ctx.hand?.();
+    if (hand) { heldMesh.scale.setScalar(1 / Math.max(1e-3, hand.getWorldScale(new THREE.Vector3()).x)); hand.add(heldMesh); }
+    else { heldMesh.position.set(0.32, 0.95 - ctx.standY, -0.12); ctx.avatar.add(heldMesh); }
+  }
+  const archetypeId = (a) => (typeof a === "string" ? a : a?.id);
+  const damageKey = (arch, x, z) => `${arch}@${Math.round(x * 2) / 2},${Math.round(z * 2) / 2}`;
+  //: What a blow can land on: the nearest thing within reach that breaks and is not broken yet.
+  function strikeTarget(reach) {
+    const prox = ctx.objects?.();
+    if (!prox?.targets && !prox?.instancesNear) return null;
+    const at = me();
+    const list = prox.instancesNear ? prox.instancesNear(at.x, at.z, reach, (a) => Boolean(R.objects[a.id]), 8) : prox.targets(reach);
+    for (const t of list) {
+      const id = archetypeId(t.archetype), spec = R.objects[id];
+      if (!spec) continue;
+      const key = damageKey(id, t.x, t.z);
+      if (view?.damage?.get(key)?.broken) continue;
+      return { ...t, id, key, spec };
+    }
+    return null;
+  }
+  const witnessesNear = (x, z) => Math.min(5, visible.people.filter((q) => !q.indoors && Math.hypot(q.x - x, q.z - z) < R.damage.witness_reach_m).length);
+  async function strikeKey(energy = null) {
+    const p = self();
+    if (!p) return;
+    if (!energy && (car.active || transit.ride || car.riding)) return;
+    const now = performance.now();
+    if (!energy && now - lastStrike < 1000 / R.tools.strikes_per_second) return;
+    lastStrike = now;
+    const t = strikeTarget(energy ? 6 : R.tools.reach_m);
+    if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
+    const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
+    if (!r.ok) { notify(r.error); return; }
+    const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p.hands]?.name || r.tool;
+    if (r.broken) {
+      hideBroken(t.key, t.o, t.i);
+      notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (G picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
+    } else notify(`${tool} on the ${t.spec.name.toLowerCase()} (${t.spec.material}): ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
+  }
+  const hidden = new Map();   // damage key -> {o, i, matrix}
+  const FAR = new THREE.Matrix4().makeScale(1e-4, 1e-4, 1e-4).setPosition(0, -1e5, 0);
+  function hideBroken(key, o, i) {
+    if (hidden.has(key) || !o) return;
+    const m = new THREE.Matrix4(); o.getMatrixAt(i, m);
+    hidden.set(key, { o, i, matrix: m });
+    o.setMatrixAt(i, FAR); o.instanceMatrix.needsUpdate = true;
+    ctx.objects?.()?.invalidate?.(o);
+  }
+  //: The books' broken things, gone from the street (also those broken by others, or before
+  //: this page); and back once the city has mended them.
+  function syncDamage() {
+    const prox = ctx.objects?.(), dmg = view?.damage;
+    if (!prox || !dmg) return;
+    for (const [key, d] of dmg) {
+      if (!d.broken || hidden.has(key) || Math.hypot(d.x - me().x, d.z - me().z) > 400) continue;
+      const hit = prox.findInstance?.(d.archetype, d.x, d.z, 0.9);
+      if (hit) hideBroken(key, hit.o, hit.i);
+    }
+    for (const [key, h0] of hidden) {
+      if (dmg.get(key)?.broken) continue;
+      h0.o.setMatrixAt(h0.i, h0.matrix); h0.o.instanceMatrix.needsUpdate = true;
+      prox.invalidate?.(h0.o); hidden.delete(key);
+    }
+  }
+
+  // ---- homes for sale and to rent ----------------------------------------------------------------------
+  // The district's homes on the market this week: the real mix of single-family houses and flats,
+  // a seeded share of each listed (docs/city/market.mjs), priced by the square foot in the
+  // neighbourhood. Signs stand in front of the listed buildings.
+  function listings() {
+    const week = Math.floor(timeAt(Date.now()).day / 7);
+    if (district.listingsWeek !== week || !district.listings) {
+      district.listings = homeListings(R, district.places, { week, county: district.county }).map((l) => ({ ...l, county: district.county }));
+      district.listingsWeek = week;
+      drawSigns();
+    }
+    const taken = view?.market?.taken;
+    return taken ? district.listings.filter((l) => !taken.has(l.home)) : district.listings;
+  }
+  const signGroup = new THREE.Group(); signGroup.name = "city-home-signs"; group.add(signGroup);
+  let signMats = null;
+  function drawSigns() {
+    signGroup.clear();
+    if (!district.listings?.length) return;
+    signMats ||= { sale: new THREE.MeshBasicMaterial({ map: signTexture("FOR SALE", "#b3261e", "#ffffff"), side: THREE.DoubleSide }),
+      rent: new THREE.MeshBasicMaterial({ map: signTexture("FOR RENT", "#1f5fae", "#ffffff"), side: THREE.DoubleSide }) };
+    const byBuilding = new Map();
+    for (const l of district.listings) if (!byBuilding.has(l.building) || l.kind === "sale") byBuilding.set(l.building, l.kind);
+    const posts = new THREE.InstancedMesh(box(0.06, 1.5, 0.06, 0.75), lambert({ color: 0xf2f2f2 }), byBuilding.size);
+    const boards = { sale: [], rent: [] };
+    let i = 0;
+    for (const [id, kind] of byBuilding) {
+      const pl = district.placeById.get(id);
+      const F = pl?.front, node = district.streets.nodes[pl?.node];
+      const x = F ? F.x - F.nx * 1.2 : node ? node.x + (pl.x - node.x) * 0.15 : pl.x;
+      const z = F ? F.z - F.nz * 1.2 : node ? node.z + (pl.z - node.z) * 0.15 : pl.z;
+      const yaw = F ? Math.atan2(-F.nx, -F.nz) : 0;
+      M.compose(V.set(x, groundAt(x, z), z), Q.setFromEuler(E.set(0, yaw, 0)), S3.set(1, 1, 1));
+      posts.setMatrixAt(i, M); boards[kind].push(M.clone()); i += 1;
+    }
+    signGroup.add(posts);
+    for (const kind of ["sale", "rent"]) {
+      if (!boards[kind].length) continue;
+      const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.9, 0.17).translate(0, 1.32, 0.05), signMats[kind], boards[kind].length);
+      boards[kind].forEach((m, k) => mesh.setMatrixAt(k, m));
+      signGroup.add(mesh);
+    }
+  }
+  const sqft = (n) => `${n.toLocaleString()} sq ft`;
+
   // ---- what can be done here -------------------------------------------------------------------
   //: The actions open to you where you stand, each with its key: what the action bar shows.
   function actionsHere() {
@@ -704,15 +1263,30 @@ export async function startCity(ctx) {
     if (!p) return [{ id: "join", label: "Join the city", key: "", run: () => openPanel(true) }];
     if (car.active) return [{ id: "car", label: "Get out", key: "C", run: toggleCar }];
     if (car.riding) return [{ id: "car", label: "Get out", key: "C", run: toggleCar }];
-    if (transit.ride) return [{ id: "ride", label: transit.ride.kind === "bus" ? "Get off the bus" : "Pay and get out", key: "T", run: alight }];
+    if (transit.ride) {
+      if (!transit.ride.route) return [{ id: "ride", label: transit.ride.vehicle === taxi.id ? `Taxi to ${taxi.dest?.name || "your stop"}: get out early` : "Pay and get out", key: "T", run: () => alight() }];
+      const v = routeBuses.find((x) => x.id === transit.ride.vehicle);
+      return [{ id: "ride", label: transit.ride.stop ? `Stopping at ${v?.nextName || "the next stop"}` : `Next stop: ${v?.nextName || "…"} (ask to get off)`, key: "T", run: requestStop }];
+    }
+    const task = p.clocked?.task;
+    if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
+    if (shop.place) {
+      out.push({ id: "shop", label: "The counter", key: "B", run: () => openStore(shop.place) });
+      if (p.job && p.job.place.id === shop.place.id) out.push({ id: "work", label: p.clocked ? "Clock out" : `Clock in (${p.job.title})`, key: "J", run: workKey });
+      if (p.hands) out.push({ id: "strike", label: `Strike with the ${(R.items[p.hands]?.name || p.hands).toLowerCase()}`, key: "X", run: () => strikeKey() });
+      out.push({ id: "leave", label: "Leave the shop", key: "Esc", run: () => leaveShop() });
+      return out;
+    }
     const shopAt = nearestPlace((x) => storesAt(R, x.keys).length > 0, R.stores.reach_m);
-    if (shopAt) out.push({ id: "shop", label: `Shop: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "B", run: () => openStore(shopAt) });
+    if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "B", run: () => shopKey() });
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) out.push({ id: "pick", label: `Pick up ${R.items[thing.item]?.name.toLowerCase() || "it"}`, key: "G", run: pickUp });
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
     if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "C", run: toggleCar });
     const fare = nearestFare();
-    if (fare) out.push({ id: "ride", label: fare.model === "bus" ? `Board the bus ${R.fmt(R.transit.bus_fare)}` : "Hail the taxi", key: "T", run: board });
+    if (fare) out.push({ id: "ride", label: fare.id === taxi.id ? "Get in your taxi" : String(fare.id).startsWith("bus:") ? `Board the ${fare.route} to ${fare.nextName || "…"} ${R.fmt(R.transit.bus_fare)}` : fare.model === "bus" ? `Board the bus ${R.fmt(R.transit.bus_fare)}` : "Hail the taxi", key: "T", run: board });
+    else if (taxi.phase === "coming") out.push({ id: "ride", label: "Your taxi is on its way", key: "T", run: () => openSide("ride") });
+    else { const stop = nearestStop(30); out.push({ id: "ride", label: stop ? `Bus stop: ${stop.routes.join(", ")}` : "Call a taxi", key: "T", run: () => openSide("ride") }); }
     if (p.job) {
       const atWork = Math.hypot(here.x - p.job.place.x, here.z - p.job.place.z) <= R.jobs.workplace_reach_m;
       if (p.clocked) out.push({ id: "work", label: "Clock out", key: "J", run: workKey });
@@ -722,12 +1296,15 @@ export async function startCity(ctx) {
       const d = Math.hypot(here.x - p.delivery.to.x, here.z - p.delivery.to.z);
       if (d <= R.delivery.reach_m) out.push({ id: "deliver", label: "Hand over the parcel", key: "D", run: deliveryKey });
     } else if (shopAt && deliveryHere(shopAt)) out.push({ id: "deliver", label: "Delivery gig", key: "D", run: () => takeDelivery(shopAt) });
+    if (p.errand && Math.hypot(here.x - p.errand.to.x, here.z - p.errand.to.z) <= R.errands.reach_m) out.push({ id: "errand", label: `Hand ${p.errand.to.who || "them"} the shopping`, key: "K", run: errandKey });
+    const target = strikeTarget(R.tools.reach_m);
+    if (target) out.push({ id: "strike", label: `${p.hands ? `${R.items[p.hands]?.name || "Strike"}` : "Hit"}: ${target.spec.name.toLowerCase()}`, key: "X", run: () => strikeKey() });
     out.push({ id: "rest", label: p.resting ? "Get up" : self()?.home && Math.hypot(here.x - p.home.x, here.z - p.home.z) <= R.vitals.home_reach_m ? "Sleep at home" : "Rest", key: "Z", run: restKey });
     return out;
   }
 
   // ---- the frame -------------------------------------------------------------------------------
-  let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false;
+  let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
   let visible = { people: [], vehicles: [] };
   function tick(now) {
     if (!ctx.enabled()) { group.visible = false; return false; }
@@ -745,8 +1322,16 @@ export async function startCity(ctx) {
       if (party.session && performance.now() - party.lastState > 2500) broadcastState();
     }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
+    const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
+    // The route buses where the timetable has them, near you.
+    if (district.lines?.length) {
+      const f = car.active ? car : me();
+      routeBuses = busesAt(district.lines, t).filter((b) => Math.abs(b.x - f.x) < R.routine.visible_radius_m && Math.abs(b.z - f.z) < R.routine.visible_radius_m);
+    } else routeBuses = [];
+    stepTaxi(dt);
     if (transit.ride) followRide();
+    stepWork();
     reportExertion();
     // Who is out and about: a full pass four times a second, positions every frame.
     const focus = car.active ? car : me();
@@ -754,6 +1339,8 @@ export async function startCity(ctx) {
       if (now - lastCrowd > 250) {
         lastCrowd = now;
         visible = district.crowd.at(t, focus);
+        // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
+        if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
         const hour = visible.time.minute / 60;
         lastNight = hour < 6.6 || hour > 18.4;
       } else {
@@ -762,12 +1349,17 @@ export async function startCity(ctx) {
         visible.vehicles = visible.vehicles.map((v) => v.person ? { ...v, ...(district.crowd.personAt(v.person, tt, focus, R.routine.visible_radius_m) || v) } : advance(v, (now - (v._at || now)) / 1000, now));
       }
       drawPeople(visible.people, now);
-      drawCars(visible.vehicles, lastNight);
+      drawCars(wheels(), lastNight);
       drawThings(now);
     }
-    drawMarker(now);
-    if (now - lastRefresh > 500) { lastRefresh = now; drawParked(); checkFainted(); hud(); if (side?.kind === "store") drawSide(); }
-    return Boolean(visible.people.length || visible.vehicles.length || car.active || transit.ride);
+    drawMarker(now); drawErrand(now); drawTask(now);
+    if (now - lastRefresh > 500) {
+      lastRefresh = now; drawParked(); checkFainted(); drawHeld(); syncDamage(); hud();
+      if (side && ["store", "ride", "things"].includes(side.kind)) drawSide();
+      if (district.places.length) listings();
+    }
+    if (shop.place && !ctx.isFirstPerson?.()) ctx.firstPerson?.(true);
+    return Boolean(visible.people.length || visible.vehicles.length || car.active || transit.ride || routeBuses.length || taxi.at || shop.place || working);
   }
   // Between full passes a car goes on along its heading at its speed.
   function advance(v, dt, now) {
@@ -794,11 +1386,13 @@ export async function startCity(ctx) {
   const KEYS = {
     c: () => toggleCar(), b: () => shopKey(), g: () => pickUp(), i: () => openSide("bag"), t: () => board(), j: () => workKey(),
     d: () => deliveryKey(), z: () => restKey(), h: () => openSide("help"), "?": () => openSide("help"),
+    v: () => taskKey(), k: () => errandKey(), x: () => strikeKey(), o: () => openSide("homes"),
   };
   addEventListener("keydown", (e) => {
     if (e.key === "Shift") { if (!typing(e.target)) body.sprintHeld = true; return; }
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled()) return;
     if (e.key === "Escape" && side) { closeSide(); return; }
+    if (e.key === "Escape" && shop.place) { leaveShop(); return; }
     const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
     if (!run) return;
     e.preventDefault();
@@ -807,12 +1401,15 @@ export async function startCity(ctx) {
   addEventListener("keyup", (e) => { if (e.key === "Shift") body.sprintHeld = false; });
   addEventListener("blur", () => { body.sprintHeld = false; });
   function shopKey() {
+    if (shop.place) { openStore(shop.place); return; }
     const place = nearestPlace((x) => storesAt(R, x.keys).length > 0, R.stores.reach_m);
+    if (place?.front && !car.active && !transit.ride && enterShop(place)) { openStore(place); return; }
     if (!place) { notify("No shop beside you: walk up to a café, a restaurant, a pharmacy, a hardware store…"); return; }
     openStore(place);
   }
   async function toggleCar() {
     if (!ctx.enabled()) return;
+    if (shop.place) { notify("Leave the shop first (Esc)."); return; }
     if (car.active) return exitCar();
     if (car.riding) { car.riding = null; ctx.avatarVisible(true); notify("Out of the car."); refresh(); return; }
     const w = view, p = w?.players.get(myId);
@@ -896,6 +1493,7 @@ export async function startCity(ctx) {
       if (car.lane) bits.push(car.lane.managed ? `<span class="${car.lane.active && occupants() < car.lane.minimum && car.lane.kind === "hov" ? "warn" : ""}">${car.lane.kind === "express" ? "Express lane" : "Carpool lane"} ${car.lane.minimum}+ ${car.lane.active ? "" : "(open to all now)"} · ${occupants()} aboard</span>` : `lane ${car.lane.lane + 1} of ${car.lane.of}`);
     }
     if (car.riding) bits.push("riding");
+    if (transit.ride?.route) { const v = routeBuses.find((x) => x.id === transit.ride.vehicle); if (v) bits.push(`${transit.ride.route} · next ${v.nextName || "—"}${transit.ride.stop ? " (stopping)" : ""}`); }
     const water = ctx.waterAt?.(me().x, me().z);
     if (water) bits.push(`${water.name} · salt ${water.salinity.toFixed(1)} · ${water.density.toFixed(0)} kg/m³`);
     const owed = p ? w.billing.owed(p.account) : 0;
@@ -937,10 +1535,14 @@ export async function startCity(ctx) {
     if (!on) return;
     const v = p.vitals, S = R.vitals.stamina;
     const c = view.carry ? view.carry(p) : { kg: carriedKg(R, p.inventory), capacity: carryCapacity(R, v.strength, p.inventory) };
-    const state = p.resting ? "resting" : v.stamina < S.low ? "exhausted: slowed" : body.sprinting && body.sprintHeld ? "sprinting" : transit.ride ? `on the ${transit.ride.kind}` : "";
+    const state = p.resting ? "resting" : v.stamina < S.low ? "exhausted: slowed" : body.sprinting && body.sprintHeld ? "sprinting" : transit.ride ? `on the ${transit.ride.route || transit.ride.kind}` : shop.place ? "in the shop" : "";
     const gig = p.delivery ? `<div class="gig">Parcel to ${(p.delivery.to.name || "a home").replace(/[<>&]/g, "")}: ${Math.round(Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z))} m, ${Math.max(0, Math.round((p.delivery.due - Date.now()) / 60000))} min, ${R.fmt(p.delivery.pay)}</div>` : "";
+    const task = p.clocked?.task;
+    const job = p.clocked ? `<div class="gig" style="color:#ffc46b">${task ? `${task.label.replace(/[<>&]/g, "")}${working ? ` — ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : ` (V, ${Math.round(Math.hypot(me().x - task.x, me().z - task.z))} m)`}` : "On shift: next task soon"} · ${p.clocked.tasks_total || 0} done${p.clocked.idle ? ` · idle ${p.clocked.idle}/${R.work_tasks.idle_windows_to_dismiss}` : ""}</div>` : "";
+    const errand = p.errand ? `<div class="gig" style="color:#ffd27a">Errand for ${(p.errand.to.who || "a neighbour").replace(/[<>&]/g, "")}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase() + ((p.inventory[i] || 0) > 0 ? " ✓" : "")).join(", ")} · ${Math.round(Math.hypot(me().x - p.errand.to.x, me().z - p.errand.to.z))} m</div>` : "";
+    const hands = p.hands ? `<div class="carry">In hand: ${(R.items[p.hands]?.name || p.hands).replace(/[<>&]/g, "")}</div>` : "";
     vitalsBox.innerHTML = bar("Health", v.health, v.health < 25 ? "#ff6b5e" : "#e2483d") + bar("Stamina", v.stamina, v.stamina < S.low ? "#ffb84d" : "#e8a33b")
-      + bar("Strength", v.strength, "#3c8fd6") + `<div class="carry">Carrying ${c.kg} of ${c.capacity} kg${state ? ` · ${state}` : ""}</div>${gig}`;
+      + bar("Strength", v.strength, "#3c8fd6") + `<div class="carry">Carrying ${c.kg} of ${c.capacity} kg${state ? ` · ${state}` : ""}</div>${hands}${gig}${job}${errand}`;
   }
 
   // ---- the shop, the bag, the controls ----------------------------------------------------------
@@ -950,7 +1552,7 @@ export async function startCity(ctx) {
     closeSide();
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
-    el.setAttribute("aria-label", kind === "store" ? "Shop" : kind === "bag" ? "Your bag" : "Controls");
+    el.setAttribute("aria-label", { store: "Shop", bag: "Your things", ride: "Buses and taxis", errands: "Errands", homes: "Homes for sale and to rent" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -1000,7 +1602,7 @@ export async function startCity(ctx) {
       return;
     }
     if (side.kind === "bag") {
-      const title = h("h3", {}, h("span", { textContent: "Your bag" }), close);
+      const title = h("h3", {}, h("span", { textContent: "Your things" }), close);
       const entries = Object.entries(p.inventory || {}).filter(([, n]) => n > 0);
       const peers = (party.session?.players() || []).map((peer) => ({ peer, pid: party.ids.get(peer.id) })).filter((x) => x.pid && x.pid !== myId);
       const rows = entries.map(([id, n]) => {
@@ -1008,20 +1610,129 @@ export async function startCity(ctx) {
         const worn = Object.values(p.worn || {}).includes(id);
         const use = it.wear ? h("button", { textContent: worn ? "Take off" : "Wear", onclick: () => say(send("use", { item: id }), (r) => (r.wearing ? `Wearing the ${it.name.toLowerCase()}.` : `Took off the ${it.name.toLowerCase()}.`)) })
           : it.use ? h("button", { className: "primary", textContent: it.kind === "prepared_food" || it.use.stamina ? "Eat or drink" : "Use", onclick: () => say(send("use", { item: id }), (r) => `${it.name}: ${Object.entries(r.effect || {}).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`).join(", ") || "done"}.`) }) : null;
+        const hold = it.parcel || it.service ? null : p.hands === id ? h("button", { textContent: "Put away", onclick: () => say(send("stow"), () => `Put the ${it.name.toLowerCase()} away.`) })
+          : h("button", { textContent: "Hold", title: it.strike ? "In your hand: X strikes with it" : "Take it out into your hand", onclick: () => say(send("hold", { item: id }), () => `${it.name} in your hand${it.strike ? ": X to strike with it" : ""}.`) });
         const drop = it.parcel ? null : h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: id }), () => `Put down: ${it.name.toLowerCase()}. G picks it up.`) });
         const give = it.parcel ? null : peers.map(({ peer, pid }) => h("button", { textContent: `Give to ${peer.name}`, onclick: () => say(send("give_item", { to: pid, item: id }), (r) => `Gave ${r.to} the ${it.name.toLowerCase()}.`) }));
-        return h("tr", {}, h("td", {}, h("b", { textContent: `${it.name}${n > 1 ? ` ×${n}` : ""}${worn ? " (worn)" : ""}` }), h("div", { className: "note", textContent: effectText(it) })),
-          h("td", { textContent: `${Math.round((it.kg || 0) * n * 100) / 100} kg` }), h("td", {}, use, drop, ...(give || [])));
+        return h("tr", {}, h("td", {}, h("b", { textContent: `${it.name}${n > 1 ? ` ×${n}` : ""}${worn ? " (worn)" : ""}${p.hands === id ? " (in hand)" : ""}` }), h("div", { className: "note", textContent: effectText(it) })),
+          h("td", { textContent: `${Math.round((it.kg || 0) * n * 100) / 100} kg` }), h("td", {}, hold, use, drop, ...(give || [])));
       });
-      side.el.replaceChildren(title, status, entries.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "Nothing yet. Shops sell food, medicine, tools and clothes (B at a shop); things on the pavement with a yellow ring can be picked up (G). Strength carries more; a backpack carries 10 kg more." }),
-        p.delivery ? h("div", {}, act("Cancel the delivery", () => send("cancel_delivery"))) : "");
+      const hands = p.hands ? R.items[p.hands] : null;
+      const here = me();
+      const cars = w.registry.held(p.account).filter((a) => a.kind === "vehicle").map((a) => {
+        const spec = R.vehicles.models[a.attrs.model];
+        const d = a.attrs.x === undefined ? null : Math.round(Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z));
+        return h("tr", {}, h("td", {}, h("b", { textContent: `${spec.name} ${a.attrs.plate}` }), h("div", { className: "note", textContent: `${a.custody}${a.owner !== p.account ? ", borrowed" : ""} · ${Math.round(a.attrs.odometer_km || 0)} km` })),
+          h("td", { textContent: car.vehicle === a.id && car.active ? "driving" : d === null ? "—" : `${d} m away` }), h("td", {}, d !== null && !(car.active && car.vehicle === a.id) ? h("button", { textContent: "Walk there", onclick: () => ctx.goTo?.(a.attrs.x, a.attrs.z) }) : null));
+      });
+      const homes = [...w.registry.owned(p.account, "home"), ...w.registry.held(p.account).filter((a) => a.kind === "home" && a.owner !== p.account)].map((a) => {
+        const m = (p.mortgages || []).find((x) => x.home === a.id);
+        return h("tr", {}, h("td", {}, h("b", { textContent: `${address(a.attrs.address) || "A home"}${a.attrs.label ? " " + a.attrs.label : ""}` }), h("div", { className: "note", textContent: `${a.attrs.beds || "studio"}${a.attrs.beds ? " bd" : ""}, ${sqft(a.attrs.sqft)} · ${a.owner === p.account ? (m ? `mortgage ${R.fmt(m.owed)} left, ${R.fmt(m.monthly)}/mo` : "owned outright") : `rented, ${R.fmt(p.lease?.rent || 0)}/mo`}` })),
+          h("td", { textContent: `${Math.round(Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z))} m` }), h("td", {}, h("button", { textContent: "Walk there", onclick: () => ctx.goTo?.(a.attrs.x, a.attrs.z) })));
+      });
+      side.el.replaceChildren(title, status,
+        h("h4", { textContent: "In your hands" }), h("p", { className: "note", textContent: hands ? `${hands.name}${hands.strike ? ` — X strikes with it (${R.tools.kinds[hands.strike].energy_j} J a blow at full strength)` : ""}` : "Nothing: X strikes with your fists. Hold a tool from your bag to strike with it." }),
+        hands ? h("div", {}, act("Put it away", () => send("stow")), act("Put it down here", () => send("drop", { item: p.hands }))) : "",
+        h("h4", { textContent: "Bag" }),
+        entries.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "Nothing yet. Shops sell food, medicine, tools and clothes (B at a shop); things on the pavement with a yellow ring can be picked up (G). Strength carries more; a backpack carries 10 kg more." }),
+        p.delivery ? h("div", {}, act("Cancel the delivery", () => send("cancel_delivery"))) : "",
+        p.errand ? h("div", {}, h("p", { className: "note", textContent: `Errand for ${p.errand.to.who || "a neighbour"} at ${p.errand.to.name || "their home"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}.` }), act("Give up the errand", () => send("cancel_errand"))) : "",
+        h("h4", { textContent: "Vehicles" }), cars.length ? h("table", { className: "wares" }, ...cars) : h("p", { className: "note", textContent: "None: the City panel's Car tab has the dealership." }),
+        h("h4", { textContent: "Homes" }), homes.length ? h("table", { className: "wares" }, ...homes) : h("p", { className: "note", textContent: `${p.home ? `A room at ${address(district.placeById?.get(p.home.building)?.name) || "your building"}. ` : ""}Homes for sale and to rent: O.` }),
+        h("h4", { textContent: "Money" }), h("table", {}, row("Balance", R.fmt(w.ledger.balance(p.account))), row("Owed", R.fmt(w.billing.owed(p.account))),
+          ...(p.mortgages || []).map((m) => row("Mortgage", `${R.fmt(m.owed)} at ${R.fmt(m.monthly)}/mo${m.missed ? `, ${m.missed} missed` : ""}`)),
+          p.lease ? row("Rent", `${R.fmt(p.lease.rent)}/mo, next ${new Date(p.lease.next).toLocaleDateString()}`) : null));
+      return;
+    }
+    if (side.kind === "ride") {
+      const title = h("h3", {}, h("span", { textContent: "Buses and taxis" }), close);
+      const stop = nearestStop(90);
+      const out = [title, status];
+      if (stop) {
+        out.push(h("h4", { textContent: `Stop: ${stop.name}` }), h("p", { className: "note", textContent: `${Math.round(stop.d)} m away. Wait at the red flag; when the bus stands there, T boards it (${R.fmt(R.transit.bus_fare)}). On board, T asks for the next stop.` }));
+        const rows = nextBuses(stop, Date.now()).map((b) => h("tr", {}, h("td", {}, h("b", { textContent: b.route })), h("td", { textContent: b.next.map((n) => `${n.wait < 1 ? "at the stop now" : `${Math.ceil(n.wait / 60)} min`} toward ${n.toward}`).join("; ") })));
+        out.push(rows.length ? h("table", {}, ...rows) : h("p", { className: "note", textContent: "No route times here." }));
+      } else if ((district.stops || []).length) {
+        const near = [...district.stops].map((x) => ({ ...x, d: Math.hypot(x.x - me().x, x.z - me().z) })).sort((a, b) => a.d - b.d)[0];
+        out.push(h("p", { className: "note", textContent: `The nearest bus stop is ${near.name}, ${Math.round(near.d)} m away (${near.routes.join(", ")}).` }), h("button", { textContent: "Walk to it", onclick: () => ctx.goTo?.(near.x, near.z) }));
+      } else out.push(h("p", { className: "note", textContent: "No bus routes run through this district's streets." }));
+      out.push(h("h4", { textContent: "A taxi" }));
+      if (taxi.phase) out.push(h("p", { className: "note", textContent: taxi.phase === "coming" ? `On its way to you: ${Math.round(Math.max(0, taxi.route.length - taxi.d))} m off, then to ${taxi.dest.name}.` : `Waiting for you at the kerb, to take you to ${taxi.dest.name}: T to get in.` }),
+        h("button", { textContent: "Cancel the taxi", onclick: () => { Object.assign(taxi, { phase: null, route: null, at: null }); drawSide(); } }));
+      else {
+        const fare = (x, z) => R.transit.taxi_flag + Math.round(R.transit.taxi_per_km * Math.hypot(x - me().x, z - me().z) * 1.3 / 1000);
+        const dest = (name, x, z) => h("tr", {}, h("td", { textContent: name }), h("td", { textContent: `${(Math.hypot(x - me().x, z - me().z) / 1000).toFixed(1)} km · ≈${R.fmt(fare(x, z))}` }), h("td", {}, h("button", { className: "primary", textContent: "Call a taxi", onclick: () => callTaxi({ name, x, z }) })));
+        const picks = [];
+        if (p.home) picks.push(dest("Home", p.home.x, p.home.z));
+        if (p.job) picks.push(dest(`Work (${p.job.place.name ? address(p.job.place.name) : p.job.title})`, p.job.place.x, p.job.place.z));
+        if (p.delivery) picks.push(dest(`The parcel's address (${p.delivery.to.name || "a home"})`, p.delivery.to.x, p.delivery.to.z));
+        if (p.errand) picks.push(dest(`The errand (${p.errand.to.name || "a home"})`, p.errand.to.x, p.errand.to.z));
+        const query = side.query || "";
+        const input = h("input", { type: "search", placeholder: "Where to? (a shop, an address)", value: query, style: "width:100%;margin:4px 0" });
+        input.oninput = () => { side.query = input.value; const at = input.selectionStart; drawSide(); const again = side.el.querySelector("input[type=search]"); again?.focus(); again?.setSelectionRange(at, at); };
+        if (query.length > 1) {
+          const q = query.toLowerCase();
+          const found = district.places.filter((x) => (x.name || "").toLowerCase().includes(q) || x.shops.some((k) => k.includes(q))).map((x) => ({ x, d: Math.hypot(x.x - me().x, x.z - me().z) })).filter((o) => o.d > 60).sort((a, b) => a.d - b.d).slice(0, 8);
+          for (const { x } of found) picks.push(dest(`${address(x.name) || x.shops[0] || "A building"}${x.shops.length ? ` (${x.shops.slice(0, 2).join(", ")})` : ""}`, x.x, x.z));
+        }
+        out.push(h("p", { className: "note", textContent: `A yellow cab comes to the kerb where you stand: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km.` }), input, h("table", { className: "wares" }, ...picks));
+      }
+      side.el.replaceChildren(...out);
+      return;
+    }
+    if (side.kind === "errands") {
+      const title = h("h3", {}, h("span", { textContent: "Errands" }), close);
+      if (p.errand) {
+        const e = p.errand, d = Math.round(Math.hypot(me().x - e.to.x, me().z - e.to.z));
+        const need = e.items.map((i) => `${R.items[i].name}${(p.inventory[i] || 0) > 0 ? " ✓" : ""}`);
+        side.el.replaceChildren(title, status, h("p", {}, h("b", { textContent: `For ${e.to.who || "a neighbour"}, ${e.to.name || "their home"}` }), ` — ${d} m`),
+          h("p", { className: "note", textContent: `Buy: ${need.join(", ")}. Then bring it to the orange light and press K there. Paid back what it cost, and ${R.fmt(e.fee)}.` }),
+          h("div", {}, h("button", { textContent: "Walk there", onclick: () => ctx.goTo?.(e.to.x, e.to.z) }), act("Give it up", () => send("cancel_errand"))));
+        return;
+      }
+      const offers = errandOffers();
+      const rows = offers.map((o) => h("tr", {}, h("td", {}, h("b", { textContent: `${o.to.who || "A neighbour"}, ${o.to.name || "nearby"}` }), h("div", { className: "note", textContent: o.items.map((i) => R.items[i].name.toLowerCase()).join(", ") })),
+        h("td", { textContent: `${(o.km).toFixed(1)} km · ${R.fmt(o.fee)} + ${R.fmt(o.cost)} back` }),
+        h("td", {}, h("button", { className: "primary", textContent: "Take it", onclick: () => say(send("take_errand", { to: o.to, items: o.items }), () => `Errand for ${o.to.who || "a neighbour"}: buy ${o.items.map((i) => R.items[i].name.toLowerCase()).join(", ")} and bring it to ${o.to.name || "their door"}.`) }))));
+      side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Neighbours who want something from the shops. New ones every hour." }), rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "Nobody near here needs anything just now." }));
+      return;
+    }
+    if (side.kind === "homes") {
+      const title = h("h3", {}, h("span", { textContent: "Homes for sale and to rent" }), close);
+      const all = listings();
+      side.filter ||= { kind: "sale", type: "any" };
+      const f = side.filter;
+      const pick = all.filter((l) => l.kind === f.kind && (f.type === "any" || l.type === f.type));
+      const here = me();
+      const sorted = pick.map((l) => ({ l, d: Math.hypot(l.x - here.x, l.z - here.z) })).sort((a, b) => a.d - b.d).slice(0, 30);
+      const tabs = h("div", { className: "tabs" }, ...[["sale", "For sale"], ["rent", "To rent"]].map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(f.kind === k), onclick: () => { f.kind = k; drawSide(); } })),
+        ...[["any", "All"], ["single_family", "Houses"], ["apartment", "Flats"]].map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(f.type === k), onclick: () => { f.type = k; drawSide(); } })));
+      const units = district.places.filter((x) => x.use === "residential").length;
+      const rows = sorted.map(({ l, d }) => {
+        const terms = l.kind === "sale" ? mortgageTerms(R, l.price) : null;
+        const label = `${l.beds ? `${l.beds} bd` : "Studio"} ${l.type === "single_family" ? "house" : "flat"}${l.label ? " " + l.label : ""}`;
+        return h("tr", {}, h("td", {}, h("b", { textContent: `${label} — ${address(l.address) || "a home"}` }),
+          h("div", { className: "note", textContent: `${sqft(l.sqft)} · ${l.neighbourhood} · ${R.fmt(R.money(l.psf))}/sq ft${l.kind === "rent" ? "/mo" : ""}${terms ? ` · ${R.fmt(terms.upfront)} down and closing, then ${R.fmt(terms.monthly)}/mo` : ""} · ${Math.round(d)} m` })),
+          h("td", { textContent: l.kind === "sale" ? R.fmt(l.price) : `${R.fmt(l.price)}/mo` }),
+          h("td", {}, h("button", { textContent: "Go", onclick: () => ctx.goTo?.(l.x, l.z) }),
+            l.kind === "sale" ? h("span", {}, h("button", { className: "primary", textContent: "Mortgage", onclick: () => say(send("buy_home", { listing: l, mortgage: true }), (r) => `Bought for ${R.fmt(r.price)}: ${R.fmt(r.terms.monthly)} a month on the mortgage. It is your home now.`) }),
+              h("button", { textContent: "Outright", onclick: () => say(send("buy_home", { listing: l, mortgage: false }), (r) => `Bought outright for ${R.fmt(r.price)}. It is your home now.`) }))
+              : h("button", { className: "primary", textContent: "Rent", onclick: () => say(send("rent_home", { listing: l }), (r) => `Rented at ${R.fmt(r.rent)} a month (a ${R.fmt(r.deposit)} deposit). It is your home now.`) })));
+      });
+      const mine = [...w.registry.owned(p.account, "home")].map((a) => h("div", {}, `${address(a.attrs.address) || "Your home"}${a.attrs.label ? " " + a.attrs.label : ""} `, act("Sell", () => send("sell_home", { home: a.id }))));
+      side.el.replaceChildren(title, status, tabs,
+        h("p", { className: "note", textContent: `${all.length} of the district's homes are on the market this week (${all.filter((l) => l.kind === "sale").length} for sale, ${all.filter((l) => l.kind === "rent").length} to rent, in ${units} residential buildings) — the real market's share of each kind, priced by the square foot for the neighbourhood. Red and blue signs out front.` }),
+        rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "Nothing of that kind listed this week." }),
+        mine.length || p.lease ? h("h4", { textContent: "Yours" }) : "", ...mine, p.lease ? h("div", {}, `Renting at ${R.fmt(p.lease.rent)}/mo `, act("Give notice and move out", () => send("end_lease"))) : "");
       return;
     }
     // The controls.
     const keys = [["Arrows", "walk; at the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Click", "go there (on a bridge's deck, onto the deck)"],
-      ["PageUp / PageDown", "the level above or below where you stand"], ["B", "shop at the store beside you"], ["G", "pick up what lies at your feet"], ["I", "your bag: eat, use, wear, put down, give"],
-      ["C", "get in or out of your car, or ride with a party member"], ["T", "board a passing bus, hail a taxi; again to get off"], ["J", "clock in or out at your job"],
-      ["D", "take a delivery gig at a shop, hand the parcel over at the address"], ["Z", "rest (in bed at home, sleep); walk on to get up"], ["H", "these controls"], ["Esc", "close a window"],
+      ["PageUp / PageDown", "the level above or below where you stand"], ["B", "go into the shop beside you; inside, the counter"], ["Esc", "close a window; inside a shop, leave"], ["G", "pick up what lies at your feet"],
+      ["I", "your things: hands, bag, vehicles, homes, money — hold, eat, use, wear, put down, give"], ["X", "strike what is in front of you, with what is in your hands"],
+      ["C", "get in or out of your car (parking where you stop), or ride with a party member"], ["T", "at a stop, board the bus standing there; on board, ask for the next stop; elsewhere, call a taxi"],
+      ["J", "clock in or out at your job"], ["V", "do the task in front of you at work (the orange ring)"], ["K", "neighbours' errands: take one; at their door, hand it over"],
+      ["D", "take a delivery gig at a shop, hand the parcel over at the address"], ["O", "homes for sale and to rent"], ["Z", "rest (in bed at home, sleep); walk on to get up"], ["H", "these controls"],
       ["F", "first person"], ["Enter", "a door: in or out"], ["S", "what is under the pointer"], ["R", "back to where you are"]];
     const bars = [["Health", "wears slowly; quickly with no stamina left. Medicine (pharmacy), a doctor's visit (clinic), a night's sleep. At 0 you faint, wake at home, and pay the ambulance."],
       ["Stamina", "runs down through the day, faster at work and sprinting; comes back at night, fastest asleep at home. Food and drink at cafés, restaurants, bars and grocers give it back. Low, you are slowed."],
@@ -1052,7 +1763,7 @@ export async function startCity(ctx) {
         act("Join the city", () => send("join", { name: party.session?.me?.name || "You", home: nearestPlace((x) => x.use === "residential", 400) }), true));
       return;
     }
-    const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "bills", "taxes", "laws", "people"].map((id) =>
+    const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>
       h("button", { textContent: id[0].toUpperCase() + id.slice(1), "aria-pressed": String(tab === id), onclick: () => { tab = id; refresh(); } })));
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent.toLowerCase() === tab)));
     panel.replaceChildren(head, tabs, ...TABS[tab](w, p));
@@ -1121,6 +1832,11 @@ export async function startCity(ctx) {
         : act(`Get a FasTrak tag (${R.fmt(R.tolls.fastrak.deposit)} prepaid)`, () => send("get_fastrak")));
       return out;
     },
+    homes(w, p) {
+      const all = listings();
+      return [h("p", { className: "note", textContent: `${all.filter((l) => l.kind === "sale").length} homes for sale and ${all.filter((l) => l.kind === "rent").length} to rent in this district this week.` }),
+        h("button", { className: "primary", textContent: "Browse the listings (O)", onclick: () => openSide("homes") })];
+    },
     bills(w, p) {
       const all = [...w.billing.bills.values()].filter((b) => b.payer === p.account).slice(-20).reverse();
       if (!all.length) return [h("p", { className: "note", textContent: "No bills. Tolls without FasTrak, lane violations, speed camera and parking notices, rent and property tax come here, each with its due date; unpaid, a notice adds its penalty." })];
@@ -1170,7 +1886,8 @@ export async function startCity(ctx) {
 
   // The multiplayer session's hooks: what this walker's car is, and drawing the others'.
   return {
-    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, openPanel, joinParty, leaveParty,
+    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, joinParty, leaveParty,
+    enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, errandKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, shopKey, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };

@@ -96,6 +96,24 @@ var livingCity = null;
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // The object catalogue's view of what is round the walker: what a blow can land on.
+      objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
+      catalogueUrl: sharedAsset("object-catalogue.json"),
+      transitUrl: sharedAsset("transit-stops.json"),
+      // Inside a shop: the walker's eyes at (x, y, z), looking along ``yaw``; and back out.
+      firstPerson: (on) => setFirstPerson(on),
+      isFirstPerson: () => Boolean(state.firstPerson),
+      placeAvatar: (x, y, z, yaw = null) => {
+        avatar.position.set(x, y + AVATAR_STAND_Y, z);
+        if (yaw !== null) { state.yaw = yaw; avatar.rotation.y = yaw; }
+        state.target.copy(avatar.position); placeCamera();
+      },
+      setPitch: (pitch) => { state.pitch = pitch; placeCamera(); },
+      setFloor: (y) => { state.floorY = y; placeCamera(); },
+      goTo: (x, z) => goTo({ x, z }, { travel: true }),
+      // The walker's right hand, for what is held in it (the model's bone, where it has one).
+      hand: () => avatar.getObjectByName?.("mixamorigRightHand") || avatar.getObjectByName?.("RightHand")
+        || avatar.getObjectByName?.("hand_r") || avatar.getObjectByName?.("Hand_R") || null,
       notify: (text) => console.info(`kerbside city: ${text}`),
       log: (text) => console.info(text),
     };

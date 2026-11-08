@@ -1124,7 +1124,7 @@ function levelsAt(x, z) {
 addEventListener("keydown", (e) => {
   if ((e.key !== "PageUp" && e.key !== "PageDown") || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || state.explore) return;
-  if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding)) return;
+  if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding || livingCity?.inside)) return;
   const x = avatar.position.x, z = avatar.position.z, feet = walkerFeetY();
   const levels = levelsAt(x, z);
   const next = e.key === "PageUp" ? levels.find((y) => y > feet + 1) : [...levels].reverse().find((y) => y < feet - 1);

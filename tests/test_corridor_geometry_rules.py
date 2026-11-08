@@ -2748,7 +2748,8 @@ console.log(JSON.stringify({
     pointer_look = js.split('canvas.addEventListener("pointerdown", (e) => {', 1)[1].split("});", 1)[0]
     # Turning the view while walking keeps the walk going; a drag never starts one.
     assert "held.clear();" not in pointer_look and "held.add" not in pointer_look
-    assert "eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);" in js
+    # The eye follows the walker's ground (or, inside a shop, the living city's own floor).
+    assert "eye.y = AVATAR_EYE_Y + (Number.isFinite(state.floorY) ? state.floorY : walkerGroundAt(avatar.position.x, avatar.position.z));" in js
 
 
 def test_the_approach_outside_a_mouth_is_the_cut_the_city_drew() -> None:

@@ -151,7 +151,7 @@
     "contest": {"hearing_days": 14, "dismissed_without": 2}
   },
   "fines": {
-    "theft": 1500, "speeding": 238, "hov_violation": 490, "toll_evasion": 25, "trespass": 250, "jaywalking": 196, "red_light": 490, "illegal_parking": 110
+    "theft": 1500, "speeding": 238, "hov_violation": 490, "toll_evasion": 25, "trespass": 250, "jaywalking": 196, "red_light": 490, "illegal_parking": 110, "vandalism": 400
   },
   "vehicles": {
     "basis": "new prices approx. 2026 California list (the vision's new economy car: 22,000); used by age so a five-year-old hatchback is the vision's 8,000; fuel use EPA combined",
@@ -306,7 +306,15 @@
     "haircut":       {"name": "Haircut", "price": 85, "kind": "service", "service": true, "use": {"health": 1}},
     "wash_and_dry":  {"name": "Wash and dry", "price": 12, "kind": "service", "service": true, "use": {}},
     "hotel_night":   {"name": "Night's stay", "price": 220, "kind": "service", "service": true, "use": {"stamina": 70, "health": 5}, "tax": "hotel_tax"},
-    "hammer":        {"name": "Hammer", "price": 25, "kg": 0.7, "kind": "taxable", "tool": "build"},
+    "hammer":        {"name": "Hammer", "price": 25, "kg": 0.7, "kind": "taxable", "tool": "build", "strike": "hammer"},
+    "sledgehammer":  {"name": "Sledgehammer", "price": 65, "kg": 4.5, "kind": "taxable", "tool": "demolish", "strike": "sledgehammer"},
+    "crowbar":       {"name": "Crowbar", "price": 30, "kg": 1.6, "kind": "taxable", "tool": "pry", "strike": "crowbar"},
+    "saw":           {"name": "Hand saw", "price": 30, "kg": 0.6, "kind": "taxable", "tool": "cut", "strike": "saw"},
+    "axe":           {"name": "Axe", "price": 55, "kg": 2.2, "kind": "taxable", "tool": "cut", "strike": "axe"},
+    "bolt_cutters":  {"name": "Bolt cutters", "price": 70, "kg": 2.8, "kind": "taxable", "tool": "cut", "strike": "bolt_cutters"},
+    "lumber":        {"name": "Lumber", "price": 12, "kg": 2.5, "kind": "taxable", "material": true},
+    "scrap_metal":   {"name": "Scrap metal", "price": 4, "kg": 1.5, "kind": "taxable", "material": true},
+    "glass_shards":  {"name": "Glass shards", "price": 0, "kg": 0.4, "kind": "taxable", "material": true},
     "screwdriver":   {"name": "Screwdriver set", "price": 18, "kg": 0.4, "kind": "taxable", "tool": "build"},
     "wrench":        {"name": "Adjustable wrench", "price": 18, "kg": 0.4, "kind": "taxable", "tool": "repair"},
     "nails":         {"name": "Box of nails", "price": 8, "kg": 0.5, "kind": "taxable", "material": true},
@@ -347,7 +355,7 @@
       "pharmacy":    {"name": "Pharmacy", "at": ["shop:pharmacy"], "items": ["bandage", "pain_relief", "cold_medicine", "vitamins", "first_aid_kit", "prescription", "water", "snack_bar"]},
       "clinic":      {"name": "Clinic", "at": ["shop:clinic"], "items": ["doctor_visit", "checkup", "bandage"]},
       "gym":         {"name": "Gym", "at": ["shop:gym"], "items": ["day_pass", "training", "yoga_class", "protein_shake", "water"]},
-      "hardware":    {"name": "Hardware store", "at": ["shop:hardware"], "items": ["hammer", "screwdriver", "wrench", "nails", "drill", "tape_measure", "paint", "ladder", "work_gloves", "flashlight", "toolbox"]},
+      "hardware":    {"name": "Hardware store", "at": ["shop:hardware"], "items": ["hammer", "sledgehammer", "crowbar", "saw", "axe", "bolt_cutters", "screwdriver", "wrench", "nails", "drill", "tape_measure", "paint", "lumber", "ladder", "work_gloves", "flashlight", "toolbox"]},
       "clothing":    {"name": "Clothing store", "at": ["shop:clothing"], "items": ["t_shirt", "jeans", "jacket", "raincoat", "shoes", "backpack"]},
       "books":       {"name": "Bookshop", "at": ["shop:books"], "items": ["book", "street_map", "notebook"]},
       "florist":     {"name": "Florist", "at": ["shop:florist"], "items": ["bouquet", "house_plant"]},
@@ -387,11 +395,119 @@
     "storefront_lease_per_week": 3000
   },
   "real_estate": {
-    "basis": "price a square metre of floor by use on the V2 vision's scale (a small plot 40,000, a basic house 60,000 to build, a large commercial building 250,000 and more): about 1/28 of 2026 San Francisco medians, keeping their ratios between uses, scaled by county",
-    "per_m2": {"residential": 420, "office": 260, "retail": 300, "restaurant": 300, "hotel": 320, "industrial": 155, "parking": 125, "civic": 215, "school": 215},
+    "basis": "price a square metre of floor by use, at real 2025-26 San Francisco levels (homes about 1,000 a square foot; the housing market's neighbourhood prices refine a home's), scaled by county. The vision's own scale (a plot 40,000) was replaced by real prices at the user's direction; Credits stay at par with the dollar.",
+    "per_m2": {"residential": 10800, "office": 6500, "retail": 7500, "restaurant": 7500, "hotel": 8000, "industrial": 3800, "parking": 3000, "civic": 5400, "school": 5400},
     "county_scale": {"county:san-francisco": 1.0, "county:san-mateo": 1.05, "county:santa-clara": 0.95, "county:alameda": 0.72},
-    "rent_yield": 0.12,
+    "rent_yield": 0.045,
     "storey_m": 3.3
+  },
+  "tools": {
+    "basis": "a strike's energy: a person's swing of each tool at a typical strength (a framing hammer about 40-60 J, a sledgehammer 300-500 J, a punch 20-40 J; approx., after published impact measurements), scaled by strength from 0.6 at none to 1.4 at full. Against each material the strike counts by how the tool works on it (a saw cuts wood, it does nothing to steel). An object breaks when the energy it has taken reaches its catalogue break_energy_j (docs/object-catalogue.json); a blow far below that counts for less than its share, as a tap does not fell a post.",
+    "strength_scale": [0.6, 1.4],
+    "small_blow_exponent": 0.3,
+    "reach_m": 2.4,
+    "strikes_per_second": 1.5,
+    "kinds": {
+      "fists":        {"name": "Bare hands", "energy_j": 25, "vs": {"glass": 1.0, "plasterboard": 0.8, "lumber": 0.4, "steel": 0.1, "cast_iron": 0.1, "concrete": 0.05, "masonry": 0.05, "aluminium": 0.3, "plastic": 0.8, "fabric": 0.6}, "hurts": {"glass": 4, "steel": 2, "cast_iron": 2, "concrete": 3, "masonry": 3}},
+      "hammer":       {"name": "Hammer", "energy_j": 50, "vs": {"glass": 1.6, "plasterboard": 1.3, "lumber": 0.8, "steel": 0.3, "aluminium": 0.8, "plastic": 1.2, "masonry": 0.4, "concrete": 0.3, "cast_iron": 0.2, "fabric": 0.2}},
+      "sledgehammer": {"name": "Sledgehammer", "energy_j": 420, "vs": {"glass": 1.4, "plasterboard": 1.4, "lumber": 1.0, "masonry": 1.2, "concrete": 1.0, "steel": 0.5, "cast_iron": 0.6, "aluminium": 1.0, "plastic": 1.2, "fabric": 0.2}},
+      "crowbar":      {"name": "Crowbar", "energy_j": 150, "vs": {"lumber": 1.5, "glass": 1.2, "plasterboard": 1.3, "aluminium": 1.0, "steel": 0.4, "plastic": 1.0, "masonry": 0.5, "fabric": 0.3}},
+      "saw":          {"name": "Hand saw", "energy_j": 90, "vs": {"lumber": 6.0, "green_wood": 4.0, "deadwood": 6.0, "plastic": 3.0, "plasterboard": 4.0, "fabric": 2.0, "foliage": 4.0, "steel": 0.02, "glass": 0.05, "concrete": 0.0, "masonry": 0.0}, "yields": {"lumber": "lumber", "green_wood": "lumber", "deadwood": "lumber"}},
+      "axe":          {"name": "Axe", "energy_j": 260, "vs": {"lumber": 2.0, "green_wood": 2.2, "deadwood": 2.2, "plastic": 1.0, "glass": 1.2, "fabric": 1.2, "steel": 0.1, "concrete": 0.0, "masonry": 0.05}, "yields": {"green_wood": "lumber", "deadwood": "lumber"}},
+      "bolt_cutters": {"name": "Bolt cutters", "energy_j": 120, "vs": {"steel": 3.0, "aluminium": 2.0, "conductor": 2.0, "plastic": 1.0, "fabric": 1.5, "glass": 0.1, "lumber": 0.2}},
+      "vehicle":      {"name": "A car's impact", "energy_j": 0, "vs": {"default": 1.0}}
+    },
+    "default_vs": 0.5
+  },
+  "damage": {
+    "basis": "what breaking a thing costs: the city's public works repair it after a while, and breaking what is not yours is vandalism (California Penal Code 594: a fine, and restitution of the repair). Repair costs approx. 2025 Bay Area contractor prices.",
+    "repair_cost": {"building.window": 450, "building.door": 1200, "building.awning": 900, "building.sign": 350, "furniture.sign_plate": 120, "furniture.sign_post": 600, "furniture.street_light": 3500, "furniture.parking_meter": 900, "furniture.bench": 1200, "furniture.bike_rack": 700, "furniture.bollard": 1500, "furniture.shelter": 4500, "furniture.ad_panel": 800, "barrier.fence_board": 600, "barrier.fence_picket": 400, "barrier.fence_chainlink": 900, "furniture.picnic_table": 1100, "furniture.raised_bed": 500, "furniture.drinking_fountain": 2500, "vegetation.tree": 2500, "furniture.utility_pole": 8000, "furniture.traffic_signal": 25000, "furniture.pole_equipment": 400, "furniture.cabinet": 3000, "default": 500},
+    "repair_hours": {"vegetation.tree": 72, "building.window": 24, "default": 8},
+    "witness_reach_m": 25,
+    "vandalism_fine": 400,
+    "salvage": {"lumber": "lumber", "steel": "scrap_metal", "aluminium": "scrap_metal", "cast_iron": "scrap_metal", "glass": "glass_shards", "green_wood": "lumber", "deadwood": "lumber"}
+  },
+  "work_tasks": {
+    "basis": "a shift is work: tasks come every minute or so, each done where it is (at the counter, at the kerb, in the back) by walking there and pressing V. Pay is for the time worked, as long as some work was done in each ten minutes; three ten-minute stretches with nothing done and you are sent home. Tips are on top (approx. a few credits a customer).",
+    "every_s": [35, 80],
+    "idle_windows_to_dismiss": 3,
+    "task_reach_m": 2.6,
+    "by_role": {
+      "barista": [["Serve the customer at the counter", "counter", 4, [1, 4]], ["Pull a shot and steam the milk", "counter", 6, [0, 2]], ["Wipe down the tables outside", "kerb", 8, [0, 0]], ["Restock cups from the back", "back", 6, [0, 0]]],
+      "baker": [["Pull a tray from the oven", "back", 8, [0, 0]], ["Box a cake for a customer", "counter", 5, [1, 3]], ["Restock the pastry case", "counter", 6, [0, 0]]],
+      "cook": [["Plate an order", "back", 7, [0, 0]], ["Prep vegetables", "back", 10, [0, 0]], ["Take the trash out to the kerb", "kerb", 6, [0, 0]]],
+      "server": [["Take an order", "counter", 5, [2, 6]], ["Run food to a table", "counter", 5, [1, 4]], ["Clear a table outside", "kerb", 6, [0, 2]]],
+      "bartender": [["Pour a drink", "counter", 4, [1, 4]], ["Change a keg in the back", "back", 10, [0, 0]], ["Card a customer at the door", "kerb", 3, [0, 0]]],
+      "clerk": [["Help a customer find something", "counter", 5, [0, 2]], ["Restock a shelf", "back", 8, [0, 0]], ["Sweep the entrance", "kerb", 6, [0, 0]], ["Ring up a sale", "counter", 3, [0, 1]]],
+      "grocer": [["Ring up a customer", "counter", 4, [0, 1]], ["Face the shelves", "back", 7, [0, 0]], ["Bring in the produce crates", "kerb", 8, [0, 0]]],
+      "stylist": [["Cut a customer's hair", "counter", 20, [3, 10]], ["Sweep the floor", "back", 5, [0, 0]]],
+      "laundry_attendant": [["Fold a load", "counter", 10, [0, 2]], ["Unjam a dryer", "back", 6, [0, 0]]],
+      "housekeeper": [["Make up a room", "back", 15, [1, 5]], ["Bring towels to the front", "counter", 5, [0, 0]]],
+      "attendant": [["Help at the pump", "kerb", 6, [0, 3]], ["Ring up a customer", "counter", 3, [0, 1]]],
+      "parking_attendant": [["Collect a fee at a car", "kerb", 4, [0, 2]], ["Direct a car to a space", "kerb", 4, [0, 1]]],
+      "janitor": [["Mop the lobby", "counter", 10, [0, 0]], ["Empty the bins at the kerb", "kerb", 6, [0, 0]]],
+      "security_guard": [["Check the side door", "back", 5, [0, 0]], ["Walk the frontage", "kerb", 8, [0, 0]]],
+      "default": [["Help a customer", "counter", 5, [0, 2]], ["Tidy up", "back", 6, [0, 0]]]
+    }
+  },
+  "errands": {
+    "basis": "a neighbour's errand: buy what they ask at the shops it is sold in and bring it to their door. Paid on the doorstep: what you spent back, and a fee by the distance (approx. a gig-app errand's rate).",
+    "fee_base": 25,
+    "fee_per_km": 30,
+    "offers": 3,
+    "reach_m": 25,
+    "items": ["coffee", "sandwich", "meal", "pizza", "groceries", "bread", "milk", "pain_relief", "cold_medicine", "bandage", "vitamins", "bouquet", "house_plant", "book", "hammer", "nails", "paint", "flashlight", "umbrella", "phone_charger", "t_shirt"],
+    "distance_m": [200, 1200]
+  },
+  "transit_lines": {
+    "basis": "buses on the real routes (SFMTA GTFS stops, docs/transit-stops.json): each route's stops in the district, in order along it, joined by the streets; a bus every few minutes each way, stopping at each stop to let people on and off. Headways approx. Muni's frequent network (6-12 minutes).",
+    "headway_min": 9,
+    "dwell_s": 22,
+    "speed_ms": 6.5,
+    "stop_cluster_m": 45,
+    "min_stops": 3,
+    "board_reach_m": 14,
+    "taxi_speed_ms": 10,
+    "taxi_hail_from_m": [250, 600]
+  },
+  "housing": {
+    "basis": "the homes for sale and to rent, mirroring the market: every residential building's type from its OpenStreetMap tag (house, detached and the like are single-family; apartments and residential are multi-unit, split into units by floor area), a share of each type listed at a time as in San Francisco's market (approx. 2025: about 1% of single-family homes and well under 1% of condos for sale; about 3% of apartments advertised for rent), and prices by square foot and neighbourhood (approx. 2025 medians from public listing-site neighbourhood reports; not a valuation of any real home). The listings turn over each week.",
+    "sqft_per_m2": 10.764,
+    "net_share": 0.82,
+    "unit_m2": 70,
+    "single_family_tags": ["house", "detached", "bungalow", "semidetached_house", "terrace", "cabin", "farm"],
+    "multi_unit_tags": ["apartments", "residential", "dormitory", "mixed_use"],
+    "listing_rate": {"single_family": {"sale": 0.012, "rent": 0.006}, "apartment": {"sale": 0.004, "rent": 0.028}},
+    "size_exponent": -0.12,
+    "spread": [0.85, 1.15],
+    "rent_type_share": {"single_family": 0.85, "apartment": 1.0},
+    "sale_type_share": {"single_family": 1.0, "apartment": 0.92},
+    "beds_by_sqft": [[0, 0], [520, 1], [780, 2], [1150, 3], [1700, 4], [2600, 5]],
+    "neighbourhoods": [
+      {"name": "Marina", "box": [-122.4475, 37.7990, -122.4290, 37.8085], "sale_psf": 1250, "rent_psf": 4.9},
+      {"name": "Cow Hollow", "box": [-122.4475, 37.7955, -122.4235, 37.7990], "sale_psf": 1300, "rent_psf": 5.0},
+      {"name": "Pacific Heights", "box": [-122.4470, 37.7880, -122.4220, 37.7955], "sale_psf": 1350, "rent_psf": 5.1},
+      {"name": "Russian Hill", "box": [-122.4235, 37.7940, -122.4100, 37.8065], "sale_psf": 1200, "rent_psf": 4.9},
+      {"name": "Fisherman's Wharf", "box": [-122.4235, 37.8040, -122.4010, 37.8110], "sale_psf": 1050, "rent_psf": 4.6},
+      {"name": "North Beach", "box": [-122.4140, 37.7960, -122.4010, 37.8070], "sale_psf": 1100, "rent_psf": 4.6},
+      {"name": "Chinatown", "box": [-122.4090, 37.7915, -122.4030, 37.7975], "sale_psf": 800, "rent_psf": 3.6},
+      {"name": "Nob Hill", "box": [-122.4200, 37.7880, -122.4080, 37.7960], "sale_psf": 1050, "rent_psf": 4.6},
+      {"name": "Financial District", "box": [-122.4060, 37.7880, -122.3920, 37.7990], "sale_psf": 950, "rent_psf": 4.7},
+      {"name": "Tenderloin", "box": [-122.4200, 37.7810, -122.4080, 37.7880], "sale_psf": 650, "rent_psf": 3.5},
+      {"name": "Western Addition", "box": [-122.4470, 37.7740, -122.4200, 37.7880], "sale_psf": 1000, "rent_psf": 4.3},
+      {"name": "South of Market", "box": [-122.4120, 37.7700, -122.3880, 37.7880], "sale_psf": 900, "rent_psf": 4.5},
+      {"name": "Mission", "box": [-122.4280, 37.7480, -122.4050, 37.7700], "sale_psf": 1000, "rent_psf": 4.4}
+    ],
+    "by_jurisdiction": {
+      "city:san-francisco": {"sale_psf": 1000, "rent_psf": 4.3}, "city:berkeley": {"sale_psf": 950, "rent_psf": 3.9}, "city:oakland": {"sale_psf": 600, "rent_psf": 3.3},
+      "city:alameda": {"sale_psf": 750, "rent_psf": 3.4}, "city:emeryville": {"sale_psf": 650, "rent_psf": 3.6}, "city:palo-alto": {"sale_psf": 1700, "rent_psf": 5.0},
+      "city:mountain-view": {"sale_psf": 1300, "rent_psf": 4.4}, "city:sunnyvale": {"sale_psf": 1250, "rent_psf": 4.2}, "city:san-jose": {"sale_psf": 750, "rent_psf": 3.4},
+      "city:santa-clara": {"sale_psf": 1000, "rent_psf": 3.9}, "city:san-mateo": {"sale_psf": 1100, "rent_psf": 4.0}, "city:redwood-city": {"sale_psf": 1150, "rent_psf": 4.1},
+      "county:san-mateo": {"sale_psf": 1100, "rent_psf": 4.0}, "county:santa-clara": {"sale_psf": 900, "rent_psf": 3.8}, "county:alameda": {"sale_psf": 650, "rent_psf": 3.3},
+      "county:san-francisco": {"sale_psf": 1000, "rent_psf": 4.3}
+    },
+    "mortgage": {"basis": "a 30-year fixed loan (approx. 6.3%, late 2025), 20% down, closing costs 2% of the price; a payment every 30 days; three missed and the bank forecloses", "rate": 0.063, "years": 30, "down_share": 0.2, "closing_share": 0.02, "missed_to_foreclose": 3},
+    "lease": {"basis": "a month's rent ahead and a month's deposit; rent every 30 days; two missed and the landlord evicts", "deposit_months": 1, "missed_to_evict": 2}
   },
   "initiatives": {
     "basis": "a party's world is governed by the NPC administration until a full council can be elected (vision: mayor and five seats); meanwhile its residents may put measures to a vote of the party, within the platform's limits",

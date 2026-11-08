@@ -1581,7 +1581,8 @@ function placeCamera() {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
     // looks the way the arrows walk, so forward is forward. Dragging turns the head.
     const eye = avatar.position.clone();
-    eye.y = AVATAR_EYE_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+    // A floor of the living city's own (inside a shop) stands in for the ground there.
+    eye.y = AVATAR_EYE_Y + (Number.isFinite(state.floorY) ? state.floorY : walkerGroundAt(avatar.position.x, avatar.position.z));
     const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
     const aim = eye.clone().add(forward.multiplyScalar(10 * Math.cos(state.look))).add(new THREE.Vector3(0, Math.sin(state.look) * 10, 0));
     camera.position.copy(eye);

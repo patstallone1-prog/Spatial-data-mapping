@@ -29,7 +29,7 @@ const MONEY_KEYS = new Set(["balance", "room_rent_per_day", "standard_deduction"
   "meter_rate_per_hour", "expired_meter", "no_parking", "tow_fee", "storage_per_day", "at_100_mph", "price", "pay",
   "registration_fee", "chp_fee", "minimum_wage", "pretax_per_gallon", "state_excise_per_gallon",
   "federal_excise_per_gallon", "electric_per_kwh", "peak_per_km", "offpeak_per_km", "bus_fare", "taxi_flag", "taxi_per_km",
-  "base_pay", "pay_per_km", "hospital_bill", "storefront_lease_per_week"]);
+  "base_pay", "pay_per_km", "hospital_bill", "storefront_lease_per_week", "vandalism_fine", "fee_base", "fee_per_km"]);
 
 //: The rules file, checked, with every amount in minor units and lookups built.
 export function loadRules(json) {
@@ -44,7 +44,8 @@ export function loadRules(json) {
       else walk(v);
     }
   };
-  for (const key of ["start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business"]) walk(R[key]);
+  for (const key of ["start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands"]) walk(R[key]);
+  R.damage.repair_cost = Object.fromEntries(Object.entries(json.damage.repair_cost).map(([k, v]) => [k, cur.money(v)]));
   R.vitals.health.hospital_bill = cur.money(json.vitals.health.hospital_bill);
   walk(R.vehicles.models); walk(R.jobs); walk(R.taxes.income); walk(R.taxes.payroll);
   walk(R.taxes.vehicle); walk(R.taxes.fuel);
@@ -624,4 +625,38 @@ export function tenantKinds(R, name) {
 export function itemTax(R, chain, item, amount, laws = {}) {
   if (item.tax === "hotel_tax") return roundHalfUp(amount * along(R.taxes.local.hotel_tax, chain, 0));
   return salesTax(R, chain, amount, item.kind, laws);
+}
+
+// ---- striking things -----------------------------------------------------------------------------
+
+//: The energy a strike with ``tool`` delivers to ``material`` at ``strength`` (joules, as it
+//: counts against that material).
+export function strikeEnergy(R, tool, strength, material, energy = null) {
+  const T = R.tools, spec = T.kinds[tool] || T.kinds.fists;
+  const [lo, hi] = T.strength_scale;
+  const scale = lo + (hi - lo) * Math.max(0, Math.min(100, strength)) / 100;
+  const vs = spec.vs[material] ?? spec.vs.default ?? T.default_vs;
+  return (energy ?? spec.energy_j * scale) * vs;
+}
+//: How much of an object's break energy one strike of ``joules`` uses up: all of it at or past the
+//: break energy, and less than its share far below it (a tap does not fell a post).
+export function strikeWear(R, joules, breakJ) {
+  if (!(breakJ > 0) || joules <= 0) return 0;
+  if (joules >= breakJ) return breakJ;
+  return joules * (joules / breakJ) ** R.tools.small_blow_exponent;
+}
+
+// ---- a shift's tasks -----------------------------------------------------------------------------
+
+//: The next task of a shift for ``role``: [label, where ("counter", "back", "kerb"), seconds, tip
+//: range], chosen by ``roll`` in [0, 1).
+export function shiftTask(R, role, roll) {
+  const list = R.work_tasks.by_role[role] || R.work_tasks.by_role.default;
+  const [label, where, seconds, tip] = list[Math.floor(roll * list.length) % list.length];
+  return { label, where, seconds, tip };
+}
+//: A monthly payment on a fixed loan.
+export function loanPayment(principal, rate, years) {
+  const r = rate / 12, n = years * 12;
+  return r ? Math.round(principal * r / (1 - (1 + r) ** -n)) : Math.round(principal / n);
 }
