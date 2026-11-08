@@ -328,6 +328,49 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
       return whole.slice(0, limit).map(({ ax, az, ...row }) => row);
     },
     stats: () => ({ candidates: candidates.length, colliders: colliders.length, described: described.length }),
+    //: The separate things (instances) within ``reach`` of where the walker last stood, nearest
+    //: first: what a blow can land on. Each with its mesh and instance, archetype and place.
+    targets(reach = radius) {
+      return described.filter((e) => e.i >= 0 && e.d <= reach && e.c.o.isInstancedMesh).sort((a, b) => a.d - b.d)
+        .map((e) => ({ o: e.c.o, i: e.i, archetype: e.c.a, surface: e.c.surface, x: e.ax, z: e.az, d: e.d, low: e.low, high: e.high }));
+    },
+    //: The instance of ``archetypeId`` standing at (x, z), wherever the walker is: to find a thing
+    //: again (one broken while you were away, say). Null when none is loaded there.
+    findInstance(archetypeId, x, z, tolerance = 0.75) {
+      if (performance.now() - indexedAt > reindexMs) reindex();
+      const gx = Math.floor(x / CELL_M), gz = Math.floor(z / CELL_M);
+      for (const c of candidates) {
+        if (c.a.id !== archetypeId || !c.o.isInstancedMesh) continue;
+        const g = gridOf(c);
+        for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
+          for (const i of g.cells.get(cellKey(gx + dx, gz + dz)) || []) {
+            c.o.getMatrixAt(i, m); m.premultiply(c.o.matrixWorld); v.setFromMatrixPosition(m);
+            if (Math.hypot(v.x - x, v.z - z) <= tolerance) return { o: c.o, i };
+          }
+        }
+      }
+      return null;
+    },
+    //: The separate things (instances) within ``reach`` of (x, z) whose archetype passes ``test``,
+    //: nearest first, however far the walker is: to say where the nearest bench or light is.
+    instancesNear(x, z, reach, test = () => true, limit = 20) {
+      if (performance.now() - indexedAt > reindexMs) reindex();
+      const out = [], r = Math.ceil(reach / CELL_M), gx = Math.floor(x / CELL_M), gz = Math.floor(z / CELL_M);
+      for (const c of candidates) {
+        if (!c.o.isInstancedMesh || !test(c.a)) continue;
+        const g = gridOf(c);
+        for (let dx = -r; dx <= r; dx += 1) for (let dz = -r; dz <= r; dz += 1) {
+          for (const i of g.cells.get(cellKey(gx + dx, gz + dz)) || []) {
+            c.o.getMatrixAt(i, m); m.premultiply(c.o.matrixWorld); v.setFromMatrixPosition(m);
+            const d = Math.hypot(v.x - x, v.z - z);
+            if (d <= reach && v.y > -1e4) out.push({ o: c.o, i, archetype: c.a, x: v.x, z: v.z, d });
+          }
+        }
+      }
+      return out.sort((a, b) => a.d - b.d).slice(0, limit);
+    },
+    //: A mesh whose instances were moved or hidden (a thing broken or mended): filed afresh.
+    invalidate(o) { grids.delete(o); at = null; },
     //: Surface names in the scene the catalogue does not know: kept empty by the catalogue tests.
     unresolved() {
       const missing = new Map();

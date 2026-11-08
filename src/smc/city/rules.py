@@ -31,7 +31,7 @@ MONEY_KEYS = frozenset({
     "expired_meter", "no_parking", "tow_fee", "storage_per_day", "at_100_mph", "price", "pay", "registration_fee",
     "chp_fee", "minimum_wage", "pretax_per_gallon", "state_excise_per_gallon", "federal_excise_per_gallon",
     "electric_per_kwh", "peak_per_km", "offpeak_per_km", "bus_fare", "taxi_flag", "taxi_per_km", "base_pay",
-    "pay_per_km", "hospital_bill", "storefront_lease_per_week",
+    "pay_per_km", "hospital_bill", "storefront_lease_per_week", "vandalism_fine", "fee_base", "fee_per_km",
 })
 
 
@@ -68,8 +68,9 @@ def load_rules(path: Path | str | None = None) -> dict[str, Any]:
                 else:
                     walk(value)
 
-    for key in ("start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business"):
+    for key in ("start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands"):
         walk(rules[key])
+    rules["damage"]["repair_cost"] = {k: money(v) for k, v in raw["damage"]["repair_cost"].items()}
     walk(rules["vehicles"]["models"])
     walk(rules["jobs"])
     for key in ("income", "payroll", "vehicle", "fuel"):
@@ -270,3 +271,61 @@ def water_properties(rules: dict, cls: str, lon: float | None = None, lat: float
                 break
     density = water["fresh_density"] + water["density_per_salinity"] * salinity
     return {"class": cls, "name": c["name"], "salinity": salinity, "density": density, "corrosion": c["corrosion"]}
+
+
+# ---- tools on things, and the housing market (docs/city/core.mjs, docs/city/market.mjs) ----------
+
+
+def strike_energy(rules: dict, tool: str, strength: float, material: str, energy: float | None = None) -> float:
+    """The energy a blow with ``tool`` lands on ``material`` at ``strength`` (0-100), in joules."""
+    t = rules["tools"]
+    spec = t["kinds"].get(tool) or t["kinds"]["fists"]
+    lo, hi = t["strength_scale"]
+    scale = lo + (hi - lo) * max(0.0, min(100.0, strength)) / 100
+    vs = spec["vs"].get(material, spec["vs"].get("default", t["default_vs"]))
+    return (energy if energy is not None else spec["energy_j"] * scale) * vs
+
+
+def strike_wear(rules: dict, joules: float, break_j: float) -> float:
+    """How much of a thing's break energy one blow of ``joules`` uses up: a blow well under what
+    breaks it does less than its share (tapping does not break a bench)."""
+    if not break_j > 0 or joules <= 0:
+        return 0.0
+    if joules >= break_j:
+        return float(break_j)
+    return joules * (joules / break_j) ** rules["tools"]["small_blow_exponent"]
+
+
+def loan_payment(principal: int, rate: float, years: int) -> int:
+    """A monthly payment on a fixed loan (minor units)."""
+    r, n = rate / 12, years * 12
+    return _js_round(principal * r / (1 - (1 + r) ** -n)) if r else _js_round(principal / n)
+
+
+def home_type(rules: dict, tag: str | None, floors: int, footprint_m2: float) -> str:
+    """A residential building's type: single_family or apartment, from its map tag or its size."""
+    h = rules["housing"]
+    if tag in h["single_family_tags"]:
+        return "single_family"
+    if tag in h["multi_unit_tags"]:
+        return "apartment"
+    return "single_family" if floors <= 2 and 0 < footprint_m2 < 190 else "apartment"
+
+
+def home_prices_for(rules: dict, sqft: int, home_type_: str, hood: dict, spread: float) -> dict[str, int]:
+    """Sale price and monthly rent (whole units) of a home of ``sqft`` in ``hood`` at ``spread``
+    (its own condition and light; seeded per home in the viewer)."""
+    h = rules["housing"]
+    size = (sqft / 1000) ** h["size_exponent"]
+    sale = _js_round(sqft * hood["sale_psf"] * size * spread * h["sale_type_share"][home_type_] / 1000) * 1000
+    rent = _js_round(sqft * hood["rent_psf"] * size * spread * h["rent_type_share"][home_type_] / 25) * 25
+    return {"sale": sale, "rent": rent}
+
+
+def mortgage_terms(rules: dict, price: int) -> dict[str, Any]:
+    """Buying at ``price`` (minor units) with a mortgage: down payment, closing, loan, monthly."""
+    m = rules["housing"]["mortgage"]
+    down, closing = _js_round(price * m["down_share"]), _js_round(price * m["closing_share"])
+    loan = price - down
+    return {"price": price, "down": down, "closing": closing, "loan": loan, "monthly": loan_payment(loan, m["rate"], m["years"]),
+            "upfront": down + closing}

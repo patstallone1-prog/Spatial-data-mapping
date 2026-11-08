@@ -1515,6 +1515,8 @@ function stepAvatar(now) {
   // member's car, the walker goes where that car goes.
   if (typeof livingCity !== "undefined" && livingCity?.driving) { livingCity.drive(dt, held); updateAvatarMixer(dt); return; }
   if (typeof livingCity !== "undefined" && livingCity?.riding) { updateAvatarMixer(dt); return; }
+  // Inside a shop (its room is the city's own): the walk is kept to the room.
+  if (typeof livingCity !== "undefined" && livingCity?.inside) { livingCity.walkInside(dt, held); updateAvatarMixer(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
   if (!held.size) {

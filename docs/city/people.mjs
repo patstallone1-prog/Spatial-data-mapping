@@ -230,7 +230,7 @@ export function placeFromBuilding(b, streets, R = null) {
   // A house with shops at street level is a home upstairs and a workplace below.
   if (shops.length && use === "residential") keys.add("use:retail");
   return { id: b.id, x: b.x, z: b.z, node, use, shops, keys, name: b.name || null, area: b.area || 0, floors: b.floors || 1,
-    door: b.door || null, lon: b.lon, lat: b.lat };
+    door: b.door || null, lon: b.lon, lat: b.lat, tag: b.tag || null, inside: shops.length ? b.inside || null : null };
 }
 
 //: For every role, the places that do its work.
@@ -435,6 +435,8 @@ export class Crowd {
       return { x: place.x + (place.door?.nx ?? 0) * 2 + (r() - 0.5) * 3, z: place.z + (place.door?.nz ?? 0) * 2 + (r() - 0.5) * 3, yaw: r() * 6.28, moving: false, mode: "walk", activity: "on a break", at: place.door };
     }
     if (a.kind === "stroll" || (a.kind === "work" && a.outdoor)) return this.roaming(p, a, place, t, focus, reach);
+    // Inside a shop near you: its staff behind the counter, its customers in front of it.
+    if (place.inside && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) return indoorSpot(p, a, place, t);
     return null;
   }
   //: Out of doors at work or for a walk: a loop round the streets near the place, at the role's
@@ -550,6 +552,40 @@ export class Crowd {
     vehicles.push(...this.traffic(t, focus, reach));
     return { time: t, people, vehicles };
   }
+}
+const INDOOR_REACH_M = 70;
+//: Who works the counter in a shop (the rest are in the back, or not in a shop at all).
+export const COUNTER_ROLES = new Set(["barista", "baker", "cook", "server", "bartender", "clerk", "grocer", "pharmacist", "pharmacy_tech",
+  "stylist", "teller", "laundry_attendant", "attendant", "housekeeper", "night_auditor", "security_guard"]);
+//: Where a shop's counter is: so far in from its front (``inside``: the front's middle, the inward
+//: normal, half its width and its depth).
+export function counterLine(inside) {
+  const counter = Math.min(Math.max(1.6, inside.depth * 0.42), 3.4);
+  return { counter, staff: counter + 0.85, back: Math.min(inside.depth - 0.7, counter + 2.6), front: Math.max(0.8, counter - 1.1), width: Math.max(0.5, inside.half - 0.7) };
+}
+//: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
+//: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
+function indoorSpot(p, a, place, t) {
+  const I = place.inside, L = counterLine(I);
+  const tx = -I.nz, tz = I.nx;   // along the front
+  const sec = t.minute * 60, slot = Math.floor(sec / 18);
+  const staff = a.kind === "work" && COUNTER_ROLES.has(p.role);
+  const customer = (a.kind === "errand" || a.kind === "meal" || a.kind === "evening") && place.shops.length;
+  if (!staff && !customer) return null;
+  const spot = (k) => {
+    const r = rng(p.id, t.day, k);
+    if (staff) return r() < 0.15 ? [(r() - 0.5) * 2 * L.width, L.back] : [(r() - 0.5) * 2 * L.width, L.staff];
+    // Customers: at the counter, or (a meal) a table further toward the window.
+    return a.kind === "errand" ? [(r() - 0.5) * 2 * L.width, L.front + r() * 0.4] : [(r() - 0.5) * 2 * L.width, 0.7 + r() * Math.max(0.2, L.front - 0.6)];
+  };
+  const [a0, d0] = spot(slot - 1), [a1, d1] = spot(slot);
+  const f = Math.min(1, (sec - slot * 18) / 3.5);
+  const along = a0 + (a1 - a0) * f, deep = d0 + (d1 - d0) * f;
+  const moving = f < 1 && Math.hypot(a1 - a0, d1 - d0) > 0.2;
+  // Facing out over the counter (staff), or in toward it (customers).
+  const yaw = staff ? Math.atan2(I.nx, I.nz) : Math.atan2(-I.nx, -I.nz);
+  return { x: I.x + tx * along + I.nx * deep, z: I.z + tz * along + I.nz * deep, yaw: moving ? Math.atan2(-(tx * (a1 - a0) + I.nx * (d1 - d0)), -(tz * (a1 - a0) + I.nz * (d1 - d0))) : yaw,
+    moving, mode: "walk", indoors: place.id, activity: staff ? "behind the counter" : a.kind === "errand" ? "at the counter" : "at a table" };
 }
 function distToSegment(px, pz, ax, az, bx, bz) {
   const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;

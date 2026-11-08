@@ -70,3 +70,25 @@ def test_stores_and_tenants() -> None:
 def test_water_like_the_viewer() -> None:
     assert cr.water_properties(R, "brackish", lon=-122.4, lat=38.05)["salinity"] == 20
     assert cr.water_properties(R, "ocean")["density"] > cr.water_properties(R, "fresh_lake")["density"]
+
+
+def test_blows_like_the_viewer() -> None:
+    # A sledgehammer at strength 50 on lumber (the scale's middle is 1.0), and fists against a hammer on steel.
+    assert cr.strike_energy(R, "sledgehammer", 50, "lumber") == pytest.approx(420)
+    assert cr.strike_energy(R, "sledgehammer", 50, "steel") == pytest.approx(210)
+    assert cr.strike_energy(R, "fists", 100, "steel") < cr.strike_energy(R, "hammer", 100, "steel")
+    assert cr.strike_wear(R, 2000, 1000) == 1000, "a blow over the break energy breaks it"
+    assert cr.strike_wear(R, 10, 1000) / 1000 < 0.01, "a tap does next to nothing"
+    assert R["damage"]["repair_cost"]["default"] == 500 * M
+    assert R["fines"]["vandalism"] == 400 * M and R["errands"]["fee_base"] == 25 * M
+
+
+def test_homes_like_the_viewer() -> None:
+    assert cr.home_type(R, "house", 2, 120) == "single_family"
+    assert cr.home_type(R, "apartments", 1, 120) == "apartment"
+    assert cr.home_type(R, "yes", 4, 600) == "apartment"
+    marina = next(n for n in R["housing"]["neighbourhoods"] if n["name"] == "Marina")
+    p = cr.home_prices_for(R, 1000, "single_family", marina, 1.0)
+    assert 900_000 <= p["sale"] <= 2_500_000 and 3_000 <= p["rent"] <= 9_000
+    t = cr.mortgage_terms(R, 1_000_000 * M)
+    assert t["loan"] == 800_000 * M and t["monthly"] == pytest.approx(4952 * M, rel=0.002)

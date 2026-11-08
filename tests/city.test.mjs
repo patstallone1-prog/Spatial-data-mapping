@@ -6,12 +6,15 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
-  Billing, LaneIndex, Ledger, LedgerError, Registry, applyExertion, applyUse, bracketTax, buoyancy, carryCapacity, cityTime,
+  Billing, LaneIndex, Ledger, LedgerError, Registry, applyExertion, applyUse, bracketTax, buoyancy, carryCapacity, cityTime, loanPayment, strikeEnergy, strikeWear,
   expressPrice, gantriesCrossed, incomeTax, jurisdictionAt, loadRules, newVitals, payrollTax, propertyTax, salesTax, storesAt,
   tenantKinds, tollAmount, tollPlaza, transferTax, vehicleFees, vitalsStep, walkFactor, waterClass, waterProperties, withholding,
 } from "../docs/city/core.mjs";
 import { Crowd, Streets, alongRoute, daySchedule, generatePopulation, placeFromBuilding, populationByRole, worksOn } from "../docs/city/people.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
+import { homeListings, homeType, mortgageTerms, neighbourhoodAt, unitsOf } from "../docs/city/market.mjs";
+import { buildLines, busesAt } from "../docs/city/transit.mjs";
+import { counterLine } from "../docs/city/people.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
 const m = R.money;
@@ -230,11 +233,19 @@ test("a player's day in the party's world", () => {
   assert.equal(w.submit("ana", "mint", {}).ok, false);
   // A job at the café, clocked in at its door, an hour's pay with tax held back.
   assert.equal(w.submit("ana", "take_job", { role: "barista", place: { ...cafe, keys: [...cafe.keys] } }).ok, true);
-  assert.equal(w.submit("ana", "clock_in", { at }).ok, true);
+  assert.equal(w.submit("ana", "clock_in", { at, spots: { counter: at, back: at, kerb: at } }).ok, true);
+  // Work is tasks: the first comes, is done at its spot, and the hour is paid.
+  w.step(WED_8 + 10_000);
+  const task = w.players.get("ana").clocked.task;
+  assert.ok(task?.label, "a task comes");
+  w.submit("ana", "task", { at });
+  assert.equal(w.submit("ana", "task", { done: true, at }).ok, false, "not finished yet");
+  w.now += task.seconds * 1000;
+  assert.equal(w.submit("ana", "task", { done: true, at }).ok, true);
   w.step(WED_8 + 3_600_000);
   const after = w.submit("ana", "status").balance;
   // The vision's basic job: 120 every 10 minutes (a barista a little more), net of payroll tax.
-  assert.ok(after > m(2000 + 700) && after < m(2000 + R.jobs.roles.barista.pay / 100), `paid ${after - m(2000)} net of tax`);
+  assert.ok(after > m(2000 + 700) && after < m(2000 + R.jobs.roles.barista.pay / 100 + 5), `paid ${after - m(2000)} net of tax, and the tip`);
   assert.ok(w.ledger.balance("authority:ssa") > 0 && w.ledger.balance("authority:edd") > 0);
   // Coffee with San Francisco's sales tax.
   const coffee = w.submit("ana", "buy", { item: "coffee", place: { ...cafe, keys: [...cafe.keys] } });
@@ -467,4 +478,139 @@ test("a bus fare, a taxi meter and a delivery gig", () => {
 test("the viewer's city module loads without a page", async () => {
   const view = await import("../docs/city/view.mjs");
   assert.equal(typeof view.startCity, "function");
+});
+
+test("a shift with nothing done is not paid, and three such stretches send you home", () => {
+  const w = new CityWorld(R, { now: WED_8 });
+  const at = { x: 0, z: 0, lon: -122.4194, lat: 37.7749 };
+  w.submit("ana", "join", { name: "Ana", at });
+  w.submit("ana", "take_job", { role: "clerk", place: { id: "s", x: 0, z: 0, keys: ["shop:shop"] } });
+  w.submit("ana", "clock_in", { at });
+  const before = w.ledger.balance("player:ana");
+  for (let k = 1; k <= 3; k += 1) w.step(WED_8 + k * 10 * 60_000 + 1000);
+  assert.equal(w.ledger.balance("player:ana"), before, "idle time is not paid");
+  assert.equal(w.players.get("ana").clocked, null, "sent home");
+});
+
+test("a blow's energy against the catalogue's break energy: a hammer breaks a window, not a lamp post", () => {
+  // At strength 50 a hammer lands 50 J x 1.0; on glass it counts 1.6 times.
+  assert.equal(strikeEnergy(R, "hammer", 50, "glass"), 80);
+  assert.equal(strikeEnergy(R, "saw", 50, "steel"), 90 * 0.02);
+  assert.equal(strikeWear(R, 80, 60), 60, "past its break energy: broken in one");
+  assert.ok(strikeWear(R, strikeEnergy(R, "hammer", 50, "steel"), 40000) / 40000 < 1e-4, "a hammer on a steel lamp post does next to nothing");
+  const w = new CityWorld(R, { now: WED_13 });
+  w.R = { ...R, objects: { "furniture.bench": { name: "Bench", material: "lumber", break_j: 5000 }, "building.window": { name: "Window", material: "glass", break_j: 60 } } };
+  const at = { x: 0, z: 0, lon: -122.4194, lat: 37.7749 };
+  w.submit("ana", "join", { name: "Ana", at });
+  const bench = { key: "furniture.bench@1,0", archetype: "furniture.bench", x: 1, z: 0 };
+  const punch = w.submit("ana", "strike", { target: bench });
+  assert.equal(punch.tool, "fists"); assert.equal(punch.broken, false);
+  w.ledger.mint("player:ana", m(200), "external_trade");
+  w.submit("ana", "buy", { item: "sledgehammer", place: { id: "h", x: 0, z: 0, keys: ["shop:hardware"] } });
+  assert.equal(w.submit("ana", "hold", { item: "sledgehammer" }).hands, "sledgehammer");
+  let hits = 0, r;
+  do { r = w.submit("ana", "strike", { target: bench, witnesses: 2 }); hits += 1; } while (!r.broken && hits < 100);
+  assert.ok(r.broken && hits > 3 && hits < 40, `a bench takes ${hits} blows of a sledgehammer`);
+  assert.equal(r.salvage, "lumber");
+  assert.ok(r.fine > 0 && r.restitution === R.damage.repair_cost["furniture.bench"], "seen: vandalism and the repair");
+  assert.equal(w.submit("ana", "strike", { target: bench }).ok, false, "broken already");
+  w.step(WED_13 + 9 * 3_600_000);
+  assert.equal(w.damage.has(bench.key), false, "public works mended it");
+  w.ledger.check();
+});
+
+test("errands: buy what a neighbour asks and bring it to the door", () => {
+  const w = new CityWorld(R, { now: WED_13 });
+  const at = { x: 0, z: 0, lon: -122.4194, lat: 37.7749 };
+  w.submit("ana", "join", { name: "Ana", at });
+  const errand = w.submit("ana", "take_errand", { to: { id: "r1", x: 400, z: 0, name: "1 Elm St", who: "Rosa" }, items: ["bouquet", "pain_relief"] }).errand;
+  assert.equal(errand.fee, R.errands.fee_base + Math.round(R.errands.fee_per_km * 0.4));
+  assert.equal(w.submit("ana", "deliver_errand", { at: { x: 400, z: 0 } }).error, "still to buy: bouquet, pain relief");
+  w.submit("ana", "buy", { item: "bouquet", place: { id: "f", x: 400, z: 0, keys: ["shop:florist"] } });
+  w.submit("ana", "buy", { item: "pain_relief", place: { id: "p", x: 400, z: 0, keys: ["shop:pharmacy"] } });
+  const before = w.ledger.balance("player:ana");
+  const done = w.submit("ana", "deliver_errand");
+  assert.ok(done.ok, done.error);
+  assert.equal(w.ledger.balance("player:ana"), before + done.pay);
+  assert.ok(done.reimbursed >= m(40 + 12));
+});
+
+test("the housing market: home types, units, a real share listed, prices by square foot and neighbourhood", () => {
+  assert.equal(homeType(R, "house", 2, 120), "single_family");
+  assert.equal(homeType(R, "apartments", 5, 600), "apartment");
+  assert.equal(homeType(R, "yes", 1, 110), "single_family");
+  const flats = unitsOf(R, { id: "b9", tag: "apartments", floors: 5, area: 600 });
+  assert.ok(flats.length > 25 && flats.length < 45, `${flats.length} units`);
+  assert.equal(flats[0].label, "#101");
+  assert.equal(neighbourhoodAt(R, -122.435, 37.801).name, "Marina");
+  assert.equal(neighbourhoodAt(R, -122.27, 37.87).name, "Berkeley");
+  // A thousand homes: about the market's share of each listed.
+  const places = Array.from({ length: 1000 }, (_, i) => ({ id: `h${i}`, use: "residential", tag: i % 3 ? "house" : "apartments", floors: i % 3 ? 2 : 4, area: i % 3 ? 110 : 500,
+    lon: -122.435, lat: 37.801, x: i, z: 0 }));
+  const all = homeListings(R, places, { week: 2900 });
+  const sf = all.filter((l) => l.type === "single_family"), apt = all.filter((l) => l.type === "apartment");
+  const sfh = places.filter((p) => p.tag === "house").length;
+  assert.ok(sf.filter((l) => l.kind === "sale").length / sfh < 0.03, "about 1% of houses for sale");
+  assert.ok(apt.filter((l) => l.kind === "rent").length > apt.filter((l) => l.kind === "sale").length * 3, "flats mostly to rent");
+  const house = sf.find((l) => l.kind === "sale");
+  assert.ok(house.psf > 900 && house.psf < 1800, `a Marina house at ${house.psf} a square foot`);
+  const rent = apt.find((l) => l.kind === "rent");
+  assert.ok(rent.price / 100 > 1500 && rent.price / 100 < 7000, `a Marina flat at ${rent.price / 100} a month`);
+  // A mortgage: 20% down, the payment on a 30-year loan at the market rate.
+  const terms = mortgageTerms(R, m(1_000_000));
+  assert.equal(terms.down, m(200_000));
+  assert.equal(terms.monthly, loanPayment(m(800_000), 0.063, 30));
+  assert.ok(Math.abs(terms.monthly / 100 - 4952) < 2, `${terms.monthly / 100} a month`);
+});
+
+test("buying a home with a mortgage, renting another, and the bills that follow", () => {
+  const w = new CityWorld(R, { now: WED_13 });
+  const at = { x: 0, z: 0, lon: -122.435, lat: 37.801 };
+  w.submit("ana", "join", { name: "Ana", at });
+  const places = Array.from({ length: 600 }, (_, i) => ({ id: `h${i}`, use: "residential", tag: i % 2 ? "house" : "apartments", floors: i % 2 ? 2 : 4, area: i % 2 ? 110 : 500,
+    lon: -122.435, lat: 37.801, x: i, z: 0 }));
+  const week = Math.floor(w.time.day / 7);
+  const listings = homeListings(R, places, { week });
+  const sale = listings.find((l) => l.kind === "sale"), lease = listings.find((l) => l.kind === "rent");
+  assert.equal(w.submit("ana", "buy_home", { listing: sale }).ok, false, "not with 2,000");
+  w.ledger.mint("player:ana", m(600_000), "external_trade");
+  assert.equal(w.submit("ana", "buy_home", { listing: { ...sale, sqft: sale.sqft } }).ok, true);
+  assert.equal(w.submit("ben", "join", { name: "Ben", at }).ok, true);
+  w.ledger.mint("player:ben", m(600_000), "external_trade");
+  assert.equal(w.submit("ben", "buy_home", { listing: sale }).ok, false, "taken");
+  assert.equal(w.submit("ana", "buy_home", { listing: { ...sale, kind: "rent" } }).ok, false);
+  const p = w.players.get("ana");
+  assert.equal(p.home.room, `home:${sale.home}`);
+  assert.equal(w.registry.get(`home:${sale.home}`).owner, "player:ana");
+  assert.equal(w.submit("ben", "rent_home", { listing: lease }).ok, true);
+  w.step(WED_13 + 31 * 86_400_000);
+  assert.ok(w.billing.open("player:ana").some((b) => b.kind === "mortgage"), "the first mortgage payment");
+  assert.ok(w.billing.open("player:ben").some((b) => b.kind === "rent"), "the first month's rent");
+  w.ledger.check();
+});
+
+test("buses run the real routes' stops on a timetable, standing at each", () => {
+  const ways = [];
+  const line = (f) => Array.from({ length: 13 }, (_, k) => f(k * 100));
+  for (let i = 0; i <= 2; i += 1) ways.push({ kind: "street", pts: line((s) => [s, i * 100]), lanes: 2, oneway: 0, road_m: 10 });
+  for (let i = 0; i <= 12; i += 1) ways.push({ kind: "street", pts: [[i * 100, 0], [i * 100, 100], [i * 100, 200]], lanes: 2, oneway: 0, road_m: 10 });
+  const streets = new Streets(ways);
+  const stops = [0, 300, 600, 900, 1200].flatMap((x, k) => [{ id: `s${k}a`, name: `Stop ${k}`, lon: x, lat: 100, routes: ["22"], modes: ["bus"] },
+    { id: `s${k}b`, name: `Stop ${k}`, lon: x + 12, lat: 108, routes: ["22"], modes: ["bus"] }]);
+  const lines = buildLines(R, stops, streets, (lon, lat) => [lon, lat]);
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].stops.length, 5, "the two sides of the street are one stop");
+  assert.deepEqual(lines[0].stops.map((s) => s.name), ["Stop 0", "Stop 1", "Stop 2", "Stop 3", "Stop 4"]);
+  const a = busesAt(lines, 1_000_000), b = busesAt(lines, 1_000_000);
+  assert.deepEqual(a, b, "the same clock, the same buses");
+  assert.ok(a.length >= 1);
+  let dwelling = 0;
+  for (let s = 0; s < 600; s += 5) dwelling += busesAt(lines, 1_000_000 + s * 1000).filter((x) => x.dwelling).length;
+  assert.ok(dwelling > 0, "buses stand at their stops");
+});
+
+test("a shop's staff stand behind its counter", () => {
+  const inside = { x: 0, z: 0, nx: 0, nz: 1, half: 4, depth: 10 };
+  const L = counterLine(inside);
+  assert.ok(L.staff > L.counter && L.counter > L.front && L.back > L.staff);
 });

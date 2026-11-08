@@ -12,9 +12,15 @@
 
 import {
   Billing, Ledger, LedgerError, PropertyError, Registry, applyExertion, applyUse, carriedKg, carryCapacity, cityTime, expressPrice,
-  fuelPrice, incomeTax, itemTax, jurisdictionAt, newVitals, payrollTax, propertyTax, salesRate, salesTax, storesAt, tollAmount,
-  transferTax, vehicleFees, vitalsStep, withholding,
+  fuelPrice, incomeTax, itemTax, jurisdictionAt, newVitals, payrollTax, propertyTax, salesRate, salesTax, shiftTask, storesAt, strikeEnergy,
+  strikeWear, tollAmount, transferTax, vehicleFees, vitalsStep, withholding,
 } from "./core.mjs";
+import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
+import { hash32 as hash, rng } from "./people.mjs";
+
+const rngOnce = (...parts) => rng(...parts)();
+//: What a vehicle weighs (kg), for the energy of its impact, by its kind.
+const VEHICLE_KG = { car: 1500, truck: 2600, van: 2500, bus: 13000 };
 
 export const AUTHORITIES = {
   "authority:bata": "Bay Area Toll Authority",
@@ -38,6 +44,8 @@ export class CityWorld {
     this.ledger = new Ledger(); this.billing = new Billing(this.ledger); this.registry = new Registry(this.ledger);
     this.players = new Map(); this.offers = new Map(); this.measures = new Map(); this.laws = {}; this.events = [];
     this.items = new Map(); this.found = new Set();   // things on the ground; found things already picked up
+    this.damage = new Map();                           // things struck: how much they have taken, and broken ones
+    this.market = { taken: new Set() };                // homes bought or let off the market
     this.seq = 0; this.lastStep = now;
     for (const id of Object.keys(AUTHORITIES)) this.ledger.open(id, "authority");
     for (const c of R.jurisdictions.cities) this.ledger.open(`treasury:${c.id}`, "treasury");
@@ -48,6 +56,8 @@ export class CityWorld {
     this.ledger.open("business:fuel", "business");
     this.ledger.open("business:taxi", "business");
     this.ledger.open("business:hospital", "business");
+    this.ledger.open("business:bank", "business");
+    this.ledger.open("business:residents", "business");
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
   id(prefix) { return `${prefix}:${(++this.seq).toString(36)}`; }
@@ -67,7 +77,12 @@ export class CityWorld {
       if (args.at) Object.assign(p, pick(args.at, ["x", "z", "lon", "lat", "county"]));
       p.seen = this.now;
     }
-    try { return { ok: true, ...(fn.call(this, pid, args) || {}) }; }
+    try {
+      const result = { ok: true, ...(fn.call(this, pid, args) || {}) };
+      const p = this.players.get(pid);
+      if (p) handsCheck(p);
+      return result;
+    }
     catch (error) {
       if (error instanceof CityError || error instanceof LedgerError || error instanceof PropertyError) return { ok: false, error: error.message };
       throw error;
@@ -81,7 +96,8 @@ export class CityWorld {
     this.ledger.mint(account, this.R.start.balance, "starter_grant", { at: this.now, key: `grant:${pid}` });
     const p = { id: pid, name, account, joined: this.now, resident_since: this.now, home: null, job: null, clocked: null,
       ytd: { year: this.time.year, wages: 0, withheld: 0 }, fastrak: null, driving: null, parked: {}, ...pick(at, ["x", "z", "lon", "lat", "county"]),
-      vitals: newVitals(this.R, this.now), inventory: {}, worn: {}, resting: false, seen: this.now, delivery: null, ride: null, fainted: null, rx: 0 };
+      vitals: newVitals(this.R, this.now), inventory: {}, worn: {}, resting: false, seen: this.now, delivery: null, ride: null, fainted: null, rx: 0,
+      hands: null, errand: null, mortgages: [], lease: null };
     this.players.set(pid, p);
     if (home) {
       // A room in the building you start beside, its first week free (rent after: rent_due).
@@ -121,6 +137,7 @@ export class CityWorld {
       properties: this.registry.owned(p.account, "building").map(slim), bills: this.billing.open(p.account),
       sales_rate: salesRate(this.R, here.chain, this.laws), resident_days: (this.now - p.resident_since) / DAY,
       vitals: p.vitals, inventory: p.inventory, worn: p.worn, carry: this.carry(p), resting: p.resting, delivery: p.delivery, ride: p.ride, fainted: p.fainted,
+      hands: p.hands, errand: p.errand, mortgages: p.mortgages || [], lease: p.lease, homes: this.registry.owned(p.account, "home").map(slim),
     };
   }
   carry(p) { return { kg: carriedKg(this.R, p.inventory), capacity: Math.round(carryCapacity(this.R, p.vitals.strength, p.inventory) * 10) / 10 }; }
@@ -137,11 +154,11 @@ export class CityWorld {
     return { job: p.job };
   }
   cmd_quit_job(pid) { const p = this.player(pid); if (p.clocked) this.cmd_clock_out(pid); p.job = null; return {}; }
-  cmd_clock_in(pid) {
+  cmd_clock_in(pid, args = {}) {
     const p = this.player(pid);
     if (!p.job) throw new CityError("no job to go to");
     if (Math.hypot((p.x ?? 1e9) - p.job.place.x, (p.z ?? 1e9) - p.job.place.z) > this.R.jobs.workplace_reach_m) throw new CityError("go to work first");
-    p.clocked = { since: this.now, paid_to: this.now };
+    p.clocked = { since: this.now, paid_to: this.now, spots: args.spots || null, task: null, next_task: this.now + 8000, done: 0, idle: 0, tasks_total: 0 };
     return { clocked: p.clocked };
   }
   cmd_clock_out(pid) {
@@ -163,9 +180,16 @@ export class CityWorld {
       // Walked off the job: paid to now and clocked out.
       final = true;
     }
-    const gross = Math.round(p.job.pay * span / 3_600_000);
+    // Pay is for work done: a stretch with no task done earns nothing, and three in a row send you home.
+    const windows = Math.max(1, Math.floor(span / every));
+    const worked = (p.clocked.done || 0) > 0;
+    p.clocked.done = 0;
+    p.clocked.idle = worked ? 0 : (p.clocked.idle || 0) + windows;
+    let sentHome = false;
+    if (!worked && p.clocked.idle >= this.R.work_tasks.idle_windows_to_dismiss) { final = true; sentHome = true; }
+    const gross = worked ? Math.round(p.job.pay * span / 3_600_000) : 0;
     p.clocked.paid_to = this.now;
-    if (final) p.clocked = null;
+    if (final) { p.clocked = null; if (sentHome) { p.sent_home = this.now; this.log("sent_home", { player: p.id }); } }
     if (gross <= 0) return null;
     const year = this.time.year;
     if (p.ytd.year !== year) p.ytd = { year, wages: 0, withheld: 0 };
@@ -690,6 +714,276 @@ export class CityWorld {
     return { price: value, transfer_tax: t };
   }
 
+  // ---- in your hands -----------------------------------------------------------------------------
+  //: Taking something out of the bag into your hands (what you strike with, or hand over).
+  cmd_hold(pid, { item }) {
+    const p = this.player(pid);
+    if (!(p.inventory[item] > 0)) throw new CityError("you are not carrying that");
+    p.hands = item;
+    return { hands: p.hands };
+  }
+  cmd_stow(pid) { const p = this.player(pid); p.hands = null; return { hands: null }; }
+
+  // ---- striking things ----------------------------------------------------------------------------
+  //: A blow at a thing within reach (``target``: its key, archetype and place), with what is in
+  //: your hands -- or, at the wheel, the car's impact (``energy``, no more than the car moving at
+  //: its top speed could carry). The thing breaks once the energy it has taken reaches its break
+  //: energy. Breaking what is not yours, seen, is vandalism: a fine and the repair.
+  cmd_strike(pid, { target, energy = null, witnesses = 0 }) {
+    const p = this.player(pid);
+    const spec = this.R.objects?.[target?.archetype] || target?.spec;
+    if (!target?.key || !spec?.break_j) throw new CityError("nothing there that breaks");
+    if (p.x !== undefined && Math.hypot(p.x - target.x, p.z - target.z) > (energy ? 9 : this.R.tools.reach_m * 2)) throw new CityError("out of reach");
+    const prior = this.damage.get(target.key);
+    if (prior?.broken) throw new CityError("it is broken already");
+    let tool = "fists", joules;
+    if (energy) {
+      const v = p.driving ? this.registry.get(p.driving.vehicle) : null;
+      if (!v) throw new CityError("not driving");
+      const model = this.R.vehicles.models[v.attrs.model];
+      const cap = 0.5 * (VEHICLE_KG[model.kind] || 1500) * (model.top_kmh / 3.6) ** 2;
+      tool = "vehicle"; joules = Math.min(Number(energy) || 0, cap);
+    } else {
+      const held = p.hands && p.inventory[p.hands] > 0 ? this.R.items[p.hands] : null;
+      tool = held?.strike || "fists";
+      const tired = p.vitals.stamina < this.R.vitals.stamina.low ? 0.6 : 1;
+      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material) * tired;
+      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + this.R.tools.kinds[tool].energy_j / 400)) };
+    }
+    const wear = strikeWear(this.R, joules, spec.break_j);
+    const d = prior || { key: target.key, archetype: target.archetype, name: spec.name, material: spec.material, x: target.x, z: target.z, wear: 0, break_j: spec.break_j };
+    d.wear = Math.min(spec.break_j, d.wear + wear);
+    d.last = this.now;
+    this.damage.set(target.key, d);
+    // Bare hands on glass or steel hurt.
+    const hurt = tool === "fists" ? this.R.tools.kinds.fists.hurts?.[spec.material] || 0 : 0;
+    if (hurt) p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - hurt) };
+    const out = { tool, joules: Math.round(joules), wear: Math.round(d.wear), break_j: spec.break_j, share: d.wear / spec.break_j, broken: false, hurt };
+    if (d.wear >= spec.break_j) {
+      d.broken = this.now; d.by = pid;
+      out.broken = true;
+      // What it breaks into: lumber from wood cut with a saw or an axe, or scrap on the ground.
+      const yields = this.R.tools.kinds[tool]?.yields?.[spec.material];
+      const salvage = yields || this.R.damage.salvage[spec.material];
+      if (salvage && this.R.items[salvage]) {
+        const id = this.id("item");
+        this.items.set(id, { id, item: salvage, qty: 1 + (target.archetype.startsWith("vegetation.tree") ? 3 : 0), x: target.x + 0.6, z: target.z + 0.4, by: "debris", at: this.now });
+        out.salvage = salvage;
+      }
+      const seen = Math.max(0, Math.min(5, witnesses | 0));
+      if (seen && !target.own) {
+        const fine = this.fine(p, "vandalism", `Vandalism: ${spec.name}`, Array.from({ length: seen }, (_, i) => `witness ${i + 1}`), `vandal:${target.key}`, p.account);
+        const cost = this.R.damage.repair_cost[target.archetype] ?? this.R.damage.repair_cost.default;
+        this.billing.issue({ payer: p.account, payee: "authority:court", kind: "restitution", amount: cost, memo: `Repair of ${spec.name.toLowerCase()}`, at: this.now,
+          due_days: this.R.enforcement.notice_due_days, penalties: [Math.round(cost * 0.1)], key: `restitution:${target.key}` });
+        out.fine = fine.amount; out.restitution = cost;
+      }
+      this.log("broken", { player: pid, key: target.key, archetype: target.archetype, tool });
+    }
+    if (p.vitals.health <= 0) this.faint(p, "injury");
+    return out;
+  }
+
+  // ---- a shift's work ------------------------------------------------------------------------------
+  //: The task in front of you started (you are at its spot) and finished (after its time there).
+  cmd_task(pid, { done = false }) {
+    const p = this.player(pid);
+    const task = p.clocked?.task;
+    if (!task) throw new CityError("no task right now");
+    const reach = this.R.work_tasks.task_reach_m * 2;
+    if (task.x !== undefined && Math.hypot((p.x ?? 1e9) - task.x, (p.z ?? 1e9) - task.z) > reach) throw new CityError(`${task.label.toLowerCase()}: go to the spot first`);
+    if (!done) { task.started = this.now; return { task }; }
+    if (!task.started || this.now - task.started < task.seconds * 800) throw new CityError("not finished yet: keep at it");
+    const [lo, hi] = task.tip;
+    const tip = this.R.money(Math.round(lo + (hi - lo) * ((hash(task.id) % 1000) / 1000)));
+    if (tip > 0) {
+      const shop = this.ledger.open(p.job.employer, "business");
+      this.ledger.mint(shop, tip, "npc_income", { at: this.now, memo: "tips" });
+      this.ledger.transfer(shop, p.account, tip, { kind: "tip", memo: task.label, at: this.now });
+    }
+    p.clocked.done = (p.clocked.done || 0) + 1;
+    p.clocked.tasks_total = (p.clocked.tasks_total || 0) + 1;
+    p.clocked.task = null;
+    p.clocked.next_task = this.now + this.taskGap(p);
+    return { tip, done: p.clocked.tasks_total };
+  }
+  taskGap(p) {
+    const [a, b] = this.R.work_tasks.every_s;
+    return (a + (b - a) * ((hash(`${p.id}:${p.clocked?.tasks_total || 0}`) % 1000) / 1000)) * 1000;
+  }
+  nextTask(p) {
+    const c = p.clocked;
+    if (!c || c.task || this.now < (c.next_task || 0)) return;
+    const n = (c.tasks_total || 0) + (c.skipped || 0);
+    const t = shiftTask(this.R, p.job.role, (hash(`${p.id}:${c.since}:${n}`) % 1000) / 1000);
+    const spot = c.spots?.[t.where] || c.spots?.counter || null;
+    c.task = { id: `${p.id}:${c.since}:${n}`, ...t, x: spot?.x, z: spot?.z, since: this.now };
+  }
+
+  // ---- errands -------------------------------------------------------------------------------------
+  //: A neighbour's errand: what they want from the shops, and where to bring it.
+  cmd_take_errand(pid, { to, items }) {
+    const p = this.player(pid);
+    const E = this.R.errands;
+    if (p.errand) throw new CityError("finish the errand you have first");
+    if (!Array.isArray(items) || !items.length || items.length > 3 || !items.every((i) => E.items.includes(i))) throw new CityError("that is not an errand anyone asks for");
+    if (!to?.id || to.x === undefined) throw new CityError("no address");
+    const metres = p.x === undefined ? 600 : Math.hypot(to.x - p.x, to.z - p.z);
+    const km = Math.min(E.distance_m[1] * 1.6, Math.max(E.distance_m[0] * 0.5, metres)) / 1000;
+    p.errand = { id: this.id("errand"), to: { id: to.id, name: to.name || null, x: to.x, z: to.z, who: to.who || null }, items: [...items], km,
+      fee: E.fee_base + Math.round(E.fee_per_km * km), taken: this.now };
+    return { errand: p.errand };
+  }
+  cmd_deliver_errand(pid) {
+    const p = this.player(pid);
+    const e = p.errand;
+    if (!e) throw new CityError("no errand to finish");
+    if (Math.hypot((p.x ?? 1e9) - e.to.x, (p.z ?? 1e9) - e.to.z) > this.R.errands.reach_m) throw new CityError("this is not the address");
+    const need = {};
+    for (const i of e.items) need[i] = (need[i] || 0) + 1;
+    const missing = Object.entries(need).filter(([i, n]) => !((p.inventory[i] || 0) >= n)).map(([i]) => this.R.items[i].name.toLowerCase());
+    if (missing.length) throw new CityError(`still to buy: ${missing.join(", ")}`);
+    let spent = 0;
+    for (const [i, n] of Object.entries(need)) { take(p.inventory, i, n); spent += this.R.items[i].price * n; if (p.hands === i && !p.inventory[i]) p.hands = null; }
+    const here = this.where(p);
+    const back = spent + salesTax(this.R, here.chain, spent, "taxable", this.laws);
+    const pay = back + e.fee;
+    this.ledger.mint("business:residents", pay, "npc_income", { at: this.now, memo: "an errand paid for" });
+    this.ledger.transfer("business:residents", p.account, pay, { kind: "gig", memo: `Errand for ${e.to.who || e.to.name || "a neighbour"}`, at: this.now });
+    p.errand = null;
+    return { pay, reimbursed: back, fee: e.fee };
+  }
+  cmd_cancel_errand(pid) { const p = this.player(pid); if (!p.errand) throw new CityError("no errand"); p.errand = null; return {}; }
+
+  // ---- homes: buying and renting -------------------------------------------------------------------
+  //: A listing checked against the market: that it is listed this week, and its price.
+  checkListing(listing) {
+    if (!listing?.home || !listing.type || !(listing.sqft > 0)) throw new CityError("no such listing");
+    if (this.market.taken.has(listing.home)) throw new CityError("that home is taken");
+    const week = Math.floor(this.time.day / 7);
+    const rate = this.R.housing.listing_rate[listing.type];
+    const roll = rngOnce(listing.home, "listed", week);
+    const kind = roll < rate.sale ? "sale" : roll < rate.sale + rate.rent ? "rent" : null;
+    if (kind !== listing.kind) throw new CityError("that home is no longer listed");
+    const hood = neighbourhoodAt(this.R, listing.lon, listing.lat, listing.county);
+    const prices = homePrices(this.R, { id: listing.home, sqft: listing.sqft, type: listing.type }, hood);
+    return { price: this.R.money(kind === "sale" ? prices.sale : prices.rent), hood };
+  }
+  homeAsset(listing, price) {
+    const id = `home:${listing.home}`;
+    if (!this.registry.assets.has(id)) {
+      this.registry.register(id, "home", "business:landlords", { building: listing.building, label: listing.label, address: listing.address, type: listing.type,
+        beds: listing.beds, sqft: listing.sqft, x: listing.x, z: listing.z, lon: listing.lon, lat: listing.lat, county: listing.county || null, assessed: price }, this.now);
+    }
+    return this.registry.get(id);
+  }
+  moveIn(p, a) {
+    p.home = { room: a.id, building: a.attrs.building, x: a.attrs.x, z: a.attrs.z, paid_until: Infinity, address: a.attrs.address, label: a.attrs.label, kind: a.kind };
+  }
+  //: Buying a home on the market: outright, or with a mortgage (20% down and the closing costs
+  //: now; a payment every 30 days). The seller pays the transfer taxes; the assessed value
+  //: becomes the price (Proposition 13). You move in.
+  cmd_buy_home(pid, { listing, mortgage = true }) {
+    const p = this.player(pid);
+    if (listing?.kind !== "sale") throw new CityError("that home is for rent");
+    const { price } = this.checkListing(listing);
+    const terms = mortgageTerms(this.R, price);
+    const here = jurisdictionAt(this.R, listing.lon, listing.lat, listing.county);
+    const a = this.homeAsset(listing, price);
+    if (a.owner !== "business:landlords") throw new CityError("its owner is not selling");
+    const upfront = mortgage ? terms.upfront : price + terms.closing;
+    if (this.ledger.balance(p.account) < upfront) throw new CityError(`you need ${this.R.fmt(upfront)} ${mortgage ? "for the down payment and closing" : "to buy it outright"}`);
+    if (mortgage) this.ledger.mint(p.account, terms.loan, "external_trade", { at: this.now, memo: `mortgage on ${a.attrs.address || a.id}` });
+    this.ledger.transfer(p.account, "business:bank", terms.closing, { kind: "closing", memo: a.id, at: this.now });
+    this.registry.sell(a.id, "business:landlords", p.account, price, { at: this.now });
+    const t = transferTax(this.R, here.chain, price);
+    this.ledger.pay("business:landlords", [[this.treasury(here.county), t.county], [this.treasury(here.city || here.county), t.city]], { kind: "transfer_tax", memo: a.id, at: this.now });
+    a.attrs.assessed = price; a.attrs.bought = this.now; a.attrs.price = price;
+    if (mortgage) p.mortgages = [...(p.mortgages || []), { home: a.id, loan: terms.loan, owed: terms.loan, monthly: terms.monthly, next: this.now + 30 * DAY, missed: 0 }];
+    this.market.taken.add(listing.home);
+    this.moveIn(p, a);
+    this.log("home", { player: pid, home: a.id, price, mortgage });
+    return { home: slim(a), price, terms: mortgage ? terms : null, transfer_tax: t };
+  }
+  //: Renting a home on the market: a month ahead and a month's deposit; rent every 30 days.
+  cmd_rent_home(pid, { listing }) {
+    const p = this.player(pid);
+    if (listing?.kind !== "rent") throw new CityError("that home is for sale");
+    const { price: rent } = this.checkListing(listing);
+    const L = this.R.housing.lease;
+    const a = this.homeAsset(listing, 0);
+    if (a.owner !== "business:landlords" || a.custody !== "owner") throw new CityError("it is let already");
+    const deposit = rent * L.deposit_months;
+    if (this.ledger.balance(p.account) < rent + deposit) throw new CityError(`you need ${this.R.fmt(rent + deposit)}: the first month and a deposit`);
+    if (p.lease) this.endLease(p, "moved out");
+    this.ledger.transfer(p.account, "business:landlords", deposit, { kind: "deposit", memo: a.id, at: this.now });
+    this.registry.lease(a.id, "business:landlords", p.account, this.now + 30 * DAY, rent, this.now);
+    p.lease = { home: a.id, rent, deposit, next: this.now + 30 * DAY, missed: 0 };
+    this.market.taken.add(listing.home);
+    this.moveIn(p, a);
+    return { home: slim(a), rent, deposit };
+  }
+  endLease(p, reason) {
+    const a = this.registry.assets.get(p.lease.home);
+    if (a && a.holder === p.account) this.registry.giveBack(a.id, p.account, this.now);
+    if (reason !== "evicted" && p.lease.deposit) this.ledger.transfer("business:landlords", p.account, p.lease.deposit, { kind: "deposit", memo: "deposit returned", at: this.now });
+    if (p.home?.room === p.lease.home) p.home = null;
+    this.log("lease_end", { player: p.id, home: p.lease.home, reason });
+    p.lease = null;
+  }
+  cmd_end_lease(pid) { const p = this.player(pid); if (!p.lease) throw new CityError("no lease"); this.endLease(p, "moved out"); return {}; }
+  //: Selling a home you own back into the market at its value now; the mortgage is paid off from
+  //: the price, and you pay the transfer taxes.
+  cmd_sell_home(pid, { home }) {
+    const p = this.player(pid);
+    const a = this.registry.get(home);
+    if (a.owner !== p.account || a.kind !== "home") throw new CityError("not your home");
+    const hood = neighbourhoodAt(this.R, a.attrs.lon, a.attrs.lat, a.attrs.county);
+    const price = this.R.money(homePrices(this.R, { id: a.id.slice(5), sqft: a.attrs.sqft, type: a.attrs.type }, hood).sale);
+    const here = jurisdictionAt(this.R, a.attrs.lon, a.attrs.lat, a.attrs.county);
+    const t = transferTax(this.R, here.chain, price);
+    this.ledger.mint("business:landlords", price, "external_trade", { at: this.now, memo: "buyer's funds" });
+    this.registry.sell(a.id, p.account, "business:landlords", price, { at: this.now });
+    this.ledger.pay(p.account, [[this.treasury(here.county), t.county], [this.treasury(here.city || here.county), t.city]], { kind: "transfer_tax", memo: a.id, at: this.now });
+    const m = (p.mortgages || []).find((x) => x.home === a.id);
+    if (m) { this.ledger.burn(p.account, Math.min(m.owed, this.ledger.balance(p.account)), "system_fee", { at: this.now, memo: "mortgage paid off" }); p.mortgages = p.mortgages.filter((x) => x !== m); }
+    if (p.home?.room === a.id) p.home = null;
+    this.market.taken.delete(a.id.slice(5));
+    return { price, transfer_tax: t };
+  }
+  //: Each 30 days: the mortgage payment and the rent, billed; missed ones counted, and at the
+  //: limit, foreclosure or eviction.
+  housingMonth(p) {
+    for (const m of p.mortgages || []) {
+      while (this.now >= m.next) {
+        const interest = Math.round(m.owed * this.R.housing.mortgage.rate / 12);
+        m.owed = Math.max(0, m.owed + interest - m.monthly);
+        this.billing.issue({ payer: p.account, payee: "business:bank", kind: "mortgage", amount: m.monthly, memo: `Mortgage payment, ${m.home}`, at: m.next, due_days: 15, penalties: [Math.round(m.monthly * 0.05)], key: `mortgage:${m.home}:${m.next}` });
+        m.next += 30 * DAY;
+      }
+      m.missed = this.billing.open(p.account).filter((b) => b.kind === "mortgage" && b.memo.endsWith(m.home) && this.now > b.due).length;
+      if (m.missed >= this.R.housing.mortgage.missed_to_foreclose) {
+        const a = this.registry.get(m.home);
+        if (a.owner === p.account) this.registry.gift(a.id, p.account, "business:bank", this.now);
+        for (const b of this.billing.open(p.account)) if (b.kind === "mortgage" && b.memo.endsWith(m.home)) this.billing.dismiss(b.id, this.now, "foreclosed");
+        if (p.home?.room === m.home) p.home = null;
+        p.mortgages = p.mortgages.filter((x) => x !== m);
+        this.log("foreclosure", { player: p.id, home: m.home });
+      }
+    }
+    const l = p.lease;
+    if (l) {
+      while (this.now >= l.next) {
+        this.billing.issue({ payer: p.account, payee: "business:landlords", kind: "rent", amount: l.rent, memo: `Rent, ${l.home}`, at: l.next, due_days: 5, penalties: [Math.round(l.rent * 0.05)], key: `rent:${l.home}:${l.next}` });
+        const a = this.registry.assets.get(l.home);
+        if (a) a.until = l.next + 30 * DAY;
+        l.next += 30 * DAY;
+      }
+      l.missed = this.billing.open(p.account).filter((b) => b.kind === "rent" && b.memo === `Rent, ${l.home}` && this.now > b.due).length;
+      if (l.missed >= this.R.housing.lease.missed_to_evict) this.endLease(p, "evicted");
+    }
+  }
+
   // ---- the party's own measures ---------------------------------------------------------------
   cmd_propose(pid, { key, value }) {
     const spec = this.R.initiatives.adjustable[key];
@@ -728,6 +1022,8 @@ export class CityWorld {
       if (!p.vitals) { p.vitals = newVitals(this.R, this.now); p.inventory = p.inventory || {}; p.worn = p.worn || {}; }
       p.vitals = vitalsStep(this.R, p.vitals, this.now, this.vitalsContext(p));
       if (p.vitals.health <= 0) this.faint(p, p.vitals.stamina <= 0 ? "exhaustion" : "illness");
+      if (p.clocked) this.nextTask(p);
+      this.housingMonth(p);
       // The room: after its free week, a day's rent each day, or a notice.
       if (p.home && this.now > p.home.paid_until) {
         const days = Math.ceil((this.now - p.home.paid_until) / DAY);
@@ -754,8 +1050,13 @@ export class CityWorld {
     }
     for (const a of this.registry.assets.values()) {
       if (a.recover_at && this.now >= a.recover_at && a.custody === "stolen") { this.registry.recover(a.id, "police", this.now); delete a.recover_at; this.log("recovered", { asset: a.id }); }
-      if (["loan", "lease"].includes(a.custody) && a.until && this.now > a.until && a.kind !== "room") this.registry.giveBack(a.id, a.holder, this.now);
-      if (a.kind === "building" && a.owner.startsWith("player:")) this.buildingYear(a, before, t);
+      if (["loan", "lease"].includes(a.custody) && a.until && this.now > a.until && a.kind !== "room" && a.kind !== "home") this.registry.giveBack(a.id, a.holder, this.now);
+      if ((a.kind === "building" || a.kind === "home") && a.owner.startsWith("player:")) this.buildingYear(a, before, t);
+    }
+    // Public works mend what was broken, after a while.
+    for (const [key, d] of this.damage) {
+      const hours = this.R.damage.repair_hours[d.archetype] ?? this.R.damage.repair_hours.default;
+      if (d.broken ? this.now - d.broken > hours * 3_600_000 : this.now - d.last > DAY) this.damage.delete(key);
     }
     for (const b of this.billing.bills.values()) {
       if (b.hearing && this.now >= b.hearing && b.status === "open") {
@@ -771,7 +1072,7 @@ export class CityWorld {
   //: A player's building: its tenants' rent each day, and the property tax bills when they fall due.
   buildingYear(a, before, t) {
     const days = Math.floor((this.now - (a.attrs.rent_paid_to || this.now)) / DAY);
-    if (days >= 1) {
+    if (days >= 1 && a.kind === "building") {
       const rent = Math.round(a.attrs.assessed * this.R.real_estate.rent_yield / 365 * days);
       this.ledger.mint(a.owner, rent, "npc_income", { at: this.now, memo: `rent, ${a.attrs.name || a.id}` });
       a.attrs.rent_paid_to += days * DAY;
@@ -801,7 +1102,8 @@ export class CityWorld {
   toJSON() {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
-      measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found] };
+      measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] } };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -815,6 +1117,8 @@ export class CityWorld {
     w.laws = o.laws || {};
     w.items = new Map((o.items || []).map((x) => [x.id, x]));
     w.found = new Set(o.found || []);
+    w.damage = new Map((o.damage || []).map((d) => [d.key, d]));
+    w.market = { taken: new Set(o.market?.taken || []) };
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);
@@ -836,10 +1140,13 @@ export class CityWorld {
 const COMMANDS = new Set(["join", "import", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
   "buy_vehicle", "offer", "accept", "decline", "return", "take", "drive", "park", "pay_meter", "refuel", "get_fastrak", "set_flex",
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
-  "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery"]);
+  "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
+  "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home"]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
+//: The hands let go of what is no longer carried.
+function handsCheck(p) { if (p.hands && !(p.inventory[p.hands] > 0)) p.hands = null; }
 function pick(o, keys) { const out = {}; for (const k of keys) if (o && o[k] !== undefined && o[k] !== null) out[k] = o[k]; return out; }
 function slim(a) { return { id: a.id, kind: a.kind, owner: a.owner, holder: a.holder, custody: a.custody, attrs: a.attrs }; }
 function plate(id) {
