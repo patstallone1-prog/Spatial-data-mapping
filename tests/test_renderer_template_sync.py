@@ -147,3 +147,21 @@ def test_the_page_is_its_shell_with_the_module_parts_joined_in_name_order() -> N
     assert template.MODULE_MARKER not in page
     head = shell.partition(template.MODULE_MARKER)[0]
     assert '<script type="module">' in head[-400:], "the parts are joined inside the page's module script"
+
+
+def test_vercel_uploads_every_file_the_deploy_build_reads() -> None:
+    from smc.renderer import template
+
+    needed = [ROOT / "tools/build_deploy_pages.py", ROOT / "tools/pwa/sw.js", ROOT / "src/smc/__init__.py",
+              *sorted((ROOT / "src/smc/renderer").glob("*.py")), template.SHELL, *template.module_parts(),
+              *sorted(p for p in (ROOT / "unreal/Plugins/KerbsideWorld").rglob("*") if p.is_file())]
+    paths = "\n".join(str(p.relative_to(ROOT)) for p in needed) + "\n"
+    dropped = subprocess.run(
+        ["git", "-c", "core.excludesFile=.vercelignore", "check-ignore", "--no-index", "--stdin"],
+        cwd=ROOT, input=paths, capture_output=True, text=True).stdout.split()
+    assert dropped == [], f".vercelignore keeps these from the build: {dropped}"
+    gone = subprocess.run(
+        ["git", "-c", "core.excludesFile=.vercelignore", "check-ignore", "--no-index", "--stdin"],
+        cwd=ROOT, input="scripts/build_sf_corridor_3d.py\nsrc/smc/city/world.py\ntests/conftest.py\n",
+        capture_output=True, text=True).stdout.split()
+    assert len(gone) == 3, "the rest of the source stays out of the deployment"
