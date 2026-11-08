@@ -240,6 +240,16 @@
     "player_jobs": ["barista", "baker", "cook", "server", "bartender", "clerk", "grocer", "stylist", "laundry_attendant", "housekeeper", "attendant", "parking_attendant", "janitor", "security_guard", "delivery_driver", "taxi_driver"],
     "workplace_reach_m": 45
   },
+  "density": {
+    "basis": "how busy the streets are beyond the residents' own days: passers-by to a 150 m square of streets at the busiest hour, and a multiplier on them and on through traffic -- by default, and in the hotspots (the busiest wins). The Marina is the test district: Chestnut and Union Streets, the Marina Green and the Palace of Fine Arts.",
+    "walkers_per_cell": 12,
+    "walk_radius_m": 260,
+    "default": {"walkers": 1, "traffic": 1},
+    "hotspots": [
+      {"name": "Marina", "bbox": [37.7965, -122.4480, 37.8080, -122.4260], "walkers": 3.2, "traffic": 2.4},
+      {"name": "Union Square", "bbox": [37.7845, -122.4105, 37.7905, -122.4030], "walkers": 3, "traffic": 1.8}
+    ]
+  },
   "routine": {
     "basis": "a 24-hour day around each person's shift: sleep, getting ready, the commute, a break mid-shift, errands and meals out, an evening out for some, home and sleep",
     "sleep_hours": 7.5,

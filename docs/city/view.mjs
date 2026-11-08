@@ -20,6 +20,7 @@ import { COUNTER_ROLES, Crowd, SPEED_MS, Streets, alongRoute, counterLine, gener
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CityWorld } from "./world.mjs";
+import { VEHICLE_DIMS, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -41,6 +42,8 @@ const store = {
 export async function startCity(ctx) {
   const { THREE } = ctx;
   const R = loadRules(await fetch(ctx.asset("city/rules.json"), { cache: "no-cache" }).then((r) => r.json()));
+  // The counties' and towns' real outlines (scripts/build_jurisdictions.py), when they come.
+  fetch(ctx.asset("city/jurisdictions.json")).then((r) => (r.ok ? r.json() : null)).then((b) => { if (b?.counties) R.boundaries = b; }).catch(() => {});
   const tolls = await fetch(ctx.asset("highway-tolls.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const gantries = (tolls?.tolls || []).filter((t) => t.kind === "toll_gantry" && Array.isArray(t.p)).map((t) => {
     const [x, z] = ctx.fromLonLat(t.p[0], t.p[1]);
@@ -101,10 +104,11 @@ export async function startCity(ctx) {
     const places = buildings.map((b) => placeFromBuilding(b, streets, R)).filter(Boolean);
     for (const pl of places) { const b = buildings.find((x) => x.id === pl.id); pl.front = b?.inside || null; pl.ring = b?.ring || null; }
     for (const p of places) p.county = data.county;
-    const people = generatePopulation(R, places, { seed: data.key, size: 1000 });
+    // A resident for every few buildings (a thousand at the least, four thousand at the most).
+    const people = generatePopulation(R, places, { seed: data.key, size: Math.max(1000, Math.min(4000, Math.round(buildings.length * 0.3))) });
     district.key = data.key; district.streets = streets; district.places = places; district.people = people; district.county = data.county;
     district.placeById = new Map(places.map((p) => [p.id, p]));
-    district.crowd = new Crowd(R, streets, places, people, { seed: data.key, timeAt });
+    district.crowd = new Crowd(R, streets, places, people, { seed: data.key, timeAt, toLonLat: ctx.toLonLat });
     district.cameras = speedCameras(ways, data);
     district.candidates = null; district.foundDay = null; district.found = [];
     district.listings = null; district.listingsWeek = null;
@@ -177,9 +181,13 @@ export async function startCity(ctx) {
   // ---- drawing the people ----------------------------------------------------------------------
   const group = new THREE.Group();
   group.name = "living-city";
+  // Bay-wide: travelling into another region lets go of this page's own world (releaseHostWorld
+  // removes and disposes every child of the root that is not), and the city went with it -- the
+  // people and the traffic went on being worked out and were drawn into nothing (2026-11-08).
+  group.userData.bayWide = true;
   ctx.root.add(group);
   const lambert = (opts) => new THREE.MeshLambertMaterial(opts);
-  const MAX_PEOPLE = 220, MAX_CARS = 160;
+  const MAX_PEOPLE = 700, MAX_CARS = 320;
   const box = (w, h, d, y = 0, x = 0) => new THREE.BoxGeometry(w, h, d).translate(x, y, 0);
   const torsoGeo = box(0.4, 0.58, 0.23, 1.08);
   const headGeo = new THREE.SphereGeometry(0.115, 10, 8).translate(0, 1.53, 0);
@@ -187,14 +195,25 @@ export async function startCity(ctx) {
   const armGeo = box(0.1, 0.6, 0.11, -0.3);       // hangs from the shoulder
   const mk = (geo, max) => { const m = new THREE.InstancedMesh(geo, lambert({ color: 0xffffff }), max); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.castShadow = false; group.add(m); return m; };
   const parts = { torso: mk(torsoGeo, MAX_PEOPLE), head: mk(headGeo, MAX_PEOPLE), legL: mk(legGeo, MAX_PEOPLE), legR: mk(legGeo, MAX_PEOPLE), armL: mk(armGeo, MAX_PEOPLE), armR: mk(armGeo, MAX_PEOPLE) };
-  const carBody = mk(box(1, 0.55, 1, 0.55), MAX_CARS), carCabin = mk(box(0.86, 0.42, 0.5, 1.03), MAX_CARS);
-  carCabin.material.color.set(0x9fb4c4);
+  // The traffic: each kind of vehicle its own three instanced parts (vehicles.mjs) -- paint,
+  // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
+  // show through the windows. They were one painted box and a pale cabin box for every kind.
+  const VMAT = vehicleMaterials(THREE), fleet = new Map();
+  const fleetOf = (model) => {
+    const kind = VEHICLE_DIMS[model] ? model : "sedan";
+    if (!fleet.has(kind)) {
+      const parts = vehicleParts(THREE, kind), cap = kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
+      const inst = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kind}`; group.add(m); return m; };
+      const f = { paint: inst(parts.paint, VMAT.paint), fixed: inst(parts.fixed, VMAT.fixed), glass: inst(parts.glass, VMAT.glass), cap, n: 0 };
+      f.paint.castShadow = f.fixed.castShadow = true; f.glass.renderOrder = 2;
+      fleet.set(kind, f);
+    }
+    return fleet.get(kind);
+  };
   const wheel = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12).rotateZ(Math.PI / 2).translate(0, 0.33, 0);
-  const carWheels = mk(wheel, MAX_CARS * 4); carWheels.material.color.set(0x1b1b1b);
   const lightGeo = box(0.22, 0.12, 0.04, 0.72);
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
   const tailLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f }), MAX_CARS * 2);
-  const roofBar = mk(box(0.9, 0.12, 0.25, 1.55), MAX_CARS); roofBar.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   for (const l of [headLights, tailLights]) { l.count = 0; l.frustumCulled = false; l.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(l); }
   const M = new THREE.Matrix4(), B = new THREE.Matrix4(), TM = new THREE.Matrix4(), RM = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S3 = new THREE.Vector3(), E = new THREE.Euler(), C = new THREE.Color();
   const groundCache = new Map();
@@ -230,29 +249,21 @@ export async function startCity(ctx) {
   }
   function drawCars(list, night) {
     let n = 0, lights = 0;
+    for (const f of fleet.values()) f.n = 0;
     for (const v of list) {
       if (n >= MAX_CARS) break;
-      const [w, h, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
+      const [w, , l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
+      const f = fleetOf(v.model);
+      if (f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
       E.set(0, v.yaw, 0); Q.setFromEuler(E);
-      M.compose(V.set(v.x, y, v.z), Q, S3.set(w, h / 1.45, l));
-      carBody.setMatrixAt(n, M);
-      const tall = ["delivery_van", "box_truck", "bus"].includes(v.model);
-      M.compose(V.set(v.x, y, v.z), Q, S3.set(w, tall ? 0.01 : h / 1.45, tall ? 0.01 : l));
-      carCabin.setMatrixAt(n, M);
+      M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
+      f.paint.setMatrixAt(f.n, M); f.fixed.setMatrixAt(f.n, M); f.glass.setMatrixAt(f.n, M);
       const paint = v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
-      carBody.setColorAt(n, C.set(paint));
-      M.compose(V.set(v.x, y, v.z), Q, S3.set(v.model === "patrol" || v.model === "taxi" ? w : 0.001, 1, v.model === "patrol" || v.model === "taxi" ? 1 : 0.001));
-      roofBar.setMatrixAt(n, M);
-      roofBar.setColorAt?.(n, C.set(v.model === "patrol" ? "#2e6bd6" : "#fff3b0"));
-      // Wheels at the corners.
-      const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
-      let k = 0;
-      for (const [a, s] of [[0.36, 1], [0.36, -1], [-0.36, 1], [-0.36, -1]]) {
-        M.compose(V.set(v.x + fx * a * l + rx * s * w * 0.45, y, v.z + fz * a * l + rz * s * w * 0.45), Q, S3.set(1, 1, 1));
-        carWheels.setMatrixAt(n * 4 + k, M); k += 1;
-      }
+      f.paint.setColorAt(f.n, C.set(paint));
+      f.n += 1;
       if (night) {
+        const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
         for (const s of [1, -1]) {
           if (lights >= MAX_CARS * 2) break;
           M.compose(V.set(v.x + fx * l * 0.5 + rx * s * w * 0.32, y, v.z + fz * l * 0.5 + rz * s * w * 0.32), Q, S3.set(1, 1, 1)); headLights.setMatrixAt(lights, M);
@@ -262,8 +273,9 @@ export async function startCity(ctx) {
       }
       n += 1;
     }
-    for (const mesh of [carBody, carCabin, roofBar]) { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
-    carWheels.count = n * 4; carWheels.instanceMatrix.needsUpdate = true;
+    for (const f of fleet.values()) for (const mesh of [f.paint, f.fixed, f.glass]) {
+      mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
     headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
@@ -285,20 +297,7 @@ export async function startCity(ctx) {
   // ---- your car and your party's ---------------------------------------------------------------
   function makeCar(model, colour) {
     const [w, h, l] = CAR_DIMS[model] || CAR_DIMS.sedan;
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(box(w, h * 0.38, l, h * 0.38), new THREE.MeshStandardMaterial({ color: colour, metalness: 0.45, roughness: 0.4 }));
-    const tall = ["delivery_van", "box_truck", "bus"].includes(model);
-    const cabin = new THREE.Mesh(box(w * 0.86, tall ? h * 0.52 : h * 0.29, tall ? l * 0.96 : l * 0.5, tall ? h * 0.83 : h * 0.71), new THREE.MeshStandardMaterial({ color: tall ? colour : 0x9fb4c4, metalness: 0.2, roughness: 0.15 }));
-    if (!tall) cabin.position.z = l * 0.05;
-    g.add(body, cabin);
-    for (const [a, s] of [[0.36, 1], [0.36, -1], [-0.36, 1], [-0.36, -1]]) {
-      const wh = new THREE.Mesh(wheel, new THREE.MeshLambertMaterial({ color: 0x1b1b1b }));
-      wh.position.set(s * w * 0.45, 0, -a * l); g.add(wh);
-    }
-    for (const s of [1, -1]) {
-      const hl = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 })); hl.position.set(s * w * 0.32, 0, -l * 0.5); g.add(hl);
-      const tl = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f })); tl.position.set(s * w * 0.32, 0, l * 0.5); g.add(tl);
-    }
+    const g = vehicleGroup(THREE, model, colour);
     g.userData = { model, dims: [w, h, l] };
     g.name = "city-car";
     return g;
@@ -1309,6 +1308,7 @@ export async function startCity(ctx) {
   function tick(now) {
     if (!ctx.enabled()) { group.visible = false; return false; }
     group.visible = true;
+    if (!group.parent) ctx.root.add(group);
     const t = Date.now();
     if (now - lastRegion > 1500) {
       lastRegion = now;
@@ -1345,7 +1345,8 @@ export async function startCity(ctx) {
         lastNight = hour < 6.6 || hour > 18.4;
       } else {
         const tt = timeAt(t);
-        visible.people = visible.people.map((p) => ({ ...p, ...(district.crowd.personAt(p.person, tt, focus, R.routine.visible_radius_m) || p) }));
+        visible.people = visible.people.map((p) => (p.walker ? { ...p, ...district.crowd.walkerAt(p.walker, t / 1000) }
+          : { ...p, ...(district.crowd.personAt(p.person, tt, focus, R.routine.visible_radius_m) || p) }));
         visible.vehicles = visible.vehicles.map((v) => v.person ? { ...v, ...(district.crowd.personAt(v.person, tt, focus, R.routine.visible_radius_m) || v) } : advance(v, (now - (v._at || now)) / 1000, now));
       }
       drawPeople(visible.people, now);
@@ -1390,7 +1391,7 @@ export async function startCity(ctx) {
   };
   addEventListener("keydown", (e) => {
     if (e.key === "Shift") { if (!typing(e.target)) body.sprintHeld = true; return; }
-    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled()) return;
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled() || ctx.cityMode?.() === false) return;
     if (e.key === "Escape" && side) { closeSide(); return; }
     if (e.key === "Escape" && shop.place) { leaveShop(); return; }
     const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
@@ -1743,12 +1744,15 @@ export async function startCity(ctx) {
   }
   function openPanel(force = false) {
     if (panel && force !== true) { panel.remove(); panel = null; return; }
-    if (panel) { refresh(); return; }
+    const host = ctx.panelHost?.() || doc.body;
+    if (panel && panel.parentNode === host) { refresh(); return; }
+    if (panel) { panel.remove(); panel = null; }
     closeSide();
     panel = h("section", { id: "city" }); panel.setAttribute("aria-label", "The living city");
-    doc.body.append(panel);
+    host.append(panel);
     refresh();
   }
+  function closePanel() { if (panel) { panel.remove(); panel = null; } }
   function refresh() {
     hud();
     drawSide();
@@ -1886,7 +1890,7 @@ export async function startCity(ctx) {
 
   // The multiplayer session's hooks: what this walker's car is, and drawing the others'.
   return {
-    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, joinParty, leaveParty,
+    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, errandKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, shopKey, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     carState() {

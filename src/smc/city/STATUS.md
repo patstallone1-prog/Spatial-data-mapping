@@ -8,6 +8,32 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (PR after #174): the streets filled, and two modes
+
+* **Why the streets were empty.** Two bugs, both fixed:
+  * Travelling into a region threw away the city's people-and-traffic group (it was not marked
+    bay-wide, so the release of the page's own world disposed of it).
+  * The district kept the streets of the square where the world was first built. A lighter
+    build holds only a square round the walker. Walking on builds it again under the same
+    region name, so the city kept putting its people on the first square's streets.
+* **Dense streets.** Passers-by fill the pavements round you: 12 to a 150 m square of streets at
+  noon, by the hour, and more in the rules' hotspots. The **Marina** is the test district
+  (×3.2 walkers, ×2.4 traffic), and Union Square is another (×3, ×1.8). Residents now number
+  one for every few buildings (1,000 to 4,000). Up to 700 people and 320 vehicles are drawn.
+  * Verified: 474 people and 60 vehicles on Chestnut Street; 350 people and 40 vehicles at
+    Powell and Post.
+* **Vehicles** (`docs/city/vehicles.mjs`). Each of the ten kinds is built from its own
+  profile:
+  * glass you can see through, with seats, a dashboard and a steering wheel inside;
+  * pillars, mirrors, lights and wheels with rims;
+  * the bus has rows of seats; the pickup has a bed, the taxi a roof sign, the patrol car a
+    light bar.
+  * They were a painted box and a pale box. Tested; verified at Powell and Post.
+* **Where you are.** The real county and town outlines from OpenStreetMap
+  (`docs/city/jurisdictions.json`, `scripts/build_jurisdictions.py`). Mill Valley is Mill
+  Valley and the Headlands are Marin County; before this, both were San Francisco. Tested.
+* **Explore / City switch** at the top left (see ACTIONS.md).
+
 ## Part 1: what was asked, and what is built
 
 ### Cars: get in, drive, park, get out — yes (PR #172, still live)

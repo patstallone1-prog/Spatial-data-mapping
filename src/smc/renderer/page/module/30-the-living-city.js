@@ -49,19 +49,48 @@ function walkerOnWater(x, z, feet) {
 }
 
 var livingCity = null;
+//: The mode: "explore" (the map, search, directions, the free view) or "city" (the game: your
+//: body, wallet, job, car, the shops, and the keys that act on them), switched at the top left.
+//: Remembered on this device. The living city's people and traffic are out in both.
+const MODE_KEY = "kerbside:mode";
+var appMode = (() => { try { return localStorage.getItem(MODE_KEY) === "city" ? "city" : "explore"; } catch { return "explore"; } })();
+function setAppMode(mode) {
+  appMode = mode === "city" ? "city" : "explore";
+  try { localStorage.setItem(MODE_KEY, appMode); } catch { /* private window */ }
+  document.body.dataset.mode = appMode;
+  const sw = document.getElementById("mode-switch");
+  if (sw) { sw.dataset.mode = appMode; for (const b of sw.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.mode === appMode)); }
+  const fold = document.getElementById("fold");
+  if (fold) fold.textContent = appMode === "city" ? "☰ City" : "☰ Map";
+  // The city is walked: the free view is put away, and the city's panel sits in the sidebar.
+  if (appMode === "city" && state.explore) setExplore(false);
+  if (appMode === "city") livingCity?.openPanel(true);
+  else livingCity?.closePanel?.();
+  requestFrame();
+}
 {
   const button = document.getElementById("city-open");
-  if (META || ATTACH) button?.remove();
+  const sw = document.getElementById("mode-switch");
+  if (META || ATTACH) { button?.remove(); sw?.remove(); document.getElementById("city-dock")?.remove(); }
   else {
+    sw.hidden = false;
+    for (const b of sw.querySelectorAll("button")) b.addEventListener("click", () => setAppMode(b.dataset.mode));
+    setAppMode(appMode);
     //: The region the walker is in, as the city needs it: its streets and buildings.
+    //: Which streets these are: a lighter build holds only the square round where it was built,
+    //: and walking on builds the same region round the walker again -- the same name, other
+    //: streets. Keyed by the name alone, the city kept the first square's streets and put its
+    //: people there, and the streets where you were stood empty (2026-11-08).
+    const streetsKey = (name, ways) => `${name}:${ways.length}:${ways[0]?.osm_id ?? ""}:${ways[ways.length - 1]?.osm_id ?? ""}`;
     const regionData = () => {
       const p = avatar.position;
       const guest = guestUnder(p.x, p.z);
       if (guest?.ready && guest.api.cityWays) {
-        return { key: guest.region?.name || "guest", ways: guest.api.cityWays(), county: guest.region?.city || null };
+        const ways = guest.api.cityWays() || [];
+        return { key: streetsKey(guest.region?.name || "guest", ways), ways, county: guest.region?.city || null };
       }
       if (!hostWorldActive || !(DATA.ways || []).length) return null;
-      return { key: REGION_INDEX.host?.name || "host", ways: DATA.ways, county: REGION_INDEX.host?.city || null };
+      return { key: streetsKey(REGION_INDEX.host?.name || "host", DATA.ways), ways: DATA.ways, county: REGION_INDEX.host?.city || null };
     };
     const onRoad = (x, z) => {
       const guest = guestUnder(x, z);
@@ -75,6 +104,9 @@ var livingCity = null;
     const context = {
       THREE, root, asset: sharedAsset, avatar, standY: AVATAR_STAND_Y, button,
       enabled: () => !state.explore && !homeScreenUp(),
+      // The game's keys, bars and buttons: in City mode only.
+      cityMode: () => appMode === "city",
+      panelHost: () => (appMode === "city" ? document.getElementById("city-dock") : null),
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
@@ -127,6 +159,7 @@ var livingCity = null;
         else livingCity?.leaveParty();
       });
       window.kerbsideCity = () => livingCity;
+      if (appMode === "city") livingCity.openPanel(true);
       requestFrame();
       return livingCity;
     }).catch((error) => console.warn("kerbside: the living city did not start", error));

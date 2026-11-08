@@ -8,6 +8,8 @@
 const EXPLORE_SPEED_PER_M = 0.8;
 const EXPLORE_SPEED_MIN = 8;
 function setExplore(on, auto = false) {
+  // The free view belongs to Explore mode: asked for in City mode (E), the switch goes over too.
+  if (on && !auto && typeof appMode !== "undefined" && appMode === "city" && typeof setAppMode === "function") setAppMode("explore");
   if (META && on) return;   // no explore mode in the headset
   if (typeof avatar === "undefined" || typeof gps === "undefined" || Boolean(state.explore) === on) return;
   // Chosen (E or the button), explore stays at any zoom; left by hand while far out, the zoom

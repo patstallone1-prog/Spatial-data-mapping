@@ -713,18 +713,8 @@ function parkMesh(feature, seed) {
   if (!metrics) return null;
   const group = new THREE.Group();
   group.add(placeSlab(metrics, feature.archetype === "mini_golf" ? 0x477f45 : 0x365f3b, 0.065));
-  const count = Math.max(4, Math.min(18, Math.floor((metrics.width * metrics.depth) / 180)));
-  for (let i = 0; i < count; i += 1) {
-    const x = metrics.x + (random(seed + i * 17) - 0.5) * metrics.width * 0.75;
-    const z = metrics.z + (random(seed + i * 31) - 0.5) * metrics.depth * 0.75;
-    boxPart(group, x, 0, z, 0.25, 1.1, 0.25, 0x5c432f);
-    const crown = new THREE.Mesh(
-      new THREE.ConeGeometry(1.0 + random(seed + i) * 0.8, 3.0 + random(seed + i * 3) * 2.2, 8),
-      new THREE.MeshStandardMaterial({ color: 0x4f8a55, roughness: 0.96 })
-    );
-    crown.position.set(x, 3.0, z);
-    group.add(crown);
-  }
+  // No invented trees: a park's trees are the mapped ones (the tree layer). Cones scattered at
+  // random at the street's height stood buried to their crowns in a raised square (Union Square).
   if (feature.archetype === "mini_golf") {
     for (let i = 0; i < 5; i += 1) {
       boxPart(group, metrics.x + (i - 2) * metrics.width * 0.12, 0.08,
