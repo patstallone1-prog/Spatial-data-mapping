@@ -962,6 +962,9 @@ function moveWalker(mx, mz) {
       if (!slide) break;
       [toX, toZ] = slide;
     }
+    // Open water is not walked on: the shore, a pier, a deck or a bridge over it are. One already
+    // on the water (dropped there) may walk off it.
+    if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)) break;
     p.x = toX;
     p.z = toZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);

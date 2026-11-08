@@ -79,6 +79,12 @@ def tuned(html: str, detail: str) -> str:
                           ("KERBSIDE_ACCOUNT", "kerbside-account.mjs"), ("HOME_LOBBY", "home-lobby.mjs"),
                           ("AVATAR_BUILDER", "avatar-builder.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
+    # The living city is several modules and its rules: one revision for all of them.
+    city = hashlib.sha256()
+    for path in sorted((ROOT / "docs" / "city").glob("*")):
+        city.update(path.name.encode())
+        city.update(path.read_bytes())
+    html = html.replace("__CITY_HASH__", city.hexdigest()[:16])
     html = html.replace("/*__RELEASE_MODULE_SCOPE__*/", release_module_scope(html), 1)
     swaps = DETAIL_TUNING.get(detail) or {}
     for old, new in swaps.items():
