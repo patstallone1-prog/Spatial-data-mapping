@@ -28,3 +28,15 @@ and several were fixed once already and came back in a different form.
 | Grey slab over car parks | An unbuilt parcel's grey paving fallback, a few millimetres over the ground, fought the car park mapped on it: the Oxford Tract lot was a slab with its asphalt and stalls breaking through in blotches | The fallback is drawn first after the terrain without a depth test, under imagery's fills, yards and lots (`neutral_ground`, renderOrder -1.6) |
 | Orbit spun up off the ground | A drag down past the lowest pitch tilted the view up to the sky, and on a hill the camera went under the street | The drag stops at the lowest pitch and at the ground (`ORBIT_GROUND_CLEAR_M`); no tilt |
 | Jagged grey trim along kerbs | The waterworks gutter pan was laid every 2 m a few millimetres over the ground; the road, cut on the terrain grid, crossed it on a hill and left it in sharp pieces along the kerb (Walnut Street) | A vertex a metre, `GUTTER_LIFT_M` (3 cm) over the road; its drains, aprons and wet lines on the pan |
+| Ground over water | Round Lake Merritt the park's green, mapped over the lake, lay in the water's own plane and the two took turns; from afar the tiles' lawn covered the whole lake | `dropTrianglesOverWater`: a park's, a yard's or a lot's triangles wholly on the water are left out once cut to the terrain (not a plaza or walk: a pier's deck is one); `overWaterAt` asks the nature atlas past the region's own grid; far lawns over water are cut to 8 m pieces and the wet ones dropped (`dryLawnPieces`) |
+| Streets dipping into lakes | A street along a shore crossed raster cells called water and dropped to the water's height for a cell or two | `streetOverWaterAt`: a street on a wet cell within three cells of dry ground stands at that ground's height; further out it is a bridge on its own deck |
+| Trees in the water | City trees whose recorded point fell on a lake or the bay were planted in it | `overWaterAt` in the tree filter (the nature trees already skipped water) |
+| Far sheets taking turns | Zoomed out, the tile lawns, roads, pavements and paint (centimetres apart, log depth, no polygon offset) flashed through each other | `tileDepthBias`: each sheet is drawn a step nearer the eye than the one below it |
+| Orbit shoved under awnings | Zooming in to a shop pulled the camera in against its wall, into the dark between the shopfront and the pavement, metres off the walker | `placeCamera` first lifts the view over the roof at the distance asked, up to nearly overhead (`ORBIT_RISE_MAX_PITCH` 1.52); only a wall the walker stands against pulls it in |
+| Search gave directions | A place typed in the top search drew a route | The top search takes the walker there and pins it; directions only from the to/from bar |
+
+## Still open
+
+| What | Seen | Where it comes from |
+|---|---|---|
+| Dark road shapes while a region loads | Blue-grey road sheets and dark terrain wedges along the I-880 approaches by Lake Merritt for the seconds before the detailed streets arrive | The far tiles' coarse road sheets over the coarse terrain; they go when the region is drawn in full |

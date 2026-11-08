@@ -72,15 +72,18 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
     assert not r["gpsInside"] and not r["walkerInside"], "late-loaded buildings still keep GPS arrivals outside"
 
 
-def test_a_searched_place_is_shown_and_the_directions_filled_in_without_moving_the_walker() -> None:
+def test_a_searched_place_is_gone_to_and_pinned_with_no_directions() -> None:
     js = _page_js()
     travel = _extract("travelTo", js) if "function travelTo" in js else js[js.index("function travelTo"):]
     assert travel.index("window.kerbsideShowPlace(place)") < travel.index("kerbsideOpenFullRegionAt")
     page = (ROOT / "scripts/build_sf_corridor_3d.py").read_text()
     show = page[page.index("window.kerbsideShowPlace = (place) => {"):]
     show = show[:show.index("\n  };") + 4]
-    assert "goTo(new THREE.Vector3(x, 0, -y));" in show and "travel" not in show, "only the view moves"
-    assert "route.stops[route.stops.length - 1] = place;" in show and "route.stops[0] = here();" in show
+    # The walker is taken there, outside at the address, and the place pinned.
+    assert "goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });" in show
+    assert "pin.visible = true;" in show
+    # The search at the top asks for no directions: only the From and To fields do.
+    assert "route.stops" not in show and "renderStops" not in show and "pinStops" not in show
     assert 'if (gps.fix && regionAt(gps.fix.lon, gps.fix.lat)) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };' in page
     assert "navigator.geolocation.watchPosition(" in page and 'localStorage.getItem(GPS_KEY) !== "off"' in page
 

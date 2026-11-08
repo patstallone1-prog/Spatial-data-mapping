@@ -47,7 +47,7 @@ const COURT_STYLE={tennis:{surround:'asphalt'},basketball:{surround:'asphalt'},s
 
 def test_far_lawns_use_the_same_texture_scale_as_full_detail_not_plain_green():
     fn = _extract('tileLawns',_page_js())
-    assert 'uv.push(p.x / 8, -p.y / 8)' in fn
+    assert 'uv.push(x / 8, -z / 8)' in fn
     assert 'material.map = grassTexture("park", 0)' in fn
     assert 'if (!HEADSET)' in fn
 

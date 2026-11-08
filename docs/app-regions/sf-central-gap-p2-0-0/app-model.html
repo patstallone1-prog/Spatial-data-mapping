@@ -122,7 +122,7 @@ input::placeholder { color:#9ca3af; }
 body:not(.contributor) [data-contributor]{display:none !important}
 body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:hidden}
 </style>
-<meta name="kerbside-renderer-sha256" content="3ffff3f04a524a430538a631025a7e0d3ae28c61479ec5d9e91720e012d5e05d" />
+<meta name="kerbside-renderer-sha256" content="79309c22a990cb21a3b0f8fd6246c8f0943d83d8a07dea1f295e6b49f26c89ed" />
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -1950,6 +1950,19 @@ if (LANDWATER) {
     water.triangles = tris;
   }
 }
+//: Whether (x, z) is on water: the map's water, or a lake's bed; past the edge of the page's own
+//: grid (a park running out of the region over its lake), the nature atlas's water.
+function overWaterAt(x, z) {
+  const mapped = mappedWaterAt(x, z);
+  return mapped === null ? natureWaterAt(x, z) : mapped || inlandWaterAt(x, z) === 1;
+}
+//: The nature world's water where it is up -- its coastlines decide the bay's edge -- and the
+//: atlas's own until then (the first far tiles are built before the nature world is).
+function natureWaterAt(x, z) {
+  if (typeof NATURE === "undefined" || !NATURE) return false;
+  const at = NATURE.local(midLon + x / metersPerLon, midLat - z / metersPerLat);
+  return Boolean((typeof natureWorld !== "undefined" && natureWorld?.ground ? natureWorld.ground(...at) : NATURE.sample(...at))?.water);
+}
 //: 1 inside a body of inland water (its bed), 2 on the grid's overspill round one (its shore),
 //: 0 elsewhere.
 function inlandWaterAt(x, z) {
@@ -2057,7 +2070,45 @@ function rawTerrainHeightAt(x, z, natureHeight = null) {
   return localHeight*(1-smooth)+nature.height*smooth;
 }
 function terrainHeightAt(x, z) {
-  return mappedWaterAt(x, z) === true ? OPEN_WATER_GROUND_M : rawTerrainHeightAt(x, z);
+  if (mappedWaterAt(x, z) === true) return streetOverWaterAt(x, z) ?? OPEN_WATER_GROUND_M;
+  if (inlandWaterAt(x, z) === 1) return streetOverWaterAt(x, z) ?? rawTerrainHeightAt(x, z);
+  return rawTerrainHeightAt(x, z);
+}
+//: The map's water is rasterised on the 2 m grid, and a street along a shore crosses cells the
+//: raster calls water: there the ground was the water's (the sea's surface, or a lake's bed let
+//: down under it), and the street dipped into the lake for a cell or two and came back out --
+//: "roads cutting in and out with segments in lakes" round Lake Merritt. A street (with its
+//: pavements) on a wet cell within STREET_SHORE_REACH_CELLS of dry ground stands on that
+//: ground's height instead; one further out over open water is a bridge, on its own deck.
+//: (A var, set once the streets are in the carriageway grid: the terrain is asked long
+//: before that grid is declared, and until then there is no street to stand on the shore.)
+var STREETS_GRIDDED = false;
+const STREET_SHORE_REACH_CELLS = 3, STREET_OVER_WATER_SLACK_M = 4.5;
+function streetOverWaterAt(x, z) {
+  if (!STREETS_GRIDDED || !TERRAIN_FRAME || !insideCarriageway(x, z, STREET_OVER_WATER_SLACK_M)) return null;
+  return nearestDryHeightAt(x, z, STREET_SHORE_REACH_CELLS);
+}
+//: The height of the nearest grid cell that is neither the map's water nor a lake's bed, within
+//: ``reach`` cells of (x, z), or null.
+function nearestDryHeightAt(x, z, reach) {
+  const f = TERRAIN_FRAME, d = TERRAIN.visualData || TERRAIN.data;
+  if (!f || !d || !LANDWATER) return null;
+  const [east, north] = pageToTerrain(x, z, f);
+  const c = Math.floor((east - f.x0) / f.step_m), r = Math.floor((north - f.y0) / f.step_m);
+  for (let ring = 1; ring <= reach; ring += 1) {
+    let best = null, bestD = Infinity;
+    for (let dr = -ring; dr <= ring; dr += 1) for (let dc = -ring; dc <= ring; dc += 1) {
+      if (Math.max(Math.abs(dr), Math.abs(dc)) !== ring) continue;
+      const rr = r + dr, cc = c + dc;
+      if (rr < 0 || cc < 0 || rr >= f.rows || cc >= f.cols) continue;
+      const i = rr * f.cols + cc;
+      if (LANDWATER[i] === 1 || (INLAND_MASK && INLAND_MASK[i] === 1) || d[i] === f.nodata) continue;
+      const dist = dr * dr + dc * dc;
+      if (dist < bestD) { bestD = dist; best = f.base_m + d[i] / 100; }
+    }
+    if (best !== null) return best;
+  }
+  return null;
 }
 //: The ground's height at a point: what everything at ground level is lifted by. The terrain
 //: grid, except in the open cut outside a tunnel mouth: under a street decked over the portal
@@ -4139,6 +4190,43 @@ const LIFT_SPLIT_M = 120;
 const LIFT_SPLIT_MIN_VERTICES = 3000;
 const LIFT_M4 = new THREE.Matrix4(), LIFT_Q = new THREE.Quaternion(), LIFT_POS = new THREE.Vector3(), LIFT_SCL = new THREE.Vector3();
 function liftOneMesh(o) { return runSteps(liftOneMeshSteps(o)); }
+//: A park's, a yard's or a lot's polygon is drawn on the ground, and where it runs out over the
+//: water -- Lake Merritt is inside the park mapped round it; a lot's parcel takes in the creek
+//: at its back -- the green was laid on the water's surface, in the water's own plane, and from
+//: any distance the two took turns: "patches of ground over water appearing and disappearing".
+//: The triangles of such a cover wholly on the water (all three corners and the middle) are
+//: left out once it is cut to the terrain; one along the shore keeps its edge. Not a plaza or a
+//: walk: a pier's deck is one, and it is over the water by design.
+const COVER_OFF_WATER = new Set(["park", "yard", "court", "lawn", "neutral_ground", "service_yard"]);
+function coverOffWater(o) {
+  const surface = String(o.userData.surface || "");
+  return COVER_OFF_WATER.has(surface) || surface.startsWith("park:")
+    || (surface.startsWith("inferred:") && !surface.includes("plaza"));
+}
+function dropTrianglesOverWater(geometry, world) {
+  // One material only: a sheet drawn in groups keeps its triangles where its groups say.
+  if ((geometry.groups?.length || 0) > 1) return 0;
+  const p = geometry.getAttribute("position"), index = geometry.getIndex();
+  const count = index ? index.count : p.count, keep = [], v = new THREE.Vector3();
+  const wet = [false, false, false], at = [0, 0, 0, 0, 0, 0];
+  let dropped = 0;
+  for (let t = 0; t + 2 < count; t += 3) {
+    let all = true;
+    for (let k = 0; k < 3; k += 1) {
+      const i = index ? index.getX(t + k) : t + k;
+      v.set(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(world);
+      at[k * 2] = v.x; at[k * 2 + 1] = v.z;
+      wet[k] = overWaterAt(v.x, v.z);
+      if (!wet[k]) { all = false; break; }
+    }
+    if (all && overWaterAt((at[0] + at[2] + at[4]) / 3, (at[1] + at[3] + at[5]) / 3)) { dropped += 1; continue; }
+    for (let k = 0; k < 3; k += 1) keep.push(index ? index.getX(t + k) : t + k);
+  }
+  if (!dropped) return 0;
+  geometry.setIndex(keep);
+  geometry.clearGroups();
+  return dropped;
+}
 function* liftOneMeshSteps(o) {
   const m = LIFT_M4, q = LIFT_Q, pos = LIFT_POS, scl = LIFT_SCL;
   {
@@ -4163,6 +4251,7 @@ function* liftOneMeshSteps(o) {
     // mesh as it was, not half cut.
     const source = o.geometry;
     const refined = yield* refineForTerrainSteps(source, limit, chord, minEdge, snapToTerrain, adaptive, true);
+    if (coverOffWater(o)) dropTrianglesOverWater(refined, o.matrixWorld);
     const attribute = refined.getAttribute("position");
     // Vertices are lifted in the world frame; a mesh that is placed rather than built where
     // it stands gets the lift on its own local axes.
@@ -5171,6 +5260,26 @@ function tileFrame(tile) {
   return { x0, y0, sx: metersPerLon / kx / 100.0, sy: metersPerLat / ky / 100.0, kx, ky, west, south };
 }
 
+//: The tile street's sheets lie centimetres apart (TILE_LAWN_Y, TILE_ROAD_Y, TILE_WALK_Y) over the
+//: landscape, and from a few kilometres out no depth buffer tells them apart: grass, tarmac,
+//: footway and the ground under them took the same pixels in turn as the view moved, and the
+//: whole city "kept flashing and changing colours" zoomed out. Polygon offset cannot help: the
+//: logarithmic depth buffer writes its own depth. So each sheet is drawn pulled toward the eye
+//: by this share of its distance per rank -- the same pixels, a nearer depth -- which keeps
+//: them in their order at any range: 3 cm a rank at 100 m, 30 cm at 6 km.
+const TILE_DEPTH_BIAS = 5e-5;
+function tileDepthBias(material, rank) {
+  const before = material.onBeforeCompile, key = material.customProgramCacheKey();
+  const scale = (1 - rank * TILE_DEPTH_BIAS).toFixed(6);
+  material.onBeforeCompile = function (shader, renderer) {
+    before.call(this, shader, renderer);
+    shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>",
+      `#include <project_vertex>\nmvPosition.xyz *= ${scale};\ngl_Position = projectionMatrix * mvPosition;`);
+  };
+  material.customProgramCacheKey = () => `${key}:tile-bias-${rank}`;
+  material.needsUpdate = true;
+}
+
 function addTileMeshes(group, meshes) {
   // Three.js treats add() with zero arguments as add(undefined), and logs an error. A tile
   // layer can legitimately be empty after local-ground ownership removes its features.
@@ -5200,6 +5309,10 @@ function buildTile(tile, layers) {
     }),
   };
   tile.materials = Object.values(materials);
+  // The flat sheets of the tile street, in the order they lie: grass, tarmac, footway, paint.
+  for (const [material, rank] of [[materials.lawns, 1], [materials.roads, 2], [materials.pavement, 3],
+                                  [materials.paint, 4], [materials.yellow, 4], [materials.tactile, 4]])
+    tileDepthBias(material, rank);
   // The houses are let in over the region drawn in full when the view is right out (tier 0).
   for(const material of tile.materials)applyBoxClip({traverse:visit=>visit({material})},
     material===materials.buildings || material===materials.massing ? tileBuildingBox : tileDetailBox,true);
@@ -5489,21 +5602,81 @@ function natureTileStations(run) {
 //: The lawns layer: each ring ([x0, y0, ...] in the tile's centimetres) laid flat on the ground
 //: and filled, all of a tile's in one mesh. Inside the region drawn in full the clip hides them
 //: (tileDetailBox), and the street renderer's turf is there instead.
+//: A park's polygon takes in its lake -- Lake Merritt is inside the park mapped round it -- and
+//: filled whole, the far city's lawn was a green sheet over the lake, a few centimetres above
+//: the water and from a distance taking turns with it. A ring with water under it (sampled every
+//: TILE_LAWN_PROBE_M over its bounds) is cut into triangles no longer than TILE_LAWN_PIECE_M,
+//: finer to TILE_LAWN_SHORE_M along the shore, and the pieces on the water are left out.
+const TILE_LAWN_PROBE_M = 30, TILE_LAWN_PIECE_M = 40, TILE_LAWN_SHORE_M = 8;
+function tileLawnWetTest() {
+  if (typeof NATURE === "undefined" || !NATURE) return null;
+  return (x, z) => mappedWaterAt(x, z) === true || inlandWaterAt(x, z) === 1 || natureWaterAt(x, z);
+}
+//: (A lawn smaller than TILE_LAWN_ASK_M2 over its bounds is not asked: a yard or a verge is
+//: not where a lake is, and the far city has tens of thousands of them.)
+const TILE_LAWN_ASK_M2 = 1600;
+function ringOverWater(ring, wetAt) {
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const p of ring) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.y); z1 = Math.max(z1, p.y); }
+  if ((x1 - x0) * (z1 - z0) < TILE_LAWN_ASK_M2) return false;
+  for (const p of ring) if (wetAt(p.x, p.y)) return true;
+  for (let x = x0 + TILE_LAWN_PROBE_M / 2; x < x1; x += TILE_LAWN_PROBE_M)
+    for (let z = z0 + TILE_LAWN_PROBE_M / 2; z < z1; z += TILE_LAWN_PROBE_M)
+      if (wetAt(x, z) && pointInVectorRing(x, z, ring)) return true;
+  return false;
+}
+function pointInVectorRing(x, z, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i], b = ring[j];
+    if ((a.y > z) !== (b.y > z) && x < (b.x - a.x) * (z - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+//: The dry pieces of triangle (a, b, c), as flat [ax, az, bx, bz, cx, cz] onto ``out``.
+function dryLawnPieces(a, b, c, wetAt, out, depth = 0) {
+  const longest = Math.max(Math.hypot(a[0] - b[0], a[1] - b[1]), Math.hypot(b[0] - c[0], b[1] - c[1]), Math.hypot(c[0] - a[0], c[1] - a[1]));
+  if (longest > TILE_LAWN_PIECE_M && depth < 12) {
+    const ab = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
+    for (const [p, q, r] of [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]]) dryLawnPieces(p, q, r, wetAt, out, depth + 1);
+    return;
+  }
+  const wet = [wetAt(a[0], a[1]), wetAt(b[0], b[1]), wetAt(c[0], c[1]), wetAt((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3)];
+  const n = wet.filter(Boolean).length;
+  if (n === 4) return;
+  if (n === 0 || longest <= TILE_LAWN_SHORE_M || depth >= 12) {
+    if (!wet[3]) out.push(a[0], a[1], b[0], b[1], c[0], c[1]);
+    return;
+  }
+  const ab = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
+  for (const [p, q, r] of [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]]) dryLawnPieces(p, q, r, wetAt, out, depth + 1);
+}
 function tileLawns(rows, f, material) {
   const position = [], index = [], uv = [];
   const nature = typeof NATURE !== "undefined" && NATURE;
+  const wetAt = tileLawnWetTest();
+  const vertex = (x, z) => {
+    const y = nature ? tileGroundAt(x, z) : TILE_GROUND_Y - earthDrop(x, z);
+    position.push(x, y + TILE_LAWN_Y, z);
+    if (!HEADSET) uv.push(x / 8, -z / 8);
+    return position.length / 3 - 1;
+  };
   for (const row of rows) {
     const ring = [];
     for (let i = 0; i + 1 < row.length; i += 2) ring.push(new THREE.Vector2(f.x0 + row[i] * f.sx, -(f.y0 + row[i + 1] * f.sy)));
     if (ring.length > 3 && ring[0].equals(ring[ring.length - 1])) ring.pop();
     if (ring.length < 3) continue;
-    const base = position.length / 3;
-    for (const p of ring) {
-      const y = nature ? tileGroundAt(p.x, p.y) : TILE_GROUND_Y - earthDrop(p.x, p.y);
-      position.push(p.x, y + TILE_LAWN_Y, p.y);
-      if (!HEADSET) uv.push(p.x / 8, -p.y / 8);
+    const triangles = THREE.ShapeUtils.triangulateShape(ring, []);
+    if (wetAt && ringOverWater(ring, wetAt)) {
+      const pieces = [];
+      for (const [a, b, c] of triangles) dryLawnPieces([ring[a].x, ring[a].y], [ring[b].x, ring[b].y], [ring[c].x, ring[c].y], wetAt, pieces);
+      for (let i = 0; i + 5 < pieces.length; i += 6)
+        index.push(vertex(pieces[i], pieces[i + 1]), vertex(pieces[i + 2], pieces[i + 3]), vertex(pieces[i + 4], pieces[i + 5]));
+      continue;
     }
-    for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(ring, [])) index.push(base + a, base + b, base + c);
+    const base = position.length / 3;
+    for (const p of ring) vertex(p.x, p.y);
+    for (const [a, b, c] of triangles) index.push(base + a, base + b, base + c);
   }
   if (!index.length) return [];
   const geometry = new THREE.BufferGeometry();
@@ -10408,6 +10581,7 @@ for (const way of DATA.ways) {
     }
   }
 }
+STREETS_GRIDDED = carriagewayGrid.size > 0;
 
 function distanceToSegmentSquared(px, pz, ax, az, bx, bz) {
   const dx = bx - ax;
@@ -23855,6 +24029,9 @@ const groundReady = (async () => {
   const trees = (ground.trees || []).filter((tree) => {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     if (inDriveway(tx, -ty)) return false;
+    // Not in the water: a tree the lidar or a record puts on a lake or the bay is a mast, a
+    // reflection or a point a few metres off the shore it stands on.
+    if (overWaterAt(tx, -ty)) { treeIslandStats.water = (treeIslandStats.water || 0) + 1; return false; }
     if (!insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return true;
     if (insideJunctionBox(tx, -ty) || junctionSquares.some((q) => Math.hypot(q.kx - tx, q.kz + ty) < q.reach + 2)) {
       treeIslandStats.junction += 1;
@@ -28214,6 +28391,11 @@ const ORBIT_MIN_PITCH = 0.25;
 //: How far over the ground the orbit camera stops: swung down towards a hill, or round to the
 //: uphill side of the walker, it comes to rest this high over the ground instead of under it.
 var ORBIT_GROUND_CLEAR_M = 0.8, cameraOnGround = false;
+//: Blocked by a building, the orbit camera rises over it this much pitch at a time, up to this
+//: pitch, before it is pulled in to the wall (placeCamera). Nearly overhead: beside a tower a
+//: view from above the street is the one that clears it, and pulled in instead the camera stood
+//: a few metres off the walker in the dark under the shopfronts.
+var ORBIT_RISE_STEP = 0.06, ORBIT_RISE_MAX_PITCH = 1.52;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
@@ -28248,7 +28430,20 @@ function placeCamera() {
   cameraPulledIn = false;
   // From further out (the overview, a city from the air) nothing is pulled in: a tower near what
   // the view looks at would otherwise drag the camera down to the street.
-  const blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(state.target, camera.position) : null;
+  let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(state.target, camera.position) : null;
+  // Over it first. Pulled straight in, a camera with a shop behind it was shoved from sixty
+  // metres out to the shop's wall, under its awning, in the dark between the shopfront and the
+  // pavement, away from the walker: "auto full zoomed while still at some distance". So the view
+  // keeps its distance and rises, as a camera crane would, until it clears the roofs behind;
+  // only where no pitch clears them (a walker in a narrow lane between towers) is it pulled in.
+  // state.pitch is left as it was, so turning away from the building brings the view back down.
+  if (blocked !== null) {
+    for (let pitch = state.pitch + ORBIT_RISE_STEP; pitch <= ORBIT_RISE_MAX_PITCH + 1e-6; pitch += ORBIT_RISE_STEP) {
+      const at = new THREE.Vector3(Math.sin(state.yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(state.yaw) * Math.cos(pitch))
+        .multiplyScalar(state.dist).add(state.target);
+      if (orbitBlockedAt(state.target, at) === null) { camera.position.copy(at); blocked = null; break; }
+    }
+  }
   if (blocked !== null) {
     camera.position.sub(state.target).setLength(blocked).add(state.target);
     cameraPulledIn = true;
@@ -28751,8 +28946,8 @@ let searchPlacesLoaded = () => Promise.resolve();
   }
 
   function travelTo(place) {
-    // A place here is shown -- pinned, the view brought to it, and the directions to it filled in
-    // from where you are -- and the walker stays where it is.
+    // A place here is gone to: the walker is put there and the place pinned (kerbsideShowPlace).
+    // No directions: those are asked for in the From and To fields.
     if (window.kerbsideShowPlace && window.kerbsideShowPlace(place)) {
       field.value = place.label;
       showing = [];
@@ -35535,18 +35730,16 @@ if (!ATTACH) {
   window.kerbsideShowPlace = (place) => {
     const b = DATA.bbox;
     if (!(place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north)) return false;
+    // The search at the top is for going places, not for directions: the walker is taken there
+    // (outside, at the address: addressLanding) and the place is pinned. The directions are
+    // left as they were; a route is asked for only in the From and To fields under it.
     const [x, y] = xy(place.lon, place.lat);
     pin.position.set(x, walkerGroundAt(x, -y), -y);
     pinMarker.x = x; pinMarker.z = -y;
     pin.visible = true;
     gps.follow = false;
     if (state.firstPerson) setFirstPerson(false);
-    state.dist = Math.max(180, Math.min(state.dist, 450));
-    goTo(new THREE.Vector3(x, 0, -y));
-    route.stops[route.stops.length - 1] = place;
-    if (!route.stops[0]) route.stops[0] = here();
-    renderStops();
-    pinStops();
+    goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
     return true;
   };
   // A start chosen in the directions is where the walker goes: put down there, outside, as a
@@ -37640,6 +37833,7 @@ function releaseModuleScope() {
   try { boxClipCount = null; } catch (error) { /* kept */ }
   try { groundPassAt = null; } catch (error) { /* kept */ }
   try { INLAND_MASK = null; } catch (error) { /* kept */ }
+  try { STREETS_GRIDDED = null; } catch (error) { /* kept */ }
   try { WAY_LIFT = null; } catch (error) { /* kept */ }
   try { BUILDING_FOOT_PAD_M = null; } catch (error) { /* kept */ }
   try { YIELD_BUDGET_MS = null; } catch (error) { /* kept */ }
@@ -37679,6 +37873,7 @@ function releaseModuleScope() {
   try { signPlateGrid = null; } catch (error) { /* kept */ }
   try { rampGrid = null; } catch (error) { /* kept */ }
   try { ORBIT_GROUND_CLEAR_M = null; } catch (error) { /* kept */ }
+  try { ORBIT_RISE_STEP = null; } catch (error) { /* kept */ }
   try { worldCameraRay = null; } catch (error) { /* kept */ }
   try { ORBIT_WALL_GAP_M = null; } catch (error) { /* kept */ }
   try { ORBIT_TALLEST_M = null; } catch (error) { /* kept */ }
@@ -37765,6 +37960,7 @@ function releaseModuleScope() {
   try { CITY_KINDS.clear(); } catch (error) { /* kept */ }
   try { terrainTiles.length = 0; } catch (error) { /* kept */ }
   try { latticeField.clear(); } catch (error) { /* kept */ }
+  try { COVER_OFF_WATER.clear(); } catch (error) { /* kept */ }
   try { PERIMETER_FILL.length = 0; } catch (error) { /* kept */ }
   try { TILES.clear(); } catch (error) { /* kept */ }
   try { tileQueue.length = 0; } catch (error) { /* kept */ }
