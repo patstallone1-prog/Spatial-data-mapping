@@ -32,6 +32,7 @@ MONEY_KEYS = frozenset({
     "chp_fee", "minimum_wage", "pretax_per_gallon", "state_excise_per_gallon", "federal_excise_per_gallon",
     "electric_per_kwh", "peak_per_km", "offpeak_per_km", "bus_fare", "taxi_flag", "taxi_per_km", "base_pay",
     "pay_per_km", "hospital_bill", "storefront_lease_per_week", "vandalism_fine", "fee_base", "fee_per_km",
+    "bill", "battery_fine", "repair_per_point", "pay_base",
 })
 
 
@@ -68,8 +69,9 @@ def load_rules(path: Path | str | None = None) -> dict[str, Any]:
                 else:
                     walk(value)
 
-    for key in ("start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands"):
-        walk(rules[key])
+    for key in ("start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands", "harm", "tasks"):
+        if key in rules:
+            walk(rules[key])
     rules["damage"]["repair_cost"] = {k: money(v) for k, v in raw["damage"]["repair_cost"].items()}
     walk(rules["vehicles"]["models"])
     walk(rules["jobs"])

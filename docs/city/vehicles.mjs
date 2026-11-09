@@ -226,3 +226,104 @@ function build(THREE, kind) {
   result.dims = [w, h, l];
   return result;
 }
+
+// ---- the Kenney Car Kit's cars (CC0, www.kenney.nl; docs/city/models/kenney/License.txt) ----------
+//
+// The traffic's bodies: Kenney's low-poly cars, each made one geometry (its body and wheels, in
+// place), turned to face -z, and stretched to the city's own size for its kind (VEHICLE_DIMS: the
+// kit's cars are toy-short). The body's own paint (the colour most of its body is) takes each
+// car's colour; glass, lights, tyres and liveries (a taxi's yellow, a police car's) keep the
+// kit's. There is no bus in the kit: the bus is the code-built one.
+
+//: The kit's models for each kind (more than one: a car takes one by its number).
+export const KENNEY_FOR = {
+  economy: ["hatchback-sports", "sedan"], compact_ev: ["sedan-sports", "hatchback-sports"], sedan: ["sedan", "sedan-sports"], suv: ["suv", "suv-luxury"],
+  pickup: ["truck"], delivery_van: ["delivery", "van"], box_truck: ["garbage-truck"], taxi: ["taxi"], patrol: ["police"],
+  ambulance: ["ambulance"], firetruck: ["firetruck"],
+};
+//: Liveried: their colours are theirs, not repainted.
+export const KENNEY_LIVERY = new Set(["taxi", "police", "ambulance", "firetruck", "garbage-truck"]);
+export const KENNEY_DEBRIS = ["debris-bumper", "debris-door", "debris-plate-a", "debris-plate-small-a", "debris-tire", "debris-spoiler-a", "debris-bolt"];
+
+//: One kit model as a single geometry with a ``paintMask`` attribute (1 where the body's paint
+//: is), and its texture. ``dims``: [width, height, length] to stretch it to (null: as it is).
+export function kenneyGeometry(THREE, gltf, dims, name = "") {
+  const scene = gltf.scene;
+  scene.updateMatrixWorld(true);
+  const parts = [];
+  let map = null;
+  scene.traverse((o) => { if (o.isMesh) { parts.push(o); map ||= o.material?.map || null; } });
+  // The paint: the commonest texel under the body's vertices.
+  let pixels = null, pw = 0, ph = 0;
+  const img = map?.image;
+  if (img && globalThis.OffscreenCanvas) {
+    try {
+      pw = img.width; ph = img.height;
+      const cv = new OffscreenCanvas(pw, ph), g = cv.getContext("2d");
+      g.drawImage(img, 0, 0); pixels = g.getImageData(0, 0, pw, ph).data;
+    } catch { pixels = null; }
+  }
+  const texel = (u, v) => {
+    if (!pixels) return -1;
+    const x = Math.min(pw - 1, Math.max(0, Math.floor((u - Math.floor(u)) * pw))), y = Math.min(ph - 1, Math.max(0, Math.floor((v - Math.floor(v)) * ph)));
+    const i = (y * pw + x) * 4;
+    return (pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2];
+  };
+  const livery = KENNEY_LIVERY.has(name);
+  let paint = -1;
+  if (!livery) {
+    const count = new Map();
+    for (const o of parts) {
+      if (!/body/i.test(o.name) || !o.geometry.attributes.uv) continue;
+      const uv = o.geometry.attributes.uv;
+      for (let i = 0; i < uv.count; i += 1) { const k = texel(uv.getX(i), uv.getY(i)); count.set(k, (count.get(k) || 0) + 1); }
+    }
+    let best = 0;
+    for (const [k, n] of count) if (n > best && k >= 0) { best = n; paint = k; }
+  }
+  const pos = [], nor = [], uvs = [], mask = [], index = [];
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), nm = new THREE.Matrix3();
+  for (const o of parts) {
+    const g = o.geometry, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+    const base = pos.length / 3, body = /body/i.test(o.name);
+    nm.getNormalMatrix(o.matrixWorld);
+    for (let i = 0; i < P.count; i += 1) {
+      v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); pos.push(v.x, v.y, v.z);
+      if (N) { n.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor.push(n.x, n.y, n.z); } else nor.push(0, 1, 0);
+      const u = U ? U.getX(i) : 0, w = U ? U.getY(i) : 0;
+      uvs.push(u, w);
+      mask.push(body && paint >= 0 && texel(u, w) === paint ? 1 : 0);
+    }
+    if (g.index) for (let i = 0; i < g.index.count; i += 1) index.push(base + g.index.getX(i));
+    else for (let i = 0; i < P.count; i += 1) index.push(base + i);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setAttribute("paintMask", new THREE.Float32BufferAttribute(mask, 1));
+  geo.setIndex(index);
+  // The kit's cars face +z: turned to face -z, on the ground, centred, and stretched to size.
+  geo.rotateY(Math.PI);
+  geo.computeBoundingBox();
+  const b = geo.boundingBox, size = new THREE.Vector3(), mid = new THREE.Vector3();
+  b.getSize(size); b.getCenter(mid);
+  geo.translate(-mid.x, -b.min.y, -mid.z);
+  if (dims) geo.scale(dims[0] / size.x, dims[1] / size.y, dims[2] / size.z);
+  geo.computeBoundingSphere();
+  return { geometry: geo, map, livery };
+}
+//: The kit's material: its texture, the paint taking the instance colour (and only the paint).
+export function kenneyMaterial(THREE, map) {
+  const m = new THREE.MeshLambertMaterial({ map, color: 0xffffff });
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float paintMask;\nvarying float vPaint;")
+      .replace("#include <color_vertex>", "#include <color_vertex>\nvPaint = paintMask;\n#ifdef USE_INSTANCING_COLOR\nvColor.xyz = mix(vec3(1.0), instanceColor.xyz, paintMask);\n#endif");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vPaint;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9), vPaint);");
+  };
+  m.customProgramCacheKey = () => "kenney-paint-v1";
+  return m;
+}

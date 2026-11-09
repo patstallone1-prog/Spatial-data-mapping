@@ -29,7 +29,8 @@ const MONEY_KEYS = new Set(["balance", "room_rent_per_day", "standard_deduction"
   "meter_rate_per_hour", "expired_meter", "no_parking", "tow_fee", "storage_per_day", "at_100_mph", "price", "pay",
   "registration_fee", "chp_fee", "minimum_wage", "pretax_per_gallon", "state_excise_per_gallon",
   "federal_excise_per_gallon", "electric_per_kwh", "peak_per_km", "offpeak_per_km", "bus_fare", "taxi_flag", "taxi_per_km",
-  "base_pay", "pay_per_km", "hospital_bill", "storefront_lease_per_week", "vandalism_fine", "fee_base", "fee_per_km"]);
+  "base_pay", "pay_per_km", "hospital_bill", "storefront_lease_per_week", "vandalism_fine", "fee_base", "fee_per_km",
+  "bill", "battery_fine", "repair_per_point", "pay_base"]);
 
 //: The rules file, checked, with every amount in minor units and lookups built.
 export function loadRules(json) {
@@ -44,7 +45,7 @@ export function loadRules(json) {
       else walk(v);
     }
   };
-  for (const key of ["start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands"]) walk(R[key]);
+  for (const key of ["start", "tolls", "managed_lanes", "enforcement", "items", "transit", "delivery", "business", "damage", "errands", "harm", "tasks"]) if (R[key]) walk(R[key]);
   R.damage.repair_cost = Object.fromEntries(Object.entries(json.damage.repair_cost).map(([k, v]) => [k, cur.money(v)]));
   R.vitals.health.hospital_bill = cur.money(json.vitals.health.hospital_bill);
   walk(R.vehicles.models); walk(R.jobs); walk(R.taxes.income); walk(R.taxes.payroll);

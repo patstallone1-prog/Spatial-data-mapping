@@ -39,7 +39,11 @@ export function detailRequest(box, radius, focus, metres, previous=null, region=
   if(!Number.isFinite(margin))return null;
   // Metres covered while the next window builds (and a couple of seconds to fetch it).
   const ahead=Math.max(0,speed)*(Math.max(0,buildSeconds)+2);
-  const trigger=Math.max(keep,Math.min(full-40,ahead+120));
+  // The keep line inside the square: a square shrunk under it (the memory governor's, 420 m
+  // across against a 270 m keep) could never be kept, and was built again round a walker
+  // standing still, every ten seconds, for good (2026-11-08).
+  const kept=Math.min(keep,full-60);
+  const trigger=Math.max(kept,Math.min(full-40,ahead+120));
   if(radius>=full && margin>=trigger)return null;
   let dx=previous?(lon-previous[0])*kx:0,dy=previous?(lat-previous[1])*ky:0;
   const lead=Math.min(0.7*full,Math.max(minLead,ahead));

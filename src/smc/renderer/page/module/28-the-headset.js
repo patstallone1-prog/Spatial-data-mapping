@@ -71,36 +71,61 @@ function applyMetaMemoryPlan(plan) {
 //: Chrome tab is ended by the browser at about 4 GiB of script heap, and the page had been
 //: reaching 3-4.5 GiB after a few jumps -- the freezes and the crash while editing a house.
 //: Over ``aim`` the caches it can rebuild from the network (world cells, terrain tiles) are
-//: halved and trimmed, again every look while it stays over; over ``emergency`` the square
-//: round you is built again at its smallest (the window it replaces, and what only it held,
-//: goes once the new one stands); under ``restoreBelow`` the budgets come back.
-const DESKTOP_MEMORY = { aim: 2.6 * 1073741824, emergency: 3.3 * 1073741824, restoreBelow: 1.9 * 1073741824, everyMs: 4000 };
-const desktopMemory = { level: "ok", cellBytes: worldCellCache.maxBytes, tileBytes: TILE_RESIDENT_BUDGET, radius: STREAM.radius, sheds: 0 };
+//: halved and trimmed -- once on going over, and again only if the heap goes on growing; over
+//: ``emergency`` the square round you is built again smaller (the window it replaces, and what
+//: only it held, goes once the new one stands); under ``restoreBelow`` the budgets come back.
+//:
+//: It had rebuilt the square every time the heap crossed the emergency line, and the heap
+//: crosses it twice a minute in a big region (a rebuild holds two squares at once): the square
+//: went up again every half minute at the same size, each time handing the street to the grey
+//: tile tree while it stood, the living city's people dealt again with it, and the caches
+//: emptied every four seconds besides -- the flashes to grey and back, and the slowness
+//: (measured at the Marina, 2026-11-08: eleven rebuilds in two minutes standing still).
+//: Now a rebuild is only made when it makes the square smaller, at most once a minute.
+const DESKTOP_MEMORY = { aim: 2.6 * 1073741824, emergency: 3.3 * 1073741824, restoreBelow: 1.9 * 1073741824, everyMs: 4000,
+  minRadius: 150, shrink: 0.6, rebuildEveryMs: 60_000, trimGrowth: 1.12 };
+const desktopMemory = { level: "ok", cellBytes: worldCellCache.maxBytes, tileBytes: TILE_RESIDENT_BUDGET, radius: STREAM.radius, sheds: 0,
+  rebuilds: 0, lastRebuild: -Infinity, trimmedAt: 0 };
+//: What one look at the heap does (pure, for the tests): trim, rebuild smaller, restore, or nothing.
+function desktopMemoryPlan(used, M, D, { attaching = false, windowRadius = M.radius, now = 0 } = {}) {
+  if (used >= D.aim) {
+    const trim = M.level === "ok" || used > M.trimmedAt * D.trimGrowth;
+    const target = Math.max(D.minRadius, Math.round(windowRadius * D.shrink));
+    const rebuild = used >= D.emergency && !attaching && target < windowRadius - 20 && now - M.lastRebuild >= D.rebuildEveryMs;
+    return { level: used >= D.emergency ? "emergency" : "over", trim, rebuild: rebuild ? target : null };
+  }
+  if (used < D.restoreBelow && M.level !== "ok") return { level: "ok", restore: true };
+  return { level: M.level };
+}
 function desktopMemoryTick() {
   const used = performance.memory?.usedJSHeapSize;
   if (!(used > 0) || document.hidden) return;
-  const D = DESKTOP_MEMORY, M = desktopMemory;
-  if (used >= D.aim) {
+  const D = DESKTOP_MEMORY, M = desktopMemory, now = performance.now();
+  const windowRadius = activeGuest?.detailRadius || BUILD_WINDOW?.radius || STREAM.radius;
+  const plan = desktopMemoryPlan(used, M, D, { attaching: Boolean(attaching), windowRadius, now });
+  if (plan.trim) {
     worldCellCache.maxBytes = Math.max(32 * 1048576, Math.round(worldCellCache.maxBytes / 2));
     worldCellCache.evict();
     TILE_RESIDENT_BUDGET = Math.max(16 * 1048576, Math.round(TILE_RESIDENT_BUDGET / 2));
     evictTiles();
-    M.sheds += 1;
-    const emergency = used >= D.emergency && M.level !== "emergency" && !attaching;
-    M.level = used >= D.emergency ? "emergency" : "over";
-    if (emergency) {
-      STREAM.radius = Math.max(150, Math.round(M.radius * 0.6));
-      const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
-      const region = regionAt(lon, lat);
-      if (region) attachRegion(region, { lon, lat }, STREAM.radius, true);
-    }
-    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${M.level}: caches trimmed`);
-  } else if (used < D.restoreBelow && M.level !== "ok") {
+    M.sheds += 1; M.trimmedAt = used;
+    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${plan.level}: caches trimmed`);
+  }
+  if (plan.rebuild) {
+    STREAM.radius = plan.rebuild;
+    M.rebuilds += 1; M.lastRebuild = now;
+    const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;
+    const region = regionAt(lon, lat);
+    if (region) attachRegion(region, { lon, lat }, STREAM.radius, true);
+    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB: the square round you built again at ${2 * STREAM.radius} m`);
+  }
+  if (plan.restore) {
     worldCellCache.maxBytes = M.cellBytes;
     TILE_RESIDENT_BUDGET = M.tileBytes;
     STREAM.radius = M.radius;
-    M.level = "ok";
+    M.trimmedAt = 0;
   }
+  M.level = plan.level;
 }
 window.kerbsideMemory = () => ({ ...desktopMemory, heap: performance.memory?.usedJSHeapSize || null, limits: DESKTOP_MEMORY });
 if (!META && !ATTACH && performance.memory) setInterval(desktopMemoryTick, DESKTOP_MEMORY.everyMs);

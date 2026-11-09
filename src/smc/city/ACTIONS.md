@@ -61,16 +61,33 @@ The people and the traffic are out in both modes.
 | Esc | Close a window; inside a shop, leave it (or walk out of the front) | inside a shop ("Leave the shop") |
 | G | Pick up what lies at your feet (it has a yellow ring) | within 3 m of something |
 | I | Your things: in your hands, bag (hold, use, wear, put down, give), vehicles, homes, money | always ("Bag") |
-| X | Strike what is in front of you with what is in your hands (fists if nothing) | a breakable thing within 2.4 m |
+| X | Strike what is in front of you with what is in your hands (fists if nothing): a thing, a tree (in the Presidio, a dead tree for the forestry task), or a person. A person may run or hit back; striking one is battery (a citation) | a breakable thing or a person within 2.4 m ("Hit: name") |
 | C | Get in or out of your car (parking where you stop); ride with a party member; take a car (theft, after a confirm) | beside your car, or driving |
 | T | At a stop, board the route bus standing there; on board, ask for the next stop; elsewhere, call a taxi to where you stand and choose where to | a bus at the stop, your taxi at the kerb, or always ("Call a taxi" / "Bus stop") |
 | J | Clock in or out | at your workplace, or at work |
 | V | Do the task in front of you on a shift (the orange ring) | on shift, with a task |
 | K | Neighbours' errands: take one; at their door, hand the shopping over | always; at the address |
-| D | Take a delivery gig at a shop; hand the parcel over at the address | at a shop that sends deliveries, or at the address |
+| D | Take a delivery gig at a shop; for a courier task, pick up the order at the shop; hand the parcel over at the address | at a shop that sends deliveries, at the courier pickup ("Pick up the order"), or at the address |
+| Q | The task board: take a task (courier: go to X, pick it up, deliver it to Y; Presidio forestry: buy an axe, fell three dead trees; the Marina walk: four stops). With a task, its steps and Cancel. The task's next step is in the tracker at the top, with an arrow and the distance | always ("Tasks") |
+| U | The online store: anything sold in the city, bought from anywhere at twice the shop price, straight into your bag | always ("Store") |
+| L | Look at the person or car in front of you: who or whose it is, health or condition, injuries, and its day so far (where it came from and how) | someone or a car within 12 m ("Look: name" / "Look: plate") |
 | O | Homes for sale and to rent this week | — |
 | Z | Rest; at home, sleep; walk on to get up | always |
 | H or ? | The controls and what the bars mean | always ("Controls") |
+
+## Traffic, collisions and injuries
+
+* The city's drivers keep the law: the limit for the street, stop signs at junctions of
+  residential streets, lights where an arterial crosses, distance to the car ahead. They brake
+  for anyone in the road, hard if they must.
+* Between the city's own people nobody is run down: a driver too close to a walker stops dead.
+* You can break the rules. Step out in front of a car and it brakes; if it cannot stop, it hits
+  you. Drive into someone or into a car and that is a collision too.
+* A hit is shown: the car stops with a jolt, parts fall in the road, the person is thrown and
+  lies down for over a minute. The speed sets the injury (a bruise to a broken pelvis, by
+  band) and the health lost. Cars take damage by speed: dented, then broken (in the body
+  shop, not drivable, until repaired).
+* Injuries are listed under You in the City panel. Their effects come in a later update.
 
 ## The bars: health, stamina, strength
 

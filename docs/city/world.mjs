@@ -17,6 +17,7 @@ import {
 } from "./core.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
+import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -46,6 +47,7 @@ export class CityWorld {
     this.items = new Map(); this.found = new Set();   // things on the ground; found things already picked up
     this.damage = new Map();                           // things struck: how much they have taken, and broken ones
     this.market = { taken: new Set() };                // homes bought or let off the market
+    this.harm = new Map();                             // people hurt and cars damaged: the city's residents', and what became of them
     this.seq = 0; this.lastStep = now;
     for (const id of Object.keys(AUTHORITIES)) this.ledger.open(id, "authority");
     for (const c of R.jurisdictions.cities) this.ledger.open(`treasury:${c.id}`, "treasury");
@@ -97,7 +99,7 @@ export class CityWorld {
     const p = { id: pid, name, account, joined: this.now, resident_since: this.now, home: null, job: null, clocked: null,
       ytd: { year: this.time.year, wages: 0, withheld: 0 }, fastrak: null, driving: null, parked: {}, ...pick(at, ["x", "z", "lon", "lat", "county"]),
       vitals: newVitals(this.R, this.now), inventory: {}, worn: {}, resting: false, seen: this.now, delivery: null, ride: null, fainted: null, rx: 0,
-      hands: null, errand: null, mortgages: [], lease: null };
+      hands: null, errand: null, mortgages: [], lease: null, injuries: [], task: null };
     this.players.set(pid, p);
     if (home) {
       // A room in the building you start beside, its first week free (rent after: rent_due).
@@ -410,6 +412,7 @@ export class CityWorld {
     const p = this.player(pid);
     const d = p.delivery;
     if (!d) throw new CityError("no delivery to make");
+    if (d.stage === "pickup") throw new CityError(`pick the order up at ${d.from.name || "the shop"} first`);
     if (Math.hypot((p.x ?? 1e9) - d.to.x, (p.z ?? 1e9) - d.to.z) > this.R.delivery.reach_m) throw new CityError("this is not the address");
     const late = this.now > d.due;
     const pay = late ? Math.round(d.pay / 2) : d.pay;
@@ -418,13 +421,15 @@ export class CityWorld {
     this.ledger.transfer(shop, p.account, pay, { kind: "gig", memo: `Delivery to ${d.to.name || "an address"}${late ? " (late)" : ""}`, at: this.now });
     take(p.inventory, "parcel", 1);
     p.delivery = null;
+    if (d.task && p.task?.id === d.task) p.task = null;
     this.log("delivered", { player: pid, pay, late });
     return { pay, late, balance: this.ledger.balance(p.account) };
   }
   cmd_cancel_delivery(pid) {
     const p = this.player(pid);
     if (!p.delivery) throw new CityError("no delivery to cancel");
-    take(p.inventory, "parcel", 1);
+    if (p.delivery.stage !== "pickup") take(p.inventory, "parcel", 1);
+    if (p.task?.id === p.delivery.task) p.task = null;
     p.delivery = null;
     return {};
   }
@@ -507,6 +512,7 @@ export class CityWorld {
     if (a.custody === "impounded") throw new CityError("it is impounded: pay the tow and storage to release it");
     if (a.holder !== p.account) throw new CityError("not yours to drive");
     if (a.attrs.registered_until && a.attrs.registered_until < this.now) throw new CityError("its registration has run out");
+    if (a.attrs.in_shop_until > this.now) throw new CityError(`it is in the body shop until ${new Date(a.attrs.in_shop_until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
     p.driving = { vehicle, since: this.now, km: 0 };
     delete p.parked[vehicle];
     return { driving: p.driving, model: a.attrs.model, plate: a.attrs.plate };
@@ -731,11 +737,16 @@ export class CityWorld {
   //: energy. Breaking what is not yours, seen, is vandalism: a fine and the repair.
   cmd_strike(pid, { target, energy = null, witnesses = 0 }) {
     const p = this.player(pid);
-    const spec = this.R.objects?.[target?.archetype] || target?.spec;
+    let spec = this.R.objects?.[target?.archetype] || target?.spec;
     if (!target?.key || !spec?.break_j) throw new CityError("nothing there that breaks");
     if (p.x !== undefined && Math.hypot(p.x - target.x, p.z - target.z) > (energy ? 9 : this.R.tools.reach_m * 2)) throw new CityError("out of reach");
     const prior = this.damage.get(target.key);
     if (prior?.broken) throw new CityError("it is broken already");
+    // The Presidio's dead trees, felled for the forestry task: a dry pole, and no vandalism.
+    const F = this.R.tasks?.forestry, box = F?.area.bbox;
+    const forestry = p.task?.kind === "forestry" && String(target.archetype).startsWith("vegetation.tree") && box
+      && p.lat >= box[0] && p.lat <= box[2] && p.lon >= box[1] && p.lon <= box[3];
+    if (forestry) { spec = { ...spec, break_j: F.dead_tree_break_j, name: "Dead tree" }; target = { ...target, own: true }; }
     let tool = "fists", joules;
     if (energy) {
       const v = p.driving ? this.registry.get(p.driving.vehicle) : null;
@@ -779,11 +790,255 @@ export class CityWorld {
         out.fine = fine.amount; out.restitution = cost;
       }
       this.log("broken", { player: pid, key: target.key, archetype: target.archetype, tool });
+      if (forestry && !p.task.felled.includes(target.key)) {
+        p.task.felled.push(target.key); p.task.progress = p.task.felled.length;
+        out.task = { felled: p.task.felled.length, need: p.task.need };
+        if (p.task.felled.length >= p.task.need) out.task = { ...out.task, ...this.payTask(p) };
+      }
     }
     if (p.vitals.health <= 0) this.faint(p, "injury");
     return out;
   }
 
+
+  // ---- hurt and broken ------------------------------------------------------------------------------
+  //: The record of a resident or a car of the city's that has come to harm (made on first harm).
+  harmed(id, kind, name = null) {
+    let h = this.harm.get(id);
+    if (!h) {
+      h = kind === "vehicle" ? { id, kind, name, condition: 100, state: "fine", history: [] } : { id, kind, name, health: this.R.harm.npc_health, injuries: [], history: [] };
+      this.harm.set(id, h);
+      if (this.harm.size > 4000) {
+        // The longest mended go first.
+        const old = [...this.harm.values()].filter((x) => (x.out_until || 0) < this.now - DAY && x !== h).sort((a, b) => (a.last || 0) - (b.last || 0))[0];
+        if (old) this.harm.delete(old.id);
+      }
+    }
+    h.last = this.now;
+    return h;
+  }
+  note(h, text) { h.history.push({ t: this.now, text }); if (h.history.length > 30) h.history.shift(); }
+  //: Someone hurt: so much health gone, the injury recorded, down where they fell for a minute or
+  //: so, then in hospital, then home until mended -- by how bad it is.
+  hurtPerson(h, injury, at, cause) {
+    const H = this.R.harm;
+    h.health = Math.max(0, h.health - injury.health);
+    h.injuries.push({ type: injury.type, severity: injury.severity, at: this.now, cause });
+    if (h.injuries.length > 12) h.injuries.shift();
+    const serious = injury.hospital_h > 0 || h.health <= 0;
+    if (serious || injury.severity >= 2) {
+      h.down_until = this.now + H.down_s * 1000; h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
+      const hospital = (h.health <= 0 ? Math.max(48, injury.hospital_h) : injury.hospital_h) * 3_600_000;
+      h.out_until = h.down_until + hospital + injury.recover_h * 3_600_000;
+      h.hospital_until = h.down_until + hospital;
+      h.state = hospital ? "hospital" : "recovering";
+    }
+    if (h.health <= 0) h.health = 30;
+    this.note(h, `${cause}: ${injury.type}${injury.hospital_h ? `, taken to hospital` : ""}`);
+  }
+  //: A car of the city's damaged: its condition down by the impact; broken or wrecked, it stays
+  //: where it stopped until towed, and is in the body shop a day.
+  damageVehicle(h, speed, at, cause) {
+    const V = this.R.harm.vehicle;
+    const d = vehicleDamage(this.R, h.condition, speed);
+    h.condition = d.condition; h.state = d.state;
+    if (d.state === "broken" || d.state === "wrecked") {
+      h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
+      h.tow_at = this.now + V.tow_after_min * 60_000;
+      h.out_until = h.tow_at + V.repair_hours * 3_600_000;
+    }
+    this.note(h, `${cause}: ${d.loss}% damage, ${d.state}`);
+    return d;
+  }
+  //: A blow to someone: hurt by the energy of it; they hit back, run, or (a police officer)
+  //: arrest you; seen, or reported by them, it is a battery.
+  cmd_strike_person(pid, { npc, witnesses = 0 }) {
+    const p = this.player(pid);
+    if (!npc?.id) throw new CityError("nobody there");
+    if (p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
+    const held = p.hands && p.inventory[p.hands] > 0 ? this.R.items[p.hands] : null;
+    const tool = held?.strike || "fists";
+    const spec = this.R.tools.kinds[tool] || this.R.tools.kinds.fists;
+    const [lo, hi] = this.R.tools.strength_scale;
+    const joules = spec.energy_j * (lo + (hi - lo) * Math.max(0, Math.min(100, p.vitals.strength)) / 100);
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.4 + spec.energy_j / 400)) };
+    const h = this.harmed(npc.id, "person", npc.name || null);
+    if (h.down_until > this.now) throw new CityError("they are down already");
+    const injury = injuryFor(this.R, { joules, seed: `${npc.id}:${this.now}` });
+    this.hurtPerson(h, injury, npc, `struck by ${p.name}${tool === "fists" ? "" : ` with a ${this.R.items[p.hands]?.name.toLowerCase() || tool}`}`);
+    const down = h.down_until > this.now;
+    const r = rng(npc.id, this.now, "response");
+    let response = down ? "down" : "flee", hurt = 0;
+    if (npc.role === "police") response = "arrest";
+    else if (!down && r() < this.R.harm.retaliate_chance) {
+      response = "hit back";
+      const [a, b] = this.R.harm.retaliate_health;
+      hurt = Math.round(a + r() * (b - a));
+      p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - hurt) };
+      const mine = injuryFor(this.R, { joules: 30 + hurt * 4, seed: `${pid}:${this.now}` });
+      p.injuries.push({ type: mine.type, severity: mine.severity, at: this.now, cause: `hit back by ${npc.name || "them"}` });
+    }
+    // Seen, reported by them, or a police officer: a battery citation, and the bill for their care.
+    let fine = 0, restitution = 0;
+    if (witnesses > 0 || response !== "down" || npc.role === "police") {
+      fine = this.fine(p, "battery", `Battery on ${npc.name || "a resident"}`, [npc.role === "police" ? "the arresting officer" : witnesses ? `${witnesses} witness${witnesses > 1 ? "es" : ""}` : "the victim's report"], `battery:${npc.id}:${Math.floor(this.now / 60000)}`).amount;
+      if (injury.bill) { restitution = injury.bill; this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "restitution", amount: injury.bill, memo: `Care for ${npc.name || "a resident"}: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }); }
+    }
+    if (p.vitals.health <= 0) this.faint(p, "a fight");
+    this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, response });
+    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, vitals: p.vitals };
+  }
+  //: A collision on the street. ``kind``: "hit_by_car" (a car of the city's hit you), "hit_person"
+  //: (your car hit someone), "hit_vehicle" (your car and one of the city's). ``speed``: the
+  //: impact in m/s; ``other``: the speed of the other car, for who was at fault.
+  cmd_collision(pid, { kind, speed = 0, npc = null, vehicle = null, other = 0, at = {} }) {
+    const p = this.player(pid);
+    speed = Math.max(0, Math.min(45, Number(speed) || 0));
+    const place = { x: npc?.x ?? vehicle?.x ?? p.x, z: npc?.z ?? vehicle?.z ?? p.z, yaw: vehicle?.yaw ?? npc?.yaw ?? 0 };
+    const out = { kind, speed };
+    const mine = p.driving ? this.registry.get(p.driving.vehicle) : null;
+    const damageMine = (v) => {
+      if (!mine) return null;
+      const d = vehicleDamage(this.R, mine.attrs.condition ?? 100, v);
+      mine.attrs.condition = d.condition; mine.attrs.state = d.state;
+      if (d.state === "wrecked" && !(mine.attrs.in_shop_until > this.now)) {
+        mine.attrs.in_shop_until = this.now + this.R.harm.vehicle.repair_hours * 3_600_000;
+        this.billing.issue({ payer: p.account, payee: "business:dealership", kind: "repair", amount: Math.round((100 - d.condition) * this.R.harm.vehicle.repair_per_point),
+          memo: `Body shop: ${mine.attrs.plate}`, at: this.now, due_days: 14, penalties: [] });
+      }
+      return d;
+    };
+    if (kind === "hit_by_car") {
+      const injury = injuryFor(this.R, { speed, seed: `${pid}:${this.now}` });
+      p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - Math.min(95, injury.health)) };
+      p.injuries.push({ type: injury.type, severity: injury.severity, at: this.now, cause: `hit by a car at ${Math.round(speed * 2.237)} mph` });
+      if (vehicle?.id) { const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null); out.vehicle = this.damageVehicle(h, speed * 0.35, place, `hit ${p.name}`); }
+      out.injury = injury; out.paid_by = "the driver's insurer";
+      if (p.vitals.health <= 0) out.bill = this.faint(p, "hit by a car").amount;
+    } else if (kind === "hit_person") {
+      if (!npc?.id) throw new CityError("nobody hit");
+      const h = this.harmed(npc.id, "person", npc.name || null);
+      const injury = injuryFor(this.R, { speed, seed: `${npc.id}:${this.now}` });
+      this.hurtPerson(h, injury, place, `hit by ${p.name}'s car at ${Math.round(speed * 2.237)} mph`);
+      out.injury = injury; out.mine = damageMine(speed * 0.3);
+      if (injury.bill) out.bill = this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "liability", amount: injury.bill,
+        memo: `${npc.name || "A pedestrian"}'s care: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }).amount;
+    } else if (kind === "hit_vehicle") {
+      if (!vehicle?.id) throw new CityError("no car hit");
+      const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null);
+      out.vehicle = this.damageVehicle(h, speed, place, `hit by ${p.name}'s car`);
+      out.mine = damageMine(speed);
+      const H = this.R.harm;
+      const loss = Math.round(Math.max(0, speed - this.R.vitals.health.crash_over_ms) * H.driver_crash_health_per_ms);
+      if (loss) {
+        p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - loss) };
+        const injury = injuryFor(this.R, { speed: speed * 0.5, seed: `${pid}:${this.now}` });
+        if (injury.severity >= 2) p.injuries.push({ type: injury.type, severity: injury.severity, at: this.now, cause: "a car crash" });
+        out.hurt = loss;
+      }
+      if (vehicle.driver && speed * 0.5 >= 2.5) {
+        const dh = this.harmed(vehicle.driver, "person", vehicle.driverName || null);
+        const di = injuryFor(this.R, { speed: speed * 0.5, seed: `${vehicle.driver}:${this.now}` });
+        dh.injuries.push({ type: di.type, severity: di.severity, at: this.now, cause: "a car crash" }); this.note(dh, `in a crash: ${di.type}`);
+        out.driverInjury = di;
+      }
+      // At fault: the faster of the two (a parked or stopped car never is).
+      if (speed > 0.5 && Number(other) < speed) {
+        const cost = Math.round(out.vehicle.loss * H.vehicle.repair_per_point);
+        if (cost) out.bill = this.billing.issue({ payer: p.account, payee: "business:dealership", kind: "liability", amount: cost,
+          memo: `Repair of ${vehicle.plate || "a car"} (${out.vehicle.state})`, at: this.now, due_days: 30, penalties: [Math.round(cost * 0.1)] }).amount;
+      }
+      if (p.vitals.health <= 0) this.faint(p, "a car crash");
+    } else throw new CityError("no such collision");
+    this.log("collision", { player: pid, kind, speed });
+    return { ...out, vitals: p.vitals, injuries: p.injuries.slice(-3) };
+  }
+  //: The online store: anything a shop in the city sells, brought to you wherever you are, at
+  //: twice the shop price (rules.json online_store).
+  cmd_buy_online(pid, { item, qty = 1 }) {
+    const S = this.R.online_store, spec = this.R.items[item];
+    if (!spec || spec.parcel || spec.service || S.exclude_needs.includes(spec.needs)) throw new CityError(`${spec?.name || item} is not sold online`);
+    if (!Object.values(this.R.stores.kinds).some((k) => k.items?.includes(item))) throw new CityError(`no shop in the city sells ${spec.name.toLowerCase()}`);
+    const p = this.player(pid);
+    qty = Math.max(1, Math.min(20, qty | 0));
+    const c = this.carry(p);
+    if (c.kg + (spec.kg || 0) * qty > c.capacity) throw new CityError(`too heavy to carry: ${c.kg} of ${c.capacity} kg already`);
+    const here = this.where(p);
+    const price = Math.round(spec.price * S.markup * qty * 100) / 100;
+    const tax = itemTax(this.R, here.chain, spec, price, this.laws);
+    const shop = this.ledger.open(S.payee, "business");
+    this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
+      { kind: "purchase", memo: `Online: ${qty > 1 ? qty + " x " : ""}${spec.name}`, at: this.now });
+    p.inventory[item] = (p.inventory[item] || 0) + qty;
+    this.log("purchase", { player: pid, item, qty, price, store: "online" });
+    return { item, qty, price, tax, store: "Online store", carry: this.carry(p) };
+  }
+  // ---- the task board -------------------------------------------------------------------------------
+  //: Taking a task off the board (one at a time). The board's offers are made in the viewer from
+  //: the district (a courier's pickup and drop-off, the Presidio's dead trees, the Marina walk);
+  //: the pay is held to the rules'.
+  cmd_take_task(pid, { task }) {
+    const p = this.player(pid), T = this.R.tasks;
+    if (p.task) throw new CityError("finish or drop the task you have first");
+    if (!task?.kind || !T[task.kind]) throw new CityError("no such task");
+    const t = { id: this.id("task"), kind: task.kind, title: String(task.title || T[task.kind].name || task.kind).slice(0, 120), taken: this.now, progress: 0 };
+    if (task.kind === "courier") {
+      if (p.delivery) throw new CityError("finish the delivery you have first");
+      const C = T.courier, from = task.from, to = task.to;
+      if (!from?.id || !to?.id || from.x === undefined || to.x === undefined) throw new CityError("no pickup or address");
+      const km = (Math.hypot(from.x - (p.x ?? from.x), from.z - (p.z ?? from.z)) + Math.hypot(to.x - from.x, to.z - from.z)) / 1000;
+      t.pay = C.pay_base + Math.round(C.pay_per_km * Math.min(4, km));
+      p.delivery = { id: this.id("delivery"), stage: "pickup", task: t.id, from: { id: from.id, name: from.name || null, x: from.x, z: from.z },
+        to: { id: to.id, name: to.name || null, x: to.x, z: to.z }, km, pay: t.pay, taken: this.now, due: this.now + (C.minutes + C.minutes_per_km * km) * 60_000 };
+      t.steps = [`Pick up the order at ${from.name || "the shop"}`, `Deliver it to ${to.name || "the address"}`];
+    } else if (task.kind === "forestry") {
+      t.pay = T.forestry.pay; t.need = T.forestry.trees; t.felled = []; t.steps = [`Get an axe or a saw (a hardware store, or the online store)`, `Go to ${T.forestry.area.name}`, `Fell ${T.forestry.trees} dead trees there`];
+    } else if (task.kind === "sightseeing") {
+      t.pay = T.sightseeing.pay; t.visited = []; t.steps = T.sightseeing.stops.map((s) => `Visit ${s.name}`);
+    } else throw new CityError("no such task");
+    p.task = t;
+    return { task: t, delivery: p.delivery };
+  }
+  cmd_cancel_task(pid) {
+    const p = this.player(pid);
+    if (!p.task) throw new CityError("no task");
+    if (p.task.kind === "courier" && p.delivery?.task === p.task.id) { if (p.delivery.stage === "carry") take(p.inventory, "parcel", 1); p.delivery = null; }
+    p.task = null;
+    return {};
+  }
+  //: The courier's pickup: the order handed over at the shop.
+  cmd_collect_delivery(pid) {
+    const p = this.player(pid), d = p.delivery;
+    if (!d || d.stage !== "pickup") throw new CityError("nothing to pick up");
+    if (Math.hypot((p.x ?? 1e9) - d.from.x, (p.z ?? 1e9) - d.from.z) > this.R.tasks.courier.reach_m) throw new CityError("this is not the shop");
+    const c = this.carry(p);
+    if (c.kg + this.R.items.parcel.kg > c.capacity) throw new CityError("you cannot carry the order: put something down");
+    d.stage = "carry";
+    p.inventory.parcel = (p.inventory.parcel || 0) + 1;
+    if (p.task?.id === d.task) p.task.progress = 1;
+    return { delivery: d };
+  }
+  //: A stop on the Marina walk reached.
+  cmd_task_visit(pid, { stop }) {
+    const p = this.player(pid), t = p.task, S = this.R.tasks.sightseeing;
+    if (t?.kind !== "sightseeing") throw new CityError("not on the walk");
+    const s = S.stops[stop | 0];
+    if (!s) throw new CityError("no such stop");
+    const m = Math.hypot(((p.lon ?? 0) - s.at[1]) * 88_000, ((p.lat ?? 0) - s.at[0]) * 111_000);
+    if (m > S.reach_m * 1.5) throw new CityError(`${s.name} is ${Math.round(m)} m away`);
+    if (!t.visited.includes(stop | 0)) t.visited.push(stop | 0);
+    t.progress = t.visited.length;
+    if (t.visited.length >= S.stops.length) return { ...this.payTask(p), visited: t.visited };
+    return { visited: t.visited, task: t };
+  }
+  payTask(p) {
+    const t = p.task, payer = this.ledger.open(`business:task:${t.kind}`, "business");
+    this.ledger.mint(payer, t.pay, "npc_income", { at: this.now, memo: t.title });
+    this.ledger.transfer(payer, p.account, t.pay, { kind: "gig", memo: t.title, at: this.now });
+    this.log("task_done", { player: p.id, kind: t.kind, pay: t.pay });
+    p.task = null;
+    return { done: true, pay: t.pay, title: t.title, balance: this.ledger.balance(p.account) };
+  }
   // ---- a shift's work ------------------------------------------------------------------------------
   //: The task in front of you started (you are at its spot) and finished (after its time there).
   cmd_task(pid, { done = false }) {
@@ -1103,7 +1358,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] } };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, harm: [...this.harm.values()] };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1119,11 +1374,13 @@ export class CityWorld {
     w.found = new Set(o.found || []);
     w.damage = new Map((o.damage || []).map((d) => [d.key, d]));
     w.market = { taken: new Set(o.market?.taken || []) };
+    w.harm = new Map((o.harm || []).map((h) => [h.id, h]));
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);
       if (!p.inventory) { p.inventory = {}; for (const [k, n] of Object.entries(p.goods || {})) if (R.items[k]) p.inventory[k] = n; delete p.goods; }
       p.worn = p.worn || {};
+      p.injuries = p.injuries || [];
     }
     return w;
   }
@@ -1141,7 +1398,8 @@ const COMMANDS = new Set(["join", "import", "status", "take_job", "quit_job", "c
   "buy_vehicle", "offer", "accept", "decline", "return", "take", "drive", "park", "pay_meter", "refuel", "get_fastrak", "set_flex",
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
-  "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home"]);
+  "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
+  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit"]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }

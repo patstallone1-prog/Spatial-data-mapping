@@ -295,3 +295,37 @@ def test_a_jump_across_the_map_is_not_led_along():
     # A click that moves the walker is not a heading: the square is built round where they land.
     js = _page_js()
     assert "const previous=ahead ? [2*lon-ahead[0],2*lat-ahead[1]] : moved<60 ? detailPreviousFocus : null;" in js
+
+
+def test_a_square_shrunk_under_the_keep_line_is_not_rebuilt_round_a_walker_standing_still():
+    # The desktop memory governor builds the square again at 420 m (radius 210) against a 270 m
+    # keep: it had been rebuilt every ten seconds round a walker who never moved (2026-11-08).
+    result = run("""
+      import {detailRequest} from './docs/world-streaming.mjs';
+      const metres=[1,1],region=[-5000,-5000,5000,5000],opts={radius:210,arrival:220,keep:270,lead:80};
+      console.log(JSON.stringify([
+        detailRequest([-210,-210,210,210],210,[0,0],metres,null,region,opts),
+        detailRequest([-210,-210,210,210],210,[120,0],metres,[119,0],region,opts)]));
+    """)
+    standing, walked_on = result
+    assert standing is None
+    assert walked_on is not None and walked_on["radius"] == 210
+
+
+def test_the_desktop_memory_governor_rebuilds_only_to_shrink_and_at_most_once_a_minute():
+    function = _extract("desktopMemoryPlan", _page_js())
+    result = run(function + """
+      const G=1073741824,D={aim:2.6*G,emergency:3.3*G,restoreBelow:1.9*G,minRadius:150,shrink:0.6,rebuildEveryMs:60000,trimGrowth:1.12};
+      const M={level:"ok",lastRebuild:-Infinity,trimmedAt:0};
+      const first=desktopMemoryPlan(3.5*G,M,D,{windowRadius:350,now:1000});
+      Object.assign(M,{level:first.level,lastRebuild:1000,trimmedAt:3.5*G});
+      const again=desktopMemoryPlan(3.6*G,M,D,{windowRadius:210,now:20000});
+      const later=desktopMemoryPlan(3.6*G,M,D,{windowRadius:210,now:90000});
+      const grew=desktopMemoryPlan(4.1*G,M,D,{windowRadius:210,now:90000});
+      console.log(JSON.stringify({first,again,later,grew}));
+    """)
+    assert result["first"] == {"level": "emergency", "trim": True, "rebuild": 210}
+    # Already at the smaller square: no rebuild at the same size, and no trim until it grows on.
+    assert result["again"]["rebuild"] is None and result["again"]["trim"] is False
+    assert result["later"]["rebuild"] == 150
+    assert result["grew"]["trim"] is True

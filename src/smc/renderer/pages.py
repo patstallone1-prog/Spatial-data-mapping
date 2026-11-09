@@ -146,7 +146,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
                          docs / "forest-floor.mjs", docs / "globe.mjs", docs / "teleport-map.mjs",
                          docs / "object-catalogue.mjs", docs / "object-catalogue.json", docs / "exterior-editor.mjs", docs / "multiplayer.mjs",
                          docs / "kerbside-account.mjs", docs / "home-lobby.mjs",
-                         *sorted((docs / "city").glob("*")), docs / "managed-lanes.json",
+                         *sorted(path for path in (docs / "city").rglob("*") if path.is_file()), docs / "managed-lanes.json",
                          *sorted((docs / "inferred-interiors").glob("*.mjs")),
                          docs / "inferred-interiors/map-overlay.json",
                          docs / "inferred-restaurants/map-overlay.json",
@@ -188,7 +188,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
                    docs / "sky-clock.mjs", docs / "sky-history.mjs", docs / "foliage-motion.mjs", docs / "municipal-context.manifest.json"]
     app_assets += sorted((docs / "municipal").glob("*.json"))
     # The living city's modules and rules, and the lanes it charges for (docs/city/view.mjs).
-    app_assets += [*sorted((docs / "city").glob("*")), docs / "managed-lanes.json"]
+    app_assets += [*sorted(path for path in (docs / "city").rglob("*") if path.is_file()), docs / "managed-lanes.json"]
     app_assets += [docs / "billboard-creatives.json"] if (docs / "billboard-creatives.json").exists() else []
     app_assets += sorted((docs / "billboards").glob("*"))
     app_assets += sorted(path for directory in ("interior-assets", "inferred-interiors", "inferred-restaurants", "materials", "vendor")

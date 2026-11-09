@@ -745,7 +745,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
       for(let r=Math.floor(y0/8);r<=Math.floor(y1/8);r++)for(let c=Math.floor(x0/8);c<=Math.floor(x1/8);c++){const key=`${c}:${r}`;
         if(!floorTrees.has(key)){const a=acceptedTree(c,r,(x,y)=>atlas.ecologicalSample(x,y),blocked,candidateCache);
           floorTrees.set(key,a&&{x:a.x,y:a.y,radius:a.radius,height:a.height,species:a.species,forest:atlas.ecologicalSample(a.x,a.y)?.habitat?.forest||0});}
-        const t=floorTrees.get(key);if(t)out.push(t);}
+        const t=floorTrees.get(key);if(t&&!felled.has(`tree:${key}`))out.push(t);}
       return out;}};
   const scansReady=forestFloor&&loadModel?forestFloor.loadScanLibrary(THREE,{loadModel,resolve:atlas.resolve}).then(library=>{
     scans=library;midGrassMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.95,envMapIntensity:.4});
@@ -785,6 +785,8 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     return false;
   }
+  //: Trees felled (the living city's axe): left out of their plant tile, which is planted again.
+  const felled=new Set();
   const PLANT_TILE_M=200,candidateCache=new Map(),upAxis=new THREE.Vector3(0,1,0),slopeNormal=new THREE.Vector3(),slopeQ=new THREE.Quaternion(),yawQ=new THREE.Quaternion();
   //: A flat card laid on the ground's own slope at (x, y), turned by `turn` about the normal.
   function groundQuaternion(x,y,turn){
@@ -802,7 +804,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     for(let r=Math.floor(y0/8);r<Math.floor((y0+PLANT_TILE_M)/8);r++)for(let c=Math.floor(x0/8);c<Math.floor((x0+PLANT_TILE_M)/8);c++){
       if(performance.now()-yieldAt>NATURE_SLICE_MS){await nextTask();yieldAt=performance.now();}
       const a=acceptedTree(c,r,(x,y)=>atlas.ecologicalSample(x,y),blocked,candidateCache);
-      if(a){const s=surface(a.x,a.y),h=a.height,R=a.radius,turn=hash2(c,r,41)*Math.PI*2;
+      if(a&&!felled.has(a.id)){const s=surface(a.x,a.y),h=a.height,R=a.radius,turn=hash2(c,r,41)*Math.PI*2;
         const key=`${a.species}:${hash2(c,r,47)>.5?1:0}`;
         if(!trees.has(key))trees.set(key,[]);
         trees.get(key).push({p:[s.p[0],s.height,s.p[1]],scale:[R,h,R],turn,shade:.85+hash2(c,r,43)*.3});
@@ -1137,7 +1139,27 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     }
     return {y:s.height,kind:'terrain',water:s.water};
   }
-  return {world,terrain,stats,update,blocked,groundInfoAt,
+  //: The landscape's own trees within ``reach`` of page point (x, z) (the same accepted trees
+  //: it plants), nearest first: their ids, page positions, crowns and heights.
+  function treesNear(x,z,reach=6){
+    const [ax,ay]=atlas.local(...fromPage(x,z)),out=[];
+    for(let r=Math.floor((ay-reach)/8);r<=Math.floor((ay+reach)/8);r++)for(let c=Math.floor((ax-reach)/8);c<=Math.floor((ax+reach)/8);c++){
+      const a=acceptedTree(c,r,(px,py)=>atlas.ecologicalSample(px,py),blocked,candidateCache);
+      if(!a||felled.has(a.id))continue;const g=surface(a.x,a.y);if(!g)continue;
+      const d=Math.hypot(a.x-ax,a.y-ay);if(d<=reach)out.push({id:a.id,x:g.p[0],z:g.p[1],y:g.height,radius:a.radius,height:a.height,species:a.species,d});}
+    return out.sort((p,q)=>p.d-q.d);
+  }
+  //: Fell a tree: gone from its tile (planted again without it) and from the forest floor.
+  async function fell(ids){
+    const tiles=new Set();
+    for(const id of [].concat(ids)){if(felled.has(id))continue;felled.add(id);const [,c,r]=String(id).split(':').map(Number);
+      if(Number.isFinite(c))tiles.add(`${Math.floor((c+.5)*8/PLANT_TILE_M)}:${Math.floor((r+.5)*8/PLANT_TILE_M)}`);}
+    for(const key of tiles){if(!plantGroups.has(key))continue;const [tx,ty]=key.split(':').map(Number);
+      const next=await plants(tx,ty),old=plantGroups.get(key);if(old)drop(old);plantGroups.set(key,next);}
+    if(tiles.size){floorTrees.clear();floor?.invalidate?.();}
+    return tiles.size;
+  }
+  return {world,terrain,stats,update,blocked,groundInfoAt,treesNear,fell,felled,
     isVisibleGroundHit(hit){
       if(hit.object.userData.surface!=="nature_terrain")return true;
       const [ax,ay]=atlas.local(...fromPage(hit.point.x,hit.point.z));
