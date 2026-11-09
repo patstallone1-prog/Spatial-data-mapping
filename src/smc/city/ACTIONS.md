@@ -127,6 +127,10 @@ leaves along the pavement. A break outside puts them on the pavement in front of
   residential streets, lights where an arterial crosses, distance to the car ahead. They brake
   for anyone in the road, hard if they must.
 * Between the city's own people nobody is run down: a driver too close to a walker stops dead.
+* On foot, cars are solid, in both modes: the traffic, parked cars (yours and the city's), the
+  buses, your taxi and other players' cars. You slide along their sides rather than walk
+  through (`walkerBlocked` in `view.mjs`, checked by the page's `moveWalker`). Not while you
+  drive or ride.
 * You can break the rules. Step out in front of a car and it brakes; if it cannot stop, it hits
   you. Drive into someone or into a car and that is a collision too.
 * A hit is shown: the car stops with a jolt, parts fall in the road, the person is thrown and
