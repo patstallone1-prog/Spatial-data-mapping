@@ -20,7 +20,8 @@ import { COUNTER_ROLES, Crowd, SPEED_MS, Streets, alongRoute, counterLine, gener
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CityWorld } from "./world.mjs";
-import { VEHICLE_DIMS, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { City, Drivers, Roster, harmNow, injuryFor } from "./fleet.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -68,7 +69,8 @@ export async function startCity(ctx) {
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
 
   // ---- the district the walker is in -----------------------------------------------------------
-  const district = { key: null, crowd: null, places: [], streets: null, cameras: [], people: [], county: null };
+  const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
+  let scan = { people: [], vehicles: [] }, scanAt = { x: Infinity, z: Infinity }, scanning = false;
   function buildDistrict(data) {
     const ways = [], buildings = [];
     for (const way of data.ways || []) {
@@ -94,28 +96,55 @@ export async function startCity(ctx) {
         ways.push({ kind: "path", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)) });
       }
     }
-    const streets = new Streets(ways);
+    // The district is the region's, kept: each window's streets and buildings are added to what
+    // was seen before, and its people are the same people (fleet.mjs) -- they were dealt again
+    // for every window, a thousand strangers each time the detail round you was built again.
+    const region = data.region || data.key;
+    if (district.region !== region) {
+      district.region = region; district.allWays = new Map(); district.allBuildings = new Map();
+      district.roster = new Roster(R, { seed: region, saved: store.get(`kerbside:city:roster:${region}`), toLonLat: ctx.toLonLat });
+      district.city = null; district.drivers = null; scan = { people: [], vehicles: [] }; scanning = false;
+    }
+    let added = 0;
+    const wayKey = (w) => (w.kind === "street" && w.id !== undefined ? `s:${w.id}`
+      : `p:${Math.round(w.pts[0][0])},${Math.round(w.pts[0][1])}:${Math.round(w.pts[w.pts.length - 1][0])},${Math.round(w.pts[w.pts.length - 1][1])}:${w.pts.length}`);
+    for (const w of ways) { const k = wayKey(w); if (!district.allWays.has(k)) { district.allWays.set(k, w); added += 1; } }
+    const fresh = buildings.filter((b) => !district.allBuildings.has(b.id));
+    for (const b of fresh) district.allBuildings.set(b.id, b);
+    district.key = data.key;
+    if (!added && !fresh.length && district.city) return;
+    const streets = new Streets([...district.allWays.values()]);
     // Each building's front: the wall facing the pavement it is reached from, its middle, the way
     // in, and how deep the building runs from it -- where a shop's counter goes.
-    for (const b of buildings) {
+    for (const b of fresh) {
       const node = b.ring ? streets.nearest(b.x, b.z, "walk", 120) : null;
       if (node !== null && node !== undefined) b.inside = frontOf(b.ring, b.x, b.z, streets.nodes[node]);
     }
-    const places = buildings.map((b) => placeFromBuilding(b, streets, R)).filter(Boolean);
-    for (const pl of places) { const b = buildings.find((x) => x.id === pl.id); pl.front = b?.inside || null; pl.ring = b?.ring || null; }
-    for (const p of places) p.county = data.county;
-    // A resident for every few buildings (a thousand at the least, four thousand at the most).
-    const people = generatePopulation(R, places, { seed: data.key, size: Math.max(1000, Math.min(4000, Math.round(buildings.length * 0.3))) });
-    district.key = data.key; district.streets = streets; district.places = places; district.people = people; district.county = data.county;
-    district.placeById = new Map(places.map((p) => [p.id, p]));
-    district.crowd = new Crowd(R, streets, places, people, { seed: data.key, timeAt, toLonLat: ctx.toLonLat });
-    district.cameras = speedCameras(ways, data);
+    const places = fresh.map((b) => { const pl = placeFromBuilding(b, streets, R); if (pl) { pl.front = b.inside || null; pl.ring = b.ring || null; pl.county = data.county; } return pl; }).filter(Boolean);
+    const roster = district.roster;
+    roster.add(places);
+    district.streets = streets; district.places = roster.list; district.county = data.county;
+    district.people = [...roster.people.values()];
+    district.placeById = roster.places;
+    const harm = (id, ms) => harmNow((world || view)?.harm?.get(id), ms);
+    const delay = (v, leg, day) => (district.drivers?.delayOf(City.legKey(v, leg, day)) || 0) / 60;
+    if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
+    else district.city.setStreets(streets);
+    if (!district.drivers) district.drivers = new Drivers(streets);
+    else { district.drivers.streets = streets; district.drivers.cars.clear(); }
+    // The visitors' cars: so many to a place by how busy the district is (rules.json density).
+    const [clon, clat] = ctx.toLonLat(me().x, me().z);
+    const busy = Math.max(R.density?.default?.traffic ?? 1, ...((R.density?.hotspots || []).filter((h0) => clat >= h0.bbox[0] - 0.01 && clat <= h0.bbox[2] + 0.01 && clon >= h0.bbox[1] - 0.01 && clon <= h0.bbox[3] + 0.01).map((h0) => h0.traffic || 1)));
+    roster.visitorsUpTo(Math.min(R.density?.visitors_max ?? 5000, Math.round(roster.places.size * (R.density?.visitors_per_place ?? 0.8) * busy)));
+    if (roster.dirty) { store.set(`kerbside:city:roster:${region}`, roster.toJSON()); roster.dirty = false; }
+    district.cameras = speedCameras([...district.allWays.values()], data);
     district.candidates = null; district.foundDay = null; district.found = [];
     district.listings = null; district.listingsWeek = null;
+    lastCrowd = 0; scanning = false;
     if (shop.place) leaveShop(true);
     makeLines();
     drawCameras();
-    ctx.log?.(`kerbside: the living city in ${data.key}: ${people.length} people, ${places.length} places, ${streets.size} street nodes`);
+    ctx.log?.(`kerbside: the living city in ${region}: ${roster.people.size} residents, ${roster.vehicles.size} vehicles (${roster.visitors.size} visitors'), ${roster.places.size} places, ${streets.size} street nodes`);
   }
   //: The bus lines through the district: the real routes' stops near its streets.
   function makeLines() {
@@ -199,8 +228,44 @@ export async function startCity(ctx) {
   // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
   // show through the windows. They were one painted box and a pale cabin box for every kind.
   const VMAT = vehicleMaterials(THREE), fleet = new Map();
-  const fleetOf = (model) => {
+  // The traffic's bodies: the Kenney Car Kit's (vehicles.mjs), loaded once; the code-built ones
+  // until they are, and for the bus.
+  const kenney = new Map();   // kit model name -> {geometry, material} | null
+  let kenneyLoading = false;
+  function loadKenney() {
+    if (kenneyLoading || !ctx.loadModel) return;
+    kenneyLoading = true;
+    const names = [...new Set(Object.values(KENNEY_FOR).flat())];
+    const dimsOf = (name) => VEHICLE_DIMS[Object.keys(KENNEY_FOR).find((k) => KENNEY_FOR[k].includes(name) && VEHICLE_DIMS[k])] || VEHICLE_DIMS.sedan;
+    for (const name of names) {
+      ctx.loadModel(ctx.asset(`city/models/kenney/${name}.glb`)).then((gltf) => {
+        const k = kenneyGeometry(THREE, gltf, dimsOf(name), name);
+        kenney.set(name, { geometry: k.geometry, material: kenneyMaterial(THREE, k.map), livery: k.livery });
+      }).catch((error) => { kenney.set(name, null); console.warn("kerbside: a car model did not load", name, error); });
+    }
+  }
+  const kenneyOf = (model, shade) => {
+    const list = KENNEY_FOR[model];
+    if (!list) return null;
+    const name = list[Math.floor((shade ?? 0) * 997) % list.length];
+    const k = kenney.get(name);
+    return k ? { name, ...k } : null;
+  };
+  loadKenney();
+  const fleetOf = (model, shade = 0) => {
     const kind = VEHICLE_DIMS[model] ? model : "sedan";
+    const kit = kenneyOf(kind, shade);
+    if (kit) {
+      const key = `kenney:${kit.name}`;
+      if (!fleet.has(key)) {
+        const cap = kind === "box_truck" ? 40 : MAX_CARS;
+        const m = new THREE.InstancedMesh(kit.geometry, kit.material, cap);
+        m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kit.name}`; m.castShadow = true;
+        group.add(m);
+        fleet.set(key, { paint: m, fixed: null, glass: null, cap, n: 0, livery: kit.livery });
+      }
+      return fleet.get(key);
+    }
     if (!fleet.has(kind)) {
       const parts = vehicleParts(THREE, kind), cap = kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
       const inst = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kind}`; group.add(m); return m; };
@@ -231,9 +296,11 @@ export async function startCity(ctx) {
       // Inside the shop you are in, on its floor.
       const y = shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z);
       const s = p.person.height / 1.75;
-      const b = base(p.x, y, p.z, p.yaw + Math.PI, s);
+      const b = base(p.x, y + (p.lift || 0), p.z, p.yaw + Math.PI, s);
+      // Knocked down: falling backward to the ground (and lying there, hurt).
+      if (p.down) b.multiply(RM.makeRotationX(-(p.fall ?? 1) * Math.PI / 2 * 0.96)).multiply(TM.makeTranslation(0, (p.fall ?? 1) * 0.12, 0));
       const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
-      const swing = p.moving ? Math.sin(phase) * 0.55 : 0;
+      const swing = p.moving ? Math.sin(phase) * 0.55 : p.down ? 0.35 : 0;
       const set = (mesh, ox, oy, rot) => { M.copy(b).multiply(TM.makeTranslation(ox, oy, 0)).multiply(RM.makeRotationX(rot)); mesh.setMatrixAt(n, M); };
       parts.torso.setMatrixAt(n, b); parts.head.setMatrixAt(n, b);
       set(parts.legL, -0.1, 0.84, swing); set(parts.legR, 0.1, 0.84, -swing);
@@ -253,14 +320,18 @@ export async function startCity(ctx) {
     for (const v of list) {
       if (n >= MAX_CARS) break;
       const [w, , l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = fleetOf(v.model);
+      const f = fleetOf(v.model, v.shade);
       if (f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
-      E.set(0, v.yaw, 0); Q.setFromEuler(E);
+      // A wreck sits askew; a car in a crash rocks on its springs.
+      E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
-      f.paint.setMatrixAt(f.n, M); f.fixed.setMatrixAt(f.n, M); f.glass.setMatrixAt(f.n, M);
-      const paint = v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
-      f.paint.setColorAt(f.n, C.set(paint));
+      f.paint.setMatrixAt(f.n, M); f.fixed?.setMatrixAt(f.n, M); f.glass?.setMatrixAt(f.n, M);
+      const paint = f.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
+      C.set(paint);
+      // Dented and scraped by its condition: duller, and a wreck scorched.
+      if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
+      f.paint.setColorAt(f.n, C);
       f.n += 1;
       if (night) {
         const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
@@ -274,6 +345,7 @@ export async function startCity(ctx) {
       n += 1;
     }
     for (const f of fleet.values()) for (const mesh of [f.paint, f.fixed, f.glass]) {
+      if (!mesh) continue;
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
     headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
@@ -496,6 +568,7 @@ export async function startCity(ctx) {
       }
       car.speed *= 0.2;
     }
+    hitInTraffic(before);
     const metres = Math.hypot(car.x - before.x, car.z - before.z);
     car.km += metres / 1000;
     const spec = car.spec;
@@ -504,6 +577,64 @@ export async function startCity(ctx) {
     ctx.followYaw(car.yaw, dt);
     roadCharges(before, car, dt);
     return true;
+  }
+  //: Your car against the city's: its cars and its people are solid. A hit is a crash -- the
+  //: other car dented or wrecked where it stands, someone on foot thrown and hurt -- by speed.
+  let lastTrafficHit = 0;
+  //: Whether two cars' footprints (centre, heading, half length, half width) overlap.
+  function boxesOverlap(ax, az, ayaw, ahl, ahw, bx, bz, byaw, bhl, bhw) {
+    const A = [[-Math.sin(ayaw), -Math.cos(ayaw)], [Math.cos(ayaw), -Math.sin(ayaw)]];
+    const B = [[-Math.sin(byaw), -Math.cos(byaw)], [Math.cos(byaw), -Math.sin(byaw)]];
+    const dx = bx - ax, dz = bz - az;
+    for (const [ux, uz] of [...A, ...B]) {
+      const ra = ahl * Math.abs(A[0][0] * ux + A[0][1] * uz) + ahw * Math.abs(A[1][0] * ux + A[1][1] * uz);
+      const rb = bhl * Math.abs(B[0][0] * ux + B[0][1] * uz) + bhw * Math.abs(B[1][0] * ux + B[1][1] * uz);
+      if (Math.abs(dx * ux + dz * uz) > ra + rb) return false;
+    }
+    return true;
+  }
+  function hitInTraffic(before) {
+    const [w, , l] = VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan;
+    const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
+    const now = performance.now(), speed = Math.abs(car.speed);
+    if (now - lastTrafficHit < 900) return;
+    for (const q of visible.people) {
+      if (q.indoors || q.down) continue;
+      const dx = q.x - car.x, dz = q.z - car.z, a = dx * fx + dz * fz, b = dx * fz - dz * fx;
+      if (Math.abs(a) < l / 2 + 0.35 && Math.abs(b) < w / 2 + 0.35) {
+        lastTrafficHit = now;
+        if (speed < 0.6) { ctx.moveAvatarTo(before.x, before.z, true); car.x = before.x; car.z = before.z; car.speed = 0; return; }
+        const hitAt = { ...q };
+        flings.set(q.id, { t0: now, x: q.x, z: q.z, dx: fx, dz: fz, speed, throw: Math.min(9, 1 + speed * 0.5) });
+        jolts.set("me", { t0: now, speed });
+        debrisAt(car.x + fx * l / 2, car.z + fz * l / 2, car.yaw, speed * 0.6);
+        car.speed *= 0.55;
+        send("collision", { kind: "hit_person", speed, npc: { id: hitAt.id, name: hitAt.person?.name, x: hitAt.x + fx * Math.min(9, 1 + speed * 0.5), z: hitAt.z + fz * Math.min(9, 1 + speed * 0.5), yaw: car.yaw } })
+          .then((r) => { district.city?.forget(hitAt.id); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
+        return;
+      }
+    }
+    for (const v of drawnCars) {
+      const [vw, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+      const dx = v.x - car.x, dz = v.z - car.z;
+      if (Math.hypot(dx, dz) > (l + vl) / 2 + 0.5) continue;
+      if (!boxesOverlap(car.x, car.z, car.yaw, l / 2, w / 2, v.x, v.z, v.yaw, vl / 2, vw / 2)) continue;
+      lastTrafficHit = now;
+      const other = v.speed || 0, rel = Math.abs(speed - other * Math.cos(v.yaw - car.yaw));
+      ctx.moveAvatarTo(before.x, before.z, true); car.x = before.x; car.z = before.z;
+      car.speed = -Math.sign(car.speed) * Math.min(1.5, speed * 0.15);
+      if (rel < 0.8) return;
+      jolts.set(v.id, { t0: now, speed: rel }); district.drivers?.stop(v.id, { who: "me", speed: rel, x: v.x, z: v.z, yaw: v.yaw, until: Date.now() / 1000 + 8 });
+      debrisAt((car.x + v.x) / 2, (car.z + v.z) / 2, car.yaw, rel);
+      const owner = v.vehicle?.owner;
+      send("collision", { kind: "hit_vehicle", speed: rel, other, vehicle: { id: v.id, plate: v.plate, x: v.x, z: v.z, yaw: v.yaw, driver: v.parked ? null : owner, driverName: district.roster?.people.get(owner)?.name } })
+        .then((r) => {
+          if (!r.ok) { notify(r.error); return; }
+          if (owner) district.city?.forget(owner);
+          notify(`Crash at ${Math.round(rel * MPH)} mph into ${v.plate || "a car"}: it is ${r.vehicle.state}${r.mine ? `, yours ${r.mine.state}` : ""}.${r.hurt ? ` -${r.hurt} health.` : ""}${r.bill ? ` Its repair is billed to you: ${R.fmt(r.bill)}.` : ""}`);
+        });
+      return;
+    }
   }
   //: Tolls at gantries crossed, the lane you are in, the cameras you pass.
   function roadCharges(a, b, dt) {
@@ -613,7 +744,7 @@ export async function startCity(ctx) {
   //: The district's found things today: a seeded few on its pavements, the same for the party.
   function foundToday() {
     const day = timeAt(Date.now()).day;
-    if (district.foundDay === day || !district.streets) return district.found;
+    if (district.foundDay === day || !district.streets) return district.found || [];
     const r = rng(district.key, "found", day);
     const nodes = district.streets.nodes, walk = [];
     for (let i = 0; i < nodes.length; i += 1) if (!nodes[i].drive) walk.push(nodes[i]);
@@ -846,6 +977,13 @@ export async function startCity(ctx) {
   async function deliveryKey() {
     const p = self();
     if (!p) { notify("Join the city first (City panel)."); return; }
+    if (p.delivery?.stage === "pickup") {
+      const d = Math.hypot(me().x - p.delivery.from.x, me().z - p.delivery.from.z);
+      if (d > R.tasks.courier.reach_m) { notify(`The order is waiting at ${p.delivery.from.name || "the shop"}, ${Math.round(d)} m away: follow the green light.`); return; }
+      const r = await send("collect_delivery");
+      notify(r.ok ? `Picked up the order. Now to ${p.delivery.to.name || "the address"}: follow the green light; D there.` : r.error);
+      return;
+    }
     if (p.delivery) {
       const d = Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z);
       if (d > R.delivery.reach_m) { notify(`The address is ${Math.round(d)} m away: follow the green light.`); return; }
@@ -858,12 +996,14 @@ export async function startCity(ctx) {
     takeDelivery(place);
   }
   function drawMarker(now) {
-    const d = self()?.delivery;
+    const g = objective();
+    const d = g && Number.isFinite(g.x) && !g.label.startsWith("Errand") ? g : null;
     marker.visible = Boolean(d);
     if (!d) return;
-    marker.position.set(d.to.x, groundAt(d.to.x, d.to.z), d.to.z);
-    // Wider seen from further off, so it shows from a zoomed-out view.
-    const far = Math.max(1, Math.hypot(me().x - d.to.x, me().z - d.to.z) / 120);
+    marker.material.color.setHex(d.colour || 0x35c46a);
+    marker.position.set(d.x, groundAt(d.x, d.z), d.z);
+    // A tree to fell: a ring at its foot, not a pillar of light. Wider seen from further off.
+    const far = d.tree ? 0.35 : Math.max(1, Math.hypot(me().x - d.x, me().z - d.z) / 120);
     marker.scale.set(far, 1, far);
     marker.material.opacity = 0.35 + 0.12 * Math.sin(now / 300);
   }
@@ -1151,8 +1291,26 @@ export async function startCity(ctx) {
   }
   const archetypeId = (a) => (typeof a === "string" ? a : a?.id);
   const damageKey = (arch, x, z) => `${arch}@${Math.round(x * 2) / 2},${Math.round(z * 2) / 2}`;
-  //: What a blow can land on: the nearest thing within reach that breaks and is not broken yet.
+  //: Someone within reach in front of you, to strike (or look at): the nearest.
+  function personInReach(reach, cone = 0.35) {
+    const at = me(), yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let best = null, bestD = reach;
+    for (const q of visible.people) {
+      if (q.down || (q.indoors && !shop.place)) continue;
+      const dx = q.x - at.x, dz = q.z - at.z, d = Math.hypot(dx, dz);
+      if (d < bestD && (d < 0.8 || (dx * fx + dz * fz) / (d || 1) > cone)) { bestD = d; best = q; }
+    }
+    return best;
+  }
+  //: What a blow can land on: the nearest thing within reach that breaks and is not broken yet --
+  //: the street's own things, and out in the landscape its trees.
   function strikeTarget(reach) {
+    const nature = ctx.natureTrees?.(me().x, me().z, reach + 0.6) || [];
+    for (const t of nature) {
+      const key = `nature:${t.id}`;
+      if (view?.damage?.get(key)?.broken) continue;
+      return { x: t.x, z: t.z, id: "vegetation.tree", key, spec: R.objects["vegetation.tree"], nature: t.id };
+    }
     const prox = ctx.objects?.();
     if (!prox?.targets && !prox?.instancesNear) return null;
     const at = me();
@@ -1174,15 +1332,33 @@ export async function startCity(ctx) {
     const now = performance.now();
     if (!energy && now - lastStrike < 1000 / R.tools.strikes_per_second) return;
     lastStrike = now;
+    // Someone in front of you, nearer than any thing: the blow is theirs.
+    const who = energy ? null : personInReach(R.tools.reach_m);
     const t = strikeTarget(energy ? 6 : R.tools.reach_m);
+    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4)) return strikePerson(who);
     if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
     const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
     if (!r.ok) { notify(r.error); return; }
     const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p.hands]?.name || r.tool;
     if (r.broken) {
-      hideBroken(t.key, t.o, t.i);
+      if (t.nature) ctx.fellTree?.(t.nature); else hideBroken(t.key, t.o, t.i);
+      if (r.task) { notify(r.task.done ? `${r.task.title}: done — ${R.fmt(r.task.pay)} paid.` : `Felled: ${r.task.felled} of ${r.task.need} dead trees.`); return; }
       notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (G picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
     } else notify(`${tool} on the ${t.spec.name.toLowerCase()} (${t.spec.material}): ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
+  }
+  //: A blow to someone: they are hurt by it, and hit back, run, or (an officer) arrest you.
+  async function strikePerson(q) {
+    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, x: q.x, z: q.z, yaw: q.yaw }, witnesses: witnessesNear(q.x, q.z) - 1 });
+    if (!r.ok) { notify(r.error); return; }
+    const name = q.person?.name || "them";
+    if (r.down) {
+      const yaw = ctx.getYaw();
+      flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx: -Math.sin(yaw), dz: -Math.cos(yaw), speed: 2, throw: 0.8 });
+      district.city?.forget(q.id);
+    }
+    if (r.response === "hit back") knockBack(Math.sin(ctx.getYaw()), Math.cos(ctx.getYaw()), 1.5);
+    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `${name} hits back: -${r.hurt} health` : r.response === "down" ? `${name} goes down` : `${name} runs`;
+    notify(`${r.tool === "fists" ? "A punch" : "A blow"} (${r.joules} J): ${name} — ${r.injury.type}. ${what}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
   }
   const hidden = new Map();   // damage key -> {o, i, matrix}
   const FAR = new THREE.Matrix4().makeScale(1e-4, 1e-4, 1e-4).setPosition(0, -1e5, 0);
@@ -1195,10 +1371,15 @@ export async function startCity(ctx) {
   }
   //: The books' broken things, gone from the street (also those broken by others, or before
   //: this page); and back once the city has mended them.
+  const felledHere = new Set();
   function syncDamage() {
     const prox = ctx.objects?.(), dmg = view?.damage;
     if (!prox || !dmg) return;
+    const fell = [];
+    for (const [key, d] of dmg) if (d.broken && key.startsWith("nature:") && !felledHere.has(key)) { felledHere.add(key); fell.push(key.slice(7)); }
+    if (fell.length) ctx.fellTree?.(fell);
     for (const [key, d] of dmg) {
+      if (key.startsWith("nature:")) continue;
       if (!d.broken || hidden.has(key) || Math.hypot(d.x - me().x, d.z - me().z) > 400) continue;
       const hit = prox.findInstance?.(d.archetype, d.x, d.z, 0.9);
       if (hit) hideBroken(key, hit.o, hit.i);
@@ -1255,6 +1436,118 @@ export async function startCity(ctx) {
   }
   const sqft = (n) => `${n.toLocaleString()} sq ft`;
 
+  let visitPending = false;
+  function checkSightseeing() {
+    const p = self(), t = p?.task;
+    if (t?.kind !== "sightseeing" || visitPending) return;
+    const g = objective();
+    if (g?.stop === undefined || Math.hypot(g.x - me().x, g.z - me().z) > R.tasks.sightseeing.reach_m) return;
+    visitPending = true;
+    send("task_visit", { stop: g.stop }).then((r) => { visitPending = false; if (r.ok) notify(r.done ? `${r.title}: done — ${R.fmt(r.pay)} paid.` : `${R.tasks.sightseeing.stops[g.stop].name}: ${r.visited.length} of ${R.tasks.sightseeing.stops.length}.`); });
+  }
+  // ---- the task board --------------------------------------------------------------------------
+  // Work posted round the city: a courier's pickup and drop-off, the Presidio's dead trees, the
+  // Marina walk. Each step has a place: the tracker at the top says where and how far, and the
+  // green light stands over it (rules.json tasks).
+  const placeName = (pl) => address(pl?.name) || (pl ? storesAt(R, pl.keys).map((x) => x.name)[0] : null) || "a building";
+  function taskOffers() {
+    const T = R.tasks, here = me(), slot = Math.floor(Date.now() / (T.refresh_minutes * 60000));
+    const r = rng(district.region, myId, slot), out = [], C = T.courier;
+    const d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+    const shops = district.places.filter((x) => deliveryHere(x) && d(x, here) >= C.pickup_m[0] && d(x, here) <= C.pickup_m[1]);
+    const homes = district.places.filter((x) => x.use === "residential");
+    for (let k = 0; k < 2 && shops.length && homes.length; k += 1) {
+      const from = shops[Math.floor(r() * shops.length) % shops.length];
+      const ok = homes.filter((x) => d(x, from) >= C.dropoff_m[0] && d(x, from) <= C.dropoff_m[1]);
+      if (!ok.length) continue;
+      const to = ok[Math.floor(r() * ok.length) % ok.length];
+      const km = (d(from, here) + d(to, from)) / 1000;
+      out.push({ kind: "courier", title: `Courier: ${placeName(from)} → ${address(to.name) || "a home"}`, km, pay: C.pay_base + Math.round(C.pay_per_km * Math.min(4, km)),
+        from: { id: from.id, name: placeName(from), x: from.x, z: from.z }, to: { id: to.id, name: address(to.name) || "a home", x: to.x, z: to.z },
+        steps: [`Go to ${placeName(from)} and pick up the order (D)`, `Take it to ${address(to.name) || "the address"} (D)`] });
+    }
+    const F = T.forestry, [fx, fz] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]);
+    out.push({ kind: "forestry", title: F.name, km: Math.hypot(fx - here.x, fz - here.z) / 1000, pay: F.pay,
+      steps: ["Get an axe or a saw: a hardware store (B), or the online store (U)", `Go to ${F.area.name}`, `Hold the tool (I, then Hold) and fell ${F.trees} dead trees (X at a tree)`] });
+    const S = T.sightseeing;
+    out.push({ kind: "sightseeing", title: S.name, km: Math.min(...S.stops.map((st) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return Math.hypot(x - here.x, z - here.z); })) / 1000,
+      pay: S.pay, steps: S.stops.map((st) => `Visit ${st.name}`) });
+    return out;
+  }
+  const inPresidio = () => { const [lon, lat] = ctx.toLonLat(me().x, me().z), b = R.tasks.forestry.area.bbox; return lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]; };
+  //: Where to go next, and what to do there: the delivery's pickup or address, the task's next
+  //: step, the errand's door, the shift's task.
+  function objective() {
+    const p = self();
+    if (!p) return null;
+    const here = me();
+    if (p.delivery) {
+      const pick = p.delivery.stage === "pickup", at = pick ? p.delivery.from : p.delivery.to;
+      return { label: pick ? `Pick up the order at ${at.name || "the shop"} — D there` : `Deliver to ${at.name || "the address"} — D there`, x: at.x, z: at.z, colour: 0x35c46a };
+    }
+    const t = p.task;
+    if (t?.kind === "forestry") {
+      const F = R.tasks.forestry, tool = F.tool.find((k) => (p.inventory[k] || 0) > 0);
+      if (!tool) {
+        const hw = district.places.filter((x) => storesAt(R, x.keys).some((st) => st.items.includes("axe"))).map((x) => ({ x, d: Math.hypot(x.x - here.x, x.z - here.z) })).sort((a, b) => a.d - b.d)[0];
+        return hw ? { label: `Buy an axe at ${placeName(hw.x)} (B), or online (U)`, x: hw.x.x, z: hw.x.z, colour: 0xffb020 } : { label: "Buy an axe or a saw in the online store (U)", colour: 0xffb020 };
+      }
+      if (!inPresidio()) { const [x, z] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]); return { label: `Go to ${F.area.name} with the ${tool}`, x, z, colour: 0x35c46a }; }
+      const tree = ctx.natureTrees?.(here.x, here.z, F.reach_m)?.[0];
+      return { label: `${p.hands !== tool ? `Hold the ${tool} (I → Hold), then ` : ""}fell dead trees: ${t.felled.length} of ${t.need} (X at a tree)`, x: tree?.x, z: tree?.z, colour: 0xff7a1c, tree: true };
+    }
+    if (t?.kind === "sightseeing") {
+      const S = R.tasks.sightseeing;
+      const next = S.stops.map((st, i) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return { st, i, x, z, d: Math.hypot(x - here.x, z - here.z) }; }).filter((o) => !t.visited.includes(o.i)).sort((a, b) => a.d - b.d)[0];
+      if (next) return { label: `Visit ${next.st.name} (${t.visited.length} of ${S.stops.length})`, x: next.x, z: next.z, colour: 0x35c46a, stop: next.i };
+    }
+    if (p.errand) return { label: `Errand: bring ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")} to ${p.errand.to.name || "their door"} — K there`, x: p.errand.to.x, z: p.errand.to.z, colour: 0xffb020 };
+    if (p.clocked?.task) return { label: `${p.clocked.task.label} — V there`, x: p.clocked.task.x, z: p.clocked.task.z, colour: 0xff9f1c };
+    return null;
+  }
+  const goalBox = Object.assign(globalThis.document.createElement("div"), { id: "city-goal" });
+  goalBox.style.cssText = "position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:35;background:rgba(17,24,39,.88);color:#fff;border-radius:999px;padding:6px 14px;font:13px/1.3 system-ui,sans-serif;display:flex;gap:8px;align-items:center;cursor:pointer;max-width:calc(100vw - 260px)";
+  goalBox.title = "Your task: Q for the task board";
+  goalBox.onclick = () => openSide("tasks");
+  globalThis.document.body.append(goalBox);
+  function drawGoal() {
+    const g = ctx.enabled() && ctx.cityMode?.() !== false ? objective() : null;
+    goalBox.hidden = !g;
+    if (!g) return;
+    const here = car.active ? car : me();
+    const known = Number.isFinite(g.x);
+    const dist = known ? Math.hypot(g.x - here.x, g.z - here.z) : null;
+    const bearing = known ? Math.atan2(-(g.x - here.x), -(g.z - here.z)) - ctx.getYaw() : 0;
+    const arrow = known ? `<span style="display:inline-block;transform:rotate(${(-bearing * 180 / Math.PI).toFixed(0)}deg);font-size:16px">⬆</span>` : "";
+    goalBox.innerHTML = `${arrow}<span>${g.label.replace(/[<>&]/g, "")}${dist !== null ? ` · <b>${dist < 1000 ? `${Math.round(dist)} m` : `${(dist / 1000).toFixed(1)} km`}</b>` : ""}</span>`;
+  }
+  // ---- the online store ------------------------------------------------------------------------
+  //: Everything a shop in the city sells, from wherever you are, at twice the price (rules.json).
+  function onlineWares() {
+    const S = R.online_store, seen = new Map();
+    for (const [kind, st] of Object.entries(R.stores.kinds)) {
+      if (kind === "basis" || !st.items) continue;
+      for (const id of st.items) {
+        const it = R.items[id];
+        if (!it || it.service || it.parcel || S.exclude_needs.includes(it.needs)) continue;
+        if (!seen.has(id)) seen.set(id, { id, it, from: [] });
+        seen.get(id).from.push(st.name);
+      }
+    }
+    return [...seen.values()].sort((a, b) => a.it.name.localeCompare(b.it.name));
+  }
+  // ---- looking at someone, or a car ------------------------------------------------------------
+  function lookTarget() {
+    const q = personInReach(12, 0.6);
+    const at = me(), yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let car0 = null, best = 14;
+    for (const v of drawnCars) {
+      const dx = v.x - at.x, dz = v.z - at.z, d = Math.hypot(dx, dz);
+      if (d < best && (d < 3 || (dx * fx + dz * fz) / d > 0.5)) { best = d; car0 = v; }
+    }
+    if (q && (!car0 || Math.hypot(q.x - at.x, q.z - at.z) <= best)) return { kind: "person", q };
+    return car0 ? { kind: "vehicle", v: car0 } : null;
+  }
   // ---- what can be done here -------------------------------------------------------------------
   //: The actions open to you where you stand, each with its key: what the action bar shows.
   function actionsHere() {
@@ -1291,13 +1584,18 @@ export async function startCity(ctx) {
       if (p.clocked) out.push({ id: "work", label: "Clock out", key: "J", run: workKey });
       else if (atWork) out.push({ id: "work", label: `Clock in (${p.job.title})`, key: "J", run: workKey });
     }
-    if (p.delivery) {
+    if (p.delivery?.stage === "pickup") {
+      if (Math.hypot(here.x - p.delivery.from.x, here.z - p.delivery.from.z) <= R.tasks.courier.reach_m) out.push({ id: "deliver", label: "Pick up the order", key: "D", run: deliveryKey });
+    } else if (p.delivery) {
       const d = Math.hypot(here.x - p.delivery.to.x, here.z - p.delivery.to.z);
       if (d <= R.delivery.reach_m) out.push({ id: "deliver", label: "Hand over the parcel", key: "D", run: deliveryKey });
     } else if (shopAt && deliveryHere(shopAt)) out.push({ id: "deliver", label: "Delivery gig", key: "D", run: () => takeDelivery(shopAt) });
     if (p.errand && Math.hypot(here.x - p.errand.to.x, here.z - p.errand.to.z) <= R.errands.reach_m) out.push({ id: "errand", label: `Hand ${p.errand.to.who || "them"} the shopping`, key: "K", run: errandKey });
-    const target = strikeTarget(R.tools.reach_m);
-    if (target) out.push({ id: "strike", label: `${p.hands ? `${R.items[p.hands]?.name || "Strike"}` : "Hit"}: ${target.spec.name.toLowerCase()}`, key: "X", run: () => strikeKey() });
+    const target = strikeTarget(R.tools.reach_m), who = personInReach(R.tools.reach_m);
+    if (who) out.push({ id: "strike", label: `${p.hands ? `${R.items[p.hands]?.name || "Strike"}` : "Hit"}: ${who.person?.name || "them"}`, key: "X", run: () => strikeKey() });
+    else if (target) out.push({ id: "strike", label: `${p.hands ? `${R.items[p.hands]?.name || "Strike"}` : "Hit"}: ${target.spec.name.toLowerCase()}`, key: "X", run: () => strikeKey() });
+    const look = lookTarget();
+    if (look) out.push({ id: "look", label: look.kind === "person" ? `Look: ${look.q.person?.name || "someone"}` : `Look: ${look.v.plate || "a car"}`, key: "L", run: () => openSide("look") });
     out.push({ id: "rest", label: p.resting ? "Get up" : self()?.home && Math.hypot(here.x - p.home.x, here.z - p.home.z) <= R.vitals.home_reach_m ? "Sleep at home" : "Rest", key: "Z", run: restKey });
     return out;
   }
@@ -1333,39 +1631,252 @@ export async function startCity(ctx) {
     if (transit.ride) followRide();
     stepWork();
     reportExertion();
-    // Who is out and about: a full pass four times a second, positions every frame.
+    // Who is out and about: the full pass once a second (or on moving 40 m), where each is
+    // every frame -- along the leg or the spot the pass found, nothing worked out again.
     const focus = car.active ? car : me();
-    if (district.crowd) {
-      if (now - lastCrowd > 250) {
-        lastCrowd = now;
-        visible = district.crowd.at(t, focus);
-        // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
-        if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
-        const hour = visible.time.minute / 60;
-        lastNight = hour < 6.6 || hour > 18.4;
-      } else {
-        const tt = timeAt(t);
-        visible.people = visible.people.map((p) => (p.walker ? { ...p, ...district.crowd.walkerAt(p.walker, t / 1000) }
-          : { ...p, ...(district.crowd.personAt(p.person, tt, focus, R.routine.visible_radius_m) || p) }));
-        visible.vehicles = visible.vehicles.map((v) => v.person ? { ...v, ...(district.crowd.personAt(v.person, tt, focus, R.routine.visible_radius_m) || v) } : advance(v, (now - (v._at || now)) / 1000, now));
+    if (district.city) {
+      // The pass a slice a frame (fleet.mjs scanMore): a whole district at once held a frame up.
+      if (!scanning && (now - lastCrowd > 1000 || Math.hypot(focus.x - scanAt.x, focus.z - scanAt.z) > 40)) {
+        lastCrowd = now; scanAt = { x: focus.x, z: focus.z }; scanning = true;
+        district.city.scanBegin(t, focus, R.routine.visible_radius_m);
       }
+      if (scanning) {
+        const done = district.city.scanMore(scan.people.length || scan.vehicles.length ? 2500 : Infinity);
+        if (done) {
+          scan = done; scanning = false;
+          const hour = scan.time.minute / 60;
+          lastNight = hour < 6.6 || hour > 18.4;
+        }
+      }
+      visible = frameCity(t, dt, now, focus);
+      // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
+      if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
+      keepClear();
       drawPeople(visible.people, now);
       drawCars(wheels(), lastNight);
       drawThings(now);
+      drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
     if (now - lastRefresh > 500) {
       lastRefresh = now; drawParked(); checkFainted(); drawHeld(); syncDamage(); hud();
-      if (side && ["store", "ride", "things"].includes(side.kind)) drawSide();
+      if (side && ["store", "ride", "things", "tasks"].includes(side.kind)) drawSide();
+      drawGoal(); checkSightseeing();
       if (district.places.length) listings();
     }
     if (shop.place && !ctx.isFirstPerson?.()) ctx.firstPerson?.(true);
     return Boolean(visible.people.length || visible.vehicles.length || car.active || transit.ride || routeBuses.length || taxi.at || shop.place || working);
   }
-  // Between full passes a car goes on along its heading at its speed.
-  function advance(v, dt, now) {
-    if (!(dt > 0) || dt > 1) return { ...v, _at: now };
-    return { ...v, x: v.x - Math.sin(v.yaw) * v.speed * dt, z: v.z - Math.cos(v.yaw) * v.speed * dt, _at: now };
+  // ---- the city in motion: each frame ------------------------------------------------------------
+  const SIM_M = 240;          // cars nearer than this are driven by the rules (fleet.mjs Drivers)
+  const flings = new Map();   // someone knocked down: id -> {t0, x, z, dx, dz, speed}
+  const jolts = new Map();    // a car in a crash: id -> {t0, speed}
+  const dodge = new Map();    // someone stepping round you: id -> sideways metres
+  let drawnCars = [];
+  //: Who and what is where this frame: people along their way or at their spot, cars on their
+  //: leg -- driven by the rules near you, by their day further off -- or parked.
+  //: Where each one was drawn last frame: nobody is drawn moving faster than ``top`` m/s, so
+  //: where a way's offset changes (a street narrows, a footpath meets the pavement) they step
+  //: across rather than appear there. A gap wider than ``snap`` (out of sight and back) is taken.
+  const glided = new Map();
+  function glide(e, now, dt, top, snap) {
+    const g = glided.get(e.id);
+    if (g && now - g.t < 600) {
+      const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * Math.max(dt, 1 / 120) + 0.02;
+      if (d > max && d < snap) { e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max; }
+    }
+    if (g) { g.x = e.x; g.z = e.z; g.t = now; } else glided.set(e.id, { x: e.x, z: e.z, t: now });
+  }
+  function frameCity(ms, dt, now, focus) {
+    const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
+    tt.minute += (ms % 1000) / 60000;
+    const reach = R.routine.visible_radius_m, dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
+    const people = [];
+    const you = me();
+    for (const e of scan.people) {
+      const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
+      const pos = c.personAt(e.p, tt, seg, focus);
+      if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) continue;
+      const entry = { id: e.p.id, person: e.p, ...pos };
+      // Stepping round you: a walker who would walk into you goes by a pace to the side.
+      if (pos.moving && !car.active) {
+        const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw), dx = you.x - pos.x, dz = you.z - pos.z;
+        const ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
+        let want = 0;
+        if (ahead > -0.5 && ahead < 3 && Math.abs(side) < 0.9) want = (side >= 0 ? -1 : 1) * (0.95 - Math.abs(side));
+        const was = dodge.get(entry.id) || 0, now2 = was + (want - was) * Math.min(1, dt * 4);
+        if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
+      }
+      const f = flings.get(entry.id);
+      if (f) {
+        const age = (now - f.t0) / 1000, k = Math.min(1, age / 0.7);
+        entry.x = f.x + f.dx * f.throw * Math.sin(k * Math.PI / 2); entry.z = f.z + f.dz * f.throw * Math.sin(k * Math.PI / 2);
+        entry.lift = Math.sin(k * Math.PI) * Math.min(1.2, f.speed * 0.12); entry.fall = k; entry.down = true; entry.moving = false;
+        entry.yaw = Math.atan2(-f.dx, -f.dz);
+        if (age > R.harm.down_s) flings.delete(entry.id);
+      } else if (pos.down) { entry.fall = 1; entry.down = true; }
+      else glide(entry, now, dt, 3.2, 60);
+      people.push(entry);
+    }
+    // The cars: parked where they stand; driving, on their leg.
+    const sim = [], vehicles = [], legOf = new Map();
+    const limitAt = (model) => (cls) => {
+      const law = cls === "residential" ? (view || world)?.laws?.speed_limit_kmh_residential : null;
+      return (law ? law / 3.6 : SPEED_MS[cls || "residential"]) * (model === "bus" || model === "box_truck" ? 0.8 : 0.95);
+    };
+    for (const e of scan.vehicles) {
+      const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
+      const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
+      if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
+      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true }); continue; }
+      if (s0.roam) {
+        const owner = c.roster.people.get(v.owner);
+        const pos = owner && c.personAt(owner, tt, undefined, focus);
+        if (pos && pos.mode === "drive") vehicles.push({ ...base, ...pos, moving: true });
+        continue;
+      }
+      const leg = s0.leg, route = c.legRoute(leg);
+      if (!route || route.length < 1) continue;
+      const startS = (dayStart + leg.t0 * 60000) / 1000, durS = Math.max(1, (leg.t1 - leg.t0) * 60);
+      const key = City.legKey(v, leg, tt.day);
+      const sched = (ts) => Math.max(0, Math.min(1, (ts - startS) / durS)) * route.length;
+      const unsched = (d) => startS + (d / route.length) * durS;
+      const [w, , l] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+      // Out of sight of the rules: where its day has it, as far behind as traffic left it.
+      const lagged = sched(tsec - D.delayOf(key));
+      const probe = alongRoute(route, lagged);
+      if (Math.hypot(probe.x - focus.x, probe.z - focus.z) < SIM_M || D.stateOf(v.id)?.key === key) {
+        sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), cruise: Math.max(4, (route.length / durS) * 1.35), length: l, width: w });
+        legOf.set(v.id, { base, route });
+      } else {
+        // At the end of its leg (it is parked there from the next pass).
+        const pos = alongRoute(route, lagged, (half) => Math.max(1.7, half - 1.8));
+        vehicles.push({ ...base, ...pos, moving: lagged < route.length, speed: route.length / durS });
+      }
+    }
+    // Driven by the rules: you and everyone near on foot are in the way to be braked for.
+    const obstacles = [];
+    if (!car.active && !car.riding && !transit.ride && !shop.place) obstacles.push({ id: "me", x: you.x, z: you.z, player: true });
+    for (const q of people) if (!q.indoors && !q.down && Math.abs(q.x - focus.x) < SIM_M && Math.abs(q.z - focus.z) < SIM_M) obstacles.push({ id: q.id, x: q.x, z: q.z });
+    const blockers = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, v: car.speed, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2] }] : [];
+    if (sim.length) {
+      const step = D.step(Math.min(dt, 0.1), tsec, sim, obstacles, blockers);
+      for (const r0 of step.cars) {
+        const { base, route } = legOf.get(r0.id);
+        const pos = alongRoute(route, r0.d, (half) => Math.max(1.7, half - 1.8));
+        vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
+      }
+      for (const hit of step.hits) carHit(hit, people);
+    }
+    for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
+    if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);
+    for (const v of vehicles) { const j = jolts.get(v.id); if (j) { const age = (now - j.t0) / 1000; if (age > 1.2) jolts.delete(v.id); else v.jolt = Math.sin(age * 18) * Math.exp(-age * 3) * Math.min(0.12, j.speed * 0.01); } }
+    drawnCars = vehicles;
+    return { time: tt, people, vehicles };
+  }
+  // ---- crashes --------------------------------------------------------------------------------------
+  //: A car of the city's that could not stop: it hits you, or someone on foot.
+  async function carHit(hit, people) {
+    const v = district.roster?.vehicles.get(hit.car);
+    jolts.set(hit.car, { t0: performance.now(), speed: hit.speed });
+    debrisAt(hit.x - Math.sin(hit.yaw) * 2, hit.z - Math.cos(hit.yaw) * 2, hit.yaw, hit.speed);
+    const dx = -Math.sin(hit.yaw), dz = -Math.cos(hit.yaw);
+    if (hit.player) {
+      knockBack(dx, dz, hit.speed);
+      const r = await send("collision", { kind: "hit_by_car", speed: hit.speed, vehicle: { id: hit.car, plate: v?.plate, x: hit.x, z: hit.z, yaw: hit.yaw } });
+      if (r.ok) notify(`Hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph: ${r.injury.type}, -${r.injury.health} health. ${r.paid_by ? `${r.paid_by[0].toUpperCase()}${r.paid_by.slice(1)} pays the hospital.` : ""}`);
+      return;
+    }
+    const q = people.find((x) => x.id === hit.who);
+    if (!q) return;
+    flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
+    if (world) {
+      // One of the city's cars hit one of its people: the books (this browser's, as the party's
+      // host or alone) record it as the city's own.
+      const h0 = world.harmed(q.id, "person", q.person?.name || null);
+      const injury = injuryFor(R, { speed: hit.speed, seed: `${q.id}:${Date.now()}` });
+      world.hurtPerson(h0, injury, { x: q.x + dx * Math.min(9, 1 + hit.speed * 0.5), z: q.z + dz * Math.min(9, 1 + hit.speed * 0.5), yaw: Math.atan2(-dx, -dz) }, `hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph`);
+      const vh = world.harmed(hit.car, "vehicle", v?.plate || null);
+      world.damageVehicle(vh, hit.speed * 0.35, hit, `hit ${q.person?.name || "someone"}`);
+      district.city.forget(q.id);
+      if (Math.hypot(q.x - me().x, q.z - me().z) < 60) notify(`A car hit ${q.person?.name || "someone"} at ${Math.round(hit.speed * MPH)} mph: ${injury.type}.`);
+    }
+  }
+  //: You, hit: thrown back along the car's way, and the screen flashes.
+  const flash = Object.assign(globalThis.document.createElement("div"), { id: "city-flash" });
+  flash.style.cssText = "position:fixed;inset:0;z-index:33;pointer-events:none;background:radial-gradient(ellipse at center,rgba(200,20,20,0) 40%,rgba(200,20,20,.55));opacity:0;transition:opacity .6s";
+  globalThis.document.body.append(flash);
+  function knockBack(dx, dz, speed) {
+    flash.style.transition = "none"; flash.style.opacity = String(Math.min(1, 0.35 + speed * 0.06));
+    requestAnimationFrame(() => { flash.style.transition = "opacity 1.4s"; flash.style.opacity = "0"; });
+    const metres = Math.min(7, 0.8 + speed * 0.45), t0 = performance.now();
+    let done = 0;
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / 450), want = metres * Math.sin(k * Math.PI / 2);
+      const m = want - done; done = want;
+      ctx.moveWalker(dx * m, dz * m);
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  //: Pieces of a car, thrown from a crash (the kit's debris), lying a while where they land.
+  const debrisGroup = new THREE.Group(); debrisGroup.name = "city-debris"; group.add(debrisGroup);
+  const debrisParts = [];
+  let debrisKit = null;
+  function loadDebris() {
+    if (debrisKit || !ctx.loadModel) return;
+    debrisKit = Promise.all(KENNEY_DEBRIS.map((n) => ctx.loadModel(ctx.asset(`city/models/kenney/${n}.glb`)).then((g) => {
+      const k = kenneyGeometry(THREE, g, null, n);
+      return new THREE.Mesh(k.geometry, new THREE.MeshLambertMaterial({ map: k.map }));
+    }).catch(() => null))).then((list) => list.filter(Boolean));
+  }
+  async function debrisAt(x, z, yaw, speed) {
+    loadDebris();
+    const kit = debrisKit ? await debrisKit : [];
+    const n = Math.min(9, 2 + Math.round(speed * 0.5));
+    for (let i = 0; i < n; i += 1) {
+      const mesh = kit.length ? kit[i % kit.length].clone() : new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.35), lambert({ color: 0x9aa0a6 }));
+      const a = yaw + Math.PI + (Math.random() - 0.5) * 2.2, v = 1.5 + Math.random() * speed * 0.35;
+      mesh.scale.setScalar(kit.length ? 0.9 : 1);
+      mesh.position.set(x, groundAt(x, z) + 0.6, z);
+      debrisGroup.add(mesh);
+      debrisParts.push({ mesh, vx: -Math.sin(a) * v, vz: -Math.cos(a) * v, vy: 2 + Math.random() * 3, spin: (Math.random() - 0.5) * 10, born: performance.now() });
+    }
+    while (debrisParts.length > 60) { const old = debrisParts.shift(); old.mesh.removeFromParent(); }
+  }
+  function drawDebris(dt) {
+    const now = performance.now();
+    for (let i = debrisParts.length - 1; i >= 0; i -= 1) {
+      const d = debrisParts[i], m = d.mesh;
+      if (now - d.born > 120_000) { m.removeFromParent(); debrisParts.splice(i, 1); continue; }
+      if (d.vy === null) continue;
+      d.vy -= 9.8 * dt;
+      m.position.x += d.vx * dt; m.position.z += d.vz * dt; m.position.y += d.vy * dt; m.rotation.y += d.spin * dt; m.rotation.x += d.spin * 0.5 * dt;
+      const g = groundAt(m.position.x, m.position.z) + 0.04;
+      if (m.position.y <= g) { m.position.y = g; d.vx *= 0.4; d.vz *= 0.4; d.vy = Math.abs(d.vy) > 1.5 ? -d.vy * 0.3 : null; if (d.vy === null) m.rotation.x = 0; }
+    }
+  }
+  //: Nobody walks through you, nor you through them or a car: pushed apart, out of their way.
+  function keepClear() {
+    if (car.active || car.riding || transit.ride || !ctx.cityMode?.()) return;
+    const you = me();
+    let px = 0, pz = 0;
+    for (const q of visible.people) {
+      if (q.indoors && !shop.place) continue;
+      const dx = you.x - q.x, dz = you.z - q.z, d = Math.hypot(dx, dz), r = 0.62;
+      if (d < r && d > 1e-3) { px += (dx / d) * (r - d); pz += (dz / d) * (r - d); }
+    }
+    for (const v of visible.vehicles) {
+      const [w, , l] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+      const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), dx = you.x - v.x, dz = you.z - v.z;
+      const a = dx * fx + dz * fz, b = dx * fz - dz * fx, ha = l / 2 + 0.3, hb = w / 2 + 0.3;
+      if (Math.abs(a) < ha && Math.abs(b) < hb) {
+        // Out by the nearer side.
+        const oa = ha - Math.abs(a), ob = hb - Math.abs(b);
+        if (oa < ob) { px += fx * Math.sign(a || 1) * oa; pz += fz * Math.sign(a || 1) * oa; } else { px += fz * Math.sign(b || 1) * ob; pz -= fx * Math.sign(b || 1) * ob; }
+      }
+    }
+    if (Math.hypot(px, pz) > 0.01) ctx.moveAvatarTo(you.x + px, you.z + pz, true);
   }
   function drawParked() {
     const w = view;
@@ -1388,6 +1899,7 @@ export async function startCity(ctx) {
     c: () => toggleCar(), b: () => shopKey(), g: () => pickUp(), i: () => openSide("bag"), t: () => board(), j: () => workKey(),
     d: () => deliveryKey(), z: () => restKey(), h: () => openSide("help"), "?": () => openSide("help"),
     v: () => taskKey(), k: () => errandKey(), x: () => strikeKey(), o: () => openSide("homes"),
+    q: () => openSide("tasks"), u: () => openSide("online"), l: () => { if (side?.kind === "look") side.target = null; openSide("look"); },
   };
   addEventListener("keydown", (e) => {
     if (e.key === "Shift") { if (!typing(e.target)) body.sprintHeld = true; return; }
@@ -1519,7 +2031,9 @@ export async function startCity(ctx) {
   for (const type of ["pointerup", "pointerleave", "pointercancel"]) sprintButton.addEventListener(type, press(false));
   const bagButton = h("button", { title: "What you carry (I)", onclick: () => openSide("bag") }, "Bag ", h("kbd", { textContent: "I" }));
   const helpButton = h("button", { title: "The controls (H)", onclick: () => openSide("help") }, "Controls ", h("kbd", { textContent: "H" }));
-  actionBar.append(dynamicActions, sprintButton, bagButton, helpButton);
+  const tasksButton = h("button", { title: "The task board (Q)", onclick: () => openSide("tasks") }, "Tasks ", h("kbd", { textContent: "Q" }));
+  const onlineButton = h("button", { title: "The online store: anything, from anywhere, at twice the price (U)", onclick: () => openSide("online") }, "Store ", h("kbd", { textContent: "U" }));
+  actionBar.append(dynamicActions, sprintButton, tasksButton, onlineButton, bagButton, helpButton);
   doc.body.append(vitalsBox, actionBar);
   let actionsKey = "";
   const bar = (label, value, colour) => `<div class="bar"><span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b></div>`;
@@ -1553,7 +2067,7 @@ export async function startCity(ctx) {
     closeSide();
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
-    el.setAttribute("aria-label", { store: "Shop", bag: "Your things", ride: "Buses and taxis", errands: "Errands", homes: "Homes for sale and to rent" }[kind] || "Controls");
+    el.setAttribute("aria-label", { store: "Shop", bag: "Your things", ride: "Buses and taxis", errands: "Errands", homes: "Homes for sale and to rent", tasks: "Task board", online: "Online store", look: "Look" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -1727,13 +2241,78 @@ export async function startCity(ctx) {
         mine.length || p.lease ? h("h4", { textContent: "Yours" }) : "", ...mine, p.lease ? h("div", {}, `Renting at ${R.fmt(p.lease.rent)}/mo `, act("Give notice and move out", () => send("end_lease"))) : "");
       return;
     }
+    if (side.kind === "tasks") {
+      const title = h("h3", {}, h("span", { textContent: "Task board" }), close);
+      const t = p.task, g = objective();
+      if (t || p.delivery) {
+        const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name}` : `Deliver to ${p.delivery.to.name || "the address"}`];
+        const done = t?.kind === "courier" ? (p.delivery?.stage === "carry" ? 1 : 0) : t?.kind === "sightseeing" ? -1 : t?.kind === "forestry" ? ((F) => (F.tool.some((k) => (p.inventory[k] || 0) > 0) ? (inPresidio() ? 2 : 1) : 0))(R.tasks.forestry) : 0;
+        const list = h("ol", { style: "margin:4px 0 8px 18px;padding:0" }, ...steps.map((st, i) => h("li", { textContent: `${st}${(t?.kind === "sightseeing" ? t.visited.includes(i) : i < done) ? " ✓" : ""}`, style: (t?.kind === "sightseeing" ? t.visited.includes(i) : i < done) ? "opacity:.6" : "" })));
+        side.el.replaceChildren(title, status, h("p", {}, h("b", { textContent: t?.title || "Delivery" }), ` — ${R.fmt(t?.pay ?? p.delivery?.pay ?? 0)} on finishing`), list,
+          g ? h("p", { className: "note", textContent: `Next: ${g.label}${Number.isFinite(g.x) ? ` (${Math.round(Math.hypot(g.x - me().x, g.z - me().z))} m; the arrow at the top of the screen points there, and the light stands over it)` : ""}.` }) : "",
+          h("div", {}, g && Number.isFinite(g.x) ? h("button", { textContent: "Walk there", onclick: () => ctx.goTo?.(g.x, g.z) }) : "", g && Number.isFinite(g.x) ? h("button", { textContent: "Call a taxi there", onclick: () => callTaxi({ name: g.label.split(" — ")[0], x: g.x, z: g.z }) }) : "",
+            t ? act("Drop the task", () => send("cancel_task")) : act("Cancel the delivery", () => send("cancel_delivery"))));
+        return;
+      }
+      const offers = taskOffers();
+      const rows = offers.map((o) => h("tr", {}, h("td", {}, h("b", { textContent: o.title }), h("div", { className: "note", textContent: o.steps.join(" → ") })),
+        h("td", { textContent: `${R.fmt(o.pay)} · ${o.km.toFixed(1)} km` }),
+        h("td", {}, h("button", { className: "primary", textContent: "Take it", onclick: () => say(send("take_task", { task: o }), (r) => `${r.task.title}: ${r.task.steps[0]}. Follow the arrow at the top.`) }))));
+      side.el.replaceChildren(title, status, h("p", { className: "note", textContent: `Work posted round the city, new every ${R.tasks.refresh_minutes} minutes. One at a time: the arrow at the top of the screen and the light over the place show where to go. Also: delivery gigs at any café or shop (D), neighbours' errands (K), a job (the City panel).` }),
+        h("table", { className: "wares" }, ...rows));
+      return;
+    }
+    if (side.kind === "online") {
+      const title = h("h3", {}, h("span", { textContent: "Online store" }), close);
+      const S = R.online_store, query = (side.query || "").toLowerCase();
+      const [lon, lat] = ctx.toLonLat(me().x, me().z), chain = jurisdictionAt(R, lon, lat, district.county).chain;
+      const wares = onlineWares().filter((x) => !query || x.it.name.toLowerCase().includes(query) || x.from.some((f) => f.toLowerCase().includes(query)));
+      const input = h("input", { type: "search", placeholder: "Search: an axe, coffee, a bandage…", value: side.query || "", style: "width:100%;margin:4px 0" });
+      input.oninput = () => { side.query = input.value; const at = input.selectionStart; drawSide(); const again = side.el.querySelector("input[type=search]"); again?.focus(); again?.setSelectionRange(at, at); };
+      const rows = wares.slice(0, 80).map(({ id, it, from }) => {
+        const price = Math.round(it.price * S.markup * 100) / 100, tax = itemTax(R, chain, it, price, w.laws);
+        return h("tr", {}, h("td", {}, h("b", { textContent: it.name }), h("div", { className: "note", textContent: `${effectText(it)}${effectText(it) ? " · " : ""}in shops ${R.fmt(it.price)} (${from.slice(0, 2).join(", ")})` })),
+          h("td", { textContent: `${R.fmt(price)}${tax ? ` +${R.fmt(tax)}` : ""}` }),
+          h("td", {}, h("button", { className: "primary", textContent: "Buy", onclick: () => say(send("buy_online", { item: id }), (r) => `Online store: ${it.name} ${R.fmt(r.price)}${r.tax ? ` + ${R.fmt(r.tax)} tax` : ""}, brought to you. It is in your bag (I).`) })));
+      });
+      side.el.replaceChildren(title, status, h("p", { className: "note", textContent: `Anything a shop in the city sells, brought to you wherever you are — at ${S.markup}× the shop price. Services, prescriptions and meals at the counter are only in person.` }), input,
+        h("table", { className: "wares" }, ...rows), wares.length > 80 ? h("p", { className: "note", textContent: `${wares.length - 80} more: search to narrow.` }) : "");
+      return;
+    }
+    if (side.kind === "look") {
+      const title = h("h3", {}, h("span", { textContent: "Look" }), close);
+      const target = side.target || lookTarget();
+      side.target = target;
+      if (!target) { side.el.replaceChildren(title, h("p", { className: "note", textContent: "Nobody and no car in front of you: face someone, or a car, within a few steps, and press L." })); return; }
+      const t = timeAt(Date.now());
+      const harmRec = w.harm?.get(target.kind === "person" ? target.q.id : target.v.id);
+      const out = [title];
+      if (target.kind === "person") {
+        const q = target.q, pr = q.person || {};
+        out.push(h("p", {}, h("b", { textContent: pr.name || "Someone" }), ` — ${pr.visitor ? "visiting the district" : `${pr.age}, ${String(pr.title || "").toLowerCase()}`}. ${q.activity ? `Now: ${q.activity}.` : ""}`));
+        out.push(h("table", {}, row("Health", `${Math.round(harmRec?.health ?? R.harm.npc_health)} of 100${harmRec?.state && harmNow(harmRec, Date.now()) ? ` (${harmNow(harmRec, Date.now()).state || "down"})` : ""}`),
+          row("Injuries", harmRec?.injuries?.length ? harmRec.injuries.map((x) => x.type).join(", ") : "none")));
+      } else {
+        const v = target.v, rec = v.vehicle || {}, owner = rec.visitor ? district.roster?.visitors.get(rec.owner) : district.roster?.people.get(rec.owner);
+        out.push(h("p", {}, h("b", { textContent: `${v.plate || ""} ${String(v.model).replace("_", " ")}` }), ` — ${owner ? `${owner.name}'s${rec.visitor ? " (a visitor)" : ""}` : "the city's"}. ${v.moving ? `Driving${v.reason ? `, slowing for ${v.reason}` : ""}.` : v.wrecked ? "Broken down where it stopped: the tow is coming." : "Parked."}`));
+        out.push(h("table", {}, row("Condition", `${Math.round(harmRec?.condition ?? 100)}% — ${harmRec?.state || "fine"}`)));
+      }
+      const lines = district.city?.history(target.kind === "person" ? target.q.id : target.v.id, t) || [];
+      out.push(h("h4", { textContent: "Today" }), h("div", {}, ...lines.map((x) => h("p", { className: "note", textContent: x }))));
+      if (harmRec?.history?.length) out.push(h("h4", { textContent: "What happened to them" }), h("div", {}, ...harmRec.history.slice(-6).map((e) => h("p", { className: "note", textContent: `${new Date(e.t).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}: ${e.text}` }))));
+      out.push(h("button", { textContent: "Look at another", onclick: () => { side.target = lookTarget(); drawSide(); } }));
+      side.el.replaceChildren(...out);
+      return;
+    }
     // The controls.
     const keys = [["Arrows", "walk; at the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Click", "go there (on a bridge's deck, onto the deck)"],
       ["PageUp / PageDown", "the level above or below where you stand"], ["B", "go into the shop beside you; inside, the counter"], ["Esc", "close a window; inside a shop, leave"], ["G", "pick up what lies at your feet"],
-      ["I", "your things: hands, bag, vehicles, homes, money — hold, eat, use, wear, put down, give"], ["X", "strike what is in front of you, with what is in your hands"],
+      ["I", "your things: hands, bag, vehicles, homes, money — hold, eat, use, wear, put down, give"], ["X", "strike what is in front of you, with what is in your hands — a thing, a tree, or a person (who may hit back; a battery is fined)"],
       ["C", "get in or out of your car (parking where you stop), or ride with a party member"], ["T", "at a stop, board the bus standing there; on board, ask for the next stop; elsewhere, call a taxi"],
       ["J", "clock in or out at your job"], ["V", "do the task in front of you at work (the orange ring)"], ["K", "neighbours' errands: take one; at their door, hand it over"],
-      ["D", "take a delivery gig at a shop, hand the parcel over at the address"], ["O", "homes for sale and to rent"], ["Z", "rest (in bed at home, sleep); walk on to get up"], ["H", "these controls"],
+      ["D", "take a delivery gig at a shop; for a courier task, pick up the order at the shop; hand it over at the address"], ["O", "homes for sale and to rent"], ["Z", "rest (in bed at home, sleep); walk on to get up"], ["H", "these controls"],
+      ["Q", "the task board: take a task (courier, the Presidio's trees, the Marina walk); with one, its steps"], ["U", "the online store: anything sold in the city, from anywhere, at twice the shop price"],
+      ["L", "look at the person or the car in front of you: who they are, how they are, and their day so far"],
       ["F", "first person"], ["Enter", "a door: in or out"], ["S", "what is under the pointer"], ["R", "back to where you are"]];
     const bars = [["Health", "wears slowly; quickly with no stamina left. Medicine (pharmacy), a doctor's visit (clinic), a night's sleep. At 0 you faint, wake at home, and pay the ambulance."],
       ["Stamina", "runs down through the day, faster at work and sprinting; comes back at night, fastest asleep at home. Food and drink at cafés, restaurants, bars and grocers give it back. Low, you are slowed."],
@@ -1783,6 +2362,9 @@ export async function startCity(ctx) {
       if (st.job) out.push(h("div", {}, st.clocked ? act("Clock out", () => send("clock_out")) : act("Clock in", () => send("clock_in"), true), act("Quit the job", () => send("quit_job"))));
       out.push(h("h4", { textContent: "Your body" }), h("table", {}, row("Health", `${Math.round(st.vitals.health)} of 100`), row("Stamina", `${Math.round(st.vitals.stamina)} of 100`), row("Strength", `${Math.round(st.vitals.strength)} of 100`),
         row("Carrying", `${st.carry.kg} of ${st.carry.capacity} kg`)));
+      const hurt = (p.injuries || []).slice(-6).reverse();
+      out.push(h("h4", { textContent: "Injuries" }), hurt.length ? h("table", {}, ...hurt.map((x) => row(x.type, `${x.cause}, ${new Date(x.at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`)))
+        : h("p", { className: "note", textContent: "None. (What injuries do to you comes in a later round: for now they are recorded.)" }));
       const goods = Object.entries(st.inventory || {});
       if (goods.length) out.push(h("p", { className: "note", textContent: goods.map(([k, v]) => `${v} ${R.items[k]?.name.toLowerCase() || k}`).join(", ") }), h("button", { textContent: "Open your bag (I)", onclick: () => openSide("bag") }));
       const recent = w.ledger.journal.filter((e) => e.lines.some(([a]) => a === p.account)).slice(-8).reverse();
@@ -1899,6 +2481,7 @@ export async function startCity(ctx) {
       return null;
     },
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, district, visible: () => visible, me: myId,
+    scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars,
     water: (cls, at) => waterProperties(R, cls, at), send,
   };
 }

@@ -87,10 +87,10 @@ function setAppMode(mode) {
       const guest = guestUnder(p.x, p.z);
       if (guest?.ready && guest.api.cityWays) {
         const ways = guest.api.cityWays() || [];
-        return { key: streetsKey(guest.region?.name || "guest", ways), ways, county: guest.region?.city || null };
+        return { key: streetsKey(guest.region?.name || "guest", ways), region: guest.region?.name || "guest", ways, county: guest.region?.city || null };
       }
       if (!hostWorldActive || !(DATA.ways || []).length) return null;
-      return { key: streetsKey(REGION_INDEX.host?.name || "host", DATA.ways), ways: DATA.ways, county: REGION_INDEX.host?.city || null };
+      return { key: streetsKey(REGION_INDEX.host?.name || "host", DATA.ways), region: REGION_INDEX.host?.name || "host", ways: DATA.ways, county: REGION_INDEX.host?.city || null };
     };
     const onRoad = (x, z) => {
       const guest = guestUnder(x, z);
@@ -128,6 +128,12 @@ function setAppMode(mode) {
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // The traffic's car models (the Kenney Car Kit) and crash debris.
+      loadModel: (url) => new GLTFLoader().loadAsync(url),
+      // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and
+      // felling them.
+      natureTrees: (x, z, reach) => (typeof natureWorld !== "undefined" && natureWorld?.treesNear ? natureWorld.treesNear(x, z, reach) : []),
+      fellTree: (ids) => (typeof natureWorld !== "undefined" ? natureWorld?.fell?.(ids) : null),
       // The object catalogue's view of what is round the walker: what a blow can land on.
       objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
       catalogueUrl: sharedAsset("object-catalogue.json"),
@@ -164,6 +170,7 @@ function setAppMode(mode) {
       return livingCity;
     }).catch((error) => console.warn("kerbside: the living city did not start", error));
     // Started once the world is up, so it costs the first build nothing.
-    WORLD_READY.then(() => setTimeout(start, 1500));
+    // ?city=0 leaves it out (for measuring what it costs).
+    if (new URLSearchParams(location.search).get("city") !== "0") WORLD_READY.then(() => setTimeout(start, 1500));
   }
 }

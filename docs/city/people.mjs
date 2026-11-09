@@ -84,6 +84,9 @@ export class Streets {
   //: end only on the largest such network.
   largestDriveNetwork() {
     const seen = new Int32Array(this.nodes.length).fill(-1);
+    //: Every drivable node's network (the streets that hang together), by label: a district
+    //: seen in pieces (a jump across the map) is more than one.
+    this.comp = seen;
     let best = -1, bestSize = 0, label = 0;
     const back = this.nodes.map(() => []);
     for (let a = 0; a < this.edges.length; a += 1) for (const e of this.edges[a]) if (e.drive) back[e.to].push(a);
@@ -141,6 +144,7 @@ export class Streets {
       for (const id of this.grid.get(`${cx + i},${cz + j}`) || []) {
         const n = this.nodes[id];
         if (mode === "drive" && (!n.drive || (this.reach && !this.reach.has(id)))) continue;
+        if (mode === "kerb" && !n.drive) continue;
         const d = Math.hypot(n.x - x, n.z - z);
         if (d < bestD) { bestD = d; best = id; }
       }
@@ -185,7 +189,7 @@ export class Streets {
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-      route = { pts, s, halves, classes, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
+      route = { pts, s, halves, classes, ids, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
     if (this.routes.size > 6000) this.routes.delete(this.routes.keys().next().value);
     this.routes.set(key, route);
@@ -193,20 +197,42 @@ export class Streets {
   }
 }
 //: Where along ``route`` distance ``d`` is: the point, the heading (as a yaw: 0 faces -z), and
-//: the point moved ``side`` metres to the right of the way (a lane, a pavement).
+//: the point moved ``side`` metres to the right of the way (a lane, a pavement). Off the centre
+//: line the corners are rounded: the offset turns with the way over a few metres either side of
+//: each bend, so a walker on the pavement or a car in its lane goes round, never across in a jump.
 export function alongRoute(route, d, side = 0) {
   const { pts, s } = route;
   if (pts.length === 1) return { x: pts[0][0], z: pts[0][1], yaw: 0, half: 0 };
   d = Math.max(0, Math.min(route.length, d));
   let lo = 0, hi = s.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m] <= d) lo = m; else hi = m; }
-  const [ax, az] = pts[lo], [bx, bz] = pts[hi];
-  const len = s[hi] - s[lo] || 1, t = (d - s[lo]) / len;
-  const dx = (bx - ax) / len, dz = (bz - az) / len;
-  const half = route.halves?.[lo] ?? 0;
-  const off = typeof side === "function" ? side(half, route.classes?.[lo]) : side;
-  // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
-  return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz), half, cls: route.classes?.[lo] };
+  const fn = typeof side === "function";
+  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i]) : side);
+  // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side.
+  const on = (i, off) => {
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (d - s[i]) / len;
+    const dx = (bx - ax) / len, dz = (bz - az) / len;
+    // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
+    return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz) };
+  };
+  const half = route.halves?.[lo] ?? 0, off = offOf(lo);
+  let at = on(lo, off);
+  if (off !== 0 || fn) {
+    // The bend nearer d: at the segment's start (lo) or its end (hi), if that is a bend.
+    const v = d - s[lo] < s[hi] - d ? lo : hi;
+    if (v > 0 && v < s.length - 1) {
+      const a = v - 1, b = v, oa = offOf(a), ob = offOf(b);
+      const r = Math.min(Math.max(Math.abs(oa), Math.abs(ob)) + 1, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
+      if (r > 0 && Math.abs(d - s[v]) < r) {
+        const u = (d - (s[v] - r)) / (2 * r), w = u * u * (3 - 2 * u);
+        const pa = on(a, oa), pb = on(b, ob);
+        let dy = pb.yaw - pa.yaw;
+        if (dy > Math.PI) dy -= 2 * Math.PI; else if (dy < -Math.PI) dy += 2 * Math.PI;
+        at = { x: pa.x + (pb.x - pa.x) * w, z: pa.z + (pb.z - pa.z) * w, yaw: pa.yaw + dy * w };
+      }
+    }
+  }
+  return { ...at, half, cls: route.classes?.[lo] };
 }
 
 // ---- places and jobs ------------------------------------------------------------------------------
@@ -335,7 +361,7 @@ export function daySchedule(R, person, day, weekday, places) {
   clock += routine.ready_minutes;
   const placeIds = places.map((p) => p.id);
   const errand = (from, until) => {
-    if (until - from < 60 || r() > routine.errand_chance) return from;
+    if (until - from < 60 || r() > Math.min(0.9, routine.errand_chance * (person.outgoing || 1))) return from;
     const shop = places[Math.floor(r() * places.length)];
     if (!shop || !shop.shops?.length) return from;
     const start = from + 10 + Math.floor(r() * 30);
@@ -360,7 +386,7 @@ export function daySchedule(R, person, day, weekday, places) {
       if (food.length) { const p = food[Math.floor(r() * food.length)]; const start = Math.max(clock + 20, 12 * 60 + Math.floor(r() * 8 * 60)); at("meal", start, start + 50, p.id); clock = Math.max(clock, start + 60); }
     }
     clock = errand(clock, 21 * 60);
-    if (r() < routine.stroll_chance && clock < 20 * 60) {
+    if (r() < Math.min(0.9, routine.stroll_chance * (person.outgoing || 1)) && clock < 20 * 60) {
       const start = clock + 20 + Math.floor(r() * 90);
       at("stroll", start, start + 25 + Math.floor(r() * 35), person.home, { outdoor: "stroll", seed: Math.floor(r() * 1e9) });
       clock = start + 65;
@@ -383,12 +409,12 @@ export function daySchedule(R, person, day, weekday, places) {
 
 // ---- where everyone is ----------------------------------------------------------------------------
 
-const TRAFFIC_BY_HOUR = [0.15, 0.1, 0.08, 0.08, 0.12, 0.25, 0.55, 0.9, 1.0, 0.8, 0.65, 0.65, 0.7, 0.65, 0.65, 0.75, 0.9, 1.0, 0.9, 0.7, 0.55, 0.45, 0.35, 0.25];
-const TRAFFIC_MIX = [["economy", 0.3], ["sedan", 0.18], ["suv", 0.12], ["compact_ev", 0.1], ["pickup", 0.05], ["taxi", 0.08], ["delivery_van", 0.1], ["box_truck", 0.04], ["bus", 0.02], ["patrol", 0.01]];
+export const TRAFFIC_BY_HOUR = [0.15, 0.1, 0.08, 0.08, 0.12, 0.25, 0.55, 0.9, 1.0, 0.8, 0.65, 0.65, 0.7, 0.65, 0.65, 0.75, 0.9, 1.0, 0.9, 0.7, 0.55, 0.45, 0.35, 0.25];
+export const TRAFFIC_MIX = [["economy", 0.3], ["sedan", 0.18], ["suv", 0.12], ["compact_ev", 0.1], ["pickup", 0.05], ["taxi", 0.08], ["delivery_van", 0.1], ["box_truck", 0.04], ["bus", 0.02], ["patrol", 0.01]];
 
 //: People out on foot by the hour, as a share of the busiest (noon to early evening).
-const WALK_BY_HOUR = [0.08, 0.05, 0.03, 0.03, 0.04, 0.1, 0.25, 0.55, 0.75, 0.7, 0.75, 0.9, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 0.95, 0.8, 0.6, 0.45, 0.3, 0.15];
-const CLOTHES = ["#2e4057", "#8d3b3b", "#3f6e4a", "#d9d4c7", "#1f1f24", "#6b4f8a", "#b9773a", "#4b7da8", "#9aa3ab", "#c2405a", "#e3c45c", "#355c5a"];
+export const WALK_BY_HOUR = [0.08, 0.05, 0.03, 0.03, 0.04, 0.1, 0.25, 0.55, 0.75, 0.7, 0.75, 0.9, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 0.95, 0.8, 0.6, 0.45, 0.3, 0.15];
+export const CLOTHES = ["#2e4057", "#8d3b3b", "#3f6e4a", "#d9d4c7", "#1f1f24", "#6b4f8a", "#b9773a", "#4b7da8", "#9aa3ab", "#c2405a", "#e3c45c", "#355c5a"];
 //: How busy a place is, by the rules' density (docs/city/rules.json): the default, or the busiest
 //: hotspot the point (lon, lat) is in. ``kind`` is "walkers" or "traffic".
 export function densityAt(R, lon, lat, kind) {
@@ -631,7 +657,7 @@ export class Crowd {
     return { time: t, people, vehicles };
   }
 }
-const INDOOR_REACH_M = 70;
+export const INDOOR_REACH_M = 70;
 //: Who works the counter in a shop (the rest are in the back, or not in a shop at all).
 export const COUNTER_ROLES = new Set(["barista", "baker", "cook", "server", "bartender", "clerk", "grocer", "pharmacist", "pharmacy_tech",
   "stylist", "teller", "laundry_attendant", "attendant", "housekeeper", "night_auditor", "security_guard"]);
@@ -643,7 +669,7 @@ export function counterLine(inside) {
 }
 //: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
 //: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
-function indoorSpot(p, a, place, t) {
+export function indoorSpot(p, a, place, t) {
   const I = place.inside, L = counterLine(I);
   const tx = -I.nz, tz = I.nx;   // along the front
   const sec = t.minute * 60, slot = Math.floor(sec / 18);
@@ -665,7 +691,7 @@ function indoorSpot(p, a, place, t) {
   return { x: I.x + tx * along + I.nx * deep, z: I.z + tz * along + I.nz * deep, yaw: moving ? Math.atan2(-(tx * (a1 - a0) + I.nx * (d1 - d0)), -(tz * (a1 - a0) + I.nz * (d1 - d0))) : yaw,
     moving, mode: "walk", indoors: place.id, activity: staff ? "behind the counter" : a.kind === "errand" ? "at the counter" : "at a table" };
 }
-function distToSegment(px, pz, ax, az, bx, bz) {
+export function distToSegment(px, pz, ax, az, bx, bz) {
   const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;
   const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / len2)) : 0;
   return Math.hypot(px - ax - dx * t, pz - az - dz * t);

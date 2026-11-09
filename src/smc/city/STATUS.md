@@ -8,6 +8,24 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (PR after #175): kept people and cars, traffic law, crashes, tasks, the store
+
+* **Nothing appears or vanishes.** Each district has a roster: residents per home, a job each,
+  and their cars (`docs/city/fleet.mjs`). Visitors (ride-hail, taxis, deliveries, private
+  cars) drive in from the district's edges and out again. A car is always parked, in a garage,
+  driving or away, and only moves by driving there. Look (L) shows how it got there. Tested.
+* **No popping.** Walkers no longer jump at corners, at the end of a round, or between one
+  walk and the next. Anything left over is drawn as a step, not a jump (`glide` in view.mjs).
+  Verified: 0 jumps over 23,000 samples near the Marina. Tested.
+* **The grey flashes.** The memory governor rebuilt the detail window every few seconds round
+  a walker standing still. It now rebuilds only to shrink, at most once a minute
+  (module 28 `desktopMemoryPlan`). Tested.
+* **Traffic law, collisions, injuries, Kenney cars (CC0).** See ACTIONS.md. Verified: a car
+  braked from 8.5 m/s to a stop for you; a car that could not stop hit you at 23 mph (broken
+  pelvis, debris, knock-back).
+* **Tasks (Q), the online store (U), punching people (X).** Verified: courier task end to
+  end; an axe online at ₡110 (₡55 in the shop); a dead tree felled in the Presidio.
+
 ## Since then (PR after #174): the streets filled, and two modes
 
 * **Why the streets were empty.** Two bugs, both fixed:
