@@ -76,16 +76,18 @@ export function buildLines(R, stops, streets, toXZ) {
   return lines;
 }
 //: Every bus at ``ms``: where it is, which way it faces, and whether it is standing at a stop.
-export function busesAt(lines, ms) {
-  const out = [], t = ms / 1000;
+//: ``lag`` (bus id -> seconds): how far behind the timetable a bus is running, held at a stop.
+export function busesAt(lines, ms, lag = null) {
+  const out = [];
   for (const line of lines) {
     for (let j = 0; j < line.buses; j += 1) {
+      const id = `bus:${line.route}:${j}`;
+      const t = ms / 1000 - (lag?.get(id) || 0);
       const phase = ((t + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle;
       const tl = line.timeline;
       let lo = 0, hi = tl.length - 1;
       while (lo < hi) { const m = (lo + hi + 1) >> 1; if (tl[m].t0 <= phase) lo = m; else hi = m - 1; }
       const seg = tl[lo];
-      const id = `bus:${line.route}:${j}`;
       if (seg.kind === "dwell") {
         const pos = seg.at;
         const next = tl[lo + 1]?.next ?? tl[1]?.next ?? null;

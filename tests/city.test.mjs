@@ -263,12 +263,16 @@ test("a player's day in the party's world", () => {
   const tagged = w.submit("ana", "toll", { name: "Bay Bridge", occupants: 1, key: "t2" });
   assert.equal(tagged.paid_by, "fastrak"); assert.equal(tagged.amount, m(8.5));
   // Solo in a carpool lane in its hours: a 490 notice. In an express lane: the price on the tag.
-  const hov = w.submit("ana", "lane", { segment: "way/1", kind: "hov", minimum: 2, occupants: 1, km: 2, key: "l1" });
+  // Solo in a carpool lane with nobody to see: no notice. Seen by a patrol car: 490.
+  const unseen = w.submit("ana", "lane", { segment: "way/1", kind: "hov", minimum: 2, occupants: 1, km: 2, key: "l0" });
+  assert.equal(unseen.charged, 0); assert.equal(unseen.unseen, true);
+  const hov = w.submit("ana", "lane", { segment: "way/1", kind: "hov", minimum: 2, occupants: 1, km: 2, key: "l1", witness: { kind: "police", id: "veh:npc:1:0" } });
   assert.equal(hov.charged, m(490));
   const express = w.submit("ana", "lane", { segment: "way/2", kind: "express", minimum: 2, occupants: 1, km: 8, key: "l2" });
   assert.ok(express.charged > 0 && express.paid_by === "fastrak");
-  const cam = w.submit("ana", "speed_camera", { over_mph: 18, mph: 43, camera: "c1", key: "s1" });
+  const cam = w.submit("ana", "speed_camera", { over_mph: 18, mph: 43, camera: "c1", key: "s1", witness: { kind: "camera", id: "c1" } });
   assert.equal(cam.charged, m(100));
+  assert.equal(w.submit("ana", "speed_camera", { over_mph: 18, mph: 43, key: "s0", witness: null }).charged, 0, "speeding nobody saw is not charged");
   // Bills to pay: the invoice and the notices.
   const bills = w.submit("ana", "status").bills;
   assert.equal(bills.length, 3);

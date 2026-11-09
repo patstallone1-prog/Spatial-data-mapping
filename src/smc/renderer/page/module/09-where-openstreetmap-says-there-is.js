@@ -1962,6 +1962,16 @@ function apronSlab(opening) {
   }));
 }
 
+//: Every garage door drawn, by where it stands: its building, its middle, the way it faces and
+//: its size -- for the doors that open (module 31) to be drawn over their merged copies.
+const GARAGE_DOORS = new Map();
+function rememberGarageDoor(panel, building) {
+  const p = panel.geometry.parameters || {};
+  const key = `${Math.round(panel.position.x * 10)},${Math.round(panel.position.z * 10)}`;
+  GARAGE_DOORS.set(key, { key, building: String(building), x: panel.position.x, z: panel.position.z, yaw: panel.rotation.y,
+    w: p.width || 2.4, h: p.height || 2.7, map: panel.material.map || null });
+  if (GARAGE_DOORS.size > 60000) GARAGE_DOORS.delete(GARAGE_DOORS.keys().next().value);
+}
 function garagePanel(opening, tint) {
   const [ax, ay] = xy(opening.a[0], opening.a[1]);
   const [bx, by] = xy(opening.b[0], opening.b[1]);

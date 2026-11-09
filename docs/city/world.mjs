@@ -701,7 +701,10 @@ export class CityWorld {
   }
   //: A stretch driven in a managed lane: in a carpool lane short of its occupancy, a violation;
   //: in an express lane, the price for the stretch (on the tag, or a toll evasion notice).
-  cmd_lane(pid, { segment, kind, minimum = 2, occupants = 1, km = 0, active = true, key }) {
+  //: A carpool lane short of its riders is a moving violation: charged only where it was seen
+  //: (``witness``: a camera with the car in its field of view, or a patrol car near -- see
+  //: enforcement.mjs), never by the lane alone.
+  cmd_lane(pid, { segment, kind, minimum = 2, occupants = 1, km = 0, active = true, key, witness = null }) {
     const p = this.player(pid);
     if (!active) return { charged: 0 };
     const vehicle = p.driving?.vehicle ? this.registry.get(p.driving.vehicle) : null;
@@ -709,7 +712,8 @@ export class CityWorld {
     const declared = p.fastrak ? Math.min(occupants, p.fastrak.flex || 1) : occupants;
     if (kind === "hov") {
       if (occupants >= minimum) return { charged: 0, ok_lane: true };
-      const bill = this.fine(p, "hov_violation", `Carpool lane with ${occupants} aboard (${minimum}+ required), ${segment}`, ["officer"], key, vehicle.owner);
+      if (!seenBy(witness)) return { charged: 0, unseen: true };
+      const bill = this.fine(p, "hov_violation", `Carpool lane with ${occupants} aboard (${minimum}+ required), ${segment}`, [evidenceOf(witness)], key, vehicle.owner);
       return { charged: bill.amount, bill: bill.id };
     }
     const price = expressPrice(this.R, this.time, km, declared, minimum);
@@ -720,20 +724,24 @@ export class CityWorld {
       evidence: ["plate photograph"], key });
     return { charged: bill.amount, bill: bill.id };
   }
-  //: A speed camera saw the car ``over_mph`` over the limit.
-  cmd_speed_camera(pid, { over_mph, mph, camera, key }) {
+  //: Speeding, ``over_mph`` over the limit, seen: by a speed camera with the car in its field of
+  //: view (charged where the city runs them), or by a patrol car near (anywhere). Unseen, nothing.
+  cmd_speed_camera(pid, { over_mph, mph, camera, key, witness = null }) {
     const p = this.player(pid);
     const S = this.R.enforcement.speed_camera;
     const here = this.where(p);
-    if (!S.jurisdictions.some((j) => here.chain.includes(j))) return { charged: 0 };
+    const seen = witness || (camera ? { kind: "camera", id: camera } : null);
+    if (!seenBy(seen)) return { charged: 0, unseen: true };
+    const police = seen.kind === "police";
+    if (!police && !S.jurisdictions.some((j) => here.chain.includes(j))) return { charged: 0 };
     let fine = 0;
     for (const [over, amount] of S.tiers) if (over_mph >= over) fine = amount;
     if (mph >= 100) fine = S.at_100_mph;
     if (!fine) return { charged: 0 };
     const vehicle = p.driving?.vehicle ? this.registry.get(p.driving.vehicle) : null;
-    const bill = this.billing.issue({ payer: vehicle?.owner || p.account, payee: "authority:sfmta", kind: "speed_camera", amount: fine,
-      memo: `${Math.round(mph)} mph, ${Math.round(over_mph)} over, camera ${camera}`, at: this.now, due_days: this.R.enforcement.notice_due_days,
-      penalties: [Math.round(fine * this.R.enforcement.late_penalty_share)], evidence: ["camera"], key });
+    const bill = this.billing.issue({ payer: vehicle?.owner || p.account, payee: police ? "authority:court" : "authority:sfmta", kind: police ? "speeding" : "speed_camera", amount: fine,
+      memo: `${Math.round(mph)} mph, ${Math.round(over_mph)} over, ${police ? `stopped by patrol ${seen.id}` : `camera ${seen.id}`}`, at: this.now, due_days: this.R.enforcement.notice_due_days,
+      penalties: [Math.round(fine * this.R.enforcement.late_penalty_share)], evidence: [evidenceOf(seen)], key });
     this.log("speeding", { player: pid, over_mph, fine });
     return { charged: fine, bill: bill.id };
   }
@@ -758,7 +766,7 @@ export class CityWorld {
     const p = this.player(pid);
     const b = this.billing.bills.get(bill);
     if (!b || b.payer !== p.account || b.status !== "open") throw new CityError("not an open bill of yours");
-    if (!["speed_camera", "hov_violation", "theft", "parking", "toll_evasion"].includes(b.kind)) throw new CityError("that is not a citation");
+    if (!CITATIONS.includes(b.kind)) throw new CityError("that is not a citation");
     b.hearing = this.now + this.R.enforcement.contest.hearing_days * DAY;
     b.due = Math.max(b.due, b.hearing + DAY);
     return { hearing: b.hearing };
@@ -1501,6 +1509,11 @@ export const PLAYER_COMMANDS = [...COMMANDS];
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.
 function handsCheck(p) { if (p.hands && !(p.inventory[p.hands] > 0)) p.hands = null; }
+//: The notices that can be contested.
+export const CITATIONS = ["speed_camera", "speeding", "hov_violation", "theft", "parking", "toll_evasion"];
+//: A moving violation's witness: a camera that had the car in view, or a patrol car near.
+function seenBy(w) { return Boolean(w && (w.kind === "camera" || w.kind === "police") && w.id); }
+function evidenceOf(w) { return w.kind === "police" ? "patrol officer" : "camera"; }
 function pick(o, keys) { const out = {}; for (const k of keys) if (o && o[k] !== undefined && o[k] !== null) out[k] = o[k]; return out; }
 function slim(a) { return { id: a.id, kind: a.kind, owner: a.owner, holder: a.holder, custody: a.custody, attrs: a.attrs }; }
 function plate(id) {

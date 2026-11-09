@@ -8,6 +8,31 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (PR after #177): Enter for car and bus, waits, witnesses, garages, NPCs about
+
+* **Keys:** C is gone. Enter is in and out of everything (your car, the bus at the stop and its
+  next-stop request, a shop, your garage, a door), the nearest when several are here. T is taxis
+  alone, so the two cannot be confused. On the map (Explore), Space jumps and Enter opens your
+  own garage.
+* **Waits:** a route bus holds at the stop for a player standing there 15 s at most
+  (`transit_lines.bus_hold_s`), then goes and makes the time up on the road (`busesAt`'s
+  `lag`). A called taxi waits 90 s (`taxi_max_wait_s`), counted down on its button, then leaves.
+* **Fines only when seen:** speeding and a carpool lane short of riders are charged only with a
+  witness: one of the map's speed cameras with the car in its field of view (70°, 45 m, along
+  its street) or a patrol car within 60 m (`docs/city/enforcement.mjs`; the world refuses the
+  notice without one). A patrol's is a court citation, a camera's an SFMTA notice. Parking
+  tickets are unchanged (the parking officers').
+* **NPCs:** residents without a car take a taxi (a real cab in the traffic, coming in, riding,
+  driving away) or the route bus on trips over 1.1 km; some play at the parks' courts; shoppers
+  look round the shop floor and then pay at the counter. Tested (`tests/city_npc.test.mjs`,
+  including that nobody jumps getting on or off).
+* **Garages:** every drawn garage door can open (page module 31: the door rolls up over its
+  merged copy). A resident's goes up before their car leaves and comes down after; up as it
+  comes home, down once in. Yours (a home you own or rent, a building you own): Enter.
+* **Broken things (not triggered yet):** `docs/city/repair.mjs` -- broken for 12 hours, then
+  planks nailed over it one by one (an animation), mended within 3 days (`rules.json repair`).
+  Nothing in the city breaks windows or doors yet; when something does, it calls this.
+
 ## Since then (PR after #176): the controls, handling things, the shop panel, doors
 
 * **One key, one meaning; City mode no longer shares the map's keys.** E, R, click-to-go, the

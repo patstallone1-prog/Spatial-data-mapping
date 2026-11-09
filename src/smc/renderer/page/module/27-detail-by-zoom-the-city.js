@@ -725,9 +725,11 @@ function summarizeTrip(trip) {
       const d = heights[i] - heights[i - 1];
       if (d > 0) ascent += d; else descent -= d;
     }
+    const offset = line.length;
     line.push(...decodePolyline6(leg.shape || ""));
     for (const m of leg.maneuvers || []) {
-      if (m.instruction) { steps.push(m.instruction); stepInfo.push({ type: m.type, km: m.length || 0 }); }
+      // Where on the line it is, and the street it turns onto: the route's labels (routeLabels).
+      if (m.instruction) { steps.push(m.instruction); stepInfo.push({ type: m.type, km: m.length || 0, at: offset + (m.begin_shape_index || 0), onto: m.street_names?.[0] || null }); }
       if (TURN_MANEUVERS.has(m.type)) turns += 1;
     }
   }
@@ -1029,6 +1031,7 @@ function updateRouteWidth() {
   if (Math.abs(Math.log(scale / (routeDrawnAt || 1))) > 0.4 || routeOverHouses() !== routeDrawnOver) drawRoutes();
 }
 function drawRoutes() {
+  clearTurnLabels();
   routeDrawnAt = routeScale();
   routeDrawnOver = routeOverHouses();
   for (const child of [...routeGroup.children]) {
@@ -1043,7 +1046,80 @@ function drawRoutes() {
   if (!chosen) return 0;
   const drawn = routeRibbon(chosen, ROUTE_RIBBON_M.chosen * routeDrawnAt, 0x2563eb, { top: true, over: routeDrawnOver });
   routeGroup.add(drawn.group);
+  drawTurnLabels(chosen);
   return drawn.inside;
+}
+//: A label for a place on a route: its name on a white pill, drawn over everything as the pins are.
+//: Street, Avenue, Boulevard as a street sign writes them: a label short enough to read.
+const shortStreet = (text) => String(text).replace(/\bStreet\b/g, "St").replace(/\bAvenue\b/g, "Ave").replace(/\bBoulevard\b/g, "Blvd")
+  .replace(/\bDrive\b/g, "Dr").replace(/\bPlace\b/g, "Pl").replace(/\bTerrace\b/g, "Ter").replace(/\bRoad\b/g, "Rd");
+function routeTextLabel(text, colour = 0x1f2937) {
+  text = shortStreet(text);
+  const c = document.createElement("canvas");
+  const g = c.getContext("2d");
+  const font = "600 30px system-ui,sans-serif";
+  g.font = font;
+  const w = Math.min(900, Math.ceil(g.measureText(text).width) + 36);
+  c.width = w; c.height = 48;
+  g.font = font;
+  g.fillStyle = "rgba(255,255,255,.94)";
+  g.beginPath(); g.roundRect?.(2, 2, w - 4, 44, 14); if (!g.roundRect) g.rect(2, 2, w - 4, 44); g.fill();
+  g.lineWidth = 3; g.strokeStyle = `#${colour.toString(16).padStart(6, "0")}`; g.stroke();
+  g.fillStyle = "#111827"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, w / 2, 25);
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false }));
+  sprite.scale.set(5.5 * (w / 48), 5.5, 1);
+  sprite.center.set(0.5, 1);   // hung from its top edge: beneath the point it names
+  sprite.renderOrder = 30;
+  return sprite;
+}
+//: Where (x, z) is, in words: the street and the corner it is at (or the two it is between).
+function placeWordsAt(x, z) {
+  const name = typeof streetNameAt === "function" ? streetNameAt(x, z) : null;
+  if (!name) return null;
+  const cross = crossStreetsAt(x, z, name);
+  return cross.at ? `${name} & ${cross.at}` : cross.behind && cross.ahead ? `${name} (${cross.behind}–${cross.ahead})` : name;
+}
+//: The intersections where the chosen route turns, each named under its point ("Lombard St &
+//: Fillmore St"): the street it leaves and the one it turns onto, from the router's own names.
+//: None within 25 m of a stop (its pin is named there) and at most 30.
+const ROUTE_LABEL_TURNS = new Set([9, 10, 11, 12, 13, 14, 15, 16, 26]);
+let routeLabels = [];
+function clearTurnLabels() {
+  for (const marker of routeLabels) { marker.object.removeFromParent(); findableMarkers.delete(marker); marker.object.traverse((o) => { o.material?.map?.dispose(); o.material?.dispose?.(); }); }
+  routeLabels = [];
+}
+function drawTurnLabels(result) {
+  clearTurnLabels();
+  const info = result?.stepInfo || [], line = result?.line || [];
+  const stopsAt = (route.stops || []).filter(Boolean).map((s) => { const [sx, sy] = xy(s.lon, s.lat); return [sx, -sy]; });
+  let from = null;
+  for (const step of info) {
+    const onto = step.onto, was = from;
+    from = onto || from;
+    if (!ROUTE_LABEL_TURNS.has(step.type) || !Number.isInteger(step.at) || !line[step.at] || routeLabels.length >= 30) continue;
+    const [x, y] = xy(line[step.at][0], line[step.at][1]), z = -y;
+    if (stopsAt.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 25)) continue;
+    const text = was && onto && was !== onto ? `${was} & ${onto}` : placeWordsAt(x, z) || (onto ? `Onto ${onto}` : null);
+    if (!text) continue;
+    // Two turns at one corner (a jog across it) are one label, whichever street is named first.
+    const key = text.split(/ & | \(|–|\)/).map((t) => t.trim()).filter(Boolean).sort().join("|");
+    if (routeLabels.some((m) => Math.hypot(m.x - x, m.z - z) < 50 || (m.key === key && Math.hypot(m.x - x, m.z - z) < 150))) continue;
+    const object = new THREE.Group();
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), new THREE.MeshBasicMaterial({ color: 0x2563eb }));
+    dot.position.y = 0.8;
+    const label = routeTextLabel(text, 0x2563eb);
+    label.position.y = -0.4;
+    object.add(dot, label);
+    object.position.set(x, walkerGroundAt(x, z), z);
+    object.userData.bayWide = true;
+    pinOnTop(object, 28);
+    routeGroup.add(object);
+    const marker = { object, base: 0.45, near: 125, x, z, key };
+    findableMarkers.add(marker);
+    routeLabels.push(marker);
+  }
 }
 if (!ATTACH) {
   const panel = document.getElementById("route-panel");
@@ -1133,21 +1209,32 @@ if (!ATTACH) {
     for (const marker of routePins) { root.remove(marker.object); findableMarkers.delete(marker); }
     routePins = [];
   }
+  //: The start (From) is red, so it is told from the rest at a glance; the stops and the end blue.
+  const ROUTE_PIN_START = 0xdc2626;
+  //: A stop's name under its pin: the place's own (a store, an address's first line), or for
+  //: your location the street and the corner you are at.
+  function stopName(stop, x, z) {
+    if (!stop.here && stop.label) return String(stop.label).split(",")[0].trim().slice(0, 60);
+    return placeWordsAt(x, z) || stop.label || null;
+  }
   function placeRoutePins(stops) {
     clearRoutePins();
     stops.forEach((stop, i) => {
       if (!regionAt(stop.lon,stop.lat)) return;
       const [x, y] = xy(stop.lon, stop.lat);
       const object = new THREE.Group();
-      const point = new THREE.Mesh(pinPoint.geometry, routePinMaterial);
+      const colour = i === 0 ? ROUTE_PIN_START : ROUTE_PIN_BLUE, material = i === 0 ? pinMaterial : routePinMaterial;
+      const point = new THREE.Mesh(pinPoint.geometry, material);
       point.rotation.x = Math.PI;
       point.position.y = 3;
-      const head = new THREE.Mesh(pinHead.geometry, routePinMaterial);
+      const head = new THREE.Mesh(pinHead.geometry, material);
       head.position.y = 6.5;
-      const label = pinLabel(String.fromCharCode(65 + i), ROUTE_PIN_BLUE);
+      const label = pinLabel(String.fromCharCode(65 + i), colour);
       label.position.y = 10.6;
       label.scale.set(4.2, 4.2, 1);
       object.add(point, head, label);
+      const words = stopName(stop, x, -y);
+      if (words) { const name = routeTextLabel(i === 0 ? `From: ${words}` : i === stops.length - 1 ? `To: ${words}` : words, colour); name.position.y = -0.4; name.scale.multiplyScalar(1.15); object.add(name); }
       object.position.set(x, walkerGroundAt(x, -y), -y);
       object.userData.bayWide = true;
       pinOnTop(object, 28);

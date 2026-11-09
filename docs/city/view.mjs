@@ -7,10 +7,11 @@
 // with what this module needs of it; ``city.tick(now)`` each frame; ``city.drive(dt, held)``
 // instead of the walk while you drive; ``city.walkFactor()`` and ``city.walked(m, dt)`` as you walk.
 //
-// The controls (src/smc/city/ACTIONS.md has the whole plan), one job to a key: Enter into a shop
-// (inside, its checkout panel by the door is clicked), G pick up, 1-8 choose from the bar (what
-// is chosen is in your hand), I the inventory, U use it (or a right click), X swing it (or a
-// click), Q throw it, Space jump, C car, T bus or taxi, V the task at work, Z rest at a bed,
+// The controls (src/smc/city/ACTIONS.md has the whole plan), one job to a key: Enter in and out
+// (your car, the bus at the stop, a shop -- inside, its checkout panel by the door is clicked --,
+// your garage, a door), G pick up, 1-8 choose from the bar (what is chosen is in your hand), I
+// the inventory, U use it (or a right click), X swing it (or a click), Q throw it, Space jump,
+// T taxis, V the task at work, Z rest at a bed,
 // J the task board, O the online store, H the controls, Shift sprint. Clocking in and out, handing
 // over a parcel or an errand's shopping are a Yes / No asked where it applies. The action bar
 // shows what can be done where you stand.
@@ -22,7 +23,8 @@ import {
 import { COUNTER_ROLES, Crowd, SPEED_MS, Streets, alongRoute, counterLine, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
-import { CityWorld } from "./world.mjs";
+import { CITATIONS, CityWorld } from "./world.mjs";
+import { witnessOf } from "./enforcement.mjs";
 import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 import { City, Drivers, Roster, harmNow, injuryFor } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
@@ -129,6 +131,17 @@ export async function startCity(ctx) {
       b.door = doorFor(b.id, node !== null && node !== undefined ? streets.nodes[node] : null) || (b.inside ? { x: b.inside.x, z: b.inside.z, nx: b.inside.nx, nz: b.inside.nz, from: "front" } : null);
     }
     const places = fresh.map((b) => { const pl = placeFromBuilding(b, streets, R); if (pl) { pl.front = b.inside || null; pl.ring = b.ring || null; pl.county = data.county; } return pl; }).filter(Boolean);
+    // The parks' courts (sf-corridor-parks.json court_layout): places to play, not buildings.
+    for (const [i, c] of (data.courts || []).entries()) {
+      if (!Array.isArray(c.c) || !(c.l > 0) || !(c.w > 0)) continue;
+      const id = `court:${c.s}:${c.c[0].toFixed(5)},${c.c[1].toFixed(5)}`;
+      if (district.allBuildings.has(id)) continue;
+      const [x, z] = ctx.fromLonLat(c.c[0], c.c[1]), node = streets.nearest(x, z, "walk", 160);
+      if (node === null || node === undefined) continue;
+      district.allBuildings.set(id, { id, court: true, i });
+      places.push({ id, x, z, node, use: "park", shops: [], keys: new Set(["use:park", `sport:${c.s}`]), name: `${c.s[0].toUpperCase()}${c.s.slice(1)} court`,
+        area: c.l * c.w, floors: 0, door: null, lon: c.c[0], lat: c.c[1], tag: null, inside: null, court: { x, z, a: c.a || 0, l: c.l, w: c.w, s: c.s }, county: data.county });
+    }
     const roster = district.roster;
     roster.add(places);
     district.streets = streets; district.places = roster.list; district.county = data.county;
@@ -138,6 +151,7 @@ export async function startCity(ctx) {
     const delay = (v, leg, day) => (district.drivers?.delayOf(City.legKey(v, leg, day)) || 0) / 60;
     if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
     else district.city.setStreets(streets);
+    district.city.setLines(district.lines || []);
     if (!district.drivers) district.drivers = new Drivers(streets);
     else { district.drivers.streets = streets; district.drivers.cars.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
@@ -163,6 +177,7 @@ export async function startCity(ctx) {
     const near = transitStops.filter((s) => { const [x, z] = ctx.fromLonLat(s.lon, s.lat); return x > x0 - 100 && x < x1 + 100 && z > z0 - 100 && z < z1 + 100; });
     try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat)); } catch (error) { console.warn("kerbside: bus lines", error); }
     district.stops = stopsOf(district.lines);
+    district.city?.setLines(district.lines);
     drawStops();
     ctx.log?.(`kerbside: ${district.lines.length} bus routes through ${district.key}, ${district.stops.length} stops`);
   }
@@ -544,7 +559,7 @@ export async function startCity(ctx) {
     car.mesh = makeCar(a.attrs.model, spec.colour); group.add(car.mesh);
     ctx.avatarVisible(false);
     ctx.moveAvatarTo(car.x, car.z);
-    notify(`Driving your ${spec.name.toLowerCase()} (${car.plate}). Arrows steer; C to get out.`);
+    notify(`Driving your ${spec.name.toLowerCase()} (${car.plate}). Arrows steer; Enter to get out.`);
     refresh();
   }
   async function exitCar() {
@@ -678,18 +693,26 @@ export async function startCity(ctx) {
       const hit = lanes.at(car.x, car.z, car.yaw);
       const rule = hit?.managed ? lanes.rule(hit.seg, timeAt(now)) : null;
       const seg = hit?.managed && rule?.active ? hit.seg : null;
-      if (seg !== car.laneSeg) { flushLane(); car.laneSeg = seg; car.laneRule = rule; car.laneKm = 0; }
-      if (seg) { car.laneKm += Math.hypot(b.x - a.x, b.z - a.z) / 1000; if (car.laneKm > 1.5) flushLane(true); }
+      if (seg !== car.laneSeg) { flushLane(); car.laneSeg = seg; car.laneRule = rule; car.laneKm = 0; car.laneSeen = null; }
+      if (seg) {
+        car.laneKm += Math.hypot(b.x - a.x, b.z - a.z) / 1000;
+        // Whether anyone saw the car in the lane: a camera with it in view, a patrol car near.
+        if (!car.laneSeen) car.laneSeen = witnessOf(R, b, { cameras: district.cameras, vehicles: visible.vehicles });
+        if (car.laneKm > 1.5) flushLane(true);
+      }
       car.lane = hit ? { lane: hit.lane, of: hit.seg.lanes, managed: hit.managed, kind: hit.seg.kind, minimum: hit.seg.min, active: rule?.active, ref: hit.seg.ref } : null;
     }
-    const mph = Math.abs(car.speed) * MPH;
-    for (const c of district.cameras) {
-      if (Math.abs(c.x - b.x) > 14 || Math.abs(c.z - b.z) > 14) continue;
-      const limitMph = speedLimitAt(b.x, b.z) * MPH;
-      if (mph - limitMph < 11 || now - (car.lastCam.get(c.id) || 0) < 120_000) continue;
-      car.lastCam.set(c.id, now);
-      send("speed_camera", { over_mph: mph - limitMph, mph, camera: c.id, key: `${myId}:${c.id}:${Math.floor(now / 60000)}` })
-        .then((r) => r.ok && r.charged && notify(`Speed camera: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} notice will follow.`));
+    // Speeding is fined only where it is seen (enforcement.mjs): in a speed camera's field of
+    // view, or with a patrol car near. Nobody watching, nothing.
+    const mph = Math.abs(car.speed) * MPH, limitMph = speedLimitAt(b.x, b.z) * MPH;
+    if (mph - limitMph >= 11) {
+      const seen = witnessOf(R, b, { cameras: district.cameras, vehicles: visible.vehicles });
+      if (seen && now - (car.lastCam.get(seen.id) || 0) >= 120_000) {
+        car.lastCam.set(seen.id, now);
+        send("speed_camera", { over_mph: mph - limitMph, mph, camera: seen.kind === "camera" ? seen.id : undefined, witness: { kind: seen.kind, id: seen.id }, key: `${myId}:${seen.id}:${Math.floor(now / 60000)}` })
+          .then((r) => r.ok && r.charged && notify(seen.kind === "camera" ? `Speed camera: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} notice will follow.`
+            : `Pulled over by a patrol car: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} citation.`));
+      }
     }
   }
   function flushLane(keep = false) {
@@ -697,7 +720,9 @@ export async function startCity(ctx) {
     const seg = car.laneSeg, km = car.laneKm;
     car.laneKm = 0;
     if (!keep) car.laneSeg = null;
-    send("lane", { segment: seg.id, kind: seg.kind, minimum: seg.min, occupants: occupants(), km, active: true, key: `${myId}:${seg.id}:${Math.floor(Date.now() / 30000)}` })
+    const seen = car.laneSeen;
+    if (!keep) car.laneSeen = null;
+    send("lane", { segment: seg.id, kind: seg.kind, minimum: seg.min, occupants: occupants(), km, active: true, witness: seen ? { kind: seen.kind, id: seen.id } : null, key: `${myId}:${seg.id}:${Math.floor(Date.now() / 30000)}` })
       .then((r) => { if (r.ok && r.charged) notify(seg.kind === "hov" ? `Carpool lane with ${occupants()} aboard: a ${R.fmt(r.charged)} violation notice.` : `Express lane: ${R.fmt(r.charged)}${r.paid_by === "fastrak" ? " on your FasTrak" : " — no tag: a toll evasion notice"}.`); });
   }
   function speedLimitAt(x, z) {
@@ -856,11 +881,13 @@ export async function startCity(ctx) {
   //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
   //: (Yours and the route buses first, so a crowded street's cap never leaves them out.)
   function wheels() { return taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; }
-  function nearestFare() {
+  //: The bus (``kind`` "bus") or taxi ("taxi") you could get on here, nearest first.
+  function nearestFare(kind = null) {
     const p = me();
     let best = null;
     for (const v of wheels()) {
       if (v.model !== "bus" && v.model !== "taxi") continue;
+      if (kind && v.model !== kind) continue;
       const route = String(v.id).startsWith("bus:"), mine = v.id === taxi.id;
       if (route && !v.dwelling) continue;            // a route bus opens its doors at the stop
       if (mine && taxi.phase !== "waiting") continue;
@@ -871,19 +898,28 @@ export async function startCity(ctx) {
     }
     return best;
   }
-  async function board() {
-    if (transit.ride) return transit.ride.route ? requestStop() : alight();
-    if (car.active || car.riding) { notify("Get out of the car first (C)."); return; }
+  //: T: taxis only -- into the one pulled up for you (or one passing), out of the one you are in,
+  //: and elsewhere the ride panel to call one. The bus is Enter's (one key, one meaning).
+  function taxiKey() {
+    if (transit.ride) {
+      if (transit.ride.route) { notify("On the bus: Enter asks for the next stop."); return; }
+      return alight();
+    }
+    if (car.active || car.riding) { notify("Get out of the car first (Enter)."); return; }
     if (shop.place) { notify("Leave the shop first (Enter at its door)."); return; }
-    const v = nearestFare();
-    if (!v) { openSide("ride"); return; }
+    const v = nearestFare("taxi");
+    if (v) return board(v);
+    openSide("ride");
+  }
+  async function board(v) {
+    if (!v || transit.ride || car.active || car.riding || shop.place) return;
     const r = await send("board", { kind: v.model, vehicle: v.id });
     if (!r.ok) { notify(r.error); return; }
     transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
     if (v.id === taxi.id) taxiToDestination();
     ctx.avatarVisible(false);
     if (side?.kind === "ride") closeSide();
-    notify(transit.ride.route ? `On the ${v.route} toward ${v.nextName || "the end of the line"}: ${R.fmt(R.transit.bus_fare)} paid. T asks for the next stop.`
+    notify(transit.ride.route ? `On the ${v.route} toward ${v.nextName || "the end of the line"}: ${R.fmt(R.transit.bus_fare)} paid. Enter asks for the next stop.`
       : v.id === taxi.id ? `In your taxi to ${taxi.dest?.name || "where you asked"}: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km.`
         : `In a taxi: ${R.fmt(R.transit.taxi_flag)} and ${R.fmt(R.transit.taxi_per_km)} a km. T to get out and pay.`);
     refresh();
@@ -944,7 +980,7 @@ export async function startCity(ctx) {
     taxi.n += 1;
     Object.assign(taxi, { id: `taxi:${myId}:${taxi.n}`, phase: "coming", route, d: 0, dest, since: performance.now() });
     closeSide();
-    notify(`A yellow taxi is on its way, about ${Math.max(1, Math.round(route.length / TL.taxi_speed_ms / 60))} min. Wait at the kerb; T to get in when it pulls up.`);
+    notify(`A yellow taxi is on its way, about ${Math.max(1, Math.round(route.length / TL.taxi_speed_ms / 60))} min. Wait at the kerb; T to get in when it pulls up (it waits ${TL.taxi_max_wait_s} s).`);
   }
   function taxiToDestination() {
     const s = district.streets, d = taxi.dest;
@@ -964,9 +1000,32 @@ export async function startCity(ctx) {
     const done = taxi.d >= R0.length - 0.05;
     const pos = alongRoute(R0, taxi.d, KERB);
     taxi.at = { id: taxi.id, model: "taxi", x: pos.x, z: pos.z, yaw: pos.yaw, speed: done ? 0 : TL.taxi_speed_ms, moving: !done, shade: 0 };
-    if (done && taxi.phase === "coming") { taxi.phase = "waiting"; taxi.waitSince = performance.now(); notify("Your taxi has pulled up: T to get in."); }
-    if (taxi.phase === "waiting" && performance.now() - taxi.waitSince > 180_000) { Object.assign(taxi, { phase: null, route: null, at: null }); notify("The taxi gave up waiting and left."); }
+    if (done && taxi.phase === "coming") { taxi.phase = "waiting"; taxi.waitSince = performance.now(); notify(`Your taxi has pulled up: T to get in. It waits ${TL.taxi_max_wait_s} s.`); }
+    // It waits so long and no longer: a fare that does not come out does not keep it all day.
+    if (taxi.phase === "waiting" && performance.now() - taxi.waitSince > TL.taxi_max_wait_s * 1000) { Object.assign(taxi, { phase: null, route: null, at: null }); notify("The taxi gave up waiting and left."); }
     if (done && taxi.phase === "riding" && transit.ride?.vehicle === taxi.id && !taxi.paying) { taxi.paying = true; alight(taxi.at).finally(() => { taxi.paying = false; }); }
+  }
+  //: A bus at the stop you stand at waits for you to get on -- so long and no longer
+  //: (transit_lines.bus_hold_s): held past its time, it runs that much behind (``busLag``) and
+  //: makes it up on the road. Someone who does not get on does not keep it there for ever.
+  const busLag = new Map(), busHeld = new Map();
+  function holdBuses(dt) {
+    const you = me(), aboard = transit.ride?.vehicle;
+    for (const b of routeBuses) {
+      if (!b.dwelling) {
+        busHeld.delete(b.id);
+        const lag = busLag.get(b.id);
+        if (lag) { const left = lag - dt * 0.25; if (left > 0) busLag.set(b.id, left); else busLag.delete(b.id); }
+        continue;
+      }
+      const waiting = !aboard && !car.active && !car.riding && Math.hypot(b.x - you.x, b.z - you.z) <= TL.bus_hold_reach_m;
+      const held = busHeld.get(b.id) || 0;
+      if (waiting && b.leaves < 1 && held < TL.bus_hold_s) {
+        if (!held) notify(`The ${b.route} waits for you, ${TL.bus_hold_s} s at most: Enter to get on.`);
+        busHeld.set(b.id, held + dt);
+        busLag.set(b.id, (busLag.get(b.id) || 0) + dt);
+      }
+    }
   }
   //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds.
   function nextBuses(stop, ms) {
@@ -1395,9 +1454,10 @@ export async function startCity(ctx) {
   //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf).
   function jumpKey() {
     const p = self();
-    if (!p || air.up || car.active || car.riding || transit.ride || p.resting) return;
-    const load = view.carry ? view.carry(p).kg : carriedKg(R, p.inventory);
-    const j = jumpOf(R, p.vitals.strength, load);
+    if (air.up || car.active || car.riding || transit.ride || p?.resting) return;
+    // Not in the city (on the map, not joined): your legs at the start's strength, nothing carried.
+    const load = !p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory);
+    const j = jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, load);
     if (j.height < 0.03) { notify(`Carrying ${load} kg, you can barely leave the ground.`); return; }
     air.up = true; air.v = j.speed; air.y = 0.001;
   }
@@ -1821,12 +1881,12 @@ export async function startCity(ctx) {
   function actionsHere() {
     const p = self(), here = me(), out = [];
     if (!p) return [{ id: "join", label: "Join the city", key: "", run: () => openPanel(true) }];
-    if (car.active) return [{ id: "car", label: "Get out", key: "C", run: toggleCar }];
-    if (car.riding) return [{ id: "car", label: "Get out", key: "C", run: toggleCar }];
+    if (car.active) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
+    if (car.riding) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (transit.ride) {
       if (!transit.ride.route) return [{ id: "ride", label: transit.ride.vehicle === taxi.id ? `Taxi to ${taxi.dest?.name || "your stop"}: get out early` : "Pay and get out", key: "T", run: () => alight() }];
       const v = routeBuses.find((x) => x.id === transit.ride.vehicle);
-      return [{ id: "ride", label: transit.ride.stop ? `Stopping at ${v?.nextName || "the next stop"}` : `Next stop: ${v?.nextName || "…"} (ask to get off)`, key: "T", run: requestStop }];
+      return [{ id: "ride", label: transit.ride.stop ? `Stopping at ${v?.nextName || "the next stop"}` : `Next stop: ${v?.nextName || "…"} (ask to get off)`, key: "Enter", run: requestStop }];
     }
     const task = p.clocked?.task;
     if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
@@ -1837,18 +1897,24 @@ export async function startCity(ctx) {
       return out;
     }
     const shopAt = nearestPlace((x) => storesAt(R, x.keys).length > 0, R.stores.reach_m);
-    if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "Enter", run: () => enterKey() });
+    if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "Enter", run: () => { if (!(shopAt.front && enterShop(shopAt))) openStore(shopAt); } });
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
       out.push({ id: "pick", label: `${heavy ? "Too heavy" : "Pick up"}: ${R.items[thing.item]?.name.toLowerCase() || "it"} (${kg} kg)`, key: "G", run: pickUp });
     }
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
-    if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "C", run: toggleCar });
-    const fare = nearestFare();
-    if (fare) out.push({ id: "ride", label: fare.id === taxi.id ? "Get in your taxi" : String(fare.id).startsWith("bus:") ? `Board the ${fare.route} to ${fare.nextName || "…"} ${R.fmt(R.transit.bus_fare)}` : fare.model === "bus" ? `Board the bus ${R.fmt(R.transit.bus_fare)}` : "Hail the taxi", key: "T", run: board });
+    if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "Enter", run: toggleCar });
+    // The bus on Enter, taxis on T: never the same key for both.
+    const bus = nearestFare("bus");
+    if (bus) out.push({ id: "bus", label: String(bus.id).startsWith("bus:") ? `Board the ${bus.route} to ${bus.nextName || "…"} ${R.fmt(R.transit.bus_fare)}${bus.leaves > 0 ? ` (leaves in ${Math.ceil(bus.leaves)} s)` : ""}` : `Board the bus ${R.fmt(R.transit.bus_fare)}`, key: "Enter", run: () => board(bus) });
+    else { const stop = nearestStop(30); if (stop) out.push({ id: "stop", label: `Bus stop: ${stop.routes.join(", ")}`, key: "", run: () => openSide("ride") }); }
+    const cab = nearestFare("taxi");
+    if (cab) out.push({ id: "ride", label: cab.id === taxi.id ? `Get in your taxi (waits ${Math.max(0, Math.ceil(TL.taxi_max_wait_s - (performance.now() - taxi.waitSince) / 1000))} s)` : "Hail the taxi", key: "T", run: () => board(cab) });
     else if (taxi.phase === "coming") out.push({ id: "ride", label: "Your taxi is on its way", key: "T", run: () => openSide("ride") });
-    else { const stop = nearestStop(30); out.push({ id: "ride", label: stop ? `Bus stop: ${stop.routes.join(", ")}` : "Call a taxi", key: "T", run: () => openSide("ride") }); }
+    else out.push({ id: "ride", label: "Call a taxi", key: "T", run: () => openSide("ride") });
+    const door = myGarageHere();
+    if (door) out.push({ id: "garage", label: door.isOpen() ? "Close your garage" : "Open your garage", key: "Enter", run: () => garageKey(door) });
     out.push(...handActions(p));
     // A question answered No stays here, as a button, for as long as it applies.
     for (const q of promptsHere()) if (declined.has(q.id)) out.push({ id: q.id, label: q.label, key: "", run: q.run });
@@ -1860,18 +1926,89 @@ export async function startCity(ctx) {
   // ---- Enter, and a click ---------------------------------------------------------------------
   //: Enter in the game: into the shop in front of you, and inside, out at its door. False when
   //: there is no shop here (the page then opens the door in front of you, if there is one).
-  function enterKey() {
-    if (!self() || car.active || car.riding || transit.ride) return false;
+  //: Enter is "in or out": out of the car (or into yours, beside it), onto the bus standing at
+  //: the stop (and, aboard, asking for the next stop), into the shop in front of you (and out at
+  //: its door), and your own garage up or down. The nearest of what is here, when there are
+  //: several. On the map (``map``), only the garage. False when none of it is here: the page
+  //: then opens the door in front of you, if there is one.
+  function enterKey({ map = false } = {}) {
+    if (map) { const door = myGarageHere(); return door ? (garageKey(door), true) : false; }
+    if (!self()) return false;
+    if (car.active || car.riding) { toggleCar(); return true; }
+    if (transit.ride) {
+      if (transit.ride.route) requestStop(); else notify("In the taxi: T gets you out.");
+      return true;
+    }
     if (shop.place) {
       const at = shop.frame.local(me().x, me().z);
       if (at.u < 2.2) { leaveShop(); return true; }
       notify("Walk to the door to leave (Enter there).");
       return true;
     }
+    const here = [];
+    const bus = nearestFare("bus");
+    if (bus) here.push({ d: bus.d, run: () => board(bus) });
+    const car0 = carHere();
+    if (car0) here.push(car0);
     const place = nearestPlace((x) => storesAt(R, x.keys).length > 0, R.stores.reach_m);
-    if (!place) return false;
-    if (!(place.front && enterShop(place))) openStore(place);
+    if (place) here.push({ d: place.distance, run: () => { if (!(place.front && enterShop(place))) openStore(place); } });
+    const door = myGarageHere();
+    if (door) here.push({ d: door.d, run: () => garageKey(door) });
+    if (!here.length) return false;
+    here.sort((a, b) => a.d - b.d)[0].run();
     return true;
+  }
+  //: Your car within a few steps (or a party member's to ride in, or -- asked first -- someone
+  //: else's to take): what Enter would get into, and how far.
+  function carHere() {
+    const w = view, p = w?.players.get(myId);
+    if (!p) return null;
+    const here = me();
+    const dist = (a) => (a.attrs.x === undefined ? Infinity : Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z));
+    const mine = w.registry.held(p.account).filter((a) => a.kind === "vehicle" && dist(a) < 7).sort((a, b) => dist(a) - dist(b))[0];
+    if (mine) return { d: dist(mine), run: toggleCar };
+    for (const peer of party.session?.players() || []) if (peer.car?.driving && peer.at && Math.hypot(peer.at.x - here.x, peer.at.z - here.z) < 7) return { d: Math.hypot(peer.at.x - here.x, peer.at.z - here.z), run: toggleCar };
+    const theirs = [...w.registry.assets.values()].find((a) => a.kind === "vehicle" && a.holder !== p.account && dist(a) < 3.5);
+    return theirs ? { d: dist(theirs), run: toggleCar } : null;
+  }
+  // ---- garages ---------------------------------------------------------------------------------
+  //: The buildings whose garages are yours to open: the homes you own or rent, and buildings you own.
+  function myBuildings() {
+    const p = self(), w = view, out = new Set();
+    if (!p || !w) return out;
+    for (const a of w.registry.held(p.account)) if (a.kind === "home" && a.attrs?.building !== undefined) out.add(String(a.attrs.building));
+    for (const a of w.registry.owned(p.account, "home")) if (a.attrs?.building !== undefined) out.add(String(a.attrs.building));
+    for (const a of w.registry.owned(p.account, "building")) out.add(String(a.id).replace(/^building:/, ""));
+    return out;
+  }
+  //: A garage door of yours within a few steps, or null.
+  function myGarageHere() {
+    if (car.active || car.riding || transit.ride || shop.place || !ctx.garages) return null;
+    const mine = myBuildings();
+    if (!mine.size) return null;
+    const here = me(), door = ctx.garages.near(here.x, here.z, R.garages?.reach_m ?? 4.5);
+    return door && mine.has(door.building) ? door : null;
+  }
+  function garageKey(door) {
+    const up = door.toggle();
+    notify(up ? "Your garage door goes up. Enter again to shut it." : "Your garage door comes down.");
+  }
+  //: The residents' garage doors near you: up before their car drives out and down after it,
+  //: up as it comes home and down once it is in (fleet.mjs garageOpen).
+  function npcGarages() {
+    const c = district.city;
+    if (!c || !ctx.garages) return;
+    const tt = timeAt(Date.now()), you = me(), seen = new Set();
+    const consider = (v) => {
+      if (!v?.garage || seen.has(v.id)) return;
+      seen.add(v.id);
+      const home = district.placeById?.get(v.home);
+      if (!home || Math.abs(home.x - you.x) > 160 || Math.abs(home.z - you.z) > 160) return;
+      if (!c.garageOpen(v, tt)) return;
+      ctx.garages.near(home.x, home.z, 30, v.home)?.open(2.5);
+    };
+    for (const e of scan.garaged || []) consider(e.v);
+    for (const e of scan.vehicles) consider(e.v);
   }
   const clickRay = new THREE.Raycaster();
   //: A click in the game: the shop's checkout panel if it is under the pointer, else a swing.
@@ -1970,7 +2107,7 @@ export async function startCity(ctx) {
 
   // ---- the frame -------------------------------------------------------------------------------
   let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
-  let visible = { people: [], vehicles: [] };
+  let visible = { people: [], vehicles: [] }, frameFailed = false;
   function tick(now) {
     if (!ctx.enabled()) { group.visible = false; return false; }
     group.visible = true;
@@ -1993,7 +2130,8 @@ export async function startCity(ctx) {
     // The route buses where the timetable has them, near you.
     if (district.lines?.length) {
       const f = car.active ? car : me();
-      routeBuses = busesAt(district.lines, t).filter((b) => Math.abs(b.x - f.x) < R.routine.visible_radius_m && Math.abs(b.z - f.z) < R.routine.visible_radius_m);
+      routeBuses = busesAt(district.lines, t, busLag).filter((b) => Math.abs(b.x - f.x) < R.routine.visible_radius_m && Math.abs(b.z - f.z) < R.routine.visible_radius_m);
+      holdBuses(dt);
     } else routeBuses = [];
     stepTaxi(dt);
     if (transit.ride) followRide();
@@ -2016,7 +2154,9 @@ export async function startCity(ctx) {
           lastNight = hour < 6.6 || hour > 18.4;
         }
       }
-      visible = frameCity(t, dt, now, focus);
+      // The city's frame never takes the page's with it: one car or person that cannot be placed
+      // is left out of this frame (said once), and the world goes on being drawn.
+      try { visible = frameCity(t, dt, now, focus); } catch (error) { if (!frameFailed) { frameFailed = true; console.warn("kerbside: the living city skipped a frame", error); } }
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
@@ -2026,9 +2166,9 @@ export async function startCity(ctx) {
       drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
-    stepBody(dt); stepFlying(); drawHeld();
+    stepBody(dt); stepFlying(); drawHeld(); ctx.garages?.tick(dt);
     if (now - lastRefresh > 500) {
-      lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now);
+      lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
       drawGoal(); checkSightseeing();
       if (district.places.length) listings();
@@ -2270,17 +2410,20 @@ export async function startCity(ctx) {
 
   // ---- keys ------------------------------------------------------------------------------------
   const typing = (t) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || t?.isContentEditable;
-  // One job to a key (ACTIONS.md). Enter (shops, doors) is the page's, asked first of enterKey.
+  // One job to a key (ACTIONS.md). Enter (in and out: car, bus, shop, garage, doors) is the
+  // page's, asked first of enterKey. T is taxis alone.
   const KEYS = {
-    c: () => toggleCar(), g: () => pickUp(), i: () => openSide("bag"), t: () => board(), v: () => taskKey(),
+    g: () => pickUp(), i: () => openSide("bag"), t: () => taxiKey(), v: () => taskKey(),
     u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
     j: () => openSide("tasks"), o: () => openSide("online"), h: () => openSide("help"), "?": () => openSide("help"),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
     if (e.key === "Shift") { if (!typing(e.target)) body.sprintHeld = true; return; }
-    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled() || ctx.cityMode?.() === false) return;
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled()) return;
     if (e.key === " " && e.target instanceof HTMLButtonElement) return;   // Space on a focused button presses it
+    // On the map the walker jumps too (Space); the game's other keys are City mode's.
+    if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
     const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
     if (!run) return;
     e.preventDefault();
@@ -2291,7 +2434,7 @@ export async function startCity(ctx) {
 
   async function toggleCar() {
     if (!ctx.enabled()) return;
-    if (shop.place) { notify("Leave the shop first (Enter at its door)."); return; }
+    if (shop.place) return;
     if (car.active) return exitCar();
     if (car.riding) { car.riding = null; ctx.avatarVisible(true); notify("Out of the car."); refresh(); return; }
     const w = view, p = w?.players.get(myId);
@@ -2305,7 +2448,7 @@ export async function startCity(ctx) {
       if (peer.car?.driving && peer.at && Math.hypot(peer.at.x - here.x, peer.at.z - here.z) < 7) {
         const seats = R.vehicles.models[peer.car.model]?.seats || 5;
         if (occupantsOf(peer.id) >= seats) { notify("That car is full."); return; }
-        car.riding = peer.id; ctx.avatarVisible(false); notify(`Riding with ${peer.name}. C to get out.`); refresh(); return;
+        car.riding = peer.id; ctx.avatarVisible(false); notify(`Riding with ${peer.name}. Enter to get out.`); refresh(); return;
       }
     }
     const theirs = [...w.registry.assets.values()].find((a) => a.kind === "vehicle" && a.holder !== p.account && near(a));
@@ -2605,7 +2748,7 @@ export async function startCity(ctx) {
       const stop = nearestStop(90);
       const out = [title, status];
       if (stop) {
-        out.push(h("h4", { textContent: `Stop: ${stop.name}` }), h("p", { className: "note", textContent: `${Math.round(stop.d)} m away. Wait at the red flag; when the bus stands there, T boards it (${R.fmt(R.transit.bus_fare)}). On board, T asks for the next stop.` }));
+        out.push(h("h4", { textContent: `Stop: ${stop.name}` }), h("p", { className: "note", textContent: `${Math.round(stop.d)} m away. Wait at the red flag; when the bus stands there, Enter boards it (${R.fmt(R.transit.bus_fare)}; it waits ${TL.bus_hold_s} s for you at most). On board, Enter asks for the next stop. Taxis are T.` }));
         const rows = nextBuses(stop, Date.now()).map((b) => h("tr", {}, h("td", {}, h("b", { textContent: b.route })), h("td", { textContent: b.next.map((n) => `${n.wait < 1 ? "at the stop now" : `${Math.ceil(n.wait / 60)} min`} toward ${n.toward}`).join("; ") })));
         out.push(rows.length ? h("table", {}, ...rows) : h("p", { className: "note", textContent: "No route times here." }));
       } else if ((district.stops || []).length) {
@@ -2732,8 +2875,8 @@ export async function startCity(ctx) {
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
       ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up what lies at your feet (yellow ring), if you can lift it"],
-      ["Enter", "into the shop in front of you (inside, click its blue SHOP panel by the door to buy); at the door, back out; elsewhere, a building's door"],
-      ["C", "get in or out of your car (parking where you stop), or ride with a party member"], ["T", "at a stop, board the bus standing there; on board, ask for the next stop; elsewhere, call a taxi"],
+      ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), the bus standing at the stop (aboard: ask for the next stop), the shop in front of you (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
+      ["T", "taxis only: into the one pulled up for you or a passing one; in one, out and pay; elsewhere, call one"],
       ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
       ["J", "the task board: courier work, the Presidio's trees, the Marina walk, neighbours' errands"], ["O", "the online store: everything, from anywhere, at twice the shop price; real estate at its price"],
       ["H or ?", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["PageUp / PageDown", "the level above or below where you stand"]];
@@ -2744,7 +2887,7 @@ export async function startCity(ctx) {
     side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Controls" }), close), h("table", {}, ...keys.map(([k, v]) => h("tr", {}, h("td", {}, h("kbd", { textContent: k })), h("td", { textContent: v })))),
       h("h4", { textContent: "The bars" }), ...bars.map(([k, v]) => h("p", { className: "note" }, h("b", { textContent: `${k}: ` }), v)),
       h("p", { className: "note", textContent: asked },),
-      h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins." }));
+      h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins; Space jumps there too, and Enter opens your own garage." }));
   }
   function openPanel(force = false) {
     if (panel && force !== true) { panel.remove(); panel = null; return; }
@@ -2822,7 +2965,7 @@ export async function startCity(ctx) {
     },
     car(w, p) {
       const mine = w.registry.owned(p.account, "vehicle"), held = w.registry.held(p.account).filter((a) => a.kind === "vehicle" && a.owner !== p.account);
-      const out = [h("p", { className: "note", textContent: "C beside your car gets in and out; arrows drive. Tolls at the bridges' gantries, carpool and express lanes and speed cameras all charge as you drive." })];
+      const out = [h("p", { className: "note", textContent: "Enter beside your car gets in and out; arrows drive. Tolls at the bridges' gantries and express lanes charge as you drive. Speeding and a carpool lane short of riders are fined only when seen: by a speed camera with you in its view, or a patrol car near." })];
       for (const a of [...mine, ...held]) {
         const spec = R.vehicles.models[a.attrs.model];
         const spot = p.parked?.[a.id];
@@ -2853,7 +2996,7 @@ export async function startCity(ctx) {
       if (!all.length) return [h("p", { className: "note", textContent: "No bills. Tolls without FasTrak, lane violations, speed camera and parking notices, rent and property tax come here, each with its due date; unpaid, a notice adds its penalty." })];
       return all.map((b) => h("div", { style: "border-top:1px solid rgba(128,128,128,.25);padding:4px 0" },
         h("b", { textContent: `${b.memo || b.kind}` }), h("div", { className: "note", textContent: `${b.kind.replace(/_/g, " ")} · ${R.fmt(b.owed)}${b.stage ? ` (notice ${b.stage + 1})` : ""} · ${b.status === "open" ? "due " + new Date(b.due).toLocaleDateString() : b.status}${b.hearing ? " · hearing " + new Date(b.hearing).toLocaleDateString() : ""}${b.reason ? " · " + b.reason : ""}` }),
-        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), ["speed_camera", "hov_violation", "theft", "parking", "toll_evasion"].includes(b.kind) && !b.hearing ? act("Contest", () => send("contest", { bill: b.id })) : null) : null));
+        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), CITATIONS.includes(b.kind) && !b.hearing ? act("Contest", () => send("contest", { bill: b.id })) : null) : null));
     },
     taxes(w, p) {
       const s = w.taxSummary(myId);
@@ -2900,7 +3043,7 @@ export async function startCity(ctx) {
     rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
-    enterKey, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
+    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };

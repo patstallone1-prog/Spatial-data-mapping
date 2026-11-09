@@ -514,7 +514,7 @@ const GROUND_URL = asset("sf-corridor-ground.json");
 //: Where the square is, read from the payload's cells before anything is fetched.
 const LIGHT_SPEC = LIGHT_LEVEL ? await fetch(PAYLOAD_URL.replace(/([^/]+)\.json$/, "cells/$1/manifest.json"), { cache: "no-cache" })
   .then((r) => (r.ok ? r.json() : null)).then((m) => windowSpec(m && m.bbox)).catch(() => null) : null;
-const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS, BUILDING_SHAPES, ORTHO_ISLANDS, ORTHO_ROOFS] = await Promise.all([
+const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPPORT, WORLD_OBJECTS, STORE_NAMES, PARK_EVIDENCE, ELECTRICAL_SPANS, INVENTORY_CROSSINGS, BUILDING_SHAPES, ORTHO_ISLANDS, ORTHO_ROOFS, LIDAR_ROOF_SHAPES] = await Promise.all([
   fetchWindowed(PAYLOAD_URL, () => fetch(PAYLOAD_URL, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(`payload ${r.status}`);
     return r.json();
@@ -591,6 +591,9 @@ const [DATA, OFFICIAL_GEOMETRY, DETAIL_MANIFEST, TERRAIN, PERIMETER, VISUAL_SUPP
     .then(r => r.ok ? r.json() : null).catch(() => null),
   fetch(asset("sf-corridor-roofs.json"), { cache: "no-cache" })
     .then(r => r.ok ? r.json() : null).catch(() => null),
+  // Roof shapes read off the lidar (scripts/measure_roof_shapes.py): the hipped roofs only.
+  fetch(asset("sf-corridor-roof-shapes.json"), { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
 if (INVENTORY_CROSSINGS?.schema === "kerbside.inventory_crossings/1" && Array.isArray(DATA?.ways)) {
   for (const crossing of INVENTORY_CROSSINGS.crossings || []) {
@@ -619,6 +622,25 @@ function applyBuildingShapes(data, shapes) {
   return applied;
 }
 applyBuildingShapes(DATA, BUILDING_SHAPES);
+//: A roof the lidar says is hipped, on an outline OpenStreetMap gives no shape: drawn on the
+//: smallest rectangle round the outline (the footprints it is read on are within 8% of one).
+//: Tested against roofs labelled from the photographs: right 64-76% of the time, the rest roofs
+//: with crossing ridges, never a flat roof (scripts/measure_roof_shapes.py).
+function applyLidarRoofShapes(data, shapes) {
+  if (shapes?.schema !== "kerbside.roof_shapes/1" || !Array.isArray(data?.ways)
+      || !["west","east","north","south"].every(k=>shapes.bbox?.[k]===data.bbox?.[k])) return 0;
+  let applied = 0;
+  for (const feature of data.ways) {
+    if (feature.kind !== "building" || feature.shape) continue;
+    const entry = shapes.buildings?.[String(feature.osm_id)];
+    if (!entry || entry.guard?.n !== feature.points?.length
+        || !entry.guard.first?.every((v, j) => v === feature.points[0][j])) continue;
+    feature.shape = { parts: [{ outer: entry.outer, roof: entry.roof, roof_height_m: entry.roof_height_m }], source: "lidar" };
+    applied += 1;
+  }
+  return applied;
+}
+{ const hipped = applyLidarRoofShapes(DATA, LIDAR_ROOF_SHAPES); if (hipped) console.info(`kerbside: ${hipped} hipped roofs from the lidar`); }
 // Evidence annotations are not a replacement world. An exact-footprint guard prevents a
 // stale sidecar from applying a restroom style to a newer/changed canonical building.
 function applyParkEvidence(data, evidence) {
