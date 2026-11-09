@@ -52,7 +52,9 @@ def test_a_route_request_and_its_answer_are_read_as_valhalla_means_them() -> Non
     assert (r["trip"]["seconds"], r["trip"]["ascent"], r["trip"]["descent"]) == (600, 6, 1)
     assert r["trip"]["steps"] == ["Walk north.", "Turn left."] and r["trip"]["turns"] == 1, "a slight bend is no turn"
     # Each written step keeps its manoeuvre and length, for the turn arrows and distances beside it.
-    assert r["trip"]["stepInfo"] == [{"type": 1, "km": 0.2}, {"type": 15, "km": 0}]
+    # Each also says where on the line it is (``at``, the shape index) and the street it turns onto,
+    # for the labels along the route.
+    assert r["trip"]["stepInfo"] == [{"type": 1, "km": 0.2, "at": 0, "onto": None}, {"type": 15, "km": 0, "at": 0, "onto": None}]
 
 
 def test_a_route_under_way_shows_its_steps_where_the_sidebar_was_and_draws_over_everything() -> None:

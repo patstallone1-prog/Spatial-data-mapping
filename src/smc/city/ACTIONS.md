@@ -40,7 +40,8 @@ this device.
 
 * **Explore:** the map. The sidebar ("☰ Map") holds search, directions, first person, the free
   view (E), Reset view and Play together. A click goes there; 1 / 2 / 3 are pins; Esc closes.
-  The city's bars, its buttons and its keys are off.
+  The city's bars, its buttons and its keys are off, but for two: Space jumps, and Enter at a
+  garage of a home you own or rent opens it (and shuts it).
 * **City:** the game. The sidebar ("☰ City") holds the city panel (you, your wallet, job, home,
   car, the laws). The bars, the bar of eight and the action buttons show, and the keys below
   act. Directions, the free view, pins and click-to-go are put away.
@@ -62,9 +63,8 @@ The people and the traffic are out in both modes.
 | X | Swing what is in your hand at what is in front (a punch, empty-handed): a thing, a tree, a person. Tools by their kind; any other rigid thing long and light enough as a blunt blow by its mass and length; soft things, two-handed loads and things too small or too heavy for your strength do not swing (it says why). Glass breaks when it lands a blow. Striking a person is battery (a citation) | a breakable thing or a person within reach, and what you hold swings |
 | Q | Throw what is in your hand, the way you face: speed from your strength and its weight (heavier goes slower, too heavy is no throw), flatter for long things, a heave from the chest for two-handed loads. It flies, lands and lies where it lands; glass breaks to shards, drinks spill; a hit on a person is battery | holding something you can throw |
 | G | Pick up what lies at your feet (yellow ring), with a bend-and-lift; something too heavy for you is a strain and stays down. Also a courier task's order at the shop door | within 3 m of something ("Pick up" / "Too heavy") |
-| Enter | Into the shop in front of you; inside, at the door, back out. Elsewhere, a building's door | within reach of a store ("Go in"); inside ("Leave by the door") |
-| C | Get in or out of your car (parking where you stop); ride with a party member | beside your car, or driving |
-| T | At a stop, board the route bus standing there; on board, ask for the next stop; elsewhere, call a taxi to where you stand and choose where to | always ("Call a taxi" / "Bus stop" / "Board") |
+| Enter | In and out, whichever is nearest: into your car beside it, and out of it (parking where you stop), or ride with a party member; onto the route bus standing at the stop (it waits for you 15 s at most), and aboard, ask for the next stop; into the shop in front of you, and inside, at the door, back out; your own garage door up and down (a home you own or rent, a building you own). Elsewhere, a building's door | beside your car ("Drive …"), driving ("Get out"), a bus at the stop ("Board the 30 … (leaves in N s)"), aboard ("Next stop"), a store ("Go in"), inside ("Leave by the door"), at your garage ("Open / Close your garage") |
+| T | Taxis only: into the taxi pulled up for you (it waits 90 s, then leaves) or a passing one; in one, out and pay; elsewhere, call a taxi to where you stand and choose where to | always ("Call a taxi" / "Get in your taxi (waits N s)" / "Hail the taxi") |
 | V | Do the task in front of you on a shift (the orange ring) | on shift, with a task |
 | Z | Lie down at a bed (in your own home, sleep); again, get up. Only beside a bed | beside a bed, or lying down |
 | J | The task board: courier work, Presidio forestry, the Marina walk, neighbours' errands. With a task: its steps and Cancel. The next step is in the tracker at the top | always ("Tasks") |
@@ -72,7 +72,8 @@ The people and the traffic are out in both modes.
 | H or ? | The controls and what the bars mean | always ("Controls") |
 | F | First person (both modes) | — |
 
-Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on
+Gone: C (the car is Enter's now, with the bus: one key gets you in and out of anything; taxis
+stay on T so the two cannot be confused). Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on
 the task board; hand-over is a Yes / No), D (deliveries: take one in the shop window or on the
 task board; pick up with G; hand over is a Yes / No), L (look), O as homes (now the online
 store, with Real estate in it), the old J (clock in: now a Yes / No), E, R, click-to-go and the
@@ -105,6 +106,20 @@ door is the page's own door for that building where there is one (`entry.doors`)
 middle of its front. A walk to or from a building starts and ends at the step outside its door,
 crosses the threshold in a doorway phase (the page swings the door open as they pass), and
 leaves along the pavement. A break outside puts them on the pavement in front of the door.
+
+* **Getting about:** a resident without a car on a trip too far to walk (over 1.1 km) takes a
+  taxi about a third of the time -- out to the kerb, waiting while the cab comes in from a few
+  hundred metres off, riding in it (the cab is in the traffic), out at the other end while it
+  drives away -- or else the bus where one line serves both ends: walked to the stop, waiting at
+  the pole for the next bus the timetable sends that way, on when it stands there, off at the
+  stop nearest the other end (`fleet.mjs` `taxiTrip`, `busTrip`).
+* **Sport:** some go to play at the parks' courts (tennis, basketball: `sf-corridor-parks.json`
+  `court_layout`), an hour or so, running about the court.
+* **Shopping:** a customer inside looks round the shop floor most of the time and pays at the
+  counter (`people.mjs` `indoorSpot`).
+* **Garages:** a resident whose car lives in the garage has the door up before the car drives
+  out and down after it, up as it comes home and down once it is in (`fleet.mjs` `garageOpen`;
+  the doors that open: page module 31).
 
 ## Traffic, collisions and injuries
 
@@ -149,14 +164,15 @@ night, up to 14 days.
 | Action | Control | Command | Status |
 |---|---|---|---|
 | Buy a car (new or used) | City › Car | `buy_vehicle` | Live |
-| Get in, drive, park | C, arrows | `drive`, `park` | Live |
-| Ride in a party member's car | C beside it | (client) | Live |
-| Take a bus on a real route: wait at its stop (the red flag; the times of the next buses in the T window), board while it stands there, ask for the next stop, get off there | T | `board` (₡15) / `alight` | Live: SFMTA routes' stops (docs/transit-stops.json), a timetable out and back (docs/city/transit.mjs) |
+| Get in, drive, park | Enter, arrows | `drive`, `park` | Live |
+| Ride in a party member's car | Enter beside it | (client) | Live |
+| Take a bus on a real route: wait at its stop (the red flag; the times of the next buses in the ride window), board while it stands there (it holds 15 s for you at most, then goes, and makes the time up), ask for the next stop, get off there | Enter | `board` (₡15) / `alight` | Live: SFMTA routes' stops (docs/transit-stops.json), a timetable out and back (docs/city/transit.mjs) |
 | Call a yellow taxi to where you stand, choose where to (home, work, the errand or parcel's address, or any named place), ride there on the meter | T → Call a taxi | `board` / `alight` | Live |
 | Hail a passing taxi | T at it | `board` / `alight` | Live |
 | Pay tolls: FasTrak or a mailed invoice | (automatic at gantries) | `toll` | Live |
 | Use carpool and express lanes | (automatic) | `lane` | Live |
-| Pass speed cameras | (automatic) | `speed_camera` | Live |
+| Speeding and a carpool lane short of riders: fined only when seen -- in the field of view of one of the map's speed cameras (the poles along the arterials: each looks along its street, a 70° cone to 45 m), or with a patrol car within 60 m. Unseen, nothing | (automatic) | `speed_camera`, `lane` with `witness` | Live (`docs/city/enforcement.mjs`) |
+| Open and shut your own garage (a home you own or rent, a building you own), in City mode or on the map | Enter at it | (client) | Live |
 | Pay a meter; refuel | City › Car | `pay_meter`, `refuel` | Live |
 | Get a FasTrak tag; set Flex occupants | City › Car | `get_fastrak`, `set_flex` | Live |
 | Lend, sell or lease a car to a party member | City › Car | `offer`, `accept`, `decline`, `return` | Live |
@@ -255,8 +271,8 @@ is recognised by its name.
 
 | Action | Control | Command | Status |
 |---|---|---|---|
-| Steal a car (witnesses and the alarm report it) | C at someone else's car, then confirm | `take` | Live |
-| Fines for tolls, lanes, speed and parking; contest them at a hearing | City › Bills | `contest` | Live |
+| Steal a car (witnesses and the alarm report it) | Enter at someone else's car, then confirm | `take` | Live |
+| Fines for tolls, lanes, speed and parking; contest them at a hearing. Moving violations need a witness: a camera with the car in view or a patrol car near (parking stays the parking officers') | City › Bills | `contest` | Live |
 | The police recover stolen cars | (automatic) | — | Live |
 | Courts with three rotating judges; restitution; privileges suspended | — | — | Planned |
 

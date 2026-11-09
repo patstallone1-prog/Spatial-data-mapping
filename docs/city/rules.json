@@ -148,7 +148,8 @@
     "parking": {"meter_rate_per_hour": 3.5, "expired_meter": 102, "no_parking": 110, "tow_after_unpaid": 3, "tow_fee": 625, "storage_per_day": 80},
     "notice_due_days": 21,
     "late_penalty_share": 1.0,
-    "contest": {"hearing_days": 14, "dismissed_without": 2}
+    "contest": {"hearing_days": 14, "dismissed_without": 2},
+    "witness": {"basis": "a moving violation (speeding, a carpool lane short of its riders) is charged only where it is seen: in the field of view of one of the map's enforcement cameras (the speed cameras drawn on their poles; each looks along its street, a 70-degree cone out to 45 m, approx. a fixed camera's working range), or with a patrol car within 60 m", "camera_fov_deg": 70, "camera_range_m": 45, "police_reach_m": 60}
   },
   "fines": {
     "theft": 1500, "speeding": 238, "hov_violation": 490, "toll_evasion": 25, "trespass": 250, "jaywalking": 196, "red_light": 490, "illegal_parking": 110, "battery": 2000, "vandalism": 400
@@ -260,10 +261,13 @@
     "meal_out_chance": 0.35,
     "evening_out_chance": 0.18,
     "stroll_chance": 0.4,
+    "sport_chance": 0.14,
+    "sport_minutes": [40, 90],
     "walk_speed_ms": [1.15, 1.5],
     "drive_share": 0.32,
     "visible_radius_m": 450
   },
+  "repair": {"basis": "what breaks (a window, a door, a shopfront) stays broken for half a day, is boarded over with plywood planks, and is back as it was within three days (approx. a glazier's or carpenter's turnaround for a city repair); not yet triggered by anything that breaks", "boarded_after_hours": 12, "restored_within_days": 3, "restored_from_share": 0.55, "planks_s": 3.2},
   "vitals": {
     "basis": "three bars from 0 to 100. Stamina runs down through the waking day and with effort (sprinting, a shift at work, a workout) and comes back at night, faster asleep at home or in a hotel; food and drink give it back. Health wears down slowly, quickly with no stamina left, and comes back with medicine, a doctor's visit and nights asleep; at none you faint, wake at home and are billed for the ambulance. Strength fades a little each day; workouts at a gym build it, and walking a little. Strength sets how much you can carry. Time away is lived as days are: awake by day, asleep at home by night.",
     "max": 100,
@@ -488,7 +492,11 @@
     "min_stops": 3,
     "board_reach_m": 14,
     "taxi_speed_ms": 10,
-    "taxi_hail_from_m": [250, 600]
+    "taxi_hail_from_m": [250, 600],
+    "bus_hold_s": 15,
+    "bus_hold_reach_m": 14,
+    "taxi_max_wait_s": 90,
+    "npc": {"basis": "residents without a car on a trip too far to walk: some take a taxi (approx. a third of such trips in San Francisco's TNC-era surveys), others the bus where one line serves both ends", "taxi_share": 0.35, "far_m": 1100, "stop_reach_m": 350, "taxi_approach_m": 260}
   },
   "housing": {
     "basis": "the homes for sale and to rent, mirroring the market: every residential building's type from its OpenStreetMap tag (house, detached and the like are single-family; apartments and residential are multi-unit, split into units by floor area), a share of each type listed at a time as in San Francisco's market (approx. 2025: about 1% of single-family homes and well under 1% of condos for sale; about 3% of apartments advertised for rent), and prices by square foot and neighbourhood (approx. 2025 medians from public listing-site neighbourhood reports; not a valuation of any real home). The listings turn over each week.",

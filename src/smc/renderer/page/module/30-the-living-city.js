@@ -89,10 +89,12 @@ function setAppMode(mode) {
       const guest = guestUnder(p.x, p.z);
       if (guest?.ready && guest.api.cityWays) {
         const ways = guest.api.cityWays() || [];
-        return { key: streetsKey(guest.region?.name || "guest", ways), region: guest.region?.name || "guest", ways, county: guest.region?.city || null };
+        return { key: streetsKey(guest.region?.name || "guest", ways), region: guest.region?.name || "guest", ways, county: guest.region?.city || null,
+          courts: guest.api.cityCourts?.() || [] };
       }
       if (!hostWorldActive || !(DATA.ways || []).length) return null;
-      return { key: streetsKey(REGION_INDEX.host?.name || "host", DATA.ways), region: REGION_INDEX.host?.name || "host", ways: DATA.ways, county: REGION_INDEX.host?.city || null };
+      return { key: streetsKey(REGION_INDEX.host?.name || "host", DATA.ways), region: REGION_INDEX.host?.name || "host", ways: DATA.ways, county: REGION_INDEX.host?.city || null,
+        courts: PARK_EVIDENCE?.court_layout?.courts || [] };
     };
     const onRoad = (x, z) => {
       const guest = guestUnder(x, z);
@@ -132,6 +134,25 @@ function setAppMode(mode) {
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // The garage doors (module 31) -- this page's, or those of the region attached where (x, z)
+      // is, in its own metres: the nearest (of a building), and opening it.
+      garages: {
+        near(x, z, reach = 4, building = null) {
+          const g = guestUnder(x, z), G = g?.ready ? g.api.garages : hostWorldActive ? garageDoors : null;
+          if (!G) return null;
+          const [gx, gz] = g?.ready ? hostToGuest(g, x, z) : [x, z];
+          const d = G.near(gx, gz, reach, building);
+          if (!d) return null;
+          // (``open`` here is the action; whether it stands open is ``isOpen()``.)
+          return { ...d, ...(g?.ready ? { x: g.ox + d.x * g.sx, z: g.oz + d.z } : {}),
+            open: (seconds) => G.open(d.key, seconds), close: () => G.close(d.key), toggle: () => G.toggle(d.key), isOpen: () => G.isOpen(d.key) };
+        },
+        moving: () => (typeof garageDoors !== "undefined" ? garageDoors.moving() : 0) + (activeGuest?.ready && activeGuest.api.garages ? activeGuest.api.garages.moving() : 0),
+        tick(dt) {
+          if (typeof garageDoors !== "undefined") garageDoors.tick(dt);
+          if (activeGuest?.ready && activeGuest.api.garages && activeGuest.api.garages !== garageDoors) activeGuest.api.garages.tick(dt);
+        },
+      },
       // The traffic's car models (the Kenney Car Kit) and crash debris.
       loadModel: (url) => new GLTFLoader().loadAsync(url),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and

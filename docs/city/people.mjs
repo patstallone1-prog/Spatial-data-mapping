@@ -391,6 +391,18 @@ export function daySchedule(R, person, day, weekday, places) {
       at("stroll", start, start + 25 + Math.floor(r() * 35), person.home, { outdoor: "stroll", seed: Math.floor(r() * 1e9) });
       clock = start + 65;
     }
+    // A game at one of the parks' courts: the nearest to home of a few (rules.json routine.sport_chance).
+    if (r() < Math.min(0.9, (routine.sport_chance || 0) * (person.outgoing || 1)) && clock < 20 * 60 && (person.age || 30) < 70) {
+      const courts = places.filter((p) => p.court);
+      if (courts.length) {
+        const home = places.find((p) => p.id === person.home) || courts[0];
+        let court = null, best = Infinity;
+        for (let k = 0; k < 3; k += 1) { const c = courts[Math.floor(r() * courts.length) % courts.length], d = Math.hypot(c.x - home.x, c.z - home.z); if (d < best) { best = d; court = c; } }
+        const [m0, m1] = routine.sport_minutes || [40, 90];
+        const start = Math.max(clock + 20, 9 * 60 + Math.floor(r() * 9 * 60)), len = m0 + Math.floor(r() * (m1 - m0));
+        if (start < 20 * 60) { at("sport", start, start + len, court.id); clock = Math.max(clock, start + len + 10); }
+      }
+    }
     if (r() < routine.evening_out_chance && clock < 22 * 60) {
       const bars = places.filter((p) => p.keys.has("shop:bar") || p.keys.has("shop:restaurant"));
       if (bars.length) { const p = bars[Math.floor(r() * bars.length)]; const start = Math.max(clock + 30, 19 * 60 + Math.floor(r() * 120)); at("evening", start, start + 90 + Math.floor(r() * 90), p.id); clock = start + 200; }
@@ -663,6 +675,8 @@ export const COUNTER_ROLES = new Set(["barista", "baker", "cook", "server", "bar
   "stylist", "teller", "laundry_attendant", "attendant", "housekeeper", "night_auditor", "security_guard"]);
 //: Where a shop's counter is: so far in from its front (``inside``: the front's middle, the inward
 //: normal, half its width and its depth).
+//: How much of a shopper's time inside goes on looking round the shelves, not at the counter.
+export const BROWSE_SHARE = 0.6;
 export function counterLine(inside) {
   const counter = Math.min(Math.max(1.6, inside.depth * 0.42), 3.4);
   return { counter, staff: counter + 0.85, back: Math.min(inside.depth - 0.7, counter + 2.6), front: Math.max(0.8, counter - 1.1), width: Math.max(0.5, inside.half - 0.7) };
@@ -679,7 +693,9 @@ export function indoorSpot(p, a, place, t) {
   const spot = (k) => {
     const r = rng(p.id, t.day, k);
     if (staff) return r() < 0.15 ? [(r() - 0.5) * 2 * L.width, L.back] : [(r() - 0.5) * 2 * L.width, L.staff];
-    // Customers: at the counter, or (a meal) a table further toward the window.
+    // Customers: about the shop floor looking at what is on the shelves most of the time, then at
+    // the counter to pay; or (a meal) a table further toward the window.
+    if (a.kind === "errand" && r() < BROWSE_SHARE) return [(r() - 0.5) * 2 * L.width, 0.6 + r() * Math.max(0.2, L.counter - 1.1)];
     return a.kind === "errand" ? [(r() - 0.5) * 2 * L.width, L.front + r() * 0.4] : [(r() - 0.5) * 2 * L.width, 0.7 + r() * Math.max(0.2, L.front - 0.6)];
   };
   const [a0, d0] = spot(slot - 1), [a1, d1] = spot(slot);
@@ -688,8 +704,9 @@ export function indoorSpot(p, a, place, t) {
   const moving = f < 1 && Math.hypot(a1 - a0, d1 - d0) > 0.2;
   // Facing out over the counter (staff), or in toward it (customers).
   const yaw = staff ? Math.atan2(I.nx, I.nz) : Math.atan2(-I.nx, -I.nz);
-  return { x: I.x + tx * along + I.nx * deep, z: I.z + tz * along + I.nz * deep, yaw: moving ? Math.atan2(-(tx * (a1 - a0) + I.nx * (d1 - d0)), -(tz * (a1 - a0) + I.nz * (d1 - d0))) : yaw,
-    moving, mode: "walk", indoors: place.id, activity: staff ? "behind the counter" : a.kind === "errand" ? "at the counter" : "at a table" };
+  const browsing = a.kind === "errand" && d1 < L.front - 0.05;
+  return { x: I.x + tx * along + I.nx * deep, z: I.z + tz * along + I.nz * deep, yaw: moving ? Math.atan2(-(tx * (a1 - a0) + I.nx * (d1 - d0)), -(tz * (a1 - a0) + I.nz * (d1 - d0))) : browsing ? (rng(p.id, slot)() < 0.5 ? Math.atan2(-tx, -tz) : Math.atan2(tx, tz)) : yaw,
+    moving, mode: "walk", indoors: place.id, activity: staff ? "behind the counter" : browsing ? "looking round the shop" : a.kind === "errand" ? "at the counter" : "at a table" };
 }
 export function distToSegment(px, pz, ax, az, bx, bz) {
   const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;

@@ -841,8 +841,9 @@ addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
   if (e.target instanceof HTMLButtonElement) return;   // Enter on a focused button presses it
-  // In the game, a shop's door first: Enter goes in (and, inside, back out at the door).
-  if (cityGame() && typeof livingCity !== "undefined" && livingCity?.enterKey?.()) { e.preventDefault(); return; }
+  // In the game, Enter is in and out first: your car, the bus at the stop, a shop's door, your
+  // garage. On the map, your own garage (the living city's, docs/city/view.mjs enterKey).
+  if (typeof livingCity !== "undefined" && livingCity?.enterKey?.({ map: !cityGame() })) { e.preventDefault(); return; }
   if (enterOrLeave()) e.preventDefault();
 });
 

@@ -181,7 +181,8 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
     app_assets = [docs / "app.html", docs / "app-model.html", docs / "app-regions.json",
                   docs / "runtime-release.json", docs / "sf-corridor-frontage-fits.manifest.json"]
     app_assets += [docs / name for name in ("sf-corridor-home-openings.json", "sf-corridor-materials.json",
-                                           "sf-corridor-furniture.json", "sf-corridor-building-shapes.json", "sf-corridor-islands.json", "sf-corridor-roofs.json")
+                                           "sf-corridor-furniture.json", "sf-corridor-building-shapes.json", "sf-corridor-islands.json", "sf-corridor-roofs.json",
+                                           "sf-corridor-roof-shapes.json", "sf-corridor-access.json")
                    if (docs / name).exists()]
     app_assets += [docs / "recoverable-geometry.mjs", docs / "recoverable-geometry-worker.mjs", docs / "sf-corridor-storefront-names.json",
                    docs / "search-index.json", docs / "world-streaming.mjs", docs / "environment-runtime.mjs",

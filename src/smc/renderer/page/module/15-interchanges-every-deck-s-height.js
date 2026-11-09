@@ -487,7 +487,7 @@ for (const way of DRAW_ORDER) {
         // Fourteen thousand garage doors, six styles between them, tinted to their building.
         // The tint is already in the texture, so keying on that merges them down to the number
         // of distinct doors the city actually has rather than the number of openings.
-        if (panel) addMerged("garage", panel, "garage");
+        if (panel) { rememberGarageDoor(panel, way.osm_id); addMerged("garage", panel, "garage"); }
         // The dropped kerb itself is made after the pavements are merged, in
         // dropKerbsAtDriveways: the pavement is let down, not a ramp laid on it.
       }

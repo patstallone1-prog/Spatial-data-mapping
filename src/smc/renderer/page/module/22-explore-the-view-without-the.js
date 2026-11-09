@@ -723,9 +723,36 @@ async function fullDetailFeature(feature) {
   }
 }
 
+//: What OpenStreetMap records about getting in (scripts/fetch_access_osm.py): the entrances on
+//: each building -- step-free or not, the door, steps -- and the places that say whether a
+//: wheelchair gets in. Loaded the first time a building is asked about.
+let ACCESS_DATA = null;
+function accessData() {
+  ACCESS_DATA ??= fetch(asset("sf-corridor-access.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null))
+    .then((d) => (d?.schema === "kerbside.access/1" ? d : null)).catch(() => null);
+  return ACCESS_DATA;
+}
+async function accessLines(full) {
+  const data = await accessData();
+  if (!data || !Array.isArray(full.points)) return [];
+  const id = Number(full.osm_id), out = [];
+  const words = (e) => [e.entrance && e.entrance !== "yes" ? e.entrance : "", e.wheelchair === "yes" ? "step-free" : e.wheelchair === "no" ? "not step-free" : e.wheelchair === "limited" ? "limited access" : "",
+    e.automatic_door && e.automatic_door !== "no" ? "automatic door" : "", e.door && e.door !== "no" ? `${e.door} door` : "", e.step_count ? `${e.step_count} steps` : "", e.ramp === "yes" ? "ramp" : ""].filter(Boolean).join(", ");
+  const doors = data.entrances.filter((e) => e.building === id).map(words).filter(Boolean);
+  if (doors.length) out.push(`Entrances: ${doors.slice(0, 4).join("; ")}${doors.length > 4 ? `; and ${doors.length - 4} more` : ""}`);
+  const places = data.places.filter((p) => Array.isArray(p.p) && pointInRing(p.p[0], p.p[1], full.points));
+  for (const p of places.slice(0, 3)) {
+    const say = { yes: "wheelchair access", limited: "limited wheelchair access", no: "no wheelchair access" }[p.wheelchair] || `wheelchair: ${p.wheelchair}`;
+    out.push(`${p.name}: ${say}${p["toilets:wheelchair"] === "yes" ? ", accessible toilet" : ""}${p["wheelchair:description"] ? ` (${p["wheelchair:description"]})` : ""}`);
+  }
+  if (out.length) out.push("Access: as published to OpenStreetMap (ODbL), not checked here");
+  return out;
+}
+
 async function featureSummary(feature) {
   if (!feature) return null;
   const full = await fullDetailFeature(feature);
+  const access = await accessLines(full).catch(() => []);
   const place = full.place || (full.google_places || [])[0] || {};
   const address = full.address || {};
   const parcel = full.parcel || {};
@@ -746,6 +773,8 @@ async function featureSummary(feature) {
     parcel.planning_district ? `Planning district: ${parcel.planning_district}` : "",
     lidar.height_m ? `DataSF lidar height: ${Number(lidar.height_m).toFixed(2)} m (${lidar.height_method || "measured"})` : "",
     full.cnn_name ? `Street record: ${full.cnn_name}${full.cnn ? ` (CNN ${full.cnn})` : ""}` : "",
+    feature.shape?.source === "lidar" ? `Roof: ${feature.shape.parts?.[0]?.roof || "shaped"}, read off the lidar` : "",
+    ...access,
     full.sources ? `Sources: ${full.sources.join(", ")}` : "",
     full._detailShard ? `Full archive: ${full._detailFieldCount} restored fields · ${full._detailShard} shard` : "",
     full._detailError ? "Full archive: temporarily unavailable; showing render-complete record" : "",

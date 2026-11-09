@@ -625,7 +625,9 @@ window.kerbsideGuestApi = {
   buildingTopAt,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
-  cityWays: () => DATA.ways, insideCarriageway, mappedWaterAt, cityInlandAt,
+  cityWays: () => DATA.ways, cityCourts: () => PARK_EVIDENCE?.court_layout?.courts || [], insideCarriageway, mappedWaterAt, cityInlandAt,
+  // Its garage doors, opened and shut in its own world (module 31).
+  get garages() { return typeof garageDoors === "undefined" ? null : garageDoors; },
   tick: guestTick,
   toggleNearestDoor: operateNearestDoor,
   setRootInverse(matrix) {
@@ -654,6 +656,7 @@ window.kerbsideGuestApi = {
     footprintGrid.clear();
     footprintById.clear();
     MERGED.clear();
+    GARAGE_DOORS.clear(); garageDoors?.reset();
     BUILDING_VISUAL_RANGES.clear();
     HOME_RENDER.clear();
     interiorsBuilt.clear();

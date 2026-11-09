@@ -180,6 +180,12 @@ export class City {
   //: A new street graph (more of the district seen): the places' street points again, and every
   //: way and spot worked out again on it. Who is where does not change; only the streets they
   //: take there might.
+  //: The district's bus lines (transit.mjs buildLines): residents without a car ride them.
+  setLines(lines) {
+    const had = this.lines?.length || 0;
+    this.lines = lines || [];
+    if (had !== this.lines.length) this.plans = new Map();
+  }
   setStreets(streets) {
     this.streets = streets;
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
@@ -253,7 +259,7 @@ export class City {
   //: where it is next seen standing.
   legRoute(leg) {
     if (leg.route !== undefined) return leg.route;
-    const s = this.streets, v = this.roster.vehicles.get(leg.vehicle);
+    const s = this.streets, v = leg.cab || this.roster.vehicles.get(leg.vehicle);
     const a = this.spotOf(v, leg.from), b = this.spotOf(v, leg.to);
     if (!a || !b) { leg.route = null; return null; }
     const pts = [], halves = [], classes = [], ids = [];
@@ -262,12 +268,14 @@ export class City {
     // Streets that do not hang together (two pieces of the district): no way between that is
     // seen; the car goes out of sight between them.
     if (this.netOf(a.node) !== this.netOf(b.node)) { leg.route = null; return null; }
-    if (a.garage || a.gateway) push(a.door.x, a.door.z, 3, "service");
+    // A spot with no street way beside it (a garage, the district's edge, or a place whose
+    // nearest kerb has no drivable way once the streets were seen again): from its own point.
+    if (a.garage || a.gateway || !a.edge) push(a.door?.x ?? a.x, a.door?.z ?? a.z, 3, "service");
     else { push(a.cx, a.cz, a.edge.half, a.edge.cls); start = a.edge.to; }
     const mid = s.route(start, b.node, "drive");
     if (mid) for (let i = 0; i < mid.pts.length; i += 1) push(mid.pts[i][0], mid.pts[i][1], mid.halves[i] ?? mid.halves[i - 1] ?? 3, mid.classes[i] ?? mid.classes[i - 1] ?? "residential", mid.ids?.[i] ?? -1);
     else { const n = s.nodes[b.node]; push(n.x, n.z, 3, "residential", b.node); }
-    if (b.garage || b.gateway) push(b.door.x, b.door.z, 3, "service");
+    if (b.garage || b.gateway || !b.edge) push(b.door?.x ?? b.x, b.door?.z ?? b.z, 3, "service");
     else push(b.cx, b.cz, b.edge.half, b.edge.cls);
     const S = [0];
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
@@ -304,6 +312,18 @@ export class City {
       if (mode === "drive") carAt = to;
       return seg;
     };
+    // Too far to walk and no car to take: a taxi (some of the time), else the bus where a line
+    // serves both ends, else on foot (rules.json transit_lines.npc).
+    const N = R.transit_lines?.npc;
+    const travel = (from, to, depart) => {
+      if (N && dist(from, to) > N.far_m) {
+        const r = rng(p.id, t.day, "ride", Math.round(depart));
+        const cab = r() < N.taxi_share ? this.taxiTrip(p, from, to, depart, t) : null;
+        const ride = cab || this.busTrip(p, from, to, depart, dayStart) || this.taxiTrip(p, from, to, depart, t);
+        if (ride) { segs.push(...ride); clock = ride[ride.length - 1].t1; return; }
+      }
+      go(from, to, depart, "walk");
+    };
     let prev = null;
     for (const a of sched) {
       if (prev && prev.place !== a.place && places.has(prev.place) && places.has(a.place)) {
@@ -313,7 +333,7 @@ export class City {
           // Home by way of the car, wherever it was left.
           if (carAt !== prev.place) go(prev.place, carAt, depart, "walk");
           go(carAt, p.home, clock, "drive");
-        } else go(prev.place, a.place, depart, "walk");
+        } else travel(prev.place, a.place, depart);
       }
       const t0 = Math.max(a.start, clock);
       if (a.end > t0) {
@@ -325,6 +345,94 @@ export class City {
     }
     segs.sort((x, y) => x.t0 - y.t0);
     return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt };
+  }
+  //: A taxi from one place to another: out to the kerb, waiting there while the cab comes in from
+  //: a few hundred metres off, the ride (in the cab, out of sight), and in at the other end while
+  //: the cab drives away. The cab is the trip's own (``cab``), drawn from the legs it is on.
+  taxiTrip(p, from, to, depart, t) {
+    const P = this.roster.places, A = P.get(from), B = P.get(to), N = this.R.transit_lines.npc;
+    if (!A || !B) return null;
+    const id = `cab:${p.id}:${t.day}:${Math.round(depart * 10)}`;
+    const cab = { id, model: "taxi", shade: 0, plate: plateOf(id), cab: true, owner: p.id };
+    const pick = this.spotOf(cab, from), drop = this.spotOf(cab, to);
+    if (!pick?.edge || !drop?.edge || this.netOf(pick.node) !== this.netOf(drop.node)) return null;
+    const r = rng(id, "approach");
+    const offNode = (X, at) => {
+      for (let k = 0; k < 8; k += 1) {
+        const ang = r() * Math.PI * 2;
+        const n = this.streets.nearest(X.x + Math.cos(ang) * N.taxi_approach_m, X.z + Math.sin(ang) * N.taxi_approach_m, "kerb", 150);
+        if (n !== null && n !== undefined && n !== at && this.netOf(n) === this.netOf(at)) return n;
+      }
+      return null;
+    };
+    const inFrom = offNode(A, pick.node), outTo = offNode(B, drop.node);
+    if (inFrom === null || outTo === null) return null;
+    const walkOut = tripMinutes(Math.hypot(pick.x - A.x, pick.z - A.z), p.pace) + 0.3;
+    const approach = tripMinutes(N.taxi_approach_m, DRIVE_MS);
+    const board = depart + Math.max(walkOut + 0.5, approach);
+    const ride = tripMinutes(Math.hypot(B.x - A.x, B.z - A.z), DRIVE_MS);
+    const off = board + ride, walkIn = tripMinutes(Math.hypot(drop.x - B.x, drop.z - B.z), p.pace) + 0.3;
+    const comeIn = { kind: "go", mode: "drive", t0: board - approach, t1: board, from: inFrom, to: from, vehicle: id, cab, taxi: true };
+    const goAway = { kind: "go", mode: "drive", t0: off, t1: off + approach, from: to, to: outTo, vehicle: id, cab, taxi: true };
+    return [
+      { kind: "go", mode: "walk", t0: depart, t1: depart + walkOut, from, toXZ: [pick.x, pick.z], cabLegs: [comeIn], ride: "taxi" },
+      { kind: "go", mode: "wait", t0: depart + walkOut, t1: board, at: [pick.x, pick.z], yaw: pick.yaw + Math.PI / 2, cabLegs: [comeIn], label: "waiting for a taxi" },
+      { kind: "go", mode: "drive", t0: board, t1: off, from, to, vehicle: id, cab, taxi: true, rider: p.id },
+      { kind: "go", mode: "walk", t0: off, t1: off + walkIn, fromXZ: [drop.x, drop.z], to, cabLegs: [goAway], ride: "taxi" },
+    ];
+  }
+  //: The bus from near one place to near another, on a line that serves both: walked to the stop,
+  //: waited at its pole for the next bus the timetable sends that way (transit.mjs: the same
+  //: buses the page draws), aboard to the stop nearest the other end, and walked on from there.
+  busTrip(p, from, to, depart, dayStart) {
+    if (!this.lines?.length) return null;
+    const P = this.roster.places, A = P.get(from), B = P.get(to), N = this.R.transit_lines.npc;
+    if (!A || !B) return null;
+    let best = null;
+    for (const line of this.lines) {
+      const near = (X) => { let k = -1, d = Infinity; line.stops.forEach((s, i) => { const e = Math.hypot(s.x - X.x, s.z - X.z); if (e < d) { d = e; k = i; } }); return d <= N.stop_reach_m ? { k, d } : null; };
+      const a = near(A), b = near(B);
+      if (!a || !b || a.k === b.k) continue;
+      if (!best || a.d + b.d < best.walk) best = { line, a: a.k, b: b.k, walk: a.d + b.d };
+    }
+    if (!best) return null;
+    const { line } = best, tl = line.timeline, C = line.cycle;
+    // The dwell at the first stop that reaches the second soonest: the bus going the right way.
+    let leg = null;
+    tl.forEach((s, i) => {
+      if (s.kind !== "dwell" || s.stop !== best.a) return;
+      for (let k = 1; k < tl.length; k += 1) {
+        const e = tl[(i + k) % tl.length];
+        if (e.kind !== "dwell" || e.stop !== best.b) continue;
+        const ride = ((e.t0 - s.t0) % C + C) % C;
+        if (!leg || ride < leg.ride) leg = { at: s, off: e, ride };
+        break;
+      }
+    });
+    if (!leg) return null;
+    const stopA = leg.at.pole, stopB = leg.off.pole;
+    const walkA = tripMinutes(Math.hypot(stopA.x - A.x, stopA.z - A.z), p.pace) + 0.2;
+    const atStop = dayStart / 1000 + (depart + walkA) * 60;
+    // The next of the line's buses to stand at the stop (transit.mjs busesAt's phases).
+    let arrive = Infinity;
+    for (let j = 0; j < line.buses; j += 1) {
+      const phase = ((atStop + j * C / line.buses) % C + C) % C;
+      const wait = phase >= leg.at.t0 && phase < leg.at.t1 - 6 ? leg.at.t0 - phase : ((leg.at.t0 - phase) % C + C) % C;
+      arrive = Math.min(arrive, atStop + wait);
+    }
+    if (!Number.isFinite(arrive) || arrive - atStop > 15 * 60) return null;
+    const toMin = (sec) => (sec - dayStart / 1000) / 60;
+    const board = toMin(arrive + Math.min(6, (leg.at.t1 - leg.at.t0) / 3));
+    const off = toMin(arrive + leg.ride + 4);
+    const walkB = tripMinutes(Math.hypot(B.x - stopB.x, B.z - stopB.z), p.pace) + 0.2;
+    const r = rng(p.id, "stop", Math.round(depart));
+    const spot = [stopA.x + (r() - 0.5) * 2.4, stopA.z + (r() - 0.5) * 2.4];
+    return [
+      { kind: "go", mode: "walk", t0: depart, t1: depart + walkA, from, toXZ: spot, ride: "bus" },
+      { kind: "go", mode: "wait", t0: depart + walkA, t1: board, at: spot, yaw: r() * 6.28, label: `waiting for the ${line.route}`, route: line.route },
+      { kind: "go", mode: "bus", t0: board, t1: off, from, to, route: line.route },
+      { kind: "go", mode: "walk", t0: off, t1: off + walkB, fromXZ: [leg.off.at.x, leg.off.at.z], to, ride: "bus" },
+    ];
   }
   //: A visitor's day: through trips from one edge of the district to another, and now and then a
   //: stop -- parked near a shop, an hour or so about the shops on foot, and away again.
@@ -397,19 +505,21 @@ export class City {
     if (!seg) return null;
     const places = this.roster.places;
     if (seg.kind === "go") {
-      if (seg.mode === "drive") return null;
+      if (seg.mode === "drive" || seg.mode === "bus") return null;
+      if (seg.mode === "wait") return { x: seg.at[0], z: seg.at[1], yaw: seg.yaw || 0, moving: false, mode: "walk", activity: seg.label || "waiting" };
       const route = this.walkRoute(seg);
       if (!route) return null;
       const f = (t.minute - seg.t0) / (seg.t1 - seg.t0);
       const side = hash32(p.id) % 2 ? 1 : -1;
       const pos = this.walkEnds(route, f * route.length, (half) => (half ? half + 1.6 : 0) * side,
-        this.anchor(seg.from, seg.fromXZ), this.anchor(seg.to, seg.toXZ), 8, f);
+        this.anchor(seg.from, seg.fromXZ), this.anchor(seg.to, seg.toXZ), Math.max(8, (seg.pull || 0) * 1.6), f);
       return { ...pos, moving: true, mode: "walk", activity: seg.visitor ? (seg.toXZ ? "back to the car" : "from the car") : `to ${this.nextKind(p, t, seg)}` };
     }
     const place = places.get(seg.place);
     if (!place) return null;
     if (seg.kind === "roam") return this.roaming(p, seg, place, t);
     const a = seg.act;
+    if (a.kind === "sport" && place.court) return this.playing(p, seg, place, t);
     if (a.kind === "break" && a.outside) {
       // Out of the door for a break: on the pavement in front of it (door and front point in).
       const r = rng(p.id, t.day, "break"), D = place.door || place.front;
@@ -419,6 +529,24 @@ export class City {
     }
     if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) return indoorSpot(p, a, place, t);
     return null;
+  }
+  //: On a court: about it the way the game goes -- running here and there and never leaping (a
+  //: smooth way about the court, each player their own, at a run at most), a tennis player on
+  //: their own side of the net, facing the way they run.
+  playing(p, seg, place, t) {
+    const C = place.court, sec = t.minute * 60, r = rng(p.id, "play");
+    const ux = Math.cos(C.a), uz = -Math.sin(C.a), vx = -Math.sin(C.a), vz = -Math.cos(C.a);
+    const side = C.s === "tennis" ? (hash32(p.id) % 2 ? 1 : -1) : 0;
+    const w = [0.11 + r() * 0.06, 0.07 + r() * 0.05, 0.13 + r() * 0.07, 0.09 + r() * 0.05], ph = [r(), r(), r(), r()].map((x) => x * 6.28);
+    const wave = (s, a, b) => 0.5 * (Math.sin(w[a] * s + ph[a]) + Math.sin(w[b] * s + ph[b]));   // -1..1
+    const at = (s) => {
+      const hu = C.l / 2 - 1, hv = C.w / 2 - 0.8;
+      const du = side ? side * (2 + (hu - 2) * (0.5 + 0.5 * wave(s, 0, 1))) : hu * wave(s, 0, 1);
+      return [C.x + ux * du + vx * hv * wave(s, 2, 3), C.z + uz * du + vz * hv * wave(s, 2, 3)];
+    };
+    const [x, z] = at(sec), [x1, z1] = at(sec + 0.5), v = Math.hypot(x1 - x, z1 - z) * 2;
+    const game = { tennis: "playing tennis", basketball: "playing basketball", soccer: "playing football", baseball: "playing ball" }[C.s] || "playing";
+    return { x, z, yaw: Math.atan2(-(x1 - x), -(z1 - z)), moving: v > 0.2, mode: "walk", speed: v, activity: game };
   }
   nextKind(p, t, seg) {
     const segs = this.planOf(p, t).segs, i = segs.indexOf(seg);
@@ -476,6 +604,12 @@ export class City {
     const a = end(seg.from, seg.fromXZ), b = end(seg.to, seg.toXZ);
     const route = a === null || a === undefined || b === null || b === undefined ? null : a === b ? { pts: [[s.nodes[a].x, s.nodes[a].z]], s: [0], halves: [0], classes: [null], length: 0 } : s.route(a, b, "walk");
     seg.route = route;
+    // How far a point it starts or ends at (a bus stop's pole, a cab at the kerb) is off the
+    // street node it is walked from: drawn in over that much more than the usual few metres.
+    if (route?.pts.length) {
+      const off = (xz, q) => (xz ? Math.hypot(xz[0] - q[0], xz[1] - q[1]) : 0);
+      seg.pull = Math.max(off(seg.fromXZ, route.pts[0]), off(seg.toXZ, route.pts[route.pts.length - 1]));
+    }
     return route;
   }
   //: Out of doors at work or for a walk: out and back along the streets near the place, a new
@@ -564,7 +698,7 @@ export class City {
   //: held up by the whole district at once: null until the pass is done.
   scanBegin(ms, focus, reach, parkedReach = 180) {
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
-      P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0 };
+      P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [] };
   }
   scanMore(budget = 2500) {
     const S = this._scan;
@@ -580,7 +714,11 @@ export class City {
       if (h?.down) { if (near(h.at.x, h.at.z)) people.push({ p, seg: null }); continue; }
       if (!seg || h?.out) continue;
       if (seg.kind === "go") {
-        if (seg.mode === "drive") continue;
+        // A taxi on its way in or away while its fare walks, and the cab the fare is riding.
+        for (const L of seg.cabLegs || []) if (L.t0 <= t.minute && t.minute < L.t1) this.cabNear(vehicles, L, t, focus, reach);
+        if (seg.mode === "drive") { if (seg.cab) this.cabNear(vehicles, seg, t, focus, reach); continue; }
+        if (seg.mode === "bus") continue;
+        if (seg.mode === "wait") { if (near(seg.at[0], seg.at[1])) people.push({ p, seg }); continue; }
         const A = seg.fromXZ ? { x: seg.fromXZ[0], z: seg.fromXZ[1] } : P.get(seg.from), B = seg.toXZ ? { x: seg.toXZ[0], z: seg.toXZ[1] } : P.get(seg.to);
         if (A && B && distToSegment(focus.x, focus.z, A.x, A.z, B.x, B.z) < reach + 60) people.push({ p, seg });
         continue;
@@ -588,10 +726,12 @@ export class City {
       const pl = P.get(seg.place);
       if (!pl) continue;
       if (seg.kind === "roam") { if (!seg.drive && near(pl.x, pl.z, 350)) people.push({ p, seg }); continue; }
+      if (seg.act.kind === "sport") { if (pl.court && near(pl.x, pl.z)) people.push({ p, seg }); continue; }
       if ((seg.act.kind === "break" && seg.act.outside && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget; S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);
+      if (s?.state === "garage" && s.spot && near(s.spot.x, s.spot.z)) S.garaged.push({ v, s });
       if (!s || s.hidden) continue;
       if (s.state === "driving") {
         if (s.roam) { if (near(s.x, s.z, 120)) vehicles.push({ v, s }); continue; }
@@ -601,7 +741,29 @@ export class City {
     }
     if (S.i < S.P.length || S.j < S.V.length) return null;
     this._scan = null;
-    return { time: t, people, vehicles };
+    return { time: t, people, vehicles, garaged: S.garaged };
+  }
+  //: A cab on ``leg`` listed with the traffic when its way passes near ``focus``.
+  cabNear(out, leg, t, focus, reach) {
+    const P0 = this.endOf(leg.cab, leg.from), P1 = this.endOf(leg.cab, leg.to);
+    if (!P0 || !P1 || distToSegment(focus.x, focus.z, P0.x, P0.z, P1.x, P1.z) > reach + 250) return;
+    if (out.some((e) => e.v.id === leg.cab.id)) return;
+    out.push({ v: leg.cab, s: { state: "driving", leg, f: Math.min(1, (t.minute - leg.t0) / (leg.t1 - leg.t0)), moving: true, lag: 0 } });
+  }
+  //: Whether a car's garage door stands open at ``t`` (minutes either side of ``open_min``): the
+  //: door goes up before it drives out and comes down after; up as it comes home, down once in.
+  garageOpen(v, t, lead = 0.45, after = 0.4) {
+    if (!v.garage || !v.home) return false;
+    const owner = this.roster.people.get(v.owner);
+    if (!owner) return false;
+    const m = t.minute;
+    for (const s of this.planOf(owner, t).drives) {
+      if (s.kind !== "go") continue;
+      const lag = this.delay(v, s, t.day) || 0;
+      if (s.from === v.home && m >= s.t0 - lead && m < s.t0 + after) return true;
+      if (s.to === v.home && m >= s.t1 + lag - lead && m < s.t1 + lag + after) return true;
+    }
+    return false;
   }
   endOf(v, where) { const spot = this.spotOf(v, where); return spot ? { x: spot.x, z: spot.z } : null; }
   // -- the record -------------------------------------------------------------------------------
@@ -637,7 +799,10 @@ export class City {
     out.push(`${p.name}, ${p.visitor ? "visiting" : `${p.age}, ${p.title.toLowerCase()}`}${p.home ? `; lives at ${name(p.home)}` : ""}${p.work && p.work !== p.home ? `; works at ${name(p.work)}` : ""}.`);
     for (const s of plan.segs) {
       if (s.t0 > t.minute) break;
-      if (s.kind === "go") out.push(`${hhmm(s.t0)} ${s.mode === "drive" ? "drove" : "walked"} from ${s.fromXZ ? "the car" : name(s.from)} to ${s.toXZ ? "the car" : name(s.to)}.`);
+      if (s.kind === "go" && (s.mode === "wait" || (s.ride && s.mode === "walk"))) continue;
+      if (s.kind === "go" && s.taxi) out.push(`${hhmm(s.t0)} took a taxi from ${name(s.from)} to ${name(s.to)}.`);
+      else if (s.kind === "go" && s.mode === "bus") out.push(`${hhmm(s.t0)} rode the ${s.route} bus from near ${name(s.from)} toward ${name(s.to)}.`);
+      else if (s.kind === "go") out.push(`${hhmm(s.t0)} ${s.mode === "drive" ? "drove" : "walked"} from ${s.fromXZ ? "the car" : name(s.from)} to ${s.toXZ ? "the car" : name(s.to)}.`);
       else out.push(`${hhmm(s.t0)} ${s.act.kind === "sleep" ? "asleep at" : s.act.kind === "work" ? "at work at" : s.act.kind === "roam" || s.kind === "roam" ? "out and about near" : `${s.act.kind} at`} ${name(s.place)}.`);
     }
     return out;
