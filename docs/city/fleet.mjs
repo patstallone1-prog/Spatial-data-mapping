@@ -43,6 +43,8 @@ const DRIVE_MS = 9.5;
 //: The time a trip of ``metres`` as the crow flies takes (minutes): streets wind about a third
 //: further. Kept to the crow's distance, not the route's, so a trip takes the same time whether
 //: or not its streets have been worked out (a route is found only for a trip near someone).
+//: How far a walker comes out of a door before turning onto the pavement (m).
+export const DOOR_STEP_M = 1.6;
 export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 
 export function plateOf(id) {
@@ -401,7 +403,7 @@ export class City {
       const f = (t.minute - seg.t0) / (seg.t1 - seg.t0);
       const side = hash32(p.id) % 2 ? 1 : -1;
       const pos = this.walkEnds(route, f * route.length, (half) => (half ? half + 1.6 : 0) * side,
-        this.anchor(seg.from, seg.fromXZ), this.anchor(seg.to, seg.toXZ));
+        this.anchor(seg.from, seg.fromXZ), this.anchor(seg.to, seg.toXZ), 8, f);
       return { ...pos, moving: true, mode: "walk", activity: seg.visitor ? (seg.toXZ ? "back to the car" : "from the car") : `to ${this.nextKind(p, t, seg)}` };
     }
     const place = places.get(seg.place);
@@ -409,8 +411,11 @@ export class City {
     if (seg.kind === "roam") return this.roaming(p, seg, place, t);
     const a = seg.act;
     if (a.kind === "break" && a.outside) {
-      const r = rng(p.id, t.day, "break");
-      return { x: place.x + (place.door?.nx ?? place.front?.nx ?? 0) * 2 + (r() - 0.5) * 3, z: place.z + (place.door?.nz ?? place.front?.nz ?? 0) * 2 + (r() - 0.5) * 3, yaw: r() * 6.28, moving: false, mode: "walk", activity: "on a break" };
+      // Out of the door for a break: on the pavement in front of it (door and front point in).
+      const r = rng(p.id, t.day, "break"), D = place.door || place.front;
+      const at = D ? { x: D.x - D.nx * (DOOR_STEP_M + 0.6 + r() * 1.2) + D.nz * (r() - 0.5) * 3, z: D.z - D.nz * (DOOR_STEP_M + 0.6 + r() * 1.2) - D.nx * (r() - 0.5) * 3 } : this.anchor(seg.place, null, { door: false });
+      if (!at) return null;
+      return { x: at.x, z: at.z, yaw: r() * 6.28, moving: false, mode: "walk", activity: "on a break" };
     }
     if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) return indoorSpot(p, a, place, t);
     return null;
@@ -423,19 +428,45 @@ export class City {
   //: Where a walk begins and ends by a place: the pavement corner on its side of the street node
   //: (or the car's kerb spot), so one walk ends where the next begins and nobody changes pavement
   //: in a step.
-  anchor(id, xz) {
+  //: A building with a door (place.door: the walker's own doors where the page has them, else the
+  //: middle of the wall facing the street; n points in) is left and entered through it: the walk
+  //: begins on its threshold, steps out along the door's line to the pavement, and ends the same
+  //: way in. The walls are not walked through.
+  anchor(id, xz, { door = true } = {}) {
     if (xz) return { x: xz[0], z: xz[1] };
-    const P = this.roster.places.get(id), n = P && this.streets.nodes[P.node];
+    const P = this.roster.places.get(id);
+    if (P?.door) {
+      const D = P.door, step = { x: D.x - D.nx * DOOR_STEP_M, z: D.z - D.nz * DOOR_STEP_M };
+      return door ? { ...step, door: { x: D.x + D.nx * 0.3, z: D.z + D.nz * 0.3 } } : step;
+    }
+    const n = P && this.streets.nodes[P.node];
     if (!n) return null;
     const dx = P.x - n.x, dz = P.z - n.z, L = Math.hypot(dx, dz);
     return L < 0.1 ? { x: n.x, z: n.z } : { x: n.x + (dx / L) * Math.min(L, 4.5), z: n.z + (dz / L) * Math.min(L, 4.5) };
   }
-  //: The point along a walk, drawn in to the anchors over its first and last few metres.
-  walkEnds(route, d, side, a0, a1, reach = 8) {
-    const pos = alongRoute(route, d, side), L = route.length;
+  //: The point along a walk: through the door over its first (and last) DOOR_STEP_M, then drawn
+  //: in from the anchors to the pavement over the next few metres. ``through``: in the doorway.
+  walkEnds(route, d, side, a0, a1, reach = 8, f = null) {
+    const L = route.length;
+    // A walk with next to no street in it (the car is parked at the same corner): straight from
+    // one end to the other over its time.
+    if (L < 1 && a0 && a1 && f !== null) {
+      const u = Math.max(0, Math.min(1, f));
+      return { x: a0.x + (a1.x - a0.x) * u, z: a0.z + (a1.z - a0.z) * u, yaw: Math.atan2(-(a1.x - a0.x), -(a1.z - a0.z)), half: 0 };
+    }
+    const gone = (a) => (a?.door ? Math.min(DOOR_STEP_M, L / 2) : 0);
+    const g0 = gone(a0), g1 = gone(a1);
+    const doorway = (a, s, g, out) => {
+      const u = g > 0 ? Math.max(0, Math.min(1, s / g)) : 1, from = out ? a.door : a, to = out ? a : a.door;
+      const k = out ? u : 1 - u;
+      return { x: a.door.x + (a.x - a.door.x) * k, z: a.door.z + (a.z - a.door.z) * k, yaw: Math.atan2(-(to.x - from.x), -(to.z - from.z)), half: 0, through: true };
+    };
+    if (g0 && d < g0) return doorway(a0, d, g0, true);
+    if (g1 && L - d < g1) return doorway(a1, L - d, g1, false);
+    const pos = alongRoute(route, d, side);
     const pull = (a, u) => { if (!a || u >= 1) return; const w = u * u * (3 - 2 * u); pos.x = a.x + (pos.x - a.x) * w; pos.z = a.z + (pos.z - a.z) * w; };
-    const r = Math.min(reach, L / 2);
-    if (r > 0) { pull(a0, d / r); pull(a1, (L - d) / r); }
+    const r = Math.min(reach, Math.max(0.1, (L - g0 - g1) / 2));
+    pull(a0, (d - g0) / r); pull(a1, (L - g1 - d) / r);
     return pos;
   }
   walkRoute(seg) {
@@ -482,7 +513,7 @@ export class City {
     // turn, not in one step.
     // (A walker keeps to the same pavement: the offset is to the right of the way, not of travel.)
     const turn = Math.min(1, Math.min(along, far - along) / 10), k = drive ? (forward ? 1 : -1) * turn : 1;
-    const home = drive ? null : this.anchor(seg.place);
+    const home = drive ? null : this.anchor(seg.place, null, { door: false });
     const pos = drive ? alongRoute(route, along, (half) => k * KERB(half)) : this.walkEnds(route, along, (half) => half + 1.6, home, null);
     if (!forward) pos.yaw += Math.PI;
     return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };

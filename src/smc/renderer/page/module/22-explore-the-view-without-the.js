@@ -6,6 +6,9 @@
 // where the view is looking, and the view follows it again as before.
 //: Metres a second the view moves at, per metre of its distance, and at least.
 const EXPLORE_SPEED_PER_M = 0.8;
+//: City mode (the game): E, R, Esc, a click to go somewhere and the pins are the map's, not the
+//: game's -- there the click swings, the right click uses, and 1-8 choose from the bar.
+function cityGame() { return typeof appMode !== "undefined" && appMode === "city"; }
 const EXPLORE_SPEED_MIN = 8;
 function setExplore(on, auto = false) {
   // The free view belongs to Explore mode: asked for in City mode (E), the switch goes over too.
@@ -74,6 +77,7 @@ if (!ATTACH) {
     if ((e.key !== "e" && e.key !== "E") || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
         || e.target instanceof HTMLSelectElement) return;
+    if (cityGame()) return;   // the game has no free view: the switch at the top left goes to Explore
     setExplore(!state.explore);
     e.preventDefault();
   });
@@ -962,6 +966,8 @@ function walkerExteriorAt(x, z, referenceY) {
 }
 
 function keepWalkerOutside() {
+  // In the game, inside a shop (its room is built on its own floor): the shop's walls hold the walker.
+  if (Number.isFinite(state.floorY)) return;
   // A canonical building may be above a real bore. Its 2D footprint is not a
   // wall at the tunnel level; the bore's own shell contains the walker there.
   const underground=typeof occupiedTunnelAt === "function"
@@ -1066,6 +1072,8 @@ canvas.addEventListener("pointerup", (e) => {
   // A region marker first: it opens that region's page.
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
+  // In the game a click is the city's (a shop's checkout panel, else a swing); nobody is flown.
+  if (cityGame()) { if (e.button === 0 && typeof livingCity !== "undefined" && livingCity?.click) livingCity.click(ray); return; }
   if(e.button===0 && activateBillboard(ray))return;
   // A marker is a place across the bay, not a link to another page: clicking one flies you
   // to it in the world you are already in.
@@ -1143,6 +1151,8 @@ canvas.addEventListener("contextmenu", (e) => {
   // landed in the middle of a pinch zoom flew the walker to wherever the fingers were. A click
   // moves the walker; search and pins go further.
   e.preventDefault();
+  // In the game, a right click uses what you hold (eat, drink, wear: U).
+  if (cityGame() && typeof livingCity !== "undefined" && livingCity?.useSelected) livingCity.useSelected();
 });
 canvas.addEventListener("pointerdown", hideAddress);
 addEventListener("keydown", (e) => { if (e.key === "Escape") hideAddress(); });

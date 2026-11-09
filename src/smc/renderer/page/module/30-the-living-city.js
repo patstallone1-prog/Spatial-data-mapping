@@ -58,6 +58,8 @@ function setAppMode(mode) {
   appMode = mode === "city" ? "city" : "explore";
   try { localStorage.setItem(MODE_KEY, appMode); } catch { /* private window */ }
   document.body.dataset.mode = appMode;
+  // The pins are the map's: in the game the number keys choose from the bar, and the pins hide.
+  if (typeof pinGroup !== "undefined") pinGroup.visible = appMode !== "city";
   const sw = document.getElementById("mode-switch");
   if (sw) { sw.dataset.mode = appMode; for (const b of sw.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.mode === appMode)); }
   const fold = document.getElementById("fold");
@@ -120,6 +122,8 @@ function setAppMode(mode) {
       },
       avatarVisible: (on) => { avatar.visible = on; avatar.userData.inCar = !on; },
       getYaw: () => state.yaw,
+      // The walker turned to face (x, z): reaching for a thing, throwing.
+      faceTo: (x, z) => { const dx = x - avatar.position.x, dz = z - avatar.position.z; if (dx * dx + dz * dz > 1e-6) avatar.rotation.y = Math.atan2(dx, dz); },
       //: The view swung round behind the car as it turns, not snapped.
       followYaw: (yaw, dt) => {
         let d = yaw - state.yaw;
@@ -152,6 +156,36 @@ function setAppMode(mode) {
       // The walker's right hand, for what is held in it (the model's bone, where it has one).
       hand: () => avatar.getObjectByName?.("mixamorigRightHand") || avatar.getObjectByName?.("RightHand")
         || avatar.getObjectByName?.("hand_r") || avatar.getObjectByName?.("Hand_R") || null,
+      // Beds within reach: the furniture of the rooms built round you (Z lies down only at one).
+      bedsNear: (x, z, reach = 2.5) => {
+        const out = [], v = new THREE.Vector3();
+        if (typeof interiorsBuilt === "undefined") return out;
+        for (const entry of interiorsBuilt) {
+          if (!entry.interior?.group || x < entry.minX - reach || x > entry.maxX + reach || z < entry.minZ - reach || z > entry.maxZ + reach) continue;
+          entry.interior.group.traverse((o) => {
+            const s = o.userData?.surface || "", role = o.userData?.role || "";
+            if (s !== "furnishing:bed" && role !== "bed") return;
+            o.getWorldPosition(v);
+            const d = Math.hypot(v.x - x, v.z - z);
+            if (d <= reach) out.push({ x: v.x, z: v.z, d, building: String(entry.way.osm_id) });
+          });
+        }
+        return out.sort((a, b) => a.d - b.d);
+      },
+      // A building's doors (the ones the walker uses: Enter), as {x, z, nx, nz} with n pointing in.
+      doorsOf: (id) => {
+        const entry = typeof footprintById !== "undefined" ? footprintById.get(String(id)) : null;
+        return (entry?.doors || []).filter((d) => !d.atGrade).map((d) => ({ x: d.cx, z: d.cz, nx: d.nx, nz: d.nz }));
+      },
+      // Someone going in or out at (x, z): the door there swings open, and shut behind them.
+      nudgeDoor: (x, z) => {
+        if (typeof doorsNear === "undefined") return;
+        const door = doorsNear(x, z, 1.4)[0];
+        if (!door || door.open) return;
+        const stamp = performance.now();
+        door.open = true; door.npcShut = stamp;
+        setTimeout(() => { if (door.npcShut === stamp) { door.open = false; door.npcShut = null; } }, 2600);
+      },
       notify: (text) => console.info(`kerbside city: ${text}`),
       log: (text) => console.info(text),
     };

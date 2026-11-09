@@ -763,7 +763,7 @@ function toggleDoor(door) {
     return { x: door.cx - door.nx * 1.2, z: door.cz - door.nz * 1.2, yaw: Math.atan2(door.nx, door.nz) };
   }
   const wasOpen = door.open;
-  door.open = true;
+  door.open = true; door.npcShut = null;
   const inside = enterThroughDoor(door);
   if (!inside) {
     door.open = !wasOpen;
@@ -840,6 +840,9 @@ function enterOrLeave() {
 addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.repeat) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.target instanceof HTMLButtonElement) return;   // Enter on a focused button presses it
+  // In the game, a shop's door first: Enter goes in (and, inside, back out at the door).
+  if (cityGame() && typeof livingCity !== "undefined" && livingCity?.enterKey?.()) { e.preventDefault(); return; }
   if (enterOrLeave()) e.preventDefault();
 });
 

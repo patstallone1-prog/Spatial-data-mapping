@@ -1,12 +1,47 @@
 # The living city: what is built, and what is left
 
-Status on 2026-11-08, after PR #172 (controls, bars, shops) and the follow-up PR (buses, taxis,
+Status on 2026-11-08 (controls update after PR #176), after PR #172 (controls, bars, shops) and the follow-up PR (buses, taxis,
 shop rooms, shift tasks, errands, striking, the housing market). Every key is listed in
 [ACTIONS.md](ACTIONS.md). The figures are in `docs/city/rules.json`.
 
 "Verified" means it was run in the real viewer (headless Chrome, SF corridor, noon) and the
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
+
+## Since then (PR after #176): the controls, handling things, the shop panel, doors
+
+* **One key, one meaning; City mode no longer shares the map's keys.** E, R, click-to-go, the
+  pins and Esc are off in City mode (they still work in Explore). B, K, D, L and the old J and
+  O are gone. Their work moved to Enter, G, the shop's SHOP panel, Yes / No prompts, the task
+  board (J) and the online store (O, with Real estate as a category). The full list is in
+  ACTIONS.md. Verified: a click in City mode moved the walker 0 m.
+* **The bar of eight and the inventory.** 1 – 8 choose what is in your hand. I opens a grid of
+  24 above the bar, and things can be moved between slots. The order is kept on this device
+  (`docs/city/inventory.mjs`). Verified: 1 and 3 put the axe and the brick in the hand. Tested.
+* **Handling.** Each item has a material, a way of being held and a length
+  (`docs/city/handling.mjs`), which set:
+  * lift limits and weight classes;
+  * throws (Q), by speed, angle, range and how the thing lands;
+  * swings (X), by tool kind or blunt joules, or a refusal with the reason;
+  * a jump (Space), from leg push against body weight plus what you carry.
+  The item is drawn where it is held: in the hand, between both hands, or on the shoulder.
+  Pick-up, strain, swing, throw and jump are animated. Verified:
+  * a brick was thrown 8 m;
+  * a jump reached 0.3 m;
+  * "too soft to swing" was refused;
+  * the bag of groceries sat between both hands.
+  Tested.
+* **The shop panel.** Inside a shop, a blue SHOP panel beside the door (on the wall, not the
+  window) opens the wares. You pick quantities, then Checkout shows the total after tax, and
+  Confirm pays (`checkout`). Verified: a café panel was clicked, 2 coffees and a tea came to
+  ₡23.90 with ₡1.90 tax, and they went onto the bar. Fixed along the way: in a streamed region
+  the walker was pushed back out of the shop's room (`keepWalkerOutside`).
+* **Yes / No prompts.** These cover clock in and out, parcel hand-over and errand hand-over.
+  If you answer No, the prompt stays as an action button. Verified: No was answered, then the
+  "Clock in" button was clicked, and the player was on shift.
+* **Z only at a bed.** Verified: away from a bed, Z refuses with the reason. Tested.
+* **People use doors.** Walks start and end at the step outside a building's door and cross
+  its threshold; the page opens the door as they pass. Tested: no walker crosses a wall.
 
 ## Since then (PR after #175): kept people and cars, traffic law, crashes, tasks, the store
 

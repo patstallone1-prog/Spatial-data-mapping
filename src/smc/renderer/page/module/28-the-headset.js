@@ -704,12 +704,14 @@ function offerExteriorEdit(feature) {
 }
 if (!META) {
   canvas.addEventListener("contextmenu", (e) => {
+    if (cityGame()) return;
     const feature = pickedFeature(e.clientX, e.clientY);
     if (feature?.kind === "building" && showAddress(feature, e.clientX, e.clientY)) offerExteriorEdit(feature);
   });
   addEventListener("keydown", (e) => {
     if ((e.key !== "e" && e.key !== "E") || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || !pointerAt) return;
+    if (cityGame()) return;   // the exterior editor is Explore's
     const feature = pickedFeature(...pointerAt);
     if (feature?.kind === "building") openExteriorEditor(feature);
   });

@@ -36,9 +36,10 @@ button.primary:hover { background:#1d4ed8; }
 .mode-switch[data-mode="city"]::before { transform:translateX(100%); background:#16a34a; }
 .mode-switch button { position:relative; z-index:1; border:0; background:none; min-width:66px; font-weight:600; border-radius:9px; color:var(--muted); }
 .mode-switch button[aria-checked="true"] { color:#fff; background:none; }
-body[data-mode="explore"] #city-vitals, body[data-mode="explore"] #city-actions, body[data-mode="explore"] #city-side { display:none !important; }
+body[data-mode="explore"] #city-vitals, body[data-mode="explore"] #city-actions, body[data-mode="explore"] #city-side, body[data-mode="explore"] #city-bar, body[data-mode="explore"] #city-prompt { display:none !important; }
 body[data-mode="city"] #route-panel, body[data-mode="city"] #explore, body[data-mode="city"] #city-open { display:none !important; }
 body[data-mode="explore"] #city-dock { display:none !important; }
+body[data-mode="city"] #door-hint { bottom:182px !important; }   /* above the action bar and the bar of eight */
 #city-dock #city { position:static; width:auto; max-height:none; box-shadow:none; border:0; padding:0; margin:0; background:none; }
 .bar { display:flex; align-items:center; gap:10px; }
 .bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
