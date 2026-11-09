@@ -637,6 +637,37 @@ export async function startCity(ctx) {
     }
     return true;
   }
+  //: On foot, the city's cars are solid too: its traffic and parked cars, your own parked cars,
+  //: the buses, your taxi and the others' cars. The ids of those a walker of radius ``r`` at
+  //: (x, z) would stand inside (empty where it is clear). Never while you drive or ride.
+  function carsAt(x, z, r = 0.3) {
+    const out = [];
+    if (!ctx.enabled() || car.active || car.riding || transit.ride) return out;
+    const inside = (v, model) => {
+      const [vw, , vl] = VEHICLE_DIMS[model] || VEHICLE_DIMS.sedan;
+      const dx = x - v.x, dz = z - v.z;
+      if (Math.abs(dx) > vl && Math.abs(dz) > vl) return false;
+      const fx = -Math.sin(v.yaw || 0), fz = -Math.cos(v.yaw || 0);
+      return Math.abs(dx * fx + dz * fz) < vl / 2 + r && Math.abs(dx * fz - dz * fx) < vw / 2 + r;
+    };
+    for (const v of drawnCars) if (inside(v, v.model)) out.push(v.id);
+    for (const b of routeBuses) if (inside(b, b.model || "bus")) out.push(b.id);
+    if (taxi.at && inside(taxi.at, "taxi")) out.push(taxi.at.id);
+    for (const [id, m] of [...parked, ...peerCars]) {
+      if (m.parent && inside({ x: m.position.x, z: m.position.z, yaw: m.rotation.y }, m.userData.model)) out.push(`mesh:${id}`);
+    }
+    return out;
+  }
+  //: Whether a step from (x0, z0) to (x1, z1) walks into a car: one it is not already inside (a
+  //: walker a car pulled up on, or dropped in a row of parked cars, may walk out, but not on
+  //: through the next).
+  function walkerBlocked(x1, z1, r = 0.3, x0 = null, z0 = null) {
+    const next = carsAt(x1, z1, r);
+    if (!next.length) return false;
+    if (x0 === null) return true;
+    const now = carsAt(x0, z0, r);
+    return next.some((id) => !now.includes(id));
+  }
   function hitInTraffic(before) {
     const [w, , l] = VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
@@ -3050,7 +3081,7 @@ export async function startCity(ctx) {
       return null;
     },
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, district, visible: () => visible, me: myId,
-    scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars,
+    scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
   };
 }

@@ -216,3 +216,15 @@ test("a car's way from a spot with no street way beside it is still a way (the s
   const route = city.legRoute({ kind: "go", mode: "drive", t0: 0, t1: 1, from: a.id, to: b.id, vehicle: cab.id, cab });
   assert.ok(route && route.length > 0);
 });
+
+test("on foot the city's cars are solid: the walker's step checks them, except while driving or riding", () => {
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  const walk = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
+  assert.match(view, /function carsAt\(x, z, r = 0\.3\) \{\n\s+const out = \[\];\n\s+if \(!ctx\.enabled\(\) \|\| car\.active \|\| car\.riding \|\| transit\.ride\) return out;/);
+  const body = view.slice(view.indexOf("function carsAt"), view.indexOf("function hitInTraffic"));
+  for (const list of ["drawnCars", "routeBuses", "taxi.at", "...parked", "...peerCars"]) assert.ok(body.includes(list), list);
+  // Already inside one car (a row of parked cars), a step into the next is still refused.
+  assert.match(body, /return next\.some\(\(id\) => !now\.includes\(id\)\);/);
+  assert.match(view, /drawnCars: \(\) => drawnCars, walkerBlocked, carsAt,/);
+  assert.match(walk, /cars\(toX, toZ, WALKER_RADIUS_M, p\.x, p\.z\)/);
+});

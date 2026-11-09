@@ -963,6 +963,14 @@ function moveWalker(mx, mz) {
       if (!slide) break;
       [toX, toZ] = slide;
     }
+    // The living city's cars, parked or in traffic, and its buses: walked round, not through.
+    // One standing inside one (a car pulled up on them) may walk out of it.
+    const cars = typeof livingCity !== "undefined" ? livingCity?.walkerBlocked : null;
+    if (cars && cars(toX, toZ, WALKER_RADIUS_M, p.x, p.z)) {
+      if (!cars(toX, p.z, WALKER_RADIUS_M, p.x, p.z)) toZ = p.z;
+      else if (!cars(p.x, toZ, WALKER_RADIUS_M, p.x, p.z)) toX = p.x;
+      else break;
+    }
     // Open water is not walked on: the shore, a pier, a deck or a bridge over it are. One already
     // on the water (dropped there) may walk off it.
     if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)) break;
