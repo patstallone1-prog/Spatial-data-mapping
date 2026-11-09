@@ -140,6 +140,7 @@ function pinToDelete(e, chosen, now) {
 addEventListener("keydown", (e) => {
   if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  if (cityGame()) return;   // in the game the number keys choose from the bar
   // The key's own time, not the page's: a frame busy building must not run the window out.
   const doomed = pinToDelete(e, pinChosen, e.timeStamp);
   if (doomed >= 0) {

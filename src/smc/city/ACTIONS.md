@@ -6,28 +6,26 @@ action it gives the control that does it in the viewer, the world command behind
 
 **How controls are chosen**
 
-* **A key** is for something done often, or while moving: walking, sprinting, the car, shopping,
-  picking up.
-* **An action-bar button** is shown for each of those keys, but only when the action is
-  possible where you stand. "Shop: Café" appears beside a café; "Board the bus" appears when a
-  bus is within reach. This makes everything playable on a touch screen too.
-* **A window** is for choosing between several things: the shop counter (B), your things (I),
-  buses and taxis (T), errands (K), homes on the market (O), the controls (H).
-* **The City panel** (the "City" button, or the money pill at the bottom) is for records and
-  rare actions: money, job, car, bills, taxes, laws, people.
+* **One key, one meaning.** No key does two different things depending on where you stand,
+  except Enter (in or out of a door, which is the same thing seen from either side). What a key
+  acts on is what is in your hand (the bar of eight) or what is in front of you.
+* **An action-bar button** is shown for each action, but only when the action is possible where
+  you stand: "Go in: Café" beside a café, "Board the bus" when a bus is within reach. This makes
+  everything playable on a touch screen too.
+* **A Yes / No question** pops up where an action is obviously wanted and has no key: clocking in
+  at your workplace (and out when you leave it), handing a parcel over at its address, the
+  errand's shopping at the neighbour's door. Answer No and it stays as a button on the action bar
+  while it applies.
+* **A window** is for choosing between several things: a shop's wares (its SHOP panel), the
+  inventory (I), buses and taxis (T), the task board (J), the online store (O), the controls (H).
+  A window closes with its × or its key again.
+* **The City panel** (the "City" button) is for records and rare actions: money, job, car,
+  bills, taxes, laws, people.
 
-The keys avoid what the viewer already uses:
-
-* F: first person
-* E: edit the exterior
-* S: what is under the pointer
-* R: back to where you are
-* Enter: doors
-* Arrows: walk
-* PageUp / PageDown: levels
-* 1 / 2 / 3: pins
-* Delete / Backspace: delete a pin
-* Esc: close a window
+In City mode the map's own keys that would fight the game are off: E (the free view and the
+exterior editor), R (back to where you are), a click to go there (teleporting), the pins (1, 2,
+3, Delete) and Esc. They work as before in Explore mode. Still shared by both modes: F (first
+person), S (what is under the pointer), Enter (doors), the arrows, PageUp / PageDown (levels).
 
 Status:
 
@@ -41,39 +39,72 @@ A switch at the top left, beside the menu button, sets the mode. The choice is r
 this device.
 
 * **Explore:** the map. The sidebar ("☰ Map") holds search, directions, first person, the free
-  view (E), Reset view and Play together. The city's bars, its action buttons and its keys are
-  off.
+  view (E), Reset view and Play together. A click goes there; 1 / 2 / 3 are pins; Esc closes.
+  The city's bars, its buttons and its keys are off.
 * **City:** the game. The sidebar ("☰ City") holds the city panel (you, your wallet, job, home,
-  car, the laws). The bars and action buttons show, and the keys below act. Directions and the
-  free view are put away. Pressing E switches back to Explore.
+  car, the laws). The bars, the bar of eight and the action buttons show, and the keys below
+  act. Directions, the free view, pins and click-to-go are put away.
 
 The people and the traffic are out in both modes.
 
-## The keys
+## The keys (City mode)
 
 | Key | Action | Bar button shown when |
 |---|---|---|
 | Arrows | Walk; at the wheel, accelerate, brake and steer | always |
 | Shift (hold) | Sprint, while stamina lasts | always ("Sprint", held) |
-| Click | Go there; on a bridge, onto the deck you clicked | — |
-| PageUp / PageDown | The level above or below the same spot | — |
-| B | Go into the shop beside you (its room: counter, shelves, staff); inside, the counter | within 30 m of a store ("Go in"); inside ("The counter") |
-| Esc | Close a window; inside a shop, leave it (or walk out of the front) | inside a shop ("Leave the shop") |
-| G | Pick up what lies at your feet (it has a yellow ring) | within 3 m of something |
-| I | Your things: in your hands, bag (hold, use, wear, put down, give), vehicles, homes, money | always ("Bag") |
-| X | Strike what is in front of you with what is in your hands (fists if nothing): a thing, a tree (in the Presidio, a dead tree for the forestry task), or a person. A person may run or hit back; striking one is battery (a citation) | a breakable thing or a person within 2.4 m ("Hit: name") |
-| C | Get in or out of your car (parking where you stop); ride with a party member; take a car (theft, after a confirm) | beside your car, or driving |
-| T | At a stop, board the route bus standing there; on board, ask for the next stop; elsewhere, call a taxi to where you stand and choose where to | a bus at the stop, your taxi at the kerb, or always ("Call a taxi" / "Bus stop") |
-| J | Clock in or out | at your workplace, or at work |
+| Space | Jump: the height comes from your legs' push (leg length, body weight, strength) against your weight plus what you carry (`handling.mjs` `jumpOf`) | — |
+| Click | Inside a shop, on its blue SHOP panel beside the door: the shop's wares. Anywhere else: swing (as X) | inside a shop ("Buy: the shop panel by the door") |
+| Right click | Use what is in your hand (as U) | — |
+| 1 – 8 | Choose a slot on the bar of eight: what is in it is in your hand; an empty slot is an empty hand | the bar is always shown |
+| I | The inventory: a grid of 24 above the bar of 8. Click a thing, then another slot, to move it; its details say how it is held, its weight class, and whether it swings or throws | always ("Inventory" on the bar) |
+| U | Use what is in your hand: eat, drink, take medicine, wear or take off | holding something usable |
+| X | Swing what is in your hand at what is in front (a punch, empty-handed): a thing, a tree, a person. Tools by their kind; any other rigid thing long and light enough as a blunt blow by its mass and length; soft things, two-handed loads and things too small or too heavy for your strength do not swing (it says why). Glass breaks when it lands a blow. Striking a person is battery (a citation) | a breakable thing or a person within reach, and what you hold swings |
+| Q | Throw what is in your hand, the way you face: speed from your strength and its weight (heavier goes slower, too heavy is no throw), flatter for long things, a heave from the chest for two-handed loads. It flies, lands and lies where it lands; glass breaks to shards, drinks spill; a hit on a person is battery | holding something you can throw |
+| G | Pick up what lies at your feet (yellow ring), with a bend-and-lift; something too heavy for you is a strain and stays down. Also a courier task's order at the shop door | within 3 m of something ("Pick up" / "Too heavy") |
+| Enter | Into the shop in front of you; inside, at the door, back out. Elsewhere, a building's door | within reach of a store ("Go in"); inside ("Leave by the door") |
+| C | Get in or out of your car (parking where you stop); ride with a party member | beside your car, or driving |
+| T | At a stop, board the route bus standing there; on board, ask for the next stop; elsewhere, call a taxi to where you stand and choose where to | always ("Call a taxi" / "Bus stop" / "Board") |
 | V | Do the task in front of you on a shift (the orange ring) | on shift, with a task |
-| K | Neighbours' errands: take one; at their door, hand the shopping over | always; at the address |
-| D | Take a delivery gig at a shop; for a courier task, pick up the order at the shop; hand the parcel over at the address | at a shop that sends deliveries, at the courier pickup ("Pick up the order"), or at the address |
-| Q | The task board: take a task (courier: go to X, pick it up, deliver it to Y; Presidio forestry: buy an axe, fell three dead trees; the Marina walk: four stops). With a task, its steps and Cancel. The task's next step is in the tracker at the top, with an arrow and the distance | always ("Tasks") |
-| U | The online store: anything sold in the city, bought from anywhere at twice the shop price, straight into your bag | always ("Store") |
-| L | Look at the person or car in front of you: who or whose it is, health or condition, injuries, and its day so far (where it came from and how) | someone or a car within 12 m ("Look: name" / "Look: plate") |
-| O | Homes for sale and to rent this week | — |
-| Z | Rest; at home, sleep; walk on to get up | always |
+| Z | Lie down at a bed (in your own home, sleep); again, get up. Only beside a bed | beside a bed, or lying down |
+| J | The task board: courier work, Presidio forestry, the Marina walk, neighbours' errands. With a task: its steps and Cancel. The next step is in the tracker at the top | always ("Tasks") |
+| O | The online store: everything sold in the city, searchable, in categories, sorted by name or price, at twice the shop price; Real estate is a category at the market's price (not doubled) | always ("Store") |
 | H or ? | The controls and what the bars mean | always ("Controls") |
+| F | First person (both modes) | — |
+
+Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on
+the task board; hand-over is a Yes / No), D (deliveries: take one in the shop window or on the
+task board; pick up with G; hand over is a Yes / No), L (look), O as homes (now the online
+store, with Real estate in it), the old J (clock in: now a Yes / No), E, R, click-to-go and the
+pins.
+
+## A shop
+
+Enter at a shop's front goes in: a room with its counter, shelves and staff, and beside the door
+on the solid wall (not over the window) a blue SHOP panel. Click it: every item the shop sells,
+its price and tax, with − / + for a quantity. Checkout, at the bottom, shows the lines, the
+subtotal, the sales tax, the total and your balance after; Confirm pays (once, if you have the
+credits, can lift each thing and carry it all) and puts the things in your inventory, on the bar
+first. Enter at the door, or walking out through the front, leaves. (`checkout` command.)
+
+## Handling things
+
+Every item has a material, how it is held (`hand`, `two_hands`, `shoulder`, `tool`) and a
+length, in `docs/city/rules.json`; `handling` there has the body, lift, throw and swing numbers
+and each material's flags (soft, fragile, spills, breaks to). `docs/city/handling.mjs` turns
+those into: can you lift it (base 12 kg + 0.6 kg a strength point), its weight class, the throw
+(speed, angle, range, how it lands) and the swing (tool kind or blunt joules, or why not). The
+held item is drawn where it is held — in the right hand, between both hands at the chest, or
+on the shoulder — and the arms are posed for it; picking up, straining, swinging, throwing and
+jumping are animated.
+
+## People and doors
+
+The city's people go in and out of buildings through their doors, not their walls: each place's
+door is the page's own door for that building where there is one (`entry.doors`), else the
+middle of its front. A walk to or from a building starts and ends at the step outside its door,
+crosses the threshold in a doorway phase (the page swings the door open as they pass), and
+leaves along the pavement. A break outside puts them on the pavement in front of the door.
 
 ## Traffic, collisions and injuries
 
@@ -137,10 +168,10 @@ night, up to 14 days.
 | Action | Control | Command | Status |
 |---|---|---|---|
 | Start with ₡2,000 and a room free for a week, then ₡120 a day | City › Join | `join` | Live |
-| Earn at a basic job: ₡120 every 10 minutes (₡720/h); other roles by their wage ratio | J, City › You | `take_job`, `clock_in`, `clock_out` | Live |
+| Earn at a basic job: ₡120 every 10 minutes (₡720/h); other roles by their wage ratio | Yes / No at the workplace (clock in / out), City › You | `take_job`, `clock_in`, `clock_out` | Live |
 | Work the shift: a task every 35–80 s (serve at the counter, restock from the back, sweep the kerb…), done at its spot by staying there till the bar fills; tips on top; 10 minutes with nothing done is unpaid, 30 and you are sent home | V | `task` | Live |
-| Errands for neighbours: buy what they ask and bring it to their door; paid back what it cost and ₡25 + ₡30/km | K | `take_errand`, `deliver_errand`, `cancel_errand` | Live |
-| Delivery gigs: ₡40 + ₡45/km, half pay if late | D | `take_delivery`, `deliver`, `cancel_delivery` | Live |
+| Errands for neighbours: buy what they ask and bring it to their door; paid back what it cost and ₡25 + ₡30/km | J (task board); hand-over is a Yes / No at the door | `take_errand`, `deliver_errand`, `cancel_errand` | Live |
+| Delivery gigs: ₡40 + ₡45/km, half pay if late | Shop window, J; G picks up; hand-over is a Yes / No | `take_delivery`, `deliver`, `cancel_delivery` | Live |
 | Give money to a party member | City | `give_money` | Core |
 | Pay bills; contest citations | City › Bills | `pay_bill`, `contest` | Live |
 | See taxes withheld, brackets and the rates where you stand | City › Taxes | — | Live |
@@ -175,13 +206,14 @@ is recognised by its name.
 
 | Action | Control | Command | Status |
 |---|---|---|---|
-| Buy to carry (weight-limited), or eat or use on the spot | B → Buy / Eat or drink here | `buy` | Live |
-| Use, eat, drink, wear | I → Use / Wear | `use` | Live |
-| Take something into your hand; put it away | I → Hold / Put away | `hold`, `stow` | Live (drawn in the walker's hand) |
+| Buy to carry (weight-limited), or eat or use on the spot | Enter, then the SHOP panel → Checkout → Confirm | `buy`, `checkout` | Live |
+| Use, eat, drink, wear | U (or a right click) with it chosen on the bar; I → its details | `use` | Live |
+| Take something into your hand; put it away | 1 – 8 on the bar (an empty slot is an empty hand) | `hold`, `stow` | Live (drawn where it is held, arms posed) |
 | Put down where you stand | I → Put down | `drop` | Live |
-| Pick up dropped or found things | G | `pick_up` | Live |
+| Pick up dropped or found things (if you can lift it) | G | `pick_up` | Live |
+| Throw what you hold | Q | `throw` | Live |
 | Hand something to a party member | I → Give | `give_item` | Live |
-| Take a job at a shop that is hiring | B (Hiring), City › Here | `take_job` | Live |
+| Take a job at a shop that is hiring | The SHOP panel (Hiring), City › Here | `take_job` | Live |
 | Own and run a business: prices, stock, staff | — | — | Planned (business layer; storefront lease ₡3,000/week is in the rules) |
 
 ### 6. Property ownership and land
@@ -191,10 +223,10 @@ is recognised by its name.
 | See a building's value, owner, property and transfer tax | City › Here | — | Live |
 | Buy a building from its NPC landlord; sell it back | City › Here | `buy_building`, `sell_building` | Live |
 | Collect rent; pay property tax at its installments | (automatic) | — | Live |
-| Homes on the market this week: the real share of houses and flats for sale and to rent, priced by the square foot for the neighbourhood (13 SF neighbourhoods; other cities by jurisdiction) | O, City › Homes | — (`market.mjs`: `homeListings`) | Live; For Sale / For Rent signs out front |
-| Buy a home with a mortgage (20% down, 2% closing, 6.3% over 30 years) or outright; move in | O → Mortgage / Outright | `buy_home` | Live |
-| Rent a home (a month ahead and a month's deposit); give notice | O → Rent | `rent_home`, `end_lease` | Live |
-| Sell a home back into the market (the mortgage paid off from the price) | O | `sell_home` | Live |
+| Homes on the market this week: the real share of houses and flats for sale and to rent, priced by the square foot for the neighbourhood (13 SF neighbourhoods; other cities by jurisdiction) | O (online store › Real estate) | — (`market.mjs`: `homeListings`) | Live; For Sale / For Rent signs out front |
+| Buy a home with a mortgage (20% down, 2% closing, 6.3% over 30 years) or outright; move in | O › Real estate → Mortgage / Outright | `buy_home` | Live |
+| Rent a home (a month ahead and a month's deposit); give notice | O › Real estate → Rent | `rent_home`, `end_lease` | Live |
+| Sell a home back into the market (the mortgage paid off from the price) | O › Real estate (Yours) | `sell_home` | Live |
 | Missed mortgage payments foreclose (3); missed rent evicts (2) | (automatic) | — | Live |
 | Offers between players for homes, shared ownership, leases of whole buildings | — | — | Planned |
 
@@ -202,8 +234,8 @@ is recognised by its name.
 
 | Action | Control | Command | Status |
 |---|---|---|---|
-| Edit a building's exterior | E (exterior editor) | — | Live (separate editor) |
-| Buy tools and materials | B at a hardware store | `buy` | Live; they wait in the bag for building |
+| Edit a building's exterior | E in Explore mode (exterior editor) | — | Live (separate editor) |
+| Buy tools and materials | The SHOP panel at a hardware store | `buy`, `checkout` | Live; they wait in the bag for building |
 | Clear a parcel, design, permit, build | — | — | Planned |
 | Strike things with what is in your hands: each tool's energy (fists 25 J … sledgehammer 420 J), scaled by strength, against the thing's material; it breaks once the energy taken reaches its break energy (object-catalogue.json) | X | `strike` | Live |
 | What it breaks into: lumber (a saw or an axe on wood), scrap metal, glass shards, left on the ground | G | — | Live |

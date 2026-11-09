@@ -1298,7 +1298,8 @@ function animateAvatar(distance, direction, moving) {
   const swing = moving ? Math.sin(avatar.userData.walkPhase) : 0;
   // Keep the contact plane on the sampled surface.  Limbs and the imported walk
   // clip carry the gait; lifting the whole rig made both feet hover each step.
-  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z);
+  // (In the air: the city's jump, avatar.userData.lift.)
+  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z) + (avatar.userData.lift || 0);
   const climbing=moving&&avatar.userData.onStairs;
   avatar.userData.leftLeg.rotation.x = swing * (climbing?.85:.58);
   avatar.userData.rightLeg.rotation.x = -swing * (climbing?.85:.58);
@@ -1312,11 +1313,14 @@ function animateAvatar(distance, direction, moving) {
   if (avatarActiveAction) avatarActiveAction.timeScale = moving ? Math.max(0.5, Math.min(1.15, pace)) : 1;
 }
 function updateAvatarMixer(dt) {
-  if (!avatarMixer) return;
-  avatarMixer.update(dt);
-  const model=avatar.getObjectByName("imported-realistic-demo-character");
-  if(model)model.rotation.x=avatar.userData.lastMoving
-    ? Math.max(-.12,Math.min(.12,-(avatar.userData.grade||0)*.18)) : 0;
+  if (avatarMixer) {
+    avatarMixer.update(dt);
+    const model=avatar.getObjectByName("imported-realistic-demo-character");
+    if(model)model.rotation.x=avatar.userData.lastMoving
+      ? Math.max(-.12,Math.min(.12,-(avatar.userData.grade||0)*.18)) : 0;
+  }
+  // Over the clip: how the city's walker holds, lifts, swings and throws (view.mjs).
+  avatar.userData.afterPose?.(dt);
 }
 function firstBuildingCollision(fromX, fromZ, toX, toZ) {
   // Sweep the whole movement segment so zoom-scaled steps cannot tunnel through a building.
@@ -1404,6 +1408,7 @@ function returnToGps() {
 addEventListener("keydown", (e) => {
   if (ATTACH || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.key !== "r" && e.key !== "R")) return;
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
+  if (cityGame()) return;   // the game keeps you where you are
   e.preventDefault();
   // A sky set to another hour (the compass box) goes back to live San Francisco time first.
   if (sunDial.date || environmentController?.snapshot()?.live === false) {

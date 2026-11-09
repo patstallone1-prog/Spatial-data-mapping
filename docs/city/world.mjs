@@ -18,6 +18,7 @@ import {
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
+import { canLift, swingOf, throwOf } from "./handling.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -247,6 +248,92 @@ export class CityWorld {
   }
   //: Using what you carry: food and drink, medicine -- or putting on clothes. Tools are kept for
   //: building and repairs.
+  //: What a blow with your hands is: fists, the tool you hold, or another thing held, swung
+  //: (handling.mjs swingOf: soft things and two-handed lumps do not swing).
+  blowWith(p) {
+    const held = p.hands && p.inventory[p.hands] > 0 ? p.hands : null;
+    const sw = swingOf(this.R, held, p.vitals.strength);
+    if (!sw.ok) throw new CityError(sw.reason);
+    return sw;
+  }
+  //: A fragile thing that hit something breaks: one fewer, and what it breaks into on the ground.
+  shatter(p, item) {
+    const spec = this.R.items[item];
+    take(p.inventory, item, 1); handsCheck(p);
+    const into = this.R.handling.materials[spec?.material_of]?.breaks_to;
+    if (into && this.R.items[into] && into !== item) {
+      const id = this.id("item");
+      this.items.set(id, { id, item: into, qty: 1, x: p.x ?? 0, z: p.z ?? 0, by: "debris", at: this.now });
+    }
+  }
+  //: A throw of what is in your hand toward ``to`` (where the viewer worked out it lands), and
+  //: anyone it hit on the way. It lands there whole, breaks (glass, a pot) or spills (a drink).
+  cmd_throw(pid, { item = null, to, hit = null, witnesses = 0 } = {}) {
+    const p = this.player(pid);
+    item = item || p.hands;
+    if (!item || !(p.inventory[item] > 0)) throw new CityError("nothing in your hand to throw: pick something on the bar (1-8)");
+    if (this.R.items[item]?.parcel) throw new CityError("the parcel is someone's delivery: hand it over, do not throw it");
+    const t = throwOf(this.R, item, p.vitals.strength);
+    if (!t.ok) throw new CityError(t.reason);
+    if (!to || !Number.isFinite(to.x) || !Number.isFinite(to.z)) throw new CityError("throw where?");
+    // No further than the throw goes (with a little slack for a slope).
+    const d = p.x === undefined ? 0 : Math.hypot(to.x - p.x, to.z - p.z);
+    if (d > t.range * 1.3 + 2) to = { x: p.x + (to.x - p.x) * (t.range / d), z: p.z + (to.z - p.z) * (t.range / d) };
+    take(p.inventory, item, 1); handsCheck(p);
+    for (const slot of Object.keys(p.worn)) if (p.worn[slot] === item && !p.inventory[item]) p.worn[slot] = null;
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.3 + t.energy / 300)) };
+    const out = { item, speed: t.speed, energy: Math.round(t.energy), lands: t.lands, at: to };
+    const landed = t.lands === "whole" ? item : t.lands === "breaks" ? t.breaksTo : null;
+    if (landed && this.R.items[landed]) {
+      const id = this.id("item");
+      this.items.set(id, { id, item: landed, qty: 1, x: to.x, z: to.z, by: pid, at: this.now });
+      if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
+      out.dropped = id; out.landed = landed;
+    }
+    if (hit?.id) out.hit = this.cmd_strike_person(pid, { npc: hit, witnesses, thrown: { item, joules: t.energy } });
+    this.log("throw", { player: pid, item, lands: t.lands, hit: hit?.id || null });
+    return out;
+  }
+  //: The shop's checkout: everything in the basket at once, with the sales tax, if you can pay for
+  //: all of it and carry it; else nothing is bought.
+  cmd_checkout(pid, { place, cart = [] } = {}) {
+    const p = this.player(pid);
+    const lines = (cart || []).map((l) => ({ item: l.item, qty: Math.max(1, Math.min(20, l.qty | 0)) })).filter((l) => this.R.items[l.item]);
+    if (!lines.length) throw new CityError("the basket is empty");
+    if (place?.x !== undefined && p.x !== undefined && Math.hypot(p.x - place.x, p.z - place.z) > this.R.stores.reach_m * 2) throw new CityError("walk up to the shop first");
+    const stores = storesAt(this.R, place?.keys || []);
+    const here = this.where(p);
+    let price = 0, tax = 0, kg = 0;
+    for (const l of lines) {
+      const spec = this.R.items[l.item];
+      if (spec.parcel || !stores.some((st) => st.items.includes(l.item))) throw new CityError(`${spec.name.toLowerCase()} is not sold here`);
+      if (spec.needs === "prescription" && (p.rx || 0) < l.qty) throw new CityError(`${spec.name.toLowerCase()} needs a doctor's prescription: see a doctor at a clinic first`);
+      if (spec.service) l.qty = 1;
+      l.price = spec.price * l.qty; l.tax = itemTax(this.R, here.chain, spec, l.price, this.laws);
+      price += l.price; tax += l.tax;
+      if (!spec.service) {
+        kg += (spec.kg || 0) * l.qty;
+        const lift = canLift(this.R, l.item, p.vitals.strength);
+        if (!lift.ok) throw new CityError(lift.reason);
+      }
+    }
+    const c = this.carry(p);
+    if (c.kg + kg > c.capacity) throw new CityError(`too heavy to carry it all: ${c.kg} of ${c.capacity} kg already, and the basket is ${Math.round(kg * 10) / 10} kg`);
+    const balance = this.ledger.balance(p.account);
+    if (balance < price + tax) throw new CityError(`not enough credits: the total is ${this.R.fmt(price + tax)} and you have ${this.R.fmt(balance)}`);
+    const shop = this.ledger.open(`business:${place.id}`, "business");
+    this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
+      { kind: "purchase", memo: lines.map((l) => `${l.qty > 1 ? l.qty + " x " : ""}${this.R.items[l.item].name}`).join(", ").slice(0, 120), at: this.now });
+    const effects = [];
+    for (const l of lines) {
+      const spec = this.R.items[l.item];
+      if (spec.service) { effects.push([l.item, this.useEffect(p, spec)]); if (spec.grants === "prescription") p.rx = (p.rx || 0) + 2; }
+      else p.inventory[l.item] = (p.inventory[l.item] || 0) + l.qty;
+      if (spec.needs === "prescription") p.rx -= l.qty;
+    }
+    this.log("checkout", { player: pid, lines: lines.length, price, tax });
+    return { lines, price, tax, total: price + tax, effects, balance: this.ledger.balance(p.account), carry: this.carry(p), vitals: p.vitals };
+  }
   cmd_use(pid, { item }) {
     const p = this.player(pid);
     const spec = this.R.items[item];
@@ -282,18 +369,21 @@ export class CityWorld {
     let thing = this.items.get(id);
     if (!thing && found) {
       if (this.found.has(found.id)) throw new CityError("someone has picked that up already");
-      if (!this.R.found.items.includes(found.item)) throw new CityError("nothing like that lies here");
+      // Found on the pavement, or a part a crash left in the road.
+      const debris = Object.values(this.R.found.debris || {});
+      if (!this.R.found.items.includes(found.item) && !debris.includes(found.item)) throw new CityError("nothing like that lies here");
       thing = { id: found.id, item: found.item, qty: 1, x: found.x, z: found.z, found: true };
     }
     if (!thing) throw new CityError("nothing there to pick up");
     if (Math.hypot((p.x ?? 1e9) - thing.x, (p.z ?? 1e9) - thing.z) > 4) throw new CityError("too far to reach");
-    const spec = this.R.items[thing.item];
     const c = this.carry(p);
-    if (c.kg + (spec.kg || 0) * thing.qty > c.capacity) throw new CityError(`too heavy to carry: ${c.kg} of ${c.capacity} kg already`);
+    // One thing too heavy for you to lift at all, or more than you can carry with the rest.
+    const lift = canLift(this.R, thing.item, p.vitals.strength, c.kg, c.capacity, thing.qty);
+    if (!lift.ok) throw new CityError(lift.reason);
     p.inventory[thing.item] = (p.inventory[thing.item] || 0) + thing.qty;
     if (thing.found) { this.found.add(thing.id); if (this.found.size > 2000) this.found.delete(this.found.values().next().value); }
     else this.items.delete(thing.id);
-    return { item: thing.item, qty: thing.qty, carry: this.carry(p) };
+    return { item: thing.item, qty: thing.qty, carry: this.carry(p), class: lift.class };
   }
   //: Handing something to another player.
   cmd_give_item(pid, { to, item, qty = 1 }) {
@@ -330,8 +420,10 @@ export class CityWorld {
     return { vitals: p.vitals, fainted: p.fainted };
   }
   //: Resting where you are, or in bed at home: stamina comes back faster until you move on.
-  cmd_rest(pid, { on = true } = {}) {
+  cmd_rest(pid, { on = true, bed = null } = {}) {
     const p = this.player(pid);
+    // Lying down takes a bed (the viewer finds one within reach); getting up does not.
+    if (on && !bed) throw new CityError("you need a bed to rest: go in (Enter at a door) and stand by a bed");
     p.vitals = vitalsStep(this.R, p.vitals, this.now, this.vitalsContext(p));
     p.resting = Boolean(on);
     return { resting: p.resting, home: this.atHome(p) };
@@ -755,11 +847,12 @@ export class CityWorld {
       const cap = 0.5 * (VEHICLE_KG[model.kind] || 1500) * (model.top_kmh / 3.6) ** 2;
       tool = "vehicle"; joules = Math.min(Number(energy) || 0, cap);
     } else {
-      const held = p.hands && p.inventory[p.hands] > 0 ? this.R.items[p.hands] : null;
-      tool = held?.strike || "fists";
+      const blow = this.blowWith(p);
+      tool = blow.kind;
       const tired = p.vitals.stamina < this.R.vitals.stamina.low ? 0.6 : 1;
-      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material) * tired;
-      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + this.R.tools.kinds[tool].energy_j / 400)) };
+      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material, blow.joules) * tired;
+      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + (blow.joules ?? this.R.tools.kinds[tool].energy_j) / 400)) };
+      if (blow.breaks) this.shatter(p, p.hands);
     }
     const wear = strikeWear(this.R, joules, spec.break_j);
     const d = prior || { key: target.key, archetype: target.archetype, name: spec.name, material: spec.material, x: target.x, z: target.z, wear: 0, break_j: spec.break_j };
@@ -852,20 +945,23 @@ export class CityWorld {
   }
   //: A blow to someone: hurt by the energy of it; they hit back, run, or (a police officer)
   //: arrest you; seen, or reported by them, it is a battery.
-  cmd_strike_person(pid, { npc, witnesses = 0 }) {
+  cmd_strike_person(pid, { npc, witnesses = 0, thrown = null }) {
     const p = this.player(pid);
     if (!npc?.id) throw new CityError("nobody there");
-    if (p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
-    const held = p.hands && p.inventory[p.hands] > 0 ? this.R.items[p.hands] : null;
-    const tool = held?.strike || "fists";
+    if (!thrown && p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
+    // A thrown thing (cmd_throw), or a blow with what is in your hand.
+    const blow = thrown ? { kind: "thrown", joules: thrown.joules } : this.blowWith(p);
+    const tool = blow.kind;
     const spec = this.R.tools.kinds[tool] || this.R.tools.kinds.fists;
     const [lo, hi] = this.R.tools.strength_scale;
-    const joules = spec.energy_j * (lo + (hi - lo) * Math.max(0, Math.min(100, p.vitals.strength)) / 100);
-    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.4 + spec.energy_j / 400)) };
+    const joules = blow.joules ?? spec.energy_j * (lo + (hi - lo) * Math.max(0, Math.min(100, p.vitals.strength)) / 100);
+    if (!thrown) p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.4 + joules / 400)) };
+    const weapon = thrown ? `a thrown ${this.R.items[thrown.item]?.name.toLowerCase() || "thing"}` : tool === "fists" ? null : `a ${this.R.items[p.hands]?.name.toLowerCase() || tool}`;
+    if (blow.breaks) this.shatter(p, p.hands);
     const h = this.harmed(npc.id, "person", npc.name || null);
     if (h.down_until > this.now) throw new CityError("they are down already");
     const injury = injuryFor(this.R, { joules, seed: `${npc.id}:${this.now}` });
-    this.hurtPerson(h, injury, npc, `struck by ${p.name}${tool === "fists" ? "" : ` with a ${this.R.items[p.hands]?.name.toLowerCase() || tool}`}`);
+    this.hurtPerson(h, injury, npc, `struck by ${p.name}${weapon ? ` with ${weapon}` : ""}`);
     const down = h.down_until > this.now;
     const r = rng(npc.id, this.now, "response");
     let response = down ? "down" : "flee", hurt = 0;
@@ -1399,7 +1495,7 @@ const COMMANDS = new Set(["join", "import", "status", "take_job", "quit_job", "c
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit"]);
+  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout"]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
