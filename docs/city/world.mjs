@@ -37,6 +37,8 @@ export const AUTHORITIES = {
   "authority:court": "Superior Court",
 };
 const DAY = 86_400_000;
+//: The most one backend grant may put in a wallet (cents): the same ceiling a saved self brings in.
+export const ACCOUNT_GRANT_MAX = 5_000_000_00;
 
 export class CityError extends Error {}
 
@@ -129,6 +131,20 @@ export class CityWorld {
     for (const [id, n] of Object.entries(saved.inventory || {})) if (this.R.items[id] && !this.R.items[id].parcel) p.inventory[id] = Math.min(50, n | 0);
     p.imported = true;
     return this.cmd_status(pid);
+  }
+  //: Money the backend put in this player's device account (kerbside-account.mjs cityGrants):
+  //: into their wallet once, by the grant's id -- asked again (another load, a lost claim) it is
+  //: not paid twice.
+  cmd_account_grant(pid, { grant, amount }) {
+    const p = this.player(pid), id = String(grant ?? "");
+    const cents = Math.floor(+amount);
+    if (!id || !(cents > 0) || cents > ACCOUNT_GRANT_MAX) throw new CityError("not a grant");
+    p.grants ??= [];
+    if (p.grants.includes(id)) return { balance: this.ledger.balance(p.account), already: true };
+    this.ledger.mint(p.account, cents, "account_grant", { at: this.now, key: `account_grant:${pid}:${id}` });
+    p.grants.push(id);
+    this.log("account_grant", { player: pid, grant: id, amount: cents });
+    return { balance: this.ledger.balance(p.account) };
   }
   cmd_status(pid) {
     const p = this.player(pid);
@@ -1516,7 +1532,7 @@ export class CityWorld {
   }
 }
 
-const COMMANDS = new Set(["join", "import", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
+const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
   "buy_vehicle", "offer", "accept", "decline", "return", "take", "drive", "park", "pay_meter", "refuel", "get_fastrak", "set_flex",
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",

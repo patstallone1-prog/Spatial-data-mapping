@@ -226,7 +226,7 @@ export function fuelPrice(R, chain, laws = {}) {
 // ---- the ledger ----------------------------------------------------------------------------------
 
 export const ISSUER = "system:issuer";
-export const MINT_REASONS = new Set(["starter_grant", "npc_wage", "npc_income", "external_trade", "public_contract", "import"]);
+export const MINT_REASONS = new Set(["starter_grant", "npc_wage", "npc_income", "external_trade", "public_contract", "import", "account_grant"]);
 export const BURN_REASONS = new Set(["external_supplier", "vehicle_manufacture", "public_service", "fuel", "system_fee"]);
 
 export class LedgerError extends Error {}

@@ -291,6 +291,8 @@ function setAppMode(mode) {
       fellTree: (ids) => (typeof natureWorld !== "undefined" ? natureWorld?.fell?.(ids) : null),
       // The object catalogue's view of what is round the walker: what a blow can land on.
       objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
+      // This device's account (kerbside-account.mjs): the money the backend has put in it.
+      account: () => accountLibrary(),
       catalogueUrl: sharedAsset("object-catalogue.json"),
       transitUrl: sharedAsset("transit-stops.json"),
       // Inside a shop: the walker's eyes at (x, y, z), looking along ``yaw``; and back out.
