@@ -886,6 +886,17 @@ const groundReady = (async () => {
   }
   const dummy = new THREE.Object3D();
   const treeClipStats={anchors:trees.length,clipped:0};
+  const wallMask = !HEADSET && vegetationLibrary ? treeWallMask(trees) : null;
+  if (wallMask) treeClipStats.mask = { texels: wallMask.texels, step_m: wallMask.step, houses: wallMask.houses };
+  //: Whether a crown of `radius` round (x, z) reaches into a house.
+  function treeWallTouches(x, z, radius) {
+    const [x0, z0] = wallMask.origin, n = Math.ceil(radius / wallMask.step);
+    const ci = Math.floor((x - x0) / wallMask.step), cj = Math.floor((z - z0) / wallMask.step);
+    for (let j = Math.max(0, cj - n); j <= Math.min(wallMask.h - 1, cj + n); j += 2)
+      for (let i = Math.max(0, ci - n); i <= Math.min(wallMask.w - 1, ci + n); i += 2)
+        if (wallMask.top[j * wallMask.w + i] > TREE_WALL_NONE) return true;
+    return false;
+  }
   // Clip only the geometry invading a house; mapped sidewalk tree anchors,
   // diameters, order and seeded rotations remain exactly the same.
   function treeBuildingPrisms(x,z,radius){
@@ -909,11 +920,16 @@ const groundReady = (async () => {
       prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
       prototypeHeight=Math.max(prototypeHeight,b.max.y);}
     const scales=list.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
+    // Off the headset a tree that meets a house is one more instance of its kind, cut at the
+    // wall as it is drawn (treeWallMask); only whether it meets one is asked here.
     const clipping=list.map((tree,i)=>{if(!vegetationLibrary)return null;
       const [x,y]=xy(...tree.p);
+      if(wallMask){const hit=treeWallTouches(x,-y,scales[i][0]*prototypeRadius);if(hit)treeClipStats.clipped++;return null;}
       const prisms=treeBuildingPrisms(x,-y,scales[i][0]*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
     for (const part of proto.children) {
+      if (wallMask) cutTreeAtWalls(part, wallMask);
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
+      if (wallMask) mesh.customDepthMaterial = part.userData.treeDepth;
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
       // Each tree's own basis, by instance: a lidar crown is measured, an inventory point mapped.
       mesh.userData.instanceBasis = [];
@@ -949,6 +965,7 @@ const groundReady = (async () => {
         fixed.userData={surface:`tree:${kind}`,liftedOntoGround:true,treeWallClipped:true};groups.ground.add(fixed);}
     }
   }
+  if (wallMask) wallMask.top = null;
   window.kerbsideTreeClearance=treeClipStats;
   understoreyReady=()=>buildParkUnderstorey(trees);
 

@@ -120,7 +120,8 @@ function desktopMemoryTick() {
     if (region) attachRegion(region, { lon, lat }, STREAM.radius, true);
     console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB: the square round you built again at ${2 * STREAM.radius} m`);
   }
-  if (plan.restore) {
+  // (City mode keeps its own smaller caches: nothing is streamed while it is held.)
+  if (plan.restore && !(typeof cityLock !== "undefined" && cityLock)) {
     worldCellCache.maxBytes = M.cellBytes;
     TILE_RESIDENT_BUDGET = M.tileBytes;
     STREAM.radius = M.radius;

@@ -1364,24 +1364,31 @@ function firstBuildingCollision(fromX, fromZ, toX, toZ) {
 const GPS_KEY = "kerbside-gps";
 const GPS_JUMP_M = 60;
 const GPS_WALK_SPEED_MS = 4;
-const gps = { fix: null, target: null, heading: null, watch: null, follow: true,
+const gps = { fix: null, target: null, heading: null, watch: null, follow: true, placed: false,
   enabled: (() => { try { return localStorage.getItem(GPS_KEY) !== "off"; } catch { return true; } })() };
 function startGps() {
   if (ATTACH || gps.watch !== null || !gps.enabled || !navigator.geolocation) return;
   gps.watch = navigator.geolocation.watchPosition((position) => {
     const { longitude: lon, latitude: lat, heading } = position.coords;
     gps.fix = { lon, lat, accuracy: position.coords.accuracy, at: position.timestamp };
-    const b = DATA.bbox;
-    if (lon < b.west || lon > b.east || lat < b.south || lat > b.north) { gps.target = null; return; }
+    // Anywhere the map has a region, not only the one this page was opened on: where you are is
+    // where you start (unless you have set a spawn point, which goTo has already put you at).
+    const b = DATA.bbox, region = typeof regionAt === "function" ? regionAt(lon, lat) : null;
+    if (!region && (lon < b.west || lon > b.east || lat < b.south || lat > b.north)) { gps.target = null; return; }
     const [x, y] = xy(lon, lat);
-    const first = !gps.target;
-    const exterior = walkerExteriorAt(x, -y);
+    // City mode is played in its own area: a location outside it does not take the walker out.
+    if (typeof cityLock !== "undefined" && cityLock && !cityAreaHolds(x, -y)) { gps.target = null; return; }
+    const first = !gps.placed;
+    if (first && GPS_LEASH.on && typeof tileOwnGround === "function" && !tileOwnGround(lon, lat)) window.kerbsideOpenFullRegionAt?.(lon, lat);
+    // Indoors (at home), or before the houses round you are in: the street outside, or the spot.
+    const exterior = walkerExteriorAt(x, -y) || (first ? { x, z: -y } : null);
     if (!exterior) return;
     gps.target = new THREE.Vector3(exterior.x, 0, exterior.z);
     gps.heading = Number.isFinite(heading) ? heading : null;
     if (first && GPS_LEASH.on) {
       // The first fix: the walker stands where you are and the view comes to it -- unless you
       // have already walked it somewhere yourself.
+      gps.placed = true;
       avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z,
         groundLiftAt(gps.target.x,gps.target.z)), gps.target.z);
       state.indoors = false;
@@ -1431,6 +1438,7 @@ function followGps(dt) {
   gps.target.set(exterior.x, 0, exterior.z);
   const dx = gps.target.x - avatar.position.x, dz = gps.target.z - avatar.position.z, d = Math.hypot(dx, dz);
   if (d > GPS_JUMP_M) {
+    if (typeof cityLock !== "undefined" && cityLock && !cityAreaHolds(gps.target.x, gps.target.z)) return false;
     avatar.position.set(gps.target.x, AVATAR_STAND_Y + walkerGroundAt(gps.target.x, gps.target.z,
       groundLiftAt(gps.target.x,gps.target.z)), gps.target.z);
     return true;

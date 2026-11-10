@@ -724,6 +724,8 @@ let TILE_INDEX = null;
 const tileQueue = [];
 let tileInFlight = 0;
 let tileResidentBytes = 0;
+//: The tiles' built geometry, in bytes (loadTile).
+let tileGeometryResident = 0;
 const tileStats = { built: 0, drawn: 0, requested: 0, failed: 0, evicted: 0, bytes: 0 };
 
 //: The region this page draws in full. Inside it the street renderer has every kerb, so the
@@ -823,11 +825,30 @@ async function loadTile(tile) {
   }));
   buildTile(tile, layers);
   tile.state = "cpu";
+  // What the tile holds once built, beside what it was to fetch (tile.bytes, the JSON's size,
+  // which the eviction budget counts): the geometry is twenty to forty times that, and the
+  // region's fill is held to it (tileGeometryResident; 659 MB of tiles counted as 14 MB, the
+  // Marina, 2026-11-09). Counting it in the eviction budget instead let go of tiles the view
+  // still needed and fetched them again, round and round.
+  tile.geometryBytes = tileGeometryBytes(tile.group);
+  tileGeometryResident += tile.geometryBytes;
   tileResidentBytes += tile.bytes;
   tileStats.bytes += tile.bytes;
   evictTiles();
 }
 
+function tileGeometryBytes(group) {
+  let bytes = 0;
+  const seen = new Set();
+  group?.traverse((o) => {
+    const g = o.geometry;
+    if (!g || seen.has(g)) return;
+    seen.add(g);
+    for (const a of Object.values(g.attributes)) bytes += a.array?.byteLength || 0;
+    if (g.index) bytes += g.index.array.byteLength;
+  });
+  return bytes;
+}
 //: A tile's own metre frame, as the build wrote it: centimetres east and north of its
 //: south-west corner. Two multiplies put a vertex in the page's frame.
 function tileFrame(tile) {
@@ -960,8 +981,10 @@ const TILE_WALK = new THREE.Color(0x8e918a);
 const TILE_PAINT_COLOUR = new THREE.Color(0xe8e8e4);
 const TILE_WALK_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_WALK, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 //: The grass from far off (the tiles' lawns layer: parks, lawns and back yards): one plain
-//: green, the average of the turf the street renderer lays, a shade lighter for the distance.
-const TILE_LAWN = new THREE.Color(0x3a6630);
+//: green, the average of the turf the street renderer lays. Matched by eye on the screen where
+//: the two meet (the Marina, noon, 2026-11-09): the old 0x3a6630 drew (105, 173, 90) beside the
+//: turf's (138, 174, 127) -- a bright green field beside a sage one, an edge across a park.
+const TILE_LAWN = new THREE.Color(0x4e6746);
 const TILE_LAWN_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_LAWN, roughness: 0.98, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 const TILE_PAINT_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_PAINT_COLOUR, roughness: 0.9, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
 //: The centre line's yellow, as the street renderer paints it.
