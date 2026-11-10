@@ -974,6 +974,11 @@ function moveWalker(mx, mz) {
     // Open water is not walked on: the shore, a pier, a deck or a bridge over it are. One already
     // on the water (dropped there) may walk off it.
     if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)) break;
+    // City mode's area ends here (module 30): Explore goes on.
+    if (typeof cityAreaHolds === "function" && !cityAreaHolds(toX, toZ) && cityAreaHolds(p.x, p.z)) {
+      if (typeof setHint === "function") setHint(`${CITY_AREA.name[0].toUpperCase()}${CITY_AREA.name.slice(1)} ends here: switch to Explore to go further.`);
+      break;
+    }
     p.x = toX;
     p.z = toZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);

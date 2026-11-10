@@ -11,6 +11,7 @@
 // the trips of the day say how it got there (``history``). Pure, as people.mjs is
 // (tests/city.test.mjs).
 
+import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   workplacesByRole,
@@ -38,6 +39,15 @@ export const VISITOR_KINDS = [
 ];
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
 const KERB = (half) => Math.max(1.7, half - 1.8);
+//: Parking at the kerb (kerbSpot): how a spot is looked for and how close in a car stands.
+export const PARKING = { junction_clear_m: 6.1, step_m: 1.5, search_nodes: 9, max_tries: 160, visitor_choice: 10,
+  kerb_gap_m: 0.15, kerb_reach_m: 2.5, gap_m: 0.8, need_kerb: true, max_walk_m: 160 };
+//: Where a car stands without the drawn kerb: the street's half-width less half the car and a
+//: hand's width (it stood 1.8 m in, a metre off the kerb, out in the lane).
+const PARKED_OFF = (half, width) => Math.max(1.7, half - width / 2 - PARKING.kerb_gap_m);
+//: Width and length of each model, as the page draws it (vehicles.mjs VEHICLE_DIMS).
+const VEHICLE_W = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[0]]));
+const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[2]]));
 const DRIVE_MIN_M = 700;
 const DRIVE_MS = 9.5;
 //: The time a trip of ``metres`` as the crow flies takes (minutes): streets wind about a third
@@ -188,9 +198,14 @@ export class City {
   }
   setStreets(streets) {
     this.streets = streets;
+    streets.setPreferences?.(this.R.traffic);
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
-    this.plans = new Map(); this.spots = new Map(); this.roams = new Map(); this._gateways = null; this.homeSlots = null;
+    this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this._gateways = null; this.homeSlots = null;
   }
+  //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
+  //: and ``kerbParking(x, z, ax, az, halfLen, kind)`` -> why a car may not stand there, or null.
+  //: Set, every spot is found again against it.
+  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); }
   //: Where cars come into the district and leave it: the ends of its streets at the edge of
   //: what has been seen, for each network of streets that hangs together (``byNetwork``).
   get gateways() {
@@ -215,6 +230,39 @@ export class City {
     this._gateways = [...this.byNetwork.values()].flatMap((n) => n.gates);
     return this._gateways;
   }
+  //: A gate's street: its name, its class, and how much through traffic comes by it (a
+  //: corridor's weight, an arterial's, or a side street's 1; rules.json traffic).
+  gateInfo(g) {
+    // Of the streets at it, the busiest.
+    const T = this.R.traffic || {}, es = this.streets.edges[g].filter((e) => e.drive || e.name);
+    let best = null;
+    for (const e of es) {
+      const corridor = (T.corridors || []).find((c) => c.name === e.name);
+      const weight = corridor ? corridor.weight : e.cls === "arterial" || e.cls === "freeway" ? (T.arterial_gate_weight ?? 3) : 1;
+      if (!best || weight > best.weight || (weight === best.weight && !best.name && e.name)) best = { name: e.name || null, cls: e.cls, weight };
+    }
+    return best || { name: null, cls: "residential", weight: 1 };
+  }
+  //: A gate drawn by its weight; or, for a corridor trip, the two ends of one corridor.
+  pickGate(r, gates) {
+    const w = gates.map((g) => this.gateInfo(g).weight), total = w.reduce((a, b) => a + b, 0);
+    let x = r() * total;
+    for (let i = 0; i < gates.length; i += 1) { x -= w[i]; if (x <= 0) return gates[i]; }
+    return gates[gates.length - 1];
+  }
+  corridorTrip(r, gates) {
+    const by = new Map();
+    for (const g of gates) { const i = this.gateInfo(g); if (!i.name || i.weight <= 1) continue; if (!by.has(i.name)) by.set(i.name, { w: i.weight, gates: [] }); by.get(i.name).gates.push(g); }
+    const list = [...by.values()].filter((c) => c.gates.length >= 2);
+    if (!list.length) return null;
+    let x = r() * list.reduce((a, c) => a + c.w, 0), c = list[0];
+    for (const e of list) { x -= e.w; if (x <= 0) { c = e; break; } }
+    // Its two ends farthest apart, one way or the other.
+    const N = (g) => this.streets.nodes[g];
+    let best = null;
+    for (const a of c.gates) for (const b of c.gates) { const d = Math.hypot(N(a).x - N(b).x, N(a).z - N(b).z); if (!best || d > best.d) best = { a, b, d }; }
+    return r() < 0.5 ? [best.a, best.b] : [best.b, best.a];
+  }
   //: The network of streets a node is on (-1: none).
   netOf(node) { return node === null || node === undefined || !this.streets.comp ? -1 : this.streets.comp[node]; }
   //: Where on the street a car stands at a place: along one of the street ways from the place's
@@ -223,7 +271,7 @@ export class City {
   spotOf(vehicle, placeId) {
     const key = `${vehicle.id}:${placeId}`;
     let spot = this.spots.get(key);
-    if (spot) return spot;
+    if (spot !== undefined) return spot;
     const s = this.streets, place = typeof placeId === "number" ? null : this.roster.places.get(placeId);
     const nodeId = typeof placeId === "number" ? placeId : place ? s.nearest(place.x, place.z, "kerb", 200) : null;
     if (nodeId === null || nodeId === undefined) return null;
@@ -234,15 +282,116 @@ export class City {
       const door = place?.front ? { x: place.front.x, z: place.front.z } : place ? { x: place.x, z: place.z } : { x: n.x, z: n.z };
       spot = { garage, gateway: typeof placeId === "number", node: nodeId, x: garage ? door.x : n.x, z: garage ? door.z : n.z, yaw: 0, door, place: placeId };
     } else {
-      const slot = placeId === vehicle.home ? this.homeSlot(vehicle) : hash32(vehicle.id, placeId) % 9;
-      const e = edges[slot % edges.length], k = Math.floor(slot / edges.length);
-      const b = s.nodes[e.to], len = e.length || 1, ux = (b.x - n.x) / len, uz = (b.z - n.z) / len;
-      const room = Math.max(1, len - 10), along = 5 + ((k * 6.4) % room);
-      const cx = n.x + ux * along, cz = n.z + uz * along, off = KERB(e.half || 3);
-      spot = { garage: false, node: nodeId, edge: e, along, cx, cz, x: cx - uz * off, z: cz + ux * off, yaw: Math.atan2(-ux, -uz), place: placeId, street: e.name || null };
+      spot = this.kerbSpot(vehicle, placeId, nodeId);
+      this.spotStats = this.spotStats || { kerb: 0, garage: 0, none: 0, legacy: 0 };
+      if (spot) this.spotStats.kerb += 1;
+      else if (!this.kerbside) { spot = this.legacySpot(vehicle, placeId, nodeId, edges); this.spotStats.legacy += 1; }
+      else if (place && placeId === vehicle.home) {
+        // Nowhere legal on the street near home (the Marina is short of kerb): in the garage
+        // under the house, as most Marina homes have one.
+        const door = place.front ? { x: place.front.x, z: place.front.z } : { x: place.x, z: place.z };
+        spot = { garage: true, gateway: false, node: nodeId, x: door.x, z: door.z, yaw: 0, door, place: placeId, full: true };
+        this.spotStats.garage += 1;
+      } else { this.spotStats.none += 1; this.spots.set(key, null); return null; }
     }
     this.spots.set(key, spot);
     return spot;
+  }
+  //: The old way (no legal spot found): along a street way from the corner, at the kerb.
+  legacySpot(vehicle, placeId, nodeId, edges) {
+    const s = this.streets, n = s.nodes[nodeId];
+    const slot = placeId === vehicle.home ? this.homeSlot(vehicle) : hash32(vehicle.id, placeId) % 9;
+    const e = edges[slot % edges.length], k = Math.floor(slot / edges.length);
+    const b = s.nodes[e.to], len = e.length || 1, ux = (b.x - n.x) / len, uz = (b.z - n.z) / len;
+    const room = Math.max(1, len - 10), along = 5 + ((k * 6.4) % room);
+    const cx = n.x + ux * along, cz = n.z + uz * along, off = PARKED_OFF(e.half || 3, VEHICLE_W[vehicle.model] || 1.85);
+    return { garage: false, node: nodeId, edge: e, along, cx, cz, x: cx - uz * off, z: cz + ux * off, yaw: Math.atan2(-ux, -uz), place: placeId, street: e.name || null };
+  }
+  //: A legal place at the kerb near a place, nearest the door first: on a side of the street
+  //: that is parked on (SFMTA's block faces), clear of the junctions (California keeps 20 ft
+  //: from a crosswalk), of driveways and of red, blue, yellow and white kerb (but for those it
+  //: is for), and of the other cars' spots -- pulled in to the kerb as it is drawn, a hand's
+  //: width off it, along the street.
+  kerbSpot(vehicle, placeId, nodeId) {
+    const s = this.streets, P = PARKING;
+    const place = typeof placeId === "number" ? null : this.roster.places.get(placeId);
+    const door = place?.front ? { x: place.front.x, z: place.front.z } : place ? { x: place.x, z: place.z } : s.nodes[nodeId];
+    const width = VEHICLE_W[vehicle.model] || 1.85, halfLen = (VEHICLE_L[vehicle.model] || 4.6) / 2;
+    const kind = vehicle.kind === "delivery" || ["delivery_van", "box_truck"].includes(vehicle.model) ? "delivery"
+      : vehicle.cab || vehicle.kind === "ride_hail" || vehicle.kind === "taxi" ? "passenger" : null;
+    // The streets round the place: its corner's, then the next corners'.
+    const nodes = [nodeId], seen = new Set(nodes);
+    for (let i = 0; i < nodes.length && nodes.length < P.search_nodes; i += 1)
+      for (const e of s.edges[nodes[i]]) if (e.drive && !seen.has(e.to)) { seen.add(e.to); nodes.push(e.to); }
+    const cands = [];
+    // A corner further off costs more than its distance: the walk there goes round by the
+    // streets, not across the block.
+    const hop = new Map(nodes.map((id, i) => [id, i === 0 ? 0 : s.edges[nodeId].some((e) => e.to === id) ? 1 : 2]));
+    for (const a of nodes) for (const e of s.edges[a]) {
+      if (!e.drive || e.cls === "service" || e.cls === "freeway") continue;
+      if (e.park === false || (e.park === null && e.cls !== "residential")) continue;
+      const n = s.nodes[a], b = s.nodes[e.to], len = e.length || 1;
+      // Clear of a corner by 20 ft from the cross street's kerb (its half-width from the line). A
+      // driveway or a lane meeting the street is not a corner, nor is a bend in its line: there
+      // a car may stand across the point.
+      const streetsAt = (id) => s.edges[id].filter((x) => x.drive && x.cls !== "service");
+      const cross = (id) => Math.min(8, Math.max(0, ...streetsAt(id).filter((x) => x.name !== e.name).map((x) => x.half || 3)));
+      const corner = (id) => new Set(streetsAt(id).map((x) => x.to)).size >= 3 || new Set(streetsAt(id).map((x) => x.name).filter(Boolean)).size > 1;
+      const lo = corner(a) ? P.junction_clear_m + cross(a) + halfLen : 0;
+      const hi = len - (corner(e.to) ? P.junction_clear_m + cross(e.to) + halfLen : 0);
+      if (hi < lo) continue;
+      const ux = (b.x - n.x) / len, uz = (b.z - n.z) / len;
+      for (let along = lo; along <= hi + 1e-6; along += P.step_m) {
+        const cx = n.x + ux * along, cz = n.z + uz * along;
+        const crow = Math.hypot(cx - door.x, cz - door.z);
+        if (crow > P.max_walk_m) continue;
+        cands.push({ a, e, along, cx, cz, ux, uz, d: crow * (1 + 0.6 * hop.get(a)) + (hash32(vehicle.id, a, Math.round(along)) % 100) / 100 });
+      }
+    }
+    cands.sort((p, q) => p.d - q.d);
+    // A home's cars keep their spots overnight: those are held, one car to a spot. A visitor's
+    // stop is an hour or so: it is not held, but each visitor takes one of the few best legal
+    // spots (by its plate), so they are not all in the one nearest the door.
+    const resident = placeId === vehicle.home;
+    const pickOf = resident ? 0 : hash32(vehicle.id, placeId) % P.visitor_choice;
+    let legal = 0;
+    for (const c of cands.slice(0, P.max_tries)) {
+      // The right side of the way of travel (rx, rz), the kerb as drawn there.
+      const rx = -c.uz, rz = c.ux, half = c.e.half || 3;
+      let x = c.cx + rx * PARKED_OFF(half, width), z = c.cz + rz * PARKED_OFF(half, width), ax = c.ux, az = c.uz;
+      const px = c.cx + rx * Math.max(1, half - 1), pz = c.cz + rz * Math.max(1, half - 1);
+      const k = this.kerbside?.kerbAt(px, pz, c.ux, c.uz);
+      // This street's kerb on this side (not the cross street's round the corner), beside it.
+      if (k && k.nx * rx + k.nz * rz > 0.5 && Math.abs((k.x - px) * c.ux + (k.z - pz) * c.uz) < 1 && Math.abs(Math.hypot(k.x - c.cx, k.z - c.cz) - half) < P.kerb_reach_m) {
+        // Along the kerb, the way of travel; pulled in to it.
+        const sgn = k.ax * c.ux + k.az * c.uz >= 0 ? 1 : -1;
+        ax = k.ax * sgn; az = k.az * sgn;
+        x = k.x - k.nx * (width / 2 + P.kerb_gap_m); z = k.z - k.nz * (width / 2 + P.kerb_gap_m);
+        if (this.kerbside.kerbParking?.(k.x, k.z, ax, az, halfLen, kind)) continue;
+      } else if (this.kerbside && P.need_kerb) continue;
+      if (this.clashes(x, z, ax, az, halfLen)) continue;
+      if (legal++ < pickOf) continue;
+      if (resident) this.take(x, z, ax, az, halfLen);
+      return { garage: false, node: c.a, edge: c.e, along: c.along, cx: c.cx, cz: c.cz, x, z, yaw: Math.atan2(-ax, -az), place: placeId, street: c.e.name || null, kerb: Boolean(k) };
+    }
+    return null;
+  }
+  //: Spots already given out: none within a car's length (and a gap) along the same kerb.
+  clashes(x, z, ax, az, halfLen) {
+    for (let i = -1; i <= 1; i += 1) for (let j = -1; j <= 1; j += 1) {
+      const cell = this.taken.get(`${Math.floor(x / 12) + i},${Math.floor(z / 12) + j}`);
+      if (!cell) continue;
+      for (const o of cell) {
+        const dx = o.x - x, dz = o.z - z, along = Math.abs(dx * ax + dz * az), across = Math.abs(dx * az - dz * ax);
+        if (across < 1.6 && along < halfLen + o.halfLen + PARKING.gap_m) return true;
+      }
+    }
+    return false;
+  }
+  take(x, z, ax, az, halfLen) {
+    const key = `${Math.floor(x / 12)},${Math.floor(z / 12)}`;
+    if (!this.taken.has(key)) this.taken.set(key, []);
+    this.taken.get(key).push({ x, z, halfLen });
   }
   //: A home's cars on the street one behind another: this one's place in the queue.
   homeSlot(vehicle) {
@@ -279,7 +428,9 @@ export class City {
     else push(b.cx, b.cz, b.edge.half, b.edge.cls);
     const S = [0];
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    leg.route = { pts, s: S, halves, classes, ids, length: S[S.length - 1], mode: "drive" };
+    // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
+    leg.route = { pts, s: S, halves, classes, ids, length: S[S.length - 1], mode: "drive",
+      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
     return leg.route;
   }
   // -- days --------------------------------------------------------------------------------------
@@ -451,15 +602,21 @@ export class City {
     const G = net[1].gates, box = net[1].box;
     const places = this.roster.list.filter((pl) => (pl.shops?.length || pl.use === "office" || pl.use === "restaurant")
       && pl.x >= box[0] && pl.x <= box[2] && pl.z >= box[1] && pl.z <= box[3] && this.netOf(this.streets.nearest(pl.x, pl.z, "kerb", 200)) === net[0]);
-    const hourPick = () => { const total = TRAFFIC_BY_HOUR.reduce((s, x) => s + x, 0); let x = r() * total; for (let h = 0; h < 24; h += 1) { x -= TRAFFIC_BY_HOUR[h]; if (x <= 0) return h; } return 12; };
+    // When they drive: commuters in the rush hours, deliveries in the working day, ride-hail
+    // into the evening, the rest as through traffic does (rules.json traffic.by_hour).
+    const H = this.R.traffic?.by_hour || {};
+    const curve = (p.kind === "ride_hail" || p.kind === "taxi" ? H.ride_hail : p.kind === "delivery" ? H.delivery : hash32(p.id, "commuter") % 5 < 2 ? H.commute : H.through) || TRAFFIC_BY_HOUR;
+    const hourPick = () => { const total = curve.reduce((s, x) => s + x, 0); let x = r() * total; for (let h = 0; h < 24; h += 1) { x -= curve[h]; if (x <= 0) return h; } return 12; };
+    const share = this.R.traffic?.corridor_share ?? 0;
+    const ends = () => { const c = r() < share ? this.corridorTrip(r, G) : null; return c || [this.pickGate(r, G), this.pickGate(r, G)]; };
     const trips = [];
     // Through traffic is most of a district's traffic: a visitor's car comes through a few
     // times a day (rules.json density.visitor_trips), now and then stopping.
     const K = VISITOR_KINDS.find((x) => x.kind === p.kind) || VISITOR_KINDS[3];
     const [lo, hi] = K.trips || this.R.density?.visitor_trips || [3, 6];
     const n = lo + Math.floor(r() * (hi - lo + 1));
-    const [share, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
-    for (let k = 0; k < n; k += 1) trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < share ? pick(r, places).id : null, g1: G[Math.floor(r() * G.length)], g2: G[Math.floor(r() * G.length)], dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) });
+    const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
+    for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
     trips.sort((a, b) => a.at - b.at);
     const node = (id) => this.streets.nodes[id];
     let clock = 0;
@@ -837,9 +994,14 @@ export function signalAt(streets, node, bearing, tsec, T = TRAFFIC) {
   const ref = Math.atan2(m.x - n.x, m.z - n.z);
   let a = Math.abs(((bearing - ref) % Math.PI + Math.PI) % Math.PI);
   const axis = a < Math.PI / 4 || a > (3 * Math.PI) / 4 ? 0 : 1;
-  const phase = (tsec + (hash32("signal", node) % T.signal_cycle_s)) % T.signal_cycle_s;
-  const half = T.signal_cycle_s / 2, local = axis === 0 ? phase : (phase + half) % T.signal_cycle_s;
-  return local < T.green_s ? "green" : local < T.green_s + T.amber_s ? "amber" : "red";
+  const C = T.signal_cycle_s, A = T.amber_s, phase = (tsec + (hash32("signal", node) % C)) % C;
+  // The main street (the arterial the light is set by) has the longer green where it crosses a
+  // lesser one; two arterials share the cycle.
+  const both = e0.cls === "arterial" && streets.edges[node].some((e) => e.cls === "arterial" && e !== e0 && Math.abs(Math.sin(Math.atan2(streets.nodes[e.to].x - n.x, streets.nodes[e.to].z - n.z) - ref)) > 0.7);
+  const share = e0.cls === "arterial" && !both ? (T.main_green_share ?? 0.5) : 0.5;
+  const g0 = C * share - A, g1 = C * (1 - share) - A;
+  const local = axis === 0 ? phase : (phase - (g0 + A) + C) % C, green = axis === 0 ? g0 : g1;
+  return local < green ? "green" : local < green + A ? "amber" : "red";
 }
 //: What kind of junction a node is: "signal" where an arterial meets (three ways or more),
 //: "stop" at other junctions, null along a street.

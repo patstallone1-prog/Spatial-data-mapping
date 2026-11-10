@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { cityTime, loadRules } from "../docs/city/core.mjs";
-import { City, Drivers, Roster, harmNow, injuryFor, junctionAt, residentsIn, vehicleDamage } from "../docs/city/fleet.mjs";
+import { City, Drivers, PARKING, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, residentsIn, signalAt, vehicleDamage } from "../docs/city/fleet.mjs";
 import { Streets, alongRoute, placeFromBuilding } from "../docs/city/people.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 
@@ -284,4 +284,91 @@ test("no car stands in the traffic for good: one that has arrived pulls in and t
   // A ring of cars each waiting on the next is let go.
   D2.stateOf("x").reason = "the car ahead"; D2.stateOf("x").leader = "z";
   assert.equal(D2.heldAtHead("z"), false);
+});
+
+test("parked cars stand at the kerb, a hand's width off it, clear of junctions, driveways, red kerb and each other, on the sides parked on", () => {
+  const { roster, city, streets } = district();
+  // A kerb 4 m either side of every street's line (the grid's streets are 8 m wide), a
+  // driveway at 3 Avenue z 150 on its east kerb, and red kerb at 5 Street x 250 on its north kerb.
+  // (Asked along the street, as the page's nearestKerbAt is: the kerb running that way.)
+  const kerbAt = (x, z, ax = 0, az = 1) => {
+    const fx = Math.round(x / 100) * 100, fz = Math.round(z / 100) * 100;
+    if (Math.abs(az) > Math.abs(ax)) { const sx = Math.sign(x - fx) || 1; return { x: fx + sx * 4, z, nx: sx, nz: 0, ax: 0, az: 1 }; }
+    const sz = Math.sign(z - fz) || 1; return { x, z: fz + sz * 4, nx: 0, nz: sz, ax: 1, az: 0 };
+  };
+  const kerbParking = (x, z, ax, az, halfLen) => {
+    const span = (c, at) => Math.abs(c - at) < halfLen + 1.5;
+    if (Math.abs(x - 304) < 0.5 && span(z, 150)) return "driveway";
+    if (Math.abs(z - 504) < 0.5 && span(x, 250)) return "red kerb";
+    return null;
+  };
+  city.setKerbside({ kerbAt, kerbParking });
+  const spots = [];
+  // Residents' cars at home: their spots are held, one car to a spot.
+  for (const v of [...roster.vehicles.values()].filter((x) => !x.garage && x.home).slice(0, 160)) {
+    const s = city.spotOf(v, v.home);
+    if (!s || s.garage || s.gateway) continue;
+    spots.push({ v, s });
+  }
+  assert.ok(spots.length > 60, `${spots.length} spots`);
+  for (const { v, s } of spots) {
+    assert.ok(s.kerb, "not at the kerb");
+    // Half the car and 15 cm off the kerb line.
+    const off = Math.min(Math.abs(s.x - Math.round(s.x / 100) * 100), Math.abs(s.z - Math.round(s.z / 100) * 100));
+    const w = { economy: 1.76, compact_ev: 1.8, sedan: 1.85, suv: 1.95, pickup: 2.0, delivery_van: 2.0, box_truck: 2.45, taxi: 1.85, patrol: 1.9 }[v.model] || 1.85;
+    assert.ok(Math.abs(off - (4 - w / 2 - PARKING.kerb_gap_m)) < 0.02, `${v.model} ${off.toFixed(2)} m from the line`);
+    // Not within the junction's clearance: every junction here is at a multiple of 100.
+    const along = Math.abs(s.x - Math.round(s.x / 100) * 100) < 5 ? s.z : s.x, nearest = Math.abs(along - Math.round(along / 100) * 100);
+    const L = { economy: 4.1, compact_ev: 4.3, sedan: 4.8, suv: 4.9, pickup: 5.6, delivery_van: 5.9, box_truck: 7.4, taxi: 4.7, patrol: 5.0 }[v.model] || 4.8;
+    assert.ok(nearest - L / 2 >= PARKING.junction_clear_m + 3.4 - 0.01, `its end ${(nearest - L / 2).toFixed(1)} m from the junction's line (${s.x.toFixed(1)}, ${s.z.toFixed(1)}, along ${s.along.toFixed(1)} of ${s.edge.length})`);
+    assert.ok(!(Math.abs(s.x - (304 - w / 2 - PARKING.kerb_gap_m)) < 0.1 && Math.abs(s.z - 150) < 4), "across a driveway");
+  }
+  // No two overlap.
+  for (let i = 0; i < spots.length; i += 1) for (let j = i + 1; j < spots.length; j += 1) {
+    const a = spots[i].s, b = spots[j].s;
+    if (Math.abs(a.yaw - b.yaw) > 0.1 && Math.abs(Math.abs(a.yaw - b.yaw) - Math.PI) > 0.1) continue;
+    assert.ok(Math.hypot(a.x - b.x, a.z - b.z) > 4.1, "two cars in one spot");
+  }
+  // A street parked on one side only: nobody on the other.
+  const one = new Streets([{ kind: "street", pts: [[0, 0], [0, 200]], lanes: 2, oneway: 0, id: "s", name: "Side Street", parking_sides: [-1] },
+    { kind: "street", pts: [[-100, 0], [100, 0]], lanes: 2, oneway: 0, id: "a", name: "A" }, { kind: "street", pts: [[-100, 200], [100, 200]], lanes: 2, oneway: 0, id: "b", name: "B" }]);
+  const fwd = one.edges[one.nearest(0, 0, "drive")].find((e) => e.name === "Side Street");
+  const back = one.edges[one.nearest(0, 200, "drive")].find((e) => e.name === "Side Street");
+  assert.equal(fwd.park, true); assert.equal(back.park, false);
+});
+
+test("traffic keeps to the main streets: Lombard's ends draw the through trips, its green is longer, and drivers take it", () => {
+  // A grid whose 4 Street is Lombard Street, an arterial.
+  const ways = [];
+  for (let i = 0; i <= 8; i += 1) {
+    const along = Array.from({ length: 9 }, (_, j) => j * 100);
+    ways.push({ kind: "street", pts: along.map((v) => [i * 100, v]), lanes: 2, oneway: 0, id: `v${i}`, name: `${i} Avenue` });
+    // Lombard runs on out of the grid at both ends, as it does out of the Marina.
+    const pts = i === 4 ? [[-100, 400], ...along.map((v) => [v, 400]), [900, 400]] : along.map((v) => [v, i * 100]);
+    ways.push({ kind: "street", pts, lanes: i === 4 ? 4 : 2, oneway: 0, id: `h${i}`, name: i === 4 ? "Lombard Street" : `${i} Street` });
+  }
+  const streets = new Streets(ways), roster = new Roster(R, { seed: "t" });
+  roster.add(blocks(streets));
+  const city = new City(R, roster, streets, { seed: "t", timeAt });
+  const G = city.gateways;
+  const lombard = G.filter((g) => city.gateInfo(g).name === "Lombard Street");
+  assert.ok(lombard.length >= 2, "Lombard has no gates");
+  // Drawn by weight, a Lombard gate comes up far more often than its share of the gates.
+  let r = 1; const rand = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+  let hits = 0; for (let k = 0; k < 2000; k += 1) if (lombard.includes(city.pickGate(rand, G))) hits += 1;
+  assert.ok(hits / 2000 > 3 * lombard.length / G.length, `${hits} of 2000`);
+  const [a, b] = city.corridorTrip(rand, G);
+  assert.equal(city.gateInfo(a).name, city.gateInfo(b).name);
+  // From one side street to another across the grid, the way goes by Lombard.
+  const route = streets.route(streets.nearest(100, 0, "drive"), streets.nearest(700, 800, "drive"), "drive");
+  const along = route.pts.filter(([, z]) => Math.abs(z - 400) < 1).length;
+  assert.ok(along >= 4, `${along} points on Lombard`);
+  // At a junction on Lombard, Lombard has 60% of the cycle.
+  const node = streets.nearest(300, 400, "drive"), T = { ...TRAFFIC, main_green_share: 0.6 };
+  let main = 0, side = 0;
+  for (let s = 0; s < T.signal_cycle_s; s += 0.25) { if (signalAt(streets, node, Math.PI / 2, s, T) === "green") main += 1; if (signalAt(streets, node, 0, s, T) === "green") side += 1; }
+  assert.ok(main > side * 1.4, `green ${main / 4} s on Lombard, ${side / 4} s across`);
+  // Commuters drive in the rush hours: the morning peak is more than twice the middle of the day.
+  const H = R.traffic.by_hour.commute;
+  assert.ok(H[8] > 2 * H[13] && H[17] > 2 * H[13]);
 });

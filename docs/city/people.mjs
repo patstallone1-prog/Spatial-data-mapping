@@ -130,8 +130,11 @@ export class Streets {
         const a = this.nodes[prev], b = this.nodes[id], length = Math.hypot(b.x - a.x, b.z - a.z);
         const fwd = street && way.oneway !== -1, back = street && way.oneway !== 1;
         if (street) { a.drive = b.drive = true; }
-        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes: way.lanes || 2, name: way.name || null });
-        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes: way.lanes || 2, name: way.name || null });
+        // Parking on the right of each way of travel (SFMTA's block faces: way.parking_sides, 1
+        // the left of the way as drawn, -1 its right): true, false, or null where unknown.
+        const sides = Array.isArray(way.parking_sides) ? way.parking_sides : null;
+        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(-1) : null });
+        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(1) : null });
       }
       prev = id;
     });
@@ -158,10 +161,23 @@ export class Streets {
     const found = this.search(a, b, mode);
     return found || (mode === "drive" ? this.search(a, b, "drive_any") : null);
   }
+  //: Drivers keep to the main streets (rules.json traffic): a way's cost is its time at the
+  //: limit times its class's preference, less on a named corridor by its weight.
+  setPreferences(traffic) {
+    this.prefer = traffic?.class_preference || null;
+    this.corridor = new Map((traffic?.corridors || []).map((c) => [c.name, c.weight]));
+    const least = Math.min(1, ...Object.values(this.prefer || {})) / (1 + 0.06 * Math.max(0, ...this.corridor.values()));
+    this.leastCost = least;
+    this.routes = new Map();
+  }
+  driveCost(e) {
+    const w = (e.name && this.corridor?.get(e.name)) || 0;
+    return (e.length / SPEED_MS[e.cls]) * (this.prefer?.[e.cls] ?? 1) / (1 + 0.06 * w);
+  }
   search(a, b, mode) {
     const key = `${mode}:${a}:${b}`;
     if (this.routes.has(key)) return this.routes.get(key);
-    const goal = this.nodes[b], speed = mode !== "walk" ? SPEED_MS.freeway : 1;
+    const goal = this.nodes[b], speed = mode !== "walk" ? SPEED_MS.freeway / (this.leastCost || 1) : 1;
     const g = new Map([[a, 0]]), came = new Map(), open = new Heap();
     open.push(0, a);
     let found = a === b, visited = 0;
@@ -173,7 +189,7 @@ export class Streets {
       for (const e of this.edges[n]) {
         const car = mode !== "walk";
         if (mode === "drive" ? !e.drive : mode === "drive_any" ? !(e.drive || this.edges[e.to].some((r) => r.to === n && r.drive)) : !e.walk) continue;
-        const cost = gn + (car ? e.length / SPEED_MS[e.cls] : e.length);
+        const cost = gn + (car ? this.driveCost(e) : e.length);
         if (cost < (g.get(e.to) ?? Infinity)) {
           g.set(e.to, cost); came.set(e.to, [n, e]);
           const m = this.nodes[e.to];

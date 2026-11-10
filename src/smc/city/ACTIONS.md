@@ -52,6 +52,16 @@ this device.
   N" opens the whole list. Windows open on the right under the top bar; the bar of eight and the
   money, time and place line stay at the bottom. The view zooms out no further than 90 m (just
   under a block). Directions, the free view, pins and click-to-go are put away.
+* **City mode is played in the Marina** (Greenwich Street to the Marina Green, Lyon Street to
+  Webster: Lombard, Chestnut and the Marina's blocks, 1.2 km²). Switching to it shows "Loading
+  the Marina…" while the whole area is built once (about 40 s on a laptop; instant when it is
+  still built from the last time);
+  after that nothing is loaded in the background: the area is not rebuilt as you walk, the
+  memory watch does not rebuild it smaller, and the view sees a few blocks (the far plane at
+  1.6 km, haze from 450 m). Walking or driving to its edge stops you there ("switch to Explore
+  to go further"); tasks outside it are not offered (the Presidio's trees and the Marina walk,
+  whose Fort Mason and Wave Organ stops are past Webster, are Explore's). Switching back to Explore streams the map
+  as before.
 
 The people and the traffic are out in both modes.
 
@@ -137,8 +147,21 @@ leaves along the pavement. A break outside puts them on the pavement in front of
 * Every car that is driving moves. One that reaches the end of its trip pulls into the parking
   lane and is parked at once (it used to stand in the lane until the next pass, holding up the
   street behind it). A queue held by nothing real (a ring of cars waiting on each other) creeps
-  on after 8 s; a light, a stop sign or someone in the road is still waited for. A red light
-  lasts 21 s of a 42 s cycle.
+  on after 8 s; a light, a stop sign or someone in the road is still waited for.
+* Traffic is where and when it is in the city (rules.json `traffic`). Drivers keep to the main
+  streets (a way's cost is its time times its class's preference, less on a named corridor).
+  Through trips start and end at the edge of the streets, a gate on Lombard Street (US 101,
+  weight 12), Richardson, Van Ness, Marina Boulevard, Divisadero and so on far likelier than a
+  side street's; half of them run one corridor end to end. By the hour: commuters in the rush
+  hours (7-9, 4-7), deliveries through the working day, ride-hail into the evening. At a
+  signal where a main street crosses a lesser one, the main street has 60% of the 42 s cycle.
+* Parked cars stand at the kerb as it is drawn, 15 cm off it, along the street, never in the
+  lane: only on a side of the street SFMTA's block faces say is parked on (a side street with
+  no record: yes; a main street with none: no); 20 ft clear of every corner's cross street;
+  not across a driveway (a kerb cut); not on red or blue kerb, yellow only for a delivery,
+  white only for a fare; and never in another car's spot. Cars ease out of the spot into the
+  lane, and back in at the end of a trip. (There is no record of perpendicular or angled
+  street parking in this data: street parking is parallel.)
 * On foot, cars are solid, in both modes: the traffic, parked cars (yours and the city's), the
   buses, your taxi and other players' cars. You slide along their sides rather than walk
   through (`walkerBlocked` in `view.mjs`, checked by the page's `moveWalker`). Not while you

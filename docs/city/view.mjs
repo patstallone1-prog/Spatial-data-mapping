@@ -26,7 +26,7 @@ import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
-import { City, Drivers, PARK_LANE, Roster, harmNow, injuryFor } from "./fleet.mjs";
+import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { BAR, GRID, arrange, barSlotOf, swap } from "./inventory.mjs";
 
@@ -98,7 +98,8 @@ export async function startCity(ctx) {
       if (!Array.isArray(pts) || pts.length < 2) continue;
       if (way.kind === "street" && way.tunnel_kind !== "underground") {
         ways.push({ kind: "street", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)), lanes: way.lanes || 2, name: way.name || null,
-          oneway: way.osm_oneway === "yes" ? 1 : way.osm_oneway === "-1" ? -1 : 0, road_m: way.road_m, service: way.service, busway: way.busway, id: way.osm_id });
+          oneway: way.osm_oneway === "yes" ? 1 : way.osm_oneway === "-1" ? -1 : 0, road_m: way.road_m, service: way.service, busway: way.busway, id: way.osm_id,
+          parking_sides: way.parking_sides });
       } else if (["sidewalk", "path", "crossing", "footway"].includes(way.kind)) {
         ways.push({ kind: "path", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)) });
       }
@@ -152,7 +153,9 @@ export async function startCity(ctx) {
     if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
     else district.city.setStreets(streets);
     district.city.setLines(district.lines || []);
-    if (!district.drivers) district.drivers = new Drivers(streets);
+    // Parking at the kerb as the world draws it: its driveways and its painted kerb.
+    if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking });
+    if (!district.drivers) district.drivers = new Drivers(streets, { ...TRAFFIC, main_green_share: R.traffic?.main_green_share ?? 0.5 });
     else { district.drivers.streets = streets; district.drivers.cars.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
     const [clon, clat] = ctx.toLonLat(me().x, me().z);
@@ -593,7 +596,12 @@ export async function startCity(ctx) {
     car.speed = Math.max(-5, Math.min(cap, car.speed));
     const steer = (left ? 1 : 0) - (right ? 1 : 0);
     if (steer && Math.abs(car.speed) > 0.2) car.yaw += steer * dt * Math.min(1.6, 0.35 + Math.abs(car.speed) / 9) * Math.sign(car.speed);
-    const dx = -Math.sin(car.yaw) * car.speed * dt, dz = -Math.cos(car.yaw) * car.speed * dt;
+    let dx = -Math.sin(car.yaw) * car.speed * dt, dz = -Math.cos(car.yaw) * car.speed * dt;
+    // City mode's area ends here: the car stops at its edge (not a crash).
+    if (ctx.inArea && !ctx.inArea(car.x + dx * 4, car.z + dz * 4) && ctx.inArea(car.x, car.z)) {
+      car.speed = 0; dx = 0; dz = 0;
+      if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(`${ctx.areaName?.() || "The city"} ends here: turn round, or switch to Explore to go further.`); }
+    }
     const before = { x: car.x, z: car.z };
     const moved = ctx.moveWalker(dx, dz);
     const p = me();
@@ -1839,7 +1847,15 @@ export async function startCity(ctx) {
     out.push({ kind: "sightseeing", title: S.name, km: Math.min(...S.stops.map((st) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return Math.hypot(x - here.x, z - here.z); })) / 1000,
       pay: S.pay, steps: S.stops.map((st) => `Visit ${st.name}`) });
     out.push(...roundOffers(r, here));
-    return out;
+    // In City mode only what is in its area: every place a task takes you to.
+    const inside = (o) => {
+      if (!ctx.inArea) return true;
+      const pts = o.kind === "forestry" ? [ctx.fromLonLat(F.area.centre[1], F.area.centre[0])]
+        : o.kind === "sightseeing" ? S.stops.map((st) => ctx.fromLonLat(st.at[1], st.at[0]))
+        : o.stops ? o.stops.map((s) => [s.x, s.z]) : [o.from && [o.from.x, o.from.z], o.to && [o.to.x, o.to.z]].filter(Boolean);
+      return pts.every(([x, z]) => ctx.inArea(x, z));
+    };
+    return out.filter(inside);
   }
   // ---- rounds: a few places round you to call at (rules.json tasks.rounds) ---------------------
   const roundKind = (kind) => R.tasks.rounds?.kinds?.[kind] || null;
@@ -2362,6 +2378,16 @@ export async function startCity(ctx) {
     }
     if (g) { g.x = e.x; g.z = e.z; g.t = now; } else glided.set(e.id, { x: e.x, z: e.z, t: now });
   }
+  //: The first and last few metres of a leg: out of its spot at the kerb into the lane, and
+  //: back in to the kerb at the end (the lane's line is a metre or two out from it).
+  const EASE_M = 7;
+  function easeToSpots(route, d, pos) {
+    const k0 = route.startSpot && d < EASE_M ? 1 - d / EASE_M : 0, k1 = route.endSpot && route.length - d < EASE_M ? 1 - (route.length - d) / EASE_M : 0;
+    const S = k1 > k0 ? route.endSpot : route.startSpot, k = Math.max(k0, k1);
+    if (!S || k <= 0) return pos;
+    const e = k * k * (3 - 2 * k);
+    return { ...pos, x: pos.x + (S.x - pos.x) * e, z: pos.z + (S.z - pos.z) * e };
+  }
   function frameCity(ms, dt, now, focus) {
     const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
     tt.minute += (ms % 1000) / 60000;
@@ -2427,10 +2453,10 @@ export async function startCity(ctx) {
       } else {
         // At the end of its leg it is parked there, in the parking lane (and from the next pass,
         // at its spot).
-        if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...alongRoute(route, route.length, PARK_LANE), moving: false, parked: true }); continue; }
+        if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
         // Not off yet (its leg starts later than the scan saw it): parked where it starts.
-        if (lagged <= 0.05) { vehicles.push({ ...base, ...alongRoute(route, 0, PARK_LANE), moving: false, parked: true }); continue; }
-        const pos = alongRoute(route, lagged, (half) => Math.max(1.7, half - 1.8));
+        if (lagged <= 0.05) { vehicles.push({ ...base, ...(route.startSpot || alongRoute(route, 0, PARK_LANE)), moving: false, parked: true }); continue; }
+        const pos = easeToSpots(route, lagged, alongRoute(route, lagged, (half) => Math.max(1.7, half - 1.8)));
         vehicles.push({ ...base, ...pos, moving: true, speed: route.length / durS });
       }
     }
@@ -2443,8 +2469,8 @@ export async function startCity(ctx) {
       const step = D.step(Math.min(dt, 0.1), tsec, sim, obstacles, blockers);
       for (const r0 of step.cars) {
         const { base, route } = legOf.get(r0.id);
-        if (r0.arrived) { vehicles.push({ ...base, ...alongRoute(route, route.length, PARK_LANE), moving: false, parked: true }); continue; }
-        const pos = alongRoute(route, r0.d, (half) => Math.max(1.7, half - 1.8));
+        if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
+        const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, (half) => Math.max(1.7, half - 1.8)));
         vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
       }
       for (const hit of step.hits) carHit(hit, people);

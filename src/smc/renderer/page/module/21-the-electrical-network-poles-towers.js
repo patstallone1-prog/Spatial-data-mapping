@@ -554,6 +554,8 @@ function addOfficialCurbZoneBands(records) {
         const a = run[i - 1];
         const b = run[i];
         const seg = [a.x, a.z, b.x, b.z, c.r, c.g, c.b];
+        // And for the living city's parking (kerbParking): where the paint is, and its colour.
+        if (typeof KERB_RULES !== "undefined") { KERB_RULES.paint.push([a.x, a.z, b.x, b.z, String(record.curb_color || "").toLowerCase()]); KERB_RULES.paintGrid = null; }
         const x0 = Math.floor(Math.min(a.x, b.x) / CELL), x1 = Math.floor(Math.max(a.x, b.x) / CELL);
         const z0 = Math.floor(Math.min(a.z, b.z) / CELL), z1 = Math.floor(Math.max(a.z, b.z) / CELL);
         for (let ix = x0; ix <= x1; ix += 1) {
@@ -1650,13 +1652,18 @@ function placeCamera() {
 function fitViewToAltitude() {
   if (META) return;   // the headset's short view and its haze (META_VIEW) are fixed
   const h = Math.max(0, camera.position.y);
-  const far = Math.max(FAR_M, Math.sqrt(2 * EARTH_RADIUS_M * h + h * h) * 1.15 + h);
+  // City mode sees a few blocks: the far plane and the haze close in (module 30, CITY_AREA).
+  const city = typeof cityLock !== "undefined" && cityLock ? CITY_AREA : null;
+  const far = city ? city.farM : Math.max(FAR_M, Math.sqrt(2 * EARTH_RADIUS_M * h + h * h) * 1.15 + h);
   // Pulled in against a wall, the near plane comes in with the camera, so it does not cut into it.
   const near = state.firstPerson || cameraPulledIn ? 0.12 : Math.max(0.5, Math.min(h * 0.002, 4000));
   if (Math.abs(far - camera.far) > far * 0.02 || Math.abs(near - camera.near) > near * 0.05) {
     camera.far = far; camera.near = near; camera.updateProjectionMatrix();
   }
-  if (scene.fog) { scene.fog.near = 2400 + h * 4; scene.fog.far = FAR_M * 0.96 + h * 12; }
+  if (scene.fog) {
+    if (city) { scene.fog.near = city.fogNear; scene.fog.far = city.fogFar; }
+    else { scene.fog.near = 2400 + h * 4; scene.fog.far = FAR_M * 0.96 + h * 12; }
+  }
 }
 
 var worldCameraRay = null;

@@ -251,6 +251,35 @@
       {"name": "Union Square", "bbox": [37.7845, -122.4105, 37.7905, -122.4030], "walkers": 3, "traffic": 1.8}
     ]
   },
+  "traffic": {
+    "basis": "where and when the through traffic goes. Drivers keep to the main streets: a way's cost is its time at the limit times its class's preference, cheaper still on a named corridor (by its weight). Through trips start and end at the edge of the streets, a gate on a corridor that much likelier than a side street's, and a share of them run the length of one corridor end to end. Lombard Street is US 101 through the Marina (Caltrans counts approx. 50,000 vehicles a day between Richardson Avenue and Van Ness, about twelve times a typical residential street's); Marina Boulevard, Divisadero, Fillmore, Chestnut and Bay carry approx. 8,000 to 20,000. By the hour: two rush hours (7-9 and 4-7) at the full count, the middle of the day at about 60%, the night at under a fifth; commuters keep to the rush hours, deliveries to the working day, ride-hail to the evening too. At a signal on a main street the main street has the longer green (approx. 60% of the cycle), as SFMTA times Lombard's.",
+    "class_preference": {"freeway": 0.6, "arterial": 0.75, "residential": 1.35, "shared": 2.2, "service": 4.0},
+    "corridors": [
+      {"name": "Lombard Street", "weight": 12},
+      {"name": "Richardson Avenue", "weight": 10},
+      {"name": "Van Ness Avenue", "weight": 7},
+      {"name": "Marina Boulevard", "weight": 4},
+      {"name": "Divisadero Street", "weight": 4},
+      {"name": "Franklin Street", "weight": 4},
+      {"name": "Gough Street", "weight": 4},
+      {"name": "Fillmore Street", "weight": 2.5},
+      {"name": "Chestnut Street", "weight": 2.5},
+      {"name": "Bay Street", "weight": 2.5},
+      {"name": "Union Street", "weight": 2},
+      {"name": "Laguna Street", "weight": 1.8},
+      {"name": "Webster Street", "weight": 1.6},
+      {"name": "Steiner Street", "weight": 1.6}
+    ],
+    "corridor_share": 0.5,
+    "arterial_gate_weight": 3,
+    "by_hour": {
+      "commute": [0.04, 0.02, 0.02, 0.02, 0.05, 0.2, 0.6, 1.0, 1.0, 0.6, 0.3, 0.25, 0.3, 0.25, 0.3, 0.55, 0.95, 1.0, 0.9, 0.5, 0.3, 0.2, 0.12, 0.07],
+      "delivery": [0.02, 0.01, 0.01, 0.01, 0.05, 0.2, 0.5, 0.8, 1.0, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 0.9, 0.7, 0.45, 0.25, 0.12, 0.06, 0.04, 0.03, 0.02],
+      "ride_hail": [0.35, 0.25, 0.15, 0.08, 0.08, 0.15, 0.4, 0.75, 0.85, 0.6, 0.5, 0.55, 0.65, 0.55, 0.55, 0.65, 0.85, 1.0, 1.0, 0.9, 0.85, 0.8, 0.7, 0.5],
+      "through": [0.12, 0.08, 0.06, 0.06, 0.1, 0.28, 0.65, 1.0, 1.0, 0.72, 0.55, 0.55, 0.6, 0.55, 0.58, 0.75, 0.98, 1.0, 0.92, 0.62, 0.48, 0.38, 0.28, 0.2]
+    },
+    "main_green_share": 0.6
+  },
   "routine": {
     "basis": "a 24-hour day around each person's shift: sleep, getting ready, the commute, a break mid-shift, errands and meals out, an evening out for some, home and sleep",
     "sleep_hours": 7.5,
