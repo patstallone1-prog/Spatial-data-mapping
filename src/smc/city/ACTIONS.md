@@ -42,9 +42,16 @@ this device.
   view (E), Reset view and Play together. A click goes there; 1 / 2 / 3 are pins; Esc closes.
   The city's bars, its buttons and its keys are off, but for two: Space jumps, and Enter at a
   garage of a home you own or rent opens it (and shuts it).
-* **City:** the game. The sidebar ("☰ City") holds the city panel (you, your wallet, job, home,
-  car, the laws). The bars, the bar of eight and the action buttons show, and the keys below
-  act. Directions, the free view, pins and click-to-go are put away.
+* **City:** the game. A bar of word buttons runs along the top, between the mode switch (top
+  left) and the compass (top right): first what you can do where you stand (highlighted: "Go in:
+  …", "Board the 30 …", "Drive …"), then always You & wallet (the city panel: wallet, job, home,
+  car, the laws), Inventory (I), Tasks (J), **Shop** (O), Sprint (Shift) and Controls (H). On a
+  narrow screen it drops under them. The health bars are at the top left with **To do** under
+  them: where your task takes you next (an arrow and the distance), its other steps, money owed,
+  being hurt or tired, and the task board's offers with a Take button; the first three show, "All
+  N" opens the whole list. Windows open on the right under the top bar; the bar of eight and the
+  money, time and place line stay at the bottom. The view zooms out no further than 90 m (just
+  under a block). Directions, the free view, pins and click-to-go are put away.
 
 The people and the traffic are out in both modes.
 
@@ -67,8 +74,8 @@ The people and the traffic are out in both modes.
 | T | Taxis only: into the taxi pulled up for you (it waits 90 s, then leaves) or a passing one; in one, out and pay; elsewhere, call a taxi to where you stand and choose where to | always ("Call a taxi" / "Get in your taxi (waits N s)" / "Hail the taxi") |
 | V | Do the task in front of you on a shift (the orange ring) | on shift, with a task |
 | Z | Lie down at a bed (in your own home, sleep); again, get up. Only beside a bed | beside a bed, or lying down |
-| J | The task board: courier work, Presidio forestry, the Marina walk, neighbours' errands. With a task: its steps and Cancel. The next step is in the tracker at the top | always ("Tasks") |
-| O | The online store: everything sold in the city, searchable, in categories, sorted by name or price, at twice the shop price; Real estate is a category at the market's price (not doubled) | always ("Store") |
+| J | The task board: courier work, flyers on a street, a neighbour's dog to the park and back, rider counts at bus stops, a mystery shopper's calls, Presidio forestry, the Marina walk, neighbours' errands. With a task: its steps and Cancel. The next step is the first line of To do | always ("Tasks") |
+| O | The Shop: everything sold in the city, searchable, in categories, sorted by name or price, at twice the shop price; Real estate is a category at the market's price (not doubled) | always ("Shop", green) |
 | H or ? | The controls and what the bars mean | always ("Controls") |
 | F | First person (both modes) | — |
 
@@ -127,6 +134,11 @@ leaves along the pavement. A break outside puts them on the pavement in front of
   residential streets, lights where an arterial crosses, distance to the car ahead. They brake
   for anyone in the road, hard if they must.
 * Between the city's own people nobody is run down: a driver too close to a walker stops dead.
+* Every car that is driving moves. One that reaches the end of its trip pulls into the parking
+  lane and is parked at once (it used to stand in the lane until the next pass, holding up the
+  street behind it). A queue held by nothing real (a ring of cars waiting on each other) creeps
+  on after 8 s; a light, a stop sign or someone in the road is still waited for. A red light
+  lasts 21 s of a 42 s cycle.
 * On foot, cars are solid, in both modes: the traffic, parked cars (yours and the city's), the
   buses, your taxi and other players' cars. You slide along their sides rather than walk
   through (`walkerBlocked` in `view.mjs`, checked by the page's `moveWalker`). Not while you

@@ -1569,6 +1569,12 @@ var ORBIT_RISE_STEP = 0.06, ORBIT_RISE_MAX_PITCH = 1.52;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
+//: In City mode (the game) the view stays down among the streets: out no further than just under
+//: a city block (San Francisco's run 100 to 125 m). Explore, the map, still goes out to the globe.
+const CITY_MAX_ORBIT_M = 90;
+function maxOrbitDist() {
+  return typeof cityGame === "function" && cityGame() ? CITY_MAX_ORBIT_M : MAX_ORBIT_DIST_M;
+}
 //: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
 //: itself; walking out puts back the view it had. There is no view from above into a house:
 //: a house keeps its roof, always.
@@ -1576,6 +1582,9 @@ const state = { ...OVERVIEW, target: new THREE.Vector3(0, 0, 0), firstPerson: fa
 function placeCamera() {
   // In the headset the headset places the view.
   if (META && renderer.xr.isPresenting) return;
+  // (Guarded: the tests run this on its own.)
+  const cap = typeof maxOrbitDist === "function" ? maxOrbitDist() : Infinity;
+  if (!state.firstPerson && state.dist > cap) state.dist = cap;
   camera.up.set(0, 1, 0);
   if (state.firstPerson && typeof avatar !== "undefined") {
     // Out of the walker's eyes: the camera stands at eye height where the walker stands and
@@ -1824,7 +1833,7 @@ function zoomBy(factor) {
   factor **= zoomSensitivity(state.dist);
   // Past the Bay each turn of the wheel covers more: a few turns from the region to the globe.
   if (state.dist > 30000) factor **= 1.9;
-  state.dist = Math.max(8, Math.min(MAX_ORBIT_DIST_M, state.dist * factor));
+  state.dist = Math.max(8, Math.min(typeof maxOrbitDist === "function" ? maxOrbitDist() : MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
   if (typeof autoExploreByZoom === "function") autoExploreByZoom();
 }

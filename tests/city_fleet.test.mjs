@@ -260,3 +260,28 @@ test("people out of doors move, they do not jump: a walk, a round at work, a str
   }
   assert.ok(outdoors > 500, `${outdoors} outdoor samples`);
 });
+
+test("no car stands in the traffic for good: one that has arrived pulls in and the next drives on; a queue held by a light waits", () => {
+  const streets = grid();
+  const route = streets.route(streets.nearest(400, 0, "drive"), streets.nearest(400, 300, "drive"), "drive");
+  const car = (id, d0) => ({ id, key: `${id}:1`, route, sched: () => d0, unsched: (d) => d / 11, limit: 11.2, cruise: 11.2, length: 4.8, width: 1.85 });
+  // A arrives first (it starts near the end); B follows on the same leg 30 m behind.
+  const D = new Drivers(streets);
+  let r = null;
+  for (let t = 0; t < 40; t += 0.05) r = D.step(0.05, 5000 + t, [car("a", route.length - 20), car("b", route.length - 50)], []);
+  const a = r.cars.find((c) => c.id === "a"), b = r.cars.find((c) => c.id === "b");
+  assert.ok(a.arrived && a.v === 0, "the first car did not pull in");
+  assert.ok(b.arrived, `the next car stood behind it at ${b.d.toFixed(1)} of ${route.length.toFixed(1)} m`);
+  // A queue of three behind a car stopped at a stop sign: nobody creeps into the one ahead.
+  const D2 = new Drivers(streets), long = streets.route(streets.nearest(400, 0, "drive"), streets.nearest(400, 800, "drive"), "drive");
+  const at = (id, d0) => ({ id, key: `${id}:2`, route: long, sched: () => d0, unsched: (d) => d / 11, limit: 11.2, cruise: 11.2, length: 4.8, width: 1.85 });
+  D2.step(0.05, 7000, [at("x", 370), at("y", 360), at("z", 350)], []);
+  for (const id of ["x", "y", "z"]) D2.stateOf(id).v = 0;
+  D2.stateOf("x").reason = "stop sign";
+  D2.stateOf("y").reason = "the car ahead"; D2.stateOf("y").leader = "x";
+  D2.stateOf("z").reason = "the car ahead"; D2.stateOf("z").leader = "y";
+  assert.equal(D2.heldAtHead("z"), true);
+  // A ring of cars each waiting on the next is let go.
+  D2.stateOf("x").reason = "the car ahead"; D2.stateOf("x").leader = "z";
+  assert.equal(D2.heldAtHead("z"), false);
+});
