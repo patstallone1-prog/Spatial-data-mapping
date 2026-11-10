@@ -1084,8 +1084,9 @@ export class CityWorld {
   cmd_take_task(pid, { task }) {
     const p = this.player(pid), T = this.R.tasks;
     if (p.task) throw new CityError("finish or drop the task you have first");
-    if (!task?.kind || !T[task.kind]) throw new CityError("no such task");
-    const t = { id: this.id("task"), kind: task.kind, title: String(task.title || T[task.kind].name || task.kind).slice(0, 120), taken: this.now, progress: 0 };
+    const round = T.rounds?.kinds?.[task?.kind];
+    if (!task?.kind || (!T[task.kind] && !round)) throw new CityError("no such task");
+    const t = { id: this.id("task"), kind: task.kind, title: String(task.title || (T[task.kind] || round).name || task.kind).slice(0, 120), taken: this.now, progress: 0 };
     if (task.kind === "courier") {
       if (p.delivery) throw new CityError("finish the delivery you have first");
       const C = T.courier, from = task.from, to = task.to;
@@ -1099,6 +1100,19 @@ export class CityWorld {
       t.pay = T.forestry.pay; t.need = T.forestry.trees; t.felled = []; t.steps = [`Get an axe or a saw (a hardware store, or the online store)`, `Go to ${T.forestry.area.name}`, `Fell ${T.forestry.trees} dead trees there`];
     } else if (task.kind === "sightseeing") {
       t.pay = T.sightseeing.pay; t.visited = []; t.steps = T.sightseeing.stops.map((s) => `Visit ${s.name}`);
+    } else if (round) {
+      // A round: its stops come with the offer (places round you); the pay is the rules' own.
+      const RD = T.rounds, stops = Array.isArray(task.stops) ? task.stops : [];
+      if (stops.length < 2 || stops.length > RD.max_stops) throw new CityError("a round has 2 to " + RD.max_stops + " stops");
+      const clean = stops.map((s) => ({ name: String(s?.name || "a stop").slice(0, 80), at: [Number(s?.at?.[0]), Number(s?.at?.[1])] }));
+      if (clean.some((s) => !Number.isFinite(s.at[0]) || !Number.isFinite(s.at[1]))) throw new CityError("a stop with no place");
+      const metres = (a, b) => Math.hypot((a[1] - b[1]) * 88_000, (a[0] - b[0]) * 111_000);
+      let km = 0;
+      for (let i = 1; i < clean.length; i += 1) km += metres(clean[i - 1].at, clean[i].at) / 1000;
+      if (km > 8) throw new CityError("those stops are too far apart for one round");
+      t.pay = this.R.money(round.pay_base + round.pay_per_stop * clean.length + RD.pay_per_km * Math.min(4, km));
+      t.stops = clean; t.ordered = Boolean(round.ordered); t.visited = []; t.km = km;
+      t.steps = clean.map((s) => `${round.verb ? `${round.verb} ` : ""}${s.name}`);
     } else throw new CityError("no such task");
     p.task = t;
     return { task: t, delivery: p.delivery };
@@ -1123,16 +1137,20 @@ export class CityWorld {
     return { delivery: d };
   }
   //: A stop on the Marina walk reached.
+  //: A stop reached: on the Marina walk, or on a round (in turn, where its stops are ordered).
   cmd_task_visit(pid, { stop }) {
-    const p = this.player(pid), t = p.task, S = this.R.tasks.sightseeing;
-    if (t?.kind !== "sightseeing") throw new CityError("not on the walk");
-    const s = S.stops[stop | 0];
+    const p = this.player(pid), t = p.task, T = this.R.tasks;
+    const round = T.rounds?.kinds?.[t?.kind];
+    if (t?.kind !== "sightseeing" && !round) throw new CityError("not on a walk or a round");
+    const stops = round ? t.stops : T.sightseeing.stops, reach = round ? T.rounds.reach_m : T.sightseeing.reach_m;
+    const i = stop | 0, s = stops[i];
     if (!s) throw new CityError("no such stop");
+    if (round && t.ordered && i !== t.visited.length) throw new CityError(`first: ${t.steps[t.visited.length]}`);
     const m = Math.hypot(((p.lon ?? 0) - s.at[1]) * 88_000, ((p.lat ?? 0) - s.at[0]) * 111_000);
-    if (m > S.reach_m * 1.5) throw new CityError(`${s.name} is ${Math.round(m)} m away`);
-    if (!t.visited.includes(stop | 0)) t.visited.push(stop | 0);
+    if (m > reach * 1.5) throw new CityError(`${s.name} is ${Math.round(m)} m away`);
+    if (!t.visited.includes(i)) t.visited.push(i);
     t.progress = t.visited.length;
-    if (t.visited.length >= S.stops.length) return { ...this.payTask(p), visited: t.visited };
+    if (t.visited.length >= stops.length) return { ...this.payTask(p), visited: t.visited };
     return { visited: t.visited, task: t };
   }
   payTask(p) {

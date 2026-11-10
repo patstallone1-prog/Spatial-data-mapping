@@ -228,3 +228,36 @@ test("on foot the city's cars are solid: the walker's step checks them, except w
   assert.match(view, /drawnCars: \(\) => drawnCars, walkerBlocked, carsAt,/);
   assert.match(walk, /cars\(toX, toZ, WALKER_RADIUS_M, p\.x, p\.z\)/);
 });
+
+test("rounds: flyers in any order, a dog walk in turn, paid by the rules on the last stop", async () => {
+  const { CityWorld } = await import("../docs/city/world.mjs");
+  const w = new CityWorld(R, { now: DAY + 12 * 3600_000, seed: "rounds" });
+  const at = (lat, lon) => ({ x: 0, z: 0, lat, lon });
+  w.submit("me", "join", { name: "Sam", at: at(37.8, -122.44) });
+  const K = R.tasks.rounds;
+  assert.ok(K.kinds.flyers && K.kinds.dog_walk && K.kinds.bus_survey && K.kinds.mystery_shopper);
+  // Three letterboxes 100 m apart along a street.
+  const stops = [0, 1, 2].map((i) => ({ name: `${10 + i} Elm St`, at: [37.8, -122.44 + i * 0.00114] }));
+  const took = w.submit("me", "take_task", { task: { kind: "flyers", title: "Flyers on Elm St", stops }, at: at(37.8, -122.44) });
+  assert.ok(took.ok, took.error);
+  const pay = took.task.pay;
+  assert.equal(took.task.steps[0], "Post a flyer at 10 Elm St");
+  // Too far from a stop: not counted.
+  assert.equal(w.submit("me", "task_visit", { stop: 2, at: at(37.8, -122.44) }).ok, false);
+  // Any order: the last first.
+  assert.ok(w.submit("me", "task_visit", { stop: 2, at: at(...stops[2].at) }).ok);
+  assert.ok(w.submit("me", "task_visit", { stop: 0, at: at(...stops[0].at) }).ok);
+  const before = w.ledger.balance("player:me");
+  const last = w.submit("me", "task_visit", { stop: 1, at: at(...stops[1].at) });
+  assert.ok(last.ok && last.done && last.pay === pay, JSON.stringify(last));
+  assert.ok(Math.abs(w.ledger.balance("player:me") - before - pay) < 1e-6);
+  // A dog walk goes in turn: the park before the dog is fetched does not count.
+  const walk = [{ name: "Fetch the dog at 5 Oak St", at: [37.8, -122.44] }, { name: "Walk it to the park", at: [37.801, -122.44] }, { name: "Bring it home to 5 Oak St", at: [37.8, -122.44] }];
+  assert.ok(w.submit("me", "take_task", { task: { kind: "dog_walk", title: "Walk the dog", stops: walk }, at: at(37.8, -122.44) }).ok);
+  assert.equal(w.submit("me", "task_visit", { stop: 1, at: at(...walk[1].at) }).ok, false);
+  for (const i of [0, 1, 2]) assert.ok(w.submit("me", "task_visit", { stop: i, at: at(...walk[i].at) }).ok);
+  assert.equal(w.players.get("me").task, null);
+  // Nonsense is refused: one stop, or stops kilometres apart.
+  assert.equal(w.submit("me", "take_task", { task: { kind: "flyers", stops: stops.slice(0, 1) }, at: at(37.8, -122.44) }).ok, false);
+  assert.equal(w.submit("me", "take_task", { task: { kind: "flyers", stops: [stops[0], { name: "far", at: [37.9, -122.3] }] }, at: at(37.8, -122.44) }).ok, false);
+});

@@ -1,6 +1,10 @@
 import {TourWorld,inPolygon} from './tour-world.mjs';
+import {applyLayoutRules} from './layout-rules.mjs';
 // Adapter keeps generated geometry local, and leaves other addresses on their existing path.
 export function mountGeneratedInterior(THREE, house, entry, context, buildInferredHouse) {
+  // Every house passes the layout rules as it loads: no wall across a stair's way on or off, and
+  // no table that leaves no way past it (layout-rules.mjs).
+  house=applyLayoutRules(house);
   const {origin, floorY, assetBase, loadAsset, feetY, pointInRing} = context;
   const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:false,ceilings:true});
   const [east,north]=origin;

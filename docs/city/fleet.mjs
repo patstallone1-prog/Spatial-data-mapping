@@ -367,7 +367,11 @@ export class City {
     };
     const inFrom = offNode(A, pick.node), outTo = offNode(B, drop.node);
     if (inFrom === null || outTo === null) return null;
-    const walkOut = tripMinutes(Math.hypot(pick.x - A.x, pick.z - A.z), p.pace) + 0.3;
+    // The rider waits on the pavement beside the cab's spot (a couple of metres back towards the
+    // door), not in the road where the traffic would stop for them.
+    const door = A.door || A, back = Math.hypot(door.x - pick.x, door.z - pick.z) || 1, step = Math.min(2.2, back * 0.5);
+    const stand = [pick.x + ((door.x - pick.x) / back) * step, pick.z + ((door.z - pick.z) / back) * step];
+    const walkOut = tripMinutes(Math.hypot(stand[0] - A.x, stand[1] - A.z), p.pace) + 0.3;
     const approach = tripMinutes(N.taxi_approach_m, DRIVE_MS);
     const board = depart + Math.max(walkOut + 0.5, approach);
     const ride = tripMinutes(Math.hypot(B.x - A.x, B.z - A.z), DRIVE_MS);
@@ -375,8 +379,8 @@ export class City {
     const comeIn = { kind: "go", mode: "drive", t0: board - approach, t1: board, from: inFrom, to: from, vehicle: id, cab, taxi: true };
     const goAway = { kind: "go", mode: "drive", t0: off, t1: off + approach, from: to, to: outTo, vehicle: id, cab, taxi: true };
     return [
-      { kind: "go", mode: "walk", t0: depart, t1: depart + walkOut, from, toXZ: [pick.x, pick.z], cabLegs: [comeIn], ride: "taxi" },
-      { kind: "go", mode: "wait", t0: depart + walkOut, t1: board, at: [pick.x, pick.z], yaw: pick.yaw + Math.PI / 2, cabLegs: [comeIn], label: "waiting for a taxi" },
+      { kind: "go", mode: "walk", t0: depart, t1: depart + walkOut, from, toXZ: stand, cabLegs: [comeIn], ride: "taxi" },
+      { kind: "go", mode: "wait", t0: depart + walkOut, t1: board, at: stand, yaw: pick.yaw + Math.PI / 2, cabLegs: [comeIn], label: "waiting for a taxi" },
       { kind: "go", mode: "drive", t0: board, t1: off, from, to, vehicle: id, cab, taxi: true, rider: p.id },
       { kind: "go", mode: "walk", t0: off, t1: off + walkIn, fromXZ: [drop.x, drop.z], to, cabLegs: [goAway], ride: "taxi" },
     ];
@@ -819,7 +823,13 @@ export class City {
 // that (``delay``) it keeps when it goes out of sight, so it does not jump.
 
 export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6, gap_m: 2.5, headway_s: 1.2, look_m: 45,
-  stop_line_m: 5, stop_sign_s: 1.4, signal_cycle_s: 60, green_s: 26, amber_s: 4, person_half_m: 0.35 };
+  stop_line_m: 5, stop_sign_s: 1.4, signal_cycle_s: 42, green_s: 18, amber_s: 3, person_half_m: 0.35,
+  // No queue stands for good: a car held behind another for ``stuck_queue_s`` with no light or
+  // stop sign holding it creeps on. A car at the end of its leg pulls in and is parked at once.
+  // (Someone in the road is always waited for.)
+  stuck_queue_s: 8, release_s: 4 };
+//: Where a car that has arrived stands: in the parking lane, off the way of the traffic.
+export const PARK_LANE = (half, cls) => (cls === "service" ? 0 : Math.max(2.4, half - 1.0));
 //: The light a car approaching ``node`` from ``bearing`` sees at ``tsec``: "green", "amber", "red".
 export function signalAt(streets, node, bearing, tsec, T = TRAFFIC) {
   const e0 = streets.edges[node].find((e) => e.cls === "arterial") || streets.edges[node][0];
@@ -867,8 +877,11 @@ export class Drivers {
     const pos = new Map();
     // In its lane, as it is drawn: the kerb side of the street.
     for (const [c, st] of live) pos.set(c.id, { ...alongRoute(c.route, st.d, KERB), c });
+    // Arrived: at the end of its leg it pulls into the parking lane, out of the traffic's way.
+    const arrived = (c, st) => st.d >= c.route.length - 0.5;
     for (const [c, st] of live) {
       if (st.hit && !(st.hit.until > 0 && tsec > st.hit.until)) { out.push({ id: c.id, d: st.d, v: 0, hit: st.hit }); continue; }
+      if (arrived(c, st)) { st.v = 0; out.push({ id: c.id, d: c.route.length, v: 0, arrived: true }); continue; }
       if (st.hit) st.hit = null;
       const here = pos.get(c.id), fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw);
       const limit = c.limitAt ? c.limitAt(here.cls) : c.limit;
@@ -899,15 +912,16 @@ export class Drivers {
         break;
       }
       // The car ahead.
+      const queueFree = st.releaseQueue > tsec;
       for (const [o, ost] of live) {
-        if (o.id === c.id) continue;
+        if (o.id === c.id || arrived(o, ost) || queueFree) continue;
         const op = pos.get(o.id), dx = op.x - here.x, dz = op.z - here.z;
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
         if (fwd <= 0 || fwd > T.look_m || lat > 1.9) continue;
         if (Math.cos(op.yaw - here.yaw) < 0.4) continue;
         const gap = fwd - (c.length + o.length) / 2 - T.gap_m;
         const v = Math.max(0, Math.min(ost.v + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ost.v));
-        if (v < target) { target = v; reason = "the car ahead"; }
+        if (v < target) { target = v; reason = "the car ahead"; st.leader = o.id; }
       }
       // Your car (or anything else in the road that is not one of these): kept behind.
       for (const o of blockers) {
@@ -952,6 +966,15 @@ export class Drivers {
       }
       if (st.v > target) st.v = Math.max(target, st.v - decel * dt);
       else st.v = Math.min(target, st.v + T.accel * dt);
+      // Held too long, and not by a light, a stop sign or you: let go.
+      // Only a queue nothing real holds: follow it to its head; a light, a stop sign or someone
+      // in the road there is waited for, a ring of cars each waiting on the next is not.
+      if (st.v < 0.2 && reason === "the car ahead") {
+        st.still = (st.still || 0) + dt;
+        if (st.still > T.stuck_queue_s && !this.heldAtHead(c.id)) { st.releaseQueue = tsec + T.release_s; st.still = 0; }
+      } else st.still = 0;
+      st.reason = reason;
+      if (reason !== "the car ahead") st.leader = null;
       st.d = Math.min(c.route.length, st.d + st.v * dt);
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
@@ -961,6 +984,18 @@ export class Drivers {
     for (const id of this.cars.keys()) if (!seen.has(id)) this.cars.delete(id);
     if (this.delays.size > 5000) this.delays.delete(this.delays.keys().next().value);
     return { cars: out, hits };
+  }
+  //: Whether the queue ``id`` waits in is held at its head by something to wait for (a light, a
+  //: stop sign, someone in the road, you): false for a ring of cars, or a head that is not held.
+  heldAtHead(id) {
+    const seen = new Set();
+    for (let at = this.cars.get(id); at; at = this.cars.get(at.leader)) {
+      if (seen.has(at)) return false;
+      seen.add(at);
+      if (at.reason !== "the car ahead") return Boolean(at.reason && at.v < 0.5);
+      if (!at.leader) return false;
+    }
+    return false;
   }
   //: A car stopped where it is (a crash): it goes no further on this leg.
   stop(id, hit) { const st = this.cars.get(id); if (st) { st.hit = hit; st.v = 0; } }

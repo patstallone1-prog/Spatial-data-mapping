@@ -26,7 +26,7 @@ import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
-import { City, Drivers, Roster, harmNow, injuryFor } from "./fleet.mjs";
+import { City, Drivers, PARK_LANE, Roster, harmNow, injuryFor } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { BAR, GRID, arrange, barSlotOf, swap } from "./inventory.mjs";
 
@@ -1103,7 +1103,9 @@ export async function startCity(ctx) {
     new THREE.MeshBasicMaterial({ color: 0x35c46a, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide, fog: false }));
   marker.name = "city-delivery"; marker.visible = false; marker.renderOrder = 3; group.add(marker);
   //: "42;44;48;50 Allen Street" as a person says it: "42 Allen Street".
-  const address = (name) => (name ? String(name).replace(/^(\d+[A-Za-z]?)(;\s*\d+[A-Za-z]?)+/, "$1") : null);
+  //: A building's address as said: its first number and its street ("2055,2057 Larkin Street, San
+  //: Francisco, 94109" is "2055 Larkin Street").
+  const address = (name) => (name ? String(name).replace(/^(\d+[A-Za-z]?)([;,]\s*\d+[A-Za-z]?)+/, "$1").split(",")[0].trim() : null);
   function deliveryHere(place) { const keys = place && new Set(place.keys); return Boolean(keys) && R.delivery.from.some((k) => keys.has(k)); }
   async function takeDelivery(place) {
     const [lo, hi] = R.delivery.distance_m;
@@ -1799,13 +1801,15 @@ export async function startCity(ctx) {
   const sqft = (n) => `${n.toLocaleString()} sq ft`;
 
   let visitPending = false;
+  //: The walk's and a round's stops: reached, they are counted (and the last one pays).
   function checkSightseeing() {
-    const p = self(), t = p?.task;
-    if (t?.kind !== "sightseeing" || visitPending) return;
-    const g = objective();
-    if (g?.stop === undefined || Math.hypot(g.x - me().x, g.z - me().z) > R.tasks.sightseeing.reach_m) return;
+    const p = self(), t = p?.task, round = roundKind(t?.kind);
+    if ((t?.kind !== "sightseeing" && !round) || visitPending) return;
+    const g = objective(), reach = round ? R.tasks.rounds.reach_m : R.tasks.sightseeing.reach_m;
+    if (g?.stop === undefined || Math.hypot(g.x - me().x, g.z - me().z) > reach) return;
+    const name = round ? t.steps[g.stop] : R.tasks.sightseeing.stops[g.stop].name, of = round ? t.stops.length : R.tasks.sightseeing.stops.length;
     visitPending = true;
-    send("task_visit", { stop: g.stop }).then((r) => { visitPending = false; if (r.ok) notify(r.done ? `${r.title}: done — ${R.fmt(r.pay)} paid.` : `${R.tasks.sightseeing.stops[g.stop].name}: ${r.visited.length} of ${R.tasks.sightseeing.stops.length}.`); });
+    send("task_visit", { stop: g.stop }).then((r) => { visitPending = false; if (r.ok) notify(r.done ? `${r.title}: done — ${R.fmt(r.pay)} paid.` : `${name}: ${r.visited.length} of ${of}.`); });
   }
   // ---- the task board --------------------------------------------------------------------------
   // Work posted round the city: a courier's pickup and drop-off, the Presidio's dead trees, the
@@ -1830,13 +1834,94 @@ export async function startCity(ctx) {
     }
     const F = T.forestry, [fx, fz] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]);
     out.push({ kind: "forestry", title: F.name, km: Math.hypot(fx - here.x, fz - here.z) / 1000, pay: F.pay,
-      steps: ["Get an axe or a saw: a hardware store (Enter, then its SHOP panel), or the online store (O)", `Go to ${F.area.name}`, `Put the tool on the bar and choose it (1-8), then fell ${F.trees} dead trees (X at a tree)`] });
+      steps: ["Get an axe or a saw: a hardware store (Enter, then its SHOP panel), or the Shop (O)", `Go to ${F.area.name}`, `Put the tool on the bar and choose it (1-8), then fell ${F.trees} dead trees (X at a tree)`] });
     const S = T.sightseeing;
     out.push({ kind: "sightseeing", title: S.name, km: Math.min(...S.stops.map((st) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return Math.hypot(x - here.x, z - here.z); })) / 1000,
       pay: S.pay, steps: S.stops.map((st) => `Visit ${st.name}`) });
+    out.push(...roundOffers(r, here));
+    return out;
+  }
+  // ---- rounds: a few places round you to call at (rules.json tasks.rounds) ---------------------
+  const roundKind = (kind) => R.tasks.rounds?.kinds?.[kind] || null;
+  const doorOf = (pl) => (pl.front ? { x: pl.front.x, z: pl.front.z } : { x: pl.x, z: pl.z });
+  const streetOf = (pl) => { const a = address(pl?.name); return a ? a.replace(/^\d+[A-Za-z]?\s+/, "").trim() : null; };
+  //: In walking order: from where you stand, the nearest next each time.
+  function walkOrder(list, from) {
+    const left = [...list], out = [];
+    let at = from;
+    while (left.length) { left.sort((a, b) => Math.hypot(a.x - at.x, a.z - at.z) - Math.hypot(b.x - at.x, b.z - at.z)); at = left.shift(); out.push(at); }
+    return out;
+  }
+  function roundOffers(r, here) {
+    const RD = R.tasks.rounds;
+    if (!RD?.kinds || !district.places.length) return [];
+    const out = [], d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+    const pick = (list) => list[Math.floor(r() * list.length) % list.length];
+    const offer = (kind, title, stops, ordered) => {
+      const k = RD.kinds[kind];
+      if (!k || stops.length < 2) return;
+      const way = ordered ? stops : walkOrder(stops, here);
+      let km = 0;
+      for (let i = 1; i < way.length; i += 1) km += d(way[i - 1], way[i]) / 1000;
+      const at = way.map((s) => { const [lon, lat] = ctx.toLonLat(s.x, s.z); return { name: s.name, at: [lat, lon], x: s.x, z: s.z }; });
+      out.push({ kind, title, km: d(way[0], here) / 1000 + km, pay: Math.round(k.pay_base + k.pay_per_stop * way.length + RD.pay_per_km * Math.min(4, km)),
+        stops: at, steps: at.map((s) => `${k.verb ? `${k.verb} ` : ""}${s.name}`), note: k.note });
+    };
+    const homes = district.places.filter((x) => x.use === "residential" && address(x.name));
+    // Flyers: five letterboxes on one street near you.
+    {
+      const K = RD.kinds.flyers, byStreet = new Map();
+      for (const pl of homes) { const m = d(pl, here); if (m < 120 || m > 800) continue; const s = streetOf(pl); if (!s) continue; if (!byStreet.has(s)) byStreet.set(s, []); byStreet.get(s).push(pl); }
+      const streets = [...byStreet].filter(([, list]) => list.length >= K.stops);
+      if (streets.length) {
+        const [street, list] = pick(streets);
+        const first = pick(list), five = [...list].sort((a, b) => d(a, first) - d(b, first)).slice(0, K.stops);
+        offer("flyers", K.name.replace("{street}", street), five.map((pl) => ({ name: address(pl.name), ...doorOf(pl) })), false);
+      }
+    }
+    // A neighbour's dog: fetched from their door, walked to the park, brought home.
+    {
+      const K = RD.kinds.dog_walk, parks = district.places.filter((x) => x.use === "park");
+      const near = homes.filter((pl) => { const m = d(pl, here); return m > 60 && m < 600; });
+      if (parks.length && near.length) {
+        const home = pick(near), park = [...parks].sort((a, b) => d(a, home) - d(b, home))[0];
+        if (d(park, home) < 1500) {
+          const who = district.people.find((q) => q.home === home.id)?.name?.split(" ")[0] || "a neighbour";
+          const door = { ...doorOf(home), name: address(home.name) };
+          offer("dog_walk", K.name.replace("{who}'s", who === "a neighbour" ? "a neighbour's" : `${who}'s`).replace("{park}", park.name || "the park"),
+            [{ ...door, name: `Fetch the dog at ${door.name}` }, { x: park.x, z: park.z, name: `Walk it to ${park.name || "the park"}` }, { ...door, name: `Bring it home to ${door.name}` }], true);
+        }
+      }
+    }
+    // The transit agency's rider count at a few stops.
+    {
+      const K = RD.kinds.bus_survey, stops = (district.stops || []).filter((s) => { const m = d(s, here); return m > 60 && m < 900; });
+      if (stops.length >= K.stops) {
+        const start = pick(stops), some = [...stops].sort((a, b) => d(a, start) - d(b, start)).slice(0, K.stops);
+        offer("bus_survey", K.name.replace("{n}", String(some.length)), some.map((s) => ({ name: s.name || "the stop", x: s.x, z: s.z })), false);
+      }
+    }
+    // A mystery shopper's calls.
+    {
+      const K = RD.kinds.mystery_shopper, shops = district.places.filter((x) => { const m = d(x, here); return m > 80 && m < 900 && storesAt(R, x.keys).length; });
+      if (shops.length >= K.stops) {
+        const start = pick(shops), some = [...shops].sort((a, b) => d(a, start) - d(b, start)).slice(0, K.stops);
+        offer("mystery_shopper", K.name.replace("{n}", String(some.length)), some.map((pl) => ({ name: placeName(pl), ...doorOf(pl) })), false);
+      }
+    }
     return out;
   }
   const inPresidio = () => { const [lon, lat] = ctx.toLonLat(me().x, me().z), b = R.tasks.forestry.area.bbox; return lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]; };
+  //: Whether step ``i`` of your task is done: a stop visited, the courier's order collected, the
+  //: forester's tool bought and the Presidio reached.
+  function stepDone(p, i) {
+    const t = p?.task;
+    if (!t) return p?.delivery ? (i === 0 && p.delivery.stage === "carry") : false;
+    if (t.kind === "sightseeing" || roundKind(t.kind)) return (t.visited || []).includes(i);
+    if (t.kind === "courier") return i < (p.delivery?.stage === "carry" ? 1 : 0);
+    if (t.kind === "forestry") { const F = R.tasks.forestry; return i < (F.tool.some((k) => (p.inventory[k] || 0) > 0) ? (inPresidio() ? 2 : 1) : 0); }
+    return false;
+  }
   //: Where to go next, and what to do there: the delivery's pickup or address, the task's next
   //: step, the errand's door, the shift's task.
   function objective() {
@@ -1852,7 +1937,7 @@ export async function startCity(ctx) {
       const F = R.tasks.forestry, tool = F.tool.find((k) => (p.inventory[k] || 0) > 0);
       if (!tool) {
         const hw = district.places.filter((x) => storesAt(R, x.keys).some((st) => st.items.includes("axe"))).map((x) => ({ x, d: Math.hypot(x.x - here.x, x.z - here.z) })).sort((a, b) => a.d - b.d)[0];
-        return hw ? { label: `Buy an axe at ${placeName(hw.x)} (Enter), or online (O)`, x: hw.x.x, z: hw.x.z, colour: 0xffb020 } : { label: "Buy an axe or a saw in the online store (O)", colour: 0xffb020 };
+        return hw ? { label: `Buy an axe at ${placeName(hw.x)} (Enter), or online (O)`, x: hw.x.x, z: hw.x.z, colour: 0xffb020 } : { label: "Buy an axe or a saw in the Shop (O)", colour: 0xffb020 };
       }
       if (!inPresidio()) { const [x, z] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]); return { label: `Go to ${F.area.name} with the ${tool}`, x, z, colour: 0x35c46a }; }
       const tree = ctx.natureTrees?.(here.x, here.z, F.reach_m)?.[0];
@@ -1863,25 +1948,74 @@ export async function startCity(ctx) {
       const next = S.stops.map((st, i) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return { st, i, x, z, d: Math.hypot(x - here.x, z - here.z) }; }).filter((o) => !t.visited.includes(o.i)).sort((a, b) => a.d - b.d)[0];
       if (next) return { label: `Visit ${next.st.name} (${t.visited.length} of ${S.stops.length})`, x: next.x, z: next.z, colour: 0x35c46a, stop: next.i };
     }
+    const round = roundKind(t?.kind);
+    if (round && t.stops) {
+      const left = t.stops.map((s, i) => ({ s, i })).filter((o) => !t.visited.includes(o.i));
+      const next = (t.ordered ? left.slice(0, 1) : left).map((o) => { const [x, z] = ctx.fromLonLat(o.s.at[1], o.s.at[0]); return { ...o, x, z, d: Math.hypot(x - here.x, z - here.z) }; }).sort((a, b) => a.d - b.d)[0];
+      if (next) return { label: `${t.steps[next.i]} (${t.visited.length + 1} of ${t.stops.length})`, x: next.x, z: next.z, colour: 0x35c46a, stop: next.i };
+    }
     if (p.errand) return { label: `Errand: bring ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")} to ${p.errand.to.name || "their door"} — Yes at the door`, x: p.errand.to.x, z: p.errand.to.z, colour: 0xffb020 };
     if (p.clocked?.task) return { label: `${p.clocked.task.label} — V there`, x: p.clocked.task.x, z: p.clocked.task.z, colour: 0xff9f1c };
     return null;
   }
-  const goalBox = Object.assign(globalThis.document.createElement("div"), { id: "city-goal" });
-  goalBox.style.cssText = "position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:35;background:rgba(17,24,39,.88);color:#fff;border-radius:999px;padding:6px 14px;font:13px/1.3 system-ui,sans-serif;display:flex;gap:8px;align-items:center;cursor:pointer;max-width:calc(100vw - 260px)";
-  goalBox.title = "Your task: J for the task board";
-  goalBox.onclick = () => openSide("tasks");
-  globalThis.document.body.append(goalBox);
-  function drawGoal() {
-    const g = ctx.enabled() && ctx.cityMode?.() !== false ? objective() : null;
-    goalBox.hidden = !g;
-    if (!g) return;
-    const here = car.active ? car : me();
-    const known = Number.isFinite(g.x);
-    const dist = known ? Math.hypot(g.x - here.x, g.z - here.z) : null;
-    const bearing = known ? Math.atan2(-(g.x - here.x), -(g.z - here.z)) - ctx.getYaw() : 0;
-    const arrow = known ? `<span style="display:inline-block;transform:rotate(${(-bearing * 180 / Math.PI).toFixed(0)}deg);font-size:16px">⬆</span>` : "";
-    goalBox.innerHTML = `${arrow}<span>${g.label.replace(/[<>&]/g, "")}${dist !== null ? ` · <b>${dist < 1000 ? `${Math.round(dist)} m` : `${(dist / 1000).toFixed(1)} km`}</b>` : ""}</span>`;
+  // The tracker is the first line of the to-do, under the health bars (drawTodo).
+  function drawGoal() { drawTodo(); }
+
+  // ---- the to-do list ---------------------------------------------------------------------------
+  //: What there is for you to do, most pressing first: where your task takes you next (with its
+  //: arrow and distance), the rest of its steps, an errand, money owed, being hurt or tired, work
+  //: to find, and the task board's offers (taken from here).
+  function todoItems() {
+    const p = self();
+    if (!p) return [];
+    const out = [], g = objective(), t = p.task;
+    if (g) out.push({ label: g.label, x: g.x, z: g.z, now: true, run: () => openSide("tasks") });
+    if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: s, sub: t.title, run: () => openSide("tasks") }); });
+    if (p.errand && !(g && /^Errand/.test(g.label))) out.push({ label: `Errand for ${p.errand.to.who || "a neighbour"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}`, x: p.errand.to.x, z: p.errand.to.z, run: () => openSide("tasks") });
+    const owed = view?.billing?.owed(p.account) || 0;
+    if (owed) out.push({ label: `Pay what you owe: ${R.fmt(owed)}`, sub: "You & wallet", run: () => openPanel(true) });
+    if (p.vitals.health < 40) out.push({ label: "You are hurt: rest (Z at a bed) or see a doctor", run: () => openSide("help") });
+    if (p.vitals.stamina < R.vitals.stamina.low) out.push({ label: "Tired: eat or drink something (U), or rest", run: () => openSide("bag") });
+    if (!p.job) out.push({ label: "Find a job", sub: "You & wallet: work", run: () => openPanel(true) });
+    if (!t && !p.delivery) for (const o of taskOffers()) out.push({ label: o.title, sub: `${R.fmt(o.pay)} · ${o.km.toFixed(1)} km${o.steps?.length ? ` · ${o.steps.length} steps` : ""}`, take: o });
+    return out;
+  }
+  const TODO_SHOWN = 3;
+  let todoOpen = false, todoKey = "";
+  try { todoOpen = globalThis.localStorage?.getItem("kerbside.city.todoOpen") === "1"; } catch { todoOpen = false; }
+  function takeOffer(o) {
+    send("take_task", { task: o }).then((r) => { notify(r.ok ? `${r.task.title}: ${r.task.steps[0]}.` : r.error); todoKey = ""; drawTodo(); if (side?.kind === "tasks") drawSide(); });
+  }
+  function drawTodo() {
+    const box = globalThis.document.getElementById("city-todo");
+    if (!box) return;
+    const p = self(), on = Boolean(ctx.enabled() && ctx.cityMode?.() !== false && p);
+    box.hidden = !on;
+    if (!on) return;
+    const items = todoItems(), shown = todoOpen ? items : items.slice(0, TODO_SHOWN);
+    const here = car.active ? car : me(), yaw = ctx.getYaw();
+    const metres = (o) => (Number.isFinite(o.x) ? Math.hypot(o.x - here.x, o.z - here.z) : null);
+    const key = JSON.stringify([todoOpen, items.length, shown.map((o) => [o.label, o.sub, o.now, Math.round((metres(o) ?? -1) / 5)]), Math.round(yaw * 20)]);
+    if (key === todoKey) return;
+    todoKey = key;
+    const H = (tag, props, ...kids) => { const e = Object.assign(globalThis.document.createElement(tag), props); e.append(...kids.filter(Boolean)); return e; };
+    const rows = shown.map((o) => {
+      const d = metres(o);
+      let lead;
+      if (o.now && d !== null) {
+        const bearing = Math.atan2(-(o.x - here.x), -(o.z - here.z)) - yaw;
+        lead = H("span", { className: "arrow", textContent: "⬆" });
+        lead.style.transform = `rotate(${(-bearing * 180 / Math.PI).toFixed(0)}deg)`;
+      } else lead = H("span", { className: "dot", textContent: o.take ? "+" : "•" });
+      const dist = d === null ? "" : ` · ${d < 1000 ? `${Math.round(d)} m` : `${(d / 1000).toFixed(1)} km`}`;
+      const li = H("li", { className: o.now ? "now" : "" }, lead, H("div", {}, H("span", { textContent: o.label + (o.now ? dist : "") }), o.sub ? H("small", { textContent: o.sub }) : null),
+        o.take ? H("button", { textContent: "Take", title: `Take it: ${o.steps?.join(" → ") || o.title}`, onclick: (e) => { e.stopPropagation(); takeOffer(o.take); } }) : null);
+      li.onclick = () => (o.take ? openSide("tasks") : o.run?.());
+      return li;
+    });
+    const more = items.length > TODO_SHOWN ? H("button", { textContent: todoOpen ? "Fewer ▴" : `All ${items.length} ▾`, title: todoOpen ? "Show the first few" : "Show the full list",
+      onclick: () => { todoOpen = !todoOpen; try { globalThis.localStorage?.setItem("kerbside.city.todoOpen", todoOpen ? "1" : "0"); } catch { /* private window */ } todoKey = ""; drawTodo(); } }) : null;
+    box.replaceChildren(H("h4", {}, H("span", { textContent: "To do" }), more), rows.length ? H("ol", {}, ...rows) : H("p", { textContent: "Nothing for now: J for the task board." }));
   }
   // ---- the online store ------------------------------------------------------------------------
   //: Everything a shop in the city sells, from wherever you are, at twice the price (rules.json).
@@ -2291,9 +2425,13 @@ export async function startCity(ctx) {
         sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), cruise: Math.max(4, (route.length / durS) * 1.35), length: l, width: w });
         legOf.set(v.id, { base, route });
       } else {
-        // At the end of its leg (it is parked there from the next pass).
+        // At the end of its leg it is parked there, in the parking lane (and from the next pass,
+        // at its spot).
+        if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...alongRoute(route, route.length, PARK_LANE), moving: false, parked: true }); continue; }
+        // Not off yet (its leg starts later than the scan saw it): parked where it starts.
+        if (lagged <= 0.05) { vehicles.push({ ...base, ...alongRoute(route, 0, PARK_LANE), moving: false, parked: true }); continue; }
         const pos = alongRoute(route, lagged, (half) => Math.max(1.7, half - 1.8));
-        vehicles.push({ ...base, ...pos, moving: lagged < route.length, speed: route.length / durS });
+        vehicles.push({ ...base, ...pos, moving: true, speed: route.length / durS });
       }
     }
     // Driven by the rules: you and everyone near on foot are in the way to be braked for.
@@ -2305,6 +2443,7 @@ export async function startCity(ctx) {
       const step = D.step(Math.min(dt, 0.1), tsec, sim, obstacles, blockers);
       for (const r0 of step.cars) {
         const { base, route } = legOf.get(r0.id);
+        if (r0.arrived) { vehicles.push({ ...base, ...alongRoute(route, route.length, PARK_LANE), moving: false, parked: true }); continue; }
         const pos = alongRoute(route, r0.d, (half) => Math.max(1.7, half - 1.8));
         vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
       }
@@ -2497,7 +2636,7 @@ export async function startCity(ctx) {
   // ---- the panel -------------------------------------------------------------------------------
   const doc = globalThis.document;
   const css = `
-#city{position:fixed;right:12px;bottom:56px;z-index:36;width:min(360px,calc(100vw - 24px));max-height:min(72vh,640px);overflow:auto;background:var(--cp,#fff);color:var(--ci,#16202a);
+#city{position:fixed;right:12px;top:var(--city-under,72px);z-index:36;width:min(360px,calc(100vw - 24px));max-height:calc(100vh - var(--city-under,72px) - 120px);overflow:auto;background:var(--cp,#fff);color:var(--ci,#16202a);
  border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.24);font:13px/1.4 system-ui,sans-serif;padding:12px}
 #city h3{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px}#city h3 span{flex:1}
 #city h4{margin:10px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--cm,#5c6770)}
@@ -2510,7 +2649,7 @@ export async function startCity(ctx) {
 #city-hud{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:34;background:rgba(17,24,39,.86);color:#fff;border-radius:999px;
  padding:5px 14px;font:12px/1.4 system-ui,sans-serif;white-space:nowrap;pointer-events:auto;cursor:pointer;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
 #city-hud b{font-weight:700}#city-hud .warn{color:#ffb4a8}
-#city-side{position:fixed;right:12px;top:108px;z-index:37;width:min(400px,calc(100vw - 24px));max-height:calc(100vh - 290px);min-height:160px;overflow:auto;background:var(--cp,#fff);color:var(--ci,#16202a);
+#city-side{position:fixed;right:12px;top:var(--city-under,72px);z-index:37;width:min(400px,calc(100vw - 24px));max-height:calc(100vh - var(--city-under,72px) - 130px);min-height:160px;overflow:auto;background:var(--cp,#fff);color:var(--ci,#16202a);
  border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.24);font:13px/1.4 system-ui,sans-serif;padding:12px}
 #city-side select{font:inherit;border:1px solid rgba(0,0,0,.2);border-radius:6px;padding:2px 4px;background:inherit;color:inherit}
 #city-side h3{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px}#city-side h3 span{flex:1}
@@ -2521,7 +2660,7 @@ export async function startCity(ctx) {
 #city-side .tabs{display:flex;gap:2px;flex-wrap:wrap;margin:4px 0 6px}#city-side .tabs button[aria-pressed=true]{background:#1f6feb;color:#fff}
 #city-side table{width:100%;border-collapse:collapse;font-size:12px}#city-side td{padding:4px 4px 4px 0;vertical-align:top;border-top:1px solid rgba(128,128,128,.18)}
 #city-side table.wares td:nth-child(2){white-space:nowrap;text-align:right}#city-side table.wares td:last-child{text-align:right;white-space:nowrap}
-#city-side kbd,#city-actions kbd{font:600 10px/1 ui-monospace,monospace;border:1px solid rgba(128,128,128,.55);border-radius:4px;padding:2px 4px;margin-left:2px;opacity:.85}
+#city-side kbd{font:600 10px/1 ui-monospace,monospace;border:1px solid rgba(128,128,128,.55);border-radius:4px;padding:2px 4px;margin-left:2px;opacity:.85}
 #city-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:42px;z-index:35;display:flex;gap:3px;align-items:flex-end;padding:3px;background:rgba(17,24,39,.72);border-radius:10px}
 #city-bar .slot{position:relative;width:54px;height:54px;border:2px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);border-radius:7px;padding:3px;color:#fff;cursor:pointer;font:9px/1.05 system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;overflow:hidden}
 #city-bar .slot.on{border-color:#ffd166;background:rgba(255,209,102,.18)}
@@ -2529,7 +2668,7 @@ export async function startCity(ctx) {
 #city-bar .slot i,#city-side .grid .slot i{display:block;width:20px;height:16px;border-radius:3px;margin-bottom:2px}#city-bar .slot i.empty{background:none}
 #city-bar .slot span{max-height:2.1em;overflow:hidden;text-align:center}#city-bar .slot b{position:absolute;right:3px;top:2px;font-size:10px}
 #city-bar .inv{align-self:stretch;border:0;border-radius:7px;background:#1f6feb;color:#fff;font:12px system-ui,sans-serif;padding:0 10px;cursor:pointer}
-#city-prompt{position:fixed;left:50%;transform:translateX(-50%);top:84px;z-index:38;display:flex;align-items:center;gap:8px;background:rgba(17,24,39,.92);color:#fff;border-radius:12px;padding:8px 10px 8px 14px;font:13px/1.35 system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:calc(100vw - 24px)}
+#city-prompt{position:fixed;left:50%;transform:translateX(-50%);top:var(--city-under,72px);z-index:38;display:flex;align-items:center;gap:8px;background:rgba(17,24,39,.92);color:#fff;border-radius:12px;padding:8px 10px 8px 14px;font:13px/1.35 system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:calc(100vw - 24px)}
 #city-prompt button{border:0;border-radius:8px;padding:6px 14px;font:inherit;cursor:pointer;background:#3a4450;color:#fff}#city-prompt button.primary{background:#1f6feb}
 #city-side.wide{width:min(500px,calc(100vw - 24px))}
 #city-side .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:4px 0}
@@ -2538,11 +2677,27 @@ export async function startCity(ctx) {
 #city-side .grid .slot em{position:absolute;left:2px;top:1px;font-style:normal;opacity:.7}#city-side .grid .slot b{position:absolute;right:2px;top:1px}
 #city-side .grid .slot span{max-height:2.1em;overflow:hidden;text-align:center}
 #city-side .qty{display:inline-flex;align-items:center;gap:2px}#city-side .qty b{min-width:18px;text-align:center}
-#city-actions{position:fixed;left:50%;transform:translateX(-50%);bottom:106px;z-index:35;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:calc(100vw - 24px);pointer-events:none}
-#city-actions span{display:contents}
-#city-actions button{pointer-events:auto;border:0;background:rgba(17,24,39,.86);color:#fff;border-radius:999px;padding:6px 12px;font:12px/1.2 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);touch-action:none}
-#city-actions button.primary{background:#1f6feb}#city-actions button.hold.on{background:#d9822b}
-#city-vitals{position:fixed;left:12px;top:70px;z-index:34;width:210px;background:rgba(17,24,39,.86);color:#fff;border-radius:10px;padding:8px 10px;font:11px/1.3 system-ui,sans-serif;pointer-events:none}
+#city-top{position:fixed;top:var(--city-top-y,16px);left:var(--city-top-left,260px);right:var(--city-top-right,96px);z-index:36;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;min-height:44px;box-sizing:border-box;padding:5px 8px;background:rgba(17,24,39,.84);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.25);font:600 13px/1.2 system-ui,sans-serif;color:#fff}
+#city-top .here,#city-top .always{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+#city-top .here:empty{display:none}
+#city-top .here:not(:empty)+.always{border-left:1px solid rgba(255,255,255,.22);padding-left:8px}
+#city-top button{border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:8px 12px;font:inherit;cursor:pointer;white-space:nowrap;touch-action:none}
+#city-top button:hover{background:rgba(255,255,255,.22)}
+#city-top button.primary{background:#1f6feb}#city-top button.shop{background:#16a34a}#city-top button.hold.on{background:#d9822b}
+#city-top kbd{font:600 10px/1 ui-monospace,monospace;border:1px solid rgba(255,255,255,.45);border-radius:4px;padding:2px 4px;margin-left:5px;opacity:.85}
+#city-todo{position:fixed;left:12px;top:var(--city-todo-y,190px);z-index:34;width:240px;max-height:calc(100vh - var(--city-todo-y,190px) - 130px);overflow:auto;background:rgba(17,24,39,.86);color:#fff;border-radius:10px;padding:8px 10px;font:12px/1.35 system-ui,sans-serif}
+#city-todo h4{margin:0 0 4px;display:flex;align-items:center;gap:6px;font:700 11px/1.2 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#cbd5e1}
+#city-todo h4 span{flex:1}#city-todo h4 button{border:0;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;font:600 11px system-ui,sans-serif;padding:3px 7px;cursor:pointer}
+#city-todo ol{margin:0;padding:0;list-style:none}
+#city-todo li{display:flex;gap:6px;align-items:flex-start;padding:5px 0;border-top:1px solid rgba(255,255,255,.1);cursor:pointer}
+#city-todo li:first-child{border-top:0}#city-todo li.now{color:#7ee2a0}
+#city-todo li .arrow{display:inline-block;font-size:14px;width:16px;text-align:center;flex:none}
+#city-todo li .dot{width:16px;text-align:center;flex:none;opacity:.6}
+#city-todo li div{flex:1;min-width:0}#city-todo li small{display:block;opacity:.7;font-size:11px}
+#city-todo li button{flex:none;border:0;border-radius:6px;background:#1f6feb;color:#fff;font:600 11px system-ui,sans-serif;padding:3px 8px;cursor:pointer}
+#city-top[hidden],#city-todo[hidden],#city-prompt[hidden]{display:none!important}
+@media (max-width:760px){#city-top button{padding:6px 9px;font-size:12px}#city-todo{width:180px}}
+#city-vitals{position:fixed;left:12px;top:var(--city-vitals-y,70px);z-index:34;width:210px;background:rgba(17,24,39,.86);color:#fff;border-radius:10px;padding:8px 10px;font:11px/1.3 system-ui,sans-serif;pointer-events:none}
 #city-vitals .bar{display:grid;grid-template-columns:52px 1fr 24px;align-items:center;gap:6px;margin:2px 0}
 #city-vitals .bar i{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(255,255,255,.14) var(--v))}
 #city-vitals .bar b{text-align:right;font-weight:600}#city-vitals .carry{opacity:.8;margin-top:3px}#city-vitals .gig{margin-top:3px;color:#7ee2a0}
@@ -2589,34 +2744,68 @@ export async function startCity(ctx) {
   // ---- the bars and the action bar ---------------------------------------------------------------
   const vitalsBox = Object.assign(doc.createElement("div"), { id: "city-vitals" });
   vitalsBox.setAttribute("aria-label", "Health, stamina and strength");
-  const actionBar = Object.assign(doc.createElement("div"), { id: "city-actions" });
-  actionBar.setAttribute("role", "toolbar"); actionBar.setAttribute("aria-label", "What you can do here");
-  const dynamicActions = doc.createElement("span");
+  // The bar along the top, between the mode switch and the compass: what you can do where you
+  // stand first (highlighted), then what you can always do, each a word and its key.
+  const actionBar = Object.assign(doc.createElement("div"), { id: "city-top" });
+  actionBar.setAttribute("role", "toolbar"); actionBar.setAttribute("aria-label", "What you can do");
+  const dynamicActions = Object.assign(doc.createElement("div"), { className: "here" });
+  const alwaysActions = Object.assign(doc.createElement("div"), { className: "always" });
   const sprintButton = h("button", { className: "hold", title: "Hold to sprint (Shift)" }, "Sprint ", h("kbd", { textContent: "Shift" }));
   const press = (on) => (e) => { e.preventDefault(); body.sprintHeld = on; sprintButton.classList.toggle("on", on); };
   sprintButton.addEventListener("pointerdown", press(true));
   for (const type of ["pointerup", "pointerleave", "pointercancel"]) sprintButton.addEventListener(type, press(false));
   const helpButton = h("button", { title: "The controls (H)", onclick: () => openSide("help") }, "Controls ", h("kbd", { textContent: "H" }));
   const tasksButton = h("button", { title: "The task board (J)", onclick: () => openSide("tasks") }, "Tasks ", h("kbd", { textContent: "J" }));
-  const onlineButton = h("button", { title: "The online store: anything, from anywhere, at twice the price; homes at their price (O)", onclick: () => openSide("online") }, "Store ", h("kbd", { textContent: "O" }));
-  actionBar.append(dynamicActions, sprintButton, tasksButton, onlineButton, helpButton);
+  const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price (O)", onclick: () => openSide("online") }, "Shop ", h("kbd", { textContent: "O" }));
+  const youButton = h("button", { title: "You: your wallet, job, home, car and the laws (the City panel)", onclick: () => openPanel() }, "You & wallet");
+  const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory ", h("kbd", { textContent: "I" }));
+  alwaysActions.append(youButton, bagButton, tasksButton, onlineButton, sprintButton, helpButton);
+  actionBar.append(dynamicActions, alwaysActions);
   hotbar = Object.assign(doc.createElement("div"), { id: "city-bar" });
   hotbar.setAttribute("role", "toolbar"); hotbar.setAttribute("aria-label", "Your bar: 1 to 8 choose what is in your hand");
   promptBox = Object.assign(doc.createElement("div"), { id: "city-prompt" });
   promptBox.hidden = true;
-  doc.body.append(vitalsBox, actionBar, hotbar, promptBox);
+  // What to do, under the bars: the next few on screen, all of them a click away.
+  const todoBox = h("section", { id: "city-todo" });
+  todoBox.setAttribute("aria-label", "To do");
+  todoBox.hidden = true;
+  doc.body.append(vitalsBox, actionBar, hotbar, promptBox, todoBox);
   let actionsKey = "";
   const bar = (label, value, colour) => `<div class="bar"><span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b></div>`;
+  //: Where the bars go: the top bar between the mode switch and the compass (below them both on a
+  //: narrow screen), the windows and the Yes / No under it, the to-do under the health bars.
+  function layoutBars() {
+    const root = doc.documentElement, W = globalThis.innerWidth || 1200;
+    const sw = doc.querySelector(".mode-switch"), L = sw && !sw.hidden && sw.offsetParent !== null ? sw.getBoundingClientRect() : null;
+    const cp = doc.getElementById("compass"), C = cp ? cp.getBoundingClientRect() : null;
+    let left = L ? L.right + 10 : 12, right = C && C.width ? W - C.left + 10 : 12, y = L ? L.top : 16;
+    const narrow = W - left - right < 420;
+    if (narrow) { left = 12; right = 12; y = Math.max(L ? L.bottom : 56, C ? C.bottom : 0) + 6; }
+    root.style.setProperty("--city-top-left", `${Math.round(left)}px`);
+    root.style.setProperty("--city-top-right", `${Math.round(right)}px`);
+    root.style.setProperty("--city-top-y", `${Math.round(y)}px`);
+    const bar = actionBar.hidden ? null : actionBar.getBoundingClientRect();
+    const barBottom = bar && bar.height ? bar.bottom : y + 44;
+    root.style.setProperty("--city-under", `${Math.round(Math.max(barBottom, C ? C.bottom : 0) + 8)}px`);
+    const vy = narrow ? barBottom + 8 : (L ? L.bottom + 10 : 70);
+    root.style.setProperty("--city-vitals-y", `${Math.round(vy)}px`);
+    const vit = vitalsBox.hidden ? null : vitalsBox.getBoundingClientRect();
+    root.style.setProperty("--city-todo-y", `${Math.round(vit && vit.height ? vit.bottom + 8 : vy)}px`);
+  }
+  globalThis.addEventListener?.("resize", () => layoutBars());
   function drawBars() {
     const p = self();
     const on = ctx.enabled() && Boolean(p);
-    vitalsBox.hidden = !on; actionBar.hidden = !ctx.enabled();
-    const acts = ctx.enabled() ? actionsHere() : [];
+    const game = ctx.enabled() && ctx.cityMode?.() !== false;
+    vitalsBox.hidden = !on; actionBar.hidden = !game;
+    const acts = game ? actionsHere() : [];
     const key = acts.map((a) => `${a.id}:${a.label}`).join("|");
     if (key !== actionsKey) {
       actionsKey = key;
-      dynamicActions.replaceChildren(...acts.map((a) => h("button", { className: a.id === "shop" || a.id === "deliver" ? "primary" : "", onclick: () => a.run() }, `${a.label} `, a.key ? h("kbd", { textContent: a.key }) : null)));
+      dynamicActions.replaceChildren(...acts.map((a, i) => h("button", { className: i === 0 || a.id === "shop" || a.id === "deliver" ? "primary" : "", onclick: () => a.run() }, `${a.label} `, a.key ? h("kbd", { textContent: a.key }) : null)));
     }
+    layoutBars();
+    drawTodo();
     if (!on) return;
     const v = p.vitals, S = R.vitals.stamina;
     const c = view.carry ? view.carry(p) : { kg: carriedKg(R, p.inventory), capacity: carryCapacity(R, v.strength, p.inventory) };
@@ -2817,8 +3006,8 @@ export async function startCity(ctx) {
         const out = [title, status];
         if (t || p.delivery) {
           const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name} (G at its door)` : `Deliver to ${p.delivery.to.name || "the address"}`];
-          const done = t?.kind === "courier" ? (p.delivery?.stage === "carry" ? 1 : 0) : t?.kind === "sightseeing" ? -1 : t?.kind === "forestry" ? ((F) => (F.tool.some((k) => (p.inventory[k] || 0) > 0) ? (inPresidio() ? 2 : 1) : 0))(R.tasks.forestry) : 0;
-          const list = h("ol", { style: "margin:4px 0 8px 18px;padding:0" }, ...steps.map((st, i) => h("li", { textContent: `${st}${(t?.kind === "sightseeing" ? t.visited.includes(i) : i < done) ? " ✓" : ""}`, style: (t?.kind === "sightseeing" ? t.visited.includes(i) : i < done) ? "opacity:.6" : "" })));
+          const ticked = (i) => stepDone(p, i);
+          const list = h("ol", { style: "margin:4px 0 8px 18px;padding:0" }, ...steps.map((st, i) => h("li", { textContent: `${st}${ticked(i) ? " ✓" : ""}`, style: ticked(i) ? "opacity:.6" : "" })));
           out.push(h("p", {}, h("b", { textContent: t?.title || "Delivery" }), ` — ${R.fmt(t?.pay ?? p.delivery?.pay ?? 0)} on finishing`), list,
             g ? h("p", { className: "note", textContent: `Next: ${g.label}${Number.isFinite(g.x) ? ` (${Math.round(Math.hypot(g.x - me().x, g.z - me().z))} m; the arrow at the top of the screen points there, and the light stands over it)` : ""}.` }) : "",
             h("div", {}, g && Number.isFinite(g.x) ? h("button", { textContent: "Call a taxi there", onclick: () => callTaxi({ name: g.label.split(" — ")[0], x: g.x, z: g.z }) }) : "",
@@ -2909,7 +3098,7 @@ export async function startCity(ctx) {
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), the bus standing at the stop (aboard: ask for the next stop), the shop in front of you (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
       ["T", "taxis only: into the one pulled up for you or a passing one; in one, out and pay; elsewhere, call one"],
       ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
-      ["J", "the task board: courier work, the Presidio's trees, the Marina walk, neighbours' errands"], ["O", "the online store: everything, from anywhere, at twice the shop price; real estate at its price"],
+      ["J", "the task board: courier work, flyers, dog walks, bus-stop counts, mystery shopping, the Presidio's trees, the Marina walk, neighbours' errands (the next few are in To do, under your bars)"], ["O", "the Shop (on the top bar): everything, from anywhere, at twice the shop price; real estate at its price"],
       ["H or ?", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["PageUp / PageDown", "the level above or below where you stand"]];
     const asked = "Asked as a Yes / No where it applies: clocking in at your workplace (and out when you leave), handing over a parcel at its address, and an errand's shopping at the neighbour's door. Answer No and it stays on the buttons along the bottom while it applies. A window closes with its × or its key again.";
     const bars = [["Health", "wears slowly; quickly with no stamina left. Medicine (pharmacy), a doctor's visit (clinic), a night's sleep. At 0 you faint, wake at home, and pay the ambulance."],
