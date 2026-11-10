@@ -156,6 +156,38 @@ export class Streets {
   }
   //: The way from node a to node b (A*), as a polyline with each point's distance along it and
   //: the half-width of the street it is on. Cached: a commute is asked for again and again.
+  //: The streets' widths made the world's own: each street's half-width from the kerbs as the
+  //: page draws them (``kerbAt(x, z, ax, az)`` -> the nearest drawn kerb point), measured either
+  //: side of its middle, where both are found and sensible. OpenStreetMap's widths are often a
+  //: few metres out from the measured kerbs: the cars parked at those kerbs stood in the lanes,
+  //: and the pavement walked was in among them. Returns how many ways it changed.
+  calibrate(kerbAt) {
+    let changed = 0;
+    for (let a = 0; a < this.nodes.length; a += 1) {
+      for (const e of this.edges[a]) {
+        if (!(e.half > 0) || e.to < a) continue;
+        const A = this.nodes[a], B = this.nodes[e.to], L = Math.hypot(B.x - A.x, B.z - A.z);
+        if (L < 4) continue;
+        const ux = (B.x - A.x) / L, uz = (B.z - A.z) / L, nx = -uz, nz = ux, mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
+        const side = (sg) => {
+          const k = kerbAt(mx + nx * sg * e.half, mz + nz * sg * e.half, ux, uz);
+          if (!k) return null;
+          const off = (k.x - mx) * nx * sg + (k.z - mz) * nz * sg, along = Math.abs((k.x - mx) * ux + (k.z - mz) * uz);
+          return off > 1.5 && off < 20 && along < L / 2 + 2 ? off : null;
+        };
+        const l = side(1), r = side(-1);
+        if (l === null || r === null || Math.abs(l - r) > 4) continue;
+        const half = Math.max(3, (l + r) / 2);
+        if (Math.abs(half - e.half) < 0.3) continue;
+        e.half = half;
+        const back = this.edges[e.to].find((x) => x.to === a);
+        if (back) back.half = half;
+        changed += 1;
+      }
+    }
+    if (changed) this.routes = new Map();
+    return changed;
+  }
   route(a, b, mode = "walk") {
     if (a === null || b === null || a === undefined || b === undefined) return null;
     const found = this.search(a, b, mode);
@@ -199,18 +231,27 @@ export class Streets {
     }
     let route = null;
     if (found) {
-      const ids = [b], halves = [], classes = [];
-      for (let n = b; n !== a;) { const [p, e] = came.get(n); halves.push(e.half); classes.push(e.cls); ids.push(p); n = p; }
-      ids.reverse(); halves.reverse(); classes.reverse();
+      const ids = [b], halves = [], classes = [], parks = [];
+      for (let n = b; n !== a;) { const [p, e] = came.get(n); halves.push(e.half); classes.push(e.cls); parks.push(e.park ?? null); ids.push(p); n = p; }
+      ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse();
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-      route = { pts, s, halves, classes, ids, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
+      route = { pts, s, halves, classes, parks, ids, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
     if (this.routes.size > 6000) this.routes.delete(this.routes.keys().next().value);
     this.routes.set(key, route);
     return route;
   }
+}
+//: How far right of a street's middle a car drives (the middle of its lane), from the street's
+//: half-width, its class and whether cars park on that side (``park``: the edge's, true / false /
+//: null for not known -- parked on where a residential street is not known not to be): clear of
+//: the cars parked there, which stand a hand's width off the kerb.
+export const LANE_PARKED_M = 3.3;
+export function LANE(half, cls = null, park = null) {
+  const parked = park === true || (park === null && cls === "residential");
+  return Math.max(1.7, half - (parked ? LANE_PARKED_M : 1.8));
 }
 //: Where along ``route`` distance ``d`` is: the point, the heading (as a yaw: 0 faces -z), and
 //: the point moved ``side`` metres to the right of the way (a lane, a pavement). Off the centre
@@ -223,7 +264,7 @@ export function alongRoute(route, d, side = 0) {
   let lo = 0, hi = s.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m] <= d) lo = m; else hi = m; }
   const fn = typeof side === "function";
-  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i]) : side);
+  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i]) : side);
   // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side.
   const on = (i, off) => {
     const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (d - s[i]) / len;
@@ -249,6 +290,213 @@ export function alongRoute(route, d, side = 0) {
     }
   }
   return { ...at, half, cls: route.classes?.[lo] };
+}
+
+// ---- on foot: the pavements and the crosswalks ------------------------------------------------------
+
+//: How far out from a street's kerb a walker keeps (the middle of the pavement), in metres.
+export const PAVE_M = 1.6;
+//: The way on foot along ``route`` (a walk route from Streets.route): on the pavement, crossing a
+//: street only at a junction, along a crosswalk -- the line of the pavement carried across the
+//: road, from one corner to the next. A walker keeps to the pavement it is on round a corner it
+//: is turning towards; turning away it crosses the street it came along on the near crosswalk;
+//: going straight on it crosses the street in front of it. It begins on the side of the street
+//: ``from`` is on (a door, a bus stop, a car at the kerb) and ends on ``to``'s side: if that is
+//: across the street it crosses at the last junction on the way (the one it ends at, or the one
+//: before). It never crosses in the middle of a block, and never cuts across a junction from
+//: one corner to the one opposite. (It did both: the walk was the street's middle line moved to
+//: the right of the way, which at every left turn ran corner to corner through the junction.)
+//: Returns a route to walk with no offset (alongRoute(r, d)): {pts, s, length, halves, classes,
+//: crossings: [{s0, s1, node, bearing, signal}]} -- each crossing's stretch of the walk, the
+//: node, the crossed street's own direction (as atan2(x, z)) and whether a light controls it.
+export function pavementRoute(streets, route, { from = null, to = null, side = 1, offset = (h) => (h ? h + PAVE_M : 0) } = {}) {
+  if (!route || !route.pts || route.pts.length < 2 || !(route.length > 0.5)) return route ? { ...route, crossings: [] } : null;
+  const P = route.pts.map((q) => q.slice()), ids = (route.ids || []).slice(), halves = (route.halves || []).slice();
+  // An end on another street than the way's own last (or first) one -- a bus stop round the
+  // corner, a door on the side street: the walk goes on round the corner along that street to
+  // it, over the street at the corner if it must, not across the corner.
+  const fit = (pt, a, b, half) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+    const t = (pt[0] - a[0]) * ux + (pt[1] - a[1]) * uz;
+    if (t < -0.5 || t > L + 0.5) return Infinity;
+    return Math.abs(Math.abs((pt[0] - a[0]) * -uz + (pt[1] - a[1]) * ux) - offset(half));
+  };
+  const roundCorner = (anchor, k, k2) => {
+    const id = ids[k], here = streets?.nodes?.[id];
+    if (!anchor || !here) return null;
+    const pt = [anchor.x, anchor.z], own = fit(pt, P[k], P[k2], halves[Math.min(k, k2)] ?? 0);
+    if (own < 3) return null;
+    let best = null, bf = own - 1;
+    for (const e of streets.edges[id] || []) {
+      if (!(e.half > 0) || e.to === ids[k2]) continue;
+      const m = streets.nodes[e.to], f = fit(pt, [here.x, here.z], [m.x, m.z], e.half);
+      if (f < bf) { bf = f; best = { e, m }; }
+    }
+    if (!best) return null;
+    const { m } = best, dx = m.x - here.x, dz = m.z - here.z, L = Math.hypot(dx, dz) || 1;
+    const t = Math.max(0.5, Math.min(L, ((pt[0] - here.x) * dx + (pt[1] - here.z) * dz) / L));
+    return { pt: [here.x + (dx / L) * t, here.z + (dz / L) * t], half: best.e.half };
+  };
+  const tail = roundCorner(to, P.length - 1, P.length - 2), head = roundCorner(from, 0, 1);
+  if (tail) { P.push(tail.pt); ids.push(undefined); halves.push(tail.half); }
+  if (head) { P.unshift(head.pt); ids.unshift(undefined); halves.unshift(head.half); }
+  const n = P.length, seg = [];
+  for (let i = 0; i + 1 < n; i += 1) {
+    const dx = P[i + 1][0] - P[i][0], dz = P[i + 1][1] - P[i][1], len = Math.hypot(dx, dz) || 1e-6;
+    const u = [dx / len, dz / len];
+    seg.push({ u, nrm: [-u[1], u[0]], o: offset(halves[i] ?? 0), len, half: halves[i] ?? 0 });
+  }
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1], cross = (a, b) => a[0] * b[1] - a[1] * b[0];
+  // The line of segment i's pavement on side sg, through node point q: [point, dir].
+  const line = (i, sg, q = P[i]) => [[q[0] + seg[i].nrm[0] * sg * seg[i].o, q[1] + seg[i].nrm[1] * sg * seg[i].o], seg[i].u];
+  const meet = (L1, L2, near) => {
+    const c = cross(L1[1], L2[1]);
+    const lim = 4 * Math.max(3, ...seg.map((g) => g.o));
+    if (Math.abs(c) > 0.15) {
+      const t = cross([L2[0][0] - L1[0][0], L2[0][1] - L1[0][1]], L2[1]) / c;
+      const q = [L1[0][0] + L1[1][0] * t, L1[0][1] + L1[1][1] * t];
+      if (Math.hypot(q[0] - near[0], q[1] - near[1]) < lim) return q;
+    }
+    return [(L1[0][0] + L2[0][0]) / 2, (L1[0][1] + L2[0][1]) / 2];
+  };
+  // A junction: three ways or more meet there (streets, not paths).
+  const junction = (i) => {
+    const id = ids[i];
+    if (id === undefined || !streets?.edges?.[id]) return false;
+    return new Set(streets.edges[id].filter((e) => e.half > 0).map((e) => e.to)).size >= 3;
+  };
+  // The streets that meet at node i, as arms out from it.
+  const arms = (i) => {
+    const id = ids[i], here = streets?.nodes?.[id], out = [];
+    if (!here) return out;
+    for (const e of streets.edges[id] || []) {
+      if (!(e.half > 0)) continue;
+      const m = streets.nodes[e.to], L = Math.hypot(m.x - here.x, m.z - here.z) || 1, u = [(m.x - here.x) / L, (m.z - here.z) / L];
+      out.push({ u, nrm: [-u[1], u[0]], o: offset(e.half), half: e.half });
+    }
+    return out;
+  };
+  // The street across the walker's way at node i (the arm most nearly square to segment a's
+  // line); with ``sg``, only if an arm of it reaches out on the walker's side (a T-junction's
+  // stem on the other side has nothing to cross).
+  const crossStreet = (i, a, sg = 0) => {
+    let best = null, bestS = 0.5;
+    for (const c of arms(i)) {
+      const sq = Math.abs(cross(seg[a].u, c.u));
+      if (sq > bestS) { bestS = sq; best = c; }
+    }
+    if (best && sg && !arms(i).some((c) => Math.abs(cross(seg[a].u, c.u)) > 0.5 && dot(c.u, seg[a].nrm) * sg > 0.5)) return null;
+    return best;
+  };
+  const cline = (c, sg, q) => [[q[0] + c.nrm[0] * sg * c.o, q[1] + c.nrm[1] * sg * c.o], c.u];
+  const signalled = (i) => {
+    const es = streets?.edges?.[ids[i]] || [];
+    return es.some((e) => e.cls === "arterial" || e.cls === "freeway");
+  };
+  const sideOf = (pt, i, q) => Math.sign(dot([pt[0] - q[0], pt[1] - q[1]], seg[i].nrm));
+  const project = (pt, i, sg, clamp) => {
+    const [q0, u] = line(i, sg);
+    let t = dot([pt[0] - q0[0], pt[1] - q0[1]], u);
+    if (clamp) t = Math.max(0, Math.min(seg[i].len, t));
+    return [q0[0] + u[0] * t, q0[1] + u[1] * t];
+  };
+  const bearing = (u) => Math.atan2(u[0], u[1]);
+  const build = (forceAt) => {
+    let sg = (from && sideOf([from.x, from.z], 0, P[0])) || side;
+    const out = [], marks = [];   // marks: [index in out where a crossing begins, node i, bearing, signal]
+    // Over a street at an end node (the place is round the corner, across the street the walk
+    // meets there): along this pavement's line, corner to corner.
+    const overEnd = (i, a, sg, q, first = null) => {
+      const c = junction(i) ? crossStreet(i, a, sg) : null;
+      if (!c) return false;
+      if (first) out.push(first);
+      const ua = seg[a].u;   // the way the walker goes over it, either end
+      const sn = dot(c.nrm, ua) < 0 ? 1 : -1;
+      const p0 = meet(line(a, sg, q), cline(c, sn, q), q), p1 = meet(line(a, sg, q), cline(c, -sn, q), q);
+      marks.push([out.length, i, bearing(c.u), signalled(i)]);
+      out.push(p0, p1);
+      return true;
+    };
+    const along = (pt, i) => dot([pt[0] - P[i][0], pt[1] - P[i][1]], seg[i].u);
+    // From the door (or the car, the pole) straight out to the pavement, and in again at the end:
+    // not slanting off along the kerb through the cars parked there.
+    if (from) out.push([from.x, from.z]);
+    if (!(from && along([from.x, from.z], 0) < 0 && overEnd(0, 0, sg, P[0], project([from.x, from.z], 0, sg, false)))) out.push(from ? project([from.x, from.z], 0, sg, true) : line(0, sg)[0]);
+    for (let i = 1; i < n - 1; i += 1) {
+      const a = i - 1, b = i, q = P[i];
+      if (!(seg[a].o > 0 && seg[b].o > 0) || !junction(i)) {
+        // A bend, or a path joining: round it on the same side.
+        out.push(meet(line(a, sg, q), line(b, sg, q), q));
+        continue;
+      }
+      const ua = seg[a].u, ub = seg[b].u, straight = dot(ua, ub) > 0.9;
+      const force = forceAt === i;
+      if (straight) {
+        const c = force ? crossStreet(i, a) : crossStreet(i, a, sg);
+        if (!force || !c) {
+          // Straight on: over the street in front, along this pavement's line.
+          const at = meet(line(a, sg, q), line(b, sg, q), q);
+          if (c) {
+            const reach = c.half + 0.4;
+            const before = [at[0] - ua[0] * reach, at[1] - ua[1] * reach], after = [at[0] + ub[0] * reach, at[1] + ub[1] * reach];
+            marks.push([out.length, i, bearing(c.u), signalled(i)]);
+            out.push(before, after);
+          } else out.push(at);
+          continue;
+        }
+        // Over to the other side here, on the near crosswalk of the street across, and on over
+        // that street if it reaches out on the new side.
+        const sn = dot(c.nrm, ua) < 0 ? 1 : -1;
+        marks.push([out.length, i, bearing(ua), signalled(i)]);
+        out.push(meet(line(a, sg, q), cline(c, sn, q), q), meet(line(a, -sg, q), cline(c, sn, q), q));
+        sg = -sg;
+        if (crossStreet(i, a, sg)) { marks.push([out.length - 1, i, bearing(c.u), signalled(i)]); out.push(meet(line(a, sg, q), cline(c, -sn, q), q)); }
+        continue;
+      }
+      // A turn: to the corner on this side, over the street turned into only if it must, and over
+      // the street come along if the new way leads to its other side.
+      const sNear = dot(seg[b].nrm, ua) < 0 ? 1 : -1;
+      const sb = force ? -sNear : sNear;
+      out.push(meet(line(a, sg, q), line(b, sNear, q), q));
+      if (sb !== sNear) { marks.push([out.length - 1, i, bearing(ub), signalled(i)]); out.push(meet(line(a, sg, q), line(b, sb, q), q)); }
+      if (dot(ub, seg[a].nrm) * sg < -0.3) { marks.push([out.length - 1, i, bearing(ua), signalled(i)]); out.push(meet(line(a, -sg, q), line(b, sb, q), q)); }
+      sg = sb;
+    }
+    const m = n - 2, end = P[n - 1];
+    let need = to ? sideOf([to.x, to.z], m, end) || sg : sg, crossedAtEnd = false;
+    if (need !== sg && forceAt === undefined && junction(n - 1)) {
+      const c = crossStreet(n - 1, m);
+      if (c) {
+        const sn = dot(c.nrm, seg[m].u) < 0 ? 1 : -1;
+        out.push(meet(line(m, sg, end), cline(c, sn, end), end));
+        marks.push([out.length - 1, n - 1, bearing(seg[m].u), signalled(n - 1)]);
+        out.push(meet(line(m, -sg, end), cline(c, sn, end), end));
+        sg = -sg; crossedAtEnd = true;
+      }
+    }
+    if (to && along([to.x, to.z], m) > seg[m].len && overEnd(n - 1, m, sg, end)) out.push(project([to.x, to.z], m, sg, false));
+    else out.push(to ? project([to.x, to.z], m, sg, true) : line(m, sg, end)[0]);
+    if (to) out.push([to.x, to.z]);
+    return { out, marks, sg, need, crossedAtEnd };
+  };
+  let r = build(undefined);
+  if (r.need !== r.sg) {
+    // Across at the last junction on the way, then.
+    for (let i = n - 2; i >= 1; i -= 1) if (seg[i - 1].o > 0 && seg[i].o > 0 && junction(i)) { r = build(i); break; }
+  }
+  // The walk's points, each crossing's stretch along it.
+  const pts = [], at = [];   // at[k]: the walk's point out[k] became (a repeat is the one before)
+  r.out.forEach((q) => {
+    if (!pts.length || Math.hypot(q[0] - pts[pts.length - 1][0], q[1] - pts[pts.length - 1][1]) > 0.05) pts.push(q);
+    at.push(pts.length - 1);
+  });
+  const sAt = [0];
+  for (let i = 1; i < pts.length; i += 1) sAt.push(sAt[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const sOf = (k) => sAt[at[Math.min(k, at.length - 1)]];
+  const crossings = r.marks.map(([k, node, b, signal]) => ({ s0: sOf(k), s1: sOf(k + 1), node: ids[node], bearing: b, signal }))
+    .filter((c) => c.s1 > c.s0 + 0.5);
+  if (pts.length < 2) pts.push(pts[0].slice());
+  return { pts, s: sAt, length: sAt[sAt.length - 1], halves: pts.map(() => 0), classes: pts.map(() => null), crossings, side: r.sg, mode: "walk" };
 }
 
 // ---- places and jobs ------------------------------------------------------------------------------
@@ -491,7 +739,7 @@ export class Crowd {
       if (!leg || leg.far) continue;
       if (minute >= leg.depart && minute < leg.depart + leg.duration) {
         const d = (minute - leg.depart) * 60 * leg.speed;
-        const pos = alongRoute(leg.route, d, leg.mode === "drive" ? (half) => Math.max(1.7, half - 1.8) : (half) => half + 1.6 * (hash32(p.id) % 2 ? 1 : -1));
+        const pos = alongRoute(leg.route, d, leg.mode === "drive" ? LANE : (half) => half + 1.6 * (hash32(p.id) % 2 ? 1 : -1));
         return { ...pos, moving: true, mode: leg.mode, activity: `to ${b.kind}` };
       }
     }
@@ -530,7 +778,7 @@ export class Crowd {
     const d = into % (2 * route.length);
     const forward = d <= route.length;
     const along = forward ? d : 2 * route.length - d;
-    const pos = alongRoute(route, along, drive ? (half) => (forward ? 1 : -1) * Math.max(1.7, half - 1.8) : (half) => (forward ? 1 : -1) * (half + 1.6));
+    const pos = alongRoute(route, along, drive ? (half, cls, park) => (forward ? 1 : -1) * LANE(half, cls, park) : (half) => (forward ? 1 : -1) * (half + 1.6));
     if (!forward) pos.yaw += Math.PI;
     return { ...pos, moving: true, mode, activity: a.kind === "stroll" ? "out for a walk" : `${this.R.jobs.roles[p.role].title.toLowerCase()} at work` };
   }
@@ -563,7 +811,7 @@ export class Crowd {
             if (tt <= left) { d += seg; left -= tt; } else { d += left * v; left = 0; }
           }
           if (elapsed < 0 || d >= route.length) continue;
-          const pos = alongRoute(route, d, (half) => Math.max(1.7, half - 1.8));
+          const pos = alongRoute(route, d, LANE);
           if (Math.hypot(pos.x - focus.x, pos.z - focus.z) > reach) continue;
           out.push({ id: `car:${cell}:${s}:${k}`, ...pos, model, moving: true, shade: colourRoll, speed: speedFor(pos.cls || "residential"), secondsOfDay });
         }

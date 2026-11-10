@@ -150,6 +150,24 @@ leaves along the pavement. A break outside puts them on the pavement in front of
   residential streets, lights where an arterial crosses, distance to the car ahead. They brake
   for anyone in the road, hard if they must.
 * Between the city's own people nobody is run down: a driver too close to a walker stops dead.
+* Cars are solid to each other. A car never makes a move that would take it further into
+  another car, a route bus, your taxi or your car (each a row of circles down its length);
+  a queue that is let go no longer drives through the car it waited on. At a junction with a
+  light or a stop sign, the first to come (on its green, or after its stop) goes first:
+  a car waits at the line while an earlier car's way through crosses its own (sampled from
+  how each is actually driven round the corner), and while anyone is on a crosswalk it would
+  drive over. It waits with its nose short of the crosswalk, not on it or in the junction.
+  Work rounds (police, cabs cruising, deliveries, the street cleaner) are driven by the same
+  rules near you; they used to be drawn along their way regardless.
+* Lanes keep clear of the parked cars: on a side of a street that is parked on, the lane is
+  3.3 m in from the kerb (1.8 m where nobody parks), and every street is as wide as the kerbs
+  the world draws (OpenStreetMap's widths were often metres out).
+* Walkers keep to the pavement and cross only on crosswalks: at a junction, corner to corner
+  along the line of the pavement, one street at a time, never diagonally and never mid-block.
+  From a door (or a car, a bus stop) they step straight out to the pavement, and round the
+  corner to a place on a side street. At the kerb they wait for the light where there is one
+  (the street they cross has red) and for a gap: no car on the crossing or due there within
+  4 s. Then they cross, and walk a third quicker until back where their day has them.
 * Every car that is driving moves. One that reaches the end of its trip pulls into the parking
   lane and is parked at once (it used to stand in the lane until the next pass, holding up the
   street behind it). A queue held by nothing real (a ring of cars waiting on each other) creeps
@@ -218,6 +236,7 @@ night, up to 14 days.
 | Use carpool and express lanes | (automatic) | `lane` | Live |
 | Speeding and a carpool lane short of riders: fined only when seen -- in the field of view of one of the map's speed cameras (the poles along the arterials: each looks along its street, a 70° cone to 45 m), or with a patrol car within 60 m. Unseen, nothing | (automatic) | `speed_camera`, `lane` with `witness` | Live (`docs/city/enforcement.mjs`) |
 | Open and shut your own garage (a home you own or rent, a building you own), in City mode or on the map | Enter at it | (client) | Live |
+| Your garage opens as you drive your car up to it (within 9 m) and shuts once you have driven or walked away | (automatic) | (client) | Live |
 | Pay a meter; refuel | City › Car | `pay_meter`, `refuel` | Live |
 | Get a FasTrak tag; set Flex occupants | City › Car | `get_fastrak`, `set_flex` | Live |
 | Lend, sell or lease a car to a party member | City › Car | `offer`, `accept`, `decline`, `return` | Live |
@@ -229,6 +248,7 @@ night, up to 14 days.
 | Action | Control | Command | Status |
 |---|---|---|---|
 | Start with ₡2,000 and a room free for a week, then ₡120 a day | City › Join | `join` | Live |
+| Money the backend grants your device's account (`supabase/kerbside_city_grants.sql`): into your wallet once, when you are in the city and hold the books (alone or as the party's host); never asked of a host by a guest | (automatic, on load) | `account_grant` | Live |
 | Earn at a basic job: ₡120 every 10 minutes (₡720/h); other roles by their wage ratio | Yes / No at the workplace (clock in / out), City › You | `take_job`, `clock_in`, `clock_out` | Live |
 | Work the shift: a task every 35–80 s (serve at the counter, restock from the back, sweep the kerb…), done at its spot by staying there till the bar fills; tips on top; 10 minutes with nothing done is unpaid, 30 and you are sent home | V | `task` | Live |
 | Errands for neighbours: buy what they ask and bring it to their door; paid back what it cost and ₡25 + ₡30/km | J (task board); hand-over is a Yes / No at the door | `take_errand`, `deliver_errand`, `cancel_errand` | Live |

@@ -20,13 +20,13 @@ import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
-import { COUNTER_ROLES, Crowd, SPEED_MS, Streets, alongRoute, counterLine, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
+import { COUNTER_ROLES, Crowd, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
-import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor } from "./fleet.mjs";
+import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { BAR, GRID, arrange, barSlotOf, swap } from "./inventory.mjs";
 
@@ -150,13 +150,19 @@ export async function startCity(ctx) {
     district.placeById = roster.places;
     const harm = (id, ms) => harmNow((world || view)?.harm?.get(id), ms);
     const delay = (v, leg, day) => (district.drivers?.delayOf(City.legKey(v, leg, day)) || 0) / 60;
+    // The streets as wide as the world draws them (people.mjs Streets.calibrate): lanes, parked
+    // cars and pavements all to the same kerbs.
+    if (ctx.kerbAt) {
+      const t0 = performance.now(), n = streets.calibrate((x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6));
+      ctx.log?.(`kerbside: ${n} streets' widths taken from the drawn kerbs in ${Math.round(performance.now() - t0)} ms`);
+    }
     if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
     else district.city.setStreets(streets);
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
     if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking });
     if (!district.drivers) district.drivers = new Drivers(streets, { ...TRAFFIC, main_green_share: R.traffic?.main_green_share ?? 0.5 });
-    else { district.drivers.streets = streets; district.drivers.cars.clear(); }
+    else { district.drivers.streets = streets; district.drivers.cars.clear(); district.drivers.boxes.clear(); district.drivers.claims.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
     const [clon, clat] = ctx.toLonLat(me().x, me().z);
     const busy = Math.max(R.density?.default?.traffic ?? 1, ...((R.density?.hotspots || []).filter((h0) => clat >= h0.bbox[0] - 0.01 && clat <= h0.bbox[2] + 0.01 && clon >= h0.bbox[1] - 0.01 && clon <= h0.bbox[3] + 0.01).map((h0) => h0.traffic || 1)));
@@ -460,7 +466,8 @@ export async function startCity(ctx) {
   }
   function onPartyMessage(m) {
     if (m.t === "cmd" && world) {
-      const result = world.submit(m.pid, m.command, m.args);
+      // (Backend money is minted by the browser it belongs to, for itself: never asked of a host.)
+      const result = m.command === "account_grant" ? { ok: false, error: "not from a party" } : world.submit(m.pid, m.command, m.args);
       party.session.city.send({ t: "res", req: m.req, to: m.pid, result });
       broadcastState(); refresh();
     } else if (m.t === "res" && m.to === myId) {
@@ -914,7 +921,7 @@ export async function startCity(ctx) {
   // takes you where you ask, on the meter.
   const transit = { ride: null };
   const TL = R.transit_lines;
-  const KERB = (half) => Math.max(1.7, half - 1.8);
+  const KERB = LANE;
   let routeBuses = [];
   const taxi = { id: null, phase: null, route: null, d: 0, at: null, dest: null, n: 0 };
   //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
@@ -2174,6 +2181,25 @@ export async function startCity(ctx) {
     const up = door.toggle();
     notify(up ? "Your garage door goes up. Enter again to shut it." : "Your garage door comes down.");
   }
+  //: Driving your own car up to your garage: its door goes up as you come (a remote), and comes
+  //: down once you have driven off again, or got out and walked away.
+  const remote = { door: null, t: 0 };
+  function garageRemote(now) {
+    if (now - remote.t < 300 || !ctx.garages) return;
+    remote.t = now;
+    const at = car.active ? { x: car.x, z: car.z } : me();
+    if (remote.door) {
+      if (Math.hypot(at.x - remote.door.x, at.z - remote.door.z) > GARAGE_REMOTE_M * 2) { remote.door.close(); remote.door = null; }
+      return;
+    }
+    if (!car.active) return;
+    const mine = myBuildings();
+    if (!mine.size) return;
+    const door = ctx.garages.near(car.x, car.z, GARAGE_REMOTE_M);
+    if (!door || !mine.has(door.building)) return;
+    if (!door.isOpen()) { door.open(); notify("Your garage door goes up for you."); }
+    remote.door = door;
+  }
   //: The residents' garage doors near you: up before their car drives out and down after it,
   //: up as it comes home and down once it is in (fleet.mjs garageOpen).
   function npcGarages() {
@@ -2347,7 +2373,7 @@ export async function startCity(ctx) {
       drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
-    stepBody(dt); stepFlying(); drawHeld(); ctx.garages?.tick(dt);
+    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
     if (now - lastRefresh > 500) {
       lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
@@ -2388,6 +2414,38 @@ export async function startCity(ctx) {
     const e = k * k * (3 - 2 * k);
     return { ...pos, x: pos.x + (S.x - pos.x) * e, z: pos.z + (S.z - pos.z) * e };
   }
+  //: Whether a walker a step short of a crosswalk (``walk`` from fleet.mjs personAt) waits there:
+  //: for the light where one controls it (the street they cross has its green or amber), and
+  //: for any car on the crossing or that would be there within CROSS_GAP_S -- yours, a bus, a cab.
+  const CROSS_GAP_S = 4;
+  //: How near your garage you drive before its door goes up (m).
+  const GARAGE_REMOTE_M = 9;
+  function waitsAtKerb(walk, tsec) {
+    const list = walk.pave?.crossings;
+    if (!list?.length) return false;
+    for (const cr of list) {
+      const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
+      if (before < -0.05 || before > 1.2) continue;   // on it already: on over
+      if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
+      const a = alongRoute(walk.pave, cr.s0), b = alongRoute(walk.pave, cr.s1);
+      const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / len, uz = (b.z - a.z) / len, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
+      const mine = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, speed: Math.abs(car.speed), model: car.model }] : [];
+      for (const v of [...drawnCars, ...routeBuses, ...(taxi.at ? [taxi.at] : []), ...mine]) {
+        if (v.parked || Math.abs(v.x - mx) > 60 || Math.abs(v.z - mz) > 60) continue;
+        const [, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+        if (distToSegment(v.x, v.z, a.x, a.z, b.x, b.z) < vl / 2 + 1.2) return true;
+        const sp = v.speed || 0;
+        if (sp < 0.5 || v.dwelling) continue;
+        // Where its way meets the crossing's line (``k`` metres along it from the kerb), how far
+        // ahead of it (``t``), and so how soon.
+        const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), den = fx * uz - fz * ux;
+        if (Math.abs(den) < 0.2) continue;
+        const px = a.x - v.x, pz = a.z - v.z, t = (px * uz - pz * ux) / den, k = (px * fz - pz * fx) / den;
+        if (t > 0 && k > -2 && k < len + 2 && (t - vl / 2) / sp < CROSS_GAP_S) return true;
+      }
+    }
+    return false;
+  }
   function frameCity(ms, dt, now, focus) {
     const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
     tt.minute += (ms % 1000) / 60000;
@@ -2408,6 +2466,12 @@ export async function startCity(ctx) {
         if (ahead > -0.5 && ahead < 3 && Math.abs(side) < 0.9) want = (side >= 0 ? -1 : 1) * (0.95 - Math.abs(side));
         const was = dodge.get(entry.id) || 0, now2 = was + (want - was) * Math.min(1, dt * 4);
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
+      }
+      // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
+      if (pos.walk && pos.moving && !pos.down) {
+        const hold = waitsAtKerb(pos.walk, tsec);
+        c.holdWalk(pos.walk.key, Math.min(dt, 0.25), hold);
+        if (hold) { entry.moving = false; entry.activity = "waiting to cross"; }
       }
       const f = flings.get(entry.id);
       if (f) {
@@ -2431,16 +2495,20 @@ export async function startCity(ctx) {
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
       if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
       if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true }); continue; }
+      // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
+      // driven by the rules near you, so it is never driven through what is in its way.
+      let leg = s0.leg, route = null, key = null;
       if (s0.roam) {
-        const owner = c.roster.people.get(v.owner);
-        const pos = owner && c.personAt(owner, tt, undefined, focus);
-        if (pos && pos.mode === "drive") vehicles.push({ ...base, ...pos, moving: true });
-        continue;
-      }
-      const leg = s0.leg, route = c.legRoute(leg);
+        const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tt);
+        if (!round) {
+          const pos = owner && c.personAt(owner, tt, undefined, focus);
+          if (pos && pos.mode === "drive") vehicles.push({ ...base, ...pos, moving: true });
+          continue;
+        }
+        leg = round; route = round.route; key = `${v.id}:${round.key}`;
+      } else { route = c.legRoute(leg); key = City.legKey(v, leg, tt.day); }
       if (!route || route.length < 1) continue;
       const startS = (dayStart + leg.t0 * 60000) / 1000, durS = Math.max(1, (leg.t1 - leg.t0) * 60);
-      const key = City.legKey(v, leg, tt.day);
       const sched = (ts) => Math.max(0, Math.min(1, (ts - startS) / durS)) * route.length;
       const unsched = (d) => startS + (d / route.length) * durS;
       const [w, , l] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
@@ -2456,7 +2524,7 @@ export async function startCity(ctx) {
         if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
         // Not off yet (its leg starts later than the scan saw it): parked where it starts.
         if (lagged <= 0.05) { vehicles.push({ ...base, ...(route.startSpot || alongRoute(route, 0, PARK_LANE)), moving: false, parked: true }); continue; }
-        const pos = easeToSpots(route, lagged, alongRoute(route, lagged, (half) => Math.max(1.7, half - 1.8)));
+        const pos = easeToSpots(route, lagged, alongRoute(route, lagged, LANE));
         vehicles.push({ ...base, ...pos, moving: true, speed: route.length / durS });
       }
     }
@@ -2464,13 +2532,19 @@ export async function startCity(ctx) {
     const obstacles = [];
     if (!car.active && !car.riding && !transit.ride && !shop.place) obstacles.push({ id: "me", x: you.x, z: you.z, player: true });
     for (const q of people) if (!q.indoors && !q.down && Math.abs(q.x - focus.x) < SIM_M && Math.abs(q.z - focus.z) < SIM_M) obstacles.push({ id: q.id, x: q.x, z: q.z });
-    const blockers = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, v: car.speed, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2] }] : [];
+    // In the way of the city's cars, and solid to them: your car, the route buses, your cab.
+    const blockers = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, v: car.speed, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2], width: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[0] }] : [];
+    for (const b of [...routeBuses, ...(taxi.at ? [taxi.at] : [])]) {
+      if (Math.abs(b.x - focus.x) > SIM_M || Math.abs(b.z - focus.z) > SIM_M) continue;
+      const [bw, , bl] = VEHICLE_DIMS[b.model || "bus"] || VEHICLE_DIMS.sedan;
+      blockers.push({ x: b.x, z: b.z, yaw: b.yaw, v: b.dwelling ? 0 : b.speed || 0, length: bl, width: bw });
+    }
     if (sim.length) {
       const step = D.step(Math.min(dt, 0.1), tsec, sim, obstacles, blockers);
       for (const r0 of step.cars) {
         const { base, route } = legOf.get(r0.id);
         if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
-        const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, (half) => Math.max(1.7, half - 1.8)));
+        const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, LANE));
         vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
       }
       for (const hit of step.hits) carHit(hit, people);
@@ -3146,7 +3220,25 @@ export async function startCity(ctx) {
     refresh();
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
+  //: Money put in your device account on the backend (supabase/kerbside_city_grants.sql): into
+  //: your wallet once you are in the city and this browser holds the books (alone, or the
+  //: party's host), each grant once (world.mjs cmd_account_grant), then marked claimed there.
+  let grantsTaken = false;
+  async function takeAccountGrants() {
+    if (grantsTaken || !world || !world.players.has(myId) || !ctx.account) return;
+    grantsTaken = true;
+    const lib = await Promise.resolve(ctx.account()).catch(() => null);
+    const grants = (await lib?.cityGrants?.().catch(() => [])) || [];
+    for (const g of grants) {
+      const r = await send("account_grant", { grant: g.id, amount: g.amount });
+      if (!r.ok) continue;
+      save();
+      if (!r.already) notify(`${R.fmt(g.amount)} from the backend is in your wallet${g.note ? ` (${g.note})` : ""}.`);
+      lib.claimCityGrant?.(g.id);
+    }
+  }
   function refresh() {
+    takeAccountGrants();
     hud();
     drawSide();
     if (!panel) return;
@@ -3289,7 +3381,7 @@ export async function startCity(ctx) {
     rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
-    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
+    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };

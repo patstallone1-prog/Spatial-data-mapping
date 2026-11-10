@@ -3,9 +3,10 @@
 // timetable, stopping at every stop. Where each bus is follows from the clock, so a party sees
 // the same buses at the same stops without sending a byte (tests/city.test.mjs).
 
-import { alongRoute } from "./people.mjs";
+import { LANE, alongRoute } from "./people.mjs";
 
-const DRIVE_SIDE = (half) => Math.max(1.7, half - 1.8);
+//: A bus keeps to the lane, clear of the cars parked at the kerb (people.mjs LANE).
+const DRIVE_SIDE = LANE;
 
 //: The district's bus lines from ``stops`` ([{id, name, lon, lat, routes, modes}]) on ``streets``.
 export function buildLines(R, stops, streets, toXZ) {
