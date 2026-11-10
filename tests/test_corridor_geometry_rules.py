@@ -1311,7 +1311,8 @@ function tile(id, depth, error, cx, cz, radius, children, state) {
 def _run_tiles(js_body: str) -> dict:
     js = _page_js()
     names = ("tileFocalPx", "tileScreenErrorPx", "tilePriority", "tileHasContent",
-             "tilePending", "tileRect", "tileRingDistance", "tileFillDepth", "tileRingDepth", "selectTiles")
+             "tilePending", "tileRect", "tileRingDistance", "tileFillDepth", "tileRingDepth", "selectTiles",
+             "tileHeldByCity")
     parts = [TILE_PREAMBLE]
     parts.append(re.search(r"const TILE_MAX_SCREEN_ERROR_PX = [0-9.]+;", js).group(0))
     for constant in ("TILE_FULL_DEPTH", "TILE_CORE_DEPTH", "TILE_FULL_RING_M", "TILE_CORE_RING_M",
@@ -1321,6 +1322,8 @@ def _run_tiles(js_body: str) -> dict:
     parts.append("const tileFocus = { x: 0, y: 0, z: 0 };\nlet tileRingsActive = false;")
     # The region's fill, empty unless a test grows it; the zoom at the street.
     parts.append("const tileFill = { rect: null, radius: 0 };\nlet zoomTier = 4;")
+    # Explore (no City area held), and the fill's geometry well under its share.
+    parts.append("let cityLock = null, tileGeometryResident = 0;\nconst TILE_FILL_GEOMETRY_BYTES = 300 * 1048576;")
     parts += [_extract(name, js) for name in names]
     parts.append(js_body)
     out = subprocess.run([NODE, "--input-type=module", "-e", "\n".join(parts)],

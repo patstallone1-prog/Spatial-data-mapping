@@ -1571,9 +1571,10 @@ var ORBIT_RISE_STEP = 0.06, ORBIT_RISE_MAX_PITCH = 1.52;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
-//: In City mode (the game) the view stays down among the streets: out no further than just under
-//: a city block (San Francisco's run 100 to 125 m). Explore, the map, still goes out to the globe.
-const CITY_MAX_ORBIT_M = 90;
+//: In City mode (the game) the view stays down among the streets: out no further than 72 m, a
+//: fifth in from just under a city block (San Francisco's run 100 to 125 m; it was 90 m).
+//: Explore, the map, still goes out to the globe.
+const CITY_MAX_ORBIT_M = 72;
 function maxOrbitDist() {
   return typeof cityGame === "function" && cityGame() ? CITY_MAX_ORBIT_M : MAX_ORBIT_DIST_M;
 }

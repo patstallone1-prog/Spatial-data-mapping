@@ -40,16 +40,30 @@ const TILE_FILL_STEP_M = 250, TILE_FILL_EVERY_MS = 900;
 //: road lines, and a region looked unbuilt from above.
 const TILE_FILL_FAR_DEPTH = 7;
 const tileFill = { region: null, rect: null, radius: 0, reach: 0, lastAt: 0, focus: new THREE.Vector3() };
+//: How much built geometry the fill may grow the tiles to (a small device holds a third).
+const TILE_FILL_GEOMETRY_BYTES = (typeof deviceIsSmall === "function" && deviceIsSmall() ? 100 : 300) * 1048576;
 function tileFillDepth(tile) {
   if (!tileFill.rect || tileFill.radius <= 0) return null;
+  // Past the fill's share of memory nothing more is fetched for it; what it has stays.
+  if (tileGeometryResident >= TILE_FILL_GEOMETRY_BYTES && !tileHasContent(tile)) return null;
   const [x0, z0, x1, z1] = tileRect(tile), r = tileFill.rect;
   if (x1 < r[0] || x0 > r[2] || z1 < r[1] || z0 > r[3]) return null;
   // Ahead of a moving walker counts nearer, behind further: the fill leans the way it goes.
   const d = tileRingDistance(tile) * (1 - 0.45 * tileAheadness(tile));
   return d <= tileFill.radius ? (zoomTier < 1 ? TILE_FILL_FAR_DEPTH : TILE_FULL_DEPTH) : null;
 }
+//: In City mode the area is drawn in full by its own build, and nothing past it is filled:
+//: the tree is not refined under the area (it is hidden there) and the region round it is not
+//: filled out block by block -- that fill, standing still in the Marina, was building and
+//: throwing away lawns at 300 MB a minute and pushed the heap over the tab's limit.
+function tileHeldByCity(tile) {
+  if (typeof cityLock === "undefined" || !cityLock) return false;
+  const [x0, z0, x1, z1] = tileRect(tile), b = cityLock.box;
+  return x0 >= b[0] && x1 <= b[2] && z0 >= b[1] && z1 <= b[3];
+}
 function growTileFill(now) {
   if (META) { tileFill.rect = null; return; }   // the headset holds only the blocks round you
+  if (typeof cityLock !== "undefined" && cityLock) { tileFill.rect = null; tileFill.region = null; return; }
   const region = typeof activeGuest !== "undefined" && activeGuest ? activeGuest.region : REGION_INDEX.host;
   if (!region || !TILE_INDEX?.regions?.[region.name]) { tileFill.rect = null; return; }
   if (tileFill.region !== region || tileFill.focus.distanceTo(tileFocus) > 500) {
@@ -66,20 +80,26 @@ function growTileFill(now) {
     .map(([x, z]) => Math.hypot(x - tileFocus.x, z - tileFocus.z)));
   // Pulled back over the map (kerbs gone, zoom tier 1 or 0) the whole region is wanted at once:
   // there is no street underfoot to wait for, and the queue fetches the nearest first.
-  if (zoomTier <= 1) { tileFill.radius = tileFill.reach; return; }
+  if (zoomTier <= 1) { if (tileGeometryResident < TILE_FILL_GEOMETRY_BYTES) tileFill.radius = tileFill.reach; return; }
   // Only while the window and the tiles are idle: the street underfoot always comes first.
   const cells = worldCellCache.snapshot();
-  const idle = !attaching && !cells.active && !cells.queued && tileInFlight === 0 && tileQueue.length === 0;
+  // And only while the tiles' geometry is under TILE_FILL_GEOMETRY_BYTES: a filled tile stays
+  // drawn (it cannot be let go), and the fill went on to the region's edges, half a gigabyte and
+  // growing, with nothing else asking for it.
+  const idle = !attaching && !cells.active && !cells.queued && tileInFlight === 0 && tileQueue.length === 0
+    && tileGeometryResident < TILE_FILL_GEOMETRY_BYTES;
   if (idle && tileFill.radius < tileFill.reach && now - tileFill.lastAt > TILE_FILL_EVERY_MS) {
     tileFill.radius = Math.min(tileFill.reach, tileFill.radius + TILE_FILL_STEP_M);
     tileFill.lastAt = now;
   }
 }
 window.kerbsideTileFill = () => ({ region: tileFill.region?.name || null, radius: Math.round(tileFill.radius),
+  geometryMB: Math.round(tileGeometryResident / 1048576),
   reach: Math.round(tileFill.reach), complete: tileFill.reach > 0 && tileFill.radius >= tileFill.reach });
 //: The depth this tile should be drawn to near the walker, or null where the screen-error
 //: rule decides.
 function tileRingDepth(tile) {
+  if (tileHeldByCity(tile)) return null;
   const fill = tileFillDepth(tile);
   if (!tileRingsActive) return fill;
   const d = tileRingDistance(tile);
@@ -93,7 +113,7 @@ function selectTiles(tile, out, eye = camera) {
   const ring = tileRingDepth(tile);
   if (ring === null && !tileInView(tile)) return;
   const error = tileScreenErrorPx(tile, eye);
-  const refine = tile.children.length > 0 && (ring !== null ? tile.depth < ring
+  const refine = tile.children.length > 0 && !tileHeldByCity(tile) && (ring !== null ? tile.depth < ring
     // Outside the rings, near the ground: nothing finer than core shapes.
     : error > TILE_MAX_SCREEN_ERROR_PX && (!tileRingsActive || tile.depth < TILE_CORE_DEPTH));
   if (!refine) { out.push(tile); return; }
@@ -110,7 +130,7 @@ function selectTiles(tile, out, eye = camera) {
 
 //: The next ring of full blocks, fetched before the walker reaches it.
 function prefetchRing(tile, eye = camera) {
-  if (tileRingDistance(tile) > TILE_PREFETCH_RING_M) return;
+  if (tileRingDistance(tile) > TILE_PREFETCH_RING_M || tileHeldByCity(tile)) return;
   if (tile.depth >= TILE_FULL_DEPTH) {
     if (!tileHasContent(tile) && !tilePending(tile)) requestTile(tile, 0, false, tileAheadness(tile, eye), eye);
     return;
@@ -144,7 +164,7 @@ function prefetchTiles(drawn, eye = camera) {
     if (!parent) continue;
     for (const id of parent.children) {
       const sibling = TILES.get(id);
-      if (!sibling || tileHasContent(sibling) || tilePending(sibling)) continue;
+      if (!sibling || tileHasContent(sibling) || tilePending(sibling) || tileHeldByCity(sibling)) continue;
       const ahead = tileAheadness(sibling, eye);
       // Behind you, and not moving: it can wait until it is looked at.
       if (speed > 0.5 && ahead < -0.2) continue;
@@ -152,7 +172,7 @@ function prefetchTiles(drawn, eye = camera) {
     }
     for (const id of tile.children) {
       const kid = TILES.get(id);
-      if (kid && !tileHasContent(kid) && !tilePending(kid) && tileAheadness(kid, eye) > 0.2) {
+      if (kid && !tileHasContent(kid) && !tilePending(kid) && !tileHeldByCity(kid) && tileAheadness(kid, eye) > 0.2) {
         requestTile(kid, TILE_MAX_SCREEN_ERROR_PX, false, tileAheadness(kid, eye), eye);
       }
     }
@@ -180,6 +200,24 @@ function evictTiles(eye = camera) {
     tile.group = null;
     tile.state = "unavailable";
     tileResidentBytes -= tile.bytes;
+    tileGeometryResident -= tile.geometryBytes || 0;
+    tileStats.evicted += 1;
+  }
+}
+//: The tiles City mode does not draw, let go when its area is up: those under the area (hidden
+//: there by its own build, tileHeldByCity) and those past the ring round you that Explore had
+//: filled in -- 578 MB of them kept for nothing (2026-11-09).
+function evictTilesHeldByCity() {
+  for (const tile of TILES.values()) {
+    if (!tile.group || tile.drawn || !(tileHeldByCity(tile) || tileRingDistance(tile) > TILE_PREFETCH_RING_M)) continue;
+    tileGroupRoot.remove(tile.group);
+    tile.group.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+    for (const material of tile.materials || []) material.dispose();
+    tile.materials = null;
+    tile.group = null;
+    tile.state = "unavailable";
+    tileResidentBytes -= tile.bytes;
+    tileGeometryResident -= tile.geometryBytes || 0;
     tileStats.evicted += 1;
   }
 }
@@ -829,6 +867,7 @@ function inheritMesh(piece, mesh) {
   piece.renderOrder = mesh.renderOrder;
   piece.castShadow = mesh.castShadow;
   piece.receiveShadow = mesh.receiveShadow;
+  if (mesh.customDepthMaterial) piece.customDepthMaterial = mesh.customDepthMaterial;
   piece.frustumCulled = true;
   return piece;
 }

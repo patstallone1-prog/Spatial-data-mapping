@@ -59,13 +59,17 @@ var livingCity = null;
 // few blocks. The walker and the car stop at its edge. Explore streams the map as before.
 const CITY_AREA = {
   name: "the Marina",
-  // [south, west, north, east]: Greenwich to the Marina Green, Lyon to Webster -- Lombard,
-  // Chestnut and the Marina's blocks (1.2 km²; the whole of the hotspot, 2 km², took a minute).
-  bbox: [37.7983, -122.4478, 37.8065, -122.4330],
+  // [south, west, north, east]: Greenwich to the water, Lyon to Laguna -- Lombard, Chestnut, the
+  // Marina's blocks and the whole of its two parks, the Marina Green and Moscone (1.6 km²). It
+  // stopped at Webster and short of the water once (1.2 km²), and the edge ran through both
+  // parks: half a park in full and half the simple city's lawn, the houses past it plain.
+  bbox: [37.7983, -122.4478, 37.8082, -122.4310],
   // Where you start if you were elsewhere: Chestnut and Fillmore.
   start: [-122.4363, 37.8008],
   // The view's reach: the far plane and the haze.
   farM: 1600, fogNear: 450, fogFar: 1500,
+  // The world's cells kept while the area is held (it is built; nothing more is fetched).
+  cellBytes: 32 * 1048576,
 };
 //: null in Explore; in City: {ready, requested, placed}.
 var cityLock = null;
@@ -98,7 +102,9 @@ function enterCityArea() {
   cityAreaStep();
 }
 function leaveCityArea() {
+  const held = Boolean(cityLock);
   cityLock = null;
+  if (held) worldCellCache.maxBytes = typeof desktopMemory !== "undefined" ? desktopMemory.cellBytes : STREAM.cellBytes;
   cityLoading.hidden = true;
   fitViewToAltitude();
 }
@@ -113,6 +119,11 @@ function cityAreaStep() {
   if (built) {
     cityLock.ready = true;
     cityLoading.hidden = true;
+    // Nothing more is streamed while the area is held: the cells it was built from go down to a
+    // little, and the simple city's tiles under it (hidden there) are let go.
+    worldCellCache.maxBytes = CITY_AREA.cellBytes;
+    worldCellCache.evict();
+    evictTilesHeldByCity();
     if (!cityLock.placed) cityPlaceWalker();
     console.info(`kerbside: ${CITY_AREA.name} loaded for City mode in ${activeGuest.buildSeconds?.toFixed(1)} s`);
     requestFrame();

@@ -62,6 +62,7 @@ function invalidateTilesTouching(boxes) {
     tile.group = null;
     tile.state = "unavailable";
     tileResidentBytes -= tile.bytes;
+    tileGeometryResident -= tile.geometryBytes || 0;
   }
 }
 //: This page's own region let go: everything of its world but the tile tree, the walker, and
@@ -424,7 +425,10 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
   regionBadge.textContent = `Loading ${region.title} in full…`;
   regionBadge.style.opacity = "1";
   regionBadge.hidden = false;
-  const previous = activeGuest;
+  let previous = activeGuest;
+  // City mode's area is built behind its loading screen: the window that was there goes first,
+  // so the two are never held at once (4.2 GB at the hand-over into the Marina, measured).
+  if (stripKey === "city" && previous) { releaseGuest(previous); activeGuest = null; previous = null; }
   let candidate=null;
   try {
     // Build a bounded replacement offscreen. Never discard the last working window

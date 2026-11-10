@@ -258,6 +258,101 @@ function treeScale(tree, kind, protoHeight, protoRadius) {
   return [Math.max(up * 0.45, Math.min(up * 1.6, across)), up];
 }
 
+// ---- trees cut where they meet a house ----
+//
+// Most street trees stand close enough to a house that the prototype's crown, scaled to the tree,
+// reaches into it, and the leaves showed through walls and rooms. They were cut by baking each
+// such tree on its own -- every leaf of it copied out of the kind's one mesh and clipped against
+// the house -- which in the Marina was two trees in three and 172 MB of copies (2026-11-09). Now
+// every tree of a kind is an instance of the kind's one mesh, and the cut is made as it is drawn:
+// the houses round the trees are laid into a height map (treeWallMask: each texel the top of the
+// house standing on it), and a leaf or limb under that top is not drawn. The same cut, in full
+// detail; a texel is TREE_WALL_STEP_M across, so the cut follows a wall to within that.
+const TREE_WALL_STEP_M = 0.6, TREE_WALL_MAX_TEXELS = 4096, TREE_WALL_NONE = -60000;
+//: The height map of the houses round `trees` ({p: [lon, lat]}), from the footprint grid: the
+//: top of each house (its roof, or its height above its base) over the texels it covers;
+//: TREE_WALL_NONE where there is none; half floats, a few megabytes for a square kilometre.
+//: {texture, top, origin: [x0, z0], step, w, h, texels, houses}; `top` (the heights as numbers)
+//: is for the build, let go after it.
+function treeWallMask(trees) {
+  if (!trees.length || typeof footprintGrid === "undefined") return null;
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const tree of trees) {
+    const [x, y] = xy(tree.p[0], tree.p[1]);
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, -y); z1 = Math.max(z1, -y);
+  }
+  // As far round the trees as a crown spreads.
+  const pad = 30;
+  x0 -= pad; z0 -= pad; x1 += pad; z1 += pad;
+  let step = TREE_WALL_STEP_M;
+  while ((x1 - x0) / step > TREE_WALL_MAX_TEXELS || (z1 - z0) / step > TREE_WALL_MAX_TEXELS) step *= 1.5;
+  const w = Math.ceil((x1 - x0) / step), h = Math.ceil((z1 - z0) / step);
+  const top = new Float32Array(w * h).fill(TREE_WALL_NONE);
+  const seen = new Set();
+  let houses = 0;
+  for (const entries of footprintGrid.values()) for (const entry of entries) {
+    if (seen.has(entry)) continue;
+    seen.add(entry);
+    if (entry.maxX < x0 || entry.minX > x1 || entry.maxZ < z0 || entry.minZ > z1) continue;
+    const base = (entry.way._treeClipBase ?? groundBaseFor(entry.way.points)) - 0.1;
+    const roof = (entry.way._treeClipRoof ?? (base + Math.max(3, entry.way.height_m || 10.5))) + 0.1;
+    const ring = entry.local;
+    if (!ring || ring.length < 3) continue;
+    houses += 1;
+    // Scanline fill: each texel row's centre, the ring's crossings, filled between pairs.
+    const j0 = Math.max(0, Math.floor((entry.minZ - z0) / step)), j1 = Math.min(h - 1, Math.ceil((entry.maxZ - z0) / step));
+    for (let j = j0; j <= j1; j += 1) {
+      const z = z0 + (j + 0.5) * step, xs = [];
+      for (let k = 0, m = ring.length - 1; k < ring.length; m = k++) {
+        const [ax, az] = ring[m], [bx, bz] = ring[k];
+        if ((az <= z) !== (bz <= z)) xs.push(ax + (z - az) / (bz - az) * (bx - ax));
+      }
+      xs.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        const i0 = Math.max(0, Math.ceil((xs[k] - x0) / step - 0.5)), i1 = Math.min(w - 1, Math.floor((xs[k + 1] - x0) / step - 0.5));
+        for (let i = i0; i <= i1; i += 1) if (roof > top[j * w + i]) top[j * w + i] = roof;
+      }
+    }
+  }
+  const half = new Uint16Array(w * h);
+  for (let k = 0; k < top.length; k += 1) half[k] = THREE.DataUtils.toHalfFloat(top[k]);
+  const texture = new THREE.DataTexture(half, w, h, THREE.RedFormat, THREE.HalfFloatType);
+  texture.minFilter = texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, top, origin: [x0, z0], step, w, h, texels: w * h, houses,
+    frame: new THREE.Vector4(x0, z0, 1 / (w * step), 1 / (h * step)) };
+}
+//: A tree part's material (and the shadow it casts) taught to leave out what is under a house's
+//: top in `mask` -- in the tree's own frame, the one the footprints are in.
+function cutTreeAtWalls(part, mask) {
+  const teach = (material) => {
+    if (!material || material.userData.treeWallCut === mask) return material;
+    material.userData.treeWallCut = mask;
+    const before = material.onBeforeCompile, key = material.customProgramCacheKey();
+    material.onBeforeCompile = function (shader, renderer) {
+      before.call(this, shader, renderer);
+      shader.uniforms.treeWallMask = { value: mask.texture };
+      shader.uniforms.treeWallFrame = { value: mask.frame };
+      shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vTreeLocal;")
+        .replace("#include <project_vertex>", "#include <project_vertex>\n#ifdef USE_INSTANCING\n  vTreeLocal = (instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\n  vTreeLocal = transformed;\n#endif");
+      shader.fragmentShader = shader.fragmentShader.replace("#include <common>",
+        "#include <common>\nvarying vec3 vTreeLocal;\nuniform sampler2D treeWallMask;\nuniform vec4 treeWallFrame;")
+        .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n  {\n    vec2 wallAt = (vTreeLocal.xz - treeWallFrame.xy) * treeWallFrame.zw;\n"
+          + "    if (all(greaterThan(wallAt, vec2(0.0))) && all(lessThan(wallAt, vec2(1.0))) && vTreeLocal.y < texture2D(treeWallMask, wallAt).r) discard;\n  }");
+    };
+    material.customProgramCacheKey = () => `${key}:tree-wall-cut`;
+    material.needsUpdate = true;
+    return material;
+  };
+  teach(part.material);
+  // Its shadow cut the same: the depth it casts from, with the leaves' own picture for their edges.
+  if (!part.userData.treeDepth) {
+    part.userData.treeDepth = teach(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking,
+      map: part.material.map || null, alphaTest: part.material.alphaTest || 0, side: part.material.side }));
+  }
+}
+
 // ---- the understorey in the parks ----
 //
 // Under the park trees -- Golden Gate Park's woods, the Presidio's edges, a square's planes --

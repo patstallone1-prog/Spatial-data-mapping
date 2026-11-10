@@ -50,18 +50,24 @@ this device.
   them: where your task takes you next (an arrow and the distance), its other steps, money owed,
   being hurt or tired, and the task board's offers with a Take button; the first three show, "All
   N" opens the whole list. Windows open on the right under the top bar; the bar of eight and the
-  money, time and place line stay at the bottom. The view zooms out no further than 90 m (just
+  money, time and place line stay at the bottom. The view zooms out no further than 72 m (a fifth in from just
   under a block). Directions, the free view, pins and click-to-go are put away.
-* **City mode is played in the Marina** (Greenwich Street to the Marina Green, Lyon Street to
-  Webster: Lombard, Chestnut and the Marina's blocks, 1.2 km²). Switching to it shows "Loading
-  the Marina…" while the whole area is built once (about 40 s on a laptop; instant when it is
-  still built from the last time);
-  after that nothing is loaded in the background: the area is not rebuilt as you walk, the
-  memory watch does not rebuild it smaller, and the view sees a few blocks (the far plane at
-  1.6 km, haze from 450 m). Walking or driving to its edge stops you there ("switch to Explore
-  to go further"); tasks outside it are not offered (the Presidio's trees and the Marina walk,
-  whose Fort Mason and Wave Organ stops are past Webster, are Explore's). Switching back to Explore streams the map
-  as before.
+* **City mode is played in the Marina** (Greenwich Street to the water, Lyon Street to Laguna:
+  Lombard, Chestnut, the Marina's blocks and the whole of the Marina Green and Moscone, 1.6 km²).
+  Switching to it shows "Loading the Marina…" while the whole area is built once (about 40 s on
+  a laptop; instant when it is still built from the last time). The window that was there before
+  is let go first, so the two are never held at once; once the area is up, the world cells it
+  was built from and the simple city's tiles it does not draw are let go too. After that nothing
+  is loaded in the background: the area is not rebuilt as you walk, the memory watch does not
+  rebuild it smaller, the tile tree does not fill in the region round it, and the view sees a
+  few blocks (the far plane at 1.6 km, haze from 450 m). Walking or driving to its edge stops
+  you there ("switch to Explore to go further"); tasks outside it are not offered (the
+  Presidio's trees and the Marina walk's stops past Laguna are Explore's). Switching back to
+  Explore streams the map as before. Everything in the area is drawn in full detail all the
+  time: the trees every leaf (cut where they meet a house as they are drawn, one mesh a kind).
+* **Where you start**: your device's location, wherever the map has a region, unless you have
+  set a spawn point (the spawn point wins). In City mode only a location inside the Marina moves
+  you; otherwise you start at Chestnut and Fillmore.
 
 The people and the traffic are out in both modes.
 
