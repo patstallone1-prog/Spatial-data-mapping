@@ -111,7 +111,8 @@ function desktopMemoryTick() {
     M.sheds += 1; M.trimmedAt = used;
     console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${plan.level}: caches trimmed`);
   }
-  if (plan.rebuild) {
+  // City mode's area is held as it was built: the caches are trimmed, but it is not built again.
+  if (plan.rebuild && !(typeof cityLock !== "undefined" && cityLock)) {
     STREAM.radius = plan.rebuild;
     M.rebuilds += 1; M.lastRebuild = now;
     const lon = midLon + avatar.position.x / metersPerLon, lat = midLat - avatar.position.z / metersPerLat;

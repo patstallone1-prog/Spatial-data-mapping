@@ -49,6 +49,99 @@ function walkerOnWater(x, z, feet) {
 }
 
 var livingCity = null;
+// ---- City mode's own area: the Marina, loaded once ---------------------------------------------
+//
+// City mode is played in one place: the Marina (Chestnut, Union and Lombard Streets, the Marina
+// Green and the Palace of Fine Arts). Switched to, it is built once, in full, behind a loading
+// screen -- the square round you and the rest of the area with it -- and then nothing is
+// streamed: the detail window is not rebuilt as you walk, the memory watch does not build it
+// again smaller, and the view (held near the street, CITY_MAX_ORBIT_M) sees no further than a
+// few blocks. The walker and the car stop at its edge. Explore streams the map as before.
+const CITY_AREA = {
+  name: "the Marina",
+  // [south, west, north, east]: Greenwich to the Marina Green, Lyon to Webster -- Lombard,
+  // Chestnut and the Marina's blocks (1.2 km²; the whole of the hotspot, 2 km², took a minute).
+  bbox: [37.7983, -122.4478, 37.8065, -122.4330],
+  // Where you start if you were elsewhere: Chestnut and Fillmore.
+  start: [-122.4363, 37.8008],
+  // The view's reach: the far plane and the haze.
+  farM: 1600, fogNear: 450, fogFar: 1500,
+};
+//: null in Explore; in City: {ready, requested, placed}.
+var cityLock = null;
+function cityAreaBoxXZ() {
+  const [s, w, n, e] = CITY_AREA.bbox, [x0, y0] = xy(w, s), [x1, y1] = xy(e, n);
+  return [x0, -y1, x1, -y0];
+}
+//: Whether (x, z) is in City mode's area (always, in Explore).
+function cityAreaHolds(x, z) {
+  if (!cityLock) return true;
+  const [x0, z0, x1, z1] = cityLock.box;
+  return x >= x0 && x <= x1 && z >= z0 && z <= z1;
+}
+const cityLoading = document.createElement("div");
+cityLoading.id = "city-loading";
+cityLoading.hidden = true;
+cityLoading.setAttribute("role", "status");
+cityLoading.style.cssText = "position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;"
+  + "background:rgba(17,24,39,.82);color:#fff;font:600 18px/1.4 system-ui,sans-serif;text-align:center;padding:24px";
+cityLoading.innerHTML = `<div>Loading ${CITY_AREA.name}…</div><div id="city-loading-step" style="font-weight:400;font-size:13px;opacity:.8"></div>`;
+document.body.appendChild(cityLoading);
+const cityLoadingCss = document.createElement("style");
+cityLoadingCss.textContent = "#city-loading[hidden]{display:none!important}";
+document.head.appendChild(cityLoadingCss);
+//: Into City mode: the walker into the area, the area built once, the streaming held.
+function enterCityArea() {
+  if (META || ATTACH) return;
+  cityLock = { ready: false, requested: 0, placed: false, box: cityAreaBoxXZ() };
+  cityLoading.hidden = false;
+  cityAreaStep();
+}
+function leaveCityArea() {
+  cityLock = null;
+  cityLoading.hidden = true;
+  fitViewToAltitude();
+}
+//: Watched a few times a second until the area is up: asked for once the streets can be built,
+//: asked again after a failure, shown when it is ready.
+function cityAreaStep() {
+  if (!cityLock || cityLock.ready) return;
+  const step = document.getElementById("city-loading-step");
+  const [lon, lat] = CITY_AREA.start;
+  const [s, w, n, e] = CITY_AREA.bbox;
+  const built = activeGuest?.ready && activeGuest.stripKey === "city";
+  if (built) {
+    cityLock.ready = true;
+    cityLoading.hidden = true;
+    if (!cityLock.placed) cityPlaceWalker();
+    console.info(`kerbside: ${CITY_AREA.name} loaded for City mode in ${activeGuest.buildSeconds?.toFixed(1)} s`);
+    requestFrame();
+    return;
+  }
+  if (step) step.textContent = attaching?.progress?.textContent || (regionStreamingReady ? "Fetching the streets" : "Starting the map");
+  const now = performance.now();
+  if (regionStreamingReady && !attaching && now >= detailRetryAt && now - cityLock.requested > 3000) {
+    // The walker into the area first, so the build and the view are where you will be.
+    if (!cityLock.placed && !cityAreaHolds(avatar.position.x, avatar.position.z)) cityPlaceWalker();
+    const region = regionAt(lon, lat);
+    if (region) {
+      cityLock.requested = now;
+      attachRegion(region, { lon: (w + e) / 2, lat: (s + n) / 2 }, STREAM.arrival, true, { strip: [[w, s, e, n]], stripKey: "city" });
+    }
+  }
+  setTimeout(cityAreaStep, 250);
+}
+function cityPlaceWalker() {
+  if (!cityLock) return;
+  cityLock.placed = true;
+  if (cityAreaHolds(avatar.position.x, avatar.position.z)) return;   // already in it
+  const [x, y] = xy(CITY_AREA.start[0], CITY_AREA.start[1]), z = -y;
+  const at = (typeof walkerExteriorAt === "function" && walkerExteriorAt(x, z)) || { x, z };
+  if (state.explore) setExplore(false);
+  avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+  state.target.copy(avatar.position);
+  placeCamera();
+}
 //: The mode: "explore" (the map, search, directions, the free view) or "city" (the game: your
 //: body, wallet, job, car, the shops, and the keys that act on them), switched at the top left.
 //: Remembered on this device. The living city's people and traffic are out in both.
@@ -66,6 +159,9 @@ function setAppMode(mode) {
   if (fold) fold.textContent = appMode === "city" ? "☰ City" : "☰ Map";
   // The city is walked: the free view is put away, and the city's panel sits in the sidebar.
   if (appMode === "city" && state.explore) setExplore(false);
+  // City mode's area is built once and held; Explore streams again.
+  if (appMode === "city" && !cityLock) enterCityArea();
+  if (appMode !== "city" && cityLock) leaveCityArea();
   if (appMode === "city") livingCity?.openPanel(true);
   else livingCity?.closePanel?.();
   requestFrame();
@@ -115,6 +211,29 @@ function setAppMode(mode) {
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
       regionData, onRoad,
+      // The kerb as drawn near (x, z) -- {x, z, nx, nz (out of the road), ax, az} -- and whether a
+      // car may stand at it (driveways and painted kerb): where the world is built in full.
+      kerbAt: (x, z, ax = null, az = null, reach = 6) => {
+        const g = guestUnder(x, z);
+        if (g?.ready) {
+          if (!g.api.kerbAt) return null;
+          const k = g.api.kerbAt(...hostToGuest(g, x, z), reach, ax === null ? null : ax / g.sx, az);
+          if (!k) return null;
+          const s = g.sx, nl = Math.hypot(k.nx * s, k.nz) || 1, al = Math.hypot(k.ax * s, k.az) || 1;
+          return { x: g.ox + k.x * s, z: g.oz + k.z, nx: k.nx * s / nl, nz: k.nz / nl, ax: k.ax * s / al, az: k.az / al };
+        }
+        if (!hostWorldActive || typeof nearestKerbAt !== "function") return null;
+        const k = nearestKerbAt(x, z, reach, ax, az);
+        return k ? { x: k.x, z: k.z, nx: k.nx, nz: k.nz, ax: k.ax, az: k.az } : null;
+      },
+      kerbParking: (x, z, ax, az, halfLen, kind) => {
+        const g = guestUnder(x, z);
+        if (g?.ready) return g.api.kerbParking ? g.api.kerbParking(...hostToGuest(g, x, z), ax, az, halfLen, kind) : null;
+        return hostWorldActive && typeof kerbParking === "function" ? kerbParking(x, z, ax, az, halfLen, kind) : null;
+      },
+      // City mode's area: the walker and the car stop at its edge; tasks outside it are not offered.
+      inArea: (x, z) => cityAreaHolds(x, z),
+      areaName: () => (cityLock ? CITY_AREA.name : null),
       moveWalker: (mx, mz) => moveWalker(mx, mz),
       moveAvatarTo: (x, z, keepHeight = false) => {
         avatar.position.x = x; avatar.position.z = z;

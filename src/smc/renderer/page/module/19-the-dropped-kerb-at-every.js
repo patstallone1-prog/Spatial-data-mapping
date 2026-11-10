@@ -9,6 +9,10 @@
 // flared over APRON_FLARE_M beyond the door on each side.
 //: Longest triangle edge left over a driveway's drop, so the ramp has vertices to bend on.
 const DROP_MAX_EDGE_M = 0.9;
+//: Where a car may not stand at the kerb, as the street is drawn: every driveway let down
+//: (filled here) and every stretch of painted kerb (addOfficialCurbZoneBands). The living city
+//: parks only where neither is (kerbParking).
+const KERB_RULES = { drops: [], paint: [], paintGrid: null, dropGrid: null };
 //: A generator: the build runs it between frames (dropKerbsAtDrivewaysSteps). The arrays of a
 //: plain attribute are read directly -- getX and getComponent a value at a time were most of its
 //: half second a window (2026-11-05); they return the same numbers.
@@ -144,6 +148,7 @@ function* dropKerbsAtDrivewaysSteps(ways) {
       const reach = drop.half + APRON_FLARE_M + drop.depth;
       drop.minX = drop.x - reach; drop.maxX = drop.x + reach;
       drop.minZ = drop.z - reach; drop.maxZ = drop.z + reach;
+      KERB_RULES.drops.push(drop);
       for (let ix = Math.floor((drop.x - reach) / cell); ix <= Math.floor((drop.x + reach) / cell); ix += 1) {
         for (let iz = Math.floor((drop.z - reach) / cell); iz <= Math.floor((drop.z + reach) / cell); iz += 1) {
           const key = `${ix}:${iz}`;
@@ -162,6 +167,7 @@ function* dropKerbsAtDrivewaysSteps(ways) {
       const reach = drop.half + APRON_FLARE_M + drop.depth;
       drop.minX = drop.x - reach; drop.maxX = drop.x + reach;
       drop.minZ = drop.z - reach; drop.maxZ = drop.z + reach;
+      KERB_RULES.drops.push(drop);
       for (let ix = Math.floor(drop.minX / cell); ix <= Math.floor(drop.maxX / cell); ix += 1) {
         for (let iz = Math.floor(drop.minZ / cell); iz <= Math.floor(drop.maxZ / cell); iz += 1) {
           const key = `${ix}:${iz}`;
@@ -314,6 +320,56 @@ const CURB_BAND_W_M = 0.16;
 //: A kerb running more than this away from the policy line's own direction is a different kerb.
 const CURB_ALIGN_DEG = 38.0;
 
+//: Whether a car may stand at the kerb point (x, z), along (ax, az), ``halfLen`` either way:
+//: null where it may, else why not -- a driveway, or paint: red (no stopping) and blue
+//: (disabled) never; yellow (commercial loading) only a delivery vehicle; white (passenger
+//: loading) only a fare or a ride-hail stop; green (short-term) anyone. ``kind``: "delivery",
+//: "passenger" or null.
+function kerbParking(x, z, ax, az, halfLen = 2.4, kind = null) {
+  if (!KERB_RULES.dropGrid || KERB_RULES.dropGrid.count !== KERB_RULES.drops.length) {
+    const grid = new Map();
+    for (const d of KERB_RULES.drops)
+      for (let ix = Math.floor(d.minX / 16); ix <= Math.floor(d.maxX / 16); ix += 1)
+        for (let iz = Math.floor(d.minZ / 16); iz <= Math.floor(d.maxZ / 16); iz += 1) {
+          const k = ix * 1048576 + iz;
+          if (!grid.has(k)) grid.set(k, []);
+          grid.get(k).push(d);
+        }
+    grid.count = KERB_RULES.drops.length;
+    KERB_RULES.dropGrid = grid;
+  }
+  const near = new Set();
+  for (let ix = Math.floor((x - halfLen) / 16); ix <= Math.floor((x + halfLen) / 16); ix += 1)
+    for (let iz = Math.floor((z - halfLen) / 16); iz <= Math.floor((z + halfLen) / 16); iz += 1)
+      for (const d of KERB_RULES.dropGrid.get(ix * 1048576 + iz) || []) near.add(d);
+  for (const d of near) {
+    if (x < d.minX - halfLen || x > d.maxX + halfLen || z < d.minZ - halfLen || z > d.maxZ + halfLen) continue;
+    const along = (d.x - x) * ax + (d.z - z) * az, across = Math.abs((d.x - x) * az - (d.z - z) * ax);
+    if (Math.abs(along) < halfLen + d.half + 0.3 && across < 3) return "driveway";
+  }
+  if (!KERB_RULES.paintGrid) {
+    KERB_RULES.paintGrid = new Map();
+    for (const s of KERB_RULES.paint) {
+      for (let ix = Math.floor(Math.min(s[0], s[2]) / 8); ix <= Math.floor(Math.max(s[0], s[2]) / 8); ix += 1)
+        for (let iz = Math.floor(Math.min(s[1], s[3]) / 8); iz <= Math.floor(Math.max(s[1], s[3]) / 8); iz += 1) {
+          const k = ix * 1048576 + iz;
+          if (!KERB_RULES.paintGrid.has(k)) KERB_RULES.paintGrid.set(k, []);
+          KERB_RULES.paintGrid.get(k).push(s);
+        }
+    }
+  }
+  for (let t = -halfLen; t <= halfLen + 1e-6; t += 1) {
+    const px = x + ax * t, pz = z + az * t, list = KERB_RULES.paintGrid.get(Math.floor(px / 8) * 1048576 + Math.floor(pz / 8)) || [];
+    for (const [sx, sz, ex, ez, colour] of list) {
+      const ux = ex - sx, uz = ez - sz, L2 = ux * ux + uz * uz || 1, k = Math.max(0, Math.min(1, ((px - sx) * ux + (pz - sz) * uz) / L2));
+      if (Math.hypot(px - sx - ux * k, pz - sz - uz * k) > 1.2) continue;
+      if (colour === "red" || colour === "blue") return `${colour} kerb`;
+      if (colour === "yellow" && kind !== "delivery") return "yellow kerb (loading)";
+      if (colour === "white" && kind !== "passenger") return "white kerb (passengers)";
+    }
+  }
+  return null;
+}
 function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = null) {
   // The closest point on a carriageway edge, and the way out of the road from there.
   //

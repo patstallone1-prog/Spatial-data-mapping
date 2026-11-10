@@ -335,6 +335,8 @@ window.kerbsideRouteStrip = () => {
 };
 
 function checkDetailExpansion(now) {
+  // City mode's area is built once and not streamed (module 30, cityLock).
+  if(typeof cityLock!=="undefined" && cityLock)return;
   if(ATTACH || !regionStreamingReady || attaching || now<detailRetryAt || now-detailCheckAt<1000
     || !window.kerbsideReady?.streets || !window.kerbsideReady?.ground)return;
   // Right out over the map (zoom tier 0) the houses are the tile tree's and the paint is gone:
@@ -391,7 +393,7 @@ window.kerbsideStreamDetail=()=>{
 };
 //: `force`: built again even where the square asked for fits in the one drawn (the headset's
 //: memory governor, shrinking it).
-async function attachRegion(region, centre = null, radius = META ? STREAM.arrival : 220, force = false) {
+async function attachRegion(region, centre = null, radius = META ? STREAM.arrival : 220, force = false, own = null) {
   if (ATTACH || !regionStreamingReady || !region) return;
   const isHost = REGION_INDEX.host && region.name === REGION_INDEX.host.name;
   if (!centre && ((isHost && hostWorldActive) || (activeGuest && activeGuest.region === region))) return;
@@ -402,20 +404,23 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
   // The strip along the way, with any square but a hurried arrival's.
   // Keyed by the directions it was laid for, even where none of the way is in this region, so a
   // window is built for a set of directions once.
-  const strip = radius > STREAM.arrival ? routeStrip(region, centre) : [];
-  const stripKey = radius > STREAM.arrival ? routeStripKey() : "";
+  // (Or boxes of the caller's own: City mode's area.)
+  const strip = own?.strip || (radius > STREAM.arrival ? routeStrip(region, centre) : []);
+  const stripKey = own?.stripKey ?? (radius > STREAM.arrival ? routeStripKey() : "");
   if (!force && activeGuest?.region === region && activeGuest.windowBox && (activeGuest.stripKey || "") === stripKey) {
     const b=activeGuest.windowBox;
     if(radius<=activeGuest.detailRadius && worldStreaming.windowMargin(b,[centre.lon,centre.lat],
       [metersPerLon,metersPerLat],[rw,rs,re,rn])>=STREAM.keep)return;
   }
+  // In City mode only the area's own build is made (cityAreaStep).
+  if (typeof cityLock !== "undefined" && cityLock && stripKey !== "city") return;
   if (attaching) {
     if(attaching.region===region && Math.hypot((centre.lon-attaching.centre.lon)*metersPerLon,
-      (centre.lat-attaching.centre.lat)*metersPerLat)<100)return;
-    attachWanted = {region,centre,radius}; return;
+      (centre.lat-attaching.centre.lat)*metersPerLat)<100 && (attaching.stripKey||"")===stripKey)return;
+    attachWanted = {region,centre,radius,own}; return;
   }
   worldCellCache.focus();
-  attaching = {region,centre};
+  attaching = {region,centre,stripKey};
   regionBadge.textContent = `Loading ${region.title} in full…`;
   regionBadge.style.opacity = "1";
   regionBadge.hidden = false;
@@ -540,7 +545,7 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     attaching = null;
     const next = attachWanted;
     attachWanted = null;
-    if (next && performance.now()>=detailRetryAt) attachRegion(next.region,next.centre,next.radius);
+    if (next && performance.now()>=detailRetryAt) attachRegion(next.region,next.centre,next.radius,false,next.own);
   }
 }
 window.kerbsideAttachRegion = (name) => attachRegion(REGION_INDEX.list.find((r) => r.name === name));
@@ -626,6 +631,8 @@ window.kerbsideGuestApi = {
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
   cityWays: () => DATA.ways, cityCourts: () => PARK_EVIDENCE?.court_layout?.courts || [], insideCarriageway, mappedWaterAt, cityInlandAt,
+  // The kerb as it is drawn, and whether a car may stand at it (the living city's parking).
+  kerbAt: (x, z, reach = 6, ax = null, az = null) => { if (ax !== null) { const l = Math.hypot(ax, az) || 1; ax /= l; az /= l; } return nearestKerbAt(x, z, reach, ax, az); }, kerbParking,
   // Its garage doors, opened and shut in its own world (module 31).
   get garages() { return typeof garageDoors === "undefined" ? null : garageDoors; },
   tick: guestTick,
