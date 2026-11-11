@@ -14,7 +14,7 @@
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
-  LANE, PAVE_M, pavementRoute, workplacesByRole,
+  DRIVE_LANE, LANE, PAVE_M, pavementRoute, workplacesByRole,
 } from "./people.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
@@ -38,8 +38,9 @@ export const VISITOR_KINDS = [
   { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.25], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05]] },
 ];
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
-//: A car's lane: right of the street's middle, clear of the cars parked at its kerb (people.mjs LANE).
-const KERB = LANE;
+//: A car's lane: right of the street's middle, clear of the cars parked at its kerb, and the lane
+//: for the turn ahead on a street of more than one each way (people.mjs DRIVE_LANE).
+const KERB = DRIVE_LANE;
 //: Parking at the kerb (kerbSpot): how a spot is looked for and how close in a car stands.
 //: Two whiles at the kerb overlap: either held all day, or the same day and their times meet.
 const overlaps = (a, b) => !a || !b || (a.day === b.day && a.t0 < b.t1 && b.t0 < a.t1);
@@ -938,7 +939,7 @@ export class City {
     // (A walker keeps to the same pavement: the offset is to the right of the way, not of travel.)
     const turn = Math.min(1, Math.min(along, far - along) / 10), k = drive ? (forward ? 1 : -1) * turn : 1;
     const home = drive ? null : this.anchor(seg.place, null, { door: false });
-    const pos = drive ? alongRoute(route, along, (half, cls, park) => k * KERB(half, cls, park)) : this.walkEnds(route, along, 0, home, null, 3);
+    const pos = drive ? alongRoute(route, along, (half, cls, park, i) => k * KERB(half, cls, park, i, k > 0 ? route : null)) : this.walkEnds(route, along, 0, home, null, 3);
     if (!forward) pos.yaw += Math.PI;
     return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
   }

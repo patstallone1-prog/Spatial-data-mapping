@@ -7,7 +7,7 @@
 // browsers in a party with the same seed and clock see the same person on the same corner
 // without sending a byte about them. Pure, as docs/city/core.mjs is (tests/city_people.test.mjs).
 
-import { tenantKinds } from "./core.mjs";
+import { shopKinds, tenantKinds } from "./core.mjs";
 
 // ---- seeded numbers ------------------------------------------------------------------------------
 
@@ -133,8 +133,10 @@ export class Streets {
         // Parking on the right of each way of travel (SFMTA's block faces: way.parking_sides, 1
         // the left of the way as drawn, -1 its right): true, false, or null where unknown.
         const sides = Array.isArray(way.parking_sides) ? way.parking_sides : null;
-        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(-1) : null });
-        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(1) : null });
+        // A bike lane on the right of each way of travel (way.bike: the drawn way's right and left).
+        const bike = way.bike || null;
+        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(-1) : null, bike: bike ? bike.right || null : null });
+        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(1) : null, bike: bike ? bike.left || null : null });
       }
       prev = id;
     });
@@ -231,13 +233,18 @@ export class Streets {
     }
     let route = null;
     if (found) {
-      const ids = [b], halves = [], classes = [], parks = [];
-      for (let n = b; n !== a;) { const [p, e] = came.get(n); halves.push(e.half); classes.push(e.cls); parks.push(e.park ?? null); ids.push(p); n = p; }
-      ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse();
+      const ids = [b], halves = [], classes = [], parks = [], lanes = [], oneways = [], bikes = [];
+      for (let n = b; n !== a;) {
+        const [p, e] = came.get(n);
+        halves.push(e.half); classes.push(e.cls); parks.push(e.park ?? null); ids.push(p);
+        lanes.push(e.lanes || 2); oneways.push(!this.edges[e.to].some((r) => r.to === p && r.drive)); bikes.push(e.bike || null);
+        n = p;
+      }
+      ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse(); lanes.reverse(); oneways.reverse(); bikes.reverse();
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-      route = { pts, s, halves, classes, parks, ids, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
+      route = { pts, s, halves, classes, parks, ids, lanes, oneways, bikes, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
     if (this.routes.size > 6000) this.routes.delete(this.routes.keys().next().value);
     this.routes.set(key, route);
@@ -253,6 +260,54 @@ export function LANE(half, cls = null, park = null) {
   const parked = park === true || (park === null && cls === "residential");
   return Math.max(1.7, half - (parked ? LANE_PARKED_M : 1.8));
 }
+//: The lane a car keeps for the turn ahead (rules of the road: a left turn is made from the
+//: leftmost lane, a right from the kerb lane). A street's lanes each way are its lanes (one-way)
+//: or half of them; within TURN_LOOK_M of a turn of more than TURN_MIN_DEG a car is in the lane
+//: for it, and it changes lanes at the block's start, never in the junction. Cars all drove in
+//: the kerb lane: on Lombard a car turned left across two lanes from the far right (2026-11-11).
+export const LANE_W = 3.2, TURN_LOOK_M = 90, TURN_MIN_DEG = 35;
+export function lanePlan(route) {
+  if (route.plan !== undefined) return route.plan;
+  const { pts, s } = route;
+  if (!route.lanes || pts.length < 3) return (route.plan = null);
+  const n = route.lanes.map((l, i) => (route.oneways[i] ? Math.max(1, l) : Math.max(1, Math.floor(l / 2))));
+  // The turn at each vertex: -1 left, 1 right, 0 on.
+  const turn = new Int8Array(pts.length), sin = Math.sin((TURN_MIN_DEG * Math.PI) / 180);
+  for (let v = 1; v < pts.length - 1; v += 1) {
+    const ax = pts[v][0] - pts[v - 1][0], az = pts[v][1] - pts[v - 1][1], bx = pts[v + 1][0] - pts[v][0], bz = pts[v + 1][1] - pts[v][1];
+    const la = Math.hypot(ax, az) || 1, lb = Math.hypot(bx, bz) || 1;
+    // The way's right is (-dz, dx): the next leg's share of it is the turn's side and size.
+    const right = (bx * -az + bz * ax) / (la * lb), on = (ax * bx + az * bz) / (la * lb);
+    if (Math.abs(right) > sin || on < 0) turn[v] = right >= 0 ? 1 : -1;
+  }
+  const k = n.map((lanes, i) => {
+    if (lanes <= 1) return 0;
+    for (let v = i + 1; v < pts.length - 1 && s[v] - s[i + 1] < TURN_LOOK_M; v += 1) if (turn[v]) return turn[v] < 0 ? lanes - 1 : 0;
+    return 0;
+  });
+  return (route.plan = { n, k });
+}
+//: Right of a street's middle by ``half``, a car's lane: the kerb lane, or the one the turn
+//: ahead takes (``lanePlan``). For alongRoute's side: (half, cls, park, segment, route).
+export function DRIVE_LANE(half, cls = null, park = null, i = 0, route = null) {
+  const base = LANE(half, cls, park), plan = route ? lanePlan(route) : null;
+  if (!plan) return base;
+  const n = plan.n[i] || 1, k = Math.min(plan.k[i] || 0, n - 1);
+  if (n <= 1 || k === 0) return base;
+  // The leftmost lane of a two-way street is beside the middle line; of a one-way, beside the
+  // left kerb (clear of the cars parked there).
+  const left = route.oneways[i] ? -LANE(half, cls, park) : 1.7;
+  return base - ((base - left) * k) / (n - 1);
+}
+//: A bike's line: in the bike lane where the street has one (beside the kerb, or outside the
+//: parked cars), at the kerb's edge of the traffic lane where it is shared.
+export function BIKE_LANE(half, cls = null, park = null, i = 0, route = null) {
+  const lane = route?.bikes?.[i];
+  const parked = park === true || (park === null && cls === "residential");
+  if (lane === "track") return half - 0.75;
+  if (lane === "lane") return parked ? half - LANE_PARKED_M + 0.2 - 0.9 : half - 0.95;
+  return parked ? half - LANE_PARKED_M + 0.2 - 0.6 : half - 1.1;
+}
 //: Where along ``route`` distance ``d`` is: the point, the heading (as a yaw: 0 faces -z), and
 //: the point moved ``side`` metres to the right of the way (a lane, a pavement). Off the centre
 //: line the corners are rounded: the offset turns with the way over a few metres either side of
@@ -264,7 +319,7 @@ export function alongRoute(route, d, side = 0) {
   let lo = 0, hi = s.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m] <= d) lo = m; else hi = m; }
   const fn = typeof side === "function";
-  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i]) : side);
+  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i], i, route) : side);
   // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side.
   const on = (i, off) => {
     const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (d - s[i]) / len;
@@ -509,9 +564,10 @@ export const USE_BY_ARCHETYPE = {
 //: With the rules, a tenant named as a clinic or a gym is one (the map tags neither as a shop).
 export function placeFromBuilding(b, streets, R = null) {
   const use = USE_BY_ARCHETYPE[b.archetype || "generic"] || "residential";
-  const shops = (b.shops || []).map((s) => s.t).filter(Boolean);
+  // Each tenant's kinds, its tag told more exactly by its name (core.mjs shopKinds).
+  const shops = [];
+  for (const s of b.shops || []) for (const kind of (R ? shopKinds(R, s.t, s.n) : [s.t])) if (kind && !shops.includes(kind)) shops.push(kind);
   if (R) {
-    for (const s of b.shops || []) for (const kind of tenantKinds(R, s.n)) if (!shops.includes(kind)) shops.push(kind);
     if (!shops.length && use !== "residential") for (const kind of tenantKinds(R, b.name)) shops.push(kind);
   }
   const node = streets.nearest(b.x, b.z, "walk", 120);
@@ -739,7 +795,7 @@ export class Crowd {
       if (!leg || leg.far) continue;
       if (minute >= leg.depart && minute < leg.depart + leg.duration) {
         const d = (minute - leg.depart) * 60 * leg.speed;
-        const pos = alongRoute(leg.route, d, leg.mode === "drive" ? LANE : (half) => half + 1.6 * (hash32(p.id) % 2 ? 1 : -1));
+        const pos = alongRoute(leg.route, d, leg.mode === "drive" ? DRIVE_LANE : (half) => half + 1.6 * (hash32(p.id) % 2 ? 1 : -1));
         return { ...pos, moving: true, mode: leg.mode, activity: `to ${b.kind}` };
       }
     }
@@ -778,7 +834,7 @@ export class Crowd {
     const d = into % (2 * route.length);
     const forward = d <= route.length;
     const along = forward ? d : 2 * route.length - d;
-    const pos = alongRoute(route, along, drive ? (half, cls, park) => (forward ? 1 : -1) * LANE(half, cls, park) : (half) => (forward ? 1 : -1) * (half + 1.6));
+    const pos = alongRoute(route, along, drive ? (half, cls, park, i) => (forward ? 1 : -1) * DRIVE_LANE(half, cls, park, i, forward ? route : null) : (half) => (forward ? 1 : -1) * (half + 1.6));
     if (!forward) pos.yaw += Math.PI;
     return { ...pos, moving: true, mode, activity: a.kind === "stroll" ? "out for a walk" : `${this.R.jobs.roles[p.role].title.toLowerCase()} at work` };
   }
@@ -811,7 +867,7 @@ export class Crowd {
             if (tt <= left) { d += seg; left -= tt; } else { d += left * v; left = 0; }
           }
           if (elapsed < 0 || d >= route.length) continue;
-          const pos = alongRoute(route, d, LANE);
+          const pos = alongRoute(route, d, DRIVE_LANE);
           if (Math.hypot(pos.x - focus.x, pos.z - focus.z) > reach) continue;
           out.push({ id: `car:${cell}:${s}:${k}`, ...pos, model, moving: true, shade: colourRoll, speed: speedFor(pos.cls || "residential"), secondsOfDay });
         }

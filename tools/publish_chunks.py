@@ -49,7 +49,7 @@ DATA_SUFFIXES = {".json", ".bin", ".glb", ".geojson", ".pbf"}
 #: renderer's own hash and so change with every change to the page: a copy frozen in the map
 #: went stale at the next one.
 KEEP_ON_SITE = {"asset-map.json", "regions.json", "runtime-release.json", "manifest.webmanifest",
-                "sf-corridor-frontage-fits.manifest.json", "envelopes.json"}
+                "sf-corridor-frontage-fits.manifest.json", "envelopes.json", "ground-truth.json"}
 CONTENT_TYPES = {".json": "application/json", ".geojson": "application/geo+json",
                  ".bin": "application/octet-stream", ".glb": "model/gltf-binary",
                  ".pbf": "application/x-protobuf"}

@@ -156,7 +156,7 @@ export class CityWorld {
       properties: this.registry.owned(p.account, "building").map(slim), bills: this.billing.open(p.account),
       sales_rate: salesRate(this.R, here.chain, this.laws), resident_days: (this.now - p.resident_since) / DAY,
       vitals: p.vitals, inventory: p.inventory, worn: p.worn, carry: this.carry(p), resting: p.resting, delivery: p.delivery, ride: p.ride, fainted: p.fainted,
-      hands: p.hands, errand: p.errand, mortgages: p.mortgages || [], lease: p.lease, homes: this.registry.owned(p.account, "home").map(slim),
+      hands: p.hands, errand: p.errand, bookings: p.bookings || [], mortgages: p.mortgages || [], lease: p.lease, homes: this.registry.owned(p.account, "home").map(slim),
     };
   }
   carry(p) { return { kg: carriedKg(this.R, p.inventory), capacity: Math.round(carryCapacity(this.R, p.vitals.strength, p.inventory) * 10) / 10 }; }
@@ -225,6 +225,19 @@ export class CityWorld {
   }
 
   // ---- buying, carrying, using -----------------------------------------------------------------
+  //: What a service lets you buy after it (``grants``): a doctor's visit two prescriptions, an
+  //: eye exam two pairs of prescription lenses. A prescription is kept as ``rx``, as it was.
+  permits(p, what) { return what === "prescription" ? p.rx || 0 : p.permits?.[what] || 0; }
+  permit(p, what, n) {
+    if (what === "prescription") { p.rx = Math.max(0, (p.rx || 0) + n); return; }
+    p.permits ||= {};
+    p.permits[what] = Math.max(0, (p.permits[what] || 0) + n);
+  }
+  needsText(spec) {
+    if (spec.needs === "prescription") return `${spec.name.toLowerCase()} needs a doctor's prescription: see a doctor at a clinic first`;
+    const by = Object.values(this.R.items).find((x) => x && x.grants === spec.needs);
+    return `${spec.name.toLowerCase()} needs ${by ? `a ${by.name.toLowerCase()}` : spec.needs} first`;
+  }
   //: Buying at a store in ``place``: ``qty`` of an item it sells, with its tax. A service (a
   //: doctor's visit, a workout, a haircut, a night's stay) is had there and then; anything else is
   //: carried if you can carry it, or eaten or used on the spot with ``use``.
@@ -236,7 +249,7 @@ export class CityWorld {
     const p = this.player(pid);
     if (place.x !== undefined && p.x !== undefined && Math.hypot(p.x - place.x, p.z - place.z) > this.R.stores.reach_m * 2) throw new CityError("walk up to the shop first");
     qty = Math.max(1, Math.min(spec.service ? 1 : 20, qty | 0));
-    if (spec.needs === "prescription" && (p.rx || 0) < qty) throw new CityError("that needs a doctor's prescription: see a doctor at a clinic first");
+    if (spec.needs && this.permits(p, spec.needs) < qty) throw new CityError(this.needsText(spec));
     if (spec.workout && p.vitals.stamina < Math.abs(spec.use?.stamina || 0)) throw new CityError("too tired to work out: eat something or rest first");
     const consumed = Boolean(spec.service || (use && spec.use));
     if (!consumed) {
@@ -249,11 +262,11 @@ export class CityWorld {
     const shop = this.ledger.open(`business:${place.id}`, "business");
     this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
       { kind: "purchase", memo: `${qty > 1 ? qty + " x " : ""}${spec.name}`, at: this.now });
-    if (spec.needs === "prescription") p.rx -= qty;
+    if (spec.needs) this.permit(p, spec.needs, -qty);
     let effect = null;
     if (consumed) for (let i = 0; i < qty; i += 1) effect = this.useEffect(p, spec);
     else p.inventory[item] = (p.inventory[item] || 0) + qty;
-    if (spec.grants === "prescription") p.rx = (p.rx || 0) + 2;
+    if (spec.grants) this.permit(p, spec.grants, 2);
     this.log("purchase", { player: pid, item, qty, price, store: store.kind });
     return { item, qty, price, tax, rate: salesRate(this.R, here.chain, this.laws), store: store.name, effect, vitals: p.vitals, carry: this.carry(p) };
   }
@@ -323,7 +336,7 @@ export class CityWorld {
     for (const l of lines) {
       const spec = this.R.items[l.item];
       if (spec.parcel || !stores.some((st) => st.items.includes(l.item))) throw new CityError(`${spec.name.toLowerCase()} is not sold here`);
-      if (spec.needs === "prescription" && (p.rx || 0) < l.qty) throw new CityError(`${spec.name.toLowerCase()} needs a doctor's prescription: see a doctor at a clinic first`);
+      if (spec.needs && this.permits(p, spec.needs) < l.qty) throw new CityError(this.needsText(spec));
       if (spec.service) l.qty = 1;
       l.price = spec.price * l.qty; l.tax = itemTax(this.R, here.chain, spec, l.price, this.laws);
       price += l.price; tax += l.tax;
@@ -343,9 +356,9 @@ export class CityWorld {
     const effects = [];
     for (const l of lines) {
       const spec = this.R.items[l.item];
-      if (spec.service) { effects.push([l.item, this.useEffect(p, spec)]); if (spec.grants === "prescription") p.rx = (p.rx || 0) + 2; }
+      if (spec.service) { effects.push([l.item, this.useEffect(p, spec)]); if (spec.grants) this.permit(p, spec.grants, 2); }
       else p.inventory[l.item] = (p.inventory[l.item] || 0) + l.qty;
-      if (spec.needs === "prescription") p.rx -= l.qty;
+      if (spec.needs) this.permit(p, spec.needs, -l.qty);
     }
     this.log("checkout", { player: pid, lines: lines.length, price, tax });
     return { lines, price, tax, total: price + tax, effects, balance: this.ledger.balance(p.account), carry: this.carry(p), vitals: p.vitals };
@@ -1093,6 +1106,42 @@ export class CityWorld {
     this.log("purchase", { player: pid, item, qty, price, store: "online" });
     return { item, qty, price, tax, store: "Online store", carry: this.carry(p) };
   }
+  //: A service booked in the online store (rules.json online_store.services): paid at its own
+  //: price, not marked up, to the place that gives it, and had when you get there (cmd_use_booking).
+  cmd_book_service(pid, { item, place }) {
+    const spec = this.R.items[item];
+    if (!spec?.service) throw new CityError(`${spec?.name || item} is not a service`);
+    if (!place?.id || !storesAt(this.R, place.keys || []).some((st) => st.items.includes(item))) throw new CityError(`${spec.name.toLowerCase()} is not given there`);
+    const p = this.player(pid);
+    p.bookings ||= [];
+    if (p.bookings.length >= (this.R.online_store.max_bookings || 6)) throw new CityError("you have as many bookings as you can keep: use one first");
+    if (spec.needs && this.permits(p, spec.needs) < 1) throw new CityError(this.needsText(spec));
+    const [lon, lat] = [place.lon, place.lat];
+    const here = lon !== undefined ? jurisdictionAt(this.R, lon, lat, place.county || p.county) : this.where(p);
+    const tax = itemTax(this.R, here.chain, spec, spec.price, this.laws);
+    const shop = this.ledger.open(`business:${place.id}`, "business");
+    this.ledger.pay(p.account, [[shop, spec.price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
+      { kind: "purchase", memo: `Booked: ${spec.name}`, at: this.now });
+    const booking = { id: `b${this.now.toString(36)}${p.bookings.length}`, item, place: { id: place.id, x: place.x, z: place.z, name: place.name || null }, at: this.now };
+    p.bookings.push(booking);
+    this.log("booked", { player: pid, item, place: place.id });
+    return { booking, price: spec.price, tax };
+  }
+  //: Having a booked service, at the place it was booked at.
+  cmd_use_booking(pid, { booking }) {
+    const p = this.player(pid);
+    const i = (p.bookings || []).findIndex((b) => b.id === booking);
+    if (i < 0) throw new CityError("no such booking");
+    const b = p.bookings[i], spec = this.R.items[b.item];
+    if (Math.hypot((p.x ?? 1e9) - b.place.x, (p.z ?? 1e9) - b.place.z) > this.R.stores.reach_m) throw new CityError(`go to ${b.place.name || "the place"} for your ${spec.name.toLowerCase()}`);
+    if (spec.workout && p.vitals.stamina < Math.abs(spec.use?.stamina || 0)) throw new CityError("too tired to work out: eat something or rest first");
+    p.bookings.splice(i, 1);
+    const effect = this.useEffect(p, spec);
+    if (spec.grants) this.permit(p, spec.grants, 2);
+    if (spec.needs) this.permit(p, spec.needs, -1);
+    this.log("service", { player: pid, item: b.item, place: b.place.id });
+    return { item: b.item, effect, vitals: p.vitals };
+  }
   // ---- the task board -------------------------------------------------------------------------------
   //: Taking a task off the board (one at a time). The board's offers are made in the viewer from
   //: the district (a courier's pickup and drop-off, the Presidio's dead trees, the Marina walk);
@@ -1537,7 +1586,7 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout"]);
+  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking"]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
