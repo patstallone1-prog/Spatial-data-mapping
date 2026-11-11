@@ -140,7 +140,10 @@ class _Streets:
 
     def on_carriageway(self, x: float, y: float) -> bool:
         mx = 111_320.0 * math.cos(math.radians(y))
-        for a, b, half in self.cells.get((int(x // self.cell), int(y // self.cell)), ()):
+        # The cells round the point too: a street in the next cell can still be within its width.
+        ci, cj = int(x // self.cell), int(y // self.cell)
+        near = [seg for di in (-1, 0, 1) for dj in (-1, 0, 1) for seg in self.cells.get((ci + di, cj + dj), ())]
+        for a, b, half in near:
             ax, ay, bx, by = (a[0] - x) * mx, (a[1] - y) * 110_540.0, (b[0] - x) * mx, (b[1] - y) * 110_540.0
             dx, dy = bx - ax, by - ay
             L2 = dx * dx + dy * dy
@@ -179,6 +182,10 @@ def missing_buildings(ways: list[dict[str, Any]], footprints: list[dict[str, Any
                 continue
             if open_.covers(*pts[0]) or streets.on_carriageway(*pts[0]):
                 continue
+            # Two corners on the roadway: a footprint traced over the street's edge (the render
+            # audit counts a building on the road the same way).
+            if sum(streets.on_carriageway(x, y) for x, y in ring) >= 2:
+                continue
             source = row.get("_source") or f"datasf:{DATASET}"
             # Added rings of one region overlapping each other (DataSF's and Overture's of one
             # building): the first one taken stands, the next is covered by it.
@@ -207,6 +214,25 @@ def fill_building_gaps(ways: list[dict[str, Any]], footprints: list[dict[str, An
             added.append(w)
     ways.extend(added)
     return len(added)
+
+
+def prune_on_road(ways: list[dict[str, Any]]) -> int:
+    """Take out the added buildings (DataSF's, Overture's) with two corners on a carriageway: the
+    rule ``missing_buildings`` now keeps, for payloads filled before it. OSM's are left. How many."""
+    streets = _Streets(ways)
+
+    def on_road(w: dict[str, Any]) -> bool:
+        source = str(w.get("source") or (w.get("tags") or {}).get("source") or "")
+        if w.get("kind") != "building" or not source.startswith(("datasf:", "overture")):
+            return False
+        pts = w.get("points") or []
+        ring = pts[:-1] if len(pts) > 3 and pts[0] == pts[-1] else pts
+        return sum(streets.on_carriageway(x, y) for x, y in ring) >= 2
+
+    keep = [w for w in ways if not on_road(w)]
+    gone = len(ways) - len(keep)
+    ways[:] = keep
+    return gone
 
 
 def _get_json(url: str, user_agent: str) -> Any:

@@ -83,3 +83,20 @@ def test_the_whole_map_is_filled_through_the_asset_map():
     assert "fill_building_gaps(ways, fetch_footprints(part, cache))" in tool
     assert "overture_rows(overture_in(con, parquet, bbox), fallback_m=median_height(ways))" in tool
     assert 'files[key] = chunk' in tool and "store.put_file(chunk, out" in tool
+
+
+def test_a_footprint_traced_over_the_streets_edge_is_left_out_and_pruned():
+    from smc.regions.building_gaps import prune_on_road
+
+    street = {"kind": "street", "name": "Polk Street", "road_m": 14.0, "points": [[-122.4200, 37.7990], [-122.4200, 37.8010]]}
+    # Its middle is off the road, but its west corners are 5 m into the carriageway.
+    over = footprint(-122.42005, 37.8000, 0.0002, bid="21")
+    clear = footprint(-122.4198, 37.8000, 0.0002, bid="22")
+    assert [w["osm_id"] for w in missing_buildings([street], [over, clear])] == [missing_buildings([street], [clear])[0]["osm_id"]]
+    # A payload filled before the rule: the added one on the road goes, OSM's stays.
+    added = missing_buildings([], [over])[0]
+    osm = {**added, "osm_id": 5, "source": None, "tags": {"building": "yes"}}
+    ways = [street, added, osm]
+    assert prune_on_road(ways) == 1 and ways == [street, osm]
+    tool = (ROOT / "tools/fill_building_gaps_regions.py").read_text(encoding="utf-8")
+    assert 'return {"pruned": prune_on_road(ways)}' in tool

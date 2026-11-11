@@ -117,3 +117,9 @@ test("people are of many heights and builds, from their ids, and walk with a ste
   assert.ok(VIEW.includes("parts.hair.setColorAt(n,"), "hair");
   assert.ok(VIEW.includes('legL: mk(legGeo, MAX_PEOPLE, { vertexColors: true })'), "shoes by vertex colour, no extra part");
 });
+
+test("the compass's open box opens under the compass, never over the profile card", () => {
+  const pins = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
+  assert.ok(pins.includes("if (open) placeSunDial();") && pins.includes("sunDialBox.style.top = `${top}px`;"));
+  assert.ok(VIEW.includes('const dial = doc.getElementById("sun-dial");') && VIEW.includes("dial.style.top = `${Math.round(C.bottom + 8)}px`;"));
+});

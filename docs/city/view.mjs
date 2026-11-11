@@ -3293,6 +3293,12 @@ export async function startCity(ctx) {
     // The compass under the profile card while the game is on.
     if (cp) cp.style.top = on && P && P.height ? `${Math.round(P.bottom + 8)}px` : "16px";
     const B = on ? actionBar.getBoundingClientRect() : null, C = cp ? cp.getBoundingClientRect() : null;
+    // The compass's open box (heading and sun) stays under the compass as it moves: never over the card.
+    const dial = doc.getElementById("sun-dial");
+    if (dial && !dial.hidden && C && C.height) {
+      dial.style.top = `${Math.round(C.bottom + 8)}px`;
+      dial.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - Math.round(C.bottom + 8) - 12)}px`;
+    }
     root.style.setProperty("--city-under", `${Math.round(Math.max(B && B.height ? B.bottom : y + 44, C ? C.bottom : 0, P ? P.bottom : 0) + 8)}px`);
   }
   globalThis.addEventListener?.("resize", () => layoutBars());

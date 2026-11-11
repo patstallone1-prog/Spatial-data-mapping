@@ -17,6 +17,10 @@ docs/ itself carries (the corridor, the regions in git) are filled in place too.
 The Overture extract is the buildings theme cut to the regions' boxes, OSM's own rows left out
 (see ``--pull``). Idempotent: a building already added is not added again, and a region whose
 payload gains nothing is not re-uploaded.
+
+``--prune`` instead takes out of every payload the added buildings with two corners on a
+carriageway (``prune_on_road``: the rule the fill keeps since 2026-11-10, after the render
+audit counted DataSF footprints traced over the street's edge as buildings on the road).
 """
 
 from __future__ import annotations
@@ -38,6 +42,7 @@ from smc.regions.building_gaps import (  # noqa: E402
     fill_building_gaps,
     median_height,
     overture_rows,
+    prune_on_road,
 )
 
 MAP = DOCS / "asset-map.json"
@@ -77,8 +82,10 @@ def sf_part(bbox: list[float]) -> tuple[float, float, float, float] | None:
     return box if box[0] < box[2] and box[1] < box[3] else None
 
 
-def fill(payload: dict, bbox: list[float], *, con, parquet: Path, cache: Path) -> dict[str, int]:
+def fill(payload: dict, bbox: list[float], *, con, parquet: Path, cache: Path, prune: bool = False) -> dict[str, int]:
     ways = payload["ways"]
+    if prune:
+        return {"pruned": prune_on_road(ways)}
     added = {"datasf": 0, "overture": 0}
     part = sf_part(bbox)
     if part:
@@ -109,12 +116,13 @@ def main() -> int:
     ap.add_argument("--pull", action="store_true", help="first cut the Overture extract")
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--prune", action="store_true", help="take out added buildings on the roadway")
     args = ap.parse_args()
     args.work.mkdir(parents=True, exist_ok=True)
     regions = [r for r in json.loads(REGIONS.read_text())["regions"] if r.get("bbox")]
     if args.only:
         regions = [r for r in regions if r["name"] in args.only]
-    if args.pull or not args.overture.exists():
+    if not args.prune and (args.pull or not args.overture.exists()):
         pull_overture(args.overture, [r["bbox"] for r in regions])
     import duckdb
 
@@ -126,7 +134,7 @@ def main() -> int:
         from smc.cloud.store import open_store
 
         store = open_store(os.environ["KERBSIDE_PUBLIC_STORE"], role="public")
-    log = args.work / "fill-log.jsonl"
+    log = args.work / ("prune-log.jsonl" if args.prune else "fill-log.jsonl")
     done = {json.loads(line)["region"] for line in log.read_text().splitlines()} if log.exists() else set()
     report = []
     for r in regions:
@@ -145,8 +153,8 @@ def main() -> int:
             if not src.exists():
                 fetch(f"{base}/{files[key]}", src)
             payload = json.loads(src.read_text(encoding="utf-8"))
-            row.update(fill(payload, r["bbox"], con=con, parquet=args.overture, cache=cache))
-            if row["datasf"] + row["overture"] and not args.dry_run:
+            row.update(fill(payload, r["bbox"], con=con, parquet=args.overture, cache=cache, prune=args.prune))
+            if sum(v for v in row.values() if isinstance(v, int)) and not args.dry_run:
                 data = dump(payload)
                 chunk = f"chunks/{hashlib.sha256(data).hexdigest()[:24]}.json"
                 out = args.work / chunk.replace("/", "_")
@@ -158,7 +166,7 @@ def main() -> int:
             src.unlink()
         for path in local:
             payload = json.loads(path.read_text(encoding="utf-8"))
-            got = fill(payload, r["bbox"], con=con, parquet=args.overture, cache=cache)
+            got = fill(payload, r["bbox"], con=con, parquet=args.overture, cache=cache, prune=args.prune)
             row[f"local:{path.relative_to(DOCS)}"] = got
             if sum(got.values()) and not args.dry_run:
                 path.write_bytes(dump(payload))
@@ -170,8 +178,9 @@ def main() -> int:
             # The map after every region, so a stop half way leaves it pointing at what is there.
             record["version"] = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()[:16]
             MAP.write_text(json.dumps(record, indent=1) + "\n")
-    total = {k: sum(x.get(k, 0) for x in report) for k in ("datasf", "overture")}
-    print(f"{len(report)} regions: {total['datasf']} DataSF and {total['overture']} Overture buildings added to the served payloads")
+    total = {k: sum(x.get(k, 0) for x in report) for k in ("datasf", "overture", "pruned")}
+    print(f"{len(report)} regions: {total['datasf']} DataSF and {total['overture']} Overture buildings added, "
+          f"{total['pruned']} taken off the roadway, in the served payloads")
     return 0
 
 
