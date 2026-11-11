@@ -967,7 +967,10 @@ function moveWalker(mx, mz) {
     // One standing inside one (a car pulled up on them) may walk out of it.
     const cars = typeof livingCity !== "undefined" ? livingCity?.walkerBlocked : null;
     if (cars && cars(toX, toZ, WALKER_RADIUS_M, p.x, p.z)) {
-      if (!cars(toX, p.z, WALKER_RADIUS_M, p.x, p.z)) toZ = p.z;
+      // Slid along the car's side or its bumper (into the gap to the next car), not through it.
+      const slid = livingCity.walkerSlide?.(p.x, p.z, toX, toZ, WALKER_RADIUS_M);
+      if (slid) [toX, toZ] = slid;
+      else if (!cars(toX, p.z, WALKER_RADIUS_M, p.x, p.z)) toZ = p.z;
       else if (!cars(p.x, toZ, WALKER_RADIUS_M, p.x, p.z)) toX = p.x;
       else break;
     }

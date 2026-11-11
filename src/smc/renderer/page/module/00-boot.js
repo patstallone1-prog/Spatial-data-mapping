@@ -1,4 +1,37 @@
 import * as THREE from "https://esm.sh/three@0.160.0";
+//: The renderer keeps a logarithmic depth buffer (below): its shaders write each fragment's depth
+//: themselves, and a depth written that way takes no notice of the GL polygon offset -- so every
+//: layer lifted over the one under it by polygonOffset alone (the crossings' paint, the lane
+//: markings, the kerb ramps, the bus-zone paint: thirty-odd of them) was in the same plane as
+//: the road after all, and which of the two showed swapped about as the view moved: the colours
+//: that "glitch as you move" (2026-11-10). A material with a negative polygonOffsetUnits now has
+//: the same pull toward the eye in its written depth (LOGDEPTH_OFFSET, a share of the log depth
+//: per unit), so it stays on top wherever it is drawn. Once per page (attached regions share it).
+const LOGDEPTH_OFFSET_PER_UNIT = 2.5e-7;
+if (!THREE.Material.prototype.__logDepthOffset) {
+  const chunk = THREE.ShaderChunk.logdepthbuf_fragment;
+  if (chunk.includes("gl_FragDepthEXT =")) {
+    THREE.ShaderChunk.logdepthbuf_fragment = chunk.replace(/(gl_FragDepthEXT = [^;]+;)/,
+      "$1\n\t#ifdef LOGDEPTH_OFFSET\n\tgl_FragDepthEXT -= LOGDEPTH_OFFSET;\n\t#endif");
+  }
+  // ``defines`` read through the material's polygon offset: its own defines, and the offset's
+  // when it has one. Kept per (defines, units), so the program cache sees one object each time.
+  Object.defineProperty(THREE.Material.prototype, "defines", {
+    configurable: true,
+    get() {
+      const own = this.__defines;
+      const units = this.polygonOffset ? this.polygonOffsetUnits || 0 : 0;
+      if (!(units < 0)) return own;
+      const memo = this.__definesWithOffset;
+      if (memo && memo.own === own && memo.units === units) return memo.value;
+      const value = { ...(own || {}), LOGDEPTH_OFFSET: (-units * LOGDEPTH_OFFSET_PER_UNIT).toExponential(3) };
+      this.__definesWithOffset = { own, units, value };
+      return value;
+    },
+    set(value) { this.__defines = value; },
+  });
+  THREE.Material.prototype.__logDepthOffset = true;
+}
 //: Muni's red: the roof of every shelter and of every station canopy. Up here because the
 //: stops are built from a fetch that can land while the module is still running.
 const STOP_ROOF_RED = 0xb4282e;

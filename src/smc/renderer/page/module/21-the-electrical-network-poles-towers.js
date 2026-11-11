@@ -1029,8 +1029,54 @@ function busZonePieces(run) {
   return pieces;
 }
 
+//: Two pieces of one street side's transit zone this close end to end are one zone (m).
+const BUS_ZONE_JOIN_M = 4.0;
+//: SFMTA lists a bus stop as several zones, split at a meter or a sign: on Lombard at Fillmore
+//: a 13 m zone and a 3 m one with 3 m between them. Each was painted by itself, so the short
+//: one fell under BUS_ZONE_MIN_M and the red stopped short of the crosswalk (2026-11-10). And
+//: one zone listed again for each of its time windows was painted once per window.
+function joinBusZones(records) {
+  const metres = (p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; };
+  const gap = (p, q) => { const a = metres(p), b = metres(q); return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+  const seen = new Set();
+  const groups = new Map();
+  for (const record of records) {
+    for (const line of record.lines || []) {
+      if (!Array.isArray(line) || line.length < 2) continue;
+      const key = JSON.stringify(line);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const side = `${record.street_name || ""}|${record.side_of_street || ""}`;
+      if (!groups.has(side)) groups.set(side, []);
+      groups.get(side).push({ record, line: line.slice() });
+    }
+  }
+  const out = [];
+  for (const pieces of groups.values()) {
+    let joined = true;
+    while (joined) {
+      joined = false;
+      for (let i = 0; i < pieces.length && !joined; i += 1) {
+        for (let j = i + 1; j < pieces.length && !joined; j += 1) {
+          const a = pieces[i].line, b = pieces[j].line;
+          const ends = [[a, b, gap(a[a.length - 1], b[0])], [a, b.slice().reverse(), gap(a[a.length - 1], b[b.length - 1])],
+            [b, a, gap(b[b.length - 1], a[0])], [b.slice().reverse(), a, gap(b[0], a[0])]];
+          const [first, second, d] = ends.reduce((m, e) => (e[2] < m[2] ? e : m));
+          if (d > BUS_ZONE_JOIN_M) continue;
+          pieces[i] = { record: pieces[i].record, line: first.concat(second) };
+          pieces.splice(j, 1);
+          joined = true;
+        }
+      }
+    }
+    for (const piece of pieces) out.push({ ...piece.record, lines: [piece.line] });
+  }
+  return out;
+}
+
 function addBusZonePaint(records) {
   // The red box in the roadway at a bus zone.
+  records = joinBusZones(records);
   //
   // The curb beside it is already red -- every one of these carries curb_color red and is drawn
   // by the band pass above. What was missing is the part in the road: San Francisco marks its
@@ -1368,6 +1414,9 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}) 
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
+  // Where the sign posts stand, for the storm drains (waterworks, below): a drain's opening is
+  // not drawn under a post.
+  kerbPostSpots = plates.spots.slice();
   if (signStats.clashes || signStats.onCrossing) console.warn("sign placement", { ...signStats });
   const note = document.getElementById("furniturenote");
   if (note) {
@@ -1470,6 +1519,14 @@ registerLazyLayer("highway_tolls", async () => {
 // Published as the freeway signs are: a manifest of tiles by area, and only the tiles over this
 // page are fetched. Each drain carries where its water goes (window.kerbsideDrainsNear).
 const WATERWORKS_TILE_PATH = /^waterworks\/[a-z0-9-]+\.json$/;
+//: The sign posts standing at the kerbs (set when the street furniture is placed): a var, so the
+//: furniture's build may set it whenever it runs.
+var kerbPostSpots = [];
+//: Whether a post stands within ``r`` of (x, z).
+function kerbPostNear(x, z, r) {
+  for (const p of kerbPostSpots) if (Math.abs(p.x - x) < r && Math.abs(p.z - z) < r && Math.hypot(p.x - x, p.z - z) < r) return true;
+  return false;
+}
 registerLazyLayer("waterworks", async () => {
   const index=await fetch(sharedAsset("waterworks.manifest.json"),{cache:"no-cache"})
     .then(r=>r.ok?r.json():null).catch(()=>null);
@@ -1502,7 +1559,7 @@ registerLazyLayer("waterworks", async () => {
     place:(lon,lat)=>{const [x,y]=xy(lon,lat);return {x,z:-y};},
     ground:(x,z)=>groundLiftAt(x,z), roadTop:ROAD_TOP_M, kerbH:renderedKerbHeight(null),
     kerb:(x,z,reach)=>nearestKerbAt(x,z,reach), onRoad:(x,z,slack=0.4)=>insideCarriageway(x,z,slack),
-    wet:(x,z)=>mappedWaterAt(x,z)===true, kerbSegments, inArea, headset:HEADSET});
+    wet:(x,z)=>mappedWaterAt(x,z)===true, kerbSegments, inArea, headset:HEADSET, postNear:kerbPostNear});
   groups.furniture.add(group);
   const w=group.userData.summary;
   console.info(`kerbside: waterworks: ${w.drains} drains, ${w.lids} lids, ${w.streams} stream runs, `

@@ -30,7 +30,7 @@ function stub(name = "stub") {
 }
 globalThis.__THREE = stub("THREE");
 const el = () => stub("element");
-globalThis.document = { getElementById: el, querySelector: () => null, querySelectorAll: () => [], createElement: el, body: el(), documentElement: el(), addEventListener() {}, hidden: false, visibilityState: "visible" };
+globalThis.document = { getElementById: el, querySelector: () => null, querySelectorAll: () => [], createElement: el, body: el(), head: el(), documentElement: el(), addEventListener() {}, hidden: false, visibilityState: "visible" };
 globalThis.window = globalThis;
 globalThis.devicePixelRatio = 1; globalThis.innerWidth = 1280; globalThis.innerHeight = 800;
 globalThis.location = { search: process.argv[5] || "", hash: "", href: "http://localhost/" };

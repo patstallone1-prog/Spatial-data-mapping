@@ -220,13 +220,27 @@ test("a car's way from a spot with no street way beside it is still a way (the s
 test("on foot the city's cars are solid: the walker's step checks them, except while driving or riding", () => {
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   const walk = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
-  assert.match(view, /function carsAt\(x, z, r = 0\.3\) \{\n\s+const out = \[\];\n\s+if \(!ctx\.enabled\(\) \|\| car\.active \|\| car\.riding \|\| transit\.ride\) return out;/);
+  assert.match(view, /function carsNear\(x, z, r = 0\.3\) \{\n\s+const out = \[\];\n\s+if \(!ctx\.enabled\(\) \|\| car\.active \|\| car\.riding \|\| transit\.ride\) return out;/);
   const body = view.slice(view.indexOf("function carsAt"), view.indexOf("function hitInTraffic"));
   for (const list of ["drawnCars", "routeBuses", "taxi.at", "...parked", "...peerCars"]) assert.ok(body.includes(list), list);
   // Already inside one car (a row of parked cars), a step into the next is still refused.
   assert.match(body, /return next\.some\(\(id\) => !now\.includes\(id\)\);/);
-  assert.match(view, /drawnCars: \(\) => drawnCars, walkerBlocked, carsAt,/);
+  assert.match(view, /drawnCars: \(\) => drawnCars, walkerBlocked, walkerSlide, carsAt,/);
   assert.match(walk, /cars\(toX, toZ, WALKER_RADIUS_M, p\.x, p\.z\)/);
+  assert.match(walk, /livingCity\.walkerSlide\?\.\(p\.x, p\.z, toX, toZ, WALKER_RADIUS_M\)/);
+});
+
+test("a gap between two cars is walked through: rounded footprints, a walker side on between bumpers", async () => {
+  const { carClearance, CAR_SQUEEZE_M } = await import("../docs/city/view.mjs");
+  // Two sedans (1.85 x 4.8) nose to tail along z, 0.6 m between bumpers: the gap's middle is clear.
+  const A = [0, 0], B = [0, 4.8 + 0.6];
+  const clear = (x, z) => Math.min(carClearance(x, z, ...A, 0, 1.85, 4.8), carClearance(x, z, ...B, 0, 1.85, 4.8));
+  for (let x = -1.5; x <= 1.5; x += 0.1) assert.ok(clear(x, 2.7) >= CAR_SQUEEZE_M, `stuck in the gap at x ${x.toFixed(1)}`);
+  // Beside a car's door: blocked; just off its rounded corner on the diagonal: clear.
+  assert.ok(carClearance(1.0, 0, 0, 0, 0, 1.85, 4.8) < CAR_SQUEEZE_M);
+  assert.ok(carClearance(0.925 + 0.2, 2.4 + 0.2, 0, 0, 0, 1.85, 4.8) >= CAR_SQUEEZE_M);
+  // Turned with its yaw: the same footprint.
+  assert.ok(Math.abs(carClearance(3, 0, 0, 0, Math.PI / 2, 1.85, 4.8) - (3 - 2.4)) < 1e-9);
 });
 
 test("rounds: flyers in any order, a dog walk in turn, paid by the rules on the last stop", async () => {

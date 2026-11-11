@@ -28,6 +28,9 @@ function hash(text) {
 
 // -- pure geometry (tested without a page) ------------------------------------------------------------
 
+//: How far a drain's opening keeps from a sign post at the kerb (m): the post's foot and the
+//: opening's half-length.
+const POST_CLEAR_M = 0.75;
 //: How a drain stands at the kerb: its centre in the gutter, the way along the kerb, the way out
 //: of the road. ``kerb`` is the page's nearest kerb ({x, z, nx, nz, ax, az}) or null.
 export function seatDrain(form, x, z, kerb) {
@@ -124,7 +127,7 @@ export const GUTTER_LIFT_M = 0.03;
 // -- the drawing ------------------------------------------------------------------------------------------
 
 export function buildWaterworks(THREE, tiles, {
-  place, ground, roadTop = 0.06, kerbH = 0.126, kerb = () => null, onRoad = () => false,
+  place, ground, roadTop = 0.06, kerbH = 0.126, kerb = () => null, onRoad = () => false, postNear = () => false,
   wet = () => false, kerbSegments = () => [], inArea = () => true, document: doc = globalThis.document,
   headset = false,
 } = {}) {
@@ -290,7 +293,20 @@ export function buildWaterworks(THREE, tiles, {
     const p = place(d.p[0], d.p[1]);
     if (!inArea(p.x, p.z)) continue;
     const k = kerb(p.x, p.z, 8);
-    const seat = seatDrain(d.f, p.x, p.z, k);
+    let seat = seatDrain(d.f, p.x, p.z, k);
+    // A sign post standing on the kerb over it (the drain is mapped to a metre or so, the post
+    // where the city's sign inventory puts it): the opening a step along the kerb, clear of it.
+    if (seat.atKerb && postNear(seat.kx, seat.kz, POST_CLEAR_M)) {
+      for (const d0 of [0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) {
+        const kx = seat.kx + seat.ax * d0, kz = seat.kz + seat.az * d0;
+        if (postNear(kx, kz, POST_CLEAR_M)) continue;
+        const k2 = kerb(kx, kz, 2);
+        if (!k2) continue;
+        seat = seatDrain(d.f, kx, kz, k2);
+        counts.moved_off_posts = (counts.moved_off_posts || 0) + 1;
+        break;
+      }
+    }
     const yaw = Math.atan2(-seat.az, seat.ax);
     const road = level(seat.x, seat.z) + roadTop;
     forms[d.f] = (forms[d.f] || 0) + 1;
