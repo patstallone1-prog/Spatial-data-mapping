@@ -1480,6 +1480,8 @@ settingsPart("settings-display", "section").insertAdjacentHTML("beforeend", `
     <select name="world">${LIGHT_RADII_M.map((r, i) => `<option value="${i}"${!i && document.querySelector('meta[name="kerbside-app-mode"]') ? " disabled" : ""}>${i ? `${(2 * r / 1000).toFixed(1)} km round you` : "Whole region (export only)"}</option>`).join("")}</select></label>
   <p class="note">Lower quality draws fewer pixels, brings detail in closer and loads more gently; Low and Medium also load a lighter ground (from the next load). Saved in this browser.</p>
   <output id="stream-status" class="note" aria-live="polite"></output>
+  <label class="row">Ground truth only<input type="checkbox" name="truth" /></label>
+  <p class="note">The world as mapped from its sources, with nobody's edits drawn over it: no one's exterior edits, your own included. Your edits are kept, apart from it; turn this off to see them again.</p>
   <label class="row">Show me at my location<input type="checkbox" name="gps" /></label>
   <p class="note">Your walker stands where your device says you are, and walks and turns with you, while you are in this region. Your location stays in this browser except as the start of directions you ask for.</p>`);
 function showSettings(open) {
@@ -1506,6 +1508,14 @@ settingsForm.addEventListener("change", (e) => {
     if (gps.enabled) startGps(); else stopGps();
     return;
   }
+  if (e.target === settingsForm.truth) {
+    // What is drawn over the data is decided as the page loads: it loads again.
+    try { localStorage.setItem(GROUND_TRUTH_KEY, settingsForm.truth.checked ? "1" : "0"); } catch (error) { /* this visit only */ }
+    const url = new URL(location.href);
+    if (settingsForm.truth.checked) url.searchParams.set("truth", "1"); else url.searchParams.delete("truth");
+    location.replace(url.href);
+    return;
+  }
   if (e.target === settingsForm.world) {
     // How much is built is decided before anything is: the page builds again.
     try { localStorage.setItem(LIGHT_KEY, settingsForm.world.value); localStorage.removeItem(RECOVERY_KEY); }
@@ -1523,6 +1533,7 @@ settingsForm.fps.value = String(SETTINGS.fps);
 settingsForm.quality.value = SETTINGS.quality;
 settingsForm.world.value = String(LIGHT_LEVEL);
 if (settingsForm.gps) settingsForm.gps.checked = gps.enabled;
+if (settingsForm.truth) settingsForm.truth.checked = GROUND_TRUTH;
 startGps();
 window.kerbsideSettings = {
   get: () => ({ ...SETTINGS, ...QUALITY(), zoomTier }),

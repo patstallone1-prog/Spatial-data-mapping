@@ -735,12 +735,21 @@ function applyStorefrontNames(data, inventory) {
   return applied;
 }
 applyStorefrontNames(DATA, STORE_NAMES);
+//: The ground truth: the world as mapped, drawn with nobody's edits over it (Settings, "Ground
+//: truth only", or ?truth=1). The data is never written with edits; they are drawn over it
+//: (tools/record_ground_truth.py keeps a copy of the data as it was built).
+const GROUND_TRUTH_KEY = "kerbside:ground-truth";
+const GROUND_TRUTH = (() => {
+  if (new URLSearchParams(location.search).has("truth")) return true;
+  try { return localStorage.getItem(GROUND_TRUTH_KEY) === "1"; } catch { return false; }
+})();
+if (GROUND_TRUTH) console.info("kerbside: ground truth only: the mapped world, without anyone's edits");
 //: What people drew on their own fronts (docs/exterior-editor.mjs): the edits published for
 //: everyone (scripts/merge_exterior_edits.py), and over them this browser's own.
 const EXTERIOR_EDITS_KEY = "kerbside:exterior-edits:v1";
 // The canonical edits -- what verified editors saved, for everyone -- asked for beside the
 // published file, so a building's own windows give way to them as it is built.
-const [PUBLISHED_EXTERIOR_EDITS, CANONICAL_EXTERIOR_EDITS] = await Promise.all([
+const [PUBLISHED_EXTERIOR_EDITS, CANONICAL_EXTERIOR_EDITS] = GROUND_TRUTH ? [null, {}] : await Promise.all([
   fetch(asset("sf-corridor-exterior-edits.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
   // A region drawn beside the page has the page's own (it fetched them): a verified edit shows there too.
   META ? {} : ATTACH ? (ATTACH.canonicalEdits || {}) : accountLibrary().then((m) => m.canonicalEdits()).catch(() => ({})),
@@ -754,7 +763,7 @@ function localExteriorEdits() {
 const EXTERIOR_EDITS = new Map();
 {
   const published = PUBLISHED_EXTERIOR_EDITS?.schema === "kerbside.exterior_edits/1" ? PUBLISHED_EXTERIOR_EDITS.edits || {} : {};
-  const local = META ? {} : localExteriorEdits();
+  const local = META || GROUND_TRUTH ? {} : localExteriorEdits();
   for (const id of new Set([...Object.keys(published), ...Object.keys(CANONICAL_EXTERIOR_EDITS || {}), ...Object.keys(local)])) {
     EXTERIOR_EDITS.set(id, newerEdit(publishedExteriorEdit(id), local[id]));
   }

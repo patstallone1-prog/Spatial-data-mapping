@@ -364,8 +364,8 @@ if (!ATTACH) await loadTileTree();
 
 // ---- the exterior editor ---------------------------------------------------------------------
 //
-// A person corrects a building's front by hand (docs/exterior-editor.mjs): right-click it, or
-// point at it and press E. The module keeps the panel and the edit; the page tells it what the
+// A person corrects a building's front by hand (docs/exterior-editor.mjs): Shift and a right
+// click on it. The module keeps the panel and the edit; the page tells it what the
 // building's walls are and what it drew on them, and draws every saved edit on load.
 let exteriorEditorModule = null;
 const exteriorEditorLibrary = () => (exteriorEditorModule ??= import(sharedAsset("exterior-editor.mjs?rev=__EXTERIOR_EDITOR_HASH__")));
@@ -699,23 +699,24 @@ function offerExteriorEdit(feature) {
   button.type = "button";
   button.className = "addr-edit";
   button.textContent = "Edit exterior";
-  button.title = "Correct this building's front: windows, doors, garages, stairs (E)";
+  button.title = "Correct this building's front: windows, doors, garages, stairs (Shift + right click)";
   button.addEventListener("click", () => openExteriorEditor(feature));
   addrBox.append(document.createElement("br"), button);
   addrBox.style.pointerEvents = "auto";
 }
 if (!META) {
+  // Shift and a right click on a building opens its exterior editor, in either mode: what a
+  // verified editor confirms there goes into everyone's world. A plain right click is the
+  // address in Explore and using what you hold in City; E is Explore's free view. (Both used
+  // to open the editor too, and E did two things at once.)
   canvas.addEventListener("contextmenu", (e) => {
-    if (cityGame()) return;
     const feature = pickedFeature(e.clientX, e.clientY);
-    if (feature?.kind === "building" && showAddress(feature, e.clientX, e.clientY)) offerExteriorEdit(feature);
-  });
-  addEventListener("keydown", (e) => {
-    if ((e.key !== "e" && e.key !== "E") || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || !pointerAt) return;
-    if (cityGame()) return;   // the exterior editor is Explore's
-    const feature = pickedFeature(...pointerAt);
-    if (feature?.kind === "building") openExteriorEditor(feature);
+    if (e.shiftKey) {
+      if (feature?.kind === "building") openExteriorEditor(feature);
+      return;
+    }
+    if (cityGame()) return;
+    if (feature?.kind === "building") showAddress(feature, e.clientX, e.clientY);
   });
   for (const id of EXTERIOR_EDITS.keys()) drawSavedExteriorEdit(id, EXTERIOR_EDITS.get(id));
 }

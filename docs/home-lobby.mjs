@@ -302,7 +302,8 @@ function avatarStage(ctx, host, look) {
     }
   };
   show(look);
-  let yaw = -0.35, spin = 0.0025, dragging = null;
+  let yaw = -0.35, spin = 0.0025, dragging = null, framing = "body";
+  const view = { y: 1.25, z: 5.4, at: 0.95, fov: 32 };
   renderer.domElement.addEventListener("pointerdown", (e) => { dragging = e.clientX; renderer.domElement.setPointerCapture(e.pointerId); spin = 0; });
   renderer.domElement.addEventListener("pointermove", (e) => { if (dragging === null) return; yaw += (e.clientX - dragging) * 0.012; dragging = e.clientX; });
   renderer.domElement.addEventListener("pointerup", () => { dragging = null; spin = 0.0025; });
@@ -317,7 +318,16 @@ function avatarStage(ctx, host, look) {
       camera.updateProjectionMatrix();
     }
     const dt = Math.min(0.05, clock.getDelta());
-    yaw += spin;
+    // The view eases to the whole figure or to its face (focus): close on the face while the
+    // face, the features or the hair are being changed, so a small change shows.
+    const head = framing === "head", tall = 1.8 * (current.avatar?.height || 1);
+    const want = head ? { y: tall - 0.14, z: 1.25, at: tall - 0.15, fov: 26 } : { y: 1.25, z: 5.4, at: 0.95, fov: 32 };
+    const k = 1 - Math.exp(-dt * 6);
+    view.y += (want.y - view.y) * k; view.z += (want.z - view.z) * k; view.at += (want.at - view.at) * k; view.fov += (want.fov - view.fov) * k;
+    camera.position.set(0, view.y, view.z); camera.lookAt(0, view.at, 0);
+    if (Math.abs(camera.fov - view.fov) > 0.01) { camera.fov = view.fov; camera.updateProjectionMatrix(); }
+    if (head && dragging === null) { let d = (0 - yaw) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; yaw += d * k; }
+    else yaw += spin;
     turn.rotation.y = yaw;
     ring.material.opacity = 0.75 + 0.2 * Math.sin(performance.now() / 400);
     mixer?.update(dt);
@@ -325,6 +335,8 @@ function avatarStage(ctx, host, look) {
   };
   frame();
   return {
+    //: "head" (close on the face) or "body" (the whole figure).
+    focus(kind) { framing = kind === "head" ? "head" : "body"; },
     setLook(next) {
       current = next;
       ringMaterial.color.set(next.team); glowMaterial.color.set(next.team);
@@ -385,9 +397,13 @@ export function openHome(ctx) {
     el("div", { class: "party" }, slots[0], slots[1]), avatarBox, el("div", { class: "party" }, slots[2], slots[3]));
 
   const sheetHost = el("div");
+  // The stage is made further down; a sheet opened before it is there has nothing to frame.
+  const stageFocus = (kind) => { try { stageAvatar?.focus(kind); } catch { /* not made yet */ } };
   const sheet = (title, ...body) => {
+    // Any sheet but the creator's own shows the whole figure again.
+    if (title !== "Customize avatar") stageFocus("body");
     const s = el("section", { class: "sheet", role: "dialog", "aria-label": title },
-      el("h3", {}, el("span", {}, title), el("button", { class: "x", type: "button", title: "Close", "aria-label": "Close", on: { click: () => sheetHost.replaceChildren() } }, "×")),
+      el("h3", {}, el("span", {}, title), el("button", { class: "x", type: "button", title: "Close", "aria-label": "Close", on: { click: () => { sheetHost.replaceChildren(); stageFocus("body"); } } }, "×")),
       ...body);
     sheetHost.replaceChildren(s);
     return s;
@@ -524,6 +540,7 @@ export function openHome(ctx) {
     };
     const draw = () => {
       const soldierOn = look.avatar?.model === "soldier";
+      stageFocus(!soldierOn && (creatorTab === "Face" || creatorTab === "Hair") ? "head" : "body");
       const a = current();
       const body = soldierOn && creatorTab !== "Name"
         ? [el("p", {}, "You are the Soldier. Make your own figure instead:"),

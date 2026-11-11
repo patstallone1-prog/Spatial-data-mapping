@@ -648,6 +648,28 @@ export function tenantKinds(R, name) {
   if (!name) return [];
   return Object.entries(R.stores.names).filter(([, pattern]) => new RegExp(`\\b(${pattern})`, "i").test(name)).map(([kind]) => kind);
 }
+//: The store kinds one tenant is: its map tag, told more exactly by its name (rules.json
+//: stores.tenants). "La Taqueria" tagged a restaurant is a taqueria; "Presidio Dental" tagged a
+//: pharmacy is a dentist; an architect's office tagged a shop is no shop. A rule's kind takes the
+//: place of the tags it replaces; within a group only the first rule that applies counts.
+const TENANT_RULES = new WeakMap();
+export function shopKinds(R, tag, name) {
+  const rules = R.stores.tenants || [];
+  if (!TENANT_RULES.has(R)) TENANT_RULES.set(R, rules.map((t) => ({ ...t, re: new RegExp(t.pattern, "i") })));
+  if (!name) return tag ? [tag] : [];
+  let replaced = false, alone = false;
+  const added = [], groups = new Set();
+  for (const t of TENANT_RULES.get(R)) {
+    if ((t.group && groups.has(t.group)) || (alone && !t.combines) || (replaced && !t.combines)) continue;
+    if (!tag || !(t.replaces.includes(tag) || t.replaces.includes("*")) || !t.re.test(name)) continue;
+    if (!t.kind) return [];
+    if (t.group) groups.add(t.group);
+    replaced = true;
+    if (!t.combines) alone = true;
+    if (!added.includes(t.kind)) added.push(t.kind);
+  }
+  return replaced ? added : [tag];
+}
 //: The tax on an item bought where ``chain`` holds: sales tax by its kind, or the hotel tax.
 export function itemTax(R, chain, item, amount, laws = {}) {
   if (item.tax === "hotel_tax") return roundHalfUp(amount * along(R.taxes.local.hotel_tax, chain, 0));

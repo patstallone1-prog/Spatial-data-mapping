@@ -388,9 +388,21 @@ function resetSkyToLive() {
   if (line) line.textContent = "";
   drawSunDial();
 }
+//: The box opens under the compass, wherever the compass is (in City mode it sits under the
+//: profile card), so the two never cover each other; too tall for what is left, it scrolls.
+function placeSunDial() {
+  if (!sunDialBox || !compass) return;
+  const C = compass.getBoundingClientRect();
+  const top = Math.round((C.height ? C.bottom : 96) + 8);
+  sunDialBox.style.top = `${top}px`;
+  sunDialBox.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - top - 12)}px`;
+  sunDialBox.style.overflowY = "auto";
+}
+globalThis.addEventListener?.("resize", () => { if (sunDial.open) placeSunDial(); });
 async function toggleSunDial(open = !sunDial.open) {
   if (!sunDialBox) return;
   sunDial.open = open;
+  if (open) placeSunDial();
   sunDialBox.hidden = !open;
   if (open && !sunDial.sunCalc) sunDial.sunCalc = (await import(sharedAsset("vendor/suncalc-1.9.0.mjs"))).default;
   drawSunDial();
