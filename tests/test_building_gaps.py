@@ -1,8 +1,8 @@
 """Buildings OSM is missing, added from DataSF footprints (smc.regions.building_gaps)."""
 
-from smc.regions.building_gaps import fill_building_gaps, missing_buildings
-
 from pathlib import Path
+
+from smc.regions.building_gaps import fill_building_gaps, missing_buildings
 
 ROOT = Path(__file__).resolve().parents[1]
 

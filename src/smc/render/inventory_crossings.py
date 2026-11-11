@@ -22,6 +22,7 @@ paint -- a junction missing from both stays bare rather than being guessed.
 
 from __future__ import annotations
 
+import itertools
 import math
 from collections import defaultdict
 from typing import Any
@@ -70,7 +71,7 @@ def _twin(streets_by_name, leg, jx, jy):
         if way is leg["way"]:
             continue
         pts = [_xy(p) for p in way["points"]]
-        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+        for (ax, ay), (bx, by) in itertools.pairwise(pts):
             L = math.hypot(bx - ax, by - ay)
             if L < 1 or abs((bx - ax) / L * leg["ux"] + (by - ay) / L * leg["uy"]) < math.cos(math.radians(SAME_LEG_DEG)):
                 continue
@@ -94,7 +95,7 @@ def _run_on(streets, way, end) -> float:
             continue
         pts = [_xy(p) for p in other["points"]]
         if math.hypot(pts[0][0] - ex, pts[0][1] - ey) < 1.0 or math.hypot(pts[-1][0] - ex, pts[-1][1] - ey) < 1.0:
-            return sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:]))
+            return sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in itertools.pairwise(pts))
     return 0.0
 
 

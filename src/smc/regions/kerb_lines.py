@@ -15,8 +15,10 @@ median, and drops the lidar island edges the survey already has.
 
 from __future__ import annotations
 
+import itertools
 import math
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 #: Metres past a cross street's kerb line that a median stops short: the crosswalk across the
 #: divided street there (3 m) and a step clear of it.
@@ -70,7 +72,7 @@ class _Segments:
 
 
 def _length(pts) -> float:
-    return sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:]))
+    return sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in itertools.pairwise(pts))
 
 
 def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
@@ -90,7 +92,7 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
             continue
         half = float(w.get("road_m") or 7.0) / 2
         pts = [frame.m(p) for p in w["points"]]
-        for a, b in zip(pts, pts[1:]):
+        for a, b in itertools.pairwise(pts):
             if a != b:
                 streets.add(a, b, (w.get("name"), half))
     surveyed = _Segments()
@@ -98,7 +100,7 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
         if c.get("s") == "lidar" or c.get("r") not in ("island", "median"):
             continue
         pts = [frame.m(p) for p in c.get("p") or []]
-        for a, b in zip(pts, pts[1:]):
+        for a, b in itertools.pairwise(pts):
             surveyed.add(a, b, None)
 
     def street_of(p, q):
@@ -106,7 +108,7 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
         dx, dy = q[0] - p[0], q[1] - p[1]
         L = math.hypot(dx, dy) or 1.0
         best, best_d = None, 1e9
-        for a, b, (name, half) in streets.near(p):
+        for a, b, (name, _half) in streets.near(p):
             ex, ey = b[0] - a[0], b[1] - a[1]
             E = math.hypot(ex, ey) or 1.0
             if abs(dx * ex + dy * ey) / (L * E) < math.cos(math.radians(CROSS_MIN_DEG)):
@@ -153,7 +155,7 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
             continue
         stats["cut_at_junctions"] += 1
         run: list[int] = []
-        for i, k in enumerate(keep + [False]):
+        for i, k in enumerate([*keep, False]):
             if k:
                 run.append(i)
                 continue

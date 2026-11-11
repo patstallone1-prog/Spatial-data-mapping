@@ -1,10 +1,9 @@
 """The lidar's median lines kept out of junctions (smc.regions.kerb_lines)."""
 
 import math
+from pathlib import Path
 
 from smc.regions.kerb_lines import clip_lidar_kerb_lines
-
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 

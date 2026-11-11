@@ -19,8 +19,9 @@ import json
 import math
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 DATASET = "ynuv-fyni"
 ENDPOINT = f"https://data.sf.gov/resource/{DATASET}.json"
@@ -38,14 +39,14 @@ def _ring_area_m2(ring: list[list[float]]) -> float:
     lat0 = sum(p[1] for p in ring) / len(ring)
     mx, mz = 111_320.0 * math.cos(math.radians(lat0)), 110_540.0
     s = 0.0
-    for a, b in zip(ring, ring[1:] + ring[:1]):
+    for a, b in zip(ring, ring[1:] + ring[:1], strict=False):
         s += a[0] * mx * b[1] * mz - b[0] * mx * a[1] * mz
     return abs(s) / 2
 
 
 def _inside(x: float, y: float, ring: list[list[float]]) -> bool:
     c = False
-    for a, b in zip(ring, ring[1:] + ring[:1]):
+    for a, b in zip(ring, ring[1:] + ring[:1], strict=False):
         if (a[1] > y) != (b[1] > y) and x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]:
             c = not c
     return c
