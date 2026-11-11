@@ -80,3 +80,28 @@ def test_bus_zones_stop_at_junctions_and_crossings_and_keep_one_side() -> None:
     assert "for (const run of busZonePieces(raw))" in paint
     # The bike-lane offset is the whole stretch's, decided by most of it.
     assert "inLane >= run.length * 0.6 ? BIKE_LANE_M + 0.35 : 0" in paint
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_one_bus_stop_listed_in_pieces_is_painted_as_one_zone() -> None:
+    js = _page_js()
+    join = _extract("joinBusZones", js)
+    assert "records = joinBusZones(records);" in _extract("addBusZonePaint", js)
+    # Lombard at Fillmore: a 3 m piece, 3 m gap, a 13 m piece (one stop); Fillmore's two pieces
+    # 6 m apart (a driveway between: two zones); and one zone listed for two time windows.
+    script = (
+        "const BUS_ZONE_JOIN_M = 4.0; const xy = (x, y) => [x, -y];\n" + join + "\n"
+        "const z = (street, side, line) => ({ street_name: street, side_of_street: side, lines: [line] });\n"
+        "const out = joinBusZones([\n"
+        "  z('LOMBARD ST', 'W', [[-7, 6], [-10, 6]]), z('LOMBARD ST', 'W', [[-26, 4], [-13, 6]]),\n"
+        "  z('FILLMORE ST', 'W', [[36, -19], [35, -15]]), z('FILLMORE ST', 'W', [[37, -25], [38, -31]]),\n"
+        "  z('GREENWICH ST', 'W', [[172, -72], [141, -77]]), z('GREENWICH ST', 'W', [[172, -72], [141, -77]]),\n"
+        "]);\n"
+        "console.log(JSON.stringify(out.map((r) => [r.street_name, r.lines[0]])));\n"
+    )
+    out = json.loads(subprocess.run([NODE, "-e", script], check=True, capture_output=True, text=True).stdout)
+    lombard = [line for street, line in out if street == "LOMBARD ST"]
+    assert len(lombard) == 1 and len(lombard[0]) == 4
+    assert {tuple(lombard[0][0]), tuple(lombard[0][-1])} == {(-7, 6), (-26, 4)}
+    assert sum(1 for street, _ in out if street == "FILLMORE ST") == 2
+    assert sum(1 for street, _ in out if street == "GREENWICH ST") == 1

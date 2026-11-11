@@ -1288,6 +1288,56 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
 }
 
 let previous = performance.now();
+//: How fast the arrows turn the walker (radians a second): a quarter turn in under a second.
+const WALK_TURN_RATE = 1.8;
+//: How quickly the view swings round behind a walker on the move (a share a second).
+const WALK_VIEW_FOLLOW = 1.6;
+let walkTurnBack = null;
+//: One frame of steering from the arrows held (``held``): the walker's facing turned, and the
+//: unit way to walk this frame (a Vector3), or null when it only turned or stands.
+function walkSteer(dt) {
+  const turn = (held.has("ArrowRight") ? 1 : 0) - (held.has("ArrowLeft") ? 1 : 0);
+  const up = held.has("ArrowUp"), down = held.has("ArrowDown");
+  // The way the walker faces (rotation.y is atan2 of the way it walks), and right of it as the
+  // walk has always had it.
+  let h = avatar.rotation.y;
+  const dirOf = (a) => [Math.sin(a), Math.cos(a)];
+  const turnBy = (a, by) => {
+    const [dx, dz] = dirOf(a), rx = dz, rz = -dx, c = Math.cos(by), s = Math.sin(by);
+    return Math.atan2(dx * c + rx * s, dz * c + rz * s);
+  };
+  // Down: round to face back the way you came (the shorter way, or with the arrow held), then on.
+  if (down && !up) {
+    if (walkTurnBack === null) walkTurnBack = h + Math.PI;
+  } else walkTurnBack = null;
+  let walking = up;
+  if (walkTurnBack !== null) {
+    let gap = Math.atan2(Math.sin(walkTurnBack - h), Math.cos(walkTurnBack - h));
+    const step = WALK_TURN_RATE * 1.4 * dt;
+    if (Math.abs(gap) <= step) { h = walkTurnBack; walking = true; }
+    else {
+      // Which way round: the arrow held, or the right.
+      const right = turnBy(h, step), left = turnBy(h, -step);
+      const towards = (a) => Math.abs(Math.atan2(Math.sin(walkTurnBack - a), Math.cos(walkTurnBack - a)));
+      h = turn > 0 ? right : turn < 0 ? left : Math.abs(gap) > Math.PI - 1e-3 ? right : (towards(right) < towards(left) ? right : left);
+      walking = true;
+    }
+  } else if (turn) h = turnBy(h, turn * WALK_TURN_RATE * dt);
+  avatar.rotation.y = h;
+  if (!walking) {
+    // Turning on the spot: the view keeps where it is (drag to look round) -- from the walker's
+    // eyes, it turns with you.
+    animateAvatar(0, new THREE.Vector3(), false);
+    if (state.firstPerson && turn) { state.yaw = h + Math.PI; placeCamera(); }
+    return null;
+  }
+  // The view comes round behind (unless it is being dragged, or seen from the walker's eyes,
+  // where forward is the way the head turns).
+  const [dx, dz] = dirOf(h);
+  if (state.firstPerson) state.yaw = h + Math.PI;
+  else if (!dragging) state.yaw += Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw)) * Math.min(1, dt * WALK_VIEW_FOLLOW);
+  return new THREE.Vector3(dx, 0, dz);
+}
 function animateAvatar(distance, direction, moving) {
   avatar.userData.lastMoving=moving;
   if (moving && direction.lengthSq()) {
@@ -1537,16 +1587,12 @@ function stepAvatar(now) {
     updateAvatarMixer(dt);
     return;
   }
-  // Forward is where the camera looks, so the arrows mean what they appear to mean however the
-  // view has been orbited.
-  const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw)).negate();
-  const rightward = new THREE.Vector3(forward.z, 0, -forward.x);
-  const move = new THREE.Vector3();
-  if (held.has("ArrowUp")) move.add(forward);
-  if (held.has("ArrowDown")) move.sub(forward);
-  if (held.has("ArrowRight")) move.add(rightward);
-  if (held.has("ArrowLeft")) move.sub(rightward);
-  if (!move.lengthSq()) return;
+  // The arrows steer the walker as you would walk: Up goes the way you face, Left and Right turn
+  // you (at WALK_TURN_RATE, not in a step -- Up with Left walks a curve, and letting go of Left
+  // carries on straight the way you now face), Down turns you round and walks back. Left or
+  // Right alone turns you on the spot. The view eases round behind you as you go.
+  const move = walkSteer(dt);
+  if (!move) { updateAvatarMixer(dt); return; }
   const scaled = avatarMoveSpeed();
   move.normalize();
   // Hills and stairs set the pace, and a cliff is not walked up (walkPace).

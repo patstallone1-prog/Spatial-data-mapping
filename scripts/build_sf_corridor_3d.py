@@ -3196,6 +3196,15 @@ def main() -> int:
             ways.extend(ramp for ramp in supplement_data.get("ramps", [])
                         if ramp.get("osm_id") not in seen_ramps)
 
+    # Buildings OpenStreetMap is missing (a hole in a block), from DataSF's lidar footprints
+    # where they are cached (tools/fill_building_gaps.py fetches them): before the shopfronts,
+    # so a business standing in one finds it.
+    gap_cache = ROOT / "data" / "sf_building_enrichment" / "datasf-footprints-marina.json"
+    if gap_cache.exists():
+        from smc.regions.building_gaps import fill_building_gaps
+        gap_rows = json.loads(gap_cache.read_text(encoding="utf-8")).get("rows", [])
+        print(f"  buildings added from DataSF footprints: {fill_building_gaps(ways, gap_rows)}", file=sys.stderr)
+
     # Businesses are points; shopfronts belong to buildings. This is where the two meet, and it
     # runs before the payload is assembled so the archetype work can see the result.
     shopfronts = attach_shopfronts(ways)

@@ -41,6 +41,10 @@ export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_dr
 //: A car's lane: right of the street's middle, clear of the cars parked at its kerb (people.mjs LANE).
 const KERB = LANE;
 //: Parking at the kerb (kerbSpot): how a spot is looked for and how close in a car stands.
+//: Two whiles at the kerb overlap: either held all day, or the same day and their times meet.
+const overlaps = (a, b) => !a || !b || (a.day === b.day && a.t0 < b.t1 && b.t0 < a.t1);
+//: Either side of a visit's while: the car pulling in and out (and a lagging driver).
+const PARK_MARGIN_MIN = 3;
 export const PARKING = { junction_clear_m: 6.1, step_m: 1.5, search_nodes: 9, max_tries: 160, visitor_choice: 10,
   kerb_gap_m: 0.15, kerb_reach_m: 2.5, gap_m: 0.8, need_kerb: true, max_walk_m: 160 };
 //: Where a car stands without the drawn kerb: the street's half-width less half the car and a
@@ -276,10 +280,15 @@ export class City {
   //: Where on the street a car stands at a place: along one of the street ways from the place's
   //: nearest corner, so many metres on, at the kerb -- each car its own spot, a home's cars
   //: one behind another. In the garage when it has one at home.
-  spotOf(vehicle, placeId) {
+  //: ``win`` ({day, t0, t1} in minutes of the day) is when a visiting car stands there: its
+  //: spot is held for that while, so no other car is given it then.
+  spotOf(vehicle, placeId, win = null) {
     const key = `${vehicle.id}:${placeId}`;
     let spot = this.spots.get(key);
-    if (spot !== undefined) return spot;
+    if (spot !== undefined) {
+      if (spot && win && spot.held && !spot.garage) this.take(spot.x, spot.z, 0, 0, spot.halfLen, win);
+      return spot;
+    }
     const s = this.streets, place = typeof placeId === "number" ? null : this.roster.places.get(placeId);
     const nodeId = typeof placeId === "number" ? placeId : place ? s.nearest(place.x, place.z, "kerb", 200) : null;
     if (nodeId === null || nodeId === undefined) return null;
@@ -290,7 +299,7 @@ export class City {
       const door = place?.front ? { x: place.front.x, z: place.front.z } : place ? { x: place.x, z: place.z } : { x: n.x, z: n.z };
       spot = { garage, gateway: typeof placeId === "number", node: nodeId, x: garage ? door.x : n.x, z: garage ? door.z : n.z, yaw: 0, door, place: placeId };
     } else {
-      spot = this.kerbSpot(vehicle, placeId, nodeId);
+      spot = this.kerbSpot(vehicle, placeId, nodeId, win);
       this.spotStats = this.spotStats || { kerb: 0, garage: 0, none: 0, legacy: 0 };
       if (spot) this.spotStats.kerb += 1;
       else if (!this.kerbside) { spot = this.legacySpot(vehicle, placeId, nodeId, edges); this.spotStats.legacy += 1; }
@@ -320,7 +329,7 @@ export class City {
   //: from a crosswalk), of driveways and of red, blue, yellow and white kerb (but for those it
   //: is for), and of the other cars' spots -- pulled in to the kerb as it is drawn, a hand's
   //: width off it, along the street.
-  kerbSpot(vehicle, placeId, nodeId) {
+  kerbSpot(vehicle, placeId, nodeId, win = null) {
     const s = this.streets, P = PARKING;
     const place = typeof placeId === "number" ? null : this.roster.places.get(placeId);
     const door = place?.front ? { x: place.front.x, z: place.front.z } : place ? { x: place.x, z: place.z } : s.nodes[nodeId];
@@ -360,8 +369,10 @@ export class City {
     // A home's cars keep their spots overnight: those are held, one car to a spot. A visitor's
     // stop is an hour or so: it is not held, but each visitor takes one of the few best legal
     // spots (by its plate), so they are not all in the one nearest the door.
-    const resident = placeId === vehicle.home;
-    const pickOf = resident ? 0 : hash32(vehicle.id, placeId) % P.visitor_choice;
+    const resident = placeId === vehicle.home, hold = resident ? null : win;
+    // A visit held for its while takes the nearest free spot; one not held (a cab's brief stop)
+    // one of the few best by its plate.
+    const pickOf = resident || win ? 0 : hash32(vehicle.id, placeId) % P.visitor_choice;
     let legal = 0;
     for (const c of cands.slice(0, P.max_tries)) {
       // The right side of the way of travel (rx, rz), the kerb as drawn there.
@@ -377,29 +388,33 @@ export class City {
         x = k.x - k.nx * (width / 2 + P.kerb_gap_m); z = k.z - k.nz * (width / 2 + P.kerb_gap_m);
         if (this.kerbside.kerbParking?.(k.x, k.z, ax, az, halfLen, kind)) continue;
       } else if (this.kerbside && P.need_kerb) continue;
-      if (this.clashes(x, z, ax, az, halfLen)) continue;
+      if (this.clashes(x, z, ax, az, halfLen, hold)) continue;
       if (legal++ < pickOf) continue;
-      if (resident) this.take(x, z, ax, az, halfLen);
-      return { garage: false, node: c.a, edge: c.e, along: c.along, cx: c.cx, cz: c.cz, x, z, yaw: Math.atan2(-ax, -az), place: placeId, street: c.e.name || null, kerb: Boolean(k) };
+      if (resident || win) this.take(x, z, ax, az, halfLen, hold);
+      return { held: resident || Boolean(win), halfLen, garage: false, node: c.a, edge: c.e, along: c.along, cx: c.cx, cz: c.cz, x, z, yaw: Math.atan2(-ax, -az), place: placeId, street: c.e.name || null, kerb: Boolean(k) };
     }
     return null;
   }
-  //: Spots already given out: none within a car's length (and a gap) along the same kerb.
-  clashes(x, z, ax, az, halfLen) {
+  //: Spots already given out: none within a car's length (and a gap) along the same kerb -- a
+  //: home's spot all day, a visit's while it is there (``win``; none: any held spot clashes).
+  clashes(x, z, ax, az, halfLen, win = null) {
     for (let i = -1; i <= 1; i += 1) for (let j = -1; j <= 1; j += 1) {
       const cell = this.taken.get(`${Math.floor(x / 12) + i},${Math.floor(z / 12) + j}`);
       if (!cell) continue;
       for (const o of cell) {
         const dx = o.x - x, dz = o.z - z, along = Math.abs(dx * ax + dz * az), across = Math.abs(dx * az - dz * ax);
-        if (across < 1.6 && along < halfLen + o.halfLen + PARKING.gap_m) return true;
+        if (across < 1.6 && along < halfLen + o.halfLen + PARKING.gap_m && overlaps(o.win, win)) return true;
       }
     }
     return false;
   }
-  take(x, z, ax, az, halfLen) {
+  take(x, z, ax, az, halfLen, win = null) {
     const key = `${Math.floor(x / 12)},${Math.floor(z / 12)}`;
     if (!this.taken.has(key)) this.taken.set(key, []);
-    this.taken.get(key).push({ x, z, halfLen });
+    const cell = this.taken.get(key);
+    // A visiting car's old whiles (other days) let go: the cell keeps today's and the homes'.
+    if (win && cell.length > 24) for (let i = cell.length - 1; i >= 0; i -= 1) if (cell[i].win && cell[i].win.day !== win.day) cell.splice(i, 1);
+    cell.push({ x, z, halfLen, win: win ? { day: win.day, t0: win.t0 - PARK_MARGIN_MIN, t1: win.t1 + PARK_MARGIN_MIN } : null });
   }
   //: A home's cars on the street one behind another: this one's place in the queue.
   homeSlot(vehicle) {
@@ -503,6 +518,15 @@ export class City {
       prev = a;
     }
     segs.sort((x, y) => x.t0 - y.t0);
+    // The car left at work (or wherever it was driven, not home): its kerb spot held from when it
+    // pulled in till it is driven off, so no other car is put in it meanwhile.
+    if (v) {
+      const drives = segs.filter((s) => s.kind === "go" && s.mode === "drive");
+      const hold = (at, t0, t1) => { if (at !== p.home && at !== null && at !== undefined && t1 > t0) this.spotOf(v, at, { day: t.day, t0, t1 }); };
+      let at = startAt, since = 0;
+      for (const s of drives) { hold(at, since, s.t0); at = s.to; since = s.t1; }
+      hold(at, since, 1440);
+    }
     return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt };
   }
   //: A taxi from one place to another: out to the kerb, waiting there while the cab comes in from
@@ -644,16 +668,18 @@ export class City {
       if (trip.visit && trip.brief) {
         // A fare picked up or dropped, a parcel handed over: a few minutes at the kerb.
         const P = this.roster.places.get(trip.visit);
-        if (!P || !this.spotOf(v, trip.visit)) continue;
-        const d1 = tripMinutes(Math.hypot(P.x - A.x, P.z - A.z), DRIVE_MS);
+        const d1 = P ? tripMinutes(Math.hypot(P.x - A.x, P.z - A.z), DRIVE_MS) : 0;
+        if (!P || !this.spotOf(v, trip.visit, { day: t.day, t0: depart + d1, t1: depart + d1 + trip.dwell })) continue;
         segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d1, from: trip.g1, to: trip.visit, vehicle: v.id, visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS), back = depart + d1 + trip.dwell;
         segs.push({ kind: "go", mode: "drive", t0: back, t1: back + d2, from: trip.visit, to: trip.g2, vehicle: v.id, visitor: true });
         clock = back + d2;
       } else if (trip.visit) {
-        const P = this.roster.places.get(trip.visit), spot = this.spotOf(v, trip.visit);
+        const P = this.roster.places.get(trip.visit);
+        const d1 = P ? tripMinutes(Math.hypot(P.x - A.x, P.z - A.z), DRIVE_MS) : 0;
+        // Held from pulling in to driving off: the walks there and back are at most a few minutes.
+        const spot = P && this.spotOf(v, trip.visit, { day: t.day, t0: depart + d1, t1: depart + d1 + trip.dwell + 2 * tripMinutes(PARKING.max_walk_m, p.pace) + 1 });
         if (!P || !spot) continue;
-        const d1 = tripMinutes(Math.hypot(P.x - A.x, P.z - A.z), DRIVE_MS);
         segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d1, from: trip.g1, to: trip.visit, vehicle: v.id, visitor: true });
         const w = tripMinutes(Math.hypot(spot.x - P.x, spot.z - P.z), p.pace) + 0.5;
         segs.push({ kind: "go", mode: "walk", t0: depart + d1, t1: depart + d1 + w, fromXZ: [spot.x, spot.z], to: trip.visit, visitor: true });

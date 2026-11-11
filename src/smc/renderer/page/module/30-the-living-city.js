@@ -153,8 +153,43 @@ function cityPlaceWalker() {
   state.target.copy(avatar.position);
   placeCamera();
 }
+//: The walker's head, drawn into a small picture (a data URL) for the profile card. Drawn into its
+//: own target, so the frame on screen is not touched; null with no avatar in sight.
+let portraitTarget = null, portraitCamera = null, portraitCanvas = null;
+const portraitAt = new THREE.Vector3();
+function cityPortrait(size = 96) {
+  if (!avatar.visible || !avatar.parent || ATTACH) return null;
+  if (!portraitTarget || portraitTarget.width !== size) {
+    portraitTarget?.dispose();
+    portraitTarget = new THREE.WebGLRenderTarget(size, size);
+    if (THREE.SRGBColorSpace) portraitTarget.texture.colorSpace = THREE.SRGBColorSpace;
+    portraitCamera = new THREE.PerspectiveCamera(30, 1, 0.05, 4);
+    portraitCanvas = document.createElement("canvas"); portraitCanvas.width = portraitCanvas.height = size;
+  }
+  const head = avatar.getObjectByName?.("mixamorigHead") || avatar.getObjectByName?.("Head") || avatar.getObjectByName?.("head");
+  avatar.updateMatrixWorld(true);
+  if (head) head.getWorldPosition(portraitAt);
+  else { avatar.getWorldPosition(portraitAt); portraitAt.y += 1.55 * (avatar.scale.y || 1); }
+  portraitAt.y += 0.06;
+  const yaw = avatar.rotation.y, d = 0.62;
+  portraitCamera.position.set(portraitAt.x + Math.sin(yaw) * d, portraitAt.y + 0.04, portraitAt.z + Math.cos(yaw) * d);
+  portraitCamera.lookAt(portraitAt);
+  const before = renderer.getRenderTarget();
+  renderer.setRenderTarget(portraitTarget);
+  renderer.clear();
+  renderer.render(scene, portraitCamera);
+  renderer.setRenderTarget(before);
+  const px = new Uint8Array(size * size * 4);
+  renderer.readRenderTargetPixels(portraitTarget, 0, 0, size, size, px);
+  const g = portraitCanvas.getContext("2d"), img = g.createImageData(size, size);
+  // The target is read bottom row first: turned the right way up.
+  for (let y = 0; y < size; y += 1) img.data.set(px.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+  g.putImageData(img, 0, 0);
+  return portraitCanvas.toDataURL("image/jpeg", 0.85);
+}
 //: The mode: "explore" (the map, search, directions, the free view) or "city" (the game: your
-//: body, wallet, job, car, the shops, and the keys that act on them), switched at the top left.
+//: body, wallet, job, car, the shops, and the keys that act on them), switched on the map
+//: controls' top line, beside the title.
 //: Remembered on this device. The living city's people and traffic are out in both.
 const MODE_KEY = "kerbside:mode";
 var appMode = (() => { try { return localStorage.getItem(MODE_KEY) === "city" ? "city" : "explore"; } catch { return "explore"; } })();
@@ -306,6 +341,10 @@ function setAppMode(mode) {
       setPitch: (pitch) => { state.pitch = pitch; placeCamera(); },
       setFloor: (y) => { state.floorY = y; placeCamera(); },
       goTo: (x, z) => goTo({ x, z }, { travel: true }),
+      // The walker's face for the top bar's profile card: the scene drawn once, small, from a
+      // camera a little in front of the head (its near objects only: the far plane is 4 m),
+      // into a picture.
+      portrait: (size = 96) => cityPortrait(size),
       // The walker's right hand, for what is held in it (the model's bone, where it has one).
       hand: () => avatar.getObjectByName?.("mixamorigRightHand") || avatar.getObjectByName?.("RightHand")
         || avatar.getObjectByName?.("hand_r") || avatar.getObjectByName?.("Hand_R") || null,

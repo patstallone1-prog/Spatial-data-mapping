@@ -266,7 +266,11 @@ def main() -> int:
     if args.official.exists():
         official = json.loads(args.official.read_text(encoding="utf-8"))
         kept = [c for c in official.get("curb_lines", []) if c.get("s") != "lidar"]
-        official["curb_lines"] = kept + [{k: v for k, v in line.items() if k != "rise_m"} for line in lines]
+        # Out of the junctions, and not the surveyed islands a second time (smc.regions.kerb_lines).
+        from smc.regions.kerb_lines import clip_lidar_kerb_lines
+        official["curb_lines"], clip = clip_lidar_kerb_lines(
+            kept + [{k: v for k, v in line.items() if k != "rise_m"} for line in lines], ways)
+        report["clip"] = clip
         official.setdefault("summary", {})["lidar_medians"] = {k: v for k, v in report.items() if k != "streets"}
         args.official.write_text(json.dumps(official, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({k: v for k, v in report.items() if k != "streets"}, indent=1))

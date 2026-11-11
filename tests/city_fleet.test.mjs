@@ -329,6 +329,20 @@ test("parked cars stand at the kerb, a hand's width off it, clear of junctions, 
     if (Math.abs(a.yaw - b.yaw) > 0.1 && Math.abs(Math.abs(a.yaw - b.yaw) - Math.PI) > 0.1) continue;
     assert.ok(Math.hypot(a.x - b.x, a.z - b.z) > 4.1, "two cars in one spot");
   }
+  // Visitors at one shop at the same time each get a spot of their own (held for their while),
+  // clear of the homes' cars; later in the day the first visitor's spot is free again.
+  const shop = [...roster.places.values()].find((x) => x.kind !== "home") || [...roster.places.values()][0];
+  const guests = Array.from({ length: 12 }, (_, i) => ({ id: `visitor-car-${i}`, model: "sedan" }));
+  const at = guests.map((g) => city.spotOf(g, shop.id, { day: 3, t0: 600, t1: 660 })).filter((x) => x && !x.garage);
+  assert.ok(at.length >= 8, `${at.length} visitors parked`);
+  const all = [...at, ...spots.map((x) => x.s)];
+  for (let i = 0; i < at.length; i += 1) for (let j = 0; j < all.length; j += 1) {
+    if (all[j] === at[i]) continue;
+    assert.ok(Math.hypot(at[i].x - all[j].x, at[i].z - all[j].z) > 4.1, "a visitor parked in another car");
+  }
+  const later = city.spotOf({ id: "visitor-car-late", model: "sedan" }, shop.id, { day: 3, t0: 900, t1: 960 });
+  const door = shop.front || shop, far = (x) => Math.hypot(x.cx - door.x, x.cz - door.z);
+  assert.ok(later && far(later) <= Math.min(...at.map(far)) + 1.6, "the near spots are free again once their visitors have gone");
   // A street parked on one side only: nobody on the other.
   const one = new Streets([{ kind: "street", pts: [[0, 0], [0, 200]], lanes: 2, oneway: 0, id: "s", name: "Side Street", parking_sides: [-1] },
     { kind: "street", pts: [[-100, 0], [100, 0]], lanes: 2, oneway: 0, id: "a", name: "A" }, { kind: "street", pts: [[-100, 200], [100, 200]], lanes: 2, oneway: 0, id: "b", name: "B" }]);
