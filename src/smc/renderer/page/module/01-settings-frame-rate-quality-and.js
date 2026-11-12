@@ -436,12 +436,18 @@ function applyBoxClip(object, uniform, excludeInside=false) {
       owners.push(uniform);
       material.onBeforeCompile=function(shader,renderer){
         before.call(this,shader,renderer);shader.uniforms[name]=uniform;
+        // A small thing put down whole (a bus shelter, a bench: material.userData.wholeClip) is
+        // in or out of the box by where it stands -- its ``clipAt`` attribute, the same for all
+        // its parts -- not cut through where the box's edge crosses it. Nothing else draws it
+        // beyond the edge (the tile tree has no shelters), so cut, part of it was simply gone, as
+        // if an invisible line ran through it (2026-11-12).
+        const whole=Boolean(material.userData.wholeClip);
         if(!shader.vertexShader.includes('varying vec3 vDetailWorld;'))
-          shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;')
+          shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>\nvarying vec3 vDetailWorld;${whole?'\nattribute vec2 clipAt;':''}`)
             .replace('#include <project_vertex>',`#include <project_vertex>
           vec4 detailPosition=vec4(transformed,1.0);
           #ifdef USE_INSTANCING
-          detailPosition=instanceMatrix*detailPosition;
+          detailPosition=${whole?'vec4(clipAt.x,0.0,clipAt.y,1.0)':'instanceMatrix*detailPosition'};
           #endif
           vDetailWorld=(modelMatrix*detailPosition).xyz;`);
         if(!shader.fragmentShader.includes('varying vec3 vDetailWorld;'))
@@ -454,7 +460,7 @@ function applyBoxClip(object, uniform, excludeInside=false) {
             if(vDetailWorld.x>=b.x && vDetailWorld.x<=b.z && vDetailWorld.z>=b.y && vDetailWorld.z<=b.w)inDetail=true;}
           if(${excludeInside ? 'inDetail' : '!inDetail'}) discard;}`);
       };
-      material.customProgramCacheKey=()=>cacheKey+`:ownership-v2:${name}:`+excludeInside;
+      material.customProgramCacheKey=()=>cacheKey+`:ownership-v2:${name}:`+excludeInside+(material.userData.wholeClip?':whole':'');
       material.needsUpdate=true;
     }
   });

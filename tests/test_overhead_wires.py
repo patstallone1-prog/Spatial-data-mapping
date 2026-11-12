@@ -153,3 +153,61 @@ def test_a_mapped_power_line_turns_only_on_a_pole() -> None:
     assert "if (cos > Math.cos(POWER_BEND_DEG * Math.PI / 180)) continue;" in network
     assert "inferred:line_bend_pole:" in network and "inferred: true" in network
     assert "if (unsupportedBends.has(`${line.id}:${i - 1}`) || unsupportedBends.has(`${line.id}:${i}`)) continue;" in network
+
+
+def test_wires_at_chestnut_and_fillmore_go_on_across_the_junction() -> None:
+    """Five ways meet at Chestnut and Fillmore (Fillmore splits into two one-way ways north of
+    it), so none is chained: every wire stopped at the junction's middle, a few metres short of
+    the wire going on across. Each is joined to the one going on nearly straight."""
+    from pathlib import Path
+
+    furniture = json.loads((Path(__file__).resolve().parents[1] / "docs/sf-corridor-furniture.json").read_text())
+    node = [-122.4362626, 37.8008199]
+    ways = [w for w in furniture["inferred"]["trolley_wires"] if node in (w["points"][0], w["points"][-1])]
+    assert len(ways) == 5
+    k = 88_000
+    paths = [{"oneway": bool(w["oneway"]), "path": [[(lon + 122.4) * k, -(lat - 37.79) * 111_000]
+                                                    for lon, lat in w["points"]]} for w in ways]
+    js = _page_js()
+    links = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0) for name in ("TROLLEY_LINK_DEG", "TROLLEY_LINK_M"))
+    result = _trolley(links + "\n" + _extract("trolleyJunctionLinks", js) + f"""
+    const node = [(-122.4362626 + 122.4) * {k}, -(37.8008199 - 37.79) * 111000];
+    const ends = [];
+    trolleyChains({json.dumps(paths)}).forEach((chain, c) => {{
+      const p = chain.path, m = mitredOffsets(p);
+      const offsets = chain.oneway ? [TROLLEY.onewayOffset - TROLLEY.pair / 2, TROLLEY.onewayOffset + TROLLEY.pair / 2]
+        : [-TROLLEY.laneOffset - TROLLEY.pair / 2, -TROLLEY.laneOffset + TROLLEY.pair / 2,
+           TROLLEY.laneOffset - TROLLEY.pair / 2, TROLLEY.laneOffset + TROLLEY.pair / 2];
+      for (const [i, j] of [[0, 1], [p.length - 1, p.length - 2]]) {{
+        if (Math.hypot(p[i][0] - node[0], p[i][1] - node[1]) > 0.5) continue;
+        const dx = p[j][0] - p[i][0], dz = p[j][1] - p[i][1], l = Math.hypot(dx, dz);
+        for (const o of offsets) ends.push({{ node: "n", chain: c, x: p[i][0] + m[i][0] * m[i][2] * o,
+          z: p[i][1] + m[i][1] * m[i][2] * o, dx: dx / l, dz: dz / l }});
+      }}
+    }});
+    const links = trolleyJunctionLinks(ends);
+    console.log(JSON.stringify({{ ends: ends.length, links: links.length,
+      gaps: links.map(([i, j]) => Math.hypot(ends[i].x - ends[j].x, ends[i].z - ends[j].z)),
+      straight: links.map(([i, j]) => ends[i].dx * ends[j].dx + ends[i].dz * ends[j].dz) }}));
+    """)
+    assert result["ends"] == 16
+    assert result["links"] == 8, "every wire into the junction goes on across it"
+    assert max(result["gaps"]) <= 5 and max(result["straight"]) < -0.75
+
+
+def test_a_wire_is_never_joined_to_one_turning_off_or_far_across_the_junction() -> None:
+    js = _page_js()
+    consts = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0) for name in ("TROLLEY_LINK_DEG", "TROLLEY_LINK_M"))
+    script = consts + "\n" + _extract("trolleyJunctionLinks", js) + """
+    const ends = [
+      { node: "n", chain: 0, x: 0, z: 2.4, dx: -1, dz: 0 },   // from the west
+      { node: "n", chain: 1, x: 0, z: 2.6, dx: 1, dz: 0 },    // on to the east: joined
+      { node: "n", chain: 2, x: 2.4, z: 0, dx: 0, dz: 1 },    // a cross street: never
+      { node: "n", chain: 3, x: 0, z: -9, dx: 1, dz: 0 },     // straight on but 9 m over: never
+      { node: "m", chain: 4, x: 0, z: 2.5, dx: 1, dz: 0 },    // another junction: never
+    ];
+    console.log(JSON.stringify(trolleyJunctionLinks(ends)));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == [[0, 1]]

@@ -891,13 +891,20 @@ function instanceParts(parts, placements, surface) {
   }
   const local = new THREE.Matrix4(), world = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
   for (const [materialName, list] of byMaterial) {
-    const mesh = new THREE.InstancedMesh(unitBox, stopMaterials[materialName], placements.length * list.length);
+    // Each part carries where its stop stands (clipAt): a window's edge takes or leaves a stop
+    // whole (applyBoxClip, material.userData.wholeClip), never a part of one.
+    const count = placements.length * list.length, at = new Float32Array(count * 2);
+    const geometry = unitBox.clone();
+    geometry.setAttribute("clipAt", new THREE.InstancedBufferAttribute(at, 2));
+    stopMaterials[materialName].userData.wholeClip = true;
+    const mesh = new THREE.InstancedMesh(geometry, stopMaterials[materialName], count);
     let i = 0;
     for (const { x, y, z, yaw } of placements) {
       world.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(up, yaw), new THREE.Vector3(1, 1, 1));
       for (const [, px, py, pz, w, h, d] of list) {
         local.compose(new THREE.Vector3(px, py, pz), new THREE.Quaternion(), new THREE.Vector3(w, h, d));
         mesh.setMatrixAt(i, new THREE.Matrix4().multiplyMatrices(world, local));
+        at[2 * i] = x; at[2 * i + 1] = z;
         i += 1;
       }
     }
