@@ -5,8 +5,20 @@
 
 import { LANE, alongRoute } from "./people.mjs";
 
-//: A bus keeps to the lane, clear of the cars parked at the kerb (people.mjs LANE).
-const DRIVE_SIDE = LANE;
+//: A bus keeps to its lane, clear of the cars parked at the kerb (people.mjs LANE) -- never the
+//: parking lane, except at a stop: there, where the street has a parking lane, it pulls in to
+//: the kerb (a stop's kerb is kept clear of parked cars) and straight back out into its lane
+//: when it leaves, over ``pull_m`` either side; where there is none, its lane is at the kerb
+//: already and it stands in it.
+export const BUS_KERB_M = 1.45;
+export function busSide(pull) {
+  const w = Math.max(0, Math.min(1, pull)), e = w * w * (3 - 2 * w);
+  return (half, cls, park) => {
+    const lane = LANE(half, cls, park), parked = park === true || (park === null && cls === "residential");
+    const kerb = parked ? Math.max(lane, half - BUS_KERB_M) : lane;
+    return lane + (kerb - lane) * e;
+  };
+}
 
 //: The district's bus lines from ``stops`` ([{id, name, lon, lat, routes, modes}]) on ``streets``.
 export function buildLines(R, stops, streets, toXZ) {
@@ -58,7 +70,7 @@ export function buildLines(R, stops, streets, toXZ) {
     for (let k = 0; k < order.length; k += 1) {
       // Standing on the leg about to be driven (the last stop: on the first leg, where the cycle starts again).
       const on = legs[k] || legs[0];
-      const at = alongRoute(on.leg, on.off, DRIVE_SIDE);
+      const at = alongRoute(on.leg, on.off, busSide(1));
       const c = clusters[order[k]];
       const pole = c.poles.reduce((best, q) => (Math.hypot(q.x - at.x, q.z - at.z) < Math.hypot(best.x - at.x, best.z - at.z) ? q : best), c.poles[0]);
       timeline.push({ kind: "dwell", stop: order[k], t0: t, t1: t + T.dwell_s, at, pole: { x: pole.x, z: pole.z } });
@@ -72,7 +84,7 @@ export function buildLines(R, stops, streets, toXZ) {
     }
     if (t < 60) continue;
     const buses = Math.max(1, Math.round(t / (T.headway_min * 60)));
-    lines.push({ route, stops: clusters, timeline, cycle: t, buses });
+    lines.push({ route, stops: clusters, timeline, cycle: t, buses, pull_m: T.pull_m ?? 18 });
   }
   return lines;
 }
@@ -97,7 +109,9 @@ export function busesAt(lines, ms, lag = null) {
       } else {
         // Along the leg from where it stood, past the next stop's corner to where it stands there.
         const d = seg.length * (phase - seg.t0) / (seg.t1 - seg.t0), rest = seg.leg.length - seg.from;
-        const pos = d < rest ? alongRoute(seg.leg, seg.from + d, DRIVE_SIDE) : alongRoute(seg.after, d - rest, DRIVE_SIDE);
+        // Out from the kerb as it leaves the stop, in to it as it comes up to the next.
+        const P = line.pull_m ?? 18, side = busSide(Math.max(1 - d / P, 1 - (seg.length - d) / P));
+        const pos = d < rest ? alongRoute(seg.leg, seg.from + d, side) : alongRoute(seg.after, d - rest, side);
         out.push({ id, route: line.route, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: seg.length / (seg.t1 - seg.t0), moving: true, dwelling: false,
           stop: null, next: seg.next, nextName: line.stops[seg.next].name, leaves: 0 });
       }

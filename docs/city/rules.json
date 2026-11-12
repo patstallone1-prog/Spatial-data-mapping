@@ -750,6 +750,7 @@
     "basis": "buses on the real routes (SFMTA GTFS stops, docs/transit-stops.json): each route's stops in the district, in order along it, joined by the streets; a bus every few minutes each way, stopping at each stop to let people on and off. Headways approx. Muni's frequent network (6-12 minutes).",
     "headway_min": 9,
     "dwell_s": 22,
+    "pull_m": 18,
     "speed_ms": 6.5,
     "stop_cluster_m": 45,
     "min_stops": 3,
