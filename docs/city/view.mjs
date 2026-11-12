@@ -428,12 +428,32 @@ export async function startCity(ctx) {
     return y;
   };
   function base(x, y, z, yaw, s) { E.set(0, yaw, 0); Q.setFromEuler(E); return B.compose(V.set(x, y, z), Q, S3.set(s, s, s)); }
+  //: Who is drawn: the people in view, nearest first, up to MAX_PEOPLE. The crowd round you is
+  //: over a thousand at a busy hour (1,274 at the Marina, 2026-11-11); it had been the first 700
+  //: of the list as it came -- someone beside you left out for someone a street behind -- and
+  //: every one of them posed and sent to the GPU each frame, behind you or not.
+  const VIEW_FRUSTUM = new THREE.Frustum(), VIEW_PV = new THREE.Matrix4(), VIEW_AT = new THREE.Vector3(), VIEW_BODY = new THREE.Sphere(new THREE.Vector3(), 1.4);
+  function peopleInView(list) {
+    const cam = ctx.camera?.();
+    const floorOf = (p) => (shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z));
+    if (!cam) return list.slice(0, MAX_PEOPLE).map((p) => ({ p, y: floorOf(p) }));
+    cam.getWorldPosition(VIEW_AT);
+    VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    VIEW_FRUSTUM.setFromProjectionMatrix(VIEW_PV);
+    const out = [];
+    for (const p of list) {
+      const y = floorOf(p);
+      VIEW_BODY.center.set(p.x, y + 0.9, p.z);
+      if (!VIEW_FRUSTUM.intersectsSphere(VIEW_BODY)) continue;
+      out.push({ p, y, d: (p.x - VIEW_AT.x) ** 2 + (p.z - VIEW_AT.z) ** 2 });
+    }
+    if (out.length > MAX_PEOPLE) { out.sort((a, b) => a.d - b.d); out.length = MAX_PEOPLE; }
+    return out;
+  }
   function drawPeople(list, now) {
     let n = 0;
-    for (const p of list) {
+    for (const { p, y } of peopleInView(list)) {
       if (n >= MAX_PEOPLE) break;
-      // Inside the shop you are in, on its floor.
-      const y = shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z);
       const body = bodyFor(p.person, bodies), s = body.height / 1.75;
       const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
       // A step lifts the body a little at each stride (twice a stride, as the legs pass).
@@ -473,9 +493,12 @@ export async function startCity(ctx) {
   //: Cyclists near you: each rides a way through the streets that have bike lanes (as the
   //: traffic goes: one-ways one way), in the bike lane (BIKE_LANE), at a cyclist's pace, and
   //: stops at a red light at the junction's line. A few dozen, found again as you move.
-  const BIKES = { count: 24, reach_m: 450, drop_m: 650, speed: [3.8, 6.8], route_m: [300, 1100], stop_m: 7 };
-  let bikes = [], bikeNodes = null, bikeStreets = null, bikeN = 0;
-  function stepBikes(dt, tsec, focus) {
+  //: New riders are looked for twice a second, a few at a time (each try is a route search): it
+  //: had been six searches every frame while fewer than ``count`` rode -- the steady state where
+  //: few streets have lanes -- and the same six, the draw being seeded for two seconds.
+  const BIKES = { count: 24, reach_m: 450, drop_m: 650, speed: [3.8, 6.8], route_m: [300, 1100], stop_m: 7, tries: 3, every_s: 0.5 };
+  let bikes = [], bikeNodes = null, bikeStreets = null, bikeN = 0, bikeLook = -1;
+  function stepBikes(dt, tsec, focus, now = performance.now()) {
     const s = district.streets;
     if (!s) { bikes = []; return; }
     if (bikeStreets !== s) {
@@ -485,8 +508,11 @@ export async function startCity(ctx) {
     }
     if (!bikeNodes.length) return;
     bikes = bikes.filter((b) => b.d < b.route.length - 0.5 && Math.hypot(b.x - focus.x, b.z - focus.z) < BIKES.drop_m);
-    const r = rng(myId, "bikes", Math.floor(tsec / 2));
-    for (let tries = 0; bikes.length < BIKES.count && tries < 6; tries += 1) {
+    const look = Math.floor(now / 1000 / BIKES.every_s);   // the page's clock: the city's runs faster
+    const r = rng(myId, "bikes", look);
+    const fresh = look !== bikeLook;
+    bikeLook = look;
+    for (let tries = fresh ? 0 : BIKES.tries; bikes.length < BIKES.count && tries < BIKES.tries; tries += 1) {
       const a = bikeNodes[Math.floor(r() * bikeNodes.length)], A = s.nodes[a];
       if (Math.hypot(A.x - focus.x, A.z - focus.z) > BIKES.reach_m) continue;
       const b = bikeNodes[Math.floor(r() * bikeNodes.length)], B = s.nodes[b], far = Math.hypot(B.x - A.x, B.z - A.z);
@@ -2740,7 +2766,7 @@ export async function startCity(ctx) {
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
-      stepBikes(dt, t / 1000, focus);
+      stepBikes(dt, t / 1000, focus, now);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
       drawBikes();
       drawCars(wheels(), lastNight);

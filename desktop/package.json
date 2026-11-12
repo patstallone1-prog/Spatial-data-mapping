@@ -1,0 +1,17 @@
+{
+  "name": "kerbside-desktop",
+  "productName": "Kerbside",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kerbside as a standalone app: the same site, with its own memory and GPU instead of a browser tab's.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "local": "electron . --url=http://localhost:8771/app-model.html",
+    "package": "electron-packager . Kerbside --platform=darwin --arch=arm64 --overwrite --out=out --app-bundle-id=app.kerbside.desktop --icon=icon.icns --ignore=^/out --ignore=^/node_modules/.cache"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.10.0"
+  }
+}
