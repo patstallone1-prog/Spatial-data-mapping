@@ -230,6 +230,7 @@ export async function startCity(ctx) {
     roster.visitorsUpTo(Math.min(R.density?.visitors_max ?? 5000, Math.round(roster.places.size * (R.density?.visitors_per_place ?? 0.8) * busy)));
     if (roster.dirty) { store.set(`kerbside:city:roster:${region}`, roster.toJSON()); roster.dirty = false; }
     district.cameras = speedCameras([...district.allWays.values()], data);
+    ensureJoined();
     district.candidates = null; district.foundDay = null; district.found = [];
     district.listings = null; district.listingsWeek = null;
     lastCrowd = 0; scanning = false;
@@ -497,22 +498,38 @@ export async function startCity(ctx) {
   //: had been six searches every frame while fewer than ``count`` rode -- the steady state where
   //: few streets have lanes -- and the same six, the draw being seeded for two seconds.
   const BIKES = { count: 24, reach_m: 450, drop_m: 650, speed: [3.8, 6.8], route_m: [300, 1100], stop_m: 7, tries: 3, every_s: 0.5 };
-  let bikes = [], bikeNodes = null, bikeStreets = null, bikeN = 0, bikeLook = -1;
+  let bikes = [], bikeNodes = null, bikeStreets = null, bikeN = 0, bikeLook = -1, bikeBurst = false;
   function stepBikes(dt, tsec, focus, now = performance.now()) {
     const s = district.streets;
     if (!s) { bikes = []; return; }
     if (bikeStreets !== s) {
-      bikeStreets = s; bikes = [];
+      bikeStreets = s; bikes = []; bikeBurst = false;
       bikeNodes = [];
       for (let a = 0; a < s.nodes.length; a += 1) if (s.edges[a].some((e) => e.drive && e.bike)) bikeNodes.push(a);
     }
     if (!bikeNodes.length) return;
-    bikes = bikes.filter((b) => b.d < b.route.length - 0.5 && Math.hypot(b.x - focus.x, b.z - focus.z) < BIKES.drop_m);
+    // A rider at the end of the way rides on: a new way from there (its own, kept to its end),
+    // not gone and another dealt elsewhere.
+    for (const b of bikes) {
+      if (b.d < b.route.length - 0.5) continue;
+      const a = b.route.ids?.[b.route.ids.length - 1], r2 = rng(b.id, "on", bikeN += 1);
+      b.route = null;
+      for (let tries = 0; a !== undefined && a >= 0 && tries < 4 && !b.route; tries += 1) {
+        const z = bikeNodes[Math.floor(r2() * bikeNodes.length)], A = s.nodes[a], Z = s.nodes[z], far = Math.hypot(Z.x - A.x, Z.z - A.z);
+        if (z === a || far < BIKES.route_m[0] || far > BIKES.route_m[1]) continue;
+        const route = s.route(a, z, "drive");
+        if (route && route.length >= 80) { b.route = route; b.d = 0; }
+      }
+    }
+    bikes = bikes.filter((b) => b.route && Math.hypot(b.x - focus.x, b.z - focus.z) < BIKES.drop_m);
     const look = Math.floor(now / 1000 / BIKES.every_s);   // the page's clock: the city's runs faster
     const r = rng(myId, "bikes", look);
     const fresh = look !== bikeLook;
     bikeLook = look;
-    for (let tries = fresh ? 0 : BIKES.tries; bikes.length < BIKES.count && tries < BIKES.tries; tries += 1) {
+    // On the district's load, the riders all set out at once (each on its way to the end).
+    const burst = !bikeBurst;
+    bikeBurst = true;
+    for (let tries = fresh || burst ? 0 : BIKES.tries, most = burst ? BIKES.count * 3 : BIKES.tries; bikes.length < BIKES.count && tries < most; tries += 1) {
       const a = bikeNodes[Math.floor(r() * bikeNodes.length)], A = s.nodes[a];
       if (Math.hypot(A.x - focus.x, A.z - focus.z) > BIKES.reach_m) continue;
       const b = bikeNodes[Math.floor(r() * bikeNodes.length)], B = s.nodes[b], far = Math.hypot(B.x - A.x, B.z - A.z);
@@ -679,14 +696,22 @@ export async function startCity(ctx) {
       view = world; party.host = myId; ensureJoined(); broadcastState();
     }
   }
+  //: Everyone is a player of the city from the first: joined in the background as soon as the
+  //: district is there (a home beside you to rent), under the profile's name -- there is no
+  //: "Join the city" to press (2026-11-11).
   async function ensureJoined() {
     const w = world || view;
     if (!w || w.players.has(myId) || party.joining) return;
+    if (!party.session && !district.places?.length) return;   // the district first: a home beside you
     party.joining = true;
-    const home = nearestPlace((p) => p.use === "residential");
-    const r = await send("join", { name: party.session?.me?.name || "You", home });
-    if (r.ok && party.session) { const self = store.get(SAVE_SELF); if (self) await send("import", { saved: self }); }
-    party.joining = false;
+    try {
+      const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
+      const name = party.session?.me?.name || lib?.account?.()?.name || "You";
+      const home = nearestPlace((p) => p.use === "residential", 400);
+      const r = await send("join", { name, home });
+      if (r.ok && party.session) { const self = store.get(SAVE_SELF); if (self) await send("import", { saved: self }); }
+    } catch (error) { console.warn("kerbside: could not join the city", error); }
+    finally { party.joining = false; }
     refresh();
   }
   function joinParty(session) {
@@ -2459,7 +2484,7 @@ export async function startCity(ctx) {
   //: The actions open to you where you stand, each with its key: what the action bar shows.
   function actionsHere() {
     const p = self(), here = me(), out = [];
-    if (!p) return [{ id: "join", label: "Join the city", key: "", run: () => openPanel(true) }];
+    if (!p) return [];
     if (car.active) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (car.riding) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (transit.ride) {
@@ -2947,7 +2972,8 @@ export async function startCity(ctx) {
       for (const r0 of step.cars) {
         const { base, route } = legOf.get(r0.id);
         if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
-        const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, DRIVE_LANE));
+        // In its own lane (Drivers: the lane it chose, or on its way across to the next).
+        const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
         vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
       }
       for (const hit of step.hits) carHit(hit, people);
@@ -3223,7 +3249,7 @@ export async function startCity(ctx) {
     const t = timeAt(Date.now());
     const [lon, lat] = ctx.toLonLat(me().x, me().z);
     const here = jurisdictionAt(R, lon, lat, district.county);
-    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Join the city"}</b>`, t.label, here.name];
+    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, t.label, here.name];
     if (car.active) {
       const limit = speedLimitAt(car.x, car.z) * MPH, mph = Math.abs(car.speed) * MPH;
       bits.push(`<span class="${mph > limit + 5 ? "warn" : ""}">${Math.round(mph)} mph · limit ${Math.round(limit)}</span>`);
@@ -3404,7 +3430,7 @@ export async function startCity(ctx) {
     if (!side) return;
     const w = view, p = self();
     const close = h("button", { textContent: "×", title: "Close (or the key that opened it)", onclick: closeSide });
-    if (!w || !p) { side.el.replaceChildren(h("h3", {}, h("span", { textContent: "The living city" }), close), h("p", { className: "note", textContent: "Join the city first: the City panel." })); return; }
+    if (!w || !p) { side.el.replaceChildren(h("h3", {}, h("span", { textContent: "The living city" }), close), h("p", { className: "note", textContent: "Setting up your place in the city…" })); return; }
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
@@ -3734,9 +3760,9 @@ export async function startCity(ctx) {
     const head = h("h3", {}, h("span", { textContent: "The living city" }), close);
     if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Waiting for the party's host to share the city…" })); return; }
     if (!p) {
-      panel.replaceChildren(head,
-        h("p", { className: "note", textContent: `Arrive with ${R.fmt(R.start.balance)} in Credits (a placeholder currency at par with the dollar), a rented room in the building beside you with its first week free, and no car. The people here keep their own days; the laws, taxes and tolls are the region's.` }),
-        act("Join the city", () => send("join", { name: party.session?.me?.name || "You", home: nearestPlace((x) => x.use === "residential", 400) }), true));
+      // Joined in the background (ensureJoined): only a moment before the district is there.
+      panel.replaceChildren(head, h("p", { className: "note", textContent: `Setting up your place in the city: ${R.fmt(R.start.balance)} in Credits (a placeholder currency at par with the dollar), a rented room in the building beside you with its first week free, and no car.` }));
+      ensureJoined();
       return;
     }
     const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>

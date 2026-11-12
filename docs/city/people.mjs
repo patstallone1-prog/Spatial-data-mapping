@@ -280,12 +280,15 @@ export function lanePlan(route) {
     const right = (bx * -az + bz * ax) / (la * lb), on = (ax * bx + az * bz) / (la * lb);
     if (Math.abs(right) > sin || on < 0) turn[v] = right >= 0 ? 1 : -1;
   }
+  // With no turn close ahead, routes spread over the lanes (by where they come from and go to):
+  // the cars not driven by the rules (further off) are not all in the kerb lane either.
+  const ids = route.ids || [], spread = hash32("lanes", ids[0] ?? 0, ids[ids.length - 1] ?? 0);
   const k = n.map((lanes, i) => {
     if (lanes <= 1) return 0;
     for (let v = i + 1; v < pts.length - 1 && s[v] - s[i + 1] < TURN_LOOK_M; v += 1) if (turn[v]) return turn[v] < 0 ? lanes - 1 : 0;
-    return 0;
+    return spread % lanes;
   });
-  return (route.plan = { n, k });
+  return (route.plan = { n, k, turn });
 }
 //: Right of a street's middle by ``half``, a car's lane: the kerb lane, or the one the turn
 //: ahead takes (``lanePlan``). For alongRoute's side: (half, cls, park, segment, route).
@@ -298,6 +301,55 @@ export function DRIVE_LANE(half, cls = null, park = null, i = 0, route = null) {
   // left kerb (clear of the cars parked there).
   const left = route.oneways[i] ? -LANE(half, cls, park) : 1.7;
   return base - ((base - left) * k) / (n - 1);
+}
+//: Lane ``j`` of segment ``i`` (0 the kerb lane, n - 1 the leftmost), as metres right of the
+//: street's middle: the driving lanes only -- never the parking lane at the kerb (LANE keeps
+//: the kerb lane clear of the cars parked there; PARK_LANE in fleet.mjs is where they stand).
+export function laneOffset(half, cls, park, i, route, j) {
+  const base = LANE(half, cls, park), n = laneCount(route, i);
+  const k = Math.max(0, Math.min(n - 1, Math.round(j)));
+  if (n <= 1 || k === 0) return base;
+  const left = route.oneways?.[i] ? -LANE(half, cls, park) : 1.7;
+  return base - ((base - left) * k) / (n - 1);
+}
+//: How many lanes segment ``i`` has the way the route goes (1 where not known).
+export function laneCount(route, i) {
+  const plan = route ? lanePlan(route) : null;
+  return plan ? Math.max(1, plan.n[i] || 1) : 1;
+}
+//: The next turn on ``route`` after segment ``i``: its side (-1 left, 1 right), how far ahead
+//: (m, from the segment's end) and how many junctions (blocks) come before it -- 0 when it is
+//: at the end of this block. null when the route goes straight on to its end.
+export function turnAhead(route, i, isJunction = null) {
+  const plan = route ? lanePlan(route) : null;
+  if (!plan) return null;
+  const { pts, s, ids } = route;
+  let blocks = 0;
+  for (let v = i + 1; v < pts.length - 1; v += 1) {
+    // (A bend where no street meets is no turn: only a junction's.)
+    if (plan.turn[v] && (!isJunction || isJunction(ids?.[v] ?? -1))) return { side: plan.turn[v], dist: s[v] - s[i + 1], blocks, vertex: v };
+    if (!isJunction || isJunction(ids?.[v] ?? -1)) blocks += 1;
+  }
+  return null;
+}
+//: The lane a car takes (``n`` lanes, now in ``cur``): the turn lane, on the block it turns at
+//: (or within TURN_LOOK_M of the turn); otherwise the least crowded, leaning towards the lane of
+//: the turn to come by WEIGHT x lanes away / (blocks until the turn + 1), and keeping to the
+//: lane it is in unless another is clearly better. ``crowd[j]``: the cars in lane j ahead on
+//: this block (a lane that is held up -- a bus at its stop -- counts heavy).
+export const LANE_CHOICE = { weight: 1.5, stick: 0.75 };
+export function chooseLane({ n, cur = 0, turn = null, crowd = [] }, C = LANE_CHOICE) {
+  if (n <= 1) return 0;
+  const want = turn ? (turn.side < 0 ? n - 1 : 0) : null;
+  if (turn && (turn.blocks === 0 || turn.dist < TURN_LOOK_M)) return want;
+  let best = Math.min(cur, n - 1), cost = Infinity;
+  for (let j = 0; j < n; j += 1) {
+    let c = crowd[j] || 0;
+    if (want !== null) c += (C.weight * Math.abs(j - want)) / (turn.blocks + 1);
+    if (j === cur) c -= C.stick;
+    if (c < cost - 1e-9) { cost = c; best = j; }
+  }
+  return best;
 }
 //: A bike's line: in the bike lane where the street has one (beside the kerb, or outside the
 //: parked cars), at the kerb's edge of the traffic lane where it is shared.
@@ -320,12 +372,12 @@ export function alongRoute(route, d, side = 0) {
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m] <= d) lo = m; else hi = m; }
   const fn = typeof side === "function";
   const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i], i, route) : side);
-  // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side.
-  const on = (i, off) => {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (d - s[i]) / len;
+  // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side, at dd.
+  const on = (i, off, dd = d) => {
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (dd - s[i]) / len;
     const dx = (bx - ax) / len, dz = (bz - az) / len;
     // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
-    return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz) };
+    return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz), ux: dx, uz: dz };
   };
   const half = route.halves?.[lo] ?? 0, off = offOf(lo);
   let at = on(lo, off);
@@ -336,15 +388,26 @@ export function alongRoute(route, d, side = 0) {
       const a = v - 1, b = v, oa = offOf(a), ob = offOf(b);
       const r = Math.min(Math.max(Math.abs(oa), Math.abs(ob)) + 1, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
       if (r > 0 && Math.abs(d - s[v]) < r) {
-        const u = (d - (s[v] - r)) / (2 * r), w = u * u * (3 - 2 * u);
-        const pa = on(a, oa), pb = on(b, ob);
-        let dy = pb.yaw - pa.yaw;
-        if (dy > Math.PI) dy -= 2 * Math.PI; else if (dy < -Math.PI) dy += 2 * Math.PI;
-        at = { x: pa.x + (pb.x - pa.x) * w, z: pa.z + (pb.z - pa.z) * w, yaw: pa.yaw + dy * w };
+        // Round the corner on a curve from r before it in the way-in's lane to r after it in the
+        // way-out's, bent towards where the two lanes' lines meet: inside the turn, never out
+        // across it. (Blending the two lanes' lines carried past the corner swung a car turning
+        // right from a lane far from the middle out to the left first, into the junction's other
+        // traffic: 2026-11-11.)
+        const P0 = on(a, oa, s[v] - r), P2 = on(b, ob, s[v] + r);
+        const cr = P0.ux * P2.uz - P0.uz * P2.ux;
+        let C = { x: (P0.x + P2.x) / 2, z: (P0.z + P2.z) / 2 };
+        if (Math.abs(cr) > 0.15) {
+          const t = ((P2.x - P0.x) * P2.uz - (P2.z - P0.z) * P2.ux) / cr;
+          if (t > 0 && t < 2 * r + Math.max(Math.abs(oa), Math.abs(ob))) C = { x: P0.x + P0.ux * t, z: P0.z + P0.uz * t };
+        }
+        const u = (d - (s[v] - r)) / (2 * r), m = 1 - u;
+        const x = m * m * P0.x + 2 * m * u * C.x + u * u * P2.x, z = m * m * P0.z + 2 * m * u * C.z + u * u * P2.z;
+        const tx = 2 * m * (C.x - P0.x) + 2 * u * (P2.x - C.x), tz = 2 * m * (C.z - P0.z) + 2 * u * (P2.z - C.z);
+        at = { x, z, yaw: Math.hypot(tx, tz) > 1e-9 ? Math.atan2(-tx, -tz) : P0.yaw };
       }
     }
   }
-  return { ...at, half, cls: route.classes?.[lo] };
+  return { x: at.x, z: at.z, yaw: at.yaw, half, cls: route.classes?.[lo] };
 }
 
 // ---- on foot: the pavements and the crosswalks ------------------------------------------------------
