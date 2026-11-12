@@ -252,9 +252,12 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
         const arch = o.shape === 'arched' || o.design?.shape === 'arched';
         const rise = arch ? Math.min(o.h * 0.32, o.w / 2, o.arch_rise_m ?? o.h * 0.25) : 0;
         const glassKey = 'glass|' + p.glass + '|' + (o.privacy_fraction || 0);
-        if (!materialCache.has(glassKey)) materialCache.set(glassKey, new THREE.MeshPhysicalMaterial({
+        // Plain see-through glass, never three.js's transmission: one transmissive material in
+        // view has the renderer draw every opaque thing a second time each frame, into a buffer
+        // to refract (measured in City mode, 2026-11-11: 822 of 1,755 draws a frame).
+        if (!materialCache.has(glassKey)) materialCache.set(glassKey, new THREE.MeshStandardMaterial({
           color: p.glass, transparent: true, opacity: options.glassOpacity ?? 0.42,
-          roughness: 0.1, metalness: 0.05, transmission: 0.18, side: THREE.DoubleSide,
+          roughness: 0.1, metalness: 0.05, side: THREE.DoubleSide, depthWrite: false,
         }));
         if (arch) {
           const path = holePath(THREE, o, o.v + o.h);

@@ -249,6 +249,8 @@ function setAppMode(mode) {
     };
     const context = {
       THREE, root, asset: sharedAsset, avatar, standY: AVATAR_STAND_Y, button,
+      // The view's camera: the crowd is drawn where it can be seen.
+      camera: () => camera,
       enabled: () => !state.explore && !homeScreenUp(),
       // The game's keys, bars and buttons: in City mode only.
       cityMode: () => appMode === "city",

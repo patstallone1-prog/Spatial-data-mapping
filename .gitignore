@@ -169,3 +169,7 @@ data/ortho
 /docs/app-regions/*/app-model.html
 /docs/runtime-release.json
 /docs/sw.js
+
+# The standalone app (desktop/): its packages and builds
+desktop/node_modules/
+desktop/out/
