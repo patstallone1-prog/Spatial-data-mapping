@@ -51,3 +51,44 @@ def test_the_tunnel_cut_keeps_the_clips_a_material_carries() -> None:
     js = _page_js()
     assert "material.userData.detailOwnerships=original.userData.detailOwnerships.slice();" in js
     assert "cacheKey.includes(`:ownership-v2:${name}:`)" in _box_clip(js)
+
+
+def test_a_bus_shelter_is_clipped_whole_by_where_it_stands_never_cut_through() -> None:
+    """A window's edge crossing a shelter cut part of it away, as if an invisible line ran through
+    it. A material marked wholeClip is in or out of the box by its ``clipAt`` (where the stop
+    stands, the same for all its parts), not by each fragment's place."""
+    js = _page_js()
+    script = """
+const BOX_SET_MAX = 4;
+let boxClipCount = 0;
+class Material { constructor(){ this.userData = {}; this.onBeforeCompile = () => {}; this.customProgramCacheKey = () => "base"; } }
+""" + _box_clip(js) + """
+const compile = (whole) => {
+  const material = new Material();
+  if (whole) material.userData.wholeClip = true;
+  applyBoxClip({ traverse: (visit) => visit({ material }) }, { value: [[0, 0, 1, 1]] });
+  const shader = { uniforms: {}, vertexShader: "#include <common>\\n#include <project_vertex>",
+    fragmentShader: "#include <common>\\nvoid main() {" };
+  material.onBeforeCompile(shader);
+  return { vertex: shader.vertexShader, key: material.customProgramCacheKey() };
+};
+console.log(JSON.stringify({ whole: compile(true), cut: compile(false) }));
+"""
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    got = json.loads(out.stdout)
+    assert "attribute vec2 clipAt;" in got["whole"]["vertex"]
+    assert "detailPosition=vec4(clipAt.x,0.0,clipAt.y,1.0)" in got["whole"]["vertex"]
+    assert "clipAt" not in got["cut"]["vertex"] and "instanceMatrix*detailPosition" in got["cut"]["vertex"]
+    assert got["whole"]["key"] != got["cut"]["key"], "the two programs must not share a cache entry"
+
+
+def test_every_part_of_a_stop_carries_where_the_stop_stands() -> None:
+    from pathlib import Path
+
+    stops = (Path(__file__).resolve().parents[1] / "src/smc/renderer/page/module/19-the-dropped-kerb-at-every.js").read_text()
+    body = stops[stops.index("function instanceParts("):]
+    body = body[:body.index("\n}\n")]
+    assert 'geometry.setAttribute("clipAt", new THREE.InstancedBufferAttribute(at, 2))' in body
+    assert "stopMaterials[materialName].userData.wholeClip = true" in body
+    assert "at[2 * i] = x; at[2 * i + 1] = z;" in body

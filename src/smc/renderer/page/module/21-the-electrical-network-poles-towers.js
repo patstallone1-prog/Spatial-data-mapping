@@ -818,6 +818,39 @@ function trolleySpanStations(length, startOpen, endOpen) {
   return stations;
 }
 
+//: At a junction where more than two ways meet (Chestnut crossing Fillmore, where Fillmore also
+//: splits into two one-way ways), no ways are chained into one line, so each way's wires stopped
+//: at the junction's middle, a few metres short of the wires going on across it: broken over the
+//: middle of the street. A wire end there is joined to the nearest wire end of another way going
+//: on nearly straight (within TROLLEY_LINK_DEG) and at most TROLLEY_LINK_M away -- the crossing
+//: Muni hangs through the junction.
+const TROLLEY_LINK_DEG = 40;
+const TROLLEY_LINK_M = 5;
+function trolleyJunctionLinks(ends) {
+  // ends: [{ node, chain, x, z, dx, dz }] -- each wire's end at a junction, with (dx, dz) the
+  // unit direction from the junction back along its own way. Returns [[i, j], ...] index pairs
+  // to join, each end in one pair at most, nearest first.
+  const straight = -Math.cos(TROLLEY_LINK_DEG * Math.PI / 180);
+  const pairs = [];
+  for (let i = 0; i < ends.length; i += 1) {
+    for (let j = i + 1; j < ends.length; j += 1) {
+      const a = ends[i], b = ends[j];
+      if (a.node !== b.node || a.chain === b.chain) continue;
+      if (a.dx * b.dx + a.dz * b.dz > straight) continue;   // not going on across the junction
+      const d = Math.hypot(a.x - b.x, a.z - b.z);
+      if (d <= TROLLEY_LINK_M) pairs.push([d, i, j]);
+    }
+  }
+  pairs.sort((p, q) => p[0] - q[0]);
+  const used = new Set(), links = [];
+  for (const [, i, j] of pairs) {
+    if (used.has(i) || used.has(j)) continue;
+    used.add(i); used.add(j);
+    links.push([i, j]);
+  }
+  return links;
+}
+
 //: Overhead wire never turns a corner sharply in the air: it rounds it in a curve of short
 //: chords, each held out to a pole on the outside of the turn by a pull-off wire. A bend
 //: sharper than TROLLEY_BEND_DEG is drawn so, on a curve of about TROLLEY_CURVE_R_M.
@@ -917,7 +950,9 @@ function addTrolleyWires(records, lightRows = []) {
     oneway: Boolean(wire.oneway),
     path: (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }),
   }));
-  for (const chain of trolleyChains(projected)) {
+  const junctionEnds = [];
+  const nodeOf = ([x, z]) => `${Math.round(x / TROLLEY_JOIN_M)},${Math.round(z / TROLLEY_JOIN_M)}`;
+  for (const [chainIndex, chain] of trolleyChains(projected).entries()) {
     const cleaned = chain.path.filter((pt, i, all) => i === 0 || Math.hypot(pt[0] - all[i - 1][0], pt[1] - all[i - 1][1]) >= 0.5);
     if (cleaned.length < 2) continue;
     const { path, bends } = filletTrolleyPath(cleaned);
@@ -941,6 +976,15 @@ function addTrolleyWires(records, lightRows = []) {
           const p1 = [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1];
           segments.push(p0[0], groundAt(...p0) + TROLLEY.height, p0[1], p1[0], groundAt(...p1) + TROLLEY.height, p1[1]);
         }
+      }
+    }
+    // Wire ends at a junction, joined to the wires going on across it once every line is laid.
+    for (const [open, i, j] of [[chain.startOpen, 0, 1], [chain.endOpen, path.length - 1, path.length - 2]]) {
+      if (open) continue;
+      const dx = path[j][0] - path[i][0], dz = path[j][1] - path[i][1], l = Math.hypot(dx, dz) || 1;
+      for (const o of offsets) {
+        const [x, z] = at(i, o);
+        junctionEnds.push({ node: nodeOf(chain.path[i === 0 ? 0 : chain.path.length - 1]), chain: chainIndex, x, z, dx: dx / l, dz: dz / l });
       }
     }
     // Each curve hangs from a pole on the outside of its turn: a pull-off wire from the pole to
@@ -975,6 +1019,12 @@ function addTrolleyWires(records, lightRows = []) {
       spanAt(ax + ux * t, az + uz * t, -uz, ux);
     }
   }
+  let links = 0;
+  for (const [i, j] of trolleyJunctionLinks(junctionEnds)) {
+    const a = junctionEnds[i], b = junctionEnds[j];
+    segments.push(a.x, groundAt(a.x, a.z) + TROLLEY.height, a.z, b.x, groundAt(b.x, b.z) + TROLLEY.height, b.z);
+    links += 1;
+  }
   if (segments.length) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(segments, 3));
@@ -996,7 +1046,7 @@ function addTrolleyWires(records, lightRows = []) {
     mesh.userData = { surface: "furniture:trolley_pole", source: "openstreetmap", liftedOntoGround: true };
     groups.furniture.add(mesh);
   }
-  return { wire_segments: segments.length / 6, span_poles: poles.length };
+  return { wire_segments: segments.length / 6, span_poles: poles.length, junction_links: links };
 }
 
 //: A bus zone shorter than this, once cut back from the crossings, is not painted.
