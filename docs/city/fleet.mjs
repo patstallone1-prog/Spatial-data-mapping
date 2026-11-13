@@ -51,9 +51,17 @@ export const PARKING = { junction_clear_m: 6.1, step_m: 1.5, search_nodes: 9, ma
 //: Where a car stands without the drawn kerb: the street's half-width less half the car and a
 //: hand's width (it stood 1.8 m in, a metre off the kerb, out in the lane).
 const PARKED_OFF = (half, width) => Math.max(1.7, half - width / 2 - PARKING.kerb_gap_m);
-//: Width and length of each model, as the page draws it (vehicles.mjs VEHICLE_DIMS).
+//: Width and length of each model, as the page draws it (vehicles.mjs VEHICLE_DIMS: the imported
+//: fleet's own measured sizes, the rest a common car of the kind) -- a car takes the kerb its own
+//: length needs, so a pickup is not put where only a hatchback fits.
 const VEHICLE_W = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[0]]));
 const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[2]]));
+//: The kerb a car of ``model`` needs between the cars either side of it: its length and the gap
+//: kept at each end (PARKING.gap_m, to pull out). A space shorter is not offered it (clashes).
+export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 * PARKING.gap_m;
+//: The old way's spots (legacySpot: no kerb drawn) are a fixed pitch along the street: the
+//: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
+const LEGACY_PITCH_M = Math.max(...["economy", "compact_ev", "sedan", "suv", "pickup", "delivery_van", "box_truck", "taxi", "patrol", "sports"].map((m) => VEHICLE_L[m] || 0)) + PARKING.gap_m;
 const DRIVE_MIN_M = 700;
 //: A round at work driven is a leg every so many minutes (roamDrive).
 export const ROAM_SLOT_MIN = 4;
@@ -323,7 +331,7 @@ export class City {
     const slot = placeId === vehicle.home ? this.homeSlot(vehicle) : hash32(vehicle.id, placeId) % 9;
     const e = edges[slot % edges.length], k = Math.floor(slot / edges.length);
     const b = s.nodes[e.to], len = e.length || 1, ux = (b.x - n.x) / len, uz = (b.z - n.z) / len;
-    const room = Math.max(1, len - 10), along = 5 + ((k * 6.4) % room);
+    const room = Math.max(1, len - 10), along = 5 + ((k * LEGACY_PITCH_M) % room);
     const cx = n.x + ux * along, cz = n.z + uz * along, off = PARKED_OFF(e.half || 3, VEHICLE_W[vehicle.model] || 1.85);
     return { garage: false, node: nodeId, edge: e, along, cx, cz, x: cx - uz * off, z: cz + ux * off, yaw: Math.atan2(-ux, -uz), place: placeId, street: e.name || null };
   }
@@ -400,6 +408,8 @@ export class City {
   }
   //: Spots already given out: none within a car's length (and a gap) along the same kerb -- a
   //: home's spot all day, a visit's while it is there (``win``; none: any held spot clashes).
+  //: Both cars' own half-lengths: the space between two parked cars is offered only to a car
+  //: that fits it with the gap kept at each end (kerbRunFor), a hatchback where a pickup is not.
   clashes(x, z, ax, az, halfLen, win = null) {
     for (let i = -1; i <= 1; i += 1) for (let j = -1; j <= 1; j += 1) {
       const cell = this.taken.get(`${Math.floor(x / 12) + i},${Math.floor(z / 12) + j}`);

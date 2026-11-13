@@ -48,10 +48,10 @@ export function carClearance(x, z, cx, cz, yaw, w, l) {
   return Math.hypot(Math.max(a, 0), Math.max(b, 0)) + Math.min(Math.max(a, b), 0) - c;
 }
 export { CAR_SQUEEZE_M };
-const CAR_DIMS = {   // width, height, length (m)
-  economy: [1.76, 1.45, 4.1], compact_ev: [1.8, 1.55, 4.3], sedan: [1.85, 1.45, 4.8], suv: [1.95, 1.75, 4.9], pickup: [2.0, 1.9, 5.6],
-  delivery_van: [2.0, 2.55, 5.9], box_truck: [2.45, 3.3, 7.4], taxi: [1.85, 1.5, 4.7], bus: [2.6, 3.15, 12.2], patrol: [1.9, 1.55, 5.0],
-};
+//: Width, height and length (m) of each kind as drawn: the one table (vehicles.mjs VEHICLE_DIMS,
+//: the fleet's true sizes) the traffic parks, steers and is walked round by. It had been a copy
+//: here, and the two had to be kept the same by hand.
+const CAR_DIMS = VEHICLE_DIMS;
 //: The bus's livery, painted by place on its body (none yet: one colour).
 const BUS_LIVERY = null;
 const PAINT = ["#f2f2f2", "#1e1e1e", "#8a8d91", "#b8bcc1", "#2b4c7e", "#7a1f1f", "#2f5d3a", "#c9b27c", "#4a4a52", "#6b8fb3", "#a3341f", "#e8e3d3"];

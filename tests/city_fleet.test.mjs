@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { cityTime, loadRules } from "../docs/city/core.mjs";
-import { City, Drivers, PARKING, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, residentsIn, signalAt, vehicleDamage } from "../docs/city/fleet.mjs";
+import { City, Drivers, PARKING, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, kerbRunFor, residentsIn, signalAt, vehicleDamage } from "../docs/city/fleet.mjs";
 import { Streets, alongRoute, placeFromBuilding } from "../docs/city/people.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 import { VEHICLE_DIMS } from "../docs/city/vehicles.mjs";
@@ -388,3 +388,27 @@ test("traffic keeps to the main streets: Lombard's ends draw the through trips, 
   assert.ok(H[8] > 2 * H[13] && H[17] > 2 * H[13]);
 });
 
+test("a car is given only a kerb space as long as it is: a gap a hatchback fits is not offered a pickup or a truck", () => {
+  // One street up the z axis, 300 m, its kerbs 4 m either side; both kerbs packed with parked
+  // cars 6 m apart but for one gap on the east kerb, 7 m of kerb between the cars either side.
+  const streets = new Streets([{ kind: "street", pts: [[0, 0], [0, 100], [0, 200], [0, 300]], lanes: 2, oneway: 0, id: "s", name: "Long Street", cls: "residential" }]);
+  const roster = new Roster(R, { seed: "kerb" });
+  const city = new City(R, roster, streets, { seed: "kerb", timeAt });
+  const kerbAt = (x, z) => { const sx = Math.sign(x) || 1; return { x: sx * 4, z, nx: sx, nz: 0, ax: 0, az: 1 }; };
+  city.setKerbside({ kerbAt, kerbParking: () => null });
+  const parkedHalf = 2.4, gapAt = 141, gap = 7.0;
+  for (const side of [-1, 1]) {
+    for (let z = 3; z < 300; z += side === 1 && z === gapAt ? gap + 2 * parkedHalf : 6) city.take(side * 2.92, z, 0, 1, parkedHalf);
+  }
+  const door = streets.nearest(0, 200, "drive");   // the corner 50 m up the street from the gap
+  // (A visit held for its while: the nearest free space, not one of the few best by its plate.)
+  const spot = (model) => city.kerbSpot({ id: `t-${model}`, model }, door, door, { day: 1, t0: 600, t1: 660 });
+  // The space: 7 m of kerb. A hatchback needs its 3.6 m and the gaps either end; a pickup 5.9 m.
+  assert.ok(kerbRunFor("economy") < gap && kerbRunFor("pickup") > gap && kerbRunFor("box_truck") > gap);
+  const eco = spot("economy");
+  assert.ok(eco && eco.z > gapAt && eco.z < gapAt + gap + 2 * parkedHalf, `the hatchback in the gap (${eco && eco.z.toFixed(1)})`);
+  assert.ok(Math.abs(eco.z - gapAt) >= parkedHalf + VEHICLE_DIMS.economy[2] / 2 + PARKING.gap_m - 1e-6);
+  for (const model of ["pickup", "box_truck", "delivery_van"]) assert.equal(spot(model), null, `a ${model} is not squeezed into the hatchback's gap`);
+  // Held by the hatchback for its while, the gap is gone for the next one.
+  assert.equal(spot("economy"), null);
+});
