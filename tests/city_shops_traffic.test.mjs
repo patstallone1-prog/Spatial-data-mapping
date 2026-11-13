@@ -64,7 +64,7 @@ test("a service booked online is paid at its own price and had at the place", ()
 test("the Shop lists services and jobs; a shop's panel points there; work is on the to-do list", () => {
   assert.ok(VIEW.includes('["services", "Services"], ["jobs", "Jobs"]'));
   assert.ok(VIEW.includes('send("book_service", { item: id, place: placeArg(pl) })'));
-  assert.ok(VIEW.includes('send("take_job", { role, place: placeArg(pl) })'));
+  assert.ok(VIEW.includes('send("apply_job", { role, place: placeArg(pl) })'), "applying opens an interview in Messages");
   assert.ok(VIEW.includes("store0.items.filter((id) => !R.items[id].service)"), "a shop's own panel lists goods");
   assert.ok(VIEW.includes("Go to work: ${p.job.title}") && VIEW.includes('"Clock in: you are at work"'));
   assert.ok(VIEW.includes('label: `Clock in: ${p.job.title}`, key: "", run: workKey'), "clock in on the action bar");

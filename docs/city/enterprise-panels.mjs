@@ -291,7 +291,7 @@ export function enterprisePanels(api) {
     const rows = list.map((l) => h("tr", {}, h("td", {}, h("b", { textContent: `${l.name}` }), h("div", { className: "note", textContent: `${l.title} · ${l.years} years · ${l.record.wins} won, ${l.record.pleas} pleas, ${l.record.losses} lost of ${l.record.cases}${l.odds ? ` · for your case: ${l.odds}` : ""}` })),
       h("td", { textContent: l.role === "public" ? (l.free ? "free" : "means-tested") : R.fmt(l.price) }),
       h("td", {}, side.caseId && cases.find((c) => c.id === side.caseId) && l.takes.includes(cases.find((c) => c.id === side.caseId).class)
-        ? act("Hire", () => run("hire_lawyer", { place, lawyer: l.id, case: side.caseId }, (r) => `${l.name} has your case: court ${when(r.case.court)}, at ${courtPlace().name || "the court"}. It is on your to-do list.`), true)
+        ? act("Hire", () => run("hire_lawyer", { place, lawyer: l.id, case: side.caseId, court: courtPlace() ? placeArg(courtPlace()) : null }, (r) => `${l.name} has your case: court ${when(r.case.court)}, at ${courtPlace().name || "the court"}. It is on your to-do list.`), true)
         : h("span", { className: "note", textContent: l.takes.join(", ") }))));
     side.el.replaceChildren(title, tabs, status,
       h("p", { className: "note", textContent: "The people here are the office's own (invented: the office is real, its lawyers are not). Their records are honest; the odds are the lawyer's own reading of your case." }),

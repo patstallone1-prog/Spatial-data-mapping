@@ -31,6 +31,7 @@ import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from ".
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
+import { messagesPanel } from "./messages-panel.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -1015,7 +1016,11 @@ export async function startCity(ctx) {
   }
   world = loadSolo(); view = world;
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
-  let enterpriseUI = null;
+  let enterpriseUI = null, messagesUI = null;
+  //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
+  const messages = () => (messagesUI ||= messagesPanel({ R, h, send, notify, me: () => myId, getView: () => view, placeArg,
+    peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
+    courtPlace: () => enterprise().courtPlace?.() }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
@@ -1702,7 +1707,10 @@ export async function startCity(ctx) {
     taxi.n += 1;
     Object.assign(taxi, { id: `taxi:${myId}:${taxi.n}`, phase: "coming", route, d: 0, dest, since: performance.now() });
     closeSide();
-    notify(`A yellow taxi is on its way, about ${Math.max(1, Math.round(route.length / TL.taxi_speed_ms / 60))} min. Wait at the kerb; Enter to get in when it pulls up (it waits ${TL.taxi_max_wait_s} s).`);
+    const mins = Math.max(1, Math.round(route.length / TL.taxi_speed_ms / 60));
+    taxi.warned = false;
+    notify(`A yellow taxi is on its way, about ${mins} min. Wait at the kerb; Enter to get in when it pulls up (it waits ${TL.taxi_max_wait_s} s).`);
+    send("ride_note", { note: "coming", minutes: mins });   // the driver writes (messages.mjs)
   }
   //: The point on a street beside (x, z) that a car pulls up at for you: the nearest drivable
   //: way with you on its right (the kerb side), clear of the corners at its ends.
@@ -1742,6 +1750,7 @@ export async function startCity(ctx) {
     let route = a !== null && a !== undefined && b !== null && b !== undefined ? s.route(a, b, "drive") : null;
     if (route && end) route = routeOnTo(route, end);
     taxi.phase = "riding"; taxi.d = 0;
+    send("ride_note", { note: "aboard" });
     taxi.route = route || { pts: [[taxi.at.x, taxi.at.z]], s: [0], length: 0 };
   }
   function stepTaxi(dt) {
@@ -1755,9 +1764,14 @@ export async function startCity(ctx) {
     const done = taxi.d >= R0.length - 0.05;
     const pos = alongRoute(R0, taxi.d, KERB);
     taxi.at = { id: taxi.id, model: "taxi", x: pos.x, z: pos.z, yaw: pos.yaw, speed: done ? 0 : TL.taxi_speed_ms, moving: !done, shade: 0 };
-    if (done && taxi.phase === "coming") { taxi.phase = "waiting"; taxi.waitSince = performance.now(); notify(`Your taxi has pulled up: Enter to get in. It waits ${TL.taxi_max_wait_s} s.`); }
-    // It waits so long and no longer: a fare that does not come out does not keep it all day.
-    if (taxi.phase === "waiting" && performance.now() - taxi.waitSince > TL.taxi_max_wait_s * 1000) { Object.assign(taxi, { phase: null, route: null, at: null }); notify("The taxi gave up waiting and left."); }
+    if (done && taxi.phase === "coming") { taxi.phase = "waiting"; taxi.waitSince = performance.now(); notify(`Your taxi has pulled up: Enter to get in. It waits ${TL.taxi_max_wait_s} s.`); send("ride_note", { note: "here", seconds: TL.taxi_max_wait_s }); }
+    // It waits so long and no longer: a fare that does not come out does not keep it all day. The
+    // driver says so before going, and hangs on a minute more if asked in the messages.
+    if (taxi.phase === "waiting") {
+      const limit = TL.taxi_max_wait_s + ((world || view)?.rideState?.(myId)?.extend ? 60 : 0), waited = (performance.now() - taxi.waitSince) / 1000;
+      if (!taxi.warned && limit - waited <= 20) { taxi.warned = true; send("ride_note", { note: "leaving", seconds: Math.max(1, Math.round(limit - waited)) }); }
+      if (waited > limit) { Object.assign(taxi, { phase: null, route: null, at: null }); notify("The taxi gave up waiting and left."); send("ride_note", { note: "left" }); }
+    }
     if (done && taxi.phase === "riding" && transit.ride?.vehicle === taxi.id && !taxi.paying) { taxi.paying = true; alight(taxi.at).finally(() => { taxi.paying = false; }); }
   }
   //: A bus at the stop you stand at waits for you to get on -- so long and no longer
@@ -2970,7 +2984,7 @@ export async function startCity(ctx) {
     else if (wrongSide) out.push({ id: "bus", label: "Board from the pavement side: the doors are on the kerb side", key: "", run: () => notify("The bus's doors are on its kerb side: walk round to the pavement (or the stop's island) to get on.") });
     else { const stop = nearestStop(30); if (stop) out.push({ id: "stop", label: `Bus stop: ${stop.routes.join(", ")}`, key: "", run: () => openSide("ride") }); }
     const cab = nearestFare("taxi");
-    if (cab) out.push({ id: "ride", label: cab.id === taxi.id ? `Get in your taxi (waits ${Math.max(0, Math.ceil(TL.taxi_max_wait_s - (performance.now() - taxi.waitSince) / 1000))} s)` : "Hail the taxi", key: "Enter", run: () => board(cab) });
+    if (cab) out.push({ id: "ride", label: cab.id === taxi.id ? `Get in your taxi (waits ${Math.max(0, Math.ceil(TL.taxi_max_wait_s + ((world || view)?.rideState?.(myId)?.extend ? 60 : 0) - (performance.now() - taxi.waitSince) / 1000))} s)` : "Hail the taxi", key: "Enter", run: () => board(cab) });
     else if (taxi.phase === "coming") out.push({ id: "ride", label: "Your taxi is on its way", key: "", run: () => openSide("ride") });
     else out.push({ id: "ride", label: "Call a taxi", key: "", run: () => openSide("ride") });
     const door = myGarageHere();
@@ -3099,6 +3113,11 @@ export async function startCity(ctx) {
   function click(ray) {
     if (!self()) return;
     if (shop.room?.userData.panel && ray?.intersectObject(shop.room.userData.panel, false).length) { openStore(shop.place); return; }
+    // Another player clicked: who they are in the messages, to add as a friend or write to.
+    for (const peer of party.session?.players() || []) {
+      const pid = party.ids.get(peer.id);
+      if (pid && pid !== myId && peer.avatar?.visible !== false && peer.avatar && ray?.intersectObject(peer.avatar, true).length) { messages().person(pid, peer.name); return; }
+    }
     swingKey();
   }
 
@@ -3895,6 +3914,8 @@ export async function startCity(ctx) {
       dial.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - Math.round(C.bottom + 8) - 12)}px`;
     }
     root.style.setProperty("--city-under", `${Math.round(Math.max(B && B.height ? B.bottom : y + 44, C ? C.bottom : 0, P ? P.bottom : 0) + 8)}px`);
+    // The messages tab at the left edge, clear of the map's controls while they are open.
+    messages().layout({ on: on && Boolean(self()), left: M ? M.right + 6 : 0 });
   }
   globalThis.addEventListener?.("resize", () => layoutBars());
   // The map's controls opened or closed: the bar makes room.
@@ -4214,7 +4235,7 @@ export async function startCity(ctx) {
         const rows = list.map(({ role, spec, pl, d, label }) => h("tr", {}, h("td", {}, h("b", { textContent: spec.title }), h("div", { className: "note", textContent: `${label} · ${shiftText(spec)} · ${Math.round(d)} m` })),
           h("td", { textContent: `${R.fmt(spec.pay)}/h` }),
           h("td", {}, p.job?.place?.id === pl.id && p.job.role === role ? h("span", { className: "note", textContent: "Your job" })
-            : h("button", { className: "primary", textContent: p.job ? "Switch" : "Apply", onclick: () => say(send("take_job", { role, place: placeArg(pl) }), () => `Hired: ${spec.title.toLowerCase()} at ${label}. Go there and clock in (it is on your to-do list).`).then(() => { todoKey = ""; drawTodo(); }) }))));
+            : h("button", { className: "primary", textContent: p.job ? "Switch" : "Apply", onclick: () => send("apply_job", { role, place: placeArg(pl) }).then((r) => { notify(r.ok ? `Applied: the interviewer at ${label} has written to you in Messages.` : r.error); if (r.ok) messages().open("npc", r.thread); drawSide(); }) }))));
         out.push(h("h4", { textContent: "Jobs — hiring near you, at their pay" }),
           p.job ? h("p", { className: "note" }, `You work as ${p.job.title.toLowerCase()} at ${address(p.job.place.name) || "your workplace"} (${R.fmt(p.job.pay)}/h). `, act("Quit", () => send("quit_job"))) : "",
           rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "No openings near you." }));
