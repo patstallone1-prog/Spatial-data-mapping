@@ -22,10 +22,10 @@ import {
 } from "./core.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
-import { buildLines, busesAt, stopsOf } from "./transit.mjs";
+import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
-import { BIKE_PAINT_MIX, BUS_LIVERY, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
@@ -130,8 +130,11 @@ export async function startCity(ctx) {
     if (d.level >= 2 && d.break_energy_j) R.objects[id] = { name: a.name, material: a.material, break_j: d.break_energy_j, health: d.health };
   }
   // The real bus stops and the routes that call at them.
-  let transitStops = null;
+  let transitStops = null, timetable = null;
   fetch(ctx.transitUrl || ctx.asset("transit-stops.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { transitStops = json?.stops || []; if (district.streets) makeLines(); }).catch(() => {});
+  // Muni's timetable through the district (scripts/build_muni_routes.py): its routes run as it
+  // runs them, the others out and back.
+  fetch(ctx.asset("city/muni-routes.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { if (json?.lines) { timetable = json; if (district.streets) makeLines(); } }).catch(() => {});
 
   const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
@@ -246,7 +249,7 @@ export async function startCity(ctx) {
     let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
     for (const p of district.places) { x0 = Math.min(x0, p.x); z0 = Math.min(z0, p.z); x1 = Math.max(x1, p.x); z1 = Math.max(z1, p.z); }
     const near = transitStops.filter((s) => { const [x, z] = ctx.fromLonLat(s.lon, s.lat); return x > x0 - 100 && x < x1 + 100 && z > z0 - 100 && z < z1 + 100; });
-    try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat)); } catch (error) { console.warn("kerbside: bus lines", error); }
+    try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat), timetable); } catch (error) { console.warn("kerbside: bus lines", error); }
     district.stops = stopsOf(district.lines);
     district.city?.setLines(district.lines);
     drawStops();
@@ -704,9 +707,30 @@ export async function startCity(ctx) {
     }
     return out;
   }
+  //: The buses' destination signs (vehicles.mjs BUS_SIGN, drawBusSign): one canvas for each
+  //: route and destination, lit (not shaded: an LED sign shows as bright at night), on each bus
+  //: that shows it.
+  const SIGN_GEO = new THREE.PlaneGeometry(BUS_SIGN.w, BUS_SIGN.h).rotateY(Math.PI);
+  const signs = new Map();   // "route|to" -> { mesh, n, text }
+  function signOf(sign) {
+    const key = `${sign.route}|${sign.to}`;
+    if (!signs.has(key)) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512; canvas.height = 80;
+      const text = drawBusSign(canvas.getContext("2d"), sign, canvas.width, canvas.height);
+      const map = new THREE.CanvasTexture(canvas);
+      map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+      const mesh = instanced(SIGN_GEO, new THREE.MeshBasicMaterial({ map, toneMapped: false }), 16, `city-bus-sign-${sign.route}`);
+      mesh.userData.sign = text;
+      signs.set(key, { mesh, n: 0, text });
+    }
+    return signs.get(key);
+  }
+  const SIGN_M = new THREE.Matrix4();
   function drawCars(list, night) {
     let n = 0, lights = 0, lo = 0;
     for (const f of fleet.values()) f.n = 0;
+    for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
     drawnTiers.cars = [full.length, mid.length, low.length];
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
@@ -719,7 +743,13 @@ export async function startCity(ctx) {
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
       if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
-      else lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
+      // The route and where it is going, over the windscreen (on the fleet's bus; just off the
+      // code-built one's nose; the low tier's box has none).
+      if (f && v.sign && f.n < f.cap) {
+        const s = signOf(v.sign);
+        if (s.n < s.mesh.instanceMatrix.count) s.mesh.setMatrixAt(s.n++, SIGN_M.multiplyMatrices(M, TM.makeTranslation(0, f.fleet ? BUS_SIGN.y : hgt - 0.3, f.fleet ? BUS_SIGN.z : -l / 2 - BUS_SIGN.coded_z)));
+      }
+      if (!f) lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
       // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
       // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
       // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
@@ -742,6 +772,7 @@ export async function startCity(ctx) {
     for (const f of fleet.values()) for (const { mesh } of f.parts) {
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
+    for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
     lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
@@ -1566,24 +1597,24 @@ export async function startCity(ctx) {
       }
     }
   }
-  //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds.
+  //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds (by the
+  //: timetable where the route has one: none at all on a route that is not running then).
   function nextBuses(stop, ms) {
     const out = [], t = ms / 1000;
     for (const line of district.lines || []) {
       const k = line.stops.findIndex((c) => Math.hypot(c.x - stop.x, c.z - stop.z) < 35);
       if (k < 0) continue;
       const waits = [];
-      for (let j = 0; j < line.buses; j += 1) {
-        const phase = ((t + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle;
-        for (const seg of line.timeline) {
-          if (seg.kind !== "dwell" || seg.stop !== k) continue;
-          const next = line.timeline[line.timeline.indexOf(seg) + 1];
-          const wait = ((seg.t0 - phase) % line.cycle + line.cycle) % line.cycle;
-          waits.push({ wait: phase >= seg.t0 && phase < seg.t1 ? 0 : wait, toward: next?.next !== undefined ? line.stops[next.next].name : "the end of the line" });
-        }
+      for (const seg of line.timeline) {
+        if (seg.kind !== "dwell" || seg.stop !== k) continue;
+        const next = line.timeline[line.timeline.indexOf(seg) + 1];
+        // The last stop of a timetabled run sets nobody down further on: nothing to wait for.
+        if (line.schedule && !next) continue;
+        const toward = line.sign?.to || (next?.next !== undefined ? line.stops[next.next].name : "the end of the line");
+        for (const a of arrivalsAt(line, seg, t, 2)) waits.push({ wait: Math.max(0, a.at - t), toward });
       }
       waits.sort((a, b) => a.wait - b.wait);
-      out.push({ route: line.route, next: waits.slice(0, 2) });
+      if (waits.length) out.push({ route: line.route, next: waits.slice(0, 2) });
     }
     return out;
   }

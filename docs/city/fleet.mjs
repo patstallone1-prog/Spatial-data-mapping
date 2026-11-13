@@ -11,6 +11,7 @@
 // the trips of the day say how it got there (``history``). Pure, as people.mjs is
 // (tests/city.test.mjs).
 
+import { arrivalsAt } from "./transit.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
@@ -597,11 +598,13 @@ export class City {
     }
     if (!best) return null;
     const { line } = best, tl = line.timeline, C = line.cycle;
-    // The dwell at the first stop that reaches the second soonest: the bus going the right way.
+    // The dwell at the first stop that reaches the second soonest: the bus going the right way
+    // (a timetabled run goes one way only, and does not come round again).
     let leg = null;
     tl.forEach((s, i) => {
       if (s.kind !== "dwell" || s.stop !== best.a) return;
       for (let k = 1; k < tl.length; k += 1) {
+        if (line.schedule && i + k >= tl.length) break;
         const e = tl[(i + k) % tl.length];
         if (e.kind !== "dwell" || e.stop !== best.b) continue;
         const ride = ((e.t0 - s.t0) % C + C) % C;
@@ -613,13 +616,9 @@ export class City {
     const stopA = leg.at.pole, stopB = leg.off.pole;
     const walkA = tripMinutes(Math.hypot(stopA.x - A.x, stopA.z - A.z), p.pace) + 0.2;
     const atStop = dayStart / 1000 + (depart + walkA) * 60;
-    // The next of the line's buses to stand at the stop (transit.mjs busesAt's phases).
-    let arrive = Infinity;
-    for (let j = 0; j < line.buses; j += 1) {
-      const phase = ((atStop + j * C / line.buses) % C + C) % C;
-      const wait = phase >= leg.at.t0 && phase < leg.at.t1 - 6 ? leg.at.t0 - phase : ((leg.at.t0 - phase) % C + C) % C;
-      arrive = Math.min(arrive, atStop + wait);
-    }
+    // The next of the line's buses to stand at the stop (transit.mjs: the buses the page draws),
+    // one standing there still counted while it has 6 s to go.
+    const arrive = arrivalsAt(line, leg.at, atStop + 6, 1)[0]?.at ?? Infinity;
     if (!Number.isFinite(arrive) || arrive - atStop > 15 * 60) return null;
     const toMin = (sec) => (sec - dayStart / 1000) / 60;
     const board = toMin(arrive + Math.min(6, (leg.at.t1 - leg.at.t0) / 3));

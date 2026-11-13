@@ -417,6 +417,38 @@ export const BUS_LIVERY = {
   ].join("\n"),
 };
 
+//: The bus's destination sign, over its windscreen: where it stands on the fleet's bus (its frame:
+//: front -z; the front's profile measured from bus-npc.glb, upright from 2.6 m up at z -5.70 to
+//: -5.75) and how big -- a New Flyer's head sign is about 1.7 m by 0.27. ``coded_z``: on the
+//: code-built bus, a box, just off its nose.
+export const BUS_SIGN = { y: 2.78, z: -5.79, w: 1.72, h: 0.27, coded_z: 0.03 };
+//: The sign's face for ``sign`` ({ route, name, to }) on a 2D canvas context ``g`` of ``w`` x ``h``
+//: pixels, as Muni's amber LED signs show it: the route number large at the left, and the line's
+//: name above where it is going ("22 | Fillmore / to Bay Street"), each made small enough to fit.
+export function drawBusSign(g, sign, w, h) {
+  const amber = "#ffb31a", pad = Math.round(h * 0.1);
+  g.fillStyle = "#0b0b0c"; g.fillRect(0, 0, w, h);
+  g.fillStyle = amber; g.textBaseline = "middle";
+  const fit = (text, weight, size, room) => {
+    let px = size;
+    g.font = `${weight} ${px}px "Arial Narrow", Arial, sans-serif`;
+    while (px > 8 && g.measureText(text).width > room) { px -= 2; g.font = `${weight} ${px}px "Arial Narrow", Arial, sans-serif`; }
+    return px;
+  };
+  const number = String(sign.route || "");
+  g.textAlign = "left";
+  fit(number, 700, Math.round(h * 0.86), w * 0.24);
+  const numberW = Math.min(w * 0.24, g.measureText(number).width);
+  g.fillText(number, pad, h / 2);
+  const x = pad * 3 + numberW, room = w - x - pad;
+  fit(sign.name || "", 400, Math.round(h * 0.34), room);
+  g.fillText(sign.name || "", x, h * 0.28);
+  const to = sign.to ? `to ${sign.to}` : "";
+  fit(to, 700, Math.round(h * 0.46), room);
+  g.fillText(to, x, h * 0.7);
+  return { number, name: sign.name || "", to };
+}
+
 // ---- the imported fleet (scripts/build_city_fleet.mjs) ------------------------------------------
 //
 // Each file is a few meshes, already turned to face -z, centred and on the ground: ``body`` (a

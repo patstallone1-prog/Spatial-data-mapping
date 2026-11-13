@@ -748,7 +748,7 @@
     "distance_m": [200, 1200]
   },
   "transit_lines": {
-    "basis": "buses on the real routes (SFMTA GTFS stops, docs/transit-stops.json): each route's stops in the district, in order along it, joined by the streets; a bus every few minutes each way, stopping at each stop to let people on and off. Headways approx. Muni's frequent network (6-12 minutes).",
+    "basis": "buses on the real routes (SFMTA GTFS stops, docs/transit-stops.json): each route's stops in the district, in order along it, joined by the streets; a bus every few minutes each way, stopping at each stop to let people on and off. Headways approx. Muni's frequent network (6-12 minutes). Where Muni's timetable for the district is to hand (docs/city/muni-routes.json, scripts/build_muni_routes.py) its routes run as it runs them instead: one way along their own stops, a bus for each timetabled trip, its number and destination on its sign; headway_min and speed_ms are then the rest's.",
     "headway_min": 9,
     "dwell_s": 22,
     "pull_m": 18,
