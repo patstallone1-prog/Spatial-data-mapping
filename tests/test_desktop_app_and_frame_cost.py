@@ -48,7 +48,7 @@ def test_no_world_renderer_uses_transmission_glass() -> None:
 
 def test_the_crowd_is_drawn_in_view_nearest_first_and_bikes_look_twice_a_second() -> None:
     view = VIEW.read_text()
-    assert "for (const { p, y } of peopleInView(list))" in view
+    assert "const seen = peopleInView(list);" in view and "for (const { p, y } of full)" in view
     assert "if (out.length > MAX_PEOPLE) { out.sort((a, b) => a.d - b.d); out.length = MAX_PEOPLE; }" in view
     assert "camera: () => camera," in CITY_MODULE.read_text()
     assert "tries: 3, every_s: 0.5" in view and "const look = Math.floor(now / 1000 / BIKES.every_s);" in view

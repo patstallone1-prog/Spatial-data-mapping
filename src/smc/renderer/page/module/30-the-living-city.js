@@ -282,6 +282,8 @@ function setAppMode(mode) {
       // City mode's area: the walker and the car stop at its edge; tasks outside it are not offered.
       inArea: (x, z) => cityAreaHolds(x, z),
       areaName: () => (cityLock ? CITY_AREA.name : null),
+      // Its box, [x0, z0, x1, z1]: the living city keeps track of everyone in it (detail.mjs).
+      areaBox: () => (cityLock ? cityLock.box : null),
       moveWalker: (mx, mz) => moveWalker(mx, mz),
       // The walker's legs for a move the city made (walking over to pick a thing up, a shop's
       // floor): ``distance`` metres the way (dx, dz), at a walk -- 0 stands it still. Without

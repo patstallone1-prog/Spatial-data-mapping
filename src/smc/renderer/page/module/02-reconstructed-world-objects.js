@@ -986,8 +986,13 @@ const TERRAIN_UNDER_CHORD_M = 0.2;
 //: triangles to 26.19 M and its build from 56 s to 161 s, and fixed nothing, because the sag
 //: was never there.
 //: The surfaces laid at street level, which have to follow the hill together (see below).
+//: A tree pit is one of them: it is a square of soil laid four millimetres over the pavement,
+//: and given twelve-metre edges it was never cut at all -- a flat 1.2-1.9 m quad between its
+//: own four corners, over a pavement bent on the two-metre grid beneath it, so wherever the
+//: ground broke its grade under a pit the pavement came up through the soil as white shards
+//: (Chestnut's tree pits from Scott to Avila). Cut on the same grid, the two stay parallel.
 const STREET_GRID_SURFACES = ["road", "walk", "walk_narrow", "kerb", "median", "bike", "busway",
-  "marking", "crossing", "crossing_edges", "tactile_warning"];
+  "marking", "crossing", "crossing_edges", "tactile_warning", "tree_pit"];
 const TERRAIN_REFINE_BY_SURFACE = {
   // Not the underlay: it is a backstop laid five centimetres under everything else so that
   // grass and frontages win over it, so its own sag is never what anybody sees -- and it is
@@ -996,7 +1001,7 @@ const TERRAIN_REFINE_BY_SURFACE = {
   walk_underlay: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],
   footprint: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M], garage: [TERRAIN_REFINE_M, TERRAIN_UNDER_CHORD_M],
   parking_lot: [12.0, 0], front_walk: [12.0, 0],
-  tree_pit: [12.0, 0], pier: [12.0, 0],
+  pier: [12.0, 0],
   // Visible plaza paving must follow the 2 m terrain grid. A 12 m chord fell 40 cm below
   // that grid around 600 Montgomery, exposing dark terrain as angular holes in the paving.
   plaza: [2.0, 0, 2.0, true],

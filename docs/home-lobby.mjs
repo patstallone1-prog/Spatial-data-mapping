@@ -100,6 +100,7 @@ const CSS = `
 #home .stage{position:relative;display:grid;grid-template-columns:1fr minmax(260px,420px) 1fr;align-items:center;min-height:0;padding:0 28px}
 #home .avatar{position:relative;height:100%;min-height:300px}
 #home .avatar canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+#home .avatar.close canvas{-webkit-mask-image:radial-gradient(ellipse 58% 52% at 50% 46%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 58% 52% at 50% 46%,#000 62%,transparent 100%)}
 #home .avatar .tag{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);padding:4px 18px;font-size:18px;font-weight:700;
   text-transform:uppercase;letter-spacing:.14em;background:rgba(8,12,18,.75);border-bottom:3px solid var(--team);white-space:nowrap}
 #home .party{display:flex;flex-direction:column;gap:18px;align-items:center}
@@ -197,6 +198,16 @@ const el = (tag, attrs = {}, ...kids) => {
 
 let open = null;
 
+//: Half the width that has to fit across the stage: the platform (1.15 m) with a margin.
+const PLATFORM_HALF_M = 1.45;
+//: Half the width round the face when close on it, and how far the camera stands off it.
+const FACE_HALF_M = 0.2;
+const FACE_VIEW_M = 1.1;
+//: How far up the head bone toward its tip the face's middle is (between the eyes and the nose).
+const FACE_ALONG_HEAD = 0.45;
+//: How far the face can be turned and left, either way from the front: past the profile, not round.
+const HEAD_TURN_MAX = 1.75;
+
 //: The avatar on its platform: its own small renderer, the walker's model, turned by dragging.
 function avatarStage(ctx, host, look) {
   const { THREE } = ctx;
@@ -224,7 +235,15 @@ function avatarStage(ctx, host, look) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.03, 12, 96), ringMaterial);
   ring.rotation.x = Math.PI / 2; ring.position.y = 0.065;
   platform.add(ring);
-  const glowMaterial = new THREE.MeshBasicMaterial({ color: look.team, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
+  // Light coming up off the ring, fading out as it rises: at one opacity all the way up, its
+  // top stood level with the camera and drew as one straight edge, a box set on the platform.
+  const fade = document.createElement("canvas");
+  fade.width = 4; fade.height = 64;
+  const fadeDraw = fade.getContext("2d"), fadeRamp = fadeDraw.createLinearGradient(0, 0, 0, 64);
+  fadeRamp.addColorStop(0, "#000"); fadeRamp.addColorStop(0.55, "#777"); fadeRamp.addColorStop(1, "#fff");
+  fadeDraw.fillStyle = fadeRamp; fadeDraw.fillRect(0, 0, 4, 64);
+  const glowMaterial = new THREE.MeshBasicMaterial({ color: look.team, transparent: true, opacity: 0.26, side: THREE.DoubleSide,
+    depthWrite: false, alphaMap: new THREE.CanvasTexture(fade) });
   const glow = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, 1.6, 64, 1, true), glowMaterial);
   glow.position.y = 0.86;
   platform.add(glow);
@@ -302,8 +321,27 @@ function avatarStage(ctx, host, look) {
     }
   };
   show(look);
-  let yaw = -0.35, spin = 0.0025, dragging = null, framing = "body";
-  const view = { y: 1.25, z: 5.4, at: 0.95, fov: 32 };
+  let yaw = -0.35, spin = 0.0025, dragging = null, framing = "body", headYaw = null;
+  const view = { x: 0, y: 1.25, z: 5.4, at: 0.95, fov: 32 };
+  // Where the face is: the middle of the head, read off the figure's own head bone each frame,
+  // so a short body, a tall one and the Soldier are all framed on the face itself. A fixed
+  // height (1.8 m times the body's height, less 15 cm) put a short figure's face low in the
+  // frame and a tall one's chin out of it.
+  let headBone = null, headOf = null;
+  const headProbe = new THREE.Vector3(), headTop = new THREE.Vector3();
+  const faceAt = () => {
+    if (model && headOf !== model) {
+      headOf = model; headBone = null;
+      model.traverse((node) => { if (!headBone && node.isBone && /(^|[:_]|rig)head$/i.test(node.name)) headBone = node; });
+    }
+    if (!headBone) { const tall = 1.8 * (current.avatar?.height || 1); return { x: 0, y: tall - 0.15, z: 0 }; }
+    headBone.getWorldPosition(headProbe);
+    // From the bone (the top of the neck) a little way up toward the crown: the eyes and nose.
+    const tip = headBone.children.find((c) => c.isBone);
+    if (tip) { tip.getWorldPosition(headTop); headProbe.lerp(headTop, FACE_ALONG_HEAD); }
+    else headProbe.y += 0.09;
+    return { x: headProbe.x, y: headProbe.y, z: headProbe.z };
+  };
   renderer.domElement.addEventListener("pointerdown", (e) => { dragging = e.clientX; renderer.domElement.setPointerCapture(e.pointerId); spin = 0; });
   renderer.domElement.addEventListener("pointermove", (e) => { if (dragging === null) return; yaw += (e.clientX - dragging) * 0.012; dragging = e.clientX; });
   renderer.domElement.addEventListener("pointerup", () => { dragging = null; spin = 0.0025; });
@@ -320,14 +358,36 @@ function avatarStage(ctx, host, look) {
     const dt = Math.min(0.05, clock.getDelta());
     // The view eases to the whole figure or to its face (focus): close on the face while the
     // face, the features or the hair are being changed, so a small change shows.
-    const head = framing === "head", tall = 1.8 * (current.avatar?.height || 1);
-    const want = head ? { y: tall - 0.14, z: 1.25, at: tall - 0.15, fov: 26 } : { y: 1.25, z: 5.4, at: 0.95, fov: 32 };
+    const head = framing === "head";
+    const face = head ? faceAt() : null;
+    // Close on the face the canvas's edges fade out round it: the shoulders ran into its sides and
+    // its foot as a hard-edged box.
+    host.classList.toggle("close", head);
+    const want = head
+      ? { y: face.y + 0.01, z: face.z + FACE_VIEW_M, at: face.y, fov: 26, half: FACE_HALF_M }
+      : { y: 1.25, z: 5.4, at: 0.95, fov: 32, half: PLATFORM_HALF_M };
+    // The field of view is vertical, and the stage's column is never wider than 420 px: in a
+    // window filling a tall screen the canvas is half as wide as it is high, and at 32 degrees
+    // the 2.3 m platform and the light over it were cut off square by the canvas's sides. Widen
+    // the view until what has to be seen fits across as well as up.
+    const aspect = Math.max(0.2, camera.aspect || 1);
+    want.fov = Math.max(want.fov, THREE.MathUtils.radToDeg(2 * Math.atan(want.half / (want.z - (head ? face.z : 0)) / aspect)));
     const k = 1 - Math.exp(-dt * 6);
     view.y += (want.y - view.y) * k; view.z += (want.z - view.z) * k; view.at += (want.at - view.at) * k; view.fov += (want.fov - view.fov) * k;
-    camera.position.set(0, view.y, view.z); camera.lookAt(0, view.at, 0);
+    view.x += ((head ? face.x : 0) - view.x) * k;
+    camera.position.set(view.x, view.y, view.z); camera.lookAt(view.x, view.at, head ? face.z : 0);
     if (Math.abs(camera.fov - view.fov) > 0.01) { camera.fov = view.fov; camera.updateProjectionMatrix(); }
-    if (head && dragging === null) { let d = (0 - yaw) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; yaw += d * k; }
-    else yaw += spin;
+    // Close on the face it is turned to face the camera once, and then stays wherever it is
+    // dragged to (within a half turn either way): it used to spring back to the front as soon
+    // as it was let go, so the side of the face could not be looked at.
+    if (head && headYaw === null) headYaw = 0;
+    if (!head) headYaw = null;
+    if (head && dragging === null) {
+      let d = (headYaw - yaw) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2;
+      yaw += d * k;
+    } else if (head) {
+      headYaw = Math.max(-HEAD_TURN_MAX, Math.min(HEAD_TURN_MAX, Math.atan2(Math.sin(yaw), Math.cos(yaw))));
+    } else yaw += spin;
     turn.rotation.y = yaw;
     ring.material.opacity = 0.75 + 0.2 * Math.sin(performance.now() / 400);
     mixer?.update(dt);

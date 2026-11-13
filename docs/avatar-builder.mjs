@@ -99,6 +99,16 @@ export function wornItems(avatar, catalogue) {
 
 //: One builder per page: the catalogue and every file are fetched once and shared by every
 //: figure built from them.
+//: MakeHuman's Caucasian skins are a pale pink-white (about rgb 188, 156, 138 on average), and
+//: under the lobby's key light and the page's filmic tone mapping they drew ghostly white, the
+//: features washed out of the face. They are multiplied by a warm tan -- the texture's own
+//: detail, the freckles, the shading round the eyes and lips, all kept -- to about 180, 135, 108.
+//: The other skins are drawn as they are.
+export const SKIN_TINT = { caucasian: "#f4dac4" };
+export function skinTintFor(skin) {
+  return /caucasian/.test(String(skin || "")) ? SKIN_TINT.caucasian : "#ffffff";
+}
+
 export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars" }) {
   const root = base.replace(/\/$/, "");
   const loader = new GLTFLoader();
@@ -226,6 +236,7 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
       const [skin, eye] = await Promise.all([texture(cat.skin_files[avatar.skin]), texture(cat.eye_files[avatar.eyes])]);
       if (mine !== token) return;
       bodyMesh.material.map = skin;
+      bodyMesh.material.color.set(skinTintFor(avatar.skin));
       bodyMesh.material.needsUpdate = true;
       for (const [id, w] of worn) {
         const item = cat.items.find((i) => i.id === id);
