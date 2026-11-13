@@ -1315,19 +1315,42 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
 }
 
 let previous = performance.now();
-//: How fast the arrows turn the walker (radians a second): a quarter turn in under a second.
-const WALK_TURN_RATE = 1.8;
-//: Left or Right alone walks round a curve of this radius at WALK_SIDE_PACE of the walking pace,
-//: as a person turns -- never a spin on the spot, which looked like a turntable (2026-11-12).
-const WALK_SIDE_RADIUS_M = 1.2;
+//: The arrows turn the walker round a curve whose radius grows with its speed: this many metres
+//: of radius for each metre a second -- tight at a stroll, wider at a run -- and held between
+//: WALK_TURN_RADIUS_MIN_M and WALK_TURN_RADIUS_MAX_M. Turned at one rate (1.8 radians a second)
+//: at every speed, the walk's own speed -- 5.4 m/s on foot, 9 m/s and more orbiting -- swept
+//: curves of 2 to 5 m: wide, and the wider the faster (2026-11-12).
+const WALK_TURN_RADIUS_S = 0.45;
+const WALK_TURN_RADIUS_MIN_M = 0.5;
+const WALK_TURN_RADIUS_MAX_M = 3.0;
+//: The fastest a walker's facing turns (radians a second). Where the curve at its speed would
+//: turn it faster, it slows on the curve instead: the radius holds, as a runner's does.
+const WALK_TURN_RATE_MAX = 2.2;
+//: Left or Right alone walks round the curve at WALK_SIDE_PACE of the walking pace, as a person
+//: turns -- never a spin on the spot, which looked like a turntable (2026-11-12).
 const WALK_SIDE_PACE = 0.7;
-//: Down turns the walker round at this rate (radians a second): about a third of a second, one
-//: step, at WALK_BACK_PACE of the pace -- a pivot, not a wide loop -- then walks back.
-const WALK_BACK_TURN_RATE = 9;
+//: Down turns the walker round at this rate (radians a second): about two thirds of a second,
+//: two steps, at WALK_BACK_PACE of the pace -- a pivot, not a wide loop -- then walks back.
+const WALK_BACK_TURN_RATE = 5;
 const WALK_BACK_PACE = 0.3;
-//: How quickly the view swings round behind a walker on the move (a share a second).
-const WALK_VIEW_FOLLOW = 1.6;
+//: How quickly the view swings round behind a walker on the move (a share a second), and the
+//: fastest it swings (radians a second): it follows the turn, behind it, rather than wheeling
+//: round with the body. Seen from the walker's eyes it follows closer (the way ahead has to be
+//: in view), and as fast as the body can turn, so it never falls further and further behind.
+const WALK_VIEW_FOLLOW = 0.9;
+const WALK_VIEW_MAX_RATE = 1.4;
+const WALK_VIEW_FOLLOW_EYES = 6;
+const WALK_VIEW_MAX_RATE_EYES = 3;
 let walkTurnBack = null;
+//: The curve a walker at ``speed`` (metres a second) turns on: { rate } in radians a second, and
+//: { pace }, the share of the speed it keeps on it (less than all only where WALK_TURN_RATE_MAX
+//: holds it back).
+function walkTurn(speed) {
+  const v = Math.max(0.1, speed);
+  const radius = Math.min(WALK_TURN_RADIUS_MAX_M, Math.max(WALK_TURN_RADIUS_MIN_M, WALK_TURN_RADIUS_S * v));
+  const rate = v / radius;
+  return rate > WALK_TURN_RATE_MAX ? { rate: WALK_TURN_RATE_MAX, pace: WALK_TURN_RATE_MAX * radius / v } : { rate, pace: 1 };
+}
 //: One frame of steering from the arrows held (``held``) at ``speed`` (metres a second): the
 //: walker's facing turned, and { way, pace } -- the unit way to walk this frame (a Vector3) and
 //: the share of the walking speed -- or null when it stands.
@@ -1359,24 +1382,28 @@ function walkSteer(dt, speed = 1.4) {
       walking = true;
       pace = WALK_BACK_PACE;
     }
-  } else if (turn && up) h = turnBy(h, turn * WALK_TURN_RATE * dt);
-  else if (turn) {
-    // Left or Right alone: on round the curve, turning as fast as its radius allows at the pace.
-    const rate = Math.min(WALK_TURN_RATE, WALK_SIDE_PACE * Math.max(0.1, speed) / WALK_SIDE_RADIUS_M);
-    h = turnBy(h, turn * rate * dt);
+  } else if (turn) {
+    // Up with Left or Right, or Left or Right alone (on round at WALK_SIDE_PACE): round the
+    // curve the speed sets (walkTurn).
+    const share = up ? 1 : WALK_SIDE_PACE, curve = walkTurn(speed * share);
+    h = turnBy(h, turn * curve.rate * dt);
     walking = true;
-    pace = WALK_SIDE_PACE;
+    pace = share * curve.pace;
   }
   avatar.rotation.y = h;
   if (!walking) {
     animateAvatar(0, new THREE.Vector3(), false);
     return null;
   }
-  // The view comes round behind (unless it is being dragged, or seen from the walker's eyes,
-  // where forward is the way the head turns).
+  // The view comes round behind, easing after the turn and no faster than its own most (unless
+  // it is being dragged; seen from the walker's eyes, forward is always the way the head goes).
   const [dx, dz] = dirOf(h);
-  if (state.firstPerson) state.yaw = h + Math.PI;
-  else if (!dragging) state.yaw += Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw)) * Math.min(1, dt * WALK_VIEW_FOLLOW);
+  if (state.firstPerson || !dragging) {
+    const eyes = state.firstPerson;
+    const gap = Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw));
+    const most = (eyes ? WALK_VIEW_MAX_RATE_EYES : WALK_VIEW_MAX_RATE) * dt;
+    state.yaw += Math.max(-most, Math.min(most, gap * Math.min(1, dt * (eyes ? WALK_VIEW_FOLLOW_EYES : WALK_VIEW_FOLLOW))));
+  }
   return { way: new THREE.Vector3(dx, 0, dz), pace };
 }
 function animateAvatar(distance, direction, moving) {
@@ -1635,11 +1662,13 @@ function stepAvatar(now) {
     return;
   }
   // The arrows steer the walker as you would walk: Up goes the way you face, Left and Right turn
-  // you (at WALK_TURN_RATE, not in a step -- Up with Left walks a curve, and letting go of Left
-  // carries on straight the way you now face), Down turns you round in a step and walks back.
-  // Left or Right alone walks a tight curve (WALK_SIDE_RADIUS_M). The view eases round behind.
+  // you (round a curve as wide as your speed, walkTurn -- Up with Left walks a curve, and letting
+  // go of Left carries on straight the way you now face), Down turns you round in two steps and
+  // walks back. Left or Right alone walks the curve slower. The view eases round behind.
   const scaled = avatarMoveSpeed();
-  const steered = walkSteer(dt, scaled);
+  // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
+  const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
+  const steered = walkSteer(dt, scaled * vitalsPace);
   if (!steered) { updateAvatarMixer(dt); return; }
   const move = steered.way;
   move.normalize();
@@ -1650,8 +1679,6 @@ function stepAvatar(now) {
   avatar.userData.grade=pace.grade;
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
   // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
-  // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
-  const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
   const surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace*steered.pace;
   move.multiplyScalar(surfaceSpeed * dt);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
