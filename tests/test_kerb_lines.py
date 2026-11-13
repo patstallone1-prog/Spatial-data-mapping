@@ -54,6 +54,38 @@ def test_the_surveyed_island_is_not_drawn_twice_and_other_lines_are_left_alone()
     assert out == [surveyed, block]
 
 
+def test_an_island_read_wide_over_a_painted_strip_is_not_a_second_island():
+    """Fillmore at Bay: the lidar's plateau ran on past the surveyed island's far kerb over a
+    painted strip in the lanes. Its near edge was the island's kerb (dropped as a copy); its far
+    edge, zigzagging 3 to 6 m out in the road, was drawn as an island kerb of its own."""
+    surveyed = {"c": "curb", "r": "island", "p": [ll(20, 0.5), ll(150, 0.5), ll(150, -0.5), ll(20, -0.5), ll(20, 0.5)]}
+    far_edge = {"c": "curb", "r": "island", "s": "lidar",
+                "p": [ll(25 + i * 5, 4.0 + (1.5 if i % 2 else 0.0)) for i in range(20)]}
+    out, stats = clip_lidar_kerb_lines([surveyed, far_edge], WAYS)
+    assert out == [surveyed] and stats["duplicates"] == 1
+
+
+def test_a_lidar_island_where_the_survey_has_none_is_kept():
+    surveyed = {"c": "curb", "r": "island", "p": [ll(20, 30.0), ll(150, 30.0)]}
+    own = {"c": "curb", "r": "island", "s": "lidar", "p": [ll(25 + i * 5, 1.0) for i in range(20)]}
+    # A surveyed kerb across the lidar line (a cross street's island end) is not the same island.
+    across = {"c": "curb", "r": "island", "p": [ll(60, -3.0), ll(60, 3.0)]}
+    out, stats = clip_lidar_kerb_lines([surveyed, across, own], WAYS)
+    assert out == [surveyed, across, own] and stats["duplicates"] == 0
+
+
+def test_a_piece_left_by_the_junction_cut_on_the_surveyed_island_is_dropped():
+    """The copy test ran on the whole line before the cut: a line mostly through the junction
+    passed it, and the piece the cut left lay on the surveyed island's kerb."""
+    surveyed = {"c": "curb", "r": "island", "p": [ll(10, 1.0), ll(60, 1.0)]}
+    through = {"c": "curb", "r": "island", "s": "lidar",
+               "p": [ll(-60 + i * 5, 1.2 if i * 5 - 60 >= 10 else 9.0) for i in range(25)]}
+    out, stats = clip_lidar_kerb_lines([surveyed, through], WAYS)
+    kept = [c for c in out if c.get("s") == "lidar"]
+    assert kept and all(max(xs(c)) < 0 for c in kept), "nothing of it is left along the surveyed island"
+    assert stats["duplicates"] == 1
+
+
 def test_the_lidar_median_pass_and_the_tool_both_clip():
     measure = (ROOT / "scripts/measure_medians_lidar.py").read_text(encoding="utf-8")
     assert "clip_lidar_kerb_lines(" in measure
