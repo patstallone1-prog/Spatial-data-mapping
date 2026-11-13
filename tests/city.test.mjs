@@ -484,6 +484,30 @@ test("the viewer's city module loads without a page", async () => {
   assert.equal(typeof view.startCity, "function");
 });
 
+test("your window: net worth is your money and what you own, less what you owe", async () => {
+  const { wealthOf } = await import("../docs/city/view.mjs");
+  const w = new CityWorld(R, { now: WED_8 });
+  w.submit("ana", "join", { name: "Ana", at: { x: 0, z: 0, lon: -122.4194, lat: 37.7749 } });
+  const st = w.cmd_status("ana");
+  const now = wealthOf(R, st);
+  assert.equal(now.cash, st.balance);
+  assert.equal(now.net, st.balance + now.owned - now.owing);
+  const rich = wealthOf(R, { ...st, balance: m(1000), fastrak: { balance: m(50) },
+    vehicles: [{ id: "v", attrs: { model: "sedan", plate: "7ABC123", value: R.vehicles.models.sedan.price } }],
+    homes: [{ id: "home:1", attrs: { label: "Flat 2", assessed: m(900_000) } }],
+    inventory: { coffee: 3 }, bills: [{ kind: "parking_citation", owed: m(96) }], mortgages: [{ home: "home:1", owed: m(700_000) }] });
+  assert.equal(rich.owned, R.vehicles.models.sedan.price + m(900_000) + 3 * R.items.coffee.price);
+  assert.equal(rich.owing, m(96) + m(700_000));
+  assert.equal(rich.net, m(1000) + m(50) + rich.owned - rich.owing);
+  // Dearest first; the bag's small things together.
+  assert.deepEqual(rich.assets.map((a) => a.kind), ["home", "vehicle", "goods"]);
+  assert.equal(rich.assets[2].label, "Everything else in your bag");
+  // It opens over the screen from your card, not docked in the map's controls.
+  const src = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.ok(src.includes('panel = h("section", { id: "city", className: "pop" });') && !src.includes("ctx.panelHost"));
+  assert.ok(src.includes('const profileCard = h("section", { id: "city-profile", className: "city-card", title: "You: your wallet, job, home, car and the laws", onclick: () => openPanel(true) });'));
+});
+
 test("a shift with nothing done is not paid, and three such stretches send you home", () => {
   const w = new CityWorld(R, { now: WED_8 });
   const at = { x: 0, z: 0, lon: -122.4194, lat: 37.7749 };

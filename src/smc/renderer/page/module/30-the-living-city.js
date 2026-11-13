@@ -203,19 +203,19 @@ function setAppMode(mode) {
   if (sw) { sw.dataset.mode = appMode; for (const b of sw.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.mode === appMode)); }
   const fold = document.getElementById("fold");
   if (fold) fold.textContent = appMode === "city" ? "☰ City" : "☰ Map";
-  // The city is walked: the free view is put away, and the city's panel sits in the sidebar.
+  // The city is walked: the free view is put away. The map's controls stay the map's (search,
+  // directions); you are the card at the top right, which opens your window.
   if (appMode === "city" && state.explore) setExplore(false);
   // City mode's area is built once and held; Explore streams again.
   if (appMode === "city" && !cityLock) enterCityArea();
   if (appMode !== "city" && cityLock) leaveCityArea();
-  if (appMode === "city") livingCity?.openPanel(true);
-  else livingCity?.closePanel?.();
+  if (appMode !== "city") livingCity?.closePanel?.();
   requestFrame();
 }
 {
   const button = document.getElementById("city-open");
   const sw = document.getElementById("mode-switch");
-  if (META || ATTACH) { button?.remove(); sw?.remove(); document.getElementById("city-dock")?.remove(); }
+  if (META || ATTACH) { button?.remove(); sw?.remove(); }
   else {
     sw.hidden = false;
     for (const b of sw.querySelectorAll("button")) b.addEventListener("click", () => setAppMode(b.dataset.mode));
@@ -254,7 +254,6 @@ function setAppMode(mode) {
       enabled: () => !state.explore && !homeScreenUp(),
       // The game's keys, bars and buttons: in City mode only.
       cityMode: () => appMode === "city",
-      panelHost: () => (appMode === "city" ? document.getElementById("city-dock") : null),
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
@@ -406,7 +405,6 @@ function setAppMode(mode) {
         else livingCity?.leaveParty();
       });
       window.kerbsideCity = () => livingCity;
-      if (appMode === "city") livingCity.openPanel(true);
       requestFrame();
       return livingCity;
     }).catch((error) => console.warn("kerbside: the living city did not start", error));

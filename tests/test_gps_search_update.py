@@ -73,18 +73,51 @@ def test_the_walker_walks_toward_where_you_are_and_jumps_when_far() -> None:
     assert not r["gpsInside"] and not r["walkerInside"], "late-loaded buildings still keep GPS arrivals outside"
 
 
-def test_a_searched_place_is_gone_to_and_pinned_with_no_directions() -> None:
+def test_a_searched_place_is_pinned_and_its_pin_goes_there_with_no_directions() -> None:
+    """A search pins the place, turns the view to it and starts loading it; a click on the pin
+    (or Enter again) goes there -- outside, at the address."""
     js = _page_js()
     travel = _extract("travelTo", js) if "function travelTo" in js else js[js.index("function travelTo"):]
     assert travel.index("window.kerbsideShowPlace(place)") < travel.index("kerbsideOpenFullRegionAt")
     page = renderer_source()
     show = page[page.index("window.kerbsideShowPlace = (place) => {"):]
     show = show[:show.index("\n  };") + 4]
-    # The walker is taken there, outside at the address, and the place pinned.
-    assert "goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });" in show
-    assert "pin.visible = true;" in show
+    assert "pin.visible = true;" in show and "pinnedPlace = place;" in show
+    assert "prewarmPlaceCells(place.lon, place.lat);" in show, "its cells load while it is pinned"
+    assert "goTo(" not in show, "found is not gone to: the pin is clicked for that"
     # The search at the top asks for no directions: only the From and To fields do.
     assert "route.stops" not in show and "renderStops" not in show and "pinStops" not in show
+    go = page[page.index("goToPinnedPlace = () => {"):]
+    go = go[:go.index("\n  };") + 4]
+    assert "goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });" in go
+    assert "if (e.button === 0 && pinnedPlaceHit(ray)) return;" in page
+    assert page.index("if (e.button === 0 && pinnedPlaceHit(ray)) return;") < page.index("if (cityGame()) { if (e.button === 0"), \
+        "the pin before the game's own clicks: City mode goes by it too"
+
+
+def test_in_city_mode_a_place_outside_the_area_gets_directions_not_a_jump() -> None:
+    page = renderer_source()
+    go = page[page.index("goToPinnedPlace = () => {"):]
+    go = go[:go.index("\n  };") + 4]
+    outside = go[go.index("if (typeof cityLock !== \"undefined\" && cityLock && !cityAreaHolds(x, -y)) {"):go.index("gps.follow = false;")]
+    assert "route.stops = [null, place];" in outside and 'document.getElementById("route-go").click();' in outside
+    assert "Switch to Explore to go there." in outside and "goTo(" not in outside
+    # The directions are part of the map's controls in City mode too; the city's own panel is not.
+    shell = (Path(__file__).resolve().parents[1] / "src/smc/renderer/page/shell.html").read_text()
+    assert 'body[data-mode="city"] #route-panel' not in shell
+    assert 'id="city-dock"' not in shell and "panelHost" not in page
+
+
+def test_a_searched_place_starts_loading_before_the_jump() -> None:
+    page = renderer_source()
+    warm = page[page.index("function prewarmPlaceCells(lon, lat) {"):]
+    warm = warm[:warm.index("\n}\n") + 3]
+    # The same addresses the region's window asks the shared cache for, at a low priority.
+    assert 'const cells = viaStore(folder + name).replace(/([^/]+)\\.json$/, "cells/$1/");' in warm
+    assert "worldCellCache.load(`${cells}manifest.json`, -10)" in warm and "worldCellCache.load(`${cells}${cell}.json`, -20)" in warm
+    assert "worldStreaming.windowCells(manifest, box, lon, lat)" in warm
+    assert "if (bytes > room) continue;" in warm, "never more than the cache has room for"
+    assert "prewarmSoon(showing[0]);" in page, "the top suggestion loads while the rest is typed"
     assert 'if (gps.fix && regionAt(gps.fix.lon, gps.fix.lat)) return { label: "Your location", lon: gps.fix.lon, lat: gps.fix.lat, here: true };' in page
     assert "navigator.geolocation.watchPosition(" in page and 'localStorage.getItem(GPS_KEY) !== "off"' in page
 
