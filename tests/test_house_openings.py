@@ -173,7 +173,8 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     # on past an inside one, where a lining cut at the corner left an open shaft to the outer
     # wall and the neighbour's party wall behind it.
     assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, liningMitre(entry, edge, INTERIOR_WALL_INSET_M)), shellPlaster)" in build
-    assert "liningMitre(entry, i, INTERIOR_WALL_INSET_M)" in interior
+    # (The lining is laid by outsideWallLining, which buildInterior calls.)
+    assert "liningMitre(entry, i, INTERIOR_WALL_INSET_M)" in _extract("outsideWallLining", js)
 
 
 def test_window_pictures_exist_before_the_first_building_is_drawn() -> None:

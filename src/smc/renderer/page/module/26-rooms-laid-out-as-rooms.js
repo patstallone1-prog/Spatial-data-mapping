@@ -779,6 +779,82 @@ function entryTunnelConflict(entry) {
   }
   return false;
 }
+//: The inside face of a building's outside walls, INTERIOR_WALL_INSET_M in from the facade and
+//: drawn from both sides, with each door's opening, head and reveals; added to ``group`` (none
+//: when it is null) from ``floorY`` up ``height``. The thresholds at the doors are returned
+//: either way, for the floor.
+//
+// The city's batched facade is drawn one-sided, from the street: from inside a building it is
+// not there at all. Rooms behind a facade with nothing standing in for its inside face showed
+// the street through every outside wall, while the footprint the walker collides with held:
+// walked up to, the wall that could be seen through stopped the walker at its line
+// (2026-11-12, an engine restaurant entered in the Marina). Every interior without a shell of
+// its own -- the fitted plans and the engine's houses and restaurants alike -- stands in one.
+function outsideWallLining(entry, group, floorY, height) {
+  const lining = [];
+  // The doorway through the wall's depth: its two sides and its head, from the facade to the
+  // lining, and its threshold over the floor's edge. The lining stands INTERIOR_WALL_INSET_M
+  // inside the facade and the floor stops at it, so every outside door had a hollow either
+  // side of it and over it, open to the windows and the gaps along the storey, and a slot in
+  // the floor at the step: light showed through all of them, a shaft at every door's edge.
+  const reveals = [], thresholds = [];
+  const ring = entry.local;
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    const [ax, az] = ring[i];
+    const [bx, bz] = ring[i + 1];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 1e-6) continue;
+    let nxI = -(bz - az) / len, nzI = (bx - ax) / len;
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
+    const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
+    // Its ends mitred to the linings round the corners (liningMitre), as fractions of the edge.
+    const [mitreStart, mitreEnd] = liningMitre(entry, i, INTERIOR_WALL_INSET_M).map((m) => m / len);
+    let from = mitreStart;
+    for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
+      if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
+      // Above the doorway.
+      lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
+      // From a hair outside the facade to a hair inside the lining, so both seams are covered.
+      const at = (t, o) => [ax + (bx - ax) * t + nxI * o, az + (bz - az) * t + nzI * o];
+      const outer = -0.02, inner = INTERIOR_WALL_INSET_M + 0.02;
+      for (const t of [door.t0, door.t1]) reveals.push({ kind: "side", a: at(t, outer), b: at(t, inner) });
+      reveals.push({ kind: "head", corners: [at(door.t0, outer), at(door.t1, outer), at(door.t1, inner), at(door.t0, inner)] });
+      thresholds.push([at(door.t0, outer - 0.03), at(door.t1, outer - 0.03), at(door.t1, inner), at(door.t0, inner)]);
+      from = door.t1;
+    }
+    const to = 1 - mitreEnd;
+    if (from < to) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * to + ox, az + (bz - az) * to + oz]);
+  }
+  if (!group) return { thresholds };
+  const full = [], lintels = [];
+  for (let k = 0; k < lining.length; k += 1) {
+    if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
+  }
+  group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
+  if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
+  if (reveals.length) {
+    const position = [];
+    const quad = (p, q, r, s) => position.push(...p, ...q, ...r, ...p, ...r, ...s);
+    for (const reveal of reveals) {
+      if (reveal.kind === "side") {
+        const [px, pz] = reveal.a, [qx, qz] = reveal.b;
+        quad([px, floorY, pz], [qx, floorY, qz], [qx, floorY + DOOR_HEIGHT_M, qz], [px, floorY + DOOR_HEIGHT_M, pz]);
+      } else {
+        const y = floorY + DOOR_HEIGHT_M;
+        const [p, q, r, s] = reveal.corners.map(([x, z]) => [x, y, z]);
+        quad(p, q, r, s);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.computeVertexNormals();
+    const revealMesh = new THREE.Mesh(geometry, plasterMaterial);
+    revealMesh.userData.surface = "interior_door_reveal";
+    group.add(revealMesh);
+  }
+  return { thresholds };
+}
 //: Whether a building's door leads into rooms: the same rules buildInterior keeps. The door's
 //: hint and Enter both ask this -- they asked only for a fitted plan, so a shop or restaurant
 //: (whose rooms are not drawn without its own layout) said "Enter -- go in", opened its door and
@@ -1025,71 +1101,11 @@ function buildInterior(entry) {
       group.add(skin);
     }
   }
-  // The outside walls' inner face, inset, with the building's own doors open through it.
-  const lining = [];
-  // The doorway through the wall's depth: its two sides and its head, from the facade to the
-  // lining, and its threshold over the floor's edge. The lining stands INTERIOR_WALL_INSET_M
-  // inside the facade and the floor stops at it, so every outside door had a hollow either
-  // side of it and over it, open to the windows and the gaps along the storey, and a slot in
-  // the floor at the step: light showed through all of them, a shaft at every door's edge.
-  const reveals = [], thresholds = [];
+  // The outside walls' inner face, inset, with the building's own doors open through it; and
+  // the threshold at each door. (A house drawn as its own shell has no lining, and its shell
+  // has its own reveals.)
+  const { thresholds } = outsideWallLining(entry, entry.homeShell ? null : group, floorY, height);
   const ring = entry.local;
-  for (let i = 0; i + 1 < ring.length; i += 1) {
-    const [ax, az] = ring[i];
-    const [bx, bz] = ring[i + 1];
-    const len = Math.hypot(bx - ax, bz - az);
-    if (len < 1e-6) continue;
-    let nxI = -(bz - az) / len, nzI = (bx - ax) / len;
-    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
-    const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
-    // Its ends mitred to the linings round the corners (liningMitre), as fractions of the edge.
-    const [mitreStart, mitreEnd] = liningMitre(entry, i, INTERIOR_WALL_INSET_M).map((m) => m / len);
-    let from = mitreStart;
-    for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
-      if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
-      // Above the doorway.
-      lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
-      // From a hair outside the facade to a hair inside the lining, so both seams are covered.
-      const at = (t, o) => [ax + (bx - ax) * t + nxI * o, az + (bz - az) * t + nzI * o];
-      const outer = -0.02, inner = INTERIOR_WALL_INSET_M + 0.02;
-      for (const t of [door.t0, door.t1]) reveals.push({ kind: "side", a: at(t, outer), b: at(t, inner) });
-      reveals.push({ kind: "head", corners: [at(door.t0, outer), at(door.t1, outer), at(door.t1, inner), at(door.t0, inner)] });
-      thresholds.push([at(door.t0, outer - 0.03), at(door.t1, outer - 0.03), at(door.t1, inner), at(door.t0, inner)]);
-      from = door.t1;
-    }
-    const to = 1 - mitreEnd;
-    if (from < to) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * to + ox, az + (bz - az) * to + oz]);
-  }
-  const full = [], lintels = [];
-  for (let k = 0; k < lining.length; k += 1) {
-    if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
-  }
-  if (!entry.homeShell) {
-    group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
-    if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
-  }
-  // (A house drawn as its own shell has no lining, and its shell has its own reveals.)
-  if (reveals.length && !entry.homeShell) {
-    const position = [];
-    const quad = (p, q, r, s) => position.push(...p, ...q, ...r, ...p, ...r, ...s);
-    for (const reveal of reveals) {
-      if (reveal.kind === "side") {
-        const [px, pz] = reveal.a, [qx, qz] = reveal.b;
-        quad([px, floorY, pz], [qx, floorY, qz], [qx, floorY + DOOR_HEIGHT_M, qz], [px, floorY + DOOR_HEIGHT_M, pz]);
-      } else {
-        const y = floorY + DOOR_HEIGHT_M;
-        const [p, q, r, s] = reveal.corners.map(([x, z]) => [x, y, z]);
-        quad(p, q, r, s);
-      }
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-    geometry.computeVertexNormals();
-    const revealMesh = new THREE.Mesh(geometry, plasterMaterial);
-    revealMesh.userData.surface = "interior_door_reveal";
-    group.add(revealMesh);
-  }
   if (thresholds.length) {
     const position = [];
     for (const corners of thresholds) {

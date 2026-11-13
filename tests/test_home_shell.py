@@ -328,4 +328,4 @@ def test_window_has_one_registry_and_two_sided_transparency():
     assert 'camera.position' not in shell
     assert 'wallPanels(length, bottom, top, [...cuts, ...windows, ...bays])' in shell
     assert 'setBatchedHomeVisible(id, false)' in shell
-    assert 'if (!entry.homeShell)' in _extract("buildInterior", js)
+    assert 'outsideWallLining(entry, entry.homeShell ? null : group, floorY, height)' in _extract("buildInterior", js)

@@ -599,6 +599,18 @@ function requestGeneratedInterior(entry) {
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
       feetY: walkerFeetY, pointInRing, kind: ref.kind
     }, rendererModule.buildInferredHouse);
+    // The engine draws no outside walls here (exterior: false): the house's shell is them. A
+    // building with no shell -- every restaurant, and a house the shells do not reach -- has
+    // only the city's facade, which is not drawn from inside, so its rooms stand in the same
+    // lining as a fitted plan's, up to the top of its top storey (outsideWallLining).
+    if (!entry.homeShell) {
+      const holder = new THREE.Group();
+      holder.name = `interior:${entry.way.osm_id}`;
+      const top = Math.max(...house.storeys.map((f) => (f.elevation_m || 0) + (f.height_m || 0)));
+      outsideWallLining(entry, holder, floorY, Math.max(2.4, top));
+      holder.add(interior.group);
+      interior.group = holder;
+    }
     entry.interior = interior;
     interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
   }).catch(error => {
