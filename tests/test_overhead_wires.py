@@ -155,6 +155,16 @@ def test_a_mapped_power_line_turns_only_on_a_pole() -> None:
     assert "if (unsupportedBends.has(`${line.id}:${i - 1}`) || unsupportedBends.has(`${line.id}:${i}`)) continue;" in network
 
 
+#: How many pairs of junction links between the same two ways cross each other: JavaScript over
+#: ``links`` and ``ends``. (One street's wires crossing the other's is the crossing, not this.)
+_CROSSED = """links.reduce((n, [i, j], u) => n + links.slice(u + 1).filter(([k, l]) => {
+        const [a, b, c, d] = [i, j, k, l].map((q) => ends[q]);
+        if (a.node !== c.node || new Set([a.chain, b.chain, c.chain, d.chain]).size !== 2) return false;
+        const side = (p, q, r) => Math.sign((q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x));
+        return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+      }).length, 0)"""
+
+
 def test_wires_at_chestnut_and_fillmore_go_on_across_the_junction() -> None:
     """Five ways meet at Chestnut and Fillmore (Fillmore splits into two one-way ways north of
     it), so none is chained: every wire stopped at the junction's middle, a few metres short of
@@ -188,11 +198,13 @@ def test_wires_at_chestnut_and_fillmore_go_on_across_the_junction() -> None:
     const links = trolleyJunctionLinks(ends);
     console.log(JSON.stringify({{ ends: ends.length, links: links.length,
       gaps: links.map(([i, j]) => Math.hypot(ends[i].x - ends[j].x, ends[i].z - ends[j].z)),
-      straight: links.map(([i, j]) => ends[i].dx * ends[j].dx + ends[i].dz * ends[j].dz) }}));
+      straight: links.map(([i, j]) => ends[i].dx * ends[j].dx + ends[i].dz * ends[j].dz),
+      crossed: {_CROSSED} }}));
     """)
     assert result["ends"] == 16
     assert result["links"] == 8, "every wire into the junction goes on across it"
     assert max(result["gaps"]) <= 5 and max(result["straight"]) < -0.75
+    assert result["crossed"] == 0, "no wire of a pair goes over the other on its way across"
 
 
 def test_a_wire_is_never_joined_to_one_turning_off_or_far_across_the_junction() -> None:
@@ -211,3 +223,131 @@ def test_a_wire_is_never_joined_to_one_turning_off_or_far_across_the_junction() 
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout) == [[0, 1]]
+
+
+def _links(ends: list[dict]) -> list[list[int]]:
+    js = _page_js()
+    consts = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0) for name in ("TROLLEY_LINK_DEG", "TROLLEY_LINK_M"))
+    script = consts + "\n" + _extract("trolleyJunctionLinks", js) + f"""
+    const ends = {json.dumps(ends)};
+    const links = trolleyJunctionLinks(ends);
+    console.log(JSON.stringify({{ links, crossed: {_CROSSED} }}));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout)
+
+
+def test_a_one_way_pair_into_a_two_way_street_goes_on_as_a_pair() -> None:
+    """Fillmore's northbound pair (1.1 and 1.7 m east of its middle) into the two-way street's
+    east pair (2.07 and 2.67 m): joined nearest first, 1.7 took 2.07 and 1.1 went over it to
+    2.67 -- the pair crossed in the air. Each wire goes on in its place, the pair to the pair."""
+    north = [{"node": "n", "chain": 0, "x": x, "z": 0.0, "dx": 0, "dz": -1} for x in (1.1, 1.7)]
+    south = [{"node": "n", "chain": 1, "x": x, "z": 0.1, "dx": 0, "dz": 1} for x in (-2.67, -2.07, 2.07, 2.67)]
+    result = _links(north + south)
+    assert result["crossed"] == 0
+    assert sorted(result["links"]) == [[0, 4], [1, 5]], "1.1 to 2.07 and 1.7 to 2.67: the east pair"
+
+
+def test_a_pair_jogging_sideways_over_a_turned_street_does_not_cross() -> None:
+    """Over Market Street a pair goes on into a way turned 25 degrees and two metres over: in
+    their order across the first way, the two joins crossed; they are made the other way round."""
+    a = [{"node": "n", "chain": 0, "x": x, "z": z, "dx": 0.05, "dz": -1} for x, z in ((-176.65, 131.15), (-176.05, 131.17))]
+    b = [{"node": "n", "chain": 1, "x": x, "z": z, "dx": -0.46, "dz": 0.89} for x, z in ((-173.98, 131.74), (-173.45, 132.01))]
+    result = _links(a + b)
+    assert len(result["links"]) == 2 and result["crossed"] == 0
+
+
+def test_no_wires_cross_on_their_way_through_any_junction_of_the_corridor() -> None:
+    from pathlib import Path
+
+    furniture = json.loads((Path(__file__).resolve().parents[1] / "docs/sf-corridor-furniture.json").read_text())
+    k = 88_000
+    paths = [{"oneway": bool(w["oneway"]), "path": [[(lon + 122.4) * k, -(lat - 37.79) * 111_000] for lon, lat in w["points"]]}
+             for w in furniture["inferred"]["trolley_wires"]]
+    js = _page_js()
+    links = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0) for name in ("TROLLEY_LINK_DEG", "TROLLEY_LINK_M"))
+    result = _trolley(links + "\n" + _extract("trolleyJunctionLinks", js) + f"""
+    const ends = [];
+    const nodeOf = ([x, z]) => `${{Math.round(x / TROLLEY_JOIN_M)}},${{Math.round(z / TROLLEY_JOIN_M)}}`;
+    trolleyChains({json.dumps(paths)}).forEach((chain, c) => {{
+      const p = chain.path, m = mitredOffsets(p);
+      const offsets = chain.oneway ? [TROLLEY.onewayOffset - TROLLEY.pair / 2, TROLLEY.onewayOffset + TROLLEY.pair / 2]
+        : [-TROLLEY.laneOffset - TROLLEY.pair / 2, -TROLLEY.laneOffset + TROLLEY.pair / 2,
+           TROLLEY.laneOffset - TROLLEY.pair / 2, TROLLEY.laneOffset + TROLLEY.pair / 2];
+      for (const [open, i, j] of [[chain.startOpen, 0, 1], [chain.endOpen, p.length - 1, p.length - 2]]) {{
+        if (open) continue;
+        const dx = p[j][0] - p[i][0], dz = p[j][1] - p[i][1], l = Math.hypot(dx, dz) || 1;
+        for (const o of offsets) ends.push({{ node: nodeOf(p[i]), chain: c, x: p[i][0] + m[i][0] * m[i][2] * o,
+          z: p[i][1] + m[i][1] * m[i][2] * o, dx: dx / l, dz: dz / l }});
+      }}
+    }});
+    const links = trolleyJunctionLinks(ends);
+    console.log(JSON.stringify({{ links: links.length, crossed: {_CROSSED} }}));
+    """)
+    # 31 joins crossed another at 21 junctions (Chestnut and Fillmore, Columbus, Van Ness, Market).
+    assert result["links"] >= 390
+    assert result["crossed"] == 0
+
+
+def test_where_two_streets_wires_cross_a_black_steel_frame_holds_them() -> None:
+    js = _page_js()
+    consts = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0)
+                       for name in ("TROLLEY_FRAME_MARGIN_M", "TROLLEY_FRAME_CLUSTER_M", "TROLLEY_FRAME_MIN_DEG"))
+    script = consts + "\n" + _extract("trolleyCrossingFrames", js) + """
+    // A north-south pair (x = 2.1, 2.7) under an east-west pair (z = -0.3, 0.3), and a third
+    // wire alongside the first pair that crosses nothing at a sharp angle.
+    const segs = [[2.1, -10, 2.1, 10], [2.7, -10, 2.7, 10], [-10, -0.3, 10, -0.3], [-10, 0.3, 10, 0.3],
+      [3.3, -10, 3.5, 10]].map(([ax, az, bx, bz]) => ({ node: "n", a: [ax, az], b: [bx, bz] }));
+    const frames = trolleyCrossingFrames(segs.slice(0, 4));
+    const parallel = trolleyCrossingFrames([segs[0], segs[1], segs[4]]);
+    console.log(JSON.stringify({ frames, parallel: parallel.length }));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    r = json.loads(out.stdout)
+    assert len(r["frames"]) == 1 and r["parallel"] == 0
+    f = r["frames"][0]
+    assert f["x"] == pytest.approx(2.4, abs=1e-6) and f["z"] == pytest.approx(0, abs=1e-6)
+    # Round the four crossing points, a quarter metre past them every way.
+    assert f["hu"] == pytest.approx(0.55, abs=1e-6) and f["hv"] == pytest.approx(0.55, abs=1e-6)
+    wires = _extract("addTrolleyWires", js)
+    assert "const frames = trolleyCrossingFrames(junctionWires);" in wires
+    assert "color: 0x141617" in wires
+
+
+def test_span_wires_hold_the_contact_wires_from_high_on_the_poles() -> None:
+    """The span was strung straight between the poles a metre over the contact wires, holding
+    nothing. It is tied high on the pole, comes down to just over the wires, and a hanger goes
+    down to each."""
+    js = _page_js()
+    trolley = json.loads(re.sub(r"(\w+):", r'"\1":', re.search(r"const TROLLEY = (\{[^}]+\});", js).group(1)))
+    wood = json.loads(re.sub(r"(\w+):", r'"\1":', re.search(r"const TROLLEY_WOOD_POLE = (\{[^}]+\});", js).group(1)))
+    hanger = float(re.search(r"const TROLLEY_HANGER_M = ([0-9.]+);", js).group(1))
+    assert trolley["height"] + hanger < trolley["crossAt"] < trolley["poleHeight"]
+    assert trolley["height"] + hanger < wood["crossAt"] < wood["height"]
+    assert wood["height"] > trolley["poleHeight"], "the wooden poles are the tall ones"
+    wires = _extract("addTrolleyWires", js)
+    assert "const over = [x, y + TROLLEY_HANGER_M, z];" in wires
+    assert "segments.push(...from, ...over, ...over, x, y, z);" in wires, "down to over the wire, a hanger to it"
+
+
+def test_chestnut_hangs_its_wire_from_wooden_poles_with_the_corners_names_on_them() -> None:
+    js = _page_js()
+    assert 'const TROLLEY_WOOD_STREETS = new Set(["Chestnut Street"]);' in js
+    wires = _extract("addTrolleyWires", js)
+    assert "wood: TROLLEY_WOOD_STREETS.has(wire.name)," in wires
+    assert '"furniture:utility_pole"' in wires and "plateSlot(row)" in wires
+    assert "trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows, corners)," in js
+    consts = "\n".join(re.search(rf"const {name} = [^\n]+;", js).group(0)
+                       for name in ("TROLLEY_CORNER_REACH_M", "TROLLEY_CORNER_SPAN_GAP_M"))
+    script = consts + "\n" + _extract("trolleyCornerStations", js) + """
+    // A 200 m line along x, spans every 36 m; corners beside it at 50 m and 120 m, one off it.
+    const path = [[0, 0], [200, 0]], lengths = [0, 200];
+    const stations = [6, 42, 78, 114, 150, 194];
+    console.log(JSON.stringify(trolleyCornerStations(stations, path, lengths, [[50, 9], [120, -8], [90, 40]])));
+    """
+    out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    # The spans at 42 and 114 give way to the corners' at 50 and 120; the corner 40 m off has none.
+    assert json.loads(out.stdout) == [6, 50, 78, 120, 150, 194]
