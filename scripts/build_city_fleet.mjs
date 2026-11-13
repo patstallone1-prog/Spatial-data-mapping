@@ -51,7 +51,7 @@ const FLEET = {
   jeep: { dir: "Jeep_Renegade_2016", kind: "suv", turn: Math.PI, paint: /^$/, oneAtlas: true, mask: "Jeep_Paint_Mask.png" },
   porsche: { dir: "Porsche_911", kind: "sports", turn: -Math.PI / 2, paint: /^METAL_Paintable_Body/, full: "Porsche_911_Full_Optimized.glb", simplify: 0.18 },
   truck: { dir: "Delivery_Truck", kind: "box_truck", turn: -Math.PI / 2, paint: /^PAINT_Truck_Cabin/ },
-  bus: { dir: "City_Bus", kind: "bus", turn: Math.PI, paint: /^$/, mask: "Bus_Body_Paint_Mask_2048.png", maskOn: /^PAINT_Bus/,
+  bus: { dir: "City_Bus", kind: "bus", turn: Math.PI, paint: /^$/, mask: "Bus_Body_Paint_Mask_2048.png", maskOn: /^PAINT_Bus/, flipV: /^PAINT_Bus/,
     stretch: [2.59 / 2.391, 3.1 / 2.699, 12.2 / 8.981], round: /^w_/ },
 };
 //: The pack's bus is a 9 m midibus; Muni runs 40-foot buses (New Flyer Xcelsior XDE40 and XT40:
@@ -139,6 +139,8 @@ function boundsOf(prims) {
 }
 function shift(prims, dx, dy, dz) { for (const p of prims) for (let i = 0; i < p.pos.length; i += 3) { p.pos[i] += dx; p.pos[i + 1] += dy; p.pos[i + 2] += dz; } }
 
+//: The paint mask's 0 in a texture's alpha (docs/city/vehicles.mjs fleetMaterial takes it off).
+const ALPHA_FLOOR = 8;
 //: A WebP of at most ``size`` pixels square from an image, with ``mask`` (any image) as its alpha.
 async function webp(image, size, mask = null) {
   // (Each step its own pipeline: sharp orders a pipeline's operations itself, and its
@@ -147,8 +149,10 @@ async function webp(image, size, mask = null) {
   if (!mask) return sharp(rgb, { raw: { width: size, height: size, channels: 3 } }).webp({ quality: 82, effort: 6 }).toBuffer();
   const alpha = await sharp(mask).greyscale().resize(size, size, { fit: "fill" }).raw().toBuffer();
   const rgba = Buffer.alloc(size * size * 4);
-  for (let i = 0; i < size * size; i += 1) { rgba[i * 4] = rgb[i * 3]; rgba[i * 4 + 1] = rgb[i * 3 + 1]; rgba[i * 4 + 2] = rgb[i * 3 + 2]; rgba[i * 4 + 3] = alpha[i]; }
-  return sharp(rgba, { raw: { width: size, height: size, channels: 4 } }).webp({ quality: 82, alphaQuality: 90, effort: 6 }).toBuffer();
+  // The mask from ALPHA_FLOOR up, never 0: WebP throws away the colour under a fully clear
+  // pixel, and the unpainted parts (the window band, the front's grille) are the colour.
+  for (let i = 0; i < size * size; i += 1) { rgba[i * 4] = rgb[i * 3]; rgba[i * 4 + 1] = rgb[i * 3 + 1]; rgba[i * 4 + 2] = rgb[i * 3 + 2]; rgba[i * 4 + 3] = ALPHA_FLOOR + Math.round(alpha[i] * (255 - ALPHA_FLOOR) / 255); }
+  return sharp(rgba, { raw: { width: size, height: size, channels: 4 } }).webp({ quality: 82, alphaQuality: 100, effort: 6 }).toBuffer();
 }
 
 //: One merged primitive per group into a new document.
@@ -224,6 +228,10 @@ for (const [id, spec] of Object.entries(FLEET)) {
     const doc = await io.read(join(folder, src));
     const prims = worldPrims(doc, spec.turn);
     if (spec.stretch) stretch(prims, spec.stretch, spec.round);
+    // The bus's bodywork carries its uvs upside down (v from the bottom, as the pack's Unreal
+    // export left it): drawn as they are, its left side takes the window-frame strip at the
+    // atlas's foot and comes out black. Turned over, both sides fall on their own panels.
+    if (spec.flipV) for (const p of prims) if (p.uv && spec.flipV.test(p.material?.getName() || "")) for (let i = 1; i < p.uv.length; i += 2) p.uv[i] = 1 - p.uv[i];
     if (!frame) {
       const b = boundsOf(prims);
       frame = { dx: -(b.min[0] + b.max[0]) / 2, dy: -b.min[1], dz: -(b.min[2] + b.max[2]) / 2 };

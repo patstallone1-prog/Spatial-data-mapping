@@ -36,7 +36,7 @@
    ],
    "full": {
     "file": "jeep-full.glb",
-    "bytes": 209328,
+    "bytes": 216736,
     "triangles": 4734,
     "groups": [
      "paint-atlas"
@@ -44,7 +44,7 @@
    },
    "npc": {
     "file": "jeep-npc.glb",
-    "bytes": 179244,
+    "bytes": 186652,
     "triangles": 2709,
     "groups": [
      "paint-atlas"
@@ -118,7 +118,7 @@
    },
    "full": {
     "file": "bus-full.glb",
-    "bytes": 1273004,
+    "bytes": 1279076,
     "triangles": 95428,
     "groups": [
      "atlas-e6b5309a",
@@ -128,7 +128,7 @@
    },
    "npc": {
     "file": "bus-npc.glb",
-    "bytes": 793136,
+    "bytes": 799208,
     "triangles": 43777,
     "groups": [
      "atlas-e6b5309a",

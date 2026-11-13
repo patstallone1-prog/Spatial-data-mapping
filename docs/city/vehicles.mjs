@@ -353,6 +353,70 @@ export function kenneyMaterial(THREE, map) {
   return m;
 }
 
+// ---- paint ----------------------------------------------------------------------------------------
+//
+// What colour each car is: by share, as new cars are bought in North America -- Axalta's 2025
+// Global Automotive Color Popularity Report: white 31% (a sixth of it pearl), black 19%, blue
+// 10%, red 7%; grey a distant second to white and silver fifth behind blue (taken as 21% and
+// 8%: the report gives their order, not their shares), and green, beige and gold the rest.
+// Each kind leans its own way (approx., after the same reports' notes by body type and the
+// streets): pickups whiter, blacker and redder; sports cars red, yellow and blue; electric
+// cars whiter and bluer; vans and box trucks bought by fleets, nearly all white. A car's colour
+// is drawn from its kind's shares by its own number (``shade``), so it is the same every time
+// and in every browser.
+
+//: The paints (sRGB), named.
+export const PAINTS = {
+  white: "#eeeeea", pearl: "#e3dfd3", grey: "#6b7076", graphite: "#3f4348", black: "#141518", silver: "#b4b8bc",
+  blue: "#1f3d70", skyblue: "#5a86b8", red: "#9e1b1f", green: "#2e4a37", beige: "#8b7355", gold: "#c9a227", orange: "#d4661c", yellow: "#e2b51b",
+};
+const NORTH_AMERICA = [["white", 26], ["pearl", 5], ["grey", 13], ["graphite", 8], ["black", 19], ["blue", 7], ["skyblue", 3], ["silver", 8], ["red", 7], ["green", 2], ["beige", 1.5], ["gold", 0.5]];
+//: Each kind's shares (percent; the kinds with a livery of their own -- taxi, patrol, bus -- are
+//: not in it).
+export const PAINT_MIX = {
+  economy: NORTH_AMERICA, sedan: NORTH_AMERICA,
+  compact_ev: [["white", 28], ["pearl", 6], ["grey", 15], ["graphite", 9], ["black", 14], ["blue", 8], ["skyblue", 5], ["silver", 8], ["red", 5], ["green", 2]],
+  suv: [["white", 25], ["pearl", 5], ["grey", 13], ["graphite", 9], ["black", 21], ["blue", 7], ["skyblue", 2], ["silver", 7], ["red", 6], ["green", 3], ["beige", 2]],
+  pickup: [["white", 31], ["pearl", 2], ["grey", 10], ["graphite", 7], ["black", 22], ["silver", 9], ["red", 9], ["blue", 6], ["skyblue", 1], ["green", 2], ["beige", 1]],
+  sports: [["white", 15], ["pearl", 3], ["grey", 10], ["graphite", 8], ["black", 18], ["silver", 8], ["red", 16], ["blue", 9], ["skyblue", 3], ["yellow", 5], ["orange", 3], ["green", 2]],
+  delivery_van: [["white", 85], ["silver", 6], ["grey", 4], ["black", 3], ["blue", 2]],
+  box_truck: [["white", 74], ["red", 6], ["blue", 6], ["silver", 5], ["black", 4], ["green", 2], ["yellow", 2], ["orange", 1]],
+};
+//: Bicycle frames: brighter than cars (approx., the makers' ranges).
+export const BIKE_PAINT_MIX = [["black", 26], ["white", 10], ["grey", 10], ["graphite", 6], ["red", 12], ["blue", 12], ["skyblue", 4], ["green", 7], ["orange", 7], ["yellow", 4], ["silver", 2]];
+//: The paint for a car of ``model`` whose number is ``shade`` (0 to 1): a name in PAINTS, by its
+//: kind's shares (``mix`` to give others). Its own digits, not the ones that chose its body
+//: (the kit's models are picked by shade x 997), so the two are not tied.
+export function paintNameOf(model, shade, mix = null) {
+  const list = mix || PAINT_MIX[model] || NORTH_AMERICA;
+  const total = list.reduce((a, [, w]) => a + w, 0);
+  const u = ((shade ?? 0.5) * 7919.37) % 1;
+  let acc = 0;
+  for (const [name, w] of list) { acc += w / total; if (u < acc) return name; }
+  return list[list.length - 1][0];
+}
+export const paintOf = (model, shade, mix = null) => PAINTS[paintNameOf(model, shade, mix)];
+
+//: The bus in Muni's livery, painted where the pack's mask says paint: silver with red striping
+//: (SFMTA: "silver with red striping", on every bus and train since 1995's revision of the grey
+//: and red scheme) -- a deep red band along the sides below the windows, rising over the front
+//: under the windscreen, a red pinstripe under the roof, the rest silver. In the model's frame
+//: (front -z, 12.2 m long, the floor 0.33 m up).
+export const BUS_LIVERY = {
+  key: "muni-silver-red-1",
+  colour: "#b4b8bc",
+  glsl: [
+    "vec3 liveryAt(vec3 p, vec3 paint) {",
+    "  vec3 silver = vec3(0.46, 0.48, 0.51);",
+    "  vec3 red = vec3(0.50, 0.012, 0.022);",
+    "  float front = 1.0 - smoothstep(-5.95, -5.55, p.z);",
+    "  float band = step(0.5, p.y) * (1.0 - step(1.02 + front * 0.36, p.y));",
+    "  float pin = step(2.82, p.y) * (1.0 - step(2.9, p.y));",
+    "  return mix(silver, red, max(band, pin));",
+    "}",
+  ].join("\n"),
+};
+
 // ---- the imported fleet (scripts/build_city_fleet.mjs) ------------------------------------------
 //
 // Each file is a few meshes, already turned to face -z, centred and on the ground: ``body`` (a
@@ -390,7 +454,8 @@ export function fleetParts(THREE, gltf) {
 //: else Lambert, as the rest of the traffic is. The paint: on ``body`` the instance colour where
 //: ``_paint`` is 1; on ``paint-atlas`` the texture's own shading (its brightness) in the instance
 //: colour where its alpha says paint -- the pack's recipe, Lerp(atlas, colour x luminance, mask).
-//: ``livery`` ({ glsl, key }: a GLSL ``vec3 liveryAt(vec3 p, vec3 paint)`` of the place on the
+//: (The mask is stored from 8/255 up -- WebP keeps no colour under a clear pixel -- and taken off
+//: here: scripts/build_city_fleet.mjs ALPHA_FLOOR.) ``livery`` ({ glsl, key }: a GLSL ``vec3 liveryAt(vec3 p, vec3 paint)`` of the place on the
 //: body) paints by place instead of in one colour: the bus's.
 export function fleetMaterial(THREE, part, { standard = false, livery = null } = {}) {
   if (part.glass) {
@@ -405,18 +470,18 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", ["#include <common>", atlas ? "" : "attribute float _paint;", "varying vec3 vPaint;", "varying float vPaintW;", "varying vec3 vBodyPos;"].join("\n"))
       .replace("#include <color_vertex>", ["#include <color_vertex>", "vPaint = vec3(1.0);", "#ifdef USE_INSTANCING_COLOR", "vPaint = instanceColor.xyz;", "#endif", "vBodyPos = position;",
-        ...(atlas ? ["vPaintW = 1.0;", "#ifdef USE_COLOR", "vColor = vec3(1.0);", "#endif"] : ["vPaintW = _paint;", "#if defined(USE_COLOR) && defined(USE_INSTANCING_COLOR)", "vColor.xyz = color.xyz;", "#endif"])].join("\n"));
+        ...(atlas ? ["vPaintW = 1.0;", "#if defined(USE_COLOR) || defined(USE_INSTANCING_COLOR)", "vColor = vec3(1.0);", "#endif"] : ["vPaintW = _paint;", "#if defined(USE_COLOR) && defined(USE_INSTANCING_COLOR)", "vColor.xyz = color.xyz;", "#endif"])].join("\n"));
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", ["#include <common>", "varying vec3 vPaint;", "varying float vPaintW;", "varying vec3 vBodyPos;", livery ? livery.glsl : plain].join("\n"))
       .replace(atlas ? "#include <map_fragment>" : "#include <color_fragment>", atlas
-        ? ["#include <map_fragment>", "{",
-          "  float w = sampledDiffuseColor.a;",
+        ? ["#include <map_fragment>", "{", `  const float PAINT_ALPHA_FLOOR = ${(8 / 255).toFixed(5)};`,
+          "  float w = clamp((sampledDiffuseColor.a - PAINT_ALPHA_FLOOR) / (1.0 - PAINT_ALPHA_FLOOR), 0.0, 1.0);",
           "  float lum = dot(sampledDiffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));",
           "  vec3 tinted = liveryAt(vBodyPos, vPaint) * clamp(lum / 0.72, 0.3, 1.18);",
           "  diffuseColor.rgb = mix(sampledDiffuseColor.rgb, tinted, w);",
           "  diffuseColor.a = 1.0;", "}"].join("\n")
         : ["#include <color_fragment>", "diffuseColor.rgb = mix(diffuseColor.rgb, liveryAt(vBodyPos, vPaint) * 0.92, vPaintW);"].join("\n"));
   };
-  m.customProgramCacheKey = () => `fleet-paint-v1-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
+  m.customProgramCacheKey = () => `fleet-paint-v3-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
   return m;
 }

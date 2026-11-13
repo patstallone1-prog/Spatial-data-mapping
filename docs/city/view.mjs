@@ -25,7 +25,7 @@ import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
-import { FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { BIKE_PAINT_MIX, BUS_LIVERY, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
@@ -52,9 +52,6 @@ export { CAR_SQUEEZE_M };
 //: the fleet's true sizes) the traffic parks, steers and is walked round by. It had been a copy
 //: here, and the two had to be kept the same by hand.
 const CAR_DIMS = VEHICLE_DIMS;
-//: The bus's livery, painted by place on its body (none yet: one colour).
-const BUS_LIVERY = null;
-const PAINT = ["#f2f2f2", "#1e1e1e", "#8a8d91", "#b8bcc1", "#2b4c7e", "#7a1f1f", "#2f5d3a", "#c9b27c", "#4a4a52", "#6b8fb3", "#a3341f", "#e8e3d3"];
 //: A street's bike lanes on the right and left of the way as drawn (OpenStreetMap cycleway,
 //: cycleway:right / :left / :both): "lane" or "track" (its own lane), "shared" (sharrows: ridden
 //: in the traffic lane), or none.
@@ -679,7 +676,7 @@ export async function startCity(ctx) {
     for (const b of bikes) {
       if (n >= MAX_BIKES) break;
       bikeMesh.setMatrixAt(n, base(b.x, groundAt(b.x, b.z), b.z, b.yaw, 1));
-      bikeMesh.setColorAt(n, C.set(PAINT[Math.floor(b.shade * PAINT.length) % PAINT.length]));
+      bikeMesh.setColorAt(n, C.set(paintOf("bike", b.shade, BIKE_PAINT_MIX)));
       n += 1;
     }
     bikeMesh.count = n; bikeMesh.instanceMatrix.needsUpdate = true; if (bikeMesh.instanceColor) bikeMesh.instanceColor.needsUpdate = true;
@@ -723,7 +720,10 @@ export async function startCity(ctx) {
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
       if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       else lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
-      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
+      // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
+      // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
+      // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
+      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? "#1b2631" : paintOf(v.model, v.shade ?? 0.5);
       C.set(paint);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
