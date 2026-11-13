@@ -234,6 +234,10 @@ test("a player's day in the party's world", () => {
   // A job at the café, clocked in at its door, an hour's pay with tax held back.
   assert.equal(w.submit("ana", "take_job", { role: "barista", place: { ...cafe, keys: [...cafe.keys] } }).ok, true);
   assert.equal(w.submit("ana", "clock_in", { at, spots: { counter: at, back: at, kerb: at } }).ok, true);
+  // The barista's shift began at 5: three hours late, docked a quarter of an hour's pay once.
+  const dock = w.players.get("ana").clocked.dock;
+  assert.equal(w.players.get("ana").clocked.late, true);
+  assert.equal(dock, Math.round(R.jobs.roles.barista.pay * 15 / 60));
   // Work is tasks: the first comes, is done at its spot, and the hour is paid.
   w.step(WED_8 + 10_000);
   const task = w.players.get("ana").clocked.task;
@@ -245,7 +249,7 @@ test("a player's day in the party's world", () => {
   w.step(WED_8 + 3_600_000);
   const after = w.submit("ana", "status").balance;
   // The vision's basic job: 120 every 10 minutes (a barista a little more), net of payroll tax.
-  assert.ok(after > m(2000 + 700) && after < m(2000 + R.jobs.roles.barista.pay / 100 + 5), `paid ${after - m(2000)} net of tax, and the tip`);
+  assert.ok(after > m(2000 + 700) - dock && after < m(2000 + R.jobs.roles.barista.pay / 100 + 5) - dock, `paid ${after - m(2000)} net of tax and the dock, and the tip`);
   assert.ok(w.ledger.balance("authority:ssa") > 0 && w.ledger.balance("authority:edd") > 0);
   // Coffee with San Francisco's sales tax.
   const coffee = w.submit("ana", "buy", { item: "coffee", place: { ...cafe, keys: [...cafe.keys] } });

@@ -30,6 +30,7 @@ import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junction
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
+import { enterprisePanels } from "./enterprise-panels.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -739,6 +740,10 @@ export async function startCity(ctx) {
     return new CityWorld(R, { now: Date.now(), seed: "solo" });
   }
   world = loadSolo(); view = world;
+  // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
+  let enterpriseUI = null;
+  const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
+    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
   const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
   function save() {
@@ -2533,6 +2538,7 @@ export async function startCity(ctx) {
       if (p.clocked && !p.clocked.task) out.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; V where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
       else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) out.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
     } else out.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
+    out.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
     if (!t && !p.delivery) for (const o of taskOffers()) out.push({ label: o.title, sub: `${R.fmt(o.pay)} · ${o.km.toFixed(1)} km${o.steps?.length ? ` · ${o.steps.length} steps` : ""}`, take: o });
     return out;
   }
@@ -2653,6 +2659,7 @@ export async function startCity(ctx) {
     }
     const shopAt = nearestShop();
     if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "Enter", run: () => { if (!(shopAt.front && enterShop(shopAt))) openStore(shopAt); } });
+    out.push(...enterprise().actions(p, here));   // a storefront to lease, your business, your hearing
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
@@ -3632,7 +3639,8 @@ export async function startCity(ctx) {
     closeSide();
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
-    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", ride: "Buses and taxis", tasks: "Task board", online: "Online store" }[kind] || "Controls");
+    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
+      buy: "Buying a business", recruiter: "Recruiter", released: "Released" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -3657,11 +3665,13 @@ export async function startCity(ctx) {
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
+    if (enterprise().draw(side, { close, status, w, p })) return;   // law offices, recruiters, your business (enterprise-panels.mjs)
     if (side.kind === "store") {
       // The shop's wares and prices: choose how many of each, then Checkout shows the total with
       // the sales tax, and Confirm buys it all (into your inventory) if you have the credits.
       const place = side.place;
-      const stores = storesAt(R, place.keys);
+      const stores = w.storesHere ? w.storesHere(place) : storesAt(R, place.keys);
+      const priceOf = (id) => (w.priceAt ? w.priceAt(place, id) : R.items[id].price);
       const store0 = stores[Math.min(side.store, stores.length - 1)];
       const [lon, lat] = ctx.toLonLat(place.x, place.z);
       const chain = jurisdictionAt(R, lon, lat, district.county).chain;
@@ -3671,7 +3681,7 @@ export async function startCity(ctx) {
       side.cart ||= {};
       const cart = side.cart, balance = w.ledger.balance(p.account);
       const lines = Object.entries(cart).filter(([, n]) => n > 0).map(([id, qty]) => {
-        const it = R.items[id], price = it.price * qty;
+        const it = R.items[id], price = priceOf(id) * qty;
         return { id, qty, it, price, tax: itemTax(R, chain, it, price, w.laws) };
       });
       const sub = lines.reduce((a, l) => a + l.price, 0), tax = lines.reduce((a, l) => a + l.tax, 0), total = sub + tax;
@@ -3699,10 +3709,10 @@ export async function startCity(ctx) {
       };
       const rows = store0.items.filter((id) => !R.items[id].service).map((id) => {
         const it = R.items[id], ph = physOf(R, id);
-        const t1 = itemTax(R, chain, it, it.price, w.laws);
+        const t1 = itemTax(R, chain, it, priceOf(id), w.laws);
         const info = `${effectText(it)}${it.service ? "" : ` · ${weightClass(R, ph.kg, p.vitals.strength)}`}`;
         return h("tr", { style: cart[id] ? "background:rgba(31,111,235,.08)" : "" }, h("td", {}, h("b", { textContent: it.name }), h("div", { className: "note", textContent: info })),
-          h("td", { textContent: `${R.fmt(it.price)}${t1 ? ` +${R.fmt(t1)}` : ""}` }), h("td", {}, qty(id, it)));
+          h("td", { textContent: `${R.fmt(priceOf(id))}${t1 ? ` +${R.fmt(t1)}` : ""}` }), h("td", {}, qty(id, it)));
       });
       const extra = [];
       // Services and hiring are the Shop's (the top bar): Services and Jobs, at their own prices.
@@ -3715,6 +3725,7 @@ export async function startCity(ctx) {
         h("p", { className: "note", textContent: `${offered.length ? `${offered.map((id) => R.items[id].name).join(", ")}: book in the Shop's Services. ` : ""}${jobs.length ? `Hiring ${jobs.map((r) => R.jobs.roles[r].title.toLowerCase()).join(", ")}: apply in the Shop's Jobs.` : ""}` }),
         h("div", {}, offered.length ? act("Services", () => { openSide("online"); side.cat = "services"; drawSide(); }) : "", jobs.length ? act("Jobs", () => { openSide("online"); side.cat = "jobs"; drawSide(); }) : ""));
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
+      extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
@@ -3861,12 +3872,14 @@ export async function startCity(ctx) {
       const homes = listings().map((l) => ({ l, cat: "homes", name: `${l.beds ? `${l.beds} bd` : "Studio"} ${l.type === "single_family" ? "house" : "flat"}${l.label ? " " + l.label : ""} — ${address(l.address) || "a home"}`, price: l.price, d: Math.hypot(l.x - here.x, l.z - here.z) }));
       const match = (name, extra = "") => !query || name.toLowerCase().includes(query) || extra.toLowerCase().includes(query);
       const services = onlineServices(), jobs = onlineJobs();
-      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["homes", "Real estate"]];
+      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["business", "Business"], ["law", "Law & record"], ["homes", "Real estate"]];
       const counts = Object.fromEntries(cats.map(([k]) => [k, 0]));
       for (const x of wares) if (match(x.it.name, x.from.join(" "))) { counts[x.cat] += 1; counts.all += 1; }
       for (const x of services) if (match(x.it.name, x.label)) { counts.services += 1; counts.all += 1; }
       for (const x of jobs) if (match(x.spec.title, x.label)) { counts.jobs += 1; counts.all += 1; }
       for (const x of homes) if (match(x.name, x.l.neighbourhood || "")) { counts.homes += 1; counts.all += 1; }
+      counts.business = [...(w.biz?.values() || [])].filter((b) => b.owner === p.account && b.status === "open").length;
+      counts.law = [...(w.cases?.values() || [])].filter((c) => c.pid === p.id && !c.closed).length;
       const tabs = h("div", { className: "tabs" }, ...cats.map(([k, label]) => h("button", { textContent: `${label} (${counts[k]})`, "aria-pressed": String(side.cat === k), onclick: () => { side.cat = k; drawSide(); } })));
       const sorter = h("select", { title: "Order", onchange: (e) => { side.sort = e.target.value; drawSide(); } },
         ...[["az", "Name A–Z"], ["za", "Name Z–A"], ["lo", "Price: low to high"], ["hi", "Price: high to low"], ["kg", "Weight: light first"], ["near", "Homes: nearest first"]].map(([v, label]) => h("option", { value: v, textContent: label, selected: side.sort === v })));
@@ -3893,6 +3906,7 @@ export async function startCity(ctx) {
           p.job ? h("p", { className: "note" }, `You work as ${p.job.title.toLowerCase()} at ${address(p.job.place.name) || "your workplace"} (${R.fmt(p.job.pay)}/h). `, act("Quit", () => send("quit_job"))) : "",
           rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "No openings near you." }));
       }
+      if (enterprise().online(side, out, w, p)) { side.el.replaceChildren(...out); return; }   // the Business and Law tabs
       if (side.cat !== "homes" && side.cat !== "services" && side.cat !== "jobs") {
         const list = wares.filter((x) => (side.cat === "all" || x.cat === side.cat) && match(x.it.name, x.from.join(" "))).sort((a, b) => order(a, b, a.it.name, b.it.name));
         const rows = list.slice(0, 120).map(({ id, it, from, price }) => {

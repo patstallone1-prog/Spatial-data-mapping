@@ -20,6 +20,7 @@ import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
+import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -64,6 +65,7 @@ export class CityWorld {
     this.ledger.open("business:hospital", "business");
     this.ledger.open("business:bank", "business");
     this.ledger.open("business:residents", "business");
+    this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
   id(prefix) { return `${prefix}:${(++this.seq).toString(36)}`; }
@@ -158,6 +160,7 @@ export class CityWorld {
       sales_rate: salesRate(this.R, here.chain, this.laws), resident_days: (this.now - p.resident_since) / DAY,
       vitals: p.vitals, inventory: p.inventory, worn: p.worn, carry: this.carry(p), resting: p.resting, delivery: p.delivery, ride: p.ride, fainted: p.fainted,
       hands: p.hands, errand: p.errand, bookings: p.bookings || [], mortgages: p.mortgages || [], lease: p.lease, homes: this.registry.owned(p.account, "home").map(slim),
+      ...this.enterpriseStatus(p),
     };
   }
   carry(p) { return { kg: carriedKg(this.R, p.inventory), capacity: Math.round(carryCapacity(this.R, p.vitals.strength, p.inventory) * 10) / 10 }; }
@@ -168,29 +171,38 @@ export class CityWorld {
     if (!spec || !this.R.jobs.player_jobs.includes(role)) throw new CityError("that job is not open to players");
     if (!place?.id || !spec.at.some((k) => (place.keys || []).includes(k))) throw new CityError(`a ${spec.title.toLowerCase()} works at ${spec.at.join(" or ")}`);
     const p = this.player(pid);
-    p.job = { role, title: spec.title, pay: spec.pay, place: { id: place.id, x: place.x, z: place.z, name: place.name || null }, employer: `business:${place.id}` };
+    if (this.bizAt(place.id)) throw new CityError("a player runs that business: apply to its openings in the Jobs tab");
+    this.recordCheck(p, role);
+    if (p.clocked) this.cmd_clock_out(pid);
+    this.leaveStaff(p);
+    p.job = { role, title: spec.title, pay: spec.pay, level: 0, place: { id: place.id, x: place.x, z: place.z, name: place.name || null }, employer: `business:${place.id}` };
     this.ledger.open(p.job.employer, "business");
     this.log("hired", { player: pid, role });
     return { job: p.job };
   }
-  cmd_quit_job(pid) { const p = this.player(pid); if (p.clocked) this.cmd_clock_out(pid); p.job = null; return {}; }
+  cmd_quit_job(pid) { const p = this.player(pid); if (p.clocked) this.cmd_clock_out(pid); this.leaveStaff(p); p.job = null; return {}; }
   cmd_clock_in(pid, args = {}) {
     const p = this.player(pid);
     if (!p.job) throw new CityError("no job to go to");
     if (Math.hypot((p.x ?? 1e9) - p.job.place.x, (p.z ?? 1e9) - p.job.place.z) > this.R.jobs.workplace_reach_m) throw new CityError("go to work first");
     p.clocked = { since: this.now, paid_to: this.now, spots: args.spots || null, task: null, next_task: this.now + 8000, done: 0, idle: 0, tasks_total: 0 };
+    this.clockedIn(p);   // on time or late (enterprise.mjs)
     return { clocked: p.clocked };
   }
   cmd_clock_out(pid) {
     const p = this.player(pid);
     if (!p.clocked) throw new CityError("not at work");
+    const shift = p.clocked;
     this.payWork(p, true);
     p.clocked = null;
-    return { balance: this.ledger.balance(p.account) };
+    const promoted = this.shiftDone(p, shift);   // a shift counted, and perhaps a promotion
+    return { balance: this.ledger.balance(p.account), promoted };
   }
   //: Pay for the time worked since the last pay: by the employer, out of what the business takes
   //: in (minted as its takings, since the NPC economy is not yet one book with the players'), with
-  //: income and payroll taxes withheld by the cumulative method.
+  //: income and payroll taxes withheld by the cumulative method. A player's business pays out of
+  //: its own account (or owes it as a bill); a late arrival's dock comes off once, and a
+  //: recruiter's fee comes out of the pay as it comes.
   payWork(p, final = false) {
     if (!p.clocked || !p.job) return null;
     const every = this.R.jobs.pay_every_minutes * 60_000;
@@ -207,7 +219,8 @@ export class CityWorld {
     p.clocked.idle = worked ? 0 : (p.clocked.idle || 0) + windows;
     let sentHome = false;
     if (!worked && p.clocked.idle >= this.R.work_tasks.idle_windows_to_dismiss) { final = true; sentHome = true; }
-    const gross = worked ? Math.round(p.job.pay * span / 3_600_000) : 0;
+    let gross = worked ? Math.round(p.job.pay * span / 3_600_000) : 0;
+    if (gross > 0 && p.clocked.dock) { const d = Math.min(gross, p.clocked.dock); gross -= d; p.clocked.dock -= d; }
     p.clocked.paid_to = this.now;
     if (final) { p.clocked = null; if (sentHome) { p.sent_home = this.now; this.log("sent_home", { player: p.id }); } }
     if (gross <= 0) return null;
@@ -215,11 +228,21 @@ export class CityWorld {
     if (p.ytd.year !== year) p.ytd = { year, wages: 0, withheld: 0 };
     const w = withholding(this.R, p.ytd.wages, gross);
     const employer = p.job.employer;
-    this.ledger.mint(employer, gross, "npc_income", { at: this.now, memo: "takings" });
+    if (this.isFirm(employer)) {
+      if (this.ledger.balance(employer) < gross) {
+        this.billing.issue({ payer: employer, payee: p.account, kind: "wages", amount: gross, memo: `Unpaid wages, ${p.job.title}`, at: this.now, due_days: 7, penalties: [Math.round(gross * 0.1)] });
+        this.log("unpaid", { player: p.id, gross });
+        return null;
+      }
+      const b = this.biz.get(p.job.business);
+      if (b) b.today.staff_wages = (b.today.staff_wages || 0) + gross;
+    } else this.ledger.mint(employer, gross, "npc_income", { at: this.now, memo: "takings" });
     const here = this.where(p);
-    this.ledger.post([[employer, -gross], [p.account, w.net], ["authority:irs", w.federal], ["authority:ftb", w.state],
+    const fee = p.job.fee_due?.left > 0 ? Math.min(p.job.fee_due.left, Math.floor(w.net / 2)) : 0;
+    this.ledger.post([[employer, -gross], [p.account, w.net - fee], ...(fee ? [[p.job.fee_due.agency, fee]] : []), ["authority:irs", w.federal], ["authority:ftb", w.state],
       ["authority:ssa", w.social + w.medicare], ["authority:edd", w.disability]].filter(([, v]) => v !== 0),
       { kind: "wage", memo: `${p.job.title}, ${(span / 60_000).toFixed(0)} min`, at: this.now });
+    if (fee) { p.job.fee_due.left -= fee; if (p.job.fee_due.left <= 0) delete p.job.fee_due; }
     p.ytd.wages += gross; p.ytd.withheld += w.total;
     this.log("paid", { player: p.id, gross, net: w.net, where: here.name });
     return { gross, ...w };
@@ -331,7 +354,7 @@ export class CityWorld {
     const lines = (cart || []).map((l) => ({ item: l.item, qty: Math.max(1, Math.min(20, l.qty | 0)) })).filter((l) => this.R.items[l.item]);
     if (!lines.length) throw new CityError("the basket is empty");
     if (place?.x !== undefined && p.x !== undefined && Math.hypot(p.x - place.x, p.z - place.z) > this.R.stores.reach_m * 2) throw new CityError("walk up to the shop first");
-    const stores = storesAt(this.R, place?.keys || []);
+    const stores = this.storesHere(place);
     const here = this.where(p);
     let price = 0, tax = 0, kg = 0;
     for (const l of lines) {
@@ -339,7 +362,7 @@ export class CityWorld {
       if (spec.parcel || !stores.some((st) => st.items.includes(l.item))) throw new CityError(`${spec.name.toLowerCase()} is not sold here`);
       if (spec.needs && this.permits(p, spec.needs) < l.qty) throw new CityError(this.needsText(spec));
       if (spec.service) l.qty = 1;
-      l.price = spec.price * l.qty; l.tax = itemTax(this.R, here.chain, spec, l.price, this.laws);
+      l.price = this.priceAt(place, l.item) * l.qty; l.tax = itemTax(this.R, here.chain, spec, l.price, this.laws);
       price += l.price; tax += l.tax;
       if (!spec.service) {
         kg += (spec.kg || 0) * l.qty;
@@ -347,6 +370,7 @@ export class CityWorld {
         if (!lift.ok) throw new CityError(lift.reason);
       }
     }
+    this.stockCheck(place, lines);
     const after = { ...p.inventory };
     for (const l of lines) if (!this.R.items[l.item].service) after[l.item] = (after[l.item] || 0) + l.qty;
     if (slotsUsed(after) > SLOTS) throw new CityError(`no room in your inventory for it all: ${SLOTS} slots of up to ${STACK} each`);
@@ -354,9 +378,10 @@ export class CityWorld {
     if (c.kg + kg > c.capacity) throw new CityError(`too heavy to carry it all: ${c.kg} of ${c.capacity} kg already, and the basket is ${Math.round(kg * 10) / 10} kg`);
     const balance = this.ledger.balance(p.account);
     if (balance < price + tax) throw new CityError(`not enough credits: the total is ${this.R.fmt(price + tax)} and you have ${this.R.fmt(balance)}`);
-    const shop = this.ledger.open(`business:${place.id}`, "business");
+    const shop = this.tillOf(place);
     this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
       { kind: "purchase", memo: lines.map((l) => `${l.qty > 1 ? l.qty + " x " : ""}${this.R.items[l.item].name}`).join(", ").slice(0, 120), at: this.now });
+    this.soldHere(place, lines);
     const effects = [];
     for (const l of lines) {
       const spec = this.R.items[l.item];
@@ -782,8 +807,10 @@ export class CityWorld {
   }
   fine(p, kind, memo, evidence, key = null, payer = null) {
     const amount = this.R.fines[kind];
-    return this.billing.issue({ payer: payer || p.account, payee: "authority:court", kind, amount, memo, at: this.now,
+    const bill = this.billing.issue({ payer: payer || p.account, payee: "authority:court", kind, amount, memo, at: this.now,
       due_days: this.R.enforcement.notice_due_days, penalties: [Math.round(amount * this.R.enforcement.late_penalty_share)], evidence, key });
+    this.openCase(p, bill);   // a case: pay it, contest it, or take it to a lawyer (enterprise.mjs)
+    return bill;
   }
   cmd_pay_bill(pid, { bill }) {
     const p = this.player(pid);
@@ -1251,6 +1278,7 @@ export class CityWorld {
     }
     p.clocked.done = (p.clocked.done || 0) + 1;
     p.clocked.tasks_total = (p.clocked.tasks_total || 0) + 1;
+    (p.experience ||= {})[p.job.role] = (p.experience[p.job.role] || 0) + 1;
     p.clocked.task = null;
     p.clocked.next_task = this.now + this.taskGap(p);
     return { tip, done: p.clocked.tasks_total };
@@ -1514,6 +1542,7 @@ export class CityWorld {
       }
     }
     this.billing.sweep(this.now);
+    this.enterpriseStep();   // businesses' hours, court dates, summonses, offers (enterprise.mjs)
     for (const m of this.measures.values()) if (m.status === "open" && this.now >= m.closes) this.tally(m);
     this.lastStep = this.now;
   }
@@ -1551,7 +1580,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, harm: [...this.harm.values()] };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, harm: [...this.harm.values()], enterprise: this.enterpriseJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1568,6 +1597,7 @@ export class CityWorld {
     w.damage = new Map((o.damage || []).map((d) => [d.key, d]));
     w.market = { taken: new Set(o.market?.taken || []) };
     w.harm = new Map((o.harm || []).map((h) => [h.id, h]));
+    w.enterpriseLoad(o.enterprise);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);
@@ -1592,8 +1622,10 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking"]);
+  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  ...ENTERPRISE_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
+installEnterprise(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.
