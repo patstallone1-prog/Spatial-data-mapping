@@ -494,7 +494,11 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
     return new THREE.MeshStandardMaterial({ color: part.colour || 0x1d2a33, metalness: 0.6, roughness: 0.08, transparent: true, opacity: Math.min(0.55, part.opacity), depthWrite: false, side: THREE.DoubleSide });
   }
   const opts = { color: 0xffffff, map: part.map || null, vertexColors: Boolean(part.geometry.attributes.color) };
-  const m = standard ? new THREE.MeshStandardMaterial({ ...opts, metalness: part.name === "body" ? 0.35 : 0.1, roughness: part.name === "body" ? 0.45 : 0.65 }) : new THREE.MeshLambertMaterial(opts);
+  // Painted parts as paint is, a little metallic, and the sky's reflection in them held down: at
+  // full strength it washed the bus's red to pink and its silver to white on the one you ride
+  // (seen at noon, 2026-11-13), and the traffic's Lambert paint beside it has none.
+  const painted = part.name === "body" || part.tint;
+  const m = standard ? new THREE.MeshStandardMaterial({ ...opts, metalness: painted ? 0.35 : 0.1, roughness: painted ? 0.45 : 0.65, envMapIntensity: painted ? 0.35 : 1 }) : new THREE.MeshLambertMaterial(opts);
   if (!part.tint) return m;
   const atlas = part.name === "paint-atlas";
   const plain = "vec3 liveryAt(vec3 p, vec3 paint) { return paint; }";

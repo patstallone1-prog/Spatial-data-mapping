@@ -712,7 +712,7 @@ export async function startCity(ctx) {
     }
   }
   //: The riders, as people on their bicycles, for drawPeople.
-  const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v, bike: b }));
+  const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v, bike: b, ...(b.mine ? { detail: FULL } : {}) }));
   //: The LOD3's parts, one instanced mesh each, once loaded (null till then).
   let bikeLod = null;
   ctx.loadModel?.(ctx.asset(BIKE.file)).then((gltf) => {
@@ -735,7 +735,8 @@ export async function startCity(ctx) {
     const L = bikeLod;
     if (L) for (const part of Object.values(L)) part.n = 0;
     for (const b of bikes) {
-      const tier = detailNow ? detailNow.tier("people", b.x, b.z) : FULL;
+      // Yours (``mine``: there is no bicycle of your own to ride yet) in full, its wheels turning.
+      const tier = b.mine ? FULL : detailNow ? detailNow.tier("people", b.x, b.z) : FULL;
       if (tier === TRACKED) continue;
       BIKE_M.copy(base(b.x, groundAt(b.x, b.z), b.z, b.yaw, 1));
       C.set(paintOf("bike", b.shade, BIKE_PAINT_MIX));
@@ -780,19 +781,23 @@ export async function startCity(ctx) {
   lowCars.count = 0; lowCars.frustumCulled = false; lowCars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); lowCars.name = "city-traffic-low"; group.add(lowCars);
   const CAR_FRUSTUM = new THREE.Frustum(), CAR_SPHERE = new THREE.Sphere(new THREE.Vector3(), 3);
   //: Which of ``list`` are drawn, and how finely: in view only (a car behind you, or round the
-  //: corner of the frame, is not sent to the GPU at all), at its tier; the one you ride in full.
+  //: corner of the frame, is not sent to the GPU at all), at its tier; the one you ride -- the bus,
+  //: the cab -- and any of yours (``mine``) in full, whatever the rings say, and first in the full
+  //: tier's queue (``d`` -1: never pushed down a tier by the cap however far the camera has been
+  //: pulled back). Your own car and your party's are drawn apart (makeCar), in full always.
   function carsInView(list) {
     const cam = ctx.camera?.(), out = [];
     if (cam) { cam.getWorldPosition(VIEW_AT); VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); CAR_FRUSTUM.setFromProjectionMatrix(VIEW_PV); }
     for (const v of list) {
-      const detail = v.id === transit.ride?.vehicle ? FULL : v.detail ?? (detailNow ? detailNow.tier("cars", v.x, v.z, carTiers.get(v.id)?.tier) : FULL);
+      const yours = v.id === transit.ride?.vehicle || v.mine === true;
+      const detail = yours ? FULL : v.detail ?? (detailNow ? detailNow.tier("cars", v.x, v.z, carTiers.get(v.id)?.tier) : FULL);
       if (detail === TRACKED) continue;
       const [, h, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
       if (cam) {
         CAR_SPHERE.center.set(v.x, groundAt(v.x, v.z) + h / 2, v.z); CAR_SPHERE.radius = l / 2 + 0.6;
         if (!CAR_FRUSTUM.intersectsSphere(CAR_SPHERE)) continue;
       }
-      out.push({ v, detail, d: cam ? (v.x - VIEW_AT.x) ** 2 + (v.z - VIEW_AT.z) ** 2 : 0 });
+      out.push({ v, detail, d: yours ? -1 : cam ? (v.x - VIEW_AT.x) ** 2 + (v.z - VIEW_AT.z) ** 2 : 0 });
     }
     return out;
   }
@@ -825,7 +830,7 @@ export async function startCity(ctx) {
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE, v.id === transit.ride?.vehicle);
+      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE, v.id === transit.ride?.vehicle || v.mine === true);
       if (f && f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
       // A wreck sits askew; a car in a crash rocks on its springs.
