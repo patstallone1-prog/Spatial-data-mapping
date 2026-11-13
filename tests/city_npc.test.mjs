@@ -275,3 +275,27 @@ test("rounds: flyers in any order, a dog walk in turn, paid by the rules on the 
   assert.equal(w.submit("me", "take_task", { task: { kind: "flyers", stops: stops.slice(0, 1) }, at: at(37.8, -122.44) }).ok, false);
   assert.equal(w.submit("me", "take_task", { task: { kind: "flyers", stops: [stops[0], { name: "far", at: [37.9, -122.3] }] }, at: at(37.8, -122.44) }).ok, false);
 });
+
+test("adults average 5 ft 10 (men) and 5 ft 5 (women), spread as the CDC's reference is", async () => {
+  const { ADULT_HEIGHT, bodyFor } = await import("../docs/city/view.mjs");
+  const cache = new Map(), men = [], women = [];
+  for (let i = 0; i < 40000; i += 1) {
+    const b = bodyFor({ id: `person:${i}`, age: 20 + (i % 60) }, cache);
+    (b.female ? women : men).push(b.height);
+  }
+  const mean = (xs) => xs.reduce((t, x) => t + x, 0) / xs.length;
+  const sd = (xs) => { const m = mean(xs); return Math.sqrt(xs.reduce((t, x) => t + (x - m) ** 2, 0) / xs.length); };
+  assert.ok(Math.abs(men.length / (men.length + women.length) - 0.5) < 0.01, "about as many women as men");
+  assert.ok(Math.abs(mean(men) - 1.778) < 0.002, `men ${mean(men).toFixed(4)} m`);
+  assert.ok(Math.abs(mean(women) - 1.651) < 0.002, `women ${mean(women).toFixed(4)} m`);
+  assert.ok(Math.abs(sd(men) - 0.071) < 0.003 && Math.abs(sd(women) - 0.066) < 0.003, "spread as measured");
+  // Weighted to the middle: about two in three within one spread, about one in twenty past two.
+  const within = (xs, m, s, k) => xs.filter((x) => Math.abs(x - m) <= k * s).length / xs.length;
+  assert.ok(Math.abs(within(men, 1.778, 0.071, 1) - 0.683) < 0.015 && Math.abs(within(women, 1.651, 0.066, 2) - 0.954) < 0.01);
+  // Held: nobody past the hold either way.
+  const hold = ADULT_HEIGHT.hold;
+  assert.ok(Math.min(...men) >= 1.778 - hold * 0.071 - 1e-9 && Math.max(...men) <= 1.778 + hold * 0.071 + 1e-9);
+  assert.ok(Math.min(...women) >= 1.651 - hold * 0.066 - 1e-9 && Math.max(...women) <= 1.651 + hold * 0.066 + 1e-9);
+  // The same person is the same height every time.
+  assert.equal(bodyFor({ id: "person:7", age: 30 }, new Map()).height, bodyFor({ id: "person:7", age: 30 }, new Map()).height);
+});

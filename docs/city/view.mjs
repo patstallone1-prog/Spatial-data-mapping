@@ -79,27 +79,90 @@ function mergeGeos(geos) {
   out.setAttribute("normal", new parts[0].attributes.position.constructor(nor, 3));
   return out;
 }
-//: People's shapes: heights as adults' are (men about 1.76 m, women 1.62, either way by about
-//: 7 cm; CDC/NCHS anthropometric reference), children by age, and builds narrower and broader --
-//: from the person's id, so each is the same every time and nothing is stored or worked out again.
+//: People's shapes: adults' heights from the bell curve of the CDC/NCHS anthropometric reference
+//: for American adults -- men 1.778 m (5 ft 10) by 7.1 cm, women 1.651 m (5 ft 5) by 6.6 cm --
+//: held within ADULT_HEIGHT.hold of those either way (no 1.5 m man, no 2.1 m woman; an even hold
+//: leaves the averages where they are); children by age; builds narrower and broader. From the
+//: person's id, so each is the same every time and nothing is stored or worked out again.
+export const ADULT_HEIGHT = { male: { mean: 1.778, sd: 0.071 }, female: { mean: 1.651, sd: 0.066 }, hold: 3.5 };
+//: A draw from the normal curve (Box-Muller) from two of the seed's uniforms: most people near
+//: the middle and fewer the further out, as heights are. (The sum of three uniforms it was ends
+//: at 3 either way and has too few people out towards it.)
+function normalDraw(r) {
+  const u = Math.max(1e-12, r()), v = r();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+//: An adult's height for a draw ``z`` from the normal curve, in metres.
+export function adultHeight(female, z) {
+  const { mean, sd } = female ? ADULT_HEIGHT.female : ADULT_HEIGHT.male, hold = ADULT_HEIGHT.hold;
+  return mean + sd * Math.max(-hold, Math.min(hold, z));
+}
 const HAIR = ["#1b1410", "#2b1d14", "#3b2a1d", "#5a3d26", "#7a5a3a", "#a8834f", "#c9a66b", "#8f8f8f", "#d8d2c4", "#6b2b1a"];
-function bodyFor(person, cache) {
+export function bodyFor(person, cache) {
   let b = cache.get(person.id);
   if (b) return b;
-  const r = rng(person.id || "?", "body"), g = (r() + r() + r() - 1.5) * 2;   // about N(0, 1)
+  const r = rng(person.id || "?", "body"), g = normalDraw(r);
   const age = person.age ?? 35;
-  let height, build;
+  let height, build, female = null;
   if (age < 18) { height = Math.max(1.0, Math.min(1.85, 0.78 + age * 0.06 + g * 0.05)); build = 0.82 + r() * 0.12; }
   else {
-    const female = r() < 0.5;
-    height = Math.max(1.45, Math.min(2.02, (female ? 1.62 : 1.76) + g * (female ? 0.065 : 0.07)));
+    female = r() < 0.5;
+    height = adultHeight(female, g);
     build = (female ? 0.9 : 1.0) + (r() - 0.5) * 0.28;
   }
   const grey = age > 55 && r() < 0.6;
-  b = { height, build, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
+  b = { height, build, female, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
   if (cache.size > 20000) cache.clear();
   cache.set(person.id, b);
   return b;
+}
+//: What you are worth, from your status (world.mjs cmd_status): the money in your account and on
+//: your FasTrak tag, what you own (cars at what they cost you, buildings and homes at their
+//: assessment, the bag's goods at the shops' prices), what you owe (open bills, what is left on
+//: each mortgage), and the difference. Money in cents, as the ledger keeps it. Assets are listed
+//: dearest first; goods worth less than SIGNIFICANT_GOODS together are not listed one by one.
+const SIGNIFICANT_GOODS = 10000;
+export function wealthOf(R, st) {
+  const assets = [], debts = [];
+  for (const v of st.vehicles || []) {
+    const spec = R.vehicles?.models?.[v.attrs?.model];
+    assets.push({ kind: "vehicle", label: `${spec?.name || v.attrs?.model || "Vehicle"} ${v.attrs?.plate || ""}`.trim(), value: Math.max(0, Math.round(v.attrs?.value || spec?.price || 0)) });
+  }
+  for (const b of st.properties || []) assets.push({ kind: "building", label: b.attrs?.name || b.attrs?.address || `Building ${String(b.id).replace(/^building:/, "")}`, value: Math.max(0, Math.round(b.attrs?.assessed || b.attrs?.value || 0)) });
+  for (const hm of st.homes || []) assets.push({ kind: "home", label: hm.attrs?.label || hm.attrs?.address || "A home", value: Math.max(0, Math.round(hm.attrs?.assessed || 0)) });
+  let goods = 0;
+  for (const [id, n] of Object.entries(st.inventory || {})) {
+    const it = R.items?.[id], value = Math.max(0, Math.round((it?.price || 0) * (Number(n) || 0)));
+    if (!value) continue;
+    if (value >= SIGNIFICANT_GOODS) assets.push({ kind: "goods", label: `${n > 1 ? `${n} × ` : ""}${it?.name || id}`, value });
+    else goods += value;
+  }
+  if (goods) assets.push({ kind: "goods", label: "Everything else in your bag", value: goods });
+  assets.sort((a, b) => b.value - a.value);
+  for (const b of st.bills || []) debts.push({ kind: "bill", label: b.memo || String(b.kind || "bill").replace(/_/g, " "), value: Math.max(0, Math.round(b.owed || 0)), due: b.due });
+  for (const m of st.mortgages || []) debts.push({ kind: "mortgage", label: `Mortgage on ${String(m.home || "your home").replace(/^home:/, "home ")}`, value: Math.max(0, Math.round(m.owed || 0)) });
+  const cash = Math.round(st.balance || 0), fastrak = Math.round(st.fastrak?.balance || 0);
+  const owned = assets.reduce((t, a) => t + a.value, 0), owing = debts.reduce((t, d) => t + d.value, 0);
+  return { cash, fastrak, assets, debts, owned, owing, net: cash + fastrak + owned - owing };
+}
+//: A traffic signal's head stands at the corner of its junction: the junction is the nearest
+//: signalled node of the streets (junctionAt) within this.
+const SIGNAL_HEAD_NODE_M = 30;
+export function signalNodeNear(streets, x, z, reach = SIGNAL_HEAD_NODE_M) {
+  let best = null, bestD = reach;
+  const r = Math.ceil(reach / streets.cell), cx = Math.floor(x / streets.cell), cz = Math.floor(z / streets.cell);
+  for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) {
+    for (const id of streets.grid.get(`${cx + i},${cz + j}`) || []) {
+      const n = streets.nodes[id], d = Math.hypot(n.x - x, n.z - z);
+      if (d < bestD && junctionAt(streets, id) === "signal") { bestD = d; best = id; }
+    }
+  }
+  return best;
+}
+//: What a head shows: the phase the cars coming toward it keep (fleet.mjs signalAt). Its lenses
+//: face (sin yaw, cos yaw), so the traffic that reads them travels the other way.
+export function signalShown(streets, node, yaw, tsec) {
+  return node === null || node === undefined ? null : signalAt(streets, node, Math.atan2(-Math.sin(yaw), -Math.cos(yaw)), tsec);
 }
 const SKIN = ["#f1c9a5", "#e0ac7e", "#c68c5c", "#a26c45", "#7d4f32", "#5a3824", "#f6d8bf", "#d29b6c"];
 const TROUSERS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b"];
@@ -711,6 +774,22 @@ export async function startCity(ctx) {
       b.odo = (b.odo || 0) + b.v * dt;   // ridden, all told: how far round the wheels and crank are
       Object.assign(b, alongRoute(b.route, b.d, BIKE_LANE));
     }
+  }
+  //: The traffic lights, lit by the phase the cars stop and go by: each head's lens for its own
+  //: approach, a few times a second. Each head's junction is found once (signalNodeNear).
+  const SIGNAL_LIGHT_EVERY_MS = 250;
+  let headNodes = new WeakMap(), headStreets = null, signalsAt = 0;
+  function lightSignals(tsec, now) {
+    const s = district?.streets;
+    if (!ctx.lightSignals || !s || now - signalsAt < SIGNAL_LIGHT_EVERY_MS) return;
+    signalsAt = now;
+    if (headStreets !== s) { headStreets = s; headNodes = new WeakMap(); }
+    ctx.lightSignals((head) => {
+      const id = head.key || head;
+      let node = headNodes.get(id);
+      if (node === undefined) { node = signalNodeNear(s, head.x, head.z); headNodes.set(id, node); }
+      return signalShown(s, node, head.yaw, tsec);
+    });
   }
   //: The riders, as people on their bicycles, for drawPeople.
   const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v, bike: b, ...(b.mine ? { detail: FULL } : {}) }));
@@ -1836,6 +1915,27 @@ export async function startCity(ctx) {
     g.fillStyle = fg; g.font = "600 46px system-ui,sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(text).slice(0, 22), 256, 50);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
   }
+  //: A window pane's surface: grey grain and a few faint smears, tiled; drawn once. The page's
+  //: own panes wear the same (paneGlassTexture, module 25).
+  let paneMap = null;
+  function paneTexture() {
+    if (paneMap) return paneMap;
+    const c = doc.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d"), image = g.createImageData(128, 128), r = rng("pane");
+    for (let i = 0; i < 128 * 128; i += 1) {
+      const shade = 196 + Math.round((r() - 0.5) * 56);
+      image.data.set([shade, shade + 3, shade + 5, 130 + Math.round(r() * 125)], i * 4);
+    }
+    g.putImageData(image, 0, 0);
+    for (let k = 0; k < 6; k += 1) {
+      const x = r() * 128, y = r() * 128, s = g.createRadialGradient(x, y, 0, x, y, 18 + r() * 34);
+      s.addColorStop(0, "rgba(246,248,249,0.3)"); s.addColorStop(1, "rgba(246,248,249,0)");
+      g.fillStyle = s; g.fillRect(0, 0, 128, 128);
+    }
+    paneMap = new THREE.CanvasTexture(c); paneMap.colorSpace = THREE.SRGBColorSpace || paneMap.colorSpace;
+    paneMap.wrapS = paneMap.wrapT = THREE.RepeatWrapping;
+    return paneMap;
+  }
   function buildRoom(place, F) {
     const g = new THREE.Group(); g.name = "city-shop-room";
     g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
@@ -1847,7 +1947,9 @@ export async function startCity(ctx) {
     const wall = flat(0xe4ddd1, { side: THREE.BackSide }), sideWall = flat(0xd3cbbd, { side: THREE.BackSide });
     const floor = flat(0x8a6f55, { side: THREE.BackSide });
     const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
-    const glass = new THREE.MeshBasicMaterial({ color: 0xbfd9e6, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false });
+    // The shop window as the houses' are (module 25, WINDOW_GLASS): grey, a little worn, and
+    // softening the street seen through it -- not a pane that could be taken for an open front.
+    const glass = new THREE.MeshBasicMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
@@ -3180,6 +3282,7 @@ export async function startCity(ctx) {
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
       stepBikes(dt, t / 1000, focus, now);
+      lightSignals(t / 1000, now);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
       drawBikes();
       drawCars(wheels(), lastNight);
@@ -3654,6 +3757,19 @@ export async function startCity(ctx) {
 #city-profile .bar i{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(255,255,255,.14) var(--v))}
 #city-profile .bar b{text-align:right;font-weight:600}#city-profile .carry{opacity:.8;margin-top:4px;font-size:11px}#city-profile .gig{margin-top:3px;color:#7ee2a0;font-size:11px}
 #city-top[hidden],.city-card[hidden],#city-prompt[hidden]{display:none!important}
+#city.pop{left:max(16px,5vw);right:max(16px,5vw);top:max(16px,5vh);bottom:max(16px,5vh);width:auto;max-height:none;z-index:70;padding:18px 22px;font-size:13px;box-shadow:0 0 0 100vmax rgba(8,12,18,.45),0 12px 40px rgba(0,0,0,.4)}
+#city.pop .me{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+#city.pop .me .face{width:104px;height:104px;border-radius:50%;flex:none;background:#2a3542 center/cover no-repeat;border:3px solid rgba(128,128,128,.3)}
+#city.pop .me h2{margin:0;font:700 22px/1.2 system-ui,sans-serif}#city.pop .me .worth{font:700 28px/1.2 system-ui,sans-serif;letter-spacing:-.01em}
+#city.pop .me .worth small{display:block;font:500 12px/1.3 system-ui,sans-serif;color:var(--cm,#5c6770);letter-spacing:0}
+#city.pop .me>button{align-self:flex-start;margin-left:auto;font-size:18px;line-height:1;padding:6px 11px}
+#city.pop .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:14px}
+#city.pop .tile{border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px;min-width:0}
+#city.pop .tile h4{margin:0 0 6px}#city.pop .tile td{border-top:1px solid rgba(128,128,128,.15);padding:3px 0}
+#city.pop .tile tr.sum td{font-weight:700}#city.pop .neg{color:#c0392b}
+#city.pop .bar{display:grid;grid-template-columns:70px 1fr 30px;align-items:center;gap:8px;margin:4px 0}
+#city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
+#city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
 @media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
@@ -3732,8 +3848,10 @@ export async function startCity(ctx) {
     const root = doc.documentElement, W = globalThis.innerWidth || 1200, on = !actionBar.hidden;
     const fold = doc.getElementById("fold"), hud = doc.getElementById("hud"), sidebar = doc.getElementById("map-sidebar");
     const F = fold && fold.offsetParent !== null ? fold.getBoundingClientRect() : null;
+    // The map's controls, or the step-by-step directions in their place (City mode has them too).
+    const nav = doc.getElementById("nav-panel");
     const mapOpen = hud?.dataset.open === "true" && sidebar && sidebar.offsetParent !== null;
-    const M = mapOpen ? sidebar.getBoundingClientRect() : null;
+    const M = nav && !nav.hidden && nav.offsetParent !== null ? nav.getBoundingClientRect() : mapOpen ? sidebar.getBoundingClientRect() : null;
     const cp = doc.getElementById("compass");
     const card = W < 640 ? 150 : W < 1000 ? 180 : 200, y = 16;
     root.style.setProperty("--city-card-w", `${card}px`);
@@ -4147,14 +4265,17 @@ export async function startCity(ctx) {
       h("p", { className: "note", textContent: asked },),
       h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins; Space jumps there too, and Enter opens your own garage." }));
   }
+  //: You: a window over most of the screen, opened from your card at the top right -- your
+  //: picture, your body, your bank account, what you owe, what you have done lately, what you
+  //: own and what you are worth; and under them the city's other pages (the place you stand at,
+  //: your car, homes, bills, taxes, laws, people). It was a panel in the map's controls.
   function openPanel(force = false) {
     if (panel && force !== true) { panel.remove(); panel = null; return; }
-    const host = ctx.panelHost?.() || doc.body;
-    if (panel && panel.parentNode === host) { refresh(); return; }
-    if (panel) { panel.remove(); panel = null; }
+    if (panel) { refresh(); return; }
     closeSide();
-    panel = h("section", { id: "city" }); panel.setAttribute("aria-label", "The living city");
-    host.append(panel);
+    panel = h("section", { id: "city", className: "pop" });
+    panel.setAttribute("aria-label", "You"); panel.setAttribute("role", "dialog");
+    doc.body.append(panel);
     refresh();
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
@@ -4181,8 +4302,8 @@ export async function startCity(ctx) {
     drawSide();
     if (!panel) return;
     const w = view, p = w?.players.get(myId);
-    const close = h("button", { textContent: "×", title: "Close", onclick: () => openPanel() });
-    const head = h("h3", {}, h("span", { textContent: "The living city" }), close);
+    const close = h("button", { textContent: "×", title: "Close (Esc)", onclick: () => openPanel() });
+    const head = h("h3", {}, h("span", { textContent: "You" }), close);
     if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Waiting for the party's host to share the city…" })); return; }
     if (!p) {
       // Joined in the background (ensureJoined): only a moment before the district is there.
@@ -4193,7 +4314,38 @@ export async function startCity(ctx) {
     const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>
       h("button", { textContent: id[0].toUpperCase() + id.slice(1), "aria-pressed": String(tab === id), onclick: () => { tab = id; refresh(); } })));
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent.toLowerCase() === tab)));
-    panel.replaceChildren(head, tabs, ...TABS[tab](w, p));
+    panel.replaceChildren(...youAtAGlance(w, p, close), h("h4", { textContent: "More" }), tabs, ...TABS[tab](w, p));
+  }
+  //: The top of the window: you at a glance.
+  function youAtAGlance(w, p, close) {
+    const st = w.cmd_status.call(w, myId), worth = wealthOf(R, st), img = portrait();
+    const money = (v) => R.fmt(v);
+    const bar = (label, value, colour) => h("div", { className: "bar", innerHTML: `<span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b>` });
+    const tile = (title, ...kids) => h("section", { className: "tile" }, h("h4", { textContent: title }), ...kids);
+    const me = h("div", { className: "me" }, h("div", { className: "face", style: img ? `background-image:url(${img})` : "" }),
+      h("div", {}, h("h2", { textContent: st.name || p.name || "You" }),
+        h("div", { className: "worth" }, h("span", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }), h("small", { textContent: "net worth: what you have and own, less what you owe" }))),
+      close);
+    const stats = tile("Stats", bar("Health", st.vitals.health, "#e2483d"), bar("Stamina", st.vitals.stamina, "#e8a33b"), bar("Strength", st.vitals.strength, "#3c8fd6"),
+      h("table", {}, row("Carrying", `${st.carry.kg} of ${st.carry.capacity} kg`), row("Job", st.job ? `${st.job.title}, ${money(st.job.pay)}/h` : "none"),
+        row("Home", st.home ? (st.home.label || st.home.address || district.placeById?.get(st.home.building)?.name || `building ${st.home.building}`) : "none"), row("Where", st.where)));
+    const bank = tile("Bank account", h("table", {}, row("Balance", money(worth.cash)), row("FasTrak prepaid", st.fastrak ? money(worth.fastrak) : "no tag"),
+      row("Earned this year", money(st.ytd.wages)), row("Tax held back", money(st.ytd.withheld))));
+    const debts = tile("Debts", worth.debts.length ? h("table", {}, ...worth.debts.slice(0, 8).map((d) => row(d.label, money(d.value))),
+      h("tr", { className: "sum" }, h("td", { textContent: "Owed in all" }), h("td", { className: "neg", textContent: money(worth.owing) })))
+      : h("p", { className: "note", textContent: "You owe nothing." }), worth.debts.length ? h("button", { textContent: "See the bills", onclick: () => { tab = "bills"; refresh(); } }) : null);
+    const recent = w.ledger.journal.filter((e) => e.lines.some(([a]) => a === p.account)).slice(-10).reverse();
+    const history = tile("Recent history", recent.length ? h("table", {}, ...recent.map((e) => {
+      const amount = e.lines.find(([a]) => a === p.account)[1];
+      return h("tr", {}, h("td", { textContent: `${String(e.kind).replace(/_/g, " ")}${e.memo ? ": " + e.memo : ""}` }), h("td", { className: amount < 0 ? "neg" : "", textContent: money(amount) }));
+    })) : h("p", { className: "note", textContent: "Nothing yet: what you earn, buy and pay shows here." }));
+    const assets = tile("Significant assets", worth.assets.length ? h("table", {}, ...worth.assets.slice(0, 8).map((a) => row(a.label, money(a.value))),
+      h("tr", { className: "sum" }, h("td", { textContent: "Owned in all" }), h("td", { textContent: money(worth.owned) })))
+      : h("p", { className: "note", textContent: "No car, home or building of your own yet." }));
+    const net = tile("Net worth", h("table", {}, row("Money", money(worth.cash + worth.fastrak)), row("What you own", money(worth.owned)),
+      h("tr", {}, h("td", { textContent: "What you owe" }), h("td", { className: worth.owing ? "neg" : "", textContent: worth.owing ? `−${money(worth.owing)}` : money(0) })),
+      h("tr", { className: "sum" }, h("td", { textContent: "Net worth" }), h("td", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }))));
+    return [me, h("div", { className: "tiles" }, stats, bank, debts, assets, net, history)];
   }
   const TABS = {
     you(w, p) {
@@ -4313,6 +4465,8 @@ export async function startCity(ctx) {
   };
   const transferTotal = (here, price) => transferTax(R, here.chain, price).total;
   ctx.button?.addEventListener("click", () => openPanel());
+  // Escape closes the window over the screen.
+  globalThis.addEventListener?.("keydown", (e) => { if (e.key === "Escape" && panel) { panel.remove(); panel = null; } });
   refresh();
 
   // The multiplayer session's hooks: what this walker's car is, and drawing the others'.

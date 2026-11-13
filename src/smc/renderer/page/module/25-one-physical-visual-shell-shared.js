@@ -12,12 +12,48 @@ const homeShells = new Set();
 //: The room here is lit by the same sun as the street, so a half-clear pane showed its white
 //: plaster and every window went white. The pane is two faces: dark glass facing out, and a
 //: clear one facing in, so the street can still be seen from inside.
-const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
-  transparent: true, opacity: 0.12, depthWrite: false, side: THREE.FrontSide,
-  roughness: 0.08, metalness: 0.0, envMapIntensity: 0.4 });
-const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: 0xe7f0f3,
-  transparent: true, opacity: 0.12, depthWrite: false, side: THREE.FrontSide,
-  roughness: 0.1, metalness: 0.0, envMapIntensity: 0.4 });
+//:
+//: The pane is grey and a little worn, not clear: at an opacity of 0.12 and near white it could
+//: not be told from an open hole (2026-11-12). Real glass -- three.js's transmission -- draws
+//: the scene a second time for every frame it is in view, so the look of it is faked on the
+//: one pane: WINDOW_GLASS's grey at its opacity, the sky's reflection, and a fine grain and a
+//: few faint smears (paneGlassTexture) that soften whatever is seen through it, from either side.
+const WINDOW_GLASS = { tint: 0x5c6468, opacity: 0.36, roughness: 0.16, envMapIntensity: 0.7 };
+let paneGlassMap = null;
+//: A pane's own surface, one picture shared by every pane: grey grain at varying alpha (half
+//: again as clear in places as in others), and soft lighter smears where a cloth or the rain
+//: went. Drawn once, 128 pixels square.
+function paneGlassTexture() {
+  if (paneGlassMap) return paneGlassMap;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const image = ctx.createImageData(128, 128);
+  for (let i = 0; i < 128 * 128; i += 1) {
+    const grain = random(i * 7 + 3), shade = 196 + Math.round((grain - 0.5) * 56);
+    image.data[i * 4] = shade; image.data[i * 4 + 1] = shade + 3; image.data[i * 4 + 2] = shade + 5;
+    image.data[i * 4 + 3] = 130 + Math.round(random(i * 13 + 5) * 125);
+  }
+  ctx.putImageData(image, 0, 0);
+  for (let k = 0; k < 6; k += 1) {
+    const x = random(k * 31 + 1) * 128, y = random(k * 31 + 2) * 128, r = 18 + random(k * 31 + 3) * 34;
+    const smear = ctx.createRadialGradient(x, y, 0, x, y, r);
+    smear.addColorStop(0, "rgba(246,248,249,0.3)");
+    smear.addColorStop(1, "rgba(246,248,249,0)");
+    ctx.fillStyle = smear;
+    ctx.fillRect(0, 0, 128, 128);
+  }
+  paneGlassMap = new THREE.CanvasTexture(canvas);
+  paneGlassMap.colorSpace = THREE.SRGBColorSpace;
+  paneGlassMap.wrapS = paneGlassMap.wrapT = THREE.RepeatWrapping;
+  return paneGlassMap;
+}
+const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
+  transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
+  map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
+const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
+  transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
+  map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
 //: The frames white where nothing measured them (WINDOW_FRAME_DEFAULT), the same as the window
 //: pictures, so a house's frames do not change colour when its shell is built.
 const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT, roughness: 0.8, envMapIntensity: 0.2 });
@@ -366,7 +402,9 @@ function homeWindowLayout(entry, spec) {
 // Clear, neutral glazing in both directions. Interior pixels in a photograph are not glass
 // colour or permanent architecture: curtains/blinds do not become painted window panes.
 function shellGlassOpacity(distance) {
-  return 0.12; // Clear glass from either side; photographed curtains/blinds are not glass.
+  // The same grey glass from either side at any distance; photographed curtains and blinds
+  // are not glass.
+  return WINDOW_GLASS.opacity;
 }
 
 function homeWindowArchSpring(o) {

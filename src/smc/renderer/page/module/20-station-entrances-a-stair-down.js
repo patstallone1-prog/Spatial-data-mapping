@@ -1333,24 +1333,57 @@ function addFurniturePostsAt(anchors, height, radius, colour) {
   return anchors.length;
 }
 
+//: A signal's three lenses, red, amber and green: unlit, the dark tinted glass of a lamp that is
+//: off (so the lit one stands out against it); lit, the lamp's own colour at full brightness,
+//: drawn unshaded (MeshBasicMaterial, not tone-mapped) as a light is.
+const SIGNAL_LENS_DARK = [0x3b1411, 0x3a2b0b, 0x0e2b1b];
+const SIGNAL_LENS_LIT = [0xff2d1f, 0xffb21a, 0x1df08a];
+const SIGNAL_LENS_INDEX = { red: 0, amber: 1, green: 2 };
+//: The heads drawn here and their lenses, for the living city to light (setSignalLights).
+let signalLamps = null;
+//: Lights each head's lens: ``stateOf(head)`` says "red", "amber", "green", or null (all dark).
+//: Only the lenses that change are written. Returns how many heads are lit.
+function setSignalLights(stateOf) {
+  if (!signalLamps) return 0;
+  const colour = new THREE.Color();
+  const touched = new Set();
+  let lit = 0;
+  signalLamps.heads.forEach((head, i) => {
+    const want = SIGNAL_LENS_INDEX[stateOf(head)] ?? -1, was = signalLamps.lit[i];
+    if (want >= 0) lit += 1;
+    if (want === was) return;
+    if (was >= 0) { signalLamps.lamps[was].setColorAt(i, colour.setHex(SIGNAL_LENS_DARK[was])); touched.add(was); }
+    if (want >= 0) { signalLamps.lamps[want].setColorAt(i, colour.setHex(SIGNAL_LENS_LIT[want])); touched.add(want); }
+    signalLamps.lit[i] = want;
+  });
+  for (const k of touched) signalLamps.lamps[k].instanceColor.needsUpdate = true;
+  return lit;
+}
+
 function addTrafficSignalHeads(records) {
   // A head for each approach of each signalised junction (expandSignalApproaches): SFMTA's
   // points in San Francisco, OpenStreetMap's elsewhere. Each locates a junction, not a live
-  // phase, so no lens claims a red or a green.
+  // phase: every lens is dark until the living city lights the one its phase shows
+  // (setSignalLights) -- the phase its cars stop and go by.
   const rows = records.map((head) => ({ item: { bearing: head.yaw * 180 / Math.PI }, index: 0,
     anchor: { x: head.x, y: head.y, z: head.z } }));
   if (!rows.length) return 0;
   addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, 0.075, 0x4b5051);
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshStandardMaterial({ color: 0x202524, roughness: 0.58, metalness: 0.32 }), rows.length);
-  const lamps = [0xb62928, 0xd29a23, 0x248b4b].map((color) =>
-    new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8),
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.08,
-        roughness: 0.22 }), rows.length));
+  const lamps = SIGNAL_LENS_DARK.map((dark) => {
+    const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), rows.length);
+    const colour = new THREE.Color(dark);
+    for (let i = 0; i < rows.length; i += 1) mesh.setColorAt(i, colour);
+    return mesh;
+  });
+  const heads = [];
   const dummy = new THREE.Object3D();
   rows.forEach((row, index) => {
     const yaw = furnitureBearing(row.item, row.index, row.anchor);
     const nx = Math.sin(yaw), nz = Math.cos(yaw);
+    heads.push({ x: row.anchor.x, z: row.anchor.z, yaw });
     dummy.position.set(row.anchor.x, row.anchor.y + 4.18, row.anchor.z);
     dummy.rotation.set(0, yaw, 0);
     dummy.scale.set(0.38, 0.98, 0.26);
@@ -1374,6 +1407,7 @@ function addTrafficSignalHeads(records) {
     lamp.userData = { surface: `furniture:signal_lens:${index}`, phase: "unknown" };
     groups.furniture.add(lamp);
   });
+  signalLamps = { heads, lamps, lit: heads.map(() => -1) };
   return rows.length;
 }
 

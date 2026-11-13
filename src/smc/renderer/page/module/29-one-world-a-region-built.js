@@ -40,6 +40,39 @@ function regionAt(lon, lat) {
   }
   return best;
 }
+//: A searched place's cells fetched as soon as it is found, before anyone asks to go (the
+//: search, module 22): its region's main files' cells round it, nearest first, into the shared
+//: cell cache at a low priority, so the jump, when it comes, builds from what is already here
+//: (attachRegion asks the cache for the same addresses). At most PREWARM_BYTES of them, and
+//: never more than the cache has room for; one place at a time.
+const PREWARM_FILES = ["sf-corridor-3d.json", "sf-corridor-official.json", "sf-corridor-furniture.json", "sf-corridor-world-objects.json"];
+const PREWARM_RADIUS_M = 220, PREWARM_BYTES = 32 * 1048576;
+let prewarmedAt = "";
+function prewarmPlaceCells(lon, lat) {
+  if (ATTACH || !Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  const region = regionAt(lon, lat);
+  if (!region) return null;
+  const key = `${region.name}:${lon.toFixed(4)}:${lat.toFixed(4)}`;
+  if (key === prewarmedAt) return null;
+  prewarmedAt = key;
+  const folder = new URL("./", new URL(REGION_INDEX.root + region.path, location.href)).href;
+  const padLon = PREWARM_RADIUS_M / metersPerLon, padLat = PREWARM_RADIUS_M / metersPerLat;
+  const box = [lon - padLon, lat - padLat, lon + padLon, lat + padLat];
+  let room = Math.min(PREWARM_BYTES, Math.max(0, worldCellCache.maxBytes - worldCellCache.snapshot().residentBytes));
+  return Promise.all(PREWARM_FILES.map(async (name) => {
+    const cells = viaStore(folder + name).replace(/([^/]+)\.json$/, "cells/$1/");
+    const manifest = await worldCellCache.load(`${cells}manifest.json`, -10).catch(() => null);
+    if (!manifest?.cells) return 0;
+    let queued = 0;
+    for (const cell of worldStreaming.windowCells(manifest, box, lon, lat)) {
+      const bytes = (manifest.cells[cell] || 0) * 4;
+      if (bytes > room) continue;
+      room -= bytes; queued += 1;
+      worldCellCache.load(`${cells}${cell}.json`, -20).catch(() => {});
+    }
+    return queued;
+  })).then((counts) => ({ region: region.name, cells: counts.reduce((t, n) => t + n, 0) }));
+}
 function disposeTree(object, all = false) { object.traverse((o) => disposeOne(o, all)); }
 function disposeOne(o, all = false) {
     if (o.geometry && (all || !o.userData.sharedInteriorAsset)) o.geometry.dispose();
@@ -637,6 +670,7 @@ window.kerbsideGuestApi = {
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
   cityWays: () => DATA.ways, cityCourts: () => PARK_EVIDENCE?.court_layout?.courts || [], insideCarriageway, mappedWaterAt, cityInlandAt,
+  signalHeads: () => signalLamps?.heads || [], setSignalLights,
   // The kerb as it is drawn, and whether a car may stand at it (the living city's parking).
   kerbAt: (x, z, reach = 6, ax = null, az = null) => { if (ax !== null) { const l = Math.hypot(ax, az) || 1; ax /= l; az /= l; } return nearestKerbAt(x, z, reach, ax, az); }, kerbParking,
   // Its garage doors, opened and shut in its own world (module 31).

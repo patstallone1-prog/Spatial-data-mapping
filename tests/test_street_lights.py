@@ -84,7 +84,7 @@ def test_small_cells_ride_the_streetlights_and_span_wires_hang_from_trolley_pole
     assert 'row.form === "mast_arm" || row.form === "pendant"' in network
     furniture = _extract("renderStreetFurniture", js)
     assert "addElectricalNetwork(furniture, lights.rows)" in furniture
-    assert "addTrolleyWires(inferred.trolley_wires || [], lights.rows)" in furniture
+    assert "addTrolleyWires(inferred.trolley_wires || [], lights.rows, corners)" in furniture
     assert 'startsWith("TP-")' in _extract("addTrolleyWires", js)
 
 

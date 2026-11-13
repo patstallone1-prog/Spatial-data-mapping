@@ -779,6 +779,82 @@ function entryTunnelConflict(entry) {
   }
   return false;
 }
+//: The inside face of a building's outside walls, INTERIOR_WALL_INSET_M in from the facade and
+//: drawn from both sides, with each door's opening, head and reveals; added to ``group`` (none
+//: when it is null) from ``floorY`` up ``height``. The thresholds at the doors are returned
+//: either way, for the floor.
+//
+// The city's batched facade is drawn one-sided, from the street: from inside a building it is
+// not there at all. Rooms behind a facade with nothing standing in for its inside face showed
+// the street through every outside wall, while the footprint the walker collides with held:
+// walked up to, the wall that could be seen through stopped the walker at its line
+// (2026-11-12, an engine restaurant entered in the Marina). Every interior without a shell of
+// its own -- the fitted plans and the engine's houses and restaurants alike -- stands in one.
+function outsideWallLining(entry, group, floorY, height) {
+  const lining = [];
+  // The doorway through the wall's depth: its two sides and its head, from the facade to the
+  // lining, and its threshold over the floor's edge. The lining stands INTERIOR_WALL_INSET_M
+  // inside the facade and the floor stops at it, so every outside door had a hollow either
+  // side of it and over it, open to the windows and the gaps along the storey, and a slot in
+  // the floor at the step: light showed through all of them, a shaft at every door's edge.
+  const reveals = [], thresholds = [];
+  const ring = entry.local;
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    const [ax, az] = ring[i];
+    const [bx, bz] = ring[i + 1];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 1e-6) continue;
+    let nxI = -(bz - az) / len, nzI = (bx - ax) / len;
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
+    const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
+    // Its ends mitred to the linings round the corners (liningMitre), as fractions of the edge.
+    const [mitreStart, mitreEnd] = liningMitre(entry, i, INTERIOR_WALL_INSET_M).map((m) => m / len);
+    let from = mitreStart;
+    for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
+      if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
+      // Above the doorway.
+      lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
+      // From a hair outside the facade to a hair inside the lining, so both seams are covered.
+      const at = (t, o) => [ax + (bx - ax) * t + nxI * o, az + (bz - az) * t + nzI * o];
+      const outer = -0.02, inner = INTERIOR_WALL_INSET_M + 0.02;
+      for (const t of [door.t0, door.t1]) reveals.push({ kind: "side", a: at(t, outer), b: at(t, inner) });
+      reveals.push({ kind: "head", corners: [at(door.t0, outer), at(door.t1, outer), at(door.t1, inner), at(door.t0, inner)] });
+      thresholds.push([at(door.t0, outer - 0.03), at(door.t1, outer - 0.03), at(door.t1, inner), at(door.t0, inner)]);
+      from = door.t1;
+    }
+    const to = 1 - mitreEnd;
+    if (from < to) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * to + ox, az + (bz - az) * to + oz]);
+  }
+  if (!group) return { thresholds };
+  const full = [], lintels = [];
+  for (let k = 0; k < lining.length; k += 1) {
+    if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
+  }
+  group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
+  if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
+  if (reveals.length) {
+    const position = [];
+    const quad = (p, q, r, s) => position.push(...p, ...q, ...r, ...p, ...r, ...s);
+    for (const reveal of reveals) {
+      if (reveal.kind === "side") {
+        const [px, pz] = reveal.a, [qx, qz] = reveal.b;
+        quad([px, floorY, pz], [qx, floorY, qz], [qx, floorY + DOOR_HEIGHT_M, qz], [px, floorY + DOOR_HEIGHT_M, pz]);
+      } else {
+        const y = floorY + DOOR_HEIGHT_M;
+        const [p, q, r, s] = reveal.corners.map(([x, z]) => [x, y, z]);
+        quad(p, q, r, s);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.computeVertexNormals();
+    const revealMesh = new THREE.Mesh(geometry, plasterMaterial);
+    revealMesh.userData.surface = "interior_door_reveal";
+    group.add(revealMesh);
+  }
+  return { thresholds };
+}
 //: Whether a building's door leads into rooms: the same rules buildInterior keeps. The door's
 //: hint and Enter both ask this -- they asked only for a fitted plan, so a shop or restaurant
 //: (whose rooms are not drawn without its own layout) said "Enter -- go in", opened its door and
@@ -1025,71 +1101,11 @@ function buildInterior(entry) {
       group.add(skin);
     }
   }
-  // The outside walls' inner face, inset, with the building's own doors open through it.
-  const lining = [];
-  // The doorway through the wall's depth: its two sides and its head, from the facade to the
-  // lining, and its threshold over the floor's edge. The lining stands INTERIOR_WALL_INSET_M
-  // inside the facade and the floor stops at it, so every outside door had a hollow either
-  // side of it and over it, open to the windows and the gaps along the storey, and a slot in
-  // the floor at the step: light showed through all of them, a shaft at every door's edge.
-  const reveals = [], thresholds = [];
+  // The outside walls' inner face, inset, with the building's own doors open through it; and
+  // the threshold at each door. (A house drawn as its own shell has no lining, and its shell
+  // has its own reveals.)
+  const { thresholds } = outsideWallLining(entry, entry.homeShell ? null : group, floorY, height);
   const ring = entry.local;
-  for (let i = 0; i + 1 < ring.length; i += 1) {
-    const [ax, az] = ring[i];
-    const [bx, bz] = ring[i + 1];
-    const len = Math.hypot(bx - ax, bz - az);
-    if (len < 1e-6) continue;
-    let nxI = -(bz - az) / len, nzI = (bx - ax) / len;
-    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    if (!insideFootprint(entry, mx + nxI * 0.3, mz + nzI * 0.3)) { nxI = -nxI; nzI = -nzI; }
-    const ox = nxI * INTERIOR_WALL_INSET_M, oz = nzI * INTERIOR_WALL_INSET_M;
-    // Its ends mitred to the linings round the corners (liningMitre), as fractions of the edge.
-    const [mitreStart, mitreEnd] = liningMitre(entry, i, INTERIOR_WALL_INSET_M).map((m) => m / len);
-    let from = mitreStart;
-    for (const door of (entry.doors || []).filter((d) => d.edge === i).sort((p, q) => p.t0 - q.t0)) {
-      if (door.t0 > from) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz]);
-      // Above the doorway.
-      lining.push(null, [ax + (bx - ax) * door.t0 + ox, az + (bz - az) * door.t0 + oz, ax + (bx - ax) * door.t1 + ox, az + (bz - az) * door.t1 + oz]);
-      // From a hair outside the facade to a hair inside the lining, so both seams are covered.
-      const at = (t, o) => [ax + (bx - ax) * t + nxI * o, az + (bz - az) * t + nzI * o];
-      const outer = -0.02, inner = INTERIOR_WALL_INSET_M + 0.02;
-      for (const t of [door.t0, door.t1]) reveals.push({ kind: "side", a: at(t, outer), b: at(t, inner) });
-      reveals.push({ kind: "head", corners: [at(door.t0, outer), at(door.t1, outer), at(door.t1, inner), at(door.t0, inner)] });
-      thresholds.push([at(door.t0, outer - 0.03), at(door.t1, outer - 0.03), at(door.t1, inner), at(door.t0, inner)]);
-      from = door.t1;
-    }
-    const to = 1 - mitreEnd;
-    if (from < to) lining.push([ax + (bx - ax) * from + ox, az + (bz - az) * from + oz, ax + (bx - ax) * to + ox, az + (bz - az) * to + oz]);
-  }
-  const full = [], lintels = [];
-  for (let k = 0; k < lining.length; k += 1) {
-    if (lining[k] === null) { lintels.push(lining[k + 1]); k += 1; } else full.push(lining[k]);
-  }
-  if (!entry.homeShell) {
-    group.add(new THREE.Mesh(wallQuads(full, floorY, height), plasterMaterial));
-    if (lintels.length) group.add(new THREE.Mesh(wallQuads(lintels, floorY + DOOR_HEIGHT_M, Math.max(0.05, height - DOOR_HEIGHT_M)), plasterMaterial));
-  }
-  // (A house drawn as its own shell has no lining, and its shell has its own reveals.)
-  if (reveals.length && !entry.homeShell) {
-    const position = [];
-    const quad = (p, q, r, s) => position.push(...p, ...q, ...r, ...p, ...r, ...s);
-    for (const reveal of reveals) {
-      if (reveal.kind === "side") {
-        const [px, pz] = reveal.a, [qx, qz] = reveal.b;
-        quad([px, floorY, pz], [qx, floorY, qz], [qx, floorY + DOOR_HEIGHT_M, qz], [px, floorY + DOOR_HEIGHT_M, pz]);
-      } else {
-        const y = floorY + DOOR_HEIGHT_M;
-        const [p, q, r, s] = reveal.corners.map(([x, z]) => [x, y, z]);
-        quad(p, q, r, s);
-      }
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-    geometry.computeVertexNormals();
-    const revealMesh = new THREE.Mesh(geometry, plasterMaterial);
-    revealMesh.userData.surface = "interior_door_reveal";
-    group.add(revealMesh);
-  }
   if (thresholds.length) {
     const position = [];
     for (const corners of thresholds) {
@@ -1299,19 +1315,42 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
 }
 
 let previous = performance.now();
-//: How fast the arrows turn the walker (radians a second): a quarter turn in under a second.
-const WALK_TURN_RATE = 1.8;
-//: Left or Right alone walks round a curve of this radius at WALK_SIDE_PACE of the walking pace,
-//: as a person turns -- never a spin on the spot, which looked like a turntable (2026-11-12).
-const WALK_SIDE_RADIUS_M = 1.2;
+//: The arrows turn the walker round a curve whose radius grows with its speed: this many metres
+//: of radius for each metre a second -- tight at a stroll, wider at a run -- and held between
+//: WALK_TURN_RADIUS_MIN_M and WALK_TURN_RADIUS_MAX_M. Turned at one rate (1.8 radians a second)
+//: at every speed, the walk's own speed -- 5.4 m/s on foot, 9 m/s and more orbiting -- swept
+//: curves of 2 to 5 m: wide, and the wider the faster (2026-11-12).
+const WALK_TURN_RADIUS_S = 0.45;
+const WALK_TURN_RADIUS_MIN_M = 0.5;
+const WALK_TURN_RADIUS_MAX_M = 3.0;
+//: The fastest a walker's facing turns (radians a second). Where the curve at its speed would
+//: turn it faster, it slows on the curve instead: the radius holds, as a runner's does.
+const WALK_TURN_RATE_MAX = 2.2;
+//: Left or Right alone walks round the curve at WALK_SIDE_PACE of the walking pace, as a person
+//: turns -- never a spin on the spot, which looked like a turntable (2026-11-12).
 const WALK_SIDE_PACE = 0.7;
-//: Down turns the walker round at this rate (radians a second): about a third of a second, one
-//: step, at WALK_BACK_PACE of the pace -- a pivot, not a wide loop -- then walks back.
-const WALK_BACK_TURN_RATE = 9;
+//: Down turns the walker round at this rate (radians a second): about two thirds of a second,
+//: two steps, at WALK_BACK_PACE of the pace -- a pivot, not a wide loop -- then walks back.
+const WALK_BACK_TURN_RATE = 5;
 const WALK_BACK_PACE = 0.3;
-//: How quickly the view swings round behind a walker on the move (a share a second).
-const WALK_VIEW_FOLLOW = 1.6;
+//: How quickly the view swings round behind a walker on the move (a share a second), and the
+//: fastest it swings (radians a second): it follows the turn, behind it, rather than wheeling
+//: round with the body. Seen from the walker's eyes it follows closer (the way ahead has to be
+//: in view), and as fast as the body can turn, so it never falls further and further behind.
+const WALK_VIEW_FOLLOW = 0.9;
+const WALK_VIEW_MAX_RATE = 1.4;
+const WALK_VIEW_FOLLOW_EYES = 6;
+const WALK_VIEW_MAX_RATE_EYES = 3;
 let walkTurnBack = null;
+//: The curve a walker at ``speed`` (metres a second) turns on: { rate } in radians a second, and
+//: { pace }, the share of the speed it keeps on it (less than all only where WALK_TURN_RATE_MAX
+//: holds it back).
+function walkTurn(speed) {
+  const v = Math.max(0.1, speed);
+  const radius = Math.min(WALK_TURN_RADIUS_MAX_M, Math.max(WALK_TURN_RADIUS_MIN_M, WALK_TURN_RADIUS_S * v));
+  const rate = v / radius;
+  return rate > WALK_TURN_RATE_MAX ? { rate: WALK_TURN_RATE_MAX, pace: WALK_TURN_RATE_MAX * radius / v } : { rate, pace: 1 };
+}
 //: One frame of steering from the arrows held (``held``) at ``speed`` (metres a second): the
 //: walker's facing turned, and { way, pace } -- the unit way to walk this frame (a Vector3) and
 //: the share of the walking speed -- or null when it stands.
@@ -1343,24 +1382,28 @@ function walkSteer(dt, speed = 1.4) {
       walking = true;
       pace = WALK_BACK_PACE;
     }
-  } else if (turn && up) h = turnBy(h, turn * WALK_TURN_RATE * dt);
-  else if (turn) {
-    // Left or Right alone: on round the curve, turning as fast as its radius allows at the pace.
-    const rate = Math.min(WALK_TURN_RATE, WALK_SIDE_PACE * Math.max(0.1, speed) / WALK_SIDE_RADIUS_M);
-    h = turnBy(h, turn * rate * dt);
+  } else if (turn) {
+    // Up with Left or Right, or Left or Right alone (on round at WALK_SIDE_PACE): round the
+    // curve the speed sets (walkTurn).
+    const share = up ? 1 : WALK_SIDE_PACE, curve = walkTurn(speed * share);
+    h = turnBy(h, turn * curve.rate * dt);
     walking = true;
-    pace = WALK_SIDE_PACE;
+    pace = share * curve.pace;
   }
   avatar.rotation.y = h;
   if (!walking) {
     animateAvatar(0, new THREE.Vector3(), false);
     return null;
   }
-  // The view comes round behind (unless it is being dragged, or seen from the walker's eyes,
-  // where forward is the way the head turns).
+  // The view comes round behind, easing after the turn and no faster than its own most (unless
+  // it is being dragged; seen from the walker's eyes, forward is always the way the head goes).
   const [dx, dz] = dirOf(h);
-  if (state.firstPerson) state.yaw = h + Math.PI;
-  else if (!dragging) state.yaw += Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw)) * Math.min(1, dt * WALK_VIEW_FOLLOW);
+  if (state.firstPerson || !dragging) {
+    const eyes = state.firstPerson;
+    const gap = Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw));
+    const most = (eyes ? WALK_VIEW_MAX_RATE_EYES : WALK_VIEW_MAX_RATE) * dt;
+    state.yaw += Math.max(-most, Math.min(most, gap * Math.min(1, dt * (eyes ? WALK_VIEW_FOLLOW_EYES : WALK_VIEW_FOLLOW))));
+  }
   return { way: new THREE.Vector3(dx, 0, dz), pace };
 }
 function animateAvatar(distance, direction, moving) {
@@ -1619,11 +1662,13 @@ function stepAvatar(now) {
     return;
   }
   // The arrows steer the walker as you would walk: Up goes the way you face, Left and Right turn
-  // you (at WALK_TURN_RATE, not in a step -- Up with Left walks a curve, and letting go of Left
-  // carries on straight the way you now face), Down turns you round in a step and walks back.
-  // Left or Right alone walks a tight curve (WALK_SIDE_RADIUS_M). The view eases round behind.
+  // you (round a curve as wide as your speed, walkTurn -- Up with Left walks a curve, and letting
+  // go of Left carries on straight the way you now face), Down turns you round in two steps and
+  // walks back. Left or Right alone walks the curve slower. The view eases round behind.
   const scaled = avatarMoveSpeed();
-  const steered = walkSteer(dt, scaled);
+  // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
+  const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
+  const steered = walkSteer(dt, scaled * vitalsPace);
   if (!steered) { updateAvatarMixer(dt); return; }
   const move = steered.way;
   move.normalize();
@@ -1634,8 +1679,6 @@ function stepAvatar(now) {
   avatar.userData.grade=pace.grade;
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
   // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
-  // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
-  const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
   const surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace*steered.pace;
   move.multiplyScalar(surfaceSpeed * dt);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view

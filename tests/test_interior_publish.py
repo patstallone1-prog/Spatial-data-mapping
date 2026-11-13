@@ -196,3 +196,47 @@ def test_a_batch_key_ignores_float_noise_but_not_a_changed_home() -> None:
     moved = {**row, "footprint": {"coordinates": [[[4.3915, 4.4416679997013375]]]}}
     assert runner.batch_key([row]) == runner.batch_key([noisy])
     assert runner.batch_key([row]) != runner.batch_key([moved])
+
+
+def test_a_generated_interior_with_no_shell_stands_inside_a_lining_of_its_outside_walls() -> None:
+    """The city's batched facade is drawn from the street only: an engine restaurant (never
+    shelled) showed the street through every outside wall from inside, and the footprint the
+    walker collides with stopped them at a wall that was not there to see."""
+    import shutil
+    import subprocess
+
+    from tests.test_corridor_geometry_rules import _extract, _page_js
+    page = _page_js()
+    request = _extract("requestGeneratedInterior", page)
+    assert "if (!entry.homeShell) {" in request
+    assert "outsideWallLining(entry, holder, floorY" in request and "interior.group = holder;" in request
+    # The fitted plans keep the same lining, from the same function.
+    assert "outsideWallLining(entry, entry.homeShell ? null : group, floorY, height)" in _extract("buildInterior", page)
+    assert "plasterMaterial = new THREE.MeshStandardMaterial({ color: 0xece6dc, roughness: 0.92, side: THREE.DoubleSide })" in page
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is needed to run the renderer's own code")
+    # A 10 x 8 m box with a 1 m door in its first wall: the lining runs round all four walls,
+    # less the doorway, and a lintel stands over the door.
+    script = "\n".join([
+        "const INTERIOR_WALL_INSET_M=0.08, DOOR_HEIGHT_M=2.1, plasterMaterial={};",
+        "class Mesh{constructor(g,m){this.geometry=g;this.material=m;this.userData={};}}",
+        "const THREE={Mesh, BufferGeometry: class {setAttribute(k,v){this[k]=v;} computeVertexNormals(){}},",
+        "  Float32BufferAttribute: class {constructor(a){this.array=a;}}};",
+        "const liningMitre=()=>[0,0];",
+        "const insideFootprint=(e,x,z)=>x>0&&x<10&&z>0&&z<8;",
+        _extract("wallQuads", page),
+        _extract("outsideWallLining", page),
+        "const entry={local:[[0,0],[10,0],[10,8],[0,8],[0,0]],doors:[{edge:0,t0:0.45,t1:0.55}]};",
+        "const kids=[]; const group={add:(m)=>kids.push(m)};",
+        "const r=outsideWallLining(entry,group,0,3);",
+        "const len=(m)=>{const p=m.geometry.position.array;let s=0;for(let i=0;i<p.length;i+=18)s+=Math.hypot(p[i+3]-p[i],p[i+5]-p[i+2]);return s;};",
+        "console.log(JSON.stringify({wall:len(kids[0]),lintel:len(kids[1]),n:kids.length,thresholds:r.thresholds.length,"
+        "none:outsideWallLining(entry,null,0,3).thresholds.length}));",
+    ])
+    out = subprocess.run([node, "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+    assert out.returncode == 0, out.stderr
+    got = json.loads(out.stdout)
+    assert got["wall"] == pytest.approx(36 - 1, abs=1e-6)
+    assert got["lintel"] == pytest.approx(1, abs=1e-6)
+    assert got["n"] == 3 and got["thresholds"] == 1 and got["none"] == 1

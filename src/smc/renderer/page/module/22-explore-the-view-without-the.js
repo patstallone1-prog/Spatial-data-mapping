@@ -133,6 +133,10 @@ if (!ATTACH) {
 let searchPlaces = () => [];
 //: Resolves once every region's places are searchable too (the headset's menu waits on it).
 let searchPlacesLoaded = () => Promise.resolve();
+//: Whether a click's ray hit the searched place's pin, going there if it did (module 27).
+let pinnedPlaceHit = () => false;
+//: Going to the searched place, as a click on its pin does (module 27): false with none pinned.
+let goToPinnedPlace = () => false;
 {
   const field = document.getElementById("find");
   const hits = document.getElementById("hits");
@@ -184,7 +188,7 @@ let searchPlacesLoaded = () => Promise.resolve();
       elsewhere.corners = take(all.corners || []);
       elsewhere.addresses = take(all.addresses || []);
       elsewhere.places = take(all.places || []);
-      if (field.value) { showing = search(field.value); selected = showing.length ? 0 : -1; paint(); }
+      if (field.value) { showing = search(field.value); selected = showing.length ? 0 : -1; paint(); prewarmSoon(showing[0]); }
     }).catch(() => {});
     return elsewhere.loading;
   }
@@ -237,6 +241,8 @@ let searchPlacesLoaded = () => Promise.resolve();
     return found;
   }
 
+  //: The place a search pinned, waiting for its pin to be clicked (or Enter again) to go there.
+  let pinned = null;
   function paint() {
     hits.replaceChildren();
     showing.forEach((place, index) => {
@@ -246,12 +252,26 @@ let searchPlacesLoaded = () => Promise.resolve();
       item.addEventListener("click", () => travelTo(place));
       hits.append(item);
     });
+    if (!showing.length && pinned) {
+      const item = document.createElement("li");
+      item.className = "go";
+      item.textContent = `Pinned: ${pinned.label}. Click its pin to go there (or Enter, or here).`;
+      item.addEventListener("click", () => goToPinnedPlace());
+      hits.append(item);
+    }
+  }
+  // The top suggestion's place starts loading while the rest is still being typed.
+  let prewarmTimer = 0;
+  function prewarmSoon(place) {
+    clearTimeout(prewarmTimer);
+    if (place && typeof prewarmPlaceCells === "function") prewarmTimer = setTimeout(() => prewarmPlaceCells(place.lon, place.lat), 350);
   }
 
   function travelTo(place) {
-    // A place here is gone to: the walker is put there and the place pinned (kerbsideShowPlace).
-    // No directions: those are asked for in the From and To fields.
+    // A place found is pinned (kerbsideShowPlace) and its cells start loading; a click on its
+    // pin goes there. No directions: those are asked for in the From and To fields.
     if (window.kerbsideShowPlace && window.kerbsideShowPlace(place)) {
+      pinned = place;
       field.value = place.label;
       showing = [];
       selected = -1;
@@ -279,8 +299,11 @@ let searchPlacesLoaded = () => Promise.resolve();
     showing = search(field.value);
     selected = showing.length ? 0 : -1;
     paint();
+    prewarmSoon(showing[0]);
   });
   field.addEventListener("keydown", (e) => {
+    // Enter on the place already pinned goes there.
+    if (!showing.length && pinned && e.key === "Enter" && field.value === pinned.label) { goToPinnedPlace(); e.preventDefault(); e.stopPropagation(); return; }
     if (!showing.length) return;
     if (e.key === "ArrowDown") { selected = (selected + 1) % showing.length; paint(); e.preventDefault(); }
     else if (e.key === "ArrowUp") { selected = (selected - 1 + showing.length) % showing.length; paint(); e.preventDefault(); }
@@ -1101,6 +1124,8 @@ canvas.addEventListener("pointerup", (e) => {
   // A region marker first: it opens that region's page.
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
+  // The searched place's pin: a click on it goes there (in City mode too, within its area).
+  if (e.button === 0 && pinnedPlaceHit(ray)) return;
   // In the game a click is the city's (a shop's checkout panel, else a swing); nobody is flown.
   if (cityGame()) { if (e.button === 0 && typeof livingCity !== "undefined" && livingCity?.click) livingCity.click(ray); return; }
   if(e.button===0 && activateBillboard(ray))return;

@@ -38,10 +38,8 @@ button.primary:hover { background:#1d4ed8; }
 .mode-switch button { position:relative; z-index:1; border:0; background:none; min-width:58px; padding:4px 8px; font-weight:600; border-radius:8px; color:var(--muted); }
 .mode-switch button[aria-checked="true"] { color:#fff; background:none; }
 body[data-mode="explore"] #city-vitals, body[data-mode="explore"] #city-actions, body[data-mode="explore"] #city-side, body[data-mode="explore"] #city-bar, body[data-mode="explore"] #city-prompt { display:none !important; }
-body[data-mode="city"] #route-panel, body[data-mode="city"] #explore, body[data-mode="city"] #city-open { display:none !important; }
-body[data-mode="explore"] #city-dock { display:none !important; }
+body[data-mode="city"] #explore, body[data-mode="city"] #city-open { display:none !important; }
 body[data-mode="city"] #door-hint { bottom:182px !important; }   /* above the action bar and the bar of eight */
-#city-dock #city { position:static; width:auto; max-height:none; box-shadow:none; border:0; padding:0; margin:0; background:none; }
 .bar { display:flex; align-items:center; gap:10px; }
 .bar h1 { flex:1; margin:0; font-size:17px; font-weight:700; letter-spacing:-.01em; }
 .bar h1::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--brand); margin-right:8px; vertical-align:1px; }
@@ -174,7 +172,6 @@ body.home-open .hud,body.home-open #addr,body.home-open #home-return{visibility:
       <ol class="steps" id="route-steps" hidden></ol>
       <button type="button" id="route-show-steps" class="primary" hidden>Step-by-step directions →</button>
     </div>
-    <div class="group" id="city-dock" aria-label="The living city"></div>
     <div class="toolbar actions">
       <button id="firstperson" aria-pressed="false" title="See out of the walker's eyes; drag to look, arrows to walk">First person</button>
       <button id="explore" aria-pressed="false" title="Explore (E): the walker is put away and the arrows move the view anywhere; turned off, the walker stands where you are">Explore</button>

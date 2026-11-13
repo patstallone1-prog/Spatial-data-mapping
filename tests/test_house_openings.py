@@ -129,15 +129,15 @@ def test_a_garage_leaves_room_on_its_frontage_for_the_front_door() -> None:
 def test_a_house_shell_lights_like_the_batched_house_it_replaces() -> None:
     """The colour change as a house came into range was the shell's material: three.js's default
     environment intensity (1.0) against the batch's 0.35. Walls must keep matching;
-    glass is now intentionally clear rather than a painted dark pane."""
+    glass is a light grey pane (WINDOW_GLASS) rather than a painted dark one."""
     js = _page_js()
     rule = r'name === "glass" \? 1\.6 : {0}name === "metal" \? 1\.1 : 0\.35'
     batched = re.search(r"envMapIntensity: material\." + rule.format(r"material\."), js)
     shell = re.search(r"envMapIntensity: spec\.material\." + rule.format(r"spec\.material\."), js)
     assert batched and shell, "the shell wall must reflect the sky as the batched wall does"
     glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ "
-                      r"color: (0x[0-9a-f]+),\s*transparent: true, opacity: ([0-9.]+)", js)
-    assert glass and float(glass.group(2)) == 0.12, "shell glass must stay clear"
+                      r"color: WINDOW_GLASS\.tint,\s*transparent: true, opacity: WINDOW_GLASS\.opacity", js)
+    assert glass, "shell glass is the one window glass"
 
 
 def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() -> None:
@@ -149,11 +149,17 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     shells = _extract("updateHomeShells", js)
     assert "doorsNear(x, z, HOME_SHELL_REACH_M)" in shells and "e.decalLayout" in shells
     assert "candidates.slice(0, HOME_SHELL_MAX)" in shells
-    glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ color: 0x([0-9a-f]{6}),"
-                      r"\s*transparent: true, opacity: ([0-9.]+),[^}]*side: THREE\.FrontSide", js)
+    glass = re.search(r"const homeGlassMaterial = new THREE\.MeshStandardMaterial\(\{ color: WINDOW_GLASS\.tint,"
+                      r"\s*transparent: true, opacity: WINDOW_GLASS\.opacity,[^}]*side: THREE\.FrontSide", js)
     assert glass, "the street face of a pane is its own one-sided material"
-    r, g, b = (int(glass.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    assert 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.85 and float(glass.group(2)) == 0.12
+    # A slight grey: a pane that can be seen to be there, and still a window (2026-11-12: at
+    # 0.12 and near white it could not be told from an open hole). No transmission: it would
+    # draw the scene twice a frame.
+    spec = re.search(r"const WINDOW_GLASS = \{ tint: 0x([0-9a-f]{6}), opacity: ([0-9.]+),", js)
+    r, g, b = (int(spec.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    assert 0.25 < 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.6 and 0.25 <= float(spec.group(2)) <= 0.45
+    assert "transmission" not in js[js.index("const WINDOW_GLASS"):js.index("const homeFrameMaterial")]
+    assert "map: paneGlassTexture()" in js
     build = _extract("buildHomeShell", js)
     assert "pane.rotation.y = Math.atan2(-nx, -nz);" in build, "the outside pane faces the street"
     assert "shellGlassInside" in build
@@ -173,7 +179,8 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     # on past an inside one, where a lining cut at the corner left an open shaft to the outer
     # wall and the neighbour's party wall behind it.
     assert "nx * INTERIOR_WALL_INSET_M, nz * INTERIOR_WALL_INSET_M, liningMitre(entry, edge, INTERIOR_WALL_INSET_M)), shellPlaster)" in build
-    assert "liningMitre(entry, i, INTERIOR_WALL_INSET_M)" in interior
+    # (The lining is laid by outsideWallLining, which buildInterior calls.)
+    assert "liningMitre(entry, i, INTERIOR_WALL_INSET_M)" in _extract("outsideWallLining", js)
 
 
 def test_window_pictures_exist_before_the_first_building_is_drawn() -> None:

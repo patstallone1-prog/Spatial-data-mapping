@@ -113,7 +113,8 @@ test("a bus is boarded from the kerb side and left onto the pavement", () => {
 });
 
 test("people are of many heights and builds, from their ids, and walk with a step", () => {
-  assert.ok(VIEW.includes("height = Math.max(1.45, Math.min(2.02, (female ? 1.62 : 1.76) + g * (female ? 0.065 : 0.07)))"));
+  // From the normal curve (city_npc.test.mjs measures the averages and the spread).
+  assert.ok(VIEW.includes("height = adultHeight(female, g);") && VIEW.includes("g = normalDraw(r);"));
   assert.ok(VIEW.includes("parts.hair.setColorAt(n,"), "hair");
   assert.ok(VIEW.includes('legL: mk(legGeo, MAX_PEOPLE, { vertexColors: true })'), "shoes by vertex colour, no extra part");
 });
