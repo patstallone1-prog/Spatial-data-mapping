@@ -203,19 +203,19 @@ function setAppMode(mode) {
   if (sw) { sw.dataset.mode = appMode; for (const b of sw.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.mode === appMode)); }
   const fold = document.getElementById("fold");
   if (fold) fold.textContent = appMode === "city" ? "☰ City" : "☰ Map";
-  // The city is walked: the free view is put away, and the city's panel sits in the sidebar.
+  // The city is walked: the free view is put away. The map's controls stay the map's (search,
+  // directions); you are the card at the top right, which opens your window.
   if (appMode === "city" && state.explore) setExplore(false);
   // City mode's area is built once and held; Explore streams again.
   if (appMode === "city" && !cityLock) enterCityArea();
   if (appMode !== "city" && cityLock) leaveCityArea();
-  if (appMode === "city") livingCity?.openPanel(true);
-  else livingCity?.closePanel?.();
+  if (appMode !== "city") livingCity?.closePanel?.();
   requestFrame();
 }
 {
   const button = document.getElementById("city-open");
   const sw = document.getElementById("mode-switch");
-  if (META || ATTACH) { button?.remove(); sw?.remove(); document.getElementById("city-dock")?.remove(); }
+  if (META || ATTACH) { button?.remove(); sw?.remove(); }
   else {
     sw.hidden = false;
     for (const b of sw.querySelectorAll("button")) b.addEventListener("click", () => setAppMode(b.dataset.mode));
@@ -254,7 +254,6 @@ function setAppMode(mode) {
       enabled: () => !state.explore && !homeScreenUp(),
       // The game's keys, bars and buttons: in City mode only.
       cityMode: () => appMode === "city",
-      panelHost: () => (appMode === "city" ? document.getElementById("city-dock") : null),
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
@@ -282,7 +281,20 @@ function setAppMode(mode) {
       // City mode's area: the walker and the car stop at its edge; tasks outside it are not offered.
       inArea: (x, z) => cityAreaHolds(x, z),
       areaName: () => (cityLock ? CITY_AREA.name : null),
+      // Its box, [x0, z0, x1, z1]: the living city keeps track of everyone in it (detail.mjs).
+      areaBox: () => (cityLock ? cityLock.box : null),
       moveWalker: (mx, mz) => moveWalker(mx, mz),
+      // The walker's legs for a move the city made (walking over to pick a thing up, a shop's
+      // floor): ``distance`` metres the way (dx, dz), at a walk -- 0 stands it still. Without
+      // it a walker moved by the city glided along in its standing pose.
+      animateWalk: (distance, dx = 0, dz = 0) => {
+        const moving = distance > 1e-4 && dx * dx + dz * dz > 1e-9;
+        avatar.userData.pace = 0.6; avatar.userData.onStairs = false; avatar.userData.grade = 0;
+        // The height stays where the city put it (a shop's floor is not the ground under it).
+        const y = avatar.position.y;
+        animateAvatar(moving ? distance : 0, new THREE.Vector3(dx, 0, dz), moving);
+        avatar.position.y = y;
+      },
       moveAvatarTo: (x, z, keepHeight = false) => {
         avatar.position.x = x; avatar.position.z = z;
         if (!keepHeight) avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(x, z, walkerFeetY());
@@ -301,6 +313,20 @@ function setAppMode(mode) {
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // The traffic signals' heads drawn here and in the region attached, {x, z, yaw} in this
+      // page's metres (yaw: the way the lenses face), lit by ``stateOf(head)``: "red", "amber",
+      // "green" or null.
+      lightSignals: (stateOf) => {
+        let lit = hostWorldActive && typeof setSignalLights === "function" ? setSignalLights(stateOf) : 0;
+        const g = activeGuest?.ready ? activeGuest : null;
+        if (g?.api.setSignalLights) {
+          lit += g.api.setSignalLights((head) => {
+            const fx = Math.sin(head.yaw) * g.sx, fz = Math.cos(head.yaw);
+            return stateOf({ x: g.ox + head.x * g.sx, z: g.oz + head.z, yaw: Math.atan2(fx, fz), key: head });
+          });
+        }
+        return lit;
+      },
       // The garage doors (module 31) -- this page's, or those of the region attached where (x, z)
       // is, in its own metres: the nearest (of a building), and opening it.
       garages: {
@@ -320,8 +346,9 @@ function setAppMode(mode) {
           if (activeGuest?.ready && activeGuest.api.garages && activeGuest.api.garages !== garageDoors) activeGuest.api.garages.tick(dt);
         },
       },
-      // The traffic's car models (the Kenney Car Kit) and crash debris.
-      loadModel: (url) => new GLTFLoader().loadAsync(url),
+      // The traffic's car models (the imported fleet, meshopt-compressed, and the Kenney Car Kit)
+      // and crash debris.
+      loadModel: (url) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and
       // felling them.
       natureTrees: (x, z, reach) => (typeof natureWorld !== "undefined" && natureWorld?.treesNear ? natureWorld.treesNear(x, z, reach) : []),
@@ -393,7 +420,6 @@ function setAppMode(mode) {
         else livingCity?.leaveParty();
       });
       window.kerbsideCity = () => livingCity;
-      if (appMode === "city") livingCity.openPanel(true);
       requestFrame();
       return livingCity;
     }).catch((error) => console.warn("kerbside: the living city did not start", error));

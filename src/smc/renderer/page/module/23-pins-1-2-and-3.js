@@ -599,6 +599,18 @@ function requestGeneratedInterior(entry) {
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
       feetY: walkerFeetY, pointInRing, kind: ref.kind
     }, rendererModule.buildInferredHouse);
+    // The engine draws no outside walls here (exterior: false): the house's shell is them. A
+    // building with no shell -- every restaurant, and a house the shells do not reach -- has
+    // only the city's facade, which is not drawn from inside, so its rooms stand in the same
+    // lining as a fitted plan's, up to the top of its top storey (outsideWallLining).
+    if (!entry.homeShell) {
+      const holder = new THREE.Group();
+      holder.name = `interior:${entry.way.osm_id}`;
+      const top = Math.max(...house.storeys.map((f) => (f.elevation_m || 0) + (f.height_m || 0)));
+      outsideWallLining(entry, holder, floorY, Math.max(2.4, top));
+      holder.add(interior.group);
+      interior.group = holder;
+    }
     entry.interior = interior;
     interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
   }).catch(error => {
@@ -902,12 +914,53 @@ objectCatalogueReady.then((ready) => {
 });
 //: Where the walker may go when (toX, toZ) is inside a thing: along one axis or the other, so it
 //: slides round a pole rather than stopping dead on it. Null if neither is clear.
-function slidePastObjects(fromX, fromZ, toX, toZ, belowBuildings) {
+function slidePastObjects(fromX, fromZ, toX, toZ, belowBuildings, hit = null) {
   const clear = (x, z) => !objectProximity.blocked(x, z, WALKER_RADIUS_M)
     && (belowBuildings || (activeGuest?.ready ? true : !walkerFootprintBlocked(x, z)));
+  const round = hit ? knockRoundObject(fromX, fromZ, toX, toZ, hit.pts) : null;
+  if (round && clear(round[0], round[1])) return round;
   if (clear(toX, fromZ)) return [toX, fromZ];
   if (clear(fromX, toZ)) return [fromX, toZ];
   return null;
+}
+
+//: Anything no wider than this the walker is knocked round rather than stopped by: a pole, a
+//: meter, a trunk, a bollard, a hydrant. A bench or a fence is longer, and is slid along.
+const KNOCK_ROUND_MAX_M = 1.2;
+//: And knocked this far clear of it, on top of just clearing it: a shoulder catching a pole.
+const KNOCK_ROUND_BUMP_M = 0.06;
+//: Where a walker heading from (fromX, fromZ) to (toX, toZ) goes instead when a small thing is
+//: in the way: the whole step taken round its side, the side the walker was already heading for.
+//
+// The slide along the world's own axes stopped the walker dead at every pole met head-on: the
+// step along the walking axis was blocked, and the one across it was the step's own sideways
+// part -- nothing, walking straight at it. A pole is a point; a body walking into one is turned
+// round it and goes on.
+function knockRoundObject(fromX, fromZ, toX, toZ, pts) {
+  if (!pts || pts.length < 6) return null;
+  const n = pts.length / 2;
+  let cx = 0, cz = 0;
+  for (let i = 0; i < n; i += 1) { cx += pts[2 * i]; cz += pts[2 * i + 1]; }
+  cx /= n; cz /= n;
+  let reach = 0;
+  for (let i = 0; i < n; i += 1) reach = Math.max(reach, Math.hypot(pts[2 * i] - cx, pts[2 * i + 1] - cz));
+  if (2 * reach > KNOCK_ROUND_MAX_M) return null;
+  const mx = toX - fromX, mz = toZ - fromZ, step = Math.hypot(mx, mz);
+  if (!(step > 1e-6)) return null;
+  // Out from the thing's middle to the walker; dead centre (inside it already) counts as square on.
+  let rx = fromX - cx, rz = fromZ - cz;
+  const rl = Math.hypot(rx, rz);
+  if (rl < 1e-6) { rx = -mx / step; rz = -mz / step; } else { rx /= rl; rz /= rl; }
+  // The tangent the step leans toward. Square on, the walker's right shoulder takes it and they
+  // go left of it, as people do, rather than freezing on a tie.
+  let tx = -rz, tz = rx;
+  const lean = tx * mx + tz * mz;
+  if (lean < -1e-9) { tx = -tx; tz = -tz; }
+  const ring = reach + WALKER_RADIUS_M + KNOCK_ROUND_BUMP_M;
+  let nx = fromX + tx * step, nz = fromZ + tz * step;
+  const dx = nx - cx, dz = nz - cz, d = Math.hypot(dx, dz);
+  if (d < ring) { nx = cx + (dx / (d || 1)) * ring; nz = cz + (dz / (d || 1)) * ring; }
+  return [nx, nz];
 }
 
 // Move the walker by (mx, mz), in steps short enough that no wall is crossed between checks,
@@ -970,8 +1023,9 @@ function moveWalker(mx, mz) {
     let toX = nextX, toZ = nextZ;
     // Poles, trunks (measured or inferred alike), benches and fences at body height. One already
     // inside one -- arrived by a teleport -- may walk out of it.
-    if (objects && objects.blocked(toX, toZ, WALKER_RADIUS_M) && !objects.blocked(p.x, p.z, WALKER_RADIUS_M)) {
-      const slide = slidePastObjects(p.x, p.z, toX, toZ, belowBuildings);
+    const struck = objects ? objects.blocked(toX, toZ, WALKER_RADIUS_M) : null;
+    if (struck && !objects.blocked(p.x, p.z, WALKER_RADIUS_M)) {
+      const slide = slidePastObjects(p.x, p.z, toX, toZ, belowBuildings, struck);
       if (!slide) break;
       [toX, toZ] = slide;
     }

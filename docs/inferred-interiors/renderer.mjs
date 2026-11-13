@@ -341,7 +341,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
         for(const o of cuts.filter(o=>o.kind==='window')) {
           const lo=Math.max(0,o.v),hi=Math.min(top,o.v+o.h);if(hi<=lo)continue;
           const p=[a[0]+ux*o.u,a[1]+uz*o.u],q=[p[0]+ux*o.w,p[1]+uz*o.w];
-          const glass=wall(fg,p,q,f.elevation_m+lo,hi-lo,'#bed7db',.018);glass.material.transparent=true;glass.material.opacity=.18;glass.material.depthWrite=false;
+          const glass=wall(fg,p,q,f.elevation_m+lo,hi-lo,'#5c6468',.018);glass.material.transparent=true;glass.material.opacity=.36;glass.material.depthWrite=false;
           glass.userData={surface:'canonical_window',openingId:o.id,grade:o.grade};
           const frame='#faf4e7';for(const u of [0,o.w])wall(fg,[p[0]+ux*u,p[1]+uz*u],[p[0]+ux*(u+.045),p[1]+uz*(u+.045)],f.elevation_m+lo,hi-lo,frame,.10);
           for(const v of [lo,hi-.045])wall(fg,p,q,f.elevation_m+v,.045,frame,.10);

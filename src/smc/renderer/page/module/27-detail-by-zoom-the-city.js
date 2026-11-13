@@ -1246,20 +1246,59 @@ if (!ATTACH) {
     // The destination's own pin is now one of these.
     if (routePins.length) pin.visible = false;
   }
+  //: The searched place: pinned, the view turned to face it, and its cells loading in the
+  //: background (prewarmPlaceCells) -- and a click on the pin (or Enter again) goes there.
+  let pinnedPlace = null;
   window.kerbsideShowPlace = (place) => {
     const b = DATA.bbox;
-    if (!(place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north)) return false;
-    // The search at the top is for going places, not for directions: the walker is taken there
-    // (outside, at the address: addressLanding) and the place is pinned. The directions are
-    // left as they were; a route is asked for only in the From and To fields under it.
+    const here = place.lon >= b.west && place.lon <= b.east && place.lat >= b.south && place.lat <= b.north;
+    if (!here && !regionAt(place.lon, place.lat)) return false;
     const [x, y] = xy(place.lon, place.lat);
     pin.position.set(x, walkerGroundAt(x, -y), -y);
     pinMarker.x = x; pinMarker.z = -y;
     pin.visible = true;
+    pinnedPlace = place;
+    prewarmPlaceCells(place.lon, place.lat);
+    // The view turned to the pin (it is held at a size seen from any distance: findableMarkers),
+    // and, for one a long way off, brought down near the horizon so the pin is on the screen.
+    const from = state.explore ? state.target : avatar.position, far = Math.hypot(x - from.x, -y - from.z);
+    if (far > 1) {
+      state.yaw = Math.atan2(x - from.x, -y - from.z) + Math.PI;
+      if (far > 150 && !state.firstPerson) state.pitch = Math.min(state.pitch, ORBIT_MIN_PITCH + 0.05);
+      placeCamera();
+    }
+    return true;
+  };
+  //: Going to the pinned place. In City mode a place in its area is gone to; one outside it is
+  //: not (the area is all that is built), so the directions to it are laid instead, with word
+  //: that Explore goes there.
+  goToPinnedPlace = () => {
+    const place = pinnedPlace;
+    if (!place) return false;
+    const [x, y] = xy(place.lon, place.lat);
+    if (typeof cityLock !== "undefined" && cityLock && !cityAreaHolds(x, -y)) {
+      route.mode = route.mode === "transit" ? "walk" : route.mode;
+      route.stops = [null, place];
+      renderStops();
+      document.getElementById("route-go").click();
+      const hud = document.getElementById("hud"), fold = document.getElementById("fold");
+      if (hud && hud.dataset.open === "false") fold?.click();
+      setHint(`${place.label.split(" · ")[0]} is outside ${CITY_AREA.name}: here are the directions. Switch to Explore to go there.`);
+      return true;
+    }
+    if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding)) {
+      setHint("Out of the car first: then its pin takes you there.");
+      return true;
+    }
     gps.follow = false;
-    if (state.firstPerson) setFirstPerson(false);
+    if (state.firstPerson && !(typeof cityLock !== "undefined" && cityLock)) setFirstPerson(false);
+    window.kerbsideOpenFullRegionAt?.(place.lon, place.lat);
     goTo(addressLanding(new THREE.Vector3(x, 0, -y)), { travel: true, zoom: true });
     return true;
+  };
+  pinnedPlaceHit = (ray) => {
+    if (!pin.visible || !pinnedPlace || !ray.intersectObject(pin, true).length) return false;
+    return goToPinnedPlace();
   };
   // A start chosen in the directions is where the walker goes: put down there, outside, as a
   // search puts it (addressLanding), so the route is walked from where it begins.

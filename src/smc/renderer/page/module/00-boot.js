@@ -338,6 +338,9 @@ const objectCatalogueReady = ATTACH ? Promise.resolve(null) : Promise.all([
   .catch((error) => { console.warn("kerbside: object catalogue unavailable; only buildings and logs stop the walker", error); return null; });
 const natureMotion = foliageLibrary && !ATTACH ? foliageLibrary.createFoliageMotion(THREE) : null;
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+// The decoder for meshopt-compressed models (EXT_meshopt_compression): the living city's vehicles
+// (docs/city/models/fleet, scripts/build_city_fleet.mjs) are a tenth of their size with it.
+import { MeshoptDecoder } from "https://esm.sh/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js";
 
 // Curb returns and bulb-outs are part of the base street geometry, not merely a comparison
 // overlay.  Load the compact official sidecar before laying out crossings; a network failure

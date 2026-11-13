@@ -100,3 +100,26 @@ def test_a_footprint_traced_over_the_streets_edge_is_left_out_and_pruned():
     assert prune_on_road(ways) == 1 and ways == [street, osm]
     tool = (ROOT / "tools/fill_building_gaps_regions.py").read_text(encoding="utf-8")
     assert 'return {"pruned": prune_on_road(ways)}' in tool
+
+
+def test_a_sidewalk_mapped_round_a_block_is_not_open_ground():
+    """A sidewalk drawn as one closed way round a block read as an area held the whole block:
+    every footprint inside it was "open ground" and left out (Chestnut's 1900 block)."""
+    block = square(-122.4340, 37.7990, 0.0012)
+    osm_house = {"kind": "building", "osm_id": 1, "centroid": [-122.43395, 37.79905],
+                 "points": square(-122.4340, 37.7990, 0.0001)}
+    loop = {"kind": "sidewalk", "osm_id": 2, "points": block}
+    lot = footprint(-122.4335, 37.7995, 0.0003, bid="21")
+    assert len(missing_buildings([osm_house, loop], [lot])) == 1
+    # A paved area with nothing standing in it is still open: a building is not put there.
+    plaza = {"kind": "sidewalk", "osm_id": 3, "points": block}
+    assert missing_buildings([plaza], [lot]) == []
+    # A pier is an area, with its sheds on it or not.
+    pier = {"kind": "pier", "osm_id": 4, "points": block}
+    assert missing_buildings([osm_house, pier], [lot]) == []
+
+
+def test_chestnuts_1900_block_has_its_buildings():
+    ways = json.loads((ROOT / "docs/sf-corridor-3d.json").read_text())["ways"]
+    added = {w["osm_id"] for w in ways if w.get("kind") == "building"}
+    assert {-9600086450, -9600087010, -9601437010} <= added

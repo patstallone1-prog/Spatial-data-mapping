@@ -3,7 +3,7 @@
 How a player starts, buys and runs a business and directs the NPCs who work in it; how a player
 charged with something hires a lawyer and goes to court; and how a headhunter finds a player a
 better job. Planned on 2026-11-11 from what the city already has (docs/city/*.mjs, rules.json).
-Nothing here is built yet except the jobs listing and the to-do entries in §1.
+Built on 2026-11-12 in `docs/city/enterprise.mjs` (the world) and `docs/city/enterprise-panels.mjs` (the panels), tested in `tests/city_enterprise.test.mjs`; see §7 for what was built and where it differs from the plan.
 
 ## 0. What the city already has to build on
 
@@ -201,8 +201,25 @@ w_i = base_i × exp( k × (skill − 0.5 − 0.4·(evidence − 0.5) − 0.15·p
 
 Each step is pure world commands in `world.mjs` with rules in `rules.json`, and the panels in `view.mjs`, as the jobs and the shop are now.
 
-## 6. Decisions for you
+## 6. Decisions (answered 2026-11-12)
 
-- **Jail.** Hours of game time at home (no work, no driving), or a time skip? The plan assumes at home.
-- **Party worlds.** Can one player be another's lawyer or employee? The plan leaves room: lawyers and staff are records with a `person`, which could be a player's id.
-- **Harshness.** Should a fine left unpaid (the citations' tow after 3) become a court case? The plan says yes, after the late penalty.
+- **Jail: a time skip.** No hours at home. The sentence passes at once, and the player gets a summary of what happened to them inside. They come out with health, stamina and strength changed to match that story (a fight, the yard, the infirmary, a work detail). The crime goes on the record, and so does "former inmate".
+- **Party worlds.** One player can be another's **employee** (staff records take a player's id). One player can **not** be another's lawyer while verdicts are this weighted chance; that waits for a real legal system.
+- **Harshness: yes.** A fine left unpaid past its late penalty becomes a court case.
+
+## 7. Built (2026-11-12)
+
+All five steps of §5, as pure world commands installed on `CityWorld` (`installEnterprise`), with the rules under `rules.json` `business` (money only under the money keys: `fee_base`, `balance`).
+
+- **Premises and registering:** `lease_storefront` (a vacant storefront: a place for shops with no shop in it), or a building you own; `register_business` refuses a real tenant's name (the view tells the world the map's tenant names, `knowTenants`) and the two counter kinds; licences are paid to the city at registering and renewed yearly from the till.
+- **The hour by hour:** `hourOf` — customers by kind and hour (`hour_curves`: food, grocery, retail, night), shared with rivals within 600 m, drawn by reputation and put off by price (`price ^ elasticity`); the staff on shift work the duties in the owner's order (an order to one of them goes first); what sells comes off the shelves. The day closes at midnight: takings in (`npc_income`), sales tax out to the city, wages paid with taxes withheld (to `business:residents`; a till that cannot pay owes a bill), reputation and morale moved, a line in the books, and on Mondays the week's summary.
+- **Wages at a player's business are real San Francisco wages** (`staff.wage_scale` = 19.18 / 720): the shop's prices are real ones (a coffee 8), while the jobs' pay is on the V2 vision's scale (720 an hour the floor). At V2 wages no shop could ever pay its staff.
+- **Staff:** seeded candidates (skill, reliability, asking wage), a headhunter's better ones for 15% of a month's wage; schedules (a new hire fills the least-covered hours), live orders in the shop (serve, restock, clean, break, go home), raises; morale below 30 is late for the first hour, below 15 gives a week's notice; firing pays the day and the holiday accrued. A player can be hired (an offer, or an opening on the Jobs tab) and is paid from the business's own account.
+- **Buying an NPC's shop:** `appraise_business` models 12 weeks of its books; asking 2.5 × a year's profit + two weeks' stock at cost (or stock + a key fee); 30% down, 24 monthly payments at 8% to the seller; two missed and it goes back.
+- **Law:** `law_office` and `staffing` store kinds told by name (tenant rules before the office rule); 3–5 invented lawyers an office (`lawyersAt`), never a real tenant's name, a record drawn from the hidden skill, odds shown as likely / even / unlikely; every fine opens a case; hiring a lawyer sets a court date (2–14 days; a public defender two more); `attend_court` decides it (plan §3.4's weights); missed, it is heard without you at half the skill; an unpaid fine past its late penalty becomes a summons. Probation doubles a second fine. Record checks for pharmacist, security guard, teller and teacher. Expungement 600.
+- **Court location:** the city's play area is the Marina (City mode is locked to it), so hearings are held at the district's civic building nearest the real courthouse (400 McAllister St), as §3.1 allowed.
+- **Jail:** a time skip told as up to 8 dated events (`jail_story`), each moving health, stamina and strength; the crime and "former inmate" go on the record; 7 days or more costs the job.
+- **Careers:** experience per task, shifts on time (late past 10 minutes: docked 15 minutes' pay once), a promotion after 20 shifts at 90% on time (+12%, titles in `careers.levels`), a recruiter's three best offers within 5 km at 10% more (fewer with priors), the fee taken from pay as it comes.
+- **Panels:** the Shop gains Business and Law & record tabs; a business panel (overview, stock & prices, staff, hours & duties, books); the shop panel offers to buy the business; law offices and staffing agencies open their own panels; the to-do list carries shift reminders, court dates, recruiters' and players' offers, weekly summaries and stock-outs; the action bar offers a vacant storefront's lease and your hearing.
+
+Not built: the wholesaler's truck at the kerb (stock simply arrives at 07:00), NPC visitors walking into a player's business (its customers are modelled, not drawn), and liquor-licence transfers.

@@ -824,7 +824,15 @@ function operateNearestDoor() {
     gate.open = !gate.open;
     return { said: gate.open ? "Gate opened" : "Gate shut" };
   }
-  return door ? { at: toggleDoor(door) } : null;
+  if (!door) return null;
+  // A shop's or restaurant's door: no house rooms behind it. In the game the shop is walked
+  // into (the living city's room for it: enterOrLeave); elsewhere the door only swings.
+  if (!entryRoomsPossible(door.entry) && commercialInterior(door.entry)) {
+    if (typeof cityGame === "function" && cityGame()) return { shopIn: String(door.entry.way.osm_id) };
+    door.open = !door.open; door.npcShut = null;
+    return { said: door.open ? "Door opened: the shop's own rooms are not drawn yet" : "Door shut" };
+  }
+  return { at: toggleDoor(door) };
 }
 //: The nearest door, gate or room door opened or shut, and the walker taken through a front door
 //: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
@@ -832,6 +840,11 @@ function enterOrLeave() {
   const g = !hostWorldActive && activeGuest && activeGuest.ready ? activeGuest : null;
   const done = g ? g.api.toggleNearestDoor() : operateNearestDoor();
   if (!done) return null;
+  // A shop's door, in the game: into the city's room for the shop there.
+  if (done.shopIn) {
+    if (typeof livingCity !== "undefined" && livingCity?.enterBuilding?.(done.shopIn)) return "Inside";
+    return "Closed";
+  }
   if (done.said) return done.said;
   // An attached region says where, in its own metres (mirrored when its sx is negative).
   if (done.at) placeWalkerAtDoor(g ? { x: g.ox + done.at.x * g.sx, z: g.oz + done.at.z, yaw: done.at.yaw * Math.sign(g.sx) } : done.at);
@@ -958,7 +971,8 @@ function updateDoors(dt) {
   } else if (door) {
     setHint(door.atGrade ? "No house interior"
       : enteredEntry === door.entry && insideFootprint(door.entry, x, z) ? "Enter — go out"
-      : INTERIORS && door.entry.fit && !door.entry.way.parkFacility ? "Enter — go in"
+      : entryRoomsPossible(door.entry) ? (door.entry.interior || !door.entry.generatedInteriorRef ? "Enter — go in" : "Enter — go in (its rooms are on their way)")
+      : commercialInterior(door.entry) && typeof cityGame === "function" && cityGame() ? "Enter — go into the shop"
       : `Enter — ${door.open ? "close" : "open"} the door`);
   } else if (inside && footprintById.get(String(inside.osm_id))?.interior) {
     setHint("Inside — rooms laid out from a generic plan fitted to this house");

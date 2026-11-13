@@ -651,9 +651,9 @@ export function workplacesByRole(R, places) {
   return out;
 }
 
-const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
+export const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
   "Fatima", "Kenji", "Rosa", "Theo", "Aisha", "Marco", "Lena", "Jamal", "Sofia", "Ravi", "Elena", "Kai", "Nadia", "Ivan", "Lucy", "Tomas"];
-const LAST = ["Nguyen", "Garcia", "Chen", "Patel", "Kim", "Lopez", "Wong", "Smith", "Singh", "Martinez", "Lee", "Johnson", "Ramirez",
+export const LAST = ["Nguyen", "Garcia", "Chen", "Patel", "Kim", "Lopez", "Wong", "Smith", "Singh", "Martinez", "Lee", "Johnson", "Ramirez",
   "Tran", "Brown", "Wu", "Hernandez", "Davis", "Liu", "Flores", "Park", "Silva", "Cohen", "Okafor", "Rossi", "Murphy"];
 
 //: A district's people: each a home, a role at a real workplace for it and their own pace.
@@ -805,7 +805,7 @@ export function daySchedule(R, person, day, weekday, places) {
 // ---- where everyone is ----------------------------------------------------------------------------
 
 export const TRAFFIC_BY_HOUR = [0.15, 0.1, 0.08, 0.08, 0.12, 0.25, 0.55, 0.9, 1.0, 0.8, 0.65, 0.65, 0.7, 0.65, 0.65, 0.75, 0.9, 1.0, 0.9, 0.7, 0.55, 0.45, 0.35, 0.25];
-export const TRAFFIC_MIX = [["economy", 0.3], ["sedan", 0.18], ["suv", 0.12], ["compact_ev", 0.1], ["pickup", 0.05], ["taxi", 0.08], ["delivery_van", 0.1], ["box_truck", 0.04], ["bus", 0.02], ["patrol", 0.01]];
+export const TRAFFIC_MIX = [["economy", 0.3], ["sedan", 0.17], ["sports", 0.01], ["suv", 0.12], ["compact_ev", 0.1], ["pickup", 0.05], ["taxi", 0.08], ["delivery_van", 0.1], ["box_truck", 0.04], ["bus", 0.02], ["patrol", 0.01]];
 
 //: People out on foot by the hour, as a share of the busiest (noon to early evening).
 export const WALK_BY_HOUR = [0.08, 0.05, 0.03, 0.03, 0.04, 0.1, 0.25, 0.55, 0.75, 0.7, 0.75, 0.9, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 0.95, 0.8, 0.6, 0.45, 0.3, 0.15];

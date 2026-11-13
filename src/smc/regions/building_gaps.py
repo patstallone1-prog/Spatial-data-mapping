@@ -123,6 +123,38 @@ def _height_m(row: dict[str, Any]) -> float | None:
 OPEN_KINDS = {"sidewalk", "street", "water", "pier", "beach", "parking_aisle"}
 
 
+#: Of the open kinds, those OSM maps as lines: one closed into a loop is a line round a block,
+#: not an area, where it has buildings standing inside it.
+LINE_KINDS = {"sidewalk", "street", "parking_aisle"}
+
+
+def open_areas(ways: list[dict[str, Any]]) -> list[list[list[float]]]:
+    """The rings of ground the map says is open (OPEN_KINDS, closed), but for a line's loop.
+
+    A sidewalk mapped as one way all round a block closes on itself, and read as an area it was
+    the whole block: every footprint whose middle fell inside it -- all 26 buildings of Chestnut's
+    1900 block, south side, and 22 more on another block -- was "open ground" and left out, the
+    lots drawn empty but for their doors (2026-11-12). A loop of a line kind with a building's
+    middle inside it is that line, and says nothing about the ground inside."""
+    centres = [w["centroid"] for w in ways if w.get("kind") == "building" and w.get("centroid")]
+    cells: dict[tuple[int, int], list[list[float]]] = {}
+    for c in centres:
+        cells.setdefault((int(c[0] // 0.001), int(c[1] // 0.001)), []).append(c)
+    out = []
+    for w in ways:
+        pts = w.get("points") or []
+        if w.get("kind") not in OPEN_KINDS or len(pts) < 4 or pts[0] != pts[-1]:
+            continue
+        if w["kind"] in LINE_KINDS:
+            xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+            near = (c for i in range(int(min(xs) // 0.001), int(max(xs) // 0.001) + 1)
+                    for j in range(int(min(ys) // 0.001), int(max(ys) // 0.001) + 1) for c in cells.get((i, j), ()))
+            if any(_inside(c[0], c[1], pts[:-1]) for c in near):
+                continue
+        out.append(pts)
+    return out
+
+
 class _Streets:
     """The carriageways' centre lines and half widths, by ~110 m cell."""
 
@@ -165,8 +197,7 @@ def _osm_id(row: dict[str, Any], ring: list[list[float]], k: int) -> int:
 def missing_buildings(ways: list[dict[str, Any]], footprints: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """The footprints no OSM building in ``ways`` covers, as building ways."""
     grid = _Grid(w["points"] for w in ways if w.get("kind") == "building" and len(w.get("points") or []) >= 3)
-    open_ = _Grid(w["points"] for w in ways if w.get("kind") in OPEN_KINDS and len(w.get("points") or []) >= 4
-                  and w["points"][0] == w["points"][-1])
+    open_ = _Grid(open_areas(ways))
     streets = _Streets(ways)
     out: list[dict[str, Any]] = []
     for row in footprints:

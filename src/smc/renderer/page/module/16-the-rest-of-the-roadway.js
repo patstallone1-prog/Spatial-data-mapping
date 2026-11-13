@@ -430,6 +430,30 @@ function nearestCarriagewaySegment(x, z) {
   }
   return best;
 }
+//: The city's tree list puts records it has no surveyed spot for at the property's address
+//: point: several trees on one exact coordinate, and that point is often in the middle of the lot
+//: -- one stood alone in the middle of Marina Middle School's yard (2026-11-12), 1,233 such
+//: stacks across the corridor. Of a stack, one tree is kept (the largest), and only where it is
+//: on the street (within TREE_STACK_STREET_M of a carriageway, where street trees are); a stack
+//: further in is an address, not a tree. ``streetDistance(tree)``: metres to the nearest
+//: carriageway. Returns the Set of records to leave out.
+const TREE_STACK_STREET_M = 9;
+function stackedTreesToDrop(trees, streetDistance) {
+  const stacks = new Map();
+  for (const tree of trees) {
+    const key = `${tree.p[0]},${tree.p[1]}`;
+    if (!stacks.has(key)) stacks.set(key, []);
+    stacks.get(key).push(tree);
+  }
+  const drop = new Set();
+  for (const stack of stacks.values()) {
+    if (stack.length < 2) continue;
+    const keep = stack.reduce((a, b) => ((b.d || 0) > (a.d || 0) ? b : a));
+    const onStreet = streetDistance(keep) <= TREE_STACK_STREET_M;
+    for (const tree of stack) if (tree !== keep || !onStreet) drop.add(tree);
+  }
+  return drop;
+}
 function addTreeIslands(list) {
   for (const t of list) {
     const segment = nearestCarriagewaySegment(t.x, t.z);

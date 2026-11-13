@@ -22,13 +22,15 @@ import {
 } from "./core.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
-import { buildLines, busesAt, stopsOf } from "./transit.mjs";
+import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
-import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
-import { BAR, GRID, arrange, barSlotOf, swap } from "./inventory.mjs";
+import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
+import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
+import { enterprisePanels } from "./enterprise-panels.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -47,11 +49,10 @@ export function carClearance(x, z, cx, cz, yaw, w, l) {
   return Math.hypot(Math.max(a, 0), Math.max(b, 0)) + Math.min(Math.max(a, b), 0) - c;
 }
 export { CAR_SQUEEZE_M };
-const CAR_DIMS = {   // width, height, length (m)
-  economy: [1.76, 1.45, 4.1], compact_ev: [1.8, 1.55, 4.3], sedan: [1.85, 1.45, 4.8], suv: [1.95, 1.75, 4.9], pickup: [2.0, 1.9, 5.6],
-  delivery_van: [2.0, 2.55, 5.9], box_truck: [2.45, 3.3, 7.4], taxi: [1.85, 1.5, 4.7], bus: [2.6, 3.15, 12.2], patrol: [1.9, 1.55, 5.0],
-};
-const PAINT = ["#f2f2f2", "#1e1e1e", "#8a8d91", "#b8bcc1", "#2b4c7e", "#7a1f1f", "#2f5d3a", "#c9b27c", "#4a4a52", "#6b8fb3", "#a3341f", "#e8e3d3"];
+//: Width, height and length (m) of each kind as drawn: the one table (vehicles.mjs VEHICLE_DIMS,
+//: the fleet's true sizes) the traffic parks, steers and is walked round by. It had been a copy
+//: here, and the two had to be kept the same by hand.
+const CAR_DIMS = VEHICLE_DIMS;
 //: A street's bike lanes on the right and left of the way as drawn (OpenStreetMap cycleway,
 //: cycleway:right / :left / :both): "lane" or "track" (its own lane), "shared" (sharrows: ridden
 //: in the traffic lane), or none.
@@ -78,27 +79,97 @@ function mergeGeos(geos) {
   out.setAttribute("normal", new parts[0].attributes.position.constructor(nor, 3));
   return out;
 }
-//: People's shapes: heights as adults' are (men about 1.76 m, women 1.62, either way by about
-//: 7 cm; CDC/NCHS anthropometric reference), children by age, and builds narrower and broader --
-//: from the person's id, so each is the same every time and nothing is stored or worked out again.
+//: People's shapes: adults' heights from the bell curve of the CDC/NCHS anthropometric reference
+//: for American adults -- men 1.778 m (5 ft 10) by 7.1 cm, women 1.651 m (5 ft 5) by 6.6 cm --
+//: held within ADULT_HEIGHT.hold of those either way (no 1.5 m man, no 2.1 m woman; an even hold
+//: leaves the averages where they are); children by age; builds narrower and broader. From the
+//: person's id, so each is the same every time and nothing is stored or worked out again.
+export const ADULT_HEIGHT = { male: { mean: 1.778, sd: 0.071 }, female: { mean: 1.651, sd: 0.066 }, hold: 3.5 };
+//: A draw from the normal curve (Box-Muller) from two of the seed's uniforms: most people near
+//: the middle and fewer the further out, as heights are. (The sum of three uniforms it was ends
+//: at 3 either way and has too few people out towards it.)
+function normalDraw(r) {
+  const u = Math.max(1e-12, r()), v = r();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+//: An adult's height for a draw ``z`` from the normal curve, in metres.
+export function adultHeight(female, z) {
+  const { mean, sd } = female ? ADULT_HEIGHT.female : ADULT_HEIGHT.male, hold = ADULT_HEIGHT.hold;
+  return mean + sd * Math.max(-hold, Math.min(hold, z));
+}
 const HAIR = ["#1b1410", "#2b1d14", "#3b2a1d", "#5a3d26", "#7a5a3a", "#a8834f", "#c9a66b", "#8f8f8f", "#d8d2c4", "#6b2b1a"];
-function bodyFor(person, cache) {
+export function bodyFor(person, cache) {
   let b = cache.get(person.id);
   if (b) return b;
-  const r = rng(person.id || "?", "body"), g = (r() + r() + r() - 1.5) * 2;   // about N(0, 1)
+  const r = rng(person.id || "?", "body"), g = normalDraw(r);
   const age = person.age ?? 35;
-  let height, build;
+  let height, build, female = null;
   if (age < 18) { height = Math.max(1.0, Math.min(1.85, 0.78 + age * 0.06 + g * 0.05)); build = 0.82 + r() * 0.12; }
   else {
-    const female = r() < 0.5;
-    height = Math.max(1.45, Math.min(2.02, (female ? 1.62 : 1.76) + g * (female ? 0.065 : 0.07)));
+    female = r() < 0.5;
+    height = adultHeight(female, g);
     build = (female ? 0.9 : 1.0) + (r() - 0.5) * 0.28;
   }
   const grey = age > 55 && r() < 0.6;
-  b = { height, build, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
+  b = { height, build, female, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
   if (cache.size > 20000) cache.clear();
   cache.set(person.id, b);
   return b;
+}
+//: What you are worth, from your status (world.mjs cmd_status): the money in your account and on
+//: your FasTrak tag, what you own (cars at what they cost you, buildings and homes at their
+//: assessment, the bag's goods at the shops' prices), what you owe (open bills, what is left on
+//: each mortgage), and the difference. Money in cents, as the ledger keeps it. Assets are listed
+//: dearest first; goods worth less than SIGNIFICANT_GOODS together are not listed one by one.
+const SIGNIFICANT_GOODS = 10000;
+export function wealthOf(R, st) {
+  const assets = [], debts = [];
+  for (const v of st.vehicles || []) {
+    const spec = R.vehicles?.models?.[v.attrs?.model];
+    assets.push({ kind: "vehicle", label: `${spec?.name || v.attrs?.model || "Vehicle"} ${v.attrs?.plate || ""}`.trim(), value: Math.max(0, Math.round(v.attrs?.value || spec?.price || 0)) });
+  }
+  for (const b of st.properties || []) assets.push({ kind: "building", label: b.attrs?.name || b.attrs?.address || `Building ${String(b.id).replace(/^building:/, "")}`, value: Math.max(0, Math.round(b.attrs?.assessed || b.attrs?.value || 0)) });
+  for (const hm of st.homes || []) assets.push({ kind: "home", label: hm.attrs?.label || hm.attrs?.address || "A home", value: Math.max(0, Math.round(hm.attrs?.assessed || 0)) });
+  // A business: its till and its stock at what the wholesaler charged (enterprise.mjs); a seller still being paid is a debt.
+  for (const b of st.businesses || []) {
+    const share = (id) => R.business?.wholesale_share?.[R.items?.[id]?.kind] ?? R.business?.wholesale_share?.default ?? 0.5;
+    const stock = Object.entries(b.stock || {}).reduce((t, [id, n]) => t + Math.round((R.items?.[id]?.price || 0) * share(id)) * Math.max(0, n), 0);
+    assets.push({ kind: "business", label: b.name, value: Math.max(0, Math.round((b.balance || 0) + stock)) });
+    if (b.loan?.left > 0) debts.push({ kind: "loan", label: `Owed to the seller of ${b.name}`, value: Math.round(b.loan.left * b.loan.monthly) });
+  }
+  let goods = 0;
+  for (const [id, n] of Object.entries(st.inventory || {})) {
+    const it = R.items?.[id], value = Math.max(0, Math.round((it?.price || 0) * (Number(n) || 0)));
+    if (!value) continue;
+    if (value >= SIGNIFICANT_GOODS) assets.push({ kind: "goods", label: `${n > 1 ? `${n} × ` : ""}${it?.name || id}`, value });
+    else goods += value;
+  }
+  if (goods) assets.push({ kind: "goods", label: "Everything else in your bag", value: goods });
+  assets.sort((a, b) => b.value - a.value);
+  for (const b of st.bills || []) debts.push({ kind: "bill", label: b.memo || String(b.kind || "bill").replace(/_/g, " "), value: Math.max(0, Math.round(b.owed || 0)), due: b.due });
+  for (const m of st.mortgages || []) debts.push({ kind: "mortgage", label: `Mortgage on ${String(m.home || "your home").replace(/^home:/, "home ")}`, value: Math.max(0, Math.round(m.owed || 0)) });
+  const cash = Math.round(st.balance || 0), fastrak = Math.round(st.fastrak?.balance || 0);
+  const owned = assets.reduce((t, a) => t + a.value, 0), owing = debts.reduce((t, d) => t + d.value, 0);
+  return { cash, fastrak, assets, debts, owned, owing, net: cash + fastrak + owned - owing };
+}
+//: A traffic signal's head stands at the corner of its junction: the junction is the nearest
+//: signalled node of the streets (junctionAt) within this.
+const SIGNAL_HEAD_NODE_M = 30;
+export function signalNodeNear(streets, x, z, reach = SIGNAL_HEAD_NODE_M) {
+  let best = null, bestD = reach;
+  const r = Math.ceil(reach / streets.cell), cx = Math.floor(x / streets.cell), cz = Math.floor(z / streets.cell);
+  for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) {
+    for (const id of streets.grid.get(`${cx + i},${cz + j}`) || []) {
+      const n = streets.nodes[id], d = Math.hypot(n.x - x, n.z - z);
+      if (d < bestD && junctionAt(streets, id) === "signal") { bestD = d; best = id; }
+    }
+  }
+  return best;
+}
+//: What a head shows: the phase the cars coming toward it keep (fleet.mjs signalAt). Its lenses
+//: face (sin yaw, cos yaw), so the traffic that reads them travels the other way.
+export function signalShown(streets, node, yaw, tsec) {
+  return node === null || node === undefined ? null : signalAt(streets, node, Math.atan2(-Math.sin(yaw), -Math.cos(yaw)), tsec);
 }
 const SKIN = ["#f1c9a5", "#e0ac7e", "#c68c5c", "#a26c45", "#7d4f32", "#5a3824", "#f6d8bf", "#d29b6c"];
 const TROUSERS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b"];
@@ -130,15 +201,18 @@ export async function startCity(ctx) {
     if (d.level >= 2 && d.break_energy_j) R.objects[id] = { name: a.name, material: a.material, break_j: d.break_energy_j, health: d.health };
   }
   // The real bus stops and the routes that call at them.
-  let transitStops = null;
+  let transitStops = null, timetable = null;
   fetch(ctx.transitUrl || ctx.asset("transit-stops.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { transitStops = json?.stops || []; if (district.streets) makeLines(); }).catch(() => {});
+  // Muni's timetable through the district (scripts/build_muni_routes.py): its routes run as it
+  // runs them, the others out and back.
+  fetch(ctx.asset("city/muni-routes.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { if (json?.lines) { timetable = json; if (district.streets) makeLines(); } }).catch(() => {});
 
   const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
-  let scan = { people: [], vehicles: [] }, scanAt = { x: Infinity, z: Infinity }, scanning = false;
+  let scan = { people: [], vehicles: [] }, scanAt = { x: Infinity, z: Infinity }, scanning = false, scanReach = 0;
   function buildDistrict(data) {
     const ways = [], buildings = [];
     for (const way of data.ways || []) {
@@ -246,7 +320,7 @@ export async function startCity(ctx) {
     let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
     for (const p of district.places) { x0 = Math.min(x0, p.x); z0 = Math.min(z0, p.z); x1 = Math.max(x1, p.x); z1 = Math.max(z1, p.z); }
     const near = transitStops.filter((s) => { const [x, z] = ctx.fromLonLat(s.lon, s.lat); return x > x0 - 100 && x < x1 + 100 && z > z0 - 100 && z < z1 + 100; });
-    try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat)); } catch (error) { console.warn("kerbside: bus lines", error); }
+    try { district.lines = buildLines(R, near, district.streets, (lon, lat) => ctx.fromLonLat(lon, lat), timetable); } catch (error) { console.warn("kerbside: bus lines", error); }
     district.stops = stopsOf(district.lines);
     district.city?.setLines(district.lines);
     drawStops();
@@ -347,9 +421,11 @@ export async function startCity(ctx) {
   const hairGeo = new THREE.SphereGeometry(0.125, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55).translate(0, 1.545, 0.012);
   const mk = (geo, max, opts = {}) => { const m = new THREE.InstancedMesh(geo, lambert({ color: 0xffffff, ...opts }), max); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.castShadow = false; group.add(m); return m; };
   const parts = { torso: mk(torsoGeo, MAX_PEOPLE), head: mk(headGeo, MAX_PEOPLE), hair: mk(hairGeo, MAX_PEOPLE), legL: mk(legGeo, MAX_PEOPLE, { vertexColors: true }), legR: mk(legGeo, MAX_PEOPLE, { vertexColors: true }), armL: mk(armGeo, MAX_PEOPLE), armR: mk(armGeo, MAX_PEOPLE) };
-  // Bicycles: two wheels and a frame, one instanced mesh; their riders are drawn as people.
+  // Bicycles: the Voltage MTB's LOD3 (vehicles.mjs BIKE), its wheels, crank and pedals turning as
+  // it is ridden (drawBikes); at the low tier, and until that has loaded, two wheels and a frame
+  // built here, one instanced mesh. Their riders are drawn as people, on the saddle (riderPose).
   const MAX_BIKES = 40;
-  const bikeGeo = (() => {
+  const bikeFarGeo = (() => {
     const geos = [];
     for (const z of [-0.52, 0.52]) geos.push(new THREE.TorusGeometry(0.33, 0.028, 5, 16).rotateY(Math.PI / 2).translate(0, 0.34, z));
     const bar = (len, x0, y0, z0, rx) => geos.push(new THREE.CylinderGeometry(0.022, 0.022, len, 5).rotateX(rx).translate(x0, y0, z0));
@@ -360,16 +436,56 @@ export async function startCity(ctx) {
     bar(0.5, 0, 0.62, 0.48, -0.25);                   // fork and head tube
     geos.push(new THREE.BoxGeometry(0.42, 0.03, 0.03).translate(0, 0.92, 0.44));   // bars
     geos.push(new THREE.BoxGeometry(0.12, 0.04, 0.22).translate(0, 0.86, -0.32));  // saddle
-    return mergeGeos(geos);
+    // (Built bars to +z; turned to face -z, as the LOD3 and the cars do.)
+    return mergeGeos(geos).rotateY(Math.PI);
   })();
-  const bikeMesh = mk(bikeGeo, MAX_BIKES);
+  const bikeMesh = mk(bikeFarGeo, MAX_BIKES);
+  bikeMesh.name = "city-bikes-low";
+  //: A rider's legs in two bones each, thigh and shin (the walking figure's are one piece from the
+  //: hip): a unit long, hanging from the joint, stretched to the bone's length; the shin's foot
+  //: darker, a shoe.
+  const thighGeo = box(0.15, 1, 0.16, -0.5);
+  const shinGeo = box(0.13, 1, 0.14, -0.5);
+  {
+    const pos = shinGeo.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i += 1) { const v = pos.getY(i) < -0.88 ? 0.28 : 1; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v; }
+    shinGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  }
+  const riderLegs = { thighL: mk(thighGeo, MAX_BIKES), thighR: mk(thighGeo, MAX_BIKES), shinL: mk(shinGeo, MAX_BIKES, { vertexColors: true }), shinR: mk(shinGeo, MAX_BIKES, { vertexColors: true }) };
+  for (const [k, m] of Object.entries(riderLegs)) m.name = `city-rider-${k}`;
+  // ---- the crowd further off (detail.mjs) ------------------------------------------------------
+  //: Drawn in full (seven parts, limbs swinging) at most this many, nearest first; then moderate,
+  //: then low. Past a tier's cap a person is drawn at the next tier down, not left out.
+  const PEOPLE_CAPS = [240, 520, 900];
+  //: Shaded by height under the instance's colour (the shirt's): trousers and shoes darker.
+  const shadeByHeight = (geo, rows) => {
+    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i += 1) {
+      const y = pos.getY(i), v = rows.find(([below]) => y < below)?.[1] ?? 1;
+      col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    return geo;
+  };
+  //: Moderate: the body in one part -- torso, the legs together, the arms at the sides -- and the
+  //: head in another, its crown the hair's shade. Two parts, not seven, and nothing swings: at
+  //: sixty metres and more a stride is a few pixels, and a walk reads from the body's bob.
+  const midBodyGeo = shadeByHeight(mergeGeos([box(0.4, 0.58, 0.23, 1.08), box(0.32, 0.82, 0.16, 0.41),
+    box(0.1, 0.6, 0.11, 1.04, -0.26), box(0.1, 0.6, 0.11, 1.04, 0.26)]), [[0.07, 0.28], [0.8, 0.5]]);
+  const midHeadGeo = shadeByHeight(new THREE.SphereGeometry(0.12, 8, 6).translate(0, 1.53, 0), [[1.575, 1], [9, 0.3]]);
+  //: Low: one block the person's height in their shirt's colour, legs darker -- a figure, at two
+  //: hundred metres, and one part.
+  const lowBodyGeo = shadeByHeight(mergeGeos([box(0.42, 1.4, 0.26, 0.7), box(0.2, 0.22, 0.2, 1.52)]), [[0.8, 0.55], [1.41, 1], [9, 0.85]]);
+  const midBody = mk(midBodyGeo, PEOPLE_CAPS[1], { vertexColors: true }), midHead = mk(midHeadGeo, PEOPLE_CAPS[1], { vertexColors: true });
+  const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
+  midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
   const bodies = new Map();
   // The traffic: each kind of vehicle its own three instanced parts (vehicles.mjs) -- paint,
   // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
   // show through the windows. They were one painted box and a pale cabin box for every kind.
   const VMAT = vehicleMaterials(THREE), fleet = new Map();
-  // The traffic's bodies: the Kenney Car Kit's (vehicles.mjs), loaded once; the code-built ones
-  // until they are, and for the bus.
+  // The traffic's bodies where the imported fleet has none: the Kenney Car Kit's (vehicles.mjs),
+  // loaded once; the code-built ones until they are.
   const kenney = new Map();   // kit model name -> {geometry, material} | null
   let kenneyLoading = false;
   function loadKenney() {
@@ -392,26 +508,71 @@ export async function startCity(ctx) {
     return k ? { name, ...k } : null;
   };
   loadKenney();
-  const fleetOf = (model, shade = 0) => {
+  // The imported fleet (vehicles.mjs FLEET_FOR; docs/city/models/fleet): each kind it draws has
+  // two files, the traffic's ("npc", loaded with the page: a few dozen kilobytes each) and the
+  // full one -- inside and all -- for the one you drive or ride, loaded when it is first wanted.
+  const fleetModels = new Map();   // "kind:tier" -> parts (vehicles.mjs fleetParts) | null (failed) | "loading"
+  //: The parts of the fleet's model of ``kind`` at ``tier`` ("npc" or "full"), or null until it
+  //: has loaded (and asked for, the first time).
+  function fleetModel(kind, tier = "npc") {
+    const key = `${kind}:${tier}`, have = fleetModels.get(key);
+    if (have !== undefined) return have === "loading" ? null : have;
+    const file = fleetFile(kind, tier);
+    if (!file || !ctx.loadModel) { fleetModels.set(key, null); return null; }
+    fleetModels.set(key, "loading");
+    fleetLoads.set(key, ctx.loadModel(ctx.asset(file)).then((gltf) => { const parts = fleetParts(THREE, gltf); fleetModels.set(key, parts); return parts; })
+      .catch((error) => { fleetModels.set(key, null); console.warn("kerbside: a vehicle model did not load", file, error); return null; }));
+    return null;
+  }
+  const fleetLoads = new Map();   // "kind:tier" -> the promise of its parts
+  //: The fleet's model of ``kind`` at ``tier`` when it has loaded (null: none, or it failed).
+  const fleetReady = (kind, tier) => { const now = fleetModel(kind, tier); return now ? Promise.resolve(now) : fleetLoads.get(`${kind}:${tier}`) || Promise.resolve(null); };
+  for (const kind of Object.keys(FLEET_FOR)) fleetModel(kind, "npc");
+  //: One instanced mesh of ``geo`` with ``mat``, ``cap`` of them, for the traffic.
+  const instanced = (geo, mat, cap, name) => {
+    const m = new THREE.InstancedMesh(geo, mat, cap);
+    m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = name;
+    group.add(m);
+    return m;
+  };
+  //: A kind's body for the traffic, as instanced parts ({ parts: [{ mesh, tint }], cap, n }:
+  //: ``tint`` takes the car's colour). Finest first: the fleet's model when it has one for the kind
+  //: (``hero``: the full one -- the bus or the cab you ride in -- once loaded), else the Kenney
+  //: kit's; ``coded``: the code-built body (vehicles.mjs vehicleParts) whether or not those have
+  //: loaded -- the traffic's moderate tier (detail.mjs): the right shape for its kind, and a few
+  //: hundred triangles to the models' thousands.
+  const fleetOf = (model, shade = 0, coded = false, hero = false) => {
     const kind = VEHICLE_DIMS[model] ? model : "sedan";
-    const kit = kenneyOf(kind, shade);
+    const model3d = coded ? null : (hero && fleetModel(kind, "full")) || fleetModel(kind, "npc");
+    if (model3d) {
+      const full = hero && model3d === fleetModels.get(`${kind}:full`), key = `fleet:${kind}:${full ? "full" : "npc"}`;
+      if (!fleet.has(key)) {
+        const cap = full ? 4 : kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
+        const parts = model3d.map((part) => {
+          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : null }), cap, `city-traffic-${kind}-${full ? "full" : "npc"}-${part.name}`);
+          mesh.castShadow = !part.glass; if (part.glass) mesh.renderOrder = 2;
+          return { mesh, tint: part.tint };
+        });
+        fleet.set(key, { parts, cap, n: 0, fleet: true });
+      }
+      return fleet.get(key);
+    }
+    const kit = coded ? null : kenneyOf(kind, shade);
     if (kit) {
       const key = `kenney:${kit.name}`;
       if (!fleet.has(key)) {
         const cap = kind === "box_truck" ? 40 : MAX_CARS;
-        const m = new THREE.InstancedMesh(kit.geometry, kit.material, cap);
-        m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kit.name}`; m.castShadow = true;
-        group.add(m);
-        fleet.set(key, { paint: m, fixed: null, glass: null, cap, n: 0, livery: kit.livery });
+        const m = instanced(kit.geometry, kit.material, cap, `city-traffic-${kit.name}`);
+        m.castShadow = true;
+        fleet.set(key, { parts: [{ mesh: m, tint: true }], cap, n: 0, livery: kit.livery });
       }
       return fleet.get(key);
     }
     if (!fleet.has(kind)) {
       const parts = vehicleParts(THREE, kind), cap = kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
-      const inst = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kind}`; group.add(m); return m; };
-      const f = { paint: inst(parts.paint, VMAT.paint), fixed: inst(parts.fixed, VMAT.fixed), glass: inst(parts.glass, VMAT.glass), cap, n: 0 };
-      f.paint.castShadow = f.fixed.castShadow = true; f.glass.renderOrder = 2;
-      fleet.set(kind, f);
+      const paint = instanced(parts.paint, VMAT.paint, cap, `city-traffic-${kind}`), fixed = instanced(parts.fixed, VMAT.fixed, cap, `city-traffic-${kind}`), glass = instanced(parts.glass, VMAT.glass, cap, `city-traffic-${kind}`);
+      paint.castShadow = fixed.castShadow = true; glass.renderOrder = 2;
+      fleet.set(kind, { parts: [{ mesh: paint, tint: true }, { mesh: fixed, tint: false }, { mesh: glass, tint: false }], cap, n: 0 });
     }
     return fleet.get(kind);
   };
@@ -437,7 +598,7 @@ export async function startCity(ctx) {
   function peopleInView(list) {
     const cam = ctx.camera?.();
     const floorOf = (p) => (shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z));
-    if (!cam) return list.slice(0, MAX_PEOPLE).map((p) => ({ p, y: floorOf(p) }));
+    if (!cam) return list.slice(0, MAX_PEOPLE).map((p) => ({ p, y: floorOf(p), d: 0 }));
     cam.getWorldPosition(VIEW_AT);
     VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
     VIEW_FRUSTUM.setFromProjectionMatrix(VIEW_PV);
@@ -452,8 +613,13 @@ export async function startCity(ctx) {
     return out;
   }
   function drawPeople(list, now) {
-    let n = 0;
-    for (const { p, y } of peopleInView(list)) {
+    const seen = peopleInView(list);
+    // Each at the tier the frame gave it (frameCity), or -- a cyclist, a passenger -- by where it is.
+    for (const q of seen) q.detail = q.p.detail ?? (detailNow ? detailNow.tier("people", q.p.x, q.p.z) : FULL);
+    const [full, mid, low] = byTier(seen, PEOPLE_CAPS);
+    drawPeopleSimpler(mid, low, now);
+    let n = 0, r = 0;
+    for (const { p, y } of full) {
       if (n >= MAX_PEOPLE) break;
       const body = bodyFor(p.person, bodies), s = body.height / 1.75;
       const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
@@ -465,8 +631,23 @@ export async function startCity(ctx) {
       if (p.down) b.multiply(RM.makeRotationX(-(p.fall ?? 1) * Math.PI / 2 * 0.96)).multiply(TM.makeTranslation(0, (p.fall ?? 1) * 0.12, 0));
       const swing = p.moving ? Math.sin(phase) * 0.55 : p.down ? 0.35 : 0;
       const set = (mesh, ox, oy, rot) => { M.copy(b).multiply(TM.makeTranslation(ox, oy, 0)).multiply(RM.makeRotationX(rot)); mesh.setMatrixAt(n, M); };
-      if (p.ride === "bike") {
-        // On a bicycle: leaning to the bars, the legs turning the pedals, the hands on the grips.
+      if (p.ride === "bike" && p.bike && r < MAX_BIKES) {
+        // On the bicycle: sat on its saddle, leant over the bars from the hips, hands on the grips,
+        // each foot on its pedal and the knee between worked out (vehicles.mjs riderPose).
+        const pose = riderPose(s, crankTurn(p.bike.odo || 0), body.build);
+        riderFrame(p.bike, s, pose, M);
+        parts.head.setMatrixAt(n, M); parts.hair.setMatrixAt(n, M);
+        if (body.build !== 1) M.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
+        parts.torso.setMatrixAt(n, M);
+        parts.legL.setMatrixAt(n, ZERO); parts.legR.setMatrixAt(n, ZERO);
+        bone(parts.armL, n, pose.shoulders[0], pose.hands[0], 0.6, s); bone(parts.armR, n, pose.shoulders[1], pose.hands[1], 0.6, s);
+        bone(riderLegs.thighL, r, pose.hips[0], pose.knees[0], 1, s); bone(riderLegs.thighR, r, pose.hips[1], pose.knees[1], 1, s);
+        bone(riderLegs.shinL, r, pose.knees[0], pose.feet[0], 1, s); bone(riderLegs.shinR, r, pose.knees[1], pose.feet[1], 1, s);
+        const trousers = TROUSERS[(hash32(p.id) >>> 5) % TROUSERS.length];
+        for (const m of Object.values(riderLegs)) m.setColorAt(r, C.set(trousers));
+        r += 1;
+      } else if (p.ride === "bike") {
+        // (A rider without the bicycle to hand: the figure leant to the bars, legs turning.)
         const crank = (now / 1000) * (p.speed || 4) * 1.6 + body.phase;
         b.multiply(TM.makeTranslation(0, -0.04, 0.05));
         M.copy(b).multiply(TM.makeTranslation(0, 0.8, 0)).multiply(RM.makeRotationX(-0.42)).multiply(TM.makeTranslation(0, -0.8, 0));
@@ -488,7 +669,46 @@ export async function startCity(ctx) {
       n += 1;
     }
     for (const mesh of Object.values(parts)) { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+    for (const mesh of Object.values(riderLegs)) { mesh.count = r; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+    drawnTiers.people = [n, mid.length, low.length];
     return n;
+  }
+  //: The moderate and the low tiers: the same person in the same place, facing the same way, of
+  //: the same height and build and in the same clothes -- in two parts, or one.
+  function drawPeopleSimpler(mid, low, now) {
+    let m = 0, l = 0;
+    const place = ({ p, y }) => {
+      const body = bodyFor(p.person, bodies), s = body.height / 1.75;
+      const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
+      const bob = p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
+      // A cyclist: on the saddle and leant to the bars as at the full tier (legs as they hang).
+      if (p.ride === "bike" && p.bike) {
+        const b = riderFrame(p.bike, s, riderPose(s, 0, body.build), B);
+        if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
+        return b;
+      }
+      const b = base(p.x, y + (p.lift || 0) + bob, p.z, p.yaw + Math.PI, s);
+      if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
+      if (p.down) b.multiply(RM.makeRotationX(-(p.fall ?? 1) * Math.PI / 2 * 0.96)).multiply(TM.makeTranslation(0, (p.fall ?? 1) * 0.12, 0));
+      // A cyclist leans to the bars.
+      else if (p.ride === "bike") b.multiply(TM.makeTranslation(0, 0.8, 0.05)).multiply(RM.makeRotationX(-0.42)).multiply(TM.makeTranslation(0, -0.8, 0));
+      return b;
+    };
+    for (const q of mid) {
+      const b = place(q), h = hash32(q.p.id);
+      midBody.setMatrixAt(m, b); midHead.setMatrixAt(m, b);
+      midBody.setColorAt(m, C.set(q.p.person.uniform));
+      midHead.setColorAt(m, C.set(SKIN[h % SKIN.length]));
+      m += 1;
+    }
+    for (const q of low) {
+      lowBody.setMatrixAt(l, place(q));
+      lowBody.setColorAt(l, C.set(q.p.person.uniform));
+      l += 1;
+    }
+    for (const [mesh, k] of [[midBody, m], [midHead, m], [lowBody, l]]) {
+      mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
   }
   // ---- people on bicycles ----------------------------------------------------------------------
   //: Cyclists near you: each rides a way through the streets that have bike lanes (as the
@@ -558,40 +778,167 @@ export async function startCity(ctx) {
       b.v += Math.max(-3, Math.min(1.2, want - b.v)) * dt * 2;
       b.v = Math.max(0, b.v);
       b.d = Math.min(b.route.length, b.d + b.v * dt);
+      b.odo = (b.odo || 0) + b.v * dt;   // ridden, all told: how far round the wheels and crank are
       Object.assign(b, alongRoute(b.route, b.d, BIKE_LANE));
     }
   }
+  //: The traffic lights, lit by the phase the cars stop and go by: each head's lens for its own
+  //: approach, a few times a second. Each head's junction is found once (signalNodeNear).
+  const SIGNAL_LIGHT_EVERY_MS = 250;
+  let headNodes = new WeakMap(), headStreets = null, signalsAt = 0;
+  function lightSignals(tsec, now) {
+    const s = district?.streets;
+    if (!ctx.lightSignals || !s || now - signalsAt < SIGNAL_LIGHT_EVERY_MS) return;
+    signalsAt = now;
+    if (headStreets !== s) { headStreets = s; headNodes = new WeakMap(); }
+    ctx.lightSignals((head) => {
+      const id = head.key || head;
+      let node = headNodes.get(id);
+      if (node === undefined) { node = signalNodeNear(s, head.x, head.z); headNodes.set(id, node); }
+      return signalShown(s, node, head.yaw, tsec);
+    });
+  }
   //: The riders, as people on their bicycles, for drawPeople.
-  const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v }));
+  const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v, bike: b, ...(b.mine ? { detail: FULL } : {}) }));
+  //: The LOD3's parts, one instanced mesh each, once loaded (null till then).
+  let bikeLod = null;
+  ctx.loadModel?.(ctx.asset(BIKE.file)).then((gltf) => {
+    const parts = bikeParts(THREE, gltf), out = {};
+    for (const name of BIKE.parts) {
+      const p = parts[name];
+      if (!p) continue;
+      const mesh = instanced(p.geometry, fleetMaterial(THREE, p), MAX_BIKES, `city-bike-${name}`);
+      mesh.castShadow = true;
+      out[name] = { mesh, tint: p.tint, n: 0 };
+    }
+    bikeLod = out;
+  }).catch((error) => console.warn("kerbside: the bicycle did not load", error));
+  const BIKE_M = new THREE.Matrix4(), BIKE_AT = Object.fromEntries(["front_axle", "rear_axle", "crankset"].map((k) => [k, new THREE.Vector3(...BIKE.pivots[k])]));
+  //: The bicycles: at the full and moderate tiers the LOD3 -- at the full one its wheels turned by
+  //: how far it has gone, its crank by that over the gear, and the pedals carried round on it,
+  //: level -- and at the low tier the frame built above.
   function drawBikes() {
     let n = 0;
+    const L = bikeLod;
+    if (L) for (const part of Object.values(L)) part.n = 0;
     for (const b of bikes) {
-      if (n >= MAX_BIKES) break;
-      bikeMesh.setMatrixAt(n, base(b.x, groundAt(b.x, b.z), b.z, b.yaw, 1));
-      bikeMesh.setColorAt(n, C.set(PAINT[Math.floor(b.shade * PAINT.length) % PAINT.length]));
-      n += 1;
+      // Yours (``mine``: there is no bicycle of your own to ride yet) in full, its wheels turning.
+      const tier = b.mine ? FULL : detailNow ? detailNow.tier("people", b.x, b.z) : FULL;
+      if (tier === TRACKED) continue;
+      BIKE_M.copy(base(b.x, groundAt(b.x, b.z), b.z, b.yaw, 1));
+      C.set(paintOf("bike", b.shade, BIKE_PAINT_MIX));
+      if (!L || tier === LOW) {
+        if (n >= MAX_BIKES) continue;
+        bikeMesh.setMatrixAt(n, BIKE_M); bikeMesh.setColorAt(n, C); n += 1;
+        continue;
+      }
+      const odo = tier === FULL ? b.odo || 0 : 0, wheel = wheelTurn(odo), crank = crankTurn(odo);
+      const put = (name, m) => { const part = L[name]; if (!part || part.n >= MAX_BIKES) return; part.mesh.setMatrixAt(part.n, m); if (part.tint) part.mesh.setColorAt(part.n, C); part.n += 1; };
+      put("frame", BIKE_M);
+      for (const [name, at] of [["wheel_front", BIKE_AT.front_axle], ["wheel_rear", BIKE_AT.rear_axle]]) put(name, M.copy(BIKE_M).multiply(TM.makeTranslation(at.x, at.y, at.z)).multiply(RM.makeRotationX(wheel)));
+      put("crank", M.copy(BIKE_M).multiply(TM.makeTranslation(BIKE_AT.crankset.x, BIKE_AT.crankset.y, BIKE_AT.crankset.z)).multiply(RM.makeRotationX(crank)));
+      for (const side of ["left", "right"]) { const [x, y, z] = pedalAt(side, crank); put(`pedal_${side}`, M.copy(BIKE_M).multiply(TM.makeTranslation(x, y, z))); }
     }
     bikeMesh.count = n; bikeMesh.instanceMatrix.needsUpdate = true; if (bikeMesh.instanceColor) bikeMesh.instanceColor.needsUpdate = true;
+    if (L) for (const part of Object.values(L)) { part.mesh.count = part.n; part.mesh.instanceMatrix.needsUpdate = true; if (part.mesh.instanceColor) part.mesh.instanceColor.needsUpdate = true; }
   }
-  function drawCars(list, night) {
-    let n = 0, lights = 0;
-    for (const f of fleet.values()) f.n = 0;
+  //: A rider on ``bike`` (scale ``s``, ``build``, the crank at ``crank``): the body's frame -- the
+  //: figure (feet at its origin, facing +z) set on the saddle facing the bars and leant over them
+  //: from the hips -- into ``out``; ``pose`` riderPose's joints.
+  const RIDE_M = new THREE.Matrix4(), JOINT_A = new THREE.Vector3(), JOINT_B = new THREE.Vector3(), DOWN = new THREE.Vector3(0, -1, 0), ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+  function riderFrame(bike, s, pose, out) {
+    out.copy(base(bike.x, groundAt(bike.x, bike.z), bike.z, bike.yaw, 1));
+    RIDE_M.copy(out);
+    return out.multiply(TM.makeTranslation(0, pose.root[1], pose.root[2])).multiply(RM.makeRotationY(Math.PI)).multiply(TM.makeScale(s, s, s))
+      .multiply(TM.makeTranslation(0, RIDER.hip_y, 0)).multiply(RM.makeRotationX(pose.lean)).multiply(TM.makeTranslation(0, -RIDER.hip_y, 0));
+  }
+  //: A bone from joint ``a`` to joint ``b`` (the bicycle's frame, RIDE_M): ``mesh``'s instance
+  //: ``i``, its geometry hanging ``unit`` long from its origin, ``width`` across.
+  function bone(mesh, i, a, b, unit, width) {
+    JOINT_A.set(a[0], a[1], a[2]).applyMatrix4(RIDE_M); JOINT_B.set(b[0], b[1], b[2]).applyMatrix4(RIDE_M);
+    const len = JOINT_A.distanceTo(JOINT_B);
+    V.subVectors(JOINT_B, JOINT_A).divideScalar(len || 1);
+    Q.setFromUnitVectors(DOWN, V);
+    mesh.setMatrixAt(i, M.compose(JOINT_A, Q, S3.set(width, len / unit, width)));
+  }
+  //: The traffic's tiers (detail.mjs): the kit's body nearest, the code-built one next, and one
+  //: box of the car's size and paint further off; at most so many of each.
+  const CAR_CAPS = [80, 170, MAX_CARS];
+  const lowCars = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), lambert({ color: 0xffffff }), MAX_CARS);
+  lowCars.count = 0; lowCars.frustumCulled = false; lowCars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); lowCars.name = "city-traffic-low"; group.add(lowCars);
+  const CAR_FRUSTUM = new THREE.Frustum(), CAR_SPHERE = new THREE.Sphere(new THREE.Vector3(), 3);
+  //: Which of ``list`` are drawn, and how finely: in view only (a car behind you, or round the
+  //: corner of the frame, is not sent to the GPU at all), at its tier; the one you ride -- the bus,
+  //: the cab -- and any of yours (``mine``) in full, whatever the rings say, and first in the full
+  //: tier's queue (``d`` -1: never pushed down a tier by the cap however far the camera has been
+  //: pulled back). Your own car and your party's are drawn apart (makeCar), in full always.
+  function carsInView(list) {
+    const cam = ctx.camera?.(), out = [];
+    if (cam) { cam.getWorldPosition(VIEW_AT); VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); CAR_FRUSTUM.setFromProjectionMatrix(VIEW_PV); }
     for (const v of list) {
+      const yours = v.id === transit.ride?.vehicle || v.mine === true;
+      const detail = yours ? FULL : v.detail ?? (detailNow ? detailNow.tier("cars", v.x, v.z, carTiers.get(v.id)?.tier) : FULL);
+      if (detail === TRACKED) continue;
+      const [, h, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
+      if (cam) {
+        CAR_SPHERE.center.set(v.x, groundAt(v.x, v.z) + h / 2, v.z); CAR_SPHERE.radius = l / 2 + 0.6;
+        if (!CAR_FRUSTUM.intersectsSphere(CAR_SPHERE)) continue;
+      }
+      out.push({ v, detail, d: yours ? -1 : cam ? (v.x - VIEW_AT.x) ** 2 + (v.z - VIEW_AT.z) ** 2 : 0 });
+    }
+    return out;
+  }
+  //: The buses' destination signs (vehicles.mjs BUS_SIGN, drawBusSign): one canvas for each
+  //: route and destination, lit (not shaded: an LED sign shows as bright at night), on each bus
+  //: that shows it.
+  const SIGN_GEO = new THREE.PlaneGeometry(BUS_SIGN.w, BUS_SIGN.h).rotateY(Math.PI);
+  const signs = new Map();   // "route|to" -> { mesh, n, text }
+  function signOf(sign) {
+    const key = `${sign.route}|${sign.to}`;
+    if (!signs.has(key)) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512; canvas.height = 80;
+      const text = drawBusSign(canvas.getContext("2d"), sign, canvas.width, canvas.height);
+      const map = new THREE.CanvasTexture(canvas);
+      map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+      const mesh = instanced(SIGN_GEO, new THREE.MeshBasicMaterial({ map, toneMapped: false }), 16, `city-bus-sign-${sign.route}`);
+      mesh.userData.sign = text;
+      signs.set(key, { mesh, n: 0, text });
+    }
+    return signs.get(key);
+  }
+  const SIGN_M = new THREE.Matrix4();
+  function drawCars(list, night) {
+    let n = 0, lights = 0, lo = 0;
+    for (const f of fleet.values()) f.n = 0;
+    for (const s of signs.values()) s.n = 0;
+    const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
+    drawnTiers.cars = [full.length, mid.length, low.length];
+    for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
-      const [w, , l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = fleetOf(v.model, v.shade);
-      if (f.n >= f.cap) continue;
+      const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
+      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE, v.id === transit.ride?.vehicle || v.mine === true);
+      if (f && f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
       // A wreck sits askew; a car in a crash rocks on its springs.
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
-      f.paint.setMatrixAt(f.n, M); f.fixed?.setMatrixAt(f.n, M); f.glass?.setMatrixAt(f.n, M);
-      const paint = f.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
+      if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
+      // The route and where it is going, over the windscreen (on the fleet's bus; just off the
+      // code-built one's nose; the low tier's box has none).
+      if (f && v.sign && f.n < f.cap) {
+        const s = signOf(v.sign);
+        if (s.n < s.mesh.instanceMatrix.count) s.mesh.setMatrixAt(s.n++, SIGN_M.multiplyMatrices(M, TM.makeTranslation(0, f.fleet ? BUS_SIGN.y : hgt - 0.3, f.fleet ? BUS_SIGN.z : -l / 2 - BUS_SIGN.coded_z)));
+      }
+      if (!f) lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
+      // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
+      // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
+      // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
+      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? "#1b2631" : paintOf(v.model, v.shade ?? 0.5);
       C.set(paint);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
-      f.paint.setColorAt(f.n, C);
-      f.n += 1;
+      if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
       if (night) {
         const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
         for (const s of [1, -1]) {
@@ -603,11 +950,12 @@ export async function startCity(ctx) {
       }
       n += 1;
     }
-    for (const f of fleet.values()) for (const mesh of [f.paint, f.fixed, f.glass]) {
-      if (!mesh) continue;
+    for (const f of fleet.values()) for (const { mesh } of f.parts) {
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
+    for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
+    lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
   const camGroup = new THREE.Group(); group.add(camGroup);
@@ -626,12 +974,32 @@ export async function startCity(ctx) {
   }
 
   // ---- your car and your party's ---------------------------------------------------------------
+  //: Your car (and your party's, and yours where they are parked): always the finest there is,
+  //: whatever the traffic's rings say -- the fleet's full model, inside and all, for a kind it
+  //: draws (the code-built body, which has its seats and wheel, until that has loaded), else the
+  //: code-built one.
   function makeCar(model, colour) {
     const [w, h, l] = CAR_DIMS[model] || CAR_DIMS.sedan;
     const g = vehicleGroup(THREE, model, colour);
     g.userData = { model, dims: [w, h, l] };
     g.name = "city-car";
+    if (FLEET_FOR[model]) fleetReady(model, "full").then((parts) => { if (parts) dressFull(g, model, parts, colour); });
     return g;
+  }
+  //: ``g``'s code-built body swapped for the fleet's full model: one of each part (an instance of
+  //: one, so the paint takes the car's colour as the traffic's does).
+  function dressFull(g, model, parts, colour) {
+    for (const o of [...g.children]) { o.removeFromParent(); if (o.material && o.material !== VMAT.fixed && o.material !== VMAT.glass) o.material.dispose(); }
+    for (const part of parts) {
+      const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: true, livery: model === "bus" ? BUS_LIVERY : null }), 1);
+      mesh.setMatrixAt(0, M.identity());
+      if (part.tint) mesh.setColorAt(0, C.set(colour));
+      mesh.castShadow = !part.glass; mesh.receiveShadow = true; mesh.frustumCulled = false;
+      if (part.glass) mesh.renderOrder = 2;
+      mesh.name = `city-car-${part.name}`;
+      g.add(mesh);
+    }
+    g.userData.full = true;
   }
   const parked = new Map();     // vehicle id -> mesh (your cars where they stand)
   const peerCars = new Map();   // peer id -> mesh
@@ -646,6 +1014,10 @@ export async function startCity(ctx) {
     return new CityWorld(R, { now: Date.now(), seed: "solo" });
   }
   world = loadSolo(); view = world;
+  // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
+  let enterpriseUI = null;
+  const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
+    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
   const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
   function save() {
@@ -1166,15 +1538,19 @@ export async function startCity(ctx) {
   //: get there in a few seconds (something solid between).
   const PICK_REACH_M = 3.2, PICK_AT_M = 0.8;
   const reach = { t: null, since: 0 };
+  //: One frame of it, run by the page's walker step (module 26) so the legs walk it: true while
+  //: walking over (the page then leaves the walker's pose to this), false once there or given up.
   function stepReach(dt) {
     const t = reach.t;
-    if (!t) return;
+    if (!t) return false;
     const at = me(), dx = t.x - at.x, dz = t.z - at.z, d = Math.hypot(dx, dz);
-    if (d <= PICK_AT_M) { reach.t = null; ctx.faceTo?.(t.x, t.z); reachDown(t); return; }
-    if (car.active || transit.ride || performance.now() - reach.since > 4000) { reach.t = null; notify("Could not get to it: something is in the way."); return; }
+    if (d <= PICK_AT_M) { reach.t = null; ctx.faceTo?.(t.x, t.z); ctx.animateWalk?.(0); reachDown(t); return false; }
+    if (car.active || transit.ride || performance.now() - reach.since > 4000) { reach.t = null; ctx.animateWalk?.(0); notify("Could not get to it: something is in the way."); return false; }
     const step = Math.min(1.3 * dt, d - PICK_AT_M + 0.05);
+    const moved = ctx.moveWalker?.((dx / d) * step, (dz / d) * step) ?? step;
     ctx.faceTo?.(t.x, t.z);
-    ctx.moveWalker?.((dx / d) * step, (dz / d) * step);
+    ctx.animateWalk?.(moved, dx / d, dz / d);
+    return true;
   }
   function reachDown(t) {
     const pl = self();
@@ -1406,24 +1782,24 @@ export async function startCity(ctx) {
       }
     }
   }
-  //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds.
+  //: When the next buses stand at ``stop`` ({x, z}): each route's next two, in seconds (by the
+  //: timetable where the route has one: none at all on a route that is not running then).
   function nextBuses(stop, ms) {
     const out = [], t = ms / 1000;
     for (const line of district.lines || []) {
       const k = line.stops.findIndex((c) => Math.hypot(c.x - stop.x, c.z - stop.z) < 35);
       if (k < 0) continue;
       const waits = [];
-      for (let j = 0; j < line.buses; j += 1) {
-        const phase = ((t + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle;
-        for (const seg of line.timeline) {
-          if (seg.kind !== "dwell" || seg.stop !== k) continue;
-          const next = line.timeline[line.timeline.indexOf(seg) + 1];
-          const wait = ((seg.t0 - phase) % line.cycle + line.cycle) % line.cycle;
-          waits.push({ wait: phase >= seg.t0 && phase < seg.t1 ? 0 : wait, toward: next?.next !== undefined ? line.stops[next.next].name : "the end of the line" });
-        }
+      for (const seg of line.timeline) {
+        if (seg.kind !== "dwell" || seg.stop !== k) continue;
+        const next = line.timeline[line.timeline.indexOf(seg) + 1];
+        // The last stop of a timetabled run sets nobody down further on: nothing to wait for.
+        if (line.schedule && !next) continue;
+        const toward = line.sign?.to || (next?.next !== undefined ? line.stops[next.next].name : "the end of the line");
+        for (const a of arrivalsAt(line, seg, t, 2)) waits.push({ wait: Math.max(0, a.at - t), toward });
       }
       waits.sort((a, b) => a.wait - b.wait);
-      out.push({ route: line.route, next: waits.slice(0, 2) });
+      if (waits.length) out.push({ route: line.route, next: waits.slice(0, 2) });
     }
     return out;
   }
@@ -1546,6 +1922,27 @@ export async function startCity(ctx) {
     g.fillStyle = fg; g.font = "600 46px system-ui,sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(text).slice(0, 22), 256, 50);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
   }
+  //: A window pane's surface: grey grain and a few faint smears, tiled; drawn once. The page's
+  //: own panes wear the same (paneGlassTexture, module 25).
+  let paneMap = null;
+  function paneTexture() {
+    if (paneMap) return paneMap;
+    const c = doc.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d"), image = g.createImageData(128, 128), r = rng("pane");
+    for (let i = 0; i < 128 * 128; i += 1) {
+      const shade = 196 + Math.round((r() - 0.5) * 56);
+      image.data.set([shade, shade + 3, shade + 5, 130 + Math.round(r() * 125)], i * 4);
+    }
+    g.putImageData(image, 0, 0);
+    for (let k = 0; k < 6; k += 1) {
+      const x = r() * 128, y = r() * 128, s = g.createRadialGradient(x, y, 0, x, y, 18 + r() * 34);
+      s.addColorStop(0, "rgba(246,248,249,0.3)"); s.addColorStop(1, "rgba(246,248,249,0)");
+      g.fillStyle = s; g.fillRect(0, 0, 128, 128);
+    }
+    paneMap = new THREE.CanvasTexture(c); paneMap.colorSpace = THREE.SRGBColorSpace || paneMap.colorSpace;
+    paneMap.wrapS = paneMap.wrapT = THREE.RepeatWrapping;
+    return paneMap;
+  }
   function buildRoom(place, F) {
     const g = new THREE.Group(); g.name = "city-shop-room";
     g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
@@ -1557,7 +1954,9 @@ export async function startCity(ctx) {
     const wall = flat(0xe4ddd1, { side: THREE.BackSide }), sideWall = flat(0xd3cbbd, { side: THREE.BackSide });
     const floor = flat(0x8a6f55, { side: THREE.BackSide });
     const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
-    const glass = new THREE.MeshBasicMaterial({ color: 0xbfd9e6, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false });
+    // The shop window as the houses' are (module 25, WINDOW_GLASS): grey, a little worn, and
+    // softening the street seen through it -- not a pane that could be taken for an open front.
+    const glass = new THREE.MeshBasicMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
@@ -1604,6 +2003,15 @@ export async function startCity(ctx) {
     return g;
   }
   //: Into the shop beside you: through its door, into the room, the counter in front of you.
+  //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
+  //: shop's room, or its counter where it has none; false where no shop of the city's is there.
+  function enterBuilding(id) {
+    if (!self() || car.active || transit.ride) return false;
+    const place = district.places?.find((pl) => String(pl.id) === String(id) && storesAt(R, pl.keys).length);
+    if (!place) { notify("Closed: nothing here sells to the public."); return false; }
+    if (!(place.front && enterShop(place))) openStore(place);
+    return true;
+  }
   function enterShop(place, { asStaff = false } = {}) {
     const F = shopFrame(place);
     if (!F) return false;
@@ -1643,7 +2051,7 @@ export async function startCity(ctx) {
     if (!F) return false;
     // On the shop's floor, whatever the ground under the building is.
     if (!air.up && Math.abs(me().y - ctx.standY - F.y) > 0.05) ctx.placeAvatar(me().x, F.y, me().z);
-    if (!held.size) return true;
+    if (!held.size) { ctx.animateWalk?.(0); return true; }
     const yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
     let mx = 0, mz = 0;
     if (held.has("ArrowUp")) { mx += fx; mz += fz; }
@@ -1651,7 +2059,7 @@ export async function startCity(ctx) {
     if (held.has("ArrowRight")) { mx += rx; mz += rz; }
     if (held.has("ArrowLeft")) { mx -= rx; mz -= rz; }
     const len = Math.hypot(mx, mz);
-    if (!len) return true;
+    if (!len) { ctx.animateWalk?.(0); return true; }
     const speed = 1.5 * walkFactorNow();
     const p = me();
     const want = F.local(p.x + mx / len * speed * dt, p.z + mz / len * speed * dt);
@@ -1668,7 +2076,10 @@ export async function startCity(ctx) {
     const v = Math.max(-F.W / 2 + 0.3, Math.min(F.W / 2 - 0.3, want.v));
     const at = F.at(u, v);
     ctx.placeAvatar(at.x, F.y, at.z);
-    walked(Math.hypot(at.x - p.x, at.z - p.z), dt);
+    const stepped = Math.hypot(at.x - p.x, at.z - p.z);
+    // Legs that walk it, facing the way (a shop's floor glided like the walk over to a thing did).
+    ctx.animateWalk?.(stepped, (at.x - p.x) / (stepped || 1), (at.z - p.z) / (stepped || 1));
+    walked(stepped, dt);
     return true;
   }
 
@@ -1901,9 +2312,21 @@ export async function startCity(ctx) {
       return;
     }
     if (pose.kind === "swing") {
-      // Up and back, then down through the blow.
+      const arm = pose.aim?.arm ?? Math.PI / 2;
+      if (!p?.hands) {
+        // A punch: the fist drawn back to the chin, then straight out at the target's height
+        // (pose.aim), the shoulder turning into it.
+        const out = t < 0.3 ? 0 : t < 0.55 ? ease((t - 0.3) / 0.25) : 1 - ease((t - 0.55) / 0.45);
+        const cock = t < 0.3 ? ease(t / 0.3) : Math.max(0, 1 - out * 1.6);
+        fwd(B.rUpper, 0.35 * cock + arm * out); fwd(B.rFore, 1.9 * cock + 0.15 * out);
+        fwd(B.lUpper, 0.5); fwd(B.lFore, 1.7);        // the other hand up, guarding
+        turn(B.spine, 0, 1, 0, 0.3 * cock - 0.35 * out);
+        return;
+      }
+      // Up and back, then down through the blow -- onto the target, at its height.
       const up = t < 0.45 ? ease(t / 0.45) : 1 - ease((t - 0.45) / 0.55);
-      fwd(B.rUpper, 0.3 + 2.4 * up); fwd(B.rFore, 0.7 - 0.5 * up);
+      const low = Math.max(0.3, Math.min(1.8, arm));
+      fwd(B.rUpper, low + (2.7 - low) * up); fwd(B.rFore, 0.7 - 0.5 * up);
       if (hold === "shoulder") fwd(B.lUpper, 0.3 + 2.0 * up);
       // Over into the blow (the back forward as the arm comes down).
       turn(B.spine, 0, 1, 0, 0.35 * (up - 0.5)); fwd(B.spine, -0.25 * (1 - up));
@@ -1952,12 +2375,38 @@ export async function startCity(ctx) {
   }
   ctx.avatar.userData.afterPose = afterPose;
   //: X (or a click): swing what you hold at what is in front -- if it is a thing that swings.
+  //: X goes for the nearest thing or person within reach, whichever way you face: you turn to
+  //: it, and the blow is aimed at it -- a jab at its height with an empty hand, what you hold
+  //: brought down onto it. (It swung the arm up over the head and at whatever was nearest,
+  //: facing it or not, so a punch went up into the air.)
   function swingKey() {
     const p = self();
     if (!p || pose.kind || car.active || car.riding || transit.ride) return;
     const sw = swingOf(R, p.hands, p.vitals.strength);
     if (!sw.ok) { notify(sw.reason); return; }
-    startAct("swing", 0.45, 0.55, () => strikeKey());
+    const aim = nearestHittable(R.tools.reach_m);
+    if (aim) ctx.faceTo?.(aim.x, aim.z);
+    pose.aim = aim ? aimOf(aim) : AIM_AHEAD;
+    startAct("swing", 0.45, 0.55, () => strikeKey(null, aim));
+  }
+  //: The nearest person or breakable thing within ``reach`` of you, any way round:
+  //: {kind: "person", q, x, z, d} or {kind: "thing", t, x, z, d}. Someone is taken over a thing
+  //: up to 0.4 m further off (as the blow always has).
+  function nearestHittable(reach) {
+    const at = me();
+    const who = personInReach(reach, -2), t = strikeTarget(reach);
+    const dw = who ? Math.hypot(who.x - at.x, who.z - at.z) : Infinity, dt = t ? Math.hypot(t.x - at.x, t.z - at.z) : Infinity;
+    if (who && dw <= dt + 0.4) return { kind: "person", q: who, x: who.x, z: who.z, d: dw };
+    return t ? { kind: "thing", t, x: t.x, z: t.z, d: dt } : null;
+  }
+  //: Where the blow goes: the arm's forward angle (pi/2 level, less down, more up) to the
+  //: target's height from the shoulder's, at its distance. A person at the chest, a tree at the
+  //: trunk, a thing in the street (a bin, a bench, a sign's post) at about knee to waist.
+  const SHOULDER_M = 1.42;
+  const AIM_AHEAD = { arm: Math.PI / 2 };
+  function aimOf(aim) {
+    const h = aim.kind === "person" ? 1.35 : aim.t.nature ? 1.2 : 0.75;
+    return { arm: Math.max(0.5, Math.min(2.1, Math.PI / 2 + Math.atan2(h - SHOULDER_M, Math.max(0.45, aim.d)))) };
   }
   //: U (or a right click): use what you hold -- eat, drink, take, wear or take off.
   async function useSelected() {
@@ -2071,17 +2520,19 @@ export async function startCity(ctx) {
     return null;
   }
   const witnessesNear = (x, z) => Math.min(5, visible.people.filter((q) => !q.indoors && Math.hypot(q.x - x, q.z - z) < R.damage.witness_reach_m).length);
-  async function strikeKey(energy = null) {
+  async function strikeKey(energy = null, aimed = null) {
     const p = self();
     if (!p) return;
     if (!energy && (car.active || transit.ride || car.riding)) return;
     const now = performance.now();
     if (!energy && now - lastStrike < 1000 / R.tools.strikes_per_second) return;
     lastStrike = now;
-    // Someone in front of you, nearer than any thing: the blow is theirs.
-    const who = energy ? null : personInReach(R.tools.reach_m);
-    const t = strikeTarget(energy ? 6 : R.tools.reach_m);
-    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4)) return strikePerson(who);
+    // What the swing was aimed at (X turned you to it), if it is still within reach when the
+    // blow lands; otherwise the nearest now.
+    const at = me();
+    const aim = energy ? null : aimed && Math.hypot(aimed.x - at.x, aimed.z - at.z) <= R.tools.reach_m + 0.6 ? aimed : nearestHittable(R.tools.reach_m);
+    if (aim?.kind === "person") return strikePerson(aim.q);
+    const t = energy ? strikeTarget(6) : aim?.t || null;
     if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
     const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
     if (!r.ok) { notify(r.error); return; }
@@ -2384,6 +2835,7 @@ export async function startCity(ctx) {
       if (p.clocked && !p.clocked.task) out.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; V where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
       else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) out.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
     } else out.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
+    out.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
     if (!t && !p.delivery) for (const o of taskOffers()) out.push({ label: o.title, sub: `${R.fmt(o.pay)} · ${o.km.toFixed(1)} km${o.steps?.length ? ` · ${o.steps.length} steps` : ""}`, take: o });
     return out;
   }
@@ -2504,6 +2956,7 @@ export async function startCity(ctx) {
     }
     const shopAt = nearestShop();
     if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "Enter", run: () => { if (!(shopAt.front && enterShop(shopAt))) openStore(shopAt); } });
+    out.push(...enterprise().actions(p, here));   // a storefront to lease, your business, your hearing
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
@@ -2687,12 +3140,12 @@ export async function startCity(ctx) {
     const p = self(), on = Boolean(ctx.enabled() && p && ctx.cityMode?.() !== false);
     hotbar.hidden = !on;
     if (!on) return;
-    const key = JSON.stringify([slots.slice(0, BAR), chosen, BAR && slots.slice(0, BAR).map((id) => p.inventory[id] || 0), p.hands]);
+    const key = JSON.stringify([slots.slice(0, BAR), chosen, slots.slice(0, BAR).map((_, i) => slotCount(slots, p.inventory, i)), p.hands]);
     if (key === hotbarKey) return;
     hotbarKey = key;
     hotbar.replaceChildren(...slots.slice(0, BAR).map((id, i) => {
       const b = h("button", { className: `slot${i === chosen ? " on" : ""}`, title: id ? `${i + 1}: ${R.items[id]?.name}` : `${i + 1}: empty hand`, onclick: () => selectSlot(i) });
-      b.innerHTML = `<em>${i + 1}</em>${slotFace(id, p.inventory[id] || 0)}`;
+      b.innerHTML = `<em>${i + 1}</em>${slotFace(id, slotCount(slots, p.inventory, i))}`;
       return b;
     }), h("button", { className: "inv", title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory ", h("kbd", { textContent: "I" })));
   }
@@ -2739,6 +3192,43 @@ export async function startCity(ctx) {
   // ---- the frame -------------------------------------------------------------------------------
   let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
   let visible = { people: [], vehicles: [] }, frameFailed = false;
+  // ---- level of detail (detail.mjs) ----------------------------------------------------------------
+  //: The field this frame (null before the first), what tier each person and car had (and, for one
+  //: only tracked or drawn low, when it is next placed), and how many were drawn at each tier.
+  let detailNow = null;
+  const personTiers = new Map(), carTiers = new Map(), focusVelocity = velocityTracker();
+  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 } };
+  //: Someone tracked only is placed again about once a second (each at its own moment, so the
+  //: crowd's are spread over the frames): often enough to come into range on time at a walk, or
+  //: in a car at the speed limit, before the low ring's edge (DETAIL_RINGS) is reached.
+  const TRACK_EVERY_MS = [700, 1300];
+  //: Someone drawn low is placed again five times a second, not every frame.
+  const LOW_EVERY_MS = [160, 260];
+  //: Someone in a shop is seen through its window from this near, and not from further.
+  const INDOOR_SEEN_M = 22;
+  const nextAt = (id, now, [a, b]) => now + a + (hash32(id) % Math.max(1, b - a));
+  //: The way ahead when riding: the cab's route from where it is, or the bus's stops to come.
+  function routeAheadNow() {
+    const ride = transit.ride;
+    if (!ride) return null;
+    if (ride.vehicle === taxi.id && taxi.route?.pts) {
+      const S = taxi.route.s || [], ahead = taxi.route.pts.filter((_, i) => (S[i] ?? 0) > (taxi.d || 0));
+      return routeSamples(ahead, taxi.at ? { x: taxi.at.x, z: taxi.at.z } : null);
+    }
+    const v = routeBuses.find((b) => b.id === ride.vehicle), line = v && district.lines?.find((L) => L.route === v.route);
+    if (!line?.stops?.length) return null;
+    const pts = [], next = v.next ?? v.stop ?? 0;
+    for (let k = 0; k < 3; k += 1) { const st = line.stops[(next + k) % line.stops.length]; if (st) pts.push({ x: st.x, z: st.z }); }
+    return routeSamples(pts, { x: v.x, z: v.z });
+  }
+  //: How far the city is kept track of from ``focus``: the whole of City mode's area (the Marina),
+  //: whichever corner of it is furthest, and never less than the rules' visible radius.
+  function trackReach(focus) {
+    const box = ctx.areaBox?.(), base = R.routine.visible_radius_m;
+    if (!box) return base;
+    const [x0, z0, x1, z1] = box;
+    return Math.min(2500, Math.max(base, Math.hypot(Math.max(focus.x - x0, x1 - focus.x), Math.max(focus.z - z0, z1 - focus.z))));
+  }
   function tick(now) {
     if (!ctx.enabled()) { group.visible = false; return false; }
     group.visible = true;
@@ -2775,7 +3265,10 @@ export async function startCity(ctx) {
       // The pass a slice a frame (fleet.mjs scanMore): a whole district at once held a frame up.
       if (!scanning && (now - lastCrowd > 1000 || Math.hypot(focus.x - scanAt.x, focus.z - scanAt.z) > 40)) {
         lastCrowd = now; scanAt = { x: focus.x, z: focus.z }; scanning = true;
-        district.city.scanBegin(t, focus, R.routine.visible_radius_m);
+        // Everyone in the area, out to its edge: those past the low ring are only kept track of
+        // (frameCity). Parked cars as far as the low ring's edge, where they are drawn as blocks.
+        scanReach = trackReach(focus);
+        district.city.scanBegin(t, focus, scanReach, DETAIL_RINGS.cars[2] * (1 + DETAIL_HYSTERESIS) + 20);
       }
       if (scanning) {
         const done = district.city.scanMore(scan.people.length || scan.vehicles.length ? 2500 : Infinity);
@@ -2785,6 +3278,10 @@ export async function startCity(ctx) {
           lastNight = hour < 6.6 || hour > 18.4;
         }
       }
+      // The detail field: round where you are, out ahead the way you are going (and along the
+      // route, riding).
+      const fv = focusVelocity.update(focus.x, focus.z, dt);
+      detailNow = detailField({ x: focus.x, z: focus.z }, { vx: fv.vx, vz: fv.vz, ahead: routeAheadNow() });
       // The city's frame never takes the page's with it: one car or person that cannot be placed
       // is left out of this frame (said once), and the world goes on being drawn.
       try { visible = frameCity(t, dt, now, focus); } catch (error) { if (!frameFailed) { frameFailed = true; console.warn("kerbside: the living city skipped a frame", error); } }
@@ -2792,6 +3289,7 @@ export async function startCity(ctx) {
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
       stepBikes(dt, t / 1000, focus, now);
+      lightSignals(t / 1000, now);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
       drawBikes();
       drawCars(wheels(), lastNight);
@@ -2799,7 +3297,8 @@ export async function startCity(ctx) {
       drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
-    stepReach(dt); stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
+    if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
+    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
     if (now - lastRefresh > 500) {
       lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
@@ -2875,14 +3374,25 @@ export async function startCity(ctx) {
   function frameCity(ms, dt, now, focus) {
     const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
     tt.minute += (ms % 1000) / 60000;
-    const reach = R.routine.visible_radius_m, dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
+    const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
     const people = [];
     const you = me();
+    let trackedPeople = 0;
     for (const e of scan.people) {
+      // Tracked only, or drawn low and placed a moment ago: left as it is until its next look.
+      const id = e.p.id, was = personTiers.get(id);
+      if (was && now < was.next) {
+        if (was.tier === TRACKED) { trackedPeople += 1; continue; }
+        if (was.entry) { people.push(was.entry); continue; }
+      }
       const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
       const pos = c.personAt(e.p, tt, seg, focus);
-      if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) continue;
-      const entry = { id: e.p.id, person: e.p, ...pos };
+      if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) { personTiers.delete(id); continue; }
+      // In a shop and not the one you are in: seen through its window from close by, or not at all.
+      let tier = detailNow ? detailNow.tier("people", pos.x, pos.z, was?.tier) : FULL;
+      if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
+      if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
+      const entry = { id, person: e.p, ...pos, detail: tier };
       if (pos.through && Math.abs(pos.x - you.x) < 60 && Math.abs(pos.z - you.z) < 60 && !(nudged.get(entry.id) > now - 2500)) { nudged.set(entry.id, now); ctx.nudgeDoor?.(pos.x, pos.z); }
       // Stepping round you: a walker who would walk into you goes by a pace to the side.
       if (pos.moving && !car.active) {
@@ -2896,7 +3406,8 @@ export async function startCity(ctx) {
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
       if (pos.walk && pos.moving && !pos.down) {
         const hold = waitsAtKerb(pos.walk, tsec);
-        c.holdWalk(pos.walk.key, Math.min(dt, 0.25), hold);
+        // (One placed only now and then is held for the time since it was last placed.)
+        c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
         if (hold) { entry.moving = false; entry.activity = "waiting to cross"; }
       }
       const f = flings.get(entry.id);
@@ -2908,15 +3419,23 @@ export async function startCity(ctx) {
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else glide(entry, now, dt, 3.2, 60);
+      const low = tier === LOW && !f;
+      personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    drawnTiers.tracked.people = trackedPeople;
+    if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
     // The cars: parked where they stand; driving, on their leg.
     const sim = [], vehicles = [], legOf = new Map();
     const limitAt = (model) => (cls) => {
       const law = cls === "residential" ? (view || world)?.laws?.speed_limit_kmh_residential : null;
       return (law ? law / 3.6 : SPEED_MS[cls || "residential"]) * (model === "bus" || model === "box_truck" ? 0.8 : 0.95);
     };
+    let trackedCars = 0;
     for (const e of scan.vehicles) {
+      // Far off and not being driven by the rules: left until its next look (it is only tracked).
+      const wasCar = carTiers.get(e.v.id);
+      if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
       if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
@@ -2981,6 +3500,15 @@ export async function startCity(ctx) {
     for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
     if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);
     for (const v of vehicles) { const j = jolts.get(v.id); if (j) { const age = (now - j.t0) / 1000; if (age > 1.2) jolts.delete(v.id); else v.jolt = Math.sin(age * 18) * Math.exp(-age * 3) * Math.min(0.12, j.speed * 0.01); } }
+    // Each car's tier: the ones only tracked are kept track of, and not drawn (drawCars).
+    for (const v of vehicles) {
+      const was = carTiers.get(v.id), tier = detailNow ? detailNow.tier("cars", v.x, v.z, was?.tier) : FULL;
+      v.detail = tier;
+      carTiers.set(v.id, { tier, next: tier === TRACKED ? nextAt(v.id, now, TRACK_EVERY_MS) : 0, seen: now });
+      if (tier === TRACKED) trackedCars += 1;
+    }
+    drawnTiers.tracked.cars = trackedCars;
+    if (carTiers.size > 20000) for (const [id, q] of carTiers) if (now - q.seen > 5000) carTiers.delete(id);
     drawnCars = vehicles;
     return { time: tt, people, vehicles };
   }
@@ -3236,6 +3764,19 @@ export async function startCity(ctx) {
 #city-profile .bar i{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(255,255,255,.14) var(--v))}
 #city-profile .bar b{text-align:right;font-weight:600}#city-profile .carry{opacity:.8;margin-top:4px;font-size:11px}#city-profile .gig{margin-top:3px;color:#7ee2a0;font-size:11px}
 #city-top[hidden],.city-card[hidden],#city-prompt[hidden]{display:none!important}
+#city.pop{left:max(16px,5vw);right:max(16px,5vw);top:max(16px,5vh);bottom:max(16px,5vh);width:auto;max-height:none;z-index:70;padding:18px 22px;font-size:13px;box-shadow:0 0 0 100vmax rgba(8,12,18,.45),0 12px 40px rgba(0,0,0,.4)}
+#city.pop .me{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+#city.pop .me .face{width:104px;height:104px;border-radius:50%;flex:none;background:#2a3542 center/cover no-repeat;border:3px solid rgba(128,128,128,.3)}
+#city.pop .me h2{margin:0;font:700 22px/1.2 system-ui,sans-serif}#city.pop .me .worth{font:700 28px/1.2 system-ui,sans-serif;letter-spacing:-.01em}
+#city.pop .me .worth small{display:block;font:500 12px/1.3 system-ui,sans-serif;color:var(--cm,#5c6770);letter-spacing:0}
+#city.pop .me>button{align-self:flex-start;margin-left:auto;font-size:18px;line-height:1;padding:6px 11px}
+#city.pop .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:14px}
+#city.pop .tile{border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:10px 12px;min-width:0}
+#city.pop .tile h4{margin:0 0 6px}#city.pop .tile td{border-top:1px solid rgba(128,128,128,.15);padding:3px 0}
+#city.pop .tile tr.sum td{font-weight:700}#city.pop .neg{color:#c0392b}
+#city.pop .bar{display:grid;grid-template-columns:70px 1fr 30px;align-items:center;gap:8px;margin:4px 0}
+#city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
+#city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
 @media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
@@ -3314,8 +3855,10 @@ export async function startCity(ctx) {
     const root = doc.documentElement, W = globalThis.innerWidth || 1200, on = !actionBar.hidden;
     const fold = doc.getElementById("fold"), hud = doc.getElementById("hud"), sidebar = doc.getElementById("map-sidebar");
     const F = fold && fold.offsetParent !== null ? fold.getBoundingClientRect() : null;
+    // The map's controls, or the step-by-step directions in their place (City mode has them too).
+    const nav = doc.getElementById("nav-panel");
     const mapOpen = hud?.dataset.open === "true" && sidebar && sidebar.offsetParent !== null;
-    const M = mapOpen ? sidebar.getBoundingClientRect() : null;
+    const M = nav && !nav.hidden && nav.offsetParent !== null ? nav.getBoundingClientRect() : mapOpen ? sidebar.getBoundingClientRect() : null;
     const cp = doc.getElementById("compass");
     const card = W < 640 ? 150 : W < 1000 ? 180 : 200, y = 16;
     root.style.setProperty("--city-card-w", `${card}px`);
@@ -3409,7 +3952,8 @@ export async function startCity(ctx) {
     closeSide();
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
-    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", ride: "Buses and taxis", tasks: "Task board", online: "Online store" }[kind] || "Controls");
+    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
+      buy: "Buying a business", recruiter: "Recruiter", released: "Released" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -3434,11 +3978,13 @@ export async function startCity(ctx) {
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
+    if (enterprise().draw(side, { close, status, w, p })) return;   // law offices, recruiters, your business (enterprise-panels.mjs)
     if (side.kind === "store") {
       // The shop's wares and prices: choose how many of each, then Checkout shows the total with
       // the sales tax, and Confirm buys it all (into your inventory) if you have the credits.
       const place = side.place;
-      const stores = storesAt(R, place.keys);
+      const stores = w.storesHere ? w.storesHere(place) : storesAt(R, place.keys);
+      const priceOf = (id) => (w.priceAt ? w.priceAt(place, id) : R.items[id].price);
       const store0 = stores[Math.min(side.store, stores.length - 1)];
       const [lon, lat] = ctx.toLonLat(place.x, place.z);
       const chain = jurisdictionAt(R, lon, lat, district.county).chain;
@@ -3448,7 +3994,7 @@ export async function startCity(ctx) {
       side.cart ||= {};
       const cart = side.cart, balance = w.ledger.balance(p.account);
       const lines = Object.entries(cart).filter(([, n]) => n > 0).map(([id, qty]) => {
-        const it = R.items[id], price = it.price * qty;
+        const it = R.items[id], price = priceOf(id) * qty;
         return { id, qty, it, price, tax: itemTax(R, chain, it, price, w.laws) };
       });
       const sub = lines.reduce((a, l) => a + l.price, 0), tax = lines.reduce((a, l) => a + l.tax, 0), total = sub + tax;
@@ -3476,10 +4022,10 @@ export async function startCity(ctx) {
       };
       const rows = store0.items.filter((id) => !R.items[id].service).map((id) => {
         const it = R.items[id], ph = physOf(R, id);
-        const t1 = itemTax(R, chain, it, it.price, w.laws);
+        const t1 = itemTax(R, chain, it, priceOf(id), w.laws);
         const info = `${effectText(it)}${it.service ? "" : ` · ${weightClass(R, ph.kg, p.vitals.strength)}`}`;
         return h("tr", { style: cart[id] ? "background:rgba(31,111,235,.08)" : "" }, h("td", {}, h("b", { textContent: it.name }), h("div", { className: "note", textContent: info })),
-          h("td", { textContent: `${R.fmt(it.price)}${t1 ? ` +${R.fmt(t1)}` : ""}` }), h("td", {}, qty(id, it)));
+          h("td", { textContent: `${R.fmt(priceOf(id))}${t1 ? ` +${R.fmt(t1)}` : ""}` }), h("td", {}, qty(id, it)));
       });
       const extra = [];
       // Services and hiring are the Shop's (the top bar): Services and Jobs, at their own prices.
@@ -3492,6 +4038,7 @@ export async function startCity(ctx) {
         h("p", { className: "note", textContent: `${offered.length ? `${offered.map((id) => R.items[id].name).join(", ")}: book in the Shop's Services. ` : ""}${jobs.length ? `Hiring ${jobs.map((r) => R.jobs.roles[r].title.toLowerCase()).join(", ")}: apply in the Shop's Jobs.` : ""}` }),
         h("div", {}, offered.length ? act("Services", () => { openSide("online"); side.cat = "services"; drawSide(); }) : "", jobs.length ? act("Jobs", () => { openSide("online"); side.cat = "jobs"; drawSide(); }) : ""));
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
+      extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
@@ -3509,7 +4056,7 @@ export async function startCity(ctx) {
       const title = h("h3", {}, h("span", { textContent: "Inventory" }), close);
       const peers = (party.session?.players() || []).map((peer) => ({ peer, pid: party.ids.get(peer.id) })).filter((x) => x.pid && x.pid !== myId);
       const cell = (i) => {
-        const id = slots[i], n = id ? p.inventory[id] || 0 : 0;
+        const id = slots[i], n = slotCount(slots, p.inventory, i);
         const b = h("button", { className: `slot${i === chosen ? " on" : ""}${i === cursorSlot ? " cursor" : ""}`, title: id ? `${R.items[id]?.name} ×${n}` : "empty",
           onclick: () => {
             if (cursorSlot < 0) { if (id) { cursorSlot = i; side.pick = id; } }
@@ -3638,12 +4185,14 @@ export async function startCity(ctx) {
       const homes = listings().map((l) => ({ l, cat: "homes", name: `${l.beds ? `${l.beds} bd` : "Studio"} ${l.type === "single_family" ? "house" : "flat"}${l.label ? " " + l.label : ""} — ${address(l.address) || "a home"}`, price: l.price, d: Math.hypot(l.x - here.x, l.z - here.z) }));
       const match = (name, extra = "") => !query || name.toLowerCase().includes(query) || extra.toLowerCase().includes(query);
       const services = onlineServices(), jobs = onlineJobs();
-      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["homes", "Real estate"]];
+      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["business", "Business"], ["law", "Law & record"], ["homes", "Real estate"]];
       const counts = Object.fromEntries(cats.map(([k]) => [k, 0]));
       for (const x of wares) if (match(x.it.name, x.from.join(" "))) { counts[x.cat] += 1; counts.all += 1; }
       for (const x of services) if (match(x.it.name, x.label)) { counts.services += 1; counts.all += 1; }
       for (const x of jobs) if (match(x.spec.title, x.label)) { counts.jobs += 1; counts.all += 1; }
       for (const x of homes) if (match(x.name, x.l.neighbourhood || "")) { counts.homes += 1; counts.all += 1; }
+      counts.business = [...(w.biz?.values() || [])].filter((b) => b.owner === p.account && b.status === "open").length;
+      counts.law = [...(w.cases?.values() || [])].filter((c) => c.pid === p.id && !c.closed).length;
       const tabs = h("div", { className: "tabs" }, ...cats.map(([k, label]) => h("button", { textContent: `${label} (${counts[k]})`, "aria-pressed": String(side.cat === k), onclick: () => { side.cat = k; drawSide(); } })));
       const sorter = h("select", { title: "Order", onchange: (e) => { side.sort = e.target.value; drawSide(); } },
         ...[["az", "Name A–Z"], ["za", "Name Z–A"], ["lo", "Price: low to high"], ["hi", "Price: high to low"], ["kg", "Weight: light first"], ["near", "Homes: nearest first"]].map(([v, label]) => h("option", { value: v, textContent: label, selected: side.sort === v })));
@@ -3670,6 +4219,7 @@ export async function startCity(ctx) {
           p.job ? h("p", { className: "note" }, `You work as ${p.job.title.toLowerCase()} at ${address(p.job.place.name) || "your workplace"} (${R.fmt(p.job.pay)}/h). `, act("Quit", () => send("quit_job"))) : "",
           rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "No openings near you." }));
       }
+      if (enterprise().online(side, out, w, p)) { side.el.replaceChildren(...out); return; }   // the Business and Law tabs
       if (side.cat !== "homes" && side.cat !== "services" && side.cat !== "jobs") {
         const list = wares.filter((x) => (side.cat === "all" || x.cat === side.cat) && match(x.it.name, x.from.join(" "))).sort((a, b) => order(a, b, a.it.name, b.it.name));
         const rows = list.slice(0, 120).map(({ id, it, from, price }) => {
@@ -3722,14 +4272,17 @@ export async function startCity(ctx) {
       h("p", { className: "note", textContent: asked },),
       h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins; Space jumps there too, and Enter opens your own garage." }));
   }
+  //: You: a window over most of the screen, opened from your card at the top right -- your
+  //: picture, your body, your bank account, what you owe, what you have done lately, what you
+  //: own and what you are worth; and under them the city's other pages (the place you stand at,
+  //: your car, homes, bills, taxes, laws, people). It was a panel in the map's controls.
   function openPanel(force = false) {
     if (panel && force !== true) { panel.remove(); panel = null; return; }
-    const host = ctx.panelHost?.() || doc.body;
-    if (panel && panel.parentNode === host) { refresh(); return; }
-    if (panel) { panel.remove(); panel = null; }
+    if (panel) { refresh(); return; }
     closeSide();
-    panel = h("section", { id: "city" }); panel.setAttribute("aria-label", "The living city");
-    host.append(panel);
+    panel = h("section", { id: "city", className: "pop" });
+    panel.setAttribute("aria-label", "You"); panel.setAttribute("role", "dialog");
+    doc.body.append(panel);
     refresh();
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
@@ -3756,8 +4309,8 @@ export async function startCity(ctx) {
     drawSide();
     if (!panel) return;
     const w = view, p = w?.players.get(myId);
-    const close = h("button", { textContent: "×", title: "Close", onclick: () => openPanel() });
-    const head = h("h3", {}, h("span", { textContent: "The living city" }), close);
+    const close = h("button", { textContent: "×", title: "Close (Esc)", onclick: () => openPanel() });
+    const head = h("h3", {}, h("span", { textContent: "You" }), close);
     if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Waiting for the party's host to share the city…" })); return; }
     if (!p) {
       // Joined in the background (ensureJoined): only a moment before the district is there.
@@ -3768,7 +4321,38 @@ export async function startCity(ctx) {
     const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>
       h("button", { textContent: id[0].toUpperCase() + id.slice(1), "aria-pressed": String(tab === id), onclick: () => { tab = id; refresh(); } })));
     tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent.toLowerCase() === tab)));
-    panel.replaceChildren(head, tabs, ...TABS[tab](w, p));
+    panel.replaceChildren(...youAtAGlance(w, p, close), h("h4", { textContent: "More" }), tabs, ...TABS[tab](w, p));
+  }
+  //: The top of the window: you at a glance.
+  function youAtAGlance(w, p, close) {
+    const st = w.cmd_status.call(w, myId), worth = wealthOf(R, st), img = portrait();
+    const money = (v) => R.fmt(v);
+    const bar = (label, value, colour) => h("div", { className: "bar", innerHTML: `<span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b>` });
+    const tile = (title, ...kids) => h("section", { className: "tile" }, h("h4", { textContent: title }), ...kids);
+    const me = h("div", { className: "me" }, h("div", { className: "face", style: img ? `background-image:url(${img})` : "" }),
+      h("div", {}, h("h2", { textContent: st.name || p.name || "You" }),
+        h("div", { className: "worth" }, h("span", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }), h("small", { textContent: "net worth: what you have and own, less what you owe" }))),
+      close);
+    const stats = tile("Stats", bar("Health", st.vitals.health, "#e2483d"), bar("Stamina", st.vitals.stamina, "#e8a33b"), bar("Strength", st.vitals.strength, "#3c8fd6"),
+      h("table", {}, row("Carrying", `${st.carry.kg} of ${st.carry.capacity} kg`), row("Job", st.job ? `${st.job.title}, ${money(st.job.pay)}/h` : "none"),
+        row("Home", st.home ? (st.home.label || st.home.address || district.placeById?.get(st.home.building)?.name || `building ${st.home.building}`) : "none"), row("Where", st.where)));
+    const bank = tile("Bank account", h("table", {}, row("Balance", money(worth.cash)), row("FasTrak prepaid", st.fastrak ? money(worth.fastrak) : "no tag"),
+      row("Earned this year", money(st.ytd.wages)), row("Tax held back", money(st.ytd.withheld))));
+    const debts = tile("Debts", worth.debts.length ? h("table", {}, ...worth.debts.slice(0, 8).map((d) => row(d.label, money(d.value))),
+      h("tr", { className: "sum" }, h("td", { textContent: "Owed in all" }), h("td", { className: "neg", textContent: money(worth.owing) })))
+      : h("p", { className: "note", textContent: "You owe nothing." }), worth.debts.length ? h("button", { textContent: "See the bills", onclick: () => { tab = "bills"; refresh(); } }) : null);
+    const recent = w.ledger.journal.filter((e) => e.lines.some(([a]) => a === p.account)).slice(-10).reverse();
+    const history = tile("Recent history", recent.length ? h("table", {}, ...recent.map((e) => {
+      const amount = e.lines.find(([a]) => a === p.account)[1];
+      return h("tr", {}, h("td", { textContent: `${String(e.kind).replace(/_/g, " ")}${e.memo ? ": " + e.memo : ""}` }), h("td", { className: amount < 0 ? "neg" : "", textContent: money(amount) }));
+    })) : h("p", { className: "note", textContent: "Nothing yet: what you earn, buy and pay shows here." }));
+    const assets = tile("Significant assets", worth.assets.length ? h("table", {}, ...worth.assets.slice(0, 8).map((a) => row(a.label, money(a.value))),
+      h("tr", { className: "sum" }, h("td", { textContent: "Owned in all" }), h("td", { textContent: money(worth.owned) })))
+      : h("p", { className: "note", textContent: "No car, home or building of your own yet." }));
+    const net = tile("Net worth", h("table", {}, row("Money", money(worth.cash + worth.fastrak)), row("What you own", money(worth.owned)),
+      h("tr", {}, h("td", { textContent: "What you owe" }), h("td", { className: worth.owing ? "neg" : "", textContent: worth.owing ? `−${money(worth.owing)}` : money(0) })),
+      h("tr", { className: "sum" }, h("td", { textContent: "Net worth" }), h("td", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }))));
+    return [me, h("div", { className: "tiles" }, stats, bank, debts, assets, net, history)];
   }
   const TABS = {
     you(w, p) {
@@ -3888,11 +4472,17 @@ export async function startCity(ctx) {
   };
   const transferTotal = (here, price) => transferTax(R, here.chain, price).total;
   ctx.button?.addEventListener("click", () => openPanel());
+  // Escape closes the window over the screen.
+  globalThis.addEventListener?.("keydown", (e) => { if (e.key === "Escape" && panel) { panel.remove(); panel = null; } });
   refresh();
 
   // The multiplayer session's hooks: what this walker's car is, and drawing the others'.
   return {
-    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, closePanel, joinParty, leaveParty,
+    //: How the crowd and the traffic were drawn last frame: so many at each tier (full, moderate,
+    //: low), so many only tracked, and the detail field's stretch ahead.
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked },
+      stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
+    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
@@ -3904,5 +4494,28 @@ export async function startCity(ctx) {
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, district, visible: () => visible, me: myId,
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
+    //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,
+    //: facing ``yaw``, in ``colour`` (the bus in its livery); called again, the row is taken away
+    //: first. Resolves to what was laid out.
+    async lineUp(x, z, { tier = "npc", colour = "#2b4c7e", yaw = 0.6, gap = 1.2 } = {}) {
+      group.getObjectByName("fleet-line-up")?.removeFromParent();
+      const row = new THREE.Group(); row.name = "fleet-line-up";
+      let at = 0;
+      const out = [];
+      for (const kind of Object.keys(FLEET_FOR)) {
+        const parts = await fleetReady(kind, tier);
+        if (!parts) continue;
+        const [w, , l] = VEHICLE_DIMS[kind];
+        at += Math.max(w, l * Math.abs(Math.sin(yaw))) / 2 + gap;
+        const g = new THREE.Group();
+        dressFull(g, kind, parts, colour);
+        g.position.set(x + at, groundAt(x + at, z), z); g.rotation.y = yaw;
+        row.add(g);
+        out.push({ kind, x: x + at, z, parts: parts.map((q) => q.name), triangles: parts.reduce((n, q) => n + (q.geometry.index ? q.geometry.index.count / 3 : 0), 0) });
+        at += Math.max(w, l * Math.abs(Math.sin(yaw))) / 2;
+      }
+      group.add(row);
+      return out;
+    },
   };
 }

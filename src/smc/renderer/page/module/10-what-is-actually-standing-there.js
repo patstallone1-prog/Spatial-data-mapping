@@ -501,9 +501,9 @@ function homeDesignMaterial(design) {
     for(let i=0;i<=32;i++){const t=1-i/32;ctx.lineTo(4+120*t,4+120*(1-arch-(1-arch)*Math.sqrt(Math.max(0,1-(2*t-1)**2))));}
     ctx.closePath();ctx.strokeStyle=trimColour;ctx.lineWidth=6;ctx.stroke();ctx.save();ctx.clip();
   }
-  // Far decals still contain a neutral glass layer, not empty alpha over painted wall.
-  // Detailed nearby shells supply the real hole and identically clear two-sided glazing.
-  ctx.fillStyle="rgba(231,240,243,0.12)";ctx.fillRect(4,4,120,120);
+  // Far decals still contain a glass layer, not empty alpha over painted wall: the grey of the
+  // nearby shells' panes (WINDOW_GLASS), so a window does not change as its shell is built.
+  ctx.fillStyle="rgba(92,100,104,0.36)";ctx.fillRect(4,4,120,120);
   ctx.fillStyle = trimColour;
   for (const t of design.vertical_bars || []) ctx.fillRect(t*128-1.5,4,3,120);
   for (const t of design.horizontal_bars || []) ctx.fillRect(4,t*128-1.5,120,3);

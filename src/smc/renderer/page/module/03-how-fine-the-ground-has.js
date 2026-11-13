@@ -400,6 +400,15 @@ const SETTLE_RULES = [
     occlude: new Set(["walk", "walk_narrow", "kerb", "divider_block", "median"]),
     label: "Painting the crossings and lanes on the road" },
 ];
+//: The tree pits are squares of soil cut into the pavement, and are set on it the same way: lifted
+//: onto the terrain by themselves they lay a few millimetres over the hill, and the pavement's
+//: own triangles -- through its stations, its edges, its ramps -- bowed differently between
+//: their vertices and came up through the soil by up to four centimetres, as white shards in
+//: one pit in thirty along Chestnut. They are the ground cover's (module 18), which comes down
+//: when the ground does, so they are settled once both it and the streets are down (module 19),
+//: from the ground's group.
+const PIT_SETTLE_RULE = { from: () => [groups.ground], onto: new Set(["walk", "walk_narrow", "kerb"]),
+  above: { tree_pit: 0.008 }, grid: 0.5, spread: 0.15, reach: 0.9, label: "Setting the tree pits in the pavement" };
 const settleKey = (x, z) => Math.floor(x / SETTLE_CELL_M) * 1048576 + Math.floor(z / SETTLE_CELL_M);
 const SETTLE_COARSE_M = 8.0;
 async function settleOnto(rule) {
@@ -409,10 +418,12 @@ async function settleOnto(rule) {
   const coarseByX = new Map();
   const tops = new Map();
   const coverTops = new Map();
-  const probes = new Map();
+  const probes = new Map(), spreads = new Map();
   const topArrays = [], coverArrays = [];
   const standing = [];
-  groups.streets.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
+  for (const group of rule.from ? rule.from() : [groups.streets]) {
+    group.traverse((o) => { if (o.isMesh && o.geometry && rule.above[o.userData.surface] !== undefined) standing.push(o); });
+  }
   if (!standing.length) return 0;
   for (const o of standing) {
     await maybeYield(rule.label);
@@ -422,6 +433,18 @@ async function settleOnto(rule) {
     if (rule.grid) o.geometry = await runStepsSliced(refineForTerrainSteps(o.geometry, rule.grid, 0));
     const position = o.geometry.getAttribute("position");
     const samples = [position];
+    // Also read a little way out from each vertex, each way, and the highest taken (rule.spread):
+    // where a pit's edge runs along the edge of a second, higher sheet of pavement -- a footway
+    // laid over the kerbside one, not dropped at a driveway the other was -- its vertex is just off
+    // the higher one, settles on the lower, and the higher stood up through the soil beside it.
+    if (rule.spread) {
+      const spread = [];
+      for (const [dx, dz] of [[rule.spread, 0], [-rule.spread, 0], [0, rule.spread], [0, -rule.spread]]) {
+        spread.push({ count: position.count, getX: (i) => position.getX(i) + dx, getZ: (i) => position.getZ(i) + dz });
+      }
+      spreads.set(o, spread);
+      samples.push(...spread);
+    }
     if (rule.occlude) {
       // Vertices alone miss a higher road triangle wholly inside a paint
       // triangle. Probe its centre too, without refining the whole city again.
@@ -538,6 +561,13 @@ async function settleOnto(rule) {
     const above = rule.above[o.userData.surface];
     const position = o.geometry.getAttribute("position");
     const best = tops.get(position);
+    for (const around of spreads.get(o) || []) {
+      const near = tops.get(around);
+      for (let i = 0; i < position.count; i += 1) {
+        if (!Number.isNaN(near[i]) && (Number.isNaN(best[i]) || near[i] > best[i])) best[i] = near[i];
+      }
+    }
+    if (rule.reach) fillFromNearestSettled(position, best, rule.reach);
     for (let i = 0; i < position.count; i += 1) {
       if (Number.isNaN(best[i])) continue;
       position.setY(i, best[i] + above);
@@ -572,6 +602,39 @@ async function settleOnto(rule) {
     o.geometry.computeBoundingSphere();
   }
   return settled;
+}
+//: A vertex of a settled piece that no pavement triangle is under -- a pit's corner a hand's
+//: breadth past the pavement's edge -- takes the top of the nearest one that was found, within
+//: `reach`: left on the terrain it stood up to four centimetres under the pavement beside it,
+//: and the pavement came up through that corner of the pit.
+function fillFromNearestSettled(position, best, reach) {
+  const cell = Math.max(reach, 0.25), found = new Map();
+  const key = (x, z) => Math.floor(x / cell) * 1048576 + Math.floor(z / cell);
+  for (let i = 0; i < position.count; i += 1) {
+    if (Number.isNaN(best[i])) continue;
+    const k = key(position.getX(i), position.getZ(i));
+    let list = found.get(k);
+    if (!list) found.set(k, list = []);
+    list.push(i);
+  }
+  if (!found.size) return 0;
+  const filled = [];
+  for (let i = 0; i < position.count; i += 1) {
+    if (!Number.isNaN(best[i])) continue;
+    const x = position.getX(i), z = position.getZ(i);
+    const gx = Math.floor(x / cell), gz = Math.floor(z / cell);
+    let near = -1, nearD = reach * reach;
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
+      for (const j of found.get((gx + dx) * 1048576 + gz + dz) || []) {
+        const d = (position.getX(j) - x) ** 2 + (position.getZ(j) - z) ** 2;
+        if (d <= nearD) { nearD = d; near = j; }
+      }
+    }
+    if (near >= 0) filled.push(i, best[near]);
+  }
+  // Only from vertices found under the pavement, not from ones just filled.
+  for (let k = 0; k < filled.length; k += 2) best[filled[k]] = filled[k + 1];
+  return filled.length / 2;
 }
 async function settleOntoPavement() {
   if (!TERRAIN_FRAME) return 0;

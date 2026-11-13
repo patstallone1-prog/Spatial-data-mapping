@@ -729,6 +729,54 @@ const TROLLEY_JOIN_M = 0.5;
 //: A line's last span stands this far back from a junction it ends at, on the block, where
 //: there are kerbs to stand its poles on (the junction's middle has none).
 const TROLLEY_END_SPAN_BACK_M = 6;
+//: Chestnut Street through the Marina hangs its wire from tall wooden poles at the back of the
+//: pavement, with the street's name signs hung on them, not from the steel poles downtown. A
+//: span is tied high on the pole, well over the contact wires, and pulled down taut to them.
+const TROLLEY_WOOD_STREETS = new Set(["Chestnut Street"]);
+const TROLLEY_WOOD_POLE = { height: 10.7, crossAt: 7.8, radius: 0.15 };
+//: The span wire crosses this far over each contact wire, a hanger down to it: the span holds
+//: the contact wires up, so it meets them, rather than passing a metre over their heads.
+const TROLLEY_HANGER_M = 0.35;
+//: Where the wires of two streets cross in a junction, Muni hangs a black steel frame (the
+//: crossing) that carries both pairs: it reaches this far past the outermost crossing point.
+const TROLLEY_FRAME_MARGIN_M = 0.25;
+//: Crossings this close are one frame (a pair over a pair crosses at four points 0.6 m apart).
+const TROLLEY_FRAME_CLUSTER_M = 1.2;
+//: Wires crossing at less than this are one street's wires, not a crossing.
+const TROLLEY_FRAME_MIN_DEG = 30;
+//: A corner's name blades hang on the wooden pole nearest it on its side of the street, this
+//: far off at most, this high up, off a bracket clear of the pole.
+const TROLLEY_SIGN_REACH_M = 15;
+const TROLLEY_SIGN_AT_M = 3.3;
+//: On a street of wooden poles a span stands beside each corner the line passes (within this
+//: of its middle), so there is a pole at the corner to hang the names on; the regular spans
+//: within TROLLEY_CORNER_SPAN_GAP_M of it give way to it.
+const TROLLEY_CORNER_REACH_M = 16;
+const TROLLEY_CORNER_SPAN_GAP_M = 14;
+
+function trolleyCornerStations(stations, path, lengths, spots) {
+  // stations: distances along path (lengths: the distance at each vertex) where spans stand;
+  // spots: [[x, z], ...] the corners' name posts. Returns the stations with one at each
+  // corner the line passes, inside the first and last, and none within the gap of it.
+  const first = stations[0], last = stations.at(-1);
+  const corners = [];
+  for (const [x, z] of spots) {
+    let best = null;
+    for (let i = 1; i < path.length; i += 1) {
+      const [ax, az] = path[i - 1], [bx, bz] = path[i];
+      const len = lengths[i] - lengths[i - 1];
+      if (len < 1e-6) continue;
+      const t = Math.max(0, Math.min(len, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / len));
+      const d = Math.hypot(ax + (bx - ax) * t / len - x, az + (bz - az) * t / len - z);
+      if (!best || d < best.d) best = { d, along: lengths[i - 1] + t };
+    }
+    if (best && best.d <= TROLLEY_CORNER_REACH_M && best.along > first && best.along < last) corners.push(best.along);
+  }
+  if (!corners.length) return stations;
+  const kept = stations.filter((d, i) => i === 0 || i === stations.length - 1
+    || corners.every((c) => Math.abs(c - d) >= TROLLEY_CORNER_SPAN_GAP_M));
+  return kept.concat(corners).sort((a, b) => a - b);
+}
 
 function trolleyChains(paths) {
   // OpenStreetMap splits a street's wire into ways at every tag change, and a route that turns
@@ -778,7 +826,8 @@ function trolleyChains(paths) {
       path = along.slice(0, -1).concat(path);
       cur = { i: next.i, end: next.end === "end" ? "start" : "end" };
     }
-    chains.push({ path, oneway: w.oneway, startOpen: degree(path[0]) <= 1, endOpen: degree(path.at(-1)) <= 1 });
+    chains.push({ path, oneway: w.oneway, wood: Boolean(w.wood),
+      startOpen: degree(path[0]) <= 1, endOpen: degree(path.at(-1)) <= 1 });
   });
   return chains;
 }
@@ -824,29 +873,70 @@ function trolleySpanStations(length, startOpen, endOpen) {
 //: middle of the street. A wire end there is joined to the nearest wire end of another way going
 //: on nearly straight (within TROLLEY_LINK_DEG) and at most TROLLEY_LINK_M away -- the crossing
 //: Muni hangs through the junction.
+//:
+//: The wires go on a pair to a pair, each in its place across the street. Joined one wire at a
+//: time, nearest first, a one-way pair coming into a two-way street's pair a little to one side
+//: (Fillmore's northbound pair, 1.1 and 1.7 m off its middle, into the pair at 2.07 and 2.67)
+//: took the two nearest ends first (1.7 to 2.07) and the other wire went over it to the far
+//: one: the pair crossed in the air, one wire dropping out of it across the other -- at 21
+//: junctions of the corridor (Chestnut and Fillmore, Columbus, Van Ness, Market).
 const TROLLEY_LINK_DEG = 40;
 const TROLLEY_LINK_M = 5;
 function trolleyJunctionLinks(ends) {
   // ends: [{ node, chain, x, z, dx, dz }] -- each wire's end at a junction, with (dx, dz) the
   // unit direction from the junction back along its own way. Returns [[i, j], ...] index pairs
-  // to join, each end in one pair at most, nearest first.
+  // to join, each end in one pair at most: a way's ends taken two at a time in their order
+  // across the street (its wire pairs), each pair joined to the pair of a way going on across
+  // that is nearest, first wire to first wire and second to second -- or, where the way going
+  // on is turned so far that those two would cross (a pair jogging sideways over Market
+  // Street), the other way round.
   const straight = -Math.cos(TROLLEY_LINK_DEG * Math.PI / 180);
-  const pairs = [];
-  for (let i = 0; i < ends.length; i += 1) {
-    for (let j = i + 1; j < ends.length; j += 1) {
-      const a = ends[i], b = ends[j];
+  const byWay = new Map();
+  ends.forEach((e, i) => {
+    const key = `${e.node}|${e.chain}`;
+    if (!byWay.has(key)) byWay.set(key, []);
+    byWay.get(key).push(i);
+  });
+  const ways = [...byWay.values()];
+  const options = [];
+  for (let g = 0; g < ways.length; g += 1) {
+    for (let h = g + 1; h < ways.length; h += 1) {
+      const a = ends[ways[g][0]], b = ends[ways[h][0]];
       if (a.node !== b.node || a.chain === b.chain) continue;
       if (a.dx * b.dx + a.dz * b.dz > straight) continue;   // not going on across the junction
-      const d = Math.hypot(a.x - b.x, a.z - b.z);
-      if (d <= TROLLEY_LINK_M) pairs.push([d, i, j]);
+      // Across the street: to the left of the first way, the same measure for both ways.
+      const across = (i) => ends[i].x * -a.dz + ends[i].z * a.dx;
+      // Two at a time (a wire left over on its own, if there is one, goes alone).
+      const pairsOf = (list) => {
+        const sorted = list.slice().sort((p, q) => across(p) - across(q));
+        const out = [];
+        for (let k = 0; k < sorted.length; k += 2) out.push(sorted.slice(k, k + 2));
+        return out;
+      };
+      const side = (p, q, r) => Math.sign((q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x));
+      const crossed = ([a0, a1], [b0, b1]) => {
+        if (a1 === undefined) return false;
+        const [p, q, r, t] = [a0, b0, a1, b1].map((i) => ends[i]);
+        return side(p, q, r) * side(p, q, t) < 0 && side(r, t, p) * side(r, t, q) < 0;
+      };
+      for (const pa of pairsOf(ways[g])) {
+        for (const order of pairsOf(ways[h])) {
+          if (order.length !== pa.length) continue;
+          const pb = crossed(pa, order) ? [order[1], order[0]] : order;
+          const gaps = pa.map((a, n) => Math.hypot(ends[a].x - ends[pb[n]].x, ends[a].z - ends[pb[n]].z));
+          if (Math.max(...gaps) <= TROLLEY_LINK_M) options.push({ gap: gaps.reduce((t, d) => t + d, 0) / gaps.length, pa, pb });
+        }
+      }
     }
   }
-  pairs.sort((p, q) => p[0] - q[0]);
+  options.sort((p, q) => p.gap - q.gap);
   const used = new Set(), links = [];
-  for (const [, i, j] of pairs) {
-    if (used.has(i) || used.has(j)) continue;
-    used.add(i); used.add(j);
-    links.push([i, j]);
+  for (const { pa, pb } of options) {
+    if ([...pa, ...pb].some((i) => used.has(i))) continue;
+    for (let n = 0; n < pa.length; n += 1) {
+      used.add(pa[n]); used.add(pb[n]);
+      links.push([Math.min(pa[n], pb[n]), Math.max(pa[n], pb[n])]);
+    }
   }
   return links;
 }
@@ -892,8 +982,55 @@ function filletTrolleyPath(path) {
   return { path: out, bends };
 }
 
-function addTrolleyWires(records, lightRows = []) {
+function trolleyCrossingFrames(segs) {
+  // segs: [{ node, a: [x, z], b: [x, z] }] -- the wires in and through a junction. Where wires
+  // of two streets cross (at more than TROLLEY_FRAME_MIN_DEG), the crossing points close
+  // together are one frame. Returns [{ x, z, ux, uz, hu, hv }]: the centre, the first street's
+  // direction, and the half-lengths along it and across it.
+  const byNode = new Map();
+  for (const seg of segs) {
+    if (!byNode.has(seg.node)) byNode.set(seg.node, []);
+    byNode.get(seg.node).push(seg);
+  }
+  const sharp = Math.cos(TROLLEY_FRAME_MIN_DEG * Math.PI / 180);
+  const frames = [];
+  for (const list of byNode.values()) {
+    const points = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const [ax, az] = list[i].a, [bx, bz] = list[i].b;
+      const rx = bx - ax, rz = bz - az, rl = Math.hypot(rx, rz);
+      if (rl < 1e-6) continue;
+      for (let j = i + 1; j < list.length; j += 1) {
+        const [cx, cz] = list[j].a, [dx, dz] = list[j].b;
+        const sx = dx - cx, sz = dz - cz, sl = Math.hypot(sx, sz);
+        if (sl < 1e-6 || Math.abs(rx * sx + rz * sz) / (rl * sl) > sharp) continue;
+        const den = rx * sz - rz * sx;
+        const t = ((cx - ax) * sz - (cz - az) * sx) / den, u = ((cx - ax) * rz - (cz - az) * rx) / den;
+        if (t < 0 || t > 1 || u < 0 || u > 1) continue;
+        points.push({ x: ax + rx * t, z: az + rz * t, ux: rx / rl, uz: rz / rl });
+      }
+    }
+    const clusters = [];
+    for (const pt of points) {
+      const home = clusters.find((c) => c.some((q) => Math.hypot(q.x - pt.x, q.z - pt.z) < TROLLEY_FRAME_CLUSTER_M));
+      if (home) home.push(pt); else clusters.push([pt]);
+    }
+    for (const c of clusters) {
+      const { ux, uz } = c[0];
+      const along = c.map((q) => q.x * ux + q.z * uz), across = c.map((q) => -q.x * uz + q.z * ux);
+      const ma = (Math.min(...along) + Math.max(...along)) / 2, mc = (Math.min(...across) + Math.max(...across)) / 2;
+      frames.push({ x: ma * ux - mc * uz, z: ma * uz + mc * ux, ux, uz,
+        hu: (Math.max(...along) - Math.min(...along)) / 2 + TROLLEY_FRAME_MARGIN_M,
+        hv: (Math.max(...across) - Math.min(...across)) / 2 + TROLLEY_FRAME_MARGIN_M });
+    }
+  }
+  return frames;
+}
+
+function addTrolleyWires(records, lightRows = [], nameBlades = []) {
   const segments = [], poles = [];
+  // The wires in and through each junction, for the crossing frames.
+  const junctionWires = [];
   // Muni's span wires hang from the city's trolley poles, which carry streetlights and are in
   // its layer (TP-*): a span pole falling near one is that pole, already standing.
   const trolleyLights = lightRows.filter((row) => String(row.item.pole_type || "").startsWith("TP-"));
@@ -920,9 +1057,10 @@ function addTrolleyWires(records, lightRows = []) {
     return null;
   };
   const groundAt = (x, z) => groundLiftAt(x, z) + ROAD_TOP_M;
-  const supportAt = (x, z, reach) => {
+  const supportAt = (x, z, reach, wood = false) => {
     // Where a wire is tied off near (x, z): the city's trolley pole, a span pole already
-    // standing, or a new pole at the kerb. [x, y, z] of the tie, or null where none can stand.
+    // standing, or a new pole at the kerb -- a tall wooden one on the streets that have them.
+    // [x, y, z] of the tie, or null where none can stand.
     const kerb = streetSquareKerb(nearestKerbAt(x, z, reach));
     if (!kerb) return null;
     const qx = kerb.x + kerb.nx * 0.5, qz = kerb.z + kerb.nz * 0.5;
@@ -930,26 +1068,46 @@ function addTrolleyWires(records, lightRows = []) {
     const real = standing(qx, qz);
     if (real) return [real.anchor.x, real.anchor.y + TROLLEY.crossAt, real.anchor.z];
     const shared = standingSpanPole(qx, qz);
-    if (shared) return [shared.x, shared.y + TROLLEY.crossAt, shared.z];
+    if (shared) return [shared.x, shared.y + (shared.wood ? TROLLEY_WOOD_POLE.crossAt : TROLLEY.crossAt), shared.z];
     const top = pavementTopAt(qx, qz);
     const y = (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(qx, qz);
-    const pole = { x: qx, y, z: qz };
+    const pole = { x: qx, y, z: qz, wood };
     poles.push(pole);
     const key = cellOf(qx, qz);
     if (!placedPoles.has(key)) placedPoles.set(key, []);
     placedPoles.get(key).push(pole);
-    return [qx, y + TROLLEY.crossAt, qz];
+    return [qx, y + (wood ? TROLLEY_WOOD_POLE.crossAt : TROLLEY.crossAt), qz];
   };
-  const spanAt = (px, pz, nx, nz) => {
-    // A span wire across the street at (px, pz), between poles at the kerbs either side.
-    const ends = [1, -1].map((side) => supportAt(px + nx * side * 7, pz + nz * side * 7, 6)).filter(Boolean);
-    if (ends.length === 2) segments.push(...ends[0], ...ends[1]);
-    return ends.length === 2;
+  const spanAt = (px, pz, nx, nz, offsets, wood) => {
+    // A span wire across the street at (px, pz), between poles at the kerbs either side: down
+    // from the pole on the left (+n) to just over the leftmost contact wire, across over each
+    // of them with a hanger down to it, and up to the pole on the right.
+    const ends = [1, -1].map((side) => supportAt(px + nx * side * 7, pz + nz * side * 7, 6, wood));
+    if (!ends[0] || !ends[1]) return false;
+    let from = ends[0];
+    for (const o of offsets.slice().sort((a, b) => b - a)) {
+      const x = px + nx * o, z = pz + nz * o, y = groundAt(x, z) + TROLLEY.height;
+      const over = [x, y + TROLLEY_HANGER_M, z];
+      segments.push(...from, ...over, ...over, x, y, z);
+      from = over;
+    }
+    segments.push(...from, ...ends[1]);
+    return true;
   };
   const projected = records.map((wire) => ({
     oneway: Boolean(wire.oneway),
+    wood: TROLLEY_WOOD_STREETS.has(wire.name),
     path: (wire.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }),
   }));
+  // The corners' name blades, by corner: hung on the wooden poles once the wires are up.
+  const corners = new Map();
+  for (const row of nameBlades) {
+    if (!row.p) continue;
+    const id = String(row.id || "").replace(/:\d+$/, "");
+    if (!corners.has(id)) corners.set(id, []);
+    corners.get(id).push(row);
+  }
+  const cornerSpots = [...corners.values()].map((rows) => { const [x, y] = xy(rows[0].p[0], rows[0].p[1]); return [x, -y]; });
   const junctionEnds = [];
   const nodeOf = ([x, z]) => `${Math.round(x / TROLLEY_JOIN_M)},${Math.round(z / TROLLEY_JOIN_M)}`;
   for (const [chainIndex, chain] of trolleyChains(projected).entries()) {
@@ -962,6 +1120,9 @@ function addTrolleyWires(records, lightRows = []) {
          TROLLEY.laneOffset - TROLLEY.pair / 2, TROLLEY.laneOffset + TROLLEY.pair / 2];
     const mitres = mitredOffsets(path);
     const at = (i, o) => [path[i][0] + mitres[i][0] * mitres[i][2] * o, path[i][1] + mitres[i][1] * mitres[i][2] * o];
+    // The ends of this line at a junction, and the reach of a crossing frame from them.
+    const junctions = [[chain.startOpen, chain.path[0]], [chain.endOpen, chain.path.at(-1)]]
+      .filter(([open]) => !open).map(([, pt]) => ({ node: nodeOf(pt), x: pt[0], z: pt[1] }));
     const lengths = [0];
     for (let i = 1; i < path.length; i += 1) {
       const [ax, az] = path[i - 1], [bx, bz] = path[i];
@@ -975,6 +1136,11 @@ function addTrolleyWires(records, lightRows = []) {
           const p0 = [a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0];
           const p1 = [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1];
           segments.push(p0[0], groundAt(...p0) + TROLLEY.height, p0[1], p1[0], groundAt(...p1) + TROLLEY.height, p1[1]);
+          for (const j of junctions) {
+            if (Math.hypot(p0[0] - j.x, p0[1] - j.z) < 20 || Math.hypot(p1[0] - j.x, p1[1] - j.z) < 20) {
+              junctionWires.push({ node: j.node, a: p0, b: p1 });
+            }
+          }
         }
       }
     }
@@ -992,8 +1158,8 @@ function addTrolleyWires(records, lightRows = []) {
     // across the street at either end of the curve holds it instead.
     for (const bend of bends) {
       const reach = TROLLEY.laneOffset + TROLLEY_PULL_OFF_M;
-      const tie = supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 7)
-        || supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 12);
+      const tie = supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 7, chain.wood)
+        || supportAt(bend.apex[0] + bend.out[0] * reach, bend.apex[1] + bend.out[1] * reach, 12, chain.wood);
       if (tie) {
         for (let k = bend.from + 1; k < bend.to; k += 1) {
           for (const o of offsets) {
@@ -1006,24 +1172,96 @@ function addTrolleyWires(records, lightRows = []) {
       for (const k of [bend.from, bend.to]) {
         const j = Math.min(path.length - 1, Math.max(1, k));
         const dx = path[j][0] - path[j - 1][0], dz = path[j][1] - path[j - 1][1], l = Math.hypot(dx, dz) || 1;
-        spanAt(path[k][0], path[k][1], -dz / l, dx / l);
+        spanAt(path[k][0], path[k][1], -dz / l, dx / l, offsets, chain.wood);
       }
     }
-    // Span wires along the line, the first and last where they hold its ends.
+    // Span wires along the line, the first and last where they hold its ends -- and on a street
+    // of wooden poles, one beside each corner.
     let seg = 1;
-    for (const d of trolleySpanStations(lengths.at(-1), chain.startOpen, chain.endOpen)) {
+    const stations = trolleySpanStations(lengths.at(-1), chain.startOpen, chain.endOpen);
+    for (const d of chain.wood ? trolleyCornerStations(stations, path, lengths, cornerSpots) : stations) {
       while (seg < path.length - 1 && lengths[seg] < d) seg += 1;
       const [ax, az] = path[seg - 1], [bx, bz] = path[seg];
       const len = lengths[seg] - lengths[seg - 1] || 1;
       const ux = (bx - ax) / len, uz = (bz - az) / len, t = d - lengths[seg - 1];
-      spanAt(ax + ux * t, az + uz * t, -uz, ux);
+      spanAt(ax + ux * t, az + uz * t, -uz, ux, offsets, chain.wood);
     }
   }
   let links = 0;
   for (const [i, j] of trolleyJunctionLinks(junctionEnds)) {
     const a = junctionEnds[i], b = junctionEnds[j];
     segments.push(a.x, groundAt(a.x, a.z) + TROLLEY.height, a.z, b.x, groundAt(b.x, b.z) + TROLLEY.height, b.z);
+    junctionWires.push({ node: a.node, a: [a.x, a.z], b: [b.x, b.z] });
     links += 1;
+  }
+  // The crossings: a black steel frame where two streets' wires cross, four bars round the
+  // crossing points, just over the wires.
+  const frames = trolleyCrossingFrames(junctionWires);
+  if (frames.length) {
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x141617, roughness: 0.6, metalness: 0.6 }), frames.length * 4);
+    const dummy = new THREE.Object3D();
+    let n = 0;
+    for (const f of frames) {
+      const y = groundAt(f.x, f.z) + TROLLEY.height + 0.05;
+      const yaw = Math.atan2(-f.uz, f.ux);
+      for (const [du, dv, long] of [[0, f.hv, true], [0, -f.hv, true], [f.hu, 0, false], [-f.hu, 0, false]]) {
+        dummy.position.set(f.x + f.ux * du - f.uz * dv, y, f.z + f.uz * du + f.ux * dv);
+        dummy.rotation.set(0, yaw, 0);
+        dummy.scale.set(long ? 2 * f.hu + 0.07 : 0.07, 0.09, long ? 0.07 : 2 * f.hv + 0.07);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(n, dummy.matrix);
+        n += 1;
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData = { surface: "furniture:trolley_wire", source: "openstreetmap", part: "crossing_frame" };
+    groups.furniture.add(mesh);
+  }
+  // The corners' name blades, hung on the wooden poles: each corner's on the pole nearest it on
+  // its own side of the street, off a bracket.
+  const woodPoles = poles.filter((pole) => pole.wood);
+  const signSinks = new Map(), hung = new Set();
+  let blades = 0;
+  for (const rows of corners.values()) {
+    const [cx, cy] = xy(rows[0].p[0], rows[0].p[1]), cz = -cy;
+    let best = null;
+    for (const pole of woodPoles) {
+      const d = Math.hypot(pole.x - cx, pole.z - cz);
+      if (d > TROLLEY_SIGN_REACH_M || hung.has(pole) || (best && d >= best.d)) continue;
+      const across = [0.25, 0.5, 0.75].some((t) => insideCarriageway(cx + (pole.x - cx) * t, cz + (pole.z - cz) * t, 0));
+      if (!across) best = { d, pole };
+    }
+    if (!best) continue;
+    const pole = best.pole;
+    hung.add(pole);
+    rows.sort((a, b) => (a.blade ?? 0) - (b.blade ?? 0)).forEach((row, k) => {
+      const slot = plateSlot(row);
+      const yaw = furnitureBearing(row, 0, pole);
+      const rx = Math.cos(yaw), rz = -Math.sin(yaw), nx = Math.sin(yaw), nz = Math.cos(yaw);
+      const bottom = pole.y + TROLLEY_SIGN_AT_M + k * (slot.h + 0.12), top = bottom + slot.h;
+      const out = TROLLEY_WOOD_POLE.radius + 0.06 + slot.w / 2;
+      const bx = pole.x + rx * out, bz = pole.z + rz * out;
+      if (!signSinks.has(slot.atlas)) signSinks.set(slot.atlas, newSink());
+      const sink = signSinks.get(slot.atlas);
+      for (const side of [1, -1]) {
+        const fx = bx + nx * side * BLADE_FACE_OFFSET_M, fz = bz + nz * side * BLADE_FACE_OFFSET_M;
+        const sx = rx * side * slot.w / 2, sz = rz * side * slot.w / 2;
+        const base = sink.positions.length / 3;
+        sink.positions.push(fx - sx, bottom, fz - sz, fx + sx, bottom, fz + sz, fx + sx, top, fz + sz, fx - sx, top, fz - sz);
+        sink.uvs.push(slot.u0, slot.v0, slot.u1, slot.v0, slot.u1, slot.v1, slot.u0, slot.v1);
+        sink.colours.push(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+        sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
+      // The bracket it hangs from: out from the pole along its top edge.
+      segments.push(pole.x + rx * TROLLEY_WOOD_POLE.radius, top + 0.04, pole.z + rz * TROLLEY_WOOD_POLE.radius,
+        pole.x + rx * (out + slot.w / 2), top + 0.04, pole.z + rz * (out + slot.w / 2));
+      blades += 1;
+    });
+  }
+  for (const [atlas, sink] of signSinks) {
+    const mesh = flushSink(sink, plateMaterial(atlas), "furniture:sign_plate");
+    if (mesh) groups.furniture.add(mesh);
   }
   if (segments.length) {
     const geometry = new THREE.BufferGeometry();
@@ -1032,21 +1270,28 @@ function addTrolleyWires(records, lightRows = []) {
     lines.userData = { surface: "furniture:trolley_wire", source: "openstreetmap" };
     groups.furniture.add(lines);
   }
-  if (poles.length) {
-    const mesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.15, 1, 10),
-      new THREE.MeshStandardMaterial({ color: 0x4a5250, roughness: 0.55, metalness: 0.5 }), poles.length);
+  const steel = poles.filter((pole) => !pole.wood);
+  for (const [list, geometry, material, height, surface] of [
+    [steel, new THREE.CylinderGeometry(0.11, 0.15, 1, 10),
+      new THREE.MeshStandardMaterial({ color: 0x4a5250, roughness: 0.55, metalness: 0.5 }), TROLLEY.poleHeight, "furniture:trolley_pole"],
+    [woodPoles, new THREE.CylinderGeometry(TROLLEY_WOOD_POLE.radius * 0.8, TROLLEY_WOOD_POLE.radius * 1.15, 1, 10),
+      new THREE.MeshStandardMaterial({ color: 0x5e4a36, roughness: 0.92, metalness: 0 }), TROLLEY_WOOD_POLE.height, "furniture:utility_pole"],
+  ]) {
+    if (!list.length) continue;
+    const mesh = new THREE.InstancedMesh(geometry, material, list.length);
     const dummy = new THREE.Object3D();
-    poles.forEach((pole, i) => {
-      dummy.position.set(pole.x, pole.y + TROLLEY.poleHeight / 2, pole.z);
-      dummy.scale.set(1, TROLLEY.poleHeight, 1);
+    list.forEach((pole, i) => {
+      dummy.position.set(pole.x, pole.y + height / 2, pole.z);
+      dummy.scale.set(1, height, 1);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-    mesh.userData = { surface: "furniture:trolley_pole", source: "openstreetmap", liftedOntoGround: true };
+    mesh.userData = { surface, source: "openstreetmap", liftedOntoGround: true };
     groups.furniture.add(mesh);
   }
-  return { wire_segments: segments.length / 6, span_poles: poles.length, junction_links: links };
+  return { wire_segments: segments.length / 6, span_poles: poles.length, wood_poles: woodPoles.length,
+    junction_links: links, crossing_frames: frames.length, pole_blades: blades };
 }
 
 //: A bus zone shorter than this, once cut back from the crossings, is not painted.
@@ -1459,7 +1704,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}) 
       .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
       inferred.detected_parking_meters || [])),
-    trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows),
+    trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows, corners),
     road_legends: paintRoadLegends(),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
@@ -1738,6 +1983,11 @@ function placeCamera() {
     camera.position.sub(state.target).setLength(blocked).add(state.target);
     cameraPulledIn = true;
   }
+  // Pulled in to the walker itself (a wall right behind: in a doorway facing out, a lane between
+  // walls), the camera stood inside the walker's legs -- "a super zoomed view of the jeans, and
+  // inside them". So it looks from the walker's eyes instead, the way the view faces, and the
+  // walker is not drawn, until the view has room again (2026-11-12).
+  if (typeof walkerEyeView === "function" && walkerEyeView(cameraPulledIn ? blocked : null)) return;
   // The ground stops it too. Not under the ground (a walker in a tunnel or a station has its
   // own bore to keep the camera in: constrainWorldCamera), and not from the air.
   cameraOnGround = false;
@@ -1753,6 +2003,30 @@ function placeCamera() {
   camera.lookAt(state.target);
   if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));
   fitViewToAltitude();
+}
+//: Pulled in closer than this to the walker, the view is from its eyes (placeCamera).
+const ORBIT_MIN_WALKER_M = 1.6;
+var walkerHiddenByCamera = false;
+function walkerEyeView(pulledTo) {
+  const walker = typeof avatar !== "undefined" && !state.explore && !(typeof ATTACH !== "undefined" && ATTACH)
+    && typeof walkerGroundAt === "function" && Math.hypot(state.target.x - avatar.position.x, state.target.z - avatar.position.z) < 0.5;
+  if (walker && pulledTo !== null && pulledTo < ORBIT_MIN_WALKER_M) {
+    const eye = avatar.position.clone();
+    eye.y = AVATAR_EYE_Y + (Number.isFinite(state.floorY) ? state.floorY : walkerGroundAt(avatar.position.x, avatar.position.z));
+    // The way the orbit looked: from behind the walker, over it.
+    const ahead = new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+    camera.position.copy(eye);
+    camera.lookAt(eye.x + ahead.x * 10, eye.y - Math.tan(Math.min(0.6, state.pitch * 0.5)) * 10, eye.z + ahead.z * 10);
+    if (avatar.visible) { avatar.visible = false; walkerHiddenByCamera = true; }
+    fitViewToAltitude();
+    return true;
+  }
+  // Room again: the walker is drawn as it was (unless something else has hidden it since).
+  if (walkerHiddenByCamera && typeof avatar !== "undefined") {
+    walkerHiddenByCamera = false;
+    if (!state.firstPerson && !avatar.userData?.inCar) avatar.visible = true;
+  }
+  return false;
 }
 //: Climbing, the view sees further and the haze lifts: the far plane reaches past the Earth's
 //: horizon and the fog draws back with the height, so from on high the Bay -- and then the

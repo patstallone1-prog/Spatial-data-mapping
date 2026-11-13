@@ -1,8 +1,14 @@
-// Buses on the real routes: each route's stops in the district (docs/transit-stops.json, from
-// SFMTA's GTFS), put in order along the route and joined by the streets; buses out and back on a
-// timetable, stopping at every stop. Where each bus is follows from the clock, so a party sees
-// the same buses at the same stops without sending a byte (tests/city.test.mjs).
+// Buses on the real routes. Where Muni's timetable for the district is to hand
+// (docs/city/muni-routes.json, scripts/build_muni_routes.py), each route and direction is run as
+// the timetable runs it: its own stops in its own order, one bus for each trip, leaving the first
+// stop at the minute it is timetabled to -- every six minutes on the 22 at noon on a weekday,
+// every half hour on the owl at three in the morning, none on the 30X at the weekend -- with its
+// number and where it is going on its sign. Any other route: its stops in the district
+// (docs/transit-stops.json, from SFMTA's GTFS) put in order along it and joined by the streets,
+// buses out and back every few minutes. Where each bus is follows from the clock, so a party
+// sees the same buses at the same stops without sending a byte (tests/city.test.mjs).
 
+import { cityTime } from "./core.mjs";
 import { LANE, alongRoute } from "./people.mjs";
 
 //: A bus keeps to its lane, clear of the cars parked at the kerb (people.mjs LANE) -- never the
@@ -20,20 +26,23 @@ export function busSide(pull) {
   };
 }
 
-//: The district's bus lines from ``stops`` ([{id, name, lon, lat, routes, modes}]) on ``streets``.
-export function buildLines(R, stops, streets, toXZ) {
+//: The district's bus lines from ``stops`` ([{id, name, lon, lat, routes, modes}]) on ``streets``;
+//: with ``timetable`` (muni-routes.json), its routes as it runs them and the rest out and back.
+export function buildLines(R, stops, streets, toXZ, timetable = null) {
   const T = R.transit_lines, byRoute = new Map();
+  const lines = timetable ? timetabledLines(R, timetable, streets, toXZ) : [];
+  const timed = new Set(lines.map((l) => l.route));
   for (const stop of stops) {
     if (!(stop.modes || []).includes("bus")) continue;
     const [x, z] = toXZ(stop.lon, stop.lat);
     const node = streets.nearest(x, z, "drive", 60);
     if (node === null || node === undefined) continue;
     for (const route of stop.routes || []) {
+      if (timed.has(route)) continue;
       if (!byRoute.has(route)) byRoute.set(route, []);
       byRoute.get(route).push({ id: stop.id, name: stop.name, x, z, node });
     }
   }
-  const lines = [];
   for (const [route, list] of byRoute) {
     // The two sides of the street are one stop for the order along the route.
     const clusters = [];
@@ -88,31 +97,136 @@ export function buildLines(R, stops, streets, toXZ) {
   }
   return lines;
 }
+//: The timetabled lines: each entry of ``timetable.lines`` whose stops stand on ``streets``, one
+//: way, from its first stop to its last; its trips leave the first at the timetable's minutes
+//: (``schedule``), and take the timetable's time to the last (each leg's drive stretched or
+//: shrunk to it, at a speed a bus keeps).
+function timetabledLines(R, timetable, streets, toXZ) {
+  const T = R.transit_lines, out = [];
+  timetable.lines.forEach((entry, i) => {
+    const kept = [];
+    entry.stops.forEach((s, k) => {
+      const [x, z] = toXZ(s.lon, s.lat);
+      const node = streets.nearest(x, z, "drive", 60);
+      if (node === null || node === undefined) return;
+      const pole = { id: s.id, name: s.name, x, z, node };
+      kept.push({ x, z, name: s.name, poles: [pole], node, minute: entry.minutes[k] });
+    });
+    // Joined by the streets, as far as they go unbroken.
+    const legs = [];
+    for (let k = 0; k + 1 < kept.length; k += 1) {
+      const leg = streets.route(kept[k].node, kept[k + 1].node, "drive");
+      if (!leg || leg.length > 3000) break;
+      legs.push({ leg, off: Math.min(10, leg.length * 0.3), stop: k, next: k + 1 });
+    }
+    if (!legs.length) return;
+    const stops = kept.slice(0, legs.length + 1);
+    // The drives: the timetable's minutes from the first stop to the last, less the stands at the
+    // stops between, shared by length -- at no less than 2.5 m/s nor more than 13.
+    const lens = legs.map((L, k) => L.leg.length - L.off + (legs[k + 1] ? legs[k + 1].off : 0));
+    const total = lens.reduce((a, b) => a + b, 0);
+    const timed = (stops[stops.length - 1].minute - stops[0].minute) * 60 - T.dwell_s * (stops.length - 2);
+    const speed = Math.max(2.5, Math.min(13, timed > 0 ? total / timed : T.speed_ms));
+    const timeline = [];
+    let t = 0;
+    for (let k = 0; k < stops.length; k += 1) {
+      const L = legs[k], prev = legs[k - 1];
+      const at = L ? alongRoute(L.leg, L.off, busSide(1)) : alongRoute(prev.leg, prev.leg.length, busSide(1));
+      timeline.push({ kind: "dwell", stop: k, t0: t, t1: t + T.dwell_s, at, pole: { x: stops[k].x, z: stops[k].z } });
+      t += T.dwell_s;
+      if (!L) break;
+      const after = legs[k + 1] || null, length = lens[k], secs = Math.max(4, length / speed);
+      timeline.push({ kind: "drive", stop: k, next: k + 1, leg: L.leg, from: L.off, after: after?.leg || null, afterOff: after?.off || 0, length, t0: t, t1: t + secs });
+      t += secs;
+    }
+    out.push({ route: entry.route, stops, timeline, cycle: t, buses: null, pull_m: T.pull_m ?? 18,
+      sign: { route: entry.route, name: entry.name, to: entry.headsign },
+      schedule: { key: `${entry.route}-${entry.direction}-${i}`, zone: timetable.zone || R.clock?.zone || "America/Los_Angeles", departs: entry.departs, lead: T.dwell_s } });
+  });
+  return out;
+}
+
+//: The timetable each day of the week runs (Sunday first), as muni-routes.json names them.
+const DAY_KIND = ["sunday", "weekday", "weekday", "weekday", "weekday", "weekday", "saturday"];
+let dayMemo = { key: "", value: null };
+//: The city's day at ``sec`` (s since epoch): its midnight (s since epoch) and weekday (Sunday 0).
+export function serviceDay(sec, zone) {
+  const key = `${zone}:${Math.floor(sec / 60)}`;
+  if (dayMemo.key === key) return dayMemo.value;
+  // In whole seconds: the clock's own, so a trip's start (and its id) is the same whenever asked.
+  const whole = Math.floor(sec), t = cityTime(whole * 1000, zone);
+  const value = { start: whole - Math.round(t.minute * 60), weekday: t.weekday };
+  dayMemo = { key, value };
+  return value;
+}
+//: A timetabled line's trips, ``back`` days before ``sec``'s to ``ahead`` after: [{id, start}],
+//: ``start`` when the trip's timeline begins (s since epoch: its stand at the first stop).
+function tripsAround(line, sec, back = 1, ahead = 0) {
+  const S = line.schedule, today = serviceDay(sec, S.zone), out = [];
+  for (let d = -back; d <= ahead; d += 1) {
+    const start = today.start + d * 86400, kind = DAY_KIND[((today.weekday + d) % 7 + 7) % 7];
+    for (const m of S.departs[kind] || []) {
+      const at = start + m * 60 - S.lead;
+      out.push({ id: `bus:${line.route}:${S.key}:${at}`, start: at });
+    }
+  }
+  return out;
+}
+//: The line's buses out at ``sec`` (s since epoch): [{id, phase}], ``phase`` the seconds into the
+//: line's timeline. A timetabled line has one for each trip on the road; another, ``buses`` going
+//: round, evenly spaced.
+export function busPhases(line, sec) {
+  if (line.schedule) {
+    return tripsAround(line, sec).filter((trip) => sec >= trip.start && sec < trip.start + line.cycle).map((trip) => ({ id: trip.id, phase: sec - trip.start }));
+  }
+  const out = [];
+  for (let j = 0; j < line.buses; j += 1) out.push({ id: `bus:${line.route}:${j}`, phase: ((sec + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle });
+  return out;
+}
+//: When the line's buses next stand at the timeline's ``seg`` (a dwell), from ``sec`` on: the
+//: times (s since epoch) each begins standing there, soonest first, ``count`` of them -- one there
+//: already counts (its time is then before ``sec``). Within ``horizon`` seconds.
+export function arrivalsAt(line, seg, sec, count = 2, horizon = 4 * 3600) {
+  const dur = seg.t1 - seg.t0, out = [];
+  if (line.schedule) {
+    for (const trip of tripsAround(line, sec, 1, 1)) {
+      const at = trip.start + seg.t0;
+      if (at + dur > sec && at < sec + horizon) out.push({ id: trip.id, at });
+    }
+  } else {
+    for (const { id, phase } of busPhases(line, sec)) {
+      const C = line.cycle;
+      out.push({ id, at: phase >= seg.t0 && phase < seg.t1 ? sec - (phase - seg.t0) : sec + ((seg.t0 - phase) % C + C) % C });
+    }
+  }
+  return out.sort((a, b) => a.at - b.at).slice(0, count);
+}
 //: Every bus at ``ms``: where it is, which way it faces, and whether it is standing at a stop.
 //: ``lag`` (bus id -> seconds): how far behind the timetable a bus is running, held at a stop.
 export function busesAt(lines, ms, lag = null) {
   const out = [];
   for (const line of lines) {
-    for (let j = 0; j < line.buses; j += 1) {
-      const id = `bus:${line.route}:${j}`;
-      const t = ms / 1000 - (lag?.get(id) || 0);
-      const phase = ((t + j * line.cycle / line.buses) % line.cycle + line.cycle) % line.cycle;
+    for (const bus of busPhases(line, ms / 1000)) {
+      const id = bus.id;
+      let phase = bus.phase - (lag?.get(id) || 0);
+      if (line.schedule) { if (phase < 0) phase = 0; } else phase = (phase % line.cycle + line.cycle) % line.cycle;
       const tl = line.timeline;
       let lo = 0, hi = tl.length - 1;
       while (lo < hi) { const m = (lo + hi + 1) >> 1; if (tl[m].t0 <= phase) lo = m; else hi = m - 1; }
       const seg = tl[lo];
       if (seg.kind === "dwell") {
         const pos = seg.at;
-        const next = tl[lo + 1]?.next ?? tl[1]?.next ?? null;
-        out.push({ id, route: line.route, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: 0, moving: false, dwelling: true, stop: seg.stop, pole: seg.pole,
+        // (A timetabled bus at its last stop goes no further: nothing next.)
+        const next = tl[lo + 1]?.next ?? (line.schedule ? null : tl[1]?.next ?? null);
+        out.push({ id, route: line.route, sign: line.sign || null, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: 0, moving: false, dwelling: true, stop: seg.stop, pole: seg.pole,
           stopName: line.stops[seg.stop].name, next, nextName: next !== null ? line.stops[next].name : null, leaves: (seg.t1 - phase) });
       } else {
         // Along the leg from where it stood, past the next stop's corner to where it stands there.
         const d = seg.length * (phase - seg.t0) / (seg.t1 - seg.t0), rest = seg.leg.length - seg.from;
         // Out from the kerb as it leaves the stop, in to it as it comes up to the next.
         const P = line.pull_m ?? 18, side = busSide(Math.max(1 - d / P, 1 - (seg.length - d) / P));
-        const pos = d < rest ? alongRoute(seg.leg, seg.from + d, side) : alongRoute(seg.after, d - rest, side);
-        out.push({ id, route: line.route, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: seg.length / (seg.t1 - seg.t0), moving: true, dwelling: false,
+        const pos = d < rest || !seg.after ? alongRoute(seg.leg, seg.from + d, side) : alongRoute(seg.after, d - rest, side);
+        out.push({ id, route: line.route, sign: line.sign || null, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: seg.length / (seg.t1 - seg.t0), moving: true, dwelling: false,
           stop: null, next: seg.next, nextName: line.stops[seg.next].name, leaves: 0 });
       }
     }

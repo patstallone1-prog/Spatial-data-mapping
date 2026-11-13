@@ -11,6 +11,7 @@
 // the trips of the day say how it got there (``history``). Pure, as people.mjs is
 // (tests/city.test.mjs).
 
+import { arrivalsAt } from "./transit.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
@@ -25,7 +26,7 @@ const LAST = ["Nguyen", "Garcia", "Chen", "Patel", "Kim", "Lopez", "Wong", "Smit
   "Tran", "Brown", "Wu", "Hernandez", "Davis", "Liu", "Flores", "Park", "Silva", "Cohen", "Okafor", "Rossi", "Murphy", "Yamamoto",
   "Novak", "Haddad", "Reyes", "Ali", "Berg"];
 //: What residents drive, by share (approx. the Bay Area's registrations by body type).
-export const PRIVATE_MIX = [["economy", 0.3], ["sedan", 0.24], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.07], ["delivery_van", 0.05]];
+export const PRIVATE_MIX = [["economy", 0.3], ["sedan", 0.22], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.07], ["delivery_van", 0.05], ["sports", 0.02]];
 //: The district's through traffic, by who drives it (approx.: ride-hail alone was some 15% of
 //: the trips within San Francisco in the county transportation authority's "TNCs Today", 2017;
 //: delivery vans and the rest of the through traffic make up the others).
@@ -35,7 +36,7 @@ export const VISITOR_KINDS = [
   { kind: "ride_hail", title: "Ride-hail driver", share: 0.3, trips: [10, 18], stop: [0.6, 1, 3], models: [["sedan", 0.35], ["compact_ev", 0.3], ["suv", 0.2], ["economy", 0.15]] },
   { kind: "taxi", title: "Taxi driver", share: 0.05, trips: [10, 16], stop: [0.5, 1, 3], models: [["taxi", 1]] },
   { kind: "delivery", title: "Delivery driver", share: 0.15, trips: [8, 14], stop: [0.8, 3, 8], models: [["delivery_van", 0.75], ["box_truck", 0.1], ["pickup", 0.15]] },
-  { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.25], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05]] },
+  { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.23], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05], ["sports", 0.02]] },
 ];
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
 //: A car's lane: right of the street's middle, clear of the cars parked at its kerb, and the lane
@@ -51,9 +52,17 @@ export const PARKING = { junction_clear_m: 6.1, step_m: 1.5, search_nodes: 9, ma
 //: Where a car stands without the drawn kerb: the street's half-width less half the car and a
 //: hand's width (it stood 1.8 m in, a metre off the kerb, out in the lane).
 const PARKED_OFF = (half, width) => Math.max(1.7, half - width / 2 - PARKING.kerb_gap_m);
-//: Width and length of each model, as the page draws it (vehicles.mjs VEHICLE_DIMS).
+//: Width and length of each model, as the page draws it (vehicles.mjs VEHICLE_DIMS: the imported
+//: fleet's own measured sizes, the rest a common car of the kind) -- a car takes the kerb its own
+//: length needs, so a pickup is not put where only a hatchback fits.
 const VEHICLE_W = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[0]]));
 const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[2]]));
+//: The kerb a car of ``model`` needs between the cars either side of it: its length and the gap
+//: kept at each end (PARKING.gap_m, to pull out). A space shorter is not offered it (clashes).
+export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 * PARKING.gap_m;
+//: The old way's spots (legacySpot: no kerb drawn) are a fixed pitch along the street: the
+//: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
+const LEGACY_PITCH_M = Math.max(...["economy", "compact_ev", "sedan", "suv", "pickup", "delivery_van", "box_truck", "taxi", "patrol", "sports"].map((m) => VEHICLE_L[m] || 0)) + PARKING.gap_m;
 const DRIVE_MIN_M = 700;
 //: A round at work driven is a leg every so many minutes (roamDrive).
 export const ROAM_SLOT_MIN = 4;
@@ -323,7 +332,7 @@ export class City {
     const slot = placeId === vehicle.home ? this.homeSlot(vehicle) : hash32(vehicle.id, placeId) % 9;
     const e = edges[slot % edges.length], k = Math.floor(slot / edges.length);
     const b = s.nodes[e.to], len = e.length || 1, ux = (b.x - n.x) / len, uz = (b.z - n.z) / len;
-    const room = Math.max(1, len - 10), along = 5 + ((k * 6.4) % room);
+    const room = Math.max(1, len - 10), along = 5 + ((k * LEGACY_PITCH_M) % room);
     const cx = n.x + ux * along, cz = n.z + uz * along, off = PARKED_OFF(e.half || 3, VEHICLE_W[vehicle.model] || 1.85);
     return { garage: false, node: nodeId, edge: e, along, cx, cz, x: cx - uz * off, z: cz + ux * off, yaw: Math.atan2(-ux, -uz), place: placeId, street: e.name || null };
   }
@@ -400,6 +409,8 @@ export class City {
   }
   //: Spots already given out: none within a car's length (and a gap) along the same kerb -- a
   //: home's spot all day, a visit's while it is there (``win``; none: any held spot clashes).
+  //: Both cars' own half-lengths: the space between two parked cars is offered only to a car
+  //: that fits it with the gap kept at each end (kerbRunFor), a hatchback where a pickup is not.
   clashes(x, z, ax, az, halfLen, win = null) {
     for (let i = -1; i <= 1; i += 1) for (let j = -1; j <= 1; j += 1) {
       const cell = this.taken.get(`${Math.floor(x / 12) + i},${Math.floor(z / 12) + j}`);
@@ -587,11 +598,13 @@ export class City {
     }
     if (!best) return null;
     const { line } = best, tl = line.timeline, C = line.cycle;
-    // The dwell at the first stop that reaches the second soonest: the bus going the right way.
+    // The dwell at the first stop that reaches the second soonest: the bus going the right way
+    // (a timetabled run goes one way only, and does not come round again).
     let leg = null;
     tl.forEach((s, i) => {
       if (s.kind !== "dwell" || s.stop !== best.a) return;
       for (let k = 1; k < tl.length; k += 1) {
+        if (line.schedule && i + k >= tl.length) break;
         const e = tl[(i + k) % tl.length];
         if (e.kind !== "dwell" || e.stop !== best.b) continue;
         const ride = ((e.t0 - s.t0) % C + C) % C;
@@ -603,13 +616,9 @@ export class City {
     const stopA = leg.at.pole, stopB = leg.off.pole;
     const walkA = tripMinutes(Math.hypot(stopA.x - A.x, stopA.z - A.z), p.pace) + 0.2;
     const atStop = dayStart / 1000 + (depart + walkA) * 60;
-    // The next of the line's buses to stand at the stop (transit.mjs busesAt's phases).
-    let arrive = Infinity;
-    for (let j = 0; j < line.buses; j += 1) {
-      const phase = ((atStop + j * C / line.buses) % C + C) % C;
-      const wait = phase >= leg.at.t0 && phase < leg.at.t1 - 6 ? leg.at.t0 - phase : ((leg.at.t0 - phase) % C + C) % C;
-      arrive = Math.min(arrive, atStop + wait);
-    }
+    // The next of the line's buses to stand at the stop (transit.mjs: the buses the page draws),
+    // one standing there still counted while it has 6 s to go.
+    const arrive = arrivalsAt(line, leg.at, atStop + 6, 1)[0]?.at ?? Infinity;
     if (!Number.isFinite(arrive) || arrive - atStop > 15 * 60) return null;
     const toMin = (sec) => (sec - dayStart / 1000) / 60;
     const board = toMin(arrive + Math.min(6, (leg.at.t1 - leg.at.t0) / 3));

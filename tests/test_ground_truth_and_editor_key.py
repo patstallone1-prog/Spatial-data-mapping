@@ -48,4 +48,8 @@ def test_the_creator_frames_the_face_while_the_face_is_changed():
     lobby = LOBBY.read_text()
     assert 'focus(kind) { framing = kind === "head" ? "head" : "body"; },' in lobby
     assert 'stageFocus(!soldierOn && (creatorTab === "Face" || creatorTab === "Hair") ? "head" : "body");' in lobby
-    assert "const want = head ? { y: tall - 0.14, z: 1.25, at: tall - 0.15, fov: 26 }" in lobby
+    # On the face itself (its head bone), and wide enough to hold it however narrow the canvas.
+    assert "? { y: face.y + 0.01, z: face.z + FACE_VIEW_M, at: face.y, fov: 26, half: FACE_HALF_M }" in lobby
+    assert "want.fov = Math.max(want.fov, THREE.MathUtils.radToDeg(2 * Math.atan(want.half" in lobby
+    # Turned and let go, it stays turned (within a half turn either way).
+    assert "headYaw = Math.max(-HEAD_TURN_MAX, Math.min(HEAD_TURN_MAX," in lobby

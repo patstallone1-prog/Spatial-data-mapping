@@ -234,6 +234,10 @@ test("a player's day in the party's world", () => {
   // A job at the café, clocked in at its door, an hour's pay with tax held back.
   assert.equal(w.submit("ana", "take_job", { role: "barista", place: { ...cafe, keys: [...cafe.keys] } }).ok, true);
   assert.equal(w.submit("ana", "clock_in", { at, spots: { counter: at, back: at, kerb: at } }).ok, true);
+  // The barista's shift began at 5: three hours late, docked a quarter of an hour's pay once.
+  const dock = w.players.get("ana").clocked.dock;
+  assert.equal(w.players.get("ana").clocked.late, true);
+  assert.equal(dock, Math.round(R.jobs.roles.barista.pay * 15 / 60));
   // Work is tasks: the first comes, is done at its spot, and the hour is paid.
   w.step(WED_8 + 10_000);
   const task = w.players.get("ana").clocked.task;
@@ -245,7 +249,7 @@ test("a player's day in the party's world", () => {
   w.step(WED_8 + 3_600_000);
   const after = w.submit("ana", "status").balance;
   // The vision's basic job: 120 every 10 minutes (a barista a little more), net of payroll tax.
-  assert.ok(after > m(2000 + 700) && after < m(2000 + R.jobs.roles.barista.pay / 100 + 5), `paid ${after - m(2000)} net of tax, and the tip`);
+  assert.ok(after > m(2000 + 700) - dock && after < m(2000 + R.jobs.roles.barista.pay / 100 + 5) - dock, `paid ${after - m(2000)} net of tax and the dock, and the tip`);
   assert.ok(w.ledger.balance("authority:ssa") > 0 && w.ledger.balance("authority:edd") > 0);
   // Coffee with San Francisco's sales tax.
   const coffee = w.submit("ana", "buy", { item: "coffee", place: { ...cafe, keys: [...cafe.keys] } });
@@ -482,6 +486,30 @@ test("a bus fare, a taxi meter and a delivery gig", () => {
 test("the viewer's city module loads without a page", async () => {
   const view = await import("../docs/city/view.mjs");
   assert.equal(typeof view.startCity, "function");
+});
+
+test("your window: net worth is your money and what you own, less what you owe", async () => {
+  const { wealthOf } = await import("../docs/city/view.mjs");
+  const w = new CityWorld(R, { now: WED_8 });
+  w.submit("ana", "join", { name: "Ana", at: { x: 0, z: 0, lon: -122.4194, lat: 37.7749 } });
+  const st = w.cmd_status("ana");
+  const now = wealthOf(R, st);
+  assert.equal(now.cash, st.balance);
+  assert.equal(now.net, st.balance + now.owned - now.owing);
+  const rich = wealthOf(R, { ...st, balance: m(1000), fastrak: { balance: m(50) },
+    vehicles: [{ id: "v", attrs: { model: "sedan", plate: "7ABC123", value: R.vehicles.models.sedan.price } }],
+    homes: [{ id: "home:1", attrs: { label: "Flat 2", assessed: m(900_000) } }],
+    inventory: { coffee: 3 }, bills: [{ kind: "parking_citation", owed: m(96) }], mortgages: [{ home: "home:1", owed: m(700_000) }] });
+  assert.equal(rich.owned, R.vehicles.models.sedan.price + m(900_000) + 3 * R.items.coffee.price);
+  assert.equal(rich.owing, m(96) + m(700_000));
+  assert.equal(rich.net, m(1000) + m(50) + rich.owned - rich.owing);
+  // Dearest first; the bag's small things together.
+  assert.deepEqual(rich.assets.map((a) => a.kind), ["home", "vehicle", "goods"]);
+  assert.equal(rich.assets[2].label, "Everything else in your bag");
+  // It opens over the screen from your card, not docked in the map's controls.
+  const src = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.ok(src.includes('panel = h("section", { id: "city", className: "pop" });') && !src.includes("ctx.panelHost"));
+  assert.ok(src.includes('const profileCard = h("section", { id: "city-profile", className: "city-card", title: "You: your wallet, job, home, car and the laws", onclick: () => openPanel(true) });'));
 });
 
 test("a shift with nothing done is not paid, and three such stretches send you home", () => {

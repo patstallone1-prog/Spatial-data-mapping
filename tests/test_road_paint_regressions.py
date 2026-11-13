@@ -234,3 +234,37 @@ def test_dash_geometry_has_exact_lengths_independent_of_way_sampling(vertices):
     assert result["length"] == pytest.approx(6.10, abs=1e-5)
     assert result["min"] == 0
     assert result["max"] == pytest.approx(15.24, abs=1e-5)
+
+
+def test_tree_pits_are_set_into_the_pavement_not_under_its_edge():
+    """Chestnut's sidewalk shards: pits lay on the terrain, and the pavement's own triangles stood
+    up through them -- most where a higher footway's edge ran along a pit's edge."""
+    js = _page_js()
+    rule = re.search(r"const PIT_SETTLE_RULE = \{[\s\S]*?\};", js).group(0)
+    result = run("\n".join([
+        "function attribute(v){return {count:v.length/3,getX:i=>v[i*3],getY:i=>v[i*3+1],getZ:i=>v[i*3+2],setY:(i,y)=>v[i*3+1]=y};}",
+        "function mesh(surface,v){const p=attribute(v);return {isMesh:true,userData:{surface},geometry:{getAttribute:()=>p,getIndex:()=>null,computeBoundingSphere(){}}};}",
+        "const SETTLE_CELL_M=2,SETTLE_COARSE_M=8;const settleKey=(x,z)=>Math.floor(x/2)*1048576+Math.floor(z/2);",
+        "function* refineForTerrainSteps(g){return g;} async function runStepsSliced(s){let r;while(!(r=s.next()).done);return r.value;}async function maybeYield(){}",
+        # The kerbside pavement, wide and low; the mapped footway over it ending at x = 1.1, 7 cm higher.
+        "const low=mesh('walk',[-10,10,-10, 30,10,-10, -10,10,30]);",
+        "const high=mesh('walk_narrow',[-10,10.07,-10, 1.1,10.07,-10, 1.1,10.07,30, -10,10.07,-10, 1.1,10.07,30, -10,10.07,30]);",
+        # A pit straddling the footway's edge (a vertex at x = 1.2, just off it), and one corner in the lawn.
+        "const pit=mesh('tree_pit',[0,9,0, 1.2,9,0, 0,9,1.2, 1.2,9,1.2, 40,9,40]);",
+        "const groups={streets:{traverse:f=>[low,high].forEach(f)},ground:{traverse:f=>[pit].forEach(f)}};",
+        rule, _extract("fillFromNearestSettled", js), "async " + _extract("settleOnto", js),
+        "await settleOnto(PIT_SETTLE_RULE);",
+        "const p=pit.geometry.getAttribute();",
+        "console.log(JSON.stringify([0,1,2,3,4].map(i=>+p.getY(i).toFixed(3))));",
+    ]))
+    # On the higher sheet wherever it is within a hand's breadth, so it cannot rise through the soil.
+    assert result[:4] == [10.078, 10.078, 10.078, 10.078]
+    # Nothing under it and no pit vertex near: left where the terrain put it.
+    assert result[4] == 9.0
+
+
+def test_tree_pits_are_settled_once_the_ground_and_the_streets_are_down():
+    js = _page_js()
+    assert "tree_pit" in re.search(r"const STREET_GRID_SURFACES = \[[^\]]*\]", js).group(0)
+    streets = js[js.index("await settleOntoPavement();"):]
+    assert streets.index("groundReady.then(") < streets.index("settleOnto(PIT_SETTLE_RULE)") < 400

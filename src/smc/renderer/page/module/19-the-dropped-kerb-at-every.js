@@ -257,6 +257,11 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
   }
 }
 await settleOntoPavement();
+// The tree pits come down with the ground cover, before these streets or after them: set into the
+// pavement once both are (PIT_SETTLE_RULE).
+groundReady.then((ok) => ok === false ? 0 : settleOnto(PIT_SETTLE_RULE)).then((n) => {
+  window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { treePits: n });
+}).catch((error) => console.warn("kerbside: tree pits not set into the pavement", error));
 await runStepsSliced(cellFineSurfacesSteps(groups.streets));
 clipDetailWorld();
 groundReady.then(()=>clipDetailWorld());

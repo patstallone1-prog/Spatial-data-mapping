@@ -979,21 +979,35 @@ function buildCourts(ground) {
   // dark green acrylic pad out to the mapped pitch's edge, which in the parks here is the lawn
   // the courts are set in, and it read as a dark patch that belonged to nothing. The courts'
   // own coloured surfaces (below) run their run-off past the lines; the fields are grass anyway.
+  // Outside a park (a schoolyard, a rec centre's yard, a block's private courts: 71 of the
+  // city's courts) a hard court's ground is not a lawn: it was drawn as one, a ring of grass
+  // round the basketball courts in a paved schoolyard (Marina Middle School, 2026-11-12). There
+  // it is the court's own surround, asphalt in its colour ("hard:<colour>").
   const parkVariantAt = (lon, lat) => {
     const park = (ground.parks || []).find((q) => pointInRing(lon, lat, q.p));
-    return park ? grassVariantForRing(park.p, GRASS_VARIANTS) : 0;
+    return park ? grassVariantForRing(park.p, GRASS_VARIANTS) : null;
   };
   const byVariant = new Map();
   for (const pitch of pitches) {
-    if (!COURT_STYLE[pitch.s]) continue;
+    const style = COURT_STYLE[pitch.s];
+    if (!style) continue;
     const [lon, lat] = ringCentroid(pitch.p);
-    const variant = COURT_STYLE[pitch.s].surround === null ? -1 : parkVariantAt(lon, lat);
+    const inPark = style.surround === null ? -1 : parkVariantAt(lon, lat);
+    const variant = inPark !== null ? inPark : `hard:${style.surround}`;
     if (!byVariant.has(variant)) byVariant.set(variant, []);
     byVariant.get(variant).push(pitch.p);
   }
   for (const [variant, rings] of byVariant) {
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
+    if (typeof variant === "string") {
+      const pad = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+        map: courtSurface(Number(variant.slice(5))), color: 0xffffff, roughness: 0.9, metalness: 0.0,
+        side: THREE.DoubleSide, depthWrite: false,
+      })), "court");
+      pad.renderOrder = -0.5;
+      continue;
+    }
     // The pad is lifted onto the hill at its own triangles' corners and a court's surface at its
     // own, a few centimetres apart over a court's length, and the pad's triangles came up through
     // the courts in patches. It is drawn before them and leaves the depth alone, so a court laid

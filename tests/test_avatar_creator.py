@@ -125,3 +125,16 @@ def test_the_home_screen_and_the_walker_build_from_the_creator():
         assert tab in LOBBY
     assert "Use the Soldier" in LOBBY and "Randomise" in LOBBY
     assert "lastCreator" in LOBBY
+
+
+def test_a_caucasian_skin_is_drawn_tanned_not_ghostly_white():
+    """The Caucasian skins drew ghostly white under the lobby's light and lost the face's
+    features: they are multiplied by a warm tan, and the other skins are drawn as they are."""
+    out = node("""
+    console.log(JSON.stringify(["young_caucasian_male", "old_caucasian_female", "young_african_male", "middleage_asian_female", ""]
+      .map((s) => a.skinTintFor(s))));
+    """)
+    assert out[0] == out[1] == "#f4dac4"
+    assert out[2:] == ["#ffffff", "#ffffff", "#ffffff"]
+    source = (ROOT / "docs/avatar-builder.mjs").read_text()
+    assert "bodyMesh.material.color.set(skinTintFor(avatar.skin));" in source

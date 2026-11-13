@@ -6,11 +6,18 @@ Its stations run on through the junctions the street crosses, where the lidar fi
 road -- "painted" -- so the median line ran on across the cross street, and a pair of kerb
 lines stood out of the end of each island into the junction (Lombard at Fillmore, 2026-11-10).
 And where the city's own survey already has the island, the lidar's two edges were the same
-kerb drawn a second time, a few centimetres off.
+kerb drawn a second time, a few centimetres off -- or, where the plateau the lidar read ran on
+past the island's far kerb over a painted strip in the lanes beside it, one edge on the island's
+kerb and the other metres out in the road: drawn as an island kerb along a white-painted strip
+beside the real island (Fillmore at Bay, 2026-11-12; Columbus at Union and the Embarcadero the
+same). The near edge was dropped as a copy and the far one, too far off to be "the same kerb",
+was kept.
 
 ``clip_lidar_kerb_lines`` cuts each lidar line where it enters another street's carriageway
 (a street of another name, crossing at a real angle), keeps the pieces long enough to be a
-median, and drops the lidar island edges the survey already has.
+median, and drops the lidar island edges beside an island the survey already has -- each piece
+left after the cut, not the whole line before it: a line mostly in the road, cut at the junction,
+left a piece lying on the surveyed island's kerb.
 """
 
 from __future__ import annotations
@@ -29,8 +36,11 @@ MIN_CROSS_ROAD_M = 5.0
 CROSS_MIN_DEG = 30.0
 #: The shortest piece of a median line kept (m).
 MIN_PIECE_M = 4.0
-#: A lidar island edge this near a surveyed island kerb all along (m) is that kerb again.
-DUPLICATE_M = 1.0
+#: A lidar island edge this near a surveyed island or median kerb running the same way (m), over
+#: DUPLICATE_SHARE of its points, is that island again: its own kerb (a few centimetres off), or
+#: its far side read wide where the plateau ran on over the lanes beside it. The lidar's widest
+#: plateau is 12 m (MEDIAN_MAX_W_M); the island kerbs it was found beside were 1 to 7 m off.
+DUPLICATE_M = 8.0
 #: The share of its points that near for a lidar line to be a duplicate.
 DUPLICATE_SHARE = 0.8
 
@@ -103,6 +113,25 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
         for a, b in itertools.pairwise(pts):
             surveyed.add(a, b, None)
 
+    def beside_surveyed(pts):
+        """Whether a lidar island piece is a surveyed island again: most of its points within
+        DUPLICATE_M of a surveyed kerb that runs the way the piece does (end to end -- a lidar
+        edge read off a painted strip zigzags, and its own segments point every way)."""
+        dx, dy = pts[-1][0] - pts[0][0], pts[-1][1] - pts[0][1]
+        L = math.hypot(dx, dy)
+        close = 0
+        for p in pts:
+            for a, b, _ in surveyed.near(p):
+                if L > 0:
+                    ex, ey = b[0] - a[0], b[1] - a[1]
+                    E = math.hypot(ex, ey) or 1.0
+                    if abs(dx * ex + dy * ey) / (L * E) < math.cos(math.radians(CROSS_MIN_DEG)):
+                        continue          # across the piece: a cross kerb, not this island
+                if _seg_dist(p[0], p[1], *a, *b) < DUPLICATE_M:
+                    close += 1
+                    break
+        return close / len(pts) >= DUPLICATE_SHARE
+
     def street_of(p, q):
         """The name of the street the line from p to q runs along (the nearest parallel one)."""
         dx, dy = q[0] - p[0], q[1] - p[1]
@@ -137,12 +166,7 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
             out.append(c)
             continue
         pts = [frame.m(p) for p in c["p"]]
-        # The surveyed kerb again: dropped.
-        if c.get("r") == "island":
-            close = sum(1 for p in pts if any(_seg_dist(p[0], p[1], *a, *b) < DUPLICATE_M for a, b, _ in surveyed.near(p)))
-            if close / len(pts) >= DUPLICATE_SHARE:
-                stats["duplicates"] += 1
-                continue
+        island = c.get("r") == "island"
         own = street_of(pts[0], pts[-1])
         keep = []
         for i, p in enumerate(pts):
@@ -150,6 +174,10 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
             dx, dy = (q[0] - p[0], q[1] - p[1]) if i + 1 < len(pts) else (p[0] - q[0], p[1] - q[1])
             keep.append(not in_cross_street(p, own, dx, dy))
         if all(keep):
+            # The surveyed island again: dropped.
+            if island and beside_surveyed(pts):
+                stats["duplicates"] += 1
+                continue
             out.append(c)
             stats["pieces"] += 1
             continue
@@ -160,8 +188,11 @@ def clip_lidar_kerb_lines(curb_lines: list[dict[str, Any]], ways: list[dict[str,
                 run.append(i)
                 continue
             if len(run) >= 2 and _length([pts[j] for j in run]) >= MIN_PIECE_M:
-                out.append({**c, "p": [c["p"][j] for j in run]})
-                stats["pieces"] += 1
+                if island and beside_surveyed([pts[j] for j in run]):
+                    stats["duplicates"] += 1
+                else:
+                    out.append({**c, "p": [c["p"][j] for j in run]})
+                    stats["pieces"] += 1
             elif run:
                 stats["dropped_short"] += 1
             run = []

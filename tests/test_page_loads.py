@@ -29,6 +29,9 @@ def page_module(out: Path, page: Path = PAGE) -> Path:
     js = re.sub(r'^import \* as THREE from "[^"]+";', "const THREE = globalThis.__THREE;", js, flags=re.M)
     js = re.sub(r'^import \{ GLTFLoader \} from "[^"]+";',
                 "const GLTFLoader = globalThis.__THREE.GLTFLoader;", js, flags=re.M)
+    # The city fleet's compressed models are decoded in the browser; no model is loaded here.
+    js = re.sub(r'^import \{ MeshoptDecoder \} from "[^"]+";',
+                "const MeshoptDecoder = globalThis.__THREE.MeshoptDecoder || {};", js, flags=re.M)
     # This pure scheduler runs unchanged. Node cannot import an HTTP module URL;
     # resolve its same checked-in source locally, without stubbing its behavior.
     js = re.sub(r'import\(sharedAsset\("world-streaming\.mjs(?:\?rev=[^"\s]+)?"\)\)',
