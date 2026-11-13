@@ -130,6 +130,13 @@ export function wealthOf(R, st) {
   }
   for (const b of st.properties || []) assets.push({ kind: "building", label: b.attrs?.name || b.attrs?.address || `Building ${String(b.id).replace(/^building:/, "")}`, value: Math.max(0, Math.round(b.attrs?.assessed || b.attrs?.value || 0)) });
   for (const hm of st.homes || []) assets.push({ kind: "home", label: hm.attrs?.label || hm.attrs?.address || "A home", value: Math.max(0, Math.round(hm.attrs?.assessed || 0)) });
+  // A business: its till and its stock at what the wholesaler charged (enterprise.mjs); a seller still being paid is a debt.
+  for (const b of st.businesses || []) {
+    const share = (id) => R.business?.wholesale_share?.[R.items?.[id]?.kind] ?? R.business?.wholesale_share?.default ?? 0.5;
+    const stock = Object.entries(b.stock || {}).reduce((t, [id, n]) => t + Math.round((R.items?.[id]?.price || 0) * share(id)) * Math.max(0, n), 0);
+    assets.push({ kind: "business", label: b.name, value: Math.max(0, Math.round((b.balance || 0) + stock)) });
+    if (b.loan?.left > 0) debts.push({ kind: "loan", label: `Owed to the seller of ${b.name}`, value: Math.round(b.loan.left * b.loan.monthly) });
+  }
   let goods = 0;
   for (const [id, n] of Object.entries(st.inventory || {})) {
     const it = R.items?.[id], value = Math.max(0, Math.round((it?.price || 0) * (Number(n) || 0)));

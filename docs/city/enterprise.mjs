@@ -900,11 +900,18 @@ export function installEnterprise(CityWorld, CityError) {
     const [a, b2] = L.court_days, r = rng("court", c.id)();
     const days = a + Math.floor(r * (b2 - a + 1)) + (L.roles[l.role].prep_days || 0);
     c.lawyer = { id: l.id, name: l.name, firm: l.firm, title: l.title, skill: l.skill, place: slimPlace(place), price };
-    c.court = Math.max(c.court || 0, this.now + days * DAY);
+    c.court = Math.max(c.court || 0, this.courtTime(days, c.id));
     const bill = this.billing.bills.get(c.bill);
     if (bill && bill.status === "open") bill.due = Math.max(bill.due, c.court + DAY);   // no late penalty while in court
     this.log("lawyer", { player: pid, case: c.id });
     return { case: c, court: this.courthouse(), price };
+  };
+  //: A hearing ``days`` on, in court hours (9:00 to 15:30, by the case), on a weekday.
+  W.courtTime = function (days, seed) {
+    let at = this.now + days * DAY, t = cityTime(at, this.R.clock.zone);
+    while (t.weekday === 0 || t.weekday === 6) { at += DAY; t = cityTime(at, this.R.clock.zone); }
+    const slot = Math.floor(rng("slot", seed)() * 14);   // half-hours from 9:00
+    return at - t.minute * 60_000 + (9 * 60 + slot * 30) * 60_000;
   };
   W.courthouse = function () { return { ...this.R.business.law.courthouse }; };
   //: Going to court yourself on the day (or contesting a summons without a lawyer).
@@ -987,7 +994,7 @@ export function installEnterprise(CityWorld, CityError) {
       if (!p) continue;
       const c = bill.case ? this.cases.get(bill.case) : this.openCase(p, bill);
       if (!c || c.closed || c.court) continue;
-      c.court = this.now + L.summons_days * DAY; c.summons = true;
+      c.court = this.courtTime(L.summons_days, c.id); c.summons = true;
       this.log("summons", { player: p.id, case: c.id });
     }
     for (const c of this.cases.values()) {

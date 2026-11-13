@@ -3,7 +3,7 @@
 // lawyers; a recruiter's offers; your cases and record; and the story of a time inside. Kept out
 // of view.mjs, which calls these through a few hooks (draw, storeExtra, todo, actions, online).
 
-import { cityTime } from "./core.mjs";
+import { cityTime, storesAt } from "./core.mjs";
 import { goingRate, itemsFor, leastWage, rolesFor, unitCost } from "./enterprise.mjs";
 
 const DAY = 86_400_000;
@@ -48,7 +48,7 @@ export function enterprisePanels(api) {
     const c = B.law.courthouse, [x, z] = ctx.fromLonLat(c.lon, c.lat);
     let best = null, bd = Infinity;
     for (const pl of district.places || []) {
-      if (!pl.keys.has("use:civic")) continue;
+      if (!pl.keys.has("use:civic") || /church|temple|synagogue|mosque|chapel|cathedral|saint|\bst\.? /i.test(pl.name || "")) continue;
       const d = Math.hypot(pl.x - x, pl.z - z);
       if (d < bd) { bd = d; best = pl; }
     }
@@ -108,7 +108,7 @@ export function enterprisePanels(api) {
       const b = w.bizAt?.(pl.id);
       if (b && b.owner === p.account) { out.push({ id: `biz:${b.id}`, label: `Manage ${b.name}`, key: "", run: () => openBusiness(b.id) }); break; }
       const keys = [...pl.keys];
-      const vacant = !keys.some((k) => k.startsWith("shop:")) && keys.some((k) => ["use:retail", "use:restaurant"].includes(k));
+      const vacant = !keys.some((k) => k.startsWith("shop:")) && keys.some((k) => ["use:retail", "use:restaurant", "use:office"].includes(k));
       if (vacant && !w.storefronts?.has(String(pl.id))) { out.push({ id: `lease:${pl.id}`, label: `Lease this storefront ${R.fmt(B.storefront_lease_per_week)}/wk`, key: "", run: () => lease(pl) }); break; }
       const s = w.storefronts?.get(String(pl.id));
       if (s && s.holder === p.account && !b) { out.push({ id: `reg:${pl.id}`, label: "Open a business here", key: "", run: () => { openSide("online"); getSide().cat = "business"; getSide().register = pl.id; drawSide(); } }); break; }
@@ -150,9 +150,11 @@ export function enterprisePanels(api) {
   //: Draws ``side`` if it is one of these panels; true if it was.
   function draw(side, { close, status, w, p }) {
     if (side.kind === "store" && side.place?.keys) {
-      const keys = side.place.keys instanceof Set ? side.place.keys : new Set(side.place.keys);
-      if (keys.has("shop:law_office")) { drawLaw(side, close, status, w, p); return true; }
-      if (keys.has("shop:staffing")) { drawRecruiter(side, close, status, w, p, side.place); return true; }
+      // A law office or an agency is its own panel; a building with other shops too keeps their tabs.
+      const stores = storesAt(R, side.place.keys), cur = stores[Math.min(side.store || 0, stores.length - 1)];
+      const tabs = stores.length > 1 ? h("div", { className: "tabs" }, ...stores.map((s2, i) => h("button", { textContent: s2.name, "aria-pressed": String(s2 === cur), onclick: () => { side.store = i; drawSide(); } }))) : "";
+      if (cur?.kind === "law_office") { drawLaw(side, close, status, w, p, tabs); return true; }
+      if (cur?.kind === "staffing") { drawRecruiter(side, close, status, w, p, side.place, tabs); return true; }
     }
     if (side.kind === "business") { drawBusiness(side, close, w, p); return true; }
     if (side.kind === "buy") { drawBuy(side, close, status, w, p); return true; }
@@ -210,7 +212,7 @@ export function enterprisePanels(api) {
       const staffRows = b.staff.map((s) => {
         const going = R.jobs.roles[s.role] ? goingRate(R, s.role) : s.wage;
         const orders = !s.player && inShop ? h("span", {}, ...["serve", "restock", "clean", "break", "go_home"].map((o) => h("button", { textContent: o.replace("_", " "), onclick: () => run("order_staff", { business: id, staff: s.id, order: o }, `${s.name.split(" ")[0]}: ${o.replace("_", " ")}.`) }))) : "";
-        const from = num(s.shifts[0]?.from ?? b.hours[0], { min: "0", max: "23" }), to = num(s.shifts[0]?.to ?? b.hours[1], { min: "1", max: "30" });
+        const from = num(s.shifts[0]?.from ?? b.hours[0], { min: "0", max: "23", style: "width:3.4em" }), to = num(s.shifts[0]?.to ?? b.hours[1], { min: "1", max: "30", style: "width:3.4em" });
         return h("tr", {}, h("td", {}, h("b", { textContent: `${s.name}${s.player ? " (player)" : ""}` }),
           h("div", { className: "note", textContent: `${s.title || s.role} · ${R.fmt(s.wage)}/h (going rate ${R.fmt(going)}) · ${s.player ? "" : `skill ${pct(s.skill ?? 0.5)} · morale ${Math.round(s.morale ?? 50)}${s.morale < B.staff.late_below ? " (late)" : ""}${s.notice ? ` · leaving ${when(s.notice)}` : ""} · `}${shiftsText(s.shifts)}` }), orders),
           h("td", {}, from, "–", to, act("Shift", () => run("schedule", { business: id, staff: s.id, shifts: [{ days: [0, 1, 2, 3, 4, 5, 6], from: +from.value, to: +to.value }] }, "Rescheduled."))),
@@ -232,7 +234,7 @@ export function enterprisePanels(api) {
           act("Post on the Jobs tab", () => run("post_opening", { business: id, role: role.value, wage: R.money(+wage.value) }, "Posted: it shows on the Jobs tab and to recruiters."))));
     }
     if (side.tab === "hours") {
-      const o = num(b.hours[0], { min: "0", max: "23" }), c = num(b.hours[1], { min: "1", max: "30" });
+      const o = num(b.hours[0], { min: "0", max: "23", style: "width:3.4em" }), c = num(b.hours[1], { min: "1", max: "30", style: "width:3.4em" });
       side.duties ||= [...b.duties];
       const move = (i, d) => { const a = side.duties; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; drawSide(); };
       const names = { serve: "Serve the counter", restock: "Restock the shelves", clean: "Clean", deliver: "Make deliveries", open_close: "Open and close" };
@@ -277,7 +279,7 @@ export function enterprisePanels(api) {
     return (district.places || []).filter((q) => q !== pl && q.id !== pl.id && Math.hypot(q.x - pl.x, q.z - pl.z) < 600 && kinds.some((k) => q.keys.has(k))).length;
   }
 
-  function drawLaw(side, close, status, w, p) {
+  function drawLaw(side, close, status, w, p, tabs = "") {
     side.el.classList.add("wide");
     const place = placeArg(side.place);
     const cases = myCases(w, p).filter((c) => !c.verdict);
@@ -291,7 +293,7 @@ export function enterprisePanels(api) {
       h("td", {}, side.caseId && cases.find((c) => c.id === side.caseId) && l.takes.includes(cases.find((c) => c.id === side.caseId).class)
         ? act("Hire", () => run("hire_lawyer", { place, lawyer: l.id, case: side.caseId }, (r) => `${l.name} has your case: court ${when(r.case.court)}, at ${courtPlace().name || "the court"}. It is on your to-do list.`), true)
         : h("span", { className: "note", textContent: l.takes.join(", ") }))));
-    side.el.replaceChildren(title, status,
+    side.el.replaceChildren(title, tabs, status,
       h("p", { className: "note", textContent: "The people here are the office's own (invented: the office is real, its lawyers are not). Their records are honest; the odds are the lawyer's own reading of your case." }),
       cases.length ? h("div", {}, "Your case: ", pick) : h("p", { className: "note", textContent: "You have no case open." }),
       (() => { const c = cases.find((x) => x.id === side.caseId); return c && !list.some((l) => l.takes.includes(c.class)) ? h("p", { className: "note", textContent: `No one here takes ${c.class} cases: another law office will.` }) : ""; })(),
@@ -300,7 +302,7 @@ export function enterprisePanels(api) {
       act("Clear old lines", () => run("expunge", { place }, (r) => `${r.cleared} line${r.cleared > 1 ? "s" : ""} cleared from your record.`)));
   }
 
-  function drawRecruiter(side, close, status, w, p, place) {
+  function drawRecruiter(side, close, status, w, p, place, tabs = "") {
     side.el.classList.add("wide");
     const title = h("h3", {}, h("span", { textContent: place ? `${address(place.name) || "Staffing agency"} — a recruiter` : "A headhunter" }), close);
     const rel = p.reliability, exp = p.experience || {};
@@ -314,7 +316,7 @@ export function enterprisePanels(api) {
       const places = (district.places || []).map((pl) => ({ ...placeArg(pl), km: Math.hypot(pl.x - here.x, pl.z - here.z) / 1000 })).filter((x) => x.km <= H.reach_km);
       return run("headhunt", { places, place: place ? placeArg(place) : null }, (r) => (r.offers.length ? `${r.offers.length} offer${r.offers.length > 1 ? "s" : ""}: on your to-do list.` : "Nothing that pays enough better just now."));
     };
-    side.el.replaceChildren(title, status,
+    side.el.replaceChildren(title, tabs, status,
       h("p", { className: "note", textContent: `Your experience: ${expText}. Shifts: ${rel ? `${rel.shifts}, ${pct(rel.shifts ? rel.on_time / rel.shifts : 1)} on time` : "none yet"}.${p.record?.length ? ` On your record: ${p.record.length} line${p.record.length > 1 ? "s" : ""} (fewer offers).` : ""}` }),
       act("Find me something better", ask, true),
       offers.length ? h("table", { className: "wares" }, ...offers) : h("p", { className: "note", textContent: "No offers yet: a recruiter offers the three best-paying jobs within 5 km at 10% or more over your pay." }),

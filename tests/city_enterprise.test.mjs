@@ -274,7 +274,9 @@ test("hiring a lawyer: the retainer to the firm, a court date, the verdict at th
   const r = w.submit("ana", "hire_lawyer", { place: lawOffice, lawyer: l.id, case: c.id, at: at(lawOffice) });
   assert.equal(r.ok, true, r.error);
   assert.equal(w.ledger.balance(`firm:law:${lawOffice.id}`), r.price);
-  assert.ok(c.court >= w.now + 2 * DAY && c.court <= w.now + 16 * DAY);
+  assert.ok(c.court >= w.now + 1 * DAY && c.court <= w.now + 19 * DAY);
+  const ct = cityTime(c.court);
+  assert.ok(ct.hour >= 9 && ct.hour < 16 && ct.weekday >= 1 && ct.weekday <= 5, "in court hours, on a weekday");
   assert.equal(w.submit("ana", "attend_court", { case: c.id, at: at(lawOffice) }).ok, false, "not yet");
   w.now = c.court;
   const ch = R.business.law.courthouse;
