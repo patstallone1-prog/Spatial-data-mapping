@@ -333,8 +333,9 @@ function setAppMode(mode) {
           if (activeGuest?.ready && activeGuest.api.garages && activeGuest.api.garages !== garageDoors) activeGuest.api.garages.tick(dt);
         },
       },
-      // The traffic's car models (the Kenney Car Kit) and crash debris.
-      loadModel: (url) => new GLTFLoader().loadAsync(url),
+      // The traffic's car models (the imported fleet, meshopt-compressed, and the Kenney Car Kit)
+      // and crash debris.
+      loadModel: (url) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and
       // felling them.
       natureTrees: (x, z, reach) => (typeof natureWorld !== "undefined" && natureWorld?.treesNear ? natureWorld.treesNear(x, z, reach) : []),
