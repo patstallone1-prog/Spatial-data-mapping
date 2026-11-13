@@ -8,11 +8,33 @@
 // Front is -z, right is +x, the ground is y = 0 (the page's convention for its cars). The driver
 // sits on the left, as in the United States.
 
-//: Width, height and length (metres) of each kind: the same as the city's rules on the road.
-export const VEHICLE_DIMS = {
-  economy: [1.76, 1.45, 4.1], compact_ev: [1.8, 1.55, 4.3], sedan: [1.85, 1.45, 4.8], suv: [1.95, 1.75, 4.9], pickup: [2.0, 1.9, 5.6],
-  delivery_van: [2.0, 2.55, 5.9], box_truck: [2.45, 3.3, 7.4], taxi: [1.85, 1.5, 4.7], bus: [2.6, 3.15, 12.2], patrol: [1.9, 1.55, 5.0],
+//: The imported fleet (scripts/build_city_fleet.mjs from the user's Unreal fleet pack; the files in
+//: docs/city/models/fleet, their record in fleet.json): which kinds it draws, and each model's
+//: own size -- width, height (to the top of its aerial or rails) and length, in metres, as
+//: measured from the model once turned and set on its wheels. The bus is the pack's 9 m midibus
+//: drawn as a Muni 40-footer (12.2 m by 2.59: the build stretches its body, not its wheels).
+export const FLEET_FOR = { economy: "cuore", suv: "jeep", sports: "porsche", box_truck: "truck", bus: "bus" };
+export const FLEET_DIMS = {
+  cuore: [1.854, 1.608, 3.64], jeep: [1.94, 1.93, 4.23], porsche: [1.901, 1.37, 4.52], truck: [2.293, 3.073, 7.101], bus: [2.59, 3.1, 12.2],
 };
+//: Width, height and length (metres) of each kind: the city's rules on the road, the kerb space
+//: a car takes, and what it is drawn as. A kind the fleet draws is that model's own size; the
+//: others are a common car of the kind (makers' figures, body without mirrors): a Chevrolet Bolt
+//: (compact EV), a Toyota Camry (sedan), a Ford F-150 SuperCrew with the 5.5 ft bed (pickup), a
+//: Ford Transit 148" high roof (delivery van), a Toyota Prius (taxi), a Ford Police Interceptor
+//: sedan (patrol) -- the Kenney Car Kit's bodies are stretched to them.
+export const VEHICLE_DIMS = {
+  economy: FLEET_DIMS.cuore, compact_ev: [1.77, 1.6, 4.15], sedan: [1.84, 1.45, 4.92], suv: FLEET_DIMS.jeep, pickup: [2.03, 1.96, 5.89],
+  delivery_van: [2.06, 2.78, 5.98], box_truck: FLEET_DIMS.truck, taxi: [1.78, 1.43, 4.6], bus: FLEET_DIMS.bus, patrol: [1.94, 1.55, 5.15],
+  sports: FLEET_DIMS.porsche,
+};
+//: The fleet's file for a kind at a tier: "npc" (the traffic nearest you: the pack's LOD1, the
+//: Porsche cut to 15,000 triangles from its 200,000) or "full" (the one you drive or ride:
+//: everything, the inside included). Null for a kind the fleet does not draw.
+export function fleetFile(kind, tier = "npc") {
+  const id = FLEET_FOR[kind];
+  return id ? `city/models/fleet/${id}-${tier === "full" ? "full" : "npc"}.glb` : null;
+}
 //: Each car's shape along its length, as fractions of the length from the front (0) to the back
 //: (1): where the windscreen starts (a) and meets the roof (b), where the roof ends (c) and the
 //: back window meets the body (d); the bonnet's and the boot's heights, and the waist (belt) --
@@ -25,6 +47,7 @@ const SHAPES = {
   patrol: { a: 0.3, b: 0.45, c: 0.71, d: 0.84, hood: 0.58, boot: 0.62, belt: 0.63, lightbar: true },
   suv: { a: 0.25, b: 0.38, c: 0.9, d: 0.97, hood: 0.6, boot: 0.6, belt: 0.6, hatch: true },
   pickup: { a: 0.27, b: 0.37, c: 0.55, d: 0.58, hood: 0.6, boot: 0.55, belt: 0.58, bed: true },
+  sports: { a: 0.3, b: 0.48, c: 0.66, d: 0.92, hood: 0.5, boot: 0.62, belt: 0.6, hatch: true },
 };
 const C = {
   tyre: [0.07, 0.07, 0.08], rim: [0.72, 0.74, 0.77], trim: [0.1, 0.1, 0.11], grille: [0.16, 0.17, 0.18],
@@ -233,11 +256,13 @@ function build(THREE, kind) {
 // place), turned to face -z, and stretched to the city's own size for its kind (VEHICLE_DIMS: the
 // kit's cars are toy-short). The body's own paint (the colour most of its body is) takes each
 // car's colour; glass, lights, tyres and liveries (a taxi's yellow, a police car's) keep the
-// kit's. There is no bus in the kit: the bus is the code-built one.
+// kit's. The kinds the imported fleet draws (FLEET_FOR) take the kit's model only until the
+// fleet's has loaded (the bus, which the kit has not, the code-built one), and the sports car the
+// kit's sports sedan.
 
 //: The kit's models for each kind (more than one: a car takes one by its number).
 export const KENNEY_FOR = {
-  economy: ["hatchback-sports", "sedan"], compact_ev: ["sedan-sports", "hatchback-sports"], sedan: ["sedan", "sedan-sports"], suv: ["suv", "suv-luxury"],
+  economy: ["hatchback-sports", "sedan"], compact_ev: ["sedan-sports", "hatchback-sports"], sedan: ["sedan", "sedan-sports"], suv: ["suv", "suv-luxury"], sports: ["sedan-sports"],
   pickup: ["truck"], delivery_van: ["delivery", "van"], box_truck: ["garbage-truck"], taxi: ["taxi"], patrol: ["police"],
   ambulance: ["ambulance"], firetruck: ["firetruck"],
 };
@@ -325,5 +350,73 @@ export function kenneyMaterial(THREE, map) {
       .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9), vPaint);");
   };
   m.customProgramCacheKey = () => "kenney-paint-v1";
+  return m;
+}
+
+// ---- the imported fleet (scripts/build_city_fleet.mjs) ------------------------------------------
+//
+// Each file is a few meshes, already turned to face -z, centred and on the ground: ``body`` (a
+// colour per vertex from each part's own material, and ``_paint`` 1 on the paintable bodywork),
+// an atlas per photographic texture -- ``paint-atlas`` carrying the paint mask in its alpha --,
+// and ``glass``. Each becomes one instanced part; the paint takes the car's colour, nothing else.
+
+//: The parts of a loaded fleet model: [{ name, geometry, tint, glass, map }] (``tint``: takes the
+//: car's colour). The geometry is in the model's frame (each node's transform applied: the
+//: build's quantisation leaves a scale and an offset on every node).
+export function fleetParts(THREE, gltf) {
+  const scene = gltf.scene, out = [];
+  scene.updateMatrixWorld(true);
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    // Quantised positions and normals (integers, KHR_mesh_quantization) as floats first: moved
+    // in place, they would be clamped to the integers' range.
+    const geometry = new THREE.BufferGeometry();
+    for (const [key, a] of Object.entries(o.geometry.attributes)) {
+      if (key !== "position" && key !== "normal") { geometry.setAttribute(key, a); continue; }
+      const f = new Float32Array(a.count * 3);
+      for (let i = 0; i < a.count; i += 1) { f[i * 3] = a.getX(i); f[i * 3 + 1] = a.getY(i); f[i * 3 + 2] = a.getZ(i); }
+      geometry.setAttribute(key, new THREE.BufferAttribute(f, 3));
+    }
+    geometry.setIndex(o.geometry.index);
+    geometry.applyMatrix4(o.matrixWorld);
+    geometry.computeBoundingSphere(); geometry.computeBoundingBox();
+    const name = o.material?.name || o.name, glass = name === "glass" || Boolean(o.material?.transparent);
+    out.push({ name, geometry, glass, map: o.material?.map || null, colour: o.material?.color?.clone() || null, opacity: o.material?.opacity ?? 1,
+      tint: name === "body" ? Boolean(geometry.attributes._paint) : name === "paint-atlas" });
+  });
+  return out;
+}
+//: A fleet part's material. ``standard``: the lit, shinier one (your own car, near the camera);
+//: else Lambert, as the rest of the traffic is. The paint: on ``body`` the instance colour where
+//: ``_paint`` is 1; on ``paint-atlas`` the texture's own shading (its brightness) in the instance
+//: colour where its alpha says paint -- the pack's recipe, Lerp(atlas, colour x luminance, mask).
+//: ``livery`` ({ glsl, key }: a GLSL ``vec3 liveryAt(vec3 p, vec3 paint)`` of the place on the
+//: body) paints by place instead of in one colour: the bus's.
+export function fleetMaterial(THREE, part, { standard = false, livery = null } = {}) {
+  if (part.glass) {
+    return new THREE.MeshStandardMaterial({ color: part.colour || 0x1d2a33, metalness: 0.6, roughness: 0.08, transparent: true, opacity: Math.min(0.55, part.opacity), depthWrite: false, side: THREE.DoubleSide });
+  }
+  const opts = { color: 0xffffff, map: part.map || null, vertexColors: Boolean(part.geometry.attributes.color) };
+  const m = standard ? new THREE.MeshStandardMaterial({ ...opts, metalness: part.name === "body" ? 0.35 : 0.1, roughness: part.name === "body" ? 0.45 : 0.65 }) : new THREE.MeshLambertMaterial(opts);
+  if (!part.tint) return m;
+  const atlas = part.name === "paint-atlas";
+  const plain = "vec3 liveryAt(vec3 p, vec3 paint) { return paint; }";
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", ["#include <common>", atlas ? "" : "attribute float _paint;", "varying vec3 vPaint;", "varying float vPaintW;", "varying vec3 vBodyPos;"].join("\n"))
+      .replace("#include <color_vertex>", ["#include <color_vertex>", "vPaint = vec3(1.0);", "#ifdef USE_INSTANCING_COLOR", "vPaint = instanceColor.xyz;", "#endif", "vBodyPos = position;",
+        ...(atlas ? ["vPaintW = 1.0;", "#ifdef USE_COLOR", "vColor = vec3(1.0);", "#endif"] : ["vPaintW = _paint;", "#if defined(USE_COLOR) && defined(USE_INSTANCING_COLOR)", "vColor.xyz = color.xyz;", "#endif"])].join("\n"));
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", ["#include <common>", "varying vec3 vPaint;", "varying float vPaintW;", "varying vec3 vBodyPos;", livery ? livery.glsl : plain].join("\n"))
+      .replace(atlas ? "#include <map_fragment>" : "#include <color_fragment>", atlas
+        ? ["#include <map_fragment>", "{",
+          "  float w = sampledDiffuseColor.a;",
+          "  float lum = dot(sampledDiffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));",
+          "  vec3 tinted = liveryAt(vBodyPos, vPaint) * clamp(lum / 0.72, 0.3, 1.18);",
+          "  diffuseColor.rgb = mix(sampledDiffuseColor.rgb, tinted, w);",
+          "  diffuseColor.a = 1.0;", "}"].join("\n")
+        : ["#include <color_fragment>", "diffuseColor.rgb = mix(diffuseColor.rgb, liveryAt(vBodyPos, vPaint) * 0.92, vPaintW);"].join("\n"));
+  };
+  m.customProgramCacheKey = () => `fleet-paint-v1-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
   return m;
 }

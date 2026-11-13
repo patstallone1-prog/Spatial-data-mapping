@@ -1,0 +1,210 @@
+{
+ "basis": "scripts/build_city_fleet.mjs from the user's Imported_Unreal_Fleet_Final and Voltage_MTB packs; front -z, wheels on y = 0, metres",
+ "vehicles": {
+  "cuore": {
+   "kind": "economy",
+   "dims": [
+    1.854,
+    1.608,
+    3.64
+   ],
+   "full": {
+    "file": "cuore-full.glb",
+    "bytes": 138124,
+    "triangles": 20216,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   },
+   "npc": {
+    "file": "cuore-npc.glb",
+    "bytes": 96984,
+    "triangles": 13420,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   }
+  },
+  "jeep": {
+   "kind": "suv",
+   "dims": [
+    1.94,
+    1.93,
+    4.23
+   ],
+   "full": {
+    "file": "jeep-full.glb",
+    "bytes": 209328,
+    "triangles": 4734,
+    "groups": [
+     "paint-atlas"
+    ]
+   },
+   "npc": {
+    "file": "jeep-npc.glb",
+    "bytes": 179244,
+    "triangles": 2709,
+    "groups": [
+     "paint-atlas"
+    ]
+   }
+  },
+  "porsche": {
+   "kind": "sports",
+   "dims": [
+    1.901,
+    1.37,
+    4.52
+   ],
+   "full": {
+    "file": "porsche-full.glb",
+    "bytes": 1098956,
+    "triangles": 201136,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   },
+   "npc": {
+    "file": "porsche-npc.glb",
+    "bytes": 148184,
+    "triangles": 14590,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   }
+  },
+  "truck": {
+   "kind": "box_truck",
+   "dims": [
+    2.293,
+    3.073,
+    7.101
+   ],
+   "full": {
+    "file": "truck-full.glb",
+    "bytes": 68664,
+    "triangles": 8771,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   },
+   "npc": {
+    "file": "truck-npc.glb",
+    "bytes": 51700,
+    "triangles": 5264,
+    "groups": [
+     "body",
+     "glass"
+    ]
+   }
+  },
+  "bus": {
+   "kind": "bus",
+   "dims": [
+    2.59,
+    3.1,
+    12.2
+   ],
+   "sign": {
+    "front_z": -6.1,
+    "glass_top_y": 1.927,
+    "roof_y": 3.1,
+    "half_width": 1.175
+   },
+   "full": {
+    "file": "bus-full.glb",
+    "bytes": 1273004,
+    "triangles": 95428,
+    "groups": [
+     "atlas-e6b5309a",
+     "paint-atlas",
+     "glass"
+    ]
+   },
+   "npc": {
+    "file": "bus-npc.glb",
+    "bytes": 793136,
+    "triangles": 43777,
+    "groups": [
+     "atlas-e6b5309a",
+     "paint-atlas",
+     "glass"
+    ]
+   }
+  }
+ },
+ "bike": {
+  "file": "bike-npc.glb",
+  "bytes": 167240,
+  "triangles": 12580,
+  "dims": [
+   0.763,
+   1.033,
+   1.884
+  ],
+  "parts": [
+   "frame",
+   "crank",
+   "pedal_left",
+   "pedal_right",
+   "wheel_front",
+   "wheel_rear"
+  ],
+  "pivots": {
+   "front_axle": [
+    0.0003,
+    0.347,
+    -0.595
+   ],
+   "rear_axle": [
+    0.0003,
+    0.347,
+    0.595
+   ],
+   "crankset": [
+    0.0003,
+    0.327,
+    0.18
+   ],
+   "left_pedal": [
+    -0.1397,
+    0.327,
+    0.345
+   ],
+   "right_pedal": [
+    0.1403,
+    0.327,
+    0.02
+   ],
+   "steering": [
+    0.0003,
+    0.722,
+    -0.41
+   ]
+  },
+  "saddle": [
+   0.0001,
+   0.8797,
+   0.1777
+  ],
+  "grips": [
+   [
+    -0.3726,
+    1.0165,
+    -0.2365
+   ],
+   [
+    0.3735,
+    1.0158,
+    -0.2363
+   ]
+  ],
+  "crank_radius": 0.16,
+  "wheel_radius": 0.347
+ }
+}

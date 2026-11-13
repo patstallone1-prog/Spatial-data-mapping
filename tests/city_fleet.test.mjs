@@ -9,6 +9,7 @@ import { cityTime, loadRules } from "../docs/city/core.mjs";
 import { City, Drivers, PARKING, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, residentsIn, signalAt, vehicleDamage } from "../docs/city/fleet.mjs";
 import { Streets, alongRoute, placeFromBuilding } from "../docs/city/people.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
+import { VEHICLE_DIMS } from "../docs/city/vehicles.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
 const timeAt = (ms) => cityTime(ms, R.clock.zone);
@@ -315,11 +316,11 @@ test("parked cars stand at the kerb, a hand's width off it, clear of junctions, 
     assert.ok(s.kerb, "not at the kerb");
     // Half the car and 15 cm off the kerb line.
     const off = Math.min(Math.abs(s.x - Math.round(s.x / 100) * 100), Math.abs(s.z - Math.round(s.z / 100) * 100));
-    const w = { economy: 1.76, compact_ev: 1.8, sedan: 1.85, suv: 1.95, pickup: 2.0, delivery_van: 2.0, box_truck: 2.45, taxi: 1.85, patrol: 1.9 }[v.model] || 1.85;
+    const w = (VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan)[0];
     assert.ok(Math.abs(off - (4 - w / 2 - PARKING.kerb_gap_m)) < 0.02, `${v.model} ${off.toFixed(2)} m from the line`);
     // Not within the junction's clearance: every junction here is at a multiple of 100.
     const along = Math.abs(s.x - Math.round(s.x / 100) * 100) < 5 ? s.z : s.x, nearest = Math.abs(along - Math.round(along / 100) * 100);
-    const L = { economy: 4.1, compact_ev: 4.3, sedan: 4.8, suv: 4.9, pickup: 5.6, delivery_van: 5.9, box_truck: 7.4, taxi: 4.7, patrol: 5.0 }[v.model] || 4.8;
+    const L = (VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan)[2];
     assert.ok(nearest - L / 2 >= PARKING.junction_clear_m + 3.4 - 0.01, `its end ${(nearest - L / 2).toFixed(1)} m from the junction's line (${s.x.toFixed(1)}, ${s.z.toFixed(1)}, along ${s.along.toFixed(1)} of ${s.edge.length})`);
     assert.ok(!(Math.abs(s.x - (304 - w / 2 - PARKING.kerb_gap_m)) < 0.1 && Math.abs(s.z - 150) < 4), "across a driveway");
   }
@@ -386,3 +387,4 @@ test("traffic keeps to the main streets: Lombard's ends draw the through trips, 
   const H = R.traffic.by_hour.commute;
   assert.ok(H[8] > 2 * H[13] && H[17] > 2 * H[13]);
 });
+

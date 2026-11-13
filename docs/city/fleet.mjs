@@ -25,7 +25,7 @@ const LAST = ["Nguyen", "Garcia", "Chen", "Patel", "Kim", "Lopez", "Wong", "Smit
   "Tran", "Brown", "Wu", "Hernandez", "Davis", "Liu", "Flores", "Park", "Silva", "Cohen", "Okafor", "Rossi", "Murphy", "Yamamoto",
   "Novak", "Haddad", "Reyes", "Ali", "Berg"];
 //: What residents drive, by share (approx. the Bay Area's registrations by body type).
-export const PRIVATE_MIX = [["economy", 0.3], ["sedan", 0.24], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.07], ["delivery_van", 0.05]];
+export const PRIVATE_MIX = [["economy", 0.3], ["sedan", 0.22], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.07], ["delivery_van", 0.05], ["sports", 0.02]];
 //: The district's through traffic, by who drives it (approx.: ride-hail alone was some 15% of
 //: the trips within San Francisco in the county transportation authority's "TNCs Today", 2017;
 //: delivery vans and the rest of the through traffic make up the others).
@@ -35,7 +35,7 @@ export const VISITOR_KINDS = [
   { kind: "ride_hail", title: "Ride-hail driver", share: 0.3, trips: [10, 18], stop: [0.6, 1, 3], models: [["sedan", 0.35], ["compact_ev", 0.3], ["suv", 0.2], ["economy", 0.15]] },
   { kind: "taxi", title: "Taxi driver", share: 0.05, trips: [10, 16], stop: [0.5, 1, 3], models: [["taxi", 1]] },
   { kind: "delivery", title: "Delivery driver", share: 0.15, trips: [8, 14], stop: [0.8, 3, 8], models: [["delivery_van", 0.75], ["box_truck", 0.1], ["pickup", 0.15]] },
-  { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.25], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05]] },
+  { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.23], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05], ["sports", 0.02]] },
 ];
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
 //: A car's lane: right of the street's middle, clear of the cars parked at its kerb, and the lane

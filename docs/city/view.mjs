@@ -25,7 +25,7 @@ import { homeListings, mortgageTerms } from "./market.mjs";
 import { buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
-import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
+import { FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
@@ -52,6 +52,8 @@ const CAR_DIMS = {   // width, height, length (m)
   economy: [1.76, 1.45, 4.1], compact_ev: [1.8, 1.55, 4.3], sedan: [1.85, 1.45, 4.8], suv: [1.95, 1.75, 4.9], pickup: [2.0, 1.9, 5.6],
   delivery_van: [2.0, 2.55, 5.9], box_truck: [2.45, 3.3, 7.4], taxi: [1.85, 1.5, 4.7], bus: [2.6, 3.15, 12.2], patrol: [1.9, 1.55, 5.0],
 };
+//: The bus's livery, painted by place on its body (none yet: one colour).
+const BUS_LIVERY = null;
 const PAINT = ["#f2f2f2", "#1e1e1e", "#8a8d91", "#b8bcc1", "#2b4c7e", "#7a1f1f", "#2f5d3a", "#c9b27c", "#4a4a52", "#6b8fb3", "#a3341f", "#e8e3d3"];
 //: A street's bike lanes on the right and left of the way as drawn (OpenStreetMap cycleway,
 //: cycleway:right / :left / :both): "lane" or "track" (its own lane), "shared" (sharrows: ridden
@@ -395,8 +397,8 @@ export async function startCity(ctx) {
   // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
   // show through the windows. They were one painted box and a pale cabin box for every kind.
   const VMAT = vehicleMaterials(THREE), fleet = new Map();
-  // The traffic's bodies: the Kenney Car Kit's (vehicles.mjs), loaded once; the code-built ones
-  // until they are, and for the bus.
+  // The traffic's bodies where the imported fleet has none: the Kenney Car Kit's (vehicles.mjs),
+  // loaded once; the code-built ones until they are.
   const kenney = new Map();   // kit model name -> {geometry, material} | null
   let kenneyLoading = false;
   function loadKenney() {
@@ -419,29 +421,71 @@ export async function startCity(ctx) {
     return k ? { name, ...k } : null;
   };
   loadKenney();
-  //: ``coded``: the code-built body (vehicles.mjs vehicleParts) whether or not the kit's has
-  //: loaded -- the traffic's moderate tier (detail.mjs): the right shape for its kind, and a
-  //: few hundred triangles to the kit's thousands.
-  const fleetOf = (model, shade = 0, coded = false) => {
+  // The imported fleet (vehicles.mjs FLEET_FOR; docs/city/models/fleet): each kind it draws has
+  // two files, the traffic's ("npc", loaded with the page: a few dozen kilobytes each) and the
+  // full one -- inside and all -- for the one you drive or ride, loaded when it is first wanted.
+  const fleetModels = new Map();   // "kind:tier" -> parts (vehicles.mjs fleetParts) | null (failed) | "loading"
+  //: The parts of the fleet's model of ``kind`` at ``tier`` ("npc" or "full"), or null until it
+  //: has loaded (and asked for, the first time).
+  function fleetModel(kind, tier = "npc") {
+    const key = `${kind}:${tier}`, have = fleetModels.get(key);
+    if (have !== undefined) return have === "loading" ? null : have;
+    const file = fleetFile(kind, tier);
+    if (!file || !ctx.loadModel) { fleetModels.set(key, null); return null; }
+    fleetModels.set(key, "loading");
+    fleetLoads.set(key, ctx.loadModel(ctx.asset(file)).then((gltf) => { const parts = fleetParts(THREE, gltf); fleetModels.set(key, parts); return parts; })
+      .catch((error) => { fleetModels.set(key, null); console.warn("kerbside: a vehicle model did not load", file, error); return null; }));
+    return null;
+  }
+  const fleetLoads = new Map();   // "kind:tier" -> the promise of its parts
+  //: The fleet's model of ``kind`` at ``tier`` when it has loaded (null: none, or it failed).
+  const fleetReady = (kind, tier) => { const now = fleetModel(kind, tier); return now ? Promise.resolve(now) : fleetLoads.get(`${kind}:${tier}`) || Promise.resolve(null); };
+  for (const kind of Object.keys(FLEET_FOR)) fleetModel(kind, "npc");
+  //: One instanced mesh of ``geo`` with ``mat``, ``cap`` of them, for the traffic.
+  const instanced = (geo, mat, cap, name) => {
+    const m = new THREE.InstancedMesh(geo, mat, cap);
+    m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = name;
+    group.add(m);
+    return m;
+  };
+  //: A kind's body for the traffic, as instanced parts ({ parts: [{ mesh, tint }], cap, n }:
+  //: ``tint`` takes the car's colour). Finest first: the fleet's model when it has one for the kind
+  //: (``hero``: the full one -- the bus or the cab you ride in -- once loaded), else the Kenney
+  //: kit's; ``coded``: the code-built body (vehicles.mjs vehicleParts) whether or not those have
+  //: loaded -- the traffic's moderate tier (detail.mjs): the right shape for its kind, and a few
+  //: hundred triangles to the models' thousands.
+  const fleetOf = (model, shade = 0, coded = false, hero = false) => {
     const kind = VEHICLE_DIMS[model] ? model : "sedan";
+    const model3d = coded ? null : (hero && fleetModel(kind, "full")) || fleetModel(kind, "npc");
+    if (model3d) {
+      const full = hero && model3d === fleetModels.get(`${kind}:full`), key = `fleet:${kind}:${full ? "full" : "npc"}`;
+      if (!fleet.has(key)) {
+        const cap = full ? 4 : kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
+        const parts = model3d.map((part) => {
+          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : null }), cap, `city-traffic-${kind}-${full ? "full" : "npc"}-${part.name}`);
+          mesh.castShadow = !part.glass; if (part.glass) mesh.renderOrder = 2;
+          return { mesh, tint: part.tint };
+        });
+        fleet.set(key, { parts, cap, n: 0, fleet: true });
+      }
+      return fleet.get(key);
+    }
     const kit = coded ? null : kenneyOf(kind, shade);
     if (kit) {
       const key = `kenney:${kit.name}`;
       if (!fleet.has(key)) {
         const cap = kind === "box_truck" ? 40 : MAX_CARS;
-        const m = new THREE.InstancedMesh(kit.geometry, kit.material, cap);
-        m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kit.name}`; m.castShadow = true;
-        group.add(m);
-        fleet.set(key, { paint: m, fixed: null, glass: null, cap, n: 0, livery: kit.livery });
+        const m = instanced(kit.geometry, kit.material, cap, `city-traffic-${kit.name}`);
+        m.castShadow = true;
+        fleet.set(key, { parts: [{ mesh: m, tint: true }], cap, n: 0, livery: kit.livery });
       }
       return fleet.get(key);
     }
     if (!fleet.has(kind)) {
       const parts = vehicleParts(THREE, kind), cap = kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
-      const inst = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.name = `city-traffic-${kind}`; group.add(m); return m; };
-      const f = { paint: inst(parts.paint, VMAT.paint), fixed: inst(parts.fixed, VMAT.fixed), glass: inst(parts.glass, VMAT.glass), cap, n: 0 };
-      f.paint.castShadow = f.fixed.castShadow = true; f.glass.renderOrder = 2;
-      fleet.set(kind, f);
+      const paint = instanced(parts.paint, VMAT.paint, cap, `city-traffic-${kind}`), fixed = instanced(parts.fixed, VMAT.fixed, cap, `city-traffic-${kind}`), glass = instanced(parts.glass, VMAT.glass, cap, `city-traffic-${kind}`);
+      paint.castShadow = fixed.castShadow = true; glass.renderOrder = 2;
+      fleet.set(kind, { parts: [{ mesh: paint, tint: true }, { mesh: fixed, tint: false }, { mesh: glass, tint: false }], cap, n: 0 });
     }
     return fleet.get(kind);
   };
@@ -671,19 +715,19 @@ export async function startCity(ctx) {
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE);
+      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE, v.id === transit.ride?.vehicle);
       if (f && f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
       // A wreck sits askew; a car in a crash rocks on its springs.
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
-      if (f) { f.paint.setMatrixAt(f.n, M); f.fixed?.setMatrixAt(f.n, M); f.glass?.setMatrixAt(f.n, M); }
+      if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       else lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
       const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? "#b03a2e" : v.model === "patrol" ? "#1b2631" : v.model === "box_truck" || v.model === "delivery_van" ? "#efefea" : PAINT[Math.floor((v.shade ?? 0.5) * PAINT.length) % PAINT.length];
       C.set(paint);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
-      if (f) { f.paint.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
+      if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
       if (night) {
         const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
         for (const s of [1, -1]) {
@@ -695,8 +739,7 @@ export async function startCity(ctx) {
       }
       n += 1;
     }
-    for (const f of fleet.values()) for (const mesh of [f.paint, f.fixed, f.glass]) {
-      if (!mesh) continue;
+    for (const f of fleet.values()) for (const { mesh } of f.parts) {
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
     headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
@@ -719,12 +762,32 @@ export async function startCity(ctx) {
   }
 
   // ---- your car and your party's ---------------------------------------------------------------
+  //: Your car (and your party's, and yours where they are parked): always the finest there is,
+  //: whatever the traffic's rings say -- the fleet's full model, inside and all, for a kind it
+  //: draws (the code-built body, which has its seats and wheel, until that has loaded), else the
+  //: code-built one.
   function makeCar(model, colour) {
     const [w, h, l] = CAR_DIMS[model] || CAR_DIMS.sedan;
     const g = vehicleGroup(THREE, model, colour);
     g.userData = { model, dims: [w, h, l] };
     g.name = "city-car";
+    if (FLEET_FOR[model]) fleetReady(model, "full").then((parts) => { if (parts) dressFull(g, model, parts, colour); });
     return g;
+  }
+  //: ``g``'s code-built body swapped for the fleet's full model: one of each part (an instance of
+  //: one, so the paint takes the car's colour as the traffic's does).
+  function dressFull(g, model, parts, colour) {
+    for (const o of [...g.children]) { o.removeFromParent(); if (o.material && o.material !== VMAT.fixed && o.material !== VMAT.glass) o.material.dispose(); }
+    for (const part of parts) {
+      const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: true, livery: model === "bus" ? BUS_LIVERY : null }), 1);
+      mesh.setMatrixAt(0, M.identity());
+      if (part.tint) mesh.setColorAt(0, C.set(colour));
+      mesh.castShadow = !part.glass; mesh.receiveShadow = true; mesh.frustumCulled = false;
+      if (part.glass) mesh.renderOrder = 2;
+      mesh.name = `city-car-${part.name}`;
+      g.add(mesh);
+    }
+    g.userData.full = true;
   }
   const parked = new Map();     // vehicle id -> mesh (your cars where they stand)
   const peerCars = new Map();   // peer id -> mesh
@@ -4131,5 +4194,28 @@ export async function startCity(ctx) {
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, district, visible: () => visible, me: myId,
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
+    //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,
+    //: facing ``yaw``, in ``colour`` (the bus in its livery); called again, the row is taken away
+    //: first. Resolves to what was laid out.
+    async lineUp(x, z, { tier = "npc", colour = "#2b4c7e", yaw = 0.6, gap = 1.2 } = {}) {
+      group.getObjectByName("fleet-line-up")?.removeFromParent();
+      const row = new THREE.Group(); row.name = "fleet-line-up";
+      let at = 0;
+      const out = [];
+      for (const kind of Object.keys(FLEET_FOR)) {
+        const parts = await fleetReady(kind, tier);
+        if (!parts) continue;
+        const [w, , l] = VEHICLE_DIMS[kind];
+        at += Math.max(w, l * Math.abs(Math.sin(yaw))) / 2 + gap;
+        const g = new THREE.Group();
+        dressFull(g, kind, parts, colour);
+        g.position.set(x + at, groundAt(x + at, z), z); g.rotation.y = yaw;
+        row.add(g);
+        out.push({ kind, x: x + at, z, parts: parts.map((q) => q.name), triangles: parts.reduce((n, q) => n + (q.geometry.index ? q.geometry.index.count / 3 : 0), 0) });
+        at += Math.max(w, l * Math.abs(Math.sin(yaw))) / 2;
+      }
+      group.add(row);
+      return out;
+    },
   };
 }

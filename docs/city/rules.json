@@ -166,7 +166,8 @@
       "box_truck":   {"name": "Box truck", "price": 78000, "seats": 3, "kind": "truck", "fuel": "diesel", "l_per_100km": 22, "top_kmh": 120, "colour": "#f2f2ee"},
       "taxi":        {"name": "Taxi", "price": 33000, "seats": 5, "kind": "car", "fuel": "hybrid", "l_per_100km": 4.8, "top_kmh": 170, "colour": "#f1c40f"},
       "bus":         {"name": "Muni bus", "price": 950000, "seats": 60, "kind": "bus", "fuel": "electric", "kwh_per_100km": 140, "top_kmh": 90, "colour": "#b03a2e"},
-      "patrol":      {"name": "Patrol car", "price": 56000, "seats": 5, "kind": "car", "fuel": "hybrid", "l_per_100km": 8, "top_kmh": 210, "colour": "#1b2631"}
+      "patrol":      {"name": "Patrol car", "price": 56000, "seats": 5, "kind": "car", "fuel": "hybrid", "l_per_100km": 8, "top_kmh": 210, "colour": "#1b2631"},
+      "sports":      {"name": "Sports car", "price": 122000, "seats": 4, "kind": "car", "fuel": "gasoline", "l_per_100km": 11.8, "top_kmh": 293, "colour": "#c0392b"}
     },
     "used_share_by_age": [[0, 1.0], [1, 0.8], [3, 0.55], [5, 0.36], [8, 0.25], [12, 0.15]],
     "dealer_max_m": 60

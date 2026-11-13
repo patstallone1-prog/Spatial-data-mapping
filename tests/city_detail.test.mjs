@@ -81,7 +81,7 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
   // Cars: in view only, kit / code-built / a box.
   assert.match(VIEW, /CAR_FRUSTUM\.intersectsSphere/);
-  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE\)/);
+  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE, v\.id === transit\.ride\?\.vehicle\)/);
   assert.match(VIEW, /lowCars\.setMatrixAt/);
   // Tracked only: not placed every frame, and not drawn; nor someone in a shop out of sight.
   assert.match(VIEW, /if \(was\.tier === TRACKED\) \{ trackedPeople \+= 1; continue; \}/);
