@@ -79,24 +79,39 @@ function mergeGeos(geos) {
   out.setAttribute("normal", new parts[0].attributes.position.constructor(nor, 3));
   return out;
 }
-//: People's shapes: heights as adults' are (men about 1.76 m, women 1.62, either way by about
-//: 7 cm; CDC/NCHS anthropometric reference), children by age, and builds narrower and broader --
-//: from the person's id, so each is the same every time and nothing is stored or worked out again.
+//: People's shapes: adults' heights from the bell curve of the CDC/NCHS anthropometric reference
+//: for American adults -- men 1.778 m (5 ft 10) by 7.1 cm, women 1.651 m (5 ft 5) by 6.6 cm --
+//: held within ADULT_HEIGHT.hold of those either way (no 1.5 m man, no 2.1 m woman; an even hold
+//: leaves the averages where they are); children by age; builds narrower and broader. From the
+//: person's id, so each is the same every time and nothing is stored or worked out again.
+export const ADULT_HEIGHT = { male: { mean: 1.778, sd: 0.071 }, female: { mean: 1.651, sd: 0.066 }, hold: 3.5 };
+//: A draw from the normal curve (Box-Muller) from two of the seed's uniforms: most people near
+//: the middle and fewer the further out, as heights are. (The sum of three uniforms it was ends
+//: at 3 either way and has too few people out towards it.)
+function normalDraw(r) {
+  const u = Math.max(1e-12, r()), v = r();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+//: An adult's height for a draw ``z`` from the normal curve, in metres.
+export function adultHeight(female, z) {
+  const { mean, sd } = female ? ADULT_HEIGHT.female : ADULT_HEIGHT.male, hold = ADULT_HEIGHT.hold;
+  return mean + sd * Math.max(-hold, Math.min(hold, z));
+}
 const HAIR = ["#1b1410", "#2b1d14", "#3b2a1d", "#5a3d26", "#7a5a3a", "#a8834f", "#c9a66b", "#8f8f8f", "#d8d2c4", "#6b2b1a"];
-function bodyFor(person, cache) {
+export function bodyFor(person, cache) {
   let b = cache.get(person.id);
   if (b) return b;
-  const r = rng(person.id || "?", "body"), g = (r() + r() + r() - 1.5) * 2;   // about N(0, 1)
+  const r = rng(person.id || "?", "body"), g = normalDraw(r);
   const age = person.age ?? 35;
-  let height, build;
+  let height, build, female = null;
   if (age < 18) { height = Math.max(1.0, Math.min(1.85, 0.78 + age * 0.06 + g * 0.05)); build = 0.82 + r() * 0.12; }
   else {
-    const female = r() < 0.5;
-    height = Math.max(1.45, Math.min(2.02, (female ? 1.62 : 1.76) + g * (female ? 0.065 : 0.07)));
+    female = r() < 0.5;
+    height = adultHeight(female, g);
     build = (female ? 0.9 : 1.0) + (r() - 0.5) * 0.28;
   }
   const grey = age > 55 && r() < 0.6;
-  b = { height, build, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
+  b = { height, build, female, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
   if (cache.size > 20000) cache.clear();
   cache.set(person.id, b);
   return b;
