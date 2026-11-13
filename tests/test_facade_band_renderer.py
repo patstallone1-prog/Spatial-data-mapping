@@ -83,7 +83,7 @@ def test_far_window_trim_cache_separates_otherwise_identical_windows():
         ("homeWindowArchSpring", "homeDesignMaterial"),
     )
     assert not result["same"] and result["reused"]
-    assert result["draws"] == ["#ffffff", "rgba(231,240,243,0.12)", "#ffffff", "#aa3333", "rgba(231,240,243,0.12)", "#aa3333"]
+    assert result["draws"] == ["#ffffff", "rgba(92,100,104,0.36)", "#ffffff", "#aa3333", "rgba(92,100,104,0.36)", "#aa3333"]
 
 
 def test_near_shell_preserves_bands_trims_and_disposes_owned_materials():

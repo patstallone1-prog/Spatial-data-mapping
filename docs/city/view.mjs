@@ -1643,6 +1643,27 @@ export async function startCity(ctx) {
     g.fillStyle = fg; g.font = "600 46px system-ui,sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(text).slice(0, 22), 256, 50);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
   }
+  //: A window pane's surface: grey grain and a few faint smears, tiled; drawn once. The page's
+  //: own panes wear the same (paneGlassTexture, module 25).
+  let paneMap = null;
+  function paneTexture() {
+    if (paneMap) return paneMap;
+    const c = doc.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d"), image = g.createImageData(128, 128), r = rng("pane");
+    for (let i = 0; i < 128 * 128; i += 1) {
+      const shade = 196 + Math.round((r() - 0.5) * 56);
+      image.data.set([shade, shade + 3, shade + 5, 130 + Math.round(r() * 125)], i * 4);
+    }
+    g.putImageData(image, 0, 0);
+    for (let k = 0; k < 6; k += 1) {
+      const x = r() * 128, y = r() * 128, s = g.createRadialGradient(x, y, 0, x, y, 18 + r() * 34);
+      s.addColorStop(0, "rgba(246,248,249,0.3)"); s.addColorStop(1, "rgba(246,248,249,0)");
+      g.fillStyle = s; g.fillRect(0, 0, 128, 128);
+    }
+    paneMap = new THREE.CanvasTexture(c); paneMap.colorSpace = THREE.SRGBColorSpace || paneMap.colorSpace;
+    paneMap.wrapS = paneMap.wrapT = THREE.RepeatWrapping;
+    return paneMap;
+  }
   function buildRoom(place, F) {
     const g = new THREE.Group(); g.name = "city-shop-room";
     g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
@@ -1654,7 +1675,9 @@ export async function startCity(ctx) {
     const wall = flat(0xe4ddd1, { side: THREE.BackSide }), sideWall = flat(0xd3cbbd, { side: THREE.BackSide });
     const floor = flat(0x8a6f55, { side: THREE.BackSide });
     const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
-    const glass = new THREE.MeshBasicMaterial({ color: 0xbfd9e6, transparent: true, opacity: 0.22, side: THREE.BackSide, depthWrite: false });
+    // The shop window as the houses' are (module 25, WINDOW_GLASS): grey, a little worn, and
+    // softening the street seen through it -- not a pane that could be taken for an open front.
+    const glass = new THREE.MeshBasicMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
