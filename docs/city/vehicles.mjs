@@ -477,7 +477,7 @@ export function fleetParts(THREE, gltf) {
     geometry.applyMatrix4(o.matrixWorld);
     geometry.computeBoundingSphere(); geometry.computeBoundingBox();
     const name = o.material?.name || o.name, glass = name === "glass" || Boolean(o.material?.transparent);
-    out.push({ name, geometry, glass, map: o.material?.map || null, colour: o.material?.color?.clone() || null, opacity: o.material?.opacity ?? 1,
+    out.push({ name, node: o.name, geometry, glass, map: o.material?.map || null, colour: o.material?.color?.clone() || null, opacity: o.material?.opacity ?? 1,
       tint: name === "body" ? Boolean(geometry.attributes._paint) : name === "paint-atlas" });
   });
   return out;
@@ -516,4 +516,90 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
   };
   m.customProgramCacheKey = () => `fleet-paint-v3-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
   return m;
+}
+
+// ---- the bicycle (the Voltage MTB's LOD3, docs/city/models/fleet/bike-npc.glb) --------------------
+//
+// Six parts, each about its own pivot (the pack's assembly pivots, turned to the fleet's frame:
+// front -z, right +x, the wheels on y = 0): the frame (fork, bars and saddle with it), the two
+// wheels about their axles, the crank about the bottom bracket, and the two pedals, carried round
+// by the crank and kept level. Its rider sits on the saddle, hands on the grips, feet on the
+// pedals: hips, knees and feet worked out from where the pedals are (riderPose).
+
+//: The bicycle's measurements, in its frame (fleet.json "bike", from the build).
+export const BIKE = {
+  file: "city/models/fleet/bike-npc.glb",
+  parts: ["frame", "crank", "pedal_left", "pedal_right", "wheel_front", "wheel_rear"],
+  pivots: { front_axle: [0.0003, 0.347, -0.595], rear_axle: [0.0003, 0.347, 0.595], crankset: [0.0003, 0.327, 0.18],
+    left_pedal: [-0.1397, 0.327, 0.345], right_pedal: [0.1403, 0.327, 0.02] },
+  saddle: [0.0001, 0.8797, 0.1777],
+  grips: [[-0.3726, 1.0165, -0.2365], [0.3735, 1.0158, -0.2363]],
+  wheel_radius: 0.347,
+  //: Turns of the wheel to one of the crank: a middling gear (a 32-tooth ring on a 12-tooth sprocket
+  //: is 2.7; town riding sits a little lower).
+  gear: 2.4,
+};
+//: How far round (radians) the wheels and the crank have turned over ``odo`` metres ridden. A
+//: rotation about +x by a negative angle sends the top of a wheel forward (-z).
+export const wheelTurn = (odo) => -odo / BIKE.wheel_radius;
+export const crankTurn = (odo) => -odo / BIKE.wheel_radius / BIKE.gear;
+//: Where a pedal's pivot is with the crank turned ``crank`` from the pack's rest (the left arm back,
+//: the right forward).
+export function pedalAt(side, crank) {
+  const [cx, cy, cz] = BIKE.pivots.crankset, rest = side === "left" ? BIKE.pivots.left_pedal : BIKE.pivots.right_pedal;
+  const dy = rest[1] - cy, dz = rest[2] - cz, c = Math.cos(crank), s = Math.sin(crank);
+  return [rest[0], cy + dy * c - dz * s, cz + dy * s + dz * c];
+}
+//: The rider's frame of proportions: a person 1.75 m tall (view.mjs's figure) -- hips (where the
+//: legs hang from) 0.84 up, shoulders 1.34 up and 0.26 out, the hips 0.1 out; thigh and shin
+//: 0.43 each (a leg 0.82 to the ankle, the foot under it); an arm 0.6.
+export const RIDER = { hip_y: 0.84, hip_x: 0.1, shoulder_y: 1.34, shoulder_x: 0.26, thigh: 0.43, shin: 0.43, arm: 0.6, sole: 0.03, reach: 0.86 };
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
+const leanCache = new Map();
+//: The rider of scale ``s`` (height / 1.75) and ``build`` on the bicycle with its crank at
+//: ``crank``, in the bicycle's frame: ``root`` (where the figure's feet-origin stands, before the
+//: lean), ``lean`` (radians forward from upright, about the hips), and the joints -- hips, knees
+//: and feet (on the pedals), shoulders and hands (on the grips). The lean is the one that brings
+//: the shoulders ``reach`` of an arm's length from the grips (the elbows a little bent).
+export function riderPose(s = 1, crank = 0, build = 1) {
+  const R = RIDER;
+  const hipC = [0, BIKE.saddle[1] + 0.07 * s, BIKE.saddle[2] + 0.02];
+  const root = [0, hipC[1] - R.hip_y * s, hipC[2]];
+  const key = `${s.toFixed(3)}:${build.toFixed(3)}`;
+  let lean = leanCache.get(key);
+  if (lean === undefined) {
+    let best = Infinity;
+    for (let a = 0.05; a <= 1.4; a += 0.01) {
+      const sh = [R.shoulder_x * s * build, hipC[1] + (R.shoulder_y - R.hip_y) * s * Math.cos(a), hipC[2] - (R.shoulder_y - R.hip_y) * s * Math.sin(a)];
+      const miss = Math.abs(len3(sub3(BIKE.grips[1], sh)) - R.arm * s * R.reach);
+      if (miss < best) { best = miss; lean = a; }
+    }
+    leanCache.set(key, lean);
+  }
+  const up = (R.shoulder_y - R.hip_y) * s;
+  const shoulders = [-1, 1].map((x) => [x * R.shoulder_x * s * build, hipC[1] + up * Math.cos(lean), hipC[2] - up * Math.sin(lean)]);
+  const hands = [BIKE.grips[0], BIKE.grips[1]];
+  const hips = [-1, 1].map((x) => [x * R.hip_x * s * build, hipC[1], hipC[2]]);
+  const feet = ["left", "right"].map((side) => { const p = pedalAt(side, crank); return [p[0], p[1] + R.sole, p[2]]; });
+  // Each knee: two bones from the hip to the foot, bent forward and up (a rider's knee points
+  // over the bars, never back).
+  const knees = hips.map((h, i) => {
+    const f = feet[i], v = sub3(f, h), d0 = len3(v), a = R.thigh * s, b = R.shin * s;
+    const d = Math.min(d0, (a + b) * 0.999), u = v.map((x) => x / d0);
+    const along = (a * a + d * d - b * b) / (2 * d), out = Math.sqrt(Math.max(0, a * a - along * along));
+    // The way the knee goes: forward-and-up, less its part along the leg.
+    const want = [0, 0.35, -1], dot = want[0] * u[0] + want[1] * u[1] + want[2] * u[2];
+    const perp = [want[0] - dot * u[0], want[1] - dot * u[1], want[2] - dot * u[2]], pl = len3(perp) || 1;
+    return [h[0] + u[0] * along + perp[0] / pl * out, h[1] + u[1] * along + perp[1] / pl * out, h[2] + u[2] * along + perp[2] / pl * out];
+  });
+  return { root, lean, hipC, hips, knees, feet, shoulders, hands };
+}
+//: The bicycle's parts of a loaded bike-npc.glb: { name: { geometry, tint } } (``tint``: the frame,
+//: where the pack's masks say paint), by node -- the six share one material. Each part is already
+//: about its pivot.
+export function bikeParts(THREE, gltf) {
+  const out = {};
+  for (const part of fleetParts(THREE, gltf)) out[part.node] = { ...part, name: part.node, tint: Boolean(part.geometry.attributes._paint) };
+  return out;
 }
