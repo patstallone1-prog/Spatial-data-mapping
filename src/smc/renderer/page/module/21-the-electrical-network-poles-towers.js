@@ -1738,6 +1738,11 @@ function placeCamera() {
     camera.position.sub(state.target).setLength(blocked).add(state.target);
     cameraPulledIn = true;
   }
+  // Pulled in to the walker itself (a wall right behind: in a doorway facing out, a lane between
+  // walls), the camera stood inside the walker's legs -- "a super zoomed view of the jeans, and
+  // inside them". So it looks from the walker's eyes instead, the way the view faces, and the
+  // walker is not drawn, until the view has room again (2026-11-12).
+  if (typeof walkerEyeView === "function" && walkerEyeView(cameraPulledIn ? blocked : null)) return;
   // The ground stops it too. Not under the ground (a walker in a tunnel or a station has its
   // own bore to keep the camera in: constrainWorldCamera), and not from the air.
   cameraOnGround = false;
@@ -1753,6 +1758,30 @@ function placeCamera() {
   camera.lookAt(state.target);
   if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));
   fitViewToAltitude();
+}
+//: Pulled in closer than this to the walker, the view is from its eyes (placeCamera).
+const ORBIT_MIN_WALKER_M = 1.6;
+var walkerHiddenByCamera = false;
+function walkerEyeView(pulledTo) {
+  const walker = typeof avatar !== "undefined" && !state.explore && !(typeof ATTACH !== "undefined" && ATTACH)
+    && typeof walkerGroundAt === "function" && Math.hypot(state.target.x - avatar.position.x, state.target.z - avatar.position.z) < 0.5;
+  if (walker && pulledTo !== null && pulledTo < ORBIT_MIN_WALKER_M) {
+    const eye = avatar.position.clone();
+    eye.y = AVATAR_EYE_Y + (Number.isFinite(state.floorY) ? state.floorY : walkerGroundAt(avatar.position.x, avatar.position.z));
+    // The way the orbit looked: from behind the walker, over it.
+    const ahead = new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+    camera.position.copy(eye);
+    camera.lookAt(eye.x + ahead.x * 10, eye.y - Math.tan(Math.min(0.6, state.pitch * 0.5)) * 10, eye.z + ahead.z * 10);
+    if (avatar.visible) { avatar.visible = false; walkerHiddenByCamera = true; }
+    fitViewToAltitude();
+    return true;
+  }
+  // Room again: the walker is drawn as it was (unless something else has hidden it since).
+  if (walkerHiddenByCamera && typeof avatar !== "undefined") {
+    walkerHiddenByCamera = false;
+    if (!state.firstPerson && !avatar.userData?.inCar) avatar.visible = true;
+  }
+  return false;
 }
 //: Climbing, the view sees further and the haze lifts: the far plane reaches past the Earth's
 //: horizon and the fog draws back with the height, so from on high the Bay -- and then the

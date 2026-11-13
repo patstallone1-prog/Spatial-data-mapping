@@ -200,3 +200,60 @@ test("people leave and enter by the door: out along its line, never through the 
   assert.ok(doorways > 0, "nobody went through a door");
   assert.equal(DOOR_STEP_M, 1.6);
 });
+
+test("up to four of a thing share a slot; more take the next free slots", async () => {
+  const { STACK, slotCount, slotsUsed } = await import("../docs/city/inventory.mjs");
+  assert.equal(STACK, 4);
+  let slots = arrange([], { apple: 9, axe: 1 });
+  assert.equal(slots.filter((id) => id === "apple").length, 3);          // 4 + 4 + 1
+  const counts = slots.map((_, i) => slotCount(slots, { apple: 9, axe: 1 }, i)).filter((n, i) => slots[i] === "apple");
+  assert.deepEqual(counts, [4, 4, 1]);
+  assert.equal(slotsUsed({ apple: 9, axe: 1 }), 4);
+  // Eating some: the last stack goes first, and the others keep their places.
+  const before = slots.indexOf("apple");
+  slots = arrange(slots, { apple: 4, axe: 1 });
+  assert.equal(slots.filter((id) => id === "apple").length, 1);
+  assert.equal(slots.indexOf("apple"), before);
+  // A thing moved to the grid keeps its stack there.
+  slots = swap(slots, before, 20);
+  slots = arrange(slots, { apple: 6, axe: 1 });
+  assert.equal(slots[20], "apple");
+  // Stacks fill in slot order: the new stack (earlier, on the bar) is full, the grid's holds the rest.
+  assert.equal(slotCount(slots, { apple: 6, axe: 1 }, slots.indexOf("apple")), 4);
+  assert.equal(slotCount(slots, { apple: 6, axe: 1 }, 20), 2);
+});
+
+test("picking up the same thing twice stacks it, and a full inventory says so", () => {
+  const w = world();
+  const p = w.players.get("me");
+  w.items.set("a1", { id: "a1", item: "apple", qty: 1, x: 0.5, z: 0 });
+  w.items.set("a2", { id: "a2", item: "apple", qty: 1, x: 0.5, z: 0.2 });
+  assert.ok(w.submit("me", "pick_up", { id: "a1" }).ok);
+  assert.ok(w.submit("me", "pick_up", { id: "a2" }).ok);
+  assert.equal(p.inventory.apple, 2);
+  for (let k = 0; k < 32; k += 1) p.inventory[`full${k}`] = 1;   // every slot taken
+  w.items.set("a3", { id: "a3", item: "water", qty: 1, x: 0.5, z: 0 });
+  const r = w.submit("me", "pick_up", { id: "a3" });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /no room/);
+});
+
+test("X aims at the nearest target's height and turns to it; G walks over with the legs", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  // aimOf, run: the arm's forward angle to a person's chest, a bench's top, a tree's trunk.
+  const body = src.slice(src.indexOf("  const SHOULDER_M"), src.indexOf("  //: U (or a right click)"));
+  const aimOf = new Function(`${body}; return aimOf;`)();
+  const person = aimOf({ kind: "person", d: 0.9 }).arm, bench = aimOf({ kind: "thing", t: {}, d: 0.8 }).arm;
+  assert.ok(Math.abs(person - Math.PI / 2) < 0.15, `a punch at a person is level: ${person}`);
+  assert.ok(bench < person - 0.4, `at a bench it goes down: ${bench}`);
+  assert.ok(bench >= 0.5 && person <= 2.1);
+  // The swing turns you to what it is aimed at, and the blow lands on that.
+  assert.match(src, /const aim = nearestHittable\(R\.tools\.reach_m\);\n    if \(aim\) ctx\.faceTo\?\.\(aim\.x, aim\.z\);/);
+  assert.match(src, /startAct\("swing", 0\.45, 0\.55, \(\) => strikeKey\(null, aim\)\)/);
+  // An empty hand jabs out at that height rather than swinging overhead.
+  assert.match(src, /if \(!p\?\.hands\) \{\n        \/\/ A punch/);
+  // The walk over to a thing is stepped by the page's walker (legs moving), not slid.
+  assert.match(src, /ctx\.animateWalk\?\.\(moved, dx \/ d, dz \/ d\);/);
+  assert.match(src, /autoWalk: \(dt\) => stepReach\(dt\)/);
+});

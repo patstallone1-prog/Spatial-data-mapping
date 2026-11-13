@@ -19,6 +19,7 @@ import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
+import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -346,6 +347,9 @@ export class CityWorld {
         if (!lift.ok) throw new CityError(lift.reason);
       }
     }
+    const after = { ...p.inventory };
+    for (const l of lines) if (!this.R.items[l.item].service) after[l.item] = (after[l.item] || 0) + l.qty;
+    if (slotsUsed(after) > SLOTS) throw new CityError(`no room in your inventory for it all: ${SLOTS} slots of up to ${STACK} each`);
     const c = this.carry(p);
     if (c.kg + kg > c.capacity) throw new CityError(`too heavy to carry it all: ${c.kg} of ${c.capacity} kg already, and the basket is ${Math.round(kg * 10) / 10} kg`);
     const balance = this.ledger.balance(p.account);
@@ -409,6 +413,8 @@ export class CityWorld {
     // One thing too heavy for you to lift at all, or more than you can carry with the rest.
     const lift = canLift(this.R, thing.item, p.vitals.strength, c.kg, c.capacity, thing.qty);
     if (!lift.ok) throw new CityError(lift.reason);
+    // More of a thing you have goes on its stack (STACK to a slot), then into a slot of its own.
+    if (slotsUsed({ ...p.inventory, [thing.item]: (p.inventory[thing.item] || 0) + thing.qty }) > SLOTS) throw new CityError(`no room in your inventory: all ${SLOTS} slots are full`);
     p.inventory[thing.item] = (p.inventory[thing.item] || 0) + thing.qty;
     if (thing.found) { this.found.add(thing.id); if (this.found.size > 2000) this.found.delete(this.found.values().next().value); }
     else this.items.delete(thing.id);

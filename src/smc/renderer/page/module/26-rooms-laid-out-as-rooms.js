@@ -779,6 +779,17 @@ function entryTunnelConflict(entry) {
   }
   return false;
 }
+//: Whether a building's door leads into rooms: the same rules buildInterior keeps. The door's
+//: hint and Enter both ask this -- they asked only for a fitted plan, so a shop or restaurant
+//: (whose rooms are not drawn without its own layout) said "Enter -- go in", opened its door and
+//: left the walker on the step, looking in at a wall it could not walk through (2026-11-12).
+function entryRoomsPossible(entry) {
+  if (!entry || entry.way.parkFacility || entry.way._structure) return false;
+  if (entryTunnelConflict(entry)) return false;
+  if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) return true;
+  if (!HEADSET && commercialInterior(entry)) return false;
+  return Boolean(INTERIORS && entry.fit);
+}
 function buildInterior(entry) {
   if (entry.way.parkFacility || entry.way._structure) return;
   if(entryTunnelConflict(entry))return;
@@ -1596,6 +1607,12 @@ function stepAvatar(now) {
   if (typeof livingCity !== "undefined" && livingCity?.inside) { livingCity.walkInside(dt, held); updateAvatarMixer(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
+  // The city walking you somewhere (over to a thing G picks up) has the legs this frame; an
+  // arrow pressed takes them back.
+  if (typeof livingCity !== "undefined" && livingCity?.autoWalk) {
+    if (held.size) livingCity.cancelAutoWalk?.();
+    else if (livingCity.autoWalk(dt)) { updateAvatarMixer(dt); return; }
+  }
   if (!held.size) {
     if (!followGps(dt)) animateAvatar(0, new THREE.Vector3(), false);
     updateAvatarMixer(dt);

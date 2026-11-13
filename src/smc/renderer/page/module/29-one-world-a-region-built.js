@@ -139,6 +139,7 @@ function releaseGuest(g) {
   if (g.url) URL.revokeObjectURL(g.url);
   g.api = null;
   g.root = null;
+  g.window = null;   // its stand-in window holds its world too
   if (!root && !api) return;
   const all = [];
   root?.traverse((o) => { all.push(o); });
@@ -450,7 +451,8 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     };
     const stand = guestStandIns(pageUrl, metas);
     attaching.progress=stand.document.getElementById("progress");
-    const holder = { region, ready: false, centre, detailRadius:radius, strip, stripKey, startedAt:performance.now() };
+    // (``window``: the attached region's own stand-in window -- its window.kerbside for checks.)
+    const holder = { region, ready: false, centre, detailRadius:radius, strip, stripKey, startedAt:performance.now(), window: stand.window };
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
@@ -554,7 +556,7 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
 }
 window.kerbsideAttachRegion = (name) => attachRegion(REGION_INDEX.list.find((r) => r.name === name));
 window.kerbsideActiveRegion = () => (activeGuest ? { name: activeGuest.region.name, ready: activeGuest.ready,
-  offset: [activeGuest.ox, activeGuest.oy, activeGuest.oz], scale: activeGuest.sx } : { name: REGION_INDEX.host?.name, host: hostWorldActive });
+  offset: [activeGuest.ox, activeGuest.oy, activeGuest.oz], scale: activeGuest.sx, world: () => activeGuest?.window?.kerbside || null } : { name: REGION_INDEX.host?.name, host: hostWorldActive });
 //: Each frame the attached region is shown the page's eye and walker, culls its own detail and
 //: works its own doors; what it says back -- indoors, a message -- is shown by this page.
 const guestAvatarAt = new THREE.Vector3();

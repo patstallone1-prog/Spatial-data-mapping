@@ -283,6 +283,17 @@ function setAppMode(mode) {
       inArea: (x, z) => cityAreaHolds(x, z),
       areaName: () => (cityLock ? CITY_AREA.name : null),
       moveWalker: (mx, mz) => moveWalker(mx, mz),
+      // The walker's legs for a move the city made (walking over to pick a thing up, a shop's
+      // floor): ``distance`` metres the way (dx, dz), at a walk -- 0 stands it still. Without
+      // it a walker moved by the city glided along in its standing pose.
+      animateWalk: (distance, dx = 0, dz = 0) => {
+        const moving = distance > 1e-4 && dx * dx + dz * dz > 1e-9;
+        avatar.userData.pace = 0.6; avatar.userData.onStairs = false; avatar.userData.grade = 0;
+        // The height stays where the city put it (a shop's floor is not the ground under it).
+        const y = avatar.position.y;
+        animateAvatar(moving ? distance : 0, new THREE.Vector3(dx, 0, dz), moving);
+        avatar.position.y = y;
+      },
       moveAvatarTo: (x, z, keepHeight = false) => {
         avatar.position.x = x; avatar.position.z = z;
         if (!keepHeight) avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(x, z, walkerFeetY());

@@ -28,7 +28,7 @@ import { witnessOf } from "./enforcement.mjs";
 import { KENNEY_DEBRIS, KENNEY_FOR, VEHICLE_DIMS, kenneyGeometry, kenneyMaterial, vehicleGroup, vehicleMaterials, vehicleParts } from "./vehicles.mjs";
 import { City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
-import { BAR, GRID, arrange, barSlotOf, swap } from "./inventory.mjs";
+import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -1166,15 +1166,19 @@ export async function startCity(ctx) {
   //: get there in a few seconds (something solid between).
   const PICK_REACH_M = 3.2, PICK_AT_M = 0.8;
   const reach = { t: null, since: 0 };
+  //: One frame of it, run by the page's walker step (module 26) so the legs walk it: true while
+  //: walking over (the page then leaves the walker's pose to this), false once there or given up.
   function stepReach(dt) {
     const t = reach.t;
-    if (!t) return;
+    if (!t) return false;
     const at = me(), dx = t.x - at.x, dz = t.z - at.z, d = Math.hypot(dx, dz);
-    if (d <= PICK_AT_M) { reach.t = null; ctx.faceTo?.(t.x, t.z); reachDown(t); return; }
-    if (car.active || transit.ride || performance.now() - reach.since > 4000) { reach.t = null; notify("Could not get to it: something is in the way."); return; }
+    if (d <= PICK_AT_M) { reach.t = null; ctx.faceTo?.(t.x, t.z); ctx.animateWalk?.(0); reachDown(t); return false; }
+    if (car.active || transit.ride || performance.now() - reach.since > 4000) { reach.t = null; ctx.animateWalk?.(0); notify("Could not get to it: something is in the way."); return false; }
     const step = Math.min(1.3 * dt, d - PICK_AT_M + 0.05);
+    const moved = ctx.moveWalker?.((dx / d) * step, (dz / d) * step) ?? step;
     ctx.faceTo?.(t.x, t.z);
-    ctx.moveWalker?.((dx / d) * step, (dz / d) * step);
+    ctx.animateWalk?.(moved, dx / d, dz / d);
+    return true;
   }
   function reachDown(t) {
     const pl = self();
@@ -1604,6 +1608,15 @@ export async function startCity(ctx) {
     return g;
   }
   //: Into the shop beside you: through its door, into the room, the counter in front of you.
+  //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
+  //: shop's room, or its counter where it has none; false where no shop of the city's is there.
+  function enterBuilding(id) {
+    if (!self() || car.active || transit.ride) return false;
+    const place = district.places?.find((pl) => String(pl.id) === String(id) && storesAt(R, pl.keys).length);
+    if (!place) { notify("Closed: nothing here sells to the public."); return false; }
+    if (!(place.front && enterShop(place))) openStore(place);
+    return true;
+  }
   function enterShop(place, { asStaff = false } = {}) {
     const F = shopFrame(place);
     if (!F) return false;
@@ -1643,7 +1656,7 @@ export async function startCity(ctx) {
     if (!F) return false;
     // On the shop's floor, whatever the ground under the building is.
     if (!air.up && Math.abs(me().y - ctx.standY - F.y) > 0.05) ctx.placeAvatar(me().x, F.y, me().z);
-    if (!held.size) return true;
+    if (!held.size) { ctx.animateWalk?.(0); return true; }
     const yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
     let mx = 0, mz = 0;
     if (held.has("ArrowUp")) { mx += fx; mz += fz; }
@@ -1651,7 +1664,7 @@ export async function startCity(ctx) {
     if (held.has("ArrowRight")) { mx += rx; mz += rz; }
     if (held.has("ArrowLeft")) { mx -= rx; mz -= rz; }
     const len = Math.hypot(mx, mz);
-    if (!len) return true;
+    if (!len) { ctx.animateWalk?.(0); return true; }
     const speed = 1.5 * walkFactorNow();
     const p = me();
     const want = F.local(p.x + mx / len * speed * dt, p.z + mz / len * speed * dt);
@@ -1668,7 +1681,10 @@ export async function startCity(ctx) {
     const v = Math.max(-F.W / 2 + 0.3, Math.min(F.W / 2 - 0.3, want.v));
     const at = F.at(u, v);
     ctx.placeAvatar(at.x, F.y, at.z);
-    walked(Math.hypot(at.x - p.x, at.z - p.z), dt);
+    const stepped = Math.hypot(at.x - p.x, at.z - p.z);
+    // Legs that walk it, facing the way (a shop's floor glided like the walk over to a thing did).
+    ctx.animateWalk?.(stepped, (at.x - p.x) / (stepped || 1), (at.z - p.z) / (stepped || 1));
+    walked(stepped, dt);
     return true;
   }
 
@@ -1901,9 +1917,21 @@ export async function startCity(ctx) {
       return;
     }
     if (pose.kind === "swing") {
-      // Up and back, then down through the blow.
+      const arm = pose.aim?.arm ?? Math.PI / 2;
+      if (!p?.hands) {
+        // A punch: the fist drawn back to the chin, then straight out at the target's height
+        // (pose.aim), the shoulder turning into it.
+        const out = t < 0.3 ? 0 : t < 0.55 ? ease((t - 0.3) / 0.25) : 1 - ease((t - 0.55) / 0.45);
+        const cock = t < 0.3 ? ease(t / 0.3) : Math.max(0, 1 - out * 1.6);
+        fwd(B.rUpper, 0.35 * cock + arm * out); fwd(B.rFore, 1.9 * cock + 0.15 * out);
+        fwd(B.lUpper, 0.5); fwd(B.lFore, 1.7);        // the other hand up, guarding
+        turn(B.spine, 0, 1, 0, 0.3 * cock - 0.35 * out);
+        return;
+      }
+      // Up and back, then down through the blow -- onto the target, at its height.
       const up = t < 0.45 ? ease(t / 0.45) : 1 - ease((t - 0.45) / 0.55);
-      fwd(B.rUpper, 0.3 + 2.4 * up); fwd(B.rFore, 0.7 - 0.5 * up);
+      const low = Math.max(0.3, Math.min(1.8, arm));
+      fwd(B.rUpper, low + (2.7 - low) * up); fwd(B.rFore, 0.7 - 0.5 * up);
       if (hold === "shoulder") fwd(B.lUpper, 0.3 + 2.0 * up);
       // Over into the blow (the back forward as the arm comes down).
       turn(B.spine, 0, 1, 0, 0.35 * (up - 0.5)); fwd(B.spine, -0.25 * (1 - up));
@@ -1952,12 +1980,38 @@ export async function startCity(ctx) {
   }
   ctx.avatar.userData.afterPose = afterPose;
   //: X (or a click): swing what you hold at what is in front -- if it is a thing that swings.
+  //: X goes for the nearest thing or person within reach, whichever way you face: you turn to
+  //: it, and the blow is aimed at it -- a jab at its height with an empty hand, what you hold
+  //: brought down onto it. (It swung the arm up over the head and at whatever was nearest,
+  //: facing it or not, so a punch went up into the air.)
   function swingKey() {
     const p = self();
     if (!p || pose.kind || car.active || car.riding || transit.ride) return;
     const sw = swingOf(R, p.hands, p.vitals.strength);
     if (!sw.ok) { notify(sw.reason); return; }
-    startAct("swing", 0.45, 0.55, () => strikeKey());
+    const aim = nearestHittable(R.tools.reach_m);
+    if (aim) ctx.faceTo?.(aim.x, aim.z);
+    pose.aim = aim ? aimOf(aim) : AIM_AHEAD;
+    startAct("swing", 0.45, 0.55, () => strikeKey(null, aim));
+  }
+  //: The nearest person or breakable thing within ``reach`` of you, any way round:
+  //: {kind: "person", q, x, z, d} or {kind: "thing", t, x, z, d}. Someone is taken over a thing
+  //: up to 0.4 m further off (as the blow always has).
+  function nearestHittable(reach) {
+    const at = me();
+    const who = personInReach(reach, -2), t = strikeTarget(reach);
+    const dw = who ? Math.hypot(who.x - at.x, who.z - at.z) : Infinity, dt = t ? Math.hypot(t.x - at.x, t.z - at.z) : Infinity;
+    if (who && dw <= dt + 0.4) return { kind: "person", q: who, x: who.x, z: who.z, d: dw };
+    return t ? { kind: "thing", t, x: t.x, z: t.z, d: dt } : null;
+  }
+  //: Where the blow goes: the arm's forward angle (pi/2 level, less down, more up) to the
+  //: target's height from the shoulder's, at its distance. A person at the chest, a tree at the
+  //: trunk, a thing in the street (a bin, a bench, a sign's post) at about knee to waist.
+  const SHOULDER_M = 1.42;
+  const AIM_AHEAD = { arm: Math.PI / 2 };
+  function aimOf(aim) {
+    const h = aim.kind === "person" ? 1.35 : aim.t.nature ? 1.2 : 0.75;
+    return { arm: Math.max(0.5, Math.min(2.1, Math.PI / 2 + Math.atan2(h - SHOULDER_M, Math.max(0.45, aim.d)))) };
   }
   //: U (or a right click): use what you hold -- eat, drink, take, wear or take off.
   async function useSelected() {
@@ -2071,17 +2125,19 @@ export async function startCity(ctx) {
     return null;
   }
   const witnessesNear = (x, z) => Math.min(5, visible.people.filter((q) => !q.indoors && Math.hypot(q.x - x, q.z - z) < R.damage.witness_reach_m).length);
-  async function strikeKey(energy = null) {
+  async function strikeKey(energy = null, aimed = null) {
     const p = self();
     if (!p) return;
     if (!energy && (car.active || transit.ride || car.riding)) return;
     const now = performance.now();
     if (!energy && now - lastStrike < 1000 / R.tools.strikes_per_second) return;
     lastStrike = now;
-    // Someone in front of you, nearer than any thing: the blow is theirs.
-    const who = energy ? null : personInReach(R.tools.reach_m);
-    const t = strikeTarget(energy ? 6 : R.tools.reach_m);
-    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4)) return strikePerson(who);
+    // What the swing was aimed at (X turned you to it), if it is still within reach when the
+    // blow lands; otherwise the nearest now.
+    const at = me();
+    const aim = energy ? null : aimed && Math.hypot(aimed.x - at.x, aimed.z - at.z) <= R.tools.reach_m + 0.6 ? aimed : nearestHittable(R.tools.reach_m);
+    if (aim?.kind === "person") return strikePerson(aim.q);
+    const t = energy ? strikeTarget(6) : aim?.t || null;
     if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
     const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
     if (!r.ok) { notify(r.error); return; }
@@ -2687,12 +2743,12 @@ export async function startCity(ctx) {
     const p = self(), on = Boolean(ctx.enabled() && p && ctx.cityMode?.() !== false);
     hotbar.hidden = !on;
     if (!on) return;
-    const key = JSON.stringify([slots.slice(0, BAR), chosen, BAR && slots.slice(0, BAR).map((id) => p.inventory[id] || 0), p.hands]);
+    const key = JSON.stringify([slots.slice(0, BAR), chosen, slots.slice(0, BAR).map((_, i) => slotCount(slots, p.inventory, i)), p.hands]);
     if (key === hotbarKey) return;
     hotbarKey = key;
     hotbar.replaceChildren(...slots.slice(0, BAR).map((id, i) => {
       const b = h("button", { className: `slot${i === chosen ? " on" : ""}`, title: id ? `${i + 1}: ${R.items[id]?.name}` : `${i + 1}: empty hand`, onclick: () => selectSlot(i) });
-      b.innerHTML = `<em>${i + 1}</em>${slotFace(id, p.inventory[id] || 0)}`;
+      b.innerHTML = `<em>${i + 1}</em>${slotFace(id, slotCount(slots, p.inventory, i))}`;
       return b;
     }), h("button", { className: "inv", title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory ", h("kbd", { textContent: "I" })));
   }
@@ -2799,7 +2855,8 @@ export async function startCity(ctx) {
       drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
-    stepReach(dt); stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
+    if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
+    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
     if (now - lastRefresh > 500) {
       lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
@@ -3509,7 +3566,7 @@ export async function startCity(ctx) {
       const title = h("h3", {}, h("span", { textContent: "Inventory" }), close);
       const peers = (party.session?.players() || []).map((peer) => ({ peer, pid: party.ids.get(peer.id) })).filter((x) => x.pid && x.pid !== myId);
       const cell = (i) => {
-        const id = slots[i], n = id ? p.inventory[id] || 0 : 0;
+        const id = slots[i], n = slotCount(slots, p.inventory, i);
         const b = h("button", { className: `slot${i === chosen ? " on" : ""}${i === cursorSlot ? " cursor" : ""}`, title: id ? `${R.items[id]?.name} ×${n}` : "empty",
           onclick: () => {
             if (cursorSlot < 0) { if (id) { cursorSlot = i; side.pick = id; } }
@@ -3892,7 +3949,7 @@ export async function startCity(ctx) {
 
   // The multiplayer session's hooks: what this walker's car is, and drawing the others'.
   return {
-    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, openPanel, closePanel, joinParty, leaveParty,
+    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,

@@ -810,7 +810,14 @@ const groundReady = (async () => {
   // a planted median, a refuge -- and is drawn as one (addTreeIslands); one in a junction's box
   // is a corner tree recorded in the wrong place, and is left out rather than drawn in the road.
   const islandTrees = [];
+  const notThere = stackedTreesToDrop(ground.trees || [], (tree) => {
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    const seg = nearestCarriagewaySegment(tx, -ty);
+    return seg ? Math.sqrt(distanceToSegmentSquared(tx, -ty, seg[0], seg[1], seg[2], seg[3])) : Infinity;
+  });
+  treeIslandStats.address_points = notThere.size;
   const trees = (ground.trees || []).filter((tree) => {
+    if (notThere.has(tree)) return false;
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     if (inDriveway(tx, -ty)) return false;
     // Not in the water: a tree the lidar or a record puts on a lake or the bay is a mast, a
