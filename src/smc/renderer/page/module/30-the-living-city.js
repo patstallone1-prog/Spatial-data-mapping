@@ -313,6 +313,20 @@ function setAppMode(mode) {
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // The traffic signals' heads drawn here and in the region attached, {x, z, yaw} in this
+      // page's metres (yaw: the way the lenses face), lit by ``stateOf(head)``: "red", "amber",
+      // "green" or null.
+      lightSignals: (stateOf) => {
+        let lit = hostWorldActive && typeof setSignalLights === "function" ? setSignalLights(stateOf) : 0;
+        const g = activeGuest?.ready ? activeGuest : null;
+        if (g?.api.setSignalLights) {
+          lit += g.api.setSignalLights((head) => {
+            const fx = Math.sin(head.yaw) * g.sx, fz = Math.cos(head.yaw);
+            return stateOf({ x: g.ox + head.x * g.sx, z: g.oz + head.z, yaw: Math.atan2(fx, fz), key: head });
+          });
+        }
+        return lit;
+      },
       // The garage doors (module 31) -- this page's, or those of the region attached where (x, z)
       // is, in its own metres: the nearest (of a building), and opening it.
       garages: {

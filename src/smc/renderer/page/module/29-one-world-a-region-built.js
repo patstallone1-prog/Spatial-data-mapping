@@ -670,6 +670,7 @@ window.kerbsideGuestApi = {
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
   cityWays: () => DATA.ways, cityCourts: () => PARK_EVIDENCE?.court_layout?.courts || [], insideCarriageway, mappedWaterAt, cityInlandAt,
+  signalHeads: () => signalLamps?.heads || [], setSignalLights,
   // The kerb as it is drawn, and whether a car may stand at it (the living city's parking).
   kerbAt: (x, z, reach = 6, ax = null, az = null) => { if (ax !== null) { const l = Math.hypot(ax, az) || 1; ax /= l; az /= l; } return nearestKerbAt(x, z, reach, ax, az); }, kerbParking,
   // Its garage doors, opened and shut in its own world (module 31).

@@ -145,6 +145,25 @@ export function wealthOf(R, st) {
   const owned = assets.reduce((t, a) => t + a.value, 0), owing = debts.reduce((t, d) => t + d.value, 0);
   return { cash, fastrak, assets, debts, owned, owing, net: cash + fastrak + owned - owing };
 }
+//: A traffic signal's head stands at the corner of its junction: the junction is the nearest
+//: signalled node of the streets (junctionAt) within this.
+const SIGNAL_HEAD_NODE_M = 30;
+export function signalNodeNear(streets, x, z, reach = SIGNAL_HEAD_NODE_M) {
+  let best = null, bestD = reach;
+  const r = Math.ceil(reach / streets.cell), cx = Math.floor(x / streets.cell), cz = Math.floor(z / streets.cell);
+  for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) {
+    for (const id of streets.grid.get(`${cx + i},${cz + j}`) || []) {
+      const n = streets.nodes[id], d = Math.hypot(n.x - x, n.z - z);
+      if (d < bestD && junctionAt(streets, id) === "signal") { bestD = d; best = id; }
+    }
+  }
+  return best;
+}
+//: What a head shows: the phase the cars coming toward it keep (fleet.mjs signalAt). Its lenses
+//: face (sin yaw, cos yaw), so the traffic that reads them travels the other way.
+export function signalShown(streets, node, yaw, tsec) {
+  return node === null || node === undefined ? null : signalAt(streets, node, Math.atan2(-Math.sin(yaw), -Math.cos(yaw)), tsec);
+}
 const SKIN = ["#f1c9a5", "#e0ac7e", "#c68c5c", "#a26c45", "#7d4f32", "#5a3824", "#f6d8bf", "#d29b6c"];
 const TROUSERS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b"];
 
@@ -671,6 +690,22 @@ export async function startCity(ctx) {
       b.d = Math.min(b.route.length, b.d + b.v * dt);
       Object.assign(b, alongRoute(b.route, b.d, BIKE_LANE));
     }
+  }
+  //: The traffic lights, lit by the phase the cars stop and go by: each head's lens for its own
+  //: approach, a few times a second. Each head's junction is found once (signalNodeNear).
+  const SIGNAL_LIGHT_EVERY_MS = 250;
+  let headNodes = new WeakMap(), headStreets = null, signalsAt = 0;
+  function lightSignals(tsec, now) {
+    const s = district?.streets;
+    if (!ctx.lightSignals || !s || now - signalsAt < SIGNAL_LIGHT_EVERY_MS) return;
+    signalsAt = now;
+    if (headStreets !== s) { headStreets = s; headNodes = new WeakMap(); }
+    ctx.lightSignals((head) => {
+      const id = head.key || head;
+      let node = headNodes.get(id);
+      if (node === undefined) { node = signalNodeNear(s, head.x, head.z); headNodes.set(id, node); }
+      return signalShown(s, node, head.yaw, tsec);
+    });
   }
   //: The riders, as people on their bicycles, for drawPeople.
   const bikeRiders = () => bikes.map((b) => ({ id: b.person.id, x: b.x, z: b.z, yaw: b.yaw, person: b.person, moving: b.v > 0.3, ride: "bike", lift: 0.22, speed: b.v }));
@@ -3052,6 +3087,7 @@ export async function startCity(ctx) {
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
       stepBikes(dt, t / 1000, focus, now);
+      lightSignals(t / 1000, now);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
       drawBikes();
       drawCars(wheels(), lastNight);

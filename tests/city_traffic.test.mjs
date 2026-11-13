@@ -134,3 +134,37 @@ test("money granted to a device's account goes into the wallet once", () => {
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   assert.match(view, /m\.command === "account_grant" \? \{ ok: false/);
 });
+
+test("a signal head is lit by the phase the cars coming at it keep, one lens at a time", async () => {
+  const { signalNodeNear, signalShown } = await import("../docs/city/view.mjs");
+  const { TRAFFIC, junctionAt, signalAt } = await import("../docs/city/fleet.mjs");
+  // An arterial east-west (Lombard) crossed by a residential street (Fillmore) at (0, 0).
+  const streets = new Streets([
+    { kind: "street", id: "a", name: "Lombard Street", pts: [[-200, 0], [0, 0], [200, 0]], lanes: 4, road_m: 16, oneway: 0 },
+    { kind: "street", id: "b", name: "Fillmore Street", pts: [[0, -200], [0, 0], [0, 200]], lanes: 2, road_m: 10, oneway: 0 },
+  ]);
+  const node = signalNodeNear(streets, 9, 9);
+  assert.equal(junctionAt(streets, node), "signal");
+  assert.equal(signalNodeNear(streets, 120, 9), null, "no signalled junction near: the head stays dark");
+  // The lenses face the traffic coming at them: west, to the cars going east; south, to the
+  // cars going north (z runs south).
+  const west = -Math.PI / 2, south = 0;
+  const seen = { west: new Set(), south: new Set() };
+  for (let t = 0; t < TRAFFIC.signal_cycle_s; t += 0.5) {
+    const a = signalShown(streets, node, west, t), b = signalShown(streets, node, south, t);
+    assert.equal(a, signalAt(streets, node, Math.PI / 2, t), "what an eastbound car stops and goes by");
+    assert.equal(b, signalAt(streets, node, Math.PI, t), "what a northbound car stops and goes by");
+    assert.ok(!(a === "green" && b === "green"), `both green at ${t} s`);
+    seen.west.add(a); seen.south.add(b);
+  }
+  for (const side of Object.values(seen)) assert.deepEqual([...side].sort(), ["amber", "green", "red"]);
+  assert.equal(signalShown(streets, null, west, 0), null);
+  // The page's lenses: dark until lit, the lit one drawn as a light; the city lights them.
+  const page = ["20-station-entrances-a-stair-down.js", "30-the-living-city.js", "29-one-world-a-region-built.js"]
+    .map((f) => readFileSync(new URL(`../src/smc/renderer/page/module/${f}`, import.meta.url), "utf8")).join("\n");
+  assert.ok(page.includes("new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })") && page.includes("for (let i = 0; i < rows.length; i += 1) mesh.setColorAt(i, colour);"));
+  assert.ok(page.includes("signalLamps.lamps[want].setColorAt(i, colour.setHex(SIGNAL_LENS_LIT[want]))"));
+  assert.ok(page.includes("lightSignals: (stateOf) => {") && page.includes("signalHeads: () => signalLamps?.heads || [], setSignalLights,"));
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.ok(view.includes("lightSignals(t / 1000, now);") && view.includes("return signalShown(s, node, head.yaw, tsec);"));
+});
