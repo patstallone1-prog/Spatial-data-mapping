@@ -294,7 +294,7 @@
     "sport_chance": 0.14,
     "sport_minutes": [40, 90],
     "walk_speed_ms": [1.15, 1.5],
-    "drive_share": 0.32,
+    "drive_share": 0.32, "task_keep": 0.5,
     "visible_radius_m": 450
   },
   "repair": {"basis": "what breaks (a window, a door, a shopfront) stays broken for half a day, is boarded over with plywood planks, and is back as it was within three days (approx. a glazier's or carpenter's turnaround for a city repair); not yet triggered by anything that breaks", "boarded_after_hours": 12, "restored_within_days": 3, "restored_from_share": 0.55, "planks_s": 3.2},

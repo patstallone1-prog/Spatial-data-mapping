@@ -70,7 +70,8 @@ const LEGACY_PITCH_M = Math.max(...["economy", "compact_ev", "sedan", "suv", "pi
 const DRIVE_MIN_M = 700;
 //: A resident with a bicycle rides anything further than this (and walks the rest), at about
 //: this speed; the bicycle is 1.8 m long and 0.65 m across the bars.
-export const BIKE_MIN_M = 350, BIKE_MS = 4.8, BIKE_TOP_MS = 5.6, BIKE_DIMS = [0.65, 1.1, 1.8];
+export const BIKE_TRANSIT_SHARE = 0.33;
+export const BIKE_MIN_M = 600, BIKE_MS = 4.8, BIKE_TOP_MS = 5.6, BIKE_DIMS = [0.65, 1.1, 1.8];
 //: The most residents of one building kept (whole households; households.mjs): the rest of a big
 //: block's flats are not followed, to keep a district's thousands within a frame.
 export const HOME_CAP = 10;
@@ -553,8 +554,13 @@ export class City {
     // The day by the kind of day it is (routines.mjs: a shift worker's, a parent's, a retiree's,
     // someone looking for work...), each stop a task; the old one template where the rules say.
     const hh = this.roster.householdOf?.(p) || null;
+    // (The fuller days have about three stops for every one the old template had: the optional
+    // ones -- not work, school or the school run -- are kept by the rules' share, so the streets
+    // carry about what they did; rules.json routine.task_keep.)
+    const keep = R.routine.task_keep ?? 0.5, must = /^school_/;
     const sched = R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
-      : dayPlan(R, p, t.day, t.weekday, this.roster.list, { household: hh, career: p.career || null });
+      : dayPlan(R, p, t.day, t.weekday, this.roster.list, { household: hh, career: p.career || null })
+        .filter((a) => !a.task || must.test(a.task) || a.place === p.home || a.place === p.work || rng(p.id, t.day, "keep", Math.round(a.start))() < keep);
     // What they go by, further than a walk: their car, or their bicycle.
     const v = p.car ? this.roster.vehicles.get(p.car) : p.bike ? this.roster.vehicles.get(p.bike) : null;
     const farM = v?.bike ? BIKE_MIN_M : DRIVE_MIN_M, vMs = v?.bike ? BIKE_MS : DRIVE_MS;
@@ -586,7 +592,11 @@ export class City {
     let prev = null;
     for (const a of sched) {
       if (prev && prev.place !== a.place && places.has(prev.place) && places.has(a.place)) {
-        const far = dist(prev.place, a.place) > farM, rides = v && carAt === prev.place && far;
+        // (By bicycle a long way is sometimes not ridden: the bus or a cab instead, about a
+        // third of the time over the rules' far distance -- the buses keep their riders.)
+        const span = dist(prev.place, a.place), leave = Math.max(prev.end, clock);
+        const transit = v?.bike && N && span > N.far_m && rng(p.id, t.day, "transit", Math.round(leave))() < BIKE_TRANSIT_SHARE;
+        const far = span > farM, rides = v && carAt === prev.place && far && !transit;
         // Away in time to be there by its start (the day's milestone), not as soon as the last
         // thing is done: until then they are where they were.
         const need = tripMinutes(dist(prev.place, a.place), rides ? vMs : p.pace) + 2;
@@ -618,7 +628,7 @@ export class City {
       for (const s of drives) { hold(at, since, s.t0); at = s.to; since = s.t1; }
       hold(at, since, 1440);
     }
-    return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt, day: sched };
+    return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt };
   }
   //: What someone is about today, for whoever asks (the People list): their household, their
   //: work and how long they have had it, their money (npc-economy.mjs: pay for the shifts
@@ -629,7 +639,8 @@ export class City {
     const R = this.R, roster = this.roster, hh = roster.householdOf(p), home = roster.places.get(p.home);
     const plan = this.planOf(p, t), career = p.career || null;
     const type = p.infant ? "infant" : routineType(R, p, { household: hh, career, day: t.day, weekday: t.weekday });
-    const stops = milestonesOf(plan.day || []).map((m) => ({ ...m, name: roster.places.get(m.place)?.name || null }));
+    // (The day's stops as it was planned: the stays, in order.)
+    const stops = milestonesOf(plan.segs.filter((s) => s.act).map((s) => ({ ...s.act, start: s.t0 }))).map((m) => ({ ...m, name: roster.places.get(m.place)?.name || null }));
     const next = stops.find((m) => m.at > t.minute) || null;
     // The household's rent (or what its home would let for), by the neighbourhood.
     let rent = null, owns = null;
@@ -1261,7 +1272,7 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // round at ``dodge_speed``, ``dodge_clear_m`` clear of it, a metre sideways for every
   // ``1 / dodge_rate`` forward, backing up first (``back_speed``, at most ``back_max_m``) where
   // there is no room to swing out; over the middle line only with nothing coming for ``oncoming_s``.
-  dodge_after_s: 2, dodge_speed: 3, dodge_clear_m: 0.6, dodge_rate: 1, swing_room_m: 3, oncoming_s: 4, back_speed: 1.2, back_max_m: 4, person_still_s: 1.5,
+  dodge_after_s: 2, dodge_speed: 3, dodge_clear_m: 0.6, dodge_rate: 1, swing_room_m: 3, oncoming_s: 4, back_speed: 1.2, back_max_m: 4, person_still_s: 1.5, waiting_s: 3,
   // Looking ahead (after A/B Street: never into a block that cannot be left; and round a jam):
   // the block after the next junction stood full back to its start (``jam_cars`` a lane stopped,
   // the last within ``jam_tail_m`` of the way in), or with that many stood ``jam_stood_s`` (longer
@@ -1274,9 +1285,9 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // behind and out of your sight, it is put where its day has it. Two cars in each other's way for
   // ``deadlock_s``: one backs off; stood blocked ``teleport_s`` (after SUMO's time-to-teleport) it
   // is put on beyond what blocks it -- never driven through it.
-  late_s: 8, hopeless_s: 150, teleport_s: 28, teleport_reach_m: 60,
+  late_s: 8, hopeless_s: 150, teleport_s: 28, box_jump_s: 10, teleport_reach_m: 60,
   // A cyclist ahead is passed at ``pass_over`` m/s more than they go, with room for the whole pass.
-  pass_over: 3.5 };
+  pass_over: 3.5, turn_speed: 4.5 };
 //: Which segment of ``route`` distance ``d`` is on.
 export function segOf(route, d) {
   const s = route.s;
@@ -1587,6 +1598,12 @@ export class Drivers {
         if (v < target) { target = v; reason = `${light} light`; }
         break;
       }
+      // A turn is taken slowly (``turn_speed``), braked down to on the way in: round a corner at
+      // the street's speed a driver sees who is on the crossing too late to stop for them.
+      if (J && turnOf(J.inU, J.outU) !== "S") {
+        const v = Math.sqrt(T.turn_speed * T.turn_speed + 2 * T.brake * Math.max(0, J.s - J.box - st.d));
+        if (v < target) target = v;
+      }
       // Right of way in the junction ahead (or the one it is in): first come, first through.
       if (J) {
         const box = this.claims.get(J.node) || new Map(), mine = box.get(c.id);
@@ -1628,6 +1645,9 @@ export class Drivers {
             const ext = extendPath(J.path, PAVE_M + 1);
             for (const q of people) {
               if (Math.abs(q.x - J.path[1][0]) > J.box + 6 || Math.abs(q.z - J.path[1][1]) > J.box + 6) continue;
+              // (Someone stood at the kerb waiting is not crossing: they were waited for while
+              // they waited for the car. Stood in its very way, they are gone round -- below.)
+              if (q.still >= T.waiting_s) continue;
               if (pathGap(ext, [[q.x, q.z], [q.x, q.z]]) < 1.6) {
                 const v = Math.sqrt(2 * T.brake * Math.max(0, toLine));
                 if (v < target) { target = v; reason = q.player ? "you" : "someone crossing"; }
@@ -1708,16 +1728,30 @@ export class Drivers {
       // (Someone about to step into the lane -- where they will be in a second -- is braked for
       // already: the warning a driver has.)
       let danger = null;
+      // (Only someone in the roadway, and in front of it: a walker stood on the pavement waiting
+      // to cross was braked for -- and waited for the car, which waited for them -- and someone
+      // passing a stopped car's flank held it there: 2026-11-13, seen live.)
+      const seg0 = segOf(c.route, st.d), R0 = c.route;
+      const inRoad = (x, z) => {
+        for (let k = seg0; k <= seg0 + 1 && k + 1 < R0.pts.length; k += 1) {
+          const [ax, az] = R0.pts[k], [bx, bz] = R0.pts[k + 1];
+          if (distToSegment(x, z, ax, az, bx, bz) <= (R0.halves?.[k] ?? 3) - 0.15) return true;
+        }
+        return false;
+      };
       for (const q of people) {
         if (dodging && st.hold?.id === `person:${q.id}`) continue;
         const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
         for (const tau of q.vx || q.vz ? [0, 1] : [0]) {
-          const dx = q.x + (q.vx || 0) * tau - here.x, dz = q.z + (q.vz || 0) * tau - here.z;
+          const qx = q.x + (q.vx || 0) * tau, qz = q.z + (q.vz || 0) * tau;
+          const dx = qx - here.x, dz = qz - here.z;
           const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
-          if (fwd < -c.length / 2 || lat > c.width / 2 + T.person_half_m + 0.25) continue;
+          if (fwd < c.length / 2 - 0.5 || lat > c.width / 2 + T.person_half_m + 0.25) continue;
           const gap = fwd - c.length / 2 - T.person_half_m;
-          if (gap > reach) continue;
+          if (gap > reach || !inRoad(qx, qz)) continue;
           if (!danger || gap < danger.gap) danger = { q, gap, soon: tau > 0 };
+          // Stood there (not walking through): to be gone round, whoever else walks by meanwhile.
+          if (tau === 0 && q.still >= T.person_still_s && gap < 12) holdIf({ x: q.x, z: q.z, hw: T.person_half_m, hl: T.person_half_m, id: `person:${q.id}` }, gap);
         }
       }
       let decel = T.brake;
@@ -1726,7 +1760,6 @@ export class Drivers {
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
         decel = Math.min(T.emergency, Math.max(T.brake, need));
-        if (danger.q.still >= T.person_still_s && !danger.soon) holdIf({ x: danger.q.x, z: danger.q.z, hw: T.person_half_m, hl: T.person_half_m, id: `person:${danger.q.id}` }, danger.gap);
         // Between the city's own people the law holds: a walker who steps out looks first and a
         // driver who is too close stops dead, so nobody is run down unless you are in it --
         // on foot where the cars are, or in a car yourself (view.mjs hitInTraffic).
@@ -1784,12 +1817,15 @@ export class Drivers {
         if (hold.slow >= 0) st.holdT = Math.min(st.holdT, T.teleport_s - 1);   // (a cyclist is followed, never jumped past)
         // No way round it for good (the street stood shut): put on past it, where the road is
         // free -- never through it.
+        // (Sooner in a junction's box: one stood there holds every way through it.)
         const blockKey = edgeKey(c.route, segOf(c.route, st.d));
-        if (st.holdT > (this.jams.get(`shut:${blockKey}`) > tsec ? T.shut_jump_s : T.teleport_s)) {
+        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
+        if (!(hold.slow >= 0) && st.holdT > (this.jams.get(`shut:${blockKey}`) > tsec ? T.shut_jump_s : inside ? T.box_jump_s : T.teleport_s)) {
           const to = this.jumpAhead(c, st, { deepest, bodies, people }, hold);
           if (to !== null) {
             // The street is shut here: known, so those coming take another way and those in
             // the queue behind are not each kept the whole wait.
+            const why = `jumps_${String(hold.id).split(":")[0]}${inside ? "_box" : ""}`; this.tally[why] = (this.tally[why] || 0) + 1;
             this.jams.set(blockKey, tsec + T.shut_known_s); this.jams.set(`shut:${blockKey}`, tsec + T.shut_known_s);
             st.d = to; st.holdT = 0; st.blocked = 0; st.blockedBy = null; this.tally.jumps += 1;
             const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
@@ -1798,6 +1834,9 @@ export class Drivers {
             continue;
           }
         }
+      } else if (hold) {
+        // (Held by the law as well -- a red light, its turn: the wait already had is kept, not
+        // run down; it had been, so a car behind you at a light never came to its last resort.)
       } else st.holdT = Math.max(0, st.holdT - dt);
       // Stood still in a junction's box (a jam, a knot of cars each waiting on another): after a
       // while it has the way (whatever its turn) and goes as soon as the road in front is clear --
@@ -1813,7 +1852,7 @@ export class Drivers {
         if (to !== null) {
           st.d = to; st.v = Math.min(limit, c.cruise ?? limit); st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.blocked = 0; st.blockedBy = null; st.backUp = 0;
           const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
-          this.delays.set(c.key, tsec - c.unsched(st.d)); this.tally.jumps += 1;
+          this.delays.set(c.key, tsec - c.unsched(st.d)); this.tally.jumps += 1; this.tally.jumps_unseen = (this.tally.jumps_unseen || 0) + 1;
           out.push({ id: c.id, d: st.d, v: st.v, reason: "back on its day", jump: true, route: st.route });
           continue;
         }
@@ -1836,8 +1875,10 @@ export class Drivers {
       }
       if (st.v > target) st.v = Math.max(target, st.v - decel * dt);
       else st.v = Math.min(target, st.v + T.accel * dt);
-      // How long it has stood (a jam is cars stood longer than a light holds them).
+      // How long it has stood (a jam is cars stood longer than a light holds them), and how long
+      // for people on foot (after a while it has the next turn: view.mjs waitsAtKerb).
       if (st.v < 0.5) st.stood = (st.stood || 0) + dt; else if (st.v > 1.5) st.stood = 0;
+      if (st.v < 0.5 && /someone|you/.test(reason || "")) st.pedT = (st.pedT || 0) + dt; else if (st.v > 1.5) st.pedT = 0;
       // Held too long, and not by a light, a stop sign or you: let go.
       // Only a queue nothing real holds: follow it to its head; a light, a stop sign or someone
       // in the road there is waited for, a ring of cars each waiting on the next is not.
@@ -1866,9 +1907,11 @@ export class Drivers {
           }
           // Stood blocked so long (a knot nothing unties): put on beyond what blocks it, where
           // the road is free -- a jump, never a drive through it.
-          if (st.blocked > T.teleport_s) {
+          // (Out of your sight, after a moment: nobody watches a knot nobody sees.)
+          if (st.blocked > (c.unseen ? T.shut_jump_s : T.teleport_s)) {
             const to = this.jumpAhead(c, st, { deepest, bodies, people });
             if (to !== null) {
+              { const o = this.cars.get(who), why = `jumps_knot_${c.bike ? "bike" : "car"}_by_${String(who).startsWith("blocker") ? "blocker" : o?.bike ? "bike" : "car"}`; this.tally[why] = (this.tally[why] || 0) + 1; }
               st.d = to; st.blocked = 0; st.blockedBy = null; st.backed = false; st.dodge = 0; st.dodgeTo = 0; st.hold = null; this.tally.jumps += 1;
               const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
               this.delays.set(c.key, tsec - c.unsched(st.d));
@@ -1881,14 +1924,16 @@ export class Drivers {
           continue;
         }
       }
-      st.blocked = 0; st.blockedBy = null; st.backed = false;
+      // (Only once it is really going again: an inch forward and blocked again is still blocked --
+      // the count had started over each time, so a knot never came to be backed out of.)
+      if (st.v > 1) { st.blocked = 0; st.blockedBy = null; st.backed = false; }
       st.reason = reason;
       if (reason !== "the car ahead") st.leader = null;
       st.d = d1;
       { const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
-      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay });
+      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay, held: st.pedT || 0 });
     }
     // Gone from sight: their state goes, their delay is kept (a few thousand at most).
     for (const id of this.cars.keys()) if (!seen.has(id)) this.cars.delete(id);

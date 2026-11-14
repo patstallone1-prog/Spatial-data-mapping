@@ -189,17 +189,26 @@ test("cyclists keep the lane's edge and are passed with room, not crawled behind
 test("a trip keeps its streets' lanes, so an avenue's trips use both", async () => {
   const { City, Roster } = await import("../docs/city/fleet.mjs");
   const { cityTime } = await import("../docs/city/core.mjs");
-  const S = town(4, 16, "primary"), places = [];
-  for (let i = 0; i < 6; i += 1) for (let j = 0; j < 6; j += 1) {
-    const x = i * STEP + 40, z = j * STEP + 12, home = (i + j) % 3 !== 0;
+  // Avenues over a mile square: homes at one end, the shops and work at the other.
+  const ways = [], M = 10;
+  for (let i = 0; i <= M; i += 1) {
+    const along = Array.from({ length: M + 1 }, (_, j) => j * STEP);
+    ways.push({ kind: "street", pts: along.map((v) => [i * STEP, v]), lanes: 4, oneway: 0, id: `v${i}`, highway: "primary", road_m: 16 });
+    ways.push({ kind: "street", pts: along.map((v) => [v, i * STEP]), lanes: 4, oneway: 0, id: `h${i}`, highway: "primary", road_m: 16 });
+  }
+  const S = new Streets(ways), places = [];
+  S.setPreferences(R.traffic);
+  for (let i = 0; i < M; i += 1) for (let j = 0; j < M; j += 1) {
+    if (i >= 3 && i <= 6) continue;
+    const x = i * STEP + 40, z = j * STEP + 12, home = i < 3;
     places.push({ id: `b${i}_${j}`, x, z, use: home ? "residential" : "retail", tag: home ? "house" : "retail", area: 140, floors: 2, name: `${i} ${j}`, kind: home ? "home" : "shop",
-      keys: new Set(home ? ["use:residential"] : ["use:retail", "shop:cafe", "shop:supermarket"]), shops: home ? [] : ["cafe"], node: S.nearest(x, z, "walk", 200) });
+      keys: new Set(home ? ["use:residential"] : ["use:retail", "shop:cafe", "shop:supermarket", "use:office"]), shops: home ? [] : ["cafe"], node: S.nearest(x, z, "walk", 200) });
   }
   const roster = new Roster(R, { seed: "lanes" });
   roster.add(places);
   const city = new City(R, roster, S, { seed: "lanes", timeAt: (ms) => cityTime(ms, R.clock.zone) });
   const t = city.timeAt(Date.UTC(2026, 10, 10, 20, 0));
-  let routes = 0, twoLane = 0;
+  let routes = 0, twoLane = 0, byBike = 0;
   for (const p of roster.people.values()) for (const leg of city.planOf(p, t).drives) {
     if (leg.kind !== "go") continue;
     const route = city.legRoute(leg);
@@ -207,8 +216,25 @@ test("a trip keeps its streets' lanes, so an avenue's trips use both", async () 
     routes += 1;
     assert.equal(route.lanes.length, route.pts.length, "a lane count for every point");
     assert.equal(route.bike, Boolean(roster.vehicles.get(leg.vehicle)?.bike));
+    if (route.bike) byBike += 1;
     for (let i = 1; i < route.pts.length - 2; i += 1) if (laneCount(route, i) === 2) { twoLane += 1; break; }
   }
   assert.ok(routes > 10, `${routes} trips`);
+  assert.ok(byBike > 0 && byBike < routes, `${byBike} of ${routes} by bicycle: some ride, some drive`);
   assert.ok(twoLane > routes * 0.6, `${twoLane} of ${routes} trips have two lanes to use`);
+});
+
+test("a corner is taken slowly: braked down to on the way in, so there is time to stop for who is on the crossing", () => {
+  const S = town(2, 12, "residential"), route = S.route(S.nearest(0, 240, "drive"), S.nearest(240, 600, "drive"), "drive");
+  const turnAt = route.pts.findIndex((p, i) => i > 0 && i < route.pts.length - 1 && Math.abs((route.pts[i + 1][0] - p[0]) * (p[1] - route.pts[i - 1][1]) - (route.pts[i + 1][1] - p[1]) * (p[0] - route.pts[i - 1][0])) > 1);
+  assert.ok(turnAt > 0, "the way has a turn");
+  const D = new Drivers(S), c = car("turner", route, 0);
+  let fastest = 0, arrived = false;
+  for (let t = 0; t < 200 && !arrived; t += 0.05) {
+    const x = D.step(0.05, t, [c], []).cars[0];
+    arrived = Boolean(x.arrived);
+    if (!arrived && Math.abs(x.d - route.s[turnAt]) < 4) fastest = Math.max(fastest, x.v);
+  }
+  assert.ok(arrived, "it got there");
+  assert.ok(fastest > 0.5 && fastest <= TRAFFIC.turn_speed + 0.3, `through the corner at ${fastest.toFixed(1)} m/s`);
 });
