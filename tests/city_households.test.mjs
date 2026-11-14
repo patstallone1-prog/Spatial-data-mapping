@@ -74,19 +74,20 @@ test("the cap bounds a building's residents, households are whole and numbered w
   assert.ok(householdsFor(R, tall, { cap: Infinity }).length > householdsFor(R, tall).length);
 });
 
-test("every adult drives or bikes, children live with an adult, families share a name", () => {
+test("every adult drives, rides a bicycle or takes the bus; children live with an adult, families share a name", () => {
   for (const hh of ALL) {
     const adults = hh.members.filter((m) => m.adult);
     assert.ok(adults.length >= 1);
-    for (const m of adults) assert.ok(m.mode === "drive" || m.mode === "bike");
-    if (hh.travel === "bike") assert.equal(hh.cars, 0);
+    for (const m of adults) assert.ok(["drive", "bike", "transit"].includes(m.mode));
+    if (hh.travel !== "drive") assert.equal(hh.cars, 0);
+    if (hh.travel === "transit") assert.equal(hh.bikes, 0);
     if (hh.travel === "drive") assert.ok(hh.cars >= 1);
     for (const m of hh.members) {
       if (m.mode === "drive") assert.ok(m.adult && m.car !== null && m.car < hh.cars);
       else assert.equal(m.car, null);
       if (!m.adult) {
         assert.ok(m.age >= 0 && m.age <= 17);
-        assert.equal(m.mode, m.age >= 12 && hh.travel === "bike" ? "bike" : "walk");
+        assert.ok(m.mode === "walk" || (m.mode === "bike" && m.age >= 12));
         assert.equal(m.surname, hh.surname);
         assert.ok(adults.some((a) => a.age >= m.age + 20));
       }
@@ -98,9 +99,21 @@ test("every adult drives or bikes, children live with an adult, families share a
   }
 });
 
-test("about a third of adults drive", () => {
-  const s = householdStats(ALL);
-  const share = s.drivers / s.adults;
-  assert.ok(share >= 0.2 && share <= 0.45, `drivers ${share}`);
-  assert.equal(s.people, ALL.reduce((t, hh) => t + hh.members.length, 0));
+test("a car where there is a garage or room at the kerb of a side street; on a main street none; few bicycles, most without a car by bus", () => {
+  const stats = (kerb) => householdStats(HOMES.flatMap((h) => householdsFor(R, h, { cap: Infinity, kerb })));
+  const side = stats(true), main = stats(false), unknown = householdStats(ALL);
+  const share = (s) => s.drivers / s.adults;
+  // On a side street most households keep a car; on a main street only those with a garage.
+  assert.ok(share(side) > share(main) + 0.15, `side ${share(side).toFixed(2)}, main ${share(main).toFixed(2)}`);
+  assert.ok(share(side) >= 0.4 && share(side) <= 0.75, `side street drivers ${share(side)}`);
+  assert.ok(share(main) >= 0.1 && share(main) <= 0.4, `main street drivers ${share(main)}`);
+  for (const h of HOMES.slice(0, 200)) for (const hh of householdsFor(R, h, { cap: Infinity, kerb: false })) assert.ok(hh.garage || hh.cars === 0, "no car at a main street's kerb");
+  // The same household whatever the street: only its car changes.
+  const h = HOMES[3];
+  assert.deepEqual(householdsFor(R, h, { kerb: true }).map((x) => [x.id, x.size, x.surname]), householdsFor(R, h, { kerb: false }).map((x) => [x.id, x.size, x.surname]));
+  // Bicycles are a few; most of those with no car take the bus or a cab.
+  for (const s of [side, main, unknown]) assert.ok(s.bikers / s.adults < 0.15 && s.bikers > 0, `bikers ${s.bikers} of ${s.adults}`);
+  assert.equal(unknown.people, ALL.reduce((t, hh) => t + hh.members.length, 0));
+  // A place's own street says which (people.mjs kerbRoomAt): a home's ``kerb`` is the default.
+  assert.deepEqual(householdsFor(R, { ...h, kerb: false }), householdsFor(R, h, { kerb: false }));
 });

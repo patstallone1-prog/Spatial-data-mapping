@@ -861,7 +861,7 @@
     "bus_hold_s": 15,
     "bus_hold_reach_m": 14,
     "taxi_max_wait_s": 90,
-    "npc": {"basis": "residents without a car on a trip too far to walk: some take a taxi (approx. a third of such trips in San Francisco's TNC-era surveys), others the bus where one line serves both ends", "taxi_share": 0.35, "far_m": 1100, "stop_reach_m": 350, "taxi_approach_m": 260}
+    "npc": {"basis": "residents without a car on a trip too far to walk: the bus where one line serves both ends (most of them: Muni carries far more of San Francisco's car-free trips than cabs do), a taxi for some (approx. one in seven), and for a long way no bus serves; under walk_max_m with no bus, on foot", "taxi_share": 0.15, "walk_max_m": 2200, "bus_m": 650, "far_m": 1100, "stop_reach_m": 400, "taxi_approach_m": 260}
   },
   "housing": {
     "basis": "the homes for sale and to rent, mirroring the market: every residential building's type from its OpenStreetMap tag (house, detached and the like are single-family; apartments and residential are multi-unit, split into units by floor area), a share of each type listed at a time as in San Francisco's market (approx. 2025: about 1% of single-family homes and well under 1% of condos for sale; about 3% of apartments advertised for rent), and prices by square foot and neighbourhood (approx. 2025 medians from public listing-site neighbourhood reports; not a valuation of any real home). The listings turn over each week.",

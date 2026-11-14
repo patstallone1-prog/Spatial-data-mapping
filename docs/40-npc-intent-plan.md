@@ -93,13 +93,48 @@ Unit scenarios passed while the live district still jammed. Three causes, each s
 | Frame rate | — | 59 fps; two frames over half a second in four minutes |
 | Memory after a forced collection | 2.2–2.4 GB | 2.2 GB, flat over nine minutes |
 
+## Second pass (2026-11-13, later): junctions, wrong-way traffic, cars and bicycles
+
+### One junction, however many nodes
+
+The map draws many streets block by block, with ends a metre short of the crossing and short links between them. Of the Marina's 608 junction nodes, 518 pairs stood within a box-length of each other; Chestnut at Fillmore was five nodes, some "stop signs" and some "lights", each with its own right of way.
+
+- `Streets.junctions()` groups junction nodes joined by a link under 13 m (and street ends within 4 m) into one junction, at most 34 m across: 608 nodes became 261 junctions.
+- One kind and one set of lights per junction; a driver stops once, has one turn, and is "in the box" from its first node to its last (`Drivers.passages`).
+- A route goes straight through a junction's nodes, with the street's own width and lanes, not round by the links (each had been a two-lane "street" a metre long in the middle of an avenue).
+- A car whose trip ends at a junction gives up its turn there. It had kept it, parked, and everyone after gave way to it for good.
+
+### Lanes of a street drawn as two one-way lines
+
+Each line spread its lanes over the whole road, so the two ways' inner lanes lay on top of each other. `Streets.twinOf` finds the line going the other way; each way's lanes now keep to their own side (169 of 1,060 one-way blocks in the Marina).
+
+### Nobody drives a block the wrong way
+
+Through traffic was started at any street end at the district's edge. From a one-way street's far end there is no lawful way in, and the router's fallback sent those cars the length of Lombard against its traffic. Trips now come in where traffic comes in and leave where it leaves, and a way may go against a one-way street for at most 40 m (the last steps to a kerb).
+
+### Cars, bicycles and the bus
+
+- A household has a car where it has a garage, or room at the kerb of a **side street** (55% of those without a garage). On a **main street** — an arterial, or a corridor of weight 2.5 or more such as Lombard, Van Ness or Chestnut — nobody keeps a car at the kerb.
+- Of adults with no car, 14% keep a bicycle. The rest go by bus where one line serves both ends of a trip over 650 m, by cab one time in seven over 1.1 km (and for a long way no bus serves), otherwise on foot.
+- In the Marina: 67% of side-street households have a car and 26% of main-street ones; of 14,493 adults, 7,184 drive, 998 keep a bicycle (it had been about two in three) and 6,311 take transit or walk.
+
+### Measured after this pass (same spot, 22:30)
+
+| | First pass | Now |
+|---|---|---|
+| Cars stood over 30 s | 0–7, spikes to 12–21 late | 1–5 |
+| Head-on knots | most of 71 knots in 7 min | 0 |
+| Cars put past a knot | about 7 a minute | about 3.5 a minute, all out of sight |
+| The city's own work per frame | — | 1.9 ms |
+
+The "90 s stall" of the first pass was the test browser marking the page hidden, which pauses its frames. The app's frame code ran without error throughout.
+
 ## Still open
 
-- **Knots at compound junctions.** Where several street nodes sit within a few metres (the Chestnut junctions near the player's start), each has its own box and cars block each other across them. These are untied by the last resort: about seven cars a minute are put past a knot there. The fix is to treat such a cluster as one junction.
+- **Knots inside big junctions.** Cars that have both entered a wide junction can still end up across each other's way; out of sight they are untied after 5 s, in sight after 28 s. About 3.5 a minute around the busiest crossings.
 - **The player in a junction.** Cars go round a standing player where there is room, and are put past after 10–28 s where there is not. In a junction that is still the common case.
-- **A 90 s stall, seen once.** One run froze for about a minute and a half. It did not recur in three later runs of eight to nine minutes; no function ran longer than 55 ms when timed. Unexplained.
 - **Following is the old rule, not IDM.** The existing gap rule already inches in a queue, so it was kept.
-- **Bicycles are common.** By the rule asked for (no garage or kerb room means a bicycle), about two adults in three own one. Trips under 600 m are walked, and a third of far ones go by bus or cab.
+- **Buses carry few.** A trip takes the bus only where one line serves both ends; about one transit resident in twenty rides one a day. Transfers are not modelled.
 - **Balances are large.** Pay is on the game's scale (hundreds an hour) against real rents, so employed people save fast. `ECONOMY_RULES.spending` is the lever.
 - **Both parents do the school run.** There is no turn-taking yet.
 

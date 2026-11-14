@@ -1,7 +1,8 @@
 // Households: who lives in each home of a residential building, as families, couples, flatmates
 // or people living alone, each right-sized to a unit that fits them (docs/city/market.mjs ->
 // unitsOf), weighted towards singles and small families as San Francisco is. Each household
-// either drives (a garage, or a car kept at the kerb) or bikes, and everyone walks. Pure and
+// has a car where it has a garage, or room at the kerb of a side street (not a main street's:
+// too busy); those without go by bus or cab, a few by bicycle, and everyone walks. Pure and
 // seeded: the same building always holds the same people (tests/city_households.test.mjs).
 
 import { unitsOf } from "./market.mjs";
@@ -19,7 +20,8 @@ export const HOUSEHOLD_RULES = {
     flatmates_max: 4, grandparent_share: 0.12 },
   own_share: { basis: "owner-occupied share, approx. Census ACS: about 38% of SF homes overall; houses mostly owned, flats mostly rented", single_family: 0.7, apartment: 0.27 },
   garage: { basis: "chance a household has a garage space (the numbers docs/city/fleet.mjs uses): a house 0.6, a block of four or more floors 0.45, other flats 0.15", single_family: 0.6, tall: 0.45, tall_floors: 4, apartment: 0.15 },
-  kerb_share: { basis: "chance a household with no garage still keeps a car at the kerb; picked so that about a third of adults drive, as R.routine.drive_share (0.32) has it", share: 0.15 },
+  kerb_share: { basis: "chance a household with no garage keeps a car at the kerb: on a side street most do (San Francisco: about 70% of households have a car, most of them parked on the street); on a main street -- an arterial or a corridor such as Lombard -- none (no room, and no stopping at the busy hours); where the street is not known, a few", side_street: 0.55, busy_street: 0, share: 0.15 },
+  bike_share: { basis: "share of those with no car who keep a bicycle and ride it (San Francisco: about 4% of trips to work are by bicycle, a tenth or so of those without a car); the rest go by bus or cab", share: 0.14 },
   second_car: { basis: "chance a driving household with two or more adults has a second car, approx. SF vehicles-per-household from Census ACS", share: 0.3 },
 };
 
@@ -73,18 +75,23 @@ function membersFor(H, hid, kind, size, r) {
   return out;
 }
 // A whole household for a unit, its size decided by the unit alone (so the cap never changes it).
-function householdFor(R, H, home, unit) {
+function householdFor(R, H, home, unit, kerb = null) {
   const hid = `hh:${unit.id}`, r = rng(unit.id, "household");
   const size = sizeFor(H, unit, r), kind = kindFor(H, size, r);
   const members = membersFor(H, hid, kind, size, r);
   const G = H.garage;
   const garageOdds = unit.type === "single_family" ? G.single_family : (home.floors || 1) >= G.tall_floors ? G.tall : G.apartment;
   const garage = r() < garageOdds;
-  const travel = garage || r() < H.kerb_share.share ? "drive" : "bike";
+  // A car: in the garage, or at the kerb where the street has room for the night.
+  const K = H.kerb_share, kerbOdds = kerb === true ? K.side_street : kerb === false ? K.busy_street : K.share;
+  const drives = garage || r() < kerbOdds;
   const adults = members.filter((m) => m.adult);
-  const cars = travel === "drive" ? (adults.length >= 2 && r() < H.second_car.share ? 2 : 1) : 0;
-  adults.forEach((m, i) => { m.car = i < cars ? i : null; m.mode = m.car !== null ? "drive" : "bike"; });
-  for (const m of members) if (!m.adult) { m.car = null; m.mode = m.age >= 12 && travel === "bike" ? "bike" : "walk"; }
+  const cars = drives ? (adults.length >= 2 && r() < H.second_car.share ? 2 : 1) : 0;
+  // Those with no car of their own: a few keep a bicycle; the rest take the bus or a cab.
+  const rides = (m) => rng(unit.id, "bicycle", members.indexOf(m))() < H.bike_share.share;
+  adults.forEach((m, i) => { m.car = i < cars ? i : null; m.mode = m.car !== null ? "drive" : rides(m) ? "bike" : "transit"; });
+  for (const m of members) if (!m.adult) { m.car = null; m.mode = m.age >= 12 && rides(m) ? "bike" : "walk"; }
+  const travel = cars ? "drive" : members.some((m) => m.mode === "bike") ? "bike" : "transit";
   return { id: hid, home: home.id, unit: unit.id, label: unit.label, beds: unit.beds, sqft: unit.sqft, type: unit.type, kind, size, surname: members[0].surname,
     tenure: r() < (H.own_share[unit.type] ?? 0.38) ? "own" : "rent", garage, travel, cars, bikes: members.filter((m) => m.mode === "bike").length, members };
 }
@@ -96,7 +103,9 @@ function householdFor(R, H, home, unit) {
 //: further on is still taken, and none is ever cut down; at least one household always lives
 //: there. ``cap: Infinity`` fills every occupied unit. Members are numbered ``k`` 0..n-1 across
 //: the building, in unit order.
-export function householdsFor(R, home, { cap = 10 } = {}) {
+//: ``kerb``: whether the home's street has room at the kerb for a resident's car (true on a
+//: side street, false on a main one, null where not known).
+export function householdsFor(R, home, { cap = 10, kerb = home.kerb ?? null } = {}) {
   const H = { ...HOUSEHOLD_RULES, ...(R.households || {}) };
   const units = unitsOf(R, home), order = units.map((_, i) => i), r = rng(home.id, "households");
   for (let i = order.length - 1; i > 0; i -= 1) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
@@ -105,7 +114,7 @@ export function householdsFor(R, home, { cap = 10 } = {}) {
   for (const i of order) {
     if (people >= cap) break;
     if (rng(units[i].id, "occupied")() >= H.occupancy.share) continue;
-    const hh = householdFor(R, H, home, units[i]);
+    const hh = householdFor(R, H, home, units[i], kerb);
     first ??= [i, hh];
     if (people + hh.size > cap) continue;
     chosen.push([i, hh]); people += hh.size;

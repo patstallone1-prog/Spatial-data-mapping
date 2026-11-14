@@ -67,10 +67,16 @@ test("each home has its residents, made once: the same people however often the 
 });
 
 test("a car is always somewhere, and only moves by driving there: parked, in a garage, on the way, away", () => {
-  const { roster, city } = district();
-  const cars = [...roster.vehicles.values()].filter((v) => !v.visitor).slice(0, 25);
-  assert.ok(cars.length >= 10);
+  // (A district a mile across: in one half that size nothing is far enough to drive to.)
+  const streets = grid(16), roster = new Roster(R, { seed: "test" });
+  roster.add(blocks(streets, 16));
+  const city = new City(R, roster, streets, { seed: "test", timeAt });
   const dayStart = Date.UTC(2026, 9, 6, 7, 0);   // midnight in San Francisco
+  // Some that go out by car or bicycle that day (in a district this small most trips are walked), and some that stay.
+  const all = [...roster.vehicles.values()].filter((v) => !v.visitor);
+  const goes = (v) => city.planOf(roster.people.get(v.owner), timeAt(dayStart + 720 * 60_000)).drives.some((x) => x.kind === "go");
+  const cars = [...all.filter(goes).slice(0, 18), ...all.filter((v) => !goes(v)).slice(0, 10)];
+  assert.ok(cars.length >= 14, `${all.filter(goes).length} of ${all.length} go out`);
   let drives = 0;
   for (const v of cars) {
     let prev = null;

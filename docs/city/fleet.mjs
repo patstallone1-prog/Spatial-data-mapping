@@ -16,6 +16,7 @@ import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, pavementRoute, turnAhead, workplacesByRole,
+  JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
@@ -303,7 +304,18 @@ export class City {
       this.byNetwork.set(c, { gates: g.sort((a, b) => hash32(this.seed, a) - hash32(this.seed, b)), size: ids.length, box: [x0, z0, x1, z1] });
     }
     this._gateways = [...this.byNetwork.values()].flatMap((n) => n.gates);
+    // Which gates traffic can come in by (a way leads on from it) and which it can leave by (a
+    // way leads to it): a one-way street's end is one or the other, not both. (Trips were
+    // started at any gate: from a one-way's far end there was no lawful way in.)
+    this._gateIn = new Set(this._gateways.filter((g) => s.edges[g].some((e) => e.drive)));
+    this._gateOut = new Set(this._gateways.filter((g) => s.edges[g].some((e) => s.edges[e.to].some((q) => q.to === g && q.drive))));
     return this._gateways;
+  }
+  //: The gates of ``gates`` a trip can start at (``way`` "in") or end at ("out").
+  gatesFor(gates, way) {
+    this.gateways;
+    const set = way === "in" ? this._gateIn : this._gateOut, list = gates.filter((g) => set.has(g));
+    return list.length ? list : gates;
   }
   //: A gate's street: its name, its class, and how much through traffic comes by it (a
   //: corridor's weight, an arterial's, or a side street's 1; rules.json traffic).
@@ -334,9 +346,15 @@ export class City {
     for (const e of list) { x -= e.w; if (x <= 0) { c = e; break; } }
     // Its two ends farthest apart, one way or the other.
     const N = (g) => this.streets.nodes[g];
+    // (In by an end traffic comes in at, out by one it leaves at: the farthest such two.)
+    this.gateways;
     let best = null;
-    for (const a of c.gates) for (const b of c.gates) { const d = Math.hypot(N(a).x - N(b).x, N(a).z - N(b).z); if (!best || d > best.d) best = { a, b, d }; }
-    return r() < 0.5 ? [best.a, best.b] : [best.b, best.a];
+    for (const a of c.gates) for (const b of c.gates) {
+      if (a === b || !this._gateIn.has(a) || !this._gateOut.has(b)) continue;
+      const d = Math.hypot(N(a).x - N(b).x, N(a).z - N(b).z) * (0.75 + 0.5 * r());
+      if (!best || d > best.d) best = { a, b, d };
+    }
+    return best ? [best.a, best.b] : null;
   }
   //: The network of streets a node is on (-1: none).
   netOf(node) { return node === null || node === undefined || !this.streets.comp ? -1 : this.streets.comp[node]; }
@@ -508,10 +526,10 @@ export class City {
     const s = this.streets, v = leg.cab || this.roster.vehicles.get(leg.vehicle);
     const a = this.spotOf(v, leg.from), b = this.spotOf(v, leg.to);
     if (!a || !b) { leg.route = null; return null; }
-    const pts = [], halves = [], classes = [], ids = [], parks = [], lanes = [], oneways = [], bikes = [];
+    const pts = [], halves = [], classes = [], ids = [], parks = [], lanes = [], oneways = [], bikes = [], twins = [];
     // (Each point's own street: its width, class, kerb, lanes each way and bike lane -- a trip
     // that dropped the lanes drove every street in its kerb lane, six-lane Lombard too: 2026-11-13.)
-    const push = (x, z, half, cls, id = -1, park = null, lane = 2, oneway = false, bike = null) => { pts.push([x, z]); halves.push(half); classes.push(cls); ids.push(id); parks.push(park); lanes.push(lane); oneways.push(oneway); bikes.push(bike); };
+    const push = (x, z, half, cls, id = -1, park = null, lane = 2, oneway = false, bike = null, twin = null) => { pts.push([x, z]); halves.push(half); classes.push(cls); ids.push(id); parks.push(park); lanes.push(lane); oneways.push(oneway); bikes.push(bike); twins.push(twin); };
     let start = a.node;
     // Streets that do not hang together (two pieces of the district): no way between that is
     // seen; the car goes out of sight between them.
@@ -522,14 +540,14 @@ export class City {
     else { push(a.cx, a.cz, a.edge.half, a.edge.cls, -1, a.edge.park ?? null); start = a.edge.to; }
     const mid = s.route(start, b.node, "drive");
     if (mid) for (let i = 0; i < mid.pts.length; i += 1) push(mid.pts[i][0], mid.pts[i][1], mid.halves[i] ?? mid.halves[i - 1] ?? 3, mid.classes[i] ?? mid.classes[i - 1] ?? "residential", mid.ids?.[i] ?? -1, mid.parks?.[i] ?? mid.parks?.[i - 1] ?? null,
-      mid.lanes?.[i] ?? mid.lanes?.[i - 1] ?? 2, mid.oneways?.[i] ?? mid.oneways?.[i - 1] ?? false, mid.bikes?.[i] ?? mid.bikes?.[i - 1] ?? null);
+      mid.lanes?.[i] ?? mid.lanes?.[i - 1] ?? 2, mid.oneways?.[i] ?? mid.oneways?.[i - 1] ?? false, mid.bikes?.[i] ?? mid.bikes?.[i - 1] ?? null, mid.twins?.[i] ?? mid.twins?.[i - 1] ?? null);
     else { const n = s.nodes[b.node]; push(n.x, n.z, 3, "residential", b.node); }
     if (b.garage || b.gateway || !b.edge) push(b.door?.x ?? b.x, b.door?.z ?? b.z, 3, "service");
     else push(b.cx, b.cz, b.edge.half, b.edge.cls, -1, b.edge.park ?? null);
     const S = [0];
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
-    leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
+    leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
       startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
     return leg.route;
   }
@@ -577,14 +595,17 @@ export class City {
       if (mode === "drive") carAt = to;
       return seg;
     };
-    // Too far to walk and no car to take: a taxi (some of the time), else the bus where a line
-    // serves both ends, else on foot (rules.json transit_lines.npc).
+    // Too far to walk and no car to take: the bus where a line serves both ends, a taxi some of
+    // the time (and on a long way no bus serves), else on foot (rules.json transit_lines.npc).
     const N = R.transit_lines?.npc;
     const travel = (from, to, depart) => {
-      if (N && dist(from, to) > N.far_m) {
+      // (The bus is worth it over a shorter way than a cab is: ``bus_m`` and ``far_m``.)
+      if (N && dist(from, to) > (N.bus_m ?? N.far_m)) {
         const r = rng(p.id, t.day, "ride", Math.round(depart));
-        const cab = r() < N.taxi_share ? this.taxiTrip(p, from, to, depart, t) : null;
-        const ride = cab || this.busTrip(p, from, to, depart, dayStart) || this.taxiTrip(p, from, to, depart, t);
+        const cab = dist(from, to) > N.far_m && r() < N.taxi_share ? this.taxiTrip(p, from, to, depart, t) : null;
+        // (The bus first where a line serves both ends; with none, on foot unless it is a
+        // long way -- then a cab.)
+        const ride = cab || this.busTrip(p, from, to, depart, dayStart) || (dist(from, to) > (N.walk_max_m ?? 2200) ? this.taxiTrip(p, from, to, depart, t) : null);
         if (ride) { segs.push(...ride); clock = ride[ride.length - 1].t1; return; }
       }
       go(from, to, depart, "walk");
@@ -737,7 +758,8 @@ export class City {
     const arrive = arrivalsAt(line, leg.at, atStop + 6, 1)[0]?.at ?? Infinity;
     if (!Number.isFinite(arrive) || arrive - atStop > 15 * 60) return null;
     const toMin = (sec) => (sec - dayStart / 1000) / 60;
-    const board = toMin(arrive + Math.min(6, (leg.at.t1 - leg.at.t0) / 3));
+    // (A bus already standing at the stop as they come up is got on then, not before they are there.)
+    const board = Math.max(toMin(arrive + Math.min(6, (leg.at.t1 - leg.at.t0) / 3)), depart + walkA);
     const off = toMin(arrive + leg.ride + 4);
     const walkB = tripMinutes(Math.hypot(B.x - stopB.x, B.z - stopB.z), p.pace) + 0.2;
     const r = rng(p.id, "stop", Math.round(depart));
@@ -777,7 +799,8 @@ export class City {
     const curve = (p.kind === "ride_hail" || p.kind === "taxi" ? H.ride_hail : p.kind === "delivery" ? H.delivery : hash32(p.id, "commuter") % 5 < 2 ? H.commute : H.through) || TRAFFIC_BY_HOUR;
     const hourPick = () => { const total = curve.reduce((s, x) => s + x, 0); let x = r() * total; for (let h = 0; h < 24; h += 1) { x -= curve[h]; if (x <= 0) return h; } return 12; };
     const share = this.R.traffic?.corridor_share ?? 0;
-    const ends = () => { const c = r() < share ? this.corridorTrip(r, G) : null; return c || [this.pickGate(r, G), this.pickGate(r, G)]; };
+    const Gin = this.gatesFor(G, "in"), Gout = this.gatesFor(G, "out");
+    const ends = () => { const c = r() < share ? this.corridorTrip(r, G) : null; return c || [this.pickGate(r, Gin), this.pickGate(r, Gout)]; };
     const trips = [];
     // Through traffic is most of a district's traffic: a visitor's car comes through a few
     // times a day (rules.json density.visitor_trips), now and then stopping.
@@ -818,10 +841,11 @@ export class City {
         segs.push({ kind: "go", mode: "drive", t0: back + w, t1: back + w + d2, from: trip.visit, to: trip.g2, vehicle: v.id, visitor: true });
         clock = back + w + d2;
       } else {
-        const B = node(trip.g2 === trip.g1 ? G[(G.indexOf(trip.g1) + 1) % G.length] : trip.g2);
+        const g2 = trip.g2 === trip.g1 ? Gout[(Gout.indexOf(trip.g1) + 1) % Gout.length] : trip.g2;
+        const B = node(g2);
         const d = tripMinutes(Math.hypot(B.x - A.x, B.z - A.z), DRIVE_MS);
         if (d < 1) continue;
-        segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d, from: trip.g1, to: trip.g2 === trip.g1 ? G[(G.indexOf(trip.g1) + 1) % G.length] : trip.g2, vehicle: v.id, visitor: true });
+        segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d, from: trip.g1, to: g2, vehicle: v.id, visitor: true });
         clock = depart + d;
       }
     }
@@ -1313,6 +1337,12 @@ export function laneSide(st) {
     return a + (b - a) * u * u * (3 - 2 * u);
   };
 }
+//: The street a car is on, as its lanes see it (for the record of knots).
+function segInfo(route, st) {
+  const i = segOf(route, st.d);
+  return { oneway: Boolean(route.oneways?.[i]), twin: route.twins?.[i] ?? null, half: +(route.halves?.[i] ?? 0).toFixed(1), lanes: route.lanes?.[i] ?? null, n: laneCount(route, i), cls: route.classes?.[i],
+    off: +st.side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i] ?? null, i, route).toFixed(1), ids: [route.ids?.[i], route.ids?.[i + 1]] };
+}
 //: Whether a reason a car is held is one it must wait for (a light, a stop sign, someone in the
 //: road, its turn in the junction, a junction it cannot get out of): never pushed on through.
 const HARD_HOLD = /light|stop sign|you|someone|giving way|way out/;
@@ -1320,29 +1350,23 @@ const HARD_HOLD = /light|stop sign|you|someone|giving way|way out/;
 export const PARK_LANE = (half, cls) => (cls === "service" ? 0 : Math.max(2.4, half - 1.0));
 //: The light a car approaching ``node`` from ``bearing`` sees at ``tsec``: "green", "amber", "red".
 export function signalAt(streets, node, bearing, tsec, T = TRAFFIC) {
-  const e0 = streets.edges[node].find((e) => e.cls === "arterial") || streets.edges[node][0];
-  const n = streets.nodes[node], m = streets.nodes[e0.to];
-  const ref = Math.atan2(m.x - n.x, m.z - n.z);
+  // (One junction, one set of lights: its nodes -- people.mjs junctions -- share a phase.)
+  const J = streets.junctionOf(node);
+  const key = J ? J.key : node, ref = J ? J.ref : 0, both = J ? J.both : false, main = J ? J.main : false;
   let a = Math.abs(((bearing - ref) % Math.PI + Math.PI) % Math.PI);
   const axis = a < Math.PI / 4 || a > (3 * Math.PI) / 4 ? 0 : 1;
-  const C = T.signal_cycle_s, A = T.amber_s, phase = (tsec + (hash32("signal", node) % C)) % C;
+  const C = T.signal_cycle_s, A = T.amber_s, phase = (tsec + (hash32("signal", key) % C)) % C;
   // The main street (the arterial the light is set by) has the longer green where it crosses a
   // lesser one; two arterials share the cycle.
-  const both = e0.cls === "arterial" && streets.edges[node].some((e) => e.cls === "arterial" && e !== e0 && Math.abs(Math.sin(Math.atan2(streets.nodes[e.to].x - n.x, streets.nodes[e.to].z - n.z) - ref)) > 0.7);
-  const share = e0.cls === "arterial" && !both ? (T.main_green_share ?? 0.5) : 0.5;
+  const share = main && !both ? (T.main_green_share ?? 0.5) : 0.5;
   const g0 = C * share - A, g1 = C * (1 - share) - A;
   const local = axis === 0 ? phase : (phase - (g0 + A) + C) % C, green = axis === 0 ? g0 : g1;
   return local < green ? "green" : local < green + A ? "amber" : "red";
 }
-//: What kind of junction a node is: "signal" where an arterial meets (three ways or more),
-//: "stop" at other junctions, null along a street.
+//: What kind of junction a node is part of: "signal" where an arterial meets (three ways or
+//: more), "stop" at other junctions, null along a street.
 export function junctionAt(streets, node) {
-  if (node < 0) return null;
-  const es = streets.edges[node];
-  if (!es) return null;
-  const others = new Set(es.filter((e) => e.drive || streets.edges[e.to]?.some((r) => r.to === node && r.drive)).map((e) => e.to));
-  if (others.size < 3) return null;
-  return es.some((e) => e.cls === "arterial" || e.cls === "freeway") ? "signal" : "stop";
+  return node >= 0 ? streets.junctionOf(node)?.kind || null : null;
 }
 
 //: How close two cars' ways through a junction may come and not be in each other's way (two
@@ -1409,6 +1433,7 @@ export class Drivers {
     this.stood = new Map();   // people: where each was last seen to move from, and when
     this.jams = new Map();    // blocks stood full: "a>b" -> known until (s)
     this.tally = { dodges: 0, backs: 0, reroutes: 0, jumps: 0, catchups: 0 };
+    this.knots = [];
   }
   //: One frame for the cars in sight. ``cars``: {id, key (the leg), route, sched (the distance
   //: its day has it at, by time: (tsec) => metres, and back: (metres) => tsec), limit (m/s),
@@ -1552,7 +1577,12 @@ export class Drivers {
     }
     for (const [c, st] of live) {
       if (st.hit && !(st.hit.until > 0 && tsec > st.hit.until)) { out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, route: st.route }); continue; }
-      if (arrived(c, st)) { st.v = 0; out.push({ id: c.id, d: c.route.length, v: 0, arrived: true, route: st.route }); continue; }
+      if (arrived(c, st)) {
+        // (Its turn at any junction goes with it: a car parked at the end of its trip had kept
+        // its place in the right of way, and everyone after it gave way to it for good.)
+        if (!st.done) { st.done = true; for (const box of this.claims.values()) box.delete(c.id); }
+        st.v = 0; out.push({ id: c.id, d: c.route.length, v: 0, arrived: true, route: st.route }); continue;
+      }
       if (st.hit) st.hit = null;
       const here = pos.get(c.id), fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw);
       const limit = c.limitAt ? c.limitAt(here.cls) : c.limit;
@@ -1573,24 +1603,23 @@ export class Drivers {
       }
       // Waiting for a gap to get over (into the lane for its turn): eased off, to let one by.
       if (st.waiting) target = Math.min(target, limit * 0.7);
-      // Junctions ahead on the way.
-      const { s, ids } = c.route;
-      for (let i = 1; i < s.length; i += 1) {
-        const ahead = s[i] - st.d;
+      // Junctions ahead on the way: each one junction, however many nodes it is made of
+      // (``passages``) -- one stop at its line, one light.
+      const { ids } = c.route;
+      for (const P of this.passages(c.route)) {
+        const ahead = P.s0 - st.d;
         if (ahead < -1) continue;
         if (ahead > T.look_m) break;
-        const kind = junctionAt(this.streets, ids?.[i] ?? -1);
-        if (!kind || i === s.length - 1) continue;
-        const toLine = ahead - this.stopLine(ids[i], c);
-        if (kind === "stop") {
-          if (st.stopped.has(ids[i])) continue;
-          if (toLine < 0.8 && st.v < 0.4) { if (!st.waitUntil) st.waitUntil = tsec + T.stop_sign_s; if (tsec >= st.waitUntil) { st.stopped.add(ids[i]); st.waitUntil = 0; continue; } }
+        const node = ids[P.i0], toLine = ahead - this.stopLine(node, c);
+        if (P.kind === "stop") {
+          if (st.stopped.has(P.key)) continue;
+          if (toLine < 0.8 && st.v < 0.4) { if (!st.waitUntil) st.waitUntil = tsec + T.stop_sign_s; if (tsec >= st.waitUntil) { st.stopped.add(P.key); st.waitUntil = 0; continue; } }
           const v = Math.sqrt(2 * T.brake * Math.max(0, toLine));
           if (v < target) { target = v; reason = "stop sign"; }
           break;
         }
-        const [ax, az] = c.route.pts[i - 1], [bx, bz] = c.route.pts[i];
-        const light = signalAt(this.streets, ids[i], Math.atan2(bx - ax, bz - az), tsec, T);
+        const [ax, az] = c.route.pts[P.i0 - 1], [bx, bz] = c.route.pts[P.i0];
+        const light = signalAt(this.streets, node, Math.atan2(bx - ax, bz - az), tsec, T);
         if (light === "green" || toLine < -0.5) continue;
         const stopping = st.v * st.v / (2 * T.brake);
         if (light === "amber" && stopping > toLine + 1) continue;   // too close to stop: through on amber
@@ -1606,16 +1635,16 @@ export class Drivers {
       }
       // Right of way in the junction ahead (or the one it is in): first come, first through.
       if (J) {
-        const box = this.claims.get(J.node) || new Map(), mine = box.get(c.id);
+        const box = this.claims.get(J.key) || new Map(), mine = box.get(c.id);
         const toLine = J.s - this.stopLine(J.node, c) - st.d, entered = toLine < -1;
         let free = entered;
         if (!entered) {
           const stopping = st.v * st.v / (2 * T.brake);
           const light = J.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null;
-          free = J.kind === "stop" ? st.stopped.has(J.node) : light === "green" || (light === "amber" && stopping > toLine + 1);
+          free = J.kind === "stop" ? st.stopped.has(J.key) : light === "green" || (light === "amber" && stopping > toLine + 1);
           // Never into a junction it cannot get out of: the way out on the far side stood full.
-          if (free && toLine < 30 && J.s + J.box + c.length < c.route.length) {
-            const out = alongRoute(c.route, J.s + J.box + c.length / 2 + 1, st.side), ox = -Math.sin(out.yaw), oz = -Math.cos(out.yaw);
+          if (free && toLine < 30 && J.end + c.length < c.route.length) {
+            const out = alongRoute(c.route, J.end + c.length / 2 + 1, st.side), ox = -Math.sin(out.yaw), oz = -Math.cos(out.yaw);
             // Standing in its lane there, facing its way (not one coming the other way).
             const inTheWay = (x, z, yaw, length) => {
               const dx = x - out.x, dz = z - out.z;
@@ -1638,13 +1667,13 @@ export class Drivers {
         }
         if (free && toLine < st.v * st.v / (2 * T.brake) + 8) {
           const claim = mine || { at: entered ? tsec - 1e4 : tsec, inU: J.inU, outU: J.outU, path: J.path, id: c.id };
-          claim.entered = entered; claim.out = J.s + J.box + c.length / 2;
-          box.set(c.id, claim); this.claims.set(J.node, box);
+          claim.entered = entered; claim.out = J.end + c.length / 2;
+          box.set(c.id, claim); this.claims.set(J.key, box);
           if (!entered) {
             // Someone on a crosswalk this way goes over (in, or out the far side): waited for.
             const ext = extendPath(J.path, PAVE_M + 1);
             for (const q of people) {
-              if (Math.abs(q.x - J.path[1][0]) > J.box + 6 || Math.abs(q.z - J.path[1][1]) > J.box + 6) continue;
+              if (Math.abs(q.x - J.mid[0]) > J.reach + 6 || Math.abs(q.z - J.mid[1]) > J.reach + 6) continue;
               // (Someone stood at the kerb waiting is not crossing: they were waited for while
               // they waited for the car. Stood in its very way, they are gone round -- below.)
               if (q.still >= T.waiting_s) continue;
@@ -1819,7 +1848,7 @@ export class Drivers {
         // free -- never through it.
         // (Sooner in a junction's box: one stood there holds every way through it.)
         const blockKey = edgeKey(c.route, segOf(c.route, st.d));
-        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
+        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.end + c.length / 2;
         if (!(hold.slow >= 0) && st.holdT > (this.jams.get(`shut:${blockKey}`) > tsec ? T.shut_jump_s : inside ? T.box_jump_s : T.teleport_s)) {
           const to = this.jumpAhead(c, st, { deepest, bodies, people }, hold);
           if (to !== null) {
@@ -1846,7 +1875,7 @@ export class Drivers {
         const lawHeld = /light|stop sign|giving way|way out|crossing/.test(reason || "");
         const held = st.v < 0.3 && !lawHeld && (/you|someone in the road|going round/.test(reason || "") || (reason === "the car ahead" && st.byBlocker));
         if (held) st.stuckT = (st.stuckT || 0) + dt; else if (st.v > 1) st.stuckT = 0;
-        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
+        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.end + c.length / 2;
         if (st.stuckT > (inside ? T.box_jump_s : T.teleport_s) + 2) {
           const h = hold || st.hold || { gap: danger ? Math.max(0, danger.gap) : 0, hl: 0.5 };
           const to = h.slow >= 0 ? null : this.jumpAhead(c, st, { deepest, bodies, people }, { gap: Math.max(0, h.gap ?? 0), hl: h.hl ?? 0.5 });
@@ -1864,7 +1893,7 @@ export class Drivers {
       // Stood still in a junction's box (a jam, a knot of cars each waiting on another): after a
       // while it has the way (whatever its turn) and goes as soon as the road in front is clear --
       // never left there, and never through what stands in front of it.
-      const inBox = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
+      const inBox = J && st.d > J.s - J.box - c.length / 2 && st.d < J.end + c.length / 2;
       if (!inBox) { st.boxStill = 0; st.clearing = false; }
       else if (st.v < 0.3 && !danger) { st.boxStill = (st.boxStill || 0) + dt; if (st.boxStill > T.box_clear_s) st.clearing = true; }
       if (st.clearing && !danger) { target = Math.max(target, T.clear_speed); reason = "clearing the junction"; }
@@ -1934,7 +1963,13 @@ export class Drivers {
           if (st.blocked > (c.unseen ? T.shut_jump_s : T.teleport_s)) {
             const to = this.jumpAhead(c, st, { deepest, bodies, people });
             if (to !== null) {
-              { const o = this.cars.get(who), why = `jumps_knot_${c.bike ? "bike" : "car"}_by_${String(who).startsWith("blocker") ? "blocker" : o?.bike ? "bike" : "car"}`; this.tally[why] = (this.tally[why] || 0) + 1; }
+              { const o = this.cars.get(who), why = `jumps_knot_${c.bike ? "bike" : "car"}_by_${String(who).startsWith("blocker") ? "blocker" : o?.bike ? "bike" : "car"}`; this.tally[why] = (this.tally[why] || 0) + 1;
+                // (The last few knots, for whoever looks into them: where, and how the two stood.)
+                const op = pos.get(who);
+                this.knots.push({ t: Math.round(tsec), x: Math.round(here.x), z: Math.round(here.z), a: c.id, b: who, inBox: Boolean(inBox), turn: J ? turnOf(J.inU, J.outU) : null, yaw: op ? +(((op.yaw - here.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI).toFixed(2) : null,
+                  fwd: op ? +((op.x - here.x) * fx + (op.z - here.z) * fz).toFixed(1) : null, lat: op ? +((op.x - here.x) * -fz + (op.z - here.z) * fx).toFixed(1) : null, lane: st.lane, olane: o?.lane, oreason: o?.reason, oblockedBy: o?.blockedBy, oarrived: op && o ? o.d >= this.endOf(op.c) : null, unseen: Boolean(c.unseen),
+                  mine: segInfo(c.route, st), theirs: op && o ? segInfo(op.c.route, o) : null });
+                if (this.knots.length > 40) this.knots.shift(); }
               st.d = to; st.blocked = 0; st.blockedBy = null; st.backed = false; st.dodge = 0; st.dodgeTo = 0; st.hold = null; this.tally.jumps += 1;
               const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
               this.delays.set(c.key, tsec - c.unsched(st.d));
@@ -2091,18 +2126,20 @@ export class Drivers {
     const i = segOf(route, st.d);
     let L = ids.length - 1;
     while (L > 0 && !(ids[L] >= 0)) L -= 1;
-    for (let j = i + 1; j < L; j += 1) {
-      const ahead = s[j] - st.d;
+    for (const P of this.passages(route)) {
+      // (The block after a junction: the one that leaves its last node on this way.)
+      const j = P.i1, ahead = P.s0 - st.d;
+      if (j <= i || j >= L) continue;
       if (ahead > T.reroute_look_m) return;
-      if (!(ids[j] >= 0) || !(ids[j + 1] >= 0) || !junctionAt(this.streets, ids[j])) continue;
+      if (!(ids[j] >= 0) || !(ids[j + 1] >= 0)) continue;
       // Too close to choose another way (in its turn lane, at the line): it goes on.
-      if (ahead < this.stopLine(ids[j], c) + 12) continue;
+      if (ahead < this.stopLine(ids[P.i0], c) + 12) continue;
       const key = `${ids[j]}>${ids[j + 1]}`;
       const lanes = laneCount(route, j), on = (lanesOn.get(edgeKey(route, j)) || []).filter((o) => o.v < 0.7 && o.id !== c.id);
       const long = on.filter((o) => o.stood > T.jam_min_s).length * 6.5 / lanes >= T.jam_share * (s[j + 1] - s[j]);
       const jam = on.length >= T.jam_cars * lanes && (long || on.some((o) => o.along < T.jam_tail_m) || on.filter((o) => o.stood > T.jam_stood_s).length >= T.jam_cars * lanes);
       if (jam) this.jams.set(key, tsec + T.jam_known_s);
-      if (!jam && !this.jams.has(key) && !(st.avoidNext && j === i + 1)) continue;
+      if (!jam && !this.jams.has(key) && !st.avoidNext) continue;
       st.nextRoute = tsec + T.reroute_every_s;
       const avoid = new Map([...this.jams.keys()].filter((k) => !k.startsWith("shut:")).map((k) => [k, T.jam_cost_s]));
       avoid.set(key, T.jam_cost_s);
@@ -2111,12 +2148,12 @@ export class Drivers {
       if (!alt || alt.ids.length < 2 || alt.ids[1] === ids[j + 1]) return;          // no other way: it waits its turn
       if (alt.length > (s[L] - s[j]) * 2.2 + 300) return;                             // too far round: the jam is quicker
       // The trip so far, the new way from the junction, and its last steps to the kerb as before.
-      const next = { pts: [], halves: [], classes: [], parks: [], ids: [], lanes: [], oneways: [], bikes: [] };
-      const put = (x, z, half, cls, park, id, lane, oneway, bike) => { next.pts.push([x, z]); next.halves.push(half); next.classes.push(cls); next.parks.push(park); next.ids.push(id); next.lanes.push(lane); next.oneways.push(oneway); next.bikes.push(bike); };
-      const old = (k) => put(pts[k][0], pts[k][1], route.halves?.[k] ?? 3, route.classes?.[k] ?? "residential", route.parks?.[k] ?? null, ids[k], route.lanes?.[k] ?? 2, route.oneways?.[k] ?? false, route.bikes?.[k] ?? null);
+      const next = { pts: [], halves: [], classes: [], parks: [], ids: [], lanes: [], oneways: [], bikes: [], twins: [] };
+      const put = (x, z, half, cls, park, id, lane, oneway, bike, twin) => { next.pts.push([x, z]); next.halves.push(half); next.classes.push(cls); next.parks.push(park); next.ids.push(id); next.lanes.push(lane); next.oneways.push(oneway); next.bikes.push(bike); next.twins.push(twin ?? null); };
+      const old = (k) => put(pts[k][0], pts[k][1], route.halves?.[k] ?? 3, route.classes?.[k] ?? "residential", route.parks?.[k] ?? null, ids[k], route.lanes?.[k] ?? 2, route.oneways?.[k] ?? false, route.bikes?.[k] ?? null, route.twins?.[k] ?? null);
       for (let k = 0; k < j; k += 1) old(k);
       const m = alt.ids.length;
-      for (let k = 0; k < m; k += 1) { const e = Math.min(k, m - 2); put(alt.pts[k][0], alt.pts[k][1], alt.halves[e] ?? 3, alt.classes[e] ?? "residential", alt.parks[e] ?? null, alt.ids[k], alt.lanes[e] ?? 2, alt.oneways[e] ?? false, alt.bikes[e] ?? null); }
+      for (let k = 0; k < m; k += 1) { const e = Math.min(k, m - 2); put(alt.pts[k][0], alt.pts[k][1], alt.halves[e] ?? 3, alt.classes[e] ?? "residential", alt.parks[e] ?? null, alt.ids[k], alt.lanes[e] ?? 2, alt.oneways[e] ?? false, alt.bikes[e] ?? null, alt.twins?.[e] ?? null); }
       for (let k = L + 1; k < pts.length; k += 1) old(k);
       const S = [0];
       for (let k = 1; k < next.pts.length; k += 1) S.push(S[k - 1] + Math.hypot(next.pts[k][0] - next.pts[k - 1][0], next.pts[k][1] - next.pts[k - 1][1]));
@@ -2168,9 +2205,18 @@ export class Drivers {
   //: Where a car's leg is over: half a metre short of its end, or at the stop line of a junction
   //: it ends at.
   endOf(c) {
-    const r = c.route, last = r.ids?.[r.ids.length - 1];
-    const L = r.length - (last !== undefined && junctionAt(this.streets, last) ? this.stopLine(last, c) : 0.5);
-    return Math.max(Math.min(r.length - 0.5, 1), L);
+    const r = c.route, n = r.ids ? r.ids.length - 1 : -1, last = r.ids?.[n];
+    if (r._end !== undefined && r._endFor === c.length) return r._end;
+    let L = r.length - 0.5;
+    const J = last >= 0 ? this.streets.junctionOf(last) : null;
+    if (J) {
+      // (The first of the junction's nodes on the way in: its line is the trip's end.)
+      let i = n;
+      while (i > 1 && r.s[n] - r.s[i - 1] < JUNCTION_SPAN_M && r.ids[i - 1] >= 0 && this.streets.junctionOf(r.ids[i - 1]) === J) i -= 1;
+      L = r.s[i] - this.stopLine(r.ids[i], c);
+    }
+    r._endFor = c.length;
+    return (r._end = Math.max(Math.min(r.length - 0.5, 1), L));
   }
   //: How far out from a junction's node its box reaches: the widest street there, and a step.
   boxOf(node) {
@@ -2189,29 +2235,46 @@ export class Drivers {
   junctionAhead(c, st) {
     const { s, ids, pts } = c.route;
     if (!ids) return null;
-    for (let i = 1; i < s.length - 1; i += 1) {
-      const ahead = s[i] - st.d;
+    for (const P of this.passages(c.route)) {
+      const ahead = P.s0 - st.d;
       if (ahead > this.T.look_m) return null;
-      const kind = junctionAt(this.streets, ids[i]);
-      if (!kind) continue;
-      const box = this.boxOf(ids[i]);
-      if (ahead < -(box + c.length / 2)) continue;
+      const box = this.boxOf(ids[P.i0]), end = P.s1 + this.boxOf(ids[P.i1]);
+      if (st.d > end + c.length / 2) continue;
       const u = (a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1; return [dx / L, dz / L]; };
-      const inU = u(pts[i - 1], pts[i]), outU = u(pts[i], pts[i + 1]);
+      const inU = u(pts[P.i0 - 1], pts[P.i0]), outU = u(pts[P.i1], pts[P.i1 + 1]);
       // Its way through, as it is driven (alongRoute rounds the corner: a right turn swings out a
       // little from its lanes' corner), from the box's near edge to its far one.
       // (In the lane the car is in: two cars side by side take different ways through.)
-      const paths = (c.route._paths ??= new Map()), changing = st?.lt < 1 || Math.abs(st?.dodge || 0) > 0.01, pk = `${i}:${st?.lane ?? "k"}`;
+      const paths = (c.route._paths ??= new Map()), changing = st?.lt < 1 || Math.abs(st?.dodge || 0) > 0.01, pk = `${P.i0}:${st?.lane ?? "k"}`;
+      const a = Math.max(0, P.s0 - box), b = Math.min(c.route.length, end);
       let path = changing ? null : paths.get(pk);
       if (!path) {
         path = [];
-        const a = Math.max(0, s[i] - box), b = Math.min(c.route.length, s[i] + box), side = st?.side || KERB;
-        for (let k = 0; k <= 12; k += 1) { const q = alongRoute(c.route, a + ((b - a) * k) / 12, side); path.push([q.x, q.z]); }
+        const side = st?.side || KERB, n = Math.max(12, Math.ceil((b - a) / 1.5));
+        for (let k = 0; k <= n; k += 1) { const q = alongRoute(c.route, a + ((b - a) * k) / n, side); path.push([q.x, q.z]); }
         if (!changing) paths.set(pk, path);
       }
-      return { node: ids[i], kind, s: s[i], box, inU, outU, path };
+      return { node: ids[P.i0], key: P.key, kind: P.kind, s: P.s0, box, end, inU, outU, path, mid: path[path.length >> 1], reach: (b - a) / 2 };
     }
     return null;
+  }
+  //: The junctions a route goes through, each once: from the first of a junction's nodes on the
+  //: way (``i0``) to the last (``i1``) -- its line is before the first, its far side after the
+  //: last. Not the junction the trip starts in, nor one it ends in.
+  passages(route) {
+    if (route._pass) return route._pass;
+    const { s, ids } = route, out = [], S = this.streets, last = s.length - 1;
+    const J0 = ids?.[0] >= 0 ? S.junctionOf(ids[0]) : null, JN = ids?.[last] >= 0 ? S.junctionOf(ids[last]) : null;
+    for (let i = 1; ids && i < last; i += 1) {
+      const J = ids[i] >= 0 ? S.junctionOf(ids[i]) : null;
+      if (!J) continue;
+      let i1 = i;
+      for (let k = i + 1; k < last && s[k] - s[i] <= JUNCTION_SPAN_M; k += 1) if (ids[k] >= 0 && S.junctionOf(ids[k]) === J) i1 = k;
+      const starts = J === J0 && s[i] < JUNCTION_SPAN_M, ends = J === JN && s[last] - s[i] < JUNCTION_SPAN_M;
+      if (!starts && !ends) out.push({ i0: i, i1, key: J.key, kind: J.kind, s0: s[i], s1: s[i1] });
+      i = i1;
+    }
+    return (route._pass = out);
   }
   //: Whether the queue ``id`` waits in is held at its head by something to wait for (a light, a
   //: stop sign, someone in the road, you): false for a ring of cars, or a head that is not held.
