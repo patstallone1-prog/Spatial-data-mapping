@@ -318,7 +318,7 @@ test("parked cars stand at the kerb, a hand's width off it, clear of junctions, 
     if (!s || s.garage || s.gateway) continue;
     spots.push({ v, s });
   }
-  assert.ok(spots.length > 40, `${spots.length} spots`);   // (most households without a garage keep bicycles, not cars)
+  assert.ok(spots.length > 25, `${spots.length} spots`);   // (most households without a garage keep bicycles, not cars)
   for (const { v, s } of spots) {
     assert.ok(s.kerb, "not at the kerb");
     // Half the car and 15 cm off the kerb line.

@@ -68,6 +68,41 @@
 - Roster uses households, the work history and routines; the Look panel shows household, job, balance and the trip's next milestone.
 - Tests for each rule; a jam test that must clear: a person standing in a one-lane street, a stalled car on a two-lane street, a full junction.
 
+## What was built (2026-11-13)
+
+All of A to F above, except where noted under "Still open".
+
+- **Traffic** (`fleet.mjs` Drivers, `people.mjs` Streets): go round what stands in the lane; back up for room; over the middle line only with nothing coming; look at the next block and route round a jam; pass cyclists with room; corners at 4.5 m/s; right-turn-preferring routes; the two drive-through hatches removed; a car far behind its day and out of sight put back on it; as a last resort a car stood with nothing lawful holding it is put past what holds it.
+- **A bug found on the way:** trips dropped their streets' lane data, so every resident and visitor trip drove in the kerb lane, on six-lane Lombard too. Fixed.
+- **People:** households (`households.mjs`), work histories and balances (`npc-economy.mjs`), days by routine type with tasks (`routines.mjs`), a car or a bicycle per adult. The People tab opens anyone.
+
+### Found only by running the real Marina
+
+Unit scenarios passed while the live district still jammed. Three causes, each seen in the running app and fixed:
+
+1. **Walkers and drivers waited for each other.** A walker at the kerb waited for any car near the crossing; the car, stopped, was waiting for the walker. Drivers now brake only for people in the roadway and in front of them, and skip those stood waiting; walkers walk in front of a stopped car; a driver held 6 s by people on foot gets the next gap.
+2. **A stream of walkers reset the go-round timer.** Each passer-by restarted it. It now runs for anyone standing in the lane, whoever else walks by.
+3. **Timers that never ran out.** An inch of movement or a red light restarted the "blocked" and "held" counts, so the last resort never came. One car stood nine minutes in a junction with every way through it queued behind.
+
+### Measured (Marina, headless, the player left standing in a junction, 19:30–20:30)
+
+| | Before this pass | After |
+|---|---|---|
+| Cars driven by the rules near the player, stopped | 21 of 39 at 3 min, 74 of 112 at 6 min, still rising | 12 of 38 at 2 min, 26 of 64 at 8 min |
+| Cars stood over 30 s | not counted by the old build; the queue only grew | 0 at most readings; 7 at the worst |
+| Frame rate | — | 59 fps; two frames over half a second in four minutes |
+| Memory after a forced collection | 2.2–2.4 GB | 2.2 GB, flat over nine minutes |
+
+## Still open
+
+- **Knots at compound junctions.** Where several street nodes sit within a few metres (the Chestnut junctions near the player's start), each has its own box and cars block each other across them. These are untied by the last resort: about seven cars a minute are put past a knot there. The fix is to treat such a cluster as one junction.
+- **The player in a junction.** Cars go round a standing player where there is room, and are put past after 10–28 s where there is not. In a junction that is still the common case.
+- **A 90 s stall, seen once.** One run froze for about a minute and a half. It did not recur in three later runs of eight to nine minutes; no function ran longer than 55 ms when timed. Unexplained.
+- **Following is the old rule, not IDM.** The existing gap rule already inches in a queue, so it was kept.
+- **Bicycles are common.** By the rule asked for (no garage or kerb room means a bicycle), about two adults in three own one. Trips under 600 m are walked, and a third of far ones go by bus or cab.
+- **Balances are large.** Pay is on the game's scale (hundreds an hour) against real rents, so employed people save fast. `ECONOMY_RULES.spending` is the lever.
+- **Both parents do the school run.** There is no turn-taking yet.
+
 ## Not in this pass
 
 - The Valhalla route table (step 2 above).

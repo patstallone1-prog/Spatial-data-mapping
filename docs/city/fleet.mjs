@@ -74,7 +74,7 @@ export const BIKE_TRANSIT_SHARE = 0.33;
 export const BIKE_MIN_M = 600, BIKE_MS = 4.8, BIKE_TOP_MS = 5.6, BIKE_DIMS = [0.65, 1.1, 1.8];
 //: The most residents of one building kept (whole households; households.mjs): the rest of a big
 //: block's flats are not followed, to keep a district's thousands within a frame.
-export const HOME_CAP = 10;
+export const HOME_CAP = 6;
 //: A round at work driven is a leg every so many minutes (roamDrive).
 export const ROAM_SLOT_MIN = 4;
 const DRIVE_MS = 9.5;
@@ -1838,6 +1838,29 @@ export class Drivers {
         // (Held by the law as well -- a red light, its turn: the wait already had is kept, not
         // run down; it had been, so a car behind you at a light never came to its last resort.)
       } else st.holdT = Math.max(0, st.holdT - dt);
+      // The last resort, whatever state it is in (half way round something, backing, held by
+      // you with no way by): stood so long with nothing lawful holding it, it is put on past
+      // what holds it. (A car half way round a bus, then held by you, stood in a junction for
+      // nine minutes with every way through it waiting behind: 2026-11-13, seen live.)
+      {
+        const lawHeld = /light|stop sign|giving way|way out|crossing/.test(reason || "");
+        const held = st.v < 0.3 && !lawHeld && (/you|someone in the road|going round/.test(reason || "") || (reason === "the car ahead" && st.byBlocker));
+        if (held) st.stuckT = (st.stuckT || 0) + dt; else if (st.v > 1) st.stuckT = 0;
+        const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
+        if (st.stuckT > (inside ? T.box_jump_s : T.teleport_s) + 2) {
+          const h = hold || st.hold || { gap: danger ? Math.max(0, danger.gap) : 0, hl: 0.5 };
+          const to = h.slow >= 0 ? null : this.jumpAhead(c, st, { deepest, bodies, people }, { gap: Math.max(0, h.gap ?? 0), hl: h.hl ?? 0.5 });
+          if (to !== null) {
+            st.d = to; st.stuckT = 0; st.holdT = 0; st.blocked = 0; st.blockedBy = null; st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.backUp = 0;
+            this.tally.jumps += 1; this.tally.jumps_stuck = (this.tally.jumps_stuck || 0) + 1;
+            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            this.delays.set(c.key, tsec - c.unsched(st.d));
+            out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what held it", jump: true, route: st.route });
+            continue;
+          }
+          st.stuckT = 0;   // (nowhere clear yet: looked for again after another wait)
+        }
+      }
       // Stood still in a junction's box (a jam, a knot of cars each waiting on another): after a
       // while it has the way (whatever its turn) and goes as soon as the road in front is clear --
       // never left there, and never through what stands in front of it.
