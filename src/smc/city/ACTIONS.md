@@ -95,6 +95,15 @@ The people and the traffic are out in both modes.
 | H or ? | The controls and what the bars mean | always ("Controls") |
 | F | First person (both modes) | — |
 
+In the inventory (I), a thing's own uses are buttons under its details (docs/41,
+`uses.mjs`): wear, read, place at home (comfort), fill, light, charge, lock a bike, mail, clean,
+take apart, cook, open / pack / seal a box, test a device, mend with a repair kit, "Look it over"
+(its condition, and what a closer look finds), and **Sell…**: the Selling window lists who here
+buys it (a second-hand counter, a specialist, consignment, a recycler by the kilo), each with an
+offer that holds for its hours, and anywhere a listing on the board or a shipped listing (8%
+commission; the buyer pays the carrier and the tax). Buyers for a listing write in Messages
+(Accept / Decline). At a car: "Take a wheel off" and, with bolt cutters, "Unlock it".
+
 Gone: C (the car is Enter's now, with the bus: one key gets you in and out of anything; taxis
 stay on T so the two cannot be confused). Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on
 the task board; hand-over is a Yes / No), D (deliveries: take one in the shop window or on the

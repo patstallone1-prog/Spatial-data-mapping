@@ -77,7 +77,7 @@ test("the focus's speed is read from where it goes, and a teleport is not one", 
 test("the view draws by tier, culls the traffic to the view, and tracks the area out to its edge", () => {
   // People: the full figure, a two-part one, a one-part one.
   assert.match(VIEW, /const \[full, mid, low\] = byTier\(seen, PEOPLE_CAPS\)/);
-  assert.match(VIEW, /midBody = mk\(midBodyGeo/);
+  assert.match(VIEW, /midBody = mkTone\(midBodyGeo/);
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
   // Cars: in view only, kit / code-built / a box.
   assert.match(VIEW, /CAR_FRUSTUM\.intersectsSphere/);

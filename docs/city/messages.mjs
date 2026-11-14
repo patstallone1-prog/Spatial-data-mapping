@@ -27,7 +27,7 @@ export const TABS = ["players", "npc", "system"];
 export const MESSAGE_COMMANDS = ["send_message", "read_thread", "create_group", "add_to_group", "leave_group", "rename_group",
   "add_friend", "unfriend", "answer", "apply_job", "ride_note", "serve_jury"];
 //: The world actions a message's choice may run, and nothing else.
-const CHOICE_ACTS = new Set(["vote", "pay_bill", "contest", "add_friend", "decline_friend", "interview", "lawyer_ask", "jury_confirm", "jury_defer", "ride_wait", "ack"]);
+const CHOICE_ACTS = new Set(["vote", "pay_bill", "contest", "add_friend", "decline_friend", "interview", "lawyer_ask", "jury_confirm", "jury_defer", "ride_wait", "ack", "accept_buyer", "decline_buyer"]);
 
 const fresh = () => ({ seq: 0, threads: new Map(), friends: {}, asked: {}, seen: {}, day: null, digestFrom: null, ride: {}, jurySince: {}, hood: {} });
 const pair = (a, b) => [a, b].sort().join("|");

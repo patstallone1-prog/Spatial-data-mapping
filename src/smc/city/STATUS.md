@@ -432,8 +432,10 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
   * people fleeing or calling the police when they see vandalism (they are only counted);
   * greeting a customer;
   * serving the player (the shopkeeper doesn't hand over the coffee).
-* **Bodies.** NPCs are boxes with swinging limbs. Missing: real models and animation
-  (sitting, carrying, working the till).
+* **Bodies.** NPCs are low-poly human shapes (lathe-turned torso, tapered limbs, hands, neck,
+  nose, shoes) dressed per person: trousers, shorts or a skirt, long or short sleeves, shoe
+  colours, hair short, to the collar or long, eight skin tones (docs/41). Missing: rigged models
+  and animation beyond the walk and the ride (sitting, carrying, working the till), faces.
 * **Indoors.** People simply vanish at home, except inside the shop you are in.
 * **Schedules.** They don't vary by day of the week, holidays or weather.
 * **Families and relationships.** Missing: households, children going to school, friends,

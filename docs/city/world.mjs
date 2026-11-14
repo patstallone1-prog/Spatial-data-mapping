@@ -22,6 +22,7 @@ import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
+import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -430,7 +431,9 @@ export class CityWorld {
       if (this.found.has(found.id)) throw new CityError("someone has picked that up already");
       // Found on the pavement, or a part a crash left in the road.
       const debris = Object.values(this.R.found.debris || {});
-      if (!this.R.found.items.includes(found.item) && !debris.includes(found.item)) throw new CityError("nothing like that lies here");
+      // A box or bag left out on a clear-out day (commerce.outcomes.found_containers) is found too.
+      const boxes = found.box ? this.R.commerce?.outcomes?.found_containers?.kinds || [] : [];
+      if (!this.R.found.items.includes(found.item) && !debris.includes(found.item) && !boxes.includes(found.item)) throw new CityError("nothing like that lies here");
       thing = { id: found.id, item: found.item, qty: 1, x: found.x, z: found.z, found: true };
     }
     if (!thing) throw new CityError("nothing there to pick up");
@@ -937,13 +940,21 @@ export class CityWorld {
     if (d.wear >= spec.break_j) {
       d.broken = this.now; d.by = pid;
       out.broken = true;
-      // What it breaks into: lumber from wood cut with a saw or an axe, or scrap on the ground.
-      const yields = this.R.tools.kinds[tool]?.yields?.[spec.material];
-      const salvage = yields || this.R.damage.salvage[spec.material];
-      if (salvage && this.R.items[salvage]) {
+      // What it breaks into (commerce.outcomes, lab plan 5): only what you may take -- your own
+      // thing, or a dead tree felled for the forestry task -- yields material (lumber cut with a saw
+      // or an axe). What is not yours yields litter at most (glass on the pavement), never goods.
+      if (target.own) {
+        const yields = this.R.tools.kinds[tool]?.yields?.[spec.material];
+        const salvage = yields || this.R.damage.salvage[spec.material];
+        if (salvage && this.R.items[salvage]) {
+          const id = this.id("item");
+          this.items.set(id, { id, item: salvage, qty: 1 + (target.archetype.startsWith("vegetation.tree") ? 3 : 0), x: target.x + 0.6, z: target.z + 0.4, by: "debris", at: this.now });
+          out.salvage = salvage;
+        }
+      } else if (spec.material === "glass") {
         const id = this.id("item");
-        this.items.set(id, { id, item: salvage, qty: 1 + (target.archetype.startsWith("vegetation.tree") ? 3 : 0), x: target.x + 0.6, z: target.z + 0.4, by: "debris", at: this.now });
-        out.salvage = salvage;
+        this.items.set(id, { id, item: "glass_shards", qty: 1, x: target.x + 0.4, z: target.z + 0.3, by: "litter", at: this.now });
+        out.litter = "glass_shards";
       }
       const seen = Math.max(0, Math.min(5, witnesses | 0));
       if (seen && !target.own) {
@@ -1624,9 +1635,11 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
+//: Things as themselves: records, uses, outcomes and resale (commerce.mjs).
+installCommerce(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.
