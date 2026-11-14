@@ -254,7 +254,7 @@
   },
   "traffic": {
     "basis": "where and when the through traffic goes. Drivers keep to the main streets: a way's cost is its time at the limit times its class's preference, cheaper still on a named corridor (by its weight). Through trips start and end at the edge of the streets, a gate on a corridor that much likelier than a side street's, and a share of them run the length of one corridor end to end. Lombard Street is US 101 through the Marina (Caltrans counts approx. 50,000 vehicles a day between Richardson Avenue and Van Ness, about twelve times a typical residential street's); Marina Boulevard, Divisadero, Fillmore, Chestnut and Bay carry approx. 8,000 to 20,000. By the hour: two rush hours (7-9 and 4-7) at the full count, the middle of the day at about 60%, the night at under a fifth; commuters keep to the rush hours, deliveries to the working day, ride-hail to the evening too. At a signal on a main street the main street has the longer green (approx. 60% of the cycle), as SFMTA times Lombard's.",
-    "class_preference": {"freeway": 0.6, "arterial": 0.75, "residential": 1.35, "shared": 2.2, "service": 4.0},
+    "maneuvers": {"basis": "what a turn costs a driver choosing a way, in seconds (after Valhalla's auto costing: a turn with the traffic is cheap, a turn across it dear, back the way it came dearest), so routes keep to right turns where they can", "straight_s": 0, "right_s": 3, "left_s": 14, "uturn_s": 60}, "class_preference": {"freeway": 0.6, "arterial": 0.75, "residential": 1.35, "shared": 2.2, "service": 4.0},
     "corridors": [
       {"name": "Lombard Street", "weight": 12},
       {"name": "Richardson Avenue", "weight": 10},

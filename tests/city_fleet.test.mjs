@@ -136,9 +136,13 @@ test("traffic keeps the rules: stops for someone in the road, at a stop sign, an
   // Someone in the lane 60 m ahead: the car stops short of them.
   const lane = alongRoute(route, 160, (half) => Math.max(1.7, half - 1.8));
   let D = new Drivers(streets);
-  let out = drive(D, 100, [{ id: "p", x: lane.x, z: lane.z }], 14);
+  let out = drive(D, 100, [{ id: "p", x: lane.x, z: lane.z }], 8.5);
   assert.equal(out.cars[0].v, 0);
   assert.ok(out.cars[0].d < 160 - 2.4 - 0.3, `stopped at ${out.cars[0].d.toFixed(1)}`);
+  // They stand there: after a moment it goes round them and on (2026-11-13: it stood for ever).
+  for (let t = 8.5; t < 22; t += 0.05) out = D.step(0.05, 1000 + t, [car(100)], [{ id: "p", x: lane.x, z: lane.z }]);
+  assert.equal(D.tally.dodges, 1);
+  assert.ok(out.cars[0].d > 166, `gone by: at ${out.cars[0].d.toFixed(1)}`);
   // You stepping out 3 m ahead of a car at speed: it brakes, and hits you.
   D = new Drivers(streets);
   drive(D, 300, [], 0.1);

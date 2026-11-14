@@ -199,6 +199,7 @@ export class Streets {
   //: limit times its class's preference, less on a named corridor by its weight.
   setPreferences(traffic) {
     this.prefer = traffic?.class_preference || null;
+    this.maneuver = traffic?.maneuvers || null;
     this.corridor = new Map((traffic?.corridors || []).map((c) => [c.name, c.weight]));
     const least = Math.min(1, ...Object.values(this.prefer || {})) / (1 + 0.06 * Math.max(0, ...this.corridor.values()));
     this.leastCost = least;
@@ -208,37 +209,68 @@ export class Streets {
     const w = (e.name && this.corridor?.get(e.name)) || 0;
     return (e.length / SPEED_MS[e.cls]) * (this.prefer?.[e.cls] ?? 1) / (1 + 0.06 * w);
   }
-  search(a, b, mode) {
-    const key = `${mode}:${a}:${b}`;
-    if (this.routes.has(key)) return this.routes.get(key);
-    const goal = this.nodes[b], speed = mode !== "walk" ? SPEED_MS.freeway / (this.leastCost || 1) : 1;
-    const g = new Map([[a, 0]]), came = new Map(), open = new Heap();
-    open.push(0, a);
-    let found = a === b, visited = 0;
-    while (open.size && !found) {
-      const [, n] = open.pop();
-      if (n === b) { found = true; break; }
-      if (++visited > 40000) break;
-      const gn = g.get(n);
+  //: What a turn at ``n`` costs a driver, in seconds (rules.json traffic.maneuvers, after
+  //: Valhalla's costing: a turn with the traffic is cheap, one across it dear, back the way it
+  //: came dearest): from the way in (``p`` to ``n``) to the way out (``n`` to ``to``). A bend
+  //: along one street is no turn; only where streets meet.
+  turnCost(p, n, to) {
+    const M = this.maneuver;
+    if (!M || p === undefined || p === null) return 0;
+    if (to === p) return M.uturn_s;
+    if (this.edges[n].length < 3) return 0;
+    const P = this.nodes[p], N = this.nodes[n], T = this.nodes[to];
+    const ax = N.x - P.x, az = N.z - P.z, bx = T.x - N.x, bz = T.z - N.z, la = Math.hypot(ax, az) || 1, lb = Math.hypot(bx, bz) || 1;
+    const on = (ax * bx + az * bz) / (la * lb), right = (bx * -az + bz * ax) / (la * lb);
+    if (on > 0.82) return M.straight_s;
+    if (on < -0.82) return M.uturn_s;
+    return right >= 0 ? M.right_s : M.left_s;
+  }
+  //: Another way from ``a`` to ``b`` for a driver come from ``from``: the blocks in ``avoid``
+  //: ("a>b" -> seconds more) made dear, and not back the way it came. Never kept (it is for now).
+  detour(a, b, { from = null, avoid = null } = {}) {
+    return this.search(a, b, "drive", { from, avoid }) || this.search(a, b, "drive_any", { from, avoid });
+  }
+  search(a, b, mode, { from = null, avoid = null } = {}) {
+    const key = `${mode}:${a}:${b}`, keep = from === null && !avoid;
+    if (keep && this.routes.has(key)) return this.routes.get(key);
+    const car = mode !== "walk";
+    const goal = this.nodes[b], speed = car ? SPEED_MS.freeway / (this.leastCost || 1) : 1;
+    // A driver's cost depends on the way it comes into a junction (a turn's cost), so a car's
+    // search is over (the node it came from, the node it is at); a walker's over nodes alone.
+    const keyOf = car ? (p, n) => (p + 1) * 4194304 + n : (p, n) => n;
+    const k0 = keyOf(from ?? -1, a);
+    const g = new Map([[k0, 0]]), came = new Map(), open = new Heap();
+    open.push(0, [from ?? -1, a]);
+    let end = a === b ? k0 : null, visited = 0;
+    while (open.size && end === null) {
+      const [f, [p, n]] = open.pop();
+      const key = keyOf(p, n), gn = g.get(key);
+      if (n === b) { end = key; break; }
+      if (++visited > (car ? 160000 : 40000)) break;
+      if (f > gn + Math.hypot(this.nodes[n].x - goal.x, this.nodes[n].z - goal.z) / speed + 1e-6) continue;   // a staler label
       for (const e of this.edges[n]) {
-        const car = mode !== "walk";
         if (mode === "drive" ? !e.drive : mode === "drive_any" ? !(e.drive || this.edges[e.to].some((r) => r.to === n && r.drive)) : !e.walk) continue;
-        const cost = gn + (car ? this.driveCost(e) : e.length);
-        if (cost < (g.get(e.to) ?? Infinity)) {
-          g.set(e.to, cost); came.set(e.to, [n, e]);
+        let cost = gn + (car ? this.driveCost(e) : e.length);
+        if (car) {
+          cost += this.turnCost(p < 0 ? null : p, n, e.to);
+          if (avoid) cost += avoid.get(`${n}>${e.to}`) || 0;
+        }
+        const nk = keyOf(n, e.to);
+        if (cost < (g.get(nk) ?? Infinity)) {
+          g.set(nk, cost); came.set(nk, [key, e, n]);
           const m = this.nodes[e.to];
-          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, e.to);
+          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, [n, e.to]);
         }
       }
     }
     let route = null;
-    if (found) {
+    if (end !== null) {
       const ids = [b], halves = [], classes = [], parks = [], lanes = [], oneways = [], bikes = [];
-      for (let n = b; n !== a;) {
-        const [p, e] = came.get(n);
+      for (let k = end; k !== k0;) {
+        const [pk, e, p] = came.get(k);
         halves.push(e.half); classes.push(e.cls); parks.push(e.park ?? null); ids.push(p);
         lanes.push(e.lanes || 2); oneways.push(!this.edges[e.to].some((r) => r.to === p && r.drive)); bikes.push(e.bike || null);
-        n = p;
+        k = pk;
       }
       ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse(); lanes.reverse(); oneways.reverse(); bikes.reverse();
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
@@ -246,6 +278,7 @@ export class Streets {
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
       route = { pts, s, halves, classes, parks, ids, lanes, oneways, bikes, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
+    if (!keep) return route;
     if (this.routes.size > 6000) this.routes.delete(this.routes.keys().next().value);
     this.routes.set(key, route);
     return route;

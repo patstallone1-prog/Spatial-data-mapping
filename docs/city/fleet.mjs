@@ -448,8 +448,10 @@ export class City {
     const s = this.streets, v = leg.cab || this.roster.vehicles.get(leg.vehicle);
     const a = this.spotOf(v, leg.from), b = this.spotOf(v, leg.to);
     if (!a || !b) { leg.route = null; return null; }
-    const pts = [], halves = [], classes = [], ids = [], parks = [];
-    const push = (x, z, half, cls, id = -1, park = null) => { pts.push([x, z]); halves.push(half); classes.push(cls); ids.push(id); parks.push(park); };
+    const pts = [], halves = [], classes = [], ids = [], parks = [], lanes = [], oneways = [], bikes = [];
+    // (Each point's own street: its width, class, kerb, lanes each way and bike lane -- a trip
+    // that dropped the lanes drove every street in its kerb lane, six-lane Lombard too: 2026-11-13.)
+    const push = (x, z, half, cls, id = -1, park = null, lane = 2, oneway = false, bike = null) => { pts.push([x, z]); halves.push(half); classes.push(cls); ids.push(id); parks.push(park); lanes.push(lane); oneways.push(oneway); bikes.push(bike); };
     let start = a.node;
     // Streets that do not hang together (two pieces of the district): no way between that is
     // seen; the car goes out of sight between them.
@@ -459,14 +461,15 @@ export class City {
     if (a.garage || a.gateway || !a.edge) push(a.door?.x ?? a.x, a.door?.z ?? a.z, 3, "service");
     else { push(a.cx, a.cz, a.edge.half, a.edge.cls, -1, a.edge.park ?? null); start = a.edge.to; }
     const mid = s.route(start, b.node, "drive");
-    if (mid) for (let i = 0; i < mid.pts.length; i += 1) push(mid.pts[i][0], mid.pts[i][1], mid.halves[i] ?? mid.halves[i - 1] ?? 3, mid.classes[i] ?? mid.classes[i - 1] ?? "residential", mid.ids?.[i] ?? -1, mid.parks?.[i] ?? mid.parks?.[i - 1] ?? null);
+    if (mid) for (let i = 0; i < mid.pts.length; i += 1) push(mid.pts[i][0], mid.pts[i][1], mid.halves[i] ?? mid.halves[i - 1] ?? 3, mid.classes[i] ?? mid.classes[i - 1] ?? "residential", mid.ids?.[i] ?? -1, mid.parks?.[i] ?? mid.parks?.[i - 1] ?? null,
+      mid.lanes?.[i] ?? mid.lanes?.[i - 1] ?? 2, mid.oneways?.[i] ?? mid.oneways?.[i - 1] ?? false, mid.bikes?.[i] ?? mid.bikes?.[i - 1] ?? null);
     else { const n = s.nodes[b.node]; push(n.x, n.z, 3, "residential", b.node); }
     if (b.garage || b.gateway || !b.edge) push(b.door?.x ?? b.x, b.door?.z ?? b.z, 3, "service");
     else push(b.cx, b.cz, b.edge.half, b.edge.cls, -1, b.edge.park ?? null);
     const S = [0];
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
-    leg.route = { pts, s: S, halves, classes, parks, ids, length: S[S.length - 1], mode: "drive",
+    leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, length: S[S.length - 1], mode: "drive",
       startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
     return leg.route;
   }
@@ -1150,7 +1153,26 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // ``clear_speed`` (through whatever holds it: a jam must not lock the junction). Cars within
   // ``predict_r_m`` look ``predict_s`` ahead along both their routes; where they would meet, the
   // one in front is moved on for ``push_s`` at ``push_speed`` at least.
-  lane_change_s: 2.5, box_clear_s: 5, clear_speed: 3, predict_r_m: 9, predict_s: [0.5, 1, 1.5], push_s: 1.2, push_speed: 3 };
+  lane_change_s: 2.5, box_clear_s: 5, clear_speed: 3, predict_r_m: 9, predict_s: [0.5, 1, 1.5], push_s: 1.2, push_speed: 3,
+  // Going round (after the steering behaviours of Godot's and GDQuest's toolkits: arrive, avoid):
+  // what stands in the lane -- someone, a crashed car, your car -- for ``dodge_after_s`` is gone
+  // round at ``dodge_speed``, ``dodge_clear_m`` clear of it, a metre sideways for every
+  // ``1 / dodge_rate`` forward, backing up first (``back_speed``, at most ``back_max_m``) where
+  // there is no room to swing out; over the middle line only with nothing coming for ``oncoming_s``.
+  dodge_after_s: 2, dodge_speed: 3, dodge_clear_m: 0.6, dodge_rate: 1, swing_room_m: 3, oncoming_s: 4, back_speed: 1.2, back_max_m: 4, person_still_s: 1.5,
+  // Looking ahead (after A/B Street: never into a block that cannot be left; and round a jam):
+  // the block after the next junction stood full back to its start (``jam_cars`` a lane stopped,
+  // the last within ``jam_tail_m`` of the way in), or with that many stood ``jam_stood_s`` (longer
+  // than any light holds them), or stood over ``jam_share`` of its length for ``jam_min_s``, is a
+  // jam, known for ``jam_known_s`` (a street found shut, for ``shut_known_s``: those behind the
+  // one put on past it follow after ``shut_jump_s``, not each after the full wait); a driver
+  // takes another way round it (``jam_cost_s`` dearer), looked for every ``reroute_every_s``.
+  jam_cars: 3, jam_tail_m: 28, jam_stood_s: 30, jam_share: 0.4, jam_min_s: 8, jam_known_s: 30, shut_known_s: 120, shut_jump_s: 5, jam_cost_s: 240, reroute_every_s: 5, reroute_look_m: 160,
+  // The day's milestones: ``late_s`` behind, a driver goes at the limit to catch up; ``hopeless_s``
+  // behind and out of your sight, it is put where its day has it. Two cars in each other's way for
+  // ``deadlock_s``: one backs off; stood blocked ``teleport_s`` (after SUMO's time-to-teleport) it
+  // is put on beyond what blocks it -- never driven through it.
+  late_s: 8, hopeless_s: 150, teleport_s: 28, teleport_reach_m: 60 };
 //: Which segment of ``route`` distance ``d`` is on.
 export function segOf(route, d) {
   const s = route.s;
@@ -1169,9 +1191,10 @@ export function edgeKey(route, i) {
 //: the next over (``lt`` 0..1), eased.
 export function laneSide(st) {
   return (half, cls, park, i, route) => {
-    const b = laneOffset(half, cls, park, i, route, st.lane);
+    // (``dodge``: swung out so far to go round what stands in the lane.)
+    const b = laneOffset(half, cls, park, i, route, st.lane) + (st.dodge || 0);
     if (!(st.lt < 1)) return b;
-    const a = laneOffset(half, cls, park, i, route, st.from), u = Math.max(0, st.lt);
+    const a = laneOffset(half, cls, park, i, route, st.from) + (st.dodge || 0), u = Math.max(0, st.lt);
     return a + (b - a) * u * u * (3 - 2 * u);
   };
 }
@@ -1266,7 +1289,12 @@ export function crosses(a, b) {
 }
 
 export class Drivers {
-  constructor(streets, T = TRAFFIC) { this.streets = streets; this.T = T; this.cars = new Map(); this.delays = new Map(); this.claims = new Map(); this.boxes = new Map(); }
+  constructor(streets, T = TRAFFIC) {
+    this.streets = streets; this.T = T; this.cars = new Map(); this.delays = new Map(); this.claims = new Map(); this.boxes = new Map();
+    this.stood = new Map();   // people: where each was last seen to move from, and when
+    this.jams = new Map();    // blocks stood full: "a>b" -> known until (s)
+    this.tally = { dodges: 0, backs: 0, reroutes: 0, jumps: 0, catchups: 0 };
+  }
   //: One frame for the cars in sight. ``cars``: {id, key (the leg), route, sched (the distance
   //: its day has it at, by time: (tsec) => metres, and back: (metres) => tsec), limit (m/s),
   //: length, width}. ``people``: {id, x, z} -- you among them. Returns each car's distance
@@ -1274,9 +1302,23 @@ export class Drivers {
   step(dt, tsec, cars, people, blockers = []) {
     const T = this.T, out = [], hits = [], seen = new Set();
     const live = [];
-    for (const c of cars) {
-      seen.add(c.id);
-      let st = this.cars.get(c.id);
+    // Who is standing in the road, and which way those who are not are going (people come with
+    // no speed of their own: from where each was last frame).
+    for (const q of people) {
+      const w = this.stood.get(q.id);
+      if (!w) { this.stood.set(q.id, { x: q.x, z: q.z, since: tsec, px: q.x, pz: q.z, pt: tsec, vx: 0, vz: 0 }); q.still = 0; q.vx = 0; q.vz = 0; continue; }
+      const gone = tsec - w.pt;
+      if (gone > 0) { const k = Math.min(1, gone / 0.3); w.vx += ((q.x - w.px) / gone - w.vx) * k; w.vz += ((q.z - w.pz) / gone - w.vz) * k; w.px = q.x; w.pz = q.z; w.pt = tsec; }
+      if (Math.hypot(q.x - w.x, q.z - w.z) > 0.4) { w.x = q.x; w.z = q.z; w.since = tsec; }
+      q.still = tsec - w.since; q.vx = w.vx; q.vz = w.vz;
+    }
+    if (this.stood.size > 600) for (const [id, w] of this.stood) if (tsec - w.pt > 5) this.stood.delete(id);
+    for (const [k, until] of this.jams) if (until < tsec) this.jams.delete(k);
+    for (const c0 of cars) {
+      seen.add(c0.id);
+      let st = this.cars.get(c0.id);
+      // On a way of its own round a jam (reroute): the same trip, by other streets.
+      const c = st && st.key === c0.key && st.route ? { ...c0, route: st.route, sched: (ts) => c0.sched(ts) * st.scale, unsched: (d) => c0.unsched(d / st.scale) } : c0;
       if (!st || st.key !== c.key) {
         const delay = this.delays.get(c.key) ?? 0;
         const d = Math.max(0, Math.min(c.route.length, c.sched(tsec - delay)));
@@ -1286,6 +1328,7 @@ export class Drivers {
         const i0 = segOf(c.route, d), plan = lanePlan(c.route);
         st.lane = st.from = plan ? Math.min(plan.k[i0] || 0, Math.max(0, (plan.n[i0] || 1) - 1)) : 0;
         st.lt = 1; st.nextLook = 0; st.side = laneSide(st);
+        st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.holdT = 0; st.backUp = 0;
         this.cars.set(c.id, st);
       }
       live.push([c, st]);
@@ -1322,9 +1365,9 @@ export class Drivers {
     // What a car's move from ``a`` to ``b`` would drive it into: another ahead of it that it
     // would go further into (so two that came to overlap -- come into sight so -- can draw
     // apart, the one in front going on).
-    const blocking = (id, a, b, reach) => {
+    const blocking = (id, a, b, reach, dir = 1) => {
       let who = null;
-      const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw);
+      const fx = -Math.sin(a.yaw) * dir, fz = -Math.cos(a.yaw) * dir;
       const test = (oid, ob) => {
         if (who || oid === id) return;
         const later = into(b.body, ob);
@@ -1359,11 +1402,11 @@ export class Drivers {
     // Who is in which lane of each block, for the lane each car takes (pickLane).
     const lanesOn = new Map();
     for (const [c, st] of live) {
-      if (st.hit || arrived(c, st)) continue;
+      if (arrived(c, st)) continue;
       const i = segOf(c.route, st.d), key = edgeKey(c.route, i);
       let list = lanesOn.get(key);
       if (!list) lanesOn.set(key, list = []);
-      list.push({ id: c.id, along: st.d - c.route.s[i], lane: st.lane, from: st.lt < 1 ? st.from : st.lane, length: c.length, v: st.v });
+      list.push({ id: c.id, along: st.d - c.route.s[i], lane: st.lane, from: st.lt < 1 ? st.from : st.lane, length: c.length, v: st.hit ? 0 : st.v, stood: st.hit ? 1e6 : st.stood || 0 });
     }
     // Two cars closing on each other: where both routes take them in the next moments (a thing
     // with no route -- your car, a bus at its stop -- stands where it is); if they would meet,
@@ -1390,16 +1433,26 @@ export class Drivers {
       });
     }
     for (const [c, st] of live) {
-      if (st.hit && !(st.hit.until > 0 && tsec > st.hit.until)) { out.push({ id: c.id, d: st.d, v: 0, hit: st.hit }); continue; }
-      if (arrived(c, st)) { st.v = 0; out.push({ id: c.id, d: c.route.length, v: 0, arrived: true }); continue; }
+      if (st.hit && !(st.hit.until > 0 && tsec > st.hit.until)) { out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, route: st.route }); continue; }
+      if (arrived(c, st)) { st.v = 0; out.push({ id: c.id, d: c.route.length, v: 0, arrived: true, route: st.route }); continue; }
       if (st.hit) st.hit = null;
       const here = pos.get(c.id), fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw);
       const limit = c.limitAt ? c.limitAt(here.cls) : c.limit;
-      let target = Math.min(limit, c.cruise ?? limit), reason = null;
-      // Its lane (one change at a time, into a gap, never in or at a junction's box).
+      // Behind its day (its milestones): at the limit, to catch up; else at its own pace.
+      const behind = tsec - c.unsched(st.d), late = behind > T.late_s;
+      if (late && !st.late) this.tally.catchups += 1;
+      st.late = late;
+      let target = late ? limit : Math.min(limit, c.cruise ?? limit), reason = null;
+      // Its lane (one change at a time, into a gap, never in or at a junction's box), and the
+      // block after the next junction: stood full, another way is taken (lookAhead).
       const J = this.junctionAhead(c, st);
+      const dodging = st.dodgeTo !== 0 || Math.abs(st.dodge) > 0.02;
       if (st.lt < 1) st.lt = Math.min(1, st.lt + dt / T.lane_change_s);
-      else if (tsec >= st.nextLook && !(J && st.d > J.s - J.box - c.length / 2 - 6)) { st.nextLook = tsec + 1; this.pickLane(c, st, lanesOn, blockers); }
+      else if (tsec >= st.nextLook && !(J && st.d > J.s - J.box - c.length / 2 - 6)) {
+        st.nextLook = tsec + 1;
+        if (!dodging) this.pickLane(c, st, lanesOn, blockers, people);
+        this.lookAhead(c, st, lanesOn, tsec);
+      }
       // Waiting for a gap to get over (into the lane for its turn): eased off, to let one by.
       if (st.waiting) target = Math.min(target, limit * 0.7);
       // Junctions ahead on the way.
@@ -1476,6 +1529,9 @@ export class Drivers {
             }
             for (const o of box.values()) {
               if (o.id === c.id || !(o.entered || o.at < claim.at || (o.at === claim.at && o.id < c.id))) continue;
+              // (One still in the queue behind another has no turn yet: giving way to it, while
+              // the car it waits behind gives way to this one, was a ring nobody left: 2026-11-13.)
+              if (!o.entered && this.cars.get(o.id)?.reason === "the car ahead") continue;
               if (!crosses(claim, o)) continue;
               const v = Math.sqrt(2 * T.brake * Math.max(0, toLine));
               if (v < target) { target = v; reason = "giving way"; }
@@ -1484,41 +1540,73 @@ export class Drivers {
           }
         }
       }
+      // What the law holds it to (a light, a stop sign, its turn): going round something stood in
+      // the lane is only for a driver who could otherwise go on.
+      const lawful = target;
+      st.byBlocker = false;
+      // What stands in the lane, to be gone round (the nearest): {x, z, hw, hl, id}.
+      let hold = null, carGap = Infinity;
+      const holdIf = (h, gap) => { if (!hold || gap < hold.gap) hold = { ...h, gap }; };
       // The car ahead.
       const queueFree = st.releaseQueue > tsec;
       const look = (fn) => near(here.x + fx * T.look_m / 2, here.z + fz * T.look_m / 2, T.look_m / 2 + 4, fn);
       look((oid) => {
         const op = pos.get(oid), o = op.c, ost = this.cars.get(oid);
-        if (oid === c.id || !ost || arrived(o, ost) || queueFree) return;
+        if (oid === c.id || !ost || arrived(o, ost) || (dodging && st.hold?.id === oid)) return;
         const dx = op.x - here.x, dz = op.z - here.z;
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
         if (fwd <= 0 || fwd > T.look_m || lat > 1.9) return;
-        if (Math.cos(op.yaw - here.yaw) < 0.4) return;
-        const gap = fwd - (c.length + o.length) / 2 - T.gap_m;
-        const v = Math.max(0, Math.min(ost.v + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ost.v));
+        // (Room left behind one going round something: it may have to back up to swing out.)
+        const gap = fwd - (c.length + o.length) / 2 - T.gap_m - (ost.dodgeTo !== 0 || ost.holdT > 0.5 ? T.swing_room_m : 0);
+        // A crashed car stands where it stopped: gone round, whichever way it faces.
+        if (ost.hit) { if (gap < 12) holdIf({ x: op.x, z: op.z, hw: (o.width || 1.9) / 2, hl: o.length / 2, id: oid }, gap); }
+        else if (queueFree || Math.cos(op.yaw - here.yaw) < 0.4) return;
+        if (!ost.hit) carGap = Math.min(carGap, gap);
+        const lead = ost.hit ? 0 : ost.v;
+        const v = Math.max(0, Math.min(lead + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = o.id; }
       });
-      // Your car (or anything else in the road that is not one of these): kept behind.
-      for (const o of blockers) {
+      // Your car (or anything else in the road that is not one of these): kept behind, and gone
+      // round where it stands still.
+      for (let k = 0; k < blockers.length; k += 1) {
+        const o = blockers[k];
+        if (dodging && st.hold?.id === `blocker:${k}`) continue;
         const dx = o.x - here.x, dz = o.z - here.z;
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
         if (fwd <= 0 || fwd > T.look_m || lat > 1.9) continue;
         const gap = fwd - (c.length + (o.length || 4.5)) / 2 - T.gap_m, ov = Math.max(0, o.v || 0);
         const v = Math.max(0, Math.min(ov + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ov));
-        if (v < target) { target = v; reason = "the car ahead"; }
+        if (v < target) { target = v; reason = "the car ahead"; st.leader = null; st.byBlocker = ov < 0.5; }
+        if (ov < 0.3 && gap < 12) holdIf({ x: o.x, z: o.z, hw: (o.width || 1.9) / 2, hl: (o.length || 4.5) / 2, id: `blocker:${k}` }, gap);
       }
+      // (Blocked last frame by something standing that is not dead ahead: that, too.)
+      if (st.blockedBy && String(st.blockedBy).startsWith("blocker:")) {
+        const o = blockers[Number(String(st.blockedBy).slice(8))];
+        if (o && (o.v || 0) < 0.3) holdIf({ x: o.x, z: o.z, hw: (o.width || 1.9) / 2, hl: (o.length || 4.5) / 2, id: st.blockedBy }, 0);
+      }
+      // (Only the driver at the head of the queue goes round: with a car between, it is that car's.)
+      if (hold && carGap < hold.gap) hold = null;
       // About to be run into (pushes, above): moved on, unless something it must wait for holds it.
-      if (pushes.has(c.id) && !HARD_HOLD.test(reason || "")) st.pushUntil = tsec + T.push_s;
-      if (st.pushUntil > tsec && !HARD_HOLD.test(reason || "")) { target = Math.max(target, Math.min(limit, T.push_speed)); reason = "making room"; }
+      // (Never up against what stands in front of it: a car pushed nose to tail with a stopped
+      // one has no room left to go round it.)
+      const tight = (reason === "the car ahead" && target < 0.5) || dodging;
+      if (pushes.has(c.id) && !HARD_HOLD.test(reason || "") && !tight) st.pushUntil = tsec + T.push_s;
+      if (st.pushUntil > tsec && !HARD_HOLD.test(reason || "") && !tight) { target = Math.max(target, Math.min(limit, T.push_speed)); reason = "making room"; }
       // Anyone in the way: brake for them, hard if need be; a car that cannot stop in time hits.
+      // (Someone about to step into the lane -- where they will be in a second -- is braked for
+      // already: the warning a driver has.)
       let danger = null;
       for (const q of people) {
-        const dx = q.x - here.x, dz = q.z - here.z;
-        const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
-        if (fwd < -c.length / 2 || lat > c.width / 2 + T.person_half_m + 0.25) continue;
-        const gap = fwd - c.length / 2 - T.person_half_m;
-        if (gap > st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6) continue;
-        if (!danger || gap < danger.gap) danger = { q, gap };
+        if (dodging && st.hold?.id === `person:${q.id}`) continue;
+        const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
+        for (const tau of q.vx || q.vz ? [0, 1] : [0]) {
+          const dx = q.x + (q.vx || 0) * tau - here.x, dz = q.z + (q.vz || 0) * tau - here.z;
+          const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
+          if (fwd < -c.length / 2 || lat > c.width / 2 + T.person_half_m + 0.25) continue;
+          const gap = fwd - c.length / 2 - T.person_half_m;
+          if (gap > reach) continue;
+          if (!danger || gap < danger.gap) danger = { q, gap, soon: tau > 0 };
+        }
       }
       let decel = T.brake;
       if (danger) {
@@ -1526,30 +1614,114 @@ export class Drivers {
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
         decel = Math.min(T.emergency, Math.max(T.brake, need));
+        if (danger.q.still >= T.person_still_s && !danger.soon) holdIf({ x: danger.q.x, z: danger.q.z, hw: T.person_half_m, hl: T.person_half_m, id: `person:${danger.q.id}` }, danger.gap);
         // Between the city's own people the law holds: a walker who steps out looks first and a
         // driver who is too close stops dead, so nobody is run down unless you are in it --
         // on foot where the cars are, or in a car yourself (view.mjs hitInTraffic).
-        if (danger.gap <= 0.15 && st.v > 0.6 && !danger.q.player) {
+        if (danger.gap <= 0.15 && st.v > 0.6 && !danger.q.player && !danger.soon) {
           st.v = 0;
-          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true });
+          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true, route: st.route });
           continue;
         }
-        if (danger.gap <= 0.15 && st.v > 0.6) {
+        if (danger.gap <= 0.15 && st.v > 0.6 && !danger.soon) {
           st.hit = { who: danger.q.id, speed: st.v, x: here.x, z: here.z, yaw: here.yaw, until: tsec + 9 };
           hits.push({ car: c.id, ...st.hit, player: Boolean(danger.q.player) });
           st.v = 0;
-          out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, reason });
+          out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, reason, route: st.route });
           continue;
         }
       }
+      // Going round what stands in the lane (dodge): held by it a moment with the law letting
+      // it on, a way round is looked for -- to the left first, over the middle line only with
+      // nothing coming; found, it swings out, goes by at a crawl and comes back to its lane.
+      if (dodging) {
+        target = Math.min(target, T.dodge_speed);
+        const h = st.hold, at = h && this.holdAt(h, people, blockers, pos);
+        const ahead = at ? (at.x - here.x) * fx + (at.z - here.z) * fz : 0;
+        if (st.dodgeTo !== 0 && (!at || ahead < -(c.length / 2 + h.hl + 1) || Math.hypot(at.x - h.x, at.z - h.z) > 2.5)) { st.dodgeTo = 0; st.hold = null; }
+        else if (at && ahead > -(c.length / 2 + h.hl)) {
+          // Not yet clear of it sideways: no nearer than the swing still to make needs (a metre
+          // sideways for every 1 / dodge_rate forward) -- else back up for the room.
+          const side = Math.abs((at.x - here.x) * -fz + (at.z - here.z) * fx);
+          if (side < c.width / 2 + h.hw + 0.25) {
+            const room = ahead - c.length / 2 - h.hl - 0.3, travel = Math.abs(st.dodgeTo - st.dodge) / T.dodge_rate;
+            if (travel > room) {
+              target = 0; decel = T.emergency;
+              if (st.v < 0.15 && !(st.backUp > 0)) {
+                // (No room behind either: the way round is given up for now, and looked for again.)
+                if (st.noBack > tsec) { st.dodgeTo = 0; st.hold = null; st.nextDodge = tsec + 2; }
+                else { st.backUp = Math.min(T.back_max_m, travel - room + 0.3); this.tally.backs += 1; }
+              }
+            }
+          }
+        }
+        reason = reason || "going round";
+      } else if (hold && lawful >= 1 && st.v < 0.8) {
+        st.holdT += dt;
+        if (st.holdT >= T.dodge_after_s && tsec >= (st.nextDodge || 0)) {
+          st.nextDodge = tsec + 0.7;
+          const plan = this.planDodge(c, st, here, hold, { near, pos, people, blockers });
+          if (plan) {
+            st.dodgeTo = plan.to; st.hold = { ...hold }; st.holdT = 0; this.tally.dodges += 1;
+            if (plan.back > 0) { st.backUp = plan.back; this.tally.backs += 1; }
+          }
+        }
+        // No way round it for good (the street stood shut): put on past it, where the road is
+        // free -- never through it.
+        const blockKey = edgeKey(c.route, segOf(c.route, st.d));
+        if (st.holdT > (this.jams.get(`shut:${blockKey}`) > tsec ? T.shut_jump_s : T.teleport_s)) {
+          const to = this.jumpAhead(c, st, { deepest, bodies, people }, hold);
+          if (to !== null) {
+            // The street is shut here: known, so those coming take another way and those in
+            // the queue behind are not each kept the whole wait.
+            this.jams.set(blockKey, tsec + T.shut_known_s); this.jams.set(`shut:${blockKey}`, tsec + T.shut_known_s);
+            st.d = to; st.holdT = 0; st.blocked = 0; st.blockedBy = null; this.tally.jumps += 1;
+            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            this.delays.set(c.key, tsec - c.unsched(st.d));
+            out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what shut the street", jump: true, route: st.route });
+            continue;
+          }
+        }
+      } else st.holdT = Math.max(0, st.holdT - dt);
       // Stood still in a junction's box (a jam, a knot of cars each waiting on another): after a
-      // while it is driven out the far side, through whatever held it -- never left there.
+      // while it has the way (whatever its turn) and goes as soon as the road in front is clear --
+      // never left there, and never through what stands in front of it.
       const inBox = J && st.d > J.s - J.box - c.length / 2 && st.d < J.s + J.box + c.length / 2;
       if (!inBox) { st.boxStill = 0; st.clearing = false; }
       else if (st.v < 0.3 && !danger) { st.boxStill = (st.boxStill || 0) + dt; if (st.boxStill > T.box_clear_s) st.clearing = true; }
       if (st.clearing && !danger) { target = Math.max(target, T.clear_speed); reason = "clearing the junction"; }
+      // Far behind its day, out of your sight: put where its day has it (the day's milestones
+      // are kept; a trip does not run for ever behind). In sight it is only ever driven.
+      if (behind > T.hopeless_s && c.unseen && !inBox && !danger) {
+        const to = this.catchUp(c, st, tsec, { deepest, bodies });
+        if (to !== null) {
+          st.d = to; st.v = Math.min(limit, c.cruise ?? limit); st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.blocked = 0; st.blockedBy = null; st.backUp = 0;
+          const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+          this.delays.set(c.key, tsec - c.unsched(st.d)); this.tally.jumps += 1;
+          out.push({ id: c.id, d: st.d, v: st.v, reason: "back on its day", jump: true, route: st.route });
+          continue;
+        }
+      }
+      // The sideways move that goes with this frame's move along (a metre for every 1 / dodge_rate).
+      const swing = (moved) => { const gap = st.dodgeTo - st.dodge, step = Math.abs(moved) * T.dodge_rate; return st.dodge + Math.max(-step, Math.min(step, gap)); };
+      // Backing up: to get room to swing out, or out of a knot. Slowly, never into what is behind.
+      if (st.backUp > 0 && !danger) {
+        const d1 = Math.max(0, st.d - T.back_speed * dt), was = st.dodge;
+        st.dodge = swing(st.d - d1);
+        const next = { ...alongRoute(c.route, d1, st.side) };
+        next.body = bodies(next, c.length, c.width || 1.9);
+        if (d1 < st.d && !blocking(c.id, here, next, c.length + 6, -1) && !blocking(c.id, here, next, c.length + 6, 1)) {
+          st.backUp -= st.d - d1; st.d = d1; st.v = 0; st.reason = "backing up";
+          const p = { ...next, c }; unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+          out.push({ id: c.id, d: st.d, v: -T.back_speed, reason: "backing up", reversing: true, route: st.route });
+          continue;
+        }
+        st.dodge = was; st.backUp = 0; st.noBack = tsec + 1;
+      }
       if (st.v > target) st.v = Math.max(target, st.v - decel * dt);
       else st.v = Math.min(target, st.v + T.accel * dt);
+      // How long it has stood (a jam is cars stood longer than a light holds them).
+      if (st.v < 0.5) st.stood = (st.stood || 0) + dt; else if (st.v > 1.5) st.stood = 0;
       // Held too long, and not by a light, a stop sign or you: let go.
       // Only a queue nothing real holds: follow it to its head; a light, a stop sign or someone
       // in the road there is waited for, a ring of cars each waiting on the next is not.
@@ -1561,31 +1733,46 @@ export class Drivers {
       // your car) is not made. (A queue let go no longer drives through the car it waited on.)
       const d1 = Math.min(c.route.length, st.d + st.v * dt);
       if (d1 > st.d) {
+        const was = st.dodge;
+        st.dodge = swing(d1 - st.d);
         const next = { ...alongRoute(c.route, d1, st.side) };
         next.body = bodies(next, c.length, c.width || 1.9);
-        const then = { who: blocking(c.id, here, next, c.length + 6) };
-        // Last of all, two cars stuck in each other's way for good (it should not come to that):
-        // the one with the lower id goes on.
-        const other = this.cars.get(then.who), stuck = (st.blocked || 0) > T.deadlock_s && other && (other.blockedBy === c.id || other.leader === c.id) && String(c.id) < String(then.who);
-        // Clearing a junction it goes through what held it -- but two clearing it go one at a
-        // time (the lower id first), never through each other.
-        const theirs = this.cars.get(then.who), ghost = st.clearing && !(theirs?.clearing && String(then.who) < String(c.id));
-        if (then.who && !stuck && !ghost) {
-          st.v = 0; reason = "blocked"; st.blocked = (st.blocked || 0) + dt; st.blockedBy = then.who;
-          st.reason = reason; st.leader = then.who;
+        const who = blocking(c.id, here, next, c.length + 6);
+        if (who) {
+          st.dodge = was;
+          st.v = 0; reason = "blocked"; st.blocked = (st.blocked || 0) + dt; st.blockedBy = who;
+          st.reason = reason; st.leader = who;
+          const other = this.cars.get(who);
+          // Two in each other's way (it should not come to that): the one with the lower id backs
+          // off a little and takes another way from the next junction.
+          if (st.blocked > T.deadlock_s && other && (other.blockedBy === c.id || other.leader === c.id) && String(c.id) < String(who) && !st.backed) {
+            st.backUp = 3; st.backed = true; st.avoidNext = true; this.tally.backs += 1;
+          }
+          // Stood blocked so long (a knot nothing unties): put on beyond what blocks it, where
+          // the road is free -- a jump, never a drive through it.
+          if (st.blocked > T.teleport_s) {
+            const to = this.jumpAhead(c, st, { deepest, bodies, people });
+            if (to !== null) {
+              st.d = to; st.blocked = 0; st.blockedBy = null; st.backed = false; st.dodge = 0; st.dodgeTo = 0; st.hold = null; this.tally.jumps += 1;
+              const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+              this.delays.set(c.key, tsec - c.unsched(st.d));
+              out.push({ id: c.id, d: st.d, v: 0, reason: "put on past a knot", jump: true, route: st.route });
+              continue;
+            }
+          }
           this.delays.set(c.key, tsec - c.unsched(st.d));
-          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true });
+          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true, route: st.route });
           continue;
         }
       }
-      st.blocked = 0; st.blockedBy = null;
+      st.blocked = 0; st.blockedBy = null; st.backed = false;
       st.reason = reason;
       if (reason !== "the car ahead") st.leader = null;
       st.d = d1;
       { const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
-      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake });
+      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay });
     }
     // Gone from sight: their state goes, their delay is kept (a few thousand at most).
     for (const id of this.cars.keys()) if (!seen.has(id)) this.cars.delete(id);
@@ -1599,7 +1786,7 @@ export class Drivers {
   }
   //: The lane a car takes on the block it is on (people.mjs chooseLane): for the turn to come,
   //: and the least crowded; one lane over at a time, and only into a gap there.
-  pickLane(c, st, lanesOn, blockers = []) {
+  pickLane(c, st, lanesOn, blockers = [], people = []) {
     const route = c.route, i = segOf(route, st.d), n = laneCount(route, i);
     if (n <= 1) { st.lane = st.from = 0; return; }
     const cur = Math.min(st.lane, n - 1), here = st.d - route.s[i], others = lanesOn.get(edgeKey(route, i)) || [];
@@ -1620,6 +1807,13 @@ export class Drivers {
       for (let k = 0; k < n; k += 1) { const g = Math.abs(laneOffset(half, cls, park, i, route, k) - off); if (g < best) { best = g; j = k; } }
       if (best < 1.6) crowd[j] += (b.v || 0) < 0.5 ? 4 : 1;
     }
+    // Someone standing in a lane: it is not going anywhere.
+    for (const q of people) {
+      if (!(q.still >= this.T.person_still_s)) continue;
+      const along = (q.x - ax) * ux + (q.z - az) * uz - here, off = (q.x - ax) * -uz + (q.z - az) * ux;
+      if (along < 2 || along > 60) continue;
+      for (let k = 0; k < n; k += 1) if (Math.abs(laneOffset(half, cls, park, i, route, k) - off) < 1.5) crowd[k] += 4;
+    }
     const turn = turnAhead(route, i, (node) => junctionAt(this.streets, node) !== null);
     const want = chooseLane({ n, cur, turn, crowd });
     st.waiting = false;
@@ -1634,6 +1828,155 @@ export class Drivers {
       }
     }
     st.from = cur; st.lane = next; st.lt = 0;
+  }
+  //: Where what a car is going round is now (it may have walked off, or driven away): its place,
+  //: or null when it is gone.
+  holdAt(h, people, blockers, pos) {
+    const id = String(h.id);
+    if (id.startsWith("person:")) { const q = people.find((x) => `person:${x.id}` === id); return q ? { x: q.x, z: q.z } : null; }
+    if (id.startsWith("blocker:")) { const o = blockers[Number(id.slice(8))]; return o && (o.v || 0) < 1 ? { x: o.x, z: o.z } : null; }
+    const p = pos.get(h.id), o = this.cars.get(h.id);
+    return p && o?.hit ? { x: p.x, z: p.z } : null;
+  }
+  //: A way round what stands in the lane (``hold``): how far to swing out (``to``, metres right
+  //: of its lane; left is less) and how far to back up first for the room (``back``) -- or null
+  //: where there is no way: the kerb or the cars parked at it, another car beside or ahead in
+  //: the way round, someone else there, or, over the middle line, a car coming.
+  planDodge(c, st, here, hold, { near, pos, people, blockers }) {
+    const T = this.T, route = c.route, i = segOf(route, st.d);
+    const half = route.halves?.[i] ?? 3, cls = route.classes?.[i], park = route.parks?.[i] ?? null;
+    const fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw), rx = -fz, rz = fx;
+    const dx = hold.x - here.x, dz = hold.z - here.z, fwd = dx * fx + dz * fz, lat = dx * rx + dz * rz;
+    const need = c.width / 2 + hold.hw + T.dodge_clear_m;
+    if (Math.abs(lat) >= need) return null;   // not in the way after all
+    const off0 = st.side(half, cls, park, i, route);
+    // As far right as the kerb where nothing parks, else the edge of the parked cars; as far
+    // left as the far lane (the far kerb's parked cars, on a one-way street the same).
+    const kerb = Math.max(1.2, half - c.width / 2 - 0.3), lane = LANE(half, cls, park) + 0.5;
+    const maxR = park === false || cls === "service" ? kerb : Math.min(kerb, lane), minL = -Math.min(kerb, lane);
+    const passLen = Math.max(0, fwd) + hold.hl + c.length + 4;
+    const free = (shift) => {
+      const off = off0 + shift;
+      if (off > maxR + 1e-6 || off < minL - 1e-6) return false;
+      let ok = true;
+      near(here.x + fx * passLen / 2, here.z + fz * passLen / 2, passLen + 60, (oid) => {
+        if (!ok || oid === c.id || oid === hold.id) return;
+        const op = pos.get(oid), o = this.cars.get(oid);
+        if (!op || !o) return;
+        const ex = op.x - here.x, ez = op.z - here.z, ofwd = ex * fx + ez * fz, olat = ex * rx + ez * rz - shift;
+        if (Math.abs(olat) > (c.width + (op.c.width || 1.9)) / 2 + 0.5) return;
+        const same = Math.cos(op.yaw - here.yaw) > 0;
+        // (The queue behind it in its own lane is not in the way round.)
+        if (same && ofwd < 0 && Math.abs(olat + shift) < 1.2) return;
+        if (same ? ofwd > -(c.length + 2 + o.v * 2) && ofwd < passLen + 2 : ofwd > -2 && ofwd < passLen + (o.v + T.dodge_speed) * T.oncoming_s + 8) ok = false;
+      });
+      if (!ok) return false;
+      for (let k = 0; k < blockers.length; k += 1) {
+        if (`blocker:${k}` === hold.id) continue;
+        const o = blockers[k], ex = o.x - here.x, ez = o.z - here.z, ofwd = ex * fx + ez * fz, olat = ex * rx + ez * rz - shift;
+        if (Math.abs(olat) > (c.width + (o.width || 1.9)) / 2 + 0.5) continue;
+        const same = Math.cos((o.yaw || 0) - here.yaw) > 0, ov = Math.abs(o.v || 0);
+        if (same ? ofwd > -(c.length + 2) && ofwd < passLen + 2 : ofwd > -2 && ofwd < passLen + (ov + T.dodge_speed) * T.oncoming_s + 8) return false;
+      }
+      for (const q of people) {
+        if (`person:${q.id}` === hold.id) continue;
+        const ex = q.x - here.x, ez = q.z - here.z, ofwd = ex * fx + ez * fz, olat = ex * rx + ez * rz - shift;
+        if (ofwd > -1 && ofwd < passLen && Math.abs(olat) < c.width / 2 + T.person_half_m + 0.6) return false;
+      }
+      return true;
+    };
+    // The lesser swing first; equal, the left (the way a driver goes round).
+    const left = lat - need, right = lat + need;
+    const order = Math.abs(right) + 0.3 < Math.abs(left) ? [right, left] : [left, right];
+    for (const shift of order) {
+      if (!free(shift)) continue;
+      const room = fwd - c.length / 2 - hold.hl - 0.4, travel = Math.abs(shift) / T.dodge_rate;
+      return { to: st.dodge + shift, back: Math.max(0, Math.min(T.back_max_m, travel - room)) };
+    }
+    return null;
+  }
+  //: The block after the next junction, looked at before it is turned into: stood full back to
+  //: its start (a jam), the rest of the trip is planned again round it -- the same trip, by other
+  //: streets, from that junction on; nobody piles in behind a jam they could see.
+  lookAhead(c, st, lanesOn, tsec) {
+    const T = this.T, route = c.route, { s, ids, pts } = route;
+    if (!ids || tsec < (st.nextRoute || 0)) return;
+    const i = segOf(route, st.d);
+    let L = ids.length - 1;
+    while (L > 0 && !(ids[L] >= 0)) L -= 1;
+    for (let j = i + 1; j < L; j += 1) {
+      const ahead = s[j] - st.d;
+      if (ahead > T.reroute_look_m) return;
+      if (!(ids[j] >= 0) || !(ids[j + 1] >= 0) || !junctionAt(this.streets, ids[j])) continue;
+      // Too close to choose another way (in its turn lane, at the line): it goes on.
+      if (ahead < this.stopLine(ids[j], c) + 12) continue;
+      const key = `${ids[j]}>${ids[j + 1]}`;
+      const lanes = laneCount(route, j), on = (lanesOn.get(edgeKey(route, j)) || []).filter((o) => o.v < 0.7 && o.id !== c.id);
+      const long = on.filter((o) => o.stood > T.jam_min_s).length * 6.5 / lanes >= T.jam_share * (s[j + 1] - s[j]);
+      const jam = on.length >= T.jam_cars * lanes && (long || on.some((o) => o.along < T.jam_tail_m) || on.filter((o) => o.stood > T.jam_stood_s).length >= T.jam_cars * lanes);
+      if (jam) this.jams.set(key, tsec + T.jam_known_s);
+      if (!jam && !this.jams.has(key) && !(st.avoidNext && j === i + 1)) continue;
+      st.nextRoute = tsec + T.reroute_every_s;
+      const avoid = new Map([...this.jams.keys()].filter((k) => !k.startsWith("shut:")).map((k) => [k, T.jam_cost_s]));
+      avoid.set(key, T.jam_cost_s);
+      const alt = this.streets.detour(ids[j], ids[L], { from: ids[j - 1] >= 0 ? ids[j - 1] : null, avoid });
+      st.avoidNext = false;
+      if (!alt || alt.ids.length < 2 || alt.ids[1] === ids[j + 1]) return;          // no other way: it waits its turn
+      if (alt.length > (s[L] - s[j]) * 2.2 + 300) return;                             // too far round: the jam is quicker
+      // The trip so far, the new way from the junction, and its last steps to the kerb as before.
+      const next = { pts: [], halves: [], classes: [], parks: [], ids: [], lanes: [], oneways: [], bikes: [] };
+      const put = (x, z, half, cls, park, id, lane, oneway, bike) => { next.pts.push([x, z]); next.halves.push(half); next.classes.push(cls); next.parks.push(park); next.ids.push(id); next.lanes.push(lane); next.oneways.push(oneway); next.bikes.push(bike); };
+      const old = (k) => put(pts[k][0], pts[k][1], route.halves?.[k] ?? 3, route.classes?.[k] ?? "residential", route.parks?.[k] ?? null, ids[k], route.lanes?.[k] ?? 2, route.oneways?.[k] ?? false, route.bikes?.[k] ?? null);
+      for (let k = 0; k < j; k += 1) old(k);
+      const m = alt.ids.length;
+      for (let k = 0; k < m; k += 1) { const e = Math.min(k, m - 2); put(alt.pts[k][0], alt.pts[k][1], alt.halves[e] ?? 3, alt.classes[e] ?? "residential", alt.parks[e] ?? null, alt.ids[k], alt.lanes[e] ?? 2, alt.oneways[e] ?? false, alt.bikes[e] ?? null); }
+      for (let k = L + 1; k < pts.length; k += 1) old(k);
+      const S = [0];
+      for (let k = 1; k < next.pts.length; k += 1) S.push(S[k - 1] + Math.hypot(next.pts[k][0] - next.pts[k - 1][0], next.pts[k][1] - next.pts[k - 1][1]));
+      const first = st.first || (st.first = { length: route.length / (st.scale || 1) });
+      st.route = { ...next, s: S, length: S[S.length - 1], mode: "drive", startSpot: route.startSpot || null, endSpot: route.endSpot || null, detour: true };
+      st.scale = st.route.length / first.length;
+      this.tally.reroutes += 1;
+      return;
+    }
+  }
+  //: Where a car far behind its day is put to be back on it: where its day has it (a little
+  //: behind, so it comes on from there), at the first clear place at or before that -- or null
+  //: where it would gain nothing or there is no room.
+  catchUp(c, st, tsec, { deepest, bodies }) {
+    const want = Math.min(this.endOf(c) - 1, c.sched(tsec - this.T.late_s));
+    if (!(want > st.d + 30)) return null;
+    for (let k = 0, d = want; k < 12 && d > st.d + 20; k += 1, d -= 4) {
+      const p = alongRoute(c.route, d, st.side);
+      if (this.inAnyBox(c.route, d, c.length)) continue;
+      if (deepest(c.id, bodies(p, c.length, c.width || 1.9), p.x, p.z, c.length + 8).worst <= 0) return d;
+    }
+    return null;
+  }
+  //: Where a car stood blocked for good is put on to: the first clear place past what blocks it,
+  //: outside any junction, within ``teleport_reach_m`` -- or null (it waits on).
+  jumpAhead(c, st, { deepest, bodies, people }, hold = null) {
+    const T = this.T, end = this.endOf(c);
+    const from = hold ? Math.max(0, hold.gap) + c.length + hold.hl * 2 + T.gap_m + 2 : c.length + 2;
+    for (let d = st.d + from; d < Math.min(end, st.d + T.teleport_reach_m); d += 2) {
+      if (this.inAnyBox(c.route, d, c.length)) continue;
+      const p = alongRoute(c.route, d, st.side);
+      if (deepest(c.id, bodies(p, c.length, c.width || 1.9), p.x, p.z, c.length + 8).worst > -0.5) continue;
+      if (people.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < c.length / 2 + 1.5)) continue;
+      return d;
+    }
+    // (Nothing clear before its leg's end: at the end, parked -- its trip is over.)
+    return end - st.d < T.teleport_reach_m ? end : null;
+  }
+  //: Whether distance ``d`` along ``route`` is within a junction's box (a car's length either side).
+  inAnyBox(route, d, length) {
+    const { s, ids } = route;
+    for (let i = 1; i < s.length - 1; i += 1) {
+      if (s[i] - d > 40) break;
+      if (d - s[i] > 40 || !(ids?.[i] >= 0) || !junctionAt(this.streets, ids[i])) continue;
+      if (Math.abs(d - s[i]) < this.boxOf(ids[i]) + length / 2) return true;
+    }
+    return false;
   }
   //: Where a car's leg is over: half a metre short of its end, or at the stop line of a junction
   //: it ends at.
@@ -1671,7 +2014,7 @@ export class Drivers {
       // Its way through, as it is driven (alongRoute rounds the corner: a right turn swings out a
       // little from its lanes' corner), from the box's near edge to its far one.
       // (In the lane the car is in: two cars side by side take different ways through.)
-      const paths = (c.route._paths ??= new Map()), changing = st?.lt < 1, pk = `${i}:${st?.lane ?? "k"}`;
+      const paths = (c.route._paths ??= new Map()), changing = st?.lt < 1 || Math.abs(st?.dodge || 0) > 0.01, pk = `${i}:${st?.lane ?? "k"}`;
       let path = changing ? null : paths.get(pk);
       if (!path) {
         path = [];
@@ -1691,7 +2034,7 @@ export class Drivers {
       if (seen.has(at)) return false;
       seen.add(at);
       if (at.reason !== "the car ahead") return Boolean(at.reason && at.v < 0.5);
-      if (!at.leader) return false;
+      if (!at.leader) return Boolean(at.byBlocker && at.v < 0.5);
     }
     return false;
   }
