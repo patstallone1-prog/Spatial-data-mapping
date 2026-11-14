@@ -14,9 +14,13 @@
 import { arrivalsAt } from "./transit.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
-  CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
+  BIKE_LANE, CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, pavementRoute, turnAhead, workplacesByRole,
 } from "./people.mjs";
+import { householdsFor } from "./households.mjs";
+import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
+import { dayPlan, milestonesOf, routineType } from "./routines.mjs";
+import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
 const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
@@ -64,6 +68,12 @@ export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 *
 //: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
 const LEGACY_PITCH_M = Math.max(...["economy", "compact_ev", "sedan", "suv", "pickup", "delivery_van", "box_truck", "taxi", "patrol", "sports"].map((m) => VEHICLE_L[m] || 0)) + PARKING.gap_m;
 const DRIVE_MIN_M = 700;
+//: A resident with a bicycle rides anything further than this (and walks the rest), at about
+//: this speed; the bicycle is 1.8 m long and 0.65 m across the bars.
+export const BIKE_MIN_M = 350, BIKE_MS = 4.8, BIKE_TOP_MS = 5.6, BIKE_DIMS = [0.65, 1.1, 1.8];
+//: The most residents of one building kept (whole households; households.mjs): the rest of a big
+//: block's flats are not followed, to keep a district's thousands within a frame.
+export const HOME_CAP = 10;
 //: A round at work driven is a leg every so many minutes (roamDrive).
 export const ROAM_SLOT_MIN = 4;
 const DRIVE_MS = 9.5;
@@ -105,7 +115,7 @@ export class Roster {
   constructor(R, { seed = "district", saved = null, toLonLat = null } = {}) {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
     this.places = new Map(); this.people = new Map(); this.vehicles = new Map(); this.visitors = new Map();
-    this.homesDone = new Set(); this.list = []; this.work = {};
+    this.homesDone = new Set(); this.list = []; this.work = {}; this.households = new Map(); this.open = [];
     this.saved = { work: { ...(saved?.work || {}) } };
     this.version = 0; this.dirty = false;
   }
@@ -121,42 +131,82 @@ export class Roster {
     if (!added) return 0;
     this.list = [...this.places.values()];
     this.work = workplacesByRole(this.R, this.list);
+    // The trades with somewhere to work here (a change of job is to one of them): no drivers of
+    // the district's own vehicles, whose cars go with the job.
+    const openNow = Object.keys(this.R.jobs.roles).filter((r) => this.work[r]?.length && !ROLE_VEHICLE[r] && !this.R.jobs.roles[r].outdoor && r !== "student").sort();
+    if (openNow.join() !== this.open.join()) { this.open = openNow; for (const p of this.people.values()) p.careerDay = null; }
     for (const pl of places) if (pl.use === "residential" && !this.homesDone.has(pl.id)) { this.homesDone.add(pl.id); this.house(pl); }
     for (const p of this.people.values()) if (p.needsWork) this.employ(p);
     this.version += 1;
     return added;
   }
+  //: A home's people: its households (households.mjs: sized as the city's are and to the flat
+  //: each has), each member a person with their own trade, pace and way of getting about --
+  //: on foot and by car where the household has a garage or room at the kerb, on foot and by
+  //: bicycle where it has not.
   house(home) {
-    const R = this.R, roles = Object.entries(R.jobs.roles), total = roles.reduce((s, [, x]) => s + x.share, 0);
+    const R = this.R, roles = Object.entries(R.jobs.roles).filter(([id]) => id !== "student" && id !== "retiree");
+    const total = roles.reduce((s, [, x]) => s + x.share, 0);
     const outgoing = this.toLonLat ? densityAt(R, ...this.toLonLat(home.x, home.z), "walkers") : 1;
-    const n = residentsIn(R, home);
-    for (let k = 0; k < n; k += 1) {
-      const id = `npc:${home.id}:${k}`, r = rng(id, "person");
-      let x = r() * total, role = roles[0][0];
-      for (const [rid, spec] of roles) { x -= spec.share; if (x <= 0) { role = rid; break; } }
-      const spec = R.jobs.roles[role];
-      const pace = R.routine.walk_speed_ms[0] + r() * (R.routine.walk_speed_ms[1] - R.routine.walk_speed_ms[0]);
-      const p = { id, name: `${pick(r, FIRST)} ${pick(r, LAST)}`, role, title: spec.title, uniform: spec.uniform || pick(r, CLOTHES),
-        home: home.id, work: null, needsWork: true, shift: Math.floor(r() * Math.max(1, spec.shifts.length)), pace, outgoing,
-        drives: r() < R.routine.drive_share || Boolean(ROLE_VEHICLE[role]), height: 1.58 + r() * 0.3, outdoor: spec.outdoor || null,
-        age: role === "student" ? 8 + Math.floor(r() * 10) : 20 + Math.floor(r() * 50) };
-      this.people.set(id, p);
-      this.employ(p);
-      if (p.drives) {
-        const model = ROLE_VEHICLE[role] || mixPick(rng(id, "car"), PRIVATE_MIX);
-        const single = (R.housing?.single_family_tags || []).includes(home.tag);
-        const garage = rng(id, "garage")() < (single ? 0.6 : (home.floors || 1) >= 4 ? 0.45 : 0.15);
-        this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model, shade: rng(id, "paint")(), plate: plateOf(id), home: home.id, garage });
-        p.car = `veh:${id}`;
+    for (const hh of householdsFor(R, home, { cap: R.households?.cap ?? HOME_CAP })) {
+      this.households.set(hh.id, hh);
+      for (const m of hh.members) {
+        const id = `npc:${home.id}:${m.k}`, r = rng(id, "person");
+        // By age: at school, at college (some), a trade by the rules' shares, or retired.
+        let x = r() * total, role = roles[0][0];
+        for (const [rid, spec] of roles) { x -= spec.share; if (x <= 0) { role = rid; break; } }
+        if (m.age < 18) role = "student";
+        else if (m.age < 23 && r() < 0.35) role = "student";
+        else if (m.age >= 66) role = "retiree";
+        const spec = R.jobs.roles[role];
+        const pace = R.routine.walk_speed_ms[0] + r() * (R.routine.walk_speed_ms[1] - R.routine.walk_speed_ms[0]);
+        const height = m.age < 6 ? 0.95 + r() * 0.2 : m.age < 13 ? 1.2 + r() * 0.25 : m.age < 18 ? 1.5 + r() * 0.2 : 1.58 + r() * 0.3;
+        const shift = Math.floor(r() * Math.max(1, spec.shifts.length));
+        const p = { id, name: `${m.first} ${m.surname}`, role, title: m.age < 5 ? "Child" : spec.title, uniform: spec.uniform || pick(r, CLOTHES),
+          home: home.id, hh: hh.id, relation: m.relation, infant: m.age < 5, work: null, needsWork: true, shift, pace: m.age < 10 ? pace * 0.8 : pace, outgoing,
+          drives: Boolean(ROLE_VEHICLE[role]) || (m.mode === "drive" && m.age >= 18), height, outdoor: spec.outdoor || null, age: m.age,
+          base: { id, role, shift, age: m.age, home: home.id } };
+        p.rides = !p.drives && m.mode === "bike";
+        this.people.set(id, p);
+        this.employ(p);
+        if (p.drives) {
+          const model = ROLE_VEHICLE[role] || mixPick(rng(id, "car"), PRIVATE_MIX);
+          this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model, shade: rng(id, "paint")(), plate: plateOf(id), home: home.id, garage: hh.garage });
+          p.car = `veh:${id}`;
+        } else if (p.rides) {
+          this.vehicles.set(`bike:${id}`, { id: `bike:${id}`, owner: id, model: "bike", bike: true, shade: rng(id, "paint")(), plate: null, home: home.id, garage: false });
+          p.bike = `bike:${id}`;
+        }
       }
     }
   }
+  //: Someone's work on ``day`` (npc-economy.mjs careerOf): jobs are left and new ones found, so
+  //: their trade, title and workplace are the day's -- set here before the day is planned. (Those
+  //: whose job comes with one of the district's vehicles, and the young, keep theirs.)
+  today(p, day) {
+    if (p.visitor || p.careerDay === day) return p.career || null;
+    p.careerDay = day;
+    if (!p.base || p.infant || ROLE_VEHICLE[p.base.role] || this.R.jobs.roles[p.base.role]?.outdoor) return (p.career = null);
+    const c = careerOf(this.R, p.base, day, { open: this.open });
+    p.career = c;
+    const role = this.R.jobs.roles[c.role] ? c.role : p.base.role;
+    if (role !== p.role) {
+      const spec = this.R.jobs.roles[role];
+      p.role = role; p.title = c.title || spec.title; p.uniform = spec.uniform || p.uniform; p.outdoor = spec.outdoor || null;
+      p.shift = hash32(p.id, role) % Math.max(1, spec.shifts.length);
+      p.work = null; p.needsWork = true; p._days = null; p._plans = null;
+      this.employ(p);
+    }
+    return c;
+  }
+  householdOf(p) { return p.hh ? this.households.get(p.hh) || null : null; }
   //: A job at a real place that does the work: the nearer of three, kept once given (and kept
   //: on this device, so a reload finds them at the same work).
   employ(p) {
     const spec = this.R.jobs.roles[p.role];
     if (spec.at.includes("home")) { p.work = p.home; p.needsWork = false; return; }
-    const saved = this.saved.work[p.id];
+    const key = p.base && p.role !== p.base.role ? `${p.id}:${p.role}` : p.id;
+    const saved = this.saved.work[key];
     if (saved) { if (this.places.has(saved)) { p.work = saved; p.needsWork = false; } return; }
     const list = this.work[p.role] || [];
     if (!list.length) return;
@@ -172,7 +222,7 @@ export class Roster {
       if (d < bestD) { bestD = d; best = c; }
     }
     p.work = best.id; p.needsWork = false;
-    this.saved.work[p.id] = best.id; this.dirty = true;
+    this.saved.work[key] = best.id; this.dirty = true;
   }
   //: The visitors' cars: the district's through traffic and its shoppers, each with its driver,
   //: and only ever more of them as more of the district is seen.
@@ -304,6 +354,15 @@ export class City {
     const s = this.streets, place = typeof placeId === "number" ? null : this.roster.places.get(placeId);
     const nodeId = typeof placeId === "number" ? placeId : place ? s.nearest(place.x, place.z, "kerb", 200) : null;
     if (nodeId === null || nodeId === undefined) return null;
+    if (vehicle.bike && place) {
+      // A bicycle stands on the pavement by the door (a step out from it, along the wall by
+      // whose it is), not at the kerb among the cars.
+      const D = place.door || place.front, k = (hash32(vehicle.id) % 7) - 3;
+      const at = D && D.nx !== undefined ? { x: D.x - D.nx * 0.9 + D.nz * (0.9 + k * 0.55), z: D.z - D.nz * 0.9 - D.nx * (0.9 + k * 0.55), yaw: Math.atan2(D.nz, -D.nx) } : { x: place.x + k * 0.5, z: place.z, yaw: 0 };
+      spot = { garage: false, gateway: false, rack: true, node: nodeId, x: at.x, z: at.z, yaw: at.yaw, door: { x: at.x, z: at.z }, place: placeId };
+      this.spots.set(key, spot);
+      return spot;
+    }
     const garage = Boolean(place && vehicle.garage && placeId === vehicle.home);
     const edges = s.edges[nodeId].filter((e) => e.drive).sort((a, b) => a.to - b.to);
     const n = s.nodes[nodeId];
@@ -469,7 +528,7 @@ export class City {
     const S = [0];
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
-    leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, length: S[S.length - 1], mode: "drive",
+    leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
       startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
     return leg.route;
   }
@@ -481,6 +540,7 @@ export class City {
     const key = `${p.id}:${t.day}`;
     let plan = this.plans.get(key);
     if (plan) return plan;
+    if (!p.visitor) this.roster.today?.(p, t.day);
     plan = p.visitor ? this.visitorPlan(p, t) : this.residentPlan(p, t);
     if (this.plans.size > 120000) this.plans.delete(this.plans.keys().next().value);
     this.plans.set(key, plan);
@@ -488,17 +548,25 @@ export class City {
   }
   residentPlan(p, t) {
     const R = this.R, places = this.roster.places, segs = [];
-    const sched = daySchedule(R, p, t.day, t.weekday, this.roster.list);
-    const v = p.car ? this.roster.vehicles.get(p.car) : null;
+    // (The very young are at home; a parent's day is theirs.)
+    if (p.infant) return { segs: [{ kind: "stay", t0: 0, t1: 1441, place: p.home, act: { kind: "home", start: 0, end: 1441, place: p.home, label: "At home" } }], drives: [], start: null };
+    // The day by the kind of day it is (routines.mjs: a shift worker's, a parent's, a retiree's,
+    // someone looking for work...), each stop a task; the old one template where the rules say.
+    const hh = this.roster.householdOf?.(p) || null;
+    const sched = R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
+      : dayPlan(R, p, t.day, t.weekday, this.roster.list, { household: hh, career: p.career || null });
+    // What they go by, further than a walk: their car, or their bicycle.
+    const v = p.car ? this.roster.vehicles.get(p.car) : p.bike ? this.roster.vehicles.get(p.bike) : null;
+    const farM = v?.bike ? BIKE_MIN_M : DRIVE_MIN_M, vMs = v?.bike ? BIKE_MS : DRIVE_MS;
     const dayStart = t.ms - t.minute * 60_000;
     const carFree = (minute) => { const h = v && this.harm(v.id, dayStart + minute * 60_000); return v && !(h && h.out); };
     const dist = (a, b) => { const A = places.get(a), B = places.get(b); return A && B ? Math.hypot(A.x - B.x, A.z - B.z) : 0; };
     // The car where the night left it: at work for a night shift driven to, else at home.
-    const startAt = v ? (sched[0]?.kind === "work" && sched[0].start === 0 && dist(p.home, p.work) > DRIVE_MIN_M ? p.work : p.home) : null;
+    const startAt = v ? (sched[0]?.kind === "work" && sched[0].start === 0 && dist(p.home, p.work) > farM ? p.work : p.home) : null;
     let carAt = startAt, clock = 0;
     const go = (from, to, depart, mode) => {
-      const m = dist(from, to), dur = tripMinutes(m, mode === "drive" ? DRIVE_MS : p.pace);
-      const seg = { kind: "go", t0: depart, t1: depart + dur, from, to, mode, vehicle: mode === "drive" ? v.id : null };
+      const m = dist(from, to), dur = tripMinutes(m, mode === "drive" ? vMs : p.pace);
+      const seg = { kind: "go", t0: depart, t1: depart + dur, from, to, mode, vehicle: mode === "drive" ? v.id : null, bike: mode === "drive" && Boolean(v.bike) };
       segs.push(seg); clock = seg.t1;
       if (mode === "drive") carAt = to;
       return seg;
@@ -518,8 +586,14 @@ export class City {
     let prev = null;
     for (const a of sched) {
       if (prev && prev.place !== a.place && places.has(prev.place) && places.has(a.place)) {
-        const depart = Math.max(prev.end, clock), far = dist(prev.place, a.place) > DRIVE_MIN_M;
-        if (v && carAt === prev.place && far && carFree(depart)) go(prev.place, a.place, depart, "drive");
+        const far = dist(prev.place, a.place) > farM, rides = v && carAt === prev.place && far;
+        // Away in time to be there by its start (the day's milestone), not as soon as the last
+        // thing is done: until then they are where they were.
+        const need = tripMinutes(dist(prev.place, a.place), rides ? vMs : p.pace) + 2;
+        const depart = Math.max(prev.end, clock, Math.min(a.start - need, prev.end + 600));
+        const last = segs[segs.length - 1];
+        if (depart > Math.max(prev.end, clock) && last && last.kind === "stay" && last.place === prev.place && last.t1 < depart) last.t1 = depart;
+        if (rides && carFree(depart)) go(prev.place, a.place, depart, "drive");
         else if (v && a.place === p.home && carAt !== p.home && carAt !== null && carFree(depart)) {
           // Home by way of the car, wherever it was left.
           if (carAt !== prev.place) go(prev.place, carAt, depart, "walk");
@@ -529,7 +603,7 @@ export class City {
       const t0 = Math.max(a.start, clock);
       if (a.end > t0) {
         const roam = a.kind === "stroll" || (a.kind === "work" && a.outdoor);
-        segs.push({ kind: roam ? "roam" : "stay", t0, t1: a.end, place: a.place, act: a, drive: roam && a.kind !== "stroll" && p.drives && !/route|site/.test(a.outdoor || "") && carAt === a.place });
+        segs.push({ kind: roam ? "roam" : "stay", t0, t1: a.end, place: a.place, act: a, drive: roam && a.kind !== "stroll" && p.drives && !v?.bike && !/route|site/.test(a.outdoor || "") && carAt === a.place });
         clock = a.end;
       }
       prev = a;
@@ -544,7 +618,35 @@ export class City {
       for (const s of drives) { hold(at, since, s.t0); at = s.to; since = s.t1; }
       hold(at, since, 1440);
     }
-    return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt };
+    return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt, day: sched };
+  }
+  //: What someone is about today, for whoever asks (the People list): their household, their
+  //: work and how long they have had it, their money (npc-economy.mjs: pay for the shifts
+  //: worked, less rent and spending), what they go by, and the day's milestones -- where they
+  //: have to be and by when -- with the next one.
+  about(p, t) {
+    if (p.visitor) return { visitor: true, kind: p.kind, title: p.title };
+    const R = this.R, roster = this.roster, hh = roster.householdOf(p), home = roster.places.get(p.home);
+    const plan = this.planOf(p, t), career = p.career || null;
+    const type = p.infant ? "infant" : routineType(R, p, { household: hh, career, day: t.day, weekday: t.weekday });
+    const stops = milestonesOf(plan.day || []).map((m) => ({ ...m, name: roster.places.get(m.place)?.name || null }));
+    const next = stops.find((m) => m.at > t.minute) || null;
+    // The household's rent (or what its home would let for), by the neighbourhood.
+    let rent = null, owns = null;
+    if (hh && home && roster.toLonLat) {
+      const unit = unitsOf(R, home).find((u) => u.id === hh.unit), hood = unit && neighbourhoodAt(R, ...roster.toLonLat(home.x, home.z));
+      if (unit && hood) { const pr = homePrices(R, unit, hood); rent = R.money(pr.rent); if (hh.tenure === "own") owns = R.money(pr.sale); }
+    }
+    const adults = hh ? Math.max(1, hh.members.filter((m) => m.adult).length) : 1;
+    const assets = [];
+    const car = p.car && roster.vehicles.get(p.car), bike = p.bike && roster.vehicles.get(p.bike);
+    if (car) assets.push({ kind: "car", label: `${R.vehicles?.models?.[car.model]?.name || car.model} ${car.plate}`, value: Math.round((R.vehicles?.models?.[car.model]?.price || 0) * 0.6) });
+    if (bike) assets.push({ kind: "bike", label: "Bicycle", value: R.money(450) });
+    if (owns && p.relation === "head") assets.push({ kind: "home", label: hh.label ? `Flat ${hh.label}` : "House", value: owns });
+    const books = p.base && !p.infant ? booksOf(R, p.base, t.day, weekdayOfDay, { rent: hh?.tenure === "own" ? Math.round((rent || 0) * 0.55) : rent, adults, assets, open: roster.open }) : null;
+    return { household: hh ? { id: hh.id, kind: hh.kind, size: hh.size, label: hh.label, beds: hh.beds, tenure: hh.tenure, garage: hh.garage,
+      members: hh.members.map((m) => ({ name: `${m.first} ${m.surname}`, relation: m.relation, age: m.age, id: `npc:${p.home}:${m.k}` })) } : null,
+      relation: p.relation || null, age: p.age, routine: type, career, books, travel: p.car ? "drive" : p.bike ? "bike" : "walk", milestones: stops, next };
   }
   //: A taxi from one place to another: out to the kerb, waiting there while the cab comes in from
   //: a few hundred metres off, the ride (in the cab, out of sight), and in at the other end while
@@ -1172,7 +1274,9 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // behind and out of your sight, it is put where its day has it. Two cars in each other's way for
   // ``deadlock_s``: one backs off; stood blocked ``teleport_s`` (after SUMO's time-to-teleport) it
   // is put on beyond what blocks it -- never driven through it.
-  late_s: 8, hopeless_s: 150, teleport_s: 28, teleport_reach_m: 60 };
+  late_s: 8, hopeless_s: 150, teleport_s: 28, teleport_reach_m: 60,
+  // A cyclist ahead is passed at ``pass_over`` m/s more than they go, with room for the whole pass.
+  pass_over: 3.5 };
 //: Which segment of ``route`` distance ``d`` is on.
 export function segOf(route, d) {
   const s = route.s;
@@ -1327,8 +1431,11 @@ export class Drivers {
         // In the lane its route has it in to begin with (lanePlan), its own from then on.
         const i0 = segOf(c.route, d), plan = lanePlan(c.route);
         st.lane = st.from = plan ? Math.min(plan.k[i0] || 0, Math.max(0, (plan.n[i0] || 1) - 1)) : 0;
-        st.lt = 1; st.nextLook = 0; st.side = laneSide(st);
-        st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.holdT = 0; st.backUp = 0;
+        st.lt = 1; st.nextLook = 0; st.dodge = 0;
+        // (A bicycle keeps the bike lane, or the kerb's edge of a shared one.)
+        st.side = c.bike ? (half, cls, park, i, route) => BIKE_LANE(half, cls, park, i, route) + st.dodge : laneSide(st);
+        st.bike = Boolean(c.bike);
+        st.dodgeTo = 0; st.hold = null; st.holdT = 0; st.backUp = 0;
         this.cars.set(c.id, st);
       }
       live.push([c, st]);
@@ -1402,7 +1509,7 @@ export class Drivers {
     // Who is in which lane of each block, for the lane each car takes (pickLane).
     const lanesOn = new Map();
     for (const [c, st] of live) {
-      if (arrived(c, st)) continue;
+      if (arrived(c, st) || c.bike) continue;
       const i = segOf(c.route, st.d), key = edgeKey(c.route, i);
       let list = lanesOn.get(key);
       if (!list) lanesOn.set(key, list = []);
@@ -1450,8 +1557,8 @@ export class Drivers {
       if (st.lt < 1) st.lt = Math.min(1, st.lt + dt / T.lane_change_s);
       else if (tsec >= st.nextLook && !(J && st.d > J.s - J.box - c.length / 2 - 6)) {
         st.nextLook = tsec + 1;
-        if (!dodging) this.pickLane(c, st, lanesOn, blockers, people);
-        this.lookAhead(c, st, lanesOn, tsec);
+        if (!dodging && !c.bike) this.pickLane(c, st, lanesOn, blockers, people);
+        if (!c.bike) this.lookAhead(c, st, lanesOn, tsec);
       }
       // Waiting for a gap to get over (into the lane for its turn): eased off, to let one by.
       if (st.waiting) target = Math.min(target, limit * 0.7);
@@ -1555,7 +1662,10 @@ export class Drivers {
         if (oid === c.id || !ost || arrived(o, ost) || (dodging && st.hold?.id === oid)) return;
         const dx = op.x - here.x, dz = op.z - here.z;
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
-        if (fwd <= 0 || fwd > T.look_m || lat > 1.9) return;
+        // (In its way by its own width and the other's: a bicycle at the lane's edge is a
+        // narrow thing, a car fills the lane.)
+        const wide = c.bike || o.bike ? ((c.width || 1.9) + (o.width || 1.9)) / 2 + 0.45 : 1.9;
+        if (fwd <= 0 || fwd > T.look_m || lat > wide) return;
         // (Room left behind one going round something: it may have to back up to swing out.)
         const gap = fwd - (c.length + o.length) / 2 - T.gap_m - (ost.dodgeTo !== 0 || ost.holdT > 0.5 ? T.swing_room_m : 0);
         // A crashed car stands where it stopped: gone round, whichever way it faces.
@@ -1565,6 +1675,8 @@ export class Drivers {
         const lead = ost.hit ? 0 : ost.v;
         const v = Math.max(0, Math.min(lead + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = o.id; }
+        // A cyclist ahead, slower than this car would go: passed, when there is room (``slow``).
+        if (o.bike && !c.bike && !ost.hit && gap < 14 && Math.cos(op.yaw - here.yaw) > 0.7 && ost.v < lawful - 2) holdIf({ x: op.x, z: op.z, hw: (o.width || 0.65) / 2, hl: o.length / 2, id: oid, slow: Math.max(0, ost.v) }, gap);
       });
       // Your car (or anything else in the road that is not one of these): kept behind, and gone
       // round where it stands still.
@@ -1585,7 +1697,7 @@ export class Drivers {
         if (o && (o.v || 0) < 0.3) holdIf({ x: o.x, z: o.z, hw: (o.width || 1.9) / 2, hl: (o.length || 4.5) / 2, id: st.blockedBy }, 0);
       }
       // (Only the driver at the head of the queue goes round: with a car between, it is that car's.)
-      if (hold && carGap < hold.gap) hold = null;
+      if (hold && !(hold.slow >= 0) && carGap < hold.gap) hold = null;
       // About to be run into (pushes, above): moved on, unless something it must wait for holds it.
       // (Never up against what stands in front of it: a car pushed nose to tail with a stopped
       // one has no room left to go round it.)
@@ -1635,17 +1747,19 @@ export class Drivers {
       // it on, a way round is looked for -- to the left first, over the middle line only with
       // nothing coming; found, it swings out, goes by at a crawl and comes back to its lane.
       if (dodging) {
-        target = Math.min(target, T.dodge_speed);
-        const h = st.hold, at = h && this.holdAt(h, people, blockers, pos);
+        const h = st.hold, at = h && this.holdAt(h, people, blockers, pos), passing = h?.slow >= 0;
+        // Round something standing: at a crawl. Past a cyclist: a little quicker than they go.
+        target = Math.min(target, passing ? Math.min(limit, h.slow + T.pass_over) : T.dodge_speed);
         const ahead = at ? (at.x - here.x) * fx + (at.z - here.z) * fz : 0;
-        if (st.dodgeTo !== 0 && (!at || ahead < -(c.length / 2 + h.hl + 1) || Math.hypot(at.x - h.x, at.z - h.z) > 2.5)) { st.dodgeTo = 0; st.hold = null; }
+        if (st.dodgeTo !== 0 && (!at || ahead < -(c.length / 2 + h.hl + (passing ? 3 : 1)) || (!passing && Math.hypot(at.x - h.x, at.z - h.z) > 2.5) || (passing && ahead > 40))) { st.dodgeTo = 0; st.hold = null; }
         else if (at && ahead > -(c.length / 2 + h.hl)) {
           // Not yet clear of it sideways: no nearer than the swing still to make needs (a metre
           // sideways for every 1 / dodge_rate forward) -- else back up for the room.
           const side = Math.abs((at.x - here.x) * -fz + (at.z - here.z) * fx);
           if (side < c.width / 2 + h.hw + 0.25) {
             const room = ahead - c.length / 2 - h.hl - 0.3, travel = Math.abs(st.dodgeTo - st.dodge) / T.dodge_rate;
-            if (travel > room) {
+            if (travel > room && passing) target = Math.min(target, Math.max(0, h.slow - 0.5));   // behind it till the swing is made
+            else if (travel > room) {
               target = 0; decel = T.emergency;
               if (st.v < 0.15 && !(st.backUp > 0)) {
                 // (No room behind either: the way round is given up for now, and looked for again.)
@@ -1656,16 +1770,18 @@ export class Drivers {
           }
         }
         reason = reason || "going round";
-      } else if (hold && lawful >= 1 && st.v < 0.8) {
+      } else if (hold && lawful >= 1 && (st.v < 0.8 || hold.slow >= 0)) {
         st.holdT += dt;
         if (st.holdT >= T.dodge_after_s && tsec >= (st.nextDodge || 0)) {
           st.nextDodge = tsec + 0.7;
           const plan = this.planDodge(c, st, here, hold, { near, pos, people, blockers });
           if (plan) {
-            st.dodgeTo = plan.to; st.hold = { ...hold }; st.holdT = 0; this.tally.dodges += 1;
-            if (plan.back > 0) { st.backUp = plan.back; this.tally.backs += 1; }
+            st.dodgeTo = plan.to; st.hold = { ...hold }; st.holdT = 0;
+            if (hold.slow >= 0) this.tally.passes = (this.tally.passes || 0) + 1; else this.tally.dodges += 1;
+            if (plan.back > 0 && !(hold.slow >= 0)) { st.backUp = plan.back; this.tally.backs += 1; }
           }
         }
+        if (hold.slow >= 0) st.holdT = Math.min(st.holdT, T.teleport_s - 1);   // (a cyclist is followed, never jumped past)
         // No way round it for good (the street stood shut): put on past it, where the road is
         // free -- never through it.
         const blockKey = edgeKey(c.route, segOf(c.route, st.d));
@@ -1836,7 +1952,7 @@ export class Drivers {
     if (id.startsWith("person:")) { const q = people.find((x) => `person:${x.id}` === id); return q ? { x: q.x, z: q.z } : null; }
     if (id.startsWith("blocker:")) { const o = blockers[Number(id.slice(8))]; return o && (o.v || 0) < 1 ? { x: o.x, z: o.z } : null; }
     const p = pos.get(h.id), o = this.cars.get(h.id);
-    return p && o?.hit ? { x: p.x, z: p.z } : null;
+    return p && (o?.hit || h.slow >= 0) ? { x: p.x, z: p.z } : null;
   }
   //: A way round what stands in the lane (``hold``): how far to swing out (``to``, metres right
   //: of its lane; left is less) and how far to back up first for the room (``back``) -- or null
@@ -1854,7 +1970,9 @@ export class Drivers {
     // left as the far lane (the far kerb's parked cars, on a one-way street the same).
     const kerb = Math.max(1.2, half - c.width / 2 - 0.3), lane = LANE(half, cls, park) + 0.5;
     const maxR = park === false || cls === "service" ? kerb : Math.min(kerb, lane), minL = -Math.min(kerb, lane);
-    const passLen = Math.max(0, fwd) + hold.hl + c.length + 4;
+    // (Past a cyclist the way round is as long as the pass takes, at the little it gains on them.)
+    const moving = hold.slow >= 0, gain = T.pass_over;
+    const passLen = moving ? ((Math.max(0, fwd) + hold.hl + c.length + 6) / gain) * (hold.slow + gain) : Math.max(0, fwd) + hold.hl + c.length + 4;
     const free = (shift) => {
       const off = off0 + shift;
       if (off > maxR + 1e-6 || off < minL - 1e-6) return false;
@@ -1868,7 +1986,8 @@ export class Drivers {
         const same = Math.cos(op.yaw - here.yaw) > 0;
         // (The queue behind it in its own lane is not in the way round.)
         if (same && ofwd < 0 && Math.abs(olat + shift) < 1.2) return;
-        if (same ? ofwd > -(c.length + 2 + o.v * 2) && ofwd < passLen + 2 : ofwd > -2 && ofwd < passLen + (o.v + T.dodge_speed) * T.oncoming_s + 8) ok = false;
+        if (same && moving && op.c.bike) return;   // (other cyclists along the edge are passed with it)
+        if (same ? ofwd > -(c.length + 2 + o.v * 2) && ofwd < passLen + 2 : ofwd > -2 && ofwd < passLen * (1 + o.v / Math.max(1, hold.slow + gain || T.dodge_speed)) + (moving ? 12 : (o.v + T.dodge_speed) * T.oncoming_s + 8)) ok = false;
       });
       if (!ok) return false;
       for (let k = 0; k < blockers.length; k += 1) {

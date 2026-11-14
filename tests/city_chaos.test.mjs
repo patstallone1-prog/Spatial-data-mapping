@@ -164,3 +164,51 @@ test("another way round a block: a detour does not use it, nor go back the way i
   assert.ok(alt.length <= direct.length + 2 * STEP + 1, "round the block, no further");
   assert.equal(S.route(a, b, "drive").ids[1], next, "the kept way is not changed by it");
 });
+
+test("cyclists keep the lane's edge and are passed with room, not crawled behind; they keep the rules too", () => {
+  const S = town(2, 12, "residential"), route = across(S), back = S.route(S.nearest(720, 240, "drive"), S.nearest(0, 240, "drive"), "drive");
+  const bike = (id, r, t0) => ({ ...car(id, r, t0, 4.6), limit: 5.6, cruise: 4.8, length: 1.8, width: 0.65, bike: true });
+  const cars = [...Array.from({ length: 5 }, (_, k) => bike(`b${k}`, route, k * 7)), ...Array.from({ length: 8 }, (_, k) => car(`c${k}`, route, 12 + k * 5)), ...Array.from({ length: 5 }, (_, k) => car(`o${k}`, back, 20 + k * 14))];
+  const D = new Drivers(S), dt = 0.05;
+  let last = null, worst = Infinity;
+  for (let t = 0; t < 400; t += dt) {
+    last = D.step(dt, t, cars.filter((c) => t >= c.t0), []);
+    const at = last.cars.filter((x) => !x.arrived).map((x) => { const c = cars.find((y) => y.id === x.id); return { id: x.id, bike: Boolean(c.bike), ...alongRoute(x.route || c.route, x.d, D.stateOf(x.id).side) }; });
+    for (const a of at) for (const b of at) if (a.id < b.id && a.bike !== b.bike) worst = Math.min(worst, Math.hypot(a.x - b.x, a.z - b.z));
+  }
+  assert.equal(last.cars.filter((x) => x.arrived).length, cars.length, "everyone got there");
+  assert.ok(D.tally.passes >= 8, `${D.tally.passes} passes`);
+  assert.equal(D.tally.jumps, 0);
+  // A car's side 0.93 m from its middle, a bicycle's 0.33 m: half a metre between them at least.
+  assert.ok(worst > 0.93 + 0.33 + 0.5, `a car's middle came ${worst.toFixed(2)} m from a cyclist's`);
+  // A cyclist picks no lane of its own: the bike lane, or the lane's edge.
+  assert.equal(D.stateOf("b0").bike, true);
+  assert.equal(D.stateOf("b0").lane, 0);
+});
+
+test("a trip keeps its streets' lanes, so an avenue's trips use both", async () => {
+  const { City, Roster } = await import("../docs/city/fleet.mjs");
+  const { cityTime } = await import("../docs/city/core.mjs");
+  const S = town(4, 16, "primary"), places = [];
+  for (let i = 0; i < 6; i += 1) for (let j = 0; j < 6; j += 1) {
+    const x = i * STEP + 40, z = j * STEP + 12, home = (i + j) % 3 !== 0;
+    places.push({ id: `b${i}_${j}`, x, z, use: home ? "residential" : "retail", tag: home ? "house" : "retail", area: 140, floors: 2, name: `${i} ${j}`, kind: home ? "home" : "shop",
+      keys: new Set(home ? ["use:residential"] : ["use:retail", "shop:cafe", "shop:supermarket"]), shops: home ? [] : ["cafe"], node: S.nearest(x, z, "walk", 200) });
+  }
+  const roster = new Roster(R, { seed: "lanes" });
+  roster.add(places);
+  const city = new City(R, roster, S, { seed: "lanes", timeAt: (ms) => cityTime(ms, R.clock.zone) });
+  const t = city.timeAt(Date.UTC(2026, 10, 10, 20, 0));
+  let routes = 0, twoLane = 0;
+  for (const p of roster.people.values()) for (const leg of city.planOf(p, t).drives) {
+    if (leg.kind !== "go") continue;
+    const route = city.legRoute(leg);
+    if (!route) continue;
+    routes += 1;
+    assert.equal(route.lanes.length, route.pts.length, "a lane count for every point");
+    assert.equal(route.bike, Boolean(roster.vehicles.get(leg.vehicle)?.bike));
+    for (let i = 1; i < route.pts.length - 2; i += 1) if (laneCount(route, i) === 2) { twoLane += 1; break; }
+  }
+  assert.ok(routes > 10, `${routes} trips`);
+  assert.ok(twoLane > routes * 0.6, `${twoLane} of ${routes} trips have two lanes to use`);
+});

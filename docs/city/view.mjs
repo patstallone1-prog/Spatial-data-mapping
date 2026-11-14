@@ -873,6 +873,14 @@ export async function startCity(ctx) {
   //: the cab -- and any of yours (``mine``) in full, whatever the rings say, and first in the full
   //: tier's queue (``d`` -1: never pushed down a tier by the cap however far the camera has been
   //: pulled back). Your own car and your party's are drawn apart (makeCar), in full always.
+  //: Whether a place is out of your sight: far off, or outside the frame (as last drawn). A car
+  //: far behind its day is put back on it only there (fleet.mjs Drivers: hopeless_s).
+  function unseenAt(x, z) {
+    if (!ctx.camera?.()) return false;
+    if ((x - VIEW_AT.x) ** 2 + (z - VIEW_AT.z) ** 2 > 150 * 150) return true;
+    CAR_SPHERE.center.set(x, groundAt(x, z) + 1, z); CAR_SPHERE.radius = 5;
+    return !CAR_FRUSTUM.intersectsSphere(CAR_SPHERE);
+  }
   function carsInView(list) {
     const cam = ctx.camera?.(), out = [];
     if (cam) { cam.getWorldPosition(VIEW_AT); VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); CAR_FRUSTUM.setFromProjectionMatrix(VIEW_PV); }
@@ -3480,7 +3488,7 @@ export async function startCity(ctx) {
       const lagged = sched(tsec - D.delayOf(key));
       const probe = alongRoute(route, lagged);
       if (Math.hypot(probe.x - focus.x, probe.z - focus.z) < SIM_M || D.stateOf(v.id)?.key === key) {
-        sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), cruise: Math.max(4, (route.length / durS) * 1.35), length: l, width: w });
+        sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), cruise: Math.max(4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z) });
         legOf.set(v.id, { base, route });
       } else {
         // At the end of its leg it is parked there, in the parking lane (and from the next pass,
@@ -3508,11 +3516,14 @@ export async function startCity(ctx) {
     if (sim.length) {
       const step = D.step(Math.min(dt, 0.1), tsec, sim, obstacles, blockers);
       for (const r0 of step.cars) {
-        const { base, route } = legOf.get(r0.id);
+        // (On its own way round a jam it is drawn along that; put somewhere else -- back on its
+        // day, or past what shut the street -- it is there at once, not slid across the map.)
+        const { base } = legOf.get(r0.id), route = r0.route || legOf.get(r0.id).route;
+        if (r0.jump) glided.delete(r0.id);
         if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
         // In its own lane (Drivers: the lane it chose, or on its way across to the next).
         const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
-        vehicles.push({ ...base, ...pos, moving: r0.v > 0.2, speed: r0.v, braking: r0.braking, reason: r0.reason });
+        vehicles.push({ ...base, ...pos, moving: Math.abs(r0.v) > 0.2, speed: Math.abs(r0.v), braking: r0.braking, reversing: r0.reversing, reason: r0.reason, behind: r0.behind });
       }
       for (const hit of step.hits) carHit(hit, people);
     }
