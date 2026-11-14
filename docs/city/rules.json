@@ -2,7 +2,7 @@
   "schema": "kerbside.city_rules/1",
   "note": "The living city's rules as data: one file read by the viewer (docs/city/core.mjs) and the Python core (smc.city.rules). Amounts are in whole currency units (Credits, a placeholder currency at par with the US dollar so real-world figures read as they are). Every figure says where it comes from; 'approx.' marks a figure taken as representative where the exact schedule varies by place or could not be confirmed.",
   "currency": {"code": "KCR", "symbol": "₡", "name": "Credits", "minor_units": 2, "placeholder": true, "par": "USD"},
-  "clock": {"zone": "America/Los_Angeles", "scale": 1, "basis": "the city keeps San Francisco's own time, as the sky does: a day in the city is a day"},
+  "clock": {"zone": "America/Los_Angeles", "day_minutes": 48, "night_minutes": 24, "epoch": "2026-11-14T08:00:00Z", "start": "2026-11-14", "lat": 37.8, "lon": -122.43, "basis": "a game day is 72 real minutes: 48 from sunrise to sunset, 24 from sunset to the next sunrise (2026-11-14: real darkness was unplayable). The sun keeps its real path for the game date at San Francisco; day k starts at sunrise of start + k days, at real epoch + k cycles. The books (hours, shifts, pay, rent, NPC days, the sky) read the game clock; what moves moves in real seconds (clock.mjs)"},
   "start": {"balance": 2000, "room_rent_per_day": 120, "free_room_days": 7, "residency_days_to_vote": 7},
   "jurisdictions": {
     "basis": "approx. city limits as boxes [west, south, east, north]; the county where no city box holds the point",

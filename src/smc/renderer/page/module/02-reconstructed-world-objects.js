@@ -401,10 +401,76 @@ const sun = new THREE.DirectionalLight(0xfff4e2, 2.0);
 sun.position.copy(sunDirection()).multiplyScalar(900);
 scene.add(sun);
 let environmentController=null;
+// ---- night: what the dark looks like when it is playable --------------------------------------
+//
+// The game's night is 24 real minutes (docs/city/clock.mjs) and is meant to be played: cool blue,
+// not black (environment-runtime.mjs sets the moon, the ambient and the fog). Two things here are
+// shared with the materials that need them, set by the environment each second: the houses'
+// windows, a share of them lit warm through the evening and fewer after midnight; and a faint rim
+// of light round people -- the walker, the others, the city's crowd -- so a figure never goes
+// into the background.
+// (One for the page and every region attached to it: an attached region runs this same code again
+// in this page -- module 00 ATTACH -- and its windows must light with the page's night, which only
+// the page's own sky sets.)
+const NIGHT = globalThis.__kerbsideNight ||= {
+  night: { value: 0 },                                  // 0 by day, 1 at full night
+  lit: { value: 0.5 },                                  // the share of windows lit, by the hour
+  warm: { value: new THREE.Color(1.0, 0.46, 0.16) },    // tungsten through a curtain (deep: the tone mapper pales it)
+  rim: { value: 0 },                                    // the rim's strength
+  rimColour: { value: new THREE.Color(0.55, 0.68, 1.0) },
+};
+//: Chains a patch onto ``material``'s shader once (by ``key``). Kept in a WeakMap, not on the
+//: material: a clone copies userData but not the shader hook, and must be patched again.
+const PATCHED = globalThis.__kerbsidePatched ||= new WeakMap();
+const isPatched = (material, key) => Boolean(PATCHED.get(material)?.has(key));
+function patchMaterial(material, key, patch) {
+  if (!material || isPatched(material, key)) return material;
+  if (!PATCHED.has(material)) PATCHED.set(material, new Set());
+  PATCHED.get(material).add(key);
+  material.userData = material.userData || {};
+  material.userData[key] = true;
+  const prev = material.onBeforeCompile, prevKey = material.customProgramCacheKey;
+  material.onBeforeCompile = function (shader, renderer) { if (prev) prev.call(this, shader, renderer); patch(shader); };
+  material.customProgramCacheKey = function () { return `${prevKey ? prevKey.call(this) : ""}|${key}`; };
+  material.needsUpdate = true;
+  return material;
+}
+//: Windows that light at night: a share of them (by a hash of where each is, a window or so a
+//: cell) glow warm through the glass -- the dark panes, not the frame -- and turn nearly opaque.
+function nightWindows(material) {
+  return patchMaterial(material, "kbNightWindows", (sh) => {
+    sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbLit = NIGHT.lit; sh.uniforms.kbWarm = NIGHT.warm;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbWP;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nvec4 kbP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbP = instanceMatrix * kbP;\n#endif\nkbWP = (modelMatrix * kbP).xyz;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 kbWP;\nuniform float kbNight; uniform float kbLit; uniform vec3 kbWarm;")
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+{ vec3 kbCell = floor(kbWP / vec3(1.7, 2.9, 1.7));
+  float kbH = fract(sin(dot(kbCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float kbOn = kbNight * step(kbH, kbLit);
+  float kbGlass = 1.0 - smoothstep(0.32, 0.6, dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)));
+  totalEmissiveRadiance += kbWarm * kbOn * kbGlass * (0.38 + 0.42 * fract(kbH * 13.0));
+  diffuseColor.a = mix(diffuseColor.a, 0.94, kbOn * kbGlass); }`);
+  });
+}
+//: A figure's rim at night: light along its edges as the camera sees them (a fresnel term), so a
+//: person stands out against a dark street.
+function nightRim(material) {
+  return patchMaterial(material, "kbNightRim", (sh) => {
+    sh.uniforms.kbRim = NIGHT.rim; sh.uniforms.kbRimColour = NIGHT.rimColour;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kbRim; uniform vec3 kbRimColour;")
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+{ float kbF = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
+  totalEmissiveRadiance += kbRimColour * kbRim * pow(kbF, 2.4); }`);
+  });
+}
+//: Every material on ``object`` given the rim (the walker's model and the other players' as they load).
+function nightRimAll(object) {
+  object?.traverse?.((o) => { if (!o.isMesh) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && !isPatched(m, "kbNightRim") && "emissive" in m) nightRim(m); });
+}
 if(!ATTACH) {
   // Do not add a top-level suspension here: regional labels initialize later.
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
-  environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon});
+  environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon,night:NIGHT,asset:sharedAsset});
   if(META){
     // Always the same light: noon, clear, whatever the hour or the weather outside.
     environmentController.setWeather("sunny");environmentController.setTime(metaLibrary.META_NOON);
@@ -418,13 +484,9 @@ if(!ATTACH) {
   for(const [value,title] of [["sunny","Sunny"],["partly_cloudy","Partly cloudy"],["cloudy","Cloudy"],["rain","Rain"]]){
     const option=document.createElement("option");option.value=value;option.textContent=title;select.append(option);}
   select.addEventListener("change",()=>environmentController.setWeather(select.value));label.append(select);
-  const timeLabel=document.createElement("label");timeLabel.textContent="Time ";
-  const timeSelect=document.createElement("select");timeSelect.setAttribute("aria-label","Time preview");
-  for(const [value,title] of [["live","Live SF time"],["dawn","Dawn preview"],["noon","Noon preview"],["dusk","Dusk preview"],["night","Night preview"]]){
-    const option=document.createElement("option");option.value=value;option.textContent=title;timeSelect.append(option);}
-  timeSelect.addEventListener("change",()=>environmentController.setPhase(timeSelect.value));timeLabel.append(timeSelect);
+  // (No time to choose: the game keeps its own -- a day in 72 real minutes, docs/city/clock.mjs.)
   const clock=document.createElement("p");clock.id="world-clock";clock.style.fontSize="12px";
-  section.append(label,timeLabel,clock);document.getElementById("settings-display")?.append(section);
+  section.append(label,clock);document.getElementById("settings-display")?.append(section);
   }).catch(error=>console.warn("kerbside: dynamic sky unavailable; static fallback retained",error));
 }
 

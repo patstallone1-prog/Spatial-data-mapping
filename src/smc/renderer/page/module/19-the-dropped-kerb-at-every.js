@@ -1025,11 +1025,34 @@ function addTransitStops(transit) {
     // Facing the road: the shelter's open side, the bench's seat.
     const yaw = Math.atan2(-nx, -nz);
     poles.push(item);
+    // A shelter where its whole roof fits between the kerb and the frontage. Only its middle
+    // was asked before, and on a narrow pavement its back half stood in the building behind it:
+    // the wall cut the shelter off at the glass. Tried a little nearer the kerb and up or down
+    // the kerb from the pole; where none fits, the stop has a bench.
+    let shelterAt = null;
     if (stop.physical === "shelter") {
-      // The shelter stands back from the kerb by its own depth, upstream of the pole.
-      const sx = anchor.x + nx * (STOP_SHELTER.depth / 2 + 0.25) - dx * 3.0, sz = anchor.z + nz * (STOP_SHELTER.depth / 2 + 0.25) - dz * 3.0;
-      if (!buildingAt(sx, sz) && !insideCarriageway(sx, sz, 0.1)) shelters.push({ x: sx, y: anchor.y, z: sz, yaw });
-    } else if (stop.physical === "bench") {
+      // The walls are asked with a pad: a building's garage doors and shopfront stand proud of
+      // the outline buildingAt knows, by most of a metre at Lombard and Steiner. The road is
+      // asked at the roof's own edge.
+      const pad = 0.6, halfL = STOP_SHELTER.length / 2 + 0.1, halfD = (STOP_SHELTER.depth + 0.25) / 2;
+      const fits = (sx, sz) => {
+        const at = (a, b) => [sx + dx * a - nx * b, sz + dz * a - nz * b];   // a along the kerb, b towards the road
+        for (const a of [-halfL, -halfL / 2, 0, halfL / 2, halfL]) for (const b of [-halfD, 0, halfD]) {
+          if (insideCarriageway(...at(a, b), 0.1)) return false;
+        }
+        for (const a of [-halfL - pad, -halfL / 2, 0, halfL / 2, halfL + pad]) for (const b of [-halfD - pad, -halfD, 0, halfD]) {
+          if (buildingAt(...at(a, b))) return false;
+        }
+        return true;
+      };
+      search: for (const back of [STOP_SHELTER.depth / 2 + 0.25, STOP_SHELTER.depth / 2 + 0.1])
+        for (const along of [3.0, 4.5, 1.5, 6.0, 0, -1.5, 7.5]) {
+          const sx = anchor.x + nx * back - dx * along, sz = anchor.z + nz * back - dz * along;
+          if (fits(sx, sz)) { shelterAt = { x: sx, y: anchor.y, z: sz, yaw }; break search; }
+        }
+      if (shelterAt) shelters.push(shelterAt);
+    }
+    if (stop.physical === "bench" || (stop.physical === "shelter" && !shelterAt)) {
       const bx = anchor.x + nx * 0.6 - dx * 1.8, bz = anchor.z + nz * 0.6 - dz * 1.8;
       if (!buildingAt(bx, bz) && !insideCarriageway(bx, bz, 0.1)) benches.push({ x: bx, y: anchor.y, z: bz, yaw });
     }

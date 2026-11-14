@@ -127,7 +127,7 @@ export function commercePanels(api) {
         const q = quotes.get(`${sku}:${ch}`);
         const rowEls = [h("b", { textContent: C[ch].name }), h("span", { className: "note", textContent: ` ${C[ch].note || ""}` })];
         if (["pawn", "specialist", "recycler", "consignment"].includes(ch)) {
-          if (q && q.expires > Date.now() - 1) {
+          if (q && q.expires > (w.now || Date.now()) - 1) {
             rowEls.push(h("div", { className: "note", textContent: `${ch === "consignment" ? `Priced at ${R.fmt(q.amount)}; you get ${R.fmt(Math.round(q.amount * (1 - q.commission)))} if it sells (${Math.round(q.commission * 100)}% to the shop), within ${q.days} days.` : `Offer: ${R.fmt(q.amount)}`} — ${q.why.join("; ")}. Good for ${Math.max(1, Math.round((q.expires - (w.now || Date.now())) / HOUR))} h.` }));
             rowEls.push(ch === "consignment"
               ? btn("Leave it with them", () => send("consign", { item: sku, place: placeArg(shop), price: q.amount }).then(done("Left on consignment: you will hear when it sells.")), { primary: true })

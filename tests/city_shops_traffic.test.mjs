@@ -119,8 +119,8 @@ test("people are of many heights and builds, from their ids, and walk with a ste
   assert.ok(VIEW.includes("legL: mkTone(legGeo, MAX_PEOPLE)"), "shoes and bare legs by the part's own colours, no extra part");
 });
 
-test("the compass's open box opens under the compass, never over the profile card", () => {
+test("the compass is a reading, not a control: no box to set the time (the game keeps its own)", () => {
   const pins = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
-  assert.ok(pins.includes("if (open) placeSunDial();") && pins.includes("sunDialBox.style.top = `${top}px`;"));
-  assert.ok(VIEW.includes('const dial = doc.getElementById("sun-dial");') && VIEW.includes("dial.style.top = `${Math.round(C.bottom + 8)}px`;"));
+  assert.ok(!pins.includes("sun-dial") && !pins.includes("toggleSunDial") && !pins.includes('addEventListener("click", () => toggleSunDial())'));
+  assert.ok(!VIEW.includes('getElementById("sun-dial")'));
 });

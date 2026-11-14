@@ -576,9 +576,13 @@ export class City {
     // ones -- not work, school or the school run -- are kept by the rules' share, so the streets
     // carry about what they did; rules.json routine.task_keep.)
     const keep = R.routine.task_keep ?? 0.5, must = /^school_/;
-    const sched = R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
+    const sched = (R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
       : dayPlan(R, p, t.day, t.weekday, this.roster.list, { household: hh, career: p.career || null })
-        .filter((a) => !a.task || must.test(a.task) || a.place === p.home || a.place === p.work || rng(p.id, t.day, "keep", Math.round(a.start))() < keep);
+        .filter((a) => !a.task || must.test(a.task) || a.place === p.home || a.place === p.work || rng(p.id, t.day, "keep", Math.round(a.start))() < keep)
+    // The day is planned in game minutes (a shift 9 to 5 by the game's clock) and travelled in
+    // real ones (clock.mjs fleetTime): each stop's start and end carried into the fleet's minutes,
+    // the journeys between them as long as they really take.
+    ).map((a) => (t.toFleet ? { ...a, start: t.toFleet(a.start), end: t.toFleet(a.end), gameStart: a.start, gameEnd: a.end } : a));
     // What they go by, further than a walk: their car, or their bicycle.
     const v = p.car ? this.roster.vehicles.get(p.car) : p.bike ? this.roster.vehicles.get(p.bike) : null;
     const farM = v?.bike ? BIKE_MIN_M : DRIVE_MIN_M, vMs = v?.bike ? BIKE_MS : DRIVE_MS;
@@ -621,9 +625,22 @@ export class City {
         // Away in time to be there by its start (the day's milestone), not as soon as the last
         // thing is done: until then they are where they were.
         const need = tripMinutes(dist(prev.place, a.place), rides ? vMs : p.pace) + 2;
-        const depart = Math.max(prev.end, clock, Math.min(a.start - need, prev.end + 600));
+        // On the game's clock a walk takes game hours: where the next stop wants them sooner than
+        // this one ends, they leave this one early (never before it began) to be there on time.
+        // (The time they have been there, as far back as they have been: asleep and then up at
+        // home are both home.)
+        let floor = clock;
+        for (let i = segs.length - 1; i >= 0 && segs[i].kind === "stay" && segs[i].place === prev.place; i -= 1) floor = segs[i].t0;
+        const earliest = t.toFleet ? Math.max(floor, Math.min(Math.max(prev.end, clock), a.start - need)) : Math.max(prev.end, clock);
+        const depart = Math.max(earliest, Math.min(a.start - need, prev.end + 600));
         const last = segs[segs.length - 1];
         if (depart > Math.max(prev.end, clock) && last && last.kind === "stay" && last.place === prev.place && last.t1 < depart) last.t1 = depart;
+        if (depart < clock) {
+          while (segs.length && segs[segs.length - 1].kind === "stay" && segs[segs.length - 1].place === prev.place && segs[segs.length - 1].t0 >= depart) segs.pop();
+          const l = segs[segs.length - 1];
+          if (l && l.kind === "stay" && l.place === prev.place && l.t1 > depart) l.t1 = depart;
+          clock = depart;
+        }
         if (rides && carFree(depart)) go(prev.place, a.place, depart, "drive");
         else if (v && a.place === p.home && carAt !== p.home && carAt !== null && carFree(depart)) {
           // Home by way of the car, wherever it was left.
@@ -810,11 +827,14 @@ export class City {
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
     for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
     trips.sort((a, b) => a.at - b.at);
+    // (Planned in game minutes, driven in real ones: clock.mjs fleetTime.)
+    const F = t.toFleet || ((m) => m);
+    if (t.toFleet) for (const tr of trips) { const at = tr.at; tr.at = F(at); tr.dwell = F(at + tr.dwell) - tr.at; }
     const node = (id) => this.streets.nodes[id];
     let clock = 0;
     for (const trip of trips) {
       const depart = Math.max(trip.at, clock + 5);
-      if (depart > 1430) break;
+      if (depart > F(1430)) break;
       const A = node(trip.g1);
       if (trip.visit && trip.brief) {
         // A fare picked up or dropped, a parcel handed over: a few minutes at the kerb.

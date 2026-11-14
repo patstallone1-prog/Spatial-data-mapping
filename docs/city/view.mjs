@@ -20,6 +20,7 @@ import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
+import { clockOf, fleetTime } from "./clock.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
@@ -247,6 +248,14 @@ export async function startCity(ctx) {
 
   const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
+  // The game's clock (clock.mjs): a day in 72 real minutes. ``gameNow()`` is what the books and
+  // the clock on the bar read; the fleet works in real minutes from the game day's start
+  // (``fleetAt``), so people and cars move at real speed through a day planned by the game's hours.
+  const CLOCK = clockOf(R);
+  const gameNow = (ms = Date.now()) => CLOCK.game(ms);
+  const fleetAt = (ms) => fleetTime(CLOCK, ms, R.clock.zone);
+  //: Real minutes until game time ``gameMs`` (a deadline, as you live it).
+  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - Date.now()) / 60000;
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
@@ -329,7 +338,7 @@ export async function startCity(ctx) {
       const t0 = performance.now(), n = streets.calibrate((x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6));
       ctx.log?.(`kerbside: ${n} streets' widths taken from the drawn kerbs in ${Math.round(performance.now() - t0)} ms`);
     }
-    if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
+    if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt: fleetAt, harm, delay });
     else district.city.setStreets(streets);
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
@@ -510,6 +519,9 @@ export async function startCity(ctx) {
     return m;
   };
   const TONE_MAT = toneMaterial(), TRIM_MAT = toneMaterial(true);
+  // At night a faint rim of light round each figure (the page's nightRim), so nobody is lost
+  // against a dark street.
+  if (ctx.nightRim) { ctx.nightRim(TONE_MAT); ctx.nightRim(TRIM_MAT); }
   //: A dressed part: its own copy of the shape (the per-person colours live on it) and its colours.
   const mkTone = (geo, max, trim = false) => {
     const g = geo.clone();
@@ -1161,7 +1173,7 @@ export async function startCity(ctx) {
   function loadSolo() {
     const saved = store.get(SAVE_SOLO);
     try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved city could not be read", error); }
-    return new CityWorld(R, { now: Date.now(), seed: "solo" });
+    return new CityWorld(R, { now: gameNow(), seed: "solo" });
   }
   world = loadSolo(); view = world;
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
@@ -1265,7 +1277,7 @@ export async function startCity(ctx) {
     // Back to your own world, with yourself as the party left you.
     const self = (world || view)?.savedSelf?.(myId);
     party.session = null; world = loadSolo(); view = world;
-    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: Date.now() }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: Date.now() }); } }
+    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: world.now }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: world.now }); } }
     refresh();
   }
 
@@ -1385,7 +1397,7 @@ export async function startCity(ctx) {
         // What the car hit: the energy of the impact on it (a bench, a light, a bin).
         const kg = { car: 1500, truck: 2600, van: 2500, bus: 13000 }[car.spec.kind] || 1500;
         strikeKey(0.5 * kg * impact * impact);
-        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && Date.now() - r.fainted.at < 5000 ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
+        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(Date.now()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
       car.speed *= 0.2;
     }
@@ -1521,7 +1533,7 @@ export async function startCity(ctx) {
     }
     if (lanes && Math.abs(car.speed) > 2) {
       const hit = lanes.at(car.x, car.z, car.yaw);
-      const rule = hit?.managed ? lanes.rule(hit.seg, timeAt(now)) : null;
+      const rule = hit?.managed ? lanes.rule(hit.seg, timeAt(gameNow())) : null;
       const seg = hit?.managed && rule?.active ? hit.seg : null;
       if (seg !== car.laneSeg) { flushLane(); car.laneSeg = seg; car.laneRule = rule; car.laneKm = 0; car.laneSeen = null; }
       if (seg) {
@@ -1614,7 +1626,7 @@ export async function startCity(ctx) {
   function checkFainted() {
     const p = self();
     if (!p?.fainted || p.fainted.at <= body.faintSeen) return;
-    const first = body.faintSeen === 0 && Date.now() - p.fainted.at > 60_000;
+    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(Date.now());
     body.faintSeen = p.fainted.at;
     if (first) return;   // an old faint, from before this page
     if (car.active) { car.mesh?.removeFromParent(); car.mesh = null; car.active = false; }
@@ -1627,7 +1639,7 @@ export async function startCity(ctx) {
   // ---- things on the ground: found on the pavement, or put down ---------------------------------
   //: The district's found things today: a seeded few on its pavements, the same for the party.
   function foundToday() {
-    const day = timeAt(Date.now()).day;
+    const day = timeAt(gameNow()).day;
     if (district.foundDay === day || !district.streets) return district.found || [];
     const r = rng(district.key, "found", day);
     const nodes = district.streets.nodes, walk = [];
@@ -2044,7 +2056,7 @@ export async function startCity(ctx) {
     const to = homes[Math.floor(Math.random() * homes.length)].x;
     const r = await send("take_delivery", { place, to: { id: to.id, x: to.x, z: to.z, name: address(to.name) } });
     if (!r.ok) { notify(r.error); return; }
-    notify(`Delivery: a parcel to ${to.name || "a home"}, ${Math.round(r.delivery.km * 1000)} m away — ${R.fmt(r.delivery.pay)} if there in ${Math.round((r.delivery.due - Date.now()) / 60000)} min. Follow the green light; at the door you are asked to hand it over.`);
+    notify(`Delivery: a parcel to ${to.name || "a home"}, ${Math.round(r.delivery.km * 1000)} m away — ${R.fmt(r.delivery.pay)} if there in ${Math.round(realMinutesTo(r.delivery.due))} min. Follow the green light; at the door you are asked to hand it over.`);
     refresh();
   }
   function drawMarker(now) {
@@ -2849,7 +2861,7 @@ export async function startCity(ctx) {
   // a seeded share of each listed (docs/city/market.mjs), priced by the square foot in the
   // neighbourhood. Signs stand in front of the listed buildings.
   function listings() {
-    const week = Math.floor(timeAt(Date.now()).day / 7);
+    const week = Math.floor(timeAt(gameNow()).day / 7);
     if (district.listingsWeek !== week || !district.listings) {
       district.listings = homeListings(R, district.places, { week, county: district.county }).map((l) => ({ ...l, county: district.county }));
       district.listingsWeek = week;
@@ -3338,7 +3350,7 @@ export async function startCity(ctx) {
   function npcGarages() {
     const c = district.city;
     if (!c || !ctx.garages) return;
-    const tt = timeAt(Date.now()), you = me(), seen = new Set();
+    const tt = fleetAt(Date.now()), you = me(), seen = new Set();
     const consider = (v) => {
       if (!v?.garage || seen.has(v.id)) return;
       seen.add(v.id);
@@ -3503,7 +3515,7 @@ export async function startCity(ctx) {
     if (party.session && now - lastStep > 3000) electHost();
     if (world && now - lastStep > 1000) {
       lastStep = now;
-      world.step(t);
+      world.step(gameNow(t));
       if (party.session && performance.now() - party.lastState > 2500) broadcastState();
     }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
@@ -3535,7 +3547,7 @@ export async function startCity(ctx) {
         const done = district.city.scanMore(scan.people.length || scan.vehicles.length ? 2500 : Infinity);
         if (done) {
           scan = done; scanning = false;
-          const hour = scan.time.minute / 60;
+          const hour = (scan.time.gameMinute ?? scan.time.minute) / 60;
           lastNight = hour < 6.6 || hour > 18.4;
         }
       }
@@ -3648,8 +3660,7 @@ export async function startCity(ctx) {
     return false;
   }
   function frameCity(ms, dt, now, focus) {
-    const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
-    tt.minute += (ms % 1000) / 60000;
+    const c = district.city, D = district.drivers, tt = fleetAt(ms);
     const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
     const people = [];
     const you = me();
@@ -4084,7 +4095,7 @@ export async function startCity(ctx) {
   function notify(text) { if (!text) return; notice = text; noticeAt = Date.now(); hud(); ctx.notify?.(text); }
   function hud() {
     const w = view, p = w?.players.get(myId);
-    const t = timeAt(Date.now());
+    const t = timeAt(gameNow());
     const [lon, lat] = ctx.toLonLat(me().x, me().z);
     const here = jurisdictionAt(R, lon, lat, district.county);
     const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, t.label, here.name];
@@ -4185,12 +4196,6 @@ export async function startCity(ctx) {
     // The compass under the profile card while the game is on.
     if (cp) cp.style.top = on && P && P.height ? `${Math.round(P.bottom + 8)}px` : "16px";
     const B = on ? actionBar.getBoundingClientRect() : null, C = cp ? cp.getBoundingClientRect() : null;
-    // The compass's open box (heading and sun) stays under the compass as it moves: never over the card.
-    const dial = doc.getElementById("sun-dial");
-    if (dial && !dial.hidden && C && C.height) {
-      dial.style.top = `${Math.round(C.bottom + 8)}px`;
-      dial.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - Math.round(C.bottom + 8) - 12)}px`;
-    }
     root.style.setProperty("--city-under", `${Math.round(Math.max(B && B.height ? B.bottom : y + 44, C ? C.bottom : 0, P ? P.bottom : 0) + 8)}px`);
     // The messages tab at the left edge, clear of the map's controls while they are open.
     messages().layout({ on: on && Boolean(self()), left: M ? M.right + 6 : 0 });
@@ -4230,7 +4235,7 @@ export async function startCity(ctx) {
     const c = w.carry ? w.carry(p) : { kg: carriedKg(R, p.inventory), capacity: carryCapacity(R, v.strength, p.inventory) };
     const state = p.resting ? "resting" : v.stamina < S.low ? "exhausted: slowed" : body.sprinting && body.sprintHeld ? "sprinting" : transit.ride ? `on the ${transit.ride.route || transit.ride.kind}` : shop.place ? "in the shop" : "";
     const esc = (t) => String(t).replace(/[<>&]/g, "");
-    const gig = p.delivery ? `<div class="gig">Parcel to ${esc(p.delivery.to.name || "a home")}: ${Math.round(Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z))} m, ${Math.max(0, Math.round((p.delivery.due - Date.now()) / 60000))} min</div>` : "";
+    const gig = p.delivery ? `<div class="gig">Parcel to ${esc(p.delivery.to.name || "a home")}: ${Math.round(Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z))} m, ${Math.max(0, Math.round(realMinutesTo(p.delivery.due)))} min</div>` : "";
     const task = p.clocked?.task;
     const job = p.clocked ? `<div class="gig" style="color:#ffc46b">${task ? `${esc(task.label)}${working ? ` — ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : ` (V, ${Math.round(Math.hypot(me().x - task.x, me().z - task.z))} m)`}` : "On shift"}</div>` : "";
     const hands = p.hands ? `<div class="carry">In hand: ${esc(R.items[p.hands]?.name || p.hands)}</div>` : "";
@@ -4771,7 +4776,7 @@ export async function startCity(ctx) {
       // (fleet.mjs City.about).
       const riders = bikes.filter((b) => b.person).map((b) => ({ id: b.person.id, person: b.person, activity: b.v > 0.3 ? "cycling" : b.reason || "waiting" }));
       const list = [...visible.people, ...riders].slice(0, 40);
-      const roster = district.roster, tt = timeAt(Date.now());
+      const roster = district.roster, tt = fleetAt(Date.now());
       const hhs = roster ? [...roster.households.values()] : [], n = (k) => hhs.filter((x) => x.size === k).length;
       const bikesN = roster ? [...roster.vehicles.values()].filter((v) => v.bike).length : 0, carsN = roster ? [...roster.vehicles.values()].filter((v) => !v.bike && !v.visitor).length : 0;
       const hhmm = (m) => `${String(Math.floor((((m % 1440) + 1440) % 1440) / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
@@ -4786,7 +4791,7 @@ export async function startCity(ctx) {
           : c.status === "looking" ? `Looking for work since ${dayOf(c.since)}${c.left ? ` (${c.left.reason.replace("_", " ")})` : ""}.` : c.status === "retired" ? "Retired." : "At school." }));
         if (b) out.push(h("p", { className: "note", textContent: `Balance ${R.fmt(b.balance)}${b.wage_hour ? `, paid ${R.fmt(b.wage_hour)}/h` : ""}; in the last 30 days ${R.fmt(b.income_30d)} in, ${R.fmt(b.spend_30d + b.rent_30d)} out${b.next_pay && b.wage_hour ? `; next pay ${dayOf(b.next_pay) && new Date(b.next_pay * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}` : ""}. ${b.assets.length ? `Owns: ${b.assets.map((x) => `${x.label} (${R.fmt(x.value)})`).join(", ")}. ` : ""}Net worth ${R.fmt(b.net_worth)}.` }));
         out.push(h("p", { className: "note", textContent: `Gets about on foot and ${a.travel === "drive" ? "by car" : a.travel === "bike" ? "by bicycle" : "by bus or taxi"}. Today: ${String(a.routine).replace(/_/g, " ")}.` }));
-        if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(m.at)}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
+        if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(tt.toGame(m.at))}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
         return out;
       };
       return [h("p", { className: "note", textContent: `${district.people.length} people live in this district in ${hhs.length} households (${n(1)} alone, ${n(2)} of two, ${n(3)} of three, ${hhs.length - n(1) - n(2) - n(3)} larger), with ${carsN} cars and ${bikesN} bicycles. Out of doors near you: ${visible.people.length} on foot, ${riders.length} cycling, ${visible.vehicles.length} vehicles.` }),

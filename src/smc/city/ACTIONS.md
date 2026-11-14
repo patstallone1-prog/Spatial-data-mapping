@@ -43,7 +43,8 @@ this device.
   The city's bars, its buttons and its keys are off, but for two: Space jumps, and Enter at a
   garage of a home you own or rent opens it (and shuts it).
 * **City:** the game. A bar of word buttons runs along the top, between the mode switch (top
-  left) and the compass (top right): first what you can do where you stand (highlighted: "Go in:
+  left) and the compass (top right; a reading only -- the game's time runs on its own clock, a day
+  in 72 real minutes, and cannot be changed): first what you can do where you stand (highlighted: "Go in:
   …", "Board the 30 …", "Drive …"), then always You & wallet (the city panel: wallet, job, home,
   car, the laws), Inventory (I), Tasks (J), **Shop** (O), Sprint (Shift) and Controls (H). On a
   narrow screen it drops under them. The health bars are at the top left with **To do** under

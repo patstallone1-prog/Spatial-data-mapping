@@ -349,6 +349,8 @@ function setAppMode(mode) {
       // The traffic's car models (the imported fleet, meshopt-compressed, and the Kenney Car Kit)
       // and crash debris.
       loadModel: (url) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url),
+      // A figure's rim of light at night (module 02 nightRim): the city's people stand out.
+      nightRim: (material) => nightRim(material),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and
       // felling them.
       natureTrees: (x, z, reach) => (typeof natureWorld !== "undefined" && natureWorld?.treesNear ? natureWorld.treesNear(x, z, reach) : []),

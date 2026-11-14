@@ -8,6 +8,25 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (2026-11-14): the game clock, playable night, the junction at Fillmore and Bay
+
+See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
+
+* **One game clock** (`docs/city/clock.mjs`, `rules.json` `clock`): a day in 72 real minutes,
+  48 of daylight and 24 of night, the sun on its real path for the game's date. It drives the
+  sky, the clock shown, shop hours, shifts and pay, rent, the NPCs' days, deadlines and the
+  timetable's hour; people, cars and buses move at real speed. Tested
+  (`tests/city_clock.test.mjs`); verified headless.
+* **The compass is a reading, not a control.** Clicking it no longer opens the sun dial; the time
+  cannot be changed in the game.
+* **Night is playable:** a blue night sky with real stars and the moon, moonlight and a raised
+  blue ambient, warm lit windows in the houses, a rim of light on the walker and the NPCs.
+  Verified headless.
+* **Fillmore and Bay:** imagery-inferred paving in the road (the slip lane's mouth) is asphalt
+  again (`tools/inferred_roadway_to_asphalt.py`, run over the corridor and four regions); raised
+  islands are stood on at their top; a bus shelter is placed only where its whole roof clears the
+  buildings (or the stop has a bench).
+
 ## Since then (PR after #177): Enter for car and bus, waits, witnesses, garages, NPCs about
 
 * **Keys:** C is gone. Enter is in and out of everything (your car, the bus at the stop and its

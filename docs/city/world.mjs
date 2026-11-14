@@ -15,6 +15,7 @@ import {
   fuelPrice, incomeTax, itemTax, jurisdictionAt, newVitals, payrollTax, propertyTax, salesRate, salesTax, shiftTask, storesAt, strikeEnergy,
   strikeWear, tollAmount, transferTax, vehicleFees, vitalsStep, withholding,
 } from "./core.mjs";
+import { clockOf } from "./clock.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
@@ -70,6 +71,11 @@ export class CityWorld {
     this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
+  //: The game's clock (clock.mjs): a day in 72 real minutes.
+  get clock() { return clockOf(this.R); }
+  //: The game time ``realMs`` of real time from now: how long a ride or a walk takes, on the game's
+  //: clock (a courier's deadline is the real minutes the ride needs, not game minutes).
+  afterReal(realMs) { return this.clock.after(this.now, realMs); }
   id(prefix) { return `${prefix}:${(++this.seq).toString(36)}`; }
   log(kind, data = {}) { const e = { t: this.now, kind, ...data }; this.events.push(e); if (this.events.length > 300) this.events.shift(); return e; }
   treasury(id) { return `treasury:${id}`; }
@@ -560,7 +566,7 @@ export class CityWorld {
     if (c.kg + this.R.items.parcel.kg > c.capacity) throw new CityError("you cannot carry the parcel: put something down");
     const km = metres / 1000;
     p.delivery = { id: this.id("delivery"), from: { id: place.id, name: place.name || null, x: place.x, z: place.z }, to: { id: to.id, name: to.name || null, x: to.x, z: to.z },
-      km, pay: D.base_pay + Math.round(D.pay_per_km * km), taken: this.now, due: this.now + (D.minutes + D.minutes_per_km * km) * 60_000 };
+      km, pay: D.base_pay + Math.round(D.pay_per_km * km), taken: this.now, due: this.afterReal((D.minutes + D.minutes_per_km * km) * 60_000) };
     p.inventory.parcel = (p.inventory.parcel || 0) + 1;
     return { delivery: p.delivery };
   }
@@ -1204,7 +1210,7 @@ export class CityWorld {
       const km = (Math.hypot(from.x - (p.x ?? from.x), from.z - (p.z ?? from.z)) + Math.hypot(to.x - from.x, to.z - from.z)) / 1000;
       t.pay = C.pay_base + Math.round(C.pay_per_km * Math.min(4, km));
       p.delivery = { id: this.id("delivery"), stage: "pickup", task: t.id, from: { id: from.id, name: from.name || null, x: from.x, z: from.z },
-        to: { id: to.id, name: to.name || null, x: to.x, z: to.z }, km, pay: t.pay, taken: this.now, due: this.now + (C.minutes + C.minutes_per_km * km) * 60_000 };
+        to: { id: to.id, name: to.name || null, x: to.x, z: to.z }, km, pay: t.pay, taken: this.now, due: this.afterReal((C.minutes + C.minutes_per_km * km) * 60_000) };
       t.steps = [`Pick up the order at ${from.name || "the shop"}`, `Deliver it to ${to.name || "the address"}`];
     } else if (task.kind === "forestry") {
       t.pay = T.forestry.pay; t.need = T.forestry.trees; t.felled = []; t.steps = [`Get an axe or a saw (a hardware store, or the online store)`, `Go to ${T.forestry.area.name}`, `Fell ${T.forestry.trees} dead trees there`];
