@@ -21,6 +21,7 @@ import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
+import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -1623,7 +1624,7 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 
@@ -1632,6 +1633,8 @@ function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <=
 function handsCheck(p) { if (p.hands && !(p.inventory[p.hands] > 0)) p.hands = null; }
 //: The notices that can be contested.
 export const CITATIONS = ["speed_camera", "speeding", "hov_violation", "theft", "parking", "toll_evasion"];
+//: Messages last: they wrap the world's and the enterprise's methods that speak (messages.mjs).
+installMessages(CityWorld, CityError, { citations: CITATIONS });
 //: A moving violation's witness: a camera that had the car in view, or a patrol car near.
 function seenBy(w) { return Boolean(w && (w.kind === "camera" || w.kind === "police") && w.id); }
 function evidenceOf(w) { return w.kind === "police" ? "patrol officer" : "camera"; }

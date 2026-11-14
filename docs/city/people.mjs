@@ -39,6 +39,11 @@ export function roadClass(way) {
   return "residential";
 }
 
+//: Junction nodes joined by a link shorter than this are one junction, no wider than the span (m).
+//: The most of a way that may go against a one-way street: the last few metres to a kerb.
+export const WRONG_WAY_MAX_M = 40;
+export const JUNCTION_JOIN_M = 13, JUNCTION_SPAN_M = 34, JUNCTION_LINK_M = 4;
+
 class Heap {
   constructor() { this.a = []; }
   push(p, v) { const a = this.a; a.push([p, v]); let i = a.length - 1; while (i) { const j = (i - 1) >> 1; if (a[j][0] <= a[i][0]) break; [a[i], a[j]] = [a[j], a[i]]; i = j; } }
@@ -193,12 +198,140 @@ export class Streets {
   route(a, b, mode = "walk") {
     if (a === null || b === null || a === undefined || b === undefined) return null;
     const found = this.search(a, b, mode);
-    return found || (mode === "drive" ? this.search(a, b, "drive_any") : null);
+    if (found || mode !== "drive") return found;
+    // No lawful way there: against a one-way street only for a last few metres (a kerb at the
+    // wrong end of one) -- never a block of it. (Cars with no lawful way from where they came
+    // in drove the length of Lombard against its traffic: 2026-11-13.)
+    const any = this.search(a, b, "drive_any");
+    return any && this.wrongWay(any) <= WRONG_WAY_MAX_M ? any : null;
   }
+  //: How far a way goes against one-way streets (m).
+  wrongWay(route) {
+    let m = 0;
+    for (let i = 0; i + 1 < route.ids.length; i += 1) {
+      const e = this.edges[route.ids[i]]?.find((x) => x.to === route.ids[i + 1]);
+      if (e && !e.drive) m += e.length;
+    }
+    return m;
+  }
+  //: The junctions, each one junction however many of the graph's nodes it is made of. Streets
+  //: drawn as separate ways meet at ends a metre apart, joined by short links, and a slip or a
+  //: turn pocket adds more: Chestnut at Fillmore is five nodes within two metres, some of them
+  //: "stop signs" and some "lights" -- five rights of way and five boxes at one crossing, where
+  //: cars knotted (2026-11-13: of the Marina's 608 junction nodes, 518 pairs stood within a
+  //: box of each other). Nodes that are junctions, joined by a link shorter than
+  //: JUNCTION_JOIN_M, are one junction, no wider than JUNCTION_SPAN_M: its kind (a light if any
+  //: of them is on an arterial), the way its lights are set by, and its members.
+  junctions() {
+    if (this._junc && this._junc.n === this.nodes.length) return this._junc;
+    const n = this.nodes.length, plain = new Array(n).fill(null);
+    for (let i = 0; i < n; i += 1) {
+      const es = this.edges[i];
+      if (!es || es.length < 3) continue;
+      const others = new Set();
+      for (const e of es) if (e.drive || this.edges[e.to]?.some((r) => r.to === i && r.drive)) others.add(e.to);
+      if (others.size >= 3) plain[i] = es.some((e) => e.cls === "arterial" || e.cls === "freeway") ? "signal" : "stop";
+    }
+    // Shortest links first, so a junction's own nodes join before anything further off.
+    const links = [];
+    for (let a = 0; a < n; a += 1) if (plain[a]) for (const e of this.edges[a]) if (e.to > a && plain[e.to] && e.length < JUNCTION_JOIN_M) links.push([e.length, a, e.to]);
+    links.sort((x, y) => x[0] - y[0] || x[1] - y[1] || x[2] - y[2]);
+    const parent = new Map(), box = new Map();
+    const find = (i) => { let r = i; while (parent.has(r) && parent.get(r) !== r) r = parent.get(r); return r; };
+    const boxOf = (i) => box.get(i) || [this.nodes[i].x, this.nodes[i].z, this.nodes[i].x, this.nodes[i].z];
+    for (const [, a, b] of links) {
+      const ra = find(a), rb = find(b);
+      if (ra === rb) continue;
+      const A = boxOf(ra), B = boxOf(rb), M = [Math.min(A[0], B[0]), Math.min(A[1], B[1]), Math.max(A[2], B[2]), Math.max(A[3], B[3])];
+      if (Math.hypot(M[2] - M[0], M[3] - M[1]) > JUNCTION_SPAN_M) continue;
+      const r = Math.min(ra, rb), o = Math.max(ra, rb);
+      parent.set(o, r); parent.set(r, r); box.set(r, M);
+    }
+    const of = new Array(n).fill(null), groups = new Map();
+    for (let i = 0; i < n; i += 1) if (plain[i]) { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(i); }
+    // A street's end a step from the junction (joined to it by a link of a metre or two) is
+    // part of it too, though only two ways meet at that node itself.
+    for (const members of groups.values()) for (const m of [...members]) for (const e of this.edges[m]) {
+      if (e.length < JUNCTION_LINK_M && !plain[e.to] && !members.includes(e.to) && (e.drive || this.edges[e.to].some((q) => q.to === m && q.drive))) { members.push(e.to); plain[e.to] = "link"; }
+    }
+    for (const [key, members] of groups) {
+      const set = new Set(members);
+      // The way its lights are set by: an arterial leaving the junction (the first, as before
+      // for a junction of one node), else its first way out.
+      let e0 = null, from = null, fallback = null;
+      for (const m of members) for (const e of this.edges[m]) {
+        if (set.has(e.to)) continue;
+        if (!fallback) fallback = [m, e];
+        if (!e0 && e.cls === "arterial") { e0 = e; from = m; }
+      }
+      if (!e0 && fallback) { [from, e0] = fallback; }
+      const A = e0 ? this.nodes[from] : null, B = e0 ? this.nodes[e0.to] : null;
+      const ref = e0 ? Math.atan2(B.x - A.x, B.z - A.z) : 0;
+      const both = Boolean(e0 && e0.cls === "arterial" && members.some((m) => this.edges[m].some((e) => !set.has(e.to) && e.cls === "arterial" && e !== e0
+        && Math.abs(Math.sin(Math.atan2(this.nodes[e.to].x - this.nodes[m].x, this.nodes[e.to].z - this.nodes[m].z) - ref)) > 0.7)));
+      const J = { key, members, kind: members.some((m) => plain[m] === "signal") ? "signal" : "stop", ref, both, main: e0?.cls === "arterial" };
+      for (const m of members) of[m] = J;
+    }
+    return (this._junc = { n, of, count: groups.size });
+  }
+  //: The street a point is on (a building's own street): the nearest drivable block within
+  //: ``reach`` -- its name, class, and whether cars park at its kerb -- or null.
+  streetAt(x, z, reach = 70) {
+    let best = null, bestD = reach;
+    const r = Math.ceil((reach + 120) / this.cell), cx = Math.floor(x / this.cell), cz = Math.floor(z / this.cell);
+    for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) for (const a of this.grid.get(`${cx + i},${cz + j}`) || []) {
+      const A = this.nodes[a];
+      for (const e of this.edges[a]) {
+        if (e.to < a || !(e.drive || this.edges[e.to].some((q) => q.to === a && q.drive))) continue;
+        const B = this.nodes[e.to], d = distToSegment(x, z, A.x, A.z, B.x, B.z);
+        if (d < bestD) { bestD = d; best = e; }
+      }
+    }
+    return best ? { name: best.name || null, cls: best.cls, park: best.park ?? null, half: best.half, off: bestD } : null;
+  }
+  //: Whether someone living at (x, z) can keep a car at the kerb: on a side street, yes; on a
+  //: main one -- an arterial, or a corridor of the rules' weight ``busy`` or more (Lombard,
+  //: Van Ness, Chestnut...) -- no: too busy, and its kerb is not for the night. null: no street.
+  kerbRoomAt(x, z, busy = 2.5) {
+    const st = this.streetAt(x, z);
+    if (!st) return null;
+    if (st.cls === "arterial" || st.cls === "freeway" || st.park === false) return false;
+    return !(((st.name && this.corridor?.get(st.name)) || 0) >= busy);
+  }
+  //: A one-way street's other half: where a street is drawn as two one-way lines side by side
+  //: (each way its own line), how far to the left the line going the other way runs (m), or
+  //: null. Each line's lanes were spread over the whole road's width, so the two ways' inner
+  //: lanes lay on top of each other and cars met head on (2026-11-13: most of the Marina's
+  //: knots, once trips used their lanes). Lanes keep to their own side of the gap (laneOffset).
+  twinOf(a, e) {
+    if (e._twin !== undefined) return e._twin;
+    let best = null;
+    const A = this.nodes[a], B = this.nodes[e.to], L = e.length;
+    if (L > 0.5 && e.drive && !this.edges[e.to].some((r) => r.to === a && r.drive)) {
+      const ux = (B.x - A.x) / L, uz = (B.z - A.z) / L, mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
+      const c0 = Math.floor((mx - 80) / this.cell), c1 = Math.floor((mx + 80) / this.cell), d0 = Math.floor((mz - 80) / this.cell), d1 = Math.floor((mz + 80) / this.cell);
+      for (let i = c0; i <= c1; i += 1) for (let j = d0; j <= d1; j += 1) for (const c of this.grid.get(`${i},${j}`) || []) {
+        const C = this.nodes[c];
+        for (const f of this.edges[c]) {
+          if (!f.drive || f.length < 0.5 || f === e || this.edges[f.to].some((r) => r.to === c && r.drive)) continue;
+          const D = this.nodes[f.to], vx = (D.x - C.x) / f.length, vz = (D.z - C.z) / f.length;
+          if (ux * vx + uz * vz > -0.85) continue;   // not the other way
+          // Beside this block (its middle abreast of the other line), to its left, within the two roads' widths.
+          const k = Math.max(0, Math.min(1, ((mx - C.x) * vx + (mz - C.z) * vz) / f.length)), qx = C.x + vx * f.length * k - mx, qz = C.z + vz * f.length * k - mz;
+          const off = Math.hypot(qx, qz), left = qx * uz - qz * ux;
+          if (off < (e.half || 3) + (f.half || 3) && left > -0.6 && Math.abs(qx * ux + qz * uz) < 3 && (best === null || off < best)) best = off;
+        }
+      }
+    }
+    return (e._twin = best);
+  }
+  //: The junction ``node`` is part of (junctions), or null along a street.
+  junctionOf(node) { return node >= 0 ? this.junctions().of[node] || null : null; }
   //: Drivers keep to the main streets (rules.json traffic): a way's cost is its time at the
   //: limit times its class's preference, less on a named corridor by its weight.
   setPreferences(traffic) {
     this.prefer = traffic?.class_preference || null;
+    this.maneuver = traffic?.maneuvers || null;
     this.corridor = new Map((traffic?.corridors || []).map((c) => [c.name, c.weight]));
     const least = Math.min(1, ...Object.values(this.prefer || {})) / (1 + 0.06 * Math.max(0, ...this.corridor.values()));
     this.leastCost = least;
@@ -208,44 +341,102 @@ export class Streets {
     const w = (e.name && this.corridor?.get(e.name)) || 0;
     return (e.length / SPEED_MS[e.cls]) * (this.prefer?.[e.cls] ?? 1) / (1 + 0.06 * w);
   }
-  search(a, b, mode) {
-    const key = `${mode}:${a}:${b}`;
-    if (this.routes.has(key)) return this.routes.get(key);
-    const goal = this.nodes[b], speed = mode !== "walk" ? SPEED_MS.freeway / (this.leastCost || 1) : 1;
-    const g = new Map([[a, 0]]), came = new Map(), open = new Heap();
-    open.push(0, a);
-    let found = a === b, visited = 0;
-    while (open.size && !found) {
-      const [, n] = open.pop();
-      if (n === b) { found = true; break; }
-      if (++visited > 40000) break;
-      const gn = g.get(n);
+  //: What a turn at ``n`` costs a driver, in seconds (rules.json traffic.maneuvers, after
+  //: Valhalla's costing: a turn with the traffic is cheap, one across it dear, back the way it
+  //: came dearest): from the way in (``p`` to ``n``) to the way out (``n`` to ``to``). A bend
+  //: along one street is no turn; only where streets meet.
+  turnCost(p, n, to) {
+    const M = this.maneuver;
+    if (!M || p === undefined || p === null) return 0;
+    if (to === p) return M.uturn_s;
+    if (this.edges[n].length < 3) return 0;
+    // (Within one junction's own short links the turn is counted where it leaves it.)
+    const J = this.junctionOf(n);
+    if (J && this.junctionOf(to) === J) return 0;
+    const P = this.nodes[p], N = this.nodes[n], T = this.nodes[to];
+    const ax = N.x - P.x, az = N.z - P.z, bx = T.x - N.x, bz = T.z - N.z, la = Math.hypot(ax, az) || 1, lb = Math.hypot(bx, bz) || 1;
+    const on = (ax * bx + az * bz) / (la * lb), right = (bx * -az + bz * ax) / (la * lb);
+    if (on > 0.82) return M.straight_s;
+    if (on < -0.82) return M.uturn_s;
+    return right >= 0 ? M.right_s : M.left_s;
+  }
+  //: Another way from ``a`` to ``b`` for a driver come from ``from``: the blocks in ``avoid``
+  //: ("a>b" -> seconds more) made dear, and not back the way it came. Never kept (it is for now).
+  detour(a, b, { from = null, avoid = null } = {}) {
+    const found = this.search(a, b, "drive", { from, avoid });
+    if (found) return found;
+    const any = this.search(a, b, "drive_any", { from, avoid });
+    return any && this.wrongWay(any) <= WRONG_WAY_MAX_M ? any : null;
+  }
+  search(a, b, mode, { from = null, avoid = null } = {}) {
+    const key = `${mode}:${a}:${b}`, keep = from === null && !avoid;
+    if (keep && this.routes.has(key)) return this.routes.get(key);
+    const car = mode !== "walk";
+    const goal = this.nodes[b], speed = car ? SPEED_MS.freeway / (this.leastCost || 1) : 1;
+    // A driver's cost depends on the way it comes into a junction (a turn's cost), so a car's
+    // search is over (the node it came from, the node it is at); a walker's over nodes alone.
+    const keyOf = car ? (p, n) => (p + 1) * 4194304 + n : (p, n) => n;
+    const k0 = keyOf(from ?? -1, a);
+    const g = new Map([[k0, 0]]), came = new Map(), open = new Heap();
+    open.push(0, [from ?? -1, a]);
+    let end = a === b ? k0 : null, visited = 0;
+    while (open.size && end === null) {
+      const [f, [p, n]] = open.pop();
+      const key = keyOf(p, n), gn = g.get(key);
+      if (n === b) { end = key; break; }
+      if (++visited > (car ? 160000 : 40000)) break;
+      if (f > gn + Math.hypot(this.nodes[n].x - goal.x, this.nodes[n].z - goal.z) / speed + 1e-6) continue;   // a staler label
       for (const e of this.edges[n]) {
-        const car = mode !== "walk";
         if (mode === "drive" ? !e.drive : mode === "drive_any" ? !(e.drive || this.edges[e.to].some((r) => r.to === n && r.drive)) : !e.walk) continue;
-        const cost = gn + (car ? this.driveCost(e) : e.length);
-        if (cost < (g.get(e.to) ?? Infinity)) {
-          g.set(e.to, cost); came.set(e.to, [n, e]);
+        let cost = gn + (car ? this.driveCost(e) : e.length);
+        if (car) {
+          cost += this.turnCost(p < 0 ? null : p, n, e.to);
+          if (avoid) cost += avoid.get(`${n}>${e.to}`) || 0;
+        }
+        const nk = keyOf(n, e.to);
+        if (cost < (g.get(nk) ?? Infinity)) {
+          g.set(nk, cost); came.set(nk, [key, e, n]);
           const m = this.nodes[e.to];
-          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, e.to);
+          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, [n, e.to]);
         }
       }
     }
     let route = null;
-    if (found) {
-      const ids = [b], halves = [], classes = [], parks = [], lanes = [], oneways = [], bikes = [];
-      for (let n = b; n !== a;) {
-        const [p, e] = came.get(n);
+    if (end !== null) {
+      const ids = [b], halves = [], classes = [], parks = [], lanes = [], oneways = [], bikes = [], twins = [];
+      for (let k = end; k !== k0;) {
+        const [pk, e, p] = came.get(k);
         halves.push(e.half); classes.push(e.cls); parks.push(e.park ?? null); ids.push(p);
         lanes.push(e.lanes || 2); oneways.push(!this.edges[e.to].some((r) => r.to === p && r.drive)); bikes.push(e.bike || null);
-        n = p;
+        twins.push(car ? this.twinOf(p, e) : null);
+        k = pk;
       }
-      ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse(); lanes.reverse(); oneways.reverse(); bikes.reverse();
+      ids.reverse(); halves.reverse(); classes.reverse(); parks.reverse(); lanes.reverse(); oneways.reverse(); bikes.reverse(); twins.reverse();
+      if (car) {
+        // Through a junction made of several nodes the way goes straight from the first of them
+        // to the last, as the street does: not round by the short links between them (a jog of a
+        // metre or two each, and each a narrow two-lane "street" of its own in the middle of an
+        // avenue -- cars swung into one lane there, and met those coming the other way).
+        const J = ids.map((id) => this.junctionOf(id));
+        const per = [halves, classes, parks, lanes, oneways, bikes, twins];
+        for (let i = 0; i + 1 < ids.length;) {
+          if (!J[i] || J[i + 1] !== J[i]) { i += 1; continue; }
+          let k = i + 1;
+          while (k + 1 < ids.length && J[k + 1] === J[i]) k += 1;
+          // Edge i (i -> i + 1) stands for the whole run i -> k; it is as the street before it
+          // (or, where the way starts in the junction, the street after).
+          const from = i > 0 ? i - 1 : k < ids.length - 1 ? k : -1;
+          for (const arr of per) { if (from >= 0) arr[i] = arr[from]; arr.splice(i + 1, k - i - 1); }
+          ids.splice(i + 1, k - i - 1); J.splice(i + 1, k - i - 1);
+          i += 1;
+        }
+      }
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-      route = { pts, s, halves, classes, parks, ids, lanes, oneways, bikes, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
+      route = { pts, s, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
+    if (!keep) return route;
     if (this.routes.size > 6000) this.routes.delete(this.routes.keys().next().value);
     this.routes.set(key, route);
     return route;
@@ -298,9 +489,19 @@ export function DRIVE_LANE(half, cls = null, park = null, i = 0, route = null) {
   const n = plan.n[i] || 1, k = Math.min(plan.k[i] || 0, n - 1);
   if (n <= 1 || k === 0) return base;
   // The leftmost lane of a two-way street is beside the middle line; of a one-way, beside the
-  // left kerb (clear of the cars parked there).
-  const left = route.oneways[i] ? -LANE(half, cls, park) : 1.7;
+  // left kerb (clear of the cars parked there) -- or beside the gap to its other half (leftOf).
+  const left = leftOf(half, cls, park, i, route);
+  if (left >= base) return base;
   return base - ((base - left) * k) / (n - 1);
+}
+//: How far right of the way's line its leftmost lane is: 1.7 m on a two-way street (beside the
+//: middle line); on a one-way, at the left kerb -- unless the line going the other way runs just
+//: to its left (Streets.twinOf: a street drawn as two one-way lines), when each keeps its own
+//: side of the gap between them, the two inner lanes 3.4 m apart as on a two-way street.
+export function leftOf(half, cls, park, i, route) {
+  if (!route.oneways?.[i]) return 1.7;
+  const kerb = -LANE(half, cls, park), twin = route.twins?.[i];
+  return twin === null || twin === undefined ? kerb : Math.max(kerb, 1.7 - twin / 2);
 }
 //: Lane ``j`` of segment ``i`` (0 the kerb lane, n - 1 the leftmost), as metres right of the
 //: street's middle: the driving lanes only -- never the parking lane at the kerb (LANE keeps
@@ -309,7 +510,9 @@ export function laneOffset(half, cls, park, i, route, j) {
   const base = LANE(half, cls, park), n = laneCount(route, i);
   const k = Math.max(0, Math.min(n - 1, Math.round(j)));
   if (n <= 1 || k === 0) return base;
-  const left = route.oneways?.[i] ? -LANE(half, cls, park) : 1.7;
+  const left = leftOf(half, cls, park, i, route);
+  // (A street too narrow for its lanes beside its other half: all in the kerb lane.)
+  if (left >= base) return base;
   return base - ((base - left) * k) / (n - 1);
 }
 //: How many lanes segment ``i`` has the way the route goes (1 where not known).
@@ -639,7 +842,9 @@ export function placeFromBuilding(b, streets, R = null) {
   // A house with shops at street level is a home upstairs and a workplace below.
   if (shops.length && use === "residential") keys.add("use:retail");
   return { id: b.id, x: b.x, z: b.z, node, use, shops, keys, name: b.name || null, area: b.area || 0, floors: b.floors || 1,
-    door: b.door || null, lon: b.lon, lat: b.lat, tag: b.tag || null, inside: shops.length ? b.inside || null : null };
+    door: b.door || null, lon: b.lon, lat: b.lat, tag: b.tag || null, inside: shops.length ? b.inside || null : null,
+    // (Room at its kerb for a resident's car: a side street's, not a main street's.)
+    kerb: use === "residential" || keys.has("use:retail") ? streets.kerbRoomAt?.(b.x, b.z, R?.households?.busy_weight ?? 2.5) ?? null : null };
 }
 
 //: For every role, the places that do its work.

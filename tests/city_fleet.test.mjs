@@ -67,10 +67,16 @@ test("each home has its residents, made once: the same people however often the 
 });
 
 test("a car is always somewhere, and only moves by driving there: parked, in a garage, on the way, away", () => {
-  const { roster, city } = district();
-  const cars = [...roster.vehicles.values()].filter((v) => !v.visitor).slice(0, 25);
-  assert.ok(cars.length >= 10);
+  // (A district a mile across: in one half that size nothing is far enough to drive to.)
+  const streets = grid(16), roster = new Roster(R, { seed: "test" });
+  roster.add(blocks(streets, 16));
+  const city = new City(R, roster, streets, { seed: "test", timeAt });
   const dayStart = Date.UTC(2026, 9, 6, 7, 0);   // midnight in San Francisco
+  // Some that go out by car or bicycle that day (in a district this small most trips are walked), and some that stay.
+  const all = [...roster.vehicles.values()].filter((v) => !v.visitor);
+  const goes = (v) => city.planOf(roster.people.get(v.owner), timeAt(dayStart + 720 * 60_000)).drives.some((x) => x.kind === "go");
+  const cars = [...all.filter(goes).slice(0, 18), ...all.filter((v) => !goes(v)).slice(0, 10)];
+  assert.ok(cars.length >= 14, `${all.filter(goes).length} of ${all.length} go out`);
   let drives = 0;
   for (const v of cars) {
     let prev = null;
@@ -96,7 +102,9 @@ test("a car is always somewhere, and only moves by driving there: parked, in a g
     // Home by night.
     const late = city.vehicleAt(v, timeAt(dayStart + 1439 * 60_000));
     const owner = roster.people.get(v.owner);
-    if (late.state === "parked" || late.state === "garage") assert.equal(late.spot.place, owner.home);
+    // (Unless they are out on a night shift: then it is where they work.)
+    const out = city.planOf(owner, timeAt(dayStart + 1439 * 60_000)).segs.some((x) => x.t0 <= 1439 && x.t1 > 1439 && x.place !== undefined && x.place !== owner.home);
+    if (!out && (late.state === "parked" || late.state === "garage")) assert.equal(late.spot.place, owner.home);
   }
   assert.ok(drives > 0, "nobody drove all day");
   // The record says how it got there.
@@ -136,9 +144,14 @@ test("traffic keeps the rules: stops for someone in the road, at a stop sign, an
   // Someone in the lane 60 m ahead: the car stops short of them.
   const lane = alongRoute(route, 160, (half) => Math.max(1.7, half - 1.8));
   let D = new Drivers(streets);
-  let out = drive(D, 100, [{ id: "p", x: lane.x, z: lane.z }], 14);
+  let out = null, t = 0;
+  for (; t < 12; t += 0.05) { out = D.step(0.05, 1000 + t, [car(100)], [{ id: "p", x: lane.x, z: lane.z }]); if (t > 2 && out.cars[0].v === 0) break; }
   assert.equal(out.cars[0].v, 0);
   assert.ok(out.cars[0].d < 160 - 2.4 - 0.3, `stopped at ${out.cars[0].d.toFixed(1)}`);
+  // They stand there: after a moment it goes round them and on (2026-11-13: it stood for ever).
+  for (; t < 24; t += 0.05) out = D.step(0.05, 1000 + t, [car(100)], [{ id: "p", x: lane.x, z: lane.z }]);
+  assert.equal(D.tally.dodges, 1);
+  assert.ok(out.cars[0].d > 166, `gone by: at ${out.cars[0].d.toFixed(1)}`);
   // You stepping out 3 m ahead of a car at speed: it brakes, and hits you.
   D = new Drivers(streets);
   drive(D, 300, [], 0.1);
@@ -306,12 +319,12 @@ test("parked cars stand at the kerb, a hand's width off it, clear of junctions, 
   city.setKerbside({ kerbAt, kerbParking });
   const spots = [];
   // Residents' cars at home: their spots are held, one car to a spot.
-  for (const v of [...roster.vehicles.values()].filter((x) => !x.garage && x.home).slice(0, 160)) {
+  for (const v of [...roster.vehicles.values()].filter((x) => !x.garage && x.home && !x.bike).slice(0, 160)) {
     const s = city.spotOf(v, v.home);
     if (!s || s.garage || s.gateway) continue;
     spots.push({ v, s });
   }
-  assert.ok(spots.length > 60, `${spots.length} spots`);
+  assert.ok(spots.length > 25, `${spots.length} spots`);   // (most households without a garage keep bicycles, not cars)
   for (const { v, s } of spots) {
     assert.ok(s.kerb, "not at the kerb");
     // Half the car and 15 cm off the kerb line.

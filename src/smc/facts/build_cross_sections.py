@@ -39,6 +39,7 @@ from smc.facts.cross_section import (
     match_junction,
 )
 from smc.facts.direction import oneway_direction
+from smc.measure.photo_gate import admit_parking
 from smc.official.join import CentrelineIndex
 
 #: A parallel parking lane where the city's policies say cars park and nothing has measured
@@ -203,11 +204,17 @@ def build_cross_sections(
     """Attach ``xs`` to every street way; return counts for the build summary.
 
     ``measured_parking`` maps ``"<cnn>:<side>"`` to a parking band measured from imagery
-    (data/sf_public_works/parking_bands.json); a face without one takes the policy's prior.
+    (data/sf_public_works/parking_bands.json); it passes the photo gate first, and a face
+    without an admitted band takes the policy's prior.
     """
     index = CentrelineIndex.from_centrelines(centrelines, frame)
     clearance = BuildingClearance(ways, frame)
     counts: Counter[str] = Counter()
+    if measured_parking:
+        # Nothing measured from a photograph enters unproven (smc.measure.photo_gate, docs/38).
+        measured_parking, gate = admit_parking(measured_parking)
+        counts["photo parking admitted"] = gate.admitted
+        counts["photo parking held"] = sum(gate.held.values())
     ends_by_node: dict[tuple[float, float], list[tuple[str, LaneEnd]]] = {}
 
     for way in ways:
