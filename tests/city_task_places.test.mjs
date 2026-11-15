@@ -51,6 +51,7 @@ test("the tasks card puts what recurs first and says cross streets on every plac
   assert.ok(VIEW.includes("name: nameAt(placeName(from), from.x, from.z)") && VIEW.includes("stepAt(`Go to ${F.area.name}`)"));
   assert.ok(VIEW.includes("return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;") && VIEW.includes("if (saysStreet(name, c.on)) return shortStreet(c.cross);"));
   assert.ok(VIEW.includes("district.streets?.crossStreets?.(x, z, 320, name)"));
+  assert.ok(VIEW.includes('cross.includes(" & ") ? "near" : "at"') && VIEW.includes("`${name} ${crossWord(name, cross)} ${cross}`"));
   assert.ok(VIEW.includes("title: `Courier: ${nameAt(placeName(from), from.x, from.z)} → ${nameAt(address(to.name) || \"a home\", to.x, to.z)}`"));
 });
 
@@ -70,4 +71,15 @@ test("a street is named only as a word of its own", () => {
   assert.ok(!saysStreet("12 Bayshore Street", "Bay Street") && !saysStreet("", "Bay Street") && !saysStreet("Bay Street", ""));
   assert.equal(shortStreet("Van Ness Avenue"), "Van Ness Ave");
   assert.equal(shortStreet("Marina Boulevard"), "Marina Blvd");
+});
+
+test("a wide street's corner is found though the cross street stops at its kerb", () => {
+  // Lombard, wide; Scott comes up to its kerb from the south and stops 8 m short of its middle
+  // (joined by a link with no name); Greenwich crosses Scott a block south.
+  const S = new Streets([
+    { ...way("Lombard Street", [[0, 0], [100, 0], [200, 0]]), road_m: 24 },
+    way("Scott Street", [[100, 8], [100, 120], [100, 240]]),
+    way("Greenwich Street", [[0, 120], [100, 120], [200, 120]]),
+  ]);
+  assert.deepEqual(S.crossStreets(130, 30, 320, "2242 Lombard Street"), { on: "Lombard Street", cross: "Scott Street" });
 });

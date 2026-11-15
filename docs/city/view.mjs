@@ -2995,11 +2995,14 @@ export async function startCity(ctx) {
     if (saysStreet(name, c.cross)) return shortStreet(c.on);
     return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;
   }
+  //: "at" its cross street; "near" a corner when the words give an address whose own street is
+  //: not among the streets drawn (the corner is then two other streets, and is only close by).
+  const crossWord = (words, cross) => (/(^|\s)\d+[A-Za-z]? [A-Z]/.test(words) && cross.includes(" & ") ? "near" : "at");
   //: A place's name with its cross streets after it; left alone when it already carries them.
   function nameAt(name, x, z) {
     if (!name || name.includes(" & ") || / at [A-Z0-9]/.test(name)) return name;
     const cross = crossAt(x, z, name);
-    return cross ? `${name} at ${cross}` : name;
+    return cross ? `${name} ${crossWord(name, cross)} ${cross}` : name;
   }
   //: A line of the tasks card with its cross streets worked in before any " — what to do there".
   function labelAt(label, x, z) {
@@ -3008,7 +3011,7 @@ export async function startCity(ctx) {
     const cross = crossAt(x, z, head);
     if (!cross) return label;
     // After an address ("... at 2109 Chestnut Street") the cross street reads "at Scott St" too.
-    return `${head} at ${cross}${tail}`;
+    return `${head} ${crossWord(head, cross)} ${cross}${tail}`;
   }
   //: A step's words with the cross streets of the places it names (the board's fixed places:
   //: the forestry area, the walk's stops; a courier's shop and address carry theirs already).

@@ -53,6 +53,8 @@ class Heap {
 
 //: A district's streets as a graph in page metres. ``ways`` are the region's own streets and
 //: footways: {pts: [[x, z], ...], kind, lanes, oneway (1 forward, -1 back, 0 both), road_m, name}.
+//: Nodes joined by a link this short (m) are one corner, for naming the streets that meet there.
+const CORNER_LINK_M = 16;
 //: A street's name as a sign or an address shortens it: "Chestnut Street" -> "Chestnut St".
 export const shortStreet = (name) => String(name).replace(/\bStreet$/, "St").replace(/\bAvenue$/, "Ave").replace(/\bBoulevard$/, "Blvd").replace(/\bDrive$/, "Dr");
 //: Whether ``text`` (an address, a label) names the street ``name``, in full or shortened, as a
@@ -300,7 +302,16 @@ export class Streets {
     for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) for (const a of this.grid.get(`${cx + i},${cz + j}`) || []) {
       const A = this.nodes[a], d = Math.hypot(A.x - x, A.z - z);
       if (d > reach) continue;
-      const names = [...new Set(this.edges[a].map((e) => e.name).filter(Boolean))];
+      // The streets that meet here: this node's, and those of the nodes a short link joins it to.
+      // A wide street's cross streets stop at its kerbs and are joined to it by a few metres
+      // with no name (joinEnds), so no one node has both names: "2242 Lombard Street at Scott St
+      // & Greenwich St" was the nearest node that did.
+      const set = new Set();
+      for (const e of this.edges[a]) {
+        if (e.name) set.add(e.name);
+        if (e.length <= CORNER_LINK_M) for (const f of this.edges[e.to]) if (f.name) set.add(f.name);
+      }
+      const names = [...set];
       if (!names.length) continue;
       near.push({ d, names });
       for (const n of names) if (!(seen.get(n) <= d)) seen.set(n, d);
