@@ -1,0 +1,6144 @@
+{
+"source": "SF Planning, General Advertising Sign Program (GASP_Records)",
+"map": "https://sfplanninggis.org/gasp/",
+"rows": [
+{
+"record_id": "2020-000657GAS",
+"status": "Permitted",
+"name": "2525 Lombard St",
+"address": "2525 Lombard ST, SAN FRANCISCO, CA ",
+"description": "General Advertising Sign",
+"p": [
+-122.4431143,
+37.7986961
+]
+},
+{
+"record_id": "2020-000659GAS",
+"status": "Permitted",
+"name": "1700 Noriega St",
+"address": "1700 NORIEGA ST 94122",
+"description": "GA Sign",
+"p": [
+-122.482169,
+37.7543139
+]
+},
+{
+"record_id": "CL10",
+"status": "Permitted",
+"name": "875 HOWARD ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4041023,
+37.7816809
+]
+},
+{
+"record_id": "CL27",
+"status": "Permitted",
+"name": "1321 COLUMBUS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4190105,
+37.8061187
+]
+},
+{
+"record_id": "CL94",
+"status": "Permitted",
+"name": "6404 03RD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3969694,
+37.719995
+]
+},
+{
+"record_id": "EKC13",
+"status": "Permitted",
+"name": "101 JEFFERSON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4143001,
+37.8081814
+]
+},
+{
+"record_id": "EKC2",
+"status": "Permitted",
+"name": "1745 MARKET ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4228657,
+37.7718745
+]
+},
+{
+"record_id": "EKC40",
+"status": "Permitted",
+"name": "3251 STEINER ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4379459,
+37.7994221
+]
+},
+{
+"record_id": "EKC41",
+"status": "Permitted",
+"name": "3251 STEINER ST",
+"address": null,
+"description": null,
+"p": [
+-122.4379459,
+37.7994221
+]
+},
+{
+"record_id": "EKC50",
+"status": "Permitted",
+"name": "120 ELLIS ST",
+"address": null,
+"description": null,
+"p": [
+-122.4081548,
+37.7856101
+]
+},
+{
+"record_id": "EKC58",
+"status": "Permitted",
+"name": "229 08TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4108732,
+37.7760548
+]
+},
+{
+"record_id": "EKC82",
+"status": "Permitted",
+"name": "995 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4037048,
+37.7773097
+]
+},
+{
+"record_id": "JPL115",
+"status": "Permitted",
+"name": "574 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3950379,
+37.7801969
+]
+},
+{
+"record_id": "JPL116",
+"status": "Permitted",
+"name": "3201 DIVISADERO ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4430293,
+37.7992877
+]
+},
+{
+"record_id": "JPL118",
+"status": "Permitted",
+"name": "2299 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4390224,
+37.7991861
+]
+},
+{
+"record_id": "JPL119",
+"status": "Permitted",
+"name": "1480 BROADWAY",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4214711,
+37.7961848
+]
+},
+{
+"record_id": "JPL120",
+"status": "Permitted",
+"name": "530 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4059423,
+37.7981948
+]
+},
+{
+"record_id": "JPL122",
+"status": "Permitted",
+"name": "610 BRANNAN ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3917655,
+37.7826275
+]
+},
+{
+"record_id": "JPL123",
+"status": "Permitted",
+"name": "995 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4050864,
+37.7784419
+]
+},
+{
+"record_id": "JPL131",
+"status": "Permitted",
+"name": "928 VALENCIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4214468,
+37.7578982
+]
+},
+{
+"record_id": "JPL41",
+"status": "Permitted",
+"name": "490 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3964444,
+37.7788631
+]
+},
+{
+"record_id": "JPL7",
+"status": "Permitted",
+"name": "2283 MARKET ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4323617,
+37.7644538
+]
+},
+{
+"record_id": "KAB26",
+"status": "Permitted",
+"name": "285 GEARY ST",
+"address": null,
+"description": "KAB26",
+"p": [
+-122.4079399,
+37.7871815
+]
+},
+{
+"record_id": "KAB43",
+"status": "Permitted",
+"name": "470 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4050468,
+37.7982926
+]
+},
+{
+"record_id": "KAB61",
+"status": "Permitted",
+"name": "801 OFARRELL ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4181363,
+37.7849801
+]
+},
+{
+"record_id": "KAB70",
+"status": "Permitted",
+"name": "700 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4202942,
+37.7822272
+]
+},
+{
+"record_id": "KAB71",
+"status": "Permitted",
+"name": "700 VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4202942,
+37.7822272
+]
+},
+{
+"record_id": "KAB85",
+"status": "Permitted",
+"name": "552 COLUMBUS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4097936,
+37.800219
+]
+},
+{
+"record_id": "KAB92",
+"status": "Permitted",
+"name": "2146 UNION ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4347109,
+37.7974751
+]
+},
+{
+"record_id": "KAB98",
+"status": "Permitted",
+"name": "5173 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4411163,
+37.7157641
+]
+},
+{
+"record_id": "KES26",
+"status": "Permitted",
+"name": "1155 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.409068,
+37.7705024
+]
+},
+{
+"record_id": "KES27",
+"status": "Permitted",
+"name": "1000 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4076183,
+37.7700695
+]
+},
+{
+"record_id": "KES45",
+"status": "Permitted",
+"name": "461 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3935806,
+37.7836994
+]
+},
+{
+"record_id": "KES46",
+"status": "Permitted",
+"name": "425 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3944145,
+37.7841299
+]
+},
+{
+"record_id": "KES72",
+"status": "Permitted",
+"name": "1398 BRYANT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4111693,
+37.7683825
+]
+},
+{
+"record_id": "KID10",
+"status": "Permitted",
+"name": "1897 LOMBARD ST",
+"address": null,
+"description": "KID10",
+"p": [
+-122.4325436,
+37.8000557
+]
+},
+{
+"record_id": "KID18",
+"status": "Permitted",
+"name": "1500 BUSH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4223683,
+37.7886152
+]
+},
+{
+"record_id": "KID9",
+"status": "Permitted",
+"name": "80 DUBOCE ST",
+"address": null,
+"description": "KID9 - GA Sign located at 80 Duboce St",
+"p": [
+-122.4218377,
+37.7700887
+]
+},
+{
+"record_id": "MDM124",
+"status": "Permitted",
+"name": "1575 SOUTH VAN NESS AVE",
+"address": null,
+"description": "MDM124 - GA Sign located at 1575 South Van Ness Ave",
+"p": [
+-122.4155627,
+37.7484894
+]
+},
+{
+"record_id": "MDM125",
+"status": "Permitted",
+"name": "2635 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4048749,
+37.7084383
+]
+},
+{
+"record_id": "MDM150",
+"status": "Permitted",
+"name": "589 HOWARD ST",
+"address": null,
+"description": "GA Sign MDM150 located at 589 Howard St",
+"p": [
+-122.3976725,
+37.7869055
+]
+},
+{
+"record_id": "MDM152",
+"status": "Permitted",
+"name": "3039 SAN BRUNO AVE",
+"address": null,
+"description": "MDM152 - GA Sign located at 3039 San Bruno Ave",
+"p": [
+-122.4015483,
+37.7232477
+]
+},
+{
+"record_id": "MDM17",
+"status": "Permitted",
+"name": "165 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4176364,
+37.770965
+]
+},
+{
+"record_id": "MDM24",
+"status": "Permitted",
+"name": "235 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4138078,
+37.773999
+]
+},
+{
+"record_id": "MDM33",
+"status": "Permitted",
+"name": "1516 FOLSOM ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4145152,
+37.7718245
+]
+},
+{
+"record_id": "MDM47",
+"status": "Permitted",
+"name": "474 05TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.400918,
+37.7779723
+]
+},
+{
+"record_id": "MDM48",
+"status": "Permitted",
+"name": "474 05TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.400918,
+37.7779723
+]
+},
+{
+"record_id": "MDM49",
+"status": "Permitted",
+"name": "60 OAK GROVE ST",
+"address": null,
+"description": "MDM49 - GA Sign located at 60 Oak Grove St",
+"p": [
+-122.4022579,
+37.7772533
+]
+},
+{
+"record_id": "MDM51",
+"status": "Permitted",
+"name": "401 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3967158,
+37.7824482
+]
+},
+{
+"record_id": "MDM56",
+"status": "Permitted",
+"name": "610 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3998929,
+37.7763601
+]
+},
+{
+"record_id": "MDM59",
+"status": "Permitted",
+"name": "689 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.392743,
+37.7791641
+]
+},
+{
+"record_id": "MDM61",
+"status": "Permitted",
+"name": "599 08TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4056576,
+37.7718682
+]
+},
+{
+"record_id": "MDM64",
+"status": "Permitted",
+"name": "580 KING ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4001048,
+37.7723508
+]
+},
+{
+"record_id": "MDM65",
+"status": "Permitted",
+"name": "580 KING ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4001048,
+37.7723508
+]
+},
+{
+"record_id": "MDM73",
+"status": "Permitted",
+"name": "2501 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.387649,
+37.7567173
+]
+},
+{
+"record_id": "MDM74",
+"status": "Permitted",
+"name": "2501 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.387649,
+37.7567173
+]
+},
+{
+"record_id": "MDM88",
+"status": "Permitted",
+"name": "3480 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.4198801,
+37.7482972
+]
+},
+{
+"record_id": "MDM89",
+"status": "Permitted",
+"name": "3480 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.4198801,
+37.7482972
+]
+},
+{
+"record_id": "MDM90",
+"status": "Permitted",
+"name": "3178 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4197745,
+37.746402
+]
+},
+{
+"record_id": "ORIG1",
+"status": "Permitted",
+"name": "550 BEACH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4178293,
+37.8074793
+]
+},
+{
+"record_id": "ORIG10",
+"status": "Permitted",
+"name": "470 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4050468,
+37.7982926
+]
+},
+{
+"record_id": "ORIG1000",
+"status": "Permitted",
+"name": "2901 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4023021,
+37.7251871
+]
+},
+{
+"record_id": "ORIG1001",
+"status": "Permitted",
+"name": "2985 SAN BRUNO AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4018791,
+37.7241421
+]
+},
+{
+"record_id": "ORIG1002",
+"status": "Permitted",
+"name": "2985 SAN BRUNO AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4018791,
+37.7241421
+]
+},
+{
+"record_id": "ORIG1008",
+"status": "Permitted",
+"name": "3099 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.401427,
+37.7228074
+]
+},
+{
+"record_id": "ORIG1009",
+"status": "Permitted",
+"name": "3067 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4014337,
+37.722929
+]
+},
+{
+"record_id": "ORIG1012",
+"status": "Permitted",
+"name": "3275 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4006514,
+37.7209324
+]
+},
+{
+"record_id": "ORIG1013",
+"status": "Permitted",
+"name": "3275 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4006514,
+37.7209324
+]
+},
+{
+"record_id": "ORIG1014",
+"status": "Permitted",
+"name": "643 PRECITA AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4088666,
+37.7480873
+]
+},
+{
+"record_id": "ORIG1015",
+"status": "Permitted",
+"name": "263 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4045386,
+37.7434938
+]
+},
+{
+"record_id": "ORIG1016",
+"status": "Permitted",
+"name": "263 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4045386,
+37.7434938
+]
+},
+{
+"record_id": "ORIG1020",
+"status": "Permitted",
+"name": "280 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4053165,
+37.7434953
+]
+},
+{
+"record_id": "ORIG1021",
+"status": "Permitted",
+"name": "280 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4053165,
+37.7434953
+]
+},
+{
+"record_id": "ORIG1022",
+"status": "Permitted",
+"name": "2121 OAKDALE AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4005044,
+37.7400493
+]
+},
+{
+"record_id": "ORIG1023",
+"status": "Permitted",
+"name": "2121 OAKDALE AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4005044,
+37.7400493
+]
+},
+{
+"record_id": "ORIG1024",
+"status": "Permitted",
+"name": "2160 OAKDALE AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4009321,
+37.7409459
+]
+},
+{
+"record_id": "ORIG1025",
+"status": "Permitted",
+"name": "2160 OAKDALE AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4009321,
+37.7409459
+]
+},
+{
+"record_id": "ORIG1029",
+"status": "Permitted",
+"name": "440 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4072463,
+37.7404978
+]
+},
+{
+"record_id": "ORIG103",
+"status": "Permitted",
+"name": "180 OFARRELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4077789,
+37.7866605
+]
+},
+{
+"record_id": "ORIG1031",
+"status": "Permitted",
+"name": "320 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4057846,
+37.7428556
+]
+},
+{
+"record_id": "ORIG1034",
+"status": "Permitted",
+"name": "1615 CORTLAND AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4085278,
+37.7401692
+]
+},
+{
+"record_id": "ORIG1036",
+"status": "Permitted",
+"name": "1612 CORTLAND AVE",
+"address": null,
+"description": null,
+"p": [
+-122.408672,
+37.7394512
+]
+},
+{
+"record_id": "ORIG1037",
+"status": "Permitted",
+"name": "500 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4073934,
+37.7394286
+]
+},
+{
+"record_id": "ORIG1039",
+"status": "Permitted",
+"name": "550 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4073795,
+37.7391183
+]
+},
+{
+"record_id": "ORIG104",
+"status": "Permitted",
+"name": "236 POWELL ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4079024,
+37.7869935
+]
+},
+{
+"record_id": "ORIG1040",
+"status": "Permitted",
+"name": "992 PERALTA AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4092243,
+37.7379777
+]
+},
+{
+"record_id": "ORIG1048",
+"status": "Permitted",
+"name": "790 SILVER AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4196819,
+37.7288835
+]
+},
+{
+"record_id": "ORIG105",
+"status": "Permitted",
+"name": "301 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4084598,
+37.7871122
+]
+},
+{
+"record_id": "ORIG1050",
+"status": "Permitted",
+"name": "2480 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4051086,
+37.7304679
+]
+},
+{
+"record_id": "ORIG1054",
+"status": "Permitted",
+"name": "4627 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4349246,
+37.7239231
+]
+},
+{
+"record_id": "ORIG1055",
+"status": "Permitted",
+"name": "4627 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4349246,
+37.7239231
+]
+},
+{
+"record_id": "ORIG1059",
+"status": "Permitted",
+"name": "2200 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4030971,
+37.7123269
+]
+},
+{
+"record_id": "ORIG106",
+"status": "Permitted",
+"name": "301 MASON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4103273,
+37.7864215
+]
+},
+{
+"record_id": "ORIG1062",
+"status": "Permitted",
+"name": "2550 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4049882,
+37.7099097
+]
+},
+{
+"record_id": "ORIG1064",
+"status": "Permitted",
+"name": "2610 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4055164,
+37.7086775
+]
+},
+{
+"record_id": "ORIG1069",
+"status": "Permitted",
+"name": "5025 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4395761,
+37.7179267
+]
+},
+{
+"record_id": "ORIG107",
+"status": "Permitted",
+"name": "501 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4118106,
+37.7866168
+]
+},
+{
+"record_id": "ORIG1073",
+"status": "Permitted",
+"name": "5137 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4405935,
+37.7165533
+]
+},
+{
+"record_id": "ORIG109",
+"status": "Permitted",
+"name": "770 OFARRELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4174485,
+37.7855143
+]
+},
+{
+"record_id": "ORIG1094",
+"status": "Permitted",
+"name": "3000 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4184049,
+37.7488955
+]
+},
+{
+"record_id": "ORIG1097",
+"status": "Permitted",
+"name": "3480 CESAR CHAVEZ ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4198801,
+37.7482972
+]
+},
+{
+"record_id": "ORIG1098",
+"status": "Permitted",
+"name": "3480 CESAR CHAVEZ ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4198801,
+37.7482972
+]
+},
+{
+"record_id": "ORIG1099",
+"status": "Permitted",
+"name": "3001 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4177196,
+37.7488327
+]
+},
+{
+"record_id": "ORIG1105",
+"status": "Permitted",
+"name": "3158 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4194673,
+37.7468173
+]
+},
+{
+"record_id": "ORIG1107",
+"status": "Permitted",
+"name": "3204 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4203117,
+37.7454774
+]
+},
+{
+"record_id": "ORIG1108",
+"status": "Permitted",
+"name": "3232 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4205555,
+37.745088
+]
+},
+{
+"record_id": "ORIG1109",
+"status": "Permitted",
+"name": "1651 CHURCH ST",
+"address": null,
+"description": null,
+"p": [
+-122.42642,
+37.7443933
+]
+},
+{
+"record_id": "ORIG1110",
+"status": "Permitted",
+"name": "3342 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4216731,
+37.7434073
+]
+},
+{
+"record_id": "ORIG1111",
+"status": "Permitted",
+"name": "3342 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4216731,
+37.7434073
+]
+},
+{
+"record_id": "ORIG1112",
+"status": "Permitted",
+"name": "3488 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4232124,
+37.7409107
+]
+},
+{
+"record_id": "ORIG1114",
+"status": "Permitted",
+"name": "3798 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.424777,
+37.736075
+]
+},
+{
+"record_id": "ORIG1116",
+"status": "Permitted",
+"name": "584 BOSWORTH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.433682,
+37.733685
+]
+},
+{
+"record_id": "ORIG1117",
+"status": "Permitted",
+"name": "1780 SAN JOSE AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4398456,
+37.7293404
+]
+},
+{
+"record_id": "ORIG1119",
+"status": "Permitted",
+"name": "4340 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4322003,
+37.7282409
+]
+},
+{
+"record_id": "ORIG112",
+"status": "Permitted",
+"name": "151 POWELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4083255,
+37.7861615
+]
+},
+{
+"record_id": "ORIG1120",
+"status": "Permitted",
+"name": "4340 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4322003,
+37.7282409
+]
+},
+{
+"record_id": "ORIG1121",
+"status": "Permitted",
+"name": "4100 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4297085,
+37.73073
+]
+},
+{
+"record_id": "ORIG1123",
+"status": "Permitted",
+"name": "1301 OCEAN AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4563577,
+37.723659
+]
+},
+{
+"record_id": "ORIG1124",
+"status": "Permitted",
+"name": "295 OCEAN AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4429803,
+37.7229419
+]
+},
+{
+"record_id": "ORIG1128",
+"status": "Permitted",
+"name": "4680 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4360244,
+37.7234895
+]
+},
+{
+"record_id": "ORIG113",
+"status": "Permitted",
+"name": "151 POWELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4083255,
+37.7861615
+]
+},
+{
+"record_id": "ORIG1133",
+"status": "Permitted",
+"name": "5500 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4451375,
+37.712557
+]
+},
+{
+"record_id": "ORIG114",
+"status": "Permitted",
+"name": "140 ELLIS ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4085125,
+37.7857238
+]
+},
+{
+"record_id": "ORIG1159",
+"status": "Permitted",
+"name": "735 MONTGOMERY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4037546,
+37.7962155
+]
+},
+{
+"record_id": "ORIG1164",
+"status": "Permitted",
+"name": "1570 MARKET ST",
+"address": null,
+"description": null,
+"p": [
+-122.4203503,
+37.774951
+]
+},
+{
+"record_id": "ORIG1178",
+"status": "Permitted",
+"name": "610 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3998929,
+37.7763601
+]
+},
+{
+"record_id": "ORIG1181",
+"status": "Permitted",
+"name": "470 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4050468,
+37.7982926
+]
+},
+{
+"record_id": "ORIG1184",
+"status": "Permitted",
+"name": "1201 COLUMBUS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4178099,
+37.8052837
+]
+},
+{
+"record_id": "ORIG1186",
+"status": "Permitted",
+"name": "125 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4080563,
+37.7808569
+]
+},
+{
+"record_id": "ORIG1188",
+"status": "Permitted",
+"name": "711 22ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3886106,
+37.7577644
+]
+},
+{
+"record_id": "ORIG12",
+"status": "Permitted",
+"name": "530 BROADWAY",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4059423,
+37.7981948
+]
+},
+{
+"record_id": "ORIG120",
+"status": "Permitted",
+"name": "373 ELLIS ST",
+"address": null,
+"description": null,
+"p": [
+-122.4122802,
+37.7846464
+]
+},
+{
+"record_id": "ORIG122",
+"status": "Permitted",
+"name": "305 HYDE ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4161377,
+37.7836677
+]
+},
+{
+"record_id": "ORIG1228",
+"status": "Permitted",
+"name": "3079 BRODERICK ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4445587,
+37.7984506
+]
+},
+{
+"record_id": "ORIG1251",
+"status": "Permitted",
+"name": "80 DUBOCE AVE",
+"address": null,
+"description": "ORIG1251 - GA Sign located at 80 Duboce Ave",
+"p": [
+-122.4218377,
+37.7700887
+]
+},
+{
+"record_id": "ORIG126",
+"status": "Permitted",
+"name": "136 TAYLOR ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4106174,
+37.7837515
+]
+},
+{
+"record_id": "ORIG1265",
+"status": "Permitted",
+"name": "432 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4103758,
+37.7872648
+]
+},
+{
+"record_id": "ORIG1294",
+"status": "Permitted",
+"name": "225 HYDE ST",
+"address": null,
+"description": null,
+"p": [
+-122.4161176,
+37.7829119
+]
+},
+{
+"record_id": "ORIG1308",
+"status": "Permitted",
+"name": "2098 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.435785,
+37.800099
+]
+},
+{
+"record_id": "ORIG1334",
+"status": "Permitted",
+"name": "1284 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4146779,
+37.7765543
+]
+},
+{
+"record_id": "ORIG1342",
+"status": "Permitted",
+"name": "74 OTIS ST",
+"address": null,
+"description": "ORIG1342 - GA Sign located at 74 Otis St",
+"p": [
+-122.4201811,
+37.7721991
+]
+},
+{
+"record_id": "ORIG1362",
+"status": "Permitted",
+"name": "278 POST ST",
+"address": "278 Post ST, SAN FRANCISCO, CA ",
+"description": "General Advertising Sign",
+"p": [
+-122.4065517,
+37.7888095
+]
+},
+{
+"record_id": "ORIG139",
+"status": "Permitted",
+"name": "2901 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4251147,
+37.8024081
+]
+},
+{
+"record_id": "ORIG14",
+"status": "Permitted",
+"name": "366 COLUMBUS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4073482,
+37.7985649
+]
+},
+{
+"record_id": "ORIG140",
+"status": "Permitted",
+"name": "2050 CHESTNUT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4375,
+37.8008736
+]
+},
+{
+"record_id": "ORIG142",
+"status": "Permitted",
+"name": "2390 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4407732,
+37.799521
+]
+},
+{
+"record_id": "ORIG147",
+"status": "Permitted",
+"name": "2101 CHESTNUT ST",
+"address": "2101 CHESTNUT, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4382023,
+37.8003242
+]
+},
+{
+"record_id": "ORIG148",
+"status": "Permitted",
+"name": "2101 CHESTNUT ST",
+"address": "2101 CHESTNUT, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4382023,
+37.8003242
+]
+},
+{
+"record_id": "ORIG149",
+"status": "Permitted",
+"name": "2126 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4366416,
+37.8000316
+]
+},
+{
+"record_id": "ORIG15",
+"status": "Permitted",
+"name": "612 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4073268,
+37.7979692
+]
+},
+{
+"record_id": "ORIG150",
+"status": "Permitted",
+"name": "2036 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4354741,
+37.8002467
+]
+},
+{
+"record_id": "ORIG153",
+"status": "Permitted",
+"name": "1626 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4284141,
+37.8011445
+]
+},
+{
+"record_id": "ORIG154",
+"status": "Permitted",
+"name": "1564 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.427255,
+37.8012922
+]
+},
+{
+"record_id": "ORIG155",
+"status": "Permitted",
+"name": "1568 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.427345,
+37.8012809
+]
+},
+{
+"record_id": "ORIG157",
+"status": "Permitted",
+"name": "2845 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.425085,
+37.8019076
+]
+},
+{
+"record_id": "ORIG161",
+"status": "Permitted",
+"name": "1501 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.42643,
+37.8008657
+]
+},
+{
+"record_id": "ORIG162",
+"status": "Permitted",
+"name": "1787 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.430802,
+37.800276
+]
+},
+{
+"record_id": "ORIG163",
+"status": "Permitted",
+"name": "3130 WEBSTER ST",
+"address": null,
+"description": null,
+"p": [
+-122.4340864,
+37.7998309
+]
+},
+{
+"record_id": "ORIG164",
+"status": "Permitted",
+"name": "1959 LOMBARD ST",
+"address": null,
+"description": "General advertising sign",
+"p": [
+-122.4335781,
+37.7998958
+]
+},
+{
+"record_id": "ORIG167",
+"status": "Permitted",
+"name": "2157 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.436911,
+37.7994707
+]
+},
+{
+"record_id": "ORIG168",
+"status": "Permitted",
+"name": "2151 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4368171,
+37.7994826
+]
+},
+{
+"record_id": "ORIG169",
+"status": "Permitted",
+"name": "2299 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4390224,
+37.7991861
+]
+},
+{
+"record_id": "ORIG17",
+"status": "Permitted",
+"name": "1400 POWELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4100909,
+37.7976628
+]
+},
+{
+"record_id": "ORIG175",
+"status": "Permitted",
+"name": "1994 UNION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4320698,
+37.7976977
+]
+},
+{
+"record_id": "ORIG176",
+"status": "Permitted",
+"name": "1994 UNION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4320698,
+37.7976977
+]
+},
+{
+"record_id": "ORIG177",
+"status": "Permitted",
+"name": "2048 UNION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4331399,
+37.7976748
+]
+},
+{
+"record_id": "ORIG178",
+"status": "Permitted",
+"name": "2196 UNION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4353645,
+37.7972804
+]
+},
+{
+"record_id": "ORIG179",
+"status": "Permitted",
+"name": "1945 UNION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4312713,
+37.7973909
+]
+},
+{
+"record_id": "ORIG180",
+"status": "Permitted",
+"name": "2255 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4223853,
+37.7976689
+]
+},
+{
+"record_id": "ORIG186",
+"status": "Permitted",
+"name": "1480 BROADWAY",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4214711,
+37.7961848
+]
+},
+{
+"record_id": "ORIG187",
+"status": "Permitted",
+"name": "1480 BROADWAY",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4214711,
+37.7961848
+]
+},
+{
+"record_id": "ORIG189",
+"status": "Permitted",
+"name": "2037 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4214975,
+37.7956778
+]
+},
+{
+"record_id": "ORIG190",
+"status": "Permitted",
+"name": "2128 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4228603,
+37.7952785
+]
+},
+{
+"record_id": "ORIG191",
+"status": "Permitted",
+"name": "2001 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4235387,
+37.7940797
+]
+},
+{
+"record_id": "ORIG192",
+"status": "Permitted",
+"name": "2001 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4235387,
+37.7940797
+]
+},
+{
+"record_id": "ORIG193",
+"status": "Permitted",
+"name": "2020 VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4227042,
+37.79438
+]
+},
+{
+"record_id": "ORIG194",
+"status": "Permitted",
+"name": "2020 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4227042,
+37.79438
+]
+},
+{
+"record_id": "ORIG200",
+"status": "Permitted",
+"name": "1630 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4206804,
+37.7920309
+]
+},
+{
+"record_id": "ORIG201",
+"status": "Permitted",
+"name": "1561 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4211041,
+37.7912492
+]
+},
+{
+"record_id": "ORIG204",
+"status": "Permitted",
+"name": "1349 LARKIN ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4192519,
+37.7905924
+]
+},
+{
+"record_id": "ORIG205",
+"status": "Permitted",
+"name": "1488 PINE ST",
+"address": null,
+"description": null,
+"p": [
+-122.4202727,
+37.7898414
+]
+},
+{
+"record_id": "ORIG206",
+"status": "Permitted",
+"name": "1436 POLK ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4202994,
+37.7902656
+]
+},
+{
+"record_id": "ORIG207",
+"status": "Permitted",
+"name": "1436 POLK ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4202994,
+37.7902656
+]
+},
+{
+"record_id": "ORIG209",
+"status": "Permitted",
+"name": "1437 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4208664,
+37.7900991
+]
+},
+{
+"record_id": "ORIG211",
+"status": "Permitted",
+"name": "1401 POLK ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4207865,
+37.7897372
+]
+},
+{
+"record_id": "ORIG212",
+"status": "Permitted",
+"name": "1501 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.422614,
+37.7896086
+]
+},
+{
+"record_id": "ORIG213",
+"status": "Permitted",
+"name": "2435 CALIFORNIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4347381,
+37.788461
+]
+},
+{
+"record_id": "ORIG214",
+"status": "Permitted",
+"name": "2435 CALIFORNIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4347381,
+37.788461
+]
+},
+{
+"record_id": "ORIG216",
+"status": "Permitted",
+"name": "1301 POLK ST",
+"address": null,
+"description": null,
+"p": [
+-122.4206256,
+37.7889209
+]
+},
+{
+"record_id": "ORIG217",
+"status": "Permitted",
+"name": "1430 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4217067,
+37.7892091
+]
+},
+{
+"record_id": "ORIG223",
+"status": "Permitted",
+"name": "1332 VAN NESS AVE",
+"address": null,
+"description": "ORIG223",
+"p": [
+-122.4215128,
+37.7881426
+]
+},
+{
+"record_id": "ORIG229",
+"status": "Permitted",
+"name": "801 OFARRELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4181363,
+37.7849801
+]
+},
+{
+"record_id": "ORIG23",
+"status": "Permitted",
+"name": "401 BROADWAY",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4040288,
+37.7979894
+]
+},
+{
+"record_id": "ORIG230",
+"status": "Permitted",
+"name": "851 OFARRELL ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4186773,
+37.7848139
+]
+},
+{
+"record_id": "ORIG231",
+"status": "Permitted",
+"name": "920 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4206669,
+37.7841745
+]
+},
+{
+"record_id": "ORIG235",
+"status": "Permitted",
+"name": "725 ELLIS ST",
+"address": null,
+"description": null,
+"p": [
+-122.4181695,
+37.7839258
+]
+},
+{
+"record_id": "ORIG236",
+"status": "Permitted",
+"name": "725 ELLIS ST",
+"address": null,
+"description": null,
+"p": [
+-122.4181695,
+37.7839258
+]
+},
+{
+"record_id": "ORIG24",
+"status": "Permitted",
+"name": "425 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4041928,
+37.7978502
+]
+},
+{
+"record_id": "ORIG240",
+"status": "Permitted",
+"name": "690 VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4201975,
+37.7818526
+]
+},
+{
+"record_id": "ORIG243",
+"status": "Permitted",
+"name": "435 HAYES ST",
+"address": null,
+"description": null,
+"p": [
+-122.4235833,
+37.7765429
+]
+},
+{
+"record_id": "ORIG245",
+"status": "Permitted",
+"name": "110 FRANKLIN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4207661,
+37.7755162
+]
+},
+{
+"record_id": "ORIG246",
+"status": "Permitted",
+"name": "110 FRANKLIN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4207661,
+37.7755162
+]
+},
+{
+"record_id": "ORIG248",
+"status": "Permitted",
+"name": "400 HAIGHT ST",
+"address": null,
+"description": "ORIG248 - General Advertising Sign",
+"p": [
+-122.429002,
+37.7724853
+]
+},
+{
+"record_id": "ORIG249",
+"status": "Permitted",
+"name": "400 HAIGHT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.429002,
+37.7724853
+]
+},
+{
+"record_id": "ORIG25",
+"status": "Permitted",
+"name": "1020 KEARNY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4051517,
+37.7974445
+]
+},
+{
+"record_id": "ORIG252",
+"status": "Permitted",
+"name": "1870 MARKET ST",
+"address": null,
+"description": null,
+"p": [
+-122.4246725,
+37.7712614
+]
+},
+{
+"record_id": "ORIG258",
+"status": "Permitted",
+"name": "3201 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4430293,
+37.7992877
+]
+},
+{
+"record_id": "ORIG259",
+"status": "Permitted",
+"name": "2532 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4435452,
+37.799223
+]
+},
+{
+"record_id": "ORIG260",
+"status": "Permitted",
+"name": "2594 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4442122,
+37.7990872
+]
+},
+{
+"record_id": "ORIG263",
+"status": "Permitted",
+"name": "2498 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.442414,
+37.7992989
+]
+},
+{
+"record_id": "ORIG264",
+"status": "Permitted",
+"name": "2341 CHESTNUT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4419256,
+37.7998084
+]
+},
+{
+"record_id": "ORIG267",
+"status": "Permitted",
+"name": "2499 LOMBARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4423622,
+37.7988641
+]
+},
+{
+"record_id": "ORIG269",
+"status": "Permitted",
+"name": "2505 LOMBARD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4428783,
+37.7987259
+]
+},
+{
+"record_id": "ORIG275",
+"status": "Permitted",
+"name": "3195 CALIFORNIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4465608,
+37.7870303
+]
+},
+{
+"record_id": "ORIG276",
+"status": "Permitted",
+"name": "3195 CALIFORNIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4465608,
+37.7870303
+]
+},
+{
+"record_id": "ORIG278",
+"status": "Permitted",
+"name": "1854 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4399778,
+37.7869329
+]
+},
+{
+"record_id": "ORIG28",
+"status": "Permitted",
+"name": "333 BROADWAY ",
+"address": null,
+"description": null,
+"p": [
+-122.4026933,
+37.7981613
+]
+},
+{
+"record_id": "ORIG280",
+"status": "Permitted",
+"name": "3 MASONIC AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4477545,
+37.7833557
+]
+},
+{
+"record_id": "ORIG281",
+"status": "Permitted",
+"name": "3 MASONIC AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4477545,
+37.7833557
+]
+},
+{
+"record_id": "ORIG282",
+"status": "Permitted",
+"name": "3 MASONIC AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4477545,
+37.7833557
+]
+},
+{
+"record_id": "ORIG29",
+"status": "Permitted",
+"name": "394 PACIFIC AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4018585,
+37.7977883
+]
+},
+{
+"record_id": "ORIG290",
+"status": "Permitted",
+"name": "1839 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4779222,
+37.7632817
+]
+},
+{
+"record_id": "ORIG293",
+"status": "Permitted",
+"name": "717 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4384474,
+37.776267
+]
+},
+{
+"record_id": "ORIG298",
+"status": "Permitted",
+"name": "610 MASONIC AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4460897,
+37.7755824
+]
+},
+{
+"record_id": "ORIG3",
+"status": "Permitted",
+"name": "2540 Powell St",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4116804,
+37.8081283
+]
+},
+{
+"record_id": "ORIG300",
+"status": "Permitted",
+"name": "643 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4382653,
+37.7756265
+]
+},
+{
+"record_id": "ORIG302",
+"status": "Permitted",
+"name": "616 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4374619,
+37.7753476
+]
+},
+{
+"record_id": "ORIG305",
+"status": "Permitted",
+"name": "443 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4378754,
+37.7737417
+]
+},
+{
+"record_id": "ORIG306",
+"status": "Permitted",
+"name": "443 DIVISADERO ST",
+"address": null,
+"description": null,
+"p": [
+-122.4378754,
+37.7737417
+]
+},
+{
+"record_id": "ORIG307",
+"status": "Permitted",
+"name": "1800 HAIGHT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4522903,
+37.7695601
+]
+},
+{
+"record_id": "ORIG308",
+"status": "Permitted",
+"name": "1800 HAIGHT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4522903,
+37.7695601
+]
+},
+{
+"record_id": "ORIG310",
+"status": "Permitted",
+"name": "901 HAIGHT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.437186,
+37.7710524
+]
+},
+{
+"record_id": "ORIG311",
+"status": "Permitted",
+"name": "901 HAIGHT ST",
+"address": null,
+"description": null,
+"p": [
+-122.437186,
+37.7710524
+]
+},
+{
+"record_id": "ORIG318",
+"status": "Permitted",
+"name": "388 32ND AVE",
+"address": null,
+"description": null,
+"p": [
+-122.492173,
+37.7819355
+]
+},
+{
+"record_id": "ORIG319",
+"status": "Permitted",
+"name": "388 32ND AVE",
+"address": null,
+"description": null,
+"p": [
+-122.492173,
+37.7819355
+]
+},
+{
+"record_id": "ORIG322",
+"status": "Permitted",
+"name": "2132 CLEMENT ST",
+"address": "2132 CLEMENT, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4823036,
+37.7823831
+]
+},
+{
+"record_id": "ORIG324",
+"status": "Permitted",
+"name": "354 CLEMENT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4631502,
+37.7832538
+]
+},
+{
+"record_id": "ORIG326",
+"status": "Permitted",
+"name": "3754 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4598428,
+37.7815295
+]
+},
+{
+"record_id": "ORIG327",
+"status": "Permitted",
+"name": "3836 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4606771,
+37.7814918
+]
+},
+{
+"record_id": "ORIG329",
+"status": "Permitted",
+"name": "4040 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4626143,
+37.7814046
+]
+},
+{
+"record_id": "ORIG33",
+"status": "Permitted",
+"name": "633 BATTERY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4011613,
+37.7971474
+]
+},
+{
+"record_id": "ORIG330",
+"status": "Permitted",
+"name": "4040 GEARY BLVD",
+"address": "4040 GEARY BLVD, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4628292,
+37.7813946
+]
+},
+{
+"record_id": "ORIG331",
+"status": "Permitted",
+"name": "451 CLEMENT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4642296,
+37.782709
+]
+},
+{
+"record_id": "ORIG332",
+"status": "Permitted",
+"name": "4228 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4651554,
+37.7812897
+]
+},
+{
+"record_id": "ORIG333",
+"status": "Permitted",
+"name": "330 07TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4650881,
+37.7818435
+]
+},
+{
+"record_id": "ORIG334",
+"status": "Permitted",
+"name": "321 06TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4646993,
+37.7822058
+]
+},
+{
+"record_id": "ORIG335",
+"status": "Permitted",
+"name": "330 07TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4651275,
+37.7822549
+]
+},
+{
+"record_id": "ORIG337",
+"status": "Permitted",
+"name": "308 08TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4663552,
+37.7826111
+]
+},
+{
+"record_id": "ORIG339",
+"status": "Permitted",
+"name": "4715 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4699714,
+37.780453
+]
+},
+{
+"record_id": "ORIG34",
+"status": "Permitted",
+"name": "712 SANSOME ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4016901,
+37.7971651
+]
+},
+{
+"record_id": "ORIG340",
+"status": "Permitted",
+"name": "5644 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4802377,
+37.780608
+]
+},
+{
+"record_id": "ORIG341",
+"status": "Permitted",
+"name": "5801 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4816624,
+37.7799236
+]
+},
+{
+"record_id": "ORIG348",
+"status": "Permitted",
+"name": "6340 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4876493,
+37.7802686
+]
+},
+{
+"record_id": "ORIG349",
+"status": "Permitted",
+"name": "3055 CLEMENT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4921945,
+37.7814325
+]
+},
+{
+"record_id": "ORIG352",
+"status": "Permitted",
+"name": "6099 GEARY BLVD",
+"address": "6099 GEARY BLVD 94121",
+"description": null,
+"p": [
+-122.4845358,
+37.7797909
+]
+},
+{
+"record_id": "ORIG353",
+"status": "Permitted",
+"name": "6099 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4845358,
+37.7797909
+]
+},
+{
+"record_id": "ORIG354",
+"status": "Permitted",
+"name": "6027 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4841783,
+37.7798072
+]
+},
+{
+"record_id": "ORIG355",
+"status": "Permitted",
+"name": "5339 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4769606,
+37.7802399
+]
+},
+{
+"record_id": "ORIG358",
+"status": "Permitted",
+"name": "4751 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4705052,
+37.7804288
+]
+},
+{
+"record_id": "ORIG36",
+"status": "Permitted",
+"name": "768 SANSOME ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016488,
+37.7973613
+]
+},
+{
+"record_id": "ORIG362",
+"status": "Permitted",
+"name": "401 08TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4665825,
+37.7806062
+]
+},
+{
+"record_id": "ORIG363",
+"status": "Permitted",
+"name": "4201 GEARY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4644814,
+37.7807011
+]
+},
+{
+"record_id": "ORIG366",
+"status": "Permitted",
+"name": "500 BALBOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4642046,
+37.7774721
+]
+},
+{
+"record_id": "ORIG367",
+"status": "Permitted",
+"name": "695 35TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4954129,
+37.7760483
+]
+},
+{
+"record_id": "ORIG368",
+"status": "Permitted",
+"name": "3600 BALBOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4975199,
+37.775919
+]
+},
+{
+"record_id": "ORIG369",
+"status": "Permitted",
+"name": "3950 BALBOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.5014533,
+37.7757704
+]
+},
+{
+"record_id": "ORIG37",
+"status": "Permitted",
+"name": "768 SANSOME ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016488,
+37.7973613
+]
+},
+{
+"record_id": "ORIG371",
+"status": "Permitted",
+"name": "3601 BALBOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4975019,
+37.7754583
+]
+},
+{
+"record_id": "ORIG378",
+"status": "Permitted",
+"name": "2100 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4806771,
+37.7635698
+]
+},
+{
+"record_id": "ORIG379",
+"status": "Permitted",
+"name": "2100 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4806771,
+37.7635698
+]
+},
+{
+"record_id": "ORIG38",
+"status": "Permitted",
+"name": "768 SANSOME ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016488,
+37.7973613
+]
+},
+{
+"record_id": "ORIG380",
+"status": "Permitted",
+"name": "2050 IRVING ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4801558,
+37.7636785
+]
+},
+{
+"record_id": "ORIG381",
+"status": "Permitted",
+"name": "2050 IRVING ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4801558,
+37.7636785
+]
+},
+{
+"record_id": "ORIG382",
+"status": "Permitted",
+"name": "1634 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4756928,
+37.7637889
+]
+},
+{
+"record_id": "ORIG383",
+"status": "Permitted",
+"name": "1352 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4726056,
+37.7639873
+]
+},
+{
+"record_id": "ORIG385",
+"status": "Permitted",
+"name": "600 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4643964,
+37.7643025
+]
+},
+{
+"record_id": "ORIG386",
+"status": "Permitted",
+"name": "622 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4646807,
+37.7643549
+]
+},
+{
+"record_id": "ORIG387",
+"status": "Permitted",
+"name": "622 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4646807,
+37.7643549
+]
+},
+{
+"record_id": "ORIG388",
+"status": "Permitted",
+"name": "951 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.468257,
+37.7637066
+]
+},
+{
+"record_id": "ORIG389",
+"status": "Permitted",
+"name": "2445 IRVING ST",
+"address": null,
+"description": null,
+"p": [
+-122.4843892,
+37.7629943
+]
+},
+{
+"record_id": "ORIG394",
+"status": "Permitted",
+"name": "1844 JUDAH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4666314,
+37.7619077
+]
+},
+{
+"record_id": "ORIG398",
+"status": "Permitted",
+"name": "1800 19TH AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4760854,
+37.7541125
+]
+},
+{
+"record_id": "ORIG399",
+"status": "Permitted",
+"name": "1345 NORIEGA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4783252,
+37.7539543
+]
+},
+{
+"record_id": "ORIG4",
+"status": "Permitted",
+"name": "365 BAY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4130305,
+37.8055123
+]
+},
+{
+"record_id": "ORIG400",
+"status": "Permitted",
+"name": "2454 NORIEGA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4901855,
+37.7538953
+]
+},
+{
+"record_id": "ORIG403",
+"status": "Permitted",
+"name": "3801 NORIEGA ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.5045828,
+37.7527781
+]
+},
+{
+"record_id": "ORIG408",
+"status": "Permitted",
+"name": "2100 TARAVAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4887427,
+37.7427236
+]
+},
+{
+"record_id": "ORIG409",
+"status": "Permitted",
+"name": "2254 TARAVAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4905323,
+37.7426448
+]
+},
+{
+"record_id": "ORIG414",
+"status": "Permitted",
+"name": "2055 TARAVAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4883528,
+37.7422457
+]
+},
+{
+"record_id": "ORIG42",
+"status": "Permitted",
+"name": "768 SANSOME ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016488,
+37.7973613
+]
+},
+{
+"record_id": "ORIG421",
+"status": "Permitted",
+"name": "260 WEST PORTAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4689287,
+37.7384785
+]
+},
+{
+"record_id": "ORIG422",
+"status": "Permitted",
+"name": "372 WEST PORTAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4704271,
+37.7372023
+]
+},
+{
+"record_id": "ORIG423",
+"status": "Permitted",
+"name": "398 WEST PORTAL AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4706601,
+37.7369548
+]
+},
+{
+"record_id": "ORIG424",
+"status": "Permitted",
+"name": "840 ULLOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4653245,
+37.7409083
+]
+},
+{
+"record_id": "ORIG425",
+"status": "Permitted",
+"name": "840 ULLOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4653245,
+37.7409083
+]
+},
+{
+"record_id": "ORIG426",
+"status": "Permitted",
+"name": "840 ULLOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4653245,
+37.7409083
+]
+},
+{
+"record_id": "ORIG427",
+"status": "Permitted",
+"name": "840 ULLOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4653245,
+37.7409083
+]
+},
+{
+"record_id": "ORIG429",
+"status": "Permitted",
+"name": "807 ULLOA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4654341,
+37.740517
+]
+},
+{
+"record_id": "ORIG43",
+"status": "Permitted",
+"name": "126 COLUMBUS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4046729,
+37.7966706
+]
+},
+{
+"record_id": "ORIG430",
+"status": "Permitted",
+"name": "160 WEST PORTAL AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.467974,
+37.739298
+]
+},
+{
+"record_id": "ORIG431",
+"status": "Permitted",
+"name": "195 WEST PORTAL AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4677022,
+37.7387258
+]
+},
+{
+"record_id": "ORIG432",
+"status": "Permitted",
+"name": "195 WEST PORTAL AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4677022,
+37.7387258
+]
+},
+{
+"record_id": "ORIG435",
+"status": "Permitted",
+"name": "597 MONTEREY BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4487183,
+37.7312695
+]
+},
+{
+"record_id": "ORIG439",
+"status": "Permitted",
+"name": "1344 OCEAN AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4571479,
+37.7243556
+]
+},
+{
+"record_id": "ORIG445",
+"status": "Permitted",
+"name": "1944 OCEAN AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4635424,
+37.7260289
+]
+},
+{
+"record_id": "ORIG446",
+"status": "Permitted",
+"name": "1944 OCEAN AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4635424,
+37.7260289
+]
+},
+{
+"record_id": "ORIG447",
+"status": "Permitted",
+"name": "1809 MARKET ST",
+"address": null,
+"description": null,
+"p": [
+-122.4235335,
+37.771305
+]
+},
+{
+"record_id": "ORIG45",
+"status": "Permitted",
+"name": "1116 STOCKTON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4080617,
+37.7961571
+]
+},
+{
+"record_id": "ORIG453",
+"status": "Permitted",
+"name": "1375 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4153675,
+37.7753677
+]
+},
+{
+"record_id": "ORIG454",
+"status": "Permitted",
+"name": "113 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4153298,
+37.7751758
+]
+},
+{
+"record_id": "ORIG455",
+"status": "Permitted",
+"name": "190 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4149313,
+37.7740744
+]
+},
+{
+"record_id": "ORIG458",
+"status": "Permitted",
+"name": "1522 HOWARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4161694,
+37.7729207
+]
+},
+{
+"record_id": "ORIG46",
+"status": "Permitted",
+"name": "1116 STOCKTON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4080617,
+37.7961571
+]
+},
+{
+"record_id": "ORIG462",
+"status": "Permitted",
+"name": "199 VALENCIA ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4220983,
+37.7700283
+]
+},
+{
+"record_id": "ORIG464",
+"status": "Permitted",
+"name": "165 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4176364,
+37.770965
+]
+},
+{
+"record_id": "ORIG466",
+"status": "Permitted",
+"name": "1695 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4191237,
+37.770494
+]
+},
+{
+"record_id": "ORIG467",
+"status": "Permitted",
+"name": "170 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4182934,
+37.7704563
+]
+},
+{
+"record_id": "ORIG469",
+"status": "Permitted",
+"name": "1601 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4187632,
+37.7720407
+]
+},
+{
+"record_id": "ORIG470",
+"status": "Permitted",
+"name": "1601 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4187632,
+37.7720407
+]
+},
+{
+"record_id": "ORIG471",
+"status": "Permitted",
+"name": "298 11TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4143872,
+37.7718866
+]
+},
+{
+"record_id": "ORIG472",
+"status": "Permitted",
+"name": "298 11TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4143872,
+37.7718866
+]
+},
+{
+"record_id": "ORIG479",
+"status": "Permitted",
+"name": "291 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4129036,
+37.7732137
+]
+},
+{
+"record_id": "ORIG482",
+"status": "Permitted",
+"name": "1375 HOWARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4136459,
+37.7742598
+]
+},
+{
+"record_id": "ORIG485",
+"status": "Permitted",
+"name": "1354 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4109243,
+37.7722018
+]
+},
+{
+"record_id": "ORIG486",
+"status": "Permitted",
+"name": "1374 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4112983,
+37.7719064
+]
+},
+{
+"record_id": "ORIG487",
+"status": "Permitted",
+"name": "385 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.411463,
+37.7720378
+]
+},
+{
+"record_id": "ORIG488",
+"status": "Permitted",
+"name": "1379 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4124097,
+37.772793
+]
+},
+{
+"record_id": "ORIG489",
+"status": "Permitted",
+"name": "1401 FOLSOM ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4127745,
+37.7724968
+]
+},
+{
+"record_id": "ORIG49",
+"status": "Permitted",
+"name": "1241 POWELL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4102417,
+37.7962103
+]
+},
+{
+"record_id": "ORIG491",
+"status": "Permitted",
+"name": "1609 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4148486,
+37.7706017
+]
+},
+{
+"record_id": "ORIG492",
+"status": "Permitted",
+"name": "1601 FOLSOM ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4148105,
+37.7706547
+]
+},
+{
+"record_id": "ORIG493",
+"status": "Permitted",
+"name": "1610 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4135432,
+37.7697717
+]
+},
+{
+"record_id": "ORIG498",
+"status": "Permitted",
+"name": "1689 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4152253,
+37.7698262
+]
+},
+{
+"record_id": "ORIG5",
+"status": "Permitted",
+"name": "383 BAY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4133277,
+37.8053914
+]
+},
+{
+"record_id": "ORIG50",
+"status": "Permitted",
+"name": "911 PACIFIC AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4103553,
+37.7963105
+]
+},
+{
+"record_id": "ORIG503",
+"status": "Permitted",
+"name": "1615 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4148805,
+37.7705461
+]
+},
+{
+"record_id": "ORIG504",
+"status": "Permitted",
+"name": "428 11TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4118967,
+37.7697775
+]
+},
+{
+"record_id": "ORIG505",
+"status": "Permitted",
+"name": "428 11TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4118967,
+37.7697775
+]
+},
+{
+"record_id": "ORIG506",
+"status": "Permitted",
+"name": "465 10TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4100536,
+37.7709524
+]
+},
+{
+"record_id": "ORIG510",
+"status": "Permitted",
+"name": "1000 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4076183,
+37.7700695
+]
+},
+{
+"record_id": "ORIG512",
+"status": "Permitted",
+"name": "1701 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4152369,
+37.7693842
+]
+},
+{
+"record_id": "ORIG515",
+"status": "Permitted",
+"name": "1776 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4159674,
+37.7687776
+]
+},
+{
+"record_id": "ORIG516",
+"status": "Permitted",
+"name": "245 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4174569,
+37.7693818
+]
+},
+{
+"record_id": "ORIG519",
+"status": "Permitted",
+"name": "250 14TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4187399,
+37.7685917
+]
+},
+{
+"record_id": "ORIG521",
+"status": "Permitted",
+"name": "1798 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4203146,
+37.768478
+]
+},
+{
+"record_id": "ORIG532",
+"status": "Permitted",
+"name": "301 VALENCIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4219019,
+37.7679318
+]
+},
+{
+"record_id": "ORIG534",
+"status": "Permitted",
+"name": "398 SOUTH VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4179342,
+37.7670007
+]
+},
+{
+"record_id": "ORIG535",
+"status": "Permitted",
+"name": "398 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4179342,
+37.7670007
+]
+},
+{
+"record_id": "ORIG541",
+"status": "Permitted",
+"name": "333 SOUTH VAN NESS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4173896,
+37.7679141
+]
+},
+{
+"record_id": "ORIG544",
+"status": "Permitted",
+"name": "1835 FOLSOM ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4151047,
+37.767939
+]
+},
+{
+"record_id": "ORIG558",
+"status": "Permitted",
+"name": "2283 MARKET ST",
+"address": null,
+"description": null,
+"p": [
+-122.4323617,
+37.7644538
+]
+},
+{
+"record_id": "ORIG560",
+"status": "Permitted",
+"name": "2298 MARKET ST",
+"address": null,
+"description": null,
+"p": [
+-122.4329443,
+37.7646568
+]
+},
+{
+"record_id": "ORIG566",
+"status": "Permitted",
+"name": "2099 FOLSOM ST",
+"address": "2099 FOLSOM ST 94110",
+"description": null,
+"p": [
+-122.414915,
+37.7638656
+]
+},
+{
+"record_id": "ORIG568",
+"status": "Permitted",
+"name": "2130 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4132115,
+37.762815
+]
+},
+{
+"record_id": "ORIG569",
+"status": "Permitted",
+"name": "3100 18TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4131103,
+37.7623977
+]
+},
+{
+"record_id": "ORIG571",
+"status": "Permitted",
+"name": "697 SOUTH VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4169113,
+37.7621517
+]
+},
+{
+"record_id": "ORIG572",
+"status": "Permitted",
+"name": "697 SOUTH VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4169113,
+37.7621517
+]
+},
+{
+"record_id": "ORIG573",
+"status": "Permitted",
+"name": "697 SOUTH VAN NESS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4169113,
+37.7621517
+]
+},
+{
+"record_id": "ORIG577",
+"status": "Permitted",
+"name": "2101 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4190095,
+37.7631746
+]
+},
+{
+"record_id": "ORIG578",
+"status": "Permitted",
+"name": "2126 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4197436,
+37.7628899
+]
+},
+{
+"record_id": "ORIG579",
+"status": "Permitted",
+"name": "2176 MISSION ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4196742,
+37.7621401
+]
+},
+{
+"record_id": "ORIG593",
+"status": "Permitted",
+"name": "2351 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4185442,
+37.7592403
+]
+},
+{
+"record_id": "ORIG6",
+"status": "Permitted",
+"name": "383 BAY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4133277,
+37.8053914
+]
+},
+{
+"record_id": "ORIG600",
+"status": "Permitted",
+"name": "901 VALENCIA ST",
+"address": null,
+"description": "na",
+"p": [
+-122.4209584,
+37.7583514
+]
+},
+{
+"record_id": "ORIG611",
+"status": "Permitted",
+"name": "6 07TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4123997,
+37.7800714
+]
+},
+{
+"record_id": "ORIG615",
+"status": "Permitted",
+"name": "20 06TH ST",
+"address": null,
+"description": "ORIG615",
+"p": [
+-122.4101903,
+37.7816494
+]
+},
+{
+"record_id": "ORIG616",
+"status": "Permitted",
+"name": "1018 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4094523,
+37.780704
+]
+},
+{
+"record_id": "ORIG618",
+"status": "Permitted",
+"name": "948 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4078592,
+37.7820562
+]
+},
+{
+"record_id": "ORIG619",
+"status": "Permitted",
+"name": "972 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4083633,
+37.7817067
+]
+},
+{
+"record_id": "ORIG62",
+"status": "Permitted",
+"name": "42 COLUMBUS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4040102,
+37.7962219
+]
+},
+{
+"record_id": "ORIG620",
+"status": "Permitted",
+"name": "481 JESSIE ST",
+"address": null,
+"description": null,
+"p": [
+-122.4086452,
+37.7814838
+]
+},
+{
+"record_id": "ORIG621",
+"status": "Permitted",
+"name": "47 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4092224,
+37.781687
+]
+},
+{
+"record_id": "ORIG622",
+"status": "Permitted",
+"name": "47 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4092224,
+37.781687
+]
+},
+{
+"record_id": "ORIG623",
+"status": "Permitted",
+"name": "22 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.4011884,
+37.7887705
+]
+},
+{
+"record_id": "ORIG624",
+"status": "Permitted",
+"name": "51 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.4024008,
+37.7871732
+]
+},
+{
+"record_id": "ORIG626",
+"status": "Permitted",
+"name": "60 SPEAR ST",
+"address": "100 MISSION ST 94105",
+"description": "GA Sign",
+"p": [
+-122.3945932,
+37.792536
+]
+},
+{
+"record_id": "ORIG631",
+"status": "Permitted",
+"name": "1 MARKET ST",
+"address": "1 MARKET ST, SAN FRANCISCO, CA ",
+"description": "Removed per photos provided by sign company.",
+"p": [
+-122.3942333,
+37.7933707
+]
+},
+{
+"record_id": "ORIG633",
+"status": "Permitted",
+"name": "121 STEUART ST",
+"address": "121 Steuart ST, SAN FRANCISCO, CA 94105",
+"description": null,
+"p": [
+-122.3925414,
+37.7931455
+]
+},
+{
+"record_id": "ORIG634",
+"status": "Permitted",
+"name": "121 STEUART ST",
+"address": "121 Steuart ST, SAN FRANCISCO, CA 94",
+"description": null,
+"p": [
+-122.3925414,
+37.7931455
+]
+},
+{
+"record_id": "ORIG64",
+"status": "Permitted",
+"name": "423 WASHINGTON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4007554,
+37.7956935
+]
+},
+{
+"record_id": "ORIG647",
+"status": "Permitted",
+"name": "530 HOWARD ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.397018,
+37.788028
+]
+},
+{
+"record_id": "ORIG648",
+"status": "Permitted",
+"name": "545 MISSION ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.3983271,
+37.7886856
+]
+},
+{
+"record_id": "ORIG655",
+"status": "Permitted",
+"name": "106 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4086619,
+37.7806303
+]
+},
+{
+"record_id": "ORIG656",
+"status": "Permitted",
+"name": "106 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4086619,
+37.7806303
+]
+},
+{
+"record_id": "ORIG659",
+"status": "Permitted",
+"name": "138 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4082468,
+37.7801855
+]
+},
+{
+"record_id": "ORIG661",
+"status": "Permitted",
+"name": "1083 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4103275,
+37.7793636
+]
+},
+{
+"record_id": "ORIG663",
+"status": "Permitted",
+"name": "114 07TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4109187,
+37.778766
+]
+},
+{
+"record_id": "ORIG664",
+"status": "Permitted",
+"name": "1187 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4126765,
+37.7775181
+]
+},
+{
+"record_id": "ORIG665",
+"status": "Permitted",
+"name": "1199 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4128283,
+37.7774745
+]
+},
+{
+"record_id": "ORIG666",
+"status": "Permitted",
+"name": "1201 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4131818,
+37.7771157
+]
+},
+{
+"record_id": "ORIG667",
+"status": "Permitted",
+"name": "1201 MISSION ST",
+"address": null,
+"description": null,
+"p": [
+-122.4131818,
+37.7771157
+]
+},
+{
+"record_id": "ORIG669",
+"status": "Permitted",
+"name": "290 07TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4082399,
+37.7767436
+]
+},
+{
+"record_id": "ORIG67",
+"status": "Permitted",
+"name": "1408 CALIFORNIA ST",
+"address": null,
+"description": null,
+"p": [
+-122.417704,
+37.7911762
+]
+},
+{
+"record_id": "ORIG670",
+"status": "Permitted",
+"name": "1188 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.41005,
+37.7754722
+]
+},
+{
+"record_id": "ORIG671",
+"status": "Permitted",
+"name": "219 07TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4087943,
+37.7778468
+]
+},
+{
+"record_id": "ORIG672",
+"status": "Permitted",
+"name": "1086 FOLSOM ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4077093,
+37.7771638
+]
+},
+{
+"record_id": "ORIG673",
+"status": "Permitted",
+"name": "230 05TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4046747,
+37.7809866
+]
+},
+{
+"record_id": "ORIG674",
+"status": "Permitted",
+"name": "230 05TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4046747,
+37.7809866
+]
+},
+{
+"record_id": "ORIG675",
+"status": "Permitted",
+"name": "998 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4055936,
+37.7788085
+]
+},
+{
+"record_id": "ORIG676",
+"status": "Permitted",
+"name": "998 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4055936,
+37.7788085
+]
+},
+{
+"record_id": "ORIG68",
+"status": "Permitted",
+"name": "1029 HYDE ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.417608,
+37.7904252
+]
+},
+{
+"record_id": "ORIG682",
+"status": "Permitted",
+"name": "380 CLEMENTINA ST",
+"address": null,
+"description": null,
+"p": [
+-122.4036695,
+37.7811198
+]
+},
+{
+"record_id": "ORIG685",
+"status": "Permitted",
+"name": "205 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3977408,
+37.7866969
+]
+},
+{
+"record_id": "ORIG686",
+"status": "Permitted",
+"name": "577 HOWARD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3974821,
+37.7870555
+]
+},
+{
+"record_id": "ORIG69",
+"status": "Permitted",
+"name": "1029 HYDE ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.417608,
+37.7904252
+]
+},
+{
+"record_id": "ORIG698",
+"status": "Permitted",
+"name": "450 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.3927036,
+37.7866754
+]
+},
+{
+"record_id": "ORIG7",
+"status": "Permitted",
+"name": "1000 COLUMBUS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4151072,
+37.8038979
+]
+},
+{
+"record_id": "ORIG70",
+"status": "Permitted",
+"name": "500 GRANT AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4056052,
+37.7916353
+]
+},
+{
+"record_id": "ORIG701",
+"status": "Permitted",
+"name": "674 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3970626,
+37.7831548
+]
+},
+{
+"record_id": "ORIG704",
+"status": "Permitted",
+"name": "397 05TH ST",
+"address": "397 05TH ST, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4019159,
+37.7793854
+]
+},
+{
+"record_id": "ORIG706",
+"status": "Permitted",
+"name": "397 05TH ST",
+"address": "397 05TH ST, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.4019159,
+37.7793854
+]
+},
+{
+"record_id": "ORIG709",
+"status": "Permitted",
+"name": "396 05TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4021771,
+37.7789909
+]
+},
+{
+"record_id": "ORIG710",
+"status": "Permitted",
+"name": "910 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4024877,
+37.7789951
+]
+},
+{
+"record_id": "ORIG714",
+"status": "Permitted",
+"name": "301 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4050864,
+37.7784419
+]
+},
+{
+"record_id": "ORIG715",
+"status": "Permitted",
+"name": "301 06TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4050864,
+37.7784419
+]
+},
+{
+"record_id": "ORIG716",
+"status": "Permitted",
+"name": "301 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4050864,
+37.7784419
+]
+},
+{
+"record_id": "ORIG718",
+"status": "Permitted",
+"name": "1098 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4060826,
+37.7760407
+]
+},
+{
+"record_id": "ORIG719",
+"status": "Permitted",
+"name": "1098 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4060826,
+37.7760407
+]
+},
+{
+"record_id": "ORIG721",
+"status": "Permitted",
+"name": "1118 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4069256,
+37.7753347
+]
+},
+{
+"record_id": "ORIG724",
+"status": "Permitted",
+"name": "397 08TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.408491,
+37.7740169
+]
+},
+{
+"record_id": "ORIG726",
+"status": "Permitted",
+"name": "1227 FOLSOM ST",
+"address": null,
+"description": null,
+"p": [
+-122.4103584,
+37.7744244
+]
+},
+{
+"record_id": "ORIG727",
+"status": "Permitted",
+"name": "1201 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4084785,
+37.7733447
+]
+},
+{
+"record_id": "ORIG728",
+"status": "Permitted",
+"name": "1201 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4084785,
+37.7733447
+]
+},
+{
+"record_id": "ORIG73",
+"status": "Permitted",
+"name": "200 PINE ST",
+"address": null,
+"description": null,
+"p": [
+-122.4001483,
+37.7923668
+]
+},
+{
+"record_id": "ORIG730",
+"status": "Permitted",
+"name": "1000 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4073359,
+37.7724928
+]
+},
+{
+"record_id": "ORIG731",
+"status": "Permitted",
+"name": "1000 BRYANT ST",
+"address": null,
+"description": "General Advertising Signs",
+"p": [
+-122.4073359,
+37.7724928
+]
+},
+{
+"record_id": "ORIG735",
+"status": "Permitted",
+"name": "1155 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4073482,
+37.7744082
+]
+},
+{
+"record_id": "ORIG736",
+"status": "Permitted",
+"name": "1155 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4073482,
+37.7744082
+]
+},
+{
+"record_id": "ORIG741",
+"status": "Permitted",
+"name": "420 05TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016927,
+37.7785841
+]
+},
+{
+"record_id": "ORIG742",
+"status": "Permitted",
+"name": "420 05TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4016927,
+37.7785841
+]
+},
+{
+"record_id": "ORIG745",
+"status": "Permitted",
+"name": "760 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.4019791,
+37.7769195
+]
+},
+{
+"record_id": "ORIG746",
+"status": "Permitted",
+"name": "971 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4031651,
+37.7776347
+]
+},
+{
+"record_id": "ORIG747",
+"status": "Permitted",
+"name": "971 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4031651,
+37.7776347
+]
+},
+{
+"record_id": "ORIG748",
+"status": "Permitted",
+"name": "50 MORRIS ST",
+"address": null,
+"description": null,
+"p": [
+-122.4025189,
+37.7771047
+]
+},
+{
+"record_id": "ORIG749",
+"status": "Permitted",
+"name": "975 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.403399,
+37.7774675
+]
+},
+{
+"record_id": "ORIG75",
+"status": "Permitted",
+"name": "22 BATTERY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3993634,
+37.7915758
+]
+},
+{
+"record_id": "ORIG750",
+"status": "Permitted",
+"name": "451 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4029656,
+37.7768372
+]
+},
+{
+"record_id": "ORIG751",
+"status": "Permitted",
+"name": "451 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4029656,
+37.7768372
+]
+},
+{
+"record_id": "ORIG752",
+"status": "Permitted",
+"name": "925 HARRISON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4022448,
+37.7783659
+]
+},
+{
+"record_id": "ORIG753",
+"status": "Permitted",
+"name": "851 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4005421,
+37.7797177
+]
+},
+{
+"record_id": "ORIG754",
+"status": "Permitted",
+"name": "851 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4005421,
+37.7797177
+]
+},
+{
+"record_id": "ORIG755",
+"status": "Permitted",
+"name": "660 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.3995605,
+37.7787475
+]
+},
+{
+"record_id": "ORIG756",
+"status": "Permitted",
+"name": "400 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3973318,
+37.7822011
+]
+},
+{
+"record_id": "ORIG759",
+"status": "Permitted",
+"name": "145 STILLMAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3972405,
+37.7808339
+]
+},
+{
+"record_id": "ORIG760",
+"status": "Permitted",
+"name": "145 STILLMAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3972405,
+37.7808339
+]
+},
+{
+"record_id": "ORIG761",
+"status": "Permitted",
+"name": "130 PERRY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3977373,
+37.7816425
+]
+},
+{
+"record_id": "ORIG762",
+"status": "Permitted",
+"name": "130 PERRY ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3977373,
+37.7816425
+]
+},
+{
+"record_id": "ORIG763",
+"status": "Permitted",
+"name": "425 04TH ST",
+"address": null,
+"description": "ORIG763 - GA Sign located at 425 04th St",
+"p": [
+-122.3988356,
+37.7809391
+]
+},
+{
+"record_id": "ORIG764",
+"status": "Permitted",
+"name": "425 04TH ST",
+"address": null,
+"description": "ORIG764 - GA Sign located at 425 04th St",
+"p": [
+-122.3988356,
+37.7809391
+]
+},
+{
+"record_id": "ORIG768",
+"status": "Permitted",
+"name": "759 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3984801,
+37.7813588
+]
+},
+{
+"record_id": "ORIG769",
+"status": "Permitted",
+"name": "759 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3984801,
+37.7813588
+]
+},
+{
+"record_id": "ORIG77",
+"status": "Permitted",
+"name": "333 KEARNY ST",
+"address": "333 KEARNY ST, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.40435,
+37.7913151
+]
+},
+{
+"record_id": "ORIG770",
+"status": "Permitted",
+"name": "759 HARRISON ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3984801,
+37.7813588
+]
+},
+{
+"record_id": "ORIG771",
+"status": "Permitted",
+"name": "460 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.3951993,
+37.7822864
+]
+},
+{
+"record_id": "ORIG772",
+"status": "Permitted",
+"name": "460 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.3951993,
+37.7822864
+]
+},
+{
+"record_id": "ORIG775",
+"status": "Permitted",
+"name": "425 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3944145,
+37.7841299
+]
+},
+{
+"record_id": "ORIG778",
+"status": "Permitted",
+"name": "575 HARRISON ST",
+"address": "575 HARRISON ST, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.3943806,
+37.7844205
+]
+},
+{
+"record_id": "ORIG780",
+"status": "Permitted",
+"name": "430 MAIN ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3900548,
+37.7875169
+]
+},
+{
+"record_id": "ORIG781",
+"status": "Permitted",
+"name": "333 BRYANT ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3920631,
+37.7838343
+]
+},
+{
+"record_id": "ORIG782",
+"status": "Permitted",
+"name": "555 02ND ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3925591,
+37.7825555
+]
+},
+{
+"record_id": "ORIG783",
+"status": "Permitted",
+"name": "274 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3917655,
+37.7826275
+]
+},
+{
+"record_id": "ORIG786",
+"status": "Permitted",
+"name": "539 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.3967437,
+37.7801338
+]
+},
+{
+"record_id": "ORIG787",
+"status": "Permitted",
+"name": "539 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.3967437,
+37.7801338
+]
+},
+{
+"record_id": "ORIG789",
+"status": "Permitted",
+"name": "490 BRANNAN ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3964444,
+37.7788631
+]
+},
+{
+"record_id": "ORIG790",
+"status": "Permitted",
+"name": "560 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3981899,
+37.7774787
+]
+},
+{
+"record_id": "ORIG793",
+"status": "Permitted",
+"name": "565 06TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4013075,
+37.7754641
+]
+},
+{
+"record_id": "ORIG794",
+"status": "Permitted",
+"name": "504 06TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4024985,
+37.7755969
+]
+},
+{
+"record_id": "ORIG796",
+"status": "Permitted",
+"name": "885 BRYANT ST",
+"address": null,
+"description": "GA Sign",
+"p": [
+-122.4041261,
+37.7744596
+]
+},
+{
+"record_id": "ORIG799",
+"status": "Permitted",
+"name": "548 07TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4044025,
+37.7736863
+]
+},
+{
+"record_id": "ORIG8",
+"status": "Permitted",
+"name": "750 COLUMBUS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4120425,
+37.8017749
+]
+},
+{
+"record_id": "ORIG800",
+"status": "Permitted",
+"name": "548 07TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4044025,
+37.7736863
+]
+},
+{
+"record_id": "ORIG802",
+"status": "Permitted",
+"name": "541 08TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4060917,
+37.7722261
+]
+},
+{
+"record_id": "ORIG803",
+"status": "Permitted",
+"name": "17 DECATUR ST",
+"address": null,
+"description": null,
+"p": [
+-122.4061585,
+37.7727048
+]
+},
+{
+"record_id": "ORIG804",
+"status": "Permitted",
+"name": "680 08TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4047193,
+37.770128
+]
+},
+{
+"record_id": "ORIG805",
+"status": "Permitted",
+"name": "680 08TH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4047193,
+37.770128
+]
+},
+{
+"record_id": "ORIG806",
+"status": "Permitted",
+"name": "650 08TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4055326,
+37.7700705
+]
+},
+{
+"record_id": "ORIG807",
+"status": "Permitted",
+"name": "650 08TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4055326,
+37.7700705
+]
+},
+{
+"record_id": "ORIG810",
+"status": "Permitted",
+"name": "713 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4011917,
+37.7743269
+]
+},
+{
+"record_id": "ORIG813",
+"status": "Permitted",
+"name": "649 BRANNAN ST",
+"address": null,
+"description": null,
+"p": [
+-122.3990526,
+37.7753824
+]
+},
+{
+"record_id": "ORIG814",
+"status": "Permitted",
+"name": "660 04TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.3962406,
+37.7777277
+]
+},
+{
+"record_id": "ORIG815",
+"status": "Permitted",
+"name": "310 TOWNSEND ST",
+"address": "310 TOWNSEND ST, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.3955766,
+37.7769108
+]
+},
+{
+"record_id": "ORIG816",
+"status": "Permitted",
+"name": "350 TOWNSEND ST",
+"address": null,
+"description": null,
+"p": [
+-122.396506,
+37.7762708
+]
+},
+{
+"record_id": "ORIG819",
+"status": "Permitted",
+"name": "679 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3928955,
+37.7792858
+]
+},
+{
+"record_id": "ORIG82",
+"status": "Permitted",
+"name": "427 STOCKTON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4072942,
+37.7900013
+]
+},
+{
+"record_id": "ORIG821",
+"status": "Permitted",
+"name": "650 02ND ST",
+"address": null,
+"description": null,
+"p": [
+-122.3915584,
+37.78096
+]
+},
+{
+"record_id": "ORIG83",
+"status": "Permitted",
+"name": "251 KEARNY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4042292,
+37.7905485
+]
+},
+{
+"record_id": "ORIG831",
+"status": "Permitted",
+"name": "101 UTAH ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4063106,
+37.7678825
+]
+},
+{
+"record_id": "ORIG833",
+"status": "Permitted",
+"name": "1686 BRYANT ST",
+"address": null,
+"description": null,
+"p": [
+-122.410831,
+37.7658096
+]
+},
+{
+"record_id": "ORIG846",
+"status": "Permitted",
+"name": "447 POTRERO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4070145,
+37.763839
+]
+},
+{
+"record_id": "ORIG847",
+"status": "Permitted",
+"name": "401 POTRERO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4070583,
+37.764285
+]
+},
+{
+"record_id": "ORIG848",
+"status": "Permitted",
+"name": "2085 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3884823,
+37.7632991
+]
+},
+{
+"record_id": "ORIG85",
+"status": "Permitted",
+"name": "445 SUTTER ST",
+"address": null,
+"description": null,
+"p": [
+-122.4078585,
+37.789031
+]
+},
+{
+"record_id": "ORIG850",
+"status": "Permitted",
+"name": "593 POTRERO AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4068538,
+37.7620897
+]
+},
+{
+"record_id": "ORIG862",
+"status": "Permitted",
+"name": "801 MINNESOTA ST",
+"address": null,
+"description": null,
+"p": [
+-122.3899468,
+37.7601864
+]
+},
+{
+"record_id": "ORIG863",
+"status": "Permitted",
+"name": "801 MINNESOTA ST",
+"address": null,
+"description": null,
+"p": [
+-122.3899468,
+37.7601864
+]
+},
+{
+"record_id": "ORIG87",
+"status": "Permitted",
+"name": "456 POST ST",
+"address": null,
+"description": null,
+"p": [
+-122.4093675,
+37.7884571
+]
+},
+{
+"record_id": "ORIG877",
+"status": "Permitted",
+"name": "1069 PENNSYLVANIA AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3923385,
+37.752975
+]
+},
+{
+"record_id": "ORIG88",
+"status": "Permitted",
+"name": "686 POST ST",
+"address": null,
+"description": null,
+"p": [
+-122.4130691,
+37.7878843
+]
+},
+{
+"record_id": "ORIG881",
+"status": "Permitted",
+"name": "1495 TENNESSEE ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3885016,
+37.7531585
+]
+},
+{
+"record_id": "ORIG886",
+"status": "Permitted",
+"name": "1435 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4038743,
+37.7507533
+]
+},
+{
+"record_id": "ORIG888",
+"status": "Permitted",
+"name": "2300 26TH ST",
+"address": null,
+"description": null,
+"p": [
+-122.4025423,
+37.7508367
+]
+},
+{
+"record_id": "ORIG889",
+"status": "Permitted",
+"name": "1800 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3956405,
+37.750023
+]
+},
+{
+"record_id": "ORIG890",
+"status": "Permitted",
+"name": "1800 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3956405,
+37.750023
+]
+},
+{
+"record_id": "ORIG897",
+"status": "Permitted",
+"name": "2935 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3872111,
+37.7520562
+]
+},
+{
+"record_id": "ORIG898",
+"status": "Permitted",
+"name": "2590 MARIN ST",
+"address": null,
+"description": null,
+"p": [
+-122.4032006,
+37.7483758
+]
+},
+{
+"record_id": "ORIG9",
+"status": "Permitted",
+"name": "659 COLUMBUS AVE",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4114162,
+37.8008923
+]
+},
+{
+"record_id": "ORIG900",
+"status": "Permitted",
+"name": "2305 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3988886,
+37.7490139
+]
+},
+{
+"record_id": "ORIG901",
+"status": "Permitted",
+"name": "2305 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3988886,
+37.7490139
+]
+},
+{
+"record_id": "ORIG902",
+"status": "Permitted",
+"name": "2305 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3988886,
+37.7490139
+]
+},
+{
+"record_id": "ORIG903",
+"status": "Permitted",
+"name": "2305 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3988886,
+37.7490139
+]
+},
+{
+"record_id": "ORIG904",
+"status": "Permitted",
+"name": "2398 JERROLD AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4030815,
+37.74738
+]
+},
+{
+"record_id": "ORIG906",
+"status": "Permitted",
+"name": "1300 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3894605,
+37.7499917
+]
+},
+{
+"record_id": "ORIG907",
+"status": "Permitted",
+"name": "1300 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3894605,
+37.7499917
+]
+},
+{
+"record_id": "ORIG908",
+"status": "Permitted",
+"name": "1300 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3894605,
+37.7499917
+]
+},
+{
+"record_id": "ORIG909",
+"status": "Permitted",
+"name": "1300 CESAR CHAVEZ ST",
+"address": null,
+"description": null,
+"p": [
+-122.3894605,
+37.7499917
+]
+},
+{
+"record_id": "ORIG910",
+"status": "Permitted",
+"name": "3101 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3873029,
+37.7501354
+]
+},
+{
+"record_id": "ORIG911",
+"status": "Permitted",
+"name": "3101 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3873029,
+37.7501354
+]
+},
+{
+"record_id": "ORIG921",
+"status": "Permitted",
+"name": "6245 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.395606,
+37.7217019
+]
+},
+{
+"record_id": "ORIG93",
+"status": "Permitted",
+"name": "132 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4057436,
+37.7879371
+]
+},
+{
+"record_id": "ORIG931",
+"status": "Permitted",
+"name": "2246 JERROLD AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4000824,
+37.7456723
+]
+},
+{
+"record_id": "ORIG932",
+"status": "Permitted",
+"name": "1859 EVANS ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3938235,
+37.7450971
+]
+},
+{
+"record_id": "ORIG933",
+"status": "Permitted",
+"name": "1801 EVANS ST",
+"address": null,
+"description": null,
+"p": [
+-122.3930769,
+37.7445912
+]
+},
+{
+"record_id": "ORIG934",
+"status": "Permitted",
+"name": "1801 EVANS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.3930769,
+37.7445912
+]
+},
+{
+"record_id": "ORIG94",
+"status": "Permitted",
+"name": "234 STOCKTON ST",
+"address": null,
+"description": null,
+"p": [
+-122.4064754,
+37.7881917
+]
+},
+{
+"record_id": "ORIG945",
+"status": "Permitted",
+"name": "4442 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3900309,
+37.7376417
+]
+},
+{
+"record_id": "ORIG946",
+"status": "Permitted",
+"name": "4517 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3898225,
+37.7365597
+]
+},
+{
+"record_id": "ORIG947",
+"status": "Permitted",
+"name": "4517 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3898225,
+37.7365597
+]
+},
+{
+"record_id": "ORIG948",
+"status": "Permitted",
+"name": "4517 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3898225,
+37.7365597
+]
+},
+{
+"record_id": "ORIG949",
+"status": "Permitted",
+"name": "4517 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3898225,
+37.7365597
+]
+},
+{
+"record_id": "ORIG95",
+"status": "Permitted",
+"name": "260 STOCKTON ST",
+"address": null,
+"description": null,
+"p": [
+-122.406501,
+37.7883186
+]
+},
+{
+"record_id": "ORIG957",
+"status": "Permitted",
+"name": "141 INDUSTRIAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4022717,
+37.7389524
+]
+},
+{
+"record_id": "ORIG958",
+"status": "Permitted",
+"name": "141 INDUSTRIAL ST",
+"address": null,
+"description": null,
+"p": [
+-122.4022717,
+37.7389524
+]
+},
+{
+"record_id": "ORIG959",
+"status": "Permitted",
+"name": "5005 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.391043,
+37.7328407
+]
+},
+{
+"record_id": "ORIG96",
+"status": "Permitted",
+"name": "275 POST ST",
+"address": null,
+"description": null,
+"p": [
+-122.4065174,
+37.7883999
+]
+},
+{
+"record_id": "ORIG966",
+"status": "Permitted",
+"name": "5172 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3923531,
+37.7311623
+]
+},
+{
+"record_id": "ORIG967",
+"status": "Permitted",
+"name": "5263 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3921939,
+37.7296987
+]
+},
+{
+"record_id": "ORIG97",
+"status": "Permitted",
+"name": "12 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4037439,
+37.7881253
+]
+},
+{
+"record_id": "ORIG973",
+"status": "Permitted",
+"name": "5210 03RD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3925565,
+37.7305943
+]
+},
+{
+"record_id": "ORIG974",
+"status": "Permitted",
+"name": "5210 03RD ST",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.3925565,
+37.7305943
+]
+},
+{
+"record_id": "ORIG977",
+"status": "Permitted",
+"name": "5288 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3929013,
+37.7295261
+]
+},
+{
+"record_id": "ORIG979",
+"status": "Permitted",
+"name": "WILLIAMS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.395724,
+37.7294355
+]
+},
+{
+"record_id": "ORIG98",
+"status": "Permitted",
+"name": "12 GEARY ST",
+"address": null,
+"description": null,
+"p": [
+-122.4037439,
+37.7881253
+]
+},
+{
+"record_id": "ORIG980",
+"status": "Permitted",
+"name": "WILLIAMS AVE",
+"address": null,
+"description": null,
+"p": [
+-122.3962163,
+37.7279203
+]
+},
+{
+"record_id": "ORIG981",
+"status": "Permitted",
+"name": "WILLIAMS AVE",
+"address": "111 WILLIAMS AVE, SAN FRANCISCO, CA ",
+"description": null,
+"p": [
+-122.3962163,
+37.7279203
+]
+},
+{
+"record_id": "ORIG982",
+"status": "Permitted",
+"name": "1670 ARMSTRONG AVE",
+"address": null,
+"description": null,
+"p": [
+-122.3937067,
+37.7272726
+]
+},
+{
+"record_id": "ORIG983",
+"status": "Permitted",
+"name": "1575 BAYSHORE BLVD",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4006526,
+37.7250243
+]
+},
+{
+"record_id": "ORIG984",
+"status": "Permitted",
+"name": "1575 BAYSHORE BLVD",
+"address": null,
+"description": "General Advertising Sign",
+"p": [
+-122.4006526,
+37.7250243
+]
+},
+{
+"record_id": "ORIG985",
+"status": "Permitted",
+"name": "1575 BAYSHORE BLVD",
+"address": null,
+"description": null,
+"p": [
+-122.4006526,
+37.7250243
+]
+},
+{
+"record_id": "ORIG988",
+"status": "Permitted",
+"name": "5990 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3957661,
+37.7243758
+]
+},
+{
+"record_id": "ORIG989",
+"status": "Permitted",
+"name": "5990 03RD ST",
+"address": null,
+"description": null,
+"p": [
+-122.3957661,
+37.7243758
+]
+},
+{
+"record_id": "ORIG990",
+"status": "Permitted",
+"name": "2491 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4045761,
+37.7306071
+]
+},
+{
+"record_id": "ORIG991",
+"status": "Permitted",
+"name": "2469 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4047619,
+37.7309919
+]
+},
+{
+"record_id": "ORIG992",
+"status": "Permitted",
+"name": "2599 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4038699,
+37.7290184
+]
+},
+{
+"record_id": "ORIG993",
+"status": "Permitted",
+"name": "2599 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4038699,
+37.7290184
+]
+},
+{
+"record_id": "ORIG994",
+"status": "Permitted",
+"name": "2633 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4036615,
+37.7284655
+]
+},
+{
+"record_id": "ORIG995",
+"status": "Permitted",
+"name": "2633 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4036615,
+37.7284655
+]
+},
+{
+"record_id": "ORIG998",
+"status": "Permitted",
+"name": "2695 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4033941,
+37.7278828
+]
+},
+{
+"record_id": "ORIG999",
+"status": "Permitted",
+"name": "2901 SAN BRUNO AVE",
+"address": null,
+"description": null,
+"p": [
+-122.4023021,
+37.7251871
+]
+}
+]
+}

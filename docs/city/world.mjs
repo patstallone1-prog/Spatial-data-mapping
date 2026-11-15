@@ -15,6 +15,7 @@ import {
   fuelPrice, incomeTax, itemTax, jurisdictionAt, newVitals, payrollTax, propertyTax, salesRate, salesTax, shiftTask, storesAt, strikeEnergy,
   strikeWear, tollAmount, transferTax, vehicleFees, vitalsStep, withholding,
 } from "./core.mjs";
+import { clockOf } from "./clock.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
@@ -22,6 +23,7 @@ import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
+import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -69,6 +71,11 @@ export class CityWorld {
     this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
+  //: The game's clock (clock.mjs): a day in 72 real minutes.
+  get clock() { return clockOf(this.R); }
+  //: The game time ``realMs`` of real time from now: how long a ride or a walk takes, on the game's
+  //: clock (a courier's deadline is the real minutes the ride needs, not game minutes).
+  afterReal(realMs) { return this.clock.after(this.now, realMs); }
   id(prefix) { return `${prefix}:${(++this.seq).toString(36)}`; }
   log(kind, data = {}) { const e = { t: this.now, kind, ...data }; this.events.push(e); if (this.events.length > 300) this.events.shift(); return e; }
   treasury(id) { return `treasury:${id}`; }
@@ -430,7 +437,9 @@ export class CityWorld {
       if (this.found.has(found.id)) throw new CityError("someone has picked that up already");
       // Found on the pavement, or a part a crash left in the road.
       const debris = Object.values(this.R.found.debris || {});
-      if (!this.R.found.items.includes(found.item) && !debris.includes(found.item)) throw new CityError("nothing like that lies here");
+      // A box or bag left out on a clear-out day (commerce.outcomes.found_containers) is found too.
+      const boxes = found.box ? this.R.commerce?.outcomes?.found_containers?.kinds || [] : [];
+      if (!this.R.found.items.includes(found.item) && !debris.includes(found.item) && !boxes.includes(found.item)) throw new CityError("nothing like that lies here");
       thing = { id: found.id, item: found.item, qty: 1, x: found.x, z: found.z, found: true };
     }
     if (!thing) throw new CityError("nothing there to pick up");
@@ -557,7 +566,7 @@ export class CityWorld {
     if (c.kg + this.R.items.parcel.kg > c.capacity) throw new CityError("you cannot carry the parcel: put something down");
     const km = metres / 1000;
     p.delivery = { id: this.id("delivery"), from: { id: place.id, name: place.name || null, x: place.x, z: place.z }, to: { id: to.id, name: to.name || null, x: to.x, z: to.z },
-      km, pay: D.base_pay + Math.round(D.pay_per_km * km), taken: this.now, due: this.now + (D.minutes + D.minutes_per_km * km) * 60_000 };
+      km, pay: D.base_pay + Math.round(D.pay_per_km * km), taken: this.now, due: this.afterReal((D.minutes + D.minutes_per_km * km) * 60_000) };
     p.inventory.parcel = (p.inventory.parcel || 0) + 1;
     return { delivery: p.delivery };
   }
@@ -937,13 +946,21 @@ export class CityWorld {
     if (d.wear >= spec.break_j) {
       d.broken = this.now; d.by = pid;
       out.broken = true;
-      // What it breaks into: lumber from wood cut with a saw or an axe, or scrap on the ground.
-      const yields = this.R.tools.kinds[tool]?.yields?.[spec.material];
-      const salvage = yields || this.R.damage.salvage[spec.material];
-      if (salvage && this.R.items[salvage]) {
+      // What it breaks into (commerce.outcomes, lab plan 5): only what you may take -- your own
+      // thing, or a dead tree felled for the forestry task -- yields material (lumber cut with a saw
+      // or an axe). What is not yours yields litter at most (glass on the pavement), never goods.
+      if (target.own) {
+        const yields = this.R.tools.kinds[tool]?.yields?.[spec.material];
+        const salvage = yields || this.R.damage.salvage[spec.material];
+        if (salvage && this.R.items[salvage]) {
+          const id = this.id("item");
+          this.items.set(id, { id, item: salvage, qty: 1 + (target.archetype.startsWith("vegetation.tree") ? 3 : 0), x: target.x + 0.6, z: target.z + 0.4, by: "debris", at: this.now });
+          out.salvage = salvage;
+        }
+      } else if (spec.material === "glass") {
         const id = this.id("item");
-        this.items.set(id, { id, item: salvage, qty: 1 + (target.archetype.startsWith("vegetation.tree") ? 3 : 0), x: target.x + 0.6, z: target.z + 0.4, by: "debris", at: this.now });
-        out.salvage = salvage;
+        this.items.set(id, { id, item: "glass_shards", qty: 1, x: target.x + 0.4, z: target.z + 0.3, by: "litter", at: this.now });
+        out.litter = "glass_shards";
       }
       const seen = Math.max(0, Math.min(5, witnesses | 0));
       if (seen && !target.own) {
@@ -1236,7 +1253,7 @@ export class CityWorld {
       const km = (Math.hypot(from.x - (p.x ?? from.x), from.z - (p.z ?? from.z)) + Math.hypot(to.x - from.x, to.z - from.z)) / 1000;
       t.pay = C.pay_base + Math.round(C.pay_per_km * Math.min(4, km));
       p.delivery = { id: this.id("delivery"), stage: "pickup", task: t.id, from: { id: from.id, name: from.name || null, x: from.x, z: from.z },
-        to: { id: to.id, name: to.name || null, x: to.x, z: to.z }, km, pay: t.pay, taken: this.now, due: this.now + (C.minutes + C.minutes_per_km * km) * 60_000 };
+        to: { id: to.id, name: to.name || null, x: to.x, z: to.z }, km, pay: t.pay, taken: this.now, due: this.afterReal((C.minutes + C.minutes_per_km * km) * 60_000) };
       t.steps = [`Pick up the order at ${from.name || "the shop"}`, `Deliver it to ${to.name || "the address"}`];
     } else if (task.kind === "forestry") {
       t.pay = T.forestry.pay; t.need = T.forestry.trees; t.felled = []; t.steps = [`Get an axe or a saw (a hardware store, or the online store)`, `Go to ${T.forestry.area.name}`, `Fell ${T.forestry.trees} dead trees there`];
@@ -1667,9 +1684,11 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
+//: Things as themselves: records, uses, outcomes and resale (commerce.mjs).
+installCommerce(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

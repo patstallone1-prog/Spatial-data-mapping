@@ -33,8 +33,12 @@ export const VEHICLE_DIMS = {
 //: everything, the inside included). Null for a kind the fleet does not draw.
 export function fleetFile(kind, tier = "npc") {
   const id = FLEET_FOR[kind];
-  return id ? `city/models/fleet/${id}-${tier === "full" ? "full" : "npc"}.glb` : null;
+  return id ? `city/models/fleet/${id}-${tier === "full" || FULL_FOR_TRAFFIC.has(id) ? "full" : "npc"}.glb` : null;
 }
+//: Models whose traffic copy is their full one: the pack's LOD1 of these is cracked open along its
+//: seams (the Jeep's 26 open edges became 2,125; the truck's 1,472 became 2,404), and in full
+//: they are small already (4,734 and 8,695 triangles).
+export const FULL_FOR_TRAFFIC = new Set(["jeep", "truck"]);
 //: Each car's shape along its length, as fractions of the length from the front (0) to the back
 //: (1): where the windscreen starts (a) and meets the roof (b), where the roof ends (c) and the
 //: back window meets the body (d); the bonnet's and the boot's heights, and the waist (belt) --
@@ -456,6 +460,26 @@ export function drawBusSign(g, sign, w, h) {
 // an atlas per photographic texture -- ``paint-atlas`` carrying the paint mask in its alpha --,
 // and ``glass``. Each becomes one instanced part; the paint takes the car's colour, nothing else.
 
+//: Turn round every triangle of an indexed ``geometry`` that faces against its vertices' normals
+//: (the shading says out, the winding says in), so front-face drawing shows it. Returns how many
+//: were turned. Geometry without normals or an index is left alone.
+export function rewindToNormals(geometry) {
+  const P = geometry.attributes.position, N = geometry.attributes.normal, I = geometry.index;
+  if (!P || !N || !I) return 0;
+  const src = I.array, idx = new (src.constructor)(src.length);
+  idx.set(src);
+  let turned = 0;
+  for (let t = 0; t + 2 < idx.length; t += 3) {
+    const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+    const ux = P.getX(b) - P.getX(a), uy = P.getY(b) - P.getY(a), uz = P.getZ(b) - P.getZ(a);
+    const vx = P.getX(c) - P.getX(a), vy = P.getY(c) - P.getY(a), vz = P.getZ(c) - P.getZ(a);
+    const gx = uy * vz - uz * vy, gy = uz * vx - ux * vz, gz = ux * vy - uy * vx;
+    const sx = N.getX(a) + N.getX(b) + N.getX(c), sy = N.getY(a) + N.getY(b) + N.getY(c), sz = N.getZ(a) + N.getZ(b) + N.getZ(c);
+    if (gx * sx + gy * sy + gz * sz < 0) { idx[t + 1] = c; idx[t + 2] = b; turned += 1; }
+  }
+  if (turned) geometry.setIndex(new geometry.index.constructor(idx, 1));
+  return turned;
+}
 //: The parts of a loaded fleet model: [{ name, geometry, tint, glass, map }] (``tint``: takes the
 //: car's colour). The geometry is in the model's frame (each node's transform applied: the
 //: build's quantisation leaves a scale and an offset on every node).
@@ -491,6 +515,11 @@ export function fleetParts(THREE, gltf) {
     }
     geometry.computeBoundingSphere(); geometry.computeBoundingBox();
     const name = o.material?.name || o.name, glass = name === "glass" || Boolean(o.material?.transparent);
+    // Glass is drawn from both sides; the rest from the front only, so a triangle wound
+    // against its own normals is a hole seen from outside (a triangle, or two meeting at a point:
+    // an hourglass). The pack's LOD1s and the Porsche's simplification left hundreds.
+    if (!glass) geometry.userData.rewound = rewindToNormals(geometry);
+    geometry.computeBoundingSphere(); geometry.computeBoundingBox();
     out.push({ name, node: o.name, geometry, glass, map: o.material?.map || null, colour: o.material?.color?.clone() || null, opacity: o.material?.opacity ?? 1,
       tint: name === "body" ? Boolean(geometry.attributes._paint) : name === "paint-atlas" });
   });

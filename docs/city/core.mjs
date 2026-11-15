@@ -566,7 +566,7 @@ export function newVitals(R, now) {
 //: work), back at night -- faster asleep at home or resting; health wearing slowly, quickly with
 //: no stamina left, mending in sleep; strength fading. In steps of at most a quarter hour, by the
 //: city's own clock. Time away (``away``) is lived as a day is: awake by day, at home by night.
-export function vitalsStep(R, v, to, { home = false, resting = false, working = false, away = false } = {}) {
+export function vitalsStep(R, v, to, { home = false, resting = false, working = false, away = false, comfort = 0 } = {}) {
   const V = R.vitals;
   let t = Math.max(v.at ?? to, to - V.offline_catch_up_days * 86_400_000);
   const out = { ...v };
@@ -577,7 +577,8 @@ export function vitalsStep(R, v, to, { home = false, resting = false, working = 
     const atHome = home || away;
     if (resting || night) {
       const rate = night && atHome ? V.stamina.home_recovery_per_hour : resting ? V.stamina.rest_recovery_per_hour : V.stamina.night_recovery_per_hour;
-      out.stamina += rate * h;
+      // A home made comfortable (commerce uses.place: a lamp, a plant, a picture) rests you better.
+      out.stamina += rate * h * (atHome ? 1 + Math.max(0, Math.min(0.5, comfort)) : 1);
       if (night && out.stamina > 0) out.health += V.health.sleep_recovery_per_hour * h;
     } else {
       out.stamina -= (V.stamina.awake_decay_per_hour + (working ? V.stamina.work_per_hour : 0)) * h;

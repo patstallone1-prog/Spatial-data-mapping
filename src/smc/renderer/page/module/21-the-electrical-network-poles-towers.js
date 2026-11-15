@@ -453,35 +453,116 @@ function electricalSpans() {
     && ["electrical", "telecom"].includes(span.type) && span.c >= 0.85);
 }
 
-function addBikeRacks(anchors) {
-  // An inverted U: two legs and a bar, 0.8 m high and 0.6 m wide, square to the kerb.
-  if (!anchors.length) return 0;
-  const legs = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.022, 0.022, 1, 6),
-    new THREE.MeshStandardMaterial({ color: 0x2b2f31, roughness: 0.5, metalness: 0.6 }),
-    anchors.length * 3);
-  const dummy = new THREE.Object3D();
-  anchors.forEach((a, i) => {
-    const kerb = nearestKerbAt(a.x, a.z);
-    const yaw = kerb ? Math.atan2(-kerb.nx, -kerb.nz) : 0;
-    const rx = Math.cos(yaw), rz = -Math.sin(yaw);
-    for (const [k, side] of [[0, -0.3], [1, 0.3]]) {
-      dummy.position.set(a.x + rx * side, a.y + 0.4, a.z + rz * side);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(1, 0.8, 1);
-      dummy.updateMatrix();
-      legs.setMatrixAt(i * 3 + k, dummy.matrix);
+// ---- bicycle racks -------------------------------------------------------------------------------
+//
+// The city's racks (DataSF Bicycle Parking Racks: scripts/build_bike_racks.py, bike-racks.json),
+// each site's racks in a row along its kerb, and the sign inventory's BIKE RACK assets where the
+// city's list has none near. SFMTA's rack is an inverted U of galvanised pipe, 36 in high, set on
+// the pavement parallel to the kerb about three feet in from it, a bicycle locked along each
+// side; in a corral (a parking space given over to bicycles) square to the kerb, a metre apart.
+// The living city's riders lock up to them (``cityBikeRacks``: the racks and their places for a
+// bicycle, read by fleet.mjs spotOf through module 30's ``bikeRacks``).
+const BIKE_RACK = { height: 0.9, half: 0.275, pipe: 0.03, row: 2.4, corral: 0.9, slot: 0.16 };
+var inventoryRackAnchors = [];
+var cityBikeRacks = [];
+//: Where each rack of the city's sites stands: {id, x, y, z, yaw, corral, slots}. ``yaw`` turns
+//: the U's own +x (across its legs) onto the world; each slot is a bicycle's place beside it,
+//: {x, z, yaw} (yaw the city's way: a bicycle facing (dx, dz) has yaw atan2(-dx, -dz)), and the
+//: lock {x, y, z, yaw} that holds it to the rack's leg.
+var bikeRackStats = {};
+function placeCityBikeRacks(records) {
+  const out = [], taken = [];
+  const why = bikeRackStats = { sites: records.length, racks: 0, no_kerb: 0, junction: 0, building: 0, door: 0, road: 0, crowded: 0 };
+  const clearOf = (x, z) => taken.every(([tx, tz]) => (tx - x) ** 2 + (tz - z) ** 2 > 0.8 * 0.8);
+  for (const site of records) {
+    if (!Array.isArray(site.p) || site.p.length < 2) continue;
+    const [px, py] = xy(site.p[0], site.p[1]);
+    // (A site is often recorded at its address, inside the building: its kerb is the street in front.)
+    const raw = nearestKerbAt(px, -py, 30);
+    if (!raw) { why.no_kerb += 1; continue; }
+    const k = streetSquareKerb(raw);
+    const corral = site.placement === "roadway" || site.placement === "parklet";
+    const along = (px - k.x) * k.ax + (-py - k.z) * k.az;
+    const kx = k.x + k.ax * along, kz = k.z + k.az * along;
+    const n = Math.max(1, Math.min(20, site.racks | 0 || 1)), step = corral ? BIKE_RACK.corral : BIKE_RACK.row;
+    let last = null;
+    const fits = (x, z) => {
+      if (!clearOf(x, z)) { last = "crowded"; return false; }
+      if (insideJunctionBox(x, z) || onCrossingGround(x, z, 1.2)) { last = "junction"; return false; }
+      // A corral is in the parking lane: on the roadway, off the bike lane.
+      if (corral) { last = "road"; return insideCarriageway(x, z, 0) && !insideBikeLane(x, z, 0.3); }
+      // On the pavement, with room behind it for the bicycle on its building side and the walk
+      // past it (SFMTA keeps a clear path behind a rack), and not in front of a door.
+      if (insideCarriageway(x, z, 0.2)) { last = "road"; return false; }
+      if (buildingAt(x, z) || buildingAt(x + k.nx * 1.5, z + k.nz * 1.5)) { last = "building"; return false; }
+      if (typeof doorsNear === "function" && doorsNear(x + k.nx * 1.2, z + k.nz * 1.2, 1.6).length) { last = "door"; return false; }
+      return true;
+    };
+    let placed = 0;
+    for (let i = 0; i < n; i += 1) {
+      const a0 = (i - (n - 1) / 2) * step;
+      let at = null;
+      search: for (const off of corral ? [-1.3, -1.0] : [0.95, 0.75, 1.25])
+        for (const shift of [0, 1.2, -1.2, 2.4, -2.4, 3.6, -3.6]) {
+          const x = kx + k.ax * (a0 + shift) + k.nx * off, z = kz + k.az * (a0 + shift) + k.nz * off;
+          if (fits(x, z)) { at = [x, z]; break search; }
+        }
+      if (!at) { why[last || "road"] += 1; continue; }
+      taken.push(at);
+      why.racks += 1;
+      const [x, z] = at;
+      const top = corral ? undefined : pavementTopAt(x, z);
+      const y = groundLiftAt(x, z) + (corral ? ROAD_TOP_M : top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top);
+      // The U's +x along the kerb on the pavement, across it in a corral.
+      const ux = corral ? k.nx : k.ax, uz = corral ? k.nz : k.az;
+      const yaw = Math.atan2(-uz, ux);
+      // Square to the U, the side each bicycle stands; along it, the way it faces.
+      const sx = -uz, sz = ux;
+      const slots = [];
+      for (const side of [1, -1]) {
+        // Facing alternately up and down the row on the pavement; front wheel to the kerb in a corral.
+        const fx = corral ? k.nx : ux * side, fz = corral ? k.nz : uz * side;
+        const bx = x + sx * side * BIKE_RACK.slot, bz = z + sz * side * BIKE_RACK.slot;
+        // The lock round the rack's leg nearer the bicycle's back wheel and its seat tube.
+        const lx = x - fx * (BIKE_RACK.half + 0.02) + sx * side * BIKE_RACK.slot / 2, lz = z - fz * (BIKE_RACK.half + 0.02) + sz * side * BIKE_RACK.slot / 2;
+        slots.push({ x: bx, z: bz, yaw: Math.atan2(-fx, -fz), lock: { x: lx, y: y + 0.48, z: lz, yaw: Math.atan2(sx * side, sz * side) } });
+      }
+      out.push({ id: `${site.id}:${i}`, site: site.id, x, y, z, yaw, corral, slots });
+      placed += 1;
     }
-    dummy.position.set(a.x, a.y + 0.8, a.z);
-    dummy.rotation.set(0, yaw, Math.PI / 2);
-    dummy.scale.set(1, 0.6, 1);
-    dummy.updateMatrix();
-    legs.setMatrixAt(i * 3 + 2, dummy.matrix);
+    if (!placed) continue;
+  }
+  return out;
+}
+//: The racks drawn: two legs and the bend over them, galvanised, for every rack of the city's
+//: and every inventory rack not already standing among them.
+function addBikeRacks(cityRacks, inventory = []) {
+  const racks = cityRacks.slice();
+  for (const a of inventory) {
+    if (!a || racks.some((r) => (r.x - a.x) ** 2 + (r.z - a.z) ** 2 < 6 * 6)) continue;
+    const raw = nearestKerbAt(a.x, a.z);
+    const k = raw ? streetSquareKerb(raw) : null;
+    racks.push({ id: `inventory:${racks.length}`, x: a.x, y: a.y, z: a.z, yaw: k ? Math.atan2(-k.az, k.ax) : 0, corral: false, slots: [] });
+  }
+  if (!racks.length) return 0;
+  const { height, half, pipe } = BIKE_RACK, legH = height - half;
+  const steel = new THREE.MeshStandardMaterial({ color: 0xa3a9ab, roughness: 0.38, metalness: 0.85 });
+  const legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(pipe, pipe, legH, 10).translate(0, legH / 2, 0), steel, racks.length * 2);
+  const bends = new THREE.InstancedMesh(new THREE.TorusGeometry(half, pipe, 8, 18, Math.PI).translate(0, legH, 0), steel, racks.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), at = new THREE.Vector3();
+  racks.forEach((r, i) => {
+    q.setFromAxisAngle(up, r.yaw);
+    const ux = Math.cos(r.yaw), uz = -Math.sin(r.yaw);
+    for (const side of [0, 1]) legs.setMatrixAt(i * 2 + side, m.compose(at.set(r.x + ux * half * (side ? 1 : -1), r.y, r.z + uz * half * (side ? 1 : -1)), q, one));
+    bends.setMatrixAt(i, m.compose(at.set(r.x, r.y, r.z), q, one));
   });
-  legs.instanceMatrix.needsUpdate = true;
-  legs.userData.surface = "furniture:bike_rack";
-  groups.furniture.add(legs);
-  return anchors.length;
+  for (const mesh of [legs, bends]) {
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.userData.surface = "furniture:bike_rack";
+    groups.furniture.add(mesh);
+  }
+  return racks.length;
 }
 
 function curbZoneColor(record) {
@@ -1661,7 +1742,7 @@ async function prepaintPlates(records) {
   }
 }
 
-async function renderStreetFurniture(furniture, transit = null, creatives = {}, cityPaint = null) {
+async function renderStreetFurniture(furniture, transit = null, creatives = {}, cityPaint = null, bikeRacks = null) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
   junctionVertexGrid = null;
@@ -1718,7 +1799,8 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
   await prepaintPlates(plateRecords);
   const plates = addOfficialSignPlates(plateRecords, signalHeads);
   await maybeYield();
-  const posts = stops.concat(smallAds);
+  // (The small advertising stands on its own feet, addAdStructures: no sign post under it.)
+  const posts = stops;
   const lights = addStreetLights(official.street_lights || []);
   await maybeYield();
   // Sports lights keep their mapped anchors, never snap across a park to a street
@@ -1737,14 +1819,17 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     traffic_signal_heads: addTrafficSignalHeads(signalHeads),
     inferred_approach_signs: osmApproach.length,
     electrical: addElectricalNetwork(furniture, lights.rows),
-    bike_racks: plates.racks,
+    bike_racks: (() => {
+      cityBikeRacks = placeCityBikeRacks((bikeRacks?.racks || []).filter((r) => !BUILD_WINDOW || BUILD_WINDOW.near(r)));
+      return { city: cityBikeRacks.length, drawn: addBikeRacks(cityBikeRacks, inventoryRackAnchors), inventory: plates.racks, placing: bikeRackStats };
+    })(),
     generic_signs: generic.length,
     corner_name_posts: signStats.cornerPosts,
     bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
-    ad_panels: addInstancedFurniturePanels(smallAds, 1.2, 1.8, 0xffffff, "furniture:blank_ad", 0.55, "skip"),
+    ad_panels: addAdStructures(smallAds, creatives),
     billboards: addBillboards(billboards,creatives),
-    shelters: addMuniShelters(shelters),
-    transit: transitStops ? addTransitStops(transitStops) : null,
+    shelters: addMuniShelters(shelters, creatives),
+    transit: transitStops ? addTransitStops(transitStops, creatives) : null,
     benches: addBenches(inferred.benches || []),
     // The paint inventory first, then the policy zones that are paint by definition.
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [],
@@ -1771,7 +1856,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     note.innerHTML = `<b>Street furniture</b> — ${Number(counts.street_signs || 0).toLocaleString()} inferred OSM sign anchors, `
       + `${Number(counts.bus_stops || 0).toLocaleString()} bus stop anchors, `
       + `${Number(counts.shelters || 0).toLocaleString()} shelter tags, `
-      + `${Number(placed.billboards || 0).toLocaleString()} billboards; ${Number(placed.ad_panels || 0).toLocaleString()} smaller ad panels. `
+      + `${Number(placed.billboards || 0).toLocaleString()} billboards; ${Number((placed.ad_panels?.panels || 0) + (placed.ad_panels?.columns || 0)).toLocaleString()} advertising panels and columns. `
       + `Official geometry: ${Number(officialCounts.street_signs || 0).toLocaleString()} signs, `
       + `${Number(officialCounts.traffic_signals || 0).toLocaleString()} signals, `
       + `${Number(officialCounts.curb_zones || 0).toLocaleString()} curb policy bands, `
@@ -1804,7 +1889,10 @@ registerLazyLayer("furniture", async () => {
   // OpenStreetMap's streets: shared by every page, so cut to this page's window here.
   const cityPaint = paintLibrary ? windowLists(await fetch(sharedAsset("street-paint.json"), { cache: "no-cache" })
     .then((r) => (r.ok ? r.json() : null)).catch(() => null)) : null;
-  await renderStreetFurniture(furniture, transit, creatives, cityPaint);
+  // The city's bicycle racks (scripts/build_bike_racks.py), where the region has them.
+  const bikeRacks = await fetch(asset("bike-racks.json"), { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  await renderStreetFurniture(furniture, transit, creatives, cityPaint, bikeRacks?.schema === "kerbside.bike_racks/1" ? bikeRacks : null);
 });
 
 // Freeway guide signs (smc.highways; scripts/build_highway_signs.py), inferred from

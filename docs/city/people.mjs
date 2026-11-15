@@ -1192,7 +1192,7 @@ export class Crowd {
     const SLOT = 30, CELL = 400;
     const secondsOfDay = t.minute * 60;
     const slot = Math.floor(t.ms / 1000 / SLOT);
-    const density = TRAFFIC_BY_HOUR[Math.floor(t.minute / 60) % 24];
+    const density = TRAFFIC_BY_HOUR[Math.floor((t.gameMinute ?? t.minute) / 60) % 24];
     const cx = Math.floor(focus.x / CELL), cz = Math.floor(focus.z / CELL), rr = Math.ceil(reach / CELL);
     for (let i = -rr; i <= rr; i += 1) for (let j = -rr; j <= rr; j += 1) {
       const cell = `${cx + i},${cz + j}`;
@@ -1280,7 +1280,7 @@ export class Crowd {
   streetLife(t, focus, reach) {
     const D = this.R.density, out = [];
     if (!D) return out;
-    const CELL = 150, GEN = 600, tsec = t.ms / 1000, hour = WALK_BY_HOUR[Math.floor(t.minute / 60) % 24];
+    const CELL = 150, GEN = 600, tsec = t.ms / 1000, hour = WALK_BY_HOUR[Math.floor((t.gameMinute ?? t.minute) / 60) % 24];
     const cx = Math.floor(focus.x / CELL), cz = Math.floor(focus.z / CELL), rr = Math.ceil(reach / CELL);
     this._walkers ??= new Map();
     for (let i = -rr; i <= rr; i += 1) for (let j = -rr; j <= rr; j += 1) {

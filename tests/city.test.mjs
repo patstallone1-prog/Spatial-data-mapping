@@ -470,7 +470,15 @@ test("a bus fare, a taxi meter and a delivery gig", () => {
   const gig = w.submit("ana", "take_delivery", { place: cafe, to });
   assert.ok(gig.ok, gig.error);
   assert.equal(gig.delivery.pay, R.delivery.base_pay + Math.round(R.delivery.pay_per_km * 0.5));
-  assert.equal(w.submit("ana", "drop", { item: "parcel" }).ok, false, "the parcel is not yours to drop");
+  // The order is a real package of the café's goods, sealed; put down, only its courier lifts it.
+  const parcel = w.thingBook().get(gig.delivery.package);
+  assert.equal(parcel.box.seal, "intact");
+  assert.ok(parcel.box.contents.length >= 1, "the order holds the café's own goods");
+  const put = w.submit("ana", "drop", { item: "parcel" });
+  assert.ok(put.ok, put.error);
+  w.submit("bo", "join", { name: "Bo", at: { x: 5, z: 0, lon: -122.4194, lat: 37.7749 } });
+  assert.equal(w.submit("bo", "pick_up", { id: put.dropped }).ok, false, "someone else's order");
+  assert.ok(w.submit("ana", "pick_up", { id: put.dropped }).ok, "the courier picks it up again");
   assert.equal(w.submit("ana", "deliver").ok, false, "not at the address");
   const before = w.ledger.balance("player:ana");
   const done = w.submit("ana", "deliver", { at: { x: 500, z: 3 } });
@@ -543,7 +551,7 @@ test("a blow's energy against the catalogue's break energy: a hammer breaks a wi
   let hits = 0, r;
   do { r = w.submit("ana", "strike", { target: bench, witnesses: 2 }); hits += 1; } while (!r.broken && hits < 100);
   assert.ok(r.broken && hits > 3 && hits < 40, `a bench takes ${hits} blows of a sledgehammer`);
-  assert.equal(r.salvage, "lumber");
+  assert.equal(r.salvage, undefined, "vandalism yields no goods (lab plan 5)");
   assert.ok(r.fine > 0 && r.restitution === R.damage.repair_cost["furniture.bench"], "seen: vandalism and the repair");
   assert.equal(w.submit("ana", "strike", { target: bench }).ok, false, "broken already");
   w.step(WED_13 + 9 * 3_600_000);
