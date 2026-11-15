@@ -53,6 +53,18 @@ class Heap {
 
 //: A district's streets as a graph in page metres. ``ways`` are the region's own streets and
 //: footways: {pts: [[x, z], ...], kind, lanes, oneway (1 forward, -1 back, 0 both), road_m, name}.
+//: Nodes joined by a link this short (m) are one corner, for naming the streets that meet there.
+const CORNER_LINK_M = 16;
+//: A street's name as a sign or an address shortens it: "Chestnut Street" -> "Chestnut St".
+export const shortStreet = (name) => String(name).replace(/\bStreet$/, "St").replace(/\bAvenue$/, "Ave").replace(/\bBoulevard$/, "Blvd").replace(/\bDrive$/, "Dr");
+//: Whether ``text`` (an address, a label) names the street ``name``, in full or shortened, as a
+//: word of its own: "2150 Chestnut Street" names Chestnut Street; "Bay Street" does not name
+//: "Bayshore Street".
+export function saysStreet(text, name) {
+  if (!text || !name) return false;
+  const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [name, shortStreet(name)].some((n) => new RegExp(`(^|[^A-Za-z0-9])${esc(n)}($|[^A-Za-z0-9])`, "i").test(text));
+}
 export class Streets {
   constructor(ways, { snap = 0.8, cell = 60 } = {}) {
     this.nodes = []; this.edges = []; this.cell = cell; this.grid = new Map(); this.index = new Map();
@@ -279,22 +291,43 @@ export class Streets {
   //: street it is on and the nearest named street meeting that one -- or the two streets of the
   //: nearest corner when the point is on no named street (a court in a park); ``cross`` null
   //: when only one named street is in reach; null when none is.
-  crossStreets(x, z, reach = 320) {
-    const on = this.streetAt(x, z, 90)?.name || null;
-    let best = null, bestD = Infinity, lone = null, loneD = Infinity;
+  //:
+  //: ``said``: what the place is called. An address names its own street ("2150 Chestnut
+  //: Street"), and that street is the one it is on -- not whichever street's centreline is
+  //: nearest the middle of its lot, which for a deep lot is the street behind it: the label read
+  //: "2150 Chestnut Street at Alhambra St & Francisco St" (2026-11-14).
+  crossStreets(x, z, reach = 320, said = "") {
+    const near = [], seen = new Map();
     const r = Math.ceil(reach / this.cell), cx = Math.floor(x / this.cell), cz = Math.floor(z / this.cell);
     for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) for (const a of this.grid.get(`${cx + i},${cz + j}`) || []) {
       const A = this.nodes[a], d = Math.hypot(A.x - x, A.z - z);
       if (d > reach) continue;
-      const names = [...new Set(this.edges[a].map((e) => e.name).filter(Boolean))];
+      // The streets that meet here: this node's, and those of the nodes a short link joins it to.
+      // A wide street's cross streets stop at its kerbs and are joined to it by a few metres
+      // with no name (joinEnds), so no one node has both names: "2242 Lombard Street at Scott St
+      // & Greenwich St" was the nearest node that did.
+      const set = new Set();
+      for (const e of this.edges[a]) {
+        if (e.name) set.add(e.name);
+        if (e.length <= CORNER_LINK_M) for (const f of this.edges[e.to]) if (f.name) set.add(f.name);
+      }
+      const names = [...set];
       if (!names.length) continue;
-      if (names.length === 1) { if (d < loneD) { loneD = d; lone = names[0]; } continue; }
+      near.push({ d, names });
+      for (const n of names) if (!(seen.get(n) <= d)) seen.set(n, d);
+    }
+    if (!near.length) return null;
+    const named = said ? [...seen].filter(([n]) => saysStreet(said, n)).sort((p, q) => p[1] - q[1])[0]?.[0] : null;
+    const on = named || this.streetAt(x, z, 90)?.name || null;
+    let best = null, bestD = Infinity;
+    for (const { d, names } of near) {
+      if (names.length < 2) continue;
       // A corner of the point's own street comes before a nearer corner of two others.
       const own = on && names.includes(on), score = d + (on && !own ? reach : 0);
       if (score < bestD) { bestD = score; best = own ? [on, names.find((n) => n !== on)] : names.slice(0, 2); }
     }
     if (best) return { on: best[0], cross: best[1] };
-    const one = on || lone;
+    const one = on || near.sort((p, q) => p.d - q.d)[0].names[0];
     return one ? { on: one, cross: null } : null;
   }
   //: The street a point is on (a building's own street): the nearest drivable block within
@@ -640,6 +673,18 @@ export function alongRoute(route, d, side = 0) {
 
 //: How far out from a street's kerb a walker keeps (the middle of the pavement), in metres.
 export const PAVE_M = 1.6;
+//: And never nearer the kerb than this (the kerb stone itself): where a front is drawn less than
+//: a step from the kerb the line is still between the two, not in the wall.
+export const PAVE_MIN_M = 0.15;
+//: The pavement's line beside a street ``half`` wide to its kerb, with ``gap`` metres from the
+//: kerb to the nearest wall on that side (Infinity: none near): midway between the kerb and the
+//: wall, PAVE_M out at most. A line fixed PAVE_M out ran through every front built within
+//: three metres of its kerb (some 290 in the Marina), and the walkers on it had to be pushed
+//: back out of the walls a step at a time (2026-11-14).
+export function paveOffset(half, gap = Infinity) {
+  if (!half) return 0;
+  return half + Math.max(PAVE_MIN_M, Math.min(PAVE_M, gap / 2));
+}
 //: A legal mapped crossing joins the two ends of ONE crosswalk polyline. Endpoints of
 //: parallel crosswalks are not interchangeable. Other links must stay on the pavement;
 //: the shortest path may therefore use two or three separate crossings round a junction.
@@ -711,6 +756,10 @@ export function mappedCrosswalkPath(streets, node, from, to) {
 //: before). It never crosses in the middle of a block, and never cuts across a junction from
 //: one corner to the one opposite. (It did both: the walk was the street's middle line moved to
 //: the right of the way, which at every left turn ran corner to corner through the junction.)
+//: ``offset(half, where)``: how far from the street's middle line the pavement's line is, for a
+//: street ``half`` wide to its kerb; ``where`` ({x, z, ux, uz, len, side}) is the stretch and
+//: the side (+1 left of its direction as (-uz, ux), -1 the other), for a line that depends on
+//: what stands along it (fleet.mjs City.walkOffset: the frontage).
 //: Returns a route to walk with no offset (alongRoute(r, d)): {pts, s, length, halves, classes,
 //: crossings: [{s0, s1, node, bearing, signal}]} -- each crossing's stretch of the walk, the
 //: node, the crossed street's own direction (as atan2(x, z)) and whether a light controls it.
@@ -749,11 +798,15 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
   for (let i = 0; i + 1 < n; i += 1) {
     const dx = P[i + 1][0] - P[i][0], dz = P[i + 1][1] - P[i][1], len = Math.hypot(dx, dz) || 1e-6;
     const u = [dx / len, dz / len];
-    seg.push({ u, nrm: [-u[1], u[0]], o: offset(halves[i] ?? 0), len, half: halves[i] ?? 0 });
+    const half = halves[i] ?? 0, where = (side) => ({ x: P[i][0], z: P[i][1], ux: u[0], uz: u[1], len, side });
+    // The pavement's line on each side of the street: where the buildings stand close to the
+    // kerb on one side, that side's line is nearer the kerb (``offset(half, where)``).
+    const os = { 1: offset(half, where(1)), [-1]: offset(half, where(-1)) };
+    seg.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, len, half });
   }
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1], cross = (a, b) => a[0] * b[1] - a[1] * b[0];
   // The line of segment i's pavement on side sg, through node point q: [point, dir].
-  const line = (i, sg, q = P[i]) => [[q[0] + seg[i].nrm[0] * sg * seg[i].o, q[1] + seg[i].nrm[1] * sg * seg[i].o], seg[i].u];
+  const line = (i, sg, q = P[i]) => { const o = seg[i].os[sg] ?? seg[i].o; return [[q[0] + seg[i].nrm[0] * sg * o, q[1] + seg[i].nrm[1] * sg * o], seg[i].u]; };
   const meet = (L1, L2, near) => {
     const c = cross(L1[1], L2[1]);
     const lim = 4 * Math.max(3, ...seg.map((g) => g.o));
@@ -763,6 +816,16 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
       if (Math.hypot(q[0] - near[0], q[1] - near[1]) < lim) return q;
     }
     return [(L1[0][0] + L2[0][0]) / 2, (L1[0][1] + L2[0][1]) / 2];
+  };
+  //: Where the pavement of segment a meets that of segment b at node point q, on side sg: the
+  //: point their lines cross at -- or, the two running on in one line at different distances
+  //: from the street (one block's fronts nearer the kerb than the next's), each line's own point
+  //: there, so neither block's line is drawn off towards the other's. One point averaged
+  //: between them slanted both blocks' lines, and the nearer block's into its fronts.
+  const join = (a, b, sg, q) => {
+    const La = line(a, sg, q), Lb = line(b, sg, q);
+    if (Math.abs(cross(La[1], Lb[1])) > 0.15 || Math.hypot(La[0][0] - Lb[0][0], La[0][1] - Lb[0][1]) < 0.05) return [meet(La, Lb, q)];
+    return [La[0], Lb[0]];
   };
   // A junction: three ways or more meet there (streets, not paths).
   const junction = (i) => {
@@ -777,7 +840,9 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     for (const e of streets.edges[id] || []) {
       if (!(e.half > 0)) continue;
       const m = streets.nodes[e.to], L = Math.hypot(m.x - here.x, m.z - here.z) || 1, u = [(m.x - here.x) / L, (m.z - here.z) / L];
-      out.push({ u, nrm: [-u[1], u[0]], o: offset(e.half), half: e.half });
+      const where = (side) => ({ x: here.x, z: here.z, ux: u[0], uz: u[1], len: L, side });
+      const os = { 1: offset(e.half, where(1)), [-1]: offset(e.half, where(-1)) };
+      out.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, half: e.half });
     }
     return out;
   };
@@ -793,7 +858,7 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     if (best && sg && !arms(i).some((c) => Math.abs(cross(seg[a].u, c.u)) > 0.5 && dot(c.u, seg[a].nrm) * sg > 0.5)) return null;
     return best;
   };
-  const cline = (c, sg, q) => [[q[0] + c.nrm[0] * sg * c.o, q[1] + c.nrm[1] * sg * c.o], c.u];
+  const cline = (c, sg, q) => { const o = c.os?.[sg] ?? c.o; return [[q[0] + c.nrm[0] * sg * o, q[1] + c.nrm[1] * sg * o], c.u]; };
   const signalled = (i) => {
     const es = streets?.edges?.[ids[i]] || [];
     return es.some((e) => e.cls === "arterial" || e.cls === "freeway");
@@ -831,7 +896,7 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
       const a = i - 1, b = i, q = P[i];
       if (!(seg[a].o > 0 && seg[b].o > 0) || !junction(i)) {
         // A bend, or a path joining: round it on the same side.
-        out.push(meet(line(a, sg, q), line(b, sg, q), q));
+        out.push(...join(a, b, sg, q));
         continue;
       }
       const ua = seg[a].u, ub = seg[b].u, straight = dot(ua, ub) > 0.9;
@@ -840,13 +905,15 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
         const c = force ? crossStreet(i, a) : crossStreet(i, a, sg);
         if (!force || !c) {
           // Straight on: over the street in front, along this pavement's line.
-          const at = meet(line(a, sg, q), line(b, sg, q), q);
+          // (Each block's line is its own: the one before ends on its line and the one after
+          // begins on its line, the step between them taken over the street.)
+          const ends = join(a, b, sg, q), at0 = ends[0], at1 = ends[ends.length - 1];
           if (c) {
             const reach = c.half + 0.4;
-            const before = [at[0] - ua[0] * reach, at[1] - ua[1] * reach], after = [at[0] + ub[0] * reach, at[1] + ub[1] * reach];
+            const before = [at0[0] - ua[0] * reach, at0[1] - ua[1] * reach], after = [at1[0] + ub[0] * reach, at1[1] + ub[1] * reach];
             marks.push([out.length, i, bearing(c.u), signalled(i)]);
             out.push(before, after);
-          } else out.push(at);
+          } else out.push(...ends);
           continue;
         }
         // Over to the other side here, on the near crosswalk of the street across, and on over
@@ -1373,11 +1440,18 @@ export function counterLine(inside) {
 //: it, ``place.area``), of which SHOP_FLOOR_SHARE is the shop floor -- the rest is the counter,
 //: the kitchen, the stock room -- at so many m² a customer by the kind of shop (the building
 //: code's occupant loads: about 15 ft² a diner seated, 60 ft² a shopper in a store, 100 ft² a
-//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX, and never more than the
-//: drawn shop floor has places for (``shopLanes``: one a lane, a shoulder's width apart, so
-//: nobody stands in anybody). At least one. People were let in without limit: twenty in a café
-//: that seats eight, standing in one another (2026-11-14).
-export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 14, SHOP_LANE_M = 0.6, SHOP_DEFAULT_AREA_M2 = 80;
+//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX. At least one. People
+//: were let in without limit: twenty in a café that seats eight, standing in one another
+//: (2026-11-14).
+//:
+//: What a shop holds and what of it is drawn are two numbers. The drawn shop floor is the strip
+//: behind the modelled front -- often one short wall of a large building -- and has places for
+//: ``shopSeen`` customers: a lane each, a shoulder's width apart, in as many rows as there is
+//: depth before the counter, so nobody stands in anybody. The first rule let in only as many as
+//: could be drawn, and a 327 m² convenience store held two: a quarter of the Marina's visits
+//: were turned away at the door. The rest of those a shop holds are further in, among the
+//: aisles, and not drawn (as the staff beyond the counter's lanes are in the back).
+export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 40, SHOP_LANE_M = 0.6, SHOP_ROW_M = 0.9, SHOP_ROW_GAP_M = 0.45, SHOP_DEFAULT_AREA_M2 = 80;
 export const SHOP_M2_PER_PERSON = { food: 1.4, retail: 5.6, service: 9.3 };
 const SHOP_SERVICE = new Set(["bank", "barber", "salon", "beauty", "nail_salon", "spa", "clinic", "dentist", "optician", "vet", "pet_grooming",
   "laundry", "dry_cleaner", "staffing", "print_ship", "law_office", "gym"]);
@@ -1396,7 +1470,18 @@ export function shopCapacity(place) {
   // A place of several shops: the roomiest kind's load (a deli and café counts as the café).
   const per = Math.min(...(place.shops?.length ? place.shops : ["shop"]).map((k) => SHOP_M2_PER_PERSON[shopGroup(k)]));
   const byFloor = Math.floor((area * SHOP_FLOOR_SHARE) / per);
-  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor, shopLanes(place.inside)));
+  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor));
+}
+//: The rows of customers the drawn floor has depth for, between the door and the counter.
+export function shopRows(inside) {
+  if (!inside) return 1;
+  const L = counterLine(inside);
+  return Math.max(1, Math.floor((L.front + 0.4 - 0.6) / SHOP_ROW_M));
+}
+//: How many of a shop's customers are drawn: a place each on the floor behind its front.
+export function shopSeen(place) {
+  if (!place?.inside) return SHOP_CAP_MAX;
+  return Math.min(shopCapacity(place), shopLanes(place.inside) * shopRows(place.inside));
 }
 //: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
 //: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
@@ -1412,6 +1497,11 @@ export function indoorSpot(p, a, place, t, lane = null) {
   if (!staff && !customer) return null;
   const n = lane ? Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1) : 0;
   const laneAt = lane ? (n > 1 ? -L.width + ((lane.k % n) * (2 * L.width)) / (n - 1) : 0) : null;
+  // A customer's row: with depth for more than one, each keeps to a band of it (the first by
+  // the window, the last at the counter), a step clear of the next.
+  const rows = lane && customer ? shopRows(I) : 1, row = rows > 1 ? Math.floor(lane.k / n) % rows : 0;
+  const lo = 0.6, hi = L.front + 0.4, bandH = (hi - lo) / rows;
+  const inRow = (deep) => (rows > 1 ? lo + row * bandH + Math.max(0, Math.min(1, (deep - lo) / (hi - lo))) * (bandH - SHOP_ROW_GAP_M) : deep);
   const spot = (k) => {
     const r = rng(p.id, t.day, k);
     const along = () => (laneAt !== null ? laneAt + (r() - 0.5) * 0.12 : (r() - 0.5) * 2 * L.width);
@@ -1427,7 +1517,8 @@ export function indoorSpot(p, a, place, t, lane = null) {
     if (a.kind === "errand" && r() < BROWSE_SHARE) return [(r() - 0.5) * 2 * L.width, 0.6 + r() * Math.max(0.2, L.counter - 1.1)];
     return a.kind === "errand" ? [(r() - 0.5) * 2 * L.width, L.front + r() * 0.4] : [(r() - 0.5) * 2 * L.width, 0.7 + r() * Math.max(0.2, L.front - 0.6)];
   };
-  const [a0, d0] = spot(slot - 1), [a1, d1] = spot(slot);
+  const [a0, e0] = spot(slot - 1), [a1, e1] = spot(slot);
+  const d0 = staff ? e0 : inRow(e0), d1 = staff ? e1 : inRow(e1);
   const f = Math.min(1, (sec - slot * 18) / 3.5);
   const along = a0 + (a1 - a0) * f, deep = d0 + (d1 - d0) * f;
   const moving = f < 1 && Math.hypot(a1 - a0, d1 - d0) > 0.2;

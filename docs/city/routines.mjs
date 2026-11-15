@@ -7,7 +7,7 @@
 // drives and rides it the same way; the shifts are daySchedule's to the minute. Seeded and pure:
 // the same person and day always give the same plan (tests/city_routines.test.mjs).
 
-import { hash32, rng, worksOn } from "./people.mjs";
+import { hash32, rng, shopCapacity, worksOn } from "./people.mjs";
 
 //: The kinds of day, each with what puts a person in it.
 export const ROUTINE_TYPES = {
@@ -29,6 +29,19 @@ const FOOD = ["shop:restaurant", "use:restaurant", "shop:american", "shop:diner"
 
 //: The stops with a purpose: the places that do each (most specific first), how long it takes and
 //: the hours it can be done in. A task with no such place in town is skipped.
+//: For a list of places (kept by the list): the running total of how many each holds, to draw
+//: one in proportion to its room.
+const DRAW_WEIGHTS = new WeakMap();
+export function drawWeights(list) {
+  let cum = DRAW_WEIGHTS.get(list);
+  if (!cum || cum.length !== list.length) {
+    cum = new Float64Array(list.length);
+    let sum = 0;
+    for (let i = 0; i < list.length; i += 1) { sum += list[i].shops?.length ? shopCapacity(list[i]) : 1; cum[i] = sum; }
+    DRAW_WEIGHTS.set(list, cum);
+  }
+  return cum;
+}
 export const TASKS = {
   groceries: { id: "groceries", label: "Buying groceries", kind: "errand", keys: ["shop:grocery", "shop:convenience", "shop:deli"], minutes: [15, 35], hours: [7, 22] },
   pharmacy: { id: "pharmacy", label: "At the pharmacy", kind: "errand", keys: ["shop:pharmacy"], minutes: [8, 20], hours: [8, 21] },
@@ -193,7 +206,19 @@ function build(R, person, day, weekday, places, type, career) {
     const dist = (p) => (O ? Math.hypot(p.x - O.x, p.z - O.z) : 0);
     let best = null, bd = Infinity;
     if (t.nearest) { for (const p of list) if (dist(p) < bd) { bd = dist(p); best = p; } }
-    else for (let k = 0; k < 3; k += 1) { const p = list[Math.floor(r() * list.length) % list.length]; if (dist(p) < bd) { bd = dist(p); best = p; } }
+    else {
+      // Three looked at, the nearest of them taken -- each looked at as often as it has room for
+      // people (a supermarket more than a kiosk): drawn evenly, the Marina's six groceries were
+      // sent the custom of sixty and a fifth of the shops nobody at all.
+      const cum = drawWeights(list), total = cum[cum.length - 1];
+      for (let k = 0; k < 3; k += 1) {
+        const v = r() * total;
+        let lo = 0, hi = cum.length - 1;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] > v) hi = mid; else lo = mid + 1; }
+        const p = list[lo];
+        if (dist(p) < bd) { bd = dist(p); best = p; }
+      }
+    }
     return { place: best, label: fallback ? t.anyShop : t.label };
   };
   let dayTo = 1430;

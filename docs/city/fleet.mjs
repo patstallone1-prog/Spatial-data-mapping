@@ -16,13 +16,14 @@ import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   shopCapacity, shopLanes,
-  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, pavementRoute, turnAhead, workplacesByRole,
+  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, paveOffset, pavementRoute, shopSeen, turnAhead, workplacesByRole,
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
 import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
+import { NpcContextIndex } from "./npc-context.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
 const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
@@ -103,6 +104,10 @@ export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 //: (on foot), else comes later (staying where they were up to ``later_min``), else gives it up
 //: and looks in the windows round about instead. Nobody is let in past the shop's capacity, and
 //: each customer in it has a lane of the floor of their own (City.admit).
+//: How the fronts along a stretch of street are looked for (City.walkOffset): a point every
+//: ``every_m`` (``most`` at most), clear of the last ``ends_m`` at each end, stepping out from
+//: the kerb ``step_m`` at a time.
+export const FRONT_SCAN = { every_m: 7, most: 14, ends_m: 9, step_m: 0.3 };
 export const SHOP_QUEUE = { queue_len: 4, queue_wait_min: 6, queue_step_m: 0.8, alt_m: 450, later_min: 45, min_stay_min: 5 };
 const CUSTOMER_KINDS = new Set(["errand", "meal", "evening"]);
 //: The k-th of a shop's staff to a lane of n: spread over the counter rather than bunched at one end.
@@ -133,7 +138,7 @@ export class Roster {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
     this.places = new Map(); this.people = new Map(); this.vehicles = new Map(); this.visitors = new Map();
     this.homesDone = new Set(); this.list = []; this.work = {}; this.households = new Map(); this.open = [];
-    this.saved = { work: { ...(saved?.work || {}) } };
+    this.saved = { work: { ...(saved?.work || {}) }, npcGroups: Array.isArray(saved?.npcGroups) ? saved.npcGroups : [] };
     this.version = 0; this.dirty = false;
   }
   //: Places seen in a window: those new are kept, each new home with its residents; and those
@@ -256,7 +261,7 @@ export class Roster {
     }
   }
   //: What to keep on this device: who works where.
-  toJSON() { return { work: this.saved.work }; }
+  toJSON() { return { work: this.saved.work, npcGroups: this.saved.npcGroups }; }
 }
 
 // ---- the city: where each is, and how they got there ---------------------------------------------
@@ -301,7 +306,19 @@ export class City {
   //: ``harm(id, ms)``: the books' word on someone hurt or something broken ({state, ...}), or null.
   constructor(R, roster, streets, { seed = "district", timeAt, harm = () => null, delay = () => 0 } = {}) {
     this.R = R; this.roster = roster; this.seed = seed; this.timeAt = timeAt; this.harm = harm; this.delay = delay;
+    //: pavementRoute's ``offset``: the pavement's line by what stands along it (walkOffset);
+    //: ``frontLines = false`` (tests) puts it back the fixed distance out.
+    this.paveLine = (half, where) => (this.frontLines === false ? paveOffset(half) : this.walkOffset(half, where));
     this.setStreets(streets);
+  }
+  //: Lazily prepare a roster/day's cohorts outside the render loop. `ready` resolves false
+  //: if the roster changes during preparation; callers can request again on the next refresh.
+  characterContext(person, time, world = null) {
+    this._contextIndex ??= new NpcContextIndex(this);
+    const index = this._contextIndex;
+    const current = index.key === index.rosterKey(time);
+    if (current) return { state: "ready", context: index.contextFor(person, time, world), ready: null };
+    return { state: "pending", context: null, ready: index.ensure(time) };
   }
   //: The key a car's trip is known by (its delay in traffic is kept under it).
   static legKey(v, leg, day) { return `${v.id}:${day}:${Math.round(leg.t0 * 60)}`; }
@@ -327,6 +344,7 @@ export class City {
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
     this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
     this.shopBooks = new Map(); this.admitted = new Map(); this.staffLanes = new Map(); this._footprints = null;
+    this._walkOffsets = null;
     this.rackTaken = new Map();
   }
   //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
@@ -792,10 +810,13 @@ export class City {
   roomIn(place, day, t0, t1, who) {
     const list = this.shopBook(place.id, day), cap = shopCapacity(place);
     if (City.mostAtOnce(list, t0, t1) >= cap) return -1;
-    const n = Math.max(cap, shopLanes(place.inside)), used = new Set();
+    const used = new Set();
     for (const b of list) if (b.q === undefined && b.t0 < t1 && b.t1 > t0) used.add(b.lane);
-    const free = [];
-    for (let k = 0; k < n; k += 1) if (!used.has(k)) free.push(k);
+    // A place on the drawn floor while there is one (shopSeen); after that, further in among
+    // the aisles, where nobody is drawn.
+    const seen = shopSeen(place), front = [], back = [];
+    for (let k = 0; k < cap; k += 1) if (!used.has(k)) (k < seen ? front : back).push(k);
+    const free = front.length ? front : back;
     return free.length ? free[hash32(who, place.id, Math.round(t0)) % free.length] : -1;
   }
   //: A place in the line at the door over [t0, t1), or -1.
@@ -1175,6 +1196,34 @@ export class City {
     this.wallFixes ??= {};
     return this._footprints;
   }
+  //: The pavement's line beside a stretch of street, on one side of it (pavementRoute's
+  //: ``offset``): midway between the kerb and the nearest front along that side (people.mjs
+  //: paveOffset). The fronts are found by stepping out from the kerb at points along the
+  //: stretch -- clear of its ends, where the cross street's own corner buildings stand -- and
+  //: the nearest of them sets the line for the whole stretch, so it stays straight. Kept by
+  //: stretch and side: a block is walked by thousands.
+  walkOffset(half, where) {
+    if (!half || !where || !(where.len > 0)) return paveOffset(half);
+    const key = `${Math.round(where.x)}:${Math.round(where.z)}:${Math.round(where.ux * 16)}:${Math.round(where.uz * 16)}:${Math.round(where.len)}:${where.side}:${Math.round(half * 4)}`;
+    const F = this.footprints();
+    if (this._walkOffsets?.for !== F) this._walkOffsets = { for: F, map: new Map() };
+    const kept = this._walkOffsets.map.get(key);
+    if (kept !== undefined) return kept;
+    const nx = -where.uz * where.side, nz = where.ux * where.side;
+    const ends = Math.min(FRONT_SCAN.ends_m, where.len * 0.25), span = where.len - 2 * ends;
+    const n = Math.max(1, Math.min(FRONT_SCAN.most, Math.ceil(span / FRONT_SCAN.every_m)));
+    let gap = Infinity;
+    for (let k = 0; k < n; k += 1) {
+      const t = ends + span * (k + 0.5) / n, x = where.x + where.ux * t, z = where.z + where.uz * t;
+      for (let d = FRONT_SCAN.step_m; d <= 2 * PAVE_M + FRONT_SCAN.step_m && d < gap; d += FRONT_SCAN.step_m) {
+        if (this.footprintAt(x + nx * (half + d), z + nz * (half + d))) { gap = d - FRONT_SCAN.step_m / 2; break; }
+      }
+    }
+    const o = paveOffset(half, gap);
+    this._walkOffsets.map.set(key, o);
+    if (gap < Infinity) { this.wallFixes ??= {}; this.wallFixes.narrowed = (this.wallFixes.narrowed || 0) + 1; }
+    return o;
+  }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
     const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
@@ -1211,7 +1260,7 @@ export class City {
       // On the pavement, over the streets at the crosswalks (pavementRoute), as far along as
       // the waits at the kerb have left them (walkLags: held there, then a quicker step after).
       const a0 = this.anchor(seg.from, seg.fromXZ), a1 = this.anchor(seg.to, seg.toXZ);
-      if (seg.pave === undefined) seg.pave = pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1 });
+      if (seg.pave === undefined) seg.pave = pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
       const pave = seg.pave, L = pave.length, pace = L / Math.max(1, (seg.t1 - seg.t0) * 60);
       const key = `${p.id}:${seg.t0}`, lag = this.walkLags.get(key)?.lag || 0, d = Math.max(0, f * L - lag * pace);
       const off = (a, q) => (a && q ? Math.hypot(a.x - q[0], a.z - q[1]) : 0);
@@ -1250,8 +1299,9 @@ export class City {
     }
     if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) {
       const lane = seg.lane !== undefined ? { k: seg.lane } : a.kind === "work" && COUNTER_ROLES.has(p.role) ? this.staffLane(place, p) : null;
-      // (More staff on than the counter has lanes for: the rest are in the back, not seen.)
-      if (lane?.back) return null;
+      // (More staff on than the counter has lanes for: the rest are in the back, not seen; and
+      // the customers beyond the drawn floor's places are further in, among the aisles.)
+      if (lane?.back || (seg.lane !== undefined && seg.lane >= shopSeen(place))) return null;
       return indoorSpot(p, a, place, t, lane);
     }
     return null;
@@ -1442,7 +1492,7 @@ export class City {
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1 });
+      if (r0 && !drive) r0.pave = pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }
