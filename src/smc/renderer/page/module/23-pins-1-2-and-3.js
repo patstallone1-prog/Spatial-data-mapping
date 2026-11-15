@@ -234,13 +234,222 @@ function updateCompass(now) {
   compassReading.textContent = `${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
 }
 
-// ---- the compass: a reading, not a control ------------------------------------------------------
+// ---- the compass box: turn the walker, move the sun (Explore) ---------------------------------
 //
-// It used to open a box to turn the walker and drag the sun to another hour (and back to live San
-// Francisco time with R). The game keeps its own time now -- a day in 72 real minutes, 48 of
-// daylight and 24 of night (docs/city/clock.mjs, 2026-11-14) -- and the time is not set by hand:
-// the compass only reads the way you face and the way you go.
+// In City mode the compass is a reading, not a control: the game keeps its own time there -- a
+// day in 72 real minutes, 48 of daylight and 24 of night (docs/city/clock.mjs, 2026-11-14) -- and
+// it is not set by hand. In Explore the sky is San Francisco's own, live, and this box stays.
+//
+// Click the compass: a larger rose opens with the walker's heading on its red needle -- drag the
+// needle (or use the arrow keys) and the walker turns to face that way. Under it, the day's sun
+// path as a semicircle from sunrise on the left to sunset on the right, the sun a blue dot on it
+// where the sun is now. Drag the dot and the sun moves across the sky, the time it stands for
+// shown as it goes; ‹ › step a day back or forward. The sky then shows the weather a National
+// Weather Service station observed at that hour (sky-history.mjs) -- for an hour still to come,
+// the day before's at that hour. R puts the sky back on live San Francisco time.
+const SF_TIME = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", weekday: "short",
+  month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+const SF_CLOCK = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+const sunDial = { open: false, date: null, sunCalc: null, history: null, ask: 0, timer: 0, dragging: null };
+const sunDialBox = compass ? document.createElement("div") : null;
+if (sunDialBox) {
+  sunDialBox.id = "sun-dial";
+  sunDialBox.setAttribute("role", "dialog");
+  sunDialBox.setAttribute("aria-label", "Heading and sun");
+  sunDialBox.hidden = true;
+  sunDialBox.style.cssText = "position:fixed;right:16px;top:104px;z-index:26;width:272px;max-width:calc(100vw - 32px);"
+    + "background:rgba(255,255,255,.95);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:12px 12px 10px;"
+    + "font:500 12px/1.35 system-ui,sans-serif;color:#1d2a33;user-select:none;touch-action:none";
+  sunDialBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+  <strong style="font-size:13px">Heading &amp; sun</strong>
+  <button id="sun-dial-close" aria-label="Close" style="border:0;background:none;font-size:18px;line-height:1;cursor:pointer;color:#55616a">×</button></div>
+<svg id="sun-dial-rose" viewBox="-60 -60 120 120" width="176" height="176" tabindex="0" aria-label="Drag the needle to turn"
+  style="display:block;margin:4px auto 0;cursor:grab;outline:none">
+  <circle r="57" fill="#f4f6f7" stroke="rgba(0,0,0,.2)" stroke-width="1.2"/>
+  ${Array.from({ length: 72 }, (_, i) => { const a = i * 5 * Math.PI / 180, l = i % 9 === 0 ? 7 : i % 3 === 0 ? 4 : 2;
+    return `<line x1="${(Math.sin(a) * 56).toFixed(2)}" y1="${(-Math.cos(a) * 56).toFixed(2)}" x2="${(Math.sin(a) * (56 - l)).toFixed(2)}" y2="${(-Math.cos(a) * (56 - l)).toFixed(2)}" stroke="#7d8a93" stroke-width="${l > 4 ? 1.2 : .6}"/>`; }).join("")}
+  <path d="M0,-40 L6,-6 L40,0 L6,6 L0,40 L-6,6 L-40,0 L-6,-6 Z" fill="#c8d0d6" stroke="#7d8a93" stroke-width="0.8"/>
+  <path d="M0,-40 L6,-6 L0,0 Z M40,0 L6,6 L0,0 Z M0,40 L-6,6 L0,0 Z M-40,0 L-6,-6 L0,0 Z" fill="#7d8a93"/>
+  <text y="-46" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#b4282e">N</text>
+  <text x="46" font-size="9" text-anchor="middle" dominant-baseline="middle">E</text>
+  <text y="47" font-size="9" text-anchor="middle" dominant-baseline="middle">S</text>
+  <text x="-46" font-size="9" text-anchor="middle" dominant-baseline="middle">W</text>
+  <g id="sun-dial-needle"><path d="M0,-50 L6,-8 L0,-11 L-6,-8 Z" fill="#d23a2c" stroke="#7a1c14" stroke-width=".8"/>
+    <path d="M0,50 L5,8 L0,11 L-5,8 Z" fill="#e9eef1" stroke="#7d8a93" stroke-width=".8"/>
+    <circle r="4.5" fill="#1d2a33"/></g>
+</svg>
+<div id="sun-dial-heading" style="text-align:center;font-weight:700;margin:2px 0 6px"></div>
+<svg id="sun-dial-arc" viewBox="0 0 240 132" width="248" height="136" aria-label="Drag the sun to set the time"
+  style="display:block;margin:0 auto;cursor:grab;overflow:visible">
+  <line x1="6" y1="120" x2="234" y2="120" stroke="#9aa6ae" stroke-width="1.2"/>
+  <path d="M20,120 A100,100 0 0 1 220,120" fill="none" stroke="#f0b429" stroke-width="2" stroke-dasharray="4 4"/>
+  <text x="20" y="131" font-size="9" text-anchor="middle" fill="#55616a" id="sun-dial-rise"></text>
+  <text x="220" y="131" font-size="9" text-anchor="middle" fill="#55616a" id="sun-dial-set"></text>
+  <circle id="sun-dial-sun" r="9" fill="#2f7de1" stroke="#fff" stroke-width="2.5" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))"/>
+</svg>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+  <button id="sun-dial-back" aria-label="A day earlier" style="border:0;background:#e9eef1;border-radius:8px;width:28px;height:26px;cursor:pointer">‹</button>
+  <div id="sun-dial-time" style="font-weight:700;text-align:center;flex:1"></div>
+  <button id="sun-dial-forward" aria-label="A day later" style="border:0;background:#e9eef1;border-radius:8px;width:28px;height:26px;cursor:pointer">›</button></div>
+<div id="sun-dial-weather" style="color:#55616a;text-align:center;margin-top:4px;min-height:16px"></div>
+<button id="sun-dial-live" style="display:block;margin:6px auto 0;border:0;background:#1d2a33;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:600 11px system-ui,sans-serif">Live SF time (R)</button>`;
+  document.body.append(sunDialBox);
+  const svg = compass.querySelector("svg");
+  svg.style.pointerEvents = "auto";
+  svg.style.cursor = "pointer";
+  svg.setAttribute("role", "button");
+  svg.setAttribute("aria-label", "Open heading and sun");
+  // Explore only: in the city the game keeps its own time (docs/city/clock.mjs) and the compass
+  // is a reading. compassForMode (below) turns the click off there.
+  svg.addEventListener("click", () => { if (!compassIsReadingOnly()) toggleSunDial(); });
+  sunDialBox.querySelector("#sun-dial-close").addEventListener("click", () => toggleSunDial(false));
+  sunDialBox.querySelector("#sun-dial-live").addEventListener("click", () => resetSkyToLive());
+  sunDialBox.querySelector("#sun-dial-back").addEventListener("click", () => stepSunDay(-1));
+  sunDialBox.querySelector("#sun-dial-forward").addEventListener("click", () => stepSunDay(1));
+  const rose = sunDialBox.querySelector("#sun-dial-rose"), arc = sunDialBox.querySelector("#sun-dial-arc");
+  const pointIn = (el, e, box) => { const r = el.getBoundingClientRect();
+    return [box[0] + (e.clientX - r.left) / r.width * box[2], box[1] + (e.clientY - r.top) / r.height * box[3]]; };
+  rose.addEventListener("pointerdown", (e) => { sunDial.dragging = "rose"; rose.setPointerCapture(e.pointerId); turnRoseTo(e); });
+  arc.addEventListener("pointerdown", (e) => { sunDial.dragging = "sun"; arc.setPointerCapture(e.pointerId); moveSunTo(e); });
+  for (const el of [rose, arc]) {
+    el.addEventListener("pointermove", (e) => { if (sunDial.dragging === "rose") turnRoseTo(e); else if (sunDial.dragging === "sun") moveSunTo(e); });
+    el.addEventListener("pointerup", () => { sunDial.dragging = null; });
+    el.addEventListener("pointercancel", () => { sunDial.dragging = null; });
+  }
+  function turnRoseTo(e) {
+    const [x, y] = pointIn(rose, e, [-60, -60, 120, 120]);
+    if (Math.hypot(x, y) < 3) return;
+    faceBearing(bearingOf(x, -y));
+  }
+  rose.addEventListener("keydown", (e) => {
+    const step = e.key === "ArrowLeft" ? -5 : e.key === "ArrowRight" ? 5 : 0;
+    if (!step) return;
+    e.preventDefault(); e.stopPropagation();
+    faceBearing((compassBearings().view + step + 360) % 360);
+  });
+  function moveSunTo(e) {
+    const day = sunDayOf(sunDial.date || new Date());
+    if (!day) return;
+    const [x, y] = pointIn(arc, e, [0, 0, 240, 132]);
+    const theta = Math.min(Math.PI, Math.max(0, Math.atan2(120 - y, x - 120)));
+    setSkyTime(new Date(+day.rise + (1 - theta / Math.PI) * (day.set - day.rise)));
+  }
+}
+//: Turn the walker -- and the view with it -- to face `bearing` degrees clockwise from north.
+function faceBearing(bearing) {
+  const b = bearing * Math.PI / 180;
+  state.yaw = -b;
+  if (typeof avatar !== "undefined" && avatar) avatar.rotation.y = Math.PI - b;
+  placeCamera();
+  drawSunDial();
+}
+//: Sunrise and sunset of the San Francisco day holding `date`.
+function sunDayOf(date) {
+  if (!sunDial.sunCalc) return null;
+  const local = new Date(new Date(date).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const noonish = new Date(+date + (12 - local.getHours()) * 3600000 - local.getMinutes() * 60000);
+  const t = sunDial.sunCalc.getTimes(noonish, midLat, midLon);
+  return { rise: t.sunrise, set: t.sunset };
+}
+function setSkyTime(date) {
+  if (!environmentController) return;
+  sunDial.date = date;
+  environmentController.setTime(date);
+  const preview = document.querySelector('select[aria-label="Time preview"]');
+  if (preview) preview.value = "live";
+  drawSunDial();
+  // The weather that was, once the dragging pauses -- not a request per pixel.
+  clearTimeout(sunDial.timer);
+  const ask = ++sunDial.ask;
+  sunDial.timer = setTimeout(async () => {
+    const line = sunDialBox?.querySelector("#sun-dial-weather");
+    if (line) line.textContent = "Looking up the weather then…";
+    try {
+      sunDial.history ??= (await import(sharedAsset("sky-history.mjs"))).createWeatherHistory(midLat, midLon);
+      const seen = await sunDial.history.at(date);
+      if (ask !== sunDial.ask || !sunDial.date) return;
+      environmentController.setConditions(seen || null);
+      if (line) line.textContent = seen
+        ? `${seen.text || seen.preset.replace("_", " ")} · ${Math.round(seen.wind)} m/s — ${seen.standsIn ? "not yet happened; weather observed" : "observed"} at ${seen.station} ${(seen.standsIn ? SF_TIME : SF_CLOCK).format(new Date(seen.observed))}`
+        : "No observation near that hour — weather preset shown";
+    } catch (error) {
+      if (ask === sunDial.ask && line) line.textContent = "Observed weather unavailable — weather preset shown";
+    }
+  }, 350);
+}
+function stepSunDay(days) {
+  const now = Date.now(), from = sunDial.date || new Date();
+  // weather.gov keeps about a week of observations; ahead, a day or two of yesterday's weather.
+  const next = new Date(Math.min(now + 3 * 86400000, Math.max(now - 6 * 86400000, +from + days * 86400000)));
+  setSkyTime(next);
+}
+function resetSkyToLive() {
+  sunDial.date = null; sunDial.ask += 1;
+  clearTimeout(sunDial.timer);
+  environmentController?.setTime(null);
+  environmentController?.setConditions(null);
+  const preview = document.querySelector('select[aria-label="Time preview"]');
+  if (preview) preview.value = "live";
+  const line = sunDialBox?.querySelector("#sun-dial-weather");
+  if (line) line.textContent = "";
+  drawSunDial();
+}
+//: The box opens under the compass, wherever the compass is (in City mode it sits under the
+//: profile card), so the two never cover each other; too tall for what is left, it scrolls.
+function placeSunDial() {
+  if (!sunDialBox || !compass) return;
+  const C = compass.getBoundingClientRect();
+  const top = Math.round((C.height ? C.bottom : 96) + 8);
+  sunDialBox.style.top = `${top}px`;
+  sunDialBox.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - top - 12)}px`;
+  sunDialBox.style.overflowY = "auto";
+}
+globalThis.addEventListener?.("resize", () => { if (sunDial.open) placeSunDial(); });
+async function toggleSunDial(open = !sunDial.open) {
+  if (!sunDialBox) return;
+  sunDial.open = open;
+  if (open) placeSunDial();
+  sunDialBox.hidden = !open;
+  if (open && !sunDial.sunCalc) sunDial.sunCalc = (await import(sharedAsset("vendor/suncalc-1.9.0.mjs"))).default;
+  drawSunDial();
+  if (open) sunDialBox.querySelector("#sun-dial-rose").focus({ preventScroll: true });
+}
+function drawSunDial() {
+  if (!sunDialBox || !sunDial.open) return;
+  const view = compassBearings().view, heading = Math.round(view) % 360;
+  sunDialBox.querySelector("#sun-dial-needle").setAttribute("transform", `rotate(${view})`);
+  sunDialBox.querySelector("#sun-dial-heading").textContent = `Facing ${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
+  const date = sunDial.date || new Date(), day = sunDayOf(date);
+  if (!day) return;
+  const f = (date - day.rise) / (day.set - day.rise), night = f < 0 || f > 1;
+  const theta = Math.PI * (1 - Math.min(1, Math.max(0, f)));
+  const sunDot = sunDialBox.querySelector("#sun-dial-sun");
+  sunDot.setAttribute("cx", (120 + 100 * Math.cos(theta)).toFixed(1));
+  sunDot.setAttribute("cy", (120 - 100 * Math.sin(theta)).toFixed(1));
+  sunDot.setAttribute("opacity", night ? ".35" : "1");
+  sunDialBox.querySelector("#sun-dial-rise").textContent = `↑ ${SF_CLOCK.format(day.rise)}`;
+  sunDialBox.querySelector("#sun-dial-set").textContent = `${SF_CLOCK.format(day.set)} ↓`;
+  sunDialBox.querySelector("#sun-dial-time").textContent = `${SF_TIME.format(date)}${sunDial.date ? "" : " · live"}${night ? " · night" : ""}`;
+}
 
+//: City mode: the compass only reads (no click, the box closed, any hour set by hand let go) and
+//: the sky runs on the game's clock. Explore: the compass opens the box, the sky is live.
+function compassIsReadingOnly() { return typeof appMode !== "undefined" && appMode === "city"; }
+function compassForMode(mode) {
+  const city = mode === "city";
+  const svg = compass?.querySelector("svg");
+  if (svg) {
+    svg.style.cursor = city ? "default" : "pointer";
+    svg.style.pointerEvents = city ? "none" : "auto";
+    if (city) { svg.removeAttribute("role"); svg.removeAttribute("aria-label"); }
+    else { svg.setAttribute("role", "button"); svg.setAttribute("aria-label", "Open heading and sun"); }
+  }
+  if (city) {
+    if (sunDial.open) toggleSunDial(false);
+    if (sunDial.date) resetSkyToLive();
+  }
+  environmentController?.setClock?.(city ? "game" : "live");
+}
 // ---- solid buildings, doors that open, and the rooms behind them ------------------------------
 //
 // A building is solid: the walker is a circle WALKER_RADIUS_M across its feet and is held off

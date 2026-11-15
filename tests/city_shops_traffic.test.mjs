@@ -119,8 +119,13 @@ test("people are of many heights and builds, from their ids, and walk with a ste
   assert.ok(VIEW.includes("legL: mkTone(legGeo, MAX_PEOPLE)"), "shoes and bare legs by the part's own colours, no extra part");
 });
 
-test("the compass is a reading, not a control: no box to set the time (the game keeps its own)", () => {
+test("the compass is a reading in the city (the game keeps its own time) and opens the sun box in Explore", () => {
   const pins = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
-  assert.ok(!pins.includes("sun-dial") && !pins.includes("toggleSunDial") && !pins.includes('addEventListener("click", () => toggleSunDial())'));
+  assert.ok(pins.includes('svg.addEventListener("click", () => { if (!compassIsReadingOnly()) toggleSunDial(); });'));
+  assert.ok(pins.includes('environmentController?.setClock?.(city ? "game" : "live");') && pins.includes('svg.style.pointerEvents = city ? "none" : "auto";'));
+  const living = readFileSync(new URL("../src/smc/renderer/page/module/30-the-living-city.js", import.meta.url), "utf8");
+  assert.ok(living.includes('if (typeof compassForMode === "function") compassForMode(appMode);'));
+  const sky = readFileSync(new URL("../docs/environment-runtime.mjs", import.meta.url), "utf8");
+  assert.ok(sky.includes("clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date()"));
   assert.ok(!VIEW.includes('getElementById("sun-dial")'));
 });

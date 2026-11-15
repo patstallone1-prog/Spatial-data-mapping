@@ -135,7 +135,10 @@ function emptyTree(object, all = false) { object.traverse((o) => emptyOne(o, all
 function emptyOne(o, all = false) {
   {
     if (o.userData.sharedInteriorAsset && !all) return;
-    if (o.geometry) {
+    // Every sprite draws with the one quad three.js keeps for all of them: emptied with a
+    // released window's labels, it was empty for the page's own sprites too -- the moon and its
+    // halo never showed again, nor any label (2026-11-14). A sprite has no geometry of its own.
+    if (o.geometry && !o.isSprite) {
       for (const attribute of Object.values(o.geometry.attributes || {})) {
         // An interleaved attribute reads its array from the buffer it shares with others.
         const holder = attribute.isInterleavedBufferAttribute ? attribute.data : attribute;

@@ -470,10 +470,17 @@ var cityBikeRacks = [];
 //: {x, z, yaw} (yaw the city's way: a bicycle facing (dx, dz) has yaw atan2(-dx, -dz)), and the
 //: lock {x, y, z, yaw} that holds it to the rack's leg.
 var bikeRackStats = {};
-function placeCityBikeRacks(records) {
+function placeCityBikeRacks(records, standing = []) {
+  //: A rack stands this far (m) from a post on the pavement: room for the bicycle beside it.
+  const BIKE_RACK_POST_CLEAR_M = 1.1;
   const out = [], taken = [];
-  const why = bikeRackStats = { sites: records.length, racks: 0, no_kerb: 0, junction: 0, building: 0, door: 0, road: 0, crowded: 0 };
+  const why = bikeRackStats = { sites: records.length, racks: 0, no_kerb: 0, junction: 0, building: 0, door: 0, road: 0, crowded: 0, post: 0 };
   const clearOf = (x, z) => taken.every(([tx, tz]) => (tx - x) ** 2 + (tz - z) ** 2 > 0.8 * 0.8);
+  // The posts already standing on the pavement (street lights, sign posts), as [x, z]: a rack
+  // and its two bicycles keep clear of them. A rack put down on a lamp post's own spot read as
+  // bicycles piled round the post (2026-11-14).
+  const posts = standing.map((q) => (Array.isArray(q) ? q : [q?.x, q?.z])).filter(([x, z]) => Number.isFinite(x) && Number.isFinite(z));
+  const clearOfPosts = (x, z) => posts.every(([tx, tz]) => (tx - x) ** 2 + (tz - z) ** 2 > BIKE_RACK_POST_CLEAR_M * BIKE_RACK_POST_CLEAR_M);
   for (const site of records) {
     if (!Array.isArray(site.p) || site.p.length < 2) continue;
     const [px, py] = xy(site.p[0], site.p[1]);
@@ -488,6 +495,7 @@ function placeCityBikeRacks(records) {
     let last = null;
     const fits = (x, z) => {
       if (!clearOf(x, z)) { last = "crowded"; return false; }
+      if (!clearOfPosts(x, z)) { last = "post"; return false; }
       if (insideJunctionBox(x, z) || onCrossingGround(x, z, 1.2)) { last = "junction"; return false; }
       // A corral is in the parking lane: on the roadway, off the bike lane.
       if (corral) { last = "road"; return insideCarriageway(x, z, 0) && !insideBikeLane(x, z, 0.3); }
@@ -1820,7 +1828,8 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     inferred_approach_signs: osmApproach.length,
     electrical: addElectricalNetwork(furniture, lights.rows),
     bike_racks: (() => {
-      cityBikeRacks = placeCityBikeRacks((bikeRacks?.racks || []).filter((r) => !BUILD_WINDOW || BUILD_WINDOW.near(r)));
+      cityBikeRacks = placeCityBikeRacks((bikeRacks?.racks || []).filter((r) => !BUILD_WINDOW || BUILD_WINDOW.near(r)),
+        lights.rows.map((row) => row.anchor).concat(plates.spots || []));
       return { city: cityBikeRacks.length, drawn: addBikeRacks(cityBikeRacks, inventoryRackAnchors), inventory: plates.racks, placing: bikeRackStats };
     })(),
     generic_signs: generic.length,

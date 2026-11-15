@@ -2970,6 +2970,46 @@ export async function startCity(ctx) {
   // Marina walk. Each step has a place: the tracker at the top says where and how far, and the
   // green light stands over it (rules.json tasks).
   const placeName = (pl) => address(pl?.name) || (pl ? storesAt(R, pl.keys).map((x) => x.name)[0] : null) || "a building";
+  //: Where a spot is, by its cross streets ("Chestnut St & Pierce St"): every place a task sends
+  //: you to is said with them, so "go to the basketball court" is "... at Bay St & Webster St".
+  const shortStreet = (name) => String(name).replace(/\bStreet$/, "St").replace(/\bAvenue$/, "Ave").replace(/\bBoulevard$/, "Blvd").replace(/\bDrive$/, "Dr");
+  function crossAt(x, z, name = "") {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    const c = district.streets?.crossStreets?.(x, z);
+    if (!c) return null;
+    if (!c.cross) return name.includes(c.on) || name.includes(shortStreet(c.on)) ? null : shortStreet(c.on);
+    // An address already says its own street ("2300 Chestnut Street"): the cross street alone.
+    const said = (st) => name.includes(st) || name.includes(shortStreet(st));
+    if (said(c.on)) return shortStreet(c.cross);
+    if (said(c.cross)) return shortStreet(c.on);
+    return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;
+  }
+  //: A place's name with its cross streets after it; left alone when it already carries them.
+  function nameAt(name, x, z) {
+    if (!name || name.includes(" & ") || / at [A-Z0-9]/.test(name)) return name;
+    const cross = crossAt(x, z, name);
+    return cross ? `${name} at ${cross}` : name;
+  }
+  //: A line of the tasks card with its cross streets worked in before any " — what to do there".
+  function labelAt(label, x, z) {
+    if (label.includes(" & ")) return label;
+    const cut = label.indexOf(" — "), head = cut < 0 ? label : label.slice(0, cut), tail = cut < 0 ? "" : label.slice(cut);
+    const cross = crossAt(x, z, head);
+    if (!cross) return label;
+    // After an address ("... at 2109 Chestnut Street") the cross street reads "at Scott St" too.
+    return `${head} at ${cross}${tail}`;
+  }
+  //: A step's words with the cross streets of the places it names (the board's fixed places:
+  //: the forestry area, the walk's stops; a courier's shop and address carry theirs already).
+  function stepAt(step) {
+    const T = R.tasks, spots = [[T.forestry.area.name, T.forestry.area.centre], ...T.sightseeing.stops.map((st) => [st.name, st.at])];
+    for (const [name, at] of spots) {
+      if (!name || !step.includes(name) || step.includes(" & ")) continue;
+      const [x, z] = ctx.fromLonLat(at[1], at[0]);
+      return step.replace(name, nameAt(name, x, z));
+    }
+    return step;
+  }
   function taskOffers() {
     const T = R.tasks, here = me(), slot = Math.floor(Date.now() / (T.refresh_minutes * 60000));
     const r = rng(district.region, myId, slot), out = [], C = T.courier;
@@ -2982,16 +3022,16 @@ export async function startCity(ctx) {
       if (!ok.length) continue;
       const to = ok[Math.floor(r() * ok.length) % ok.length];
       const km = (d(from, here) + d(to, from)) / 1000;
-      out.push({ kind: "courier", title: `Courier: ${placeName(from)} → ${address(to.name) || "a home"}`, km, pay: C.pay_base + Math.round(C.pay_per_km * Math.min(4, km)),
-        from: { id: from.id, name: placeName(from), x: from.x, z: from.z }, to: { id: to.id, name: address(to.name) || "a home", x: to.x, z: to.z },
-        steps: [`Go to ${placeName(from)} and pick up the order at its door (G)`, `Take it to ${address(to.name) || "the address"} and hand it over (Yes, at the door)`] });
+      out.push({ kind: "courier", title: `Courier: ${nameAt(placeName(from), from.x, from.z)} → ${nameAt(address(to.name) || "a home", to.x, to.z)}`, km, pay: C.pay_base + Math.round(C.pay_per_km * Math.min(4, km)),
+        from: { id: from.id, name: nameAt(placeName(from), from.x, from.z), x: from.x, z: from.z }, to: { id: to.id, name: nameAt(address(to.name) || "a home", to.x, to.z), x: to.x, z: to.z },
+        steps: [`Go to ${nameAt(placeName(from), from.x, from.z)} and pick up the order at its door (G)`, `Take it to ${nameAt(address(to.name) || "the address", to.x, to.z)} and hand it over (Yes, at the door)`] });
     }
     const F = T.forestry, [fx, fz] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]);
     out.push({ kind: "forestry", title: F.name, km: Math.hypot(fx - here.x, fz - here.z) / 1000, pay: F.pay,
-      steps: ["Get an axe or a saw: a hardware store (Enter, then its SHOP panel), or the Shop (top bar)", `Go to ${F.area.name}`, `Put the tool on the bar and choose it (1-8), then fell ${F.trees} dead trees (X at a tree)`] });
+      steps: ["Get an axe or a saw: a hardware store (Enter, then its SHOP panel), or the Shop (top bar)", stepAt(`Go to ${F.area.name}`), `Put the tool on the bar and choose it (1-8), then fell ${F.trees} dead trees (X at a tree)`] });
     const S = T.sightseeing;
     out.push({ kind: "sightseeing", title: S.name, km: Math.min(...S.stops.map((st) => { const [x, z] = ctx.fromLonLat(st.at[1], st.at[0]); return Math.hypot(x - here.x, z - here.z); })) / 1000,
-      pay: S.pay, steps: S.stops.map((st) => `Visit ${st.name}`) });
+      pay: S.pay, steps: S.stops.map((st) => stepAt(`Visit ${st.name}`)) });
     out.push(...roundOffers(r, here));
     // In City mode only what is in its area: every place a task takes you to.
     const inside = (o) => {
@@ -3141,7 +3181,17 @@ export async function startCity(ctx) {
     if (!p) return [];
     const out = [], g = objective(), t = p.task;
     if (g) out.push({ label: g.label, x: g.x, z: g.z, now: true, run: () => openSide("tasks") });
-    if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: s, sub: t.title, run: () => openSide("tasks") }); });
+    // What comes round again goes first, under where you are headed now: the job and its
+    // shifts, and what your businesses and the court ask of you. One-off work comes after.
+    const recurring = [];
+    if (p.job) {
+      const spec = R.jobs.roles[p.job.role], atWork = Math.hypot(me().x - p.job.place.x, me().z - p.job.place.z) < R.jobs.workplace_reach_m;
+      if (p.clocked && !p.clocked.task) recurring.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; V where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
+      else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) recurring.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
+    } else recurring.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
+    recurring.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
+    out.push(...recurring);
+    if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: stepAt(s), sub: t.title, run: () => openSide("tasks") }); });
     if (p.errand && !(g && /^Errand/.test(g.label))) out.push({ label: `Errand for ${p.errand.to.who || "a neighbour"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}`, x: p.errand.to.x, z: p.errand.to.z, run: () => openSide("tasks") });
     const owed = view?.billing?.owed(p.account) || 0;
     if (owed) out.push({ label: `Pay what you owe: ${R.fmt(owed)}`, sub: "You & wallet", run: () => openPanel(true) });
@@ -3151,13 +3201,9 @@ export async function startCity(ctx) {
       const it = R.items[b.item], there = Math.hypot(me().x - b.place.x, me().z - b.place.z) < R.stores.reach_m;
       out.push({ label: there ? `Have your ${it.name.toLowerCase()} here` : `Your booking: ${it.name} at ${address(b.place.name) || "the place"}`, sub: "Booked in the Shop", x: b.place.x, z: b.place.z, run: () => (there ? useBooking(b) : openSide("online")) });
     }
-    if (p.job) {
-      const spec = R.jobs.roles[p.job.role], atWork = Math.hypot(me().x - p.job.place.x, me().z - p.job.place.z) < R.jobs.workplace_reach_m;
-      if (p.clocked && !p.clocked.task) out.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; V where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
-      else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) out.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
-    } else out.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
-    out.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
     if (!t && !p.delivery) for (const o of taskOffers()) out.push({ label: o.title, sub: `${R.fmt(o.pay)} · ${o.km.toFixed(1)} km${o.steps?.length ? ` · ${o.steps.length} steps` : ""}`, take: o });
+    // Every line that has a place says its cross streets.
+    for (const o of out) if (Number.isFinite(o.x) && Number.isFinite(o.z)) o.label = labelAt(o.label, o.x, o.z);
     return out;
   }
   const TODO_SHOWN = 3;

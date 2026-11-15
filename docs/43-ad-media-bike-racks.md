@@ -101,3 +101,10 @@ No freely licensed bike-lock model was found, so the lock is modelled in code.
   - ad-face layout for wide and tall faces.
 - `tests/city_bike_racks.test.mjs` covers nearest-rack choice, one bicycle per place, the
   walking reach, and resetting spots when the racks change.
+
+## Checked in the merged build (2026-11-14)
+
+Billboards (12 in the Marina window) and the shelters' light boxes (40 faces) draw their ad art;
+62 city racks are placed and riders' bicycles lock to them. One fix: a rack keeps 1.1 m clear of
+street-light and sign posts (`placeCityBikeRacks(records, standing)`), where bicycles had read as
+piled round a lamp post.

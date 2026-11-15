@@ -45,10 +45,22 @@ Walking, driving, and buses along their routes.
   "09:00" starts when the clock reads 09:00 and the walk there takes real seconds.
 - A courier's deadline is the ride's real minutes, shown in real minutes.
 
-### The compass
+### City mode only
 
-The compass is a reading only. Clicking it no longer opens the sun dial, and the time cannot be
-changed in the game. `kerbsideEnvironment.setTime(date)` remains for previews and tests.
+The game clock is the city's. In **City** mode the sky reads it (`setClock("game")`) and the
+compass is a reading only: no click, no box, the time cannot be changed. In **Explore** the sky
+is San Francisco's own, live, and the compass still opens the box to turn the walker and move
+the sun (`compassForMode`, module 23). `kerbsideEnvironment.setTime(date)` remains for previews
+and tests.
+
+### Fixed on the way to production (2026-11-14)
+
+- **The moon was never drawn.** Two causes: a released detail window emptied the one quad
+  three.js draws every sprite with (`emptyOne`, module 29), and City mode's far plane (1.6 km)
+  clipped a moon placed 20 km out. Sprites are now skipped by the release, and the moon stands
+  inside the far plane at the same apparent size.
+- **Parks glowed green at night.** Distant tree crowns are unlit points; they now go down to
+  moonlit blue with the page's night (`uNatureNight`, nature-runtime).
 
 ## Night (`docs/environment-runtime.mjs`, module 02)
 

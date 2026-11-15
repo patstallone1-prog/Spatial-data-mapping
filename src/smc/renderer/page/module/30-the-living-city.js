@@ -197,6 +197,8 @@ function setAppMode(mode) {
   appMode = mode === "city" ? "city" : "explore";
   try { localStorage.setItem(MODE_KEY, appMode); } catch { /* private window */ }
   document.body.dataset.mode = appMode;
+  // The city's sky runs on the game's clock and its compass only reads; Explore's is live.
+  if (typeof compassForMode === "function") compassForMode(appMode);
   // The pins are the map's: in the game the number keys choose from the bar, and the pins hide.
   if (typeof pinGroup !== "undefined") pinGroup.visible = appMode !== "city";
   const sw = document.getElementById("mode-switch");

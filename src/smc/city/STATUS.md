@@ -549,3 +549,11 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
 * Tooltips on the action bar for touch.
 * A history of notices (each disappears after 7 s).
 * Map pins for the task, the errand, your car, your home and listed homes.
+
+## 2026-11-14: tasks card
+
+- What recurs comes first under the line you are headed to: the job (or "Find a job"), shifts,
+  and what your businesses and the court ask (`todoItems`, view.mjs).
+- Every placed line and every courier's shop and address says its cross streets
+  (`Streets.crossStreets`, `nameAt`, `labelAt`, `stepAt`): "2300 Chestnut Street at Scott St",
+  "the court at Bay St & Webster St".

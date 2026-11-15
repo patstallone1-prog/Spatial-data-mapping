@@ -49,6 +49,9 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
   const priorEnvironment=scene.environment;
   const spaceColour=new THREE.Color(0x02050b);let inSpace=false;
   const gameClock=makeClock(CLOCK_SPEC);
+  //: Which clock the sky reads: the game's (City mode: a 72-minute day) or the wall's (Explore).
+  let clockMode='live';
+  const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date();
   let environment=null,preset='sunny',override=null,observed=null,lastClock=-Infinity,lastCapture=-Infinity,capturedDay=-1,latest=null;
   const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
   const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(256,256);
@@ -161,15 +164,20 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     rain.position.copy(camera.position);rain.position.y-=((now/1000*12)%32);
     // The stars and the moon go with the eye, as the sky does.
     if(stars.visible){stars.matrix.copy(starMatrix).setPosition(camera.position);stars.matrixWorldNeedsUpdate=true;}
-    moon.position.copy(camera.position).addScaledVector(moonDir,MOON_AT);halo.position.copy(moon.position);
+    // Inside the camera's far plane, at the same size in the sky: City mode draws to 1.6 km, and a
+    // moon 20 km out was beyond it and never drawn (2026-11-14).
+    const moonAt=Math.min(MOON_AT,camera.far*.85),moonScale=moonSize*moonAt/MOON_AT;
+    moon.scale.setScalar(moonScale);halo.scale.setScalar(moonScale*4);
+    moon.position.copy(camera.position).addScaledVector(moonDir,moonAt);halo.position.copy(moon.position);
     // An observed hour's weather (sky-history.mjs) stands in for the chosen preset while it is set.
     const weather=observed?{...WEATHER[observed.preset],wind:observed.wind,windFrom:observed.windFrom}:WEATHER[preset];
     rain.visible=Boolean(weather.rain && !indoors);
     // The wind the plants sway in (foliage-motion.mjs), and the rain slanting with it.
     globalThis.kerbsideWind={speed:weather.wind,from:weather.windFrom};
     if(now-lastClock<250)return;lastClock=now;
-    // The game's time, not the wall clock's (the headset sets its own noon).
-    const date=override || new Date(gameClock.game(Date.now())), s=solarState(date,lat,lon);
+    // City mode: the game's time, not the wall clock's. Explore: live (setClock). The headset
+    // sets its own noon.
+    const date=override || clockNow(), s=solarState(date,lat,lon);
     const day=smooth(s.altitude,-.12,.15),dark=1-day;
     // How far into the night: 0 as the sun sets, 1 with it a third of the way down.
     const depth=smooth(-s.altitude,.03,.55);
@@ -208,9 +216,11 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
       const next=pmrem.fromScene(skyScene,0,.1,100000);scene.environment=next.texture;environment?.dispose();environment=next;}
   }
   return {update,snapshot:()=>latest,clock:gameClock,setWeather(value){if(!(value in WEATHER))throw Error('Unknown weather');preset=value;lastClock=lastCapture=-Infinity;},
-    setPhase(name){override=previewTime(name,new Date(gameClock.game(Date.now())),lat,lon);lastClock=lastCapture=-Infinity;},
+    setPhase(name){override=previewTime(name,clockNow(),lat,lon);lastClock=lastCapture=-Infinity;},
     //: Observed conditions ({preset, wind, windFrom, ...}) for the hour shown, or null for the preset.
     setConditions(value){if(value && !(value.preset in WEATHER))throw Error('Unknown weather');observed=value||null;lastClock=lastCapture=-Infinity;},
+    setClock(mode){const next=mode==='game'?'game':'live';if(next!==clockMode){clockMode=next;lastClock=lastCapture=-Infinity;}},
+    clockMode:()=>clockMode,
     setTime(value){const date=value===null?null:new Date(value);if(date && !Number.isFinite(+date))throw Error('Invalid date');override=date;lastClock=lastCapture=-Infinity;},
     dispose(){scene.remove(sky,clouds,rain,dome,stars,moon,halo);sky.geometry.dispose();sky.material.dispose();captureSky.geometry.dispose();captureSky.material.dispose();
       cloudTexture.dispose();clouds.geometry.dispose();cloudMaterial.dispose();rainGeometry.dispose();rain.material.dispose();

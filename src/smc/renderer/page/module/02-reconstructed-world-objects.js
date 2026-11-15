@@ -480,6 +480,8 @@ if(!ATTACH) {
   // Do not add a top-level suspension here: regional labels initialize later.
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
   environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon,night:NIGHT,asset:sharedAsset});
+  // Made after the mode was first set, as often as not: the city's sky is on the game's clock.
+  environmentController.setClock?.(typeof appMode!=="undefined" && appMode==="city" ? "game" : "live");
   if(META){
     // Always the same light: noon, clear, whatever the hour or the weather outside.
     environmentController.setWeather("sunny");environmentController.setTime(metaLibrary.META_NOON);
