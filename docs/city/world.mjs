@@ -24,6 +24,7 @@ import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
+import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
@@ -56,6 +57,7 @@ export class CityWorld {
     this.damage = new Map();                           // things struck: how much they have taken, and broken ones
     this.market = { taken: new Set() };                // homes bought or let off the market
     this.harm = new Map();                             // people hurt and cars damaged: the city's residents', and what became of them
+    this.homeInteriors = new Map();                    // validated user layouts, shared in the world snapshot
     this.seq = 0; this.lastStep = now;
     for (const id of Object.keys(AUTHORITIES)) this.ledger.open(id, "authority");
     for (const c of R.jurisdictions.cities) this.ledger.open(`treasury:${c.id}`, "treasury");
@@ -1641,7 +1643,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, harm: [...this.harm.values()], enterprise: this.enterpriseJSON() };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], enterprise: this.enterpriseJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1658,6 +1660,7 @@ export class CityWorld {
     w.damage = new Map((o.damage || []).map((d) => [d.key, d]));
     w.market = { taken: new Set(o.market?.taken || []) };
     w.harm = new Map((o.harm || []).map((h) => [h.id, h]));
+    w.homeInteriors = new Map(o.homeInteriors || []);
     w.enterpriseLoad(o.enterprise);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
@@ -1684,11 +1687,12 @@ const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 //: Things as themselves: records, uses, outcomes and resale (commerce.mjs).
 installCommerce(CityWorld, CityError);
+installHomeInteriors(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

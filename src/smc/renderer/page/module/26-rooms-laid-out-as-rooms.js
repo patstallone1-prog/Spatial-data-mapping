@@ -114,7 +114,7 @@ function furniturePiece(group, role, seed, cx, cz, yaw, floorY, w, d, h, block, 
   holder.position.set(cx, floorY + (opts.lift || 0), cz);
   holder.rotation.y = yaw;
   holder.userData = { surface: `furnishing:${role}`, grade: "inferred_from_room_type",
-    source: "fitted_external_floor_plan" };
+    source: "fitted_external_floor_plan", editorFurnishing: { role, size: [w * 0.92, h, d * 0.92] } };
   const placeholder = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, h, d * 0.92), block);
   placeholder.position.y = h / 2;
   placeholder.castShadow = true;
@@ -143,6 +143,7 @@ function furniturePiece(group, role, seed, cx, cz, yaw, floorY, w, d, h, block, 
     holder.userData.assetLicense = template.userData.row?.license;
     holder.userData.assetSource = template.userData.row?.attribution;
     holder.userData.topY = size.y * scale;
+    holder.userData.editorFurnishing = { role, size: [size.x * scale, size.y * scale, size.z * scale], asset: { ...template.userData.row, procedural: false } };
     // The top's footprint: the model's own, as scaled into the piece's place.
     if (opts.onModel) opts.onModel(holder, size.y * scale, { w: size.x * scale, d: size.z * scale });
   });
@@ -869,6 +870,7 @@ function entryRoomsPossible(entry) {
 function buildInterior(entry) {
   if (entry.way.parkFacility || entry.way._structure) return;
   if(entryTunnelConflict(entry))return;
+  if ((entry.customInteriorEnabled || homeEditorBridge?.access.designs.some(d => d.target.buildingId === String(entry.way.osm_id))) && !entry.customInteriorFailed && !entry.capturingEditorBaseline) { requestGeneratedInterior(entry); return; }
   if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) {
     if (!entry.interior) requestGeneratedInterior(entry);
     return;
@@ -983,7 +985,7 @@ function buildInterior(entry) {
         const paint = roomPaint(houseSeed, roomCounter, lastPaint);
         lastPaint = paint;
         roomCounter += 1;
-        roomSpecs.push({ kind, pts, paint });
+        roomSpecs.push({ kind, pts, paint, tile: [i, j] });
         // Its walls, clipped to the footprint, with the plan's doorways left open.
         for (let k = 0; k < pts.length; k += 1) {
           const [ax, az] = pts[k];
@@ -1187,7 +1189,7 @@ function buildInterior(entry) {
       const stretch = upperHeight / height;
       const upper = new THREE.Group();
       upper.position.y = level * storeyStep;
-      upper.userData = { surface: "interior_storey", level, grade: "repeated_fitted_plan_not_measured" };
+      upper.userData = { surface: "interior_storey", level, height: upperHeight, grade: "repeated_fitted_plan_not_measured" };
       for (const original of groundObjects) {
         if (original === slab) continue;
         const copy = original.clone(true);
@@ -1215,8 +1217,76 @@ function buildInterior(entry) {
   const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
   standingSurfaces.add(floorSurface);
   entry.interior = { group, segments, floorSurface, rooms: roomSpecs, lights, roomDoors, floorY, height,
+    doorSpecs: [...interiorDoorSpecs.values()].map((spec) => ({ ...spec })),
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
   interiorsBuilt.add(entry);
+}
+
+// Captured on opening the editor, never on the render loop. The snapshot stays
+// stable even if deferred furniture model downloads finish afterwards.
+function fittedInteriorSnapshot(entry) {
+  if (entry.fittedEditorSnapshot) return structuredClone(entry.fittedEditorSnapshot);
+  const interior = entry.interior;
+  if (!entry.fit || !interior || interior.generated || !Array.isArray(interior.rooms)
+      || !Array.isArray(entry.local) || !Array.isArray(interior.doorSpecs))
+    throw new Error("The fitted interior is not ready for editing");
+  const [,, nx, ny, lon, lat] = entry.fit;
+  const origin = xy(lon, lat), id = String(entry.way.osm_id), floorY = interior.floorY;
+  const windows = (entry.homeShell?.group.userData.windows || []).map((w) => ({
+    edge:w.edge, u:w.u, v:w.v-floorY, w:w.w, h:w.h,
+  })).filter((w) => Number.isInteger(w.edge) && [w.u,w.v,w.w,w.h].every(Number.isFinite));
+  const roleFor = (kind) => ({living:"sofa",bedroom:"bed",dining:"dining_table",office:"desk",kitchen:"counter",bathroom:"bath_sink",storage:"washing_machine"}[kind] || kind);
+  const objectsIn = (parent, offset) => {
+    const objects = [];
+    for (const item of parent.children) {
+      const surface = item.userData?.surface || "";
+      if (!surface.startsWith("furnishing:") || ["furnishing:ceiling_light","furnishing:picture","furnishing:carpet"].includes(surface)) continue;
+      const details = item.userData.editorFurnishing;
+      let size = details?.size;
+      if (!size) {
+        // Older procedural room furniture has no model record. Measure the
+        // existing meshes in the holder's local axes, including its rotation.
+        item.updateWorldMatrix(true, true);
+        const inverse = new THREE.Matrix4().copy(item.matrixWorld).invert(), bounds = new THREE.Box3();
+        item.traverse((mesh) => {
+          if (!mesh.isMesh || !mesh.geometry) return;
+          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+          if (!mesh.geometry.boundingBox) return;
+          bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,mesh.matrixWorld)));
+        });
+        if (bounds.isEmpty()) continue;
+        const v = bounds.getSize(new THREE.Vector3()); size = [v.x,v.y,v.z];
+      }
+      if (!size.every((v) => Number.isFinite(v) && v > .001)) continue;
+      const role = details?.role || roleFor(surface.slice("furnishing:".length));
+      const object = { role, position:[item.position.x,item.position.y+offset,item.position.z],size:[...size],yaw:item.rotation.y };
+      if (details?.asset) { const a=details.asset; object.asset={id:a.id,role:a.role||role,model:a.model,license:a.license,source:a.source,attribution:a.attribution,dimensions_m:a.dimensions_m,procedural:false}; }
+      objects.push(object);
+    }
+    return objects;
+  };
+  const roomSnapshots = () => interior.rooms.map((r) => ({kind:r.kind,pts:r.pts.map((p)=>[...p]),
+    color:`#${WALL_PAINTS[r.paint].toString(16).padStart(6,"0")}`,tile:r.tile ? [...r.tile] : null}));
+  const segments = () => interior.segments.map((s) => ({coordinates:[...s],structural_status:"unverified_game_partition"}));
+  const doorSnapshot = (d) => {
+    const dx=Math.cos(d.yaw)*d.width/2, dz=-Math.sin(d.yaw)*d.width/2;
+    return {segment:[[d.x-dx,d.z-dz],[d.x+dx,d.z+dz]],type:d.kind==="private"?"single_door":"doorway",leaf_count:d.kind==="private"?1:0};
+  };
+  const nativeDoors = (entry.doors || []).filter((d)=>[d.cx,d.cz,d.ux,d.uz,d.width].every(Number.isFinite)).map((d)=>({
+    segment:[[d.cx-d.ux*d.width/2,d.cz-d.uz*d.width/2],[d.cx+d.ux*d.width/2,d.cz+d.uz*d.width/2]],
+    type:"entrance",entrance:true,leaf_count:0,
+  }));
+  const levels=[{level:0,elevation:0,height:interior.height,rooms:roomSnapshots(),segments:segments(),
+    openings:[...interior.doorSpecs.map(doorSnapshot),...nativeDoors],objects:objectsIn(interior.group,0)}];
+  for(const upper of interior.group.children.filter((o)=>o.userData?.surface==="interior_storey")) {
+    levels.push({level:upper.userData.level,elevation:upper.position.y,height:upper.userData.height,
+      rooms:roomSnapshots(),segments:segments(),openings:interior.doorSpecs.map(doorSnapshot),objects:objectsIn(upper,upper.position.y)});
+  }
+  const snapshot={id,origin,footprint:entry.local.map((p)=>[...p]),floorY,levels,windows,
+    metadata:{source:"fitted_plan_not_measured",stairs:"unknown",decor:"some decorative items are not editable",
+      ownership_scope:nx*ny>1||levels.length>1?"unknown_multi_unit":"single_fitted_plan"}};
+  entry.fittedEditorSnapshot=structuredClone(snapshot);
+  return snapshot;
 }
 
 function removeInterior(entry) {
