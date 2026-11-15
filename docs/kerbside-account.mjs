@@ -169,21 +169,12 @@ export async function canonicalEdits() {
   }
 }
 
-//: Money the backend has put in this device's City wallet and the wallet has not had yet
-//: (supabase/kerbside_city_grants.sql): [{id, amount (cents), note}]. Empty when the store is
-//: unset or cannot be reached.
-export async function cityGrants() {
-  try {
-    const out = await rpc("kerbside_city_grants", { key: state.key }, { timeout: 8000 });
-    return Array.isArray(out) ? out.filter((g) => Number.isFinite(+g?.id) && +g.amount > 0) : [];
-  } catch {
-    return [];
-  }
-}
-//: A grant now in the wallet: marked so, so no other of this device's worlds takes it again.
-export async function claimCityGrant(id) {
-  try { return Boolean((await rpc("kerbside_claim_city_grant", { key: state.key, grant_id: +id }, { timeout: 8000 }))?.claimed); } catch { return false; }
-}
+//: This device's account secret, for the city's own server and nothing else (docs/city/
+//: server-client.mjs signs in with it, over HTTPS, to the page's own /api/city): the server keeps
+//: its SHA-256 as the player. Money the backend grants an account (supabase/
+//: kerbside_city_grants.sql) is paid into the city by that server -- a page can no longer take
+//: one for itself.
+export function deviceKey() { return state.key; }
 
 // Known to the store from the first visit, so the owner can find it and verify it.
 if (!state.registered && typeof fetch === "function") register();

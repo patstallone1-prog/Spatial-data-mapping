@@ -1,7 +1,8 @@
 // The living city in the viewer: the district's people on its pavements and its traffic on its
 // streets, your wallet and your day, a car to drive (or ride in with your party), the bridge
 // tolls, carpool and express lanes and speed cameras that charge it, the bills that follow, and
-// the party's own measures -- all on one set of books held by the party's host.
+// the city's own measures -- all on one set of books held by the city's server (server/city):
+// this page sends what you do and shows what the server says came of it.
 //
 // ``startCity(ctx)`` is called once by the page (src/smc/renderer/page/module/30-the-living-city.js)
 // with what this module needs of it; ``city.tick(now)`` each frame; ``city.drive(dt, held)``
@@ -25,6 +26,7 @@ import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, S
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
+import { cityClient, cityServerUrl } from "./server-client.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
@@ -37,8 +39,9 @@ import { commercePanels } from "./commerce-panels.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
-const SAVE_SELF = "kerbside:city:self";
 const SAVE_ID = "kerbside:city:id";
+//: How often the page asks the city's server what has changed (ms).
+const SYNC_MS = 4000;
 const MPH = 2.23694;
 //: A car's footprint on foot: its body, corners rounded this much (bumpers and wings are round).
 const CAR_CORNER_M = 0.35;
@@ -246,7 +249,9 @@ export async function startCity(ctx) {
   // runs them, the others out and back.
   fetch(ctx.asset("city/muni-routes.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { if (json?.lines) { timetable = json; if (district.streets) makeLines(); } }).catch(() => {});
 
-  const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
+  //: Who you are in the city: the server's id for this device's account once signed in; a local
+  //: id only in the offline practice world.
+  let myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
   // The game's clock (clock.mjs): a day in 72 real minutes. ``gameNow()`` is what the books and
   // the clock on the bar read; the fleet works in real minutes from the game day's start
@@ -1202,16 +1207,22 @@ export async function startCity(ctx) {
   const parked = new Map();     // vehicle id -> mesh (your cars where they stand)
   const peerCars = new Map();   // peer id -> mesh
 
-  // ---- the books: yours alone, or the party host's ---------------------------------------------
-  const party = { session: null, host: null, unlisten: null, pending: new Map(), req: 0, lastState: 0, snapshot: null };
-  let world = null;     // the authoritative world when this browser holds it
-  let view = null;      // the world as last seen (a copy of the host's when in a party)
+  // ---- the books: the city server's; a practice world of your own only when it cannot be reached --
+  // The city is one world, kept by its server (server/city, at /api/city): this page signs in
+  // with the device's account, sends the actions you take, and is shown your part of it. It
+  // holds no books while connected, and nothing saved here is ever brought into the city. A
+  // party is who you see walking beside you -- not a separate economy, and nobody's browser is
+  // its host. Where the server cannot be reached (a development page, a deploy not yet set up),
+  // the city is an offline practice world of this browser's own, said so in the panel.
+  const party = { session: null, unlisten: null, ids: new Map() };
+  const online = { client: null, state: "connecting", why: "", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  let world = null;     // the offline practice world (this browser's own; never the city's)
+  let view = null;      // the world as shown: the server's view of it for you, or the practice world
   function loadSolo() {
     const saved = store.get(SAVE_SOLO);
-    try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved city could not be read", error); }
+    try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved practice city could not be read", error); }
     return new CityWorld(R, { now: gameNow(), seed: "solo" });
   }
-  world = loadSolo(); view = world;
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
   let enterpriseUI = null, messagesUI = null, commerceUI = null;
   //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
@@ -1223,12 +1234,11 @@ export async function startCity(ctx) {
     openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
-  const amHost = () => Boolean(world);
-  const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
+  const worldKey = () => (world ? SAVE_SOLO : "kerbside:city:server");
   function syncHomeEditor() {
     const p = view?.players.get(myId);
     if (!p) return;
-    ctx.setHomeInteriorAccess?.({ worldKey: roomKey(), account: p.account,
+    ctx.setHomeInteriorAccess?.({ worldKey: worldKey(), account: p.account,
       homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})),
       designs: [...(view.homeInteriors?.values() || [])] });
   }
@@ -1237,96 +1247,95 @@ export async function startCity(ctx) {
     try { await ctx.editHome?.(homeId); } catch (error) { notify(error.message); }
   }
 
-  function save() {
-    if (world) store.set(roomKey(), world.toJSON());
-    const self = (world || view)?.savedSelf?.(myId);
-    if (self) store.set(SAVE_SELF, self);
+  //: Only the practice world is saved here; the city is saved by its server.
+  function save() { if (world) store.set(SAVE_SOLO, world.toJSON()); }
+  //: The server's answer shown: your part of the world as it now is.
+  function shown(r) {
+    if (!r?.state || (r.version || 0) < online.version) return;
+    online.version = r.version || online.version;
+    try { view = CityWorld.fromJSON(R, r.state); } catch (error) { console.warn("kerbside: the city's state could not be read", error); return; }
+    refresh();
   }
-  //: A command as the player: done here when this browser holds the books, sent to the host when not.
-  function send(command, args = {}) {
-    const here = whereNow();
-    const full = { ...args, at: here };
-    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); afterChange(); return Promise.resolve(r); }
-    const req = `${myId}:${++party.req}`;
-    party.session.city.send({ t: "cmd", req, pid: myId, command, args: full });
-    return new Promise((resolve) => { party.pending.set(req, resolve); setTimeout(() => { if (party.pending.delete(req)) resolve({ ok: false, error: "the party's host did not answer" }); }, 6000); });
+  //: A command as the player: asked of the city's server, which decides it; in the practice
+  //: world, done here.
+  async function send(command, args = {}) {
+    const full = { ...args, at: whereNow() };
+    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); refresh(); return r; }
+    if (online.state !== "online") return { ok: false, error: "Connecting to the city…" };
+    const r = await online.client.send(command, full);
+    if (!r.ok) return { ok: false, error: r.error || "the city's server did not answer" };
+    shown(r);
+    return r.result || { ok: false, error: "the city's server did not answer" };
   }
-  function afterChange() { if (world && party.session) broadcastState(); refresh(); }
-  function broadcastState() {
-    if (!world || !party.session) return;
-    const json = world.toJSON();
-    json.ledger.journal = json.ledger.journal.slice(-60);
-    party.session.city.send({ t: "state", host: myId, state: json });
-    party.lastState = performance.now();
+  //: What others have done since: asked every few seconds (the answer is empty when nothing has).
+  async function syncCity() {
+    if (online.state !== "online" || online.syncing) return;
+    online.syncing = true; online.lastSync = performance.now();
+    try { const r = await online.client.sync(online.version); if (r.ok) shown(r); } finally { online.syncing = false; }
   }
-  function onPartyMessage(m) {
-    if (m.t === "cmd" && world) {
-      // (Backend money is minted by the browser it belongs to, for itself: never asked of a host.)
-      const result = m.command === "account_grant" ? { ok: false, error: "not from a party" } : world.submit(m.pid, m.command, m.args);
-      party.session.city.send({ t: "res", req: m.req, to: m.pid, result });
-      if (result.ok && m.command === "customize_home") save();
-      broadcastState(); refresh();
-    } else if (m.t === "res" && m.to === myId) {
-      const done = party.pending.get(m.req); if (done) { party.pending.delete(m.req); done(m.result); }
-    } else if (m.t === "state" && m.host !== myId) {
-      party.snapshot = m.state; party.host = m.host; party.heardHost = performance.now();
-      if (world && m.host < myId) { save(); world = null; }   // two hosts: the lower id keeps the books
-      if (!world) { view = CityWorld.fromJSON(R, m.state); refresh(); ensureJoined(); }
-    } else if (m.t === "hello" && world) broadcastState();
+  function practice(why) {
+    online.state = "practice"; online.why = why; online.retry = performance.now();
+    if (!world) { world = loadSolo(); view = world; }
+    refresh();
+    ensureJoined();
   }
-  //: Who holds the books: the lowest city id in the party (yours when alone, or when the host has gone).
-  function electHost() {
-    if (!party.session) return;
-    const ids = [myId, ...[...party.ids.values()]].sort();
-    const lowest = ids[0];
-    const hostGone = party.host && performance.now() - (party.heardHost || 0) > 8000;
-    if (lowest === myId && !world && (hostGone || !party.host || party.host === myId || !party.ids.size)) {
-      // Take over from the last state the party saw, or this party's own saved world.
-      world = party.snapshot ? CityWorld.fromJSON(R, party.snapshot) : (() => { const s = store.get(roomKey()); return s ? CityWorld.fromJSON(R, s) : new CityWorld(R, { seed: party.session.room }); })();
-      view = world; party.host = myId; ensureJoined(); broadcastState();
-    }
+  //: Signing in to the city. Not reachable: the practice world, and another try every minute.
+  async function connectCity() {
+    const url = cityServerUrl(globalThis.location);
+    if (!url) { practice("this page has no city server"); return; }
+    const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
+    const key = lib?.deviceKey?.();
+    if (!key) { practice("this device has no account"); return; }
+    online.client ||= cityClient({ url, key });
+    const r = await online.client.open();
+    if (!r.ok) { practice(r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
+    if (world) save();
+    world = null; view = null; myId = r.pid; online.state = "online"; online.why = ""; online.version = 0;
+    if (party.session) party.session.city.send({ t: "hello", pid: myId });
+    await syncCity();
+    ensureJoined();
   }
+  // Until the first frame (tick starts it): the practice world at once where there is no server
+  // to ask, so a development page is never left waiting.
+  if (!cityServerUrl(globalThis.location)) { world = loadSolo(); view = world; online.state = "practice"; online.why = "this page has no city server"; }
   //: Everyone is a player of the city from the first: joined in the background as soon as the
   //: district is there (a home beside you to rent), under the profile's name -- there is no
   //: "Join the city" to press (2026-11-11).
+  let joining = false;
   async function ensureJoined() {
-    const w = world || view;
-    if (!w || w.players.has(myId) || party.joining) return;
-    if (!party.session && !district.places?.length) return;   // the district first: a home beside you
-    party.joining = true;
+    const w = view;
+    if (!w || w.players.has(myId) || joining) return;
+    if (!district.places?.length) return;   // the district first: a home beside you
+    joining = true;
     try {
       const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
       const name = party.session?.me?.name || lib?.account?.()?.name || "You";
       const home = nearestPlace((p) => p.use === "residential", 400);
-      const r = await send("join", { name, home });
-      if (r.ok && party.session) { const self = store.get(SAVE_SELF); if (self) await send("import", { saved: self }); }
+      await send("join", { name, home });
     } catch (error) { console.warn("kerbside: could not join the city", error); }
-    finally { party.joining = false; }
+    finally { joining = false; }
     refresh();
   }
+  //: A party: the people whose walkers you see. Each says which player of the city it is, so you
+  //: can pick them to pay, lend to or write to -- a name to choose from, never a proof: what
+  //: anyone does in the city is decided by their own session with the server.
   function joinParty(session) {
     if (party.session === session) return;
     leaveParty();
-    save();
-    party.session = session; party.ids = new Map(); party.host = null; party.snapshot = null;
-    world = null; view = null;
+    party.session = session; party.ids = new Map();
     party.unlisten = session.city.listen((m) => {
-      if (m.pid) party.ids.set(m.from, m.pid);
-      if (m.host) party.ids.set(m.from, m.host);
-      if (m.t === "hello" && m.pid) party.ids.set(m.from, m.pid);
-      onPartyMessage(m);
+      if (m?.t === "hello" && typeof m.pid === "string" && m.pid.length <= 64) {
+        const known = party.ids.has(m.from);
+        party.ids.set(m.from, m.pid);
+        if (!known) session.city.send({ t: "hello", pid: myId });
+      }
     });
     session.city.send({ t: "hello", pid: myId });
-    // Alone in the room for a moment: this browser holds the books.
-    setTimeout(electHost, 2500);
   }
   function leaveParty() {
     if (!party.session) return;
-    party.unlisten?.(); save();
-    // Back to your own world, with yourself as the party left you.
-    const self = (world || view)?.savedSelf?.(myId);
-    party.session = null; world = loadSolo(); view = world;
-    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: world.now }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: world.now }); } }
+    party.unlisten?.();
+    party.session = null; party.ids = new Map();
     refresh();
   }
 
@@ -3625,13 +3634,12 @@ export async function startCity(ctx) {
       const data = ctx.regionData();
       if (data && data.key !== district.key) { try { buildDistrict(data); } catch (error) { console.warn("kerbside: the living city could not build this district", error); district.key = data.key; } }
     }
-    if (party.session && now - lastStep > 3000) electHost();
-    if (world && now - lastStep > 1000) {
-      lastStep = now;
-      world.step(gameNow(t));
-      if (party.session && performance.now() - party.lastState > 2500) broadcastState();
-    }
+    if (online.state === "connecting" && !online.started) { online.started = true; connectCity(); }
+    // The practice world keeps its own time; the city's is kept by its server, asked what is new.
+    if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
+    if (online.state === "online" && performance.now() - online.lastSync > SYNC_MS) { syncCity().then(ensureJoined); }
+    if (online.state === "practice" && online.client && performance.now() - online.retry > 60_000) { online.retry = performance.now(); connectCity(); }
     const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
     // The route buses where the timetable has them, near you.
@@ -4710,22 +4718,17 @@ export async function startCity(ctx) {
     refresh();
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
-  //: Money put in your device account on the backend (supabase/kerbside_city_grants.sql): into
-  //: your wallet once you are in the city and this browser holds the books (alone, or the
-  //: party's host), each grant once (world.mjs cmd_account_grant), then marked claimed there.
-  let grantsTaken = false;
+  //: Money put in your device account on the backend (supabase/kerbside_city_grants.sql): paid
+  //: into your wallet by the city's server, once (server/city/authority.mjs grants). The page
+  //: only asks it to look; it cannot name an amount.
+  let grantsAsked = false;
   async function takeAccountGrants() {
-    if (grantsTaken || !world || !world.players.has(myId) || !ctx.account) return;
-    grantsTaken = true;
-    const lib = await Promise.resolve(ctx.account()).catch(() => null);
-    const grants = (await lib?.cityGrants?.().catch(() => [])) || [];
-    for (const g of grants) {
-      const r = await send("account_grant", { grant: g.id, amount: g.amount });
-      if (!r.ok) continue;
-      save();
-      if (!r.already) notify(`${R.fmt(g.amount)} from the backend is in your wallet${g.note ? ` (${g.note})` : ""}.`);
-      lib.claimCityGrant?.(g.id);
-    }
+    if (grantsAsked || online.state !== "online" || !view?.players.has(myId)) return;
+    grantsAsked = true;
+    const r = await online.client.grants();
+    if (!r.ok || r.waiting) { grantsAsked = false; return; }
+    shown(r);
+    for (const g of r.granted || []) notify(`${R.fmt(g.amount)} from the backend is in your wallet.`);
   }
   function refresh() {
     takeAccountGrants();
@@ -4735,7 +4738,7 @@ export async function startCity(ctx) {
     const w = view, p = w?.players.get(myId);
     const close = h("button", { textContent: "×", title: "Close (Esc)", onclick: () => openPanel() });
     const head = h("h3", {}, h("span", { textContent: "You" }), close);
-    if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Waiting for the party's host to share the city…" })); return; }
+    if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Connecting to the city…" })); return; }
     if (!p) {
       // Joined in the background (ensureJoined): only a moment before the district is there.
       panel.replaceChildren(head, h("p", { className: "note", textContent: `Setting up your place in the city: ${R.fmt(R.start.balance)} in Credits (a placeholder currency at par with the dollar), a rented room in the building beside you with its first week free, and no car.` }));
@@ -4785,7 +4788,8 @@ export async function startCity(ctx) {
         row("Home", st.home ? `a room at ${district.placeById?.get(st.home.building)?.name || "building " + st.home.building}, paid to ${new Date(st.home.paid_until).toLocaleDateString()}` : "none"),
         row("Job", st.job ? `${st.job.title}, ${R.fmt(st.job.pay)}/h` : "none"), row("At work", st.clocked ? `since ${new Date(st.clocked.since).toLocaleTimeString()}` : "no"),
         row("Earned this year", R.fmt(st.ytd.wages)), row("Tax held back", R.fmt(st.ytd.withheld)), row("FasTrak", st.fastrak ? `${st.fastrak.tag}, ${R.fmt(st.fastrak.balance)}, Flex ${st.fastrak.flex}` : "none"),
-        row("Party", party.session ? `room ${party.session.room}, ${world ? "you hold the books" : "the host holds the books"}` : "playing alone (Play together to share)"))];
+        row("City", online.state === "online" ? "online: one city for everyone, kept by its server" : online.state === "practice" ? `offline practice (${online.why}): nothing here is kept in the city` : "connecting…"),
+        row("Party", party.session ? `room ${party.session.room}: who you see walking with you` : "walking alone (Play together to see friends)"))];
       if (st.job) out.push(h("div", {}, st.clocked ? act("Clock out", () => send("clock_out")) : act("Clock in", () => send("clock_in"), true), act("Quit the job", () => send("quit_job"))));
       out.push(h("h4", { textContent: "Your body" }), h("table", {}, row("Health", `${Math.round(st.vitals.health)} of 100`), row("Stamina", `${Math.round(st.vitals.stamina)} of 100`), row("Strength", `${Math.round(st.vitals.strength)} of 100`),
         row("Carrying", `${st.carry.kg} of ${st.carry.capacity} kg`)));

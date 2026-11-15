@@ -118,21 +118,21 @@ test("a car's lane keeps clear of the cars parked at the kerb", () => {
   assert.ok(5 - 0.15 - 0.95 - LANE(5, "residential", true) > 1.85 + 0.2, "a car width and more between");
 });
 
-test("money granted to a device's account goes into the wallet once", () => {
+test("money granted to a device's account goes into the wallet once, and only the server can pay it", () => {
   const w = new CityWorld(R, { now: Date.now(), seed: "grant" });
   w.submit("me", "join", { name: "Me" });
   const before = w.submit("me", "status", {}).balance;
-  const r1 = w.submit("me", "account_grant", { grant: 7, amount: 100_000_000 });
-  assert.equal(r1.balance, before + 100_000_000);
-  assert.equal(w.submit("me", "account_grant", { grant: 7, amount: 100_000_000 }).already, true);
+  assert.equal(w.accountGrant("me", 7, 100_000_000).balance, before + 100_000_000);
+  assert.equal(w.accountGrant("me", 7, 100_000_000).already, true);
   // Saved and loaded again (a reload): still not twice.
   const again = CityWorld.fromJSON(R, JSON.parse(JSON.stringify(w.toJSON())));
-  assert.equal(again.submit("me", "account_grant", { grant: "7", amount: 100_000_000 }).already, true);
+  assert.equal(again.accountGrant("me", "7", 100_000_000).already, true);
   assert.equal(again.submit("me", "status", {}).balance, before + 100_000_000);
-  assert.equal(w.submit("me", "account_grant", { grant: 8, amount: 9e9 }).ok, false, "no more than the ceiling");
-  // A party's host never mints one asked for by someone else.
-  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
-  assert.match(view, /m\.command === "account_grant" \? \{ ok: false/);
+  assert.throws(() => w.accountGrant("me", 8, 9e9), /not a grant/, "no more than the ceiling");
+  // Neither a grant nor a saved balance is a command any more: no client can ask for money.
+  assert.equal(w.submit("me", "account_grant", { grant: 9, amount: 100 }).ok, false);
+  assert.equal(w.submit("me", "import", { saved: { balance: 5_000_000 } }).ok, false);
+  assert.equal(w.submit("me", "status", {}).balance, before + 100_000_000);
 });
 
 test("a signal head is lit by the phase the cars coming at it keep, one lens at a time", async () => {
