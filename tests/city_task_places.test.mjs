@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { Streets } from "../docs/city/people.mjs";
+import { Streets, saysStreet, shortStreet } from "../docs/city/people.mjs";
 
 const VIEW = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
 const way = (name, pts) => ({ kind: "street", pts, lanes: 2, oneway: 0, id: name, name, highway: "residential", road_m: 12 });
@@ -49,6 +49,25 @@ test("the tasks card puts what recurs first and says cross streets on every plac
   assert.ok(body.includes("o.label = labelAt(o.label, o.x, o.z);") && body.includes("label: stepAt(s)"));
   // A courier's shop and address carry their cross streets into the title and the steps.
   assert.ok(VIEW.includes("name: nameAt(placeName(from), from.x, from.z)") && VIEW.includes("stepAt(`Go to ${F.area.name}`)"));
-  assert.ok(VIEW.includes("return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;") && VIEW.includes("if (said(c.on)) return shortStreet(c.cross);"));
+  assert.ok(VIEW.includes("return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;") && VIEW.includes("if (saysStreet(name, c.on)) return shortStreet(c.cross);"));
+  assert.ok(VIEW.includes("district.streets?.crossStreets?.(x, z, 320, name)"));
   assert.ok(VIEW.includes("title: `Courier: ${nameAt(placeName(from), from.x, from.z)} → ${nameAt(address(to.name) || \"a home\", to.x, to.z)}`"));
+});
+
+test("an address is on the street it names, not the one nearest the middle of its lot", () => {
+  const S = town();
+  // A deep lot on Chestnut (z 120) whose middle is nearer Bay (z 0), by Fillmore (x 120).
+  const at = [170, 45];
+  assert.deepEqual(S.crossStreets(...at), { on: "Bay Street", cross: "Fillmore Street" }, "by position alone: the street behind");
+  assert.deepEqual(S.crossStreets(...at, 320, "2150 Chestnut Street"), { on: "Chestnut Street", cross: "Fillmore Street" });
+  assert.deepEqual(S.crossStreets(...at, 320, "2150 Chestnut St"), { on: "Chestnut Street", cross: "Fillmore Street" });
+  // A name that says no street in reach changes nothing.
+  assert.deepEqual(S.crossStreets(...at, 320, "The Hollow Cow"), { on: "Bay Street", cross: "Fillmore Street" });
+});
+
+test("a street is named only as a word of its own", () => {
+  assert.ok(saysStreet("2150 Chestnut Street", "Chestnut Street") && saysStreet("2150 chestnut st", "Chestnut Street"));
+  assert.ok(!saysStreet("12 Bayshore Street", "Bay Street") && !saysStreet("", "Bay Street") && !saysStreet("Bay Street", ""));
+  assert.equal(shortStreet("Van Ness Avenue"), "Van Ness Ave");
+  assert.equal(shortStreet("Marina Boulevard"), "Marina Blvd");
 });

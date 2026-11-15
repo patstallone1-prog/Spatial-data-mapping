@@ -21,7 +21,7 @@ import {
   transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
 import { clockOf, fleetTime } from "./clock.mjs";
-import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
+import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
@@ -2972,16 +2972,14 @@ export async function startCity(ctx) {
   const placeName = (pl) => address(pl?.name) || (pl ? storesAt(R, pl.keys).map((x) => x.name)[0] : null) || "a building";
   //: Where a spot is, by its cross streets ("Chestnut St & Pierce St"): every place a task sends
   //: you to is said with them, so "go to the basketball court" is "... at Bay St & Webster St".
-  const shortStreet = (name) => String(name).replace(/\bStreet$/, "St").replace(/\bAvenue$/, "Ave").replace(/\bBoulevard$/, "Blvd").replace(/\bDrive$/, "Dr");
   function crossAt(x, z, name = "") {
     if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
-    const c = district.streets?.crossStreets?.(x, z);
+    const c = district.streets?.crossStreets?.(x, z, 320, name);
     if (!c) return null;
-    if (!c.cross) return name.includes(c.on) || name.includes(shortStreet(c.on)) ? null : shortStreet(c.on);
+    if (!c.cross) return saysStreet(name, c.on) ? null : shortStreet(c.on);
     // An address already says its own street ("2300 Chestnut Street"): the cross street alone.
-    const said = (st) => name.includes(st) || name.includes(shortStreet(st));
-    if (said(c.on)) return shortStreet(c.cross);
-    if (said(c.cross)) return shortStreet(c.on);
+    if (saysStreet(name, c.on)) return shortStreet(c.cross);
+    if (saysStreet(name, c.cross)) return shortStreet(c.on);
     return `${shortStreet(c.on)} & ${shortStreet(c.cross)}`;
   }
   //: A place's name with its cross streets after it; left alone when it already carries them.

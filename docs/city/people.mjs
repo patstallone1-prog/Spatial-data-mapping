@@ -53,6 +53,16 @@ class Heap {
 
 //: A district's streets as a graph in page metres. ``ways`` are the region's own streets and
 //: footways: {pts: [[x, z], ...], kind, lanes, oneway (1 forward, -1 back, 0 both), road_m, name}.
+//: A street's name as a sign or an address shortens it: "Chestnut Street" -> "Chestnut St".
+export const shortStreet = (name) => String(name).replace(/\bStreet$/, "St").replace(/\bAvenue$/, "Ave").replace(/\bBoulevard$/, "Blvd").replace(/\bDrive$/, "Dr");
+//: Whether ``text`` (an address, a label) names the street ``name``, in full or shortened, as a
+//: word of its own: "2150 Chestnut Street" names Chestnut Street; "Bay Street" does not name
+//: "Bayshore Street".
+export function saysStreet(text, name) {
+  if (!text || !name) return false;
+  const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [name, shortStreet(name)].some((n) => new RegExp(`(^|[^A-Za-z0-9])${esc(n)}($|[^A-Za-z0-9])`, "i").test(text));
+}
 export class Streets {
   constructor(ways, { snap = 0.8, cell = 60 } = {}) {
     this.nodes = []; this.edges = []; this.cell = cell; this.grid = new Map(); this.index = new Map();
@@ -279,22 +289,34 @@ export class Streets {
   //: street it is on and the nearest named street meeting that one -- or the two streets of the
   //: nearest corner when the point is on no named street (a court in a park); ``cross`` null
   //: when only one named street is in reach; null when none is.
-  crossStreets(x, z, reach = 320) {
-    const on = this.streetAt(x, z, 90)?.name || null;
-    let best = null, bestD = Infinity, lone = null, loneD = Infinity;
+  //:
+  //: ``said``: what the place is called. An address names its own street ("2150 Chestnut
+  //: Street"), and that street is the one it is on -- not whichever street's centreline is
+  //: nearest the middle of its lot, which for a deep lot is the street behind it: the label read
+  //: "2150 Chestnut Street at Alhambra St & Francisco St" (2026-11-14).
+  crossStreets(x, z, reach = 320, said = "") {
+    const near = [], seen = new Map();
     const r = Math.ceil(reach / this.cell), cx = Math.floor(x / this.cell), cz = Math.floor(z / this.cell);
     for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) for (const a of this.grid.get(`${cx + i},${cz + j}`) || []) {
       const A = this.nodes[a], d = Math.hypot(A.x - x, A.z - z);
       if (d > reach) continue;
       const names = [...new Set(this.edges[a].map((e) => e.name).filter(Boolean))];
       if (!names.length) continue;
-      if (names.length === 1) { if (d < loneD) { loneD = d; lone = names[0]; } continue; }
+      near.push({ d, names });
+      for (const n of names) if (!(seen.get(n) <= d)) seen.set(n, d);
+    }
+    if (!near.length) return null;
+    const named = said ? [...seen].filter(([n]) => saysStreet(said, n)).sort((p, q) => p[1] - q[1])[0]?.[0] : null;
+    const on = named || this.streetAt(x, z, 90)?.name || null;
+    let best = null, bestD = Infinity;
+    for (const { d, names } of near) {
+      if (names.length < 2) continue;
       // A corner of the point's own street comes before a nearer corner of two others.
       const own = on && names.includes(on), score = d + (on && !own ? reach : 0);
       if (score < bestD) { bestD = score; best = own ? [on, names.find((n) => n !== on)] : names.slice(0, 2); }
     }
     if (best) return { on: best[0], cross: best[1] };
-    const one = on || lone;
+    const one = on || near.sort((p, q) => p.d - q.d)[0].names[0];
     return one ? { on: one, cross: null } : null;
   }
   //: The street a point is on (a building's own street): the nearest drivable block within
