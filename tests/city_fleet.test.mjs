@@ -161,14 +161,16 @@ test("traffic keeps the rules: stops for someone in the road, at a stop sign, an
   for (let t = 0; t < 2; t += 0.02) hits = hits.concat(D.step(0.02, 2000 + t, [car(300)], [{ id: "me", x: close.x, z: close.z, player: true }]).hits);
   assert.equal(hits.length, 1);
   assert.ok(hits[0].player && hits[0].speed > 3 && hits[0].speed < 11, `hit at ${hits[0].speed.toFixed(1)} m/s`);
-  // One of the city's own walkers there instead: the driver stops dead, nobody is hit.
+  // An NPC walker in the same unavoidable impact is treated like the player.
   D = new Drivers(streets);
   drive(D, 300, [], 0.1);
   D.stateOf("c").v = 11;
   hits = [];
   let last = null;
   for (let t = 0; t < 2; t += 0.02) { last = D.step(0.02, 2000 + t, [car(300)], [{ id: "q", x: close.x, z: close.z }]); hits = hits.concat(last.hits); }
-  assert.equal(hits.length, 0);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].who, "q");
+  assert.equal(hits[0].player, false);
   assert.equal(last.cars[0].v, 0);
   // A junction of residential streets is a stop sign; the car stops at it, then goes on.
   assert.equal(junctionAt(streets, streets.nearest(400, 400, "drive")), "stop");

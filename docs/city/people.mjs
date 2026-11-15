@@ -57,7 +57,7 @@ export class Streets {
   constructor(ways, { snap = 0.8, cell = 60 } = {}) {
     this.nodes = []; this.edges = []; this.cell = cell; this.grid = new Map(); this.index = new Map();
     this.snap = snap;
-    this.ends = [];
+    this.ends = []; this.crosswalks = [];
     for (const way of ways) this.addWay(way);
     this.joinEnds();
     this.reach = this.largestDriveNetwork();
@@ -123,6 +123,7 @@ export class Streets {
     return id;
   }
   addWay(way) {
+    if (way.kind === "crossing" && way.pts.length >= 2) this.crosswalks.push(way.pts);
     const street = way.kind === "street";
     const cls = street ? roadClass(way) : "shared";
     const half = street ? Math.max(3, (way.road_m || (way.lanes || 2) * 3.4) / 2) : 0;
@@ -617,6 +618,67 @@ export function alongRoute(route, d, side = 0) {
 
 //: How far out from a street's kerb a walker keeps (the middle of the pavement), in metres.
 export const PAVE_M = 1.6;
+//: A legal mapped crossing joins the two ends of ONE crosswalk polyline. Endpoints of
+//: parallel crosswalks are not interchangeable. Other links must stay on the pavement;
+//: the shortest path may therefore use two or three separate crossings round a junction.
+//: undefined: no mapped crosswalk here (keep the inferred corner route); null: no legal way.
+export function mappedCrosswalkPath(streets, node, from, to) {
+  const q = streets?.nodes?.[node];
+  if (!q || !streets.crosswalks?.length) return undefined;
+  const J = streets.junctionOf(node), members = J?.members || [node], set = new Set(members), arms = [];
+  for (const id of members) for (const e of streets.edges[id] || []) {
+    if (!(e.half > 0) || set.has(e.to)) continue;
+    const a = streets.nodes[id], b = streets.nodes[e.to], L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    arms.push({ x: a.x, z: a.z, ux: (b.x - a.x) / L, uz: (b.z - a.z) / L, half: e.half });
+  }
+  const reach = Math.max(8, ...arms.map((a) => a.half + PAVE_M)) * 2.5;
+  const local = streets.crosswalks.filter((pts) => pts.some((p) => Math.hypot(p[0] - q.x, p[1] - q.z) <= reach));
+  if (!local.length) return undefined;
+  const points = [from, to], edges = [[], []];
+  const link = (a, b, pts, crossing = false) => {
+    const length = pts.slice(1).reduce((d, p, i) => d + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+    edges[a].push({ to: b, pts, crossing, length });
+    edges[b].push({ to: a, pts: pts.slice().reverse(), crossing, length });
+  };
+  for (const pts of local) {
+    const a = points.length, b = a + 1;
+    points.push(pts[0], pts.at(-1)); edges.push([], []);
+    link(a, b, pts, true);
+  }
+  const onPavement = (a, b) => {
+    // Test the whole segment against each road arm's strip, rather than only its endpoints.
+    // Clip its parameter interval against along >= 0 and -half < lateral < half.
+    for (const r of arms) {
+      let lo = 0, hi = 1;
+      const clip = (v, dv, min, max) => {
+        if (Math.abs(dv) < 1e-9) return v >= min && v <= max;
+        let x = (min - v) / dv, y = (max - v) / dv;
+        if (x > y) [x, y] = [y, x];
+        lo = Math.max(lo, x); hi = Math.min(hi, y); return lo <= hi;
+      };
+      const x = a[0] - r.x, z = a[1] - r.z, dx = b[0] - a[0], dz = b[1] - a[1], half = Math.max(0, r.half - 0.6);
+      if (clip(x * r.ux + z * r.uz, dx * r.ux + dz * r.uz, -0.1, Infinity)
+          && clip(-x * r.uz + z * r.ux, -dx * r.uz + dz * r.ux, -half, half) && hi - lo > 1e-6) return false;
+    }
+    return true;
+  };
+  for (let a = 0; a < points.length; a += 1) for (let b = a + 1; b < points.length; b += 1) {
+    if (onPavement(points[a], points[b])) link(a, b, [points[a], points[b]]);
+  }
+  const dist = points.map(() => Infinity), prev = [], done = new Set(); dist[0] = 0;
+  while (done.size < points.length) {
+    let a = -1;
+    for (let i = 0; i < points.length; i += 1) if (!done.has(i) && (a < 0 || dist[i] < dist[a])) a = i;
+    if (a < 0 || !Number.isFinite(dist[a])) return null;
+    if (a === 1) break;
+    done.add(a);
+    for (const e of edges[a]) if (dist[a] + e.length < dist[e.to]) { dist[e.to] = dist[a] + e.length; prev[e.to] = { a, e }; }
+  }
+  const path = [];
+  for (let b = 1; b !== 0;) { const p = prev[b]; path.push(p.e); b = p.a; }
+  return path.reverse();
+}
+
 //: The way on foot along ``route`` (a walk route from Streets.route): on the pavement, crossing a
 //: street only at a junction, along a crosswalk -- the line of the pavement carried across the
 //: road, from one corner to the next. A walker keeps to the pavement it is on round a corner it
@@ -805,6 +867,22 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     // Across at the last junction on the way, then.
     for (let i = n - 2; i >= 1; i -= 1) if (seg[i - 1].o > 0 && seg[i].o > 0 && junction(i)) { r = build(i); break; }
   }
+  // Resolve each crossing through paired mapped endpoints, never by endpoint proximity alone.
+  const out = [r.out[0]], marks = [], byStart = new Map(r.marks.map((m) => [m[0], m]));
+  let blocked = false;
+  for (let k = 0; k + 1 < r.out.length; k += 1) {
+    const mark = byStart.get(k);
+    const path = mark && mappedCrosswalkPath(streets, ids[mark[1]], r.out[k], r.out[k + 1]);
+    if (path === null) { blocked = true; break; } // stay at the kerb when no legal crossing exists
+    if (path) {
+      for (const e of path) {
+        const a = e.pts[0], b = e.pts.at(-1), bearing = Math.atan2(-(b[1] - a[1]), b[0] - a[0]);
+        if (e.crossing) marks.push([out.length - 1, mark[1], bearing, mark[3], out.length + e.pts.length - 2]);
+        out.push(...e.pts.slice(1));
+      }
+    } else { if (mark) marks.push([out.length - 1, ...mark.slice(1)]); out.push(r.out[k + 1]); }
+  }
+  r.out = out; r.marks = marks;
   // The walk's points, each crossing's stretch along it.
   const pts = [], at = [];   // at[k]: the walk's point out[k] became (a repeat is the one before)
   r.out.forEach((q) => {
@@ -814,10 +892,10 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
   const sAt = [0];
   for (let i = 1; i < pts.length; i += 1) sAt.push(sAt[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const sOf = (k) => sAt[at[Math.min(k, at.length - 1)]];
-  const crossings = r.marks.map(([k, node, b, signal]) => ({ s0: sOf(k), s1: sOf(k + 1), node: ids[node], bearing: b, signal }))
+  const crossings = r.marks.map(([k, node, b, signal, end = k + 1]) => ({ s0: sOf(k), s1: sOf(end), node: ids[node], bearing: b, signal }))
     .filter((c) => c.s1 > c.s0 + 0.5);
   if (pts.length < 2) pts.push(pts[0].slice());
-  return { pts, s: sAt, length: sAt[sAt.length - 1], halves: pts.map(() => 0), classes: pts.map(() => null), crossings, side: r.sg, mode: "walk" };
+  return { pts, s: sAt, length: sAt[sAt.length - 1], halves: pts.map(() => 0), classes: pts.map(() => null), crossings, blocked, side: r.sg, mode: "walk" };
 }
 
 // ---- places and jobs ------------------------------------------------------------------------------
@@ -1269,18 +1347,59 @@ export function counterLine(inside) {
   const counter = Math.min(Math.max(1.6, inside.depth * 0.42), 3.4);
   return { counter, staff: counter + 0.85, back: Math.min(inside.depth - 0.7, counter + 2.6), front: Math.max(0.8, counter - 1.1), width: Math.max(0.5, inside.half - 0.7) };
 }
+//: How many customers a shop holds at once. The floor is the building's footprint (one storey of
+//: it, ``place.area``), of which SHOP_FLOOR_SHARE is the shop floor -- the rest is the counter,
+//: the kitchen, the stock room -- at so many m² a customer by the kind of shop (the building
+//: code's occupant loads: about 15 ft² a diner seated, 60 ft² a shopper in a store, 100 ft² a
+//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX, and never more than the
+//: drawn shop floor has places for (``shopLanes``: one a lane, a shoulder's width apart, so
+//: nobody stands in anybody). At least one. People were let in without limit: twenty in a café
+//: that seats eight, standing in one another (2026-11-14).
+export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 14, SHOP_LANE_M = 0.6, SHOP_DEFAULT_AREA_M2 = 80;
+export const SHOP_M2_PER_PERSON = { food: 1.4, retail: 5.6, service: 9.3 };
+const SHOP_SERVICE = new Set(["bank", "barber", "salon", "beauty", "nail_salon", "spa", "clinic", "dentist", "optician", "vet", "pet_grooming",
+  "laundry", "dry_cleaner", "staffing", "print_ship", "law_office", "gym"]);
+const SHOP_RETAIL = new Set(["auto_parts", "bike", "books", "clothing", "convenience", "deli", "electronics", "florist", "fuel", "gallery", "gifts",
+  "grocery", "hardware", "home", "jewelry", "liquor", "pet", "pharmacy", "shoes", "shop", "smoke_shop", "toys", "wine_shop", "supermarket"]);
+export function shopGroup(kind) { return SHOP_SERVICE.has(kind) ? "service" : SHOP_RETAIL.has(kind) ? "retail" : "food"; }
+//: The lanes a shop's customers keep to (along the front, SHOP_LANE_M apart): their number.
+export function shopLanes(inside) {
+  if (!inside) return SHOP_CAP_MAX;
+  const L = counterLine(inside);
+  return Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1);
+}
+export function shopCapacity(place) {
+  if (!place) return 0;
+  const area = place.area > 0 ? place.area : SHOP_DEFAULT_AREA_M2;
+  // A place of several shops: the roomiest kind's load (a deli and café counts as the café).
+  const per = Math.min(...(place.shops?.length ? place.shops : ["shop"]).map((k) => SHOP_M2_PER_PERSON[shopGroup(k)]));
+  const byFloor = Math.floor((area * SHOP_FLOOR_SHARE) / per);
+  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor, shopLanes(place.inside)));
+}
 //: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
 //: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
-export function indoorSpot(p, a, place, t) {
+//: ``lane`` ({k, n}): the place on the floor they were given (fleet.mjs City.admit for a
+//: customer, the staff's order for staff): they keep to their own lane along the front, moving
+//: only toward and away from the counter in it, so two are never in the same spot.
+export function indoorSpot(p, a, place, t, lane = null) {
   const I = place.inside, L = counterLine(I);
   const tx = -I.nz, tz = I.nx;   // along the front
   const sec = t.minute * 60, slot = Math.floor(sec / 18);
   const staff = a.kind === "work" && COUNTER_ROLES.has(p.role);
   const customer = (a.kind === "errand" || a.kind === "meal" || a.kind === "evening") && place.shops.length;
   if (!staff && !customer) return null;
+  const n = lane ? Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1) : 0;
+  const laneAt = lane ? (n > 1 ? -L.width + ((lane.k % n) * (2 * L.width)) / (n - 1) : 0) : null;
   const spot = (k) => {
     const r = rng(p.id, t.day, k);
-    if (staff) return r() < 0.15 ? [(r() - 0.5) * 2 * L.width, L.back] : [(r() - 0.5) * 2 * L.width, L.staff];
+    const along = () => (laneAt !== null ? laneAt + (r() - 0.5) * 0.12 : (r() - 0.5) * 2 * L.width);
+    if (staff) return r() < 0.15 ? [along(), L.back] : [along(), L.staff];
+    if (laneAt !== null) {
+      // In their own lane: about the shelves most of the time, then at the counter to pay; or (a
+      // meal) at a table toward the window.
+      if (a.kind === "errand" && r() < BROWSE_SHARE) return [along(), 0.6 + r() * Math.max(0.2, L.counter - 1.1)];
+      return a.kind === "errand" ? [along(), L.front + r() * 0.4] : [along(), 0.7 + r() * Math.max(0.2, L.front - 0.6)];
+    }
     // Customers: about the shop floor looking at what is on the shelves most of the time, then at
     // the counter to pay; or (a meal) a table further toward the window.
     if (a.kind === "errand" && r() < BROWSE_SHARE) return [(r() - 0.5) * 2 * L.width, 0.6 + r() * Math.max(0.2, L.counter - 1.1)];

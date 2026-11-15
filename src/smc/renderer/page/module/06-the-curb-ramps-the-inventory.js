@@ -347,6 +347,10 @@ function arrowFor(kind) {
   return LANE_ARROW_TEXTURES[kind];
 }
 
+//: Where each lane arrow was painted (its rectangle of asphalt), for the paint plan: words laid
+//: later keep off them (docs/street-paint.mjs).
+const paintedArrows = [];
+
 //: What a turn:lanes token means, reduced to the arrows this draws.
 function arrowKind(token) {
   const parts = String(token || "").split(";").filter(Boolean);

@@ -109,8 +109,11 @@ const pts = [x0, z0, x1, z0, x1, z1, x0, z1];
 // A box, and a circle of radius r touching it (what the object catalogue's colliders answer).
 const touches = (x, z, r) => Math.hypot(x - Math.max(x0, Math.min(x1, x)), z - Math.max(z0, Math.min(z1, z))) < r;
 var objectProximity = { blocked: (x, z, r) => touches(x, z, r) ? { pts } : null };
-const activeGuest = { ready: true };
-""".replace("__POLE__", json.dumps(pole)) + _extract("knockRoundObject", js) + _extract("slidePastObjects", js) + """
+const activeGuest = null;
+// Open street: no building near (walkerStepIntoBuilding asks these).
+const guestUnder = () => null, firstBuildingCollision = () => null, walkerFootprintBlocked = () => false;
+""".replace("__POLE__", json.dumps(pole)) + _extract("knockRoundObject", js) + _extract("slidePastObjects", js) \
+        + _extract("walkerStepIntoBuilding", js) + """
 let x = 0, z = 0, stuck = 0, inside = false;
 const step = 1.4 / 60;
 for (let t = 0; t < __SECONDS__; t += 1 / 60) {

@@ -22,11 +22,11 @@ import {
 } from "./core.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
-import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
+import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
-import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
-import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, signalAt } from "./fleet.mjs";
+import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
+import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
@@ -578,7 +578,7 @@ export async function startCity(ctx) {
     return fleet.get(kind);
   };
   const wheel = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12).rotateZ(Math.PI / 2).translate(0, 0.33, 0);
-  const lightGeo = box(0.22, 0.12, 0.04, 0.72);
+  const lightGeo = new THREE.BoxGeometry(0.22, 0.12, 0.02);
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
   const tailLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f }), MAX_CARS * 2);
   for (const l of [headLights, tailLights]) { l.count = 0; l.frustumCulled = false; l.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(l); }
@@ -924,7 +924,7 @@ export async function startCity(ctx) {
   }
   const SIGN_M = new THREE.Matrix4();
   function drawCars(list, night) {
-    let n = 0, lights = 0, lo = 0;
+    let n = 0, heads = 0, tails = 0, lo = 0;
     for (const f of fleet.values()) f.n = 0;
     for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
@@ -954,13 +954,13 @@ export async function startCity(ctx) {
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
       if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
-      if (night) {
-        const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), rx = -fz, rz = fx;
-        for (const s of [1, -1]) {
-          if (lights >= MAX_CARS * 2) break;
-          M.compose(V.set(v.x + fx * l * 0.5 + rx * s * w * 0.32, y, v.z + fz * l * 0.5 + rz * s * w * 0.32), Q, S3.set(1, 1, 1)); headLights.setMatrixAt(lights, M);
-          M.compose(V.set(v.x - fx * l * 0.5 + rx * s * w * 0.32, y, v.z - fz * l * 0.5 + rz * s * w * 0.32), Q, S3.set(1, 1, 1)); tailLights.setMatrixAt(lights, M);
-          lights += 1;
+      if (night && f) {
+        f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), [w, hgt, l]);
+        B.copy(M);
+        for (const lamp of f.lamps) {
+          M.multiplyMatrices(B, lamp.matrix);
+          if (lamp.head && heads < MAX_CARS * 2) headLights.setMatrixAt(heads++, M);
+          if (!lamp.head && tails < MAX_CARS * 2) tailLights.setMatrixAt(tails++, M);
         }
       }
       n += 1;
@@ -969,7 +969,7 @@ export async function startCity(ctx) {
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
     for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
-    headLights.count = tailLights.count = lights; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
+    headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
     lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
@@ -1231,7 +1231,7 @@ export async function startCity(ctx) {
     // City mode's area ends here: the car stops at its edge (not a crash).
     if (ctx.inArea && !ctx.inArea(car.x + dx * 4, car.z + dz * 4) && ctx.inArea(car.x, car.z)) {
       car.speed = 0; dx = 0; dz = 0;
-      if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(`${ctx.areaName?.() || "The city"} ends here: turn round, or switch to Explore to go further.`); }
+      if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(BOUNDARY_MESSAGE); }
     }
     const before = { x: car.x, z: car.z };
     const moved = ctx.moveWalker(dx, dz);
@@ -1648,6 +1648,11 @@ export async function startCity(ctx) {
   }
   async function board(v) {
     if (!v || transit.ride || car.active || car.riding || shop.place) return;
+    // A route bus whose way on from here leaves City mode's area: not boarded (nothing paid).
+    if (String(v.id).startsWith("bus:") && ctx.inArea && boundaryStop(lineOf(v), v, ctx.inArea)?.here) {
+      notify(`The ${v.route} leaves ${ctx.areaName?.() || "the city"} after this stop. ${BOUNDARY_MESSAGE}`);
+      return;
+    }
     const r = await send("board", { kind: v.model, vehicle: v.id });
     if (!r.ok) { notify(r.error); return; }
     transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
@@ -1666,7 +1671,7 @@ export async function startCity(ctx) {
     const v = routeBuses.find((x) => x.id === ride.vehicle);
     notify(ride.stop ? `Stop requested: off at ${v?.nextName || "the next stop"}.` : "Stop request cancelled.");
   }
-  async function alight(v = null) {
+  async function alight(v = null, why = null) {
     const ride = transit.ride;
     if (!ride) return;
     transit.ride = null;
@@ -1680,16 +1685,28 @@ export async function startCity(ctx) {
     if (v?.pole && Math.hypot(v.pole.x - at.x, v.pole.z - at.z) < 30 && besideOf(at, v.pole).right > 0.5) ctx.moveAvatarTo(v.pole.x, v.pole.z);
     else ctx.moveAvatarTo(at.x + Math.cos(yaw) * out, at.z - Math.sin(yaw) * out);
     if (ride.vehicle === taxi.id) Object.assign(taxi, { phase: null, route: null, at: null, dest: null });
-    notify(r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : `Off the bus${v?.stopName ? ` at ${v.stopName}` : ""}.`) : r.error);
+    notify(why && r.ok ? why : r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : `Off the bus${v?.stopName ? ` at ${v.stopName}` : ""}.`) : r.error);
     refresh();
   }
+  //: The line a route bus runs (a timetabled trip's id carries its line's key).
+  const lineOf = (v) => district.lines?.find((L) => (L.schedule ? String(v.id).startsWith(`bus:${L.route}:${L.schedule.key}:`) : L.route === v.route)) || null;
   //: Riding: you go where it goes. A route bus lets you off at the stop you asked for; a
-  //: vehicle gone from the street (its trip over) lets you off where it was.
+  //: vehicle gone from the street (its trip over) lets you off where it was. At the edge of City
+  //: mode's area (transit.mjs boundaryStop) a route bus sets you down at the last stop inside it
+  //: and goes on along its real route without you.
   function followRide() {
     const ride = transit.ride;
     if (!ride) return;
     const v = wheels().find((x) => x.id === ride.vehicle);
     if (!v) { if (performance.now() - ride.seen > 3000) alight(); return; }
+    if (ride.route && ctx.inArea) {
+      const edge = boundaryStop(lineOf(v), v, ctx.inArea);
+      if (edge) {
+        const stand = edge.here ? v : { ...v, x: edge.at.x, z: edge.at.z, yaw: edge.at.yaw, pole: edge.pole, stopName: edge.name };
+        alight(stand, `${edge.name ? `Off the ${v.route} at ${edge.name}. ` : ""}${BOUNDARY_MESSAGE}`);
+        return;
+      }
+    }
     ride.seen = performance.now();
     ride.km += Math.hypot(v.x - ride.x, v.z - ride.z) / 1000;
     ride.x = v.x; ride.z = v.z; ride.yaw = v.yaw;
@@ -3466,7 +3483,11 @@ export async function startCity(ctx) {
         entry.yaw = Math.atan2(-f.dx, -f.dz);
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
-      else glide(entry, now, dt, 3.2, 60);
+      else {
+        glide(entry, now, dt, 3.2, 60);
+        // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
+        if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
+      }
       const low = tier === LOW && !f;
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
@@ -3594,21 +3615,19 @@ export async function startCity(ctx) {
       if (r.ok) notify(`Hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph: ${r.injury.type}, -${r.injury.health} health. ${r.paid_by ? `${r.paid_by[0].toUpperCase()}${r.paid_by.slice(1)} pays the hospital.` : ""}`);
       return;
     }
-    const q = people.find((x) => x.id === hit.who);
-    if (!q) return;
-    flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
-    if (world) {
-      // One of the city's cars hit one of its people: the books (this browser's, as the party's
-      // host or alone) record it as the city's own.
-      const h0 = world.harmed(q.id, "person", q.person?.name || null);
-      const injury = injuryFor(R, { speed: hit.speed, seed: `${q.id}:${Date.now()}` });
-      world.hurtPerson(h0, injury, { x: q.x + dx * Math.min(9, 1 + hit.speed * 0.5), z: q.z + dz * Math.min(9, 1 + hit.speed * 0.5), yaw: Math.atan2(-dx, -dz) }, `hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph`);
-      const vh = world.harmed(hit.car, "vehicle", v?.plate || null);
-      world.damageVehicle(vh, hit.speed * 0.35, hit, `hit ${q.person?.name || "someone"}`);
-      district.city.forget(q.id);
-      if (Math.hypot(q.x - me().x, q.z - me().z) < 60) notify(`A car hit ${q.person?.name || "someone"} at ${Math.round(hit.speed * MPH)} mph: ${injury.type}.`);
-    }
+    const q = hit.kind !== "vehicle" && people.find((x) => x.id === hit.who), other = district.roster?.vehicles.get(hit.who);
+    if (!world || !v || (!q && !other)) return;
+    const driver = district.roster.people.get(v.owner), targetDriver = other && district.roster.people.get(other.owner);
+    const target = hit.kind === "vehicle" ? { ...hit.target, id: other.id, plate: other.plate, driver: other.owner, driverName: targetDriver?.name, kind: "vehicle" }
+      : { id: q.id, name: q.person?.name, x: q.x, z: q.z, yaw: q.yaw, kind: "person" };
+    if (q) flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
+    const incident = world.npcCollision({ id: hit.id, vehicle: { id: v.id, plate: v.plate, driver: v.owner, driverName: driver?.name, x: hit.x, z: hit.z, yaw: hit.yaw }, target,
+      speed: hit.speed, context: { ...hit.context, region: district.region, lonLat: ctx.toLonLat?.(hit.x, hit.z) } });
+    console.warn("kerbside: NPC collision", incident);
+    district.city.forget(v.owner); if (q) district.city.forget(q.id); if (other) district.city.forget(other.owner);
+    if (Math.hypot(hit.x - me().x, hit.z - me().z) < 60) notify(`A car (${v.plate}) hit ${q?.person?.name || other?.plate || "someone"} at ${Math.round(hit.speed * MPH)} mph. Driver cited; repair and care bills recorded.`);
   }
+
   //: You, hit: thrown back along the car's way, and the screen flashes.
   const flash = Object.assign(globalThis.document.createElement("div"), { id: "city-flash" });
   flash.style.cssText = "position:fixed;inset:0;z-index:33;pointer-events:none;background:radial-gradient(ellipse at center,rgba(200,20,20,0) 40%,rgba(200,20,20,.55));opacity:0;transition:opacity .6s";
@@ -4552,6 +4571,8 @@ export async function startCity(ctx) {
         if (H) out.push(h("p", { className: "note", textContent: `${p.age}, ${a.relation === "head" ? "head of the household" : a.relation}. ${H.size === 1 ? "Lives alone" : `Household of ${H.size} (${H.kind.replace("_", " ")}): ${H.members.filter((m) => m.id !== p.id).map((m) => `${m.name}, ${m.relation}, ${m.age}`).join("; ")}`} — ${H.beds ? `${H.beds}-bed` : "studio"} ${H.label ? `flat ${H.label}` : "house"}, ${H.tenure === "own" ? "owned" : "rented"}${H.garage ? ", with a garage" : ""}.` }));
         if (c) out.push(h("p", { className: "note", textContent: c.status === "employed" ? `${c.title} since ${dayOf(c.since)}${c.level ? ` (level ${c.level + 1})` : ""}${c.history.length ? `; before: ${c.history.slice(0, 2).map((x) => `${x.title || x.role}${x.reason && x.reason !== "found_work" ? ` (${x.reason.replace("_", " ")})` : ""}`).join(", ")}` : ""}.`
           : c.status === "looking" ? `Looking for work since ${dayOf(c.since)}${c.left ? ` (${c.left.reason.replace("_", " ")})` : ""}.` : c.status === "retired" ? "Retired." : "At school." }));
+        const owed = view?.billing.owed(p.id) || 0;
+        if (owed) out.push(h("p", { className: "note", textContent: `Collision debt ${R.fmt(owed)}; charges: ${(view?.harm.get(p.id)?.record || []).map((r) => r.charge.replaceAll("_", " ")).join(", ")}.` }));
         if (b) out.push(h("p", { className: "note", textContent: `Balance ${R.fmt(b.balance)}${b.wage_hour ? `, paid ${R.fmt(b.wage_hour)}/h` : ""}; in the last 30 days ${R.fmt(b.income_30d)} in, ${R.fmt(b.spend_30d + b.rent_30d)} out${b.next_pay && b.wage_hour ? `; next pay ${dayOf(b.next_pay) && new Date(b.next_pay * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}` : ""}. ${b.assets.length ? `Owns: ${b.assets.map((x) => `${x.label} (${R.fmt(x.value)})`).join(", ")}. ` : ""}Net worth ${R.fmt(b.net_worth)}.` }));
         out.push(h("p", { className: "note", textContent: `Gets about on foot and ${a.travel === "drive" ? "by car" : a.travel === "bike" ? "by bicycle" : "by bus or taxi"}. Today: ${String(a.routine).replace(/_/g, " ")}.` }));
         if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(m.at)}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));

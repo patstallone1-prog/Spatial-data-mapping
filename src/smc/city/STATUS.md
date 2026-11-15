@@ -8,6 +8,28 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (2026-11-14): shops that fill up, walls nobody walks through, the edge of the city
+
+* **Shop capacity: tested.** `people.mjs shopCapacity` is the footprint × 0.5 of shop floor, at
+  1.4 m² a diner, 5.6 m² a shopper or 9.3 m² a client (bank, salon, clinic). It is capped at 14
+  and by the floor's lanes (0.6 m apart). `fleet.mjs City.admitShoppers` books each customer
+  stay. If the shop is full, the customer waits in a line of at most 4 at the door (6 min at
+  most), or goes to another shop of the task's kind within 450 m, or comes up to 45 min later. If
+  none of those works, they look in the windows outside. Each customer keeps their own lane on
+  the floor. Counter staff get one lane each, and staff beyond the lanes are in the back and not
+  drawn. The player's own entry is not checked. Tested in `tests/city_world_integrity.test.mjs`.
+  On the real corridor data (node, not the browser) no shop went over capacity, against 848 shops
+  before.
+* **Walls: tested.** `City.personAt` puts any point on foot (walk, wait, break, stroll) that is
+  inside a footprint out onto the nearest clear wall face. Doorways and shop interiors are
+  exempt. `view.mjs` does the same after the glide and the step aside. `City.doorOf` moves a
+  door whose step out lands in the building next door.
+* **Bus at the area's edge: tested.** `transit.mjs boundaryStop` and `BOUNDARY_MESSAGE` drive
+  this. A rider is set down at the last stop inside City mode's area, and the bus goes on along
+  its real route. Boarding at a stop whose next leg leaves the area is refused before the fare is
+  taken. The car's edge stop uses the same words. The walker's edge hint is in module 23 and has
+  not been changed yet.
+
 ## Since then (PR after #177): Enter for car and bus, waits, witnesses, garages, NPCs about
 
 * **Keys:** C is gone. Enter is in and out of everything (your car, the bus at the stop and its

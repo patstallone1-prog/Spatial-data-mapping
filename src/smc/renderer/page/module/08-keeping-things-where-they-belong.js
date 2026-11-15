@@ -1238,6 +1238,12 @@ function parkPavementAt(x, z) {
   const bucket = underlayGrid.get(`${Math.floor(x / UNDERLAY_CELL_M)}:${Math.floor(z / UNDERLAY_CELL_M)}`);
   return Boolean(bucket && bucket.some((quad) => pointInRing(x, z, quad)));
 }
+//: The top of the property-line underlay at (x, z), above the ground, where it is laid and nothing
+//: else is: the concrete strip below the ground that shows wherever no footway or lawn covers it.
+//: The walker stood five centimetres over it.
+function walkerUnderlayTop(x, z) {
+  return parkPavementAt(x, z) ? PROPERTY_LINE_PAVEMENT_Y + PROPERTY_LINE_PAVEMENT_THICKNESS_M / 2 : null;
+}
 //: Which way the footway runs through each cell. A tree pit is a square cut out of the paving,
 //: and paving is laid square to the kerb -- so a pit turned a few degrees off the flags around
 //: it reads as a mistake in the pavement rather than as an opening in it. This is what squares
@@ -1265,22 +1271,45 @@ const FRONTAGE_BRIDGE_M = 30;
 const frontageStats = { sides: 0, stations: 0, filled_m2: 0, bridged_m: 0, unsurveyed: 0,
   skipped: { junction: 0, noPavement: 0, noRoom: 0 }, ways: {} };
 const pavedSegmentGrid = new Map();
-function filePavedShape(minX, minZ, maxX, maxZ, record) {
+//: Walked surfaces laid at a kerb's height or on the road that the street builders must not
+//: take for footway (a bulb-out laid over the carriageway, a gravel path through a park): the
+//: frontage fill and the corner pieces read pavedSegmentGrid, the walker reads both
+//: (walkerPavementAt). Before these were filed the walker stood on the road through every
+//: bulb-out -- 12.6 cm down inside the drawn kerb -- and on the lawn under every park path.
+const walkerPavedGrid = new Map();
+function filePavedShape(minX, minZ, maxX, maxZ, record, grid = pavedSegmentGrid) {
   for (let ix = Math.floor(minX / PAVED_SEGMENT_CELL_M); ix <= Math.floor(maxX / PAVED_SEGMENT_CELL_M); ix += 1)
     for (let iz = Math.floor(minZ / PAVED_SEGMENT_CELL_M); iz <= Math.floor(maxZ / PAVED_SEGMENT_CELL_M); iz += 1) {
       const key = ix * 1048576 + iz;
-      if (!pavedSegmentGrid.has(key)) pavedSegmentGrid.set(key, []);
-      pavedSegmentGrid.get(key).push(record);
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(record);
     }
 }
 // A slab given by its outline (page x, z) at one top.
-function stampPavedRing(ring, top) {
+function stampPavedRing(ring, top, grid = pavedSegmentGrid) {
   const xs = ring.map((q) => q[0]), zs = ring.map((q) => q[1]);
-  filePavedShape(Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs), { ring, top });
+  filePavedShape(Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs), { ring, top }, grid);
+}
+//: The same for the walker alone: a ring (page x, z), or a run of [lon, lat] points `width` wide.
+function stampWalkerPavedRing(ring, top) { stampPavedRing(ring, top, walkerPavedGrid); }
+function stampWalkerPaved(run, width, top) {
+  const half = width / 2;
+  for (let i = 1; i < run.length; i += 1) {
+    const [ax, ay] = xy(run[i - 1][0], run[i - 1][1]), [bx, by] = xy(run[i][0], run[i][1]);
+    const az = -ay, bz = -by;
+    if (Math.hypot(bx - ax, bz - az) < 1e-6) continue;
+    filePavedShape(Math.min(ax, bx) - half, Math.min(az, bz) - half, Math.max(ax, bx) + half, Math.max(az, bz) + half,
+      { ax, az, bx, bz, half, top }, walkerPavedGrid);
+  }
+}
+//: What the walker stands on of the pavement: the footway as laid and the walker's own records.
+function walkerPavementAt(x, z) {
+  const laid = pavementSurfaceAt(x, z), own = pavementSurfaceAt(x, z, walkerPavedGrid);
+  return laid === null ? own : own === null ? laid : Math.max(laid, own);
 }
 // The top of the pavement at (x, z), above the ground, or null where none is laid.
-function pavementSurfaceAt(x, z) {
-  const list = pavedSegmentGrid.get(Math.floor(x / PAVED_SEGMENT_CELL_M) * 1048576 + Math.floor(z / PAVED_SEGMENT_CELL_M));
+function pavementSurfaceAt(x, z, grid = pavedSegmentGrid) {
+  const list = grid.get(Math.floor(x / PAVED_SEGMENT_CELL_M) * 1048576 + Math.floor(z / PAVED_SEGMENT_CELL_M));
   if (!list) return null;
   let best = null;
   for (const r of list) {

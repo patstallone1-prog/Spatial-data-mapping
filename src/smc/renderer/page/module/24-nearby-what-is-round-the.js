@@ -391,6 +391,13 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
   landing.position.set(0, floor - 0.04, depth - plan.landingDepth / 2);
   landing.receiveShadow = true;
   group.add(landing);
+  // The recess's own walls: its two returns from the facade back to the door, the back wall
+  // either side of a leaf narrower than the recess, and its soffit. The doorway's portal opens
+  // the facade over the recess (updateDoors), and with only the treads behind it the hole showed
+  // straight into the building's shell -- the sky through the far walls. A house whose shell is
+  // built draws the same walls in its own plaster (buildHomeShell); these stand down for it.
+  door.recessWalls = recessRevealWalls(door, plan);
+  group.add(door.recessWalls);
   // Local z points into the building (its inward normal), x along the wall.
   group.position.set(door.cx, 0, door.cz);
   group.rotation.y = Math.atan2(door.nx, door.nz);
@@ -412,6 +419,41 @@ function addStoop(door, street, floor, plan = planInwardStoop(door, street, floo
   door.stoopSurface.priority = 1;
   door.stoopSurface.stairs = true;
   standingSurfaces.add(door.stoopSurface);
+}
+
+//: The walls of an entrance recess, in the stoop's frame (x along the wall, z into the building,
+//: z = 0 at the facade): each a slab RECESS_WALL_T_M thick laid just outside the recess, so its
+//: inner face is the recess's side and nothing of it stands in the stairwell the walker climbs.
+//: Up to the door's head, as the home shell's are, and down past the street to meet the ground.
+const RECESS_WALL_T_M = 0.04;
+const recessWallMaterial = new THREE.MeshStandardMaterial({ color: 0xd9d3c7, roughness: 0.92, metalness: 0 });
+function recessRevealWalls(door, plan) {
+  const group = new THREE.Group();
+  group.name = "entrance-recess";
+  const t = RECESS_WALL_T_M, half = plan.width / 2, depth = plan.depth;
+  const bottom = plan.street - 0.05, top = plan.floor + DOOR_HEIGHT_M;
+  const slab = (w, h, d, x, y, z, part) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), recessWallMaterial);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { surface: "wall", part };
+    group.add(mesh);
+  };
+  // The two returns, from the face of the facade to the back of the recess.
+  for (const side of [-1, 1]) {
+    slab(t, top - bottom, depth + t, side * (half + t / 2), (top + bottom) / 2, (depth + t) / 2, "return");
+  }
+  // The back wall either side of the leaf, where the recess is wider than its door.
+  const beside = half - door.width / 2;
+  if (beside > 0.01) {
+    for (const side of [-1, 1]) {
+      slab(beside, top - plan.floor, t, side * (door.width / 2 + beside / 2), (top + plan.floor) / 2, depth + t / 2, "back");
+    }
+  }
+  // And its ceiling, at the door's head.
+  slab(plan.width + 2 * t, t, depth + t, 0, top + t / 2, (depth + t) / 2, "soffit");
+  return group;
 }
 
 
@@ -630,6 +672,7 @@ function hideDoor(door) {
     door.stoop.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
     standingSurfaces.delete(door.stoopSurface);
     door.stoop = null;
+    door.recessWalls = null;
   }
   doorGroup.remove(door.mesh, door.opening, door.portal);
   door.leaf.geometry.dispose();
@@ -939,6 +982,8 @@ function updateDoors(dt) {
     door.portal.visible = !door.entry.homeShell
       && (Boolean(door.stoopPlan) || (door.angle > 0.05 && Boolean(door.entry.interior)))
       && !insideFootprint(door.entry, camera.position.x, camera.position.z);
+    // The recess's walls, unless the house's shell stands them in its own plaster.
+    if (door.recessWalls) door.recessWalls.visible = !door.entry.homeShell;
   }
   const door = nearestDoor();
   const inPassage=occupiedTunnelAt(x,z,walkerFeetY()) || approachPassageAt(x,z,walkerFeetY());

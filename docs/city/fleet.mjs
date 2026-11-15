@@ -14,13 +14,14 @@
 import { arrivalsAt } from "./transit.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
-  BIKE_LANE, CLOTHES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
+  BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
+  shopCapacity, shopLanes,
   DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, pavementRoute, turnAhead, workplacesByRole,
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
-import { dayPlan, milestonesOf, routineType } from "./routines.mjs";
+import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
@@ -92,6 +93,16 @@ export const SCAN_SLICE_MS = 10, SCAN_FIRST_SLICE_MS = 60;
 //: Someone out on a break stands at least this far back from the kerb (m).
 export const BREAK_KERB_M = 1.0;
 export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
+//: A shop full (people.mjs shopCapacity): a customer who finds it so waits outside in a short
+//: line along the front by the door (at most ``queue_len`` of them, ``queue_step_m`` apart, for
+//: ``queue_wait_min`` at most), else goes to another shop that does the same within ``alt_m``
+//: (on foot), else comes later (staying where they were up to ``later_min``), else gives it up
+//: and looks in the windows round about instead. Nobody is let in past the shop's capacity, and
+//: each customer in it has a lane of the floor of their own (City.admit).
+export const SHOP_QUEUE = { queue_len: 4, queue_wait_min: 6, queue_step_m: 0.8, alt_m: 450, later_min: 45, min_stay_min: 5 };
+const CUSTOMER_KINDS = new Set(["errand", "meal", "evening"]);
+//: The k-th of a shop's staff to a lane of n: spread over the counter rather than bunched at one end.
+const spreadLane = (k, n) => { if (n <= 1) return 0; const order = []; for (let s = 0; s < n; s += 1) order.push(s); order.sort((a, b) => Math.abs(a - (n - 1) / 2) - Math.abs(b - (n - 1) / 2) || a - b); return order[k % n]; };
 
 export function plateOf(id) {
   let h = 0; for (const c of id) h = (h * 33 + c.charCodeAt(0)) >>> 0;
@@ -246,6 +257,35 @@ export class Roster {
 
 // ---- the city: where each is, and how they got there ---------------------------------------------
 
+//: How far out of a wall someone put out of a building stands (m).
+export const WALL_CLEAR_M = 0.35;
+//: Whether (x, z) is inside ``ring`` ([[x, z], ...], either way round).
+export function inRing(ring, x, z) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+//: The nearest point WALL_CLEAR_M outside ``ring`` from (x, z) inside it that ``ok(x, z)`` takes
+//: (in no other building), or the nearest outside point at all.
+export function outOfRing(ring, x, z, ok = () => true) {
+  const cands = [];
+  for (let i = 0; i < ring.length; i += 1) {
+    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length], ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez;
+    if (L2 < 1e-6) continue;
+    const u = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)), qx = ax + ex * u, qz = az + ez * u, L = Math.sqrt(L2);
+    let nx = ez / L, nz = -ex / L;
+    if (inRing(ring, qx + nx * 0.05, qz + nz * 0.05)) { nx = -nx; nz = -nz; }
+    cands.push([Math.hypot(x - qx, z - qz), qx + nx * WALL_CLEAR_M, qz + nz * WALL_CLEAR_M]);
+  }
+  cands.sort((a, b) => a[0] - b[0]);
+  for (const c of cands) if (!inRing(ring, c[1], c[2]) && ok(c[1], c[2])) return [c[1], c[2]];
+  for (const c of cands) if (!inRing(ring, c[1], c[2])) return [c[1], c[2]];
+  return null;
+}
+
 const segAt = (segs, minute) => {
   let lo = 0, hi = segs.length - 1, at = -1;
   while (lo <= hi) { const m = (lo + hi) >> 1; if (segs[m].t0 <= minute) { at = m; lo = m + 1; } else hi = m - 1; }
@@ -262,7 +302,12 @@ export class City {
   //: The key a car's trip is known by (its delay in traffic is kept under it).
   static legKey(v, leg, day) { return `${v.id}:${day}:${Math.round(leg.t0 * 60)}`; }
   //: Someone's day made again (a car of theirs crashed, or they were hurt).
-  forget(id) { for (const k of this.plans.keys()) if (k.startsWith(`${id}:`)) this.plans.delete(k); }
+  forget(id) {
+    for (const k of this.plans.keys()) if (k.startsWith(`${id}:`)) this.plans.delete(k);
+    // (Their places in the shops given up: the day made again books them again.)
+    for (const [k, list] of this.shopBooks || []) this.shopBooks.set(k, list.filter((b) => b.who !== id));
+    for (const k of [...(this.admitted?.keys() || [])]) if (k.startsWith(`${id}:`)) this.admitted.delete(k);
+  }
   //: A new street graph (more of the district seen): the places' street points again, and every
   //: way and spot worked out again on it. Who is where does not change; only the streets they
   //: take there might.
@@ -270,18 +315,19 @@ export class City {
   setLines(lines) {
     const had = this.lines?.length || 0;
     this.lines = lines || [];
-    if (had !== this.lines.length) this.plans = new Map();
+    if (had !== this.lines.length) { this.plans = new Map(); this.shopBooks = new Map(); this.admitted = new Map(); }
   }
   setStreets(streets) {
     this.streets = streets;
     streets.setPreferences?.(this.R.traffic);
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
     this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
+    this.shopBooks = new Map(); this.admitted = new Map(); this.staffLanes = new Map(); this._footprints = null;
   }
   //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
   //: and ``kerbParking(x, z, ax, az, halfLen, kind)`` -> why a car may not stand there, or null.
   //: Set, every spot is found again against it.
-  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); }
+  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.shopBooks = new Map(); this.admitted = new Map(); }
   //: Where cars come into the district and leave it: the ends of its streets at the edge of
   //: what has been seen, for each network of streets that hangs together (``byNetwork``).
   get gateways() {
@@ -640,6 +686,9 @@ export class City {
       prev = a;
     }
     segs.sort((x, y) => x.t0 - y.t0);
+    // In at the shops' doors as far as there is room (each shop's capacity), the rest waiting,
+    // going elsewhere, coming later or giving it up.
+    this.admitShoppers(p, t.day, segs);
     // The car left at work (or wherever it was driven, not home): its kerb spot held from when it
     // pulled in till it is driven off, so no other car is put in it meanwhile.
     if (v) {
@@ -650,6 +699,175 @@ export class City {
       hold(at, since, 1440);
     }
     return { segs, drives: segs.filter((s) => s.mode === "drive" || (s.kind === "roam" && s.drive)), start: startAt };
+  }
+  // -- the shops' doors ---------------------------------------------------------------------------
+  //: Who is booked into a shop on a day (customers, and those waiting at its door): [{who, t0, t1,
+  //: lane | q}], in minutes.
+  shopBook(placeId, day) {
+    const key = `${placeId}:${day}`;
+    let list = this.shopBooks.get(key);
+    if (!list) { list = []; this.shopBooks.set(key, list); }
+    return list;
+  }
+  //: The most of ``list`` (in the shop, or waiting: ``which``) there at once over [t0, t1).
+  static mostAtOnce(list, t0, t1, which = "in") {
+    const ev = [];
+    for (const b of list) {
+      if ((which === "in") === (b.q !== undefined) || !(b.t0 < t1 && b.t1 > t0)) continue;
+      ev.push([Math.max(t0, b.t0), 1], [Math.min(t1, b.t1), -1]);
+    }
+    ev.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let n = 0, most = 0;
+    for (const [, d] of ev) { n += d; most = Math.max(most, n); }
+    return most;
+  }
+  //: A lane of the shop's floor free over [t0, t1) with room for one more there then, or -1.
+  roomIn(place, day, t0, t1, who) {
+    const list = this.shopBook(place.id, day), cap = shopCapacity(place);
+    if (City.mostAtOnce(list, t0, t1) >= cap) return -1;
+    const n = Math.max(cap, shopLanes(place.inside)), used = new Set();
+    for (const b of list) if (b.q === undefined && b.t0 < t1 && b.t1 > t0) used.add(b.lane);
+    const free = [];
+    for (let k = 0; k < n; k += 1) if (!used.has(k)) free.push(k);
+    return free.length ? free[hash32(who, place.id, Math.round(t0)) % free.length] : -1;
+  }
+  //: A place in the line at the door over [t0, t1), or -1.
+  queueIn(place, day, t0, t1) {
+    const used = new Set();
+    for (const b of this.shopBook(place.id, day)) if (b.q !== undefined && b.t0 < t1 && b.t1 > t0) used.add(b.q);
+    for (let k = 0; k < SHOP_QUEUE.queue_len; k += 1) if (!used.has(k)) return k;
+    return -1;
+  }
+  //: Where the k-th in the line at a shop's door stands: on the pavement a step out from the
+  //: front, along it to one side of the door (not in the doorway), facing the door.
+  queueSpot(place, k) {
+    const D = (place.door && this.doorOf(place)) || place.front;
+    if (!D) return null;
+    const out = DOOR_STEP_M + 0.3, tx = -D.nz, tz = D.nx, along = 1.0 + k * SHOP_QUEUE.queue_step_m;
+    const x = D.x - D.nx * out + tx * along, z = D.z - D.nz * out + tz * along;
+    return { x, z, yaw: Math.atan2(tx, tz) };
+  }
+  //: The places that would do instead of ``place`` for ``act`` (its task's kinds of shop, or the
+  //: place's own), nearest first, within ``alt_m``.
+  alternativesTo(place, act) {
+    const keys = act.task && TASKS[act.task]?.keys ? TASKS[act.task].keys : (place.shops || []).map((k) => `shop:${k}`);
+    if (!keys.length) return [];
+    // (The shops by what they do, made once a roster.)
+    if (!this._shopsByKey || this._shopsByKeyN !== this.roster.list.length) {
+      this._shopsByKey = new Map(); this._shopsByKeyN = this.roster.list.length;
+      for (const pl of this.roster.list) if (pl.shops?.length) for (const k of pl.keys || []) { if (!this._shopsByKey.has(k)) this._shopsByKey.set(k, []); this._shopsByKey.get(k).push(pl); }
+    }
+    const out = [], seen = new Set();
+    for (const k of keys) for (const pl of this._shopsByKey.get(k) || []) {
+      if (pl === place || seen.has(pl)) continue;
+      seen.add(pl);
+      const d = Math.hypot(pl.x - place.x, pl.z - place.z);
+      if (d <= SHOP_QUEUE.alt_m) out.push([d, pl]);
+    }
+    return out.sort((a, b) => a[0] - b[0]).map((e) => e[1]);
+  }
+  //: Each customer's stay in a shop in ``segs`` (a day planned, in order) let in while there is
+  //: room. The decisions are kept (``admitted``), so a day planned again comes out the same.
+  admitShoppers(p, day, segs) {
+    if (this.admitting === false) return;
+    const P = this.roster.places;
+    for (let i = 0; i < segs.length; i += 1) {
+      const S = segs[i];
+      if (S.kind !== "stay" || !S.act || !CUSTOMER_KINDS.has(S.act.kind)) continue;
+      const place = P.get(S.place);
+      if (!place?.shops?.length) continue;
+      const key = `${p.id}:${day}:${Math.round(S.t0 * 10)}:${S.place}`;
+      let d = this.admitted.get(key);
+      if (!d) { d = this.admitOne(p, day, segs, i, place); this.admitted.set(key, d); if (this.admitted.size > 200000) this.admitted.delete(this.admitted.keys().next().value); }
+      i += this.applyAdmission(segs, i, d);
+    }
+  }
+  //: What becomes of one customer at the door: {kind: "in" | "queue" | "elsewhere" | "later" |
+  //: "gave_up", ...}, booked.
+  admitOne(p, day, segs, i, place) {
+    const Q = SHOP_QUEUE, S = segs[i], G = segs[i - 1], H = segs[i + 1], P = this.roster.places;
+    const book = (pl, t0, t1, lane) => this.shopBook(pl.id, day).push({ who: p.id, t0, t1, lane });
+    let lane = this.roomIn(place, day, S.t0, S.t1, p.id);
+    if (lane >= 0) { book(place, S.t0, S.t1, lane); return { kind: "in", lane }; }
+    // When someone in it now comes out: the times the room might be.
+    const outs = (pl, from, to) => this.shopBook(pl.id, day).filter((b) => b.q === undefined && b.t1 > from && b.t1 <= to).map((b) => b.t1).sort((a, b) => a - b);
+    // A short wait at the door.
+    for (const t of outs(place, S.t0, S.t0 + Q.queue_wait_min)) {
+      if (S.t1 - t < Q.min_stay_min) break;
+      const k = this.queueIn(place, day, S.t0, t);
+      if (k < 0) break;
+      lane = this.roomIn(place, day, t, S.t1, p.id);
+      if (lane < 0) continue;
+      const spot = this.queueSpot(place, k);
+      if (!spot) break;
+      this.shopBook(place.id, day).push({ who: p.id, t0: S.t0, t1: t, q: k });
+      book(place, t, S.t1, lane);
+      return { kind: "queue", lane, at: t, k, spot };
+    }
+    // Another shop that does the same, near, walked to and from (a walk either side, nothing else).
+    const walkG = G && G.kind === "go" && G.mode === "walk" && G.to === S.place && !G.ride && !G.toXZ && G.from !== undefined && !G.fromXZ;
+    const walkH = !H || (H.kind === "go" && H.mode === "walk" && H.from === S.place && !H.ride && !H.fromXZ && !H.toXZ);
+    if (walkG && walkH) {
+      const dist = (a, b) => (a && b ? Math.hypot(a.x - b.x, a.z - b.z) : 0);
+      for (const alt of this.alternativesTo(place, S.act)) {
+        const t0 = G.t0 + tripMinutes(dist(P.get(G.from), alt), p.pace);
+        const t1 = H ? H.t1 - tripMinutes(dist(alt, P.get(H.to)), p.pace) : S.t1;
+        if (t1 - t0 < Q.min_stay_min || t0 <= G.t0) continue;
+        lane = this.roomIn(alt, day, t0, t1, p.id);
+        if (lane < 0) continue;
+        book(alt, t0, t1, lane);
+        return { kind: "elsewhere", lane, place: alt.id, t0, t1 };
+      }
+    }
+    // Later: where they were a while longer, then there.
+    const before = segs[i - 2];
+    // (Not where they were in another shop: their time there is booked as it is.)
+    if (walkG && before && before.kind === "stay" && before.lane === undefined && Math.abs(before.t1 - G.t0) < 1e-6) {
+      for (const t of outs(place, S.t0, S.t0 + Q.later_min)) {
+        if (S.t1 - t < Q.min_stay_min) break;
+        lane = this.roomIn(place, day, t, S.t1, p.id);
+        if (lane < 0) continue;
+        book(place, t, S.t1, lane);
+        return { kind: "later", lane, delay: t - S.t0 };
+      }
+    }
+    return { kind: "gave_up" };
+  }
+  //: The day changed by a decision at the door (segs[i] the stay): how many segs were put in before it.
+  applyAdmission(segs, i, d) {
+    const S = segs[i], G = segs[i - 1], H = segs[i + 1];
+    if (d.kind === "in") { S.lane = d.lane; return 0; }
+    if (d.kind === "queue") {
+      const t0 = S.t0;
+      S.t0 = d.at; S.lane = d.lane;
+      if (G && G.kind === "go" && G.mode === "walk" && G.to === S.place && Math.abs(G.t1 - t0) < 1e-6) { G.toXZ = [d.spot.x, d.spot.z]; G.queue = true; }
+      const place = this.roster.places.get(S.place);
+      segs.splice(i, 0, { kind: "go", mode: "wait", t0, t1: d.at, at: [d.spot.x, d.spot.z], yaw: d.spot.yaw, place: S.place, queue: d.k,
+        label: `waiting to get into ${place?.name || "the shop"} (it is full)` });
+      return 1;
+    }
+    if (d.kind === "elsewhere") {
+      G.to = d.place; G.t1 = d.t0;
+      S.place = d.place; S.act = { ...S.act, place: d.place, redirected: true }; S.t0 = d.t0; S.t1 = d.t1; S.lane = d.lane;
+      if (H) { H.from = d.place; H.t0 = d.t1; }
+      return 0;
+    }
+    if (d.kind === "later") {
+      const before = segs[i - 2];
+      before.t1 += d.delay; G.t0 += d.delay; G.t1 += d.delay; S.t0 += d.delay; S.lane = d.lane;
+      return 0;
+    }
+    // Full, and no other way: about the shops' windows near it instead, out of doors.
+    S.kind = "roam"; S.drive = false; S.act = { kind: "stroll", start: S.t0, place: S.place, label: "Looking in the windows (it was full)", full: true };
+    return 0;
+  }
+  //: A member of a shop's staff's lane along its counter (spread out, one each).
+  staffLane(place, p) {
+    let m = this.staffLanes.get(place.id);
+    if (!m) { m = new Map(); this.staffLanes.set(place.id, m); }
+    if (!m.has(p.id)) m.set(p.id, m.size);
+    const k = m.get(p.id), n = shopLanes(place.inside);
+    return k < n ? { k: spreadLane(k, n) } : { back: true };
   }
   //: What someone is about today, for whoever asks (the People list): their household, their
   //: work and how long they have had it, their money (npc-economy.mjs: pay for the shifts
@@ -854,7 +1072,61 @@ export class City {
   // -- where they are ----------------------------------------------------------------------------
   //: Someone out of doors at ``t``: where, which way they face, and what they are about; null
   //: indoors (or in a car, or not in the district).
+  //: Nobody on foot is drawn inside a building but the one they are going in or out of by its
+  //: door (``through``) or are in (``indoors``): a point of a walk, a wait or a break that would
+  //: be is put out on the nearest outside face of the wall (keepOutside). Walkers cut corners
+  //: through buildings and stood in them (2026-11-14): drawn in from a door step by a straight
+  //: blend, a door on a wall shared with the house next door, a break spot in a doorway.
   personAt(p, t, seg = segAt(this.planOf(p, t).segs, t.minute), focus = null) {
+    const pos = this.placeOnFoot(p, t, seg, focus);
+    if (pos && pos.mode === "walk" && !pos.indoors && !pos.through && !pos.down && this.guardWalls !== false) this.keepOutside(pos, seg?.mode === "wait" ? "wait" : seg?.kind === "go" ? "walk" : seg?.kind || "stay");
+    return pos;
+  }
+  // -- the buildings' walls ---------------------------------------------------------------------
+  //: The district's footprints (its places' rings) in a grid, for asking what a point is inside.
+  footprints() {
+    const list = this.roster.list;
+    if (this._footprints && this._footprints.n === list.length) return this._footprints;
+    const CELL = 24, grid = new Map();
+    for (const pl of list) {
+      const ring = pl.ring;
+      if (!ring || ring.length < 3) continue;
+      let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+      for (const [x, z] of ring) { x0 = Math.min(x0, x); z0 = Math.min(z0, z); x1 = Math.max(x1, x); z1 = Math.max(z1, z); }
+      if (x1 - x0 > 600 || z1 - z0 > 600) continue;
+      const f = { pl, ring, x0, z0, x1, z1 };
+      for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i += 1) for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j += 1) {
+        const k = `${i},${j}`;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(f);
+      }
+    }
+    this._footprints = { n: list.length, grid, CELL };
+    this.wallFixes ??= {};
+    return this._footprints;
+  }
+  //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
+  footprintAt(x, z, except = null) {
+    const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
+    if (!cell) return null;
+    for (const f of cell) {
+      if (x < f.x0 || x > f.x1 || z < f.z0 || z > f.z1 || (except !== null && f.pl.id === except)) continue;
+      if (inRing(f.ring, x, z)) return f;
+    }
+    return null;
+  }
+  //: ``pos`` put out of any footprint it is in: on the nearest face of the wall outside that is in
+  //: no other building, WALL_CLEAR_M out. Counted by ``why`` (wallFixes). True if it was moved.
+  keepOutside(pos, why = "walk") {
+    const f = this.footprintAt(pos.x, pos.z);
+    if (!f) return false;
+    const best = outOfRing(f.ring, pos.x, pos.z, (x, z) => !this.footprintAt(x, z));
+    if (!best) return false;
+    pos.x = best[0]; pos.z = best[1];
+    this.wallFixes[why] = (this.wallFixes[why] || 0) + 1;
+    return true;
+  }
+  placeOnFoot(p, t, seg = segAt(this.planOf(p, t).segs, t.minute), focus = null) {
     const h = this.harm(p.id, t.ms);
     if (h?.down) return { x: h.at.x, z: h.at.z, yaw: h.at.yaw || 0, moving: false, mode: "walk", down: true, activity: h.label || "hurt" };
     if (h?.out) return null;
@@ -874,10 +1146,10 @@ export class City {
       const key = `${p.id}:${seg.t0}`, lag = this.walkLags.get(key)?.lag || 0, d = Math.max(0, f * L - lag * pace);
       const off = (a, q) => (a && q ? Math.hypot(a.x - q[0], a.z - q[1]) : 0);
       // (Drawn in from the pavement to a door or a pole over a little more than its distance off.)
-      const reach = Math.max(2, 1.6 * Math.max(off(a0, pave.pts[0]), off(a1, pave.pts[pave.pts.length - 1])));
-      const pos = this.walkEnds(pave, d, 0, a0, a1, reach, f);
+      const reach = Math.max(2, 1.6 * Math.max(off(a0, pave.pts[0]), off(pave.blocked ? null : a1, pave.pts[pave.pts.length - 1])));
+      const pos = this.walkEnds(pave, d, 0, a0, pave.blocked ? null : a1, reach, f);
       return { ...pos, moving: true, mode: "walk", walk: { key, pave, d, pace, dir: 1 },
-        activity: seg.visitor ? (seg.toXZ ? "back to the car" : "from the car") : `to ${this.nextKind(p, t, seg)}` };
+        activity: pave.blocked && d >= L ? "waiting for a legal crossing" : seg.visitor ? (seg.toXZ ? "back to the car" : "from the car") : `to ${this.nextKind(p, t, seg)}` };
     }
     const place = places.get(seg.place);
     if (!place) return null;
@@ -887,7 +1159,7 @@ export class City {
     if (a.kind === "break" && a.outside) {
       // Out of the door for a break: on the pavement in front of it, a step or so out (door and
       // front point in) -- not out at the kerb among the parked cars.
-      const r = rng(p.id, t.day, "break"), D = place.door || place.front;
+      const r = rng(p.id, t.day, "break"), D = (place.door && this.doorOf(place)) || place.front;
       const out = DOOR_STEP_M + 0.2 + r() * 0.6, along = (r() - 0.5) * 3;
       const key = `${p.id}:${t.day}:${Math.round(seg.t0 * 10)}`;
       let at = this.breakSpots.get(key);
@@ -906,7 +1178,12 @@ export class City {
       if (!at) return null;
       return { x: at.x, z: at.z, yaw: r() * 6.28, moving: false, mode: "walk", activity: "on a break" };
     }
-    if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) return indoorSpot(p, a, place, t);
+    if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) {
+      const lane = seg.lane !== undefined ? { k: seg.lane } : a.kind === "work" && COUNTER_ROLES.has(p.role) ? this.staffLane(place, p) : null;
+      // (More staff on than the counter has lanes for: the rest are in the back, not seen.)
+      if (lane?.back) return null;
+      return indoorSpot(p, a, place, t, lane);
+    }
     return null;
   }
   //: On a court: about it the way the game goes -- running here and there and never leaping (a
@@ -943,13 +1220,42 @@ export class City {
     if (xz) return { x: xz[0], z: xz[1] };
     const P = this.roster.places.get(id);
     if (P?.door) {
-      const D = P.door, step = { x: D.x - D.nx * DOOR_STEP_M, z: D.z - D.nz * DOOR_STEP_M };
+      const D = this.doorOf(P), step = { x: D.x - D.nx * DOOR_STEP_M, z: D.z - D.nz * DOOR_STEP_M };
       return door ? { ...step, door: { x: D.x + D.nx * 0.3, z: D.z + D.nz * 0.3 } } : step;
     }
     const n = P && this.streets.nodes[P.node];
     if (!n) return null;
     const dx = P.x - n.x, dz = P.z - n.z, L = Math.hypot(dx, dz);
     return L < 0.1 ? { x: n.x, z: n.z } : { x: n.x + (dx / L) * Math.min(L, 4.5), z: n.z + (dz / L) * Math.min(L, 4.5) };
+  }
+  //: A place's door, as walked through: its own, unless the step out of it would be inside
+  //: another building (a door on the wall it shares with the house next door: the front was
+  //: taken as the wall nearest the street's node, which at a corner can be a party wall) -- then
+  //: the middle of the wall nearest the street whose step out is clear. Checked once a door.
+  doorOf(P) {
+    const D = P.door;
+    if (!D || !P.ring || this.guardWalls === false) return D;
+    if (P._doorSeen === D) return P._doorUse || D;
+    P._doorSeen = D; P._doorUse = D;
+    const clear = (x, z) => !this.footprintAt(x, z);
+    if (clear(D.x - D.nx * DOOR_STEP_M, D.z - D.nz * DOOR_STEP_M)) return D;
+    const n = this.streets.nodes[P.node], ring = P.ring, walls = [];
+    for (let i = 0; i < ring.length; i += 1) {
+      const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length], L = Math.hypot(bx - ax, bz - az);
+      if (L < 2) continue;
+      const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+      let ox = (bz - az) / L, oz = -(bx - ax) / L;
+      if (inRing(ring, mx + ox * 0.05, mz + oz * 0.05)) { ox = -ox; oz = -oz; }
+      walls.push({ d: n ? Math.hypot(n.x - mx, n.z - mz) : 0, mx, mz, ox, oz });
+    }
+    walls.sort((a, b) => a.d - b.d);
+    for (const w of walls) {
+      if (!clear(w.mx + w.ox * DOOR_STEP_M, w.mz + w.oz * DOOR_STEP_M)) continue;
+      P._doorUse = { x: w.mx, z: w.mz, nx: -w.ox, nz: -w.oz, from: "clear_wall" };
+      this.wallFixes.doors = (this.wallFixes.doors || 0) + 1;
+      break;
+    }
+    return P._doorUse;
   }
   //: The point along a walk: through the door over its first (and last) DOOR_STEP_M, then drawn
   //: in from the anchors to the pavement over the next few metres. ``through``: in the doorway.
@@ -1789,16 +2095,9 @@ export class Drivers {
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
         decel = Math.min(T.emergency, Math.max(T.brake, need));
-        // Between the city's own people the law holds: a walker who steps out looks first and a
-        // driver who is too close stops dead, so nobody is run down unless you are in it --
-        // on foot where the cars are, or in a car yourself (view.mjs hitInTraffic).
-        if (danger.gap <= 0.15 && st.v > 0.6 && !danger.q.player && !danger.soon) {
-          st.v = 0;
-          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true, route: st.route });
-          continue;
-        }
         if (danger.gap <= 0.15 && st.v > 0.6 && !danger.soon) {
-          st.hit = { who: danger.q.id, speed: st.v, x: here.x, z: here.z, yaw: here.yaw, until: tsec + 9 };
+          st.hit = { id: `${c.key}:${danger.q.id}:${Math.round(tsec * 1000)}`, kind: "person", who: danger.q.id, speed: st.v, x: here.x, z: here.z, yaw: here.yaw, until: danger.q.player ? tsec + 9 : 0,
+            context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null, gap: danger.gap, target: { x: danger.q.x, z: danger.q.z, vx: danger.q.vx, vz: danger.q.vz } } };
           hits.push({ car: c.id, ...st.hit, player: Boolean(danger.q.player) });
           st.v = 0;
           out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, reason, route: st.route });
@@ -1948,6 +2247,20 @@ export class Drivers {
         next.body = bodies(next, c.length, c.width || 1.9);
         const who = blocking(c.id, here, next, c.length + 6);
         if (who) {
+          const op = pos.get(who), ost = this.cars.get(who);
+          // Do not disguise an unavoidable physical impact as an instantaneous stop. The
+          // 25 cm planning buffer still stops ordinary queues without causing a crash.
+          const otherSpeed = ost?.v || 0, speed = op ? Math.hypot(st.v * fx + otherSpeed * Math.sin(op.yaw), st.v * fz + otherSpeed * Math.cos(op.yaw)) : 0;
+          if (op && into(next.body, op.body) > 0.25 && speed > 0.6) {
+            st.hit = { id: `${c.key}:${who}:${Math.round(tsec * 1000)}`, kind: "vehicle", who, speed, x: next.x, z: next.z, yaw: next.yaw,
+              target: { x: op.x, z: op.z, yaw: op.yaw }, context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, speed: st.v, otherSpeed, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null,
+                other: ost ? { route: ost.key, segment: segInfo(op.c.route, ost), d: ost.d, lane: ost.lane, reason: ost.reason } : null } };
+            st.d = d1; st.v = 0;
+            if (ost) { ost.hit = { id: st.hit.id, who: c.id }; ost.v = 0; const drawn = out.find((o) => o.id === who); if (drawn) { drawn.v = 0; drawn.hit = ost.hit; } }
+            hits.push({ car: c.id, ...st.hit });
+            out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, route: st.route });
+            continue;
+          }
           st.dodge = was;
           st.v = 0; reason = "blocked"; st.blocked = (st.blocked || 0) + dt; st.blockedBy = who;
           st.reason = reason; st.leader = who;

@@ -668,6 +668,9 @@ const ROAD_LEGEND = {
   wordWidth: 2.4,
   laneMin: 2.6,
   laneMax: 3.4,
+  barClear: 1.2,          // two stop lines closer than this, one behind the other, are one line
+  unmarkedSetback: 3.0,   // no crosswalk painted: the line stands behind the pavement's width
+  narrowMax: 2.5,         // how far a line's ends are pulled in to reach the drawn kerbs
 };
 //: Travel lanes arriving on a way, from the lane profile the lane lines are painted from:
 //: its total on a one-way street, the larger direction's on a two-way one, else one.
@@ -678,14 +681,35 @@ function arrivingLanes(way, oneway) {
   return Math.max(profile.forward || 0, profile.backward || 0, Math.floor((profile.total || 0) / 2), 1);
 }
 const legendApproaches = [];
-const legendApproachKeys = new Set();
-function noteLegendApproach(junction, leg, kind) {
+const legendApproachKeys = new Map();
+//: ``city``: the city's own record says this approach is stopped (docs/street-paint.json), so
+//: its line and its word are painted whether or not a crosswalk is mapped across it.
+function noteLegendApproach(junction, leg, kind, city = false) {
   const key = `${Math.round(junction.x)}:${Math.round(junction.z)}:${Math.round(leg.bearing * 10)}`;
-  if (legendApproachKeys.has(key)) return;
-  legendApproachKeys.add(key);
+  const noted = legendApproachKeys.get(key);
+  if (noted) { if (city) noted.city = true; return; }
   const oneway = onewaySign(leg.way) !== 0;
-  legendApproaches.push({ jx: junction.x, jz: junction.z, ux: leg.ux, uz: leg.uz, half: leg.half,
-    oneway, lanes: arrivingLanes(leg.way, oneway), kind });
+  const approach = { jx: junction.x, jz: junction.z, ux: leg.ux, uz: leg.uz, half: leg.half,
+    oneway, lanes: arrivingLanes(leg.way, oneway), kind, city, key };
+  legendApproachKeys.set(key, approach);
+  legendApproaches.push(approach);
+}
+//: The approach one of the city's stop records governs (docs/street-paint.json: the junction,
+//: the street the sign is on, the bearing its traffic travels on), matched to the drawn legs by
+//: street name and then by bearing (paintLibrary.matchApproach). Returns whether one was found.
+function noteCityStopApproach(record) {
+  if (!paintLibrary || !record?.p) return false;
+  const [x, y] = xy(record.p[0], record.p[1]);
+  const junction = junctionNear(x, -y, 25);
+  if (!junction) return false;
+  const inbound = junction.legs.filter((l) => l.inbound);
+  // Arriving traffic travels against the leg's outward direction; z runs south.
+  const legs = inbound.map((l) => ({ heading: ((Math.atan2(-l.ux, l.uz) * 180) / Math.PI + 360) % 360,
+    street: paintLibrary.streetKey(l.way?.name) }));
+  const i = paintLibrary.matchApproach(record, legs);
+  if (i < 0) return false;
+  noteLegendApproach(junction, inbound[i], "stop", true);
+  return true;
 }
 //: The approach a city stop sign at (x, z) faces: the inbound leg whose post spot it is nearest.
 function noteOfficialStopApproach(x, z) {
@@ -753,14 +777,110 @@ function roadWordMaterial(word) {
   roadWordMaterials.set(word, material);
   return material;
 }
-//: The paint for every noted approach. Returns counts.
-function paintRoadLegends() {
-  const bars = { pos: [], uv: [] }, words = new Map();
-  const counts = { approaches: legendApproaches.length, bars: 0, words: 0, noCrosswalk: 0, offRoad: 0 };
+//: The plan every pass claims its paint on (docs/street-paint.mjs). Without the module the
+//: claims are simply laid as made, which is what each pass did by itself before.
+function newPaintPlan() {
+  if (paintLibrary) return new paintLibrary.PaintPlan();
+  const claims = [];
+  return { claims, claim(c) { const kept = { slides: [], id: `${c.kind}:${claims.length}`, ...c }; claims.push(kept); return kept; },
+    overlapping() { return []; }, settle() { return { laid: claims.slice(), refused: [] }; } };
+}
+//: Where the stop line lies on a stopped approach with no crosswalk painted across it: behind
+//: the unmarked crosswalk, which is the pavement carried on across the mouth of the street.
+//: ``null`` when the approach never comes clear of the junction.
+function unmarkedStopLineAlong(a, at, side, onRoad) {
+  const start = Math.max(1.5, junctionReachAt(a.jx, a.jz, Math.atan2(a.uz, a.ux)));
+  for (let along = start; along <= start + 10; along += 0.5) {
+    if (onRoad([at(along, side), at(along + ROAD_LEGEND.barWidth, side)])) return along + ROAD_LEGEND.unmarkedSetback;
+  }
+  return null;
+}
+//: The paint for every noted approach, claimed on the plan (layStreetPaint lays what is
+//: settled). Returns counts of what was claimed and what could not be placed.
+function paintRoadLegends(plan) {
+  const counts = { approaches: legendApproaches.length, bars: 0, words: 0, noCrosswalk: 0, offRoad: 0,
+    cityApproaches: 0, cityUnmarked: 0, narrowed: 0 };
+  const onRoad = (pts) => pts.every(([x, z]) => insideCarriageway(x, z, 0) && !insideJunctionBox(x, z));
+  // A junction with a signal on any approach is signalled: a stop sign recorded there is from
+  // before the signal went in, and the lines are limit lines with nothing written behind them.
+  const junctionKey = (a) => `${Math.round(a.jx / 4)}:${Math.round(a.jz / 4)}`;
+  const signalled = new Set(legendApproaches.filter((a) => a.kind === "signal").map(junctionKey));
+  for (const a of legendApproaches) {
+    const kind = a.kind === "stop" && signalled.has(junctionKey(a)) ? "signal" : a.kind;
+    if (a.city) counts.cityApproaches += 1;
+    const rx = a.uz, rz = -a.ux;
+    // The lanes arriving: the right half of a two-way street, all of a one-way one.
+    let o0 = a.oneway ? -a.half + 0.25 : 0.2, o1 = a.half - 0.25;
+    if (o1 - o0 < ROAD_LEGEND.laneMin - 0.6) continue;
+    if (o1 - o0 > 4 * ROAD_LEGEND.laneMax) continue;   // wider than four lanes: not a road's arrivals
+    const at = (along, side) => [a.jx + a.ux * along + rx * side, a.jz + a.uz * along + rz * side];
+    const crosswalk = approachCrosswalk(a);
+    let b0;
+    if (crosswalk) b0 = crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing;
+    else if (a.city && kind === "stop") {
+      // The city's record is the evidence here, not a mapped crosswalk: half the stop signs in
+      // the Marina stood over bare asphalt because nobody had mapped a crossing in front of them.
+      b0 = unmarkedStopLineAlong(a, at, (o0 + o1) / 2, onRoad);
+      if (b0 === null) { counts.noCrosswalk += 1; continue; }
+      counts.cityUnmarked += 1;
+    } else { counts.noCrosswalk += 1; continue; }
+    const b1 = b0 + ROAD_LEGEND.barWidth;
+    // Drawn kerb to drawn kerb: where a bulb-out or a measured kerb stands inside the mapped
+    // width the line is shortened to it, an end at a time, rather than not painted at all.
+    const endOn = (side) => onRoad([at(b0, side), at(b1, side)]);
+    let pulled = 0;
+    while (pulled < ROAD_LEGEND.narrowMax && (!endOn(o0) || !endOn(o1))) {
+      if (!endOn(o1)) o1 -= 0.25;
+      if (!endOn(o0)) o0 += 0.25;
+      pulled += 0.25;
+    }
+    if (!endOn(o0) || !endOn(o1) || o1 - o0 < ROAD_LEGEND.laneMin - 0.6) { counts.offRoad += 1; continue; }
+    if (pulled) counts.narrowed += 1;
+    const group = `approach:${a.key}`, rank = a.city ? 3 : 2;
+    const [bx, bz] = at((b0 + b1) / 2, (o0 + o1) / 2);
+    // The bar's claim is deeper than the bar: a second line a pace behind the first, from the
+    // other node of a junction mapped as two, is the same line painted twice.
+    plan.claim({ kind: "bar", id: `bar:${a.key}`, group, rank, x: bx, z: bz, ux: rx, uz: rz,
+      along: (o1 - o0) / 2, across: ROAD_LEGEND.barClear,
+      data: { corners: [at(b0, o0), at(b0, o1), at(b1, o1), at(b1, o0)], surface: "furniture:road_legend" } });
+    counts.bars += 1;
+    if (kind !== "stop") continue;
+    // STOP in each travel lane, its foot toward the driver. The lanes are counted from the
+    // way's tags (a two-way street without them has one each way) and run out from the
+    // centreline; what is left at the kerb is the parking lane.
+    const lanes = Math.max(1, Math.min(4, a.lanes || 1));
+    const lane = Math.min(ROAD_LEGEND.laneMax, (o1 - o0) / lanes);
+    const first = a.oneway ? (o0 + o1) / 2 - (lane * lanes) / 2 : o0;
+    const w0 = b1 + ROAD_LEGEND.wordGap, w1 = w0 + ROAD_LEGEND.wordLength;
+    for (let i = 0; i < lanes; i += 1) {
+      const mid = first + lane * (i + 0.5), half = Math.min(ROAD_LEGEND.wordWidth, lane - 0.5) / 2;
+      if (!onRoad([at(w1, mid - half), at(w1, mid + half), at(w0, mid + half), at(w0, mid - half)])) { counts.offRoad += 1; continue; }
+      const [wx, wz] = at((w0 + w1) / 2, mid);
+      // The word reads in the direction of travel (against the leg's outward direction), and
+      // may be set back a little further from the line to clear an arrow already in the lane.
+      plan.claim({ kind: "word", text: "STOP", id: `stop:${a.key}:${i}`, group, rank, x: wx, z: wz, ux: -a.ux, uz: -a.uz,
+        along: ROAD_LEGEND.wordLength / 2, across: half, slides: [-1.5, -3.0, -4.5],
+        data: { surface: "furniture:road_legend" } });
+      counts.words += 1;
+    }
+  }
+  return counts;
+}
+//: Lay what the plan settled: the stop lines, the words (STOP, BUS STOP) and the white bus
+//: boxes. One mesh a material; every vertex carries where its piece of paint stands (clipAt),
+//: so a window's edge takes or leaves a word whole (applyBoxClip, wholeClip) and never cuts
+//: through it. Returns the settlement's report (paintLibrary.settlementReport).
+function layStreetPaint(plan) {
+  const settled = plan.settle();
   const lift = 0.034;
+  const lists = new Map();
+  const listFor = (key, surface, material) => {
+    if (!lists.has(key)) lists.set(key, { pos: [], uv: [], at: [], surface, material });
+    return lists.get(key);
+  };
   // Cut to half a metre and each vertex stood on the ground: one quad across a street ran on
   // its chord, and the road, lifted at its own vertices, rose through the middle of the bar.
-  const push = (list, corners) => {
+  const push = (list, corners, cx, cz) => {
     const [p0, p1, p2, p3] = corners;
     const n = Math.max(1, Math.ceil(Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) / 0.5));
     const m = Math.max(1, Math.ceil(Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) / 0.5));
@@ -773,60 +893,54 @@ function paintRoadLegends() {
     for (let i = 0; i < n; i += 1) {
       for (let j = 0; j < m; j += 1) {
         const q = [point(i, j), point(i + 1, j), point(i + 1, j + 1), point(i, j + 1)];
-        for (const k of [0, 1, 2, 0, 2, 3]) { list.pos.push(q[k][0], q[k][1], q[k][2]); list.uv.push(q[k][3], q[k][4]); }
+        for (const k of [0, 1, 2, 0, 2, 3]) { list.pos.push(q[k][0], q[k][1], q[k][2]); list.uv.push(q[k][3], q[k][4]); list.at.push(cx, cz); }
       }
     }
   };
-  const onRoad = (pts) => pts.every(([x, z]) => insideCarriageway(x, z, 0) && !insideJunctionBox(x, z));
-  for (const a of legendApproaches) {
-    const crosswalk = approachCrosswalk(a);
-    if (!crosswalk) { counts.noCrosswalk += 1; continue; }
-    const rx = a.uz, rz = -a.ux;
-    // The lanes arriving: the right half of a two-way street, all of a one-way one.
-    const o0 = a.oneway ? -a.half + 0.25 : 0.2, o1 = a.half - 0.25;
-    if (o1 - o0 < ROAD_LEGEND.laneMin - 0.6) continue;
-    if (o1 - o0 > 4 * ROAD_LEGEND.laneMax) continue;   // wider than four lanes: not a road's arrivals
-    const at = (along, side) => [a.jx + a.ux * along + rx * side, a.jz + a.uz * along + rz * side];
-    const b0 = crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing, b1 = b0 + ROAD_LEGEND.barWidth;
-    const bar = [at(b0, o0), at(b0, o1), at(b1, o1), at(b1, o0)];
-    if (!onRoad(bar)) { counts.offRoad += 1; continue; }
-    push(bars, bar.map(([x, z]) => [x, z, 0, 0]));
-    counts.bars += 1;
-    if (a.kind !== "stop") continue;
-    // STOP in each travel lane, its foot toward the driver: canvas bottom (v 0) at the far end.
-    // The lanes are counted from the way's tags (a two-way street without them has one each
-    // way) and run out from the centreline; what is left at the kerb is the parking lane.
-    const lanes = Math.max(1, Math.min(4, a.lanes || 1));
-    const lane = Math.min(ROAD_LEGEND.laneMax, (o1 - o0) / lanes);
-    const first = a.oneway ? (o0 + o1) / 2 - (lane * lanes) / 2 : o0;
-    const w0 = b1 + ROAD_LEGEND.wordGap, w1 = w0 + ROAD_LEGEND.wordLength;
-    for (let i = 0; i < lanes; i += 1) {
-      const mid = first + lane * (i + 0.5), half = Math.min(ROAD_LEGEND.wordWidth, lane - 0.5) / 2;
-      // Driver's left is -r: canvas left (u 0) there.
-      const quad = [[...at(w1, mid - half), 0, 0], [...at(w1, mid + half), 1, 0],
-                    [...at(w0, mid + half), 1, 1], [...at(w0, mid - half), 0, 1]];
-      if (!onRoad(quad)) { counts.offRoad += 1; continue; }
-      if (!words.has("STOP")) words.set("STOP", { pos: [], uv: [] });
-      push(words.get("STOP"), quad);
-      counts.words += 1;
+  const white = () => new THREE.MeshStandardMaterial({ color: 0xf2f5ef, roughness: 0.8, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  for (const c of settled.laid) {
+    if (c.fixed) continue;
+    const surface = c.data?.surface || "furniture:road_legend";
+    if (c.kind === "bar") {
+      push(listFor(`line:${surface}`, surface, white), c.data.corners.map(([x, z]) => [x, z, 0, 0]), c.x, c.z);
+    } else if (c.kind === "box") {
+      // A box's lines move with it if it was slid.
+      const sx = c.ux * (c.slid || 0), sz = c.uz * (c.slid || 0);
+      for (const quad of c.data.borders) push(listFor(`line:${surface}`, surface, white), quad.map(([x, z]) => [x + sx, z + sz, 0, 0]), c.x, c.z);
+    } else if (c.kind === "word") {
+      // Foot towards the driver (canvas bottom, v 0); the driver's left (u 0) is left of travel.
+      const lx = c.uz, lz = -c.ux;
+      const corner = (along, across, u, v) => [c.x + c.ux * along * c.along + lx * across * c.across,
+        c.z + c.uz * along * c.along + lz * across * c.across, u, v];
+      push(listFor(`word:${c.text}`, surface, () => (c.text === "BUS STOP" ? busStopText() : roadWordMaterial(c.text))),
+        [corner(-1, 1, 0, 0), corner(-1, -1, 1, 0), corner(1, -1, 1, 1), corner(1, 1, 0, 1)], c.x, c.z);
     }
   }
-  const emit = (list, material) => {
-    if (!list.pos.length) return;
+  for (const list of lists.values()) {
+    if (!list.pos.length) continue;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(list.pos, 3));
     geometry.setAttribute("uv", new THREE.Float32BufferAttribute(list.uv, 2));
+    geometry.setAttribute("clipAt", new THREE.Float32BufferAttribute(list.at, 2));
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
+    const material = list.material();
+    material.userData.wholeClip = true;
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData = { surface: "furniture:road_legend", source: "junction_control+drawn_crossings", liftedOntoGround: true };
+    mesh.userData = { surface: list.surface, liftedOntoGround: true,
+      source: list.surface === "furniture:bus_zone" ? "gtfs+sfmta_stop_type" : "junction_control+drawn_crossings+sfmta_stop_signs" };
     groups.furniture.add(mesh);
-  };
-  emit(bars, new THREE.MeshStandardMaterial({ color: 0xf2f5ef, roughness: 0.8, side: THREE.DoubleSide,
-    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 }));
-  for (const [word, list] of words) emit(list, roadWordMaterial(word));
-  return counts;
+  }
+  const report = paintLibrary ? paintLibrary.settlementReport(settled) : { laid: {}, refused: {} };
+  streetPaintStats.settled = report;
+  streetPaintStats.refused = settled.refused.map((c) => ({ id: c.id, kind: c.kind, why: c.why, by: c.by, x: c.x, z: c.z }));
+  streetPaintStats.laid = settled.laid.filter((c) => !c.fixed).map((c) => ({ id: c.id, kind: c.kind, text: c.text, x: c.x, z: c.z, slid: c.slid || 0 }));
+  return report;
 }
+//: What the plan laid and refused on this page, for the console and the headless audit.
+const streetPaintStats = { settled: null, laid: [], refused: [], city: null };
+window.kerbsideStreetPaint = () => ({ ...streetPaintStats });
 
 // ---- no sign inside another, and none on a crossing ----
 //

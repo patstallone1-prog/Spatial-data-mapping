@@ -916,12 +916,30 @@ objectCatalogueReady.then((ready) => {
 //: slides round a pole rather than stopping dead on it. Null if neither is clear.
 function slidePastObjects(fromX, fromZ, toX, toZ, belowBuildings, hit = null) {
   const clear = (x, z) => !objectProximity.blocked(x, z, WALKER_RADIUS_M)
-    && (belowBuildings || (activeGuest?.ready ? true : !walkerFootprintBlocked(x, z)));
+    && (belowBuildings || !walkerStepIntoBuilding(fromX, fromZ, x, z));
   const round = hit ? knockRoundObject(fromX, fromZ, toX, toZ, hit.pts) : null;
   if (round && clear(round[0], round[1])) return round;
   if (clear(toX, fromZ)) return [toX, fromZ];
   if (clear(fromX, toZ)) return [fromX, toZ];
   return null;
+}
+
+//: Whether a step from (ax, az) to (bx, bz) runs into a building: across one of its walls, or to
+//: within a body's width of one -- the attached region's buildings where one is drawn there. A
+//: slide round a pole, a bench, a fence or a car is a step of its own and is asked this too: in an
+//: attached region (City mode's Marina) the slide round an object was never asked about buildings
+//: at all, nor anywhere the slide along a car, and a walker knocked round a pole or a tree beside a
+//: facade went in through the wall -- to be put out again on whichever side was nearest.
+function walkerStepIntoBuilding(ax, az, bx, bz) {
+  const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(bx, bz) : null;
+  if (guest?.ready && guest.api.firstBuildingCollision) {
+    const [gax, gaz] = hostToGuest(guest, ax, az), [gbx, gbz] = hostToGuest(guest, bx, bz);
+    const hit = guest.api.firstBuildingCollision(gax, gaz, gbx, gbz);
+    if (hit !== null && hit !== undefined) return true;
+    return Boolean(guest.api.walkerFootprintBlocked?.(gbx, gbz));
+  }
+  const hit = firstBuildingCollision(ax, az, bx, bz);
+  return (hit !== null && hit !== undefined) || walkerFootprintBlocked(bx, bz);
 }
 
 //: Anything no wider than this the walker is knocked round rather than stopped by: a pole, a
@@ -1040,12 +1058,14 @@ function moveWalker(mx, mz) {
       else if (!cars(p.x, toZ, WALKER_RADIUS_M, p.x, p.z)) toX = p.x;
       else break;
     }
+    // Wherever a slide took the step, it is not into a building (walkerStepIntoBuilding).
+    if (!belowBuildings && (toX !== nextX || toZ !== nextZ) && walkerStepIntoBuilding(p.x, p.z, toX, toZ)) break;
     // Open water is not walked on: the shore, a pier, a deck or a bridge over it are. One already
     // on the water (dropped there) may walk off it.
     if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)) break;
     // City mode's area ends here (module 30): Explore goes on.
     if (typeof cityAreaHolds === "function" && !cityAreaHolds(toX, toZ) && cityAreaHolds(p.x, p.z)) {
-      if (typeof setHint === "function") setHint(`${CITY_AREA.name[0].toUpperCase()}${CITY_AREA.name.slice(1)} ends here: switch to Explore to go further.`);
+      if (typeof setHint === "function") setHint("World boundary reached. To keep exploring, switch modes: open ☰ City and choose Explore.");
       break;
     }
     p.x = toX;

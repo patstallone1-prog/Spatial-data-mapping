@@ -765,6 +765,9 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
       mesh.rotation.z = -bearing;
       mesh.position.set(x2, roadTop + 0.02, -y2);
       addMerged("arrow", mesh, "marking");
+      const run = Math.hypot(x2 - x1, y2 - y1) || 1;
+      paintedArrows.push({ x: x2, z: -y2, ux: (x2 - x1) / run, uz: -(y2 - y1) / run,
+        along: 1.3, across: Math.min(laneWidth * 0.6, 1.9) / 2 });
     }
   }
 
