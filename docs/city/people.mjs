@@ -662,6 +662,18 @@ export function alongRoute(route, d, side = 0) {
 
 //: How far out from a street's kerb a walker keeps (the middle of the pavement), in metres.
 export const PAVE_M = 1.6;
+//: And never nearer the kerb than this (the kerb stone itself): where a front is drawn less than
+//: a step from the kerb the line is still between the two, not in the wall.
+export const PAVE_MIN_M = 0.15;
+//: The pavement's line beside a street ``half`` wide to its kerb, with ``gap`` metres from the
+//: kerb to the nearest wall on that side (Infinity: none near): midway between the kerb and the
+//: wall, PAVE_M out at most. A line fixed PAVE_M out ran through every front built within
+//: three metres of its kerb (some 290 in the Marina), and the walkers on it had to be pushed
+//: back out of the walls a step at a time (2026-11-14).
+export function paveOffset(half, gap = Infinity) {
+  if (!half) return 0;
+  return half + Math.max(PAVE_MIN_M, Math.min(PAVE_M, gap / 2));
+}
 //: A legal mapped crossing joins the two ends of ONE crosswalk polyline. Endpoints of
 //: parallel crosswalks are not interchangeable. Other links must stay on the pavement;
 //: the shortest path may therefore use two or three separate crossings round a junction.
@@ -733,6 +745,10 @@ export function mappedCrosswalkPath(streets, node, from, to) {
 //: before). It never crosses in the middle of a block, and never cuts across a junction from
 //: one corner to the one opposite. (It did both: the walk was the street's middle line moved to
 //: the right of the way, which at every left turn ran corner to corner through the junction.)
+//: ``offset(half, where)``: how far from the street's middle line the pavement's line is, for a
+//: street ``half`` wide to its kerb; ``where`` ({x, z, ux, uz, len, side}) is the stretch and
+//: the side (+1 left of its direction as (-uz, ux), -1 the other), for a line that depends on
+//: what stands along it (fleet.mjs City.walkOffset: the frontage).
 //: Returns a route to walk with no offset (alongRoute(r, d)): {pts, s, length, halves, classes,
 //: crossings: [{s0, s1, node, bearing, signal}]} -- each crossing's stretch of the walk, the
 //: node, the crossed street's own direction (as atan2(x, z)) and whether a light controls it.
@@ -771,11 +787,15 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
   for (let i = 0; i + 1 < n; i += 1) {
     const dx = P[i + 1][0] - P[i][0], dz = P[i + 1][1] - P[i][1], len = Math.hypot(dx, dz) || 1e-6;
     const u = [dx / len, dz / len];
-    seg.push({ u, nrm: [-u[1], u[0]], o: offset(halves[i] ?? 0), len, half: halves[i] ?? 0 });
+    const half = halves[i] ?? 0, where = (side) => ({ x: P[i][0], z: P[i][1], ux: u[0], uz: u[1], len, side });
+    // The pavement's line on each side of the street: where the buildings stand close to the
+    // kerb on one side, that side's line is nearer the kerb (``offset(half, where)``).
+    const os = { 1: offset(half, where(1)), [-1]: offset(half, where(-1)) };
+    seg.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, len, half });
   }
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1], cross = (a, b) => a[0] * b[1] - a[1] * b[0];
   // The line of segment i's pavement on side sg, through node point q: [point, dir].
-  const line = (i, sg, q = P[i]) => [[q[0] + seg[i].nrm[0] * sg * seg[i].o, q[1] + seg[i].nrm[1] * sg * seg[i].o], seg[i].u];
+  const line = (i, sg, q = P[i]) => { const o = seg[i].os[sg] ?? seg[i].o; return [[q[0] + seg[i].nrm[0] * sg * o, q[1] + seg[i].nrm[1] * sg * o], seg[i].u]; };
   const meet = (L1, L2, near) => {
     const c = cross(L1[1], L2[1]);
     const lim = 4 * Math.max(3, ...seg.map((g) => g.o));
@@ -785,6 +805,16 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
       if (Math.hypot(q[0] - near[0], q[1] - near[1]) < lim) return q;
     }
     return [(L1[0][0] + L2[0][0]) / 2, (L1[0][1] + L2[0][1]) / 2];
+  };
+  //: Where the pavement of segment a meets that of segment b at node point q, on side sg: the
+  //: point their lines cross at -- or, the two running on in one line at different distances
+  //: from the street (one block's fronts nearer the kerb than the next's), each line's own point
+  //: there, so neither block's line is drawn off towards the other's. One point averaged
+  //: between them slanted both blocks' lines, and the nearer block's into its fronts.
+  const join = (a, b, sg, q) => {
+    const La = line(a, sg, q), Lb = line(b, sg, q);
+    if (Math.abs(cross(La[1], Lb[1])) > 0.15 || Math.hypot(La[0][0] - Lb[0][0], La[0][1] - Lb[0][1]) < 0.05) return [meet(La, Lb, q)];
+    return [La[0], Lb[0]];
   };
   // A junction: three ways or more meet there (streets, not paths).
   const junction = (i) => {
@@ -799,7 +829,9 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     for (const e of streets.edges[id] || []) {
       if (!(e.half > 0)) continue;
       const m = streets.nodes[e.to], L = Math.hypot(m.x - here.x, m.z - here.z) || 1, u = [(m.x - here.x) / L, (m.z - here.z) / L];
-      out.push({ u, nrm: [-u[1], u[0]], o: offset(e.half), half: e.half });
+      const where = (side) => ({ x: here.x, z: here.z, ux: u[0], uz: u[1], len: L, side });
+      const os = { 1: offset(e.half, where(1)), [-1]: offset(e.half, where(-1)) };
+      out.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, half: e.half });
     }
     return out;
   };
@@ -815,7 +847,7 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     if (best && sg && !arms(i).some((c) => Math.abs(cross(seg[a].u, c.u)) > 0.5 && dot(c.u, seg[a].nrm) * sg > 0.5)) return null;
     return best;
   };
-  const cline = (c, sg, q) => [[q[0] + c.nrm[0] * sg * c.o, q[1] + c.nrm[1] * sg * c.o], c.u];
+  const cline = (c, sg, q) => { const o = c.os?.[sg] ?? c.o; return [[q[0] + c.nrm[0] * sg * o, q[1] + c.nrm[1] * sg * o], c.u]; };
   const signalled = (i) => {
     const es = streets?.edges?.[ids[i]] || [];
     return es.some((e) => e.cls === "arterial" || e.cls === "freeway");
@@ -853,7 +885,7 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
       const a = i - 1, b = i, q = P[i];
       if (!(seg[a].o > 0 && seg[b].o > 0) || !junction(i)) {
         // A bend, or a path joining: round it on the same side.
-        out.push(meet(line(a, sg, q), line(b, sg, q), q));
+        out.push(...join(a, b, sg, q));
         continue;
       }
       const ua = seg[a].u, ub = seg[b].u, straight = dot(ua, ub) > 0.9;
@@ -862,13 +894,15 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
         const c = force ? crossStreet(i, a) : crossStreet(i, a, sg);
         if (!force || !c) {
           // Straight on: over the street in front, along this pavement's line.
-          const at = meet(line(a, sg, q), line(b, sg, q), q);
+          // (Each block's line is its own: the one before ends on its line and the one after
+          // begins on its line, the step between them taken over the street.)
+          const ends = join(a, b, sg, q), at0 = ends[0], at1 = ends[ends.length - 1];
           if (c) {
             const reach = c.half + 0.4;
-            const before = [at[0] - ua[0] * reach, at[1] - ua[1] * reach], after = [at[0] + ub[0] * reach, at[1] + ub[1] * reach];
+            const before = [at0[0] - ua[0] * reach, at0[1] - ua[1] * reach], after = [at1[0] + ub[0] * reach, at1[1] + ub[1] * reach];
             marks.push([out.length, i, bearing(c.u), signalled(i)]);
             out.push(before, after);
-          } else out.push(at);
+          } else out.push(...ends);
           continue;
         }
         // Over to the other side here, on the near crosswalk of the street across, and on over

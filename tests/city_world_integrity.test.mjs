@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { cityTime, loadRules } from "../docs/city/core.mjs";
 import { City, Roster, inRing } from "../docs/city/fleet.mjs";
-import { Streets, placeFromBuilding, shopCapacity } from "../docs/city/people.mjs";
+import { PAVE_M, PAVE_MIN_M, Streets, paveOffset, placeFromBuilding, shopCapacity } from "../docs/city/people.mjs";
 import { BOUNDARY_MESSAGE, boundaryStop, buildLines, busesAt } from "../docs/city/transit.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
@@ -178,6 +178,47 @@ test("on foot from door to door nobody is drawn inside a building they did not g
   assert.ok(before.inside > 0, "without the check, the pavement's line runs through the fronts built out near the kerb");
   assert.ok(after.samples > 2000, `samples ${after.samples}`);
   assert.equal(after.inside, 0, `${after.inside} of ${after.samples} walkers' points inside a building`);
+});
+
+test("the pavement's line keeps to the room between the kerb and the fronts on each side", (tc) => {
+  // The same town and walkers twice, the wall check off: the line a fixed 1.6 m from the kerb,
+  // and the line set by the fronts along each side of each block (City.walkOffset).
+  const run = (frontLines) => {
+    const { city, roster } = town();
+    city.frontLines = frontLines; city.guardWalls = false;
+    const t0 = timeAt(DAY + 12 * 3_600_000);
+    const walkers = [...roster.people.values()].filter((p) => city.planOf(p, t0).segs.some((s) => s.kind === "go" && s.mode === "walk")).slice(0, 400);
+    let samples = 0, inside = 0, deep = 0;
+    for (const p of walkers) for (const seg of city.planOf(p, t0).segs) {
+      if (seg.kind !== "go" || seg.mode !== "walk" || seg.t0 < 6 * 60 || seg.t1 > 22 * 60) continue;
+      for (let m = seg.t0; m < seg.t1; m += 2 / 60) {
+        const pos = city.personAt(p, timeAt(DAY + m * 60_000), seg, { x: 400, z: 400 });
+        if (!pos || pos.indoors) continue;
+        samples += 1;
+        const f = city.footprintAt(pos.x, pos.z);
+        if (!f || (pos.through && (f.pl.id === seg.from || f.pl.id === seg.to))) continue;
+        inside += 1;
+        // Along a block, not at a door: well clear of both ends of the walk.
+        if (m - seg.t0 > 0.4 && seg.t1 - m > 0.4) deep += 1;
+      }
+    }
+    return { samples, inside, deep, narrowed: city.wallFixes?.narrowed || 0 };
+  };
+  const fixed = run(false), fitted = run(true);
+  tc.diagnostic(`fixed line: ${fixed.inside} of ${fixed.samples} points inside a building (${fixed.deep} along a block); fitted: ${fitted.inside} of ${fitted.samples} (${fitted.deep}); ${fitted.narrowed} stretches brought in`);
+  assert.ok(fixed.deep > 500, `the fixed line runs through the fronts built out near the kerb: ${fixed.deep}`);
+  assert.ok(fitted.narrowed > 0);
+  assert.ok(fitted.deep * 20 < fixed.deep, `along the blocks the fitted line is clear of the fronts: ${fitted.deep} against ${fixed.deep}`);
+  assert.ok(fitted.inside * 4 < fixed.inside, `${fitted.inside} against ${fixed.inside}`);
+});
+
+test("the line is midway between the kerb and the wall, never past 1.6 m nor off the kerb stone", () => {
+  assert.equal(paveOffset(6), 6 + PAVE_M);
+  assert.equal(paveOffset(6, 10), 6 + PAVE_M);
+  assert.equal(paveOffset(6, 2), 7);
+  assert.equal(paveOffset(6, 0.4), 6.2);
+  assert.equal(paveOffset(6, 0.1), 6 + PAVE_MIN_M);
+  assert.equal(paveOffset(0, 1), 0);
 });
 
 test("a door on a party wall is not walked through: the step out is in the street, not next door", () => {

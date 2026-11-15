@@ -557,3 +557,14 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
 - Every placed line and every courier's shop and address says its cross streets
   (`Streets.crossStreets`, `nameAt`, `labelAt`, `stepAt`): "2300 Chestnut Street at Scott St",
   "the court at Bay St & Webster St".
+
+## 2026-11-14: the pavement's line fits the room it has
+
+- `pavementRoute` takes the line's distance from the street per side and per stretch
+  (`offset(half, where)`); `City.walkOffset` finds the nearest front along each side of a block
+  and puts the line midway between the kerb and it, 1.6 m out at most (`paveOffset`).
+- Each block keeps its own line through a junction (`join`): one averaged point there had slanted
+  both blocks' lines.
+- Test town, wall check off: 21,275 of 140,008 walker points inside a building with the fixed
+  line, 290 with the fitted one (32 along a block; the rest at doors). `keepOutside` stays as
+  the guard. Not re-measured on the real Marina.
