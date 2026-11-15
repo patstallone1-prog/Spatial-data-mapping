@@ -16,7 +16,7 @@ import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   shopCapacity, shopLanes,
-  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, paveOffset, pavementRoute, turnAhead, workplacesByRole,
+  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, paveOffset, pavementRoute, shopSeen, turnAhead, workplacesByRole,
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
@@ -800,10 +800,13 @@ export class City {
   roomIn(place, day, t0, t1, who) {
     const list = this.shopBook(place.id, day), cap = shopCapacity(place);
     if (City.mostAtOnce(list, t0, t1) >= cap) return -1;
-    const n = Math.max(cap, shopLanes(place.inside)), used = new Set();
+    const used = new Set();
     for (const b of list) if (b.q === undefined && b.t0 < t1 && b.t1 > t0) used.add(b.lane);
-    const free = [];
-    for (let k = 0; k < n; k += 1) if (!used.has(k)) free.push(k);
+    // A place on the drawn floor while there is one (shopSeen); after that, further in among
+    // the aisles, where nobody is drawn.
+    const seen = shopSeen(place), front = [], back = [];
+    for (let k = 0; k < cap; k += 1) if (!used.has(k)) (k < seen ? front : back).push(k);
+    const free = front.length ? front : back;
     return free.length ? free[hash32(who, place.id, Math.round(t0)) % free.length] : -1;
   }
   //: A place in the line at the door over [t0, t1), or -1.
@@ -1286,8 +1289,9 @@ export class City {
     }
     if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) {
       const lane = seg.lane !== undefined ? { k: seg.lane } : a.kind === "work" && COUNTER_ROLES.has(p.role) ? this.staffLane(place, p) : null;
-      // (More staff on than the counter has lanes for: the rest are in the back, not seen.)
-      if (lane?.back) return null;
+      // (More staff on than the counter has lanes for: the rest are in the back, not seen; and
+      // the customers beyond the drawn floor's places are further in, among the aisles.)
+      if (lane?.back || (seg.lane !== undefined && seg.lane >= shopSeen(place))) return null;
       return indoorSpot(p, a, place, t, lane);
     }
     return null;

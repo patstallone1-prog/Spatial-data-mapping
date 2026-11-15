@@ -1429,11 +1429,18 @@ export function counterLine(inside) {
 //: it, ``place.area``), of which SHOP_FLOOR_SHARE is the shop floor -- the rest is the counter,
 //: the kitchen, the stock room -- at so many m² a customer by the kind of shop (the building
 //: code's occupant loads: about 15 ft² a diner seated, 60 ft² a shopper in a store, 100 ft² a
-//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX, and never more than the
-//: drawn shop floor has places for (``shopLanes``: one a lane, a shoulder's width apart, so
-//: nobody stands in anybody). At least one. People were let in without limit: twenty in a café
-//: that seats eight, standing in one another (2026-11-14).
-export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 14, SHOP_LANE_M = 0.6, SHOP_DEFAULT_AREA_M2 = 80;
+//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX. At least one. People
+//: were let in without limit: twenty in a café that seats eight, standing in one another
+//: (2026-11-14).
+//:
+//: What a shop holds and what of it is drawn are two numbers. The drawn shop floor is the strip
+//: behind the modelled front -- often one short wall of a large building -- and has places for
+//: ``shopSeen`` customers: a lane each, a shoulder's width apart, in as many rows as there is
+//: depth before the counter, so nobody stands in anybody. The first rule let in only as many as
+//: could be drawn, and a 327 m² convenience store held two: a quarter of the Marina's visits
+//: were turned away at the door. The rest of those a shop holds are further in, among the
+//: aisles, and not drawn (as the staff beyond the counter's lanes are in the back).
+export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 40, SHOP_LANE_M = 0.6, SHOP_ROW_M = 0.9, SHOP_ROW_GAP_M = 0.45, SHOP_DEFAULT_AREA_M2 = 80;
 export const SHOP_M2_PER_PERSON = { food: 1.4, retail: 5.6, service: 9.3 };
 const SHOP_SERVICE = new Set(["bank", "barber", "salon", "beauty", "nail_salon", "spa", "clinic", "dentist", "optician", "vet", "pet_grooming",
   "laundry", "dry_cleaner", "staffing", "print_ship", "law_office", "gym"]);
@@ -1452,7 +1459,18 @@ export function shopCapacity(place) {
   // A place of several shops: the roomiest kind's load (a deli and café counts as the café).
   const per = Math.min(...(place.shops?.length ? place.shops : ["shop"]).map((k) => SHOP_M2_PER_PERSON[shopGroup(k)]));
   const byFloor = Math.floor((area * SHOP_FLOOR_SHARE) / per);
-  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor, shopLanes(place.inside)));
+  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor));
+}
+//: The rows of customers the drawn floor has depth for, between the door and the counter.
+export function shopRows(inside) {
+  if (!inside) return 1;
+  const L = counterLine(inside);
+  return Math.max(1, Math.floor((L.front + 0.4 - 0.6) / SHOP_ROW_M));
+}
+//: How many of a shop's customers are drawn: a place each on the floor behind its front.
+export function shopSeen(place) {
+  if (!place?.inside) return SHOP_CAP_MAX;
+  return Math.min(shopCapacity(place), shopLanes(place.inside) * shopRows(place.inside));
 }
 //: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
 //: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
@@ -1468,6 +1486,11 @@ export function indoorSpot(p, a, place, t, lane = null) {
   if (!staff && !customer) return null;
   const n = lane ? Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1) : 0;
   const laneAt = lane ? (n > 1 ? -L.width + ((lane.k % n) * (2 * L.width)) / (n - 1) : 0) : null;
+  // A customer's row: with depth for more than one, each keeps to a band of it (the first by
+  // the window, the last at the counter), a step clear of the next.
+  const rows = lane && customer ? shopRows(I) : 1, row = rows > 1 ? Math.floor(lane.k / n) % rows : 0;
+  const lo = 0.6, hi = L.front + 0.4, bandH = (hi - lo) / rows;
+  const inRow = (deep) => (rows > 1 ? lo + row * bandH + Math.max(0, Math.min(1, (deep - lo) / (hi - lo))) * (bandH - SHOP_ROW_GAP_M) : deep);
   const spot = (k) => {
     const r = rng(p.id, t.day, k);
     const along = () => (laneAt !== null ? laneAt + (r() - 0.5) * 0.12 : (r() - 0.5) * 2 * L.width);
@@ -1483,7 +1506,8 @@ export function indoorSpot(p, a, place, t, lane = null) {
     if (a.kind === "errand" && r() < BROWSE_SHARE) return [(r() - 0.5) * 2 * L.width, 0.6 + r() * Math.max(0.2, L.counter - 1.1)];
     return a.kind === "errand" ? [(r() - 0.5) * 2 * L.width, L.front + r() * 0.4] : [(r() - 0.5) * 2 * L.width, 0.7 + r() * Math.max(0.2, L.front - 0.6)];
   };
-  const [a0, d0] = spot(slot - 1), [a1, d1] = spot(slot);
+  const [a0, e0] = spot(slot - 1), [a1, e1] = spot(slot);
+  const d0 = staff ? e0 : inRow(e0), d1 = staff ? e1 : inRow(e1);
   const f = Math.min(1, (sec - slot * 18) / 3.5);
   const along = a0 + (a1 - a0) * f, deep = d0 + (d1 - d0) * f;
   const moving = f < 1 && Math.hypot(a1 - a0, d1 - d0) > 0.2;

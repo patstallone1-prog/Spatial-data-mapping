@@ -568,3 +568,21 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
 - Test town, wall check off: 21,275 of 140,008 walker points inside a building with the fixed
   line, 290 with the fitted one (32 along a block; the rest at doors). `keepOutside` stays as
   the guard. Not re-measured on the real Marina.
+
+## 2026-11-14: shops hold what they have room for
+
+- **Cause of the give-ups.** A shop held only as many as its drawn front had lanes for: a
+  327 m² convenience store two, a 140 m² grocery three. And shops were looked at evenly
+  whatever their size.
+- `shopCapacity` is the floor's alone (building-code loads, at most 40); `shopSeen` is how many
+  are drawn (lanes by rows on the floor behind the front). The rest are further in and not
+  drawn. `roomIn` fills the drawn places first.
+- `routines.mjs` looks at a shop as often as it has room (`drawWeights`).
+- **Real Marina, one weekday (2,492 places, 276 shops, 12,028 people; a node run on the page's
+  own district data):** gave up 26.3% -> 4.1% of 7,193 visits; nobody drawn in a shop within
+  0.4 m of another (390,717 pairs); 20% of those inside are further in. What is left is three
+  or four buildings of several tenants between 17:00 and 19:00.
+- Same run, wall check off: walker points inside a building 6.24% with the pavement's line
+  fixed, 2.25% with the line fitted to the fronts (the test town: 15% -> 0.2%).
+- Still open: 51 shops nobody is sent to (hotels, plain "shop", gyms, spas): no task asks for
+  their kinds.
