@@ -30,6 +30,42 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
   taken. The car's edge stop uses the same words. The walker's edge hint is in module 23 and has
   not been changed yet.
 
+## Since then (2026-11-14, later): advertising in the street, bicycles locked to racks
+
+See [docs/43-ad-media-bike-racks.md](../../../docs/43-ad-media-bike-racks.md).
+
+* **More advertising:**
+  * SF Planning's permitted general advertising signs are now in the world, on roofs, on walls
+    or on poles.
+  * Bus shelters carry a two-faced light box.
+  * Mapped columns and poster boxes are drawn.
+  * All of them use the three billboard pictures, fitted to each shape, and they light up at
+    night.
+  * Verified headless in the Marina and the Mission.
+* **Bicycle racks from DataSF** stand along the kerb, or in corrals in the parking lane.
+  * Riders out on an errand lock their bicycles to the nearest free place within 60 m, drawn
+    with a U-lock.
+  * Tested (`tests/city_bike_racks.test.mjs`); verified headless in the Marina.
+
+## Since then (2026-11-14): the game clock, playable night, the junction at Fillmore and Bay
+
+See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
+
+* **One game clock** (`docs/city/clock.mjs`, `rules.json` `clock`): a day in 72 real minutes,
+  48 of daylight and 24 of night, the sun on its real path for the game's date. It drives the
+  sky, the clock shown, shop hours, shifts and pay, rent, the NPCs' days, deadlines and the
+  timetable's hour; people, cars and buses move at real speed. Tested
+  (`tests/city_clock.test.mjs`); verified headless.
+* **The compass is a reading, not a control.** Clicking it no longer opens the sun dial; the time
+  cannot be changed in the game.
+* **Night is playable:** a blue night sky with real stars and the moon, moonlight and a raised
+  blue ambient, warm lit windows in the houses, a rim of light on the walker and the NPCs.
+  Verified headless.
+* **Fillmore and Bay:** imagery-inferred paving in the road (the slip lane's mouth) is asphalt
+  again (`tools/inferred_roadway_to_asphalt.py`, run over the corridor and four regions); raised
+  islands are stood on at their top; a bus shelter is placed only where its whole roof clears the
+  buildings (or the stop has a bench).
+
 ## Since then (PR after #177): Enter for car and bus, waits, witnesses, garages, NPCs about
 
 * **Keys:** C is gone. Enter is in and out of everything (your car, the bus at the stop and its
@@ -454,8 +490,10 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
   * people fleeing or calling the police when they see vandalism (they are only counted);
   * greeting a customer;
   * serving the player (the shopkeeper doesn't hand over the coffee).
-* **Bodies.** NPCs are boxes with swinging limbs. Missing: real models and animation
-  (sitting, carrying, working the till).
+* **Bodies.** NPCs are low-poly human shapes (lathe-turned torso, tapered limbs, hands, neck,
+  nose, shoes) dressed per person: trousers, shorts or a skirt, long or short sleeves, shoe
+  colours, hair short, to the collar or long, eight skin tones (docs/41). Missing: rigged models
+  and animation beyond the walk and the ride (sitting, carrying, working the till), faces.
 * **Indoors.** People simply vanish at home, except inside the shop you are in.
 * **Schedules.** They don't vary by day of the week, holidays or weather.
 * **Families and relationships.** Missing: households, children going to school, friends,
@@ -511,3 +549,11 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
 * Tooltips on the action bar for touch.
 * A history of notices (each disappears after 7 s).
 * Map pins for the task, the errand, your car, your home and listed homes.
+
+## 2026-11-14: tasks card
+
+- What recurs comes first under the line you are headed to: the job (or "Find a job"), shifts,
+  and what your businesses and the court ask (`todoItems`, view.mjs).
+- Every placed line and every courier's shop and address says its cross streets
+  (`Streets.crossStreets`, `nameAt`, `labelAt`, `stepAt`): "2300 Chestnut Street at Scott St",
+  "the court at Bay St & Webster St".

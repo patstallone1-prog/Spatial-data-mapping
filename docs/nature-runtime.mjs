@@ -649,8 +649,12 @@ if(${mid?`vNatureRange<${NEAR0}.||vNatureRange>${FAR1}.`:`vNatureRange<${FAR0}.`
 if(vNatureRange>3500.&&gl_PointSize*min(1.,natureAspect*4.)*.5625<.75)gl_Position=vec4(2.,2.,2.,1.);
 #include <logdepthbuf_vertex>`);
     shader.uniforms.uCanopyAtlas={value:canopyTexture};
+    // These crowns are points and take no light: by night they are brought down to the moonlit
+    // blue the lit trees have, by the page's own night (module 02 NIGHT). Left as they were,
+    // every park stood bright green in the dark (2026-11-14).
+    shader.uniforms.uNatureNight=globalThis.__kerbsideNight?.night || {value:0};
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
-      '#include <common>\nvarying float vNatureRange;varying float vNatureAspect;varying float vNatureSpecies;uniform sampler2D uCanopyAtlas;')
+      '#include <common>\nvarying float vNatureRange;varying float vNatureAspect;varying float vNatureSpecies;uniform sampler2D uCanopyAtlas;uniform float uNatureNight;')
       .replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
 // Whole-landscape silhouettes remain visible in overview; geometry replaces
 // them only where a resident detailed vegetation batch actually exists.
@@ -666,8 +670,9 @@ if(treeU<0.||treeU>1.||treeV<0.||treeV>1.)discard;
 vec4 canopy=texture2D(uCanopyAtlas,(tile+vec2(treeU,treeV))/vec2(6.,3.));
 vec3 canopySRGB=canopy.rgb/max(canopy.a,.001);
 vec3 canopyLinear=mix(canopySRGB/12.92,pow((canopySRGB+.055)/1.055,vec3(2.4)),step(vec3(.04045),canopySRGB));
-diffuseColor*=vec4(canopyLinear,canopy.a);`);
-    };mat.customProgramCacheKey=()=>`nature-species-canopy-v3-${mid}`;return mat;
+diffuseColor*=vec4(canopyLinear,canopy.a);
+diffuseColor.rgb=mix(diffuseColor.rgb,dot(diffuseColor.rgb,vec3(.3,.55,.15))*vec3(.16,.22,.42),uNatureNight);`);
+    };mat.customProgramCacheKey=()=>`nature-species-canopy-v4-${mid}`;return mat;
   }
   const distantMaterial=pointMaterial(),middleMaterial=pointMaterial(true);
   function treePoints(P,S,K,A,mat){

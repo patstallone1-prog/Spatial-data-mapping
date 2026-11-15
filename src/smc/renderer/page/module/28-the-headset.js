@@ -980,7 +980,8 @@ window.kerbsideLoadState = () => ({ loaded: worldLoadedNow, waiting: worldLoaded
 pageIsReady();
 
 window.kerbside = {
-  setSkyTime: (date) => setSkyTime(date),
+  setSkyTime: (date) => environmentController?.setTime(date),
+  bikeRacks: () => cityBikeRacks,
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,
   TILES, tileStats, updateTileTree, selectTiles, tileScreenErrorPx, tilePriority, tileGroupRoot,
   tunnelFloorAt, walkerGroundAt, tunnelBores, terrainHeightAt, groundLiftAt, TERRAIN,

@@ -1,0 +1,4862 @@
+{
+ "schema": "kerbside.city_objects/1",
+ "basis": "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). Models are CC0 (Kenney, Poly Haven, Poly Pizza); sizes are the lab's proposed representative dimensions, and an item is drawn at its catalogue length_m (rules.json items).",
+ "lod": {
+  "near_px": 160,
+  "far_px": 48,
+  "cull_px": 5,
+  "hysteresis": 0.15,
+  "near_max_triangles": 3500,
+  "texture_px": 256
+ },
+ "credits": [
+  "Kenney (food-kit), CC0-1.0",
+  "Kenney (furniture-kit), CC0-1.0",
+  "Kenney (retro-urban-kit), CC0-1.0",
+  "Kenney (survival-kit), CC0-1.0",
+  "Poly Haven (textured-realistic), CC0-1.0",
+  "Poly Pizza (everyday), CC0-1.0"
+ ],
+ "assets": {
+  "k-food-apple": {
+   "file": "k-food-apple.glb",
+   "bytes": 19120,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.1361,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 136,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bacon": {
+   "file": "k-food-bacon.glb",
+   "bytes": 18304,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.035,
+    0.0081,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 40,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bag": {
+   "file": "k-food-bag.glb",
+   "bytes": 18556,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1101,
+    0.3,
+    0.206
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 46,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bag-flat": {
+   "file": "k-food-bag-flat.glb",
+   "bytes": 19284,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.0879,
+    0.2158
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 114,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-banana": {
+   "file": "k-food-banana.glb",
+   "bytes": 18988,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0437,
+    0.0622,
+    0.2
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 104,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bottle-oil": {
+   "file": "k-food-bottle-oil.glb",
+   "bytes": 19232,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0698,
+    0.31,
+    0.0698
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 96,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bowl": {
+   "file": "k-food-bowl.glb",
+   "bytes": 18780,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2338,
+    0.0996,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 84,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bowl-broth": {
+   "file": "k-food-bowl-broth.glb",
+   "bytes": 22104,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.245,
+    0.1352,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 210,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bowl-cereal": {
+   "file": "k-food-bowl-cereal.glb",
+   "bytes": 19352,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2137,
+    0.1784,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 120,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bowl-soup": {
+   "file": "k-food-bowl-soup.glb",
+   "bytes": 19636,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2338,
+    0.0996,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 132,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-bread": {
+   "file": "k-food-bread.glb",
+   "bytes": 18888,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.027,
+    0.2482
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-broccoli": {
+   "file": "k-food-broccoli.glb",
+   "bytes": 20880,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1246,
+    0.14,
+    0.1246
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 220,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-burger": {
+   "file": "k-food-burger.glb",
+   "bytes": 28496,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.1005,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 294,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cabbage": {
+   "file": "k-food-cabbage.glb",
+   "bytes": 20208,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1316,
+    0.1066,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 140,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cake": {
+   "file": "k-food-cake.glb",
+   "bytes": 53564,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0598,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 750,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 510,
+     "lod": 2
+    }
+   ]
+  },
+  "k-food-can-small": {
+   "file": "k-food-can-small.glb",
+   "bytes": 21124,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.16,
+    0.0859,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 154,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-candy-bar-wrapper": {
+   "file": "k-food-candy-bar-wrapper.glb",
+   "bytes": 18616,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.16,
+    0.0444,
+    0.064
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 48,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-carrot": {
+   "file": "k-food-carrot.glb",
+   "bytes": 19744,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0671,
+    0.14,
+    0.0671
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 148,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-carton": {
+   "file": "k-food-carton.glb",
+   "bytes": 19252,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0623,
+    0.16,
+    0.0623
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 94,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-carton-small": {
+   "file": "k-food-carton-small.glb",
+   "bytes": 19088,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0942,
+    0.16,
+    0.0942
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 74,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-celery-stick": {
+   "file": "k-food-celery-stick.glb",
+   "bytes": 18436,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0255,
+    0.3,
+    0.049
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 52,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cheese": {
+   "file": "k-food-cheese.glb",
+   "bytes": 40164,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0453,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 576,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-chinese": {
+   "file": "k-food-chinese.glb",
+   "bytes": 23332,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1121,
+    0.14,
+    0.1376
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 162,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-chocolate-wrapper": {
+   "file": "k-food-chocolate-wrapper.glb",
+   "bytes": 19536,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0311,
+    0.0967
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 118,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-chopstick": {
+   "file": "k-food-chopstick.glb",
+   "bytes": 18056,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.012,
+    0.012,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 12,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cocktail": {
+   "file": "k-food-cocktail.glb",
+   "bytes": 22600,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0721,
+    0.14,
+    0.1
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 144,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cookie": {
+   "file": "k-food-cookie.glb",
+   "bytes": 18700,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0317,
+    0.1213
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-croissant": {
+   "file": "k-food-croissant.glb",
+   "bytes": 19884,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1014,
+    0.0567,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 162,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cup-coffee": {
+   "file": "k-food-cup-coffee.glb",
+   "bytes": 19216,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1207,
+    0.0781,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 108,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-cup-tea": {
+   "file": "k-food-cup-tea.glb",
+   "bytes": 19628,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1298,
+    0.1095,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 144,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-dim-sum": {
+   "file": "k-food-dim-sum.glb",
+   "bytes": 18532,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.0905,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 56,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-donut": {
+   "file": "k-food-donut.glb",
+   "bytes": 18784,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.044,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 108,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-egg": {
+   "file": "k-food-egg.glb",
+   "bytes": 18164,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0984,
+    0.14,
+    0.1136
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 44,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-egg-cooked": {
+   "file": "k-food-egg-cooked.glb",
+   "bytes": 18772,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0095,
+    0.1291
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 92,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-egg-half": {
+   "file": "k-food-egg-half.glb",
+   "bytes": 18660,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.1109,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 80,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-fish": {
+   "file": "k-food-fish.glb",
+   "bytes": 21132,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0446,
+    0.0727,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 233,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-frappe": {
+   "file": "k-food-frappe.glb",
+   "bytes": 21776,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0814,
+    0.16,
+    0.0814
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 320,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-fries": {
+   "file": "k-food-fries.glb",
+   "bytes": 30920,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0736,
+    0.16,
+    0.1067
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 564,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-glass-wine": {
+   "file": "k-food-glass-wine.glb",
+   "bytes": 20504,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1406,
+    0.31,
+    0.1221
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 232,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-ice-cream": {
+   "file": "k-food-ice-cream.glb",
+   "bytes": 20040,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0711,
+    0.14,
+    0.0821
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 80,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-ice-cream-cup": {
+   "file": "k-food-ice-cream-cup.glb",
+   "bytes": 18624,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1386,
+    0.1243,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-lemon-half": {
+   "file": "k-food-lemon-half.glb",
+   "bytes": 18756,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.0784,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-loaf": {
+   "file": "k-food-loaf.glb",
+   "bytes": 19024,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.2289,
+    0.1894
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-loaf-baguette": {
+   "file": "k-food-loaf-baguette.glb",
+   "bytes": 19472,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.0904,
+    0.0904
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 122,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-loaf-round": {
+   "file": "k-food-loaf-round.glb",
+   "bytes": 19432,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.114,
+    0.2
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-maki-salmon": {
+   "file": "k-food-maki-salmon.glb",
+   "bytes": 18424,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0817,
+    0.1213
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 56,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-maki-vegetable": {
+   "file": "k-food-maki-vegetable.glb",
+   "bytes": 18384,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0817,
+    0.1213
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 56,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-meat-cooked": {
+   "file": "k-food-meat-cooked.glb",
+   "bytes": 18996,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1164,
+    0.0157,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-meat-raw": {
+   "file": "k-food-meat-raw.glb",
+   "bytes": 18904,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1164,
+    0.0157,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 110,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-meat-ribs": {
+   "file": "k-food-meat-ribs.glb",
+   "bytes": 20216,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0157,
+    0.1002
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 164,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-mug": {
+   "file": "k-food-mug.glb",
+   "bytes": 20936,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.16,
+    0.1273,
+    0.1328
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 232,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-mushroom-half": {
+   "file": "k-food-mushroom-half.glb",
+   "bytes": 18872,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0606,
+    0.1352,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-onion": {
+   "file": "k-food-onion.glb",
+   "bytes": 18300,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1193,
+    0.14,
+    0.1378
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-pancakes": {
+   "file": "k-food-pancakes.glb",
+   "bytes": 26152,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2333,
+    0.0652,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 512,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-paprika-slice": {
+   "file": "k-food-paprika-slice.glb",
+   "bytes": 19148,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0262,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 96,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-pizza": {
+   "file": "k-food-pizza.glb",
+   "bytes": 62028,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.34,
+    0.0176,
+    0.34
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1208,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 478,
+     "lod": 2
+    }
+   ]
+  },
+  "k-food-pizza-box": {
+   "file": "k-food-pizza-box.glb",
+   "bytes": 20456,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3364,
+    0.3149,
+    0.34
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 84,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-plate": {
+   "file": "k-food-plate.glb",
+   "bytes": 19404,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.0273,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 140,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-plate-broken": {
+   "file": "k-food-plate-broken.glb",
+   "bytes": 33872,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.0273,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 336,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-plate-deep": {
+   "file": "k-food-plate-deep.glb",
+   "bytes": 19292,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.0439,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 140,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-plate-dinner": {
+   "file": "k-food-plate-dinner.glb",
+   "bytes": 21780,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.067,
+    0.27
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 354,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-plate-rectangle": {
+   "file": "k-food-plate-rectangle.glb",
+   "bytes": 18916,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.0409,
+    0.226
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-popsicle-chocolate": {
+   "file": "k-food-popsicle-chocolate.glb",
+   "bytes": 19336,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0271,
+    0.14,
+    0.0571
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 132,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-pudding": {
+   "file": "k-food-pudding.glb",
+   "bytes": 18612,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.0969,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 56,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-salad": {
+   "file": "k-food-salad.glb",
+   "bytes": 20272,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1213,
+    0.066,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 170,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-sandwich": {
+   "file": "k-food-sandwich.glb",
+   "bytes": 22468,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1395,
+    0.0542,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 120,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-skewer": {
+   "file": "k-food-skewer.glb",
+   "bytes": 23660,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0221,
+    0.0255
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 116,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-soda": {
+   "file": "k-food-soda.glb",
+   "bytes": 19836,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.094,
+    0.16,
+    0.094
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 188,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-soda-bottle": {
+   "file": "k-food-soda-bottle.glb",
+   "bytes": 19096,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0964,
+    0.31,
+    0.0835
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 100,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-soda-can": {
+   "file": "k-food-soda-can.glb",
+   "bytes": 19780,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1025,
+    0.16,
+    0.1025
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 164,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-soda-can-crushed": {
+   "file": "k-food-soda-can-crushed.glb",
+   "bytes": 20476,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.16,
+    0.1169,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 212,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-soda-glass": {
+   "file": "k-food-soda-glass.glb",
+   "bytes": 22436,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1013,
+    0.16,
+    0.1148
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 124,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-styrofoam": {
+   "file": "k-food-styrofoam.glb",
+   "bytes": 21236,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.27,
+    0.1762,
+    0.1627
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 152,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-sub": {
+   "file": "k-food-sub.glb",
+   "bytes": 28152,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1255,
+    0.0988,
+    0.3
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 422,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-sushi-egg": {
+   "file": "k-food-sushi-egg.glb",
+   "bytes": 18700,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0947,
+    0.0636,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 78,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-sushi-salmon": {
+   "file": "k-food-sushi-salmon.glb",
+   "bytes": 19000,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0752,
+    0.0622,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 96,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-taco": {
+   "file": "k-food-taco.glb",
+   "bytes": 20776,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0862,
+    0.0375
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 174,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-tomato": {
+   "file": "k-food-tomato.glb",
+   "bytes": 19236,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.1177,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 132,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-tomato-slice": {
+   "file": "k-food-tomato-slice.glb",
+   "bytes": 19320,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.14,
+    0.0233,
+    0.14
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 140,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-turkey": {
+   "file": "k-food-turkey.glb",
+   "bytes": 26152,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.34,
+    0.1371,
+    0.247
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 368,
+     "lod": 0
+    }
+   ]
+  },
+  "k-food-wine-red": {
+   "file": "k-food-wine-red.glb",
+   "bytes": 19328,
+   "provider": "Kenney",
+   "pack": "food-kit",
+   "source": "https://kenney.nl/assets/food-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0846,
+    0.31,
+    0.0733
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 132,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-bear": {
+   "file": "k-furniture-bear.glb",
+   "bytes": 6452,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3031,
+    0.35,
+    0.1925
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 134,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-bedDouble": {
+   "file": "k-furniture-bedDouble.glb",
+   "bytes": 10656,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.7845,
+    0.6999,
+    2.1
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 214,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-books": {
+   "file": "k-furniture-books.glb",
+   "bytes": 6112,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.35,
+    0.2417,
+    0.2198
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 62,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-cardboardBoxClosed": {
+   "file": "k-furniture-cardboardBoxClosed.glb",
+   "bytes": 3852,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.5294,
+    0.7,
+    0.5294
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 60,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-cardboardBoxOpen": {
+   "file": "k-furniture-cardboardBoxOpen.glb",
+   "bytes": 3872,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.7,
+    0.5289,
+    0.4
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 60,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-chair": {
+   "file": "k-furniture-chair.glb",
+   "bytes": 3824,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.383,
+    0.9,
+    0.383
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 170,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-computerKeyboard": {
+   "file": "k-furniture-computerKeyboard.glb",
+   "bytes": 3588,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.42,
+    0.041,
+    0.1759
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 32,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-computerMouse": {
+   "file": "k-furniture-computerMouse.glb",
+   "bytes": 2876,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0701,
+    0.0332,
+    0.12
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 71,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-kitchenFridge": {
+   "file": "k-furniture-kitchenFridge.glb",
+   "bytes": 11188,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.8412,
+    1.8,
+    0.5712
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 250,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-kitchenStove": {
+   "file": "k-furniture-kitchenStove.glb",
+   "bytes": 16904,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.86,
+    0.9,
+    0.9
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 830,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-lampRoundTable": {
+   "file": "k-furniture-lampRoundTable.glb",
+   "bytes": 4196,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2661,
+    0.55,
+    0.3073
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 76,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-lampSquareCeiling": {
+   "file": "k-furniture-lampSquareCeiling.glb",
+   "bytes": 3928,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.287,
+    0.55,
+    0.287
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 60,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-lampWall": {
+   "file": "k-furniture-lampWall.glb",
+   "bytes": 3800,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.55,
+    0.2252,
+    0.3648
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 42,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-loungeSofa": {
+   "file": "k-furniture-loungeSofa.glb",
+   "bytes": 4824,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    2,
+    0.9388,
+    0.8368
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 128,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-pillow": {
+   "file": "k-furniture-pillow.glb",
+   "bytes": 3048,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.35,
+    0.3381,
+    0.1346
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 50,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-pottedPlant": {
+   "file": "k-furniture-pottedPlant.glb",
+   "bytes": 5532,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1945,
+    0.6,
+    0.2215
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 60,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-rugRectangle": {
+   "file": "k-furniture-rugRectangle.glb",
+   "bytes": 3452,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.8,
+    0.0114,
+    1.0548
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 28,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-sideTable": {
+   "file": "k-furniture-sideTable.glb",
+   "bytes": 4440,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.4,
+    1.0069,
+    0.5763
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 118,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-table": {
+   "file": "k-furniture-table.glb",
+   "bytes": 3300,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.4,
+    0.5435,
+    0.7444
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 120,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-tableRound": {
+   "file": "k-furniture-tableRound.glb",
+   "bytes": 3128,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.2125,
+    0.6418,
+    1.4
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 80,
+     "lod": 0
+    }
+   ]
+  },
+  "k-furniture-washerDryerStacked": {
+   "file": "k-furniture-washerDryerStacked.glb",
+   "bytes": 17676,
+   "provider": "Kenney",
+   "pack": "furniture-kit",
+   "source": "https://kenney.nl/assets/furniture-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.7467,
+    1.8,
+    0.7468
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 992,
+     "lod": 0
+    }
+   ]
+  },
+  "k-retro-urban-detail-bench": {
+   "file": "k-retro-urban-detail-bench.glb",
+   "bytes": 19564,
+   "provider": "Kenney",
+   "pack": "retro-urban-kit",
+   "source": "https://kenney.nl/assets/retro-urban-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.65,
+    1.1178,
+    0.8801
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 84,
+     "lod": 0
+    }
+   ]
+  },
+  "k-retro-urban-pallet": {
+   "file": "k-retro-urban-pallet.glb",
+   "bytes": 11232,
+   "provider": "Kenney",
+   "pack": "retro-urban-kit",
+   "source": "https://kenney.nl/assets/retro-urban-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    1.2,
+    0.18,
+    1.2
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 84,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-bucket": {
+   "file": "k-survival-bucket.glb",
+   "bytes": 14600,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2402,
+    0.32,
+    0.2402
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 68,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-resource-planks": {
+   "file": "k-survival-resource-planks.glb",
+   "bytes": 15248,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.7149,
+    0.1794,
+    1.2
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 72,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-rock-a": {
+   "file": "k-survival-rock-a.glb",
+   "bytes": 15760,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3573,
+    0.2527,
+    0.4
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 104,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-rock-b": {
+   "file": "k-survival-rock-b.glb",
+   "bytes": 16604,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.4,
+    0.2006,
+    0.3473
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 156,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-tool-axe": {
+   "file": "k-survival-tool-axe.glb",
+   "bytes": 15108,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.313,
+    0.7,
+    0.0846
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 84,
+     "lod": 0
+    }
+   ]
+  },
+  "k-survival-tree-log": {
+   "file": "k-survival-tree-log.glb",
+   "bytes": 14784,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.6238,
+    0.6928,
+    2.5
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 88,
+     "lod": 0
+    }
+   ]
+  },
+  "ph-Drill_01": {
+   "file": "ph-Drill_01.glb",
+   "bytes": 85908,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/Drill_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.247,
+    0.25,
+    0.0708
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2926,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-adjustable_wrench": {
+   "file": "ph-adjustable_wrench.glb",
+   "bytes": 93172,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/adjustable_wrench",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0669,
+    0.25,
+    0.0301
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1864,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 892,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-binder_notebook": {
+   "file": "ph-binder_notebook.glb",
+   "bytes": 81212,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/binder_notebook",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3,
+    0.0122,
+    0.1026
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1759,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 1236,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-bolt_cutters_01": {
+   "file": "ph-bolt_cutters_01.glb",
+   "bytes": 91968,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/bolt_cutters_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1224,
+    0.65,
+    0.0292
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 3410,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-cardboard_box_01": {
+   "file": "ph-cardboard_box_01.glb",
+   "bytes": 50596,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/cardboard_box_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3149,
+    0.2783,
+    0.42
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1800,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 498,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-cement_bag": {
+   "file": "ph-cement_bag.glb",
+   "bytes": 33628,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/cement_bag",
+   "license": "CC0-1.0",
+   "dims": [
+    0.3636,
+    0.1414,
+    0.55
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 844,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 500,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-cross_pein_hammer": {
+   "file": "ph-cross_pein_hammer.glb",
+   "bytes": 53696,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/cross_pein_hammer",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1089,
+    0.33,
+    0.0267
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2124,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 500,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-crowbar_01": {
+   "file": "ph-crowbar_01.glb",
+   "bytes": 59000,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/crowbar_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0437,
+    0.6,
+    0.1378
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2300,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-handsaw_wood": {
+   "file": "ph-handsaw_wood.glb",
+   "bytes": 99220,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/handsaw_wood",
+   "license": "CC0-1.0",
+   "dims": [
+    0.029,
+    0.1184,
+    0.45
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2548,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-medical_box": {
+   "file": "ph-medical_box.glb",
+   "bytes": 79696,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/medical_box",
+   "license": "CC0-1.0",
+   "dims": [
+    0.32,
+    0.0594,
+    0.2132
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1796,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 510,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-metal_toolbox": {
+   "file": "ph-metal_toolbox.glb",
+   "bytes": 77208,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/metal_toolbox",
+   "license": "CC0-1.0",
+   "dims": [
+    0.45,
+    0.3425,
+    0.3035
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2465,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-old_tyre": {
+   "file": "ph-old_tyre.glb",
+   "bytes": 80112,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/old_tyre",
+   "license": "CC0-1.0",
+   "dims": [
+    0.66,
+    0.66,
+    0.1815
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2880,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-painted_wooden_bench": {
+   "file": "ph-painted_wooden_bench.glb",
+   "bytes": 29128,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/painted_wooden_bench",
+   "license": "CC0-1.0",
+   "dims": [
+    1.65,
+    1.2596,
+    0.7032
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 630,
+     "lod": 0
+    }
+   ]
+  },
+  "ph-plastic_broom": {
+   "file": "ph-plastic_broom.glb",
+   "bytes": 81096,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/plastic_broom",
+   "license": "CC0-1.0",
+   "dims": [
+    0.4514,
+    1.3,
+    0.6145
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1799,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 498,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-screwdriver": {
+   "file": "ph-screwdriver.glb",
+   "bytes": 69088,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/screwdriver",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0285,
+    0.22,
+    0.0281
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 3412,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-sledgehammer_01": {
+   "file": "ph-sledgehammer_01.glb",
+   "bytes": 66660,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/sledgehammer_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.1866,
+    0.9,
+    0.081
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2596,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 1800,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-small_plastic_torch": {
+   "file": "ph-small_plastic_torch.glb",
+   "bytes": 70252,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/small_plastic_torch",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0787,
+    0.0436,
+    0.18
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1816,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 524,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-trashbag": {
+   "file": "ph-trashbag.glb",
+   "bytes": 62780,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/trashbag",
+   "license": "CC0-1.0",
+   "dims": [
+    0.6429,
+    0.7,
+    0.5635
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1800,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 500,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-vintage_suitcase": {
+   "file": "ph-vintage_suitcase.glb",
+   "bytes": 70724,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/vintage_suitcase",
+   "license": "CC0-1.0",
+   "dims": [
+    0.65,
+    0.2299,
+    0.0805
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1904,
+     "lod": 1
+    }
+   ]
+  },
+  "ph-wooden_crate_01": {
+   "file": "ph-wooden_crate_01.glb",
+   "bytes": 74000,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/wooden_crate_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.6,
+    0.2526,
+    0.2961
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1866,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 570,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-wooden_ladder": {
+   "file": "ph-wooden_ladder.glb",
+   "bytes": 90408,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/wooden_ladder",
+   "license": "CC0-1.0",
+   "dims": [
+    1.2933,
+    1.8,
+    0.6742
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1848,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 1450,
+     "lod": 2
+    }
+   ]
+  },
+  "ph-wooden_picnic_table": {
+   "file": "ph-wooden_picnic_table.glb",
+   "bytes": 83468,
+   "provider": "Poly Haven",
+   "pack": "textured-realistic",
+   "source": "https://polyhaven.com/a/wooden_picnic_table",
+   "license": "CC0-1.0",
+   "dims": [
+    1.3317,
+    0.4439,
+    1.8
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1826,
+     "lod": 1
+    },
+    {
+     "node": "far",
+     "triangles": 811,
+     "lod": 2
+    }
+   ]
+  },
+  "pp-backpack": {
+   "file": "pp-backpack.glb",
+   "bytes": 38012,
+   "provider": "Poly Pizza",
+   "pack": "everyday",
+   "source": "https://poly.pizza/m/2g9Jm7kvIU",
+   "license": "CC0-1.0",
+   "dims": [
+    0.45,
+    0.4199,
+    0.235
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1748,
+     "lod": 0
+    }
+   ]
+  },
+  "pp-smartphone": {
+   "file": "pp-smartphone.glb",
+   "bytes": 6608,
+   "provider": "Poly Pizza",
+   "pack": "everyday",
+   "source": "https://poly.pizza/m/4DRZmTs3jq",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0725,
+    0.0104,
+    0.16
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 182,
+     "lod": 0
+    }
+   ]
+  }
+ },
+ "items": {
+  "coffee": {
+   "status": "generic_match",
+   "asset": "k-food-cup-coffee",
+   "name": "Coffee"
+  },
+  "tea": {
+   "status": "generic_match",
+   "asset": "k-food-cup-tea",
+   "name": "Tea"
+  },
+  "juice": {
+   "status": "representative",
+   "asset": "k-food-soda-glass",
+   "name": "Fresh juice"
+  },
+  "pastry": {
+   "status": "generic_match",
+   "asset": "k-food-croissant",
+   "name": "Pastry"
+  },
+  "sandwich": {
+   "status": "generic_match",
+   "asset": "k-food-sandwich",
+   "name": "Sandwich"
+  },
+  "cake": {
+   "status": "generic_match",
+   "asset": "k-food-cake",
+   "name": "Whole cake"
+  },
+  "meal": {
+   "status": "gap",
+   "asset": null,
+   "name": "Daily special"
+  },
+  "soup": {
+   "status": "generic_match",
+   "asset": "k-food-bowl-soup",
+   "name": "Soup"
+  },
+  "salad": {
+   "status": "generic_match",
+   "asset": "k-food-salad",
+   "name": "Salad"
+  },
+  "dessert": {
+   "status": "generic_match",
+   "asset": "k-food-pudding",
+   "name": "Dessert"
+  },
+  "pizza_slice": {
+   "status": "recipe_required",
+   "asset": null,
+   "name": "Pizza slice"
+  },
+  "pizza": {
+   "status": "generic_match",
+   "asset": "k-food-pizza",
+   "name": "Whole pizza"
+  },
+  "beer": {
+   "status": "label_required",
+   "asset": "k-food-soda-can",
+   "name": "Beer",
+   "tint": "#b9852c"
+  },
+  "cocktail": {
+   "status": "generic_match",
+   "asset": "k-food-cocktail",
+   "name": "Cocktail"
+  },
+  "bar_snacks": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl",
+     "len": 0.12
+    },
+    "on": 0.6,
+    "parts": [
+     {
+      "asset": "k-food-cookie",
+      "len": 0.04,
+      "y": 0.02
+     },
+     {
+      "asset": "k-food-cookie",
+      "len": 0.04,
+      "x": 0.02,
+      "y": 0.025,
+      "yaw": 1
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Bar snacks"
+  },
+  "soda": {
+   "status": "generic_match",
+   "asset": "k-food-soda-can",
+   "name": "Soda"
+  },
+  "water": {
+   "status": "representative",
+   "asset": "k-food-soda-bottle",
+   "name": "Bottle of water"
+  },
+  "energy_drink": {
+   "status": "label_required",
+   "asset": "k-food-soda",
+   "name": "Energy drink",
+   "tint": "#3fb34f"
+  },
+  "snack_bar": {
+   "status": "generic_match",
+   "asset": "k-food-candy-bar-wrapper",
+   "name": "Snack bar"
+  },
+  "bread": {
+   "status": "generic_match",
+   "asset": "k-food-loaf",
+   "name": "Loaf of bread"
+  },
+  "apple": {
+   "status": "generic_match",
+   "asset": "k-food-apple",
+   "name": "Apples"
+  },
+  "milk": {
+   "status": "label_required",
+   "asset": "k-food-carton",
+   "name": "Milk",
+   "tint": "#e9eef2"
+  },
+  "groceries": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bag",
+     "len": 0.36
+    },
+    "on": 0.75,
+    "parts": [
+     {
+      "asset": "k-food-loaf-baguette",
+      "len": 0.3,
+      "x": -0.04,
+      "y": 0.05,
+      "yaw": 0.2,
+      "tilt": 0.5
+     },
+     {
+      "asset": "k-food-celery-stick",
+      "len": 0.2,
+      "x": 0.05,
+      "y": 0.02
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Bag of groceries"
+  },
+  "protein_shake": {
+   "status": "label_required",
+   "asset": "k-food-soda",
+   "name": "Protein shake",
+   "tint": "#d8c9a6"
+  },
+  "bandage": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Bandages",
+   "tint": "#d9534f"
+  },
+  "pain_relief": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Pain relief",
+   "tint": "#3b6fb6"
+  },
+  "cold_medicine": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Cold medicine",
+   "tint": "#e08b2b"
+  },
+  "vitamins": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Vitamins",
+   "tint": "#f2c94c"
+  },
+  "first_aid_kit": {
+   "status": "representative",
+   "asset": "ph-medical_box",
+   "name": "First aid kit"
+  },
+  "prescription": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Prescription medicine",
+   "tint": "#f4f4f0"
+  },
+  "doctor_visit": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Doctor's visit"
+  },
+  "checkup": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Check-up"
+  },
+  "day_pass": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Gym workout (day pass)"
+  },
+  "training": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Personal training session"
+  },
+  "yoga_class": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Yoga class"
+  },
+  "haircut": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Haircut"
+  },
+  "wash_and_dry": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Wash and dry"
+  },
+  "hotel_night": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Night's stay"
+  },
+  "hammer": {
+   "status": "generic_match",
+   "asset": "ph-cross_pein_hammer",
+   "name": "Hammer"
+  },
+  "sledgehammer": {
+   "status": "generic_match",
+   "asset": "ph-sledgehammer_01",
+   "name": "Sledgehammer"
+  },
+  "crowbar": {
+   "status": "generic_match",
+   "asset": "ph-crowbar_01",
+   "name": "Crowbar"
+  },
+  "saw": {
+   "status": "generic_match",
+   "asset": "ph-handsaw_wood",
+   "name": "Hand saw"
+  },
+  "axe": {
+   "status": "generic_match",
+   "asset": "k-survival-tool-axe",
+   "name": "Axe"
+  },
+  "bolt_cutters": {
+   "status": "generic_match",
+   "asset": "ph-bolt_cutters_01",
+   "name": "Bolt cutters"
+  },
+  "lumber": {
+   "status": "generic_match",
+   "asset": "k-survival-resource-planks",
+   "name": "Lumber"
+  },
+  "scrap_metal": {
+   "status": "composed",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "k-food-soda-can-crushed",
+      "len": 0.12,
+      "tint": "#8b949c"
+     },
+     {
+      "asset": "k-food-soda-can-crushed",
+      "len": 0.1,
+      "x": 0.08,
+      "z": 0.03,
+      "yaw": 2,
+      "tint": "#6f767c"
+     },
+     {
+      "asset": "k-food-soda-can-crushed",
+      "len": 0.11,
+      "x": -0.06,
+      "z": 0.06,
+      "yaw": 4,
+      "tint": "#9aa1a6"
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Scrap metal"
+  },
+  "glass_shards": {
+   "status": "representative",
+   "asset": "k-food-plate-broken",
+   "name": "Glass shards",
+   "tint": "#cfe3ea",
+   "glass": true
+  },
+  "screwdriver": {
+   "status": "generic_match",
+   "asset": "ph-screwdriver",
+   "name": "Screwdriver set"
+  },
+  "wrench": {
+   "status": "generic_match",
+   "asset": "ph-adjustable_wrench",
+   "name": "Adjustable wrench"
+  },
+  "nails": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Box of nails",
+   "tint": "#8b949c"
+  },
+  "drill": {
+   "status": "generic_match",
+   "asset": "ph-Drill_01",
+   "name": "Cordless drill"
+  },
+  "tape_measure": {
+   "status": "gap",
+   "asset": null,
+   "name": "Tape measure"
+  },
+  "paint": {
+   "status": "label_required",
+   "asset": "k-food-can-small",
+   "name": "Can of paint",
+   "tint": "#6c8cbf"
+  },
+  "ladder": {
+   "status": "representative",
+   "asset": "ph-wooden_ladder",
+   "name": "Step ladder"
+  },
+  "work_gloves": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Work gloves"
+  },
+  "flashlight": {
+   "status": "generic_match",
+   "asset": "ph-small_plastic_torch",
+   "name": "Flashlight"
+  },
+  "toolbox": {
+   "status": "generic_match",
+   "asset": "ph-metal_toolbox",
+   "name": "Toolbox"
+  },
+  "motor_oil": {
+   "status": "label_required",
+   "asset": "k-food-bottle-oil",
+   "name": "Motor oil",
+   "tint": "#2d2d2d"
+  },
+  "t_shirt": {
+   "status": "gap",
+   "asset": null,
+   "name": "T-shirt"
+  },
+  "jeans": {
+   "status": "gap",
+   "asset": null,
+   "name": "Jeans"
+  },
+  "jacket": {
+   "status": "gap",
+   "asset": null,
+   "name": "Jacket"
+  },
+  "raincoat": {
+   "status": "gap",
+   "asset": null,
+   "name": "Raincoat"
+  },
+  "shoes": {
+   "status": "gap",
+   "asset": null,
+   "name": "Shoes"
+  },
+  "book": {
+   "status": "representative",
+   "asset": "k-furniture-books",
+   "name": "Book"
+  },
+  "street_map": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Street map"
+  },
+  "notebook": {
+   "status": "generic_match",
+   "asset": "ph-binder_notebook",
+   "name": "Notebook"
+  },
+  "bouquet": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bouquet"
+  },
+  "house_plant": {
+   "status": "generic_match",
+   "asset": "k-furniture-pottedPlant",
+   "name": "House plant"
+  },
+  "umbrella": {
+   "status": "gap",
+   "asset": null,
+   "name": "Umbrella"
+  },
+  "backpack": {
+   "status": "generic_match",
+   "asset": "pp-backpack",
+   "name": "Backpack"
+  },
+  "phone_charger": {
+   "status": "gap",
+   "asset": null,
+   "name": "Phone charger"
+  },
+  "candy_bar": {
+   "status": "generic_match",
+   "asset": "k-food-candy-bar-wrapper",
+   "name": "Candy bar"
+  },
+  "chips": {
+   "status": "label_required",
+   "asset": "k-food-bag-flat",
+   "name": "Bag of chips",
+   "tint": "#d64933"
+  },
+  "gum": {
+   "status": "label_required",
+   "asset": "k-food-chocolate-wrapper",
+   "name": "Pack of gum",
+   "tint": "#4ec3c9"
+  },
+  "ice_cream_bar": {
+   "status": "generic_match",
+   "asset": "k-food-popsicle-chocolate",
+   "name": "Ice cream bar"
+  },
+  "deli_coffee": {
+   "status": "generic_match",
+   "asset": "k-food-cup-coffee",
+   "name": "Cup of drip coffee"
+  },
+  "iced_tea": {
+   "status": "label_required",
+   "asset": "k-food-soda-bottle",
+   "name": "Bottle of iced tea",
+   "tint": "#9a5a24"
+  },
+  "sports_drink": {
+   "status": "label_required",
+   "asset": "k-food-soda",
+   "name": "Sports drink",
+   "tint": "#2a7de1"
+  },
+  "six_pack": {
+   "status": "composed",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": -0.068,
+      "z": -0.034
+     },
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": -0.068,
+      "z": 0.034
+     },
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": 0,
+      "z": -0.034
+     },
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": 0,
+      "z": 0.034
+     },
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": 0.068,
+      "z": -0.034
+     },
+     {
+      "asset": "k-food-soda-can",
+      "len": 0.123,
+      "x": 0.068,
+      "z": 0.034
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Six-pack of beer"
+  },
+  "wine_bottle": {
+   "status": "label_required",
+   "asset": "k-food-wine-red",
+   "name": "Bottle of wine",
+   "tint": "#5b1220"
+  },
+  "spirits": {
+   "status": "label_required",
+   "asset": "k-food-wine-red",
+   "name": "Bottle of spirits",
+   "tint": "#9a6a2a"
+  },
+  "bag_of_ice": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bag of ice"
+  },
+  "lighter": {
+   "status": "gap",
+   "asset": null,
+   "name": "Lighter"
+  },
+  "instant_noodles": {
+   "status": "representative",
+   "asset": "k-food-chinese",
+   "name": "Cup of instant noodles"
+  },
+  "eggs": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-furniture-cardboardBoxOpen",
+     "len": 0.3,
+     "squash": 0.25
+    },
+    "on": 0.35,
+    "parts": [
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.1175,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.1175,
+      "z": 0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.07050000000000001,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.07050000000000001,
+      "z": 0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.0235,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": -0.0235,
+      "z": 0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.0235,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.0235,
+      "z": 0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.07050000000000001,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.07050000000000001,
+      "z": 0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.1175,
+      "z": -0.024
+     },
+     {
+      "asset": "k-food-egg",
+      "len": 0.055,
+      "x": 0.1175,
+      "z": 0.024
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Dozen eggs"
+  },
+  "cheese": {
+   "status": "generic_match",
+   "asset": "k-food-cheese",
+   "name": "Block of cheese"
+  },
+  "bananas": {
+   "status": "generic_match",
+   "asset": "k-food-banana",
+   "name": "Bananas"
+  },
+  "vegetables": {
+   "status": "composed",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "k-food-broccoli",
+      "len": 0.14,
+      "x": -0.05
+     },
+     {
+      "asset": "k-food-carrot",
+      "len": 0.17,
+      "x": 0.05,
+      "z": 0.03,
+      "yaw": 1.4,
+      "lie": true
+     },
+     {
+      "asset": "k-food-tomato",
+      "len": 0.07,
+      "x": 0.04,
+      "z": -0.05
+     },
+     {
+      "asset": "k-food-onion",
+      "len": 0.07,
+      "x": -0.02,
+      "z": 0.06
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Fresh vegetables"
+  },
+  "chicken_breast": {
+   "status": "representative",
+   "asset": "k-food-meat-raw",
+   "name": "Chicken breasts"
+  },
+  "fresh_fish": {
+   "status": "generic_match",
+   "asset": "k-food-fish",
+   "name": "Fresh fish"
+  },
+  "cereal": {
+   "status": "label_required",
+   "asset": "k-food-carton",
+   "name": "Box of cereal",
+   "tint": "#e9a43a"
+  },
+  "coffee_beans": {
+   "status": "label_required",
+   "asset": "k-food-bag-flat",
+   "name": "Bag of coffee beans",
+   "tint": "#5a3b26"
+  },
+  "dry_pasta": {
+   "status": "label_required",
+   "asset": "k-food-bag-flat",
+   "name": "Pasta and sauce",
+   "tint": "#e6c56b"
+  },
+  "frozen_pizza": {
+   "status": "label_required",
+   "asset": "k-food-pizza-box",
+   "name": "Frozen pizza",
+   "tint": "#3b6fb6"
+  },
+  "yogurt": {
+   "status": "label_required",
+   "asset": "k-food-ice-cream-cup",
+   "name": "Yogurt",
+   "tint": "#f1f1f1"
+  },
+  "burger_fries": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-burger",
+      "len": 0.11,
+      "x": -0.045
+     },
+     {
+      "asset": "k-food-fries",
+      "len": 0.1,
+      "x": 0.06,
+      "z": 0.02
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Burger and fries"
+  },
+  "roast_chicken": {
+   "status": "representative",
+   "asset": "k-food-turkey",
+   "name": "Roast chicken plate"
+  },
+  "steak_frites": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-meat-cooked",
+      "len": 0.14,
+      "x": -0.04
+     },
+     {
+      "asset": "k-food-fries",
+      "len": 0.1,
+      "x": 0.07
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Steak frites"
+  },
+  "pasta_dish": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-deep",
+     "len": 0.24
+    },
+    "on": 0.3,
+    "parts": [
+     {
+      "asset": "k-food-bowl-cereal",
+      "len": 0.13,
+      "tint": "#e8c37a"
+     },
+     {
+      "asset": "k-food-tomato-slice",
+      "len": 0.03,
+      "x": 0.02,
+      "y": 0.03
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Plate of pasta"
+  },
+  "risotto": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-deep",
+     "len": 0.24
+    },
+    "on": 0.3,
+    "parts": [
+     {
+      "asset": "k-food-bowl-cereal",
+      "len": 0.13,
+      "tint": "#efe4c4"
+     },
+     {
+      "asset": "k-food-mushroom-half",
+      "len": 0.03,
+      "x": 0.02,
+      "y": 0.03
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Risotto"
+  },
+  "tacos": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-rectangle",
+     "len": 0.28
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-taco",
+      "len": 0.1,
+      "x": -0.08
+     },
+     {
+      "asset": "k-food-taco",
+      "len": 0.1,
+      "x": 0
+     },
+     {
+      "asset": "k-food-taco",
+      "len": 0.1,
+      "x": 0.08
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Three tacos"
+  },
+  "burrito": {
+   "status": "gap",
+   "asset": null,
+   "name": "Burrito"
+  },
+  "quesadilla": {
+   "status": "gap",
+   "asset": null,
+   "name": "Quesadilla"
+  },
+  "ramen": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-broth",
+     "len": 0.16
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-egg-half",
+      "len": 0.04,
+      "x": 0.02
+     },
+     {
+      "asset": "k-food-chopstick",
+      "len": 0.2,
+      "z": 0.05,
+      "y": 0.04,
+      "yaw": 0.2
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Bowl of ramen"
+  },
+  "sushi_set": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-rectangle",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-maki-salmon",
+      "len": 0.035,
+      "x": -0.09
+     },
+     {
+      "asset": "k-food-maki-salmon",
+      "len": 0.035,
+      "x": -0.05
+     },
+     {
+      "asset": "k-food-maki-vegetable",
+      "len": 0.035,
+      "x": -0.01
+     },
+     {
+      "asset": "k-food-sushi-salmon",
+      "len": 0.05,
+      "x": 0.04
+     },
+     {
+      "asset": "k-food-sushi-egg",
+      "len": 0.05,
+      "x": 0.09
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Sushi set"
+  },
+  "teriyaki": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl",
+     "len": 0.15
+    },
+    "on": 0.6,
+    "parts": [
+     {
+      "asset": "k-food-meat-cooked",
+      "len": 0.08,
+      "y": 0.02,
+      "tint": "#7a3d16"
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Teriyaki bowl"
+  },
+  "dumplings": {
+   "status": "generic_match",
+   "asset": "k-food-dim-sum",
+   "name": "Dumplings"
+  },
+  "fried_rice": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-cereal",
+     "len": 0.15
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-egg-half",
+      "len": 0.035,
+      "x": 0.02,
+      "y": 0.02
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Fried rice"
+  },
+  "chow_mein": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-broth",
+     "len": 0.16
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-chopstick",
+      "len": 0.2,
+      "z": 0.05,
+      "y": 0.04,
+      "yaw": 0.2
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Chow mein"
+  },
+  "kung_pao": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl",
+     "len": 0.15
+    },
+    "on": 0.6,
+    "parts": [
+     {
+      "asset": "k-food-paprika-slice",
+      "len": 0.04,
+      "x": -0.02,
+      "y": 0.03
+     },
+     {
+      "asset": "k-food-meat-cooked",
+      "len": 0.06,
+      "x": 0.02,
+      "y": 0.02,
+      "tint": "#a24a1c"
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Kung pao chicken"
+  },
+  "pad_thai": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.24
+    },
+    "on": 0.3,
+    "parts": [
+     {
+      "asset": "k-food-bowl-cereal",
+      "len": 0.12,
+      "tint": "#e0a95a"
+     },
+     {
+      "asset": "k-food-lemon-half",
+      "len": 0.04,
+      "x": 0.08
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Pad thai"
+  },
+  "green_curry": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-soup",
+     "len": 0.15
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-paprika-slice",
+      "len": 0.035,
+      "x": 0.02,
+      "y": 0.03,
+      "tint": "#4e9a3a"
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Green curry and rice"
+  },
+  "pho": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-broth",
+     "len": 0.17
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-meat-cooked",
+      "len": 0.06,
+      "x": -0.02
+     },
+     {
+      "asset": "k-food-chopstick",
+      "len": 0.2,
+      "z": 0.05,
+      "y": 0.04,
+      "yaw": 0.2
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Bowl of pho"
+  },
+  "banh_mi": {
+   "status": "representative",
+   "asset": "k-food-sub",
+   "name": "Banh mi"
+  },
+  "tikka_masala": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl-soup",
+     "len": 0.15
+    },
+    "on": 0.7,
+    "parts": [
+     {
+      "asset": "k-food-meat-cooked",
+      "len": 0.05,
+      "x": 0.01,
+      "y": 0.02,
+      "tint": "#c0561e"
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Chicken tikka masala"
+  },
+  "naan": {
+   "status": "gap",
+   "asset": null,
+   "name": "Garlic naan"
+  },
+  "bibimbap": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-bowl",
+     "len": 0.16
+    },
+    "on": 0.6,
+    "parts": [
+     {
+      "asset": "k-food-egg-cooked",
+      "len": 0.07,
+      "y": 0.03
+     },
+     {
+      "asset": "k-food-carrot",
+      "len": 0.05,
+      "x": 0.04,
+      "y": 0.02,
+      "yaw": 1.2
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Bibimbap"
+  },
+  "korean_bbq": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-meat-ribs",
+      "len": 0.14,
+      "x": -0.02
+     },
+     {
+      "asset": "k-food-paprika-slice",
+      "len": 0.04,
+      "x": 0.08,
+      "z": 0.04
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Korean barbecue for one"
+  },
+  "shawarma": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-skewer",
+      "len": 0.18,
+      "yaw": 0.6
+     },
+     {
+      "asset": "k-food-tomato-slice",
+      "len": 0.04,
+      "x": 0.08,
+      "z": 0.05
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Shawarma plate"
+  },
+  "falafel": {
+   "status": "gap",
+   "asset": null,
+   "name": "Falafel wrap"
+  },
+  "oysters": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Half-dozen oysters"
+  },
+  "fish_and_chips": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.27
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-fish",
+      "len": 0.17,
+      "x": -0.03,
+      "yaw": 0.5
+     },
+     {
+      "asset": "k-food-fries",
+      "len": 0.1,
+      "x": 0.08
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Fish and chips"
+  },
+  "clam_chowder": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate",
+     "len": 0.2
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-loaf-round",
+      "len": 0.13
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Clam chowder bread bowl"
+  },
+  "crab": {
+   "status": "gap",
+   "asset": null,
+   "name": "Dungeness crab"
+  },
+  "breakfast_plate": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-food-plate-dinner",
+     "len": 0.26
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-egg-cooked",
+      "len": 0.08,
+      "x": -0.05
+     },
+     {
+      "asset": "k-food-bacon",
+      "len": 0.1,
+      "x": 0.05,
+      "z": -0.03
+     },
+     {
+      "asset": "k-food-bread",
+      "len": 0.08,
+      "x": 0.04,
+      "z": 0.05
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Eggs, bacon and toast"
+  },
+  "pancakes": {
+   "status": "generic_match",
+   "asset": "k-food-pancakes",
+   "name": "Stack of pancakes"
+  },
+  "wings": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Chicken wings"
+  },
+  "fries": {
+   "status": "generic_match",
+   "asset": "k-food-fries",
+   "name": "Fries"
+  },
+  "ice_cream": {
+   "status": "generic_match",
+   "asset": "k-food-ice-cream",
+   "name": "Ice cream cone"
+  },
+  "milkshake": {
+   "status": "representative",
+   "asset": "k-food-frappe",
+   "name": "Milkshake"
+  },
+  "glass_of_wine": {
+   "status": "generic_match",
+   "asset": "k-food-glass-wine",
+   "name": "Glass of wine"
+  },
+  "donut": {
+   "status": "generic_match",
+   "asset": "k-food-donut",
+   "name": "Donut"
+  },
+  "bagel": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Bagel with cream cheese"
+  },
+  "latte": {
+   "status": "generic_match",
+   "asset": "k-food-cup-coffee",
+   "name": "Latte"
+  },
+  "smoothie": {
+   "status": "representative",
+   "asset": "k-food-soda-glass",
+   "name": "Smoothie"
+  },
+  "toothpaste": {
+   "status": "gap",
+   "asset": null,
+   "name": "Toothpaste"
+  },
+  "shampoo": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Shampoo"
+  },
+  "sunscreen": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Sunscreen"
+  },
+  "tissues": {
+   "status": "gap",
+   "asset": null,
+   "name": "Box of tissues"
+  },
+  "razor": {
+   "status": "gap",
+   "asset": null,
+   "name": "Razors"
+  },
+  "lipstick": {
+   "status": "gap",
+   "asset": null,
+   "name": "Lipstick"
+  },
+  "perfume": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Perfume"
+  },
+  "skincare": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Face moisturiser"
+  },
+  "nail_polish": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Nail polish"
+  },
+  "reading_glasses": {
+   "status": "gap",
+   "asset": null,
+   "name": "Reading glasses"
+  },
+  "glasses": {
+   "status": "gap",
+   "asset": null,
+   "name": "Prescription glasses"
+  },
+  "contact_lenses": {
+   "status": "gap",
+   "asset": null,
+   "name": "Contact lenses"
+  },
+  "screws": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Box of screws",
+   "tint": "#8b949c"
+  },
+  "duct_tape": {
+   "status": "gap",
+   "asset": null,
+   "name": "Duct tape"
+  },
+  "light_bulbs": {
+   "status": "gap",
+   "asset": null,
+   "name": "Light bulbs (4)"
+  },
+  "batteries": {
+   "status": "label_required",
+   "asset": "k-food-carton-small",
+   "name": "Batteries (8)",
+   "tint": "#2c2c2c"
+  },
+  "rope": {
+   "status": "gap",
+   "asset": null,
+   "name": "Rope (15 m)"
+  },
+  "padlock": {
+   "status": "gap",
+   "asset": null,
+   "name": "Padlock"
+  },
+  "extension_cord": {
+   "status": "gap",
+   "asset": null,
+   "name": "Extension cord"
+  },
+  "wood_glue": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Wood glue"
+  },
+  "sandpaper": {
+   "status": "gap",
+   "asset": null,
+   "name": "Sandpaper"
+  },
+  "broom": {
+   "status": "generic_match",
+   "asset": "ph-plastic_broom",
+   "name": "Broom"
+  },
+  "bucket": {
+   "status": "generic_match",
+   "asset": "k-survival-bucket",
+   "name": "Bucket"
+  },
+  "garden_hose": {
+   "status": "gap",
+   "asset": null,
+   "name": "Garden hose"
+  },
+  "zip_ties": {
+   "status": "gap",
+   "asset": null,
+   "name": "Zip ties"
+  },
+  "caulk": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Tube of caulk"
+  },
+  "paint_brush": {
+   "status": "gap",
+   "asset": null,
+   "name": "Paint brushes"
+  },
+  "plywood": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Sheet of plywood"
+  },
+  "wiper_blades": {
+   "status": "gap",
+   "asset": null,
+   "name": "Wiper blades"
+  },
+  "coolant": {
+   "status": "label_required",
+   "asset": "k-food-bottle-oil",
+   "name": "Coolant",
+   "tint": "#43b04a"
+  },
+  "car_battery": {
+   "status": "gap",
+   "asset": null,
+   "name": "Car battery"
+  },
+  "socks": {
+   "status": "gap",
+   "asset": null,
+   "name": "Socks"
+  },
+  "cap": {
+   "status": "gap",
+   "asset": null,
+   "name": "Cap"
+  },
+  "sweater": {
+   "status": "gap",
+   "asset": null,
+   "name": "Sweater"
+  },
+  "dress": {
+   "status": "gap",
+   "asset": null,
+   "name": "Dress"
+  },
+  "sneakers": {
+   "status": "gap",
+   "asset": null,
+   "name": "Sneakers"
+  },
+  "boots": {
+   "status": "gap",
+   "asset": null,
+   "name": "Boots"
+  },
+  "magazine": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Magazine"
+  },
+  "greeting_card": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Greeting card"
+  },
+  "newspaper": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Newspaper"
+  },
+  "single_rose": {
+   "status": "gap",
+   "asset": null,
+   "name": "Single rose"
+  },
+  "dog_food": {
+   "status": "label_required",
+   "asset": "k-food-bag-flat",
+   "name": "Bag of dog food",
+   "tint": "#b5651d"
+  },
+  "cat_food": {
+   "status": "label_required",
+   "asset": "k-food-can-small",
+   "name": "Cat food",
+   "tint": "#7a4fa3"
+  },
+  "pet_treats": {
+   "status": "label_required",
+   "asset": "k-food-can-small",
+   "name": "Pet treats",
+   "tint": "#c94f7c"
+  },
+  "leash": {
+   "status": "gap",
+   "asset": null,
+   "name": "Dog leash"
+  },
+  "headphones": {
+   "status": "gap",
+   "asset": null,
+   "name": "Headphones"
+  },
+  "phone_case": {
+   "status": "gap",
+   "asset": null,
+   "name": "Phone case"
+  },
+  "power_bank": {
+   "status": "gap",
+   "asset": null,
+   "name": "Power bank"
+  },
+  "keyboard": {
+   "status": "generic_match",
+   "asset": "k-furniture-computerKeyboard",
+   "name": "Keyboard"
+  },
+  "computer_mouse": {
+   "status": "generic_match",
+   "asset": "k-furniture-computerMouse",
+   "name": "Mouse"
+  },
+  "candle": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Scented candle"
+  },
+  "mug": {
+   "status": "generic_match",
+   "asset": "k-food-mug",
+   "name": "Mug"
+  },
+  "postcard": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Postcard"
+  },
+  "keychain": {
+   "status": "gap",
+   "asset": null,
+   "name": "Keychain"
+  },
+  "art_print": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Art print"
+  },
+  "framed_print": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Framed print"
+  },
+  "necklace": {
+   "status": "gap",
+   "asset": null,
+   "name": "Silver necklace"
+  },
+  "earrings": {
+   "status": "gap",
+   "asset": null,
+   "name": "Earrings"
+  },
+  "watch": {
+   "status": "gap",
+   "asset": null,
+   "name": "Watch"
+  },
+  "toy": {
+   "status": "generic_match",
+   "asset": "k-furniture-bear",
+   "name": "Toy"
+  },
+  "board_game": {
+   "status": "label_required",
+   "asset": "k-furniture-cardboardBoxClosed",
+   "name": "Board game",
+   "tint": "#b23b3b"
+  },
+  "bike_tube": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bike inner tube"
+  },
+  "bike_light": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bike lights"
+  },
+  "bike_lock": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bike lock"
+  },
+  "helmet": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bike helmet"
+  },
+  "cushion": {
+   "status": "generic_match",
+   "asset": "k-furniture-pillow",
+   "name": "Cushion"
+  },
+  "lamp": {
+   "status": "generic_match",
+   "asset": "k-furniture-lampRoundTable",
+   "name": "Table lamp"
+  },
+  "towels": {
+   "status": "gap",
+   "asset": null,
+   "name": "Bath towels"
+  },
+  "stamps": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Book of stamps"
+  },
+  "prints": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Printed copies"
+  },
+  "dental_cleaning": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Dental cleaning"
+  },
+  "eye_exam": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Eye exam"
+  },
+  "vet_visit": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Vet visit (your pet)"
+  },
+  "barber_cut": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Barber cut"
+  },
+  "manicure": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Manicure"
+  },
+  "massage": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Massage (60 min)"
+  },
+  "facial": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Facial"
+  },
+  "dry_cleaning": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Dry cleaning"
+  },
+  "pet_grooming": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Pet grooming"
+  },
+  "oil_change": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Oil change"
+  },
+  "ship_parcel": {
+   "status": "service_no_mesh",
+   "asset": null,
+   "name": "Ship a parcel"
+  },
+  "parcel": {
+   "status": "representative",
+   "asset": "k-furniture-cardboardBoxClosed",
+   "name": "Delivery parcel"
+  },
+  "brick": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Brick"
+  },
+  "cinder_block": {
+   "status": "gap",
+   "asset": null,
+   "name": "Cinder block"
+  },
+  "concrete_mix": {
+   "status": "representative",
+   "asset": "ph-cement_bag",
+   "name": "Bag of concrete mix (80 lb)"
+  },
+  "glass_bottle": {
+   "status": "representative",
+   "asset": "k-food-soda-bottle",
+   "name": "Empty bottle"
+  },
+  "car_tire": {
+   "status": "generic_match",
+   "asset": "ph-old_tyre",
+   "name": "Car tyre"
+  },
+  "car_door": {
+   "status": "kit_debris",
+   "asset": null,
+   "name": "Car door"
+  },
+  "bumper": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Bumper"
+  },
+  "paper_food_bag": {
+   "status": "generic_match",
+   "asset": "k-food-bag",
+   "name": "Paper takeaway bag"
+  },
+  "pizza_box": {
+   "status": "generic_match",
+   "asset": "k-food-pizza-box",
+   "name": "Pizza box"
+  },
+  "sealed_meal_box": {
+   "status": "representative",
+   "asset": "k-food-styrofoam",
+   "name": "Sealed meal box"
+  },
+  "soup_cup": {
+   "status": "representative",
+   "asset": "k-food-cup-coffee",
+   "name": "Lidded soup cup"
+  },
+  "drink_carrier": {
+   "status": "gap",
+   "asset": null,
+   "name": "Drink carrier"
+  },
+  "grocery_tote": {
+   "status": "gap",
+   "asset": null,
+   "name": "Reusable grocery tote"
+  },
+  "shipping_box_small": {
+   "status": "generic_match",
+   "asset": "k-furniture-cardboardBoxClosed",
+   "name": "Small shipping box"
+  },
+  "shipping_box_medium": {
+   "status": "representative",
+   "asset": "ph-cardboard_box_01",
+   "name": "Medium shipping box"
+  },
+  "padded_envelope": {
+   "status": "gap",
+   "asset": null,
+   "name": "Padded envelope"
+  },
+  "insulated_delivery_bag": {
+   "status": "gap",
+   "asset": null,
+   "name": "Insulated courier bag"
+  },
+  "smartphone": {
+   "status": "generic_match",
+   "asset": "pp-smartphone",
+   "name": "Smartphone"
+  },
+  "trash_bag": {
+   "status": "generic_match",
+   "asset": "ph-trashbag",
+   "name": "Trash bag"
+  },
+  "storage_box": {
+   "status": "generic_match",
+   "asset": "k-furniture-cardboardBoxOpen",
+   "name": "Storage box"
+  },
+  "suitcase": {
+   "status": "generic_match",
+   "asset": "ph-vintage_suitcase",
+   "name": "Suitcase"
+  },
+  "small_table": {
+   "status": "generic_match",
+   "asset": "k-furniture-sideTable",
+   "name": "Small table"
+  },
+  "delivery_crate": {
+   "status": "generic_match",
+   "asset": "ph-wooden_crate_01",
+   "name": "Delivery crate"
+  },
+  "wooden_pallet": {
+   "status": "generic_match",
+   "asset": "k-retro-urban-pallet",
+   "name": "Wooden pallet"
+  },
+  "ingredient_box": {
+   "status": "composed",
+   "recipe": {
+    "base": {
+     "asset": "k-furniture-cardboardBoxOpen",
+     "len": 0.45
+    },
+    "on": 0.55,
+    "parts": [
+     {
+      "asset": "k-food-cabbage",
+      "len": 0.14,
+      "x": -0.08
+     },
+     {
+      "asset": "k-food-carrot",
+      "len": 0.17,
+      "x": 0.07,
+      "yaw": 1.3,
+      "lie": true
+     },
+     {
+      "asset": "k-food-tomato",
+      "len": 0.07,
+      "x": 0.02,
+      "z": 0.08
+     }
+    ]
+   },
+   "from": "recipe_required",
+   "name": "Restaurant ingredient box"
+  },
+  "flat_pack_shelf": {
+   "status": "recipe_required",
+   "asset": null,
+   "name": "Flat-pack shelf"
+  },
+  "replacement_light": {
+   "status": "generic_match",
+   "asset": "k-furniture-lampWall",
+   "name": "Replacement light fixture"
+  },
+  "keys": {
+   "status": "gap",
+   "asset": null,
+   "name": "Keys and keyring"
+  },
+  "wallet": {
+   "status": "gap",
+   "asset": null,
+   "name": "Wallet"
+  },
+  "id_card": {
+   "status": "gap",
+   "asset": null,
+   "name": "ID card"
+  },
+  "receipt": {
+   "status": "gap",
+   "asset": null,
+   "name": "Paper receipt"
+  },
+  "cleaning_cloth": {
+   "status": "gap",
+   "asset": null,
+   "name": "Cleaning cloth and sponge"
+  },
+  "mop": {
+   "status": "gap",
+   "asset": null,
+   "name": "Mop"
+  },
+  "clipboard": {
+   "status": "gap",
+   "asset": null,
+   "name": "Clipboard"
+  },
+  "pen": {
+   "status": "gap",
+   "asset": null,
+   "name": "Pen"
+  },
+  "shopping_cart": {
+   "status": "reference_only",
+   "asset": null,
+   "name": "Shopping cart"
+  },
+  "dolly": {
+   "status": "gap",
+   "asset": null,
+   "name": "Hand truck/dolly"
+  },
+  "paint_roller": {
+   "status": "gap",
+   "asset": null,
+   "name": "Paint roller"
+  },
+  "fire_extinguisher": {
+   "status": "gap",
+   "asset": null,
+   "name": "Fire extinguisher"
+  }
+ },
+ "world": {
+  "interior.furniture": {
+   "assets": [
+    "k-furniture-chair",
+    "k-furniture-table",
+    "k-furniture-bedDouble",
+    "k-furniture-loungeSofa"
+   ],
+   "method": "multiple explicit furniture types; never one universal furniture mesh"
+  },
+  "interior.floor_covering": {
+   "assets": [
+    "k-furniture-rugRectangle"
+   ],
+   "method": "candidate textile family"
+  },
+  "interior.appliance": {
+   "assets": [
+    "k-furniture-kitchenFridge",
+    "k-furniture-kitchenStove",
+    "k-furniture-washerDryerStacked"
+   ],
+   "method": "choose exact appliance role"
+  },
+  "interior.light": {
+   "assets": [
+    "k-furniture-lampRoundTable",
+    "k-furniture-lampSquareCeiling"
+   ],
+   "method": "choose fixture type"
+  },
+  "furniture.street_cafe": {
+   "assets": [
+    "k-furniture-tableRound",
+    "k-furniture-chair"
+   ],
+   "method": "furniture set, preserve real clearances"
+  },
+  "furniture.bench": {
+   "assets": [
+    "ph-painted_wooden_bench",
+    "k-retro-urban-detail-bench"
+   ],
+   "method": "candidate visual; keep mapped transform/ownership/anchoring"
+  },
+  "furniture.picnic_table": {
+   "assets": [
+    "ph-wooden_picnic_table"
+   ],
+   "method": "candidate visual; keep mapped transform"
+  },
+  "vegetation.log": {
+   "assets": [
+    "k-survival-tree-log"
+   ],
+   "method": "candidate, retain source placement/condition"
+  },
+  "geology.rock": {
+   "assets": [
+    "k-survival-rock-a",
+    "k-survival-rock-b"
+   ],
+   "method": "candidate, preserve mapped bounds"
+  },
+  "item.movable": {
+   "assets": [
+    "pp-smartphone",
+    "k-food-bag",
+    "ph-cross_pein_hammer"
+   ],
+   "method": "bind by SKU and instance; no universal movable mesh"
+  }
+ }
+}

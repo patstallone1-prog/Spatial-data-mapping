@@ -1399,7 +1399,8 @@ function addOfficialSignPlates(records, signalHeads = []) {
   // The posts, at the points, with the plates in front of them.
   let postCount = 0;
   for (const [height, list] of postsByHeight) postCount += addFurniturePostsAt(list, height, 0.026, 0x9aa1a3);
-  addBikeRacks(racks.map((p) => p.anchor));
+  // (The inventory's racks are drawn with the city's own list of them: renderStreetFurniture.)
+  inventoryRackAnchors = racks.map((p) => p.anchor);
   addFurniturePostsAt(delineators.map((p) => p.anchor), 1.1, 0.04, 0xf4f4f0);
   addFurniturePostsAt(lanterns.map((p) => p.anchor), 3.2, 0.05, 0x2f3436);
   return { signs, posts: postCount, racks: racks.length, delineators: delineators.length,

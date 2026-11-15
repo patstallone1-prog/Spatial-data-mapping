@@ -492,5 +492,45 @@
       "fit": "contain",
       "label": "SIM \u2014 trust every pixel"
     }
-  }
+  },
+  "rotation": [
+    {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "focus": [
+        0.18,
+        0.42
+      ]
+    },
+    {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "focus": [
+        0.22,
+        0.45
+      ]
+    }
+  ],
+  "rotation_basis": "every mapped advertising face without its own entry in boards (the city's permitted signs, shelters' light boxes, kiosks and poster panels) wears one of these, by a hash of its id; focus is where each picture's name and message are, kept in view on a face of another shape"
 }

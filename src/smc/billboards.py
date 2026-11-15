@@ -89,7 +89,10 @@ def billboard_geometry(tags: dict, kind: str = "billboard") -> dict:
         "sides": 2 if str(tags.get("sides")) == "2" else 1,
         "support": tags.get("support", "poles"),
         "location": tags.get("location", "ground"),
-        "dimensions_basis": "osm_size_tag"
+        # A permitted sign placed by its address (scripts/build_ad_media.py): the standard poster.
+        "dimensions_basis": "inferred_standard_poster_for_permitted_sign"
+        if tags.get("support") == "auto"
+        else "osm_size_tag"
         if has_size
         else "osm_width_with_inferred_aspect"
         if metres(tags.get("width"))

@@ -116,6 +116,7 @@ function releaseHostWorld() {
   tunnelBores.length = 0;
   billboardFaces.length = 0;
   billboardTextureCache.clear();
+  cityBikeRacks = [];
   detailTiles = [];
   detailCells = null;
   labelSprites = [];
@@ -134,7 +135,10 @@ function emptyTree(object, all = false) { object.traverse((o) => emptyOne(o, all
 function emptyOne(o, all = false) {
   {
     if (o.userData.sharedInteriorAsset && !all) return;
-    if (o.geometry) {
+    // Every sprite draws with the one quad three.js keeps for all of them: emptied with a
+    // released window's labels, it was empty for the page's own sprites too -- the moon and its
+    // halo never showed again, nor any label (2026-11-14). A sprite has no geometry of its own.
+    if (o.geometry && !o.isSprite) {
       for (const attribute of Object.values(o.geometry.attributes || {})) {
         // An interleaved attribute reads its array from the buffer it shares with others.
         const holder = attribute.isInterleavedBufferAttribute ? attribute.data : attribute;
@@ -647,6 +651,8 @@ window.kerbsideGuestApi = {
   windowBoxes:BUILD_WINDOW?.boxes,
   groundBoxes:BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b)=>{const a=xy(b[0],b[1]),c=xy(b[2],b[3]);return clipToTerrain([a[0],-c[1],c[0],-a[1]]);}) : null,
   billboardFaces,
+  // The city's bicycle racks drawn here, with their places for a bicycle (module 21).
+  bikeRacks: () => cityBikeRacks,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
   groundBox: BUILD_WINDOW ? (()=>{
@@ -697,6 +703,7 @@ window.kerbsideGuestApi = {
     tunnelBores.length = 0;
     billboardFaces.length = 0;
     billboardTextureCache.clear();
+    cityBikeRacks = [];
     detailTiles = [];
     detailCells = null;
     labelSprites = [];

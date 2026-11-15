@@ -51,6 +51,8 @@ function paneGlassTexture() {
 const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
   transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
+// Lit at night from within, some of them (nightWindows, module 02).
+if (typeof nightWindows === "function") nightWindows(homeGlassMaterial);
 const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
   transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
@@ -537,6 +539,7 @@ function buildHomeShell(entry) {
   // The inside of the outside walls in the house's own paint, not plaster white.
   shellPlaster.color.setHex(WALL_PAINTS[roomPaint(Math.abs(Number(entry.way.osm_id) || 0), 99)]);
   const shellGlass = homeGlassMaterial.clone();
+  if (typeof nightWindows === "function") nightWindows(shellGlass);   // (a clone loses the night's patch)
   const shellGlassInside = homeGlassInsideMaterial.clone();
   const shellFrame = homeFrameMaterial.clone();
   const bands=spec.appearanceBands || [{material:spec.material,tint:spec.tint,bottom:0,top:spec.height}];

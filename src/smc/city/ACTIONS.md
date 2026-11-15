@@ -43,7 +43,8 @@ this device.
   The city's bars, its buttons and its keys are off, but for two: Space jumps, and Enter at a
   garage of a home you own or rent opens it (and shuts it).
 * **City:** the game. A bar of word buttons runs along the top, between the mode switch (top
-  left) and the compass (top right): first what you can do where you stand (highlighted: "Go in:
+  left) and the compass (top right; a reading only -- the game's time runs on its own clock, a day
+  in 72 real minutes, and cannot be changed): first what you can do where you stand (highlighted: "Go in:
   …", "Board the 30 …", "Drive …"), then always You & wallet (the city panel: wallet, job, home,
   car, the laws), Inventory (I), Tasks (J), **Shop** (O), Sprint (Shift) and Controls (H). On a
   narrow screen it drops under them. The health bars are at the top left with **To do** under
@@ -94,6 +95,15 @@ The people and the traffic are out in both modes.
 | O | The Shop: everything sold in the city, searchable, in categories, sorted by name or price, at twice the shop price; Real estate is a category at the market's price (not doubled) | always ("Shop", green) |
 | H or ? | The controls and what the bars mean | always ("Controls") |
 | F | First person (both modes) | — |
+
+In the inventory (I), a thing's own uses are buttons under its details (docs/41,
+`uses.mjs`): wear, read, place at home (comfort), fill, light, charge, lock a bike, mail, clean,
+take apart, cook, open / pack / seal a box, test a device, mend with a repair kit, "Look it over"
+(its condition, and what a closer look finds), and **Sell…**: the Selling window lists who here
+buys it (a second-hand counter, a specialist, consignment, a recycler by the kilo), each with an
+offer that holds for its hours, and anywhere a listing on the board or a shipped listing (8%
+commission; the buyer pays the carrier and the tax). Buyers for a listing write in Messages
+(Accept / Decline). At a car: "Take a wheel off" and, with bolt cutters, "Unlock it".
 
 Gone: C (the car is Enter's now, with the bus: one key gets you in and out of anything; taxis
 stay on T so the two cannot be confused). Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on

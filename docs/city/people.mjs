@@ -275,6 +275,28 @@ export class Streets {
     }
     return (this._junc = { n, of, count: groups.size });
   }
+  //: The cross streets nearest a point, for saying where a place is: ``{ on, cross }`` -- the
+  //: street it is on and the nearest named street meeting that one -- or the two streets of the
+  //: nearest corner when the point is on no named street (a court in a park); ``cross`` null
+  //: when only one named street is in reach; null when none is.
+  crossStreets(x, z, reach = 320) {
+    const on = this.streetAt(x, z, 90)?.name || null;
+    let best = null, bestD = Infinity, lone = null, loneD = Infinity;
+    const r = Math.ceil(reach / this.cell), cx = Math.floor(x / this.cell), cz = Math.floor(z / this.cell);
+    for (let i = -r; i <= r; i += 1) for (let j = -r; j <= r; j += 1) for (const a of this.grid.get(`${cx + i},${cz + j}`) || []) {
+      const A = this.nodes[a], d = Math.hypot(A.x - x, A.z - z);
+      if (d > reach) continue;
+      const names = [...new Set(this.edges[a].map((e) => e.name).filter(Boolean))];
+      if (!names.length) continue;
+      if (names.length === 1) { if (d < loneD) { loneD = d; lone = names[0]; } continue; }
+      // A corner of the point's own street comes before a nearer corner of two others.
+      const own = on && names.includes(on), score = d + (on && !own ? reach : 0);
+      if (score < bestD) { bestD = score; best = own ? [on, names.find((n) => n !== on)] : names.slice(0, 2); }
+    }
+    if (best) return { on: best[0], cross: best[1] };
+    const one = on || lone;
+    return one ? { on: one, cross: null } : null;
+  }
   //: The street a point is on (a building's own street): the nearest drivable block within
   //: ``reach`` -- its name, class, and whether cars park at its kerb -- or null.
   streetAt(x, z, reach = 70) {
@@ -1192,7 +1214,7 @@ export class Crowd {
     const SLOT = 30, CELL = 400;
     const secondsOfDay = t.minute * 60;
     const slot = Math.floor(t.ms / 1000 / SLOT);
-    const density = TRAFFIC_BY_HOUR[Math.floor(t.minute / 60) % 24];
+    const density = TRAFFIC_BY_HOUR[Math.floor((t.gameMinute ?? t.minute) / 60) % 24];
     const cx = Math.floor(focus.x / CELL), cz = Math.floor(focus.z / CELL), rr = Math.ceil(reach / CELL);
     for (let i = -rr; i <= rr; i += 1) for (let j = -rr; j <= rr; j += 1) {
       const cell = `${cx + i},${cz + j}`;
@@ -1280,7 +1302,7 @@ export class Crowd {
   streetLife(t, focus, reach) {
     const D = this.R.density, out = [];
     if (!D) return out;
-    const CELL = 150, GEN = 600, tsec = t.ms / 1000, hour = WALK_BY_HOUR[Math.floor(t.minute / 60) % 24];
+    const CELL = 150, GEN = 600, tsec = t.ms / 1000, hour = WALK_BY_HOUR[Math.floor((t.gameMinute ?? t.minute) / 60) % 24];
     const cx = Math.floor(focus.x / CELL), cz = Math.floor(focus.z / CELL), rr = Math.ceil(reach / CELL);
     this._walkers ??= new Map();
     for (let i = -rr; i <= rr; i += 1) for (let j = -rr; j <= rr; j += 1) {
