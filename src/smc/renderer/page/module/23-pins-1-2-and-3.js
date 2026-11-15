@@ -579,25 +579,90 @@ function requestStoreInteriors(base) {
         }).catch(() => {})));
     }).catch(error => console.warn("kerbside: store interiors unavailable", error));
 }
+// User designs stay in the city's saved world; its source footprint and facade remain authoritative.
+let homeEditorBridge = null, homeEditorBridgePromise = null, homeEditorAccess = { homes: [], designs: [] };
+async function editorBaseline(buildingId) {
+  const entry = footprintById.get(String(buildingId));
+  if (!entry || commercialInterior(entry)) throw new Error("This residential building is not loaded yet. Visit your home, then open the editor.");
+  if (entry.editorBaseline) return structuredClone(entry.editorBaseline);
+  let house;
+  if (entry.generatedInteriorRef) {
+    const ref = entry.generatedInteriorRef;
+    const [adapter, response] = await Promise.all([import(new URL("kerbside-adapter.mjs", ref.base).href), fetch(new URL(ref.file, ref.fileBase || ref.base))]);
+    if (!response.ok) throw new Error("The source home layout could not be loaded.");
+    house = adapter.prepareGeneratedHouse(await response.json());
+  } else {
+    entry.capturingEditorBaseline = true;
+    try {
+      if (!entry.interior) buildInterior(entry);
+      const snapshot = fittedInteriorSnapshot(entry);
+      const adapter = await import(new URL("../interior-lab/fitted-house.mjs", interiorAssetBase()).href);
+      house = adapter.fittedHouseForEditing(snapshot);
+    } finally { entry.capturingEditorBaseline = false; }
+  }
+  entry.editorBaseline = structuredClone(house);
+  return house;
+}
+function ensureHomeEditorBridge() {
+  if (!homeEditorBridgePromise) homeEditorBridgePromise = import(new URL("../interior-lab/world-bridge.mjs", interiorAssetBase()).href).then(({HomeInteriorBridge}) => {
+    homeEditorBridge = new HomeInteriorBridge({
+      loadBaseline: editorBaseline,
+      onApply: args => livingCity?.applyHomeInterior(args),
+      report: message => { console.warn("kerbside: interior edit", message); livingCity?.notify?.(message); },
+      openEditor: (handoff, tab) => {
+        if (!handoff) return window.open("about:blank", "kerbside-interior-studio");
+        const url = new URL("../interior-lab/", interiorAssetBase()); url.searchParams.set("edit", handoff.token);
+        if (tab && !tab.closed) { tab.opener = null; tab.location.href = url.href; }
+        else window.open(url.href, "_blank", "noopener");
+      },
+      invalidate: id => {
+        const entry = footprintById.get(String(id)); if (!entry) return;
+        const had = Boolean(entry.interior);
+        entry.customInteriorEnabled = homeEditorBridge.access.designs.some(d => d.target.buildingId === String(id));
+        entry.customInteriorFailed = false;
+        if (had) removeInterior(entry);
+        if (had) buildInterior(entry);
+        requestFrame();
+      }
+    });
+    homeEditorBridge.setAccess(homeEditorAccess);
+    return homeEditorBridge;
+  });
+  return homeEditorBridgePromise;
+}
+function setHomeInteriorAccess(access) {
+  homeEditorAccess = access;
+  if (homeEditorBridge) homeEditorBridge.setAccess(access);
+  else ensureHomeEditorBridge().catch(error => console.warn("kerbside: interior editor unavailable", error));
+}
+async function openHomeInteriorLab(homeId) {
+  const bridge = await ensureHomeEditorBridge(); return bridge.open(homeId);
+}
+
 function requestGeneratedInterior(entry) {
   if (entry.generatedInteriorPending) return;
   entry.generatedInteriorPending = true;
-  const ref = entry.generatedInteriorRef;
+  const ref = entry.generatedInteriorRef || { base: new URL("../inferred-interiors/", interiorAssetBase()), origin_lon_lat: entry.fit?.slice(4, 6), kind: "house" };
   if (!generatedInteriorModules) generatedInteriorModules = Promise.all([
     import(new URL("renderer.mjs", ref.base).href),
     import(new URL("kerbside-adapter.mjs", ref.base).href)
   ]);
   Promise.all([generatedInteriorModules,
-    fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); })
-  ]).then(([[rendererModule, adapter], house]) => {
-    if (!house.validation?.passed || house.grade !== "inferred") throw new Error("invalid generated hypothesis");
+    entry.generatedInteriorRef ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
+  ]).then(([[rendererModule, adapter], source]) => {
+    if (entry.generatedInteriorRef && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
+    const baseline = entry.editorBaseline || adapter.prepareGeneratedHouse(source);
+    entry.editorBaseline = structuredClone(baseline);
+    const house = homeEditorBridge ? homeEditorBridge.designFor(String(entry.way.osm_id), baseline) : baseline;
+    const customized = house !== baseline;
+
     if (entry.interior) removeInterior(entry);
     const [lon, lat] = ref.origin_lon_lat;
     const floorY = entryFloorY(entry);
     const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
       origin: xy(lon, lat), floorY, assetBase: interiorAssetBase(),
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
-      feetY: walkerFeetY, pointInRing, kind: ref.kind
+      feetY: walkerFeetY, pointInRing, kind: ref.kind, customized
     }, rendererModule.buildInferredHouse);
     // The engine draws no outside walls here (exterior: false): the house's shell is them. A
     // building with no shell -- every restaurant, and a house the shells do not reach -- has
@@ -614,7 +679,7 @@ function requestGeneratedInterior(entry) {
     entry.interior = interior;
     interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
   }).catch(error => {
-    entry.generatedInteriorFailed = true;
+    entry.generatedInteriorFailed = true; entry.customInteriorFailed = true;
     console.warn("kerbside: generated interior rejected; using fitted plan", error);
     buildInterior(entry);
   }).finally(() => {

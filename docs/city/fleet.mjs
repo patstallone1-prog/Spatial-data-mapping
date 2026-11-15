@@ -23,6 +23,7 @@ import { householdsFor } from "./households.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
 import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
+import { NpcContextIndex } from "./npc-context.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
 const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
@@ -129,7 +130,7 @@ export class Roster {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
     this.places = new Map(); this.people = new Map(); this.vehicles = new Map(); this.visitors = new Map();
     this.homesDone = new Set(); this.list = []; this.work = {}; this.households = new Map(); this.open = [];
-    this.saved = { work: { ...(saved?.work || {}) } };
+    this.saved = { work: { ...(saved?.work || {}) }, npcGroups: Array.isArray(saved?.npcGroups) ? saved.npcGroups : [] };
     this.version = 0; this.dirty = false;
   }
   //: Places seen in a window: those new are kept, each new home with its residents; and those
@@ -252,7 +253,7 @@ export class Roster {
     }
   }
   //: What to keep on this device: who works where.
-  toJSON() { return { work: this.saved.work }; }
+  toJSON() { return { work: this.saved.work, npcGroups: this.saved.npcGroups }; }
 }
 
 // ---- the city: where each is, and how they got there ---------------------------------------------
@@ -298,6 +299,15 @@ export class City {
   constructor(R, roster, streets, { seed = "district", timeAt, harm = () => null, delay = () => 0 } = {}) {
     this.R = R; this.roster = roster; this.seed = seed; this.timeAt = timeAt; this.harm = harm; this.delay = delay;
     this.setStreets(streets);
+  }
+  //: Lazily prepare a roster/day's cohorts outside the render loop. `ready` resolves false
+  //: if the roster changes during preparation; callers can request again on the next refresh.
+  characterContext(person, time, world = null) {
+    this._contextIndex ??= new NpcContextIndex(this);
+    const index = this._contextIndex;
+    const current = index.key === index.rosterKey(time);
+    if (current) return { state: "ready", context: index.contextFor(person, time, world), ready: null };
+    return { state: "pending", context: null, ready: index.ensure(time) };
   }
   //: The key a car's trip is known by (its delay in traffic is kept under it).
   static legKey(v, leg, day) { return `${v.id}:${day}:${Math.round(leg.t0 * 60)}`; }

@@ -1039,6 +1039,18 @@ export async function startCity(ctx) {
     openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
   const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
+  function syncHomeEditor() {
+    const p = view?.players.get(myId);
+    if (!p) return;
+    ctx.setHomeInteriorAccess?.({ worldKey: roomKey(), account: p.account,
+      homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})),
+      designs: [...(view.homeInteriors?.values() || [])] });
+  }
+  async function editHome(homeId) {
+    syncHomeEditor();
+    try { await ctx.editHome?.(homeId); } catch (error) { notify(error.message); }
+  }
+
   function save() {
     if (world) store.set(roomKey(), world.toJSON());
     const self = (world || view)?.savedSelf?.(myId);
@@ -1048,7 +1060,7 @@ export async function startCity(ctx) {
   function send(command, args = {}) {
     const here = whereNow();
     const full = { ...args, at: here };
-    if (world) { const r = world.submit(myId, command, full); afterChange(); return Promise.resolve(r); }
+    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); afterChange(); return Promise.resolve(r); }
     const req = `${myId}:${++party.req}`;
     party.session.city.send({ t: "cmd", req, pid: myId, command, args: full });
     return new Promise((resolve) => { party.pending.set(req, resolve); setTimeout(() => { if (party.pending.delete(req)) resolve({ ok: false, error: "the party's host did not answer" }); }, 6000); });
@@ -1066,6 +1078,7 @@ export async function startCity(ctx) {
       // (Backend money is minted by the browser it belongs to, for itself: never asked of a host.)
       const result = m.command === "account_grant" ? { ok: false, error: "not from a party" } : world.submit(m.pid, m.command, m.args);
       party.session.city.send({ t: "res", req: m.req, to: m.pid, result });
+      if (result.ok && m.command === "customize_home") save();
       broadcastState(); refresh();
     } else if (m.t === "res" && m.to === myId) {
       const done = party.pending.get(m.req); if (done) { party.pending.delete(m.req); done(m.result); }
@@ -3354,7 +3367,7 @@ export async function startCity(ctx) {
     if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
     stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
     if (now - lastRefresh > 500) {
-      lastRefresh = now; drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
+      lastRefresh = now; syncHomeEditor(); drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
       drawGoal(); checkSightseeing();
       if (district.places.length) listings();
@@ -4514,7 +4527,12 @@ export async function startCity(ctx) {
     },
     homes(w, p) {
       const all = listings();
-      return [h("p", { className: "note", textContent: `${all.filter((l) => l.kind === "sale").length} homes for sale and ${all.filter((l) => l.kind === "rent").length} to rent in this district this week.` }),
+      const owned = w.registry.owned(p.account, "home");
+      return [h("h4", {textContent: "Design your home"}),
+        h("p", {className: "note", textContent: "Move furniture, reshape rooms and review clearances in Interior Studio. Approved layouts are saved with this world and update its visible interior and walking barriers."}),
+        ...owned.map(a => h("div", {}, address(a.attrs.address) || "Your home", " ", act("Customize interior", () => editHome(a.id)))),
+        !owned.length ? h("p", {className: "note", textContent: "Buy a home to apply a design, or explore the Interior Studio in practice mode."}) : null,
+        h("a", {href: new URL("../interior-lab/", new URL(ctx.asset("city/"), location.href)).href, target: "_blank", rel: "noopener", textContent: "Open practice studio"}),h("p", { className: "note", textContent: `${all.filter((l) => l.kind === "sale").length} homes for sale and ${all.filter((l) => l.kind === "rent").length} to rent in this district this week.` }),
         h("button", { className: "primary", textContent: "Browse the listings (O, Real estate)", onclick: () => { openSide("online"); if (side) { side.cat = "homes"; drawSide(); } } })];
     },
     bills(w, p) {
@@ -4566,16 +4584,38 @@ export async function startCity(ctx) {
       const about = (p) => {
         const a = district.city?.about(p, tt);
         if (!a) return [];
-        if (a.visitor) return [h("p", { className: "note", textContent: `${a.title}: passing through the district.` })];
         const out = [], H = a.household, c = a.career, b = a.books;
+        if (a.visitor) out.push(h("p", { className: "note", textContent: `${a.title}: passing through the district.` }));
         if (H) out.push(h("p", { className: "note", textContent: `${p.age}, ${a.relation === "head" ? "head of the household" : a.relation}. ${H.size === 1 ? "Lives alone" : `Household of ${H.size} (${H.kind.replace("_", " ")}): ${H.members.filter((m) => m.id !== p.id).map((m) => `${m.name}, ${m.relation}, ${m.age}`).join("; ")}`} — ${H.beds ? `${H.beds}-bed` : "studio"} ${H.label ? `flat ${H.label}` : "house"}, ${H.tenure === "own" ? "owned" : "rented"}${H.garage ? ", with a garage" : ""}.` }));
         if (c) out.push(h("p", { className: "note", textContent: c.status === "employed" ? `${c.title} since ${dayOf(c.since)}${c.level ? ` (level ${c.level + 1})` : ""}${c.history.length ? `; before: ${c.history.slice(0, 2).map((x) => `${x.title || x.role}${x.reason && x.reason !== "found_work" ? ` (${x.reason.replace("_", " ")})` : ""}`).join(", ")}` : ""}.`
           : c.status === "looking" ? `Looking for work since ${dayOf(c.since)}${c.left ? ` (${c.left.reason.replace("_", " ")})` : ""}.` : c.status === "retired" ? "Retired." : "At school." }));
         const owed = view?.billing.owed(p.id) || 0;
         if (owed) out.push(h("p", { className: "note", textContent: `Collision debt ${R.fmt(owed)}; charges: ${(view?.harm.get(p.id)?.record || []).map((r) => r.charge.replaceAll("_", " ")).join(", ")}.` }));
         if (b) out.push(h("p", { className: "note", textContent: `Balance ${R.fmt(b.balance)}${b.wage_hour ? `, paid ${R.fmt(b.wage_hour)}/h` : ""}; in the last 30 days ${R.fmt(b.income_30d)} in, ${R.fmt(b.spend_30d + b.rent_30d)} out${b.next_pay && b.wage_hour ? `; next pay ${dayOf(b.next_pay) && new Date(b.next_pay * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}` : ""}. ${b.assets.length ? `Owns: ${b.assets.map((x) => `${x.label} (${R.fmt(x.value)})`).join(", ")}. ` : ""}Net worth ${R.fmt(b.net_worth)}.` }));
-        out.push(h("p", { className: "note", textContent: `Gets about on foot and ${a.travel === "drive" ? "by car" : a.travel === "bike" ? "by bicycle" : "by bus or taxi"}. Today: ${String(a.routine).replace(/_/g, " ")}.` }));
-        if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(m.at)}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
+        if (!a.visitor) out.push(h("p", { className: "note", textContent: `Gets about on foot and ${a.travel === "drive" ? "by car" : a.travel === "bike" ? "by bicycle" : "by bus or taxi"}. Today: ${String(a.routine).replace(/_/g, " ")}.` }));
+        if (a.milestones?.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(m.at)}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
+        const request = district.city.characterContext(p, tt, view);
+        if (request.state === "pending") {
+          out.push(h("p", { className: "note", textContent: "Preparing character context…" }));
+          // A single callback per pending build; avoid redrawing every time this panel refreshes.
+          if (peopleContextPending !== request.ready) {
+            peopleContextPending = request.ready;
+            request.ready.then(() => {
+              if (peopleContextPending === request.ready) peopleContextPending = null;
+              if (panel && tab === "people" && peopleOpen) refresh();
+            }).catch(() => {
+              if (peopleContextPending === request.ready) peopleContextPending = null;
+            });
+          }
+        } else {
+          const context = request.context;
+          if (context.group) out.push(h("h4", { textContent: "Shared backstory" }), h("p", { textContent: context.group.backstory }));
+          out.push(h("p", { className: "note", textContent: `Voice: ${context.tone.variation}. Interests: ${context.hobbies.values.join(", ")}.` }));
+          if (context.finances.balance === null) out.push(h("p", { className: "note", textContent: "Bank balance unavailable." }));
+          if (context.finances.debt !== null) out.push(h("p", { className: "note", textContent: `Outstanding debt: ${R.fmt(context.finances.debt)}.` }));
+          const json = h("pre", { textContent: JSON.stringify(context, null, 2), style: "white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto" });
+          out.push(h("details", {}, h("summary", { textContent: "Show AI context (JSON)" }), json));
+        }
         return out;
       };
       return [h("p", { className: "note", textContent: `${district.people.length} people live in this district in ${hhs.length} households (${n(1)} alone, ${n(2)} of two, ${n(3)} of three, ${hhs.length - n(1) - n(2) - n(3)} larger), with ${carsN} cars and ${bikesN} bicycles. Out of doors near you: ${visible.people.length} on foot, ${riders.length} cycling, ${visible.vehicles.length} vehicles.` }),
@@ -4588,7 +4628,7 @@ export async function startCity(ctx) {
         h("h4", { textContent: "Who lives here" }), h("p", { className: "note", textContent: Object.entries(populationByRole(district.people)).sort((a, b) => b[1] - a[1]).map(([r, k]) => `${R.jobs.roles[r].title} ${k}`).join(", ") })];
     },
   };
-  let peopleOpen = null;
+  let peopleOpen = null, peopleContextPending = null;
   const transferTotal = (here, price) => transferTax(R, here.chain, price).total;
   ctx.button?.addEventListener("click", () => openPanel());
   // Escape closes the window over the screen.
@@ -4610,7 +4650,7 @@ export async function startCity(ctx) {
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };
       return null;
     },
-    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, district, visible: () => visible, me: myId,
+    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, me: myId,
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,

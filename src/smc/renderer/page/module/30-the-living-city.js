@@ -393,6 +393,8 @@ function setAppMode(mode) {
         }
         return out.sort((a, b) => a.d - b.d);
       },
+      setHomeInteriorAccess: data => setHomeInteriorAccess(data),
+      editHome: homeId => openHomeInteriorLab(homeId),
       // A building's doors (the ones the walker uses: Enter), as {x, z, nx, nz} with n pointing in.
       doorsOf: (id) => {
         const entry = typeof footprintById !== "undefined" ? footprintById.get(String(id)) : null;
