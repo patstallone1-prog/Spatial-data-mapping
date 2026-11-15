@@ -116,6 +116,7 @@ function releaseHostWorld() {
   tunnelBores.length = 0;
   billboardFaces.length = 0;
   billboardTextureCache.clear();
+  cityBikeRacks = [];
   detailTiles = [];
   detailCells = null;
   labelSprites = [];
@@ -647,6 +648,8 @@ window.kerbsideGuestApi = {
   windowBoxes:BUILD_WINDOW?.boxes,
   groundBoxes:BUILD_WINDOW ? BUILD_WINDOW.boxes.map((b)=>{const a=xy(b[0],b[1]),c=xy(b[2],b[3]);return clipToTerrain([a[0],-c[1],c[0],-a[1]]);}) : null,
   billboardFaces,
+  // The city's bicycle racks drawn here, with their places for a bicycle (module 21).
+  bikeRacks: () => cityBikeRacks,
   root, bbox: DATA.bbox, midLon, midLat, metersPerLon,
   // The ground this world draws, in its own metres: its terrain grid and the apron round it.
   groundBox: BUILD_WINDOW ? (()=>{
@@ -697,6 +700,7 @@ window.kerbsideGuestApi = {
     tunnelBores.length = 0;
     billboardFaces.length = 0;
     billboardTextureCache.clear();
+    cityBikeRacks = [];
     detailTiles = [];
     detailCells = null;
     labelSprites = [];

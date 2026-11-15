@@ -349,6 +349,8 @@ function setAppMode(mode) {
       // The traffic's car models (the imported fleet, meshopt-compressed, and the Kenney Car Kit)
       // and crash debris.
       loadModel: (url) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url),
+      // A figure's rim of light at night (module 02 nightRim): the city's people stand out.
+      nightRim: (material) => nightRim(material),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and
       // felling them.
       natureTrees: (x, z, reach) => (typeof natureWorld !== "undefined" && natureWorld?.treesNear ? natureWorld.treesNear(x, z, reach) : []),
@@ -357,6 +359,17 @@ function setAppMode(mode) {
       objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
       // This device's account (kerbside-account.mjs): the money the backend has put in it.
       account: () => accountLibrary(),
+      // The bicycle racks drawn round (x, z) -- this page's and the attached region's, in this
+      // page's metres -- and their places for a bicycle (module 21 placeCityBikeRacks).
+      bikeRacks: () => {
+        const out = hostWorldActive && typeof cityBikeRacks !== "undefined" ? cityBikeRacks.slice() : [];
+        const g = activeGuest?.ready ? activeGuest : null;
+        const P = g ? (x, z) => ({ x: g.ox + x * g.sx, z: g.oz + z }) : null;
+        const Y = g ? (yaw) => Math.atan2(Math.sin(yaw) * g.sx, Math.cos(yaw)) : null;
+        for (const r of g?.api.bikeRacks?.() || []) out.push({ ...r, ...P(r.x, r.z), yaw: Y(r.yaw),
+          slots: r.slots.map((s) => ({ ...s, ...P(s.x, s.z), yaw: Y(s.yaw), lock: { ...s.lock, ...P(s.lock.x, s.lock.z), yaw: Y(s.lock.yaw) } })) });
+        return out;
+      },
       catalogueUrl: sharedAsset("object-catalogue.json"),
       transitUrl: sharedAsset("transit-stops.json"),
       // Inside a shop: the walker's eyes at (x, y, z), looking along ``yaw``; and back out.

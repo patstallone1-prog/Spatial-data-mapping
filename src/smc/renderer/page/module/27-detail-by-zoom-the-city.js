@@ -265,7 +265,10 @@ function animate(now) {
   now = now || performance.now();
   environmentController?.update(now,{indoors:Boolean(state.indoors)});
   if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
-    if(clock)clock.textContent=`San Francisco time: ${environmentController.snapshot()?.localTime || ""}`;}
+    if(clock)clock.textContent=`Game time: ${environmentController.snapshot()?.localTime || ""} (a day in 72 minutes)`;
+    // The walker's rim at night (and the other players'), once their models are in.
+    if(typeof avatar!=="undefined")nightRimAll(avatar);
+    if(typeof multiplayer!=="undefined" && multiplayer?.group)nightRimAll(multiplayer.group);}
   if(frameCount%60===0 && !ATTACH){const output=document.getElementById("stream-status");
     if(output)output.textContent=window.kerbsideStreamDetail?.() || "Preparing world streaming…";}
   // The frame-rate cap, and the idle rate when nothing moves.
@@ -297,7 +300,6 @@ function animate(now) {
   if (typeof livingCity !== "undefined" && livingCity?.tick(now) && (livingCity.driving || state.dist < 600)) lastMovedAt = now;
   if (typeof livingCity !== "undefined" && livingCity && (livingCity.driving || livingCity.riding)) avatar.visible = false;
   updateCompass(now);
-  if (sunDial.open && frameCount % 30 === 0) drawSunDial();
   if (frameCount % 30 === 0) updateRouteWidth();
   checkLightWindow(frameCount);
   noteFirstBuild();

@@ -645,6 +645,111 @@ function safeBillboardWebsite(value) {
   try { const url=new URL(value);return ["https:","http:"].includes(url.protocol)
     && !url.username && !url.password ? url.href : null; } catch {return null;}
 }
+//: The artwork an advertising face wears: its own registered creative, or else one of the
+//: rotation's (docs/billboard-creatives.json ``rotation``), the same one for the same face every
+//: time (by a hash of its id). Each carries its picture's focus -- where its name and its message
+//: are -- for a face of another shape (billboardTexture).
+function adCreativeFor(id,creatives) {
+  if(creatives?.schema!=="kerbside.billboard_creatives/1")return null;
+  const rotation=(creatives.rotation || []).filter(c=>c?.approved && c.sha256);
+  const own=creatives.boards?.[id];
+  if(own)return own.focus ? own : {...own,focus:rotation.find(c=>c.image===own.image)?.focus || null};
+  if(!rotation.length)return null;
+  let h=2166136261;for(const ch of String(id)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+  return rotation[(h>>>0)%rotation.length];
+}
+//: The buildings whose footprints come within ``reach`` of (x, z), nearest first, each with its
+//: footprint's ring closed and its distance (0 inside it).
+function footprintsNear(x,z,reach) {
+  const out=[],seen=new Set();
+  for(let cx=Math.floor((x-reach)/FOOTPRINT_CELL);cx<=Math.floor((x+reach)/FOOTPRINT_CELL);cx++)
+    for(let cz=Math.floor((z-reach)/FOOTPRINT_CELL);cz<=Math.floor((z+reach)/FOOTPRINT_CELL);cz++)
+      for(const entry of footprintGrid.get(`${cx}:${cz}`) || []) {
+        if(seen.has(entry) || entry.local.length<3)continue;seen.add(entry);
+        const ring=entry.local.slice();
+        if(ring[0][0]!==ring[ring.length-1][0] || ring[0][1]!==ring[ring.length-1][1])ring.push(ring[0]);
+        let d=insideFootprint(entry,x,z) ? 0 : Infinity;
+        for(let i=1;d>0 && i<ring.length;i++) {
+          const [ax,az]=ring[i-1],[bx,bz]=ring[i],ux=bx-ax,uz=bz-az,l2=ux*ux+uz*uz;if(l2<1e-6)continue;
+          const t=Math.max(0,Math.min(1,((x-ax)*ux+(z-az)*uz)/l2));d=Math.min(d,Math.hypot(x-ax-ux*t,z-az-uz*t));
+        }
+        if(d<=reach)out.push({entry,ring,d});
+      }
+  return out.sort((a,b)=>a.d-b.d);
+}
+//: Where a permitted sign whose record gives only its address stands, and which way it faces
+//: (SF Planning's General Advertising Sign Program: scripts/build_ad_media.py). The city's
+//: general advertising signs are wall signs high on a side wall seen over a lower neighbour,
+//: or on the wall facing the street; rooftop boards on the low buildings; boards on poles on the
+//: lots with nothing built. So here: a building of more than the face's height and four metres
+//: takes it on such a wall, just under its parapet; a lower one on its roof, at its street edge,
+//: facing the street; an empty lot on poles. Every face looks out of its wall or towards the
+//: street, never into a building.
+function autoBillboardMount(x,z,spec) {
+  const kerb=nearestKerbAt(x,z,45);
+  const tx=kerb ? -kerb.nx : 0,tz=kerb ? -kerb.nz : 1;   // from the pavement into the road
+  const ground=(px,pz)=>groundLiftAt(px,pz)+(pavementTopAt(px,pz) ?? ROAD_TOP_M);
+  const near=footprintsNear(x,z,12)[0];
+  if(!near) {
+    let px=x,pz=z;
+    if(kerb && (insideCarriageway(px,pz,0.3) || insideJunctionBox(px,pz))){px=kerb.x+kerb.nx*3;pz=kerb.z+kerb.nz*3;}
+    return {x:px,z:pz,y:ground(px,pz),yaw:Math.atan2(tx,tz),support:"poles",bottom:4.2};
+  }
+  return autoBillboardOn(near,kerb,tx,tz,x,z,spec,0);
+}
+//: The top of a building (m, the world's): its floor and its height.
+const buildingTopOf=(entry)=>(typeof entryFloorY==="function" ? entryFloorY(entry) : groundLiftAt(entry.local[0][0],entry.local[0][1])+ROAD_TOP_M)
+  +(Number(entry.way.height_m)||8);
+//: The sign on one building (autoBillboardMount): on a wall, or on its roof -- and if the roof's
+//: place for it is under a taller building's mass (a low annex of a block), on that building.
+function autoBillboardOn({entry,ring},kerb,tx,tz,x,z,spec,depth) {
+  const height=Number(entry.way.height_m)||8;
+  const floor=typeof entryFloorY==="function" ? entryFloorY(entry) : groundLiftAt(x,z)+ROAD_TOP_M;
+  const edges=[];
+  for(let i=1;i<ring.length;i++) {
+    const [ax,az]=ring[i-1],[bx,bz]=ring[i],len=Math.hypot(bx-ax,bz-az);if(len<1)continue;
+    const ux=(bx-ax)/len,uz=(bz-az)/len,mx=(ax+bx)/2,mz=(az+bz)/2;
+    let nx=-uz,nz=ux;if(insideFootprint(entry,mx+nx*.3,mz+nz*.3)){nx=-nx;nz=-nz;}
+    // Nearer the street end of the wall: the end the kerb is nearer.
+    const da=kerb ? Math.hypot(ax-kerb.x,az-kerb.z) : 0,db=kerb ? Math.hypot(bx-kerb.x,bz-kerb.z) : 0;
+    edges.push({ax,az,bx,bz,ux,uz,len,nx,nz,facing:nx*tx+nz*tz,street:Math.min(da,db),fromA:da<=db});
+  }
+  if(!edges.length)return null;
+  const top=height-0.9,bottom=top-spec.height;
+  if(bottom>=4.0) {
+    const walls=[];
+    for(const e of edges) {
+      if(e.len<spec.width+0.6 || e.facing<-0.25)continue;
+      // Seen over its neighbour: nothing built against it as high as the sign's foot.
+      const mx=(e.ax+e.bx)/2+e.nx*1.5,mz=(e.az+e.bz)/2+e.nz*1.5,next=buildingAt(mx,mz);
+      if(next && (Number(next.height_m)||8)>bottom-0.5)continue;
+      const side=1-Math.abs(e.facing);
+      walls.push({...e,score:side+0.6*Math.max(0,e.facing)-e.street/60});
+    }
+    walls.sort((a,b)=>b.score-a.score);
+    // A sign of two faces (two permits at the address) takes the next wall that looks another way.
+    const chosen=walls.slice(0,1);
+    if(spec.sides===2)for(const w of walls.slice(1))if(w.nx*chosen[0].nx+w.nz*chosen[0].nz<0.7){chosen.push(w);break;}
+    const onWall=(w)=>{
+      const run=spec.width/2+0.3,sx=w.fromA ? w.ax+w.ux*run : w.bx-w.ux*run,sz=w.fromA ? w.az+w.uz*run : w.bz-w.uz*run;
+      return {x:sx+w.nx*.13,z:sz+w.nz*.13,y:floor,yaw:Math.atan2(w.nx,w.nz),support:"wall",bottom};
+    };
+    if(chosen.length)return {...onWall(chosen[0]),also:chosen.slice(1).map(onWall)};
+  }
+  // On the roof, at the edge that faces the street most, set a metre back from the parapet.
+  const front=edges.reduce((a,b)=>(b.facing-b.street/80>a.facing-a.street/80 ? b : a));
+  const mx=(front.ax+front.bx)/2-front.nx*1.0,mz=(front.az+front.bz)/2-front.nz*1.0;
+  // Where the face and its posts would stand, is any building higher than this roof?
+  const roof=floor+height;
+  let taller=null;
+  for(const a of [-0.5,-0.25,0,0.25,0.5])for(const b of [-0.8,0,0.8]) {
+    const px=mx+front.ux*a*spec.width-front.nx*b,pz=mz+front.uz*a*spec.width-front.nz*b;
+    for(const hit of footprintsNear(px,pz,0.01))
+      if(hit.d===0 && hit.entry!==entry && buildingTopOf(hit.entry)>roof+0.5 && (!taller || buildingTopOf(hit.entry)>buildingTopOf(taller.entry)))taller=hit;
+  }
+  if(taller && depth<2)return autoBillboardOn(taller,kerb,tx,tz,x,z,spec,depth+1);
+  return {x:mx,z:mz,y:roof,yaw:Math.atan2(front.nx,front.nz),support:"roof",bottom:1.6};
+}
 function billboardSpec(item) {
   const raw=item.display_geometry || {},large=item.ad_kind==="billboard";
   const positive=(value,fallback)=>Number.isFinite(value) && value>0 && value<=200 ? value : fallback;
@@ -658,6 +763,10 @@ function billboardSpec(item) {
 function billboardAnchor(item,spec) {
   if(!Array.isArray(item.p) || !item.p.slice(0,2).every(Number.isFinite))return null;
   const [px,py]=xy(...item.p);let x=px,z=-py,wallYaw=null;
+  if(spec.support==="auto")return autoBillboardMount(x,z,spec);
+  // A board mapped as a point inside a building, its mount and heights not tagged, is on that
+  // building (a wall or its roof), not on poles in its rooms: placed as a permitted sign is.
+  if(spec.support==="poles" && spec.heightBasis==="inferred_mount_height" && buildingAt(x,z))return autoBillboardMount(x,z,spec);
   // A mapped advertising structure stays at its mapped site, not snapped into
   // the sidewalk by the street-sign anchor correction.
   if(spec.support.includes("wall")) {
@@ -683,20 +792,54 @@ function billboardImagePlacement(iw,ih,width,height,fit="contain") {
   const scale=(fit==="cover" ? Math.max : Math.min)(width/iw,height/ih);
   return [(width-iw*scale)/2,(height-ih*scale)/2,iw*scale,ih*scale];
 }
-function billboardTexture(creative,width,height) {
+//: One artwork laid out on a face of ``W`` by ``H`` px. On a face near its own shape, or wider
+//: (a billboard, a bulletin), all of it, the margins filled with its own colours softened; on a
+//: tall face (a shelter's end, a kiosk) its focus filling the face and the whole of it in a band
+//: along the foot, as a poster version of a banner is made. ``fit: "cover"`` crops to fill.
+function composeAdFace(context,image,iw,ih,W,H,fit="contain",focus=null) {
+  const [fx,fy]=Array.isArray(focus) && focus.every(Number.isFinite) ? focus : [0.5,0.5];
+  const s=Math.max(W/iw,H/ih),cw=iw*s,ch=ih*s;
+  const cx=Math.min(0,Math.max(W-cw,W/2-fx*cw)),cy=Math.min(0,Math.max(H-ch,H/2-fy*ch));
+  if(fit==="cover"){context.drawImage(image,cx,cy,cw,ch);return;}
+  if(W/H>=0.8*iw/ih || W/H>=1.3) {
+    const pad=Math.round(Math.max(W,H)*0.02);
+    context.save();context.filter=`blur(${pad}px) brightness(0.82)`;
+    context.drawImage(image,(W-cw)/2-pad,(H-ch)/2-pad,cw+2*pad,ch+2*pad);context.restore();
+    context.drawImage(image,...billboardImagePlacement(iw,ih,W,H,"contain"));
+    return;
+  }
+  // The focus above, filling the face down to the band; the band dark, the whole picture in it.
+  const bw=W*0.92,bh=bw*ih/iw,by=H-bh-W*0.05,topH=by-W*0.04;
+  const ts=Math.max(W/iw,topH/ih),tw=iw*ts,th=ih*ts;
+  const tx=Math.min(0,Math.max(W-tw,W/2-fx*tw)),ty=Math.min(0,Math.max(topH-th,topH/2-fy*th));
+  context.fillStyle="#0b0d12";context.fillRect(0,0,W,H);
+  context.save();context.beginPath();context.rect(0,0,W,topH);context.clip();
+  context.drawImage(image,tx,ty,tw,th);
+  const fade=context.createLinearGradient(0,topH-W*0.12,0,topH);
+  fade.addColorStop(0,"rgba(11,13,18,0)");fade.addColorStop(1,"rgba(11,13,18,0.9)");
+  context.fillStyle=fade;context.fillRect(0,topH-W*0.12,W,W*0.12);context.restore();
+  context.drawImage(image,(W-bw)/2,by,bw,bh);
+}
+//: An artwork's texture for a face ``width`` by ``height`` m, ``copies`` times side by side (a
+//: column's wrap shows it twice round). Faces of near the same shape share one (their aspect is
+//: taken in steps of an eighth of a doubling): a few textures for every face in the city.
+function billboardTexture(creative,width,height,maxPx=2048,copies=1) {
   if(!creative?.approved || !creative.license || !creative.sha256
     || !/^billboards\/[a-zA-Z0-9_.-]+\.(png|jpe?g|webp|svg)$/i.test(creative.image || ""))return null;
-  const key=`${creative.sha256}:${width/height}:${creative.fit || "contain"}`;
+  const aspect=Math.exp(Math.round(Math.log(width/copies/height)*8)/8);
+  const key=`${creative.sha256}:${aspect.toFixed(3)}:${creative.fit || "contain"}:${maxPx}:${copies}`;
   if(billboardTextureCache.has(key))return billboardTextureCache.get(key);
   const promise=new Promise(resolve=>{
     new THREE.ImageLoader().load(`${sharedAsset(creative.image)}?v=${encodeURIComponent(creative.sha256)}`,image=>{
       const iw=image.naturalWidth || image.width,ih=image.naturalHeight || image.height;
       if(!iw || !ih || iw*ih>16777216){resolve(null);return;}
-      const canvas=document.createElement("canvas");
-      canvas.width=Math.max(64,Math.min(2048,Math.round(2048*width/height)));
-      canvas.height=Math.max(64,Math.min(2048,Math.round(canvas.width*height/width)));
+      const canvas=document.createElement("canvas"),full=aspect*copies;
+      canvas.width=Math.max(64,Math.min(maxPx,Math.round(full>=1 ? maxPx : maxPx*full)));
+      canvas.height=Math.max(64,Math.min(maxPx,Math.round(canvas.width/full)));
       const context=canvas.getContext("2d");context.fillStyle="#f4f1e8";context.fillRect(0,0,canvas.width,canvas.height);
-      context.drawImage(image,...billboardImagePlacement(iw,ih,canvas.width,canvas.height,creative.fit));
+      const each=canvas.width/copies;
+      for(let k=0;k<copies;k++){context.save();context.translate(k*each,0);context.beginPath();context.rect(0,0,each,canvas.height);context.clip();
+        composeAdFace(context,image,iw,ih,each,canvas.height,creative.fit,creative.focus);context.restore();}
       const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
       resolve(texture);
     },undefined,()=>resolve(null));
@@ -706,26 +849,34 @@ function billboardTexture(creative,width,height) {
 function addBillboards(records,creatives={}) {
   let rendered=0;
   for(const item of records) {
-    const spec=billboardSpec(item),anchor=billboardAnchor(item,spec);if(!anchor)continue;
+    const spec=billboardSpec(item),first=billboardAnchor(item,spec);if(!first)continue;
+    // (A sign placed by its address alone says where it stands, its mount and its foot --
+    // autoBillboardMount -- and a second face on a second wall, ``also``.)
+    for(const anchor of [first,...(first.also || [])]) {
+    const support=anchor.support || spec.support,bottom=anchor.bottom ?? spec.bottom;
+    const sides=support==="wall" ? 1 : spec.sides;
     const group=new THREE.Group();group.position.set(anchor.x,anchor.y,anchor.z);
-    group.rotation.y=spec.azimuth===null ? anchor.wallYaw ?? furnitureBearing({...item,bearing:null},0,anchor)
+    group.rotation.y=Number.isFinite(anchor.yaw) ? anchor.yaw : spec.azimuth===null ? anchor.wallYaw ?? furnitureBearing({...item,bearing:null},0,anchor)
       : Math.PI-spec.azimuth*Math.PI/180;
     const frame=new THREE.Mesh(new THREE.BoxGeometry(spec.width+.16,spec.height+.16,.16),billboardFrameMaterial);
-    frame.position.y=spec.bottom+spec.height/2;group.add(frame);
-    if(!/wall|roof/.test(spec.support)) {
-      const count=spec.support==="pole" ? 1 : 2;
+    frame.position.y=bottom+spec.height/2;group.add(frame);
+    // On poles from the ground, or from the roof it stands on; a wall sign hangs on its wall.
+    if(!/wall/.test(support)) {
+      const count=support==="pole" ? 1 : 2;
       for(let i=0;i<count;i++) {
-        const post=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,Math.max(.01,spec.bottom),8),billboardFrameMaterial);
-        post.position.set(count===1 ? 0 : (i ? 1 : -1)*spec.width*.27,spec.bottom/2,0);group.add(post);
+        const post=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,Math.max(.01,bottom),8),billboardFrameMaterial);
+        post.position.set(count===1 ? 0 : (i ? 1 : -1)*spec.width*.27,bottom/2,-.02);group.add(post);
       }
     }
-    const creative=creatives.schema==="kerbside.billboard_creatives/1" ? creatives.boards?.[item.id] : null;
+    const creative=adCreativeFor(item.id,creatives);
     const source=/^osm:ad_panel:(node|way):(\d+)$/.exec(item.id || "");
     // A board wearing approved artwork links where the artwork says, or nowhere; a bare board
     // links to its operator's site or its map record.
     const href=creative?.approved ? safeBillboardWebsite(creative.href || null)
       : safeBillboardWebsite(item.website) || (source ? `https://www.openstreetmap.org/${source[1]}/${source[2]}` : null);
+    // Printed vinyl, matt; floodlit at night unless the map says it is not lit.
     const material=new THREE.MeshStandardMaterial({color:0xf4f1e8,roughness:.8,metalness:0,side:THREE.FrontSide});
+    if(item.tags?.lit!=="no")nightLitFace(material,0.45);
     let requested=false;
     const loadCreative=()=>{
       if(requested)return;requested=true;
@@ -736,15 +887,16 @@ function addBillboards(records,creatives={}) {
         material.map=texture;material.color.set(0xffffff);material.needsUpdate=true;
       });
     };
-    for(let side=0;side<spec.sides;side++) {
+    for(let side=0;side<sides;side++) {
       const face=new THREE.Mesh(new THREE.PlaneGeometry(spec.width,spec.height),material);
-      face.position.set(0,spec.bottom+spec.height/2,side ? -.083 : .083);face.rotation.y=side ? Math.PI : 0;
+      face.position.set(0,bottom+spec.height/2,side ? -.083 : .083);face.rotation.y=side ? Math.PI : 0;
       face.userData={billboard:item,href,creativeLabel:creative?.label || "Mapped billboard; artwork not supplied",
         dimensionsBasis:spec.dimensionsBasis};face.onBeforeRender=loadCreative;
       group.add(face);billboardFaces.push(face);
     }
     group.userData={surface:"furniture:billboard",source:item.source,provenance:item.provenance,
       dimensionsBasis:spec.dimensionsBasis};groups.furniture.add(group);rendered++;
+    }
   }
   return rendered;
 }
@@ -759,6 +911,147 @@ function activateBillboard(raycaster) {
   if(blockers.some(other=>visible(other.object) && other.distance<hit.distance-.03))return false;
   const href=safeBillboardWebsite(hit.object.userData.href);if(!href)return false;
   window.open(href,"_blank","noopener,noreferrer");return true;
+}
+
+// ---- the smaller advertising: shelters' ends, kiosks and poster panels ---------------------------
+//
+// The artwork of the billboards (billboard-creatives.json), laid out again for each shape of face
+// (billboardTexture): a bus shelter's light box at its downstream end (SF's shelters carry one, as
+// the advertising that pays for them), the advertising columns and the poster panels mapped on the
+// pavements. Each is a light box: a satin face behind its glass, lit from within at night.
+const AD_LIGHT_BOX = { width: 1.18, height: 1.75 };       // a 4 by 6 ft poster's visible area
+const adKioskMaterial = new THREE.MeshStandardMaterial({ color: 0x1f3a33, roughness: 0.55, metalness: 0.45 });
+const adBoxMaterial = new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 });
+//: Faces of one size, many of them (a light box each): one instanced mesh to each artwork. Each
+//: placement is a face's centre {x, y, z, yaw, id} (its picture looks along +z turned by yaw);
+//: ``clip`` [x, z], where the thing it belongs to stands, keeps it with that thing at a window's
+//: edge (applyBoxClip, wholeClip). The picture is fetched the first time a face is drawn.
+function addAdFaceInstances(placements, width, height, creatives, surface, { whole = false, lit = 0.6, maxPx = 1024 } = {}) {
+  if (!placements.length) return 0;
+  const byArt = new Map();
+  for (const p of placements) {
+    const creative = adCreativeFor(p.id, creatives);
+    const key = creative?.sha256 || "";
+    if (!byArt.has(key)) byArt.set(key, { creative, list: [] });
+    byArt.get(key).list.push(p);
+  }
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), at = new THREE.Vector3();
+  for (const { creative, list } of byArt.values()) {
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const clip = whole ? new Float32Array(list.length * 2) : null;
+    if (clip) geometry.setAttribute("clipAt", new THREE.InstancedBufferAttribute(clip, 2));
+    // Satin print behind acrylic: a little sheen, no metal.
+    const material = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.32, metalness: 0 });
+    if (lit) nightLitFace(material, lit);
+    if (whole) material.userData.wholeClip = true;
+    const mesh = new THREE.InstancedMesh(geometry, material, list.length);
+    list.forEach((p, i) => {
+      mesh.setMatrixAt(i, m.compose(at.set(p.x, p.y, p.z), q.setFromAxisAngle(up, p.yaw), one));
+      if (clip) { clip[2 * i] = p.clip?.[0] ?? p.x; clip[2 * i + 1] = p.clip?.[1] ?? p.z; }
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.userData = { surface, liftedOntoGround: true, creative: creative?.label || null };
+    let requested = false;
+    mesh.onBeforeRender = () => {
+      if (requested) return;
+      requested = true;
+      billboardTexture(creative, width, height, maxPx)?.then((texture) => {
+        if (!texture) return;
+        material.map = texture; material.color.set(0xffffff); material.needsUpdate = true;
+      });
+    };
+    groups.furniture.add(mesh);
+  }
+  return placements.length;
+}
+//: A point ``(lx, ly, lz)`` in the frame of a thing at (x, y, z) turned ``yaw``, in the world.
+function framePoint(x, y, z, yaw, lx, ly, lz) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  return { x: x + lx * c + lz * s, y: y + ly, z: z - lx * s + lz * c };
+}
+//: A shelter's light box: the end panel at its downstream end (+x in its frame), across its
+//: depth, a face to each side -- one to the people inside it, one to the pavement ahead.
+//: (Its box is SHELTER_PARTS' "frame" at shelterAdBox(); STOP_SHELTER is declared below.)
+const shelterAdBox = () => ({ x: STOP_SHELTER.length / 2 - 0.04, y: 0.25 + 1.95 / 2 });
+function addShelterAdFaces(shelters, creatives) {
+  const faces = [], box = shelterAdBox();
+  for (const sh of shelters) {
+    const id = `shelter:${Math.round(sh.x)}:${Math.round(sh.z)}`;
+    for (const side of [1, -1]) {
+      const p = framePoint(sh.x, sh.y, sh.z, sh.yaw, box.x + side * 0.083, box.y, 0);
+      faces.push({ ...p, yaw: sh.yaw + side * Math.PI / 2, id, clip: [sh.x, sh.z] });
+    }
+  }
+  return addAdFaceInstances(faces, AD_LIGHT_BOX.width, AD_LIGHT_BOX.height, creatives, "furniture:shelter_ad", { whole: true }) / 2;
+}
+//: The advertising columns and poster panels OpenStreetMap maps on the pavements (advertising=
+//: column, board, poster_box), each as what it is:
+//:   a column -- a drum 1.2 m across and 2.4 m of picture round it, on a plinth, under a cap;
+//:   a panel -- a two-sided light box on two legs, square to the kerb so each face reads along
+//:   the pavement.
+const AD_COLUMN = { radius: 0.6, picture: 2.4, plinth: 0.3, cap: 0.16 };
+function addAdStructures(records, creatives) {
+  const panels = [];
+  let columns = 0;
+  const columnArt = new Map();
+  for (let i = 0; i < records.length; i += 1) {
+    const item = records[i];
+    const anchor = furnitureAnchor(item);
+    if (!anchor || buildingAt(anchor.x, anchor.z) || insideCarriageway(anchor.x, anchor.z, 0.1)) continue;
+    if (item.ad_kind === "column") {
+      const group = new THREE.Group();
+      group.position.set(anchor.x, anchor.y, anchor.z);
+      const { radius, picture, plinth, cap } = AD_COLUMN;
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(radius + 0.06, radius + 0.1, plinth, 24), adKioskMaterial);
+      base.position.y = plinth / 2; group.add(base);
+      const creative = adCreativeFor(item.id, creatives), key = creative?.sha256 || "";
+      if (!columnArt.has(key)) {
+        const material = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.32, metalness: 0 });
+        nightLitFace(material, 0.6);
+        let requested = false;
+        columnArt.set(key, { material, load: () => {
+          if (requested) return; requested = true;
+          billboardTexture(creative, Math.PI * 2 * radius, picture, 2048, 2)?.then((texture) => {
+            if (!texture) return; material.map = texture; material.color.set(0xffffff); material.needsUpdate = true;
+          });
+        } });
+      }
+      const art = columnArt.get(key);
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, picture, 32, 1, true), art.material);
+      drum.position.y = plinth + picture / 2; drum.onBeforeRender = art.load; group.add(drum);
+      const lid = new THREE.Mesh(new THREE.CylinderGeometry(radius + 0.12, radius + 0.04, cap, 24), adKioskMaterial);
+      lid.position.y = plinth + picture + cap / 2; group.add(lid);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.8, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), adKioskMaterial);
+      dome.scale.y = 0.45; dome.position.y = plinth + picture + cap; group.add(dome);
+      group.rotation.y = furnitureBearing(item, i, anchor);
+      group.userData = { surface: "furniture:ad_column", source: item.source, provenance: item.provenance };
+      groups.furniture.add(group);
+      columns += 1;
+      continue;
+    }
+    // Square to the kerb: the faces look up and down the pavement.
+    const yaw = furnitureBearing(item, i, anchor) + Math.PI / 2;
+    const ax = Math.sin(yaw), az = Math.cos(yaw);
+    if (buildingAt(anchor.x + ax * 0.6, anchor.z + az * 0.6) || buildingAt(anchor.x - ax * 0.6, anchor.z - az * 0.6)) continue;
+    const group = new THREE.Group();
+    group.position.set(anchor.x, anchor.y, anchor.z);
+    group.rotation.y = yaw;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(AD_LIGHT_BOX.width + 0.14, AD_LIGHT_BOX.height + 0.16, 0.14), adBoxMaterial);
+    box.position.y = 0.55 + AD_LIGHT_BOX.height / 2; group.add(box);
+    for (const sx of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.08), adBoxMaterial);
+      leg.position.set(sx * (AD_LIGHT_BOX.width / 2 - 0.12), 0.275, 0); group.add(leg);
+    }
+    group.userData = { surface: "furniture:ad_panel", source: item.source, provenance: item.provenance };
+    groups.furniture.add(group);
+    for (const side of [1, -1]) {
+      const p = framePoint(anchor.x, anchor.y, anchor.z, yaw, 0, 0.55 + AD_LIGHT_BOX.height / 2, side * 0.073);
+      panels.push({ ...p, yaw: side > 0 ? yaw : yaw + Math.PI, id: item.id });
+    }
+  }
+  addAdFaceInstances(panels, AD_LIGHT_BOX.width, AD_LIGHT_BOX.height, creatives, "furniture:ad_panel");
+  return { columns, panels: panels.length / 2 };
 }
 
 //: A public bench: the seat, its back, and the two legs under it. Measured off the ones on
@@ -818,8 +1111,9 @@ function addBenches(records) {
   return anchors.length;
 }
 
-function addMuniShelters(records) {
+function addMuniShelters(records, creatives = {}) {
   let added = 0;
+  const adFaces = [];
   for (let i = 0; i < records.length; i += 1) {
     const item = records[i];
     const anchor = furnitureAnchor(item);
@@ -832,11 +1126,17 @@ function addMuniShelters(records) {
     boxPart(group, -MUNI_SHELTER_LENGTH_M / 2 + 0.15, MUNI_SHELTER_HEIGHT_M / 2, -MUNI_SHELTER_DEPTH_M / 2, 0.08, MUNI_SHELTER_HEIGHT_M, 0.08, 0x9aa1a3, 0.46);
     boxPart(group, MUNI_SHELTER_LENGTH_M / 2 - 0.15, MUNI_SHELTER_HEIGHT_M / 2, -MUNI_SHELTER_DEPTH_M / 2, 0.08, MUNI_SHELTER_HEIGHT_M, 0.08, 0x9aa1a3, 0.46);
     boxPart(group, -MUNI_SHELTER_LENGTH_M / 2 + 0.5, 1.2, MUNI_SHELTER_DEPTH_M / 2 + 0.012, 1.2, 1.8, 0.035, 0xffffff, 0.35);
+    // The light box's two faces, the rotation's artwork on them (addAdFaceInstances).
+    for (const side of [1, -1]) {
+      const p = framePoint(anchor.x, anchor.y, anchor.z, yaw, -MUNI_SHELTER_LENGTH_M / 2 + 0.5, 1.2, MUNI_SHELTER_DEPTH_M / 2 + 0.012 + side * 0.019);
+      adFaces.push({ ...p, yaw: side > 0 ? yaw : yaw + Math.PI, id: item.id || `shelter:${i}` });
+    }
     boxPart(group, 0.3, 0.45, 0.25, 2.6, 0.16, 0.42, 0x546068, 0.66);
     group.userData = { source: item.source, provenance: item.provenance, spec: item.spec };
     groups.furniture.add(group);
     added += 1;
   }
+  addAdFaceInstances(adFaces, 1.14, 1.74, creatives, "furniture:shelter_ad");
   return added;
 }
 
@@ -879,6 +1179,8 @@ const SHELTER_PARTS = [
   ["frame", -1.4, 0.23, -STOP_SHELTER.depth / 2 + 0.28, 0.06, 0.46, 0.36],
   ["frame", 0.6, 0.23, -STOP_SHELTER.depth / 2 + 0.28, 0.06, 0.46, 0.36],
   ["panel", STOP_SHELTER.length / 2 - 0.6, 1.25, -STOP_SHELTER.depth / 2 + 0.03, 1.0, 1.7, 0.05],
+  // The advertising light box across the downstream end (its faces: addShelterAdFaces).
+  ["frame", STOP_SHELTER.length / 2 - 0.04, 0.25 + 1.95 / 2, 0, 0.14, 1.95, 1.32],
 ];
 const BENCH_PARTS = [
   ["seat", 0, 0.46, 0, 1.8, 0.05, 0.45],
@@ -959,7 +1261,7 @@ function streetSquareKerb(kerb) {
   const fx = kerb.x - kerb.nx * kerb.half, fz = kerb.z - kerb.nz * kerb.half;
   return { ...kerb, nx, nz, x: fx + nx * kerb.half, z: fz + nz * kerb.half };
 }
-function addTransitStops(transit) {
+function addTransitStops(transit, creatives = {}) {
   const stops = (transit.stops || []).filter((stop) => Number.isFinite(stop.lon) && Number.isFinite(stop.lat));
   const shelters = [], benches = [], poles = [], islands = [];
   const borders = [], texts = [];
@@ -1025,11 +1327,34 @@ function addTransitStops(transit) {
     // Facing the road: the shelter's open side, the bench's seat.
     const yaw = Math.atan2(-nx, -nz);
     poles.push(item);
+    // A shelter where its whole roof fits between the kerb and the frontage. Only its middle
+    // was asked before, and on a narrow pavement its back half stood in the building behind it:
+    // the wall cut the shelter off at the glass. Tried a little nearer the kerb and up or down
+    // the kerb from the pole; where none fits, the stop has a bench.
+    let shelterAt = null;
     if (stop.physical === "shelter") {
-      // The shelter stands back from the kerb by its own depth, upstream of the pole.
-      const sx = anchor.x + nx * (STOP_SHELTER.depth / 2 + 0.25) - dx * 3.0, sz = anchor.z + nz * (STOP_SHELTER.depth / 2 + 0.25) - dz * 3.0;
-      if (!buildingAt(sx, sz) && !insideCarriageway(sx, sz, 0.1)) shelters.push({ x: sx, y: anchor.y, z: sz, yaw });
-    } else if (stop.physical === "bench") {
+      // The walls are asked with a pad: a building's garage doors and shopfront stand proud of
+      // the outline buildingAt knows, by most of a metre at Lombard and Steiner. The road is
+      // asked at the roof's own edge.
+      const pad = 0.6, halfL = STOP_SHELTER.length / 2 + 0.1, halfD = (STOP_SHELTER.depth + 0.25) / 2;
+      const fits = (sx, sz) => {
+        const at = (a, b) => [sx + dx * a - nx * b, sz + dz * a - nz * b];   // a along the kerb, b towards the road
+        for (const a of [-halfL, -halfL / 2, 0, halfL / 2, halfL]) for (const b of [-halfD, 0, halfD]) {
+          if (insideCarriageway(...at(a, b), 0.1)) return false;
+        }
+        for (const a of [-halfL - pad, -halfL / 2, 0, halfL / 2, halfL + pad]) for (const b of [-halfD - pad, -halfD, 0, halfD]) {
+          if (buildingAt(...at(a, b))) return false;
+        }
+        return true;
+      };
+      search: for (const back of [STOP_SHELTER.depth / 2 + 0.25, STOP_SHELTER.depth / 2 + 0.1])
+        for (const along of [3.0, 4.5, 1.5, 6.0, 0, -1.5, 7.5]) {
+          const sx = anchor.x + nx * back - dx * along, sz = anchor.z + nz * back - dz * along;
+          if (fits(sx, sz)) { shelterAt = { x: sx, y: anchor.y, z: sz, yaw }; break search; }
+        }
+      if (shelterAt) shelters.push(shelterAt);
+    }
+    if (stop.physical === "bench" || (stop.physical === "shelter" && !shelterAt)) {
       const bx = anchor.x + nx * 0.6 - dx * 1.8, bz = anchor.z + nz * 0.6 - dz * 1.8;
       if (!buildingAt(bx, bz) && !insideCarriageway(bx, bz, 0.1)) benches.push({ x: bx, y: anchor.y, z: bz, yaw });
     }
@@ -1096,6 +1421,7 @@ function addTransitStops(transit) {
     poles: addStreetFurniturePosts(poles),
     flags: addInstancedFurniturePanels(poles, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
     shelters: instanceParts(SHELTER_PARTS, shelters, "furniture:shelter"),
+    shelter_ads: addShelterAdFaces(shelters, creatives),
     benches: instanceParts(BENCH_PARTS, benches, "furniture:bench"),
     islands: instanceParts([["island", 0, 0.12, 0, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.25, 2 * STOP_ISLAND_HALF_M],
       ["islandEdge", 0, 0.251, STOP_ISLAND_HALF_M - 0.1, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.01, 0.3]], islands, "furniture:shelter"),

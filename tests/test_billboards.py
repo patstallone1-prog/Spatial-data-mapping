@@ -109,7 +109,9 @@ def test_clicks_only_visible_unoccluded_faces_and_support_attached_regions():
 def test_billboard_path_replaces_tiny_ad_panel_and_keeps_clicks_before_walking():
     source = _page_js()
     assert "billboards: addBillboards(billboards,creatives)" in source
-    assert "const posts = stops.concat(smallAds)" in source
+    # The small advertising stands on its own feet (addAdStructures), not on a sign post.
+    assert "const posts = stops;" in source
+    assert "ad_panels: addAdStructures(smallAds, creatives)" in source
     assert "if(e.button===0 && activateBillboard(ray))return;" in source
     assert "billboardFaces," in source
 
@@ -126,7 +128,7 @@ def test_two_sided_wall_board_has_real_dimensions_and_independent_faces():
         MeshStandardMaterial:class{constructor(options){Object.assign(this,options);}},FrontSide:'front'};
       const groups={furniture:new Group()},billboardFrameMaterial={},billboardFaces=[];
       function billboardAnchor(){return {x:12,y:7,z:4};}function furnitureBearing(){return 0;}
-      function billboardTexture(){return null;}
+      function billboardTexture(){return null;}function adCreativeFor(){return null;}function nightLitFace(){}
       const count=addBillboards([{id:'osm:ad_panel:node:1',ad_kind:'billboard',p:[0,0],
         display_geometry:{width_m:4,height_m:3,bottom_m:2,sides:2,support:'wall_mounted',azimuth_deg:90}}]);
       const board=groups.furniture.children[0];

@@ -93,6 +93,7 @@ function fillRoadwayToKerbs() {
     if (cur.island && prev.island) {
       const top = ROAD_TOP_M + MEDIAN_KERB_M;
       quad(island, ring, top, 4);
+      stampPavedRing(ring, top);
       face(island, prev.a, cur.a, top, ROAD_TOP_M);
       face(island, cur.b, prev.b, top, ROAD_TOP_M);
       counts.islands += 1;
@@ -258,6 +259,9 @@ function addClosedOfficialIslandSurfaces() {
     const mesh = new THREE.Mesh(geometry, surfaceMaterial("walk", 0xffffff, 1.0));
     mesh.userData.surface = "median";
     addMerged("median:official-closed-island", mesh, "median");
+    // Stood on at its top, as the tree islands are: without it the walker stood at the road's
+    // height inside the slab, its feet 13 cm into the island (Fillmore and Bay, 2026-11-14).
+    stampPavedRing(ring, ROAD_TOP_M + MEDIAN_KERB_M + 0.006);
     laid += 1;
   }
   return laid;

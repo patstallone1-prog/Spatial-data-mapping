@@ -20,6 +20,7 @@ import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
+import { clockOf, fleetTime } from "./clock.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
@@ -32,6 +33,8 @@ import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, 
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
+import { commercePanels } from "./commerce-panels.mjs";
+import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_SELF = "kerbside:city:self";
@@ -78,6 +81,13 @@ function mergeGeos(geos) {
   const out = new parts[0].constructor();
   out.setAttribute("position", new parts[0].attributes.position.constructor(pos, 3));
   out.setAttribute("normal", new parts[0].attributes.position.constructor(nor, 3));
+  // A person's part (toneMaterial): which of its colours each piece takes -- kept through the merge.
+  if (parts.some((g) => g.attributes.tonePart)) {
+    const part = new Float32Array(n);
+    let k = 0;
+    for (const g of parts) { const c = g.attributes.position.count; if (g.attributes.tonePart) part.set(g.attributes.tonePart.array, k); k += c; }
+    out.setAttribute("tonePart", new parts[0].attributes.position.constructor(part, 1));
+  }
   return out;
 }
 //: People's shapes: adults' heights from the bell curve of the CDC/NCHS anthropometric reference
@@ -113,9 +123,34 @@ export function bodyFor(person, cache) {
   }
   const grey = age > 55 && r() < 0.6;
   b = { height, build, female, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
+  b.outfit = outfitFor(person, b);
   if (cache.size > 20000) cache.clear();
   cache.set(person.id, b);
   return b;
+}
+//: What a person has on below the shirt (the shirt is their ``uniform`` colour): long trousers,
+//: shorts or a skirt; long or short sleeves; shoes; hair short, to the collar or long. From a
+//: stream of their own (``outfit``), so the body's draws -- heights, builds -- are as they were.
+//: San Francisco is cool: shorts are few, short sleeves a third. Someone in a work uniform (a
+//: role) is in its trousers and long sleeves.
+const BOTTOMS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b", "#33507a", "#41618f", "#7a6a55", "#c2b59b"];
+const SHOES = ["#1b1b1d", "#2a211b", "#3b2a1e", "#1f2430", "#e8e6e1", "#8a8f99"];
+export const OUTFIT_SHARES = { shorts: 0.12, skirt_female: 0.3, short_sleeves: 0.34, long_hair_female: 0.62, long_hair_male: 0.08, collar_hair: 0.22 };
+export function outfitFor(person, body) {
+  const r = rng(person.id || "?", "outfit"), S = OUTFIT_SHARES;
+  const work = Boolean(person.role);
+  const draw = r(), sleeve = r(), hairDraw = r(), shoe = r(), colour = r();
+  const bottom = work ? "trousers"
+    : body.female && draw < S.skirt_female ? "skirt"
+    : draw > 1 - S.shorts ? "shorts" : "trousers";
+  const long = body.female ? S.long_hair_female : S.long_hair_male;
+  return {
+    bottom,
+    bottoms: BOTTOMS[Math.floor(colour * BOTTOMS.length)],
+    sleeves: !work && sleeve < S.short_sleeves ? "short" : "long",
+    shoes: SHOES[Math.floor(shoe * SHOES.length)],
+    hair: body.bald ? "none" : hairDraw < long ? "long" : hairDraw < long + S.collar_hair ? "collar" : "short",
+  };
 }
 //: What you are worth, from your status (world.mjs cmd_status): the money in your account and on
 //: your FasTrak tag, what you own (cars at what they cost you, buildings and homes at their
@@ -173,7 +208,6 @@ export function signalShown(streets, node, yaw, tsec) {
   return node === null || node === undefined ? null : signalAt(streets, node, Math.atan2(-Math.sin(yaw), -Math.cos(yaw)), tsec);
 }
 const SKIN = ["#f1c9a5", "#e0ac7e", "#c68c5c", "#a26c45", "#7d4f32", "#5a3824", "#f6d8bf", "#d29b6c"];
-const TROUSERS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b"];
 
 const store = {
   get(key) { try { return JSON.parse(globalThis.localStorage?.getItem(key) || "null"); } catch { return null; } },
@@ -185,6 +219,10 @@ export async function startCity(ctx) {
   const R = loadRules(await fetch(ctx.asset("city/rules.json"), { cache: "no-cache" }).then((r) => r.json()));
   // The counties' and towns' real outlines (scripts/build_jurisdictions.py), when they come.
   fetch(ctx.asset("city/jurisdictions.json")).then((r) => (r.ok ? r.json() : null)).then((b) => { if (b?.counties) R.boundaries = b; }).catch(() => {});
+  // What things look like (docs/city/objects.json, scripts/build_city_objects.mjs): each item's
+  // model from the user's object lab, fetched the first time it is seen.
+  const OBJ = await fetch(ctx.asset("city/objects.json")).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const kit = OBJ && ctx.loadModel ? objectKit(THREE, ctx, OBJ, R) : null;
   const tolls = await fetch(ctx.asset("highway-tolls.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const gantries = (tolls?.tolls || []).filter((t) => t.kind === "toll_gantry" && Array.isArray(t.p)).map((t) => {
     const [x, z] = ctx.fromLonLat(t.p[0], t.p[1]);
@@ -210,6 +248,14 @@ export async function startCity(ctx) {
 
   const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
+  // The game's clock (clock.mjs): a day in 72 real minutes. ``gameNow()`` is what the books and
+  // the clock on the bar read; the fleet works in real minutes from the game day's start
+  // (``fleetAt``), so people and cars move at real speed through a day planned by the game's hours.
+  const CLOCK = clockOf(R);
+  const gameNow = (ms = Date.now()) => CLOCK.game(ms);
+  const fleetAt = (ms) => fleetTime(CLOCK, ms, R.clock.zone);
+  //: Real minutes until game time ``gameMs`` (a deadline, as you live it).
+  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - Date.now()) / 60000;
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
@@ -292,11 +338,12 @@ export async function startCity(ctx) {
       const t0 = performance.now(), n = streets.calibrate((x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6));
       ctx.log?.(`kerbside: ${n} streets' widths taken from the drawn kerbs in ${Math.round(performance.now() - t0)} ms`);
     }
-    if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt, harm, delay });
+    if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt: fleetAt, harm, delay });
     else district.city.setStreets(streets);
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
     if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking });
+    district.rackCount = -1; syncRacks(0);
     if (!district.drivers) district.drivers = new Drivers(streets, { ...TRAFFIC, main_green_share: R.traffic?.main_green_share ?? 0.5 });
     else { district.drivers.streets = streets; district.drivers.cars.clear(); district.drivers.boxes.clear(); district.drivers.claims.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
@@ -313,6 +360,17 @@ export async function startCity(ctx) {
     makeLines();
     drawCameras();
     ctx.log?.(`kerbside: the living city in ${region}: ${roster.people.size} residents, ${roster.vehicles.size} vehicles (${roster.visitors.size} visitors'), ${roster.places.size} places, ${streets.size} street nodes`);
+  }
+  //: The bicycle racks the world has drawn (ctx.bikeRacks: module 21), given to the city when
+  //: they come or change -- the furniture is drawn after the streets, a while after the district.
+  function syncRacks(now) {
+    if (!ctx.bikeRacks || !district.city || now - (district.racksAt || -1e9) < 2000) return;
+    district.racksAt = now;
+    const racks = ctx.bikeRacks() || [];
+    if (racks.length === district.rackCount) return;
+    district.rackCount = racks.length;
+    district.city.setRacks(racks);
+    ctx.log?.(`kerbside: ${racks.length} bicycle racks for the city's riders`);
   }
   //: The bus lines through the district: the real routes' stops near its streets.
   function makeLines() {
@@ -408,20 +466,101 @@ export async function startCity(ctx) {
   const lambert = (opts) => new THREE.MeshLambertMaterial(opts);
   const MAX_PEOPLE = 700, MAX_CARS = 320;
   const box = (w, h, d, y = 0, x = 0) => new THREE.BoxGeometry(w, h, d).translate(x, y, 0);
-  const torsoGeo = box(0.4, 0.58, 0.23, 1.08);
-  const headGeo = new THREE.SphereGeometry(0.115, 10, 8).translate(0, 1.53, 0);
-  const legGeo = box(0.15, 0.82, 0.16, -0.41);    // hangs from the hip
-  const armGeo = box(0.1, 0.6, 0.11, -0.3);       // hangs from the shoulder
-  // Shoes: the foot of each leg darker, by vertex colour (the trousers' instance colour times it),
-  // so they cost no part of their own. Hair: a cap over the head, one more instanced part.
-  {
-    const pos = legGeo.attributes.position, col = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i += 1) { const v = pos.getY(i) < -0.74 ? 0.28 : 1; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v; }
-    legGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  }
-  const hairGeo = new THREE.SphereGeometry(0.125, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55).translate(0, 1.545, 0.012);
   const mk = (geo, max, opts = {}) => { const m = new THREE.InstancedMesh(geo, lambert({ color: 0xffffff, ...opts }), max); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.castShadow = false; group.add(m); return m; };
-  const parts = { torso: mk(torsoGeo, MAX_PEOPLE), head: mk(headGeo, MAX_PEOPLE), hair: mk(hairGeo, MAX_PEOPLE), legL: mk(legGeo, MAX_PEOPLE, { vertexColors: true }), legR: mk(legGeo, MAX_PEOPLE, { vertexColors: true }), armL: mk(armGeo, MAX_PEOPLE), armR: mk(armGeo, MAX_PEOPLE) };
+  // ---- the people drawn in full: a human shape, dressed -------------------------------------
+  // They were boxes -- a box torso, a ball head, box limbs, all one colour each (2026-11-14: "more
+  // realistic"). Now each part is turned on a lathe from a profile -- hips, waist, chest and
+  // shoulders; a tapered arm with a hand; a leg narrowing to the ankle and a shoe -- a few hundred
+  // triangles a person, still seven instanced parts and the poses as they were. Each part takes
+  // two colours and an accent per person (toneMaterial): a leg is the trousers' colour above the
+  // hem and skin below it (shorts), its shoe the shoes'; an arm the sleeve's down to its cuff, the
+  // hand skin; the torso the shirt down to the belt, then the trousers. A skirt is one more part,
+  // and the hair is cut to its length (short, to the collar, long) where it falls.
+  const lathe = (profile, segs, sz = 1) => new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), segs).scale(1, 1, sz);
+  const piece = (geo, part = 0) => {
+    const g = geo.index ? geo.toNonIndexed() : geo;
+    g.setAttribute("tonePart", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(part), 1));
+    return g;
+  };
+  // Hips at 0.84 (where the legs hang), the belt at 0.93, the shoulders at 1.34 (where the arms do).
+  const torsoGeo = mergeGeos([piece(lathe([[0.001, 0.8], [0.165, 0.81], [0.175, 0.9], [0.152, 1.02], [0.172, 1.14], [0.19, 1.26], [0.2, 1.32], [0.14, 1.385], [0.055, 1.405], [0.001, 1.41]], 10, 0.62))]);
+  // The head: a little longer than wide, a neck, a nose to tell which way it looks (-z, ahead).
+  const headGeo = mergeGeos([
+    piece(new THREE.SphereGeometry(0.108, 12, 9).scale(0.9, 1.14, 1).translate(0, 1.54, 0)),
+    piece(new THREE.CylinderGeometry(0.048, 0.055, 0.14, 8, 1, true).translate(0, 1.4, 0.005)),
+    piece(new THREE.BoxGeometry(0.026, 0.04, 0.03).translate(0, 1.525, -0.1)),
+    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(-0.096, 1.54, 0.005)),
+    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(0.096, 1.54, 0.005)),
+  ]);
+  // A leg from the hip (y 0) to the sole (-0.84): thigh, knee, calf, ankle; the shoe ahead of it.
+  const legGeo = mergeGeos([
+    piece(lathe([[0.001, 0.03], [0.07, 0.01], [0.074, -0.12], [0.062, -0.38], [0.052, -0.45], [0.056, -0.56], [0.04, -0.74], [0.036, -0.77], [0.001, -0.78]], 8)),
+    piece(new THREE.BoxGeometry(0.088, 0.075, 0.23).translate(0, -0.8, -0.045), 2),
+    piece(new THREE.SphereGeometry(0.045, 6, 4).scale(1, 0.75, 1.1).translate(0, -0.79, -0.15), 2),
+  ]);
+  // An arm from the shoulder (y 0): upper arm, elbow, forearm to the wrist (-0.52), the hand skin.
+  const armGeo = mergeGeos([
+    piece(lathe([[0.001, 0.045], [0.052, 0.02], [0.054, -0.04], [0.046, -0.27], [0.042, -0.3], [0.036, -0.5], [0.031, -0.525], [0.001, -0.53]], 7)),
+    piece(new THREE.SphereGeometry(0.04, 6, 5).scale(0.62, 1.35, 1).translate(0, -0.575, -0.005), 1),
+  ]);
+  // Hair: a cap over the crown, and behind it what falls -- to the collar, or the shoulders --
+  // cut per person at their hair's length (TONE_TRIM: what is below the cut is not drawn).
+  const hairGeo = mergeGeos([
+    piece(new THREE.SphereGeometry(0.118, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.56).scale(0.94, 1.1, 1.04).translate(0, 1.548, 0.008)),
+    piece(new THREE.CylinderGeometry(0.112, 0.13, 0.3, 10, 3, true, -Math.PI / 2 - 0.15, Math.PI + 0.3).translate(0, 1.4, 0.035)),
+  ]);
+  // A skirt: from the belt to the knee, flared.
+  const skirtGeo = mergeGeos([piece(new THREE.CylinderGeometry(0.168, 0.24, 0.44, 12, 1, true).scale(1, 1, 0.72).translate(0, 0.7, 0))]);
+  //: The material that dresses a part: per person ``tonePrimary`` (the cloth), ``toneSecond`` (rgb:
+  //: skin or the trousers; w: the cut, in the part's own height, below which it shows) and
+  //: ``toneAccent`` (shoes); per vertex ``tonePart`` (0 cloth to the cut, 1 always the second, 2
+  //: the accent). ``trim``: what is below the cut is left out (hair).
+  const toneMaterial = (trim = false) => {
+    const m = lambert({ color: 0xffffff, side: trim ? THREE.DoubleSide : THREE.FrontSide });
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader
+        .replace("#include <common>", "#include <common>\nattribute vec3 tonePrimary; attribute vec4 toneSecond; attribute vec3 toneAccent; attribute float tonePart;\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTP = tonePrimary; vTS = toneSecond; vTA = toneAccent; vTPart = tonePart; vTY = position.y;");
+      sh.fragmentShader = sh.fragmentShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY;")
+        .replace("#include <color_fragment>", trim
+          ? "if (vTY < vTS.w) discard;\ndiffuseColor.rgb *= vTP;"
+          : "diffuseColor.rgb *= vTPart > 1.5 ? vTA : ((vTPart > 0.5 || vTY < vTS.w) ? vTS.rgb : vTP);");
+    };
+    m.customProgramCacheKey = () => (trim ? "kerbside-tone-trim" : "kerbside-tone");
+    return m;
+  };
+  const TONE_MAT = toneMaterial(), TRIM_MAT = toneMaterial(true);
+  // At night a faint rim of light round each figure (the page's nightRim), so nobody is lost
+  // against a dark street.
+  if (ctx.nightRim) { ctx.nightRim(TONE_MAT); ctx.nightRim(TRIM_MAT); }
+  //: A dressed part: its own copy of the shape (the per-person colours live on it) and its colours.
+  const mkTone = (geo, max, trim = false) => {
+    const g = geo.clone();
+    g.setAttribute("tonePrimary", new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute("toneSecond", new THREE.InstancedBufferAttribute(new Float32Array(max * 4), 4).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute("toneAccent", new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    const m = new THREE.InstancedMesh(g, trim ? TRIM_MAT : TONE_MAT, max);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.castShadow = false; m.userData.tone = true;
+    group.add(m);
+    return m;
+  };
+  const TONE_A = new THREE.Color(), TONE_B = new THREE.Color(), TONE_C = new THREE.Color();
+  //: Person ``i`` of ``mesh`` in ``primary``, ``second`` below ``cut`` (or where the part says), ``accent``.
+  const dressAt = (mesh, i, primary, second, cut, accent) => {
+    const a = mesh.geometry.attributes;
+    TONE_A.set(primary); TONE_B.set(second ?? primary); TONE_C.set(accent ?? primary);
+    a.tonePrimary.setXYZ(i, TONE_A.r, TONE_A.g, TONE_A.b);
+    a.toneSecond.setXYZW(i, TONE_B.r, TONE_B.g, TONE_B.b, cut ?? -99);
+    a.toneAccent.setXYZ(i, TONE_C.r, TONE_C.g, TONE_C.b);
+  };
+  const toneDone = (mesh) => { const a = mesh.geometry.attributes; a.tonePrimary.needsUpdate = a.toneSecond.needsUpdate = a.toneAccent.needsUpdate = true; };
+  const parts = { torso: mkTone(torsoGeo, MAX_PEOPLE), head: mkTone(headGeo, MAX_PEOPLE), hair: mkTone(hairGeo, MAX_PEOPLE, true), legL: mkTone(legGeo, MAX_PEOPLE), legR: mkTone(legGeo, MAX_PEOPLE), armL: mkTone(armGeo, MAX_PEOPLE), armR: mkTone(armGeo, MAX_PEOPLE) };
+  const skirts = mkTone(skirtGeo, MAX_PEOPLE);
+  for (const [k, m] of Object.entries(parts)) m.name = `city-people-${k}`;
+  skirts.name = "city-people-skirt";
+  //: Where the hair is cut (y of the hair's own shape, head at 1.54): to the ears, the collar, the shoulders.
+  const HAIR_CUT = { short: 1.5, collar: 1.39, long: 1.255, none: 9 };
   // Bicycles: the Voltage MTB's LOD3 (vehicles.mjs BIKE), its wheels, crank and pedals turning as
   // it is ridden (drawBikes); at the low tier, and until that has loaded, two wheels and a frame
   // built here, one instanced mesh. Their riders are drawn as people, on the saddle (riderPose).
@@ -442,6 +581,21 @@ export async function startCity(ctx) {
   })();
   const bikeMesh = mk(bikeFarGeo, MAX_BIKES);
   bikeMesh.name = "city-bikes-low";
+  // A U-lock on each bicycle locked to a rack (fleet.mjs rackSlot): a hardened steel shackle round
+  // the rack's leg and the seat tube, and its crossbar, rubber-sleeved, closing it. Lying level at
+  // the lock's place (``lock`` {x, y, z, yaw}: its shackle reaching along +z turned by yaw).
+  const LOCK_W = 0.1, LOCK_L = 0.2, LOCK_PIPE = 0.008, LOCK_UP = new THREE.Vector3(0, 1, 0);
+  const lockShackle = new THREE.InstancedMesh(mergeGeos([
+    ...[-1, 1].map((sx) => new THREE.CylinderGeometry(LOCK_PIPE, LOCK_PIPE, LOCK_L, 6).rotateX(Math.PI / 2).translate(sx * LOCK_W / 2, 0, 0)),
+    new THREE.TorusGeometry(LOCK_W / 2, LOCK_PIPE, 6, 12, Math.PI).rotateX(Math.PI / 2).translate(0, 0, LOCK_L / 2),
+  ]), new THREE.MeshStandardMaterial({ color: 0xc8ccce, roughness: 0.28, metalness: 0.9 }), MAX_BIKES);
+  const lockBar = new THREE.InstancedMesh(mergeGeos([
+    new THREE.CylinderGeometry(0.018, 0.018, LOCK_W + 0.07, 10).rotateZ(Math.PI / 2).translate(0, 0, -LOCK_L / 2),
+    new THREE.CylinderGeometry(0.02, 0.02, 0.012, 10).rotateZ(Math.PI / 2).translate(LOCK_W / 2 + 0.04, 0, -LOCK_L / 2),
+  ]), new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.82, metalness: 0.05 }), MAX_BIKES);
+  for (const [m, name] of [[lockShackle, "city-bike-locks"], [lockBar, "city-bike-lock-bars"]]) {
+    m.name = name; m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(m);
+  }
   //: A rider's legs in two bones each, thigh and shin (the walking figure's are one piece from the
   //: hip): a unit long, hanging from the joint, stretched to the bone's length; the shin's foot
   //: darker, a shoe.
@@ -471,13 +625,19 @@ export async function startCity(ctx) {
   //: Moderate: the body in one part -- torso, the legs together, the arms at the sides -- and the
   //: head in another, its crown the hair's shade. Two parts, not seven, and nothing swings: at
   //: sixty metres and more a stride is a few pixels, and a walk reads from the body's bob.
-  const midBodyGeo = shadeByHeight(mergeGeos([box(0.4, 0.58, 0.23, 1.08), box(0.32, 0.82, 0.16, 0.41),
-    box(0.1, 0.6, 0.11, 1.04, -0.26), box(0.1, 0.6, 0.11, 1.04, 0.26)]), [[0.07, 0.28], [0.8, 0.5]]);
+  const midBodyGeo = mergeGeos([
+    piece(lathe([[0.001, 0.8], [0.17, 0.82], [0.155, 1.02], [0.195, 1.28], [0.12, 1.39], [0.001, 1.41]], 6, 0.62)),
+    piece(new THREE.CylinderGeometry(0.068, 0.042, 0.8, 5, 1, true).translate(-0.1, 0.46, 0)),
+    piece(new THREE.CylinderGeometry(0.068, 0.042, 0.8, 5, 1, true).translate(0.1, 0.46, 0)),
+    piece(box(0.085, 0.07, 0.22, 0.035, -0.1).translate(0, 0, -0.045), 2), piece(box(0.085, 0.07, 0.22, 0.035, 0.1).translate(0, 0, -0.045), 2),
+    piece(new THREE.CylinderGeometry(0.05, 0.036, 0.6, 5, 1, false).translate(-0.27, 1.06, 0)),
+    piece(new THREE.CylinderGeometry(0.05, 0.036, 0.6, 5, 1, false).translate(0.27, 1.06, 0)),
+  ]);
   const midHeadGeo = shadeByHeight(new THREE.SphereGeometry(0.12, 8, 6).translate(0, 1.53, 0), [[1.575, 1], [9, 0.3]]);
   //: Low: one block the person's height in their shirt's colour, legs darker -- a figure, at two
   //: hundred metres, and one part.
   const lowBodyGeo = shadeByHeight(mergeGeos([box(0.42, 1.4, 0.26, 0.7), box(0.2, 0.22, 0.2, 1.52)]), [[0.8, 0.55], [1.41, 1], [9, 0.85]]);
-  const midBody = mk(midBodyGeo, PEOPLE_CAPS[1], { vertexColors: true }), midHead = mk(midHeadGeo, PEOPLE_CAPS[1], { vertexColors: true });
+  const midBody = mkTone(midBodyGeo, PEOPLE_CAPS[1]), midHead = mk(midHeadGeo, PEOPLE_CAPS[1], { vertexColors: true });
   const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
   midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
   const bodies = new Map();
@@ -619,7 +779,7 @@ export async function startCity(ctx) {
     for (const q of seen) q.detail = q.p.detail ?? (detailNow ? detailNow.tier("people", q.p.x, q.p.z) : FULL);
     const [full, mid, low] = byTier(seen, PEOPLE_CAPS);
     drawPeopleSimpler(mid, low, now);
-    let n = 0, r = 0;
+    let n = 0, r = 0, k = 0;
     for (const { p, y } of full) {
       if (n >= MAX_PEOPLE) break;
       const body = bodyFor(p.person, bodies), s = body.height / 1.75;
@@ -644,8 +804,9 @@ export async function startCity(ctx) {
         bone(parts.armL, n, pose.shoulders[0], pose.hands[0], 0.6, s); bone(parts.armR, n, pose.shoulders[1], pose.hands[1], 0.6, s);
         bone(riderLegs.thighL, r, pose.hips[0], pose.knees[0], 1, s); bone(riderLegs.thighR, r, pose.hips[1], pose.knees[1], 1, s);
         bone(riderLegs.shinL, r, pose.knees[0], pose.feet[0], 1, s); bone(riderLegs.shinR, r, pose.knees[1], pose.feet[1], 1, s);
-        const trousers = TROUSERS[(hash32(p.id) >>> 5) % TROUSERS.length];
-        for (const m of Object.values(riderLegs)) m.setColorAt(r, C.set(trousers));
+        const o = body.outfit, skin = SKIN[hash32(p.id) % SKIN.length];
+        riderLegs.thighL.setColorAt(r, C.set(o.bottoms)); riderLegs.thighR.setColorAt(r, C);
+        riderLegs.shinL.setColorAt(r, C.set(o.bottom === "trousers" ? o.bottoms : skin)); riderLegs.shinR.setColorAt(r, C);
         r += 1;
       } else if (p.ride === "bike") {
         // (A rider without the bicycle to hand: the figure leant to the bars, legs turning.)
@@ -659,17 +820,29 @@ export async function startCity(ctx) {
         M.copy(lean).multiply(TM.makeTranslation(0.24, 1.34, 0)).multiply(RM.makeRotationX(-1.05)); parts.armR.setMatrixAt(n, M);
       } else {
         parts.torso.setMatrixAt(n, b); parts.head.setMatrixAt(n, b); parts.hair.setMatrixAt(n, b);
+        // A stride: the thigh forward and the knee a little bent shows as the leg's swing.
         set(parts.legL, -0.1, 0.84, swing); set(parts.legR, 0.1, 0.84, -swing);
-        set(parts.armL, -0.26, 1.34, -swing * 0.8); set(parts.armR, 0.26, 1.34, swing * 0.8);
+        // The arms hang a little out from the body and swing against the legs.
+        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(-swing * 0.8)); M.multiply(TM.makeRotationZ(-0.06)); parts.armL.setMatrixAt(n, M);
+        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(swing * 0.8)); M.multiply(TM.makeRotationZ(0.06)); parts.armR.setMatrixAt(n, M);
+        if (body.outfit.bottom === "skirt" && k < MAX_PEOPLE) {
+          skirts.setMatrixAt(k, b);
+          dressAt(skirts, k, body.outfit.bottoms);
+          k += 1;
+        }
       }
-      const h = hash32(p.id);
-      parts.torso.setColorAt(n, C.set(p.person.uniform)); parts.armL.setColorAt(n, C); parts.armR.setColorAt(n, C);
-      parts.head.setColorAt(n, C.set(SKIN[h % SKIN.length]));
-      parts.hair.setColorAt(n, body.bald ? C.multiplyScalar(0.92) : C.set(body.hair));
-      parts.legL.setColorAt(n, C.set(TROUSERS[(h >>> 5) % TROUSERS.length])); parts.legR.setColorAt(n, C);
+      const h = hash32(p.id), o = body.outfit, skin = SKIN[h % SKIN.length];
+      dressAt(parts.torso, n, p.person.uniform, o.bottoms, 0.93);
+      dressAt(parts.head, n, skin);
+      dressAt(parts.hair, n, body.hair, null, HAIR_CUT[o.hair]);
+      const hem = o.bottom === "shorts" ? -0.36 : o.bottom === "skirt" ? 0.2 : null;
+      dressAt(parts.legL, n, o.bottoms, skin, hem, o.shoes); dressAt(parts.legR, n, o.bottoms, skin, hem, o.shoes);
+      const cuff = o.sleeves === "short" ? -0.16 : null;
+      dressAt(parts.armL, n, p.person.uniform, skin, cuff); dressAt(parts.armR, n, p.person.uniform, skin, cuff);
       n += 1;
     }
-    for (const mesh of Object.values(parts)) { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+    skirts.count = k; skirts.instanceMatrix.needsUpdate = true; toneDone(skirts);
+    for (const mesh of Object.values(parts)) { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; if (mesh.userData.tone) toneDone(mesh); }
     for (const mesh of Object.values(riderLegs)) { mesh.count = r; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
     drawnTiers.people = [n, mid.length, low.length];
     return n;
@@ -698,7 +871,8 @@ export async function startCity(ctx) {
     for (const q of mid) {
       const b = place(q), h = hash32(q.p.id);
       midBody.setMatrixAt(m, b); midHead.setMatrixAt(m, b);
-      midBody.setColorAt(m, C.set(q.p.person.uniform));
+      const o = bodyFor(q.p.person, bodies).outfit;
+      dressAt(midBody, m, q.p.person.uniform, o.bottoms, 0.93, o.shoes);
       midHead.setColorAt(m, C.set(SKIN[h % SKIN.length]));
       m += 1;
     }
@@ -708,7 +882,7 @@ export async function startCity(ctx) {
       l += 1;
     }
     for (const [mesh, k] of [[midBody, m], [midHead, m], [lowBody, l]]) {
-      mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; if (mesh.userData.tone) toneDone(mesh);
     }
   }
   // ---- people on bicycles ----------------------------------------------------------------------
@@ -846,6 +1020,15 @@ export async function startCity(ctx) {
       put("crank", M.copy(BIKE_M).multiply(TM.makeTranslation(BIKE_AT.crankset.x, BIKE_AT.crankset.y, BIKE_AT.crankset.z)).multiply(RM.makeRotationX(crank)));
       for (const side of ["left", "right"]) { const [x, y, z] = pedalAt(side, crank); put(`pedal_${side}`, M.copy(BIKE_M).multiply(TM.makeTranslation(x, y, z))); }
     }
+    let locks = 0;
+    for (const b of bikes) {
+      if (!b.lock || b.v > 0.05 || locks >= MAX_BIKES) continue;
+      if (detailNow && detailNow.tier("people", b.x, b.z) !== FULL) continue;
+      M.compose(V.set(b.lock.x, groundAt(b.lock.x, b.lock.z) + 0.48, b.lock.z), Q.setFromAxisAngle(LOCK_UP, b.lock.yaw || 0), S3.set(1, 1, 1));
+      lockShackle.setMatrixAt(locks, M); lockBar.setMatrixAt(locks, M); locks += 1;
+    }
+    lockShackle.count = lockBar.count = locks;
+    lockShackle.instanceMatrix.needsUpdate = lockBar.instanceMatrix.needsUpdate = true;
     bikeMesh.count = n; bikeMesh.instanceMatrix.needsUpdate = true; if (bikeMesh.instanceColor) bikeMesh.instanceColor.needsUpdate = true;
     if (L) for (const part of Object.values(L)) { part.mesh.count = part.n; part.mesh.instanceMatrix.needsUpdate = true; if (part.mesh.instanceColor) part.mesh.instanceColor.needsUpdate = true; }
   }
@@ -1026,15 +1209,18 @@ export async function startCity(ctx) {
   function loadSolo() {
     const saved = store.get(SAVE_SOLO);
     try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved city could not be read", error); }
-    return new CityWorld(R, { now: Date.now(), seed: "solo" });
+    return new CityWorld(R, { now: gameNow(), seed: "solo" });
   }
   world = loadSolo(); view = world;
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
-  let enterpriseUI = null, messagesUI = null;
+  let enterpriseUI = null, messagesUI = null, commerceUI = null;
   //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
   const messages = () => (messagesUI ||= messagesPanel({ R, h, send, notify, me: () => myId, getView: () => view, placeArg,
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
     courtPlace: () => enterprise().courtPlace?.() }));
+  const commerce = () => (commerceUI ||= commercePanels({ R, h, notify, send, self, me, getView: () => view, placeArg, nearestPlace, openSide, drawSide, getSide: () => side,
+    people: () => visible.people, peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId),
+    openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
@@ -1127,7 +1313,7 @@ export async function startCity(ctx) {
     // Back to your own world, with yourself as the party left you.
     const self = (world || view)?.savedSelf?.(myId);
     party.session = null; world = loadSolo(); view = world;
-    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: Date.now() }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: Date.now() }); } }
+    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: world.now }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: world.now }); } }
     refresh();
   }
 
@@ -1247,7 +1433,7 @@ export async function startCity(ctx) {
         // What the car hit: the energy of the impact on it (a bench, a light, a bin).
         const kg = { car: 1500, truck: 2600, van: 2500, bus: 13000 }[car.spec.kind] || 1500;
         strikeKey(0.5 * kg * impact * impact);
-        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && Date.now() - r.fainted.at < 5000 ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
+        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(Date.now()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
       car.speed *= 0.2;
     }
@@ -1383,7 +1569,7 @@ export async function startCity(ctx) {
     }
     if (lanes && Math.abs(car.speed) > 2) {
       const hit = lanes.at(car.x, car.z, car.yaw);
-      const rule = hit?.managed ? lanes.rule(hit.seg, timeAt(now)) : null;
+      const rule = hit?.managed ? lanes.rule(hit.seg, timeAt(gameNow())) : null;
       const seg = hit?.managed && rule?.active ? hit.seg : null;
       if (seg !== car.laneSeg) { flushLane(); car.laneSeg = seg; car.laneRule = rule; car.laneKm = 0; car.laneSeen = null; }
       if (seg) {
@@ -1476,7 +1662,7 @@ export async function startCity(ctx) {
   function checkFainted() {
     const p = self();
     if (!p?.fainted || p.fainted.at <= body.faintSeen) return;
-    const first = body.faintSeen === 0 && Date.now() - p.fainted.at > 60_000;
+    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(Date.now());
     body.faintSeen = p.fainted.at;
     if (first) return;   // an old faint, from before this page
     if (car.active) { car.mesh?.removeFromParent(); car.mesh = null; car.active = false; }
@@ -1489,7 +1675,7 @@ export async function startCity(ctx) {
   // ---- things on the ground: found on the pavement, or put down ---------------------------------
   //: The district's found things today: a seeded few on its pavements, the same for the party.
   function foundToday() {
-    const day = timeAt(Date.now()).day;
+    const day = timeAt(gameNow()).day;
     if (district.foundDay === day || !district.streets) return district.found || [];
     const r = rng(district.key, "found", day);
     const nodes = district.streets.nodes, walk = [];
@@ -1497,7 +1683,11 @@ export async function startCity(ctx) {
     const pool = walk.length ? walk : nodes;
     district.found = pool.length ? Array.from({ length: R.found.per_district }, (_, i) => {
       const n = pool[Math.floor(r() * pool.length) % pool.length];
-      return { id: `found:${district.key}:${day}:${i}`, item: R.found.items[Math.floor(r() * R.found.items.length) % R.found.items.length], x: n.x + (r() - 0.5) * 1.6, z: n.z + (r() - 0.5) * 1.6, found: true };
+      const F = R.commerce?.outcomes?.found_containers, x = n.x + (r() - 0.5) * 1.6, z = n.z + (r() - 0.5) * 1.6;
+      // Now and then a box or bag left out (a clear-out, a move): what is in it is the world's,
+      // drawn once (commerce.mjs), the same for whoever opens it.
+      if (F && r() < F.share) return { id: `found:${district.key}:${day}:${i}`, item: F.kinds[Math.floor(r() * F.kinds.length) % F.kinds.length], x, z, found: true, box: true };
+      return { id: `found:${district.key}:${day}:${i}`, item: R.found.items[Math.floor(r() * R.found.items.length) % R.found.items.length], x, z, found: true };
     }) : [];
     district.foundDay = day;
     return district.found;
@@ -1525,17 +1715,53 @@ export async function startCity(ctx) {
   thingRing.count = 0; thingRing.frustumCulled = false; thingRing.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   group.add(thingMesh, thingRing);
   const thingColour = (id) => { const it = R.items[id] || {}; return it.use?.health > 0 && !it.use?.stamina ? "#e2483d" : it.use?.stamina ? "#e8a33b" : it.tool || it.material ? "#8b949c" : it.wear ? "#8e5bb5" : "#3c8fd6"; };
+  //: Things lying near enough to see are their own models, lying on the ground (objects.mjs):
+  //: one copy each, at the detail their size on screen needs; the rest, and those with no model,
+  //: are the marker block. The yellow ring stays, to find them by.
+  const lyingGroup = new THREE.Group(); lyingGroup.name = "city-lying"; group.add(lyingGroup);
+  const lying = new Map();   // thing id -> { holder, sku, tier }
+  const LYING_M = 40;
+  function drawLying(list) {
+    const cam = ctx.camera?.(), at = me(), seen = new Set();
+    const viewH = globalThis.innerHeight || 900, fov = cam?.fov || 60;
+    for (const t of list) {
+      const sku = t.look || t.item;
+      if (!kit || !bindingOf(OBJ, sku) || t.d > LYING_M) continue;
+      const size = R.items[t.item]?.length_m || 0.3;
+      const d = cam ? Math.hypot(cam.position.x - t.x, cam.position.z - t.z) : t.d;
+      const was = lying.get(t.id);
+      const tier = tierFor(projectedPx(size, d, fov, viewH), was?.tier || null, OBJ.lod);
+      if (tier === "cull") continue;
+      seen.add(t.id);
+      if (was && was.tier === tier && was.sku === sku) continue;
+      if (was) was.holder.removeFromParent();
+      const holder = new THREE.Group();
+      // Each lies its own way round (by its id), on the ground where it is.
+      holder.position.set(t.x, groundAt(t.x, t.z) + 0.01, t.z); holder.rotation.y = (hash32(String(t.id)) % 628) / 100;
+      holder.userData.keep = false;
+      lyingGroup.add(holder);
+      const rec = { holder, sku, tier, ready: false };
+      lying.set(t.id, rec);
+      kit.dress(holder, sku, { tier }).then((ok) => { rec.ready = ok; }).catch(() => {});
+    }
+    for (const [id, rec] of lying) if (!seen.has(id)) { rec.holder.removeFromParent(); lying.delete(id); }
+    void at;
+  }
   function drawThings(now) {
     const p = me();
     const list = thingsNear(p.x, p.z, 160).slice(0, MAX_THINGS);
+    drawLying(list);
+    let k = 0;
     list.forEach((t, i) => {
       const y = groundAt(t.x, t.z);
-      E.set(0, now / 900 + i, 0); Q.setFromEuler(E);
-      M.compose(V.set(t.x, y + 0.2 + Math.sin(now / 400 + i) * 0.05, t.z), Q, S3.set(1, 1, 1)); thingMesh.setMatrixAt(i, M);
-      thingMesh.setColorAt(i, C.set(thingColour(t.item)));
       E.set(0, 0, 0); Q.setFromEuler(E); M.compose(V.set(t.x, y + 0.03, t.z), Q, S3.set(1, 1, 1)); thingRing.setMatrixAt(i, M);
+      if (lying.get(t.id)?.ready) return;
+      E.set(0, now / 900 + i, 0); Q.setFromEuler(E);
+      M.compose(V.set(t.x, y + 0.2 + Math.sin(now / 400 + i) * 0.05, t.z), Q, S3.set(1, 1, 1)); thingMesh.setMatrixAt(k, M);
+      thingMesh.setColorAt(k, C.set(thingColour(t.item)));
+      k += 1;
     });
-    thingMesh.count = thingRing.count = list.length;
+    thingMesh.count = k; thingRing.count = list.length;
     thingMesh.instanceMatrix.needsUpdate = thingRing.instanceMatrix.needsUpdate = true;
     if (thingMesh.instanceColor) thingMesh.instanceColor.needsUpdate = true;
   }
@@ -1579,7 +1805,7 @@ export async function startCity(ctx) {
     if (ph.kg > lift) { startAct("strain", 1.0, 0.7, () => notify(`${ph.name} (${ph.kg} kg) is too heavy for you to lift: you can lift ${Math.round(lift)} kg at strength ${Math.round(pl.vitals.strength)}. Workouts at a gym build strength.`)); return; }
     startAct("pickup", 0.85, 0.5, async () => {
       const r = t.courier ? await send("collect_delivery")
-        : await send("pick_up", t.found ? { found: { id: t.id, item: t.item, x: t.x, z: t.z } } : { id: t.id });
+        : await send("pick_up", t.found ? { found: { id: t.id, item: t.item, x: t.x, z: t.z, ...(t.box ? { box: true } : {}) } } : { id: t.id });
       if (!r.ok) { notify(r.error); return; }
       if (t.debris) { t.debris.mesh.removeFromParent(); debrisParts.splice(debrisParts.indexOf(t.debris), 1); }
       if (t.courier) { notify(`Picked up the order (${ph.kg} kg). Now to ${self()?.delivery?.to.name || "the address"}: follow the green light; at the door you are asked to hand it over.`); syncSlots(true); return; }
@@ -1866,7 +2092,7 @@ export async function startCity(ctx) {
     const to = homes[Math.floor(Math.random() * homes.length)].x;
     const r = await send("take_delivery", { place, to: { id: to.id, x: to.x, z: to.z, name: address(to.name) } });
     if (!r.ok) { notify(r.error); return; }
-    notify(`Delivery: a parcel to ${to.name || "a home"}, ${Math.round(r.delivery.km * 1000)} m away — ${R.fmt(r.delivery.pay)} if there in ${Math.round((r.delivery.due - Date.now()) / 60000)} min. Follow the green light; at the door you are asked to hand it over.`);
+    notify(`Delivery: a parcel to ${to.name || "a home"}, ${Math.round(r.delivery.km * 1000)} m away — ${R.fmt(r.delivery.pay)} if there in ${Math.round(realMinutesTo(r.delivery.due))} min. Follow the green light; at the door you are asked to hand it over.`);
     refresh();
   }
   function drawMarker(now) {
@@ -1971,6 +2197,18 @@ export async function startCity(ctx) {
     paneMap.wrapS = paneMap.wrapT = THREE.RepeatWrapping;
     return paneMap;
   }
+  //: A piece of the lab's furniture in ``holder`` (its drawn stand-in replaced), scaled so it is
+  //: ``height`` m tall.
+  function furnish(holder, asset, height) {
+    if (!kit || !asset || !OBJ.assets[asset]) return;
+    kit.load(asset).then((m) => {
+      if (!m || !holder.parent) return;
+      const o = m.near.clone(true), dims = OBJ.assets[asset].dims;
+      o.scale.setScalar(height / Math.max(0.05, dims[1]));
+      for (const c of holder.children.slice()) holder.remove(c);
+      holder.add(o);
+    }).catch(() => {});
+  }
   function buildRoom(place, F) {
     const g = new THREE.Group(); g.name = "city-shop-room";
     g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
@@ -1994,24 +2232,58 @@ export async function startCity(ctx) {
     const till = new THREE.Mesh(box(0.42, 0.28, 0.36, 1.19), lambert({ color: 0x24292e })); till.position.set(F.L.width * 0.5, 0, F.L.counter); g.add(till);
     // Shelves along the back wall, stocked.
     const shelfZ = Math.min(F.D - 0.3, F.L.back + 0.6);
-    for (const h0 of [0.45, 1.05, 1.65]) {
+    // What it sells, on the shelves as itself (objects.mjs): its wares with a model, a run of each,
+    // as many as a player's business has in stock; the rest as plain stock.
+    const sells = storesAt(R, place.keys).flatMap((st) => st.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    const biz = view?.bizAt?.(place.id);
+    const modelled = kit ? sells.filter((id) => bindingOf(OBJ, id) && (R.items[id].length_m || 0) <= 0.6) : [];
+    [0.45, 1.05, 1.65].forEach((h0, row) => {
       const shelf = new THREE.Mesh(box(F.W - 0.6, 0.04, 0.4, h0), lambert({ color: 0x6b5440 })); shelf.position.z = shelfZ; g.add(shelf);
       const n = Math.max(4, Math.floor((F.W - 0.8) / 0.32));
-      const goods = new THREE.InstancedMesh(box(0.22, 0.26, 0.22, 0.13), lambert({ color: 0xffffff }), n);
       const r = rng(place.id, "goods", h0);
+      // This shelf's wares: a few of the modelled ones in turn, each a run along it.
+      const mine = modelled.filter((_, i) => i % 3 === row);
+      if (mine.length) {
+        const width = F.W - 1, per = Math.max(1, Math.floor(n / mine.length));
+        mine.slice(0, n).forEach((id, j) => {
+          const have = biz ? Math.min(per, biz.stock?.[id] || 0) : per;
+          if (have <= 0) return;
+          kit.instanced(id, per).then((stock) => {
+            if (!stock || !g.parent) return;
+            const len = R.items[id].length_m || 0.2, step = Math.max(len * 0.9, width / n);
+            for (let k = 0; k < have; k += 1) {
+              const x = -F.W / 2 + 0.5 + (j * per + k) * (width / Math.max(1, n - 1));
+              E.set(0, Math.PI + (r() - 0.5) * 0.3, 0); Q.setFromEuler(E);
+              M.compose(V.set(x, h0 + 0.02, shelfZ), Q, S3.set(1, 1, 1)); stock.set(k, M);
+            }
+            void step;
+            stock.count(have);
+            g.add(stock.group);
+          }).catch(() => {});
+        });
+        return;
+      }
+      const goods = new THREE.InstancedMesh(box(0.22, 0.26, 0.22, 0.13), lambert({ color: 0xffffff }), n);
       for (let k = 0; k < n; k += 1) {
         M.compose(V.set(-F.W / 2 + 0.5 + k * ((F.W - 1) / Math.max(1, n - 1)), h0 + 0.02, shelfZ), Q.identity(), S3.set(0.8 + r() * 0.4, 0.6 + r() * 0.8, 1));
         goods.setMatrixAt(k, M); goods.setColorAt(k, C.setHSL(r(), 0.45, 0.5));
       }
       g.add(goods);
-    }
+    });
     // Tables toward the window where it serves food or drink.
     if (["cafe", "coffee", "restaurant", "bar", "pub", "bakery", "fast_food", "ice_cream"].includes(kind) && F.L.front > 1.4) {
       const tables = Math.max(1, Math.floor(F.W / 2.2));
       for (let k = 0; k < tables; k += 1) {
         const tx = -F.W / 2 + (k + 0.5) * (F.W / tables);
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.72, 8).translate(0, 0.36, 0), lambert({ color: 0x3a3a3a })); leg.position.set(tx, 0, 0.9); g.add(leg);
-        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 16).translate(0, 0.74, 0), lambert({ color: 0xd8cbb5 })); tableTop.position.set(tx, 0, 0.9); g.add(tableTop);
+        const table = new THREE.Group(); table.position.set(tx, 0, 0.9); g.add(table);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.72, 8).translate(0, 0.36, 0), lambert({ color: 0x3a3a3a })); table.add(leg);
+        const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 16).translate(0, 0.74, 0), lambert({ color: 0xd8cbb5 })); table.add(tableTop);
+        // The café's table and two chairs (the object lab's street-café set), sized as they are.
+        furnish(table, OBJ?.world?.["furniture.street_cafe"]?.assets?.[0], 0.76);
+        for (const side0 of [-1, 1]) {
+          const chair = new THREE.Group(); chair.position.set(tx + side0 * 0.62, 0, 0.9); chair.rotation.y = side0 > 0 ? -Math.PI / 2 : Math.PI / 2; g.add(chair);
+          furnish(chair, OBJ?.world?.["furniture.street_cafe"]?.assets?.[1], 0.9);
+        }
       }
     }
     // The shop's name over the counter, and a light to see it all by.
@@ -2233,6 +2505,10 @@ export async function startCity(ctx) {
       g.add(new THREE.Mesh(ph.hold === "tool" ? box(w, hgt, d, hgt / 2) : box(w, hgt, d, 0), mat(col, ph.material === "glass" ? { transparent: true, opacity: 0.7 } : {})));
     }
     g.userData.ph = ph;
+    // The object lab's model, once it is in (a delivery's parcel looks like its package).
+    const look = id === "parcel" ? self()?.delivery?.pack || id : id;
+    // A tool from the hand up; anything else held by its middle, as the drawn shape was.
+    kit?.dress(g, look, { upright: ph.hold === "tool", centre: ph.hold !== "tool" }).catch(() => {});
     return g;
   }
   let heldMesh = null, heldItem = null, heldHidden = false, lastStrike = 0;
@@ -2621,7 +2897,7 @@ export async function startCity(ctx) {
   // a seeded share of each listed (docs/city/market.mjs), priced by the square foot in the
   // neighbourhood. Signs stand in front of the listed buildings.
   function listings() {
-    const week = Math.floor(timeAt(Date.now()).day / 7);
+    const week = Math.floor(timeAt(gameNow()).day / 7);
     if (district.listingsWeek !== week || !district.listings) {
       district.listings = homeListings(R, district.places, { week, county: district.county }).map((l) => ({ ...l, county: district.county }));
       district.listingsWeek = week;
@@ -3110,7 +3386,7 @@ export async function startCity(ctx) {
   function npcGarages() {
     const c = district.city;
     if (!c || !ctx.garages) return;
-    const tt = timeAt(Date.now()), you = me(), seen = new Set();
+    const tt = fleetAt(Date.now()), you = me(), seen = new Set();
     const consider = (v) => {
       if (!v?.garage || seen.has(v.id)) return;
       seen.add(v.id);
@@ -3275,7 +3551,7 @@ export async function startCity(ctx) {
     if (party.session && now - lastStep > 3000) electHost();
     if (world && now - lastStep > 1000) {
       lastStep = now;
-      world.step(t);
+      world.step(gameNow(t));
       if (party.session && performance.now() - party.lastState > 2500) broadcastState();
     }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
@@ -3307,7 +3583,7 @@ export async function startCity(ctx) {
         const done = district.city.scanMore(scan.people.length || scan.vehicles.length ? 2500 : Infinity);
         if (done) {
           scan = done; scanning = false;
-          const hour = scan.time.minute / 60;
+          const hour = (scan.time.gameMinute ?? scan.time.minute) / 60;
           lastNight = hour < 6.6 || hour > 18.4;
         }
       }
@@ -3321,6 +3597,7 @@ export async function startCity(ctx) {
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
+      syncRacks(now);
       stepBikes(dt, t / 1000, focus, now);
       // The residents' bicycles: ridden (their riders on them) and stood by their doors -- the
       // nearest first, as many as are drawn.
@@ -3420,8 +3697,7 @@ export async function startCity(ctx) {
     return false;
   }
   function frameCity(ms, dt, now, focus) {
-    const c = district.city, D = district.drivers, tt = { ...timeAt(ms) };
-    tt.minute += (ms % 1000) / 60000;
+    const c = district.city, D = district.drivers, tt = fleetAt(ms);
     const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
     const people = [];
     const you = me();
@@ -3488,7 +3764,7 @@ export async function startCity(ctx) {
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
       if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
-      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true }); continue; }
+      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true, lock: s0.lock || null }); continue; }
       // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
@@ -3564,7 +3840,7 @@ export async function startCity(ctx) {
       const odo = (bikeOdo.get(b.id) || 0) + (b.moving ? (b.speed || 0) * dt : 0);
       bikeOdo.set(b.id, odo);
       const owner = b.moving ? c.roster.people.get(b.vehicle.owner) : null;
-      residentBikes.push({ id: b.id, resident: true, x: b.x, z: b.z, yaw: b.yaw, v: b.moving ? b.speed || 0 : 0, shade: b.shade, odo, person: owner || null, reason: b.reason });
+      residentBikes.push({ id: b.id, resident: true, x: b.x, z: b.z, yaw: b.yaw, v: b.moving ? b.speed || 0 : 0, shade: b.shade, odo, person: owner || null, reason: b.reason, lock: b.moving ? null : b.lock || null });
     }
     if (bikeOdo.size > 5000) bikeOdo.clear();
     if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);
@@ -3856,7 +4132,7 @@ export async function startCity(ctx) {
   function notify(text) { if (!text) return; notice = text; noticeAt = Date.now(); hud(); ctx.notify?.(text); }
   function hud() {
     const w = view, p = w?.players.get(myId);
-    const t = timeAt(Date.now());
+    const t = timeAt(gameNow());
     const [lon, lat] = ctx.toLonLat(me().x, me().z);
     const here = jurisdictionAt(R, lon, lat, district.county);
     const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, t.label, here.name];
@@ -3957,12 +4233,6 @@ export async function startCity(ctx) {
     // The compass under the profile card while the game is on.
     if (cp) cp.style.top = on && P && P.height ? `${Math.round(P.bottom + 8)}px` : "16px";
     const B = on ? actionBar.getBoundingClientRect() : null, C = cp ? cp.getBoundingClientRect() : null;
-    // The compass's open box (heading and sun) stays under the compass as it moves: never over the card.
-    const dial = doc.getElementById("sun-dial");
-    if (dial && !dial.hidden && C && C.height) {
-      dial.style.top = `${Math.round(C.bottom + 8)}px`;
-      dial.style.maxHeight = `${Math.max(160, (globalThis.innerHeight || 800) - Math.round(C.bottom + 8) - 12)}px`;
-    }
     root.style.setProperty("--city-under", `${Math.round(Math.max(B && B.height ? B.bottom : y + 44, C ? C.bottom : 0, P ? P.bottom : 0) + 8)}px`);
     // The messages tab at the left edge, clear of the map's controls while they are open.
     messages().layout({ on: on && Boolean(self()), left: M ? M.right + 6 : 0 });
@@ -4002,7 +4272,7 @@ export async function startCity(ctx) {
     const c = w.carry ? w.carry(p) : { kg: carriedKg(R, p.inventory), capacity: carryCapacity(R, v.strength, p.inventory) };
     const state = p.resting ? "resting" : v.stamina < S.low ? "exhausted: slowed" : body.sprinting && body.sprintHeld ? "sprinting" : transit.ride ? `on the ${transit.ride.route || transit.ride.kind}` : shop.place ? "in the shop" : "";
     const esc = (t) => String(t).replace(/[<>&]/g, "");
-    const gig = p.delivery ? `<div class="gig">Parcel to ${esc(p.delivery.to.name || "a home")}: ${Math.round(Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z))} m, ${Math.max(0, Math.round((p.delivery.due - Date.now()) / 60000))} min</div>` : "";
+    const gig = p.delivery ? `<div class="gig">Parcel to ${esc(p.delivery.to.name || "a home")}: ${Math.round(Math.hypot(me().x - p.delivery.to.x, me().z - p.delivery.to.z))} m, ${Math.max(0, Math.round(realMinutesTo(p.delivery.due)))} min</div>` : "";
     const task = p.clocked?.task;
     const job = p.clocked ? `<div class="gig" style="color:#ffc46b">${task ? `${esc(task.label)}${working ? ` — ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : ` (V, ${Math.round(Math.hypot(me().x - task.x, me().z - task.z))} m)`}` : "On shift"}</div>` : "";
     const hands = p.hands ? `<div class="carry">In hand: ${esc(R.items[p.hands]?.name || p.hands)}</div>` : "";
@@ -4023,7 +4293,7 @@ export async function startCity(ctx) {
     closeSide();
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
-    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
+    el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", sell: "Selling", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
       buy: "Buying a business", recruiter: "Recruiter", released: "Released" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
@@ -4049,7 +4319,8 @@ export async function startCity(ctx) {
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
-    if (enterprise().draw(side, { close, status, w, p })) return;   // law offices, recruiters, your business (enterprise-panels.mjs)
+    if (enterprise().draw(side, { close, status, w, p })) return;
+    if (commerce().draw(side, { close, status, w, p })) return;   // selling: offers, listings, consignment (commerce-panels.mjs)   // law offices, recruiters, your business (enterprise-panels.mjs)
     if (side.kind === "store") {
       // The shop's wares and prices: choose how many of each, then Checkout shows the total with
       // the sales tax, and Confirm buys it all (into your inventory) if you have the credits.
@@ -4155,13 +4426,16 @@ export async function startCity(ctx) {
         if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (U)" : "Wear (U)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (U)`, onclick: () => useSelected() }));
         if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. G picks it up.`).then(() => syncSlots(true)) }));
         if (!it.parcel) for (const { peer, pid } of peers) btns.push(h("button", { textContent: `Give to ${peer.name}`, onclick: () => say(send("give_item", { to: pid, item: pickId }), (r) => `Gave ${r.to} the ${it.name.toLowerCase()}.`).then(() => syncSlots(true)) }));
-        detail.push(h("div", {}, ...btns));
+        detail.push(h("div", {}, ...btns), ...commerce().bagExtra(pickId), ...commerce().packing(side));
       } else detail.push(h("p", { className: "note", textContent: "Empty hand: X punches. Shops sell food, medicine, tools and clothes (Enter at a shop, then the SHOP panel by the door); things on the ground with a yellow ring are picked up with G." }));
       const here = me();
       const cars = w.registry.held(p.account).filter((a) => a.kind === "vehicle").map((a) => {
         const spec = R.vehicles.models[a.attrs.model];
         const d = a.attrs.x === undefined ? null : Math.round(Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z));
-        return row(`${spec.name} ${a.attrs.plate}`, car.vehicle === a.id && car.active ? "driving" : d === null ? a.custody : `${d} m away`);
+        const extra = commerce().carExtra(a);
+        const tr = row(`${spec.name} ${a.attrs.plate}${(a.attrs.wheels ?? 4) < 4 ? ` (${a.attrs.wheels ?? 4} wheels)` : ""}${a.attrs.locked ? " (locked)" : ""}`, car.vehicle === a.id && car.active ? "driving" : d === null ? a.custody : `${d} m away`);
+        if (extra.length) tr.append(h("td", {}, ...extra));
+        return tr;
       });
       const homes = [...w.registry.owned(p.account, "home"), ...w.registry.held(p.account).filter((a) => a.kind === "home" && a.owner !== p.account)].map((a) => row(`${address(a.attrs.address) || "A home"}${a.attrs.label ? " " + a.attrs.label : ""}`, `${Math.round(Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z))} m`));
       side.el.replaceChildren(title, status, grid, bar,
@@ -4539,7 +4813,7 @@ export async function startCity(ctx) {
       // (fleet.mjs City.about).
       const riders = bikes.filter((b) => b.person).map((b) => ({ id: b.person.id, person: b.person, activity: b.v > 0.3 ? "cycling" : b.reason || "waiting" }));
       const list = [...visible.people, ...riders].slice(0, 40);
-      const roster = district.roster, tt = timeAt(Date.now());
+      const roster = district.roster, tt = fleetAt(Date.now());
       const hhs = roster ? [...roster.households.values()] : [], n = (k) => hhs.filter((x) => x.size === k).length;
       const bikesN = roster ? [...roster.vehicles.values()].filter((v) => v.bike).length : 0, carsN = roster ? [...roster.vehicles.values()].filter((v) => !v.bike && !v.visitor).length : 0;
       const hhmm = (m) => `${String(Math.floor((((m % 1440) + 1440) % 1440) / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
@@ -4554,7 +4828,7 @@ export async function startCity(ctx) {
           : c.status === "looking" ? `Looking for work since ${dayOf(c.since)}${c.left ? ` (${c.left.reason.replace("_", " ")})` : ""}.` : c.status === "retired" ? "Retired." : "At school." }));
         if (b) out.push(h("p", { className: "note", textContent: `Balance ${R.fmt(b.balance)}${b.wage_hour ? `, paid ${R.fmt(b.wage_hour)}/h` : ""}; in the last 30 days ${R.fmt(b.income_30d)} in, ${R.fmt(b.spend_30d + b.rent_30d)} out${b.next_pay && b.wage_hour ? `; next pay ${dayOf(b.next_pay) && new Date(b.next_pay * 86_400_000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}` : ""}. ${b.assets.length ? `Owns: ${b.assets.map((x) => `${x.label} (${R.fmt(x.value)})`).join(", ")}. ` : ""}Net worth ${R.fmt(b.net_worth)}.` }));
         out.push(h("p", { className: "note", textContent: `Gets about on foot and ${a.travel === "drive" ? "by car" : a.travel === "bike" ? "by bicycle" : "by bus or taxi"}. Today: ${String(a.routine).replace(/_/g, " ")}.` }));
-        if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(m.at)}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
+        if (a.milestones.length) out.push(h("table", {}, ...a.milestones.map((m) => { const r0 = row(`by ${hhmm(tt.toGame(m.at))}`, `${m.label || ""}${m.name ? ` — ${address(m.name) || m.name}` : ""}`); if (a.next && m.at === a.next.at) r0.style.fontWeight = "700"; else if (m.at <= tt.minute) r0.style.opacity = "0.55"; return r0; })));
         return out;
       };
       return [h("p", { className: "note", textContent: `${district.people.length} people live in this district in ${hhs.length} households (${n(1)} alone, ${n(2)} of two, ${n(3)} of three, ${hhs.length - n(1) - n(2) - n(3)} larger), with ${carsN} cars and ${bikesN} bicycles. Out of doors near you: ${visible.people.length} on foot, ${riders.length} cycling, ${visible.vehicles.length} vehicles.` }),

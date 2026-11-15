@@ -1535,11 +1535,6 @@ addEventListener("keydown", (e) => {
   if (typingIn(e.target) || typingIn(document.activeElement)) return;
   if (cityGame()) return;   // the game keeps you where you are
   e.preventDefault();
-  // A sky set to another hour (the compass box) goes back to live San Francisco time first.
-  if (sunDial.date || environmentController?.snapshot()?.live === false) {
-    resetSkyToLive();
-    if (!gps.enabled) { pinSay("Sky back on live San Francisco time"); return; }
-  }
   if (returnToGps()) pinSay("Back where you are");
   else pinSay(gps.enabled ? "Waiting for your location" : "Turn on “Show me at my location” in settings");
 });

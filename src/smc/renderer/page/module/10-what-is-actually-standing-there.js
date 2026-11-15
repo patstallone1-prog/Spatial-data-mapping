@@ -486,6 +486,7 @@ const homeWindowTexture = (() => {
 })();
 const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
   metalness: 0.2, envMapIntensity: 1.0 });
+nightWindows(homeDecalMaterial);   // lit at night from within, some of them (module 02)
 const homeDesignMaterials = new Map();
 function homeDesignMaterial(design) {
   if (!design) return homeDecalMaterial;
@@ -510,6 +511,8 @@ function homeDesignMaterial(design) {
   if(arch!==null)ctx.restore();
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
   const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
+  // (Guarded: this function is also run on its own, by the tests.)
+  if (typeof nightWindows === "function") nightWindows(material);
   homeDesignMaterials.set(key,material); return material;
 }
 function photoOpeningParts(group,feature,includeWindows=false) {
