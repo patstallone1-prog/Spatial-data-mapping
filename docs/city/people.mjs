@@ -57,7 +57,7 @@ export class Streets {
   constructor(ways, { snap = 0.8, cell = 60 } = {}) {
     this.nodes = []; this.edges = []; this.cell = cell; this.grid = new Map(); this.index = new Map();
     this.snap = snap;
-    this.ends = [];
+    this.ends = []; this.crosswalks = [];
     for (const way of ways) this.addWay(way);
     this.joinEnds();
     this.reach = this.largestDriveNetwork();
@@ -123,6 +123,7 @@ export class Streets {
     return id;
   }
   addWay(way) {
+    if (way.kind === "crossing" && way.pts.length >= 2) this.crosswalks.push(way.pts);
     const street = way.kind === "street";
     const cls = street ? roadClass(way) : "shared";
     const half = street ? Math.max(3, (way.road_m || (way.lanes || 2) * 3.4) / 2) : 0;
@@ -617,6 +618,67 @@ export function alongRoute(route, d, side = 0) {
 
 //: How far out from a street's kerb a walker keeps (the middle of the pavement), in metres.
 export const PAVE_M = 1.6;
+//: A legal mapped crossing joins the two ends of ONE crosswalk polyline. Endpoints of
+//: parallel crosswalks are not interchangeable. Other links must stay on the pavement;
+//: the shortest path may therefore use two or three separate crossings round a junction.
+//: undefined: no mapped crosswalk here (keep the inferred corner route); null: no legal way.
+export function mappedCrosswalkPath(streets, node, from, to) {
+  const q = streets?.nodes?.[node];
+  if (!q || !streets.crosswalks?.length) return undefined;
+  const J = streets.junctionOf(node), members = J?.members || [node], set = new Set(members), arms = [];
+  for (const id of members) for (const e of streets.edges[id] || []) {
+    if (!(e.half > 0) || set.has(e.to)) continue;
+    const a = streets.nodes[id], b = streets.nodes[e.to], L = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    arms.push({ x: a.x, z: a.z, ux: (b.x - a.x) / L, uz: (b.z - a.z) / L, half: e.half });
+  }
+  const reach = Math.max(8, ...arms.map((a) => a.half + PAVE_M)) * 2.5;
+  const local = streets.crosswalks.filter((pts) => pts.some((p) => Math.hypot(p[0] - q.x, p[1] - q.z) <= reach));
+  if (!local.length) return undefined;
+  const points = [from, to], edges = [[], []];
+  const link = (a, b, pts, crossing = false) => {
+    const length = pts.slice(1).reduce((d, p, i) => d + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+    edges[a].push({ to: b, pts, crossing, length });
+    edges[b].push({ to: a, pts: pts.slice().reverse(), crossing, length });
+  };
+  for (const pts of local) {
+    const a = points.length, b = a + 1;
+    points.push(pts[0], pts.at(-1)); edges.push([], []);
+    link(a, b, pts, true);
+  }
+  const onPavement = (a, b) => {
+    // Test the whole segment against each road arm's strip, rather than only its endpoints.
+    // Clip its parameter interval against along >= 0 and -half < lateral < half.
+    for (const r of arms) {
+      let lo = 0, hi = 1;
+      const clip = (v, dv, min, max) => {
+        if (Math.abs(dv) < 1e-9) return v >= min && v <= max;
+        let x = (min - v) / dv, y = (max - v) / dv;
+        if (x > y) [x, y] = [y, x];
+        lo = Math.max(lo, x); hi = Math.min(hi, y); return lo <= hi;
+      };
+      const x = a[0] - r.x, z = a[1] - r.z, dx = b[0] - a[0], dz = b[1] - a[1], half = Math.max(0, r.half - 0.6);
+      if (clip(x * r.ux + z * r.uz, dx * r.ux + dz * r.uz, -0.1, Infinity)
+          && clip(-x * r.uz + z * r.ux, -dx * r.uz + dz * r.ux, -half, half) && hi - lo > 1e-6) return false;
+    }
+    return true;
+  };
+  for (let a = 0; a < points.length; a += 1) for (let b = a + 1; b < points.length; b += 1) {
+    if (onPavement(points[a], points[b])) link(a, b, [points[a], points[b]]);
+  }
+  const dist = points.map(() => Infinity), prev = [], done = new Set(); dist[0] = 0;
+  while (done.size < points.length) {
+    let a = -1;
+    for (let i = 0; i < points.length; i += 1) if (!done.has(i) && (a < 0 || dist[i] < dist[a])) a = i;
+    if (a < 0 || !Number.isFinite(dist[a])) return null;
+    if (a === 1) break;
+    done.add(a);
+    for (const e of edges[a]) if (dist[a] + e.length < dist[e.to]) { dist[e.to] = dist[a] + e.length; prev[e.to] = { a, e }; }
+  }
+  const path = [];
+  for (let b = 1; b !== 0;) { const p = prev[b]; path.push(p.e); b = p.a; }
+  return path.reverse();
+}
+
 //: The way on foot along ``route`` (a walk route from Streets.route): on the pavement, crossing a
 //: street only at a junction, along a crosswalk -- the line of the pavement carried across the
 //: road, from one corner to the next. A walker keeps to the pavement it is on round a corner it
@@ -805,6 +867,22 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     // Across at the last junction on the way, then.
     for (let i = n - 2; i >= 1; i -= 1) if (seg[i - 1].o > 0 && seg[i].o > 0 && junction(i)) { r = build(i); break; }
   }
+  // Resolve each crossing through paired mapped endpoints, never by endpoint proximity alone.
+  const out = [r.out[0]], marks = [], byStart = new Map(r.marks.map((m) => [m[0], m]));
+  let blocked = false;
+  for (let k = 0; k + 1 < r.out.length; k += 1) {
+    const mark = byStart.get(k);
+    const path = mark && mappedCrosswalkPath(streets, ids[mark[1]], r.out[k], r.out[k + 1]);
+    if (path === null) { blocked = true; break; } // stay at the kerb when no legal crossing exists
+    if (path) {
+      for (const e of path) {
+        const a = e.pts[0], b = e.pts.at(-1), bearing = Math.atan2(-(b[1] - a[1]), b[0] - a[0]);
+        if (e.crossing) marks.push([out.length - 1, mark[1], bearing, mark[3], out.length + e.pts.length - 2]);
+        out.push(...e.pts.slice(1));
+      }
+    } else { if (mark) marks.push([out.length - 1, ...mark.slice(1)]); out.push(r.out[k + 1]); }
+  }
+  r.out = out; r.marks = marks;
   // The walk's points, each crossing's stretch along it.
   const pts = [], at = [];   // at[k]: the walk's point out[k] became (a repeat is the one before)
   r.out.forEach((q) => {
@@ -814,10 +892,10 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
   const sAt = [0];
   for (let i = 1; i < pts.length; i += 1) sAt.push(sAt[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const sOf = (k) => sAt[at[Math.min(k, at.length - 1)]];
-  const crossings = r.marks.map(([k, node, b, signal]) => ({ s0: sOf(k), s1: sOf(k + 1), node: ids[node], bearing: b, signal }))
+  const crossings = r.marks.map(([k, node, b, signal, end = k + 1]) => ({ s0: sOf(k), s1: sOf(end), node: ids[node], bearing: b, signal }))
     .filter((c) => c.s1 > c.s0 + 0.5);
   if (pts.length < 2) pts.push(pts[0].slice());
-  return { pts, s: sAt, length: sAt[sAt.length - 1], halves: pts.map(() => 0), classes: pts.map(() => null), crossings, side: r.sg, mode: "walk" };
+  return { pts, s: sAt, length: sAt[sAt.length - 1], halves: pts.map(() => 0), classes: pts.map(() => null), crossings, blocked, side: r.sg, mode: "walk" };
 }
 
 // ---- places and jobs ------------------------------------------------------------------------------

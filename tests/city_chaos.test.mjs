@@ -102,7 +102,16 @@ test("a street shut right across: those not yet in the block take another way; t
   const wall = [-4.5, -2.4, -0.3, 1.8, 3.9].map((o) => ({ x: mid.x, z: mid.z + o, yaw: mid.yaw, v: 0, length: 4.6, width: 1.9 }));
   const cars = [...Array.from({ length: 12 }, (_, k) => car(`q${k}`, route, k * 2.5)), ...Array.from({ length: 8 }, (_, k) => car(`t${k}`, route, 70 + k * 4))];
   const r = run(S, cars, { blockers: wall, T: 400 });
-  assert.equal(r.arrived, 20, "everyone got where they were going");
+  // A real collision is no longer hidden by an instantaneous stop. Every unfinished car
+  // must be a wreck or queued behind that wreck, never simply lost by the planner.
+  const heldByWreck = (id, seen = new Set()) => {
+    const s = r.D.stateOf(id);
+    if (!s || seen.has(id)) return false;
+    if (s.hit) return true;
+    seen.add(id); return heldByWreck(s.leader || s.blockedBy, seen);
+  };
+  const waiting = [...r.D.cars].filter(([id, s]) => s.d < r.D.endOf(cars.find((c) => c.id === id)) && heldByWreck(id));
+  assert.equal(r.arrived + waiting.length, 20, "everyone arrived or is stopped by a recorded wreck");
   assert.ok(r.tally.reroutes >= 6, `${r.tally.reroutes} took another way`);
   assert.ok(r.jumped.size >= 1 && r.jumped.size <= 14, `${r.jumped.size} were put past it`);
   // Those that came later did not pile into the shut block: most went round.

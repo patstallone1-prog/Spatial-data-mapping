@@ -152,7 +152,7 @@
     "witness": {"basis": "a moving violation (speeding, a carpool lane short of its riders) is charged only where it is seen: in the field of view of one of the map's enforcement cameras (the speed cameras drawn on their poles; each looks along its street, a 70-degree cone out to 45 m, approx. a fixed camera's working range), or with a patrol car within 60 m", "camera_fov_deg": 70, "camera_range_m": 45, "police_reach_m": 60}
   },
   "fines": {
-    "theft": 1500, "speeding": 238, "hov_violation": 490, "toll_evasion": 25, "trespass": 250, "jaywalking": 196, "red_light": 490, "illegal_parking": 110, "battery": 2000, "vandalism": 400
+    "theft": 1500, "speeding": 238, "unsafe_driving": 238, "hov_violation": 490, "toll_evasion": 25, "trespass": 250, "jaywalking": 196, "red_light": 490, "illegal_parking": 110, "battery": 2000, "vandalism": 400
   },
   "vehicles": {
     "basis": "new prices approx. 2026 California list (the vision's new economy car: 22,000); used by age so a five-year-old hatchback is the vision's 8,000; fuel use EPA combined",
@@ -737,7 +737,7 @@
       "per_office": [3, 5],
       "role_weights": {"public": 0.12, "traffic": 0.3, "criminal": 0.28, "civil": 0.18, "property": 0.12},
       "charges": {"theft": "criminal", "battery": "criminal", "vandalism": "criminal", "trespass": "criminal",
-        "speeding": "traffic", "speed_camera": "traffic", "red_light": "traffic", "hov_violation": "traffic", "toll_evasion": "traffic", "jaywalking": "traffic",
+        "speeding": "traffic", "unsafe_driving": "traffic", "speed_camera": "traffic", "red_light": "traffic", "hov_violation": "traffic", "toll_evasion": "traffic", "jaywalking": "traffic",
         "parking": "traffic", "illegal_parking": "traffic", "tow": "traffic", "rent": "civil", "property_tax": "civil", "wages": "civil"},
       "evidence": {"camera": 0.9, "patrol officer": 0.85, "parking control officer": 0.85, "police": 0.85, "witness": 0.6, "none": 0.3},
       "court_days": [2, 14],
