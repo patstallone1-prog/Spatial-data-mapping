@@ -89,3 +89,8 @@ test("the cars' holes: a triangle wound against its normals is turned round, the
   assert.equal(rewindToNormals(flipped), 0, "and once right, left so");
   assert.equal(fleetFile("suv"), FULL_FOR_TRAFFIC.has("jeep") ? "city/models/fleet/jeep-full.glb" : "city/models/fleet/jeep-npc.glb", "the Jeep's cracked LOD1 is not used in traffic");
 });
+
+test("the models come from the object lab through one builder", () => {
+  const builder = readFileSync(new URL("../scripts/build_city_objects.mjs", import.meta.url), "utf8");
+  assert.ok(builder.includes("--lab") && builder.includes("--out"));
+});

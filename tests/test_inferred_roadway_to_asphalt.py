@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-import inferred_roadway_to_asphalt as tool  # noqa: E402
+import inferred_roadway_to_asphalt as tool
 
 LAT0, LON0 = 37.80, -122.43
 KX = 111_320.0 * 0.790155   # cos(37.8 deg), near enough for a 100 m test

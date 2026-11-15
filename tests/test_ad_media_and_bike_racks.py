@@ -13,16 +13,17 @@ from tests.test_world_object_renderer import _extract, _page_js
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _script(name):
-    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
+def _script(path):
+    name = path.stem
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-ads = _script("build_ad_media")
-racks = _script("build_bike_racks")
+ads = _script(ROOT / "scripts/build_ad_media.py")
+racks = _script(ROOT / "scripts/build_bike_racks.py")
 
 
 def _permit(record_id, lon, lat, **extra):
@@ -129,3 +130,11 @@ def test_ad_faces_are_laid_out_for_their_shape():
     top, band = out["tall"]
     assert top[3] < 1480 and top[2] > 1000
     assert band[0] > 0 and band[0] + band[2] < 1000 and band[1] + band[3] < 1480 and band[2] / band[3] == pytest.approx(2000 / 874, rel=0.01)
+
+
+def test_the_billboard_builder_keeps_to_its_creative_registry() -> None:
+    builder = (ROOT / "scripts/build_billboards.py").read_text()
+    assert 'manifest.get("schema") != "kerbside.billboard_creatives/1"' in builder
+    assert "data/billboard-creatives.json" in builder
+    registry = json.loads((ROOT / "data/billboard-creatives.json").read_text())
+    assert registry["schema"] == "kerbside.billboard_creatives/1" and registry["boards"]
