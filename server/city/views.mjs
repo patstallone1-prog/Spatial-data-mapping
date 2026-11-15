@@ -69,18 +69,19 @@ export function viewFor(world, pid) {
   // ---- messages: the threads you are in ----------------------------------------------------------
   if (o.mail) {
     const M = o.mail;
-    M.threads = (M.threads || []).filter((t) => (t.members?.length ? t.members.includes(pid) : String(t.id).includes(pid)));
+    // The council is everyone's ("all"); a thread with members is theirs; one with none is seen unless its id names someone else.
+    M.threads = (M.threads || []).filter((t) => (t.members === "all" ? true : Array.isArray(t.members) && t.members.length ? t.members.includes(pid)
+      : !names(String(t.id)) || String(t.id).includes(pid)));
     for (const k of Object.keys(M)) if (M[k] && typeof M[k] === "object" && !Array.isArray(M[k])) M[k] = ownKeys(M[k]);
   }
 
   // ---- things as themselves: yours, and what is inside them --------------------------------------
   if (o.things?.all) {
+    // Yours (owned, or in your hands), what lies on the ground for anyone, and what is inside those.
     const keep = new Map();
-    const account = me?.account;
-    for (const th of o.things.all) if (account && JSON.stringify(th.at ?? null).includes(account)) keep.set(th.id, th);
-    for (const th of o.things.all) if (account && (th.owner === account || th.holder === account)) keep.set(th.id, th);
-    // What lies in the street is anyone's to see; so is what is inside something kept.
-    for (const th of o.things.all) if (!keep.has(th.id) && !names(JSON.stringify(th)) && !["held", "in", "consigned", "worn", "home"].includes(th.at?.kind)) keep.set(th.id, th);
+    for (const th of o.things.all) {
+      if (mine.has(th.owner) || mine.has(th.at?.holder) || (th.at?.kind === "ground" && !th.owner?.startsWith?.("player:"))) keep.set(th.id, th);
+    }
     for (let grew = true; grew;) {
       grew = false;
       for (const th of o.things.all) if (!keep.has(th.id) && th.at?.kind === "in" && keep.has(th.at.parent)) { keep.set(th.id, th); grew = true; }
@@ -119,6 +120,6 @@ export function leaks(view, pid, world) {
     if (seen && (Object.keys(seen.inventory || {}).length || seen.vitals || seen.x !== undefined || seen.lon !== undefined)) out.push(`body of ${p.id}`);
     if (view.billing.bills.some((b) => b.payer === p.account && !accounts.has(b.payee))) out.push(`bills of ${p.id}`);
   }
-  for (const t of view.mail?.threads || []) if (t.members?.length && !t.members.includes(pid)) out.push(`thread ${t.id}`);
+  for (const t of view.mail?.threads || []) if (Array.isArray(t.members) && t.members.length && !t.members.includes(pid)) out.push(`thread ${t.id}`);
   return out;
 }

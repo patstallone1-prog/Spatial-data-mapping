@@ -195,6 +195,15 @@ test("each player is shown their own part: nobody else's money, bag, bills, cars
   assert.ok(JSON.stringify(ben).includes("4417") && ben.registry.some((a) => a.kind === "vehicle"));
   assert.ok(JSON.stringify(viewFor(world, c.pid("cy"))).includes("4417"));
   assert.deepEqual(leaks(viewFor(world, "nobody"), "nobody", world), []);
+  // The council is everyone's; a thing she owns is hers to see, and one of Ben's is not.
+  const threads = viewFor(world, c.pid("ana")).mail.threads.map((t) => t.id);
+  assert.ok(threads.includes("council") && threads.some((id) => id.startsWith("hood:")) && !threads.some((id) => id.startsWith("dm:")));
+  const things = { seq: 2, all: [{ id: "thing:1", sku: "book", owner: `player:${c.pid("ana")}`, at: { kind: "held", holder: `player:${c.pid("ana")}` } },
+    { id: "thing:2", sku: "book", owner: `player:${c.pid("ben")}`, at: { kind: "held", holder: `player:${c.pid("ben")}` } },
+    { id: "thing:3", sku: "pen", owner: `player:${c.pid("ben")}`, at: { kind: "in", parent: "thing:2" } },
+    { id: "thing:4", sku: "pen", owner: null, at: { kind: "in", parent: "thing:1" } }, { id: "thing:5", sku: "brick", owner: null, at: { kind: "ground", x: 1, z: 1 } }] };
+  const withThings = Object.assign(Object.create(Object.getPrototypeOf(world)), world, { toJSON: () => ({ ...CityWorld.prototype.toJSON.call(world), things }) });
+  assert.deepEqual(viewFor(withThings, c.pid("ana")).things.all.map((t) => t.id), ["thing:1", "thing:4", "thing:5"]);
   // Nothing sent to a page is the whole world, and the page sends none to the room.
   assert.ok(!text("../docs/city/view.mjs").includes('t: "state"'));
 });
