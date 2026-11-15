@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from smc.paint.clean import SCHEMA, clean_stop_signs, facing_degrees, paint_document, street_key
+from smc.paint import SCHEMA, clean_stop_signs, facing_degrees, paint_document, street_key
 from smc.renderer.template import renderer_source
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -121,3 +122,12 @@ def test_paint_put_down_as_one_thing_is_clipped_whole() -> None:
     # Whole by its clipAt whether or not the mesh is instanced.
     clip = _function(js, "applyBoxClip")
     assert "${whole?'detailPosition=vec4(clipAt.x,0.0,clipAt.y,1.0);':'#ifdef USE_INSTANCING" in clip
+
+
+def test_the_builder_reads_the_saved_rows_and_asks_the_city_for_what_the_clean_needs() -> None:
+    spec = importlib.util.spec_from_file_location("build_street_paint", ROOT / "tools/build_street_paint.py")
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    assert tool.SOURCE.endswith("4542-gpa3.json")
+    assert {"street", "x_street", "st_facing", "shape"} <= set(tool.FIELDS)
+    assert tool.ROWS == ROOT / "data/sf_public_works/stop_signs.json" and tool.OUT == ROOT / "docs/street-paint.json"
