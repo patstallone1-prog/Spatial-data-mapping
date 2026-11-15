@@ -1055,6 +1055,49 @@ export class CityWorld {
     this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, response });
     return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, vitals: p.vitals };
   }
+  //: The city's own collisions use the same harm, court and billing records as a player's.
+  //: ``id`` identifies a single impact, so sustained contact/replayed reports cannot bill twice.
+  npcCollision({ id, vehicle, target, speed, context = {} }) {
+    if (!id || !vehicle?.id || !vehicle.driver || !target?.id || !Number.isFinite(speed) || speed <= 0) throw new CityError("invalid NPC collision");
+    const vh = this.harmed(vehicle.id, "vehicle", vehicle.plate || null);
+    if (vh.collision?.id === id) return vh.collision;
+    if ([...this.billing.bills.values()].some((b) => b.key === `collision:${id}:fine`)) return { id, duplicate: true };
+    speed = Math.min(45, speed);
+    const driver = this.harmed(vehicle.driver, "person", vehicle.driverName || null);
+    driver.account = vehicle.driver; // roster IDs are already stable npc: accounts
+    this.ledger.open(driver.account, "resident");
+    const evidence = [`Collision report ${id}, ${vehicle.x}, ${vehicle.z}`, "the victim's report"];
+    const fine = this.fine(driver, "unsafe_driving", `Unsafe driving: ${vehicle.plate || vehicle.id} hit ${target.name || target.plate || target.id}`, evidence, `collision:${id}:fine`);
+    (driver.record ||= []).push({ charge: fine.kind, class: "traffic", outcome: "cited", at: this.now, case: fine.case });
+    const bills = [fine.id], damage = [];
+    const repair = (car, impact, liable) => {
+      const h = this.harmed(car.id, "vehicle", car.plate || null), before = h.condition;
+      const d = this.damageVehicle(h, impact, car, `collision ${id}`);
+      // A crashed car stays at the impact until towed, even if the bodywork is only dented.
+      h.at = { x: car.x, z: car.z, yaw: car.yaw || 0 };
+      h.tow_at = this.now + this.R.harm.vehicle.tow_after_min * 60_000;
+      h.out_until = h.tow_at + this.R.harm.vehicle.repair_hours * 3_600_000;
+      damage.push({ id: car.id, ...d });
+      const cost = Math.round((before - d.condition) * this.R.harm.vehicle.repair_per_point);
+      if (cost) bills.push(this.billing.issue({ payer: driver.account, payee: "business:dealership", kind: liable ? "liability" : "repair", amount: cost,
+        memo: `Collision repair: ${car.plate || car.id}`, at: this.now, due_days: 30, penalties: [Math.round(cost * 0.1)], evidence, key: `collision:${id}:${car.id}:repair` }).id);
+    };
+    const hurt = (person, impact) => {
+      const h = this.harmed(person.id, "person", person.name || null), injury = injuryFor(this.R, { speed: impact, seed: `${id}:${person.id}` });
+      this.hurtPerson(h, injury, person, `collision ${id}`);
+      if (injury.bill) bills.push(this.billing.issue({ payer: driver.account, payee: "business:hospital", kind: "liability", amount: injury.bill,
+        memo: `Collision care: ${person.name || person.id}, ${injury.type}`, at: this.now, due_days: 30, penalties: [], evidence, key: `collision:${id}:${person.id}:care` }).id);
+    };
+    repair(vehicle, target.kind === "person" ? speed * 0.35 : speed, false);
+    if (target.kind === "person") hurt(target, speed);
+    else { repair(target, speed, true); if (target.driver) hurt({ ...target, id: target.driver, name: target.driverName }, speed * 0.5); }
+    hurt({ ...vehicle, id: vehicle.driver, name: vehicle.driverName }, speed * 0.5);
+    const incident = { id, at: { x: vehicle.x, z: vehicle.z, yaw: vehicle.yaw || 0 }, vehicle: { ...vehicle }, target: { ...target }, speed, context: structuredClone(context),
+      driver: vehicle.driver, charge: fine.kind, case: fine.case, bills, damage, debt: bills.reduce((sum, id) => sum + this.billing.bills.get(id).amount, 0) };
+    // Stored with the vehicle's harm so the full diagnostic survives saving/loading the world.
+    vh.collision = this.log("npc_collision", incident);
+    return vh.collision;
+  }
   //: A collision on the street. ``kind``: "hit_by_car" (a car of the city's hit you), "hit_person"
   //: (your car hit someone), "hit_vehicle" (your car and one of the city's). ``speed``: the
   //: impact in m/s; ``other``: the speed of the other car, for who was at fault.

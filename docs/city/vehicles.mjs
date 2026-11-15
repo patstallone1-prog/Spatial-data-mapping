@@ -473,8 +473,22 @@ export function fleetParts(THREE, gltf) {
       for (let i = 0; i < a.count; i += 1) { f[i * 3] = a.getX(i); f[i * 3 + 1] = a.getY(i); f[i * 3 + 2] = a.getZ(i); }
       geometry.setAttribute(key, new THREE.BufferAttribute(f, 3));
     }
-    geometry.setIndex(o.geometry.index);
+    geometry.setIndex(o.geometry.index?.clone() || null);
     geometry.applyMatrix4(o.matrixWorld);
+    // A baked mirror or a simplified face can leave its winding opposite every vertex normal.
+    // Repair only that unambiguous case; keep the source geometry and its index untouched.
+    const pos = geometry.attributes.position, normal = geometry.attributes.normal, index = geometry.index;
+    if (index && normal) {
+      const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), face = new THREE.Vector3(), n = new THREE.Vector3();
+      for (let i = 0; i < index.count; i += 3) {
+        const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+        a.fromBufferAttribute(pos, ids[0]); b.fromBufferAttribute(pos, ids[1]); c.fromBufferAttribute(pos, ids[2]);
+        face.crossVectors(b.sub(a), c.sub(a)).normalize();
+        if (ids.every((id) => face.dot(n.fromBufferAttribute(normal, id)) < -0.5)) {
+          index.setX(i + 1, ids[2]); index.setX(i + 2, ids[1]);
+        }
+      }
+    }
     geometry.computeBoundingSphere(); geometry.computeBoundingBox();
     const name = o.material?.name || o.name, glass = name === "glass" || Boolean(o.material?.transparent);
     out.push({ name, node: o.name, geometry, glass, map: o.material?.map || null, colour: o.material?.color?.clone() || null, opacity: o.material?.opacity ?? 1,
@@ -482,6 +496,28 @@ export function fleetParts(THREE, gltf) {
   });
   return out;
 }
+//: Night lamps fitted to this tier's body, rather than floating at its bounding-box nose.
+//: Computed once per model; a lamp with no body behind it is omitted.
+export function vehicleLampAnchors(THREE, geometries, [w, h, l]) {
+  const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+  const meshes = geometries.map((geometry) => new THREE.Mesh(geometry, material));
+  const ray = new THREE.Raycaster(), out = [];
+  for (const end of [-1, 1]) for (const side of [-1, 1]) {
+    ray.set(new THREE.Vector3(side * w * 0.32, Math.min(1.1, h * 0.48), end * (l / 2 + 1)), new THREE.Vector3(0, 0, -end));
+    const hit = ray.intersectObjects(meshes, false)[0];
+    if (!hit) continue;
+    const normal = hit.face.normal.clone();
+    if (normal.dot(ray.ray.direction) > 0) normal.negate();
+    const position = hit.point.clone().addScaledVector(normal, 0.005);
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize();
+    const up = new THREE.Vector3().crossVectors(normal, right);
+    const rotation = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, normal));
+    out.push({ head: end < 0, matrix: new THREE.Matrix4().compose(position, rotation, new THREE.Vector3(1, 1, 1)) });
+  }
+  material.dispose();
+  return out;
+}
+
 //: A fleet part's material. ``standard``: the lit, shinier one (your own car, near the camera);
 //: else Lambert, as the rest of the traffic is. The paint: on ``body`` the instance colour where
 //: ``_paint`` is 1; on ``paint-atlas`` the texture's own shading (its brightness) in the instance

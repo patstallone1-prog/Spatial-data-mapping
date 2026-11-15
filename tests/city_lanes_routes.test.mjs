@@ -97,7 +97,7 @@ test("cars spread over the lanes, turn from the lane for their turn, never meet,
   assert.equal(edgeKey(route, 0), `${route.ids[0]}>${route.ids[1]}`);
 });
 
-test("a car stuck in a junction is driven out of it; a stalled car about to be hit is moved on", () => {
+test("a car stuck in a junction is driven out; an unavoidable rear-end impact stops both cars", () => {
   const S = avenues();
   const route = S.route(S.nearest(240, 0, "drive"), S.nearest(240, 480, "drive"), "drive");
   const node = route.ids.indexOf(S.nearest(240, 240, "drive")), sNode = route.s[node];
@@ -122,7 +122,11 @@ test("a car stuck in a junction is driven out of it; a stalled car about to be h
   D2.stateOf("a").v = 0; D2.stateOf("b").v = 10;
   for (let k = 0; k < 10; k += 1) D2.step(dt, k * dt, [stalled, fast], []);
   assert.ok(D2.stateOf("a").d > 50.05, "the one in front moved on");
-  assert.ok(D2.stateOf("b").d < D2.stateOf("a").d - 4.6, "never into it");
+  assert.equal(D2.stateOf("b").hit.kind, "vehicle");
+  assert.equal(D2.stateOf("b").hit.who, "a");
+  assert.equal(D2.stateOf("a").hit.id, D2.stateOf("b").hit.id);
+  assert.equal(D2.stateOf("a").v, 0);
+  assert.equal(D2.stateOf("b").v, 0);
 });
 
 test("a round at work is driven one whole way after another, from where the last one ended, back home at the end", () => {
