@@ -1,14 +1,17 @@
 import { PREFIX, APPLIED_EVENT, checkedTarget, createHandoff, draftKey, loadDraft, saveDraft, fingerprint } from './storage.mjs';
+import {isBusiness} from './profiles.mjs';
 import { createDraft, validateHouse } from './model.mjs';
 
 export function targetForHome(home, house, access) {
+  if(home.propertyKind==='business'&&(!isBusiness(house)||house.residential_units?.length))throw new Error('This mixed-use building needs a verified commercial tenant plan before editing.');
+  if(home.propertyKind==='business')return checkedTarget({buildingId:String(home.buildingId),homeId:home.id,account:access.account,worldKey:access.worldKey,propertyKind:'business',businessKind:home.businessKind,label:home.label,unitId:null});
   const units = house.residential_units || [];
   const unitId = home.unitId || (units.length === 1 ? units[0].id : null);
   if (units.length > 1 && (!unitId || !units.some(u => u.id === unitId))) throw new Error('This apartment needs its interior unit linked before editing; other homes and shared halls are protected.');
   if (home.type === 'apartment' && !unitId && house.provenance?.source_snapshot?.ownership_scope === 'unknown_multi_unit') throw new Error('This fitted apartment has no reliable unit boundary yet.');
   return checkedTarget({ buildingId: String(home.buildingId), homeId: home.id, account: access.account, worldKey: access.worldKey, unitId, label: home.label });
 }
-function sameTarget(a, b) { return ['buildingId','homeId','account','worldKey','unitId'].every(k => a[k] === b[k]); }
+function sameTarget(a, b) { return ['buildingId','homeId','account','worldKey','unitId','propertyKind'].every(k => (a[k]??(k==='propertyKind'?'home':null)) === (b[k]??(k==='propertyKind'?'home':null))); }
 // Combine independently edited units without letting the last applied unit overwrite its neighbours.
 export function composeDesigns(baseline, designs) {
   let house = structuredClone(baseline);

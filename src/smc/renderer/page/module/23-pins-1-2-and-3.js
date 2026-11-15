@@ -583,14 +583,26 @@ function requestStoreInteriors(base) {
 let homeEditorBridge = null, homeEditorBridgePromise = null, homeEditorAccess = { homes: [], designs: [] };
 async function editorBaseline(buildingId) {
   const entry = footprintById.get(String(buildingId));
-  if (!entry || commercialInterior(entry)) throw new Error("This residential building is not loaded yet. Visit your home, then open the editor.");
+  if (!entry) throw new Error("This building is not loaded yet. Visit your property, then open the editor.");
   if (entry.editorBaseline) return structuredClone(entry.editorBaseline);
   let house;
   if (entry.generatedInteriorRef) {
     const ref = entry.generatedInteriorRef;
     const [adapter, response] = await Promise.all([import(new URL("kerbside-adapter.mjs", ref.base).href), fetch(new URL(ref.file, ref.fileBase || ref.base))]);
-    if (!response.ok) throw new Error("The source home layout could not be loaded.");
+    if (!response.ok) throw new Error("The source layout could not be loaded.");
     house = adapter.prepareGeneratedHouse(await response.json());
+  } else if(commercialInterior(entry)) {
+    if(entry.way.shops?.length>1)throw new Error("This building needs a verified tenant boundary before one business can be edited.");
+    const info=homeEditorAccess.homes.find(h=>h.buildingId===String(buildingId)&&h.propertyKind==='business');
+    if(!info)throw new Error("Open the editor from a business you own.");
+    const origin=[(entry.minX+entry.maxX)/2,-(entry.minZ+entry.maxZ)/2];entry.editorOrigin=origin;
+    const local=p=>[p[0]-origin[0],-p[1]-origin[1]], ring=entry.local.map(local);if(ring[0][0]!==ring.at(-1)[0]||ring[0][1]!==ring.at(-1)[1])ring.push([...ring[0]]);
+    const entrances=(entry.doors||[]).filter(d=>[d.cx,d.cz,d.ux,d.uz,d.width].every(Number.isFinite)).map(d=>({segment:{type:'LineString',coordinates:[local([d.cx-d.ux*d.width/2,d.cz-d.uz*d.width/2]),local([d.cx+d.ux*d.width/2,d.cz+d.uz*d.width/2])]},width_m:d.width,leaf_count:1,type:'single_door'}));
+    if(!entrances.length)throw new Error("Visit this business entrance first so its actual door can be included.");
+    const [{businessStarter},assetCatalog]=await Promise.all([import(new URL("../interior-lab/business-starter.mjs",interiorAssetBase()).href),fetch(new URL("manifest.json",interiorAssetBase())).then(r=>r.ok?r.json():{assets:[]}).catch(()=>({assets:[]}))]);
+    const height=Number(entry.way.storey_m)||Number(entry.fit?.[9])||3.2;
+    const windows=(entry.homeShell?.group.userData.windows||[]).map(w=>({edge:w.edge,u:w.u,v:w.v-entryFloorY(entry),w:w.w,h:w.h})).filter(w=>Number.isInteger(w.edge)&&[w.u,w.v,w.w,w.h].every(Number.isFinite)&&w.v>=0&&w.v<height);
+    house=businessStarter({id:String(buildingId),kind:info.businessKind,footprint:{type:'Polygon',coordinates:[ring]},height,entrances,windows,name:info.label,assets:assetCatalog.assets||[]});
   } else {
     entry.capturingEditorBaseline = true;
     try {
@@ -607,7 +619,7 @@ function ensureHomeEditorBridge() {
   if (!homeEditorBridgePromise) homeEditorBridgePromise = import(new URL("../interior-lab/world-bridge.mjs", interiorAssetBase()).href).then(({HomeInteriorBridge}) => {
     homeEditorBridge = new HomeInteriorBridge({
       loadBaseline: editorBaseline,
-      onApply: args => livingCity?.applyHomeInterior(args),
+      onApply: args => args.design?.target.propertyKind==='business'?livingCity?.applyBusinessInterior({business:args.home,baseline:args.baseline,design:args.design}):livingCity?.applyHomeInterior(args),
       report: message => { console.warn("kerbside: interior edit", message); livingCity?.notify?.(message); },
       openEditor: (handoff, tab) => {
         if (!handoff) return window.open("about:blank", "kerbside-interior-studio");
@@ -642,7 +654,7 @@ async function openHomeInteriorLab(homeId) {
 function requestGeneratedInterior(entry) {
   if (entry.generatedInteriorPending) return;
   entry.generatedInteriorPending = true;
-  const ref = entry.generatedInteriorRef || { base: new URL("../inferred-interiors/", interiorAssetBase()), origin_lon_lat: entry.fit?.slice(4, 6), kind: "house" };
+  const ref = entry.generatedInteriorRef || { base: new URL("../inferred-interiors/", interiorAssetBase()), origin_lon_lat: entry.fit?.slice(4, 6)||[0,0], kind: "house" };
   if (!generatedInteriorModules) generatedInteriorModules = Promise.all([
     import(new URL("renderer.mjs", ref.base).href),
     import(new URL("kerbside-adapter.mjs", ref.base).href)
@@ -660,7 +672,7 @@ function requestGeneratedInterior(entry) {
     const [lon, lat] = ref.origin_lon_lat;
     const floorY = entryFloorY(entry);
     const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
-      origin: xy(lon, lat), floorY, assetBase: interiorAssetBase(),
+      origin: entry.editorOrigin||xy(lon, lat), floorY, assetBase: interiorAssetBase(),
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
       feetY: walkerFeetY, pointInRing, kind: ref.kind, customized
     }, rendererModule.buildInferredHouse);

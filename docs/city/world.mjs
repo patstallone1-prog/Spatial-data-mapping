@@ -55,6 +55,7 @@ export class CityWorld {
     this.damage = new Map();                           // things struck: how much they have taken, and broken ones
     this.market = { taken: new Set() };                // homes bought or let off the market
     this.harm = new Map();                             // people hurt and cars damaged: the city's residents', and what became of them
+    this.businessInteriors = new Map();
     this.homeInteriors = new Map();                    // validated user layouts, shared in the world snapshot
     this.seq = 0; this.lastStep = now;
     for (const id of Object.keys(AUTHORITIES)) this.ledger.open(id, "authority");
@@ -1626,7 +1627,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], enterprise: this.enterpriseJSON() };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], enterprise: this.enterpriseJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1644,6 +1645,7 @@ export class CityWorld {
     w.market = { taken: new Set(o.market?.taken || []) };
     w.harm = new Map((o.harm || []).map((h) => [h.id, h]));
     w.homeInteriors = new Map(o.homeInteriors || []);
+    w.businessInteriors = new Map(o.businessInteriors || []);
     w.enterpriseLoad(o.enterprise);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.

@@ -1036,15 +1036,15 @@ export async function startCity(ctx) {
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
     courtPlace: () => enterprise().courtPlace?.() }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
-    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
+    openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); } }));
   const amHost = () => Boolean(world);
   const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
   function syncHomeEditor() {
     const p = view?.players.get(myId);
     if (!p) return;
     ctx.setHomeInteriorAccess?.({ worldKey: roomKey(), account: p.account,
-      homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})),
-      designs: [...(view.homeInteriors?.values() || [])] });
+      homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})).concat([...(view.biz?.values()||[])].filter(b=>b.owner===p.account&&b.status==='open').map(b=>({id:b.id,buildingId:String(b.place.id),propertyKind:'business',businessKind:b.kind,label:b.name,type:b.kind}))),
+      designs: [...(view.homeInteriors?.values() || []),...(view.businessInteriors?.values()||[])] });
   }
   async function editHome(homeId) {
     syncHomeEditor();
@@ -1060,7 +1060,7 @@ export async function startCity(ctx) {
   function send(command, args = {}) {
     const here = whereNow();
     const full = { ...args, at: here };
-    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); afterChange(); return Promise.resolve(r); }
+    if (world) { const r = world.submit(myId, command, full); if (r.ok && ["customize_home","customize_business"].includes(command)) save(); afterChange(); return Promise.resolve(r); }
     const req = `${myId}:${++party.req}`;
     party.session.city.send({ t: "cmd", req, pid: myId, command, args: full });
     return new Promise((resolve) => { party.pending.set(req, resolve); setTimeout(() => { if (party.pending.delete(req)) resolve({ ok: false, error: "the party's host did not answer" }); }, 6000); });
@@ -1078,7 +1078,7 @@ export async function startCity(ctx) {
       // (Backend money is minted by the browser it belongs to, for itself: never asked of a host.)
       const result = m.command === "account_grant" ? { ok: false, error: "not from a party" } : world.submit(m.pid, m.command, m.args);
       party.session.city.send({ t: "res", req: m.req, to: m.pid, result });
-      if (result.ok && m.command === "customize_home") save();
+      if (result.ok && ["customize_home","customize_business"].includes(m.command)) save();
       broadcastState(); refresh();
     } else if (m.t === "res" && m.to === myId) {
       const done = party.pending.get(m.req); if (done) { party.pending.delete(m.req); done(m.result); }
@@ -4650,7 +4650,7 @@ export async function startCity(ctx) {
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };
       return null;
     },
-    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, me: myId,
+    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), applyBusinessInterior: args => send("customize_business", args), notify, district, visible: () => visible, me: myId,
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,

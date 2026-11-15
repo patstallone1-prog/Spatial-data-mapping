@@ -1,0 +1,2247 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-ev_charging",
+  "name": "EV charging lounge",
+  "kind": "ev_charging",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": []
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-ev_charging:public",
+          "kind": "lounge",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.4,
+                  11.52
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 150.336,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-ev_charging:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-ev_charging:toilet",
+          "kind": "utility",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  8.4,
+                  12.96
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 31.752,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-ev_charging:public",
+            "studio-ev_charging:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.6075,
+                12.959999999999999
+              ],
+              [
+                8.4,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-ev_charging:public",
+            "studio-ev_charging:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-ev_charging:service",
+            "studio-ev_charging:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-ev_charging:service",
+            "studio-ev_charging:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-ev_charging:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-ev_charging:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-ev_charging:service:door",
+          "rooms": [
+            "studio-ev_charging:public",
+            "studio-ev_charging:toilet"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ],
+              [
+                4.6075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "swing_into": "studio-ev_charging:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7925000000000004,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-ev_charging:toilet:door",
+          "rooms": [
+            "studio-ev_charging:service",
+            "studio-ev_charging:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-ev_charging:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-ev_charging:item:0",
+          "role": "sofa",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            2.731177,
+            1.118264,
+            0.925084
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "sofa_03",
+            "role": "sofa",
+            "model": "sofa_03/sofa_03.gltf",
+            "dimensions_m": [
+              2.731177,
+              1.118264,
+              0.925084
+            ],
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/sofa_03",
+            "attribution": "Poly Haven"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.6344115,
+                  6.0174579999999995
+                ],
+                [
+                  7.3655885,
+                  6.0174579999999995
+                ],
+                [
+                  7.3655885,
+                  6.9425419999999995
+                ],
+                [
+                  4.6344115,
+                  6.9425419999999995
+                ],
+                [
+                  4.6344115,
+                  6.0174579999999995
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:1",
+          "role": "armchair",
+          "position_m": [
+            6.0868446165231616,
+            0,
+            7.568139364788018
+          ],
+          "size_m": [
+            0.95,
+            0.8918367877571567,
+            0.7948980429057362
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-loungechair",
+            "role": "armchair",
+            "model": "business-lowpoly/kenney-loungechair.glb",
+            "dimensions_m": [
+              0.95,
+              0.8918367877571567,
+              0.7948980429057362
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.611844616523162,
+                  7.17069034333515
+                ],
+                [
+                  6.561844616523161,
+                  7.17069034333515
+                ],
+                [
+                  6.561844616523161,
+                  7.965588386240886
+                ],
+                [
+                  5.611844616523162,
+                  7.965588386240886
+                ],
+                [
+                  5.611844616523162,
+                  7.17069034333515
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:2",
+          "role": "coffee_table",
+          "position_m": [
+            5.850075471160764,
+            0,
+            5.63290649581868
+          ],
+          "size_m": [
+            1.1,
+            0.3827556724671157,
+            0.665662049315831
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-tablecoffee",
+            "role": "coffee_table",
+            "model": "business-lowpoly/kenney-tablecoffee.glb",
+            "dimensions_m": [
+              1.1,
+              0.3827556724671157,
+              0.665662049315831
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160764,
+                  5.300075471160764
+                ],
+                [
+                  6.400075471160764,
+                  5.300075471160764
+                ],
+                [
+                  6.400075471160764,
+                  5.965737520476595
+                ],
+                [
+                  5.300075471160764,
+                  5.965737520476595
+                ],
+                [
+                  5.300075471160764,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:3",
+          "role": "service_counter",
+          "position_m": [
+            4.802998889711173,
+            0,
+            7.536969395574184
+          ],
+          "size_m": [
+            1.5,
+            1.4651162089561383,
+            0.7325581044780691
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-kitchenbar",
+            "role": "service_counter",
+            "model": "business-lowpoly/kenney-kitchenbar.glb",
+            "dimensions_m": [
+              1.5,
+              1.4651162089561383,
+              0.7325581044780691
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.052998889711173,
+                  7.170690343335149
+                ],
+                [
+                  5.552998889711173,
+                  7.170690343335149
+                ],
+                [
+                  5.552998889711173,
+                  7.903248447813219
+                ],
+                [
+                  4.052998889711173,
+                  7.903248447813219
+                ],
+                [
+                  4.052998889711173,
+                  7.170690343335149
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:4",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:5",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:6",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:7",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:8",
+          "role": "washing_machine",
+          "position_m": [
+            5.25,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.6,
+            0.85,
+            0.65
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:washing_machine",
+            "role": "washing_machine",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.95,
+                  15.155000000000001
+                ],
+                [
+                  5.55,
+                  15.155000000000001
+                ],
+                [
+                  5.55,
+                  15.805
+                ],
+                [
+                  4.95,
+                  15.805
+                ],
+                [
+                  4.95,
+                  15.155000000000001
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:9",
+          "role": "clothes_dryer",
+          "position_m": [
+            4.65,
+            0,
+            15.535
+          ],
+          "size_m": [
+            0.6,
+            0.85,
+            0.65
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:clothes_dryer",
+            "role": "clothes_dryer",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.3500000000000005,
+                  15.21
+                ],
+                [
+                  4.95,
+                  15.21
+                ],
+                [
+                  4.95,
+                  15.86
+                ],
+                [
+                  4.3500000000000005,
+                  15.86
+                ],
+                [
+                  4.3500000000000005,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:10",
+          "role": "commercial_washer",
+          "position_m": [
+            6.05638299801599,
+            0,
+            15.416382975519019
+          ],
+          "size_m": [
+            0.9127659960319794,
+            1.1,
+            0.912765951038035
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washer",
+            "role": "commercial_washer",
+            "model": "business-lowpoly/kenney-washer.glb",
+            "dimensions_m": [
+              0.9127659960319794,
+              1.1,
+              0.912765951038035
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6000000000000005,
+                  14.96
+                ],
+                [
+                  6.5127659960319795,
+                  14.96
+                ],
+                [
+                  6.5127659960319795,
+                  15.872765951038037
+                ],
+                [
+                  5.6000000000000005,
+                  15.872765951038037
+                ],
+                [
+                  5.6000000000000005,
+                  14.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:11",
+          "role": "commercial_washer",
+          "position_m": [
+            5.05638299801599,
+            0,
+            14.666382975519019
+          ],
+          "size_m": [
+            0.9127659960319794,
+            1.1,
+            0.912765951038035
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washer",
+            "role": "commercial_washer",
+            "model": "business-lowpoly/kenney-washer.glb",
+            "dimensions_m": [
+              0.9127659960319794,
+              1.1,
+              0.912765951038035
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.6000000000000005,
+                  14.21
+                ],
+                [
+                  5.5127659960319795,
+                  14.21
+                ],
+                [
+                  5.5127659960319795,
+                  15.122765951038037
+                ],
+                [
+                  4.6000000000000005,
+                  15.122765951038037
+                ],
+                [
+                  4.6000000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:12",
+          "role": "commercial_washer",
+          "position_m": [
+            6.05638299801599,
+            0,
+            15.916382975519019
+          ],
+          "size_m": [
+            0.9127659960319794,
+            1.1,
+            0.912765951038035
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washer",
+            "role": "commercial_washer",
+            "model": "business-lowpoly/kenney-washer.glb",
+            "dimensions_m": [
+              0.9127659960319794,
+              1.1,
+              0.912765951038035
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6000000000000005,
+                  15.46
+                ],
+                [
+                  6.5127659960319795,
+                  15.46
+                ],
+                [
+                  6.5127659960319795,
+                  16.372765951038037
+                ],
+                [
+                  5.6000000000000005,
+                  16.372765951038037
+                ],
+                [
+                  5.6000000000000005,
+                  15.46
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:13",
+          "role": "commercial_dryer",
+          "position_m": [
+            4.994148952831991,
+            0,
+            16.35414893340279
+          ],
+          "size_m": [
+            0.7882979056639821,
+            1.9,
+            0.7882978668055756
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washerdryerstacked",
+            "role": "commercial_dryer",
+            "model": "business-lowpoly/kenney-washerdryerstacked.glb",
+            "dimensions_m": [
+              0.7882979056639821,
+              1.9,
+              0.7882978668055756
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.6,
+                  15.960000000000003
+                ],
+                [
+                  5.388297905663983,
+                  15.960000000000003
+                ],
+                [
+                  5.388297905663983,
+                  16.74829786680558
+                ],
+                [
+                  4.6,
+                  16.74829786680558
+                ],
+                [
+                  4.6,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:14",
+          "role": "commercial_dryer",
+          "position_m": [
+            4.494148952831991,
+            0,
+            16.35414893340279
+          ],
+          "size_m": [
+            0.7882979056639821,
+            1.9,
+            0.7882978668055756
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washerdryerstacked",
+            "role": "commercial_dryer",
+            "model": "business-lowpoly/kenney-washerdryerstacked.glb",
+            "dimensions_m": [
+              0.7882979056639821,
+              1.9,
+              0.7882978668055756
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.1,
+                  15.960000000000003
+                ],
+                [
+                  4.888297905663983,
+                  15.960000000000003
+                ],
+                [
+                  4.888297905663983,
+                  16.74829786680558
+                ],
+                [
+                  4.1,
+                  16.74829786680558
+                ],
+                [
+                  4.1,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:15",
+          "role": "commercial_dryer",
+          "position_m": [
+            5.994148952831991,
+            0,
+            14.354148933402788
+          ],
+          "size_m": [
+            0.7882979056639821,
+            1.9,
+            0.7882978668055756
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-washerdryerstacked",
+            "role": "commercial_dryer",
+            "model": "business-lowpoly/kenney-washerdryerstacked.glb",
+            "dimensions_m": [
+              0.7882979056639821,
+              1.9,
+              0.7882978668055756
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6,
+                  13.96
+                ],
+                [
+                  6.388297905663983,
+                  13.96
+                ],
+                [
+                  6.388297905663983,
+                  14.748297866805576
+                ],
+                [
+                  5.6,
+                  14.748297866805576
+                ],
+                [
+                  5.6,
+                  13.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:16",
+          "role": "storage_cabinet",
+          "position_m": [
+            6.4,
+            0,
+            16.876761207580568
+          ],
+          "size_m": [
+            1.6,
+            1.6,
+            0.8335224151611329
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchencabinet",
+            "role": "storage_cabinet",
+            "model": "business-lowpoly/kay-kitchencabinet.glb",
+            "dimensions_m": [
+              1.6,
+              1.6,
+              0.8335224151611329
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6000000000000005,
+                  16.46
+                ],
+                [
+                  7.2,
+                  16.46
+                ],
+                [
+                  7.2,
+                  17.293522415161135
+                ],
+                [
+                  5.6000000000000005,
+                  17.293522415161135
+                ],
+                [
+                  5.6000000000000005,
+                  16.46
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-ev_charging:item:17",
+          "role": "handwash_sink",
+          "position_m": [
+            4.35,
+            0,
+            14.935
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-ev_charging:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-ev_charging:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.1,
+                  14.71
+                ],
+                [
+                  4.6,
+                  14.71
+                ],
+                [
+                  4.6,
+                  15.16
+                ],
+                [
+                  4.1,
+                  15.16
+                ],
+                [
+                  4.1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

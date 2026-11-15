@@ -1,0 +1,1875 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-pharmacy",
+  "name": "Pharmacy",
+  "kind": "pharmacy",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": []
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-pharmacy:public",
+          "kind": "sales_floor",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 155.51999999999998,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-pharmacy:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-pharmacy:toilet",
+          "kind": "dispensary",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  12,
+                  12.96
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 49.89599999999999,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                5.5925,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-pharmacy:public",
+            "studio-pharmacy:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4075,
+                12.959999999999999
+              ],
+              [
+                12,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-pharmacy:public",
+            "studio-pharmacy:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-pharmacy:service",
+            "studio-pharmacy:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-pharmacy:service",
+            "studio-pharmacy:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-pharmacy:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-pharmacy:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-pharmacy:service:door",
+          "rooms": [
+            "studio-pharmacy:public",
+            "studio-pharmacy:toilet"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.5925,
+                12.959999999999999
+              ],
+              [
+                6.4075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "swing_into": "studio-pharmacy:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.5925,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-pharmacy:toilet:door",
+          "rooms": [
+            "studio-pharmacy:service",
+            "studio-pharmacy:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-pharmacy:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-pharmacy:item:0",
+          "role": "gondola_shelf",
+          "position_m": [
+            2,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.6,
+            1.7,
+            0.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "role": "gondola_shelf",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.2,
+                  6.079999999999999
+                ],
+                [
+                  2.8,
+                  6.079999999999999
+                ],
+                [
+                  2.8,
+                  6.88
+                ],
+                [
+                  1.2,
+                  6.88
+                ],
+                [
+                  1.2,
+                  6.079999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:1",
+          "role": "gondola_shelf",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.6,
+            1.7,
+            0.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "role": "gondola_shelf",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  6.079999999999999
+                ],
+                [
+                  6.8,
+                  6.079999999999999
+                ],
+                [
+                  6.8,
+                  6.88
+                ],
+                [
+                  5.2,
+                  6.88
+                ],
+                [
+                  5.2,
+                  6.079999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:2",
+          "role": "gondola_shelf",
+          "position_m": [
+            10,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.6,
+            1.7,
+            0.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:gondola_shelf",
+            "role": "gondola_shelf",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.2,
+                  6.079999999999999
+                ],
+                [
+                  10.8,
+                  6.079999999999999
+                ],
+                [
+                  10.8,
+                  6.88
+                ],
+                [
+                  9.2,
+                  6.88
+                ],
+                [
+                  9.2,
+                  6.079999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:3",
+          "role": "medicine_cabinet",
+          "position_m": [
+            5.918736598583605,
+            0,
+            5.643673618411915
+          ],
+          "size_m": [
+            1.2373222548456826,
+            1.8000000000000003,
+            0.687196294502302
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-medicine-cabinet",
+            "role": "medicine_cabinet",
+            "model": "business-lowpoly/medical-medicine-cabinet.glb",
+            "dimensions_m": [
+              1.2373222548456826,
+              1.8000000000000003,
+              0.687196294502302
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/medicine-cabinet/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160763,
+                  5.300075471160764
+                ],
+                [
+                  6.537397726006446,
+                  5.300075471160764
+                ],
+                [
+                  6.537397726006446,
+                  5.987271765663066
+                ],
+                [
+                  5.300075471160763,
+                  5.987271765663066
+                ],
+                [
+                  5.300075471160763,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:4",
+          "role": "service_counter",
+          "position_m": [
+            6.050075471160763,
+            0,
+            7.536969395574184
+          ],
+          "size_m": [
+            1.5,
+            1.4651162089561383,
+            0.7325581044780691
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-kitchenbar",
+            "role": "service_counter",
+            "model": "business-lowpoly/kenney-kitchenbar.glb",
+            "dimensions_m": [
+              1.5,
+              1.4651162089561383,
+              0.7325581044780691
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160763,
+                  7.170690343335149
+                ],
+                [
+                  6.800075471160763,
+                  7.170690343335149
+                ],
+                [
+                  6.800075471160763,
+                  7.903248447813219
+                ],
+                [
+                  5.300075471160763,
+                  7.903248447813219
+                ],
+                [
+                  5.300075471160763,
+                  7.170690343335149
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:5",
+          "role": "medical_cart",
+          "position_m": [
+            6.9032136905509836,
+            0,
+            5.839254675881709
+          ],
+          "size_m": [
+            0.7121232758812591,
+            1,
+            0.45482011871709543
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-medical-cart",
+            "role": "medical_cart",
+            "model": "business-lowpoly/medical-medical-cart.glb",
+            "dimensions_m": [
+              0.7121232758812591,
+              1,
+              0.45482011871709543
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/medical-cart/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.547152052610354,
+                  5.611844616523162
+                ],
+                [
+                  7.259275328491613,
+                  5.611844616523162
+                ],
+                [
+                  7.259275328491613,
+                  6.0666647352402565
+                ],
+                [
+                  6.547152052610354,
+                  6.0666647352402565
+                ],
+                [
+                  6.547152052610354,
+                  5.611844616523162
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:6",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:7",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:8",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:9",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:10",
+          "role": "medicine_cabinet",
+          "position_m": [
+            7.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            1.2373222548456826,
+            1.8000000000000003,
+            0.687196294502302
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-medicine-cabinet",
+            "role": "medicine_cabinet",
+            "model": "business-lowpoly/medical-medicine-cabinet.glb",
+            "dimensions_m": [
+              1.2373222548456826,
+              1.8000000000000003,
+              0.687196294502302
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/medicine-cabinet/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.431338872577158,
+                  15.136401852748849
+                ],
+                [
+                  7.668661127422841,
+                  15.136401852748849
+                ],
+                [
+                  7.668661127422841,
+                  15.823598147251152
+                ],
+                [
+                  6.431338872577158,
+                  15.823598147251152
+                ],
+                [
+                  6.431338872577158,
+                  15.136401852748849
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:11",
+          "role": "prep_table",
+          "position_m": [
+            7,
+            0,
+            16.86
+          ],
+          "size_m": [
+            1.8,
+            0.903376579284668,
+            1.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchentable_a",
+            "role": "prep_table",
+            "model": "business-lowpoly/kay-kitchentable_a.glb",
+            "dimensions_m": [
+              1.8,
+              0.903376579284668,
+              1.8
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.1,
+                  15.959999999999999
+                ],
+                [
+                  7.9,
+                  15.959999999999999
+                ],
+                [
+                  7.9,
+                  17.759999999999998
+                ],
+                [
+                  6.1,
+                  17.759999999999998
+                ],
+                [
+                  6.1,
+                  15.959999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:12",
+          "role": "storage_cabinet",
+          "position_m": [
+            7.15,
+            0,
+            14.626761207580568
+          ],
+          "size_m": [
+            1.6,
+            1.6,
+            0.8335224151611329
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchencabinet",
+            "role": "storage_cabinet",
+            "model": "business-lowpoly/kay-kitchencabinet.glb",
+            "dimensions_m": [
+              1.6,
+              1.6,
+              0.8335224151611329
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.3500000000000005,
+                  14.21
+                ],
+                [
+                  7.95,
+                  14.21
+                ],
+                [
+                  7.95,
+                  15.043522415161135
+                ],
+                [
+                  6.3500000000000005,
+                  15.043522415161135
+                ],
+                [
+                  6.3500000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-pharmacy:item:13",
+          "role": "handwash_sink",
+          "position_m": [
+            6.1,
+            0,
+            15.435
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-pharmacy:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-pharmacy:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.85,
+                  15.21
+                ],
+                [
+                  6.35,
+                  15.21
+                ],
+                [
+                  6.35,
+                  15.66
+                ],
+                [
+                  5.85,
+                  15.66
+                ],
+                [
+                  5.85,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

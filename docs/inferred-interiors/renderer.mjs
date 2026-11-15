@@ -1,3 +1,4 @@
+import {businessFixture} from '../interior-lab/business-fixtures.mjs';
 import {inPolygon} from './tour-world.mjs';
 import {retailFixture} from './retail-fixtures.mjs';
 import {wallRoom,wallRoomCuts,wallTileColour,wallCapColour} from './finishes.mjs';
@@ -65,7 +66,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
   }
   function fixture(parent,o) {
     const [w,h,d]=o.size_m,role=o.role;
-    if(retailFixture(THREE,parent,o,house.style))return;
+    if(retailFixture(THREE,parent,o,house.style)||businessFixture(THREE,parent,o,house.style))return;
     if(role==='parked_car') {
       const carColours=[house.style.accent,'#d6d8d4','#596f83','#d7cbb5','#424b4b','#e3e4df','#7b3c3c'],carSeed=String(o.id).split('').reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,0);
       const paint=material(carColours[carSeed%carColours.length],{metalness:.2,roughness:.32}),glass=material('#425b66',{metalness:.3,roughness:.18});
@@ -305,13 +306,16 @@ export function buildInferredHouse(THREE, house, options = {}) {
       f.level<house.storeys.length-1?[...house.stairs.filter(s=>s.from_level===f.level),...(house.ramps||[]).filter(s=>s.from_level===f.level)].map(s=>s.footprint):[]);
     for(const w of f.walls) {
       const coords=w.segment.coordinates;
-      for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],w.elevation_m??f.elevation_m,Math.min(wallHeight,w.height_m),w.side_materials||w.materials,w.thickness_m);
+      const rawPaint=w.side_materials||w.materials,originalPaint=Array.isArray(rawPaint)?rawPaint:[rawPaint,rawPaint];
+      const mid=[(coords[0][0]+coords.at(-1)[0])/2,(coords[0][1]+coords.at(-1)[1])/2],dx=coords.at(-1)[0]-coords[0][0],dz=coords.at(-1)[1]-coords[0][1],length=Math.hypot(dx,dz)||1;
+      const customPaint=[1,-1].map((side,i)=>{const r=f.rooms.find(r=>r.custom_finish&&inPolygon(mid[0]-dz/length*.04*side,mid[1]+dx/length*.04*side,r.polygon));return r?.materials.wall||originalPaint?.[i]||house.style.walls?.[0]||'#dcded4';});
+      for(let i=0;i<coords.length-1;i++)wall(fg,coords[i],coords[i+1],w.elevation_m??f.elevation_m,Math.min(wallHeight,w.height_m),customPaint,w.thickness_m);
       const a=coords[0],b=coords.at(-1);
       const trim=wall(fg,a,b,f.elevation_m,.11,house.style.wood,(w.thickness_m||.10)+.025);if(trim)trim.userData.surface='skirting';
       if(wallHeight>1.5)wall(fg,a,b,f.elevation_m+Math.min(wallHeight,w.height_m)-.06,.06,'#eadbc3',(w.thickness_m||.10)+.025);
       const p=[(a[0]+b[0])/2,(a[1]+b[1])/2],L=Math.hypot(b[0]-a[0],b[1]-a[1]),left=[p[0]-(b[1]-a[1])/L*.12,p[1]+(b[0]-a[0])/L*.12],right=[2*p[0]-left[0],2*p[1]-left[1]];
       const wet=point=>f.rooms.some(r=>['full_bathroom','toilet','professional_kitchen'].includes(r.kind)&&inPolygon(...point,r.polygon));
-      const paint=w.side_materials||w.materials,faces=[wet(left)?floorMaterial(wallTileColour(house,paint[0]),'tile'):paint[0],wet(right)?floorMaterial(wallTileColour(house,paint[1]),'tile'):paint[1]];
+      const paint=customPaint,faces=[wet(left)?floorMaterial(wallTileColour(house,paint[0]),'tile'):paint[0],wet(right)?floorMaterial(wallTileColour(house,paint[1]),'tile'):paint[1]];
       if(wet(left)||wet(right))wall(fg,a,b,f.elevation_m+.12,Math.min(1.08,wallHeight-.12),faces,(w.thickness_m||.10)+.006);
       segments.push({level:f.level,line:[...a,...b]});
     }
@@ -410,5 +414,5 @@ export function buildInferredHouse(THREE, house, options = {}) {
     }
   }
   group.userData={surface:'interior',grade:'inferred',engine:'kerbside-polygon-v1'};
-  return {group,floorGroups,doors,segments,assetErrors,ready:Promise.all(pending)};
+  return {group,floorGroups,doors,segments,pending,assetErrors,ready:Promise.all(pending)};
 }
