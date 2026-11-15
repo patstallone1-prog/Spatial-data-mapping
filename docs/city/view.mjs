@@ -251,7 +251,8 @@ export async function startCity(ctx) {
 
   //: Who you are in the city: the server's id for this device's account once signed in; a local
   //: id only in the offline practice world.
-  let myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
+  const localId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
+  let myId = localId;
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
   // The game's clock (clock.mjs): a day in 72 real minutes. ``gameNow()`` is what the books and
   // the clock on the bar read; the fleet works in real minutes from the game day's start
@@ -1212,10 +1213,15 @@ export async function startCity(ctx) {
   // with the device's account, sends the actions you take, and is shown your part of it. It
   // holds no books while connected, and nothing saved here is ever brought into the city. A
   // party is who you see walking beside you -- not a separate economy, and nobody's browser is
-  // its host. Where the server cannot be reached (a development page, a deploy not yet set up),
-  // the city is an offline practice world of this browser's own, said so in the panel.
+  // its host. The city the server keeps is City mode's (the Marina: the places it has a record
+  // of). Outside it -- Explore, where only the people and traffic are out -- and where the
+  // server cannot be reached (a development page, a deploy not yet set up), the books are an
+  // offline practice world of this browser's own, said so in the panel.
   const party = { session: null, unlisten: null, ids: new Map() };
-  const online = { client: null, state: "connecting", why: "", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  //: state: "off" (practice, by where you are), "connecting", "online", "practice" (the server did not answer).
+  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  const SERVER_URL = cityServerUrl(globalThis.location);
+  const wantOnline = () => Boolean(SERVER_URL && ctx.cityMode?.());
   let world = null;     // the offline practice world (this browser's own; never the city's)
   let view = null;      // the world as shown: the server's view of it for you, or the practice world
   function loadSolo() {
@@ -1273,31 +1279,43 @@ export async function startCity(ctx) {
     online.syncing = true; online.lastSync = performance.now();
     try { const r = await online.client.sync(online.version); if (r.ok) shown(r); } finally { online.syncing = false; }
   }
-  function practice(why) {
-    online.state = "practice"; online.why = why; online.retry = performance.now();
+  //: The practice world: this browser's own, under its own id.
+  function practice(state, why) {
+    online.state = state; online.why = why; online.retry = performance.now();
+    myId = localId;
     if (!world) { world = loadSolo(); view = world; }
     refresh();
     ensureJoined();
   }
-  //: Signing in to the city. Not reachable: the practice world, and another try every minute.
+  //: Signing in to the city (on entering City mode). Not reachable: the practice world, and
+  //: another try every minute while you are there.
   async function connectCity() {
-    const url = cityServerUrl(globalThis.location);
-    if (!url) { practice("this page has no city server"); return; }
+    online.state = "connecting"; online.why = "";
+    if (world) save();
+    world = null; view = null;
     const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
     const key = lib?.deviceKey?.();
-    if (!key) { practice("this device has no account"); return; }
-    online.client ||= cityClient({ url, key });
+    if (!key) { practice("practice", "this device has no account"); return; }
+    online.client ||= cityClient({ url: SERVER_URL, key });
     const r = await online.client.open();
-    if (!r.ok) { practice(r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
-    if (world) save();
-    world = null; view = null; myId = r.pid; online.state = "online"; online.why = ""; online.version = 0;
+    if (online.state !== "connecting") return;   // Explore again while it was asked
+    if (!r.ok) { practice("practice", r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
+    myId = r.pid; online.state = "online"; online.version = 0; online.since = performance.now(); grantsAsked = false;
     if (party.session) party.session.city.send({ t: "hello", pid: myId });
     await syncCity();
     ensureJoined();
   }
-  // Until the first frame (tick starts it): the practice world at once where there is no server
-  // to ask, so a development page is never left waiting.
-  if (!cityServerUrl(globalThis.location)) { world = loadSolo(); view = world; online.state = "practice"; online.why = "this page has no city server"; }
+  //: Each frame: the server's books in City mode, the practice world's anywhere else.
+  function chooseBooks() {
+    if (wantOnline()) {
+      if (online.state === "off" || (online.state === "practice" && performance.now() - online.retry > 60_000)) connectCity();
+    } else if (online.state !== "off") {
+      practice("off", SERVER_URL ? "you are exploring" : "this page has no city server");
+    }
+  }
+  // Until the first frame chooses: the practice world, so nothing is left waiting.
+  world = loadSolo(); view = world;
+  if (!SERVER_URL) online.why = "this page has no city server";
   //: Everyone is a player of the city from the first: joined in the background as soon as the
   //: district is there (a home beside you to rent), under the profile's name -- there is no
   //: "Join the city" to press (2026-11-11).
@@ -1306,11 +1324,13 @@ export async function startCity(ctx) {
     const w = view;
     if (!w || w.players.has(myId) || joining) return;
     if (!district.places?.length) return;   // the district first: a home beside you
+    const home = nearestPlace((p) => p.use === "residential", 400);
+    // In the city: not until the area has loaded round you (a home to start in), within reason.
+    if (online.state === "online" && !home && performance.now() - online.since < 120_000) return;
     joining = true;
     try {
       const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
       const name = party.session?.me?.name || lib?.account?.()?.name || "You";
-      const home = nearestPlace((p) => p.use === "residential", 400);
       await send("join", { name, home });
     } catch (error) { console.warn("kerbside: could not join the city", error); }
     finally { joining = false; }
@@ -3634,12 +3654,12 @@ export async function startCity(ctx) {
       const data = ctx.regionData();
       if (data && data.key !== district.key) { try { buildDistrict(data); } catch (error) { console.warn("kerbside: the living city could not build this district", error); district.key = data.key; } }
     }
-    if (online.state === "connecting" && !online.started) { online.started = true; connectCity(); }
+    chooseBooks();
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
     if (online.state === "online" && performance.now() - online.lastSync > SYNC_MS) { syncCity().then(ensureJoined); }
-    if (online.state === "practice" && online.client && performance.now() - online.retry > 60_000) { online.retry = performance.now(); connectCity(); }
+
     const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
     // The route buses where the timetable has them, near you.
@@ -4788,7 +4808,7 @@ export async function startCity(ctx) {
         row("Home", st.home ? `a room at ${district.placeById?.get(st.home.building)?.name || "building " + st.home.building}, paid to ${new Date(st.home.paid_until).toLocaleDateString()}` : "none"),
         row("Job", st.job ? `${st.job.title}, ${R.fmt(st.job.pay)}/h` : "none"), row("At work", st.clocked ? `since ${new Date(st.clocked.since).toLocaleTimeString()}` : "no"),
         row("Earned this year", R.fmt(st.ytd.wages)), row("Tax held back", R.fmt(st.ytd.withheld)), row("FasTrak", st.fastrak ? `${st.fastrak.tag}, ${R.fmt(st.fastrak.balance)}, Flex ${st.fastrak.flex}` : "none"),
-        row("City", online.state === "online" ? "online: one city for everyone, kept by its server" : online.state === "practice" ? `offline practice (${online.why}): nothing here is kept in the city` : "connecting…"),
+        row("City", online.state === "online" ? "online: one city for everyone, kept by its server" : online.state === "connecting" ? "connecting…" : `offline practice (${online.why}): nothing here is kept in the city`),
         row("Party", party.session ? `room ${party.session.room}: who you see walking with you` : "walking alone (Play together to see friends)"))];
       if (st.job) out.push(h("div", {}, st.clocked ? act("Clock out", () => send("clock_out")) : act("Clock in", () => send("clock_in"), true), act("Quit the job", () => send("quit_job"))));
       out.push(h("h4", { textContent: "Your body" }), h("table", {}, row("Health", `${Math.round(st.vitals.health)} of 100`), row("Stamina", `${Math.round(st.vitals.stamina)} of 100`), row("Strength", `${Math.round(st.vitals.strength)} of 100`),
@@ -4975,7 +4995,7 @@ export async function startCity(ctx) {
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };
       return null;
     },
-    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, me: myId,
+    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,

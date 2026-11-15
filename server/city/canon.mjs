@@ -23,7 +23,7 @@ export class Canon {
     this.R = R; this.district = json.district ?? null; this.county = json.county ?? null;
     this.projection = json.projection; this.bounds = json.bounds;
     this.places = new Map(json.places.map((p) => [String(p.id), Object.freeze({ ...p, county: p.county ?? this.county })]));
-    this.tenants = json.tenants || [...this.places.values()].filter((p) => p.shops?.length && p.name).map((p) => p.name);
+    this.tenants = json.tenants?.length ? json.tenants : [...this.places.values()].filter((p) => p.shops?.length && p.name).map((p) => p.name);
     this.weeks = new Map();
     const P = this.projection, det = P.xl * P.zt - P.xt * P.zl;
     this.inverse = { ll: P.zt / det, lt: -P.xt / det, tl: -P.zl / det, tt: P.xl / det };
