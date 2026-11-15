@@ -525,7 +525,10 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
   cleared.
 * **Shop rooms are drawn only for the player inside.** Others see that player's walker
   standing in the building.
-* **Accounts and play across devices aren't wired** to the living city.
+* **Play across devices isn't wired** to the living city.
+  * There is a log-in now ([docs/45-login.md](../../../docs/45-login.md)): one account, name and
+    verification on every device.
+  * The wallet and books are still kept in each browser.
 
 ### Devices
 
