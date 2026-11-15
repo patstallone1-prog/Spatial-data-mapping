@@ -962,13 +962,7 @@ function streetSquareKerb(kerb) {
 function addTransitStops(transit) {
   const stops = (transit.stops || []).filter((stop) => Number.isFinite(stop.lon) && Number.isFinite(stop.lat));
   const shelters = [], benches = [], poles = [], islands = [];
-  const borders = [], texts = [];
-  const quad = (list, corners, y) => {
-    const base = list.length / 5;
-    // Corners: [x, z, u, v] x4.
-    for (const [x, z, u, v] of corners) list.push(x, y + (list === texts ? 0.004 : 0), z, u, v);
-    return base;
-  };
+  stopZones.length = 0;
   const lonOf = (x) => midLon + x / metersPerLon, latOf = (z) => midLat - z / metersPerLat;
   for (const stop of stops) {
     const item = { p: [stop.lon, stop.lat], bearing: null, source: `gtfs:${stop.agency}`, provenance: stop.physical_source };
@@ -1044,53 +1038,21 @@ function addTransitStops(transit) {
         for (let along = -STOP_ZONE.behind; along <= STOP_ZONE.ahead + 1.5 && clear; along += 2) {
           for (const across of [STOP_ZONE.from + 0.2, STOP_ZONE.from + STOP_ZONE.width - 0.2]) {
             const px = bx + dx * along - nx * across, pz = bz + dz * along - nz * across;
-            if (!insideCarriageway(px, pz, 0) || insideJunctionBox(px, pz)) { clear = false; break; }
+            // Asphalt only: not in the junction, not over a crosswalk, not under an island's
+            // paving (a box run on beneath a median showed as two loose ends either side of it).
+            if (!insideCarriageway(px, pz, 0) || insideJunctionBox(px, pz) || onCrossingGround(px, pz, 0.3)
+                || (across > STOP_ZONE.from + 1 && pavementTopAt(px, pz) !== undefined)) { clear = false; break; }
           }
         }
         if (clear) { kx = bx; kz = bz; fits = true; break; }
       }
-      if (!fits) continue;
-      const centreX = kx - nx * (STOP_ZONE.from + STOP_ZONE.width / 2) - dx * (STOP_ZONE.behind - STOP_ZONE.ahead) / 2;
-      const centreZ = kz - nz * (STOP_ZONE.from + STOP_ZONE.width / 2) - dz * (STOP_ZONE.behind - STOP_ZONE.ahead) / 2;
-      const roadY = groundLiftAt(centreX, centreZ) + ROAD_TOP_M + 0.034;
-      const at = (along, across) => [kx + dx * along - nx * across, kz + dz * along - nz * across];
-      const { behind, ahead, from, width, line } = STOP_ZONE;
-      for (const [a0, a1, c0, c1] of [[-behind, ahead, from, from + line], [-behind, ahead, from + width - line, from + width],
-                                       [-behind, -behind + line, from, from + width], [ahead - line, ahead, from, from + width]]) {
-        const [p0, p1, p2, p3] = [at(a0, c0), at(a1, c0), at(a1, c1), at(a0, c1)];
-        const base = quad(borders, [[...p0, 0, 0], [...p1, 0, 0], [...p2, 0, 0], [...p3, 0, 0]], roadY);
-        borders.index = borders.index || [];
-        borders.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
-      }
-      // The words: 5 m long down the lane, 2.4 m across, reading towards where the bus is going.
-      const t0 = -behind / 2 - 2.5, t1 = -behind / 2 + 2.5, c0 = from + width / 2 - 1.2, c1 = from + width / 2 + 1.2;
-      const [q0, q1, q2, q3] = [at(t0, c1), at(t0, c0), at(t1, c0), at(t1, c1)];
-      const base = quad(texts, [[...q0, 0, 0], [...q1, 1, 0], [...q2, 1, 1], [...q3, 0, 1]], roadY);
-      texts.index = texts.index || [];
-      texts.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      // Not painted here: noted, and claimed on the paint plan once the city's red zones are
+      // known (claimStopZones). A stop the city lists as a zone has its words in that zone, not
+      // a second box beside it; two agencies' stops at one kerb are one box.
+      // (A box that fits nowhere clear is still noted: the city's zone may hold its words.)
+      stopZones.push({ kx, kz, dx, dz, nx, nz, fits, id: stop.id ?? stop.stop_id ?? `${stop.agency}:${stopZones.length}` });
     }
   }
-  const emit = (list, material, surface) => {
-    if (!list.index || !list.index.length) return;
-    const n = list.length / 5;
-    const position = new Float32Array(n * 3), uv = new Float32Array(n * 2);
-    for (let i = 0; i < n; i += 1) {
-      position[i * 3] = list[i * 5]; position[i * 3 + 1] = list[i * 5 + 1]; position[i * 3 + 2] = list[i * 5 + 2];
-      uv[i * 2] = list[i * 5 + 3]; uv[i * 2 + 1] = list[i * 5 + 4];
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
-    geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-    geometry.setIndex(list.index);
-    geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData = { surface, source: "gtfs+sfmta_stop_type", liftedOntoGround: true };
-    groups.furniture.add(mesh);
-  };
-  emit(borders, new THREE.MeshStandardMaterial({ color: 0xf2f5ef, roughness: 0.8, side: THREE.DoubleSide,
-    polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 }), "furniture:bus_zone");
-  emit(texts, busStopText(), "furniture:bus_zone");
   const placed = {
     stops: stops.length,
     poles: addStreetFurniturePosts(poles),
@@ -1099,11 +1061,59 @@ function addTransitStops(transit) {
     benches: instanceParts(BENCH_PARTS, benches, "furniture:bench"),
     islands: instanceParts([["island", 0, 0.12, 0, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.25, 2 * STOP_ISLAND_HALF_M],
       ["islandEdge", 0, 0.251, STOP_ISLAND_HALF_M - 0.1, 2 * STOP_ISLAND_HALF_LENGTH_M, 0.01, 0.3]], islands, "furniture:shelter"),
-    painted: texts.index ? texts.index.length / 6 : 0,
+    painted: stopZones.filter((zone) => zone.fits).length,
     entrances: addStationEntrances(transit.entrances || []),
   };
   transitStats.placed = placed;
   return placed;
+}
+//: The marked zones noted by addTransitStops, each ``{ kx, kz, dx, dz, nx, nz }``: the kerb point
+//: at the stop, the direction the bus travels and the way out of the road.
+const stopZones = [];
+//: The paint of every noted stop zone, claimed on the plan. Where one of the city's red zones
+//: (addBusZonePaint) lies under the box the stop would paint, the stop's words go in the red
+//: zone and no white box is drawn: one stop, one zone. Otherwise the white box and its words.
+function claimStopZones(plan) {
+  const counts = { noted: stopZones.length, inCityZone: 0, boxes: 0, sharedZone: 0, noRoom: 0 };
+  const { behind, ahead, from, width, line } = STOP_ZONE;
+  const worded = new Set();
+  stopZones.forEach((zone, i) => {
+    const { kx, kz, dx, dz, nx, nz } = zone;
+    const at = (along, across) => [kx + dx * along - nx * across, kz + dz * along - nz * across];
+    const [bx, bz] = at((ahead - behind) / 2, from + width / 2);
+    const box = { x: bx, z: bz, ux: dx, uz: dz, along: (behind + ahead) / 2, across: width / 2 };
+    // The words: 5 m long down the lane, 2.4 m across, reading towards where the bus is going.
+    const word = { kind: "word", text: "BUS STOP", rank: 1, ux: dx, uz: dz, along: 2.5, across: 1.2,
+      data: { surface: "furniture:bus_zone" } };
+    // The city's zone along this kerb, going the same way: the one that covers most of the box.
+    const cover = (c) => Math.min(c.along, box.along) - Math.abs((c.x - box.x) * dx + (c.z - box.z) * dz) / 2;
+    const zones = plan.overlapping(box, "zone", 1.0)
+      .filter((c) => Math.abs(c.ux * dx + c.uz * dz) > 0.94)
+      .sort((p, q) => cover(q) - cover(p));
+    if (zones.length) {
+      const home = zones[0];
+      if (worded.has(home.id)) { counts.sharedZone += 1; return; }
+      worded.add(home.id);
+      // In the zone's lane, level with where the stop's words would have been, kept inside it.
+      const wordAt = at(-behind / 2, from + width / 2);
+      const reach = Math.max(0, home.along - word.along - 0.3);
+      const along = Math.max(-reach, Math.min(reach, (wordAt[0] - home.x) * home.ux + (wordAt[1] - home.z) * home.uz));
+      plan.claim({ ...word, id: `busword:${i}`, group: home.group, within: home.id, rank: 2,
+        x: home.x + home.ux * along, z: home.z + home.uz * along, slides: [2, -2, 4, -4] });
+      counts.inCityZone += 1;
+      return;
+    }
+    if (!zone.fits) { counts.noRoom += 1; return; }
+    const group = `stopbox:${i}`;
+    const borders = [[-behind, ahead, from, from + line], [-behind, ahead, from + width - line, from + width],
+      [-behind, -behind + line, from, from + width], [ahead - line, ahead, from, from + width]]
+      .map(([a0, a1, c0, c1]) => [at(a0, c0), at(a1, c0), at(a1, c1), at(a0, c1)]);
+    plan.claim({ kind: "box", id: `stopbox:${i}`, group, rank: 1, ...box, data: { borders, surface: "furniture:bus_zone" } });
+    const [wx, wz] = at(-behind / 2, from + width / 2);
+    plan.claim({ ...word, id: `busword:${i}`, group, within: `stopbox:${i}`, x: wx, z: wz });
+    counts.boxes += 1;
+  });
+  return counts;
 }
 const transitStats = { placed: null };
 window.kerbsideTransit = () => ({ ...transitStats });

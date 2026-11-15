@@ -1369,7 +1369,7 @@ function joinBusZones(records) {
   return out;
 }
 
-function addBusZonePaint(records) {
+function addBusZonePaint(records, plan = null) {
   // The red box in the roadway at a bus zone.
   records = joinBusZones(records);
   //
@@ -1377,13 +1377,31 @@ function addBusZonePaint(records) {
   // by the band pass above. What was missing is the part in the road: San Francisco marks its
   // transit stops with the curb lane itself in transit red, edged in white, so a driver can see
   // the zone from behind rather than having to read the kerb.
-  const fill = { positions: [], index: [] };
-  const border = { positions: [], index: [] };
+  const fill = { positions: [], index: [], at: [] };
+  const border = { positions: [], index: [], at: [] };
   let zones = 0;
+  // Where the zone being painted stands: every vertex of it carries that (clipAt), so a
+  // window's edge takes or leaves the zone whole and the words in it are never left on bare road.
+  let zoneAt = [0, 0];
   const quad = (sink, ax, az, bx, bz, cx, cz, dx, dz, y) => {
-    const base = sink.positions.length / 3;
-    sink.positions.push(ax, y, az, bx, y, bz, cx, y, cz, dx, y, dz);
-    sink.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    // Cut to a metre along and in two across, and every corner stood on the ground here (the
+    // mesh is marked as standing): the words laid in the zone are stood on it every half metre,
+    // and on a hill a zone in long flat quads rose through them and took letters away.
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.0)), m = 2;
+    const at = (i, j) => {
+      const s = i / n, t = j / m;
+      const x = (ax * (1 - s) + bx * s) * (1 - t) + (dx * (1 - s) + cx * s) * t;
+      const z = (az * (1 - s) + bz * s) * (1 - t) + (dz * (1 - s) + cz * s) * t;
+      return [x, y + groundLiftAt(x, z), z];
+    };
+    for (let i = 0; i < n; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        const base = sink.positions.length / 3;
+        sink.positions.push(...at(i, j), ...at(i + 1, j), ...at(i + 1, j + 1), ...at(i, j + 1));
+        sink.at.push(zoneAt[0], zoneAt[1], zoneAt[0], zoneAt[1], zoneAt[0], zoneAt[1], zoneAt[0], zoneAt[1]);
+        sink.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
+    }
   };
   for (const record of records) {
     // Square to the street at every sample: the zone runs parallel to the road, never on the
@@ -1395,9 +1413,31 @@ function addBusZonePaint(records) {
         // decided once for the whole stretch, by most of it, so the red does not step out and
         // back for a block where a lane was found under a sample or two and none is drawn.
         const inLane = run.filter((k) => insideBikeLane(k.x - k.nx * 0.6, k.z - k.nz * 0.6)).length;
-        const from = inLane >= run.length * 0.6 ? BIKE_LANE_M + 0.35 : 0;
+        // And from the kerb as drawn. The zone is snapped to the carriageway's edge; where the
+        // pavement is built out past it (a bus bulb) the red lay half under the paving, and the
+        // words in it were cut along the kerb. The build-out is read at each sample and the
+        // middle one taken, so the edge stays straight.
+        const builtOut = run.map((k) => {
+          let t = 0;
+          while (t < 2.5 && pavementSurfaceAt(k.x - k.nx * (t + 0.1), k.z - k.nz * (t + 0.1)) !== null) t += 0.1;
+          return t;
+        }).sort((p, q) => p - q)[Math.floor(run.length / 2)];
+        const from = (inLane >= run.length * 0.6 ? BIKE_LANE_M + 0.35 : 0) + (builtOut > 0.15 ? builtOut : 0);
         const ain = from + BUS_ZONE_WIDTH_M, o = ain, w = BUS_ZONE_BORDER_M;
         zones += 1;
+        // The zone's rectangle of asphalt, claimed on the paint plan as paint already down: a
+        // stop's white box is not laid over it, and the stop's words go inside it.
+        {
+          const first = run[0], last = run[run.length - 1], mid = from + BUS_ZONE_WIDTH_M / 2;
+          const ax = first.x - first.nx * mid, az = first.z - first.nz * mid;
+          const bx = last.x - last.nx * mid, bz = last.z - last.nz * mid;
+          const span = Math.hypot(bx - ax, bz - az);
+          zoneAt = [(ax + bx) / 2, (az + bz) / 2];
+          if (plan && span > 0.5) {
+            plan.claim({ kind: "zone", id: `zone:${zones}`, group: `zone:${zones}`, fixed: true, rank: 4,
+              x: zoneAt[0], z: zoneAt[1], ux: (bx - ax) / span, uz: (bz - az) / span, along: span / 2, across: BUS_ZONE_WIDTH_M / 2 });
+          }
+        }
         for (let i = 1; i < run.length; i += 1) {
           const a = run[i - 1];
           const b = run[i];
@@ -1427,13 +1467,15 @@ function addBusZonePaint(records) {
     if (!sink.positions.length) return;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geometry.setAttribute("clipAt", new THREE.Float32BufferAttribute(sink.at, 2));
     geometry.setIndex(sink.index);
     geometry.computeVertexNormals();
     const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
       color, roughness, metalness: 0.0, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -10,
     }));
-    mesh.userData = { surface: name, source: "sfmta_curb_zones",
+    mesh.material.userData.wholeClip = true;
+    mesh.userData = { surface: name, source: "sfmta_curb_zones", liftedOntoGround: true,
                       provenance: "official_transit_vehicle_loading_zone" };
     groups.furniture.add(mesh);
   };
@@ -1619,7 +1661,7 @@ async function prepaintPlates(records) {
   }
 }
 
-async function renderStreetFurniture(furniture, transit = null, creatives = {}) {
+async function renderStreetFurniture(furniture, transit = null, creatives = {}, cityPaint = null) {
   // The streets have been recentred on the city's kerbs since the buildings were built; the
   // junctions the signs and signals stand at are read from where the streets are now.
   junctionVertexGrid = null;
@@ -1637,6 +1679,13 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}) 
     .map((s) => { const [x, y] = xy(s.p[0], s.p[1]); return [x, -y]; });
   legendApproaches.length = 0; legendApproachKeys.clear();
   for (const [x, z] of officialStopPoints) noteOfficialStopApproach(x, z);
+  // The city's stop-sign record (docs/street-paint.json), each row an approach: matched to the
+  // drawn approach by street and bearing, and painted whether or not a crosswalk is mapped there.
+  const cityStops = cityPaint?.schema === "kerbside.street_paint/1" ? (cityPaint.stop_approaches || []) : [];
+  streetPaintStats.city = { stop_records: cityStops.length, matched: cityStops.filter((record) => noteCityStopApproach(record)).length };
+  // Every pass that paints the road claims its paint here; it is laid, settled, at the end.
+  const paintPlan = newPaintPlan();
+  for (const arrow of paintedArrows) paintPlan.claim({ kind: "arrow", fixed: true, rank: 5, ...arrow });
   const osmApproach = expandApproachSigns((inferred.street_signs || [])
     .filter((s) => s.sign_kind === "stop" || s.sign_kind === "yield"))
     .filter((s) => {
@@ -1701,11 +1750,13 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}) 
     curb_zone_bands: addOfficialCurbZoneBands((official.color_curbs || []).concat(official.curb_zones || [],
       municipalCurbs)),
     bus_zone_paint: addBusZonePaint((official.curb_zones || [])
-      .filter((zone) => zone.policy_category === "Transit Vehicle Loading")),
+      .filter((zone) => zone.policy_category === "Transit Vehicle Loading"), paintPlan),
+    stop_zone_paint: claimStopZones(paintPlan),
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
       inferred.detected_parking_meters || [])),
     trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows, corners),
-    road_legends: paintRoadLegends(),
+    road_legends: paintRoadLegends(paintPlan),
+    street_paint: layStreetPaint(paintPlan),
   };
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
@@ -1749,7 +1800,11 @@ registerLazyLayer("furniture", async () => {
     .then((r) => (r.ok ? r.json() : null)).catch(() => null));
   const creatives=await fetch(sharedAsset("billboard-creatives.json"),{cache:"no-cache"})
     .then(r=>r.ok ? r.json() : {}).catch(()=>({}));
-  await renderStreetFurniture(furniture, transit, creatives);
+  // The city's record of what is painted on the road (tools/build_street_paint.py), beside
+  // OpenStreetMap's streets: shared by every page, so cut to this page's window here.
+  const cityPaint = paintLibrary ? windowLists(await fetch(sharedAsset("street-paint.json"), { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null)) : null;
+  await renderStreetFurniture(furniture, transit, creatives, cityPaint);
 });
 
 // Freeway guide signs (smc.highways; scripts/build_highway_signs.py), inferred from

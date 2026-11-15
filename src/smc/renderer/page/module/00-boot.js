@@ -327,6 +327,10 @@ var grassSampleAt = null;
 const foliageLibrary = await import(sharedAsset("foliage-motion.mjs?rev=__FOLIAGE_MOTION_HASH__"))
   .catch(error=>{console.warn("kerbside: foliage motion unavailable; plants stand still",error);return null;});
 const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
+//: Street paint reconciled before it is laid, and the city's record of it (docs/street-paint.mjs,
+//: docs/street-paint.json). Without the module each pass lays its own paint, as before.
+const paintLibrary = await import(sharedAsset("street-paint.mjs?rev=__STREET_PAINT_HASH__"))
+  .catch(error=>{console.warn("kerbside: street paint plan unavailable; each pass paints by itself",error);return null;});
 //: What each drawn thing is made of, how it breaks and how the walker passes it
 //: (docs/object-catalogue.mjs over docs/object-catalogue.json). Without it only the buildings,
 //: tunnels and the forest's logs stop the walker, as before.

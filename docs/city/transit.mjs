@@ -242,3 +242,50 @@ export function stopsOf(lines) {
   }
   return out;
 }
+
+// ---- the edge of the world ------------------------------------------------------------------------
+//: City mode holds one area (module 30 cityLock: the Marina) but the buses run Muni's real routes
+//: (muni-routes.json, kept whole), which go on out of it. Riding one, you are set down at the last
+//: stop inside the area, with this, and the bus goes on along its route without you. (The walker
+//: and the car stop at the area's edge with the same words.) The switch is the Explore / City
+//: one in the panel the ☰ City button opens.
+export const BOUNDARY_MESSAGE = "World boundary reached. To keep exploring, switch modes: open ☰ City and choose Explore.";
+//: For each drive of the line's timeline (keyed "stop>next"): whether it goes out of the area
+//: (``inArea(x, z)``) anywhere between the two stops' stands, or ends outside it. Kept on the line.
+export function exitsOf(line, inArea) {
+  if (line._exits && line._exitsFor === inArea) return line._exits;
+  const out = new Map(), tl = line.timeline;
+  for (let i = 0; i < tl.length; i += 1) {
+    const s = tl[i];
+    if (s.kind !== "drive") continue;
+    let leaves = false;
+    const pts = (route, from, to) => { for (let k = 0; k < route.pts.length && !leaves; k += 1) if (route.s[k] >= from - 1e-6 && route.s[k] <= to + 1e-6 && !inArea(route.pts[k][0], route.pts[k][1])) leaves = true; };
+    pts(s.leg, s.from, s.leg.length);
+    if (s.after) pts(s.after, 0, s.afterOff);
+    const stand = tl[i + 1]?.kind === "dwell" ? tl[i + 1].at : null;
+    if (stand && !inArea(stand.x, stand.z)) leaves = true;
+    const key = `${s.stop}>${s.next}`;
+    out.set(key, Boolean(out.get(key)) || leaves);
+  }
+  line._exits = out; line._exitsFor = inArea;
+  return out;
+}
+//: Whether a rider on ``bus`` (busesAt's) is to be set down for the edge of the area: at the stop
+//: it stands at, when the way on from it leaves the area ({stop, pole, name, here: true}); or,
+//: the bus already outside it, at the last stop it stood at inside ({stop, pole, name, here:
+//: false}: you are put back there). Null while the ride stays inside.
+export function boundaryStop(line, bus, inArea) {
+  if (!line || !bus || !inArea) return null;
+  const exits = exitsOf(line, inArea), stand = (k) => line.timeline.find((s) => s.kind === "dwell" && s.stop === k);
+  const at = (k, here) => { const d = stand(k); return d ? { stop: k, pole: d.pole, at: d.at, name: line.stops[k]?.name || null, here, message: BOUNDARY_MESSAGE } : null; };
+  if (bus.dwelling) {
+    if (bus.next === null || bus.next === undefined) return null;
+    return exits.get(`${bus.stop}>${bus.next}`) ? at(bus.stop, true) : null;
+  }
+  if (inArea(bus.x, bus.z)) return null;
+  // Gone out: the last stop before this drive, inside, along the timeline back from it.
+  const tl = line.timeline;
+  let i = tl.findIndex((s) => s.kind === "drive" && s.next === bus.next);
+  for (; i >= 0; i -= 1) if (tl[i].kind === "dwell" && inArea(tl[i].at.x, tl[i].at.z)) return at(tl[i].stop, false);
+  return null;
+}

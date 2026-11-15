@@ -53,12 +53,14 @@ def test_stop_and_signal_approaches_get_their_paint_after_the_furniture() -> Non
     paint = _extract("paintRoadLegends", js)
     # The bar behind the crosswalk's near line; STOP behind the bar, on stop approaches only.
     assert "crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing" in paint
-    assert 'if (a.kind !== "stop") continue;' in paint
-    assert "groundLiftAt(x, z) + ROAD_TOP_M + lift" in paint and "/ 0.5" in paint
+    assert 'if (kind !== "stop") continue;' in paint
+    # Claimed on the paint plan; laid, settled, by layStreetPaint (docs/street-paint.mjs).
+    lay = _extract("layStreetPaint", js)
+    assert "groundLiftAt(x, z) + ROAD_TOP_M + lift" in lay and "/ 0.5" in lay
     assert 'noteLegendApproach(junction, leg, "stop")' in _extract("expandApproachSigns", js)
     assert 'noteLegendApproach(junction, leg, "signal")' in _extract("expandSignalApproaches", js)
     furniture = _extract("renderStreetFurniture", js)
-    assert "noteOfficialStopApproach(x, z)" in furniture and "road_legends: paintRoadLegends()" in furniture
+    assert "noteOfficialStopApproach(x, z)" in furniture and "road_legends: paintRoadLegends(paintPlan)" in furniture
     assert '"furniture:road_legend": 600' in js
     # Unmarked crossings are kept in the crossing index, tagged.
     assert 'shouldDrawCrossing(surfacePoints, widthMeters, surfaceKind ? null : "unmarked")' in js

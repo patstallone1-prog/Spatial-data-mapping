@@ -1316,6 +1316,149 @@ function tunnelFloorAt(x, z) {
   return best;
 }
 
+// ---- the ground cover, as drawn, underfoot ----
+//
+// The lawns, parks, plazas, front paths, courts, play surfaces and the fills inferred between
+// them are laid a few centimetres over the ground (GROUND_STACK) and then cut to the hill: a park
+// to a 4 m lattice, a yard to 12 m with a 15 cm chord, a front path or a lot to 12 m with no chord
+// at all. The walker stood on the bare grid under all of them -- its feet in the grass, and where
+// a long chord bridged a hollow or a flight of steps, a hand or more inside the paving, or
+// standing off it. What it stands on is now the cover itself, read from the very triangles that
+// are drawn (registerWalkCover, after the cover is stood on the hill), so the two cannot differ.
+//: The covers stood on: the GROUND_STACK surfaces laid in groups.ground, and the inferred fills.
+const WALK_COVER_SURFACES = new Set(["park", "yard", "plaza", "front_walk", "service_yard", "neutral_ground",
+  "court", "park:play_surface", "park:skatepark_surface"]);
+function walkCoverSurface(surface) {
+  return WALK_COVER_SURFACES.has(surface) || String(surface || "").startsWith("inferred:");
+}
+//: Meshes are filed by this cell, and each mesh's triangles by WALK_COVER_CELL_M once first asked.
+const WALK_COVER_BUCKET_M = 64;
+const WALK_COVER_CELL_M = 4;
+//: A cover further than this above or below the ground under it is not the ground there (a sheet
+//: carried over a retaining wall on a long chord): the walker keeps to the ground.
+const WALK_COVER_REACH_M = 1.0;
+//: (var: the walker may ask before the ground cover is built, and a released window clears it.)
+var walkCoverIndex = null;
+function registerWalkCover(group) {
+  const meshes = [], grid = new Map();
+  if (group.updateMatrixWorld) group.updateMatrixWorld(true);
+  group.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || !o.geometry || !walkCoverSurface(o.userData.surface)) return;
+    const e = o.matrixWorld.elements;
+    // Covers are built where they lie, and a piece cut from one keeps its place: only a
+    // translation is followed.
+    if (Math.abs(e[0] - 1) + Math.abs(e[5] - 1) + Math.abs(e[10] - 1)
+        + Math.abs(e[1]) + Math.abs(e[2]) + Math.abs(e[4]) + Math.abs(e[6]) + Math.abs(e[8]) + Math.abs(e[9]) > 1e-6) return;
+    const geometry = o.geometry;
+    if (!geometry.getAttribute("position")) return;
+    if (!geometry.boundingBox) geometry.computeBoundingBox();
+    const b = geometry.boundingBox;
+    if (!b || !Number.isFinite(b.min.x)) return;
+    const rec = { mesh: o, ox: e[12], oy: e[13], oz: e[14], minX: b.min.x + e[12], maxX: b.max.x + e[12],
+      minZ: b.min.z + e[14], maxZ: b.max.z + e[14], cells: null };
+    meshes.push(rec);
+    for (let ix = Math.floor(rec.minX / WALK_COVER_BUCKET_M); ix <= Math.floor(rec.maxX / WALK_COVER_BUCKET_M); ix += 1)
+      for (let iz = Math.floor(rec.minZ / WALK_COVER_BUCKET_M); iz <= Math.floor(rec.maxZ / WALK_COVER_BUCKET_M); iz += 1) {
+        const key = ix * 1048576 + iz;
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(rec);
+      }
+  });
+  walkCoverIndex = { meshes, grid };
+  return meshes.length;
+}
+function clearWalkCover() { walkCoverIndex = null; }
+// One mesh's triangles by cell, in its own frame: built the first time the walker comes near it.
+function walkCoverCells(rec) {
+  if (rec.cells) return rec.cells;
+  const geometry = rec.mesh.geometry, p = geometry.getAttribute("position"), index = geometry.getIndex();
+  const P = p && !p.isInterleavedBufferAttribute && p.itemSize === 3 ? p.array : null;
+  const X = (i) => P ? P[i * 3] : p.getX(i), Y = (i) => P ? P[i * 3 + 1] : p.getY(i), Z = (i) => P ? P[i * 3 + 2] : p.getZ(i);
+  const I = index ? index.array : null;
+  const count = index ? index.count : p.count;
+  const cells = new Map();
+  for (let t = 0; t + 2 < count; t += 3) {
+    const a = I ? I[t] : t, b = I ? I[t + 1] : t + 1, c = I ? I[t + 2] : t + 2;
+    const x0 = Math.min(X(a), X(b), X(c)), x1 = Math.max(X(a), X(b), X(c));
+    const z0 = Math.min(Z(a), Z(b), Z(c)), z1 = Math.max(Z(a), Z(b), Z(c));
+    for (let ix = Math.floor(x0 / WALK_COVER_CELL_M); ix <= Math.floor(x1 / WALK_COVER_CELL_M); ix += 1)
+      for (let iz = Math.floor(z0 / WALK_COVER_CELL_M); iz <= Math.floor(z1 / WALK_COVER_CELL_M); iz += 1) {
+        const key = ix * 1048576 + iz;
+        let list = cells.get(key);
+        if (!list) cells.set(key, list = []);
+        list.push(t);
+      }
+  }
+  rec.cells = { map: cells, X, Y, Z, I };
+  return rec.cells;
+}
+//: The top of the drawn ground cover at (x, z), as a page height, or null where none is laid
+//: (within WALK_COVER_REACH_M of `near`, the ground under it, when that is given).
+function walkCoverTopAt(x, z, near = null) {
+  const covers = walkCoverIndex;
+  if (!covers) return null;
+  const bucket = covers.grid.get(Math.floor(x / WALK_COVER_BUCKET_M) * 1048576 + Math.floor(z / WALK_COVER_BUCKET_M));
+  if (!bucket) return null;
+  let best = null;
+  for (const rec of bucket) {
+    if (x < rec.minX || x > rec.maxX || z < rec.minZ || z > rec.maxZ) continue;
+    if (!rec.mesh.parent || rec.mesh.visible === false || !rec.mesh.geometry?.getAttribute("position")) continue;
+    const { map, X, Y, Z, I } = walkCoverCells(rec);
+    const lx = x - rec.ox, lz = z - rec.oz;
+    const list = map.get(Math.floor(lx / WALK_COVER_CELL_M) * 1048576 + Math.floor(lz / WALK_COVER_CELL_M));
+    if (!list) continue;
+    for (const t of list) {
+      const a = I ? I[t] : t, b = I ? I[t + 1] : t + 1, c = I ? I[t + 2] : t + 2;
+      const ax = X(a), az = Z(a), bx = X(b), bz = Z(b), cx = X(c), cz = Z(c);
+      const den = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+      if (Math.abs(den) < 1e-10) continue;
+      const u = ((bz - cz) * (lx - cx) + (cx - bx) * (lz - cz)) / den;
+      const v = ((cz - az) * (lx - cx) + (ax - cx) * (lz - cz)) / den;
+      const w = 1 - u - v;
+      if (u < -1e-7 || v < -1e-7 || w < -1e-7) continue;
+      const y = Y(a) * u + Y(b) * v + Y(c) * w + rec.oy;
+      if (Number.isFinite(near) && Math.abs(y - near) > WALK_COVER_REACH_M) continue;
+      if (best === null || y > best) best = y;
+    }
+  }
+  return best;
+}
+//: The pavement's top as the walker finds it at (x, z), above the ground: lowered at a driveway as
+//: the drawn pavement is (dropKerbsAtDriveways: from the gutter at the kerb up to the footway over
+//: the drop's depth, flared either side). The walker stood a kerb's height over every drop.
+let walkerDropGrid = null;
+const WALKER_DROP_CELL_M = 16;
+function walkerKerbDrop(x, z, top, gutter) {
+  let drops;
+  try { drops = KERB_RULES.drops; } catch (error) { return top; }   // (before the drops are made)
+  if (!drops || !drops.length || !(top >= gutter + 0.03)) return top;
+  if (!walkerDropGrid || walkerDropGrid.count !== drops.length) {
+    const grid = new Map();
+    for (const d of drops) {
+      const reach = d.half + APRON_FLARE_M + d.depth + 0.4;
+      for (let ix = Math.floor((d.x - reach) / WALKER_DROP_CELL_M); ix <= Math.floor((d.x + reach) / WALKER_DROP_CELL_M); ix += 1)
+        for (let iz = Math.floor((d.z - reach) / WALKER_DROP_CELL_M); iz <= Math.floor((d.z + reach) / WALKER_DROP_CELL_M); iz += 1) {
+          const key = ix * 1048576 + iz;
+          if (!grid.has(key)) grid.set(key, []);
+          grid.get(key).push(d);
+        }
+    }
+    grid.count = drops.length;
+    walkerDropGrid = grid;
+  }
+  let lowest = top;
+  for (const d of walkerDropGrid.get(Math.floor(x / WALKER_DROP_CELL_M) * 1048576 + Math.floor(z / WALKER_DROP_CELL_M)) || []) {
+    const dx = x - d.x, dz = z - d.z;
+    const inward = dx * d.ox + dz * d.oz, across = Math.abs(-dx * d.oz + dz * d.ox);
+    if (inward < -0.35 || inward > d.depth || across > d.half + APRON_FLARE_M) continue;
+    const rise = Math.max(0, Math.min(1, inward / d.depth));
+    const flare = across <= d.half ? 1 : 1 - (across - d.half) / APRON_FLARE_M;
+    const ramp = gutter + (top - gutter) * rise;
+    lowest = Math.min(lowest, top - (top - ramp) * flare);
+  }
+  return lowest;
+}
+
 //: What the walker stands on at (x, z): the bore's floor inside a tunnel, the hill over a
 //: mouth on top of it, and the flat ground everywhere else -- as a height above the ground.
 function walkerGroundAt(x, z, referenceY) {
@@ -1376,7 +1519,7 @@ function walkerGroundInfo(x, z, referenceY) {
     if (deck && deck.top > lifted + ROAD_TOP_M + 0.3) {
       let y = deck.top;
       if (deck.paved && typeof STREET_STANDING !== "undefined" && STREET_STANDING) {
-        const paved = pavementSurfaceAt(x, z);
+        const paved = typeof walkerPavementAt === "function" ? walkerPavementAt(x, z) : pavementSurfaceAt(x, z);
         if (paved !== null) y = deck.base + paved;
       }
       return { y, kind: deck.kind, structure: deck.name, walkway: deck.walkway };
@@ -1386,10 +1529,21 @@ function walkerGroundInfo(x, z, referenceY) {
   // ground under both, its feet 19 cm into every pavement and 6 cm into every road.
   // (Only once the streets' part of the module has run: see STREET_STANDING.)
   if (typeof STREET_STANDING !== "undefined" && STREET_STANDING) {
-    const paved = pavementSurfaceAt(x, z);
-    if (paved !== null) return { y: lifted + paved, kind: "pavement" };
+    const paved = typeof walkerPavementAt === "function" ? walkerPavementAt(x, z) : pavementSurfaceAt(x, z);
+    if (paved !== null) {
+      const top = typeof walkerKerbDrop === "function" ? walkerKerbDrop(x, z, paved, STREET_STANDING.roadTop + 0.002) : paved;
+      return { y: lifted + top, kind: "pavement" };
+    }
     if (insideCarriageway(x, z, 0)) return { y: lifted + STREET_STANDING.roadTop, kind: "road" };
   }
+  // On the lawn, the park, the plaza or the front path as it is drawn (walkCoverTopAt), not on
+  // the bare grid under it. Plain ground still: a cliff of it is not walked up (walkPace).
+  const cover = typeof walkCoverTopAt === "function" ? walkCoverTopAt(x, z, lifted) : null;
+  if (cover !== null) return { y: cover, kind: "terrain", cover: true };
+  // Where only the property-line underlay is laid, on it: it is drawn under the ground's plane.
+  const underlay = typeof walkerUnderlayTop === "function" && typeof STREET_STANDING !== "undefined" && STREET_STANDING
+    ? walkerUnderlayTop(x, z) : null;
+  if (underlay !== null) return { y: lifted + underlay, kind: "terrain", cover: true };
   // Past the edge of this region's surveyed grid the grid only repeats its edge, while the
   // ground drawn there -- the apron, the regions round about in the tile tree -- rises into
   // their hills: the walker went on at the edge's height, under them. There it stands on what

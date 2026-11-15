@@ -52,7 +52,9 @@ def test_stops_are_drawn_built_and_painted_and_entrances_go_down() -> None:
     stops = _extract("addTransitStops", js)
     assert 'instanceParts(SHELTER_PARTS, shelters, "furniture:shelter")' in stops
     assert 'instanceParts(BENCH_PARTS, benches, "furniture:bench")' in stops
-    assert "busStopText()" in stops and "insideJunctionBox(px, pz)" in stops
+    # The zone is noted here and laid with the rest of the road's paint (layStreetPaint).
+    assert "stopZones.push(" in stops and "insideJunctionBox(px, pz)" in stops
+    assert "busStopText()" in _extract("layStreetPaint", js)
     text = _extract("busStopText", js)
     assert '"STOP"' in text and '"BUS"' in text
     # The agencies' stops replace OpenStreetMap's where a region has them.

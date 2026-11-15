@@ -22,7 +22,7 @@ import {
 } from "./core.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
-import { arrivalsAt, buildLines, busesAt, stopsOf } from "./transit.mjs";
+import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
@@ -1231,7 +1231,7 @@ export async function startCity(ctx) {
     // City mode's area ends here: the car stops at its edge (not a crash).
     if (ctx.inArea && !ctx.inArea(car.x + dx * 4, car.z + dz * 4) && ctx.inArea(car.x, car.z)) {
       car.speed = 0; dx = 0; dz = 0;
-      if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(`${ctx.areaName?.() || "The city"} ends here: turn round, or switch to Explore to go further.`); }
+      if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(BOUNDARY_MESSAGE); }
     }
     const before = { x: car.x, z: car.z };
     const moved = ctx.moveWalker(dx, dz);
@@ -1648,6 +1648,11 @@ export async function startCity(ctx) {
   }
   async function board(v) {
     if (!v || transit.ride || car.active || car.riding || shop.place) return;
+    // A route bus whose way on from here leaves City mode's area: not boarded (nothing paid).
+    if (String(v.id).startsWith("bus:") && ctx.inArea && boundaryStop(lineOf(v), v, ctx.inArea)?.here) {
+      notify(`The ${v.route} leaves ${ctx.areaName?.() || "the city"} after this stop. ${BOUNDARY_MESSAGE}`);
+      return;
+    }
     const r = await send("board", { kind: v.model, vehicle: v.id });
     if (!r.ok) { notify(r.error); return; }
     transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
@@ -1666,7 +1671,7 @@ export async function startCity(ctx) {
     const v = routeBuses.find((x) => x.id === ride.vehicle);
     notify(ride.stop ? `Stop requested: off at ${v?.nextName || "the next stop"}.` : "Stop request cancelled.");
   }
-  async function alight(v = null) {
+  async function alight(v = null, why = null) {
     const ride = transit.ride;
     if (!ride) return;
     transit.ride = null;
@@ -1680,16 +1685,28 @@ export async function startCity(ctx) {
     if (v?.pole && Math.hypot(v.pole.x - at.x, v.pole.z - at.z) < 30 && besideOf(at, v.pole).right > 0.5) ctx.moveAvatarTo(v.pole.x, v.pole.z);
     else ctx.moveAvatarTo(at.x + Math.cos(yaw) * out, at.z - Math.sin(yaw) * out);
     if (ride.vehicle === taxi.id) Object.assign(taxi, { phase: null, route: null, at: null, dest: null });
-    notify(r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : `Off the bus${v?.stopName ? ` at ${v.stopName}` : ""}.`) : r.error);
+    notify(why && r.ok ? why : r.ok ? (r.kind === "taxi" ? `Taxi: ${r.km.toFixed(1)} km, ${R.fmt(r.fare)}.` : `Off the bus${v?.stopName ? ` at ${v.stopName}` : ""}.`) : r.error);
     refresh();
   }
+  //: The line a route bus runs (a timetabled trip's id carries its line's key).
+  const lineOf = (v) => district.lines?.find((L) => (L.schedule ? String(v.id).startsWith(`bus:${L.route}:${L.schedule.key}:`) : L.route === v.route)) || null;
   //: Riding: you go where it goes. A route bus lets you off at the stop you asked for; a
-  //: vehicle gone from the street (its trip over) lets you off where it was.
+  //: vehicle gone from the street (its trip over) lets you off where it was. At the edge of City
+  //: mode's area (transit.mjs boundaryStop) a route bus sets you down at the last stop inside it
+  //: and goes on along its real route without you.
   function followRide() {
     const ride = transit.ride;
     if (!ride) return;
     const v = wheels().find((x) => x.id === ride.vehicle);
     if (!v) { if (performance.now() - ride.seen > 3000) alight(); return; }
+    if (ride.route && ctx.inArea) {
+      const edge = boundaryStop(lineOf(v), v, ctx.inArea);
+      if (edge) {
+        const stand = edge.here ? v : { ...v, x: edge.at.x, z: edge.at.z, yaw: edge.at.yaw, pole: edge.pole, stopName: edge.name };
+        alight(stand, `${edge.name ? `Off the ${v.route} at ${edge.name}. ` : ""}${BOUNDARY_MESSAGE}`);
+        return;
+      }
+    }
     ride.seen = performance.now();
     ride.km += Math.hypot(v.x - ride.x, v.z - ride.z) / 1000;
     ride.x = v.x; ride.z = v.z; ride.yaw = v.yaw;
@@ -3466,7 +3483,11 @@ export async function startCity(ctx) {
         entry.yaw = Math.atan2(-f.dx, -f.dz);
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
-      else glide(entry, now, dt, 3.2, 60);
+      else {
+        glide(entry, now, dt, 3.2, 60);
+        // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
+        if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
+      }
       const low = tier === LOW && !f;
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);

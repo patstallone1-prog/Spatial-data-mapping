@@ -165,8 +165,11 @@ console.log(JSON.stringify({ gap: pavementSurfaceAt(25, -6), end: pavementSurfac
 def test_the_walker_stands_on_the_pavement_and_the_road_as_laid() -> None:
     js = _page_js()
     walker = _extract("walkerGroundInfo", js)
-    assert "const paved = pavementSurfaceAt(x, z);" in walker
-    assert 'return { y: lifted + paved, kind: "pavement" };' in walker
+    # The pavement as laid and the walker's own records (bulb-outs, park paths), lowered at a
+    # driveway as the drawn pavement is.
+    assert 'const paved = typeof walkerPavementAt === "function" ? walkerPavementAt(x, z) : pavementSurfaceAt(x, z);' in walker
+    assert 'return { y: lifted + top, kind: "pavement" };' in walker
+    assert "walkerKerbDrop(x, z, paved, STREET_STANDING.roadTop + 0.002)" in walker
     assert 'return { y: lifted + STREET_STANDING.roadTop, kind: "road" };' in walker
     # Declared with var, so a walker asked before the streets are built gets the ground.
     assert "var STREET_STANDING = { roadTop: ROAD_TOP_M };" in js

@@ -436,6 +436,8 @@ function renderPedestrianPath(way) {
     const width=way.path_width_m || 2.4;
     const mesh=ribbon(densifyWay(run.points,.5),width,0xffffff,1,
       ROAD_TOP_M+.006,.008,`path:${material}`);
+    // The walker walks on the path's top, not on the lawn under it (walkerPavementAt).
+    if(mesh)stampWalkerPaved(run.points,width,ROAD_TOP_M+.006+.004);
     mesh.userData.pathEvidence={material,confidence:observed.confidence || 0,
       basis:observed.basis || "unknown",geometry_changed:false,source:observed.source_id || null,
       width_basis:way.path_width_m ? "osm_width" : "visual_width_prior"};

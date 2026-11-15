@@ -981,6 +981,8 @@ const groundReady = (async () => {
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
+  // The walker stands on these as they are now drawn (walkCoverTopAt).
+  registerWalkCover(groups.ground);
   if(grassStrands&&grassLibrary){const meshes=[];
     groups.ground.traverse(o=>{if(o.isMesh&&["yard","park"].includes(o.userData.surface))meshes.push(o);});
     grassSurfaceAt=grassLibrary.triangleGroundSampler(meshes);grassStrands?.invalidate();

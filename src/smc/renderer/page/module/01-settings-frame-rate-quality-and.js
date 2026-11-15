@@ -440,15 +440,15 @@ function applyBoxClip(object, uniform, excludeInside=false) {
         // in or out of the box by where it stands -- its ``clipAt`` attribute, the same for all
         // its parts -- not cut through where the box's edge crosses it. Nothing else draws it
         // beyond the edge (the tile tree has no shelters), so cut, part of it was simply gone, as
-        // if an invisible line ran through it (2026-11-12).
+        // if an invisible line ran through it (2026-11-12). The same for paint put down as one
+        // thing -- a word on the road, a stop line -- which is not instanced and carries its
+        // ``clipAt`` on every vertex: half of BUS STOP is not a marking (2026-11-14).
         const whole=Boolean(material.userData.wholeClip);
         if(!shader.vertexShader.includes('varying vec3 vDetailWorld;'))
           shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>\nvarying vec3 vDetailWorld;${whole?'\nattribute vec2 clipAt;':''}`)
             .replace('#include <project_vertex>',`#include <project_vertex>
           vec4 detailPosition=vec4(transformed,1.0);
-          #ifdef USE_INSTANCING
-          detailPosition=${whole?'vec4(clipAt.x,0.0,clipAt.y,1.0)':'instanceMatrix*detailPosition'};
-          #endif
+          ${whole?'detailPosition=vec4(clipAt.x,0.0,clipAt.y,1.0);':'#ifdef USE_INSTANCING\n          detailPosition=instanceMatrix*detailPosition;\n          #endif'}
           vDetailWorld=(modelMatrix*detailPosition).xyz;`);
         if(!shader.fragmentShader.includes('varying vec3 vDetailWorld;'))
           shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vDetailWorld;');

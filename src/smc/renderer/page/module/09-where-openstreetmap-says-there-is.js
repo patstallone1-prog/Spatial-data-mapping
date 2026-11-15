@@ -1782,6 +1782,9 @@ function addBulbOuts(spine, innerAt, kerbAt, side, color, opacity, y, thickness)
     const [P, Q, R, S] = cross < 0 ? [[ax, az], [bx, bz], [cx, cz], [dx, dz]]
       : [[dx, dz], [cx, cz], [bx, bz], [ax, az]];
     quad([P[0], top, P[1]], [Q[0], top, Q[1]], [R[0], top, R[1]], [S[0], top, S[1]]);
+    // Stood on at its top: it lies over the carriageway, where the walker otherwise stood on
+    // the road, inside the kerb (walkerPavementAt).
+    stampWalkerPavedRing([P, Q, R, S], top);
     // The kerb face along the road edge.
     const [F, G] = cross < 0 ? [[ax, az], [bx, bz]] : [[bx, bz], [ax, az]];
     quad([F[0], bottom, F[1]], [F[0], top, F[1]], [G[0], top, G[1]], [G[0], bottom, G[1]]);

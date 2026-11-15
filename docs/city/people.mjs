@@ -1269,18 +1269,59 @@ export function counterLine(inside) {
   const counter = Math.min(Math.max(1.6, inside.depth * 0.42), 3.4);
   return { counter, staff: counter + 0.85, back: Math.min(inside.depth - 0.7, counter + 2.6), front: Math.max(0.8, counter - 1.1), width: Math.max(0.5, inside.half - 0.7) };
 }
+//: How many customers a shop holds at once. The floor is the building's footprint (one storey of
+//: it, ``place.area``), of which SHOP_FLOOR_SHARE is the shop floor -- the rest is the counter,
+//: the kitchen, the stock room -- at so many m² a customer by the kind of shop (the building
+//: code's occupant loads: about 15 ft² a diner seated, 60 ft² a shopper in a store, 100 ft² a
+//: client of a bank, a salon or a clinic), never more than SHOP_CAP_MAX, and never more than the
+//: drawn shop floor has places for (``shopLanes``: one a lane, a shoulder's width apart, so
+//: nobody stands in anybody). At least one. People were let in without limit: twenty in a café
+//: that seats eight, standing in one another (2026-11-14).
+export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 14, SHOP_LANE_M = 0.6, SHOP_DEFAULT_AREA_M2 = 80;
+export const SHOP_M2_PER_PERSON = { food: 1.4, retail: 5.6, service: 9.3 };
+const SHOP_SERVICE = new Set(["bank", "barber", "salon", "beauty", "nail_salon", "spa", "clinic", "dentist", "optician", "vet", "pet_grooming",
+  "laundry", "dry_cleaner", "staffing", "print_ship", "law_office", "gym"]);
+const SHOP_RETAIL = new Set(["auto_parts", "bike", "books", "clothing", "convenience", "deli", "electronics", "florist", "fuel", "gallery", "gifts",
+  "grocery", "hardware", "home", "jewelry", "liquor", "pet", "pharmacy", "shoes", "shop", "smoke_shop", "toys", "wine_shop", "supermarket"]);
+export function shopGroup(kind) { return SHOP_SERVICE.has(kind) ? "service" : SHOP_RETAIL.has(kind) ? "retail" : "food"; }
+//: The lanes a shop's customers keep to (along the front, SHOP_LANE_M apart): their number.
+export function shopLanes(inside) {
+  if (!inside) return SHOP_CAP_MAX;
+  const L = counterLine(inside);
+  return Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1);
+}
+export function shopCapacity(place) {
+  if (!place) return 0;
+  const area = place.area > 0 ? place.area : SHOP_DEFAULT_AREA_M2;
+  // A place of several shops: the roomiest kind's load (a deli and café counts as the café).
+  const per = Math.min(...(place.shops?.length ? place.shops : ["shop"]).map((k) => SHOP_M2_PER_PERSON[shopGroup(k)]));
+  const byFloor = Math.floor((area * SHOP_FLOOR_SHARE) / per);
+  return Math.max(1, Math.min(SHOP_CAP_MAX, byFloor, shopLanes(place.inside)));
+}
 //: Someone inside a shop: staff along the counter a step at a time (now and then to the back for
 //: stock), customers waiting in front of it or at a table. Null for anyone else indoors.
-export function indoorSpot(p, a, place, t) {
+//: ``lane`` ({k, n}): the place on the floor they were given (fleet.mjs City.admit for a
+//: customer, the staff's order for staff): they keep to their own lane along the front, moving
+//: only toward and away from the counter in it, so two are never in the same spot.
+export function indoorSpot(p, a, place, t, lane = null) {
   const I = place.inside, L = counterLine(I);
   const tx = -I.nz, tz = I.nx;   // along the front
   const sec = t.minute * 60, slot = Math.floor(sec / 18);
   const staff = a.kind === "work" && COUNTER_ROLES.has(p.role);
   const customer = (a.kind === "errand" || a.kind === "meal" || a.kind === "evening") && place.shops.length;
   if (!staff && !customer) return null;
+  const n = lane ? Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1) : 0;
+  const laneAt = lane ? (n > 1 ? -L.width + ((lane.k % n) * (2 * L.width)) / (n - 1) : 0) : null;
   const spot = (k) => {
     const r = rng(p.id, t.day, k);
-    if (staff) return r() < 0.15 ? [(r() - 0.5) * 2 * L.width, L.back] : [(r() - 0.5) * 2 * L.width, L.staff];
+    const along = () => (laneAt !== null ? laneAt + (r() - 0.5) * 0.12 : (r() - 0.5) * 2 * L.width);
+    if (staff) return r() < 0.15 ? [along(), L.back] : [along(), L.staff];
+    if (laneAt !== null) {
+      // In their own lane: about the shelves most of the time, then at the counter to pay; or (a
+      // meal) at a table toward the window.
+      if (a.kind === "errand" && r() < BROWSE_SHARE) return [along(), 0.6 + r() * Math.max(0.2, L.counter - 1.1)];
+      return a.kind === "errand" ? [along(), L.front + r() * 0.4] : [along(), 0.7 + r() * Math.max(0.2, L.front - 0.6)];
+    }
     // Customers: about the shop floor looking at what is on the shelves most of the time, then at
     // the counter to pay; or (a meal) a table further toward the window.
     if (a.kind === "errand" && r() < BROWSE_SHARE) return [(r() - 0.5) * 2 * L.width, 0.6 + r() * Math.max(0.2, L.counter - 1.1)];

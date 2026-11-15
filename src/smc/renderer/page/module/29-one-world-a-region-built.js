@@ -105,7 +105,7 @@ function releaseHostWorld() {
   if (!hostWorldActive) return;
   hostWorldActive = false;
   if(grassStrands)grassStrands.dispose();
-  grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;
+  grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;clearWalkCover();
   for (const child of [...root.children]) {
     if (child === tileGroupRoot || child === avatar || child.userData.bayWide) continue;
     root.remove(child);
@@ -692,7 +692,7 @@ window.kerbsideGuestApi = {
   // Let go: what this world holds is emptied, since the code that built it stays loaded.
   release() {
     if(grassStrands)grassStrands.dispose();
-    grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;
+    grassSurfaceAt?.clear?.();grassStrands=null;grassSurfaceAt=null;grassSampleAt=null;clearWalkCover();
     terrainTiles.length = 0;
     tunnelBores.length = 0;
     billboardFaces.length = 0;
