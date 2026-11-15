@@ -452,6 +452,15 @@ function nightWindows(material) {
   diffuseColor.a = mix(diffuseColor.a, 0.94, kbOn * kbGlass); }`);
   });
 }
+//: An advertising face lit from behind (a shelter's or a kiosk's light box) or by its floodlights
+//: (a billboard's): at night its own picture glows, ``strength`` of it, as a lit poster does.
+function nightLitFace(material, strength = 0.6) {
+  return patchMaterial(material, "kbNightLitFace", (sh) => {
+    sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbFace = { value: strength };
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kbNight; uniform float kbFace;")
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * kbNight * kbFace;");
+  });
+}
 //: A figure's rim at night: light along its edges as the camera sees them (a fresnel term), so a
 //: person stands out against a dark street.
 function nightRim(material) {

@@ -343,6 +343,7 @@ export async function startCity(ctx) {
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
     if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking });
+    district.rackCount = -1; syncRacks(0);
     if (!district.drivers) district.drivers = new Drivers(streets, { ...TRAFFIC, main_green_share: R.traffic?.main_green_share ?? 0.5 });
     else { district.drivers.streets = streets; district.drivers.cars.clear(); district.drivers.boxes.clear(); district.drivers.claims.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
@@ -359,6 +360,17 @@ export async function startCity(ctx) {
     makeLines();
     drawCameras();
     ctx.log?.(`kerbside: the living city in ${region}: ${roster.people.size} residents, ${roster.vehicles.size} vehicles (${roster.visitors.size} visitors'), ${roster.places.size} places, ${streets.size} street nodes`);
+  }
+  //: The bicycle racks the world has drawn (ctx.bikeRacks: module 21), given to the city when
+  //: they come or change -- the furniture is drawn after the streets, a while after the district.
+  function syncRacks(now) {
+    if (!ctx.bikeRacks || !district.city || now - (district.racksAt || -1e9) < 2000) return;
+    district.racksAt = now;
+    const racks = ctx.bikeRacks() || [];
+    if (racks.length === district.rackCount) return;
+    district.rackCount = racks.length;
+    district.city.setRacks(racks);
+    ctx.log?.(`kerbside: ${racks.length} bicycle racks for the city's riders`);
   }
   //: The bus lines through the district: the real routes' stops near its streets.
   function makeLines() {
@@ -569,6 +581,21 @@ export async function startCity(ctx) {
   })();
   const bikeMesh = mk(bikeFarGeo, MAX_BIKES);
   bikeMesh.name = "city-bikes-low";
+  // A U-lock on each bicycle locked to a rack (fleet.mjs rackSlot): a hardened steel shackle round
+  // the rack's leg and the seat tube, and its crossbar, rubber-sleeved, closing it. Lying level at
+  // the lock's place (``lock`` {x, y, z, yaw}: its shackle reaching along +z turned by yaw).
+  const LOCK_W = 0.1, LOCK_L = 0.2, LOCK_PIPE = 0.008, LOCK_UP = new THREE.Vector3(0, 1, 0);
+  const lockShackle = new THREE.InstancedMesh(mergeGeos([
+    ...[-1, 1].map((sx) => new THREE.CylinderGeometry(LOCK_PIPE, LOCK_PIPE, LOCK_L, 6).rotateX(Math.PI / 2).translate(sx * LOCK_W / 2, 0, 0)),
+    new THREE.TorusGeometry(LOCK_W / 2, LOCK_PIPE, 6, 12, Math.PI).rotateX(Math.PI / 2).translate(0, 0, LOCK_L / 2),
+  ]), new THREE.MeshStandardMaterial({ color: 0xc8ccce, roughness: 0.28, metalness: 0.9 }), MAX_BIKES);
+  const lockBar = new THREE.InstancedMesh(mergeGeos([
+    new THREE.CylinderGeometry(0.018, 0.018, LOCK_W + 0.07, 10).rotateZ(Math.PI / 2).translate(0, 0, -LOCK_L / 2),
+    new THREE.CylinderGeometry(0.02, 0.02, 0.012, 10).rotateZ(Math.PI / 2).translate(LOCK_W / 2 + 0.04, 0, -LOCK_L / 2),
+  ]), new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.82, metalness: 0.05 }), MAX_BIKES);
+  for (const [m, name] of [[lockShackle, "city-bike-locks"], [lockBar, "city-bike-lock-bars"]]) {
+    m.name = name; m.count = 0; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(m);
+  }
   //: A rider's legs in two bones each, thigh and shin (the walking figure's are one piece from the
   //: hip): a unit long, hanging from the joint, stretched to the bone's length; the shin's foot
   //: darker, a shoe.
@@ -993,6 +1020,15 @@ export async function startCity(ctx) {
       put("crank", M.copy(BIKE_M).multiply(TM.makeTranslation(BIKE_AT.crankset.x, BIKE_AT.crankset.y, BIKE_AT.crankset.z)).multiply(RM.makeRotationX(crank)));
       for (const side of ["left", "right"]) { const [x, y, z] = pedalAt(side, crank); put(`pedal_${side}`, M.copy(BIKE_M).multiply(TM.makeTranslation(x, y, z))); }
     }
+    let locks = 0;
+    for (const b of bikes) {
+      if (!b.lock || b.v > 0.05 || locks >= MAX_BIKES) continue;
+      if (detailNow && detailNow.tier("people", b.x, b.z) !== FULL) continue;
+      M.compose(V.set(b.lock.x, groundAt(b.lock.x, b.lock.z) + 0.48, b.lock.z), Q.setFromAxisAngle(LOCK_UP, b.lock.yaw || 0), S3.set(1, 1, 1));
+      lockShackle.setMatrixAt(locks, M); lockBar.setMatrixAt(locks, M); locks += 1;
+    }
+    lockShackle.count = lockBar.count = locks;
+    lockShackle.instanceMatrix.needsUpdate = lockBar.instanceMatrix.needsUpdate = true;
     bikeMesh.count = n; bikeMesh.instanceMatrix.needsUpdate = true; if (bikeMesh.instanceColor) bikeMesh.instanceColor.needsUpdate = true;
     if (L) for (const part of Object.values(L)) { part.mesh.count = part.n; part.mesh.instanceMatrix.needsUpdate = true; if (part.mesh.instanceColor) part.mesh.instanceColor.needsUpdate = true; }
   }
@@ -3561,6 +3597,7 @@ export async function startCity(ctx) {
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
+      syncRacks(now);
       stepBikes(dt, t / 1000, focus, now);
       // The residents' bicycles: ridden (their riders on them) and stood by their doors -- the
       // nearest first, as many as are drawn.
@@ -3727,7 +3764,7 @@ export async function startCity(ctx) {
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
       if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
-      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true }); continue; }
+      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true, lock: s0.lock || null }); continue; }
       // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
@@ -3803,7 +3840,7 @@ export async function startCity(ctx) {
       const odo = (bikeOdo.get(b.id) || 0) + (b.moving ? (b.speed || 0) * dt : 0);
       bikeOdo.set(b.id, odo);
       const owner = b.moving ? c.roster.people.get(b.vehicle.owner) : null;
-      residentBikes.push({ id: b.id, resident: true, x: b.x, z: b.z, yaw: b.yaw, v: b.moving ? b.speed || 0 : 0, shade: b.shade, odo, person: owner || null, reason: b.reason });
+      residentBikes.push({ id: b.id, resident: true, x: b.x, z: b.z, yaw: b.yaw, v: b.moving ? b.speed || 0 : 0, shade: b.shade, odo, person: owner || null, reason: b.reason, lock: b.moving ? null : b.lock || null });
     }
     if (bikeOdo.size > 5000) bikeOdo.clear();
     if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);

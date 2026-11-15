@@ -8,6 +8,23 @@ shop rooms, shift tasks, errands, striking, the housing market). Every key is li
 result was read back from the page. "Tested" means a unit test in `tests/city.test.mjs` or
 `tests/test_city_rules.py`.
 
+## Since then (2026-11-14, later): advertising in the street, bicycles locked to racks
+
+See [docs/43-ad-media-bike-racks.md](../../../docs/43-ad-media-bike-racks.md).
+
+* **More advertising:**
+  * SF Planning's permitted general advertising signs are now in the world, on roofs, on walls
+    or on poles.
+  * Bus shelters carry a two-faced light box.
+  * Mapped columns and poster boxes are drawn.
+  * All of them use the three billboard pictures, fitted to each shape, and they light up at
+    night.
+  * Verified headless in the Marina and the Mission.
+* **Bicycle racks from DataSF** stand along the kerb, or in corrals in the parking lane.
+  * Riders out on an errand lock their bicycles to the nearest free place within 60 m, drawn
+    with a U-lock.
+  * Tested (`tests/city_bike_racks.test.mjs`); verified headless in the Marina.
+
 ## Since then (2026-11-14): the game clock, playable night, the junction at Fillmore and Bay
 
 See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).

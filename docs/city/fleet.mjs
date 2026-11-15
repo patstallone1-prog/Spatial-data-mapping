@@ -64,6 +64,10 @@ const VEHICLE_W = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) =
 const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[2]]));
 //: The kerb a car of ``model`` needs between the cars either side of it: its length and the gap
 //: kept at each end (PARKING.gap_m, to pull out). A space shorter is not offered it (clashes).
+//: The racks are filed by cells this wide (m) for finding the nearest.
+const RACK_CELL_M = 25;
+//: How far from the door a rider will lock up (m): about a minute's walk back.
+const BIKE_RACK_WALK_M = 60;
 export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 * PARKING.gap_m;
 //: The old way's spots (legacySpot: no kerb drawn) are a fixed pitch along the street: the
 //: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
@@ -277,11 +281,48 @@ export class City {
     streets.setPreferences?.(this.R.traffic);
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
     this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
+    this.rackTaken = new Map();
   }
   //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
   //: and ``kerbParking(x, z, ax, az, halfLen, kind)`` -> why a car may not stand there, or null.
   //: Set, every spot is found again against it.
-  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); }
+  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.rackTaken = new Map(); }
+  //: The bicycle racks the world draws (the page's module 21 placeCityBikeRacks: the city's
+  //: racks, DataSF), each with its places for a bicycle ({x, z, yaw, lock}). A rider out on an
+  //: errand locks up to the nearest with a place free, within BIKE_RACK_WALK_M of the
+  //: door; only where none has, the bicycle is left by the door. Set, every bicycle's spot (and
+  //: so the days, planned to them) is found again.
+  setRacks(racks) {
+    this.racks = (racks || []).filter((r) => Number.isFinite(r.x) && Number.isFinite(r.z) && Array.isArray(r.slots) && r.slots.length);
+    this.rackGrid = new Map();
+    for (const r of this.racks) {
+      const key = `${Math.floor(r.x / RACK_CELL_M)}:${Math.floor(r.z / RACK_CELL_M)}`;
+      if (!this.rackGrid.has(key)) this.rackGrid.set(key, []);
+      this.rackGrid.get(key).push(r);
+    }
+    this.rackTaken = new Map();
+    for (const [key, spot] of this.spots) if (spot?.rack) this.spots.delete(key);
+    this.plans = new Map();
+  }
+  //: A place free at a rack near ``at`` for ``vehicle`` (claimed for it), or null.
+  rackSlot(vehicle, at) {
+    if (!this.racks?.length || !at) return null;
+    const reach = BIKE_RACK_WALK_M, near = [];
+    for (let cx = Math.floor((at.x - reach) / RACK_CELL_M); cx <= Math.floor((at.x + reach) / RACK_CELL_M); cx += 1)
+      for (let cz = Math.floor((at.z - reach) / RACK_CELL_M); cz <= Math.floor((at.z + reach) / RACK_CELL_M); cz += 1)
+        for (const r of this.rackGrid.get(`${cx}:${cz}`) || []) {
+          const d = Math.hypot(r.x - at.x, r.z - at.z);
+          if (d <= reach) near.push({ r, d });
+        }
+    near.sort((a, b) => a.d - b.d);
+    for (const { r } of near) for (let i = 0; i < r.slots.length; i += 1) {
+      const key = `${r.id}:${i}`;
+      if (this.rackTaken.has(key)) continue;
+      this.rackTaken.set(key, vehicle.id);
+      return { ...r.slots[i], rack: r.id };
+    }
+    return null;
+  }
   //: Where cars come into the district and leave it: the ends of its streets at the edge of
   //: what has been seen, for each network of streets that hangs together (``byNetwork``).
   get gateways() {
@@ -377,6 +418,14 @@ export class City {
       // A bicycle stands on the pavement by the door (a step out from it, along the wall by
       // whose it is), not at the kerb among the cars.
       const D = place.door || place.front, k = (hash32(vehicle.id) % 7) - 3;
+      // Out on an errand, locked to a rack near the door where one has room (setRacks); at home
+      // it is kept by the door.
+      const slot = placeId !== vehicle.home ? this.rackSlot(vehicle, D || place) : null;
+      if (slot) {
+        spot = { garage: false, gateway: false, rack: true, locked: true, rackId: slot.rack, node: nodeId, x: slot.x, z: slot.z, yaw: slot.yaw, lock: slot.lock, door: { x: slot.x, z: slot.z }, place: placeId };
+        this.spots.set(key, spot);
+        return spot;
+      }
       const at = D && D.nx !== undefined ? { x: D.x - D.nx * 0.9 + D.nz * (0.9 + k * 0.55), z: D.z - D.nz * 0.9 - D.nx * (0.9 + k * 0.55), yaw: Math.atan2(D.nz, -D.nx) } : { x: place.x + k * 0.5, z: place.z, yaw: 0 };
       spot = { garage: false, gateway: false, rack: true, node: nodeId, x: at.x, z: at.z, yaw: at.yaw, door: { x: at.x, z: at.z }, place: placeId };
       this.spots.set(key, spot);
@@ -548,7 +597,8 @@ export class City {
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
     leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
-      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
+      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : a.locked ? { x: a.x, z: a.z, yaw: a.yaw, lock: a.lock } : null,
+      endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : b.locked ? { x: b.x, z: b.z, yaw: b.yaw, lock: b.lock } : null };
     return leg.route;
   }
   // -- days --------------------------------------------------------------------------------------
@@ -1155,7 +1205,7 @@ export class City {
     if (!spot) return { state: "away", hidden: true };
     if (spot.gateway) return { state: "away", hidden: true, last };
     if (spot.garage) return { state: "garage", hidden: true, spot };
-    return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot };
+    return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot, lock: spot.lock || null };
   }
   //: Where along its leg a car is at fraction ``f`` of it, in its lane.
   onLeg(leg, d) {

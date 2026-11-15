@@ -30,7 +30,16 @@ def main():
         raise ValueError("invalid creative registry")
     # Validate before changing any served sidecars. The same path whitelist is
     # used by the viewer, so a successfully registered image cannot silently fail there.
-    for identity, creative in manifest["boards"].items():
+    rotation = manifest.get("rotation", [])
+    if not isinstance(rotation, list):
+        raise ValueError("invalid creative rotation")
+    entries = list(manifest["boards"].items()) + [(f"rotation:{i}", c) for i, c in enumerate(rotation)]
+    for identity, creative in entries:
+        focus = creative.get("focus")
+        if focus is not None and not (
+            isinstance(focus, list) and len(focus) == 2 and all(isinstance(v, (int, float)) and 0 <= v <= 1 for v in focus)
+        ):
+            raise ValueError(f"focus must be [x, y] within the picture: {identity}")
         if (
             not creative.get("approved")
             or not creative.get("license")
@@ -96,6 +105,7 @@ def main():
                 "billboard_records": count,
                 "fresh_source_tag_records": len(tags),
                 "registered_creatives": len(manifest["boards"]),
+                "rotation_creatives": len(rotation),
             }
         )
     )

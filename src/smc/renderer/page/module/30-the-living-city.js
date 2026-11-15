@@ -359,6 +359,17 @@ function setAppMode(mode) {
       objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
       // This device's account (kerbside-account.mjs): the money the backend has put in it.
       account: () => accountLibrary(),
+      // The bicycle racks drawn round (x, z) -- this page's and the attached region's, in this
+      // page's metres -- and their places for a bicycle (module 21 placeCityBikeRacks).
+      bikeRacks: () => {
+        const out = hostWorldActive && typeof cityBikeRacks !== "undefined" ? cityBikeRacks.slice() : [];
+        const g = activeGuest?.ready ? activeGuest : null;
+        const P = g ? (x, z) => ({ x: g.ox + x * g.sx, z: g.oz + z }) : null;
+        const Y = g ? (yaw) => Math.atan2(Math.sin(yaw) * g.sx, Math.cos(yaw)) : null;
+        for (const r of g?.api.bikeRacks?.() || []) out.push({ ...r, ...P(r.x, r.z), yaw: Y(r.yaw),
+          slots: r.slots.map((s) => ({ ...s, ...P(s.x, s.z), yaw: Y(s.yaw), lock: { ...s.lock, ...P(s.lock.x, s.lock.z), yaw: Y(s.lock.yaw) } })) });
+        return out;
+      },
       catalogueUrl: sharedAsset("object-catalogue.json"),
       transitUrl: sharedAsset("transit-stops.json"),
       // Inside a shop: the walker's eyes at (x, y, z), looking along ``yaw``; and back out.
