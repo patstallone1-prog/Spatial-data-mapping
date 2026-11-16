@@ -14,7 +14,7 @@ export function modelConfig(env = process.env) {
 }
 
 //: One reply. Throws (with ``code``) when the model can not be reached or answers nothing.
-export async function chat(config, messages, { fetch: f = globalThis.fetch, timeout = 12_000, maxTokens = 180, temperature = 0.7 } = {}) {
+export async function chat(config, messages, { fetch: f = globalThis.fetch, timeout = 7_000, maxTokens = 180, temperature = 0.7 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {

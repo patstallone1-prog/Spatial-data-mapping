@@ -116,12 +116,10 @@
   ],
   "functions": {
     "api/city.mjs": {
-      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}",
-      "maxDuration": 20
+      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}"
     },
     "api/npc.mjs": {
-      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}",
-      "maxDuration": 30
+      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}"
     }
   }
 }
