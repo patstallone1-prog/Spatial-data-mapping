@@ -56,7 +56,7 @@ and shot, or shooting around alone. Anyone over the game's number waits at the s
 - "My real location" sets the spawn from the device's position where the map covers it, and says why
   when it can not. "Where my walker stands now" says so when the world is not ready.
 - City mode ignores a spawn point outside its area (that was the endless load: the walker's build and
-  the area's build undid each other). A load that has stopped moving for 45 seconds is let through.
+  the area's build undid each other). A load that has stopped moving for 90 seconds is let through.
 
 ## The voices of the city (`docs/city/npc-talk.mjs`, `server/npc/`, `/api/npc`)
 

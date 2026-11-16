@@ -35,6 +35,7 @@ import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, 
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
+import { THEME_CSS } from "./theme.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
@@ -4263,7 +4264,7 @@ export async function startCity(ctx) {
 #city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
 #city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
-@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}`;
+@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
   const hudBox = Object.assign(doc.createElement("div"), { id: "city-hud", title: "The living city: open the City panel" });
   hudBox.onclick = () => openPanel();

@@ -13,11 +13,10 @@ import { fallbackLine, setLine, sortMessage, talkText } from "./npc-talk.mjs";
 
 const DAY = 86_400_000;
 const NS = "http://www.w3.org/2000/svg";
-//: The series colours, in their fixed order (validated together, light and dark).
+//: The series colours, in their fixed order (the dark steps: every panel is the HUD's dark glass, theme.mjs).
 const SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
 export const FINANCE_CSS = `
-#city-side{--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--good:#0ca30c;--bad:#d03b3b;--grid:rgba(120,130,140,.28)}
-@media (prefers-color-scheme:dark){#city-side{--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#0ca30c}}
+#city-side{--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#0ca30c;--good:#0ca30c;--bad:#ff7b72;--grid:rgba(255,255,255,.16)}
 #city-side .chart{margin:6px 0 10px}#city-side .chart svg{display:block;width:100%;height:auto;overflow:visible}
 #city-side .chart text{font:11px system-ui,sans-serif;fill:var(--cm,#5b6875)}
 #city-side .chart .readout{min-height:1.3em;font-size:12px;color:var(--cm,#5b6875)}

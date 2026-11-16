@@ -1031,17 +1031,18 @@ function worldLoadWaiting() {
 //: A load that has stopped moving is let through: the same things waited for, none of them any
 //: further on, for this long (a build that failed and is not coming). Never a screen that loads
 //: for ever.
-const STALLED_FOR_MS = 45000;
+const STALLED_FOR_MS = 90000;
 WORLD_READY.then(() => {
   let settledSince = 0, same = "", sameSince = performance.now();
   const check = () => {
     const now = performance.now(), waiting = worldLoadWaiting();
     if (waiting.length) settledSince = 0;
     else settledSince ||= now;
-    const sign = waiting.join("|");
+    // (What is waited for, and how far along the build under way says it is: a long build that is still moving is not stalled.)
+    const sign = `${waiting.join("|")}|${(typeof attaching !== "undefined" && attaching?.progress?.textContent) || ""}|${document.getElementById("progress")?.textContent || ""}`;
     if (sign !== same) { same = sign; sameSince = now; }
     const stalled = waiting.length && now - sameSince >= STALLED_FOR_MS;
-    if (stalled) console.warn(`kerbside: entering with the load stalled on ${sign}`);
+    if (stalled) console.warn(`kerbside: entering with the load stalled on ${waiting.join(", ")}`);
     if (stalled || (settledSince && now - settledSince >= SETTLED_FOR_MS)) { worldLoadedNow = true; worldLoaded(); return; }
     setTimeout(check, 250);
   };
