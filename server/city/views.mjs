@@ -60,9 +60,11 @@ export function viewFor(world, pid) {
 
   // ---- businesses, cases, storefronts ------------------------------------------------------------
   const E = o.enterprise || {};
-  E.biz = (E.biz || []).map((b) => (mine.has(b.account) ? b : { ...b, books: [], incoming: [], loan: null, bought: undefined, licences: {},
+  E.biz = (E.biz || []).map((b) => (mine.has(b.account) ? b : { ...b, books: [], weeks: [], tx: [], incoming: [], loan: null, bought: undefined, licences: {},
     today: { day: b.today?.day }, staff: (b.staff || []).filter((s) => s.pid === pid) }));
   E.cases = (E.cases || []).filter((c) => c.pid === pid);
+  // A resident's shop's books: for those who have dealt with it (and not who else has).
+  E.shops = (E.shops || []).filter((x) => x.watchers?.[pid]).map((x) => ({ ...x, watchers: { [pid]: x.watchers[pid] } }));
   E.storefronts = (E.storefronts || []).map((s) => (s.pid === pid ? s : { place: s.place, holder: s.holder, pid: s.pid, since: s.since }));
   o.enterprise = E;
 

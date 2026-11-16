@@ -378,7 +378,7 @@ export class CityWorld {
     const shop = this.tillOf(place);
     this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
       { kind: "purchase", memo: lines.map((l) => `${l.qty > 1 ? l.qty + " x " : ""}${this.R.items[l.item].name}`).join(", ").slice(0, 120), at: this.now });
-    this.soldHere(place, lines);
+    this.soldHere(place, lines, pid);
     const effects = [];
     for (const l of lines) {
       const spec = this.R.items[l.item];
