@@ -33,8 +33,10 @@ const pause = (i) => new Promise((done) => setTimeout(done, i ? 4 + Math.random(
 const freshServer = () => ({ pos: {}, rate: {}, found: {}, reqs: {}, stepped: 0 });
 
 export class CityAuthority {
-  constructor({ R, canon, store, secret, worldId = WORLD_ID, now = () => Date.now() }) {
-    Object.assign(this, { R, canon, store, secret, worldId, now, cache: null, line: Promise.resolve() });
+  //: ``voices``: whether a model answers for the city's people (server/npc): the world then leaves
+  //: a real question in a thread unanswered, for the server to answer (``say``).
+  constructor({ R, canon, store, secret, worldId = WORLD_ID, now = () => Date.now(), voices = false }) {
+    Object.assign(this, { R, canon, store, secret, worldId, now, voices, cache: null, line: Promise.resolve() });
   }
   //: One at a time within this instance (it never races itself); other instances are told apart
   //: by the store's compare-and-swap.
@@ -69,6 +71,7 @@ export class CityAuthority {
     this.cache = doc;
     const world = doc ? CityWorld.fromJSON(this.R, structuredClone(doc.state.world)) : new CityWorld(this.R, { now: this.gameNow(), seed: this.worldId });
     world.knowTenants?.(this.canon.tenants);
+    world.voices = Boolean(this.voices);
     world.step(this.gameNow());
     return { version: doc?.version ?? 0, world, srv: doc ? structuredClone(doc.state.server) : freshServer() };
   }
@@ -133,6 +136,23 @@ export class CityAuthority {
   }
   refused(error, version) {
     return { ok: true, version, result: { ok: false, error: error.message, code: error.code || "refused" } };
+  }
+
+  //: A character's reply written into a conversation of this player's (server/npc): the server's
+  //: own doing, not a command a client can send.
+  say(session, threadId, text) {
+    return this.inTurn(async () => {
+      for (let i = 0; i < TRIES; i += 1) {
+        await pause(i);
+        const { version, world, srv } = await this.load();
+        const t = world.thread?.(threadId);
+        if (!t || t.tab !== "npc" || !(t.members || []).includes(session.pid)) return { ok: false, error: "not a conversation of yours" };
+        world.post(t, { from: "npc", name: t.name, tag: t.tag, text: String(text).slice(0, 700) });
+        const done = await this.commit(version, world, srv, { pid: session.pid, command: "npc_say", args: { thread: threadId }, at: world.now, real: this.now() });
+        if (done.ok) return { ok: true, version: done.version };
+      }
+      return { ok: false, error: "the city is busy: try again", code: "busy" };
+    });
   }
 
   //: Backend money for this session's device account, into its wallet: each grant minted and

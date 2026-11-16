@@ -36,7 +36,7 @@ let shared = null;
 //: The authority for this process (made once: a warm instance keeps its rules and its record).
 export function authority(env = process.env) {
   if (!env.KERBSIDE_CITY_SECRET) return null;
-  return (shared ||= new CityAuthority({ ...loadCity(), store: storeFrom(env), secret: env.KERBSIDE_CITY_SECRET }));
+  return (shared ||= new CityAuthority({ ...loadCity(), store: storeFrom(env), secret: env.KERBSIDE_CITY_SECRET, voices: Boolean(env.DEEPSEEK_API_KEY) }));
 }
 
 export const HEADERS = Object.freeze({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store",
