@@ -705,10 +705,7 @@ export function openHome(ctx) {
     const busy = (button, text) => { button.disabled = true; button.textContent = text; };
     sheet("Set spawn point", el("p", {}, "Where you start. Always on a pavement, never in the road. ", el("b", {}, `Now: ${label}`)), note,
       el("div", { class: "tools" },
-        el("button", { class: "hb", type: "button", on: { click: () => {
-          if (!closeHome()) { spawnSheet("The world is still loading. Choose in the world once it says “World ready”."); return; }
-          ctx.spawn.pickInWorld();
-        } } }, "Choose in the world…"),
+        el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.spawn.pickInWorld(); } } }, "Choose in the world…"),
         el("button", { class: "hb", type: "button", on: { click: () => {
           const spawn = ctx.spawn.useWalker();
           spawnSheet(spawn ? `Set to where your walker stands${spawn.label ? `: ${spawn.label}` : ""}.` : "The world is still loading: try again when it says “World ready”.");
