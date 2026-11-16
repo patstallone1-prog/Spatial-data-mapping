@@ -8,6 +8,7 @@
 // the same person and day always give the same plan (tests/city_routines.test.mjs).
 
 import { hash32, rng, shopCapacity, worksOn } from "./people.mjs";
+import { SESSION_MIN, joinsGame } from "./sports.mjs";
 
 //: The kinds of day, each with what puts a person in it.
 export const ROUTINE_TYPES = {
@@ -238,7 +239,13 @@ function build(R, person, day, weekday, places, type, career) {
       const g1 = b ? b.start : dayTo;
       const e0 = Math.max(a.end + travel(a.place, P), lo2), e1 = Math.min(g1 - travel(P, b ? b.place : home) - len, hi2);
       if (e1 < e0) continue;
-      const start = e0 + Math.floor(r() * (Math.min(e1 - e0, 40) + 1));
+      let start = e0 + Math.floor(r() * (Math.min(e1 - e0, 40) + 1));
+      if (id === "sport" && got.place.court) {
+        // A game is on the hour (sports.mjs): start with it, if this court has one then and a place in it.
+        const on = Math.ceil(start / SESSION_MIN) * SESSION_MIN, before = on - SESSION_MIN;
+        start = on <= e1 ? on : before >= e0 ? before : start;
+        if (!joinsGame(P, got.place.court.s, day, start, person.id)) return null;
+      }
       const extra = { task: id, label: got.label };
       if (t.kind === "stroll") Object.assign(extra, { outdoor: "stroll", seed: Math.floor(r() * 1e9) });
       if (t.kind === "work") extra.outdoor = person.outdoor;

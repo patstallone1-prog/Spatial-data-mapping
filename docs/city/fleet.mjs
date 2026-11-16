@@ -24,6 +24,7 @@ import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
 import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
 import { NpcContextIndex } from "./npc-context.mjs";
+import { SIDELINE_MAX, courtSession, playPose, playersOf, sidelinePose, sportOf } from "./sports.mjs";
 
 const pick = (r, list) => list[Math.floor(r() * list.length) % list.length];
 const FIRST = ["Alex", "Sam", "Maria", "Wei", "Priya", "Jordan", "Luis", "Mei", "Ana", "Omar", "Grace", "Diego", "Hana", "Noah",
@@ -1309,20 +1310,20 @@ export class City {
   //: On a court: about it the way the game goes -- running here and there and never leaping (a
   //: smooth way about the court, each player their own, at a run at most), a tennis player on
   //: their own side of the net, facing the way they run.
+  //: On a court: one of the game it has this hour (sports.mjs), or waiting at the side for the next.
+  //: Null for someone over even the side's few (not drawn).
   playing(p, seg, place, t) {
-    const C = place.court, sec = t.minute * 60, r = rng(p.id, "play");
-    const ux = Math.cos(C.a), uz = -Math.sin(C.a), vx = -Math.sin(C.a), vz = -Math.cos(C.a);
-    const side = C.s === "tennis" ? (hash32(p.id) % 2 ? 1 : -1) : 0;
-    const w = [0.11 + r() * 0.06, 0.07 + r() * 0.05, 0.13 + r() * 0.07, 0.09 + r() * 0.05], ph = [r(), r(), r(), r()].map((x) => x * 6.28);
-    const wave = (s, a, b) => 0.5 * (Math.sin(w[a] * s + ph[a]) + Math.sin(w[b] * s + ph[b]));   // -1..1
-    const at = (s) => {
-      const hu = C.l / 2 - 1, hv = C.w / 2 - 0.8;
-      const du = side ? side * (2 + (hu - 2) * (0.5 + 0.5 * wave(s, 0, 1))) : hu * wave(s, 0, 1);
-      return [C.x + ux * du + vx * hv * wave(s, 2, 3), C.z + uz * du + vz * hv * wave(s, 2, 3)];
-    };
-    const [x, z] = at(sec), [x1, z1] = at(sec + 0.5), v = Math.hypot(x1 - x, z1 - z) * 2;
-    const game = { tennis: "playing tennis", basketball: "playing basketball", soccer: "playing football", baseball: "playing ball" }[C.s] || "playing";
-    return { x, z, yaw: Math.atan2(-(x1 - x), -(z1 - z)), moving: v > 0.2, mode: "walk", speed: v, activity: game };
+    const C = place.court, S = sportOf(C.s), sec = t.minute * 60;
+    const here = this.courtNow?.get(place.id) || [];
+    let i = here.indexOf(p.id);
+    if (i < 0) i = here.length;
+    const present = Math.max(here.length, i + 1);
+    let booked = courtSession(place.id, C.s, t.day, t.minute);
+    if (!booked.n) booked = courtSession(place.id, C.s, t.day, seg.t0);
+    const n = playersOf(C.s, present, booked.n || S.sizes[0][0]);
+    if (i < n) return { ...playPose(C, n, i, sec, `${place.id}:${t.day}:${booked.block}`), mode: "walk", activity: S.name };
+    if (i - n >= SIDELINE_MAX) return null;
+    return { ...sidelinePose(C, i - n, p.id), mode: "walk", activity: S.wait };
   }
   nextKind(p, t, seg) {
     const segs = this.planOf(p, t).segs, i = segs.indexOf(seg);
@@ -1579,7 +1580,7 @@ export class City {
   //: held up by the whole district at once: null until the pass is done.
   scanBegin(ms, focus, reach, parkedReach = 180) {
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
-      P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [] };
+      P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
   }
   scanMore(budget = 2500, whole = false) {
     const S = this._scan;
@@ -1613,7 +1614,11 @@ export class City {
       const pl = P.get(seg.place);
       if (!pl) continue;
       if (seg.kind === "roam") { if (!seg.drive && near(pl.x, pl.z, 350)) people.push({ p, seg }); continue; }
-      if (seg.act.kind === "sport") { if (pl.court && near(pl.x, pl.z)) people.push({ p, seg }); continue; }
+      if (seg.act.kind === "sport") {
+        // Everyone at a court, near or not, so each knows their place in its game (playing).
+        if (pl.court) { let list = S.courts.get(pl.id); if (!list) S.courts.set(pl.id, list = []); list.push(p.id); if (near(pl.x, pl.z)) people.push({ p, seg }); }
+        continue;
+      }
       if ((seg.act.kind === "break" && seg.act.outside && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
@@ -1627,6 +1632,8 @@ export class City {
       } else if (Math.abs(s.x - focus.x) < parkedReach && Math.abs(s.z - focus.z) < parkedReach) vehicles.push({ v, s });
     }
     if (S.i < S.P.length || S.j < S.V.length) return null;
+    for (const [id, list] of S.courts) list.sort((a, b) => hash32(a, id) - hash32(b, id) || (a < b ? -1 : 1));
+    this.courtNow = S.courts;
     this._scan = null;
     return { time: t, people, vehicles, garaged: S.garaged };
   }

@@ -829,8 +829,18 @@ export async function startCity(ctx) {
         // A stride: the thigh forward and the knee a little bent shows as the leg's swing.
         set(parts.legL, -0.1, 0.84, swing); set(parts.legR, 0.1, 0.84, -swing);
         // The arms hang a little out from the body and swing against the legs.
-        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(-swing * 0.8)); M.multiply(TM.makeRotationZ(-0.06)); parts.armL.setMatrixAt(n, M);
-        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(swing * 0.8)); M.multiply(TM.makeRotationZ(0.06)); parts.armR.setMatrixAt(n, M);
+        // (On a court, sports.mjs: the arms go up for a shot or a serve, across for a stroke, out to guard.)
+        let armL = -swing * 0.8, armR = swing * 0.8, outL = -0.06, outR = 0.06;
+        const g = p.gesture;
+        if (g) {
+          const k = Math.sin(Math.PI * Math.min(1, Math.max(0, g.f)));
+          if (g.kind === "shoot") { armL = armR = -0.3 - 2.5 * k; }
+          else if (g.kind === "serve") { armR = -3 * k; armL = -1.7 * Math.min(1, k * 1.6); }
+          else if (g.kind === "swing") { armR = -0.3 - 1.4 * k; outR = 0.06 + 0.9 * k; }
+          else if (g.kind === "guard") { armL = armR = -2.5; outL = -0.45; outR = 0.45; }
+        }
+        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(armL)); M.multiply(TM.makeRotationZ(outL)); parts.armL.setMatrixAt(n, M);
+        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(armR)); M.multiply(TM.makeRotationZ(outR)); parts.armR.setMatrixAt(n, M);
         if (body.outfit.bottom === "skirt" && k < MAX_PEOPLE) {
           skirts.setMatrixAt(k, b);
           dressAt(skirts, k, body.outfit.bottoms);
