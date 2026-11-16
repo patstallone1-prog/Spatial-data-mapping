@@ -26,6 +26,7 @@ import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
+import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
@@ -1412,10 +1413,12 @@ export class CityWorld {
     const p = this.player(pid);
     if (listing?.kind !== "sale") throw new CityError("that home is for rent");
     const { price } = this.checkListing(listing);
-    const terms = mortgageTerms(this.R, price);
     const here = jurisdictionAt(this.R, listing.lon, listing.lat, listing.county);
     const a = this.homeAsset(listing, price);
     if (a.owner !== "business:landlords") throw new CityError("its owner is not selling");
+    // The mortgage is this buyer's: a banker's pre-approved rate, or the online lender's (credit.mjs).
+    let terms = mortgageTerms(this.R, price);
+    if (mortgage && this.ledger.balance(p.account) >= terms.upfront) terms = this.mortgageFor(p, price);
     const upfront = mortgage ? terms.upfront : price + terms.closing;
     if (this.ledger.balance(p.account) < upfront) throw new CityError(`you need ${this.R.fmt(upfront)} ${mortgage ? "for the down payment and closing" : "to buy it outright"}`);
     if (mortgage) this.ledger.mint(p.account, terms.loan, "external_trade", { at: this.now, memo: `mortgage on ${a.attrs.address || a.id}` });
@@ -1424,7 +1427,7 @@ export class CityWorld {
     const t = transferTax(this.R, here.chain, price);
     this.ledger.pay("business:landlords", [[this.treasury(here.county), t.county], [this.treasury(here.city || here.county), t.city]], { kind: "transfer_tax", memo: a.id, at: this.now });
     a.attrs.assessed = price; a.attrs.bought = this.now; a.attrs.price = price;
-    if (mortgage) p.mortgages = [...(p.mortgages || []), { home: a.id, loan: terms.loan, owed: terms.loan, monthly: terms.monthly, next: this.now + 30 * DAY, missed: 0 }];
+    if (mortgage) p.mortgages = [...(p.mortgages || []), { home: a.id, loan: terms.loan, owed: terms.loan, monthly: terms.monthly, rate: terms.rate, next: this.now + 30 * DAY, missed: 0 }];
     this.market.taken.add(listing.home);
     this.moveIn(p, a);
     this.log("home", { player: pid, home: a.id, price, mortgage });
@@ -1481,7 +1484,7 @@ export class CityWorld {
   housingMonth(p) {
     for (const m of p.mortgages || []) {
       while (this.now >= m.next) {
-        const interest = Math.round(m.owed * this.R.housing.mortgage.rate / 12);
+        const interest = Math.round(m.owed * (m.rate ?? this.R.housing.mortgage.rate) / 12);
         m.owed = Math.max(0, m.owed + interest - m.monthly);
         this.billing.issue({ payer: p.account, payee: "business:bank", kind: "mortgage", amount: m.monthly, memo: `Mortgage payment, ${m.home}`, at: m.next, due_days: 15, penalties: [Math.round(m.monthly * 0.05)], key: `mortgage:${m.home}:${m.next}` });
         m.next += 30 * DAY;
@@ -1665,12 +1668,14 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 //: Things as themselves: records, uses, outcomes and resale (commerce.mjs).
 installCommerce(CityWorld, CityError);
 installHomeInteriors(CityWorld, CityError);
+//: Borrowing: the credit score, the bankers and the loans (credit.mjs).
+installCredit(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

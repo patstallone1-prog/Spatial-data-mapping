@@ -990,6 +990,7 @@ export function installEnterprise(CityWorld, CityError) {
     const L = this.R.business.law;
     for (const bill of this.billing.bills.values()) {
       if (bill.status !== "open" || !bill.collections || !bill.payer.startsWith("player:")) continue;
+      if (bill.kind === "loan" || bill.kind === "loan_default") continue;   // a lender's own matter (credit.mjs): default, not a summons
       const p = this.players.get(bill.payer.slice(7));
       if (!p) continue;
       const c = bill.case ? this.cases.get(bill.case) : this.openCase(p, bill);
