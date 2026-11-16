@@ -129,6 +129,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      # A change with no Python in it installs nothing, and the cache's own clean-up then failed
+      # the job for a pip folder that was never made.
+      - run: mkdir -p "$(pip cache dir)"
       - uses: actions/setup-node@v4
         if: needs.plan.outputs.python == 'true' || needs.plan.outputs.node == 'true'
         with:
