@@ -299,3 +299,32 @@ test("adults average 5 ft 10 (men) and 5 ft 5 (women), spread as the CDC's refer
   // The same person is the same height every time.
   assert.equal(bodyFor({ id: "person:7", age: 30 }, new Map()).height, bodyFor({ id: "person:7", age: 30 }, new Map()).height);
 });
+
+test("people are dressed: trousers, shorts or a skirt, sleeves, shoes, hair -- from their ids, the same every time", async () => {
+  const { bodyFor, outfitFor, OUTFIT_SHARES } = await import("../docs/city/view.mjs");
+  const cache = new Map(), n = 20000, count = {};
+  let women = 0, skirts = 0, shortSleeves = 0, bald = 0, noHair = 0;
+  for (let i = 0; i < n; i += 1) {
+    const b = bodyFor({ id: `person:${i}`, age: 20 + (i % 60) }, cache), o = b.outfit;
+    count[o.bottom] = (count[o.bottom] || 0) + 1;
+    if (b.female) women += 1;
+    if (o.bottom === "skirt") { skirts += 1; assert.ok(b.female, "a skirt on a woman (the figures are not told apart otherwise)"); }
+    if (o.sleeves === "short") shortSleeves += 1;
+    if (b.bald) bald += 1;
+    if (o.hair === "none") noHair += 1;
+    assert.ok(/^#[0-9a-f]{6}$/.test(o.bottoms) && /^#[0-9a-f]{6}$/.test(o.shoes));
+  }
+  assert.ok(Math.abs(skirts / women - OUTFIT_SHARES.skirt_female) < 0.02, `skirts ${(skirts / women).toFixed(3)}`);
+  assert.ok(Math.abs(shortSleeves / n - OUTFIT_SHARES.short_sleeves) < 0.02);
+  assert.ok(Math.abs(count.shorts / n - OUTFIT_SHARES.shorts) < 0.015, "few in shorts: San Francisco is cool");
+  assert.equal(bald, noHair, "the bald have no hair drawn");
+  // Someone at work is in the uniform's trousers and long sleeves.
+  for (let i = 0; i < 300; i += 1) {
+    const o = outfitFor({ id: `npc:${i}`, role: "officer" }, { female: i % 2 === 0, bald: false });
+    assert.equal(o.bottom, "trousers"); assert.equal(o.sleeves, "long");
+  }
+  // The same person dressed the same, and their height not moved by it.
+  const a = bodyFor({ id: "person:42", age: 33 }, new Map()), b = bodyFor({ id: "person:42", age: 33 }, new Map());
+  assert.deepEqual(a.outfit, b.outfit);
+  assert.equal(a.height, b.height);
+});

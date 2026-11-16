@@ -186,9 +186,10 @@ test("traffic keeps the rules: stops for someone in the road, at a stop sign, an
 });
 
 test("injuries by impact speed, damage by crash speed, and what each means while it lasts", () => {
-  assert.equal(injuryFor(R, { speed: 1 }).severity, 1);
+  assert.equal(injuryFor(R, { speed: 0.8 }).severity, 0, "a nudge at a walk is no injury");
+  assert.equal(injuryFor(R, { speed: 1.5 }).severity, 1);
   assert.equal(injuryFor(R, { speed: 5 }).severity, 3);
-  assert.ok(R.harm.pedestrian[2].types.includes(injuryFor(R, { speed: 5, seed: "a" }).type));
+  assert.ok(R.harm.pedestrian[3].types.includes(injuryFor(R, { speed: 5, seed: "a" }).type));
   assert.equal(injuryFor(R, { speed: 12 }).severity, 5);
   assert.equal(injuryFor(R, { joules: 25 }).severity, 1);
   assert.equal(vehicleDamage(R, 100, 4).state, "dented");

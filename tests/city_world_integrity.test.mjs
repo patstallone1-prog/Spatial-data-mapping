@@ -9,7 +9,8 @@ import { test } from "node:test";
 
 import { cityTime, loadRules } from "../docs/city/core.mjs";
 import { City, Roster, inRing } from "../docs/city/fleet.mjs";
-import { Streets, placeFromBuilding, shopCapacity } from "../docs/city/people.mjs";
+import { PAVE_M, PAVE_MIN_M, Streets, indoorSpot, paveOffset, placeFromBuilding, shopCapacity, shopLanes, shopRows, shopSeen } from "../docs/city/people.mjs";
+import { drawWeights } from "../docs/city/routines.mjs";
 import { BOUNDARY_MESSAGE, boundaryStop, buildLines, busesAt } from "../docs/city/transit.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
@@ -150,6 +151,52 @@ test("inside a shop, the customers keep apart: never two within 0.4 m", () => {
   assert.equal(close, 0, `${close} of ${pairs} pairs inside a shop within 0.4 m`);
 });
 
+test("a shop holds what its floor has room for; only as many as its drawn front has places for are seen", () => {
+  // A convenience store of 327 m² behind a 4 m front (the Marina's 272647181): by the first rule
+  // it held two, one a lane across the door.
+  const store = { id: "s", area: 327, shops: ["convenience"], inside: { x: 0, z: 0, nx: 0, nz: 1, half: 2, depth: 14 } };
+  assert.equal(shopCapacity(store), 29);
+  const seen = shopSeen(store);
+  assert.equal(seen, shopLanes(store.inside) * shopRows(store.inside));
+  assert.ok(seen >= 2 && seen < 29, `seen ${seen}`);
+  // A café of 60 m²: twenty-one seats, never the old fourteen-or-fewer by lanes alone.
+  assert.equal(shopCapacity({ id: "c", area: 60, shops: ["cafe"], inside: store.inside }), 21);
+  assert.equal(shopCapacity({ id: "h", area: 5000, shops: ["grocery"] }), 40);
+  assert.equal(shopCapacity({ id: "t", area: 4, shops: ["bank"] }), 1);
+});
+
+test("those drawn in a shop keep apart in lanes and rows; the rest are further in and not drawn", () => {
+  const { city, roster } = town();
+  // A deep shop behind a 4 m front: more inside than its drawn floor has places for.
+  const base = roster.list.find((q) => q.shops.length && q.inside);
+  const pl = { ...base, id: `${base.id}:deep`, area: 400, inside: { ...base.inside, half: 2 } };
+  const seen = shopSeen(pl), cap = shopCapacity(pl);
+  assert.ok(cap > seen, `the test shop holds more (${cap}) than its floor shows (${seen})`);
+  const t = timeAt(DAY + 12 * 3_600_000), day = t.day;
+  // Fill it: the first in take the drawn places, the rest go further in.
+  const lanes = [];
+  for (let k = 0; k < cap; k += 1) { const lane = city.roomIn(pl, day, 700, 760, `p${k}`); assert.ok(lane >= 0); city.shopBook(pl.id, day).push({ who: `p${k}`, t0: 700, t1: 760, lane }); lanes.push(lane); }
+  assert.equal(new Set(lanes).size, cap, "a place each");
+  assert.deepEqual(lanes.slice(0, seen).sort((a, b) => a - b), Array.from({ length: seen }, (_, k) => k), "the drawn floor fills first");
+  assert.equal(city.roomIn(pl, day, 700, 760, "late"), -1, "full");
+  // Everyone on the drawn floor, at any moment: half a step apart at least.
+  const someone = [...roster.people.values()][0];
+  for (let m = 700; m < 760; m += 0.3) {
+    const at = [];
+    for (let k = 0; k < seen; k += 1) at.push(indoorSpot({ ...someone, id: `c${k}` }, { kind: "errand" }, pl, timeAt(DAY + m * 60_000), { k }));
+    for (let i = 0; i < at.length; i += 1) for (let j = i + 1; j < at.length; j += 1) {
+      assert.ok(Math.hypot(at[i].x - at[j].x, at[i].z - at[j].z) >= 0.4, `places ${i} and ${j} within 0.4 m at ${m}`);
+    }
+  }
+});
+
+test("a shop is looked at as often as it has room: the big one draws more than the kiosk", () => {
+  const list = [{ id: "kiosk", area: 12, shops: ["grocery"] }, { id: "market", area: 400, shops: ["grocery"] }, { id: "park", shops: [] }];
+  const cum = drawWeights(list);
+  assert.deepEqual([...cum], [1, 1 + 35, 1 + 35 + 1]);
+  assert.equal(drawWeights(list), cum, "kept by the list");
+});
+
 test("on foot from door to door nobody is drawn inside a building they did not go into", (tc) => {
   const { city, roster } = town();
   const t0 = timeAt(DAY + 12 * 3_600_000);
@@ -178,6 +225,47 @@ test("on foot from door to door nobody is drawn inside a building they did not g
   assert.ok(before.inside > 0, "without the check, the pavement's line runs through the fronts built out near the kerb");
   assert.ok(after.samples > 2000, `samples ${after.samples}`);
   assert.equal(after.inside, 0, `${after.inside} of ${after.samples} walkers' points inside a building`);
+});
+
+test("the pavement's line keeps to the room between the kerb and the fronts on each side", (tc) => {
+  // The same town and walkers twice, the wall check off: the line a fixed 1.6 m from the kerb,
+  // and the line set by the fronts along each side of each block (City.walkOffset).
+  const run = (frontLines) => {
+    const { city, roster } = town();
+    city.frontLines = frontLines; city.guardWalls = false;
+    const t0 = timeAt(DAY + 12 * 3_600_000);
+    const walkers = [...roster.people.values()].filter((p) => city.planOf(p, t0).segs.some((s) => s.kind === "go" && s.mode === "walk")).slice(0, 400);
+    let samples = 0, inside = 0, deep = 0;
+    for (const p of walkers) for (const seg of city.planOf(p, t0).segs) {
+      if (seg.kind !== "go" || seg.mode !== "walk" || seg.t0 < 6 * 60 || seg.t1 > 22 * 60) continue;
+      for (let m = seg.t0; m < seg.t1; m += 2 / 60) {
+        const pos = city.personAt(p, timeAt(DAY + m * 60_000), seg, { x: 400, z: 400 });
+        if (!pos || pos.indoors) continue;
+        samples += 1;
+        const f = city.footprintAt(pos.x, pos.z);
+        if (!f || (pos.through && (f.pl.id === seg.from || f.pl.id === seg.to))) continue;
+        inside += 1;
+        // Along a block, not at a door: well clear of both ends of the walk.
+        if (m - seg.t0 > 0.4 && seg.t1 - m > 0.4) deep += 1;
+      }
+    }
+    return { samples, inside, deep, narrowed: city.wallFixes?.narrowed || 0 };
+  };
+  const fixed = run(false), fitted = run(true);
+  tc.diagnostic(`fixed line: ${fixed.inside} of ${fixed.samples} points inside a building (${fixed.deep} along a block); fitted: ${fitted.inside} of ${fitted.samples} (${fitted.deep}); ${fitted.narrowed} stretches brought in`);
+  assert.ok(fixed.deep > 500, `the fixed line runs through the fronts built out near the kerb: ${fixed.deep}`);
+  assert.ok(fitted.narrowed > 0);
+  assert.ok(fitted.deep * 20 < fixed.deep, `along the blocks the fitted line is clear of the fronts: ${fitted.deep} against ${fixed.deep}`);
+  assert.ok(fitted.inside * 4 < fixed.inside, `${fitted.inside} against ${fixed.inside}`);
+});
+
+test("the line is midway between the kerb and the wall, never past 1.6 m nor off the kerb stone", () => {
+  assert.equal(paveOffset(6), 6 + PAVE_M);
+  assert.equal(paveOffset(6, 10), 6 + PAVE_M);
+  assert.equal(paveOffset(6, 2), 7);
+  assert.equal(paveOffset(6, 0.4), 6.2);
+  assert.equal(paveOffset(6, 0.1), 6 + PAVE_MIN_M);
+  assert.equal(paveOffset(0, 1), 0);
 });
 
 test("a door on a party wall is not walked through: the step out is in the street, not next door", () => {

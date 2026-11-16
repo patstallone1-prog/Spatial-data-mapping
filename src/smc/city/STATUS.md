@@ -30,6 +30,42 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
   taken. The car's edge stop uses the same words. The walker's edge hint is in module 23 and has
   not been changed yet.
 
+## Since then (2026-11-14, later): advertising in the street, bicycles locked to racks
+
+See [docs/43-ad-media-bike-racks.md](../../../docs/43-ad-media-bike-racks.md).
+
+* **More advertising:**
+  * SF Planning's permitted general advertising signs are now in the world, on roofs, on walls
+    or on poles.
+  * Bus shelters carry a two-faced light box.
+  * Mapped columns and poster boxes are drawn.
+  * All of them use the three billboard pictures, fitted to each shape, and they light up at
+    night.
+  * Verified headless in the Marina and the Mission.
+* **Bicycle racks from DataSF** stand along the kerb, or in corrals in the parking lane.
+  * Riders out on an errand lock their bicycles to the nearest free place within 60 m, drawn
+    with a U-lock.
+  * Tested (`tests/city_bike_racks.test.mjs`); verified headless in the Marina.
+
+## Since then (2026-11-14): the game clock, playable night, the junction at Fillmore and Bay
+
+See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
+
+* **One game clock** (`docs/city/clock.mjs`, `rules.json` `clock`): a day in 72 real minutes,
+  48 of daylight and 24 of night, the sun on its real path for the game's date. It drives the
+  sky, the clock shown, shop hours, shifts and pay, rent, the NPCs' days, deadlines and the
+  timetable's hour; people, cars and buses move at real speed. Tested
+  (`tests/city_clock.test.mjs`); verified headless.
+* **The compass is a reading, not a control.** Clicking it no longer opens the sun dial; the time
+  cannot be changed in the game.
+* **Night is playable:** a blue night sky with real stars and the moon, moonlight and a raised
+  blue ambient, warm lit windows in the houses, a rim of light on the walker and the NPCs.
+  Verified headless.
+* **Fillmore and Bay:** imagery-inferred paving in the road (the slip lane's mouth) is asphalt
+  again (`tools/inferred_roadway_to_asphalt.py`, run over the corridor and four regions); raised
+  islands are stood on at their top; a bus shelter is placed only where its whole roof clears the
+  buildings (or the stop has a bench).
+
 ## Since then (PR after #177): Enter for car and bus, waits, witnesses, garages, NPCs about
 
 * **Keys:** C is gone. Enter is in and out of everything (your car, the bus at the stop and its
@@ -454,8 +490,10 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
   * people fleeing or calling the police when they see vandalism (they are only counted);
   * greeting a customer;
   * serving the player (the shopkeeper doesn't hand over the coffee).
-* **Bodies.** NPCs are boxes with swinging limbs. Missing: real models and animation
-  (sitting, carrying, working the till).
+* **Bodies.** NPCs are low-poly human shapes (lathe-turned torso, tapered limbs, hands, neck,
+  nose, shoes) dressed per person: trousers, shorts or a skirt, long or short sleeves, shoe
+  colours, hair short, to the collar or long, eight skin tones (docs/41). Missing: rigged models
+  and animation beyond the walk and the ride (sitting, carrying, working the till), faces.
 * **Indoors.** People simply vanish at home, except inside the shop you are in.
 * **Schedules.** They don't vary by day of the week, holidays or weather.
 * **Families and relationships.** Missing: households, children going to school, friends,
@@ -511,3 +549,40 @@ result was read back from the page. "Tested" means a unit test in `tests/city.te
 * Tooltips on the action bar for touch.
 * A history of notices (each disappears after 7 s).
 * Map pins for the task, the errand, your car, your home and listed homes.
+
+## 2026-11-14: tasks card
+
+- What recurs comes first under the line you are headed to: the job (or "Find a job"), shifts,
+  and what your businesses and the court ask (`todoItems`, view.mjs).
+- Every placed line and every courier's shop and address says its cross streets
+  (`Streets.crossStreets`, `nameAt`, `labelAt`, `stepAt`): "2300 Chestnut Street at Scott St",
+  "the court at Bay St & Webster St".
+
+## 2026-11-14: the pavement's line fits the room it has
+
+- `pavementRoute` takes the line's distance from the street per side and per stretch
+  (`offset(half, where)`); `City.walkOffset` finds the nearest front along each side of a block
+  and puts the line midway between the kerb and it, 1.6 m out at most (`paveOffset`).
+- Each block keeps its own line through a junction (`join`): one averaged point there had slanted
+  both blocks' lines.
+- Test town, wall check off: 21,275 of 140,008 walker points inside a building with the fixed
+  line, 290 with the fitted one (32 along a block; the rest at doors). `keepOutside` stays as
+  the guard. Not re-measured on the real Marina.
+
+## 2026-11-14: shops hold what they have room for
+
+- **Cause of the give-ups.** A shop held only as many as its drawn front had lanes for: a
+  327 m² convenience store two, a 140 m² grocery three. And shops were looked at evenly
+  whatever their size.
+- `shopCapacity` is the floor's alone (building-code loads, at most 40); `shopSeen` is how many
+  are drawn (lanes by rows on the floor behind the front). The rest are further in and not
+  drawn. `roomIn` fills the drawn places first.
+- `routines.mjs` looks at a shop as often as it has room (`drawWeights`).
+- **Real Marina, one weekday (2,492 places, 276 shops, 12,028 people; a node run on the page's
+  own district data):** gave up 26.3% -> 4.1% of 7,193 visits; nobody drawn in a shop within
+  0.4 m of another (390,717 pairs); 20% of those inside are further in. What is left is three
+  or four buildings of several tenants between 17:00 and 19:00.
+- Same run, wall check off: walker points inside a building 6.24% with the pavement's line
+  fixed, 2.25% with the line fitted to the fronts (the test town: 15% -> 0.2%).
+- Still open: 51 shops nobody is sent to (hotels, plain "shop", gyms, spas): no task asks for
+  their kinds.

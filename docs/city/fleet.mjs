@@ -16,7 +16,7 @@ import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   shopCapacity, shopLanes,
-  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, pavementRoute, turnAhead, workplacesByRole,
+  DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, paveOffset, pavementRoute, shopSeen, turnAhead, workplacesByRole,
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
@@ -66,6 +66,10 @@ const VEHICLE_W = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) =
 const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) => [k, d[2]]));
 //: The kerb a car of ``model`` needs between the cars either side of it: its length and the gap
 //: kept at each end (PARKING.gap_m, to pull out). A space shorter is not offered it (clashes).
+//: The racks are filed by cells this wide (m) for finding the nearest.
+const RACK_CELL_M = 25;
+//: How far from the door a rider will lock up (m): about a minute's walk back.
+const BIKE_RACK_WALK_M = 60;
 export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 * PARKING.gap_m;
 //: The old way's spots (legacySpot: no kerb drawn) are a fixed pitch along the street: the
 //: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
@@ -100,6 +104,10 @@ export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 //: (on foot), else comes later (staying where they were up to ``later_min``), else gives it up
 //: and looks in the windows round about instead. Nobody is let in past the shop's capacity, and
 //: each customer in it has a lane of the floor of their own (City.admit).
+//: How the fronts along a stretch of street are looked for (City.walkOffset): a point every
+//: ``every_m`` (``most`` at most), clear of the last ``ends_m`` at each end, stepping out from
+//: the kerb ``step_m`` at a time.
+export const FRONT_SCAN = { every_m: 7, most: 14, ends_m: 9, step_m: 0.3 };
 export const SHOP_QUEUE = { queue_len: 4, queue_wait_min: 6, queue_step_m: 0.8, alt_m: 450, later_min: 45, min_stay_min: 5 };
 const CUSTOMER_KINDS = new Set(["errand", "meal", "evening"]);
 //: The k-th of a shop's staff to a lane of n: spread over the counter rather than bunched at one end.
@@ -298,6 +306,9 @@ export class City {
   //: ``harm(id, ms)``: the books' word on someone hurt or something broken ({state, ...}), or null.
   constructor(R, roster, streets, { seed = "district", timeAt, harm = () => null, delay = () => 0 } = {}) {
     this.R = R; this.roster = roster; this.seed = seed; this.timeAt = timeAt; this.harm = harm; this.delay = delay;
+    //: pavementRoute's ``offset``: the pavement's line by what stands along it (walkOffset);
+    //: ``frontLines = false`` (tests) puts it back the fixed distance out.
+    this.paveLine = (half, where) => (this.frontLines === false ? paveOffset(half) : this.walkOffset(half, where));
     this.setStreets(streets);
   }
   //: Lazily prepare a roster/day's cohorts outside the render loop. `ready` resolves false
@@ -333,11 +344,49 @@ export class City {
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
     this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
     this.shopBooks = new Map(); this.admitted = new Map(); this.staffLanes = new Map(); this._footprints = null;
+    this._walkOffsets = null;
+    this.rackTaken = new Map();
   }
   //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
   //: and ``kerbParking(x, z, ax, az, halfLen, kind)`` -> why a car may not stand there, or null.
   //: Set, every spot is found again against it.
-  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.shopBooks = new Map(); this.admitted = new Map(); }
+  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.shopBooks = new Map(); this.admitted = new Map(); this.rackTaken = new Map(); }
+  //: The bicycle racks the world draws (the page's module 21 placeCityBikeRacks: the city's
+  //: racks, DataSF), each with its places for a bicycle ({x, z, yaw, lock}). A rider out on an
+  //: errand locks up to the nearest with a place free, within BIKE_RACK_WALK_M of the
+  //: door; only where none has, the bicycle is left by the door. Set, every bicycle's spot (and
+  //: so the days, planned to them) is found again.
+  setRacks(racks) {
+    this.racks = (racks || []).filter((r) => Number.isFinite(r.x) && Number.isFinite(r.z) && Array.isArray(r.slots) && r.slots.length);
+    this.rackGrid = new Map();
+    for (const r of this.racks) {
+      const key = `${Math.floor(r.x / RACK_CELL_M)}:${Math.floor(r.z / RACK_CELL_M)}`;
+      if (!this.rackGrid.has(key)) this.rackGrid.set(key, []);
+      this.rackGrid.get(key).push(r);
+    }
+    this.rackTaken = new Map();
+    for (const [key, spot] of this.spots) if (spot?.rack) this.spots.delete(key);
+    this.plans = new Map();
+  }
+  //: A place free at a rack near ``at`` for ``vehicle`` (claimed for it), or null.
+  rackSlot(vehicle, at) {
+    if (!this.racks?.length || !at) return null;
+    const reach = BIKE_RACK_WALK_M, near = [];
+    for (let cx = Math.floor((at.x - reach) / RACK_CELL_M); cx <= Math.floor((at.x + reach) / RACK_CELL_M); cx += 1)
+      for (let cz = Math.floor((at.z - reach) / RACK_CELL_M); cz <= Math.floor((at.z + reach) / RACK_CELL_M); cz += 1)
+        for (const r of this.rackGrid.get(`${cx}:${cz}`) || []) {
+          const d = Math.hypot(r.x - at.x, r.z - at.z);
+          if (d <= reach) near.push({ r, d });
+        }
+    near.sort((a, b) => a.d - b.d);
+    for (const { r } of near) for (let i = 0; i < r.slots.length; i += 1) {
+      const key = `${r.id}:${i}`;
+      if (this.rackTaken.has(key)) continue;
+      this.rackTaken.set(key, vehicle.id);
+      return { ...r.slots[i], rack: r.id };
+    }
+    return null;
+  }
   //: Where cars come into the district and leave it: the ends of its streets at the edge of
   //: what has been seen, for each network of streets that hangs together (``byNetwork``).
   get gateways() {
@@ -433,6 +482,14 @@ export class City {
       // A bicycle stands on the pavement by the door (a step out from it, along the wall by
       // whose it is), not at the kerb among the cars.
       const D = place.door || place.front, k = (hash32(vehicle.id) % 7) - 3;
+      // Out on an errand, locked to a rack near the door where one has room (setRacks); at home
+      // it is kept by the door.
+      const slot = placeId !== vehicle.home ? this.rackSlot(vehicle, D || place) : null;
+      if (slot) {
+        spot = { garage: false, gateway: false, rack: true, locked: true, rackId: slot.rack, node: nodeId, x: slot.x, z: slot.z, yaw: slot.yaw, lock: slot.lock, door: { x: slot.x, z: slot.z }, place: placeId };
+        this.spots.set(key, spot);
+        return spot;
+      }
       const at = D && D.nx !== undefined ? { x: D.x - D.nx * 0.9 + D.nz * (0.9 + k * 0.55), z: D.z - D.nz * 0.9 - D.nx * (0.9 + k * 0.55), yaw: Math.atan2(D.nz, -D.nx) } : { x: place.x + k * 0.5, z: place.z, yaw: 0 };
       spot = { garage: false, gateway: false, rack: true, node: nodeId, x: at.x, z: at.z, yaw: at.yaw, door: { x: at.x, z: at.z }, place: placeId };
       this.spots.set(key, spot);
@@ -604,7 +661,8 @@ export class City {
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
     leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
-      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : null, endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : null };
+      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : a.locked ? { x: a.x, z: a.z, yaw: a.yaw, lock: a.lock } : null,
+      endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : b.locked ? { x: b.x, z: b.z, yaw: b.yaw, lock: b.lock } : null };
     return leg.route;
   }
   // -- days --------------------------------------------------------------------------------------
@@ -632,9 +690,13 @@ export class City {
     // ones -- not work, school or the school run -- are kept by the rules' share, so the streets
     // carry about what they did; rules.json routine.task_keep.)
     const keep = R.routine.task_keep ?? 0.5, must = /^school_/;
-    const sched = R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
+    const sched = (R.routine.planner === "legacy" ? daySchedule(R, p, t.day, t.weekday, this.roster.list)
       : dayPlan(R, p, t.day, t.weekday, this.roster.list, { household: hh, career: p.career || null })
-        .filter((a) => !a.task || must.test(a.task) || a.place === p.home || a.place === p.work || rng(p.id, t.day, "keep", Math.round(a.start))() < keep);
+        .filter((a) => !a.task || must.test(a.task) || a.place === p.home || a.place === p.work || rng(p.id, t.day, "keep", Math.round(a.start))() < keep)
+    // The day is planned in game minutes (a shift 9 to 5 by the game's clock) and travelled in
+    // real ones (clock.mjs fleetTime): each stop's start and end carried into the fleet's minutes,
+    // the journeys between them as long as they really take.
+    ).map((a) => (t.toFleet ? { ...a, start: t.toFleet(a.start), end: t.toFleet(a.end), gameStart: a.start, gameEnd: a.end } : a));
     // What they go by, further than a walk: their car, or their bicycle.
     const v = p.car ? this.roster.vehicles.get(p.car) : p.bike ? this.roster.vehicles.get(p.bike) : null;
     const farM = v?.bike ? BIKE_MIN_M : DRIVE_MIN_M, vMs = v?.bike ? BIKE_MS : DRIVE_MS;
@@ -677,9 +739,22 @@ export class City {
         // Away in time to be there by its start (the day's milestone), not as soon as the last
         // thing is done: until then they are where they were.
         const need = tripMinutes(dist(prev.place, a.place), rides ? vMs : p.pace) + 2;
-        const depart = Math.max(prev.end, clock, Math.min(a.start - need, prev.end + 600));
+        // On the game's clock a walk takes game hours: where the next stop wants them sooner than
+        // this one ends, they leave this one early (never before it began) to be there on time.
+        // (The time they have been there, as far back as they have been: asleep and then up at
+        // home are both home.)
+        let floor = clock;
+        for (let i = segs.length - 1; i >= 0 && segs[i].kind === "stay" && segs[i].place === prev.place; i -= 1) floor = segs[i].t0;
+        const earliest = t.toFleet ? Math.max(floor, Math.min(Math.max(prev.end, clock), a.start - need)) : Math.max(prev.end, clock);
+        const depart = Math.max(earliest, Math.min(a.start - need, prev.end + 600));
         const last = segs[segs.length - 1];
         if (depart > Math.max(prev.end, clock) && last && last.kind === "stay" && last.place === prev.place && last.t1 < depart) last.t1 = depart;
+        if (depart < clock) {
+          while (segs.length && segs[segs.length - 1].kind === "stay" && segs[segs.length - 1].place === prev.place && segs[segs.length - 1].t0 >= depart) segs.pop();
+          const l = segs[segs.length - 1];
+          if (l && l.kind === "stay" && l.place === prev.place && l.t1 > depart) l.t1 = depart;
+          clock = depart;
+        }
         if (rides && carFree(depart)) go(prev.place, a.place, depart, "drive");
         else if (v && a.place === p.home && carAt !== p.home && carAt !== null && carFree(depart)) {
           // Home by way of the car, wherever it was left.
@@ -735,10 +810,13 @@ export class City {
   roomIn(place, day, t0, t1, who) {
     const list = this.shopBook(place.id, day), cap = shopCapacity(place);
     if (City.mostAtOnce(list, t0, t1) >= cap) return -1;
-    const n = Math.max(cap, shopLanes(place.inside)), used = new Set();
+    const used = new Set();
     for (const b of list) if (b.q === undefined && b.t0 < t1 && b.t1 > t0) used.add(b.lane);
-    const free = [];
-    for (let k = 0; k < n; k += 1) if (!used.has(k)) free.push(k);
+    // A place on the drawn floor while there is one (shopSeen); after that, further in among
+    // the aisles, where nobody is drawn.
+    const seen = shopSeen(place), front = [], back = [];
+    for (let k = 0; k < cap; k += 1) if (!used.has(k)) (k < seen ? front : back).push(k);
+    const free = front.length ? front : back;
     return free.length ? free[hash32(who, place.id, Math.round(t0)) % free.length] : -1;
   }
   //: A place in the line at the door over [t0, t1), or -1.
@@ -1038,11 +1116,14 @@ export class City {
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
     for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
     trips.sort((a, b) => a.at - b.at);
+    // (Planned in game minutes, driven in real ones: clock.mjs fleetTime.)
+    const F = t.toFleet || ((m) => m);
+    if (t.toFleet) for (const tr of trips) { const at = tr.at; tr.at = F(at); tr.dwell = F(at + tr.dwell) - tr.at; }
     const node = (id) => this.streets.nodes[id];
     let clock = 0;
     for (const trip of trips) {
       const depart = Math.max(trip.at, clock + 5);
-      if (depart > 1430) break;
+      if (depart > F(1430)) break;
       const A = node(trip.g1);
       if (trip.visit && trip.brief) {
         // A fare picked up or dropped, a parcel handed over: a few minutes at the kerb.
@@ -1115,6 +1196,34 @@ export class City {
     this.wallFixes ??= {};
     return this._footprints;
   }
+  //: The pavement's line beside a stretch of street, on one side of it (pavementRoute's
+  //: ``offset``): midway between the kerb and the nearest front along that side (people.mjs
+  //: paveOffset). The fronts are found by stepping out from the kerb at points along the
+  //: stretch -- clear of its ends, where the cross street's own corner buildings stand -- and
+  //: the nearest of them sets the line for the whole stretch, so it stays straight. Kept by
+  //: stretch and side: a block is walked by thousands.
+  walkOffset(half, where) {
+    if (!half || !where || !(where.len > 0)) return paveOffset(half);
+    const key = `${Math.round(where.x)}:${Math.round(where.z)}:${Math.round(where.ux * 16)}:${Math.round(where.uz * 16)}:${Math.round(where.len)}:${where.side}:${Math.round(half * 4)}`;
+    const F = this.footprints();
+    if (this._walkOffsets?.for !== F) this._walkOffsets = { for: F, map: new Map() };
+    const kept = this._walkOffsets.map.get(key);
+    if (kept !== undefined) return kept;
+    const nx = -where.uz * where.side, nz = where.ux * where.side;
+    const ends = Math.min(FRONT_SCAN.ends_m, where.len * 0.25), span = where.len - 2 * ends;
+    const n = Math.max(1, Math.min(FRONT_SCAN.most, Math.ceil(span / FRONT_SCAN.every_m)));
+    let gap = Infinity;
+    for (let k = 0; k < n; k += 1) {
+      const t = ends + span * (k + 0.5) / n, x = where.x + where.ux * t, z = where.z + where.uz * t;
+      for (let d = FRONT_SCAN.step_m; d <= 2 * PAVE_M + FRONT_SCAN.step_m && d < gap; d += FRONT_SCAN.step_m) {
+        if (this.footprintAt(x + nx * (half + d), z + nz * (half + d))) { gap = d - FRONT_SCAN.step_m / 2; break; }
+      }
+    }
+    const o = paveOffset(half, gap);
+    this._walkOffsets.map.set(key, o);
+    if (gap < Infinity) { this.wallFixes ??= {}; this.wallFixes.narrowed = (this.wallFixes.narrowed || 0) + 1; }
+    return o;
+  }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
     const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
@@ -1151,7 +1260,7 @@ export class City {
       // On the pavement, over the streets at the crosswalks (pavementRoute), as far along as
       // the waits at the kerb have left them (walkLags: held there, then a quicker step after).
       const a0 = this.anchor(seg.from, seg.fromXZ), a1 = this.anchor(seg.to, seg.toXZ);
-      if (seg.pave === undefined) seg.pave = pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1 });
+      if (seg.pave === undefined) seg.pave = pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
       const pave = seg.pave, L = pave.length, pace = L / Math.max(1, (seg.t1 - seg.t0) * 60);
       const key = `${p.id}:${seg.t0}`, lag = this.walkLags.get(key)?.lag || 0, d = Math.max(0, f * L - lag * pace);
       const off = (a, q) => (a && q ? Math.hypot(a.x - q[0], a.z - q[1]) : 0);
@@ -1190,8 +1299,9 @@ export class City {
     }
     if (place.inside && focus && Math.hypot(place.x - focus.x, place.z - focus.z) < INDOOR_REACH_M) {
       const lane = seg.lane !== undefined ? { k: seg.lane } : a.kind === "work" && COUNTER_ROLES.has(p.role) ? this.staffLane(place, p) : null;
-      // (More staff on than the counter has lanes for: the rest are in the back, not seen.)
-      if (lane?.back) return null;
+      // (More staff on than the counter has lanes for: the rest are in the back, not seen; and
+      // the customers beyond the drawn floor's places are further in, among the aisles.)
+      if (lane?.back || (seg.lane !== undefined && seg.lane >= shopSeen(place))) return null;
       return indoorSpot(p, a, place, t, lane);
     }
     return null;
@@ -1382,7 +1492,7 @@ export class City {
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1 });
+      if (r0 && !drive) r0.pave = pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }
@@ -1451,7 +1561,7 @@ export class City {
     if (!spot) return { state: "away", hidden: true };
     if (spot.gateway) return { state: "away", hidden: true, last };
     if (spot.garage) return { state: "garage", hidden: true, spot };
-    return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot };
+    return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot, lock: spot.lock || null };
   }
   //: Where along its leg a car is at fraction ``f`` of it, in its lane.
   onLeg(leg, d) {

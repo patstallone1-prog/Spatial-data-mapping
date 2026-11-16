@@ -551,5 +551,48 @@
       "label": "SIM \u2014 trust every pixel",
       "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
     }
-  }
+  },
+  "rotation": [
+    {
+      "image": "billboards/animal-brawl.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Animal Brawl \u2014 draft the wild, own the arena",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "sha256": "cb11c169c189ec53dae6ef8ab4bb5424bc99e18920564de524d46fd7ff574c9c"
+    },
+    {
+      "image": "billboards/sim-trust-every-pixel.webp",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "SIM \u2014 trust every pixel",
+      "focus": [
+        0.18,
+        0.42
+      ],
+      "sha256": "5567652ab5a85b4da13446d4c712bf1036558fa786ea0a38892b1838b08c1b7c"
+    },
+    {
+      "image": "billboards/dylumio.webp",
+      "href": "https://dylumio.com",
+      "license": "project-owned",
+      "attribution": "Kerbside",
+      "approved": true,
+      "fit": "contain",
+      "label": "Dylumio \u2014 a learning experience tailored to you",
+      "focus": [
+        0.22,
+        0.45
+      ],
+      "sha256": "498ac4191a9af3815cd97b591339cd5179d4669b34c8d078a70cfb61fbd663c5"
+    }
+  ],
+  "rotation_basis": "every mapped advertising face without its own entry in boards (the city's permitted signs, shelters' light boxes, kiosks and poster panels) wears one of these, by a hash of its id; focus is where each picture's name and message are, kept in view on a face of another shape"
 }

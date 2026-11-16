@@ -234,7 +234,11 @@ function updateCompass(now) {
   compassReading.textContent = `${COMPASS_POINTS[Math.round(heading / 45) % 8]} ${heading}°`;
 }
 
-// ---- the compass box: turn the walker, move the sun ------------------------------------------
+// ---- the compass box: turn the walker, move the sun (Explore) ---------------------------------
+//
+// In City mode the compass is a reading, not a control: the game keeps its own time there -- a
+// day in 72 real minutes, 48 of daylight and 24 of night (docs/city/clock.mjs, 2026-11-14) -- and
+// it is not set by hand. In Explore the sky is San Francisco's own, live, and this box stays.
 //
 // Click the compass: a larger rose opens with the walker's heading on its red needle -- drag the
 // needle (or use the arrow keys) and the walker turns to face that way. Under it, the day's sun
@@ -295,7 +299,9 @@ if (sunDialBox) {
   svg.style.cursor = "pointer";
   svg.setAttribute("role", "button");
   svg.setAttribute("aria-label", "Open heading and sun");
-  svg.addEventListener("click", () => toggleSunDial());
+  // Explore only: in the city the game keeps its own time (docs/city/clock.mjs) and the compass
+  // is a reading. compassForMode (below) turns the click off there.
+  svg.addEventListener("click", () => { if (!compassIsReadingOnly()) toggleSunDial(); });
   sunDialBox.querySelector("#sun-dial-close").addEventListener("click", () => toggleSunDial(false));
   sunDialBox.querySelector("#sun-dial-live").addEventListener("click", () => resetSkyToLive());
   sunDialBox.querySelector("#sun-dial-back").addEventListener("click", () => stepSunDay(-1));
@@ -426,6 +432,24 @@ function drawSunDial() {
   sunDialBox.querySelector("#sun-dial-time").textContent = `${SF_TIME.format(date)}${sunDial.date ? "" : " · live"}${night ? " · night" : ""}`;
 }
 
+//: City mode: the compass only reads (no click, the box closed, any hour set by hand let go) and
+//: the sky runs on the game's clock. Explore: the compass opens the box, the sky is live.
+function compassIsReadingOnly() { return typeof appMode !== "undefined" && appMode === "city"; }
+function compassForMode(mode) {
+  const city = mode === "city";
+  const svg = compass?.querySelector("svg");
+  if (svg) {
+    svg.style.cursor = city ? "default" : "pointer";
+    svg.style.pointerEvents = city ? "none" : "auto";
+    if (city) { svg.removeAttribute("role"); svg.removeAttribute("aria-label"); }
+    else { svg.setAttribute("role", "button"); svg.setAttribute("aria-label", "Open heading and sun"); }
+  }
+  if (city) {
+    if (sunDial.open) toggleSunDial(false);
+    if (sunDial.date) resetSkyToLive();
+  }
+  environmentController?.setClock?.(city ? "game" : "live");
+}
 // ---- solid buildings, doors that open, and the rooms behind them ------------------------------
 //
 // A building is solid: the walker is a circle WALKER_RADIUS_M across its feet and is held off

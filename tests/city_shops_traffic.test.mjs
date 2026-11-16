@@ -115,12 +115,17 @@ test("a bus is boarded from the kerb side and left onto the pavement", () => {
 test("people are of many heights and builds, from their ids, and walk with a step", () => {
   // From the normal curve (city_npc.test.mjs measures the averages and the spread).
   assert.ok(VIEW.includes("height = adultHeight(female, g);") && VIEW.includes("g = normalDraw(r);"));
-  assert.ok(VIEW.includes("parts.hair.setColorAt(n,"), "hair");
-  assert.ok(VIEW.includes('legL: mk(legGeo, MAX_PEOPLE, { vertexColors: true })'), "shoes by vertex colour, no extra part");
+  assert.ok(VIEW.includes("dressAt(parts.hair, n, body.hair, null, HAIR_CUT[o.hair]);"), "hair cut to its length");
+  assert.ok(VIEW.includes("legL: mkTone(legGeo, MAX_PEOPLE)"), "shoes and bare legs by the part's own colours, no extra part");
 });
 
-test("the compass's open box opens under the compass, never over the profile card", () => {
+test("the compass is a reading in the city (the game keeps its own time) and opens the sun box in Explore", () => {
   const pins = readFileSync(new URL("../src/smc/renderer/page/module/23-pins-1-2-and-3.js", import.meta.url), "utf8");
-  assert.ok(pins.includes("if (open) placeSunDial();") && pins.includes("sunDialBox.style.top = `${top}px`;"));
-  assert.ok(VIEW.includes('const dial = doc.getElementById("sun-dial");') && VIEW.includes("dial.style.top = `${Math.round(C.bottom + 8)}px`;"));
+  assert.ok(pins.includes('svg.addEventListener("click", () => { if (!compassIsReadingOnly()) toggleSunDial(); });'));
+  assert.ok(pins.includes('environmentController?.setClock?.(city ? "game" : "live");') && pins.includes('svg.style.pointerEvents = city ? "none" : "auto";'));
+  const living = readFileSync(new URL("../src/smc/renderer/page/module/30-the-living-city.js", import.meta.url), "utf8");
+  assert.ok(living.includes('if (typeof compassForMode === "function") compassForMode(appMode);'));
+  const sky = readFileSync(new URL("../docs/environment-runtime.mjs", import.meta.url), "utf8");
+  assert.ok(sky.includes("clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date()"));
+  assert.ok(!VIEW.includes('getElementById("sun-dial")'));
 });
