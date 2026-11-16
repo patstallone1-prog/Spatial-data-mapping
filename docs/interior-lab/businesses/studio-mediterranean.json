@@ -1,0 +1,3131 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-mediterranean",
+  "name": "Mediterranean",
+  "kind": "mediterranean",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": [
+      {
+        "edge": 0,
+        "u": 1,
+        "v": 0.9,
+        "w": 2,
+        "h": 1.5
+      },
+      {
+        "edge": 0,
+        "u": 9,
+        "v": 0.9,
+        "w": 2,
+        "h": 1.5
+      }
+    ]
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-mediterranean:public",
+          "kind": "dining",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 155.51999999999998,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-mediterranean:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-mediterranean:toilet",
+          "kind": "professional_kitchen",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  12,
+                  12.96
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 49.89599999999999,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                5.5925,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-mediterranean:public",
+            "studio-mediterranean:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4075,
+                12.959999999999999
+              ],
+              [
+                12,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-mediterranean:public",
+            "studio-mediterranean:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-mediterranean:service",
+            "studio-mediterranean:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-mediterranean:service",
+            "studio-mediterranean:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-mediterranean:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-mediterranean:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-mediterranean:service:door",
+          "rooms": [
+            "studio-mediterranean:public",
+            "studio-mediterranean:toilet"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.5925,
+                12.959999999999999
+              ],
+              [
+                6.4075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "swing_into": "studio-mediterranean:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.5925,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-mediterranean:toilet:door",
+          "rooms": [
+            "studio-mediterranean:service",
+            "studio-mediterranean:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-mediterranean:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-mediterranean:item:0",
+          "role": "dining_table",
+          "position_m": [
+            2,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.4,
+            0.4666666666666666,
+            1.4
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-table_round_a",
+            "role": "dining_table",
+            "model": "business-lowpoly/kay-table_round_a.glb",
+            "dimensions_m": [
+              1.4,
+              0.4666666666666666,
+              1.4
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.3,
+                  5.779999999999999
+                ],
+                [
+                  2.7,
+                  5.779999999999999
+                ],
+                [
+                  2.7,
+                  7.18
+                ],
+                [
+                  1.3,
+                  7.18
+                ],
+                [
+                  1.3,
+                  5.779999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:1",
+          "role": "dining_chair",
+          "position_m": [
+            3.1330798220783156,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.446159644156631,
+                  6.185096492991116
+                ],
+                [
+                  3.446159644156631,
+                  6.774903507008883
+                ],
+                [
+                  2.8200000000000003,
+                  6.774903507008883
+                ],
+                [
+                  2.8200000000000003,
+                  6.185096492991116
+                ],
+                [
+                  3.446159644156631,
+                  6.185096492991116
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:2",
+          "role": "dining_chair",
+          "position_m": [
+            0.8669201779216844,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": -90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.5538403558433689,
+                  6.774903507008883
+                ],
+                [
+                  0.5538403558433689,
+                  6.185096492991116
+                ],
+                [
+                  1.18,
+                  6.185096492991116
+                ],
+                [
+                  1.18,
+                  6.774903507008883
+                ],
+                [
+                  0.5538403558433689,
+                  6.774903507008883
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:3",
+          "role": "dining_chair",
+          "position_m": [
+            2,
+            0,
+            7.613079822078316
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.705096492991116,
+                  7.3
+                ],
+                [
+                  2.294903507008884,
+                  7.3
+                ],
+                [
+                  2.294903507008884,
+                  7.926159644156631
+                ],
+                [
+                  1.705096492991116,
+                  7.926159644156631
+                ],
+                [
+                  1.705096492991116,
+                  7.3
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:4",
+          "role": "dining_chair",
+          "position_m": [
+            2,
+            0,
+            5.3469201779216835
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 180,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.294903507008884,
+                  5.659999999999999
+                ],
+                [
+                  1.705096492991116,
+                  5.659999999999999
+                ],
+                [
+                  1.705096492991116,
+                  5.033840355843368
+                ],
+                [
+                  2.294903507008884,
+                  5.033840355843368
+                ],
+                [
+                  2.294903507008884,
+                  5.659999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:5",
+          "role": "dining_table",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.4,
+            0.4666666666666666,
+            1.4
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-table_round_a",
+            "role": "dining_table",
+            "model": "business-lowpoly/kay-table_round_a.glb",
+            "dimensions_m": [
+              1.4,
+              0.4666666666666666,
+              1.4
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.3,
+                  5.779999999999999
+                ],
+                [
+                  6.7,
+                  5.779999999999999
+                ],
+                [
+                  6.7,
+                  7.18
+                ],
+                [
+                  5.3,
+                  7.18
+                ],
+                [
+                  5.3,
+                  5.779999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:6",
+          "role": "dining_chair",
+          "position_m": [
+            7.133079822078315,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.446159644156631,
+                  6.185096492991116
+                ],
+                [
+                  7.446159644156631,
+                  6.774903507008883
+                ],
+                [
+                  6.819999999999999,
+                  6.774903507008883
+                ],
+                [
+                  6.819999999999999,
+                  6.185096492991116
+                ],
+                [
+                  7.446159644156631,
+                  6.185096492991116
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:7",
+          "role": "dining_chair",
+          "position_m": [
+            4.866920177921685,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": -90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.553840355843369,
+                  6.774903507008883
+                ],
+                [
+                  4.553840355843369,
+                  6.185096492991116
+                ],
+                [
+                  5.180000000000001,
+                  6.185096492991116
+                ],
+                [
+                  5.180000000000001,
+                  6.774903507008883
+                ],
+                [
+                  4.553840355843369,
+                  6.774903507008883
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:8",
+          "role": "dining_chair",
+          "position_m": [
+            6,
+            0,
+            7.613079822078316
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.705096492991116,
+                  7.3
+                ],
+                [
+                  6.294903507008884,
+                  7.3
+                ],
+                [
+                  6.294903507008884,
+                  7.926159644156631
+                ],
+                [
+                  5.705096492991116,
+                  7.926159644156631
+                ],
+                [
+                  5.705096492991116,
+                  7.3
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:9",
+          "role": "dining_chair",
+          "position_m": [
+            6,
+            0,
+            5.3469201779216835
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 180,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.294903507008884,
+                  5.659999999999999
+                ],
+                [
+                  5.705096492991116,
+                  5.659999999999999
+                ],
+                [
+                  5.705096492991116,
+                  5.033840355843368
+                ],
+                [
+                  6.294903507008884,
+                  5.033840355843368
+                ],
+                [
+                  6.294903507008884,
+                  5.659999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:10",
+          "role": "dining_table",
+          "position_m": [
+            10,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.4,
+            0.4666666666666666,
+            1.4
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-table_round_a",
+            "role": "dining_table",
+            "model": "business-lowpoly/kay-table_round_a.glb",
+            "dimensions_m": [
+              1.4,
+              0.4666666666666666,
+              1.4
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.3,
+                  5.779999999999999
+                ],
+                [
+                  10.7,
+                  5.779999999999999
+                ],
+                [
+                  10.7,
+                  7.18
+                ],
+                [
+                  9.3,
+                  7.18
+                ],
+                [
+                  9.3,
+                  5.779999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:11",
+          "role": "dining_chair",
+          "position_m": [
+            11.133079822078315,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  11.44615964415663,
+                  6.185096492991116
+                ],
+                [
+                  11.44615964415663,
+                  6.774903507008883
+                ],
+                [
+                  10.82,
+                  6.774903507008883
+                ],
+                [
+                  10.82,
+                  6.185096492991116
+                ],
+                [
+                  11.44615964415663,
+                  6.185096492991116
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:12",
+          "role": "dining_chair",
+          "position_m": [
+            8.866920177921685,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": -90,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  8.55384035584337,
+                  6.774903507008883
+                ],
+                [
+                  8.55384035584337,
+                  6.185096492991116
+                ],
+                [
+                  9.18,
+                  6.185096492991116
+                ],
+                [
+                  9.18,
+                  6.774903507008883
+                ],
+                [
+                  8.55384035584337,
+                  6.774903507008883
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:13",
+          "role": "dining_chair",
+          "position_m": [
+            10,
+            0,
+            7.613079822078316
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.705096492991116,
+                  7.3
+                ],
+                [
+                  10.294903507008884,
+                  7.3
+                ],
+                [
+                  10.294903507008884,
+                  7.926159644156631
+                ],
+                [
+                  9.705096492991116,
+                  7.926159644156631
+                ],
+                [
+                  9.705096492991116,
+                  7.3
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:14",
+          "role": "dining_chair",
+          "position_m": [
+            10,
+            0,
+            5.3469201779216835
+          ],
+          "size_m": [
+            0.5898070140177678,
+            0.95,
+            0.6261596441566311
+          ],
+          "rotation_deg": 180,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-chair_a",
+            "role": "dining_chair",
+            "model": "business-lowpoly/kay-chair_a.glb",
+            "dimensions_m": [
+              0.5898070140177678,
+              0.95,
+              0.6261596441566311
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  10.294903507008884,
+                  5.659999999999999
+                ],
+                [
+                  9.705096492991116,
+                  5.659999999999999
+                ],
+                [
+                  9.705096492991116,
+                  5.033840355843368
+                ],
+                [
+                  10.294903507008884,
+                  5.033840355843368
+                ],
+                [
+                  10.294903507008884,
+                  5.659999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:15",
+          "role": "booth",
+          "position_m": [
+            7.758921197972752,
+            0,
+            0.32946430538609917
+          ],
+          "size_m": [
+            1.8,
+            0.6428571496995128,
+            0.6589286107721983
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-loungedesignsofa",
+            "role": "booth",
+            "model": "business-lowpoly/kenney-loungedesignsofa.glb",
+            "dimensions_m": [
+              1.8,
+              0.6428571496995128,
+              0.6589286107721983
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.858921197972752,
+                  0
+                ],
+                [
+                  8.658921197972752,
+                  0
+                ],
+                [
+                  8.658921197972752,
+                  0.6589286107721983
+                ],
+                [
+                  6.858921197972752,
+                  0.6589286107721983
+                ],
+                [
+                  6.858921197972752,
+                  0
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:16",
+          "role": "service_counter",
+          "position_m": [
+            4.802998889711173,
+            0,
+            5.354585378037401
+          ],
+          "size_m": [
+            1.5,
+            1.4651162089561383,
+            0.7325581044780691
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-kitchenbar",
+            "role": "service_counter",
+            "model": "business-lowpoly/kenney-kitchenbar.glb",
+            "dimensions_m": [
+              1.5,
+              1.4651162089561383,
+              0.7325581044780691
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.052998889711173,
+                  4.988306325798366
+                ],
+                [
+                  5.552998889711173,
+                  4.988306325798366
+                ],
+                [
+                  5.552998889711173,
+                  5.7208644302764355
+                ],
+                [
+                  4.052998889711173,
+                  5.7208644302764355
+                ],
+                [
+                  4.052998889711173,
+                  4.988306325798366
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:17",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:18",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:19",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:20",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:21",
+          "role": "prep_station",
+          "position_m": [
+            7.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            1.7999999999999998,
+            1.1567827463150022,
+            1.2
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchentable_a_large_decorated",
+            "role": "prep_station",
+            "model": "business-lowpoly/kay-kitchentable_a_large_decorated.glb",
+            "dimensions_m": [
+              1.7999999999999998,
+              1.1567827463150022,
+              1.2
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.15,
+                  14.88
+                ],
+                [
+                  7.949999999999999,
+                  14.88
+                ],
+                [
+                  7.949999999999999,
+                  16.080000000000002
+                ],
+                [
+                  6.15,
+                  16.080000000000002
+                ],
+                [
+                  6.15,
+                  14.88
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:22",
+          "role": "commercial_range",
+          "position_m": [
+            7.025917939462093,
+            0,
+            16.71
+          ],
+          "size_m": [
+            0.8518358789241853,
+            0.8603468166769416,
+            1
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-oven",
+            "role": "commercial_range",
+            "model": "business-lowpoly/kay-oven.glb",
+            "dimensions_m": [
+              0.8518358789241853,
+              0.8603468166769416,
+              1
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.6,
+                  16.21
+                ],
+                [
+                  7.451835878924186,
+                  16.21
+                ],
+                [
+                  7.451835878924186,
+                  17.21
+                ],
+                [
+                  6.6,
+                  17.21
+                ],
+                [
+                  6.6,
+                  16.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:23",
+          "role": "commercial_fridge",
+          "position_m": [
+            5.359999764442517,
+            0,
+            15.561212106567446
+          ],
+          "size_m": [
+            1.5199995288850339,
+            1.9,
+            1.7024242131348903
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-fridge_a",
+            "role": "commercial_fridge",
+            "model": "business-lowpoly/kay-fridge_a.glb",
+            "dimensions_m": [
+              1.5199995288850339,
+              1.9,
+              1.7024242131348903
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.6,
+                  14.71
+                ],
+                [
+                  6.1199995288850335,
+                  14.71
+                ],
+                [
+                  6.1199995288850335,
+                  16.41242421313489
+                ],
+                [
+                  4.6,
+                  16.41242421313489
+                ],
+                [
+                  4.6,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:24",
+          "role": "warewash_sink",
+          "position_m": [
+            7.5,
+            0,
+            13.860000000000001
+          ],
+          "size_m": [
+            1.8,
+            1.6248400568962098,
+            1.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchentable_sink",
+            "role": "warewash_sink",
+            "model": "business-lowpoly/kay-kitchentable_sink.glb",
+            "dimensions_m": [
+              1.8,
+              1.6248400568962098,
+              1.8
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.6,
+                  12.96
+                ],
+                [
+                  8.4,
+                  12.96
+                ],
+                [
+                  8.4,
+                  14.760000000000002
+                ],
+                [
+                  6.6,
+                  14.760000000000002
+                ],
+                [
+                  6.6,
+                  12.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:25",
+          "role": "handwash_sink",
+          "position_m": [
+            7.85,
+            0,
+            16.435000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.6,
+                  16.21
+                ],
+                [
+                  8.1,
+                  16.21
+                ],
+                [
+                  8.1,
+                  16.660000000000004
+                ],
+                [
+                  7.6,
+                  16.660000000000004
+                ],
+                [
+                  7.6,
+                  16.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:26",
+          "role": "dishwasher",
+          "position_m": [
+            8.4,
+            0,
+            15.510000000000002
+          ],
+          "size_m": [
+            0.6,
+            0.85,
+            0.6
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:dishwasher",
+            "role": "dishwasher",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  8.1,
+                  15.21
+                ],
+                [
+                  8.700000000000001,
+                  15.21
+                ],
+                [
+                  8.700000000000001,
+                  15.810000000000002
+                ],
+                [
+                  8.1,
+                  15.810000000000002
+                ],
+                [
+                  8.1,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:27",
+          "role": "prep_table",
+          "position_m": [
+            8.5,
+            0,
+            13.860000000000001
+          ],
+          "size_m": [
+            1.8,
+            0.903376579284668,
+            1.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchentable_a",
+            "role": "prep_table",
+            "model": "business-lowpoly/kay-kitchentable_a.glb",
+            "dimensions_m": [
+              1.8,
+              0.903376579284668,
+              1.8
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.6,
+                  12.96
+                ],
+                [
+                  9.4,
+                  12.96
+                ],
+                [
+                  9.4,
+                  14.760000000000002
+                ],
+                [
+                  7.6,
+                  14.760000000000002
+                ],
+                [
+                  7.6,
+                  12.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:28",
+          "role": "dry_storage",
+          "position_m": [
+            5.95,
+            0,
+            14.46
+          ],
+          "size_m": [
+            1.2,
+            1.9,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:dry_storage",
+            "role": "dry_storage",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.3500000000000005,
+                  14.21
+                ],
+                [
+                  6.55,
+                  14.21
+                ],
+                [
+                  6.55,
+                  14.71
+                ],
+                [
+                  5.3500000000000005,
+                  14.71
+                ],
+                [
+                  5.3500000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-mediterranean:item:29",
+          "role": "waste_bin",
+          "position_m": [
+            8.257760574955283,
+            0,
+            16.13783695142898
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-mediterranean:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-mediterranean:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  8.1,
+                  15.960000000000003
+                ],
+                [
+                  8.415521149910566,
+                  15.960000000000003
+                ],
+                [
+                  8.415521149910566,
+                  16.31567390285796
+                ],
+                [
+                  8.1,
+                  16.31567390285796
+                ],
+                [
+                  8.1,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

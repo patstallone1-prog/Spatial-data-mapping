@@ -1,0 +1,2325 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-print_ship",
+  "name": "Print Ship",
+  "kind": "print_ship",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": []
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-print_ship:public",
+          "kind": "office",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.4,
+                  11.52
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 150.336,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-print_ship:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-print_ship:toilet",
+          "kind": "meeting_room",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  8.4,
+                  12.96
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 31.752,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-print_ship:public",
+            "studio-print_ship:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.6075,
+                12.959999999999999
+              ],
+              [
+                8.4,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-print_ship:public",
+            "studio-print_ship:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-print_ship:service",
+            "studio-print_ship:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-print_ship:service",
+            "studio-print_ship:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-print_ship:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-print_ship:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-print_ship:service:door",
+          "rooms": [
+            "studio-print_ship:public",
+            "studio-print_ship:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ],
+              [
+                4.6075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-print_ship:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7925000000000004,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-print_ship:toilet:door",
+          "rooms": [
+            "studio-print_ship:service",
+            "studio-print_ship:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-print_ship:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-print_ship:item:0",
+          "role": "desk",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.4,
+            0.7327277925516358,
+            0.7477717565197195
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-desk",
+            "role": "desk",
+            "model": "business-lowpoly/kenney-desk.glb",
+            "dimensions_m": [
+              1.4,
+              0.7327277925516358,
+              0.7477717565197195
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.3,
+                  6.10611412174014
+                ],
+                [
+                  6.7,
+                  6.10611412174014
+                ],
+                [
+                  6.7,
+                  6.8538858782598595
+                ],
+                [
+                  5.3,
+                  6.8538858782598595
+                ],
+                [
+                  5.3,
+                  6.10611412174014
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:1",
+          "role": "office_chair",
+          "position_m": [
+            5.887478267974357,
+            0,
+            7.117560964656699
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.611844616523161,
+                  6.8589211979727525
+                ],
+                [
+                  6.163111919425553,
+                  6.8589211979727525
+                ],
+                [
+                  6.163111919425553,
+                  7.376200731340645
+                ],
+                [
+                  5.611844616523161,
+                  7.376200731340645
+                ],
+                [
+                  5.611844616523161,
+                  6.8589211979727525
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:2",
+          "role": "bookshelf",
+          "position_m": [
+            6.035374052418469,
+            0,
+            5.564781364650906
+          ],
+          "size_m": [
+            0.8470588717906141,
+            1.8000000000000003,
+            0.5294117869802835
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-bookcaseclosed",
+            "role": "bookshelf",
+            "model": "business-lowpoly/kenney-bookcaseclosed.glb",
+            "dimensions_m": [
+              0.8470588717906141,
+              1.8000000000000003,
+              0.5294117869802835
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ],
+                [
+                  6.4589034883137755,
+                  5.300075471160764
+                ],
+                [
+                  6.4589034883137755,
+                  5.8294872581410475
+                ],
+                [
+                  5.611844616523162,
+                  5.8294872581410475
+                ],
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:3",
+          "role": "meeting_table",
+          "position_m": [
+            5.876537180435967,
+            0,
+            8.032459488697548
+          ],
+          "size_m": [
+            2.4,
+            0.75,
+            1.1
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:meeting_table",
+            "role": "meeting_table",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.676537180435967,
+                  7.482459488697548
+                ],
+                [
+                  7.076537180435968,
+                  7.482459488697548
+                ],
+                [
+                  7.076537180435968,
+                  8.582459488697548
+                ],
+                [
+                  4.676537180435967,
+                  8.582459488697548
+                ],
+                [
+                  4.676537180435967,
+                  7.482459488697548
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:4",
+          "role": "office_chair",
+          "position_m": [
+            7.455176947119913,
+            0,
+            8.032459488697548
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 90,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.713816713803859,
+                  7.756825837246351
+                ],
+                [
+                  7.713816713803859,
+                  8.308093140148744
+                ],
+                [
+                  7.196537180435967,
+                  8.308093140148744
+                ],
+                [
+                  7.196537180435967,
+                  7.756825837246351
+                ],
+                [
+                  7.713816713803859,
+                  7.756825837246351
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:5",
+          "role": "office_chair",
+          "position_m": [
+            4.297897413752022,
+            0,
+            8.032459488697548
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": -90,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.039257647068076,
+                  8.308093140148744
+                ],
+                [
+                  4.039257647068076,
+                  7.756825837246351
+                ],
+                [
+                  4.556537180435968,
+                  7.756825837246351
+                ],
+                [
+                  4.556537180435968,
+                  8.308093140148744
+                ],
+                [
+                  4.039257647068076,
+                  8.308093140148744
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:6",
+          "role": "office_chair",
+          "position_m": [
+            5.876537180435967,
+            0,
+            8.961099255381495
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.600903528984771,
+                  8.70245948869755
+                ],
+                [
+                  6.1521708318871635,
+                  8.70245948869755
+                ],
+                [
+                  6.1521708318871635,
+                  9.21973902206544
+                ],
+                [
+                  5.600903528984771,
+                  9.21973902206544
+                ],
+                [
+                  5.600903528984771,
+                  8.70245948869755
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:7",
+          "role": "reception_desk",
+          "position_m": [
+            7.347152052610355,
+            0,
+            5.650075471160764
+          ],
+          "size_m": [
+            1.6,
+            1.05,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "role": "reception_desk",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.547152052610355,
+                  5.300075471160764
+                ],
+                [
+                  8.147152052610355,
+                  5.300075471160764
+                ],
+                [
+                  8.147152052610355,
+                  6.000075471160764
+                ],
+                [
+                  6.547152052610355,
+                  6.000075471160764
+                ],
+                [
+                  6.547152052610355,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:8",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:9",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:10",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:11",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:12",
+          "role": "meeting_table",
+          "position_m": [
+            5.25,
+            0,
+            15.48
+          ],
+          "size_m": [
+            2.4,
+            0.75,
+            1.1
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:meeting_table",
+            "role": "meeting_table",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.05,
+                  14.93
+                ],
+                [
+                  6.45,
+                  14.93
+                ],
+                [
+                  6.45,
+                  16.03
+                ],
+                [
+                  4.05,
+                  16.03
+                ],
+                [
+                  4.05,
+                  14.93
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:13",
+          "role": "office_chair",
+          "position_m": [
+            6.828639766683946,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 90,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.087279533367892,
+                  15.204366348548804
+                ],
+                [
+                  7.087279533367892,
+                  15.755633651451197
+                ],
+                [
+                  6.569999999999999,
+                  15.755633651451197
+                ],
+                [
+                  6.569999999999999,
+                  15.204366348548804
+                ],
+                [
+                  7.087279533367892,
+                  15.204366348548804
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:14",
+          "role": "office_chair",
+          "position_m": [
+            3.671360233316054,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": -90,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.412720466632108,
+                  15.755633651451197
+                ],
+                [
+                  3.412720466632108,
+                  15.204366348548804
+                ],
+                [
+                  3.93,
+                  15.204366348548804
+                ],
+                [
+                  3.93,
+                  15.755633651451197
+                ],
+                [
+                  3.412720466632108,
+                  15.755633651451197
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:15",
+          "role": "office_chair",
+          "position_m": [
+            5.25,
+            0,
+            16.408639766683947
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.974366348548804,
+                  16.150000000000002
+                ],
+                [
+                  5.525633651451196,
+                  16.150000000000002
+                ],
+                [
+                  5.525633651451196,
+                  16.667279533367893
+                ],
+                [
+                  4.974366348548804,
+                  16.667279533367893
+                ],
+                [
+                  4.974366348548804,
+                  16.150000000000002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:16",
+          "role": "office_chair",
+          "position_m": [
+            5.25,
+            0,
+            14.551360233316053
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 180,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.525633651451196,
+                  14.809999999999999
+                ],
+                [
+                  4.974366348548804,
+                  14.809999999999999
+                ],
+                [
+                  4.974366348548804,
+                  14.292720466632108
+                ],
+                [
+                  5.525633651451196,
+                  14.292720466632108
+                ],
+                [
+                  5.525633651451196,
+                  14.809999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:17",
+          "role": "office_chair",
+          "position_m": [
+            4.625633651451196,
+            0,
+            16.468639766683946
+          ],
+          "size_m": [
+            0.551267302902392,
+            1,
+            0.5172795333678921
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-chairdesk",
+            "role": "office_chair",
+            "model": "business-lowpoly/kenney-chairdesk.glb",
+            "dimensions_m": [
+              0.551267302902392,
+              1,
+              0.5172795333678921
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.35,
+                  16.21
+                ],
+                [
+                  4.901267302902392,
+                  16.21
+                ],
+                [
+                  4.901267302902392,
+                  16.72727953336789
+                ],
+                [
+                  4.35,
+                  16.72727953336789
+                ],
+                [
+                  4.35,
+                  16.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-print_ship:item:18",
+          "role": "bookshelf",
+          "position_m": [
+            4.523529435895307,
+            0,
+            14.474705893490142
+          ],
+          "size_m": [
+            0.8470588717906141,
+            1.8000000000000003,
+            0.5294117869802835
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-print_ship:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-print_ship:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-bookcaseclosed",
+            "role": "bookshelf",
+            "model": "business-lowpoly/kenney-bookcaseclosed.glb",
+            "dimensions_m": [
+              0.8470588717906141,
+              1.8000000000000003,
+              0.5294117869802835
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.1000000000000005,
+                  14.21
+                ],
+                [
+                  4.947058871790614,
+                  14.21
+                ],
+                [
+                  4.947058871790614,
+                  14.739411786980284
+                ],
+                [
+                  4.1000000000000005,
+                  14.739411786980284
+                ],
+                [
+                  4.1000000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

@@ -1,6 +1,6 @@
 # Interior Studio design rules
 
-This is a game editor for inferred interiors, not a building permit or an as-built survey. Source footprints, elevations, windows, exterior doors, stairs, slab openings, measured elements, and marked structural or shared walls stay fixed. Unverified fitted partitions are editable game geometry; their editability does not establish that a real wall is safe to remove.
+This is a game editor for inferred interiors, not a building permit or an as-built survey. Source footprints, elevations, unverified house windows, exterior doors, stairs, slab openings, measured elements, and marked structural or shared walls stay fixed. Unverified fitted partitions are editable game geometry; their editability does not establish that a real wall is safe to remove.
 
 ## Spatial checks
 
@@ -18,6 +18,11 @@ The [2010 ADA Standards](https://www.ada.gov/law-and-regs/design-standards/2010-
 
 ## Saving and applying
 
-Practice houses cannot modify world homes. Open an owned home's **Customize interior** button in Kerbside's Homes panel to establish a world/account/home-scoped session. Review validates the complete edited plan. Applying submits an ownership-checked world command and rebuilds both the visible interior and collision geometry. Designs persist with the solo world or the party host's world snapshot. The editor reports a pending state until the world acknowledges the command; a closed world will receive the pending design when reopened on the same browser origin.
+Practice houses cannot modify world homes. Open an owned home's **Customize interior** button in Kerbside's Homes panel to establish a world/account/home-scoped session. Review validates the complete edited plan. Applying submits an ownership-checked world command and rebuilds both the visible interior and collision geometry. City designs persist on the authoritative server; offline practice designs persist in that browser. The editor reports a pending state until the world acknowledges the command; a closed world will receive the pending design when reopened on the same browser origin.
 
 An apartment must have a reliable interior-unit link. Ambiguous apartment boundaries are blocked rather than editing neighbors. Other units and shared halls remain intact. Furniture assets retain their existing library attribution and licensing metadata. Download design saves a draft backup, including invalid work; it is not an approved construction drawing.
+
+In the Marina City world, houses using the original repeated fitted plan start with an empty
+building shell instead. Floor outlines, elevations, exterior openings and fixed stair access
+remain. Accepted engine layouts and saved player designs take precedence. Other worlds keep
+their existing layouts. New edits still pass all spatial checks before Save.
