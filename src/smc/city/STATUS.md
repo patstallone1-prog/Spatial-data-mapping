@@ -592,3 +592,15 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
 
 ## 2026-11-15: the city's server
 The books are no longer a browser's: `server/city` (deployed at `/api/city`) holds the one world, binds commands to signed sessions, checks movement, takes places and prices from its own record, shows each player only their part, and commits by compare-and-swap. docs/45-city-server.md has the setup (one SQL file, one environment variable) and the limits.
+
+## 2026-11-15: credit, real business books, court play, spawn points, voices
+
+Built (docs/46-credit-books-voices.md): loans with a credit score read from the books and bankers by
+specialty (credit.mjs); business books kept by day, week and item with a balance sheet and charts,
+estimated only before the records begin (books.mjs, finance-panels.mjs); court games sized to the
+sport by the hour, with play instead of wandering (sports.mjs); spawn on the pavement, the owned home
+as the default, a City-area guard and a load watchdog; the sorting layer and server for characters'
+voices (npc-talk.mjs, server/npc, /api/npc); one dark-glass surface for every city panel (theme.mjs).
+
+Left: the DeepSeek key and model id are the owner's to set; a banker's panel was checked with a
+rendered world, not by walking into a bank in the game; residents' sheets are sent by the page.
