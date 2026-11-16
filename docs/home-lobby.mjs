@@ -143,11 +143,16 @@ const CSS = `
 #home .sheet h3{margin:0 0 10px;font-size:22px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center}
 #home .sheet h3 span{flex:1}
 #home .sheet p{margin:6px 0 10px;font-size:15px;color:#b8c6d3;letter-spacing:.01em;line-height:1.35}
+#home .sheet p.said{color:#ffd98a;border-left:3px solid #ffd98a;padding-left:10px}
 #home .sheet label{display:block;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9fb0c2;margin:12px 0 6px}
 #home .sheet input{width:100%;box-sizing:border-box;padding:10px 12px;font:600 17px inherit;color:#fff;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.2);outline:none}
 #home .sheet input:focus{border-color:var(--team)}
 #home .sheet .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#home .sheet form.login{margin-top:16px;padding-top:4px;border-top:1px solid rgba(255,255,255,.12)}
+#home .sheet form.login input+input{margin-top:8px}
+#home .sheet p.note{color:#e8eef5;min-height:0}
+#home .sheet p.note:empty{display:none}
 #home .sheet .x{border:0;background:none;color:#9fb0c2;font-size:24px;cursor:pointer}
 #home .hsw{display:flex;flex-wrap:wrap;gap:8px}
 #home .hsw button{width:40px;height:40px;border:2px solid rgba(255,255,255,.2);cursor:pointer;
@@ -428,7 +433,7 @@ export function openHome(ctx) {
     const a = who(), name = a.editor || a.name || "Explorer";
     chip.textContent = name.slice(0, 1).toUpperCase();
     playerName.textContent = name;
-    playerSub.replaceChildren(a.verified ? el("span", { class: "ver" }, "✔ Verified editor") : "Explorer");
+    playerSub.replaceChildren(a.verified ? el("span", { class: "ver" }, "✔ Verified editor") : a.username ? `Logged in · ${a.username}` : "Explorer · Log in");
     tag.textContent = name;
   };
   const tag = el("div", { class: "tag" });
@@ -620,19 +625,59 @@ export function openHome(ctx) {
       on: { change: () => { ctx.account?.setName(name.value); drawPlayer(); } } });
     return name;
   };
-  // Your name, from the corner: it was picked for you (kerbside-account autoName) and is yours to change.
-  const nameSheet = () => {
+  // Your name, from the corner: it was picked for you (kerbside-account autoName) and is yours to
+  // change. Under it, logging in (kerbside-account logIn): a username and password make you the
+  // same account, with the same name and verification, on every device you log in on.
+  const nameSheet = (note = "", focusName = !note) => {
     const input = nameInput();
+    const a = who();
+    const message = el("p", { class: "note", role: "status", "aria-live": "polite" }, note);
+    const busy = (form, on) => { for (const b of form.querySelectorAll("button, input")) b.disabled = on; };
+    let login;
+    if (!ctx.account?.logIn) {
+      login = [];
+    } else if (a.username) {
+      const out = el("button", { class: "hb", type: "button", on: { click: async () => {
+        out.disabled = true;
+        const r = await ctx.account.logOut();
+        drawPlayer();
+        nameSheet(r.ok ? "Logged out. This device is its own account again." : `Could not log out: ${r.why}`, false);
+      } } }, "Log out");
+      login = [el("label", {}, "Account"), el("p", {}, `Logged in as `, el("b", {}, a.username), ". Log in with the same username and password on another device to be the same player there."),
+        el("div", { class: "acts" }, out)];
+    } else {
+      const user = el("input", { name: "username", autocomplete: "username", maxlength: 24, placeholder: "Username", "aria-label": "Username",
+        autocapitalize: "none", spellcheck: "false" });
+      const pass = el("input", { name: "password", type: "password", autocomplete: "current-password", maxlength: 128, placeholder: "Password", "aria-label": "Password" });
+      const attempt = async (form, kind) => {
+        busy(form, true);
+        message.textContent = kind === "new" ? "Making your account…" : "Logging in…";
+        if (kind === "new") pass.autocomplete = "new-password";
+        const r = await (kind === "new" ? ctx.account.signUp : ctx.account.logIn)(user.value, pass.value);
+        pass.value = "";
+        drawPlayer();
+        if (r.ok) return nameSheet(kind === "new" ? `Account made: you are logged in as ${r.account.username}.` : "", false);
+        busy(form, false);
+        message.textContent = r.why;
+      };
+      const form = el("form", { class: "login", on: { submit: (e) => { e.preventDefault(); attempt(form, "in"); } } },
+        el("label", {}, "Log in"), user, pass,
+        el("div", { class: "acts" },
+          el("button", { class: "hb", type: "submit" }, "Log in"),
+          el("button", { class: "hb", type: "button", on: { click: () => attempt(form, "new") } }, "Create account")));
+      login = [form, el("small", { class: "credit" }, "Optional. Without logging in, this device keeps its own account. There is no email: a forgotten password is reset by the owner.")];
+    }
     sheet("Your name", el("p", {}, "Everyone sees it over your walker and in a party. One was picked for you; change it to anything."),
       el("label", {}, "Name"), input,
-      el("button", { class: "hb", type: "button", on: { click: () => { ctx.account?.setName(""); input.value = who().editor || who().name || ""; drawPlayer(); } } }, "Pick another name"));
-    input.focus();
+      el("button", { class: "hb", type: "button", on: { click: () => { ctx.account?.setName(""); input.value = who().editor || who().name || ""; drawPlayer(); } } }, "Pick another name"),
+      ...login, message);
+    if (focusName) input.focus();
   };
   player.setAttribute("role", "button");
   player.tabIndex = 0;
-  player.title = "Your name: click to change it";
+  player.title = "Your name and log-in";
   player.style.cursor = "pointer";
-  player.addEventListener("click", nameSheet);
+  player.addEventListener("click", () => nameSheet());
   player.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); nameSheet(); } });
   const swatches = (kind) => el("div", { class: "hsw", role: "group", "aria-label": kind },
     LOOKS[kind].map(([label, hex]) => el("button", { type: "button", title: label, "aria-label": label, "aria-pressed": String(look[kind] === hex),
@@ -651,14 +696,25 @@ export function openHome(ctx) {
       el("label", {}, "Name"), nameInput(), el("label", {}, "Outfit"), swatches("outfit"), el("label", {}, "Team colour"), swatches("team"));
   };
 
-  const spawnSheet = () => {
-    const current = ctx.spawn.get();
-    const label = current ? current.label || `${current.lat.toFixed(5)}, ${current.lon.toFixed(5)}` : "The middle of the area (default)";
-    sheet("Set spawn point", el("p", {}, "Where Explore world puts you. ", el("b", {}, `Now: ${label}`)),
+  //: ``said``: what the last choice came to (set, or why it could not be), shown in the sheet.
+  const spawnSheet = (said = null) => {
+    const current = ctx.spawn.get(), home = ctx.spawn.home?.() || null;
+    const name = (sp) => sp.label || `${sp.lat.toFixed(5)}, ${sp.lon.toFixed(5)}`;
+    const label = current ? name(current) : home ? `Your home${home.label ? `, ${home.label}` : ""} (default)` : "The middle of the area (default)";
+    const note = said ? el("p", { class: "said", role: "status" }, said) : "";
+    const busy = (button, text) => { button.disabled = true; button.textContent = text; };
+    sheet("Set spawn point", el("p", {}, "Where you start. Always on a pavement, never in the road. ", el("b", {}, `Now: ${label}`)), note,
       el("div", { class: "tools" },
         el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.spawn.pickInWorld(); } } }, "Choose in the world…"),
-        el("button", { class: "hb", type: "button", on: { click: () => { ctx.spawn.useWalker(); spawnSheet(); } } }, "Where my walker is now"),
-        el("button", { class: "hb", type: "button", disabled: !current, on: { click: () => { ctx.spawn.clear(); spawnSheet(); } } }, "Back to the default")));
+        el("button", { class: "hb", type: "button", on: { click: () => {
+          const spawn = ctx.spawn.useWalker();
+          spawnSheet(spawn ? `Set to where your walker stands${spawn.label ? `: ${spawn.label}` : ""}.` : "The world is still loading: try again when it says “World ready”.");
+        } } }, "Where my walker stands now"),
+        el("button", { class: "hb", type: "button", on: { click: (e) => {
+          busy(e.currentTarget, "Finding you…");
+          ctx.spawn.useLocation().then((r) => spawnSheet(r.ok ? `Set to your location${r.spawn.label ? `: ${r.spawn.label}` : ""}.` : r.error));
+        } } }, "My real location"),
+        el("button", { class: "hb", type: "button", disabled: !current, on: { click: () => { ctx.spawn.clear(); spawnSheet(home ? "Back to your home." : "Back to the default."); } } }, home ? "Back to my home" : "Back to the default")));
   };
 
   const toolsSheet = () => {

@@ -113,5 +113,15 @@
       "source": "/store/:path*",
       "destination": "https://djllcgon03ax2.cloudfront.net/:path*"
     }
-  ]
+  ],
+  "functions": {
+    "api/city.mjs": {
+      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}",
+      "maxDuration": 20
+    },
+    "api/npc.mjs": {
+      "includeFiles": "{server/city/canon/*.json,docs/city/*.json}",
+      "maxDuration": 30
+    }
+  }
 }

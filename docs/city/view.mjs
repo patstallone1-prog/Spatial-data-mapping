@@ -1,7 +1,8 @@
 // The living city in the viewer: the district's people on its pavements and its traffic on its
 // streets, your wallet and your day, a car to drive (or ride in with your party), the bridge
 // tolls, carpool and express lanes and speed cameras that charge it, the bills that follow, and
-// the party's own measures -- all on one set of books held by the party's host.
+// the city's own measures -- all on one set of books held by the city's server (server/city):
+// this page sends what you do and shows what the server says came of it.
 //
 // ``startCity(ctx)`` is called once by the page (src/smc/renderer/page/module/30-the-living-city.js)
 // with what this module needs of it; ``city.tick(now)`` each frame; ``city.drive(dt, held)``
@@ -25,6 +26,7 @@ import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, S
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
+import { cityClient, cityServerUrl } from "./server-client.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
@@ -32,13 +34,16 @@ import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from ".
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
+import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
+import { THEME_CSS } from "./theme.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
-const SAVE_SELF = "kerbside:city:self";
 const SAVE_ID = "kerbside:city:id";
+//: How often the page asks the city's server what has changed (ms).
+const SYNC_MS = 4000;
 const MPH = 2.23694;
 //: A car's footprint on foot: its body, corners rounded this much (bumpers and wings are round).
 const CAR_CORNER_M = 0.35;
@@ -246,7 +251,10 @@ export async function startCity(ctx) {
   // runs them, the others out and back.
   fetch(ctx.asset("city/muni-routes.json")).then((r) => (r.ok ? r.json() : null)).then((json) => { if (json?.lines) { timetable = json; if (district.streets) makeLines(); } }).catch(() => {});
 
-  const myId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
+  //: Who you are in the city: the server's id for this device's account once signed in; a local
+  //: id only in the offline practice world.
+  const localId = store.get(SAVE_ID) || (() => { const id = `p${Math.random().toString(36).slice(2, 10)}`; store.set(SAVE_ID, id); return id; })();
+  let myId = localId;
   const timeAt = (ms) => cityTime(ms, R.clock.zone);
   // The game's clock (clock.mjs): a day in 72 real minutes. ``gameNow()`` is what the books and
   // the clock on the bar read; the fleet works in real minutes from the game day's start
@@ -823,8 +831,18 @@ export async function startCity(ctx) {
         // A stride: the thigh forward and the knee a little bent shows as the leg's swing.
         set(parts.legL, -0.1, 0.84, swing); set(parts.legR, 0.1, 0.84, -swing);
         // The arms hang a little out from the body and swing against the legs.
-        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(-swing * 0.8)); M.multiply(TM.makeRotationZ(-0.06)); parts.armL.setMatrixAt(n, M);
-        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(swing * 0.8)); M.multiply(TM.makeRotationZ(0.06)); parts.armR.setMatrixAt(n, M);
+        // (On a court, sports.mjs: the arms go up for a shot or a serve, across for a stroke, out to guard.)
+        let armL = -swing * 0.8, armR = swing * 0.8, outL = -0.06, outR = 0.06;
+        const g = p.gesture;
+        if (g) {
+          const k = Math.sin(Math.PI * Math.min(1, Math.max(0, g.f)));
+          if (g.kind === "shoot") { armL = armR = -0.3 - 2.5 * k; }
+          else if (g.kind === "serve") { armR = -3 * k; armL = -1.7 * Math.min(1, k * 1.6); }
+          else if (g.kind === "swing") { armR = -0.3 - 1.4 * k; outR = 0.06 + 0.9 * k; }
+          else if (g.kind === "guard") { armL = armR = -2.5; outL = -0.45; outR = 0.45; }
+        }
+        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(armL)); M.multiply(TM.makeRotationZ(outL)); parts.armL.setMatrixAt(n, M);
+        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(armR)); M.multiply(TM.makeRotationZ(outR)); parts.armR.setMatrixAt(n, M);
         if (body.outfit.bottom === "skirt" && k < MAX_PEOPLE) {
           skirts.setMatrixAt(k, b);
           dressAt(skirts, k, body.outfit.bottoms);
@@ -1202,33 +1220,48 @@ export async function startCity(ctx) {
   const parked = new Map();     // vehicle id -> mesh (your cars where they stand)
   const peerCars = new Map();   // peer id -> mesh
 
-  // ---- the books: yours alone, or the party host's ---------------------------------------------
-  const party = { session: null, host: null, unlisten: null, pending: new Map(), req: 0, lastState: 0, snapshot: null };
-  let world = null;     // the authoritative world when this browser holds it
-  let view = null;      // the world as last seen (a copy of the host's when in a party)
+  // ---- the books: the city server's; a practice world of your own only when it cannot be reached --
+  // The city is one world, kept by its server (server/city, at /api/city): this page signs in
+  // with the device's account, sends the actions you take, and is shown your part of it. It
+  // holds no books while connected, and nothing saved here is ever brought into the city. A
+  // party is who you see walking beside you -- not a separate economy, and nobody's browser is
+  // its host. The city the server keeps is City mode's (the Marina: the places it has a record
+  // of). Outside it -- Explore, where only the people and traffic are out -- and where the
+  // server cannot be reached (a development page, a deploy not yet set up), the books are an
+  // offline practice world of this browser's own, said so in the panel.
+  const party = { session: null, unlisten: null, ids: new Map() };
+  //: state: "off" (practice, by where you are), "connecting", "online", "practice" (the server did not answer).
+  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  const SERVER_URL = cityServerUrl(globalThis.location);
+  const wantOnline = () => Boolean(SERVER_URL && ctx.cityMode?.());
+  let world = null;     // the offline practice world (this browser's own; never the city's)
+  let view = null;      // the world as shown: the server's view of it for you, or the practice world
   function loadSolo() {
     const saved = store.get(SAVE_SOLO);
-    try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved city could not be read", error); }
+    try { if (saved) return CityWorld.fromJSON(R, saved); } catch (error) { console.warn("kerbside: the saved practice city could not be read", error); }
     return new CityWorld(R, { now: gameNow(), seed: "solo" });
   }
-  world = loadSolo(); view = world;
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
   let enterpriseUI = null, messagesUI = null, commerceUI = null;
   //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
-  const messages = () => (messagesUI ||= messagesPanel({ R, h, send, notify, me: () => myId, getView: () => view, placeArg,
+  const messages = () => (messagesUI ||= messagesPanel({ talk: (body) => talk(body), R, h, send, notify, me: () => myId, getView: () => view, placeArg,
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
     courtPlace: () => enterprise().courtPlace?.() }));
   const commerce = () => (commerceUI ||= commercePanels({ R, h, notify, send, self, me, getView: () => view, placeArg, nearestPlace, openSide, drawSide, getSide: () => side,
     people: () => visible.people, peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId),
     openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
-    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); } }));
-  const amHost = () => Boolean(world);
-  const roomKey = () => party.session ? `kerbside:city:party:${party.session.room}` : SAVE_SOLO;
+    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a) }));
+  //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
+  let financeUI = null;
+  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk }));
+  //: Something said to one of the city's people: the server's answer, or null when there is no server to ask (the box answers with a set line).
+  async function talk(body) { return online.state === "online" && online.client?.talk ? online.client.talk(body) : null; }
+  const worldKey = () => (world ? SAVE_SOLO : "kerbside:city:server");
   function syncHomeEditor() {
     const p = view?.players.get(myId);
     if (!p) return;
-    ctx.setHomeInteriorAccess?.({ worldKey: roomKey(), account: p.account,
+    ctx.setHomeInteriorAccess?.({ worldKey: worldKey(), account: p.account,
       homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})),
       designs: [...(view.homeInteriors?.values() || [])] });
   }
@@ -1237,96 +1270,109 @@ export async function startCity(ctx) {
     try { await ctx.editHome?.(homeId); } catch (error) { notify(error.message); }
   }
 
-  function save() {
-    if (world) store.set(roomKey(), world.toJSON());
-    const self = (world || view)?.savedSelf?.(myId);
-    if (self) store.set(SAVE_SELF, self);
+  //: Only the practice world is saved here; the city is saved by its server.
+  function save() { if (world) store.set(SAVE_SOLO, world.toJSON()); }
+  //: The server's answer shown: your part of the world as it now is.
+  function shown(r) {
+    if (!r?.state || (r.version || 0) < online.version) return;
+    online.version = r.version || online.version;
+    try { view = CityWorld.fromJSON(R, r.state); } catch (error) { console.warn("kerbside: the city's state could not be read", error); return; }
+    refresh();
   }
-  //: A command as the player: done here when this browser holds the books, sent to the host when not.
-  function send(command, args = {}) {
-    const here = whereNow();
-    const full = { ...args, at: here };
-    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); afterChange(); return Promise.resolve(r); }
-    const req = `${myId}:${++party.req}`;
-    party.session.city.send({ t: "cmd", req, pid: myId, command, args: full });
-    return new Promise((resolve) => { party.pending.set(req, resolve); setTimeout(() => { if (party.pending.delete(req)) resolve({ ok: false, error: "the party's host did not answer" }); }, 6000); });
+  //: A command as the player: asked of the city's server, which decides it; in the practice
+  //: world, done here.
+  async function send(command, args = {}) {
+    const full = { ...args, at: whereNow() };
+    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); refresh(); return r; }
+    if (online.state !== "online") return { ok: false, error: "Connecting to the city…" };
+    const r = await online.client.send(command, full);
+    if (!r.ok) return { ok: false, error: r.error || "the city's server did not answer" };
+    shown(r);
+    return r.result || { ok: false, error: "the city's server did not answer" };
   }
-  function afterChange() { if (world && party.session) broadcastState(); refresh(); }
-  function broadcastState() {
-    if (!world || !party.session) return;
-    const json = world.toJSON();
-    json.ledger.journal = json.ledger.journal.slice(-60);
-    party.session.city.send({ t: "state", host: myId, state: json });
-    party.lastState = performance.now();
+  //: What others have done since: asked every few seconds (the answer is empty when nothing has).
+  async function syncCity() {
+    if (online.state !== "online" || online.syncing) return;
+    online.syncing = true; online.lastSync = performance.now();
+    try { const r = await online.client.sync(online.version); if (r.ok) shown(r); } finally { online.syncing = false; }
   }
-  function onPartyMessage(m) {
-    if (m.t === "cmd" && world) {
-      // (Backend money is minted by the browser it belongs to, for itself: never asked of a host.)
-      const result = m.command === "account_grant" ? { ok: false, error: "not from a party" } : world.submit(m.pid, m.command, m.args);
-      party.session.city.send({ t: "res", req: m.req, to: m.pid, result });
-      if (result.ok && m.command === "customize_home") save();
-      broadcastState(); refresh();
-    } else if (m.t === "res" && m.to === myId) {
-      const done = party.pending.get(m.req); if (done) { party.pending.delete(m.req); done(m.result); }
-    } else if (m.t === "state" && m.host !== myId) {
-      party.snapshot = m.state; party.host = m.host; party.heardHost = performance.now();
-      if (world && m.host < myId) { save(); world = null; }   // two hosts: the lower id keeps the books
-      if (!world) { view = CityWorld.fromJSON(R, m.state); refresh(); ensureJoined(); }
-    } else if (m.t === "hello" && world) broadcastState();
+  //: The practice world: this browser's own, under its own id.
+  function practice(state, why) {
+    online.state = state; online.why = why; online.retry = performance.now();
+    myId = localId;
+    if (!world) { world = loadSolo(); view = world; }
+    refresh();
+    ensureJoined();
   }
-  //: Who holds the books: the lowest city id in the party (yours when alone, or when the host has gone).
-  function electHost() {
-    if (!party.session) return;
-    const ids = [myId, ...[...party.ids.values()]].sort();
-    const lowest = ids[0];
-    const hostGone = party.host && performance.now() - (party.heardHost || 0) > 8000;
-    if (lowest === myId && !world && (hostGone || !party.host || party.host === myId || !party.ids.size)) {
-      // Take over from the last state the party saw, or this party's own saved world.
-      world = party.snapshot ? CityWorld.fromJSON(R, party.snapshot) : (() => { const s = store.get(roomKey()); return s ? CityWorld.fromJSON(R, s) : new CityWorld(R, { seed: party.session.room }); })();
-      view = world; party.host = myId; ensureJoined(); broadcastState();
+  //: Signing in to the city (on entering City mode). Not reachable: the practice world, and
+  //: another try every minute while you are there.
+  async function connectCity() {
+    online.state = "connecting"; online.why = "";
+    if (world) save();
+    world = null; view = null;
+    const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
+    const key = lib?.deviceKey?.();
+    if (!key) { practice("practice", "this device has no account"); return; }
+    online.client ||= cityClient({ url: SERVER_URL, key });
+    const r = await online.client.open();
+    if (online.state !== "connecting") return;   // Explore again while it was asked
+    if (!r.ok) { practice("practice", r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
+    myId = r.pid; online.state = "online"; online.version = 0; online.since = performance.now(); grantsAsked = false;
+    if (party.session) party.session.city.send({ t: "hello", pid: myId });
+    await syncCity();
+    ensureJoined();
+  }
+  //: Each frame: the server's books in City mode, the practice world's anywhere else.
+  function chooseBooks() {
+    if (wantOnline()) {
+      if (online.state === "off" || (online.state === "practice" && performance.now() - online.retry > 60_000)) connectCity();
+    } else if (online.state !== "off") {
+      practice("off", SERVER_URL ? "you are exploring" : "this page has no city server");
     }
   }
+  // Until the first frame chooses: the practice world, so nothing is left waiting.
+  world = loadSolo(); view = world;
+  if (!SERVER_URL) online.why = "this page has no city server";
   //: Everyone is a player of the city from the first: joined in the background as soon as the
   //: district is there (a home beside you to rent), under the profile's name -- there is no
   //: "Join the city" to press (2026-11-11).
+  let joining = false;
   async function ensureJoined() {
-    const w = world || view;
-    if (!w || w.players.has(myId) || party.joining) return;
-    if (!party.session && !district.places?.length) return;   // the district first: a home beside you
-    party.joining = true;
+    const w = view;
+    if (!w || w.players.has(myId) || joining) return;
+    if (!district.places?.length) return;   // the district first: a home beside you
+    const home = nearestPlace((p) => p.use === "residential", 400);
+    // In the city: not until the area has loaded round you (a home to start in), within reason.
+    if (online.state === "online" && !home && performance.now() - online.since < 120_000) return;
+    joining = true;
     try {
       const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
       const name = party.session?.me?.name || lib?.account?.()?.name || "You";
-      const home = nearestPlace((p) => p.use === "residential", 400);
-      const r = await send("join", { name, home });
-      if (r.ok && party.session) { const self = store.get(SAVE_SELF); if (self) await send("import", { saved: self }); }
+      await send("join", { name, home });
     } catch (error) { console.warn("kerbside: could not join the city", error); }
-    finally { party.joining = false; }
+    finally { joining = false; }
     refresh();
   }
+  //: A party: the people whose walkers you see. Each says which player of the city it is, so you
+  //: can pick them to pay, lend to or write to -- a name to choose from, never a proof: what
+  //: anyone does in the city is decided by their own session with the server.
   function joinParty(session) {
     if (party.session === session) return;
     leaveParty();
-    save();
-    party.session = session; party.ids = new Map(); party.host = null; party.snapshot = null;
-    world = null; view = null;
+    party.session = session; party.ids = new Map();
     party.unlisten = session.city.listen((m) => {
-      if (m.pid) party.ids.set(m.from, m.pid);
-      if (m.host) party.ids.set(m.from, m.host);
-      if (m.t === "hello" && m.pid) party.ids.set(m.from, m.pid);
-      onPartyMessage(m);
+      if (m?.t === "hello" && typeof m.pid === "string" && m.pid.length <= 64) {
+        const known = party.ids.has(m.from);
+        party.ids.set(m.from, m.pid);
+        if (!known) session.city.send({ t: "hello", pid: myId });
+      }
     });
     session.city.send({ t: "hello", pid: myId });
-    // Alone in the room for a moment: this browser holds the books.
-    setTimeout(electHost, 2500);
   }
   function leaveParty() {
     if (!party.session) return;
-    party.unlisten?.(); save();
-    // Back to your own world, with yourself as the party left you.
-    const self = (world || view)?.savedSelf?.(myId);
-    party.session = null; world = loadSolo(); view = world;
-    if (self) { const p = world.players.get(myId); if (p) { const diff = self.balance - world.ledger.balance(p.account); if (diff > 0) world.ledger.mint(p.account, diff, "import", { at: world.now }); else if (diff < 0) world.ledger.burn(p.account, -diff, "system_fee", { at: world.now }); } }
+    party.unlisten?.();
+    party.session = null; party.ids = new Map();
     refresh();
   }
 
@@ -1647,6 +1693,22 @@ export async function startCity(ctx) {
   // ---- your body: the bars, walking and sprinting ------------------------------------------------
   const body = { walked: 0, sprint: 0, since: performance.now(), sprintHeld: false, sprinting: false, faintSeen: 0, reporting: false };
   const self = () => view?.players.get(myId) || null;
+  //: The home you own is where you start (the page reads this at its next load, when you have
+  //: chosen no spawn point of your own): kept as its door's place on the map, and dropped when
+  //: you no longer own one.
+  let homeSpawnKept;
+  function homeSpawn() {
+    const p = self();
+    if (!p || !view) return;
+    const owned = p.home?.room && view.registry.assets.get(p.home.room)?.owner === p.account && view.registry.assets.get(p.home.room)?.kind === "home";
+    const pl = owned ? (district.places || []).find((x) => String(x.id) === String(p.home.building)) : null;
+    const at = owned ? (pl?.door ? { x: pl.door.x, z: pl.door.z } : Number.isFinite(p.home.x) ? { x: p.home.x, z: p.home.z } : null) : null;
+    const [lon, lat] = at ? ctx.toLonLat(at.x, at.z) : [null, null];
+    const next = at ? JSON.stringify({ lon: +lon.toFixed(7), lat: +lat.toFixed(7), label: address(p.home.address || pl?.name) || p.home.label || null }) : null;
+    if (next === homeSpawnKept) return;
+    homeSpawnKept = next;
+    try { if (next) localStorage.setItem("kerbside:home-spawn", next); else if (online.state !== "connecting") localStorage.removeItem("kerbside:home-spawn"); } catch { /* private mode */ }
+  }
   //: How fast the bars let you walk: slowed when spent; Shift sprints while stamina lasts.
   function walkFactorNow() {
     const p = self();
@@ -3625,13 +3687,13 @@ export async function startCity(ctx) {
       const data = ctx.regionData();
       if (data && data.key !== district.key) { try { buildDistrict(data); } catch (error) { console.warn("kerbside: the living city could not build this district", error); district.key = data.key; } }
     }
-    if (party.session && now - lastStep > 3000) electHost();
-    if (world && now - lastStep > 1000) {
-      lastStep = now;
-      world.step(gameNow(t));
-      if (party.session && performance.now() - party.lastState > 2500) broadcastState();
-    }
+    chooseBooks();
+    homeSpawn();
+    // The practice world keeps its own time; the city's is kept by its server, asked what is new.
+    if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
+    if (online.state === "online" && performance.now() - online.lastSync > SYNC_MS) { syncCity().then(ensureJoined); }
+
     const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
     // The route buses where the timetable has them, near you.
@@ -4151,7 +4213,7 @@ export async function startCity(ctx) {
 #city-bar .inv{align-self:stretch;border:0;border-radius:7px;background:#1f6feb;color:#fff;font:12px system-ui,sans-serif;padding:0 10px;cursor:pointer}
 #city-prompt{position:fixed;left:50%;transform:translateX(-50%);top:var(--city-under,72px);z-index:38;display:flex;align-items:center;gap:8px;background:rgba(17,24,39,.92);color:#fff;border-radius:12px;padding:8px 10px 8px 14px;font:13px/1.35 system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:calc(100vw - 24px)}
 #city-prompt button{border:0;border-radius:8px;padding:6px 14px;font:inherit;cursor:pointer;background:#3a4450;color:#fff}#city-prompt button.primary{background:#1f6feb}
-#city-side.wide{width:min(500px,calc(100vw - 24px))}
+#city-side.wide{width:min(500px,calc(100vw - 24px))}${FINANCE_CSS}
 #city-side .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:4px 0}
 #city-side .grid .slot{position:relative;aspect-ratio:1;border:2px solid rgba(128,128,128,.3);border-radius:6px;background:rgba(128,128,128,.08);padding:2px;margin:0;font:8.5px/1.05 system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;overflow:hidden;cursor:pointer}
 #city-side .grid .slot.on{border-color:#d4a017}#city-side .grid .slot.cursor{border-color:#1f6feb;background:rgba(31,111,235,.15)}
@@ -4202,7 +4264,7 @@ export async function startCity(ctx) {
 #city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
 #city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
-@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}`;
+@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
   const hudBox = Object.assign(doc.createElement("div"), { id: "city-hud", title: "The living city: open the City panel" });
   hudBox.onclick = () => openPanel();
@@ -4398,6 +4460,7 @@ export async function startCity(ctx) {
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
+    if (finance().draw(side, { close, status, w, p })) return;
     if (enterprise().draw(side, { close, status, w, p })) return;
     if (commerce().draw(side, { close, status, w, p })) return;   // selling: offers, listings, consignment (commerce-panels.mjs)   // law offices, recruiters, your business (enterprise-panels.mjs)
     if (side.kind === "store") {
@@ -4609,7 +4672,7 @@ export async function startCity(ctx) {
       const homes = listings().map((l) => ({ l, cat: "homes", name: `${l.beds ? `${l.beds} bd` : "Studio"} ${l.type === "single_family" ? "house" : "flat"}${l.label ? " " + l.label : ""} — ${address(l.address) || "a home"}`, price: l.price, d: Math.hypot(l.x - here.x, l.z - here.z) }));
       const match = (name, extra = "") => !query || name.toLowerCase().includes(query) || extra.toLowerCase().includes(query);
       const services = onlineServices(), jobs = onlineJobs();
-      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["business", "Business"], ["law", "Law & record"], ["homes", "Real estate"]];
+      const cats = [["all", "All"], ...CATEGORIES, ["services", "Services"], ["jobs", "Jobs"], ["business", "Business"], ["law", "Law & record"], ["loans", "Loans"], ["homes", "Real estate"]];
       const counts = Object.fromEntries(cats.map(([k]) => [k, 0]));
       for (const x of wares) if (match(x.it.name, x.from.join(" "))) { counts[x.cat] += 1; counts.all += 1; }
       for (const x of services) if (match(x.it.name, x.label)) { counts.services += 1; counts.all += 1; }
@@ -4617,6 +4680,7 @@ export async function startCity(ctx) {
       for (const x of homes) if (match(x.name, x.l.neighbourhood || "")) { counts.homes += 1; counts.all += 1; }
       counts.business = [...(w.biz?.values() || [])].filter((b) => b.owner === p.account && b.status === "open").length;
       counts.law = [...(w.cases?.values() || [])].filter((c) => c.pid === p.id && !c.closed).length;
+      counts.loans = (p.loans || []).filter((l) => l.status === "open").length;
       const tabs = h("div", { className: "tabs" }, ...cats.map(([k, label]) => h("button", { textContent: `${label} (${counts[k]})`, "aria-pressed": String(side.cat === k), onclick: () => { side.cat = k; drawSide(); } })));
       const sorter = h("select", { title: "Order", onchange: (e) => { side.sort = e.target.value; drawSide(); } },
         ...[["az", "Name A–Z"], ["za", "Name Z–A"], ["lo", "Price: low to high"], ["hi", "Price: high to low"], ["kg", "Weight: light first"], ["near", "Homes: nearest first"]].map(([v, label]) => h("option", { value: v, textContent: label, selected: side.sort === v })));
@@ -4643,6 +4707,7 @@ export async function startCity(ctx) {
           p.job ? h("p", { className: "note" }, `You work as ${p.job.title.toLowerCase()} at ${address(p.job.place.name) || "your workplace"} (${R.fmt(p.job.pay)}/h). `, act("Quit", () => send("quit_job"))) : "",
           rows.length ? h("table", { className: "wares" }, ...rows) : h("p", { className: "note", textContent: "No openings near you." }));
       }
+      if (finance().online(side, out, w, p)) { side.el.replaceChildren(...out); return; }   // the online lender
       if (enterprise().online(side, out, w, p)) { side.el.replaceChildren(...out); return; }   // the Business and Law tabs
       if (side.cat !== "homes" && side.cat !== "services" && side.cat !== "jobs") {
         const list = wares.filter((x) => (side.cat === "all" || x.cat === side.cat) && match(x.it.name, x.from.join(" "))).sort((a, b) => order(a, b, a.it.name, b.it.name));
@@ -4710,22 +4775,17 @@ export async function startCity(ctx) {
     refresh();
   }
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
-  //: Money put in your device account on the backend (supabase/kerbside_city_grants.sql): into
-  //: your wallet once you are in the city and this browser holds the books (alone, or the
-  //: party's host), each grant once (world.mjs cmd_account_grant), then marked claimed there.
-  let grantsTaken = false;
+  //: Money put in your device account on the backend (supabase/kerbside_city_grants.sql): paid
+  //: into your wallet by the city's server, once (server/city/authority.mjs grants). The page
+  //: only asks it to look; it cannot name an amount.
+  let grantsAsked = false;
   async function takeAccountGrants() {
-    if (grantsTaken || !world || !world.players.has(myId) || !ctx.account) return;
-    grantsTaken = true;
-    const lib = await Promise.resolve(ctx.account()).catch(() => null);
-    const grants = (await lib?.cityGrants?.().catch(() => [])) || [];
-    for (const g of grants) {
-      const r = await send("account_grant", { grant: g.id, amount: g.amount });
-      if (!r.ok) continue;
-      save();
-      if (!r.already) notify(`${R.fmt(g.amount)} from the backend is in your wallet${g.note ? ` (${g.note})` : ""}.`);
-      lib.claimCityGrant?.(g.id);
-    }
+    if (grantsAsked || online.state !== "online" || !view?.players.has(myId)) return;
+    grantsAsked = true;
+    const r = await online.client.grants();
+    if (!r.ok || r.waiting) { grantsAsked = false; return; }
+    shown(r);
+    for (const g of r.granted || []) notify(`${R.fmt(g.amount)} from the backend is in your wallet.`);
   }
   function refresh() {
     takeAccountGrants();
@@ -4735,7 +4795,7 @@ export async function startCity(ctx) {
     const w = view, p = w?.players.get(myId);
     const close = h("button", { textContent: "×", title: "Close (Esc)", onclick: () => openPanel() });
     const head = h("h3", {}, h("span", { textContent: "You" }), close);
-    if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Waiting for the party's host to share the city…" })); return; }
+    if (!w) { panel.replaceChildren(head, h("p", { className: "note", textContent: "Connecting to the city…" })); return; }
     if (!p) {
       // Joined in the background (ensureJoined): only a moment before the district is there.
       panel.replaceChildren(head, h("p", { className: "note", textContent: `Setting up your place in the city: ${R.fmt(R.start.balance)} in Credits (a placeholder currency at par with the dollar), a rented room in the building beside you with its first week free, and no car.` }));
@@ -4765,6 +4825,7 @@ export async function startCity(ctx) {
     const debts = tile("Debts", worth.debts.length ? h("table", {}, ...worth.debts.slice(0, 8).map((d) => row(d.label, money(d.value))),
       h("tr", { className: "sum" }, h("td", { textContent: "Owed in all" }), h("td", { className: "neg", textContent: money(worth.owing) })))
       : h("p", { className: "note", textContent: "You owe nothing." }), worth.debts.length ? h("button", { textContent: "See the bills", onclick: () => { tab = "bills"; refresh(); } }) : null);
+    const credit = tile("Credit", ...finance().creditTile());
     const recent = w.ledger.journal.filter((e) => e.lines.some(([a]) => a === p.account)).slice(-10).reverse();
     const history = tile("Recent history", recent.length ? h("table", {}, ...recent.map((e) => {
       const amount = e.lines.find(([a]) => a === p.account)[1];
@@ -4776,7 +4837,7 @@ export async function startCity(ctx) {
     const net = tile("Net worth", h("table", {}, row("Money", money(worth.cash + worth.fastrak)), row("What you own", money(worth.owned)),
       h("tr", {}, h("td", { textContent: "What you owe" }), h("td", { className: worth.owing ? "neg" : "", textContent: worth.owing ? `−${money(worth.owing)}` : money(0) })),
       h("tr", { className: "sum" }, h("td", { textContent: "Net worth" }), h("td", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }))));
-    return [me, h("div", { className: "tiles" }, stats, bank, debts, assets, net, history)];
+    return [me, h("div", { className: "tiles" }, stats, bank, debts, credit, assets, net, history)];
   }
   const TABS = {
     you(w, p) {
@@ -4785,7 +4846,8 @@ export async function startCity(ctx) {
         row("Home", st.home ? `a room at ${district.placeById?.get(st.home.building)?.name || "building " + st.home.building}, paid to ${new Date(st.home.paid_until).toLocaleDateString()}` : "none"),
         row("Job", st.job ? `${st.job.title}, ${R.fmt(st.job.pay)}/h` : "none"), row("At work", st.clocked ? `since ${new Date(st.clocked.since).toLocaleTimeString()}` : "no"),
         row("Earned this year", R.fmt(st.ytd.wages)), row("Tax held back", R.fmt(st.ytd.withheld)), row("FasTrak", st.fastrak ? `${st.fastrak.tag}, ${R.fmt(st.fastrak.balance)}, Flex ${st.fastrak.flex}` : "none"),
-        row("Party", party.session ? `room ${party.session.room}, ${world ? "you hold the books" : "the host holds the books"}` : "playing alone (Play together to share)"))];
+        row("City", online.state === "online" ? "online: one city for everyone, kept by its server" : online.state === "connecting" ? "connecting…" : `offline practice (${online.why}): nothing here is kept in the city`),
+        row("Party", party.session ? `room ${party.session.room}: who you see walking with you` : "walking alone (Play together to see friends)"))];
       if (st.job) out.push(h("div", {}, st.clocked ? act("Clock out", () => send("clock_out")) : act("Clock in", () => send("clock_in"), true), act("Quit the job", () => send("quit_job"))));
       out.push(h("h4", { textContent: "Your body" }), h("table", {}, row("Health", `${Math.round(st.vitals.health)} of 100`), row("Stamina", `${Math.round(st.vitals.stamina)} of 100`), row("Strength", `${Math.round(st.vitals.strength)} of 100`),
         row("Carrying", `${st.carry.kg} of ${st.carry.capacity} kg`)));
@@ -4934,6 +4996,8 @@ export async function startCity(ctx) {
           out.push(h("p", { className: "note", textContent: `Voice: ${context.tone.variation}. Interests: ${context.hobbies.values.join(", ")}.` }));
           if (context.finances.balance === null) out.push(h("p", { className: "note", textContent: "Bank balance unavailable." }));
           if (context.finances.debt !== null) out.push(h("p", { className: "note", textContent: `Outstanding debt: ${R.fmt(context.finances.debt)}.` }));
+          // Talk to them: a hello is answered here; a real question goes to the city's server with this context.
+          out.push(h("h4", { textContent: `Talk to ${String(p.name).split(" ")[0]}` }), finance().talkBox(peopleTalk[p.id] ||= {}, { id: p.id, name: p.name, title: p.title, role: "resident", tone: context.tone.family }, { npc: context }, refresh));
           const json = h("pre", { textContent: JSON.stringify(context, null, 2), style: "white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto" });
           out.push(h("details", {}, h("summary", { textContent: "Show AI context (JSON)" }), json));
         }
@@ -4950,6 +5014,7 @@ export async function startCity(ctx) {
     },
   };
   let peopleOpen = null, peopleContextPending = null;
+  const peopleTalk = {};   // what has been said with each person, while the page is open
   const transferTotal = (here, price) => transferTax(R, here.chain, price).total;
   ctx.button?.addEventListener("click", () => openPanel());
   // Escape closes the window over the screen.
@@ -4971,7 +5036,7 @@ export async function startCity(ctx) {
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };
       return null;
     },
-    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, me: myId,
+    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,

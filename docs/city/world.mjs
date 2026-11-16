@@ -1,6 +1,8 @@
-// The party's world: one authoritative set of books, records and laws that every player in a
-// party acts on through ``submit(player, command, args)`` -- held by one browser (the party's
-// host, or yours alone) and shown to the rest. Pure, as core.mjs is (tests/city.test.mjs).
+// The city's world: one authoritative set of books, records and laws that every player acts on
+// through ``submit(player, command, args)`` -- held by the city's server (server/city), which
+// decides every outcome and shows each player their own part of it; a browser holds one only as
+// an offline practice world that is never brought into the city. Pure, as core.mjs is
+// (tests/city.test.mjs).
 //
 // It follows the Python core (smc.city.world) and adds what the viewer needs: jobs at the
 // buildings in front of you and pay with tax withheld, shopping with sales tax, cars with their
@@ -24,6 +26,7 @@ import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
+import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
@@ -127,28 +130,12 @@ export class CityWorld {
     this.log("join", { player: pid });
     return { balance: this.ledger.balance(account), home: p.home };
   }
-  //: A player's saved self from their own browser, brought into a party's world: the same
-  //: balance (minted once as an import), the vehicles and the job.
-  cmd_import(pid, { saved }) {
-    const p = this.player(pid);
-    if (p.imported || !saved) throw new CityError("nothing to bring");
-    const extra = Math.max(0, Math.min(saved.balance | 0, 5_000_000_00) - this.ledger.balance(p.account));
-    if (extra) this.ledger.mint(p.account, extra, "import", { at: this.now, key: `import:${pid}` });
-    for (const v of saved.vehicles || []) {
-      if (this.registry.assets.has(v.id) || !this.R.vehicles.models[v.attrs?.model]) continue;
-      this.registry.register(v.id, "vehicle", p.account, v.attrs, this.now);
-    }
-    if (saved.job) p.job = saved.job;
-    if (saved.fastrak) { p.fastrak = { ...saved.fastrak, balance: 0 }; }
-    if (saved.vitals) p.vitals = { ...p.vitals, ...pick(saved.vitals, ["health", "stamina", "strength", "at", "day", "walked", "worked_out"]) };
-    for (const [id, n] of Object.entries(saved.inventory || {})) if (this.R.items[id] && !this.R.items[id].parcel) p.inventory[id] = Math.min(50, n | 0);
-    p.imported = true;
-    return this.cmd_status(pid);
-  }
-  //: Money the backend put in this player's device account (kerbside-account.mjs cityGrants):
-  //: into their wallet once, by the grant's id -- asked again (another load, a lost claim) it is
-  //: not paid twice.
-  cmd_account_grant(pid, { grant, amount }) {
+  //: Money the backend put in this player's device account (supabase/kerbside_city_grants.sql):
+  //: into their wallet once, by the grant's id. This is the city server's to call
+  //: (server/city/authority.mjs: the grant is marked claimed in the same commit); it is not a
+  //: command, so no client can ask for it, and there is no other way money comes in from outside
+  //: -- a balance is never read from a browser (the old ``import`` is gone, 2026-11-15).
+  accountGrant(pid, grant, amount) {
     const p = this.player(pid), id = String(grant ?? "");
     const cents = Math.floor(+amount);
     if (!id || !(cents > 0) || cents > ACCOUNT_GRANT_MAX) throw new CityError("not a grant");
@@ -391,7 +378,7 @@ export class CityWorld {
     const shop = this.tillOf(place);
     this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
       { kind: "purchase", memo: lines.map((l) => `${l.qty > 1 ? l.qty + " x " : ""}${this.R.items[l.item].name}`).join(", ").slice(0, 120), at: this.now });
-    this.soldHere(place, lines);
+    this.soldHere(place, lines, pid);
     const effects = [];
     for (const l of lines) {
       const spec = this.R.items[l.item];
@@ -1426,10 +1413,12 @@ export class CityWorld {
     const p = this.player(pid);
     if (listing?.kind !== "sale") throw new CityError("that home is for rent");
     const { price } = this.checkListing(listing);
-    const terms = mortgageTerms(this.R, price);
     const here = jurisdictionAt(this.R, listing.lon, listing.lat, listing.county);
     const a = this.homeAsset(listing, price);
     if (a.owner !== "business:landlords") throw new CityError("its owner is not selling");
+    // The mortgage is this buyer's: a banker's pre-approved rate, or the online lender's (credit.mjs).
+    let terms = mortgageTerms(this.R, price);
+    if (mortgage && this.ledger.balance(p.account) >= terms.upfront) terms = this.mortgageFor(p, price);
     const upfront = mortgage ? terms.upfront : price + terms.closing;
     if (this.ledger.balance(p.account) < upfront) throw new CityError(`you need ${this.R.fmt(upfront)} ${mortgage ? "for the down payment and closing" : "to buy it outright"}`);
     if (mortgage) this.ledger.mint(p.account, terms.loan, "external_trade", { at: this.now, memo: `mortgage on ${a.attrs.address || a.id}` });
@@ -1438,7 +1427,7 @@ export class CityWorld {
     const t = transferTax(this.R, here.chain, price);
     this.ledger.pay("business:landlords", [[this.treasury(here.county), t.county], [this.treasury(here.city || here.county), t.city]], { kind: "transfer_tax", memo: a.id, at: this.now });
     a.attrs.assessed = price; a.attrs.bought = this.now; a.attrs.price = price;
-    if (mortgage) p.mortgages = [...(p.mortgages || []), { home: a.id, loan: terms.loan, owed: terms.loan, monthly: terms.monthly, next: this.now + 30 * DAY, missed: 0 }];
+    if (mortgage) p.mortgages = [...(p.mortgages || []), { home: a.id, loan: terms.loan, owed: terms.loan, monthly: terms.monthly, rate: terms.rate, next: this.now + 30 * DAY, missed: 0 }];
     this.market.taken.add(listing.home);
     this.moveIn(p, a);
     this.log("home", { player: pid, home: a.id, price, mortgage });
@@ -1495,7 +1484,7 @@ export class CityWorld {
   housingMonth(p) {
     for (const m of p.mortgages || []) {
       while (this.now >= m.next) {
-        const interest = Math.round(m.owed * this.R.housing.mortgage.rate / 12);
+        const interest = Math.round(m.owed * (m.rate ?? this.R.housing.mortgage.rate) / 12);
         m.owed = Math.max(0, m.owed + interest - m.monthly);
         this.billing.issue({ payer: p.account, payee: "business:bank", kind: "mortgage", amount: m.monthly, memo: `Mortgage payment, ${m.home}`, at: m.next, due_days: 15, penalties: [Math.round(m.monthly * 0.05)], key: `mortgage:${m.home}:${m.next}` });
         m.next += 30 * DAY;
@@ -1671,28 +1660,22 @@ export class CityWorld {
     }
     return w;
   }
-  //: One player's own record, to carry into a party's world.
-  savedSelf(pid) {
-    const p = this.players.get(pid);
-    if (!p) return null;
-    return { balance: this.ledger.balance(p.account), job: p.job, fastrak: p.fastrak ? { tag: p.fastrak.tag, flex: p.fastrak.flex } : null,
-      vehicles: this.registry.owned(p.account, "vehicle").map((v) => ({ id: v.id, attrs: v.attrs })), vitals: p.vitals,
-      inventory: Object.fromEntries(Object.entries(p.inventory || {}).filter(([k]) => k !== "parcel")) };
-  }
 }
 
-const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
+const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
   "buy_vehicle", "offer", "accept", "decline", "return", "take", "drive", "park", "pay_meter", "refuel", "get_fastrak", "set_flex",
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 //: Things as themselves: records, uses, outcomes and resale (commerce.mjs).
 installCommerce(CityWorld, CityError);
 installHomeInteriors(CityWorld, CityError);
+//: Borrowing: the credit score, the bankers and the loans (credit.mjs).
+installCredit(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

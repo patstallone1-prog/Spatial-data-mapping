@@ -208,6 +208,8 @@ export function messagesPanel(api) {
       if (!text) return;
       ui.draft = ""; input.value = "";
       await run("send_message", { thread: t.id, text });
+      // A real question to one of the city's people: the server answers in their words, into the thread.
+      if (t.tab === "npc" && sortMessage(text).route === "ai") api.talk?.({ thread: t.id, text });
       panel.querySelector("input[name^='say:']")?.focus();
     };
     return form;

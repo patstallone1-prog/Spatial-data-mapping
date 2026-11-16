@@ -19,6 +19,7 @@ import { FIRST, LAST, rng } from "./people.mjs";
 import { cityTime } from "./core.mjs";
 import { neighbourhoodAt } from "./market.mjs";
 import { oddsLabel, verdictWeights } from "./enterprise.mjs";
+import { sortMessage } from "./npc-talk.mjs";
 
 const DAY = 86_400_000, HOUR = 3_600_000, MIN = 60_000;
 //: The most a thread keeps, a message says, a group holds.
@@ -401,6 +402,9 @@ export function installMessages(CityWorld, CityError, { citations = [] } = {}) {
 
   //: What an npc says back to free text: a word that it was heard.
   W.npcHeard = function (t, pid, text) {
+    // A real question, where the city's people have a voice (the server's model): left for the
+    // server to answer in the character's own words (server/npc). A greeting or an "ok" never is.
+    if (this.voices && sortMessage(text).route === "ai") return;
     const H = MR(this).heard;
     const said = H[t.kind] || H.other;
     if (t.kind === "lawyer" && /thank/i.test(text)) { const cid = t.data.cases[t.data.cases.length - 1]; if (cid && !t.data.thanked?.includes(cid)) { (t.data.thanked ||= []).push(cid); t.data.rapport = Math.min(10, t.data.rapport + 1); } }

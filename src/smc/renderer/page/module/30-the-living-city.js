@@ -125,6 +125,7 @@ function cityAreaStep() {
     worldCellCache.evict();
     evictTilesHeldByCity();
     if (!cityLock.placed) cityPlaceWalker();
+    if (typeof settleOnSidewalk === "function") settleOnSidewalk();
     console.info(`kerbside: ${CITY_AREA.name} loaded for City mode in ${activeGuest.buildSeconds?.toFixed(1)} s`);
     requestFrame();
     return;

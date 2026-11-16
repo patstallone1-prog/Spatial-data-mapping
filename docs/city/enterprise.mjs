@@ -17,6 +17,7 @@
 // world.mjs) and tested in tests/city_enterprise.test.mjs.
 
 import { LedgerError, cityTime, inHours, itemTax, loanPayment, storesAt, withholding } from "./core.mjs";
+import { analyse, foldDay, noteTx } from "./books.mjs";
 import { FIRST, LAST, hash32 as hash, rng } from "./people.mjs";
 
 const DAY = 86_400_000, HOUR = 3_600_000;
@@ -78,13 +79,13 @@ export function priceDemand(R, id, pf) {
 //: One hour of a business: who is on, what customers come, what labour goes where, and what sells.
 //: ``b`` is the business (its stock is taken from unless ``unlimited``); ``t`` the city time at the
 //: middle of the hour. Returns the hour's numbers; nothing is posted to the books here.
-export function hourOf(R, b, t, { unlimited = false, first = false, last = false, extra = 0 } = {}) {
+export function hourOf(R, b, t, { unlimited = false, first = false, last = false, extra = 0, noise = 1 } = {}) {
   const B = R.business, g = groupOf(R, b.kind);
   const open = b.status === "open" && isOpen(b.hours, t);
   const on = (b.staff || []).filter((s) => !s.player && onShift(s, t) && (s.home_until || 0) <= t.ms && !(s.left));
   // The late: low morale makes someone miss the first hour of their shift.
   const here = on.filter((s) => !(s.morale < B.staff.late_below && shiftHour(s, t) === 0));
-  const out = { open, on: here.length, wages: {}, visits: 0, wanted: 0, served: 0, lost: 0, units: {}, sales: 0, tax: 0, cogs: 0, stockout: 0,
+  const out = { open, on: here.length, wages: {}, visits: 0, wanted: 0, served: 0, lost: 0, units: {}, lines: {}, sales: 0, tax: 0, cogs: 0, stockout: 0,
     clean_need: 0, clean_done: 0, understaffed: false, opened_late: false };
   for (const s of here) out.wages[s.id] = s.wage;
   let labour = extra; const ordered = {};
@@ -100,7 +101,7 @@ export function hourOf(R, b, t, { unlimited = false, first = false, last = false
   const pull = items.length ? items.reduce((s, id) => s + priceDemand(R, id, b.prices?.[id] ?? 1), 0) / items.length : 0;
   const q = Math.pow(clamp(b.reputation ?? B.reputation.start, 1, 100) / B.reputation.start, 0.8);
   const share = 1 / (1 + Math.max(0, b.rivals || 0) * B.rival_share);
-  out.visits = (B.visits_peak[b.kind] ?? B.visits_peak.default) * curve * q * share * pull;
+  out.visits = (B.visits_peak[b.kind] ?? B.visits_peak.default) * curve * q * share * pull * noise;
   out.wanted = out.visits * byGroup(B.conversion, g);
   // The duties in the owner's order; someone told to do one does it first.
   const D = B.duty_hours, basket = byGroup(B.basket, g), servePer = byGroup(B.serve_per_staff_hour, g);
@@ -136,6 +137,7 @@ export function hourOf(R, b, t, { unlimited = false, first = false, last = false
     if (!unlimited) b.stock[id] -= n;
     const price = Math.round(R.items[id].price * (b.prices?.[id] ?? 1)) * n;
     out.units[id] = n; out.sales += price; out.cogs += unitCost(R, id) * n;
+    out.lines[id] = [n, price, unitCost(R, id) * n];
     out.tax += itemTax(R, b.chain || [], R.items[id], price, b.laws || {});
   }
   return out;
@@ -177,22 +179,49 @@ export function hoursFor(R, kind) {
 //: A shop's typical week, modelled (an NPC's books, before buying it): sales, cost of goods,
 //: wages, rent and profit, with ``noise`` (seeded) week to week.
 export function modelWeek(R, place, kind, { rivals = 1, week = 0 } = {}) {
-  const b = { id: place.id, kind, status: "open", hours: hoursFor(R, kind), prices: {}, stock: {}, reputation: R.business.reputation.start,
-    rivals, chain: place.chain || [], staff: defaultStaff(R, kind, place.id), duties: R.business.duties };
-  const start = Date.UTC(2026, 0, 5, 8);   // a Monday, Pacific midnight
-  const sum = { sales: 0, cogs: 0, wages: 0, tax: 0, rent: R.business.storefront_lease_per_week, units: 0, served: 0, lost: 0 };
-  for (let h = 0; h < 24 * 7; h += 1) {
-    const t = cityTime(start + h * HOUR + HOUR / 2, R.clock.zone);
-    const o = hourOf(R, b, t, { unlimited: true, first: t.hour === b.hours[0], last: (t.hour + 1) % 24 === b.hours[1] % 24 });
-    sum.sales += o.sales; sum.cogs += o.cogs; sum.tax += o.tax; sum.served += o.served; sum.lost += o.lost;
-    for (const v of Object.values(o.wages)) sum.wages += v;
-    for (const n of Object.values(o.units)) sum.units += n;
-  }
+  const base = typicalWeek(R, place, kind, rivals);
+  const sum = { ...base, items: undefined };
   const noise = 0.85 + 0.3 * rng("week", place.id, week)();
   for (const k of ["sales", "cogs", "tax", "units", "served"]) sum[k] = Math.round(sum[k] * noise);
   sum.profit = sum.sales - sum.cogs - sum.wages - sum.rent;
+  delete sum.items;
   return sum;
 }
+const TYPICAL = new WeakMap();
+//: The typical week itself (before a week's noise), with what sold by item; worked out once a shop.
+function typicalWeek(R, place, kind, rivals) {
+  let cache = TYPICAL.get(R);
+  if (!cache) TYPICAL.set(R, cache = new Map());
+  const key = `${place.id}|${kind}|${rivals}|${(place.chain || []).join(",")}`;
+  if (cache.has(key)) return cache.get(key);
+  const b = { id: place.id, kind, status: "open", hours: hoursFor(R, kind), prices: {}, stock: {}, reputation: R.business.reputation.start,
+    rivals, chain: place.chain || [], staff: defaultStaff(R, kind, place.id), duties: R.business.duties };
+  const start = Date.UTC(2026, 0, 5, 8);   // a Monday, Pacific midnight
+  const sum = { sales: 0, cogs: 0, wages: 0, tax: 0, rent: R.business.storefront_lease_per_week, units: 0, served: 0, lost: 0, visits: 0, items: {} };
+  for (let h = 0; h < 24 * 7; h += 1) {
+    const t = cityTime(start + h * HOUR + HOUR / 2, R.clock.zone);
+    const o = hourOf(R, b, t, { unlimited: true, first: t.hour === b.hours[0], last: (t.hour + 1) % 24 === b.hours[1] % 24 });
+    sum.sales += o.sales; sum.cogs += o.cogs; sum.tax += o.tax; sum.served += o.served; sum.lost += o.lost; sum.visits += o.visits;
+    for (const v of Object.values(o.wages)) sum.wages += v;
+    for (const n of Object.values(o.units)) sum.units += n;
+    for (const [id, [n, s2, c]] of Object.entries(o.lines)) { const x = (sum.items[id] ||= [0, 0, 0]); x[0] += n; x[1] += s2; x[2] += c; }
+  }
+  if (cache.size > 400) cache.delete(cache.keys().next().value);
+  cache.set(key, sum);
+  return sum;
+}
+//: A week of a shop's books before its records begin: the typical week with that week's noise,
+//: in the shape of a recorded week (books.mjs), and marked as an estimate.
+export function estimateWeek(R, place, kind, { rivals = 1, week = 0 } = {}) {
+  const base = typicalWeek(R, place, kind, rivals), noise = 0.85 + 0.3 * rng("week", place.id, week)();
+  const n = (x) => Math.round(x * noise);
+  const sales = n(base.sales), cogs = n(base.cogs);
+  return { week, estimated: true, days: 7, sales, cogs, wages: base.wages, rent: base.rent, fees: 0, tax: n(base.tax), profit: sales - cogs - base.wages - base.rent,
+    orders: n(base.served), units: n(base.units), visits: n(base.visits), served: n(base.served), lost: Math.round(base.lost), player_sales: 0,
+    items: Object.fromEntries(Object.entries(base.items).map(([id, [u, s2, c]]) => [id, [n(u), n(s2), n(c)]])) };
+}
+//: The day's weather, a match on, a quiet Tuesday: how busy a shop's day is against its usual (seeded).
+export function dayNoise(id, day) { return 0.82 + 0.36 * rng("demand", id, day)(); }
 
 // ---- the law (pure) -------------------------------------------------------------------------------
 
@@ -274,12 +303,15 @@ export function installEnterprise(CityWorld, CityError) {
   W.enterpriseInit = function () {
     this.biz = new Map(); this.cases = new Map(); this.openings = new Map(); this.storefronts = new Map();
     this.tenantNames = new Set();   // the map's real tenants (name keys): told by the view, not saved
+    this.shops = new Map();         // residents' shops whose books are kept: from the day a player first dealt with one
+    this.booksSeq = 0;
   };
   //: The view tells the world the real tenants' names it has seen, so a business or a lawyer is
   //: never given one.
   W.knowTenants = function (names) { for (const n of names || []) { const k = nameKey(n); if (k.length > 2) this.tenantNames.add(k); } };
   W.enterpriseJSON = function () {
-    return { biz: [...this.biz.values()], cases: [...this.cases.values()], openings: [...this.openings.values()], storefronts: [...this.storefronts.values()] };
+    return { biz: [...this.biz.values()], cases: [...this.cases.values()], openings: [...this.openings.values()], storefronts: [...this.storefronts.values()],
+      shops: [...this.shops.values()], booksSeq: this.booksSeq || 0 };
   };
   W.enterpriseLoad = function (o = {}) {
     this.enterpriseInit();
@@ -287,6 +319,8 @@ export function installEnterprise(CityWorld, CityError) {
     for (const c of o.cases || []) this.cases.set(c.id, c);
     for (const x of o.openings || []) this.openings.set(x.id, x);
     for (const s of o.storefronts || []) this.storefronts.set(s.place.id, s);
+    for (const s of o.shops || []) this.shops.set(s.id, s);
+    this.booksSeq = o.booksSeq || 0;
   };
   //: A player business at a place, if one is open there.
   W.bizAt = function (placeId) { const b = this.biz.get(`biz:${placeId}`); return b && b.status === "open" ? b : null; };
@@ -321,15 +355,107 @@ export function installEnterprise(CityWorld, CityError) {
     if (!b) return;
     for (const l of lines) if (!this.R.items[l.item].service && (b.stock[l.item] || 0) < l.qty) fail(`${b.name} has only ${b.stock[l.item] || 0} ${this.R.items[l.item].name.toLowerCase()} left`);
   };
-  W.soldHere = function (place, lines) {
+  W.soldHere = function (place, lines, pid = null) {
     const b = this.bizAt(place?.id);
-    if (!b) return;
+    if (!b) { this.shopSold(place, lines, pid); return; }
+    b.today.player_orders = (b.today.player_orders || 0) + 1;
     for (const l of lines) {
       if (this.R.items[l.item].service) continue;
       b.stock[l.item] -= l.qty;
-      b.today.cogs += unitCost(this.R, l.item) * l.qty;
+      const cost = unitCost(this.R, l.item) * l.qty;
+      b.today.cogs += cost;
       b.today.player_sales = (b.today.player_sales || 0) + l.price;
+      const x = ((b.today.items ||= {})[l.item] ||= [0, 0, 0]); x[0] += l.qty; x[1] += l.price; x[2] += cost;
     }
+  };
+
+  // ---- the books of a resident's shop ---------------------------------------------------------------
+  // A shop no player owns keeps books too, from the day a player first deals with it (buys there,
+  // or asks its price): the same hours, customers and counter sales as a player's, on the shop's
+  // own staff and list prices. Before that day its books are an estimate, and say so (books.mjs).
+  const SHOPS_MAX = 24;
+  W.shopRecord = function (place, { rivals = null, pid = null, make = true } = {}) {
+    const id = String(place?.id ?? "");
+    let s = this.shops.get(id);
+    if (!s && make && id && !this.bizAt(id)) {
+      const R = this.R, kind = storesAt(R, place.keys || []).find((x) => !R.stores.kinds[x.kind].counter)?.kind;
+      if (!kind) return null;
+      const t = this.time;
+      s = { id, place: slimPlace(place), kind, rivals: Math.max(0, (rivals ?? 1) | 0), chain: jurisdictionChain(this, place), since: t.day, opened: this.now,
+        today: freshDay(t.day), sim_to: hourFloor(this.now), books: [], weeks: [], carry: {}, watchers: {}, seen: this.now };
+      this.shops.set(id, s);
+      if (this.shops.size > SHOPS_MAX) { const old = [...this.shops.values()].sort((a, b) => a.seen - b.seen)[0]; this.shops.delete(old.id); }
+    }
+    if (!s) return null;
+    s.seen = this.now;
+    if (rivals !== null && rivals !== undefined) s.rivals = Math.max(0, rivals | 0);
+    if (pid) s.watchers[pid] = this.now;
+    return s;
+  };
+  W.shopSold = function (place, lines, pid = null) {
+    const s = this.shopRecord(place, { pid });
+    if (!s) return;
+    const d = s.today;
+    d.player_orders = (d.player_orders || 0) + 1;
+    for (const l of lines) {
+      const cost = this.R.items[l.item].service ? 0 : unitCost(this.R, l.item) * l.qty;
+      d.cogs += cost; d.player_sales = (d.player_sales || 0) + l.price;
+      const x = ((d.items ||= {})[l.item] ||= [0, 0, 0]); x[0] += l.qty; x[1] += l.price; x[2] += cost;
+    }
+  };
+  W.runShop = function (s) {
+    const R = this.R, limit = hourFloor(this.now);
+    if (s.sim_to < limit - 14 * DAY) s.sim_to = limit - 14 * DAY;
+    if (s.sim_to >= limit) return;
+    const b = { id: s.id, kind: s.kind, status: "open", hours: hoursFor(R, s.kind), prices: {}, stock: {}, reputation: R.business.reputation.start, rivals: s.rivals,
+      chain: s.chain || [], staff: defaultStaff(R, s.kind, s.id), duties: R.business.duties, carry: s.carry, laws: this.laws };
+    while (s.sim_to < limit) {
+      const t = cityTime(s.sim_to + HOUR / 2, R.clock.zone);
+      if (t.day !== s.today.day) this.closeShopDay(s, t.day);
+      const o = hourOf(R, b, t, { unlimited: true, first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, noise: dayNoise(s.id, t.day) });
+      const d = s.today;
+      d.visits += o.visits; d.served += o.served; d.lost += o.lost; d.sales += o.sales; d.tax += o.tax; d.cogs += o.cogs;
+      for (const v of Object.values(o.wages)) d.staff_wages = (d.staff_wages || 0) + v;
+      for (const [id, [n, s2, c]] of Object.entries(o.lines)) { const x = ((d.items ||= {})[id] ||= [0, 0, 0]); x[0] += n; x[1] += s2; x[2] += c; }
+      s.sim_to += HOUR;
+    }
+    s.carry = b.carry;
+  };
+  W.closeShopDay = function (s, next) {
+    const d = s.today, rent = Math.round(BR(this).storefront_lease_per_week / 7), wages = Math.round(d.staff_wages || 0), sales = d.sales + (d.player_sales || 0);
+    const line = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, rent, fees: 0, profit: sales - d.cogs - wages - rent, visits: Math.round(d.visits), served: Math.round(d.served),
+      lost: Math.round(d.lost), orders: Math.round(d.served) + (d.player_orders || 0), player_sales: d.player_sales || 0, units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
+    foldDay(s, line, d.items || {}, { days: 35 });
+    s.today = freshDay(next);
+  };
+  //: The books read (books.mjs analyse): a player's business's, with its balance sheet; or a
+  //: resident's shop's, as a buyer sees them. Days before the records begin are estimated.
+  W.readBooks = function (rec, place, kind, rivals) {
+    const pl = { ...place, chain: rec.chain || place.chain || [] };
+    return analyse(rec, { today: this.time.day, estimate: (wk) => estimateWeek(this.R, pl, kind, { rivals, week: wk }), names: (id) => this.R.items[id]?.name || id });
+  };
+  W.businessBooks = function (b) { return { ...this.readBooks(b, b.place, b.kind, b.rivals), balance: this.balanceSheet(b) }; };
+  W.shopBooks = function (place, rivals = 1) {
+    const kind = storesAt(this.R, place.keys || []).find((x) => !this.R.stores.kinds[x.kind].counter)?.kind;
+    if (!kind) fail("there is no business there");
+    const s = this.shops.get(String(place.id));
+    return { kind, recorded_since: s?.since ?? null, ...this.readBooks(s || { books: [], weeks: [], chain: jurisdictionChain(this, place) }, place, kind, s?.rivals ?? rivals) };
+  };
+  //: What the business has and what it owes, now.
+  W.balanceSheet = function (b) {
+    const R = this.R, B = BR(this), d = b.today;
+    const stock = Object.entries(b.stock || {}).reduce((s, [id, n]) => s + unitCost(R, id) * Math.max(0, n), 0);
+    const incoming = (b.incoming || []).reduce((s, x) => s + (x.cost || 0), 0);
+    const lease = b.premises === "lease" ? this.storefronts.get(b.place.id) : null;
+    const prepaid = lease && lease.paid_to > this.now ? Math.round(B.storefront_lease_per_week * Math.min(1, (lease.paid_to - this.now) / (7 * DAY))) : 0;
+    const assets = [["Cash in the till account", this.ledger.balance(b.account)], ["Today's takings, banked at close", d.sales + d.tax], ["Stock on the shelves, at cost", stock],
+      ["Stock ordered and paid for", incoming], ["Lease deposit", lease?.deposit || 0], ["Rent paid ahead", prepaid]];
+    const wagesDue = Object.values(d.wages || {}).reduce((s, x) => s + x, 0);
+    const liabilities = [["Wages for today's shifts", wagesDue], ["Holiday pay owed to staff", Math.round((b.staff || []).reduce((s, x) => s + (x.holiday || 0), 0))],
+      ["Sales tax to hand over", d.tax], ["Bills unpaid", this.billing.owed(b.account)], ["Owed to the seller", b.loan?.left > 0 ? b.loan.left * b.loan.monthly : 0]];
+    const total = (rows) => rows.reduce((s, [, v]) => s + v, 0);
+    return { at: this.now, assets: assets.filter(([, v]) => v), liabilities: liabilities.filter(([, v]) => v), total_assets: total(assets), total_liabilities: total(liabilities),
+      equity: total(assets) - total(liabilities) };
   };
 
   // ---- premises ---------------------------------------------------------------------------------
@@ -651,7 +777,9 @@ export function installEnterprise(CityWorld, CityError) {
   W.cmd_appraise_business = function (pid, { place, rivals = 1 }) {
     this.player(pid);
     if (this.bizAt(place?.id)) fail("a player runs that business");
-    return { appraisal: this.appraiseBusiness(place, rivals) };
+    const appraisal = this.appraiseBusiness(place, rivals);
+    this.shopRecord(place, { rivals, pid });   // its books are kept from now
+    return { appraisal };
   };
   //: Buying an NPC's shop: its staff and stock with it, the lease carried on, 30% down and the
   //: rest paid to the seller monthly (financed), or all at once.
@@ -677,6 +805,9 @@ export function installEnterprise(CityWorld, CityError) {
       reputation: B.reputation.start, licences: Object.fromEntries(licencesFor(R, a.kind, place.area).map((l) => [l.id, this.now + B.renew_days * DAY])),
       books: [], today: freshDay(t.day), sim_to: hourFloor(this.now), incoming: [], status: "open", opened: this.now, rivals: Math.max(0, rivals | 0), headhunted_until: 0, bought: { price: a.asking, at: this.now },
       loan: financed ? { seller, principal: a.asking - a.down, monthly: a.monthly, left: a.months, next_due: this.now + 30 * DAY, missed: 0 } : null };
+    // The shop's own records come with it: the new owner's books carry straight on.
+    const kept = this.shops.get(String(place.id));
+    if (kept) { this.runShop(kept); b.books = kept.books; b.weeks = kept.weeks; b.since = kept.since; this.shops.delete(kept.id); }
     this.biz.set(id, b);
     this.storefronts.set(b.place.id, { place: b.place, holder: p.account, pid, paid_to: this.now + 7 * DAY, deposit: B.storefront_lease_per_week * B.lease_deposit_weeks, missed: 0, since: this.now });
     if (this.registry.assets.has(id)) { const as = this.registry.get(id); as.owner = as.holder = p.account; as.custody = "owner"; }
@@ -698,6 +829,17 @@ export function installEnterprise(CityWorld, CityError) {
   // ---- the hours going by ---------------------------------------------------------------------------
   W.enterpriseStep = function () {
     for (const b of this.biz.values()) if (b.status === "open") this.runBusiness(b);
+    for (const s of [...this.shops.values()]) { if (this.bizAt(s.id)) this.shops.delete(s.id); else this.runShop(s); }
+    // Each money movement on a business's account, kept with it (its recent transactions).
+    const seen = this.booksSeq || 0, fresh = [];
+    for (let i = this.ledger.journal.length - 1; i >= 0 && this.ledger.journal[i].seq > seen; i -= 1) fresh.push(this.ledger.journal[i]);
+    for (const e of fresh.reverse()) {
+      this.booksSeq = Math.max(this.booksSeq || 0, e.seq);
+      for (const [account, v] of e.lines) {
+        const b = account.startsWith("firm:biz:") ? this.biz.get(account.slice(5)) : null;
+        if (b) noteTx(b, { t: e.at || this.now, kind: e.kind, memo: e.memo || "", amount: v });
+      }
+    }
     this.lawStep();
     for (const p of this.players.values()) {
       if (p.job_offers?.length) p.job_offers = p.job_offers.filter((o) => o.expires > this.now);
@@ -716,9 +858,10 @@ export function installEnterprise(CityWorld, CityError) {
       b.incoming = b.incoming.filter((x) => !x.done);
       b.laws = this.laws;
       const live = b.sim_to + HOUR >= limit;
-      const o = hourOf(R, b, t, { first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, extra: live ? this.handsIn(b) : 0 });
+      const o = hourOf(R, b, t, { first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, extra: live ? this.handsIn(b) : 0, noise: dayNoise(b.id, t.day) });
       delete b.laws;
       const d = b.today;
+      for (const [id, [n, s2, c]] of Object.entries(o.lines)) { const x = ((d.items ||= {})[id] ||= [0, 0, 0]); x[0] += n; x[1] += s2; x[2] += c; }
       d.visits += o.visits; d.wanted += o.wanted; d.served += o.served; d.lost += o.lost; d.sales += o.sales; d.tax += o.tax; d.cogs += o.cogs;
       d.stockout += o.stockout; d.clean_need += o.clean_need; d.clean_done += o.clean_done; if (o.understaffed) d.understaffed += 1; if (o.opened_late) d.late_open += 1;
       for (const [id, n] of Object.entries(o.units)) d.units += n;
@@ -823,10 +966,13 @@ export function installEnterprise(CityWorld, CityError) {
     }
     wages += d.staff_wages || 0;
     const sales = d.sales + (d.player_sales || 0);
+    const counter = d.player_orders || 0;
     const day = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, withheld, unpaid, rent: d.rent, fees: d.fees, ordered: d.ordered || 0,
       profit: sales - d.cogs - wages - d.rent - d.fees, visits: Math.round(d.visits), served: Math.round(d.served), lost: Math.round(d.lost),
-      stockout: d.stockout, reputation: Math.round(b.reputation) };
-    if (sales || wages || d.rent || d.fees || d.visits) { b.books.push(day); if (b.books.length > B.buying.books_weeks * 7) b.books.shift(); }
+      stockout: d.stockout, reputation: Math.round(b.reputation), orders: Math.round(d.served) + counter, player_sales: d.player_sales || 0,
+      units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
+    b.since ??= cityTime(b.opened ?? this.now, R.clock.zone).day;
+    if (sales || wages || d.rent || d.fees || d.visits) foldDay(b, day, d.items || {});
     if (t && t.weekday === 1 && b.books.length) {
       const wk = b.books.slice(-7), sum = (k) => wk.reduce((s, x) => s + (x[k] || 0), 0);
       b.week = { to: d.day, sales: sum("sales"), cogs: sum("cogs"), wages: sum("wages"), rent: sum("rent"), fees: sum("fees"), profit: sum("profit"), served: sum("served"), lost: sum("lost"), reputation: Math.round(b.reputation), at: this.now };
@@ -990,6 +1136,7 @@ export function installEnterprise(CityWorld, CityError) {
     const L = this.R.business.law;
     for (const bill of this.billing.bills.values()) {
       if (bill.status !== "open" || !bill.collections || !bill.payer.startsWith("player:")) continue;
+      if (bill.kind === "loan" || bill.kind === "loan_default") continue;   // a lender's own matter (credit.mjs): default, not a summons
       const p = this.players.get(bill.payer.slice(7));
       if (!p) continue;
       const c = bill.case ? this.cases.get(bill.case) : this.openCase(p, bill);
@@ -1152,7 +1299,7 @@ export function installEnterprise(CityWorld, CityError) {
 }
 
 // ---- small helpers ------------------------------------------------------------------------------------
-function freshDay(day) { return { day, visits: 0, wanted: 0, served: 0, lost: 0, sales: 0, tax: 0, cogs: 0, units: 0, stockout: 0, clean_need: 0, clean_done: 0, understaffed: 0, late_open: 0, wages: {}, rent: 0, fees: 0, ordered: 0 }; }
+function freshDay(day) { return { day, visits: 0, wanted: 0, served: 0, lost: 0, sales: 0, tax: 0, cogs: 0, units: 0, stockout: 0, clean_need: 0, clean_done: 0, understaffed: 0, late_open: 0, wages: {}, rent: 0, fees: 0, ordered: 0, items: {}, player_orders: 0 }; }
 function hourFloor(ms) { return Math.floor(ms / HOUR) * HOUR; }
 //: The next time it is ``hour`` o'clock in the city after ``now`` (the next morning's delivery).
 function nextHourAt(now, t, hour) {
