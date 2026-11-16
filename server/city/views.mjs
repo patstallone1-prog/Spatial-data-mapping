@@ -67,6 +67,15 @@ export function viewFor(world, pid) {
   E.shops = (E.shops || []).filter((x) => x.watchers?.[pid]).map((x) => ({ ...x, watchers: { [pid]: x.watchers[pid] } }));
   E.storefronts = (E.storefronts || []).map((s) => (s.pid === pid ? s : { place: s.place, holder: s.holder, pid: s.pid, since: s.since }));
   o.enterprise = E;
+  // A kitchen: its menu and pantry are the staff's to see; tickets, boards, tests and records are
+  // each cook's own, and the owner's (kitchen.mjs).
+  o.kitchens = (o.kitchens || []).map((k) => {
+    const owner = k.business && E.biz.some((b) => b.id === k.business && mine.has(b.account));
+    if (owner) return k;
+    const own = (obj) => Object.fromEntries(Object.entries(obj || {}).filter(([id]) => id === pid));
+    return { ...k, lines: own(k.lines), held: own(k.held), staff: own(k.staff), tests: (k.tests || []).filter((x) => x.pid === pid),
+      proposals: (k.proposals || []).filter((x) => x.pid === pid), log: (k.log || []).filter((e) => !e.pid || e.pid === pid), incoming: [] };
+  });
 
   // ---- messages: the threads you are in ----------------------------------------------------------
   if (o.mail) {

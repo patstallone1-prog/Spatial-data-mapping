@@ -38,6 +38,7 @@ import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
 import { THEME_CSS } from "./theme.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
+import { kitchenPanel } from "./kitchen-panel.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
@@ -1252,6 +1253,9 @@ export async function startCity(ctx) {
     openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a) }));
+  //: The restaurant game: a food shop's line, lab and pantry, for its staff and its owner (kitchen-panel.mjs).
+  let kitchenUI = null;
+  const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
   const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk }));
@@ -3270,6 +3274,7 @@ export async function startCity(ctx) {
       else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) recurring.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
     } else recurring.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
     recurring.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
+    recurring.push(...kitchen().todo(p));      // tickets up, the owner's answers, a tip for the cook
     out.push(...recurring);
     if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: stepAt(s), sub: t.title, run: () => openSide("tasks") }); });
     if (p.errand && !(g && /^Errand/.test(g.label))) out.push({ label: `Errand for ${p.errand.to.who || "a neighbour"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}`, x: p.errand.to.x, z: p.errand.to.z, run: () => openSide("tasks") });
@@ -3404,6 +3409,7 @@ export async function startCity(ctx) {
     const shopAt = nearestShop();
     if (shopAt) out.push({ id: "shop", label: `${shopAt.front ? "Go in" : "Shop"}: ${storesAt(R, shopAt.keys).map((s) => s.name).join(", ")}`, key: "Enter", run: () => { if (!(shopAt.front && enterShop(shopAt))) openStore(shopAt); } });
     out.push(...enterprise().actions(p, here));   // a storefront to lease, your business, your hearing
+    out.push(...kitchen().actions(p, here));      // the kitchen, for its staff on shift and its owner
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
