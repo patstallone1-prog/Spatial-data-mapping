@@ -245,11 +245,9 @@ export function enterprisePanels(api) {
         act("Save the order", () => run("set_duties", { business: id, duties: side.duties }, "Your staff will work in that order."), true));
     }
     if (side.tab === "books") {
-      const rows = b.books.slice(-14).reverse().map((d) => h("tr", {}, h("td", { textContent: when(d.day * DAY + 12 * 3_600_000).split(" ").slice(0, 2).join(" ") }),
-        h("td", { textContent: R.fmt(d.sales) }), h("td", { textContent: R.fmt(d.cogs) }), h("td", { textContent: R.fmt(d.wages) }), h("td", { textContent: R.fmt(d.rent + d.fees) }),
-        h("td", { textContent: R.fmt(d.profit), style: d.profit < 0 ? "color:#e2483d" : "" }), h("td", { textContent: `${d.served}/${d.served + d.lost}` })));
-      out.push(h("table", { className: "wares" }, h("tr", {}, ...["Day", "Sales", "Goods", "Wages", "Rent, fees", "Profit", "Served"].map((x) => h("th", { textContent: x }))), ...rows),
-        rows.length ? "" : h("p", { className: "note", textContent: "The first day's books close at midnight." }));
+      // The books read (books.mjs): periods, items, costs, balance sheet, transactions; charts and tables.
+      api.books(out, w.businessBooks(b), side);
+      if (!b.books.length) out.push(h("p", { className: "note", textContent: "The first day's books close at midnight." }));
     }
     side.el.replaceChildren(...out);
   }
@@ -259,6 +257,8 @@ export function enterprisePanels(api) {
     const place = placeArg(side.place);
     let a = side.appraisal;
     if (!a) {
+      // Asked of the city too: from now its real books are kept (and shown here as they come in).
+      send("appraise_business", { place, rivals: rivalsOf(side.place) });
       try { a = side.appraisal = w.appraiseBusiness(place, rivalsOf(side.place)); } catch (e) { side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Buying the business" }), close), h("p", { className: "note", textContent: e.message })); return; }
     }
     const title = h("h3", {}, h("span", { textContent: `Buying ${address(side.place.name) || "the business"}` }), close);
@@ -268,6 +268,7 @@ export function enterprisePanels(api) {
       h("table", {}, ...[["A year's profit", R.fmt(a.year_profit)], ["Stock at cost", R.fmt(a.stock_cost)], ["Asking", R.fmt(a.asking)], ["Seller financing", `${R.fmt(a.down)} down, then ${a.months} × ${R.fmt(a.monthly)} at ${Math.round(a.rate * 100)}%`]]
         .map(([k, v]) => h("tr", {}, h("td", { textContent: k }), h("td", { textContent: v })))),
       h("p", { className: "note", textContent: "Its staff, its stock and the lease (a week paid) come with it. Two missed payments to the seller and it goes back to them." }),
+      h("h4", { textContent: "Its books" }), ...(() => { const more = []; try { api.books(more, w.shopBooks(place, rivalsOf(side.place)), side, { own: false }); } catch (e) { more.push(h("p", { className: "note", textContent: e.message })); } return more; })(),
       h("div", { style: "display:flex;gap:6px;justify-content:flex-end" },
         act(`Buy it outright (${R.fmt(a.asking)})`, () => send("buy_business", { place, financed: false, rivals: rivalsOf(side.place) }).then(bought)),
         act(`Buy it, ${R.fmt(a.down)} down`, () => send("buy_business", { place, financed: true, rivals: rivalsOf(side.place) }).then(bought), true)));

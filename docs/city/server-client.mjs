@@ -30,12 +30,14 @@ export function cityServerUrl(location) {
 export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10_000 }) {
   let token = null, pid = null, version = 0, n = 0;
   const run = Math.random().toString(36).slice(2, 8);
-  async function post(body) {
+  //: The voices of the city's people are next door to the city's server (server/npc).
+  const voices = url.replace(/\/api\/city(?=$|[?#])/, "/api/npc");
+  async function post(body, to = url) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
     try {
       // text/plain: a simple request, so another origin's page needs no preflight to send it.
-      const r = await f(url, { method: "POST", signal: controller.signal, headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: JSON.stringify(body) });
+      const r = await f(to, { method: "POST", signal: controller.signal, headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: JSON.stringify(body) });
       const out = await r.json().catch(() => null);
       if (out && typeof out === "object") return out;
       return { ok: false, code: r.status === 404 ? "not_configured" : "offline", error: "the city's server did not answer" };
@@ -49,10 +51,10 @@ export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10
     return r;
   }
   //: Signed, and signed in again once if the session has run out.
-  async function signed(body) {
+  async function signed(body, to = url) {
     if (!token) { const o = await open(); if (!o.ok) return o; }
-    let r = await post({ ...body, token });
-    if (!r.ok && r.code === "session") { const o = await open(); if (!o.ok) return o; r = await post({ ...body, token }); }
+    let r = await post({ ...body, token }, to);
+    if (!r.ok && r.code === "session") { const o = await open(); if (!o.ok) return o; r = await post({ ...body, token }, to); }
     if (r.ok && r.version) version = Math.max(version, r.version);
     return r;
   }
@@ -61,5 +63,7 @@ export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10
     send: (command, args = {}) => signed({ op: "cmd", req: `${run}:${n += 1}`, command, args }),
     sync: (since = version) => signed({ op: "sync", since }),
     grants: () => signed({ op: "grants" }),
+    //: Something said to one of the city's people: {reply, source} (docs/city/npc-talk.mjs).
+    talk: (body = {}) => signed({ ...body, op: "talk" }, voices),
   };
 }

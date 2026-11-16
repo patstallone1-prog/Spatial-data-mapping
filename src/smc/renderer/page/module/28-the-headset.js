@@ -827,11 +827,43 @@ function setContributorMode(on) {
 }
 //: Where Explore world puts you: a place you chose, kept on this device.
 var SPAWN_KEY = "kerbside:spawn";
-function readSpawn() {
+//: The home you own in the city (docs/city/view.mjs keeps it here): where you start when you have
+//: chosen no spawn point of your own.
+var HOME_SPAWN_KEY = "kerbside:home-spawn";
+function readSpawnAt(key) {
   try {
-    const spawn = JSON.parse(localStorage.getItem(SPAWN_KEY) || "null");
+    const spawn = JSON.parse(localStorage.getItem(key) || "null");
     return spawn && Number.isFinite(spawn.lon) && Number.isFinite(spawn.lat) ? spawn : null;
   } catch { return null; }
+}
+function readSpawn() { return readSpawnAt(SPAWN_KEY); }
+function readHomeSpawn() { const home = readSpawnAt(HOME_SPAWN_KEY); return home ? { ...home, home: true } : null; }
+//: Where you start: the point you chose, else the home you own, else the page's default.
+function startSpawn() { return readSpawn() || readHomeSpawn(); }
+//: The pavement nearest (x, z): out of the roadway, a step and a half in from the kerb. Null where
+//: no kerb is drawn near (a park, a pier), or where the point is on a pavement already.
+function sidewalkNear(x, z) {
+  if (typeof nearestKerbAt !== "function" || typeof insideCarriageway !== "function") return null;
+  if (!insideCarriageway(x, z, 0.2)) return null;
+  const kerb = nearestKerbAt(x, z, 60);
+  if (!kerb) return null;
+  for (const step of [1.5, 1.0, 2.2]) {
+    const px = kerb.x + kerb.nx * step, pz = kerb.z + kerb.nz * step;
+    if (!insideCarriageway(px, pz, 0.2)) return { x: px, z: pz };
+  }
+  return null;
+}
+//: Nobody starts in the road: once the streets round the walker are in, a walker standing in a
+//: carriageway (a spawn point, a home's door on the map, the page's default) steps up to the kerb.
+function settleOnSidewalk() {
+  if (state.explore || (typeof livingCity !== "undefined" && livingCity?.carState?.())) return false;
+  const at = sidewalkNear(avatar.position.x, avatar.position.z);
+  if (!at) return false;
+  avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+  state.target.copy(avatar.position);
+  placeCamera();
+  requestFrame();
+  return true;
 }
 function spawnLabelAt(x, z) {
   let best = null;
@@ -844,20 +876,48 @@ function spawnLabelAt(x, z) {
 }
 function spawnHere() {
   if (!worldReadyNow) return false;
-  const lon = avatar.position.x / metersPerLon + midLon, lat = -avatar.position.z / metersPerLat + midLat;
-  const spawn = { lon: +lon.toFixed(7), lat: +lat.toFixed(7), yaw: state.yaw,
-    label: spawnLabelAt(avatar.position.x, avatar.position.z), page: location.pathname };
+  return saveSpawnAt(avatar.position.x, avatar.position.z, state.yaw);
+}
+//: A spawn point kept at (x, z), moved onto the pavement if that is in the road.
+function saveSpawnAt(x, z, yaw = null) {
+  const at = sidewalkNear(x, z) || { x, z };
+  const lon = at.x / metersPerLon + midLon, lat = -at.z / metersPerLat + midLat;
+  const spawn = { lon: +lon.toFixed(7), lat: +lat.toFixed(7), label: spawnLabelAt(at.x, at.z), page: location.pathname };
+  if (Number.isFinite(yaw)) spawn.yaw = yaw;
   try { localStorage.setItem(SPAWN_KEY, JSON.stringify(spawn)); } catch { return false; }
   return spawn;
 }
+//: Your real position as the spawn point, where the map has it: {ok, spawn} or {ok: false, error}.
+function spawnAtLocation() {
+  return new Promise((resolve) => {
+    if (!worldReadyNow) { resolve({ ok: false, error: "The world is still loading: try again in a moment." }); return; }
+    if (!navigator.geolocation) { resolve({ ok: false, error: "This device does not share its location." }); return; }
+    navigator.geolocation.getCurrentPosition((position) => {
+      const lon = position.coords.longitude, lat = position.coords.latitude, [x, y] = xy(lon, lat);
+      const mapped = (typeof tileOwnGround === "function" && tileOwnGround(lon, lat)) || (typeof regionAt === "function" && regionAt(lon, lat));
+      if (!mapped) { resolve({ ok: false, error: "You are outside the area this map covers, so your spawn point is unchanged." }); return; }
+      if (typeof cityLock !== "undefined" && cityLock && !cityAreaHolds(x, -y)) { resolve({ ok: false, error: `You are outside ${CITY_AREA.name}: switch to Explore to start there.` }); return; }
+      const spawn = saveSpawnAt(x, -y);
+      if (!spawn) { resolve({ ok: false, error: "This browser would not keep the spawn point." }); return; }
+      stageWorld();
+      resolve({ ok: true, spawn });
+    }, (error) => resolve({ ok: false, error: error.code === 1 ? "Location is turned off for this page: allow it in the browser, then try again." : "Your location could not be found just now." }),
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  });
+}
 var spawnApplied = false;
 function applySpawn() {
-  const spawn = readSpawn();
+  const spawn = startSpawn();
   if (!spawn || spawnApplied) return;
   spawnApplied = true;
   const [x, y] = xy(spawn.lon, spawn.lat);
+  // City mode keeps to its area and builds only that: a spawn point outside it is left for
+  // Explore. (Sent there, the walker left the area, the area's build went after the walker's
+  // and each undid the other: the loading screen never finished.)
+  if (typeof cityLock !== "undefined" && cityLock && !cityAreaHolds(x, -y)) return;
   if (!tileOwnGround(spawn.lon, spawn.lat)) window.kerbsideOpenFullRegionAt?.(spawn.lon, spawn.lat);
-  goTo(new THREE.Vector3(x, 0, -y), { travel: true, zoom: true });
+  const at = sidewalkNear(x, -y) || { x, z: -y };
+  goTo(new THREE.Vector3(at.x, 0, at.z), { travel: true, zoom: true });
   if (Number.isFinite(spawn.yaw)) { state.yaw = spawn.yaw; placeCamera(); }
 }
 function homeContext() {
@@ -879,7 +939,10 @@ function homeContext() {
     look: { set: afterReady((look) => applyWalkerLook(look)) },
     spawn: {
       get: readSpawn,
+      home: readHomeSpawn,
+      ready: () => worldReadyNow,
       useWalker: () => { const spawn = spawnHere(); if (spawn) stagedSpawn = JSON.stringify(readSpawn()); return spawn; },
+      useLocation: spawnAtLocation,
       clear: () => { try { localStorage.removeItem(SPAWN_KEY); } catch { /* private mode */ } WORLD_READY.then(stageWorld); },
       pickInWorld: afterReady(() => homeModule.then((home) => home.spawnBar({
         onSet: () => { const spawn = spawnHere(); if (spawn) stagedSpawn = JSON.stringify(readSpawn()); if (addrBox && spawn) { addrBox.textContent = `Spawn point set${spawn.label ? `: ${spawn.label}` : ""}.`; addrBox.hidden = false; } },
@@ -923,7 +986,7 @@ function tellAppShell(open) {
 //: you were.
 var stagedSpawn;
 function stageWorld() {
-  const spawn = readSpawn(), key = JSON.stringify(spawn), fresh = stagedSpawn !== key;
+  const spawn = startSpawn(), key = JSON.stringify(spawn), fresh = stagedSpawn !== key;
   stagedSpawn = key;
   if (spawn) {
     if (fresh) { spawnApplied = false; applySpawn(); }
@@ -965,17 +1028,26 @@ function worldLoadWaiting() {
   }
   return waiting;
 }
+//: A load that has stopped moving is let through: the same things waited for, none of them any
+//: further on, for this long (a build that failed and is not coming). Never a screen that loads
+//: for ever.
+const STALLED_FOR_MS = 45000;
 WORLD_READY.then(() => {
-  let settledSince = 0;
+  let settledSince = 0, same = "", sameSince = performance.now();
   const check = () => {
-    const now = performance.now();
-    if (worldLoadWaiting().length) settledSince = 0;
+    const now = performance.now(), waiting = worldLoadWaiting();
+    if (waiting.length) settledSince = 0;
     else settledSince ||= now;
-    if (settledSince && now - settledSince >= SETTLED_FOR_MS) { worldLoadedNow = true; worldLoaded(); return; }
+    const sign = waiting.join("|");
+    if (sign !== same) { same = sign; sameSince = now; }
+    const stalled = waiting.length && now - sameSince >= STALLED_FOR_MS;
+    if (stalled) console.warn(`kerbside: entering with the load stalled on ${sign}`);
+    if (stalled || (settledSince && now - settledSince >= SETTLED_FOR_MS)) { worldLoadedNow = true; worldLoaded(); return; }
     setTimeout(check, 250);
   };
   check();
 });
+WORLD_LOADED.then(() => settleOnSidewalk());
 window.kerbsideLoadState = () => ({ loaded: worldLoadedNow, waiting: worldLoadedNow ? [] : worldLoadWaiting() });
 pageIsReady();
 

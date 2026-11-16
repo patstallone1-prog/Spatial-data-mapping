@@ -143,6 +143,7 @@ const CSS = `
 #home .sheet h3{margin:0 0 10px;font-size:22px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center}
 #home .sheet h3 span{flex:1}
 #home .sheet p{margin:6px 0 10px;font-size:15px;color:#b8c6d3;letter-spacing:.01em;line-height:1.35}
+#home .sheet p.said{color:#ffd98a;border-left:3px solid #ffd98a;padding-left:10px}
 #home .sheet label{display:block;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9fb0c2;margin:12px 0 6px}
 #home .sheet input{width:100%;box-sizing:border-box;padding:10px 12px;font:600 17px inherit;color:#fff;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.2);outline:none}
@@ -651,14 +652,28 @@ export function openHome(ctx) {
       el("label", {}, "Name"), nameInput(), el("label", {}, "Outfit"), swatches("outfit"), el("label", {}, "Team colour"), swatches("team"));
   };
 
-  const spawnSheet = () => {
-    const current = ctx.spawn.get();
-    const label = current ? current.label || `${current.lat.toFixed(5)}, ${current.lon.toFixed(5)}` : "The middle of the area (default)";
-    sheet("Set spawn point", el("p", {}, "Where Explore world puts you. ", el("b", {}, `Now: ${label}`)),
+  //: ``said``: what the last choice came to (set, or why it could not be), shown in the sheet.
+  const spawnSheet = (said = null) => {
+    const current = ctx.spawn.get(), home = ctx.spawn.home?.() || null;
+    const name = (sp) => sp.label || `${sp.lat.toFixed(5)}, ${sp.lon.toFixed(5)}`;
+    const label = current ? name(current) : home ? `Your home${home.label ? `, ${home.label}` : ""} (default)` : "The middle of the area (default)";
+    const note = said ? el("p", { class: "said", role: "status" }, said) : "";
+    const busy = (button, text) => { button.disabled = true; button.textContent = text; };
+    sheet("Set spawn point", el("p", {}, "Where you start. Always on a pavement, never in the road. ", el("b", {}, `Now: ${label}`)), note,
       el("div", { class: "tools" },
-        el("button", { class: "hb needs-world", type: "button", on: { click: () => { if (closeHome()) ctx.spawn.pickInWorld(); } } }, "Choose in the world…"),
-        el("button", { class: "hb", type: "button", on: { click: () => { ctx.spawn.useWalker(); spawnSheet(); } } }, "Where my walker is now"),
-        el("button", { class: "hb", type: "button", disabled: !current, on: { click: () => { ctx.spawn.clear(); spawnSheet(); } } }, "Back to the default")));
+        el("button", { class: "hb", type: "button", on: { click: () => {
+          if (!closeHome()) { spawnSheet("The world is still loading. Choose in the world once it says “World ready”."); return; }
+          ctx.spawn.pickInWorld();
+        } } }, "Choose in the world…"),
+        el("button", { class: "hb", type: "button", on: { click: () => {
+          const spawn = ctx.spawn.useWalker();
+          spawnSheet(spawn ? `Set to where your walker stands${spawn.label ? `: ${spawn.label}` : ""}.` : "The world is still loading: try again when it says “World ready”.");
+        } } }, "Where my walker stands now"),
+        el("button", { class: "hb", type: "button", on: { click: (e) => {
+          busy(e.currentTarget, "Finding you…");
+          ctx.spawn.useLocation().then((r) => spawnSheet(r.ok ? `Set to your location${r.spawn.label ? `: ${r.spawn.label}` : ""}.` : r.error));
+        } } }, "My real location"),
+        el("button", { class: "hb", type: "button", disabled: !current, on: { click: () => { ctx.spawn.clear(); spawnSheet(home ? "Back to your home." : "Back to the default."); } } }, home ? "Back to my home" : "Back to the default")));
   };
 
   const toolsSheet = () => {
