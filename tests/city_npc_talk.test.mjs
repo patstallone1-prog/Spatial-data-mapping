@@ -183,3 +183,19 @@ test("in a conversation the world keeps, a real question is left for the server,
   const b = await open(KEY_B, "Ben");
   assert.equal((await service.handle({ op: "talk", token: b.token, thread: `npc:boss:${a.pid}`, text: "What did Ana ask you?" })).ok, false);
 });
+
+test("the deployed door (api/npc.mjs) is the same service beside the city's, and the page finds it next to /api/city", async () => {
+  const text = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+  assert.match(text("../api/npc.mjs"), /from "\.\.\/server\/npc\/service\.mjs"/);
+  assert.match(text("../api/npc.mjs"), /authority\(\)/, "it reads the world the city's server keeps");
+  assert.ok(JSON.parse(text("../vercel.json")).functions["api/npc.mjs"]);
+  // The page's client posts to /api/npc with its city session.
+  const { cityClient } = await import("../docs/city/server-client.mjs");
+  const seen = [];
+  const fetch = async (url, init) => { seen.push([url, JSON.parse(init.body)]); return { status: 200, json: async () => (JSON.parse(init.body).op === "session" ? { ok: true, token: "t", pid: "p1" } : { ok: true, reply: "Hello.", source: "set" }) }; };
+  const client = cityClient({ url: "https://example.test/api/city", key: KEY_A, fetch });
+  const r = await client.talk({ role: "resident", text: "hi" });
+  assert.equal(r.reply, "Hello.");
+  assert.deepEqual(seen.map(([u]) => u), ["https://example.test/api/city", "https://example.test/api/npc"]);
+  assert.deepEqual([seen[1][1].op, seen[1][1].token, seen[1][1].text], ["talk", "t", "hi"]);
+});
