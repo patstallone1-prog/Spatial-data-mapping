@@ -1290,15 +1290,19 @@ export async function startCity(ctx) {
   //: Signing in to the city (on entering City mode). Not reachable: the practice world, and
   //: another try every minute while you are there.
   async function connectCity() {
+    const generation=(online.connectionGeneration||0)+1;online.connectionGeneration=generation;
     online.state = "connecting"; online.why = "";
     if (world) save();
     world = null; view = null;
     const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
+    if(lib?.onAccountChange&&!online.accountWatch){let identity=lib.account?.().accountId||null;online.accountWatch=lib.onAccountChange(profile=>{const next=profile.accountId||null;if(next!==identity){identity=next;if(wantOnline())connectCity();}});}
+    if(generation!==online.connectionGeneration)return;
     const key = lib?.deviceKey?.();
     if (!key) { practice("practice", "this device has no account"); return; }
-    online.client ||= cityClient({ url: SERVER_URL, key });
-    const r = await online.client.open();
-    if (online.state !== "connecting") return;   // Explore again while it was asked
+    const client = cityClient({ url: SERVER_URL, key });
+    online.client = client;
+    const r = await client.open();
+    if (online.state !== "connecting"||generation!==online.connectionGeneration) return;   // Explore again while it was asked
     if (!r.ok) { practice("practice", r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
     myId = r.pid; online.state = "online"; online.version = 0; online.since = performance.now(); grantsAsked = false;
     if (party.session) party.session.city.send({ t: "hello", pid: myId });

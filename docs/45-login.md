@@ -76,11 +76,13 @@ Each prints a line of SQL to run. `--reset-password` also prints the new passwor
 Email, password-reset mail and sign-in with Google or Apple would need Supabase Auth and its email
 settings. That is a later step. The account ids here can be carried over to it.
 
-## Not covered
+## Shared City identity
 
-This adds identity, not saved play. A player's wallet, home and books are still kept in each
-browser, so they don't move between devices. Moving them to the cloud is the separate cloud work
-in progress. That work can key state by `kerbside_account_of`.
+The authoritative city resolves a logged-in device through its backend account link. Devices
+signed in to the same username use the same city player, wallet and property. Signing out or
+switching account invalidates that device’s old city session; another signed-in device keeps
+its own session. Apply `kerbside_city_identity.sql` after the login and city-server migrations.
+The Explore/offline practice world remains local to its browser.
 
 ## Tests
 

@@ -493,7 +493,7 @@ async function attachRegion(region, centre = null, radius = META ? STREAM.arriva
     candidate=holder;
     globalThis.__kerbsideGuest = {
       renderer, assets: metas["kerbside-assets"], visualSupport: metas["kerbside-visual-support"],
-      natureBacked:Boolean(NATURE), headset: META, canonicalEdits: CANONICAL_EXTERIOR_EDITS || {},
+      natureBacked:Boolean(NATURE), headset: META, marinaCity:stripKey==="city", canonicalEdits: CANONICAL_EXTERIOR_EDITS || {},
       detailWindow:{...centre,radius:holder.detailRadius,strip:holder.strip},cellCache:{
         load:(url,priority)=>worldCellCache.load(new URL(url,pageUrl).href,priority),
         snapshot:()=>worldCellCache.snapshot(),focus:()=>worldCellCache.focus()},
@@ -644,6 +644,11 @@ function releaseModuleScope() {
 }
 window.kerbsideGuestApi = {
   interiorStatus,
+  hasInteriorBuilding:id=>footprintById.has(String(id)),
+  interiorEditorBaseline:(id,access)=>{syncGuestInteriorAccess(access);return editorBaseline(id);},
+  interiorEditorAccess:syncGuestInteriorAccess,
+  interiorEditorReady,
+  interiorEditorDistance:(id,x,z)=>{const e=footprintById.get(String(id));return e?Math.hypot(Math.max(e.minX-x,0,x-e.maxX),Math.max(e.minZ-z,0,z-e.maxZ)):Infinity;},
   ready:async()=>{if(await groundReady===false)throw Error("Destination ground unavailable; previous window retained");},
   cityAsTiles:(simple)=>showDetailBuildings(!simple),
   municipalUsage,

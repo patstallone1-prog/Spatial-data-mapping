@@ -48,3 +48,8 @@ test('apartment floor regions compose without overwriting another family or acce
  const a=dispatch(createDraft(h,{unitId:'a'}),{type:'set-floor-region',level:0,id:'r',polygon:box(1,3,3,5),regionId:'a-carpet',material:'sage_carpet',carpet:true}),b=dispatch(createDraft(h,{unitId:'b'}),{type:'set-floor-region',level:0,id:'b',polygon:box(8,3,10,5),regionId:'b-carpet',material:'sand_carpet',carpet:true});valid(a);valid(b);const out=composeDesigns(h,[a,b].map((d,i)=>({target:{unitId:i?'b':'a'},baselineFingerprint:fingerprint(h),house:d.house})));assert.equal(out.storeys[0].finish_regions.length,2);assert.deepEqual(out.storeys[0].rooms,f.rooms);
  const forged=structuredClone(a);forged.house.storeys[0].finish_regions.push(b.house.storeys[0].finish_regions[0]);assert.ok(validateDraft(forged).issues.some(i=>i.code==='unit-protected'));
 });
+
+test('storefront windows retain their source positions across reversed facade directions and storey bands',async()=>{
+ const{windowsFromStorefront}=await import('../docs/interior-lab/source-windows.mjs'),footprint=box(0,0,8,6),plan={facades:[{a:[8,0],b:[0,0],openings:[{id:'shop-window',kind:'window',u:1,v:.6,w:2,h:1.8},{id:'upper-window',kind:'window',u:4,v:4,w:2,h:1.5},{id:'entry',kind:'door',u:0,v:0,w:1,h:2.1}]}]};
+ const windows=windowsFromStorefront(plan,{planOrigin:[100,200],origin:[100,200],footprint,height:3});assert.equal(windows.length,1);assert.equal(windows[0].id,'shop-window');assert.equal(windows[0].edge,0);assert.equal(windows[0].u,5);assert.equal(windows[0].v,.6);assert.equal(windows[0].w,2);assert.equal(windows[0].h,1.8);
+});

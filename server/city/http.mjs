@@ -22,7 +22,7 @@ const json = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), "
 
 export function loadCity() {
   const R = loadRules(json("../../docs/city/rules.json"));
-  return { R, canon: new Canon(json("./canon/marina.json"), R) };
+  const canon=new Canon(json("./canon/marina.json"),R);canon.interiorEnvelopes=new Map(Object.entries(json("./canon/interiors.json").buildings));return {R,canon};
 }
 
 export function storeFrom(env) {

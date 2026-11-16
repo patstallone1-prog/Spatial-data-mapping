@@ -605,9 +605,58 @@ function requestStoreInteriors(base) {
 }
 // User designs stay in the city's saved world; its source footprint and facade remain authoritative.
 let homeEditorBridge = null, homeEditorBridgePromise = null, homeEditorAccess = { homes: [], designs: [] }, homeEditorHost=null, homePropertyMenu=null, homeEditorWasPaused=false;
+function emptyMarinaLegacy(entry) {
+  const city=Boolean(ATTACH?.marinaCity||(!ATTACH&&typeof cityGame==="function"&&cityGame()));
+  const p=entry.way.centroid||entry.way.points?.[0];
+  return city&&p&&p[0]>=-122.4478&&p[0]<=-122.4310&&p[1]>=37.7983&&p[1]<=37.8082&&!commercialInterior(entry)&&!(entry.generatedInteriorRef&&!entry.generatedInteriorFailed)&&!homeEditorAccess.designs.some(d=>d.target.buildingId===String(entry.way.osm_id));
+}
+function emptyMarinaSource(entry) {
+  return emptyMarinaLegacy(entry)||homeEditorAccess.designs.some(d=>d.target.buildingId===String(entry.way.osm_id)&&d.house?.provenance?.empty_marina_legacy);
+}
+async function emptyMarinaBaseline(entry) {
+  const deadline=Date.now()+15000;while(!(INTERIORS_SETTLED&&HOME_OPENINGS_SETTLED)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,25));
+  if(!(INTERIORS_SETTLED&&HOME_OPENINGS_SETTLED))throw Error("This home's source openings are still loading. Try again shortly.");
+  if(!entry.homeShell)buildHomeShell(entry);
+  if(entry.editorBaseline?.provenance?.empty_marina_legacy)return structuredClone(entry.editorBaseline);
+  const floorY=entryFloorY(entry),spec=HOME_RENDER.get(String(entry.way.osm_id)),height=spec?spec.base+spec.height-floorY:Number(entry.way.height_m)||3.2,count=homeStoreyCount(entry,height),proposed=homeStoreyHeight(entry,height),step=height-proposed*(count-1)>=2?proposed:height/count;
+  const origin=entry.fit?xy(entry.fit[4],entry.fit[5]):[(entry.minX+entry.maxX)/2,-(entry.minZ+entry.maxZ)/2];entry.editorOrigin=origin;
+  const windows=(entry.homeShell?.group.userData.windows||[]).map(w=>({edge:w.edge,u:w.u,v:w.v-floorY,w:w.w,h:w.h})).filter(w=>Number.isInteger(w.edge)&&[w.u,w.v,w.w,w.h].every(Number.isFinite));
+  const openings=(entry.doors||[]).filter(d=>[d.cx,d.cz,d.ux,d.uz,d.width].every(Number.isFinite)).map(d=>({segment:[[d.cx-d.ux*d.width/2,d.cz-d.uz*d.width/2],[d.cx+d.ux*d.width/2,d.cz+d.uz*d.width/2]],entrance:true,rooms:[0,'outside'],type:'entrance',leaf_count:0}));
+  if(!openings.length)throw Error("This home's source entrance must load before its empty shell can be edited.");
+  const snapshot={id:String(entry.way.osm_id),origin,floorY,footprint:entry.local.map(p=>[...p]),windows,levels:Array.from({length:count},(_,level)=>({level,elevation:level*step,height:level===count-1?height-level*step:step,rooms:[],segments:[],objects:[],openings:level===0?openings:[]})),metadata:{source:'marina_legacy_reset',ownership_scope:count>1?'unknown_multi_unit':'single_fitted_plan'}};
+  const {emptyMarinaHouse}=await import(new URL('../interior-lab/empty-shell.mjs',interiorAssetBase()).href);const house=emptyMarinaHouse(snapshot);entry.emptyMarinaShell=true;entry.editorBaseline=structuredClone(house);return house;
+}
+function interiorGuest(buildingId) {
+  const g=typeof activeGuest!=="undefined"?activeGuest:null;
+  return g?.ready&&g.api.hasInteriorBuilding?.(String(buildingId))?g:null;
+}
+function invalidateLocalInterior(id) {
+  const entry=footprintById.get(String(id));if(!entry)return;
+  entry.emptyMarinaShell=emptyMarinaSource(entry);
+  const had=Boolean(entry.interior);entry.customInteriorEnabled=homeEditorAccess.designs.some(d=>d.target.buildingId===String(id));entry.customInteriorFailed=false;
+  if(had)removeInterior(entry);
+  if(had||entry.customInteriorEnabled)buildInterior(entry);
+  requestFrame();
+}
+function syncGuestInteriorAccess(access) {
+  const previous=homeEditorAccess;homeEditorAccess=access;
+  const signature=(data,id)=>JSON.stringify((data.designs||[]).filter(d=>d.target.buildingId===id).map(d=>[d.target.homeId,d.revision]));
+  for(const id of new Set([...(previous.designs||[]),...(access.designs||[])].map(d=>d.target.buildingId)))if(signature(previous,id)!==signature(access,id))invalidateLocalInterior(id);
+}
+async function interiorEditorReady(buildingId) {
+  const g=interiorGuest(buildingId);if(g)return g.api.interiorEditorReady(String(buildingId));
+  const entry=footprintById.get(String(buildingId)),deadline=Date.now()+15000;
+  if(!entry)throw Error("Your property's region is no longer loaded. Reopen the editor after visiting it.");
+  while(entry.generatedInteriorPending&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,30));
+  if(entry.generatedInteriorPending)throw Error("Your design is saved, but its render is still rebuilding. Try again before returning.");
+  if(entry.customInteriorFailed)throw Error("Your design was saved, but the world could not rebuild it. Retry saving before returning.");
+}
 async function editorBaseline(buildingId) {
+  const g=interiorGuest(buildingId);if(g)return g.api.interiorEditorBaseline(String(buildingId),homeEditorAccess);
   const entry = footprintById.get(String(buildingId));
   if (!entry) throw new Error("This building is not loaded yet. Visit your property, then open the editor.");
+  if(emptyMarinaSource(entry))return emptyMarinaBaseline(entry);
+  if(entry.editorBaseline?.provenance?.empty_marina_legacy)entry.editorBaseline=null;
   if (entry.editorBaseline) return structuredClone(entry.editorBaseline);
   let house;
   if (entry.generatedInteriorRef) {
@@ -624,8 +673,10 @@ async function editorBaseline(buildingId) {
     const entrances=(entry.doors||[]).filter(d=>[d.cx,d.cz,d.ux,d.uz,d.width].every(Number.isFinite)).map(d=>({segment:{type:'LineString',coordinates:[local([d.cx-d.ux*d.width/2,d.cz-d.uz*d.width/2]),local([d.cx+d.ux*d.width/2,d.cz+d.uz*d.width/2])]},width_m:d.width,leaf_count:1,type:'single_door'}));
     if(!entrances.length)throw new Error("Visit this business entrance first so its actual door can be included.");
     const [{businessStarter},assetCatalog]=await Promise.all([import(new URL("../interior-lab/business-starter.mjs",interiorAssetBase()).href),fetch(new URL("manifest.json",interiorAssetBase())).then(r=>r.ok?r.json():{assets:[]}).catch(()=>({assets:[]}))]);
-    const height=Number(entry.way.storey_m)||Number(entry.fit?.[9])||3.2;
+    const exterior=storeExteriorFor(entry.way),band=Math.max(0,...(exterior?.facades||[]).map(f=>f.band_height_m||0));
+    const height=Number(entry.way.storey_m)||Number(entry.fit?.[10])||Math.min(Number(entry.way.height_m)||3.2,band||3.2);
     const windows=(entry.homeShell?.group.userData.windows||[]).map(w=>({edge:w.edge,u:w.u,v:w.v-entryFloorY(entry),w:w.w,h:w.h})).filter(w=>Number.isInteger(w.edge)&&[w.u,w.v,w.w,w.h].every(Number.isFinite)&&w.v>=0&&w.v<height);
+    if(exterior?.origin_lon_lat){const {windowsFromStorefront}=await import(new URL("../interior-lab/source-windows.mjs",interiorAssetBase()).href);windows.push(...windowsFromStorefront(exterior,{planOrigin:xy(...exterior.origin_lon_lat),origin,footprint:{type:"Polygon",coordinates:[ring]},baseElevation:(Number(entry.way._hillLiftM)||groundBaseFor(entry.way.points))-entryFloorY(entry),height}));}
     house=businessStarter({id:String(buildingId),kind:info.businessKind,footprint:{type:'Polygon',coordinates:[ring]},height,entrances,windows,name:info.label,assets:assetCatalog.assets||[]});
   } else {
     entry.capturingEditorBaseline = true;
@@ -641,7 +692,7 @@ async function editorBaseline(buildingId) {
 }
 function ensureHomeEditorBridge() {
   if (!homeEditorBridgePromise) homeEditorBridgePromise = Promise.all([import(new URL("../interior-lab/world-bridge.mjs", interiorAssetBase()).href),import(new URL("../interior-lab/in-game.mjs",interiorAssetBase()).href)]).then(([{HomeInteriorBridge},{GameInteriorHost,propertyMenu}]) => {
-    homePropertyMenu=propertyMenu;homeEditorHost=new GameInteriorHost({pause:()=>{homeEditorWasPaused=worldPaused;worldPaused=true;held.clear();document.exitPointerLock?.();},resume:saved=>{worldPaused=homeEditorWasPaused;held.clear();canvas.focus();requestFrame();if(saved)livingCity?.notify?.("Interior saved. Walk inside to see your changes.");},ready:async()=>{const entry=footprintById.get(homeEditorHost.buildingId),deadline=Date.now()+15000;while(entry?.generatedInteriorPending&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,30));if(entry?.customInteriorFailed)throw Error("Your design was saved, but the world could not rebuild it. Retry saving before returning.");}});
+    homePropertyMenu=propertyMenu;homeEditorHost=new GameInteriorHost({pause:()=>{homeEditorWasPaused=worldPaused;worldPaused=true;held.clear();document.exitPointerLock?.();},resume:saved=>{worldPaused=homeEditorWasPaused;held.clear();canvas.focus();requestFrame();if(saved)livingCity?.notify?.("Interior saved. Walk inside to see your changes.");},ready:()=>interiorEditorReady(homeEditorHost.buildingId)});
     homeEditorBridge = new HomeInteriorBridge({
       loadBaseline: editorBaseline,
       onApply: args => args.design?.target.propertyKind==='business'?livingCity?.applyBusinessInterior({business:args.home,baseline:args.baseline,design:args.design}):livingCity?.applyHomeInterior(args),
@@ -651,13 +702,8 @@ function ensureHomeEditorBridge() {
         const url=new URL("../interior-lab/",interiorAssetBase());url.searchParams.set("edit",handoff.token);homeEditorHost.buildingId=handoff.target.buildingId;homeEditorHost.open(handoff,url.href);
       },
       invalidate: id => {
-        const entry = footprintById.get(String(id)); if (!entry) return;
-        const had = Boolean(entry.interior);
-        entry.customInteriorEnabled = homeEditorBridge.access.designs.some(d => d.target.buildingId === String(id));
-        entry.customInteriorFailed = false;
-        if (had) removeInterior(entry);
-        if (had) buildInterior(entry);
-        requestFrame();
+        const g=interiorGuest(id);if(g){g.api.interiorEditorAccess(homeEditorBridge.access);return;}
+        invalidateLocalInterior(id);
       }
     });
     homeEditorBridge.setAccess(homeEditorAccess);
@@ -667,6 +713,7 @@ function ensureHomeEditorBridge() {
 }
 function setHomeInteriorAccess(access) {
   homeEditorAccess = access;
+  if(typeof activeGuest!=="undefined"&&activeGuest?.ready)activeGuest.api.interiorEditorAccess?.(access);
   if (homeEditorBridge) homeEditorBridge.setAccess(access);
   else ensureHomeEditorBridge().catch(error => console.warn("kerbside: interior editor unavailable", error));
 }
@@ -674,7 +721,7 @@ function ownedInteriorContext(event){
   const feature=pickedFeature(event.clientX,event.clientY);if(feature?.kind!=="building")return false;
   const id=String(feature.osm_id),targets=homeEditorAccess.homes.filter(h=>h.buildingId===id);if(!targets.length)return false;
   event.preventDefault();event.stopImmediatePropagation();
-  const entry=footprintById.get(id),x=avatar.position.x,z=avatar.position.z,distance=entry?Math.hypot(Math.max(entry.minX-x,0,x-entry.maxX),Math.max(entry.minZ-z,0,z-entry.maxZ)):Infinity;
+  const entry=footprintById.get(id),x=avatar.position.x,z=avatar.position.z,g=interiorGuest(id),distance=g?g.api.interiorEditorDistance(id,...hostToGuest(g,x,z)):entry?Math.hypot(Math.max(entry.minX-x,0,x-entry.maxX),Math.max(entry.minZ-z,0,z-entry.maxZ)):Infinity;
   if(distance>18){livingCity?.notify?.("Walk closer to your property to edit its interior.");return true;}
   ensureHomeEditorBridge().then(()=>homePropertyMenu({targets,x:event.clientX,y:event.clientY,onEdit:home=>openHomeInteriorLab(home).catch(error=>livingCity?.notify?.(error.message))}));return true;
 }
@@ -685,18 +732,22 @@ async function openHomeInteriorLab(homeId) {
 function requestGeneratedInterior(entry) {
   if (entry.generatedInteriorPending) return;
   entry.generatedInteriorPending = true;
-  const ref = entry.generatedInteriorRef || { base: new URL("../inferred-interiors/", interiorAssetBase()), origin_lon_lat: entry.fit?.slice(4, 6)||[0,0], kind: "house" };
+  entry.emptyMarinaShell=emptyMarinaSource(entry);
+  if(!entry.emptyMarinaShell&&entry.editorBaseline?.provenance?.empty_marina_legacy)entry.editorBaseline=null;
+  const hasSource=entry.generatedInteriorRef&&!entry.emptyMarinaShell;
+  const ref = (hasSource?entry.generatedInteriorRef:null) || { base: new URL("../inferred-interiors/", interiorAssetBase()), origin_lon_lat: entry.fit?.slice(4, 6)||[0,0], kind: "house" };
   if (!generatedInteriorModules) generatedInteriorModules = Promise.all([
     import(new URL("renderer.mjs", ref.base).href),
     import(new URL("kerbside-adapter.mjs", ref.base).href)
   ]);
   Promise.all([generatedInteriorModules,
-    entry.generatedInteriorRef ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
+    hasSource ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
   ]).then(async ([[rendererModule, adapter], source]) => {
-    if (entry.generatedInteriorRef && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
+    if (hasSource && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
     const baseline = entry.editorBaseline || adapter.prepareGeneratedHouse(source);
     entry.editorBaseline = structuredClone(baseline);
-    const house = homeEditorBridge ? homeEditorBridge.designFor(String(entry.way.osm_id), baseline) : baseline;
+    let house=homeEditorBridge?homeEditorBridge.designFor(String(entry.way.osm_id),baseline):baseline;
+    if(!homeEditorBridge){const designs=homeEditorAccess.designs.filter(d=>d.target.buildingId===String(entry.way.osm_id)&&d.target.worldKey===homeEditorAccess.worldKey&&d.target.account===homeEditorAccess.account);if(designs.length){const {composeDesigns}=await import(new URL("../interior-lab/world-bridge.mjs",interiorAssetBase()).href);house=composeDesigns(baseline,designs);}}
     const customized = house !== baseline;
 
     if (entry.interior) removeInterior(entry);
@@ -730,6 +781,7 @@ function requestGeneratedInterior(entry) {
   }).catch(error => {
     entry.customWindowShell?.restore();entry.customWindowShell=null;
     entry.generatedInteriorFailed = true; entry.customInteriorFailed = true;
+    if(entry.emptyMarinaShell)entry.emptyMarinaFailed=true;
     console.warn("kerbside: generated interior rejected; using fitted plan", error);
     buildInterior(entry);
   }).finally(() => {

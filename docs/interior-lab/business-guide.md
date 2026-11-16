@@ -2,20 +2,27 @@
 
 The existing local Interior Studio now includes houses and all business categories in
 the city rules, plus the exterior library's institutional and automotive categories.
-Use **Space category** and **Space library**, then select a floor/room and edit furniture,
-room type, paint and partitions through the same house editing workflow. Search
-the catalog or select **All furniture & equipment** to go beyond room recommendations.
-Small props require a supporting surface; compound decorated table sets are distinguished
-from plain tables so their full bounding box is not mistaken for a bare tabletop.
+Open **Your space** to choose a practice home or business. Click the 3D floor, wall,
+window or furniture to open a compact menu beside the pointer. Floors offer materials,
+furniture, walls and area selection; drag a grid rectangle for carpet, a local finish or
+a room. Furniture can be moved, replaced or removed. Walls accept artwork and shelves.
+The Items catalog shows rendered thumbnails and names, recommended first, with search
+and type filters. Small props require a supporting surface. Stairs stay fixed; use the
+up/down triangles to change the cutaway floor.
 
 The library contains inferred restaurant/store engine outputs, detailed specialty-engine
 examples, and 72 clearly labeled practice programs on rectangular, angled and L-shaped
 synthetic tenancies. These are game hypotheses, not reconstructions of actual businesses.
-The supplied footprint, source window/door positions, elevations and stairs stay fixed.
+The supplied footprint, entrance positions, elevations and stairs stay fixed. Business windows
+can be edited; house windows remain locked unless the city verifies them.
 Vehicle parking, ramps, charging/fuel equipment and structural supports are protected.
 Room splits and merges preserve existing holes, including holes for stairs and ramps.
 
-Owned businesses expose **Customize interior** in their management panel. The world checks
+Approach an owned house or business and right-click it, then choose **Edit interior**.
+The cutaway opens inside the game. **Finished editing** offers Save, Discard or Keep editing;
+Discard asks for confirmation. Save waits for the world to accept the design and rebuild
+its render and walking barriers before returning to the game.
+Owned businesses also expose **Customize interior** in their management panel. The world checks
 the current owner and business state, saves the accepted design, and uses the same plan
 for rendering and walking barriers. When no inferred commercial plan exists, a starter
 uses the loaded Kerbside tenancy outline, available source windows, actual entrance and

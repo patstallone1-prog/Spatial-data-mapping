@@ -76,6 +76,7 @@ export class SupabaseStore {
       return out;
     } finally { clearTimeout(timer); }
   }
+  async identityFor(hash) { const out=await this.rpc("kerbside_city_device_account",{key_sha256:hash});return typeof out==="string"?out:null; }
   async load(id) { const out = await this.rpc("kerbside_city_load", { world: id }); return out?.version ? { version: Number(out.version), state: out.state } : null; }
   async version(id) { return Number((await this.rpc("kerbside_city_version", { world: id }))?.version || 0); }
   async commit(id, expect, state, entry = null, { grants = [] } = {}) {

@@ -10,8 +10,8 @@ import { HEADERS, handle } from "./http.mjs";
 const port = Number(process.argv[2] || process.env.PORT || 8790);
 createServer(async (req, res) => {
   if (!req.url.startsWith("/api/city")) { res.writeHead(404, HEADERS).end(JSON.stringify({ ok: false, error: "not here" })); return; }
-  let text = "";
-  for await (const chunk of req) { text += chunk; if (text.length > 64_000) { res.writeHead(413, HEADERS).end(JSON.stringify({ ok: false, error: "too large" })); return; } }
-  const out = await handle({ method: req.method, body: text || null });
+  const chunks=[];let bytes=0;
+  for await (const chunk of req) { chunks.push(chunk);bytes+=chunk.length;if (bytes > 3_600_000) { res.writeHead(413, HEADERS).end(JSON.stringify({ ok: false, error: "too large" })); return; } }
+  const out = await handle({ method: req.method, body: chunks.length ? Buffer.concat(chunks).toString("utf8") : null });
   res.writeHead(out.status, HEADERS).end(out.body ? JSON.stringify(out.body) : "");
 }).listen(port, () => console.log(`kerbside city server on http://localhost:${port}/api/city`));

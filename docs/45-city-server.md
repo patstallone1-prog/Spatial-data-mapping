@@ -26,7 +26,8 @@ One request is one JSON POST: `{op: "session", key}`, `{op: "cmd", token, req, c
 ## Setting it up (once)
 
 1. Paste `supabase/kerbside_city_server.sql` into the Supabase SQL editor (after
-   `kerbside_city_grants.sql`). Its last statement prints `KERBSIDE_CITY_SECRET` **once**.
+   `kerbside_city_grants.sql` and `kerbside_login.sql`), then apply
+   `supabase/kerbside_city_identity.sql`. The server migration’s last statement prints `KERBSIDE_CITY_SECRET` **once**.
 2. In the Vercel project: Settings -> Environment Variables -> add `KERBSIDE_CITY_SECRET` with
    that value (Production), and redeploy.
 
@@ -75,5 +76,28 @@ the record does not hold is refused ("the city has no record of that place").
 * The world is one record, loaded and written whole for each command, with compare-and-swap
   between instances. That is right for tens of players; past that it wants splitting by player
   and by block, and the page wants a push channel instead of asking every 4 s.
-* Sessions last 12 hours and are not revocable one by one; replacing `KERBSIDE_CITY_SECRET`
+* Sessions last 12 hours; account sign-out or switching invalidates that device’s old session.
+  Replacing `KERBSIDE_CITY_SECRET`
   ends them all.
+
+## Interior edits
+
+`server/city/canon/interiors.json` binds layouts to 2,463 building outlines from Kerbside’s
+source map. `tools/build_city_interior_envelopes.mjs` refreshes that record. Interior commands
+have a bounded spatial payload rather than the tiny ordinary-command payload; the city checks
+ownership, world/account identity, footprint (including upper-floor setbacks) and height before validating the edited layout.
+The first source-layout fingerprint is pinned per property. Layouts are game hypotheses, not
+surveyed interiors. The editor cannot self-verify a house’s windows.
+
+## Release handoff (2026-11-15)
+
+All seven versioned Supabase migrations have been applied to `tpbugonqwaoxtcswxyki`:
+exterior edits, device accounts, contributors, city grants, login, city server and city identity.
+The server-only RPC connection was verified through the REST API. Login was checked with two
+devices in a rolled-back SQL transaction. No production test accounts were retained.
+
+Code is committed locally; deployment is left to the project owner. Before deploying, set
+`KERBSIDE_CITY_SECRET` in Vercel Production to the value in the protected local handoff file
+`/Users/elialbukerk/.codex/.kerbside-city-deploy-secret-20261115` (mode 0600). It is outside Git.
+The SQL secret hash already matches that value; do not rerun the SQL’s random-secret footer.
+`KERBSIDE_CITY_STORE` may remain unset (Supabase is the deployed default).

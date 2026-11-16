@@ -48,8 +48,9 @@ function minimumWidth(poly,checkHoles=true) {
     for(const[c,d]of loops.flatMap(edges))if((c[dim]<line&&d[dim]>line)||(d[dim]<line&&c[dim]>line)){const t=(line-c[dim])/(d[dim]-c[dim]);hits.push(c[1-dim]+t*(d[1-dim]-c[1-dim]));}
     hits.sort((a,b)=>a-b); if(hits.length%2)return null;
     const widths=[];for(let j=0;j<hits.length;j+=2)widths.push(hits[j+1]-hits[j]);
-    if(widths.some(w=>w<RULES.furniturePassageM)) {
-     // A tapered corner is not a one-inch room. Reject a narrow neck only when it
+    if(widths.length&&widths.every(w=>w<RULES.furniturePassageM)) {
+     // A small boundary sliver beside a wide usable section is not a narrow room.
+     // Reject a section only when every available passage is narrow and it
      // separates meaningful usable areas, instead of rejecting every angled corner.
      const rotated=P(pts),left=clip(rotated,dim,line,true),right=clip(rotated,dim,line,false),minimum=Math.min(1,area(poly)*.15);
      if(area(left)>=minimum&&area(right)>=minimum)neck=Math.min(neck,...widths);
