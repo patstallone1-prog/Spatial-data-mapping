@@ -170,7 +170,7 @@ console.log(JSON.stringify({ first, stored, chosen, cleared, fixed }));
     assert out["cleared"] and out["cleared"] != "Larry"
     assert out["fixed"] == "Coral Heron 99"
     lobby = (ROOT / "docs/home-lobby.mjs").read_text()
-    assert 'player.addEventListener("click", () => nameSheet());' in lobby and "Pick another name" in lobby
+    assert 'player.addEventListener("click", nameSheet);' in lobby and "Pick another name" in lobby
 
 
 def test_a_device_makes_its_own_account_and_the_owner_verifies_it_on_the_backend():

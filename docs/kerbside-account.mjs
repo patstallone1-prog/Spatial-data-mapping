@@ -1,9 +1,9 @@
 // Your Kerbside account on this device: a name, and whether the owner has verified it -- a
 // verified account's saved edits change the world everyone sees.
 //
-// Nothing has to be typed. Each device makes its own account the first time it is used: a random
-// secret kept in this browser (localStorage), registered with the canonical store under the
-// device's name (kerbside_register_device). The store keeps only the secret's SHA-256.
+// There is no sign-in and no code to type. Each device makes its own account the first time it is
+// used: a random secret kept in this browser (localStorage), registered with the canonical store
+// under the device's name (kerbside_register_device). The store keeps only the secret's SHA-256.
 // The owner verifies an account on the backend -- in the Supabase dashboard, `verified` on its
 // row in kerbside_editors (scripts/editor_accounts.py --verify prints the line) -- and from then on
 // that device's saves are written to the canonical world, with nothing more to do on the device.
@@ -11,9 +11,6 @@
 // supabase/kerbside_exterior_edits.sql and supabase/kerbside_device_accounts.sql, each of which
 // checks the secret against the editors table. Anyone may read the canonical edits; only a
 // verified account may write them.
-//
-// Logging in is optional (logIn/signUp, at the end): a username and password link this device to an
-// account, so the player is the same account on every device (supabase/kerbside_login.sql).
 
 export const STORE = {
   url: "https://tpbugonqwaoxtcswxyki.supabase.co",
@@ -24,8 +21,6 @@ const KEY = "kerbside:editor-key";
 const NAME = "kerbside:player-name";
 const VERIFIED = "kerbside:editor-verified";
 const REGISTERED = "kerbside:account-registered";
-const LOGIN = "kerbside:login";
-const OWN_NAME = "kerbside:device-name";
 
 const storage = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -81,14 +76,6 @@ function startingName() {
   return name;
 }
 
-//: The account this device is logged in to ({account, username}), as the store last said.
-function keptLogin() {
-  try {
-    const kept = JSON.parse(storage.get(LOGIN) || "null");
-    return kept && typeof kept.account === "string" && typeof kept.username === "string" ? kept : null;
-  } catch { return null; }
-}
-
 const listeners = new Set();
 let checking = null;
 const state = {
@@ -97,15 +84,12 @@ const state = {
   verified: storage.get(VERIFIED) === "1",
   editor: storage.get(VERIFIED) === "1" ? storage.get(NAME) : null,
   registered: storage.get(REGISTERED) === "1",
-  login: keptLogin(),
   problem: null,
 };
 
 //: ``registered``: the store knows this device's account (so the owner can find it to verify it).
-//: ``username``/``accountId``: the account this device is logged in to (logIn), or null.
 export function account() {
-  return { name: state.name, verified: state.verified, editor: state.editor, registered: state.registered, problem: state.problem,
-    username: state.login?.username || null, accountId: state.login?.account || null };
+  return { name: state.name, verified: state.verified, editor: state.editor, registered: state.registered, problem: state.problem };
 }
 export function onAccountChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 const changed = () => { for (const fn of listeners) try { fn(account()); } catch {} };
@@ -133,14 +117,7 @@ export function setName(name) {
   state.name = cleanText(name) || autoName();
   storage.set(NAME, state.name);
   changed();
-  // Logged in, the name is the account's (on every device logged in to it).
-  // (Logged out elsewhere meanwhile: this device's own account takes the name.)
-  if (state.login) rpc("kerbside_account_rename", { key: state.key, name: state.name })
-    .then((out) => {
-      if (out?.ok) adoptLogin(out);
-      else if (out?.why === "not logged in") { adoptLogin({ ok: true, signed_in: false }); register(); }
-    }, () => register());
-  else register();
+  register();
 }
 
 //: Ask the store whether the owner has verified this device's account yet (a device the store has
@@ -199,82 +176,5 @@ export async function canonicalEdits() {
 //: one for itself.
 export function deviceKey() { return state.key; }
 
-// ---- logging in ------------------------------------------------------------------------------
-//
-// A username and a password (supabase/kerbside_login.sql), so a player is the same account on
-// every device. The device keeps its own secret; logging in links it to the account, so the
-// account's name and the owner's verification follow the player to each device it is logged in
-// to. Logging out unlinks this device only. The password goes to the store over HTTPS and is kept
-// there only as a bcrypt hash; nothing of it is kept here.
-
-const cleanUsername = (u) => String(u || "").trim().slice(0, 24);
-
-//: Take what the store says about this device's log-in (kerbside_login_state).
-function adoptLogin(out) {
-  if (!out || out.ok === false) return;
-  if (out.signed_in) {
-    // The device's own name, for when it logs out again.
-    if (!state.login && !storage.get(OWN_NAME)) storage.set(OWN_NAME, state.name);
-    state.login = { account: String(out.account), username: String(out.username) };
-    state.name = cleanText(out.name) || state.name;
-    storage.set(NAME, state.name);
-    state.registered = true;
-    storage.set(REGISTERED, "1");
-    state.verified = Boolean(out.verified);
-    state.editor = state.verified ? state.name : null;
-    storage.set(VERIFIED, state.verified ? "1" : null);
-  } else {
-    state.login = null;
-  }
-  storage.set(LOGIN, state.login ? JSON.stringify(state.login) : null);
-  state.problem = null;
-  changed();
-}
-
-async function logInWith(fn, username, password) {
-  const name = cleanUsername(username);
-  if (!name || !password) return { ok: false, why: "type a username and a password" };
-  try {
-    const out = await rpc(fn, { key: state.key, username: name, password: String(password) });
-    if (!out?.ok) return { ok: false, why: out?.why || "refused" };
-    adoptLogin(out);
-    return { ok: true, account: account() };
-  } catch (error) {
-    return { ok: false, why: error.name === "AbortError" ? "the store did not answer"
-      : error.message === "the canonical store is not set up yet" ? "logging in is not set up on the server yet" : error.message };
-  }
-}
-
-//: Make an account with this username and password, and log this device in to it. Resolves
-//: {ok: true, account} or {ok: false, why}.
-export const signUp = (username, password) => logInWith("kerbside_sign_up", username, password);
-//: Log this device in to an account. Resolves {ok: true, account} or {ok: false, why}.
-export const logIn = (username, password) => logInWith("kerbside_sign_in", username, password);
-
-//: Log this device out of its account: it is this device's own account again (its own name,
-//: and verified only if the device itself was).
-export async function logOut() {
-  try {
-    await rpc("kerbside_sign_out", { key: state.key });
-  } catch (error) {
-    return { ok: false, why: error.message };
-  }
-  state.login = null;
-  storage.set(LOGIN, null);
-  state.name = cleanText(storage.get(OWN_NAME)) || autoName();
-  storage.set(NAME, state.name);
-  storage.set(OWN_NAME, null);
-  changed();
-  await register();
-  return { ok: true, account: account() };
-}
-
-//: Whether this device is still logged in (logged out elsewhere, or the account removed).
-export async function checkLogin() {
-  try { adoptLogin(await rpc("kerbside_login_whoami", { key: state.key }, { timeout: 8000 })); } catch { /* kept as it was */ }
-  return account();
-}
-
 // Known to the store from the first visit, so the owner can find it and verify it.
 if (!state.registered && typeof fetch === "function") register();
-else if (state.login && typeof document !== "undefined") checkLogin();

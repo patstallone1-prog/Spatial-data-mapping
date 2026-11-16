@@ -7,7 +7,7 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
   // no table that leaves no way past it (layout-rules.mjs).
   house=context.customized?house:applyLayoutRules(house);
   const {origin, floorY, assetBase, loadAsset, feetY, pointInRing} = context;
-  const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:Boolean(house.envelope?.windows_customized),exteriorThickness:.08,entranceDoors:false,exteriorColor:context.exteriorColor||null,ceilings:true});
+  const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:false,ceilings:true});
   const [east,north]=origin;
   const physics=new TourWorld(house);
   built.group.position.set(east,floorY,-north);built.group.scale.z=-1;
@@ -41,7 +41,7 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
       const a=world(s.line.slice(0,2)),b=world(s.line.slice(2,4));return [...a,...b];
     });
     for(const o of house.storeys[level].objects)if(o.support.kind==='floor'&&o.position_m[1]+o.size_m[1]>(feetY()??floorY)-floorY+.18) {
-      for(const shape of o.collision_polygons||[o.footprint]){const r=shape.coordinates[0];for(let i=0;i<r.length-1;i++)out.push([...world(r[i]),...world(r[i+1])]);}
+      const r=o.footprint.coordinates[0];for(let i=0;i<r.length-1;i++)out.push([...world(r[i]),...world(r[i+1])]);
     }
     for(const s of house.stairs.filter(s=>s.from_level===level||s.to_level===level))if(s.guard_segment)out.push([...world(s.guard_segment.coordinates[0]),...world(s.guard_segment.coordinates[1])]);
     for(const d of roomDoors)if(d.level===level&&!d.open){

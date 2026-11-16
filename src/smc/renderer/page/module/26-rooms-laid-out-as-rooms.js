@@ -864,7 +864,6 @@ function entryRoomsPossible(entry) {
   if (!entry || entry.way.parkFacility || entry.way._structure) return false;
   if (entryTunnelConflict(entry)) return false;
   if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) return true;
-  if (!entry.customInteriorFailed && homeEditorBridge?.access.designs.some(d=>d.target.buildingId===String(entry.way.osm_id))) return true;
   if (!HEADSET && commercialInterior(entry)) return false;
   return Boolean(INTERIORS && entry.fit);
 }
@@ -1291,7 +1290,6 @@ function fittedInteriorSnapshot(entry) {
 }
 
 function removeInterior(entry) {
-  entry.customWindowShell?.restore();entry.customWindowShell=null;
   if (!entry.interior) return;
   interiorGroup.remove(entry.interior.group);
   standingSurfaces.delete(entry.interior.floorSurface);

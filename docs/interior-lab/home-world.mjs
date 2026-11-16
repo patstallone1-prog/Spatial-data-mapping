@@ -1,19 +1,8 @@
 // Ownership is checked by the world's command path; renderer rechecks against its source envelope.
-import {isBusiness} from './profiles.mjs';
 import { validateHouse } from './model.mjs';
 import { fingerprint } from './storage.mjs';
-export const HOME_INTERIOR_COMMANDS = ['customize_home','customize_business'];
+export const HOME_INTERIOR_COMMANDS = ['customize_home'];
 export function installHomeInteriors(World, CityError) {
-  World.prototype.cmd_customize_business = function(pid,{business,baseline,design}) {
-    const p=this.player(pid),b=this.biz.get(business),asset=this.registry.get(business),t=design?.target;
-    const fail=message=>{throw new CityError(message);};
-    if(!b||b.owner!==p.account||b.status!=='open'||asset?.kind!=='business'||asset.owner!==p.account)fail('Only the current business owner may change this interior.');
-    if(t?.propertyKind!=='business'||t.account!==p.account||t.homeId!==business||t.buildingId!==String(b.place.id)||t.unitId||!t.worldKey||design?.schema!=='kerbside.interior_override/1')fail('This design belongs to a different business.');
-    if(!baseline||!isBusiness(baseline)||baseline.residential_units?.length||design.baselineFingerprint!==fingerprint(baseline)||design.house?.id!==baseline.id||!Array.isArray(design.house?.storeys)||design.house.storeys.length>20||design.house.storeys.some(f=>!Array.isArray(f?.rooms)||!Array.isArray(f?.objects)||f.rooms.length>300||f.objects.length>1500)||JSON.stringify(design).length>2500000)fail('The source business layout changed or is too large.');
-    let result;try{result=validateHouse(design.house,{baseline});}catch{fail('The original business layout is invalid.');}
-    if(!result.valid)fail(result.issues[0]?.message||'The business layout is invalid.');
-    this.businessInteriors.set(business,structuredClone(design));this.log('business_customized',{player:pid,business,revision:design.revision});return{business,revision:design.revision,applied:true};
-  };
   World.prototype.cmd_customize_home = function(pid, {home, baseline, design}) {
     const p = this.player(pid), asset = this.registry.get(home), target = design?.target;
     const fail = message => { throw new CityError(message); };

@@ -149,10 +149,6 @@ const CSS = `
   border:1px solid rgba(255,255,255,.2);outline:none}
 #home .sheet input:focus{border-color:var(--team)}
 #home .sheet .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-#home .sheet form.login{margin-top:16px;padding-top:4px;border-top:1px solid rgba(255,255,255,.12)}
-#home .sheet form.login input+input{margin-top:8px}
-#home .sheet p.note{color:#e8eef5;min-height:0}
-#home .sheet p.note:empty{display:none}
 #home .sheet .x{border:0;background:none;color:#9fb0c2;font-size:24px;cursor:pointer}
 #home .hsw{display:flex;flex-wrap:wrap;gap:8px}
 #home .hsw button{width:40px;height:40px;border:2px solid rgba(255,255,255,.2);cursor:pointer;
@@ -433,7 +429,7 @@ export function openHome(ctx) {
     const a = who(), name = a.editor || a.name || "Explorer";
     chip.textContent = name.slice(0, 1).toUpperCase();
     playerName.textContent = name;
-    playerSub.replaceChildren(a.verified ? el("span", { class: "ver" }, "✔ Verified editor") : a.username ? `Logged in · ${a.username}` : "Explorer · Log in");
+    playerSub.replaceChildren(a.verified ? el("span", { class: "ver" }, "✔ Verified editor") : "Explorer");
     tag.textContent = name;
   };
   const tag = el("div", { class: "tag" });
@@ -625,59 +621,19 @@ export function openHome(ctx) {
       on: { change: () => { ctx.account?.setName(name.value); drawPlayer(); } } });
     return name;
   };
-  // Your name, from the corner: it was picked for you (kerbside-account autoName) and is yours to
-  // change. Under it, logging in (kerbside-account logIn): a username and password make you the
-  // same account, with the same name and verification, on every device you log in on.
-  const nameSheet = (note = "", focusName = !note) => {
+  // Your name, from the corner: it was picked for you (kerbside-account autoName) and is yours to change.
+  const nameSheet = () => {
     const input = nameInput();
-    const a = who();
-    const message = el("p", { class: "note", role: "status", "aria-live": "polite" }, note);
-    const busy = (form, on) => { for (const b of form.querySelectorAll("button, input")) b.disabled = on; };
-    let login;
-    if (!ctx.account?.logIn) {
-      login = [];
-    } else if (a.username) {
-      const out = el("button", { class: "hb", type: "button", on: { click: async () => {
-        out.disabled = true;
-        const r = await ctx.account.logOut();
-        drawPlayer();
-        nameSheet(r.ok ? "Logged out. This device is its own account again." : `Could not log out: ${r.why}`, false);
-      } } }, "Log out");
-      login = [el("label", {}, "Account"), el("p", {}, `Logged in as `, el("b", {}, a.username), ". Log in with the same username and password on another device to be the same player there."),
-        el("div", { class: "acts" }, out)];
-    } else {
-      const user = el("input", { name: "username", autocomplete: "username", maxlength: 24, placeholder: "Username", "aria-label": "Username",
-        autocapitalize: "none", spellcheck: "false" });
-      const pass = el("input", { name: "password", type: "password", autocomplete: "current-password", maxlength: 128, placeholder: "Password", "aria-label": "Password" });
-      const attempt = async (form, kind) => {
-        busy(form, true);
-        message.textContent = kind === "new" ? "Making your account…" : "Logging in…";
-        if (kind === "new") pass.autocomplete = "new-password";
-        const r = await (kind === "new" ? ctx.account.signUp : ctx.account.logIn)(user.value, pass.value);
-        pass.value = "";
-        drawPlayer();
-        if (r.ok) return nameSheet(kind === "new" ? `Account made: you are logged in as ${r.account.username}.` : "", false);
-        busy(form, false);
-        message.textContent = r.why;
-      };
-      const form = el("form", { class: "login", on: { submit: (e) => { e.preventDefault(); attempt(form, "in"); } } },
-        el("label", {}, "Log in"), user, pass,
-        el("div", { class: "acts" },
-          el("button", { class: "hb", type: "submit" }, "Log in"),
-          el("button", { class: "hb", type: "button", on: { click: () => attempt(form, "new") } }, "Create account")));
-      login = [form, el("small", { class: "credit" }, "Optional. Without logging in, this device keeps its own account. There is no email: a forgotten password is reset by the owner.")];
-    }
     sheet("Your name", el("p", {}, "Everyone sees it over your walker and in a party. One was picked for you; change it to anything."),
       el("label", {}, "Name"), input,
-      el("button", { class: "hb", type: "button", on: { click: () => { ctx.account?.setName(""); input.value = who().editor || who().name || ""; drawPlayer(); } } }, "Pick another name"),
-      ...login, message);
-    if (focusName) input.focus();
+      el("button", { class: "hb", type: "button", on: { click: () => { ctx.account?.setName(""); input.value = who().editor || who().name || ""; drawPlayer(); } } }, "Pick another name"));
+    input.focus();
   };
   player.setAttribute("role", "button");
   player.tabIndex = 0;
-  player.title = "Your name and log-in";
+  player.title = "Your name: click to change it";
   player.style.cursor = "pointer";
-  player.addEventListener("click", () => nameSheet());
+  player.addEventListener("click", nameSheet);
   player.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); nameSheet(); } });
   const swatches = (kind) => el("div", { class: "hsw", role: "group", "aria-label": kind },
     LOOKS[kind].map(([label, hex]) => el("button", { type: "button", title: label, "aria-label": label, "aria-pressed": String(look[kind] === hex),

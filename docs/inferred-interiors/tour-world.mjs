@@ -24,7 +24,7 @@ export class TourWorld {
  for(const ring of f.inside.coordinates)for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r&&!(f.outdoor_areas&&f.openings.some(o=>{if(!o.entrance)return false;const [a,b]=o.segment.coordinates,dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz),t=((x-a[0])*dx+(z-a[1])*dz)/L;return t>r&&t<L-r&&segmentDistance(x,z,a,b)<r+.08;})))return false;
  for(const w of f.walls){const c=w.segment.coordinates;for(let i=0;i<c.length-1;i++)if(segmentDistance(x,z,c[i],c[i+1])<r+.05)return false;}
  for(const o of f.objects)if(o.support.kind==='floor'&&o.position_m[1]+o.size_m[1]>feet+.18){
-  for(const shape of o.collision_polygons||[o.footprint]){if(inPolygon(x,z,shape))return false;const ring=shape.coordinates[0];for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r)return false;}
+  if(inPolygon(x,z,o.footprint))return false;const ring=o.footprint.coordinates[0];for(let i=0;i<ring.length-1;i++)if(segmentDistance(x,z,ring[i],ring[i+1])<r)return false;
  }
  for(const stair of this.house.stairs)if(stair.guard_segment&&(stair.from_level===f.level||stair.to_level===f.level))if(segmentDistance(x,z,...stair.guard_segment.coordinates)<r+.03)return false;
  for(const door of this.doors)if(door.level===f.level&&!door.open&&door.segment&&segmentDistance(x,z,...door.segment)<r+.025)return false;

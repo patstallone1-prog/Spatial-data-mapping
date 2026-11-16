@@ -47,7 +47,7 @@ export function cutExteriorWallBands(THREE, geometry, plan, origin = {x: 0, y: 0
         const a = source.attributes[n];
         return [n, Array.from({length: a.itemSize}, (_, k) => a.array[(i + j) * a.itemSize + k])];
       })))];
-      if (group.materialIndex !== 0 || plan.cut_all_groups) for (const f of plan.facades) {
+      if (group.materialIndex !== 0) for (const f of plan.facades) {
         const L = Math.hypot(f.b[0] - f.a[0], f.b[1] - f.a[1]);
         const tx = (f.b[0] - f.a[0]) / L, ty = (f.b[1] - f.a[1]) / L;
         const position = v => [v.position[0] - origin.x - f.a[0], -(v.position[2] - origin.z) - f.a[1]];
@@ -56,8 +56,8 @@ export function cutExteriorWallBands(THREE, geometry, plan, origin = {x: 0, y: 0
           return [x * tx + y * ty, v.position[1] - origin.y];
         };
         pieces = pieces.flatMap(poly => poly.every(v => {
-          const [x, y] = position(v); return Math.abs(x * -ty + y * tx) < (f.clip_tolerance_m || 0.003);
-        }) ? outsideRectangle(poly, project, [f.u0, f.u1, f.band_bottom_m || 0, f.band_height_m]) : [poly]);
+          const [x, y] = position(v); return Math.abs(x * -ty + y * tx) < 0.003;
+        }) ? outsideRectangle(poly, project, [f.u0, f.u1, 0, f.band_height_m]) : [poly]);
       }
       for (const poly of pieces) for (let j = 1; j < poly.length - 1; j++) {
         const tri = [poly[0], poly[j], poly[j + 1]];

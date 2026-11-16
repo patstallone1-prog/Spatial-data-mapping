@@ -22,7 +22,7 @@ export function checkedTarget(value) {
       || typeof value.account !== 'string' || !value.account.startsWith('player:')
       || typeof value.worldKey !== 'string' || !value.worldKey || value.worldKey.length > 300) throw new Error('Open the editor from a home you own in Kerbside.');
   return { buildingId: value.buildingId, account: value.account, worldKey: value.worldKey, homeId: String(value.homeId || ''),
-    propertyKind: value.propertyKind==='business'?'business':'home', businessKind: value.businessKind || null, unitId: value.unitId == null ? null : String(value.unitId), label: String(value.label || 'Your home').slice(0, 200) };
+    unitId: value.unitId == null ? null : String(value.unitId), label: String(value.label || 'Your home').slice(0, 200) };
 }
 function targetKey(target) {
   const t = checkedTarget(target);

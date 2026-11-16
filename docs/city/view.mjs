@@ -1251,7 +1251,7 @@ export async function startCity(ctx) {
     people: () => visible.people, peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId),
     openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
-    openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a) }));
+    openSide, closeSide, drawSide, getSide: () => side, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a) }));
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
   const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk }));
@@ -1262,8 +1262,8 @@ export async function startCity(ctx) {
     const p = view?.players.get(myId);
     if (!p) return;
     ctx.setHomeInteriorAccess?.({ worldKey: worldKey(), account: p.account,
-      homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})).concat([...(view.biz?.values()||[])].filter(b=>b.owner===p.account&&b.status==='open').map(b=>({id:b.id,buildingId:String(b.place.id),propertyKind:'business',businessKind:b.kind,label:b.name,type:b.kind}))),
-      designs: [...(view.homeInteriors?.values() || []),...(view.businessInteriors?.values()||[])] });
+      homes: view.registry.owned(p.account, "home").map(a => ({id: a.id, buildingId: String(a.attrs.building), unitId: a.attrs.interior_unit_id || null, label: a.attrs.address || "Your home", type: a.attrs.type})),
+      designs: [...(view.homeInteriors?.values() || [])] });
   }
   async function editHome(homeId) {
     syncHomeEditor();
@@ -1283,7 +1283,7 @@ export async function startCity(ctx) {
   //: world, done here.
   async function send(command, args = {}) {
     const full = { ...args, at: whereNow() };
-    if (world) { const r = world.submit(myId, command, full); if (r.ok && ["customize_home","customize_business"].includes(command)) save(); refresh(); return r; }
+    if (world) { const r = world.submit(myId, command, full); if (r.ok && command === "customize_home") save(); refresh(); return r; }
     if (online.state !== "online") return { ok: false, error: "Connecting to the city…" };
     const r = await online.client.send(command, full);
     if (!r.ok) return { ok: false, error: r.error || "the city's server did not answer" };
@@ -5036,7 +5036,7 @@ export async function startCity(ctx) {
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };
       return null;
     },
-    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), applyBusinessInterior: args => send("customize_business", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
+    placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,
