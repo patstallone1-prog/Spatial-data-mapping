@@ -1,0 +1,1970 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-optician",
+  "name": "Optician",
+  "kind": "optician",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": []
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-optician:public",
+          "kind": "reception",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 155.51999999999998,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-optician:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-optician:toilet",
+          "kind": "examination_room",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  12,
+                  12.96
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 49.89599999999999,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                5.5925,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-optician:public",
+            "studio-optician:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4075,
+                12.959999999999999
+              ],
+              [
+                12,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-optician:public",
+            "studio-optician:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-optician:service",
+            "studio-optician:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-optician:service",
+            "studio-optician:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-optician:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-optician:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-optician:service:door",
+          "rooms": [
+            "studio-optician:public",
+            "studio-optician:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.5925,
+                12.959999999999999
+              ],
+              [
+                6.4075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-optician:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.5925,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-optician:toilet:door",
+          "rooms": [
+            "studio-optician:service",
+            "studio-optician:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-optician:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-optician:item:0",
+          "role": "reception_desk",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.6,
+            1.05,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "role": "reception_desk",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  6.13
+                ],
+                [
+                  6.8,
+                  6.13
+                ],
+                [
+                  6.8,
+                  6.829999999999999
+                ],
+                [
+                  5.2,
+                  6.829999999999999
+                ],
+                [
+                  5.2,
+                  6.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:1",
+          "role": "waiting_bench",
+          "position_m": [
+            5.980926546862911,
+            0,
+            7.199346735823826
+          ],
+          "size_m": [
+            1.361702151404295,
+            1.6,
+            0.6808510757021475
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-bench",
+            "role": "waiting_bench",
+            "model": "business-lowpoly/kenney-bench.glb",
+            "dimensions_m": [
+              1.361702151404295,
+              1.6,
+              0.6808510757021475
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160763,
+                  6.8589211979727525
+                ],
+                [
+                  6.661777622565058,
+                  6.8589211979727525
+                ],
+                [
+                  6.661777622565058,
+                  7.5397722736749
+                ],
+                [
+                  5.300075471160763,
+                  7.5397722736749
+                ],
+                [
+                  5.300075471160763,
+                  6.8589211979727525
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:2",
+          "role": "armchair",
+          "position_m": [
+            6.0868446165231616,
+            0,
+            5.697524492613632
+          ],
+          "size_m": [
+            0.95,
+            0.8918367877571567,
+            0.7948980429057362
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-loungechair",
+            "role": "armchair",
+            "model": "business-lowpoly/kenney-loungechair.glb",
+            "dimensions_m": [
+              0.95,
+              0.8918367877571567,
+              0.7948980429057362
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ],
+                [
+                  6.561844616523161,
+                  5.300075471160764
+                ],
+                [
+                  6.561844616523161,
+                  6.0949735140665
+                ],
+                [
+                  5.611844616523162,
+                  6.0949735140665
+                ],
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:3",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:4",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:5",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:6",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:7",
+          "role": "examination_table",
+          "position_m": [
+            7.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            1.9,
+            1.0264269999344864,
+            0.7973622925926317
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-examination-table",
+            "role": "examination_table",
+            "model": "business-lowpoly/medical-examination-table.glb",
+            "dimensions_m": [
+              1.9,
+              1.0264269999344864,
+              0.7973622925926317
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/examination-table/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.1,
+                  15.081318853703685
+                ],
+                [
+                  8,
+                  15.081318853703685
+                ],
+                [
+                  8,
+                  15.878681146296316
+                ],
+                [
+                  6.1,
+                  15.878681146296316
+                ],
+                [
+                  6.1,
+                  15.081318853703685
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:8",
+          "role": "medical_cart",
+          "position_m": [
+            6.95606163794063,
+            0,
+            16.187410059358548
+          ],
+          "size_m": [
+            0.7121232758812591,
+            1,
+            0.45482011871709543
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-medical-cart",
+            "role": "medical_cart",
+            "model": "business-lowpoly/medical-medical-cart.glb",
+            "dimensions_m": [
+              0.7121232758812591,
+              1,
+              0.45482011871709543
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/medical-cart/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.6000000000000005,
+                  15.96
+                ],
+                [
+                  7.31212327588126,
+                  15.96
+                ],
+                [
+                  7.31212327588126,
+                  16.414820118717095
+                ],
+                [
+                  6.6000000000000005,
+                  16.414820118717095
+                ],
+                [
+                  6.6000000000000005,
+                  15.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:9",
+          "role": "medicine_cabinet",
+          "position_m": [
+            6.968661127422841,
+            0,
+            14.553598147251153
+          ],
+          "size_m": [
+            1.2373222548456826,
+            1.8000000000000003,
+            0.687196294502302
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-medicine-cabinet",
+            "role": "medicine_cabinet",
+            "model": "business-lowpoly/medical-medicine-cabinet.glb",
+            "dimensions_m": [
+              1.2373222548456826,
+              1.8000000000000003,
+              0.687196294502302
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/medicine-cabinet/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.35,
+                  14.21
+                ],
+                [
+                  7.587322254845683,
+                  14.21
+                ],
+                [
+                  7.587322254845683,
+                  14.897196294502304
+                ],
+                [
+                  6.35,
+                  14.897196294502304
+                ],
+                [
+                  6.35,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:10",
+          "role": "patient_monitor",
+          "position_m": [
+            7.653202022109448,
+            0,
+            16.254570058886447
+          ],
+          "size_m": [
+            0.6064040442188952,
+            1.4,
+            0.5891401177728932
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-patient-monitor",
+            "role": "patient_monitor",
+            "model": "business-lowpoly/medical-patient-monitor.glb",
+            "dimensions_m": [
+              0.6064040442188952,
+              1.4,
+              0.5891401177728932
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/electronics/patient-monitor/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.3500000000000005,
+                  15.96
+                ],
+                [
+                  7.956404044218895,
+                  15.96
+                ],
+                [
+                  7.956404044218895,
+                  16.549140117772893
+                ],
+                [
+                  7.3500000000000005,
+                  16.549140117772893
+                ],
+                [
+                  7.3500000000000005,
+                  15.96
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:11",
+          "role": "iv_stand",
+          "position_m": [
+            7.898225257691527,
+            0,
+            14.749736581402804
+          ],
+          "size_m": [
+            0.5964505153830524,
+            1.8999999999999997,
+            0.5794731628056067
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-iv-stand",
+            "role": "iv_stand",
+            "model": "business-lowpoly/medical-iv-stand.glb",
+            "dimensions_m": [
+              0.5964505153830524,
+              1.8999999999999997,
+              0.5794731628056067
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/props/iv-stand/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.6000000000000005,
+                  14.46
+                ],
+                [
+                  8.196450515383052,
+                  14.46
+                ],
+                [
+                  8.196450515383052,
+                  15.039473162805606
+                ],
+                [
+                  7.6000000000000005,
+                  15.039473162805606
+                ],
+                [
+                  7.6000000000000005,
+                  14.46
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:12",
+          "role": "doctor_scale",
+          "position_m": [
+            6.204025804745145,
+            0,
+            16.21076828446693
+          ],
+          "size_m": [
+            0.7080516094902907,
+            1.6,
+            0.5015365689338536
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-doctor-scale",
+            "role": "doctor_scale",
+            "model": "business-lowpoly/medical-doctor-scale.glb",
+            "dimensions_m": [
+              0.7080516094902907,
+              1.6,
+              0.5015365689338536
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/props/doctor-scale/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.85,
+                  15.960000000000003
+                ],
+                [
+                  6.55805160949029,
+                  15.960000000000003
+                ],
+                [
+                  6.55805160949029,
+                  16.461536568933855
+                ],
+                [
+                  5.85,
+                  16.461536568933855
+                ],
+                [
+                  5.85,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:13",
+          "role": "privacy_screen",
+          "position_m": [
+            6.96225229727894,
+            0,
+            16.89988357978876
+          ],
+          "size_m": [
+            1.7245045945578794,
+            1.8,
+            0.3797671595775187
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "medical-privacy-screen",
+            "role": "privacy_screen",
+            "model": "business-lowpoly/medical-privacy-screen.glb",
+            "dimensions_m": [
+              1.7245045945578794,
+              1.8,
+              0.3797671595775187
+            ],
+            "license": "CC0-1.0",
+            "source": "https://grab3d.com/models/furniture/privacy-screen/",
+            "attribution": "Grab3D",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.1,
+                  16.71
+                ],
+                [
+                  7.8245045945578795,
+                  16.71
+                ],
+                [
+                  7.8245045945578795,
+                  17.08976715957752
+                ],
+                [
+                  6.1,
+                  17.08976715957752
+                ],
+                [
+                  6.1,
+                  16.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-optician:item:14",
+          "role": "handwash_sink",
+          "position_m": [
+            5.85,
+            0,
+            15.435
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-optician:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-optician:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#d0d9d5",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6,
+                  15.21
+                ],
+                [
+                  6.1,
+                  15.21
+                ],
+                [
+                  6.1,
+                  15.66
+                ],
+                [
+                  5.6,
+                  15.66
+                ],
+                [
+                  5.6,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

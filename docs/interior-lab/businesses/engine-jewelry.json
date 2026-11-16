@@ -1,0 +1,3491 @@
+{
+  "schema": "kerbside.inferred_specialty_shop/1",
+  "id": "engine-jewelry",
+  "kind": "jewelry",
+  "units": "metres",
+  "style": {
+    "id": "jewelry-warm_oak",
+    "name": "Jewelry \u00b7 Warm oak & sage",
+    "style": "contemporary",
+    "walls": [
+      "#e7e0d2",
+      "#c8d1c6",
+      "#f1ede3",
+      "#e7e0d2"
+    ],
+    "wood": "#72533f",
+    "fabric": "#355c51",
+    "accent": "#947642",
+    "metal": "#b49a66",
+    "stone": "#e1d9c9",
+    "tier": "standard",
+    "furnishing_budget_usd": 21700,
+    "budget_method": "floor area x configurable tier allowance; illustrative, not a quote",
+    "neighborhood_price_per_sqft": null,
+    "economic_evidence": {
+      "tier": "standard",
+      "basis": "unknown economics; neutral prior"
+    },
+    "seed": "600311492528449924",
+    "version": 1,
+    "usage": "specialty"
+  },
+  "exterior": {
+    "schema": "kerbside.inferred_exterior/1",
+    "id": "engine-jewelry",
+    "canonical_geometry_modified": false,
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "origin_lon_lat": null,
+    "canonical_points": null,
+    "geometry_evidence": null,
+    "geometry_sha256": "df38927fa040fda3746af8eec9beacdceacc3c97c6dc2d7ab105740897e3818a",
+    "reference_version": "2026-11-05",
+    "facades": [
+      {
+        "id": "engine-jewelry:facade:0",
+        "edge": 3,
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "normal": [
+          0.0,
+          -1.0
+        ],
+        "u0": 0,
+        "u1": 10.0,
+        "tenant_id": "A",
+        "name": "Practice jewelry",
+        "category": "jewelry",
+        "brand": null,
+        "role": "public",
+        "economics": {
+          "tier": "standard",
+          "basis": "unknown economics; neutral prior"
+        },
+        "band_height_m": 3.8,
+        "palette": {
+          "wall": "#e7d7bd",
+          "accent": "#6c573f",
+          "frame": "#3b3730",
+          "base": "#8b8277",
+          "letter": "#f6f1e7",
+          "metal": "#a5aaa7",
+          "glass": "#a7c2c8",
+          "roughness": 0.82
+        },
+        "material": "stucco",
+        "references": [
+          "jewelry-showcase",
+          "sf-formula",
+          "sf-transparency"
+        ],
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "frontage_basis": "caller supplied tenant frontage",
+        "protected_rectangles": [],
+        "observed_bands": [],
+        "door_style": "secure_glazed",
+        "glazing_cluster_m": null,
+        "opaque_room_zones": [],
+        "paired_entries": [],
+        "paired_entry_ledger": false,
+        "openings": [
+          {
+            "id": "engine-jewelry:facade:0:door",
+            "kind": "door",
+            "component_kind": "door",
+            "u": 6.0956,
+            "v": 0,
+            "w": 1.1,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 1,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          {
+            "id": "engine-jewelry:facade:0:window:1",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 0.5051202122089558,
+            "v": 0.741042829592269,
+            "w": 1.2282929089154218,
+            "h": 2.008957170407731,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          {
+            "id": "engine-jewelry:facade:0:window:2",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 2.4236535455422894,
+            "v": 0.741042829592269,
+            "w": 1.2282929089154218,
+            "h": 2.008957170407731,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          {
+            "id": "engine-jewelry:facade:0:window:3",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 4.342186878875623,
+            "v": 0.741042829592269,
+            "w": 1.2282929089154218,
+            "h": 2.008957170407731,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          {
+            "id": "engine-jewelry:facade:0:window:4",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 7.597257407820492,
+            "v": 0.741042829592269,
+            "w": 0.788885184359015,
+            "h": 2.008957170407731,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          {
+            "id": "engine-jewelry:facade:0:window:5",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 8.829457407820493,
+            "v": 0.741042829592269,
+            "w": 0.788885184359015,
+            "h": 2.008957170407731,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          }
+        ],
+        "signs": [
+          {
+            "id": "engine-jewelry:facade:0:identity",
+            "kind": "painted_letters",
+            "text": "Practice jewelry",
+            "u": 3.411199999999999,
+            "w": 6.468800000000002,
+            "v": 3.0999999999999996,
+            "h": 0.55,
+            "asset": null,
+            "icon": null,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            },
+            "illumination": "none",
+            "projection_m": 0.08
+          }
+        ],
+        "source_input": {
+          "edge": 3,
+          "tenant_id": "A",
+          "role": "public"
+        }
+      }
+    ],
+    "evidence": {
+      "measured": false,
+      "inferred": true,
+      "observed": false,
+      "confidence": 0.3,
+      "freshness": "2026-11-05",
+      "corroboration_count": 0,
+      "references": []
+    },
+    "replica_status": "inferred_layout_with_reference_backed_components",
+    "not_an_as_built_survey": true,
+    "references": [
+      {
+        "id": "sf-formula",
+        "title": "Formula Retail Storefront Design",
+        "url": "https://sfplanning.org/sites/default/files/documents/publications/Guide_FormulaRetail_Commission.pdf",
+        "organization": "SF Planning",
+        "kind": "design_guideline",
+        "location": "San Francisco",
+        "reviewed_at": "2026-10-29",
+        "locator": "Storefront Components and Formula Retail Storefront Design",
+        "observations": [
+          "Storefront bays distinguish piers, bulkheads, glazing, transoms and entrances.",
+          "Retain historic components when inserting chain identity; a brand does not imply a replacement building shell."
+        ]
+      },
+      {
+        "id": "sf-transparency",
+        "title": "Standards for Storefront Transparency",
+        "url": "https://sfplanning.org/resource/standards-storefront-transparency",
+        "organization": "SF Planning",
+        "kind": "design_guideline",
+        "location": "San Francisco",
+        "reviewed_at": "2026-10-29",
+        "locator": null,
+        "observations": [
+          "Front display glazing remains visually open rather than fully covered by invented posters.",
+          "The guidance concerns storefront visibility, not a measurement of any existing store."
+        ]
+      },
+      {
+        "id": "jewelry-showcase",
+        "title": "Full-vision commercial display showcase",
+        "url": "https://www.subastralinc.com/full-vision-display-case-h342.html",
+        "organization": "Subastral",
+        "kind": "manufacturer_reference",
+        "location": "Product reference; dimensions remain inference priors",
+        "reviewed_at": "2026-10-31",
+        "locator": null,
+        "observations": [
+          "Glazed display areas and enclosed storage bases are separate components.",
+          "Case lighting and merchandising visibility guide the rendered glass/velvet/jewelry arrangement; no exact product replica is claimed."
+        ]
+      }
+    ],
+    "validation": {
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "metrics": {
+        "facades": 1,
+        "observed_openings": 0,
+        "inferred_openings": 6,
+        "tenant_entries": 1
+      }
+    },
+    "content_sha256": "ab00c80bd5e28b4b70c0278bcc53972aeb2d3400de175a079faab3fab3c86ee8"
+  },
+  "envelope": {
+    "windows": [
+      {
+        "id": "engine-jewelry:facade:0:window:1",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 0.5051202122089558,
+        "v": 0.741042829592269,
+        "w": 1.2282929089154218,
+        "h": 2.008957170407731,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-jewelry",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-jewelry:facade:0:window:2",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 2.4236535455422894,
+        "v": 0.741042829592269,
+        "w": 1.2282929089154218,
+        "h": 2.008957170407731,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-jewelry",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-jewelry:facade:0:window:3",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 4.342186878875623,
+        "v": 0.741042829592269,
+        "w": 1.2282929089154218,
+        "h": 2.008957170407731,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-jewelry",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-jewelry:facade:0:window:4",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 7.597257407820492,
+        "v": 0.741042829592269,
+        "w": 0.788885184359015,
+        "h": 2.008957170407731,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-jewelry",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-jewelry:facade:0:window:5",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 8.829457407820493,
+        "v": 0.741042829592269,
+        "w": 0.788885184359015,
+        "h": 2.008957170407731,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-jewelry",
+        "inferred": true,
+        "measured": false
+      }
+    ],
+    "exterior_entrances": [
+      {
+        "point": [
+          6.6456,
+          0.0
+        ],
+        "width_m": 1.1,
+        "height_m": 2.35,
+        "threshold_m": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "jewelry-showcase",
+            "sf-formula",
+            "sf-transparency"
+          ]
+        }
+      }
+    ],
+    "exterior_plan_sha256": "ab00c80bd5e28b4b70c0278bcc53972aeb2d3400de175a079faab3fab3c86ee8"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.8,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              10.0,
+              0.0
+            ],
+            [
+              10.0,
+              14.0
+            ],
+            [
+              0.0,
+              14.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              10.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0.15,
+              0.15
+            ],
+            [
+              0.15,
+              13.85
+            ],
+            [
+              9.85,
+              13.85
+            ],
+            [
+              9.85,
+              0.15
+            ],
+            [
+              0.15,
+              0.15
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "engine-jewelry:public",
+          "kind": "jewelry",
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  9.85,
+                  0.15
+                ],
+                [
+                  0.15,
+                  0.15
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  9.85,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 108.155
+        },
+        {
+          "id": "engine-jewelry:staff",
+          "kind": "utility",
+          "materials": {
+            "wall": "#c8d1c6",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  2.2,
+                  11.3
+                ],
+                [
+                  2.2,
+                  13.85
+                ],
+                [
+                  9.85,
+                  13.85
+                ],
+                [
+                  9.85,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 19.50749999999999
+        },
+        {
+          "id": "engine-jewelry:wc",
+          "kind": "toilet",
+          "materials": {
+            "wall": "#f1ede3",
+            "accent_wall": "#f1ede3",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.2,
+                  11.3
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  0.15,
+                  13.85
+                ],
+                [
+                  2.2,
+                  13.85
+                ],
+                [
+                  2.2,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 5.227499999999998
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.199999,
+                11.3
+              ],
+              [
+                5.573,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-jewelry:public",
+            "engine-jewelry:staff"
+          ],
+          "materials": [
+            "#e7e0d2",
+            "#c8d1c6"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.477,
+                11.3
+              ],
+              [
+                9.85,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-jewelry:public",
+            "engine-jewelry:staff"
+          ],
+          "materials": [
+            "#e7e0d2",
+            "#c8d1c6"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                11.3
+              ],
+              [
+                0.723,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-jewelry:public",
+            "engine-jewelry:wc"
+          ],
+          "materials": [
+            "#e7e0d2",
+            "#f1ede3"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.627,
+                11.3
+              ],
+              [
+                2.200001,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-jewelry:public",
+            "engine-jewelry:wc"
+          ],
+          "materials": [
+            "#e7e0d2",
+            "#f1ede3"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.2,
+                11.3
+              ],
+              [
+                2.2,
+                13.85
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-jewelry:staff",
+            "engine-jewelry:wc"
+          ],
+          "materials": [
+            "#c8d1c6",
+            "#f1ede3"
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "engine-jewelry:public:opening:0",
+          "rooms": [
+            "engine-jewelry:public",
+            "outside"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.0956,
+                0.15
+              ],
+              [
+                7.1956,
+                0.15
+              ]
+            ]
+          },
+          "width_m": 1.0999999999999996,
+          "height_m": 2.35,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-jewelry:public",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.1956,
+                  1.25
+                ],
+                [
+                  7.1956,
+                  -0.9500000000000001
+                ],
+                [
+                  6.0956,
+                  -0.9500000000000001
+                ],
+                [
+                  6.0956,
+                  1.25
+                ],
+                [
+                  7.1956,
+                  1.25
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "entrance": true,
+          "source_opening": {
+            "point": [
+              6.6456,
+              0.0
+            ],
+            "width_m": 1.1,
+            "height_m": 2.35,
+            "threshold_m": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "jewelry-showcase",
+                "sf-formula",
+                "sf-transparency"
+              ]
+            }
+          },
+          "source_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.0956,
+                0.0
+              ],
+              [
+                7.1956,
+                0.0
+              ]
+            ]
+          },
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#a68b52",
+            "panel_count": 3,
+            "glass": "clear"
+          }
+        },
+        {
+          "id": "engine-jewelry:staff:opening:100",
+          "rooms": [
+            "engine-jewelry:staff",
+            "engine-jewelry:public"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4750000000000005,
+                11.3
+              ],
+              [
+                5.575,
+                11.3
+              ]
+            ]
+          },
+          "width_m": 0.9,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-jewelry:staff",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.575,
+                  10.58
+                ],
+                [
+                  5.575,
+                  12.020000000000001
+                ],
+                [
+                  6.4750000000000005,
+                  12.020000000000001
+                ],
+                [
+                  6.4750000000000005,
+                  10.58
+                ],
+                [
+                  5.575,
+                  10.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#72533f",
+            "frame": "#72533f",
+            "hardware": "#505a59",
+            "panel_count": 2,
+            "glass": null
+          },
+          "hinge_end": false,
+          "open_angle_deg": -90,
+          "open_leaf_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4750000000000005,
+                11.3
+              ],
+              [
+                6.4750000000000005,
+                12.200000000000001
+              ]
+            ]
+          },
+          "open_leaf_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.4510000000000005,
+                  12.200000000000001
+                ],
+                [
+                  6.4990000000000006,
+                  12.200000000000001
+                ],
+                [
+                  6.4990000000000006,
+                  11.3
+                ],
+                [
+                  6.4510000000000005,
+                  11.3
+                ],
+                [
+                  6.4510000000000005,
+                  12.200000000000001
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "engine-jewelry:wc:opening:101",
+          "rooms": [
+            "engine-jewelry:wc",
+            "engine-jewelry:public"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.625,
+                11.3
+              ],
+              [
+                0.7250000000000001,
+                11.3
+              ]
+            ]
+          },
+          "width_m": 0.9,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-jewelry:wc",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.7250000000000001,
+                  10.58
+                ],
+                [
+                  0.7250000000000001,
+                  12.020000000000001
+                ],
+                [
+                  1.625,
+                  12.020000000000001
+                ],
+                [
+                  1.625,
+                  10.58
+                ],
+                [
+                  0.7250000000000001,
+                  10.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#72533f",
+            "frame": "#72533f",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
+          "hinge_end": false,
+          "open_angle_deg": -90,
+          "open_leaf_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.625,
+                11.3
+              ],
+              [
+                1.625,
+                12.200000000000001
+              ]
+            ]
+          },
+          "open_leaf_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.601,
+                  12.200000000000001
+                ],
+                [
+                  1.649,
+                  12.200000000000001
+                ],
+                [
+                  1.649,
+                  11.3
+                ],
+                [
+                  1.601,
+                  11.3
+                ],
+                [
+                  1.601,
+                  12.200000000000001
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "objects": [
+        {
+          "id": "engine-jewelry:public:item:0",
+          "role": "jewelry_island",
+          "position_m": [
+            5.0,
+            0,
+            5.725
+          ],
+          "size_m": [
+            1.6,
+            1.12,
+            0.75
+          ],
+          "rotation_deg": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.8,
+                  5.35
+                ],
+                [
+                  5.8,
+                  6.1
+                ],
+                [
+                  4.2,
+                  6.1
+                ],
+                [
+                  4.2,
+                  5.35
+                ],
+                [
+                  5.8,
+                  5.35
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_island",
+            "design_id": null,
+            "role": "jewelry_island",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.0,
+            6.6
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.8,
+                    5.35
+                  ],
+                  [
+                    5.8,
+                    6.1
+                  ],
+                  [
+                    4.2,
+                    6.1
+                  ],
+                  [
+                    4.2,
+                    5.35
+                  ],
+                  [
+                    5.8,
+                    5.35
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:1",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            9.535,
+            0,
+            5.8448717948717945
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  6.644871794871794
+                ],
+                [
+                  9.295,
+                  6.644871794871794
+                ],
+                [
+                  9.295,
+                  5.044871794871795
+                ],
+                [
+                  9.775,
+                  5.044871794871795
+                ],
+                [
+                  9.775,
+                  6.644871794871794
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.815,
+            5.8448717948717945
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.775,
+                    6.644871794871794
+                  ],
+                  [
+                    9.295,
+                    6.644871794871794
+                  ],
+                  [
+                    9.295,
+                    5.044871794871795
+                  ],
+                  [
+                    9.775,
+                    5.044871794871795
+                  ],
+                  [
+                    9.775,
+                    6.644871794871794
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:2",
+          "role": "reception_desk",
+          "position_m": [
+            9.424999999999999,
+            0,
+            4.05375
+          ],
+          "size_m": [
+            1.4,
+            1.05,
+            0.7
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  4.75375
+                ],
+                [
+                  9.075,
+                  4.75375
+                ],
+                [
+                  9.075,
+                  3.35375
+                ],
+                [
+                  9.774999999999999,
+                  3.35375
+                ],
+                [
+                  9.774999999999999,
+                  4.75375
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "design_id": null,
+            "role": "reception_desk",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.594999999999999,
+            4.05375
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    4.75375
+                  ],
+                  [
+                    9.075,
+                    4.75375
+                  ],
+                  [
+                    9.075,
+                    3.35375
+                  ],
+                  [
+                    9.774999999999999,
+                    3.35375
+                  ],
+                  [
+                    9.774999999999999,
+                    4.75375
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:3",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            9.535,
+            0,
+            7.523076923076923
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  8.323076923076924
+                ],
+                [
+                  9.295,
+                  8.323076923076924
+                ],
+                [
+                  9.295,
+                  6.723076923076923
+                ],
+                [
+                  9.775,
+                  6.723076923076923
+                ],
+                [
+                  9.775,
+                  8.323076923076924
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.815,
+            7.523076923076923
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.775,
+                    8.323076923076924
+                  ],
+                  [
+                    9.295,
+                    8.323076923076924
+                  ],
+                  [
+                    9.295,
+                    6.723076923076923
+                  ],
+                  [
+                    9.775,
+                    6.723076923076923
+                  ],
+                  [
+                    9.775,
+                    8.323076923076924
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:4",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            9.535,
+            0,
+            2.4884615384615376
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  3.2884615384615374
+                ],
+                [
+                  9.295,
+                  3.2884615384615374
+                ],
+                [
+                  9.295,
+                  1.6884615384615376
+                ],
+                [
+                  9.775,
+                  1.6884615384615376
+                ],
+                [
+                  9.775,
+                  3.2884615384615374
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.815,
+            2.4884615384615376
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.775,
+                    3.2884615384615374
+                  ],
+                  [
+                    9.295,
+                    3.2884615384615374
+                  ],
+                  [
+                    9.295,
+                    1.6884615384615376
+                  ],
+                  [
+                    9.775,
+                    1.6884615384615376
+                  ],
+                  [
+                    9.775,
+                    3.2884615384615374
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:5",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            9.535,
+            0,
+            9.201282051282051
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  10.001282051282052
+                ],
+                [
+                  9.295,
+                  10.001282051282052
+                ],
+                [
+                  9.295,
+                  8.40128205128205
+                ],
+                [
+                  9.775,
+                  8.40128205128205
+                ],
+                [
+                  9.775,
+                  10.001282051282052
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.815,
+            9.201282051282051
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.775,
+                    10.001282051282052
+                  ],
+                  [
+                    9.295,
+                    10.001282051282052
+                  ],
+                  [
+                    9.295,
+                    8.40128205128205
+                  ],
+                  [
+                    9.775,
+                    8.40128205128205
+                  ],
+                  [
+                    9.775,
+                    10.001282051282052
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:6",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            0.46499999999999997,
+            0,
+            5.6051282051282065
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  4.805128205128207
+                ],
+                [
+                  0.705,
+                  4.805128205128207
+                ],
+                [
+                  0.705,
+                  6.405128205128206
+                ],
+                [
+                  0.22499999999999998,
+                  6.405128205128206
+                ],
+                [
+                  0.22499999999999998,
+                  4.805128205128207
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.185,
+            5.6051282051282065
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    4.805128205128207
+                  ],
+                  [
+                    0.705,
+                    4.805128205128207
+                  ],
+                  [
+                    0.705,
+                    6.405128205128206
+                  ],
+                  [
+                    0.22499999999999998,
+                    6.405128205128206
+                  ],
+                  [
+                    0.22499999999999998,
+                    4.805128205128207
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:7",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            0.46499999999999997,
+            0,
+            7.283333333333335
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  6.483333333333335
+                ],
+                [
+                  0.705,
+                  6.483333333333335
+                ],
+                [
+                  0.705,
+                  8.083333333333336
+                ],
+                [
+                  0.22499999999999998,
+                  8.083333333333336
+                ],
+                [
+                  0.22499999999999998,
+                  6.483333333333335
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.185,
+            7.283333333333335
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    6.483333333333335
+                  ],
+                  [
+                    0.705,
+                    6.483333333333335
+                  ],
+                  [
+                    0.705,
+                    8.083333333333336
+                  ],
+                  [
+                    0.22499999999999998,
+                    8.083333333333336
+                  ],
+                  [
+                    0.22499999999999998,
+                    6.483333333333335
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:8",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            0.46499999999999997,
+            0,
+            3.926923076923077
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  3.1269230769230774
+                ],
+                [
+                  0.705,
+                  3.1269230769230774
+                ],
+                [
+                  0.705,
+                  4.726923076923077
+                ],
+                [
+                  0.22499999999999998,
+                  4.726923076923077
+                ],
+                [
+                  0.22499999999999998,
+                  3.1269230769230774
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.185,
+            3.926923076923077
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    3.1269230769230774
+                  ],
+                  [
+                    0.705,
+                    3.1269230769230774
+                  ],
+                  [
+                    0.705,
+                    4.726923076923077
+                  ],
+                  [
+                    0.22499999999999998,
+                    4.726923076923077
+                  ],
+                  [
+                    0.22499999999999998,
+                    3.1269230769230774
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:9",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            0.46499999999999997,
+            0,
+            8.961538461538463
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  8.161538461538463
+                ],
+                [
+                  0.705,
+                  8.161538461538463
+                ],
+                [
+                  0.705,
+                  9.761538461538464
+                ],
+                [
+                  0.22499999999999998,
+                  9.761538461538464
+                ],
+                [
+                  0.22499999999999998,
+                  8.161538461538463
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.185,
+            8.961538461538463
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    8.161538461538463
+                  ],
+                  [
+                    0.705,
+                    8.161538461538463
+                  ],
+                  [
+                    0.705,
+                    9.761538461538464
+                  ],
+                  [
+                    0.22499999999999998,
+                    9.761538461538464
+                  ],
+                  [
+                    0.22499999999999998,
+                    8.161538461538463
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:10",
+          "role": "jewelry_wall_case",
+          "position_m": [
+            0.46499999999999997,
+            0,
+            2.2487179487179487
+          ],
+          "size_m": [
+            1.6,
+            1.95,
+            0.48
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  1.4487179487179487
+                ],
+                [
+                  0.705,
+                  1.4487179487179487
+                ],
+                [
+                  0.705,
+                  3.0487179487179485
+                ],
+                [
+                  0.22499999999999998,
+                  3.0487179487179485
+                ],
+                [
+                  0.22499999999999998,
+                  1.4487179487179487
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_wall_case",
+            "design_id": null,
+            "role": "jewelry_wall_case",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.185,
+            2.2487179487179487
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    1.4487179487179487
+                  ],
+                  [
+                    0.705,
+                    1.4487179487179487
+                  ],
+                  [
+                    0.705,
+                    3.0487179487179485
+                  ],
+                  [
+                    0.22499999999999998,
+                    3.0487179487179485
+                  ],
+                  [
+                    0.22499999999999998,
+                    1.4487179487179487
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:11",
+          "role": "consultation_set",
+          "position_m": [
+            4.640909090909091,
+            0,
+            10.325000000000001
+          ],
+          "size_m": [
+            1.6,
+            1.0,
+            1.8
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.840909090909091,
+                  11.225000000000001
+                ],
+                [
+                  3.840909090909091,
+                  9.425
+                ],
+                [
+                  5.4409090909090905,
+                  9.425
+                ],
+                [
+                  5.4409090909090905,
+                  11.225000000000001
+                ],
+                [
+                  3.840909090909091,
+                  11.225000000000001
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:consultation_set",
+            "design_id": null,
+            "role": "consultation_set",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.640909090909091,
+            8.945
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    3.840909090909091,
+                    11.225000000000001
+                  ],
+                  [
+                    3.840909090909091,
+                    9.425
+                  ],
+                  [
+                    5.4409090909090905,
+                    9.425
+                  ],
+                  [
+                    5.4409090909090905,
+                    11.225000000000001
+                  ],
+                  [
+                    3.840909090909091,
+                    11.225000000000001
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:12",
+          "role": "waiting_bench",
+          "position_m": [
+            9.525,
+            0,
+            0.9000000000000004
+          ],
+          "size_m": [
+            1.3,
+            0.8,
+            0.5
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  1.5500000000000003
+                ],
+                [
+                  9.275,
+                  1.5500000000000003
+                ],
+                [
+                  9.275,
+                  0.25000000000000033
+                ],
+                [
+                  9.775,
+                  0.25000000000000033
+                ],
+                [
+                  9.775,
+                  1.5500000000000003
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-benchcushionlow",
+            "model": "business-lowpoly/kenney-benchcushionlow.glb",
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "dimensions_m": [
+              1.6,
+              0.7619047260879142,
+              0.8380951603794363
+            ],
+            "role": "waiting_bench",
+            "estimated_cost_usd": 100,
+            "procedural": false
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.795,
+            0.9000000000000004
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.775,
+                    1.5500000000000003
+                  ],
+                  [
+                    9.275,
+                    1.5500000000000003
+                  ],
+                  [
+                    9.275,
+                    0.25000000000000033
+                  ],
+                  [
+                    9.775,
+                    0.25000000000000033
+                  ],
+                  [
+                    9.775,
+                    1.5500000000000003
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:public:item:13",
+          "role": "jewelry_island",
+          "position_m": [
+            5.0,
+            0,
+            2.9375
+          ],
+          "size_m": [
+            1.6,
+            1.12,
+            0.75
+          ],
+          "rotation_deg": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.8,
+                  2.5625
+                ],
+                [
+                  5.8,
+                  3.3125
+                ],
+                [
+                  4.2,
+                  3.3125
+                ],
+                [
+                  4.2,
+                  2.5625
+                ],
+                [
+                  5.8,
+                  2.5625
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_island",
+            "design_id": null,
+            "role": "jewelry_island",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e7e0d2",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.0,
+            3.8125
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.8,
+                    2.5625
+                  ],
+                  [
+                    5.8,
+                    3.3125
+                  ],
+                  [
+                    4.2,
+                    3.3125
+                  ],
+                  [
+                    4.2,
+                    2.5625
+                  ],
+                  [
+                    5.8,
+                    2.5625
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:staff:item:0",
+          "role": "jewelry_safe",
+          "position_m": [
+            6.982142857142857,
+            0,
+            11.700000000000001
+          ],
+          "size_m": [
+            0.75,
+            1.4,
+            0.65
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.357142857142857,
+                  11.375000000000002
+                ],
+                [
+                  7.357142857142857,
+                  12.025
+                ],
+                [
+                  6.607142857142857,
+                  12.025
+                ],
+                [
+                  6.607142857142857,
+                  11.375000000000002
+                ],
+                [
+                  7.357142857142857,
+                  11.375000000000002
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:staff",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:staff",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jewelry_safe",
+            "design_id": null,
+            "role": "jewelry_safe",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#c8d1c6",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.982142857142857,
+            12.455000000000002
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    7.357142857142857,
+                    11.375000000000002
+                  ],
+                  [
+                    7.357142857142857,
+                    12.025
+                  ],
+                  [
+                    6.607142857142857,
+                    12.025
+                  ],
+                  [
+                    6.607142857142857,
+                    11.375000000000002
+                  ],
+                  [
+                    7.357142857142857,
+                    11.375000000000002
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:staff:item:1",
+          "role": "jeweler_bench",
+          "position_m": [
+            4.95,
+            0,
+            11.675
+          ],
+          "size_m": [
+            1.0,
+            0.9,
+            0.6
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.45,
+                  11.375
+                ],
+                [
+                  5.45,
+                  11.975000000000001
+                ],
+                [
+                  4.45,
+                  11.975000000000001
+                ],
+                [
+                  4.45,
+                  11.375
+                ],
+                [
+                  5.45,
+                  11.375
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:staff",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:staff",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:jeweler_bench",
+            "design_id": null,
+            "role": "jeweler_bench",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#c8d1c6",
+            "accent_wall": "#c8d1c6",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.95,
+            12.405000000000001
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.45,
+                    11.375
+                  ],
+                  [
+                    5.45,
+                    11.975000000000001
+                  ],
+                  [
+                    4.45,
+                    11.975000000000001
+                  ],
+                  [
+                    4.45,
+                    11.375
+                  ],
+                  [
+                    5.45,
+                    11.375
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:wc:item:0",
+          "role": "toilet",
+          "position_m": [
+            0.585,
+            0,
+            12.575
+          ],
+          "size_m": [
+            0.6,
+            0.8,
+            0.72
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  12.274999999999999
+                ],
+                [
+                  0.945,
+                  12.274999999999999
+                ],
+                [
+                  0.945,
+                  12.875
+                ],
+                [
+                  0.22499999999999998,
+                  12.875
+                ],
+                [
+                  0.22499999999999998,
+                  12.274999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "design_id": null,
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#f1ede3",
+            "accent_wall": "#f1ede3",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.375,
+            12.575
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    12.274999999999999
+                  ],
+                  [
+                    0.945,
+                    12.274999999999999
+                  ],
+                  [
+                    0.945,
+                    12.875
+                  ],
+                  [
+                    0.22499999999999998,
+                    12.875
+                  ],
+                  [
+                    0.22499999999999998,
+                    12.274999999999999
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-jewelry:wc:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            0.43499999999999994,
+            0,
+            11.881250000000001
+          ],
+          "size_m": [
+            0.5,
+            0.86,
+            0.42
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999995,
+                  11.631250000000001
+                ],
+                [
+                  0.6449999999999999,
+                  11.631250000000001
+                ],
+                [
+                  0.6449999999999999,
+                  12.131250000000001
+                ],
+                [
+                  0.22499999999999995,
+                  12.131250000000001
+                ],
+                [
+                  0.22499999999999995,
+                  11.631250000000001
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-jewelry:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-jewelry:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "design_id": null,
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#f1ede3",
+            "accent_wall": "#f1ede3",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#72533f",
+            "fabric": "#355c51",
+            "metal": "#b49a66",
+            "countertop": "#e1d9c9",
+            "floor": "#e1d9c9",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.075,
+            11.881250000000001
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999995,
+                    11.631250000000001
+                  ],
+                  [
+                    0.6449999999999999,
+                    11.631250000000001
+                  ],
+                  [
+                    0.6449999999999999,
+                    12.131250000000001
+                  ],
+                  [
+                    0.22499999999999995,
+                    12.131250000000001
+                  ],
+                  [
+                    0.22499999999999995,
+                    11.631250000000001
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        }
+      ]
+    }
+  ],
+  "stairs": [],
+  "ramps": [],
+  "interaction_targets": [
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        5.0,
+        6.6
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.815,
+        5.8448717948717945
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.594999999999999,
+        4.05375
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.815,
+        7.523076923076923
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.815,
+        2.4884615384615376
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.815,
+        9.201282051282051
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        1.185,
+        5.6051282051282065
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        1.185,
+        7.283333333333335
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        1.185,
+        3.926923076923077
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        1.185,
+        8.961538461538463
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        1.185,
+        2.2487179487179487
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        4.640909090909091,
+        8.945
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        8.795,
+        0.9000000000000004
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:public",
+      "point": [
+        5.0,
+        3.8125
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:staff",
+      "point": [
+        6.982142857142857,
+        12.455000000000002
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:staff",
+      "point": [
+        4.95,
+        12.405000000000001
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:wc",
+      "point": [
+        1.375,
+        12.575
+      ]
+    },
+    {
+      "room_id": "engine-jewelry:wc",
+      "point": [
+        1.075,
+        11.881250000000001
+      ]
+    }
+  ],
+  "source_geometry_sha256": "df38927fa040fda3746af8eec9beacdceacc3c97c6dc2d7ab105740897e3818a",
+  "canonical_geometry_modified": false,
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.25,
+  "freshness": null,
+  "corroboration_count": 0,
+  "references": [
+    {
+      "id": "sf-formula",
+      "title": "Formula Retail Storefront Design",
+      "url": "https://sfplanning.org/sites/default/files/documents/publications/Guide_FormulaRetail_Commission.pdf",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Storefront Components and Formula Retail Storefront Design",
+      "observations": [
+        "Storefront bays distinguish piers, bulkheads, glazing, transoms and entrances.",
+        "Retain historic components when inserting chain identity; a brand does not imply a replacement building shell."
+      ]
+    },
+    {
+      "id": "sf-transparency",
+      "title": "Standards for Storefront Transparency",
+      "url": "https://sfplanning.org/resource/standards-storefront-transparency",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": null,
+      "observations": [
+        "Front display glazing remains visually open rather than fully covered by invented posters.",
+        "The guidance concerns storefront visibility, not a measurement of any existing store."
+      ]
+    },
+    {
+      "id": "jewelry-showcase",
+      "title": "Full-vision commercial display showcase",
+      "url": "https://www.subastralinc.com/full-vision-display-case-h342.html",
+      "organization": "Subastral",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Glazed display areas and enclosed storage bases are separate components.",
+        "Case lighting and merchandising visibility guide the rendered glass/velvet/jewelry arrangement; no exact product replica is claimed."
+      ]
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "errors": [],
+    "metrics": {
+      "rooms": 3,
+      "objects": 18,
+      "coverage_m2": 132.89,
+      "dead_hallway_m2": 0
+    }
+  },
+  "content_sha256": "cc7548a8a661d695599fdada9f5ce717e08f20b2b05ddba8a40c071d6b33630a",
+  "provenance": {
+    "geometry": "Synthetic practice tenancy; paired specialty engine layout, not a real-world survey"
+  }
+}

@@ -1,0 +1,3746 @@
+{
+  "schema": "kerbside.inferred_specialty_shop/1",
+  "id": "engine-salon",
+  "kind": "salon",
+  "units": "metres",
+  "style": {
+    "id": "salon-warm_oak",
+    "name": "Salon \u00b7 Warm oak & sage",
+    "style": "contemporary",
+    "walls": [
+      "#e5dfd3",
+      "#acb9a8",
+      "#ece6dc",
+      "#e5dfd3"
+    ],
+    "wood": "#a3825d",
+    "fabric": "#464d48",
+    "accent": "#839078",
+    "metal": "#aaa59c",
+    "stone": "#ddd2be",
+    "tier": "standard",
+    "furnishing_budget_usd": 21700,
+    "budget_method": "floor area x configurable tier allowance; illustrative, not a quote",
+    "neighborhood_price_per_sqft": null,
+    "economic_evidence": {
+      "tier": "standard",
+      "basis": "unknown economics; neutral prior"
+    },
+    "seed": "12706767791256884676",
+    "version": 1,
+    "usage": "specialty"
+  },
+  "exterior": {
+    "schema": "kerbside.inferred_exterior/1",
+    "id": "engine-salon",
+    "canonical_geometry_modified": false,
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            10.0,
+            0.0
+          ],
+          [
+            10.0,
+            14.0
+          ],
+          [
+            0.0,
+            14.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "height_m": 3.8,
+    "origin_lon_lat": null,
+    "canonical_points": null,
+    "geometry_evidence": null,
+    "geometry_sha256": "df38927fa040fda3746af8eec9beacdceacc3c97c6dc2d7ab105740897e3818a",
+    "reference_version": "2026-11-05",
+    "facades": [
+      {
+        "id": "engine-salon:facade:0",
+        "edge": 3,
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "normal": [
+          0.0,
+          -1.0
+        ],
+        "u0": 0,
+        "u1": 10.0,
+        "tenant_id": "A",
+        "name": "Practice salon",
+        "category": "salon",
+        "brand": null,
+        "role": "public",
+        "economics": {
+          "tier": "standard",
+          "basis": "unknown economics; neutral prior"
+        },
+        "band_height_m": 3.8,
+        "palette": {
+          "wall": "#e2dfd7",
+          "accent": "#324b62",
+          "frame": "#292f33",
+          "base": "#8b8277",
+          "letter": "#f6f1e7",
+          "metal": "#a5aaa7",
+          "glass": "#a7c2c8",
+          "roughness": 0.82
+        },
+        "material": "stucco",
+        "references": [
+          "salon-stations",
+          "salon-odin",
+          "salon-one",
+          "sf-formula"
+        ],
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "frontage_basis": "caller supplied tenant frontage",
+        "protected_rectangles": [],
+        "observed_bands": [],
+        "door_style": "framed_glazed",
+        "glazing_cluster_m": null,
+        "opaque_room_zones": [],
+        "paired_entries": [],
+        "paired_entry_ledger": false,
+        "openings": [
+          {
+            "id": "engine-salon:facade:0:door",
+            "kind": "door",
+            "component_kind": "door",
+            "u": 6.1206,
+            "v": 0,
+            "w": 1.05,
+            "h": 2.35,
+            "operation": "hinged",
+            "leaf_count": 1,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:1",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 0.3881333210611743,
+            "v": 0.5328661904360616,
+            "w": 0.9888833578776514,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:2",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 1.8332833210611743,
+            "v": 0.5328661904360616,
+            "w": 0.9888833578776514,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:3",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 3.2784333210611742,
+            "v": 0.5328661904360616,
+            "w": 0.9888833578776514,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:4",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 4.723583321061175,
+            "v": 0.5328661904360616,
+            "w": 0.9888833578776514,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:5",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 7.5470900146869475,
+            "v": 0.5328661904360616,
+            "w": 0.8517199706261033,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          {
+            "id": "engine-salon:facade:0:window:6",
+            "kind": "window",
+            "component_kind": "window",
+            "u": 8.791790014686947,
+            "v": 0.5328661904360616,
+            "w": 0.8517199706261033,
+            "h": 2.217133809563938,
+            "transom_fraction": 0.23,
+            "privacy_fraction": 0.28,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          }
+        ],
+        "signs": [
+          {
+            "id": "engine-salon:facade:0:identity",
+            "kind": "door_vinyl",
+            "text": "Practice salon",
+            "u": 6.2256,
+            "w": 0.8400000000000001,
+            "v": 1.457,
+            "h": 0.2,
+            "asset": null,
+            "icon": null,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            },
+            "illumination": "none",
+            "projection_m": 0.08
+          }
+        ],
+        "source_input": {
+          "edge": 3,
+          "tenant_id": "A",
+          "role": "public"
+        }
+      }
+    ],
+    "evidence": {
+      "measured": false,
+      "inferred": true,
+      "observed": false,
+      "confidence": 0.3,
+      "freshness": "2026-11-05",
+      "corroboration_count": 0,
+      "references": []
+    },
+    "replica_status": "inferred_layout_with_reference_backed_components",
+    "not_an_as_built_survey": true,
+    "references": [
+      {
+        "id": "sf-formula",
+        "title": "Formula Retail Storefront Design",
+        "url": "https://sfplanning.org/sites/default/files/documents/publications/Guide_FormulaRetail_Commission.pdf",
+        "organization": "SF Planning",
+        "kind": "design_guideline",
+        "location": "San Francisco",
+        "reviewed_at": "2026-10-29",
+        "locator": "Storefront Components and Formula Retail Storefront Design",
+        "observations": [
+          "Storefront bays distinguish piers, bulkheads, glazing, transoms and entrances.",
+          "Retain historic components when inserting chain identity; a brand does not imply a replacement building shell."
+        ]
+      },
+      {
+        "id": "salon-odin",
+        "title": "Odin shampoo unit",
+        "url": "https://beauty.takarabelmont.com/odin-shampoo-unit/",
+        "organization": "Takara Belmont",
+        "kind": "manufacturer_reference",
+        "location": "Product reference; dimensions remain inference priors",
+        "reviewed_at": "2026-10-31",
+        "locator": null,
+        "observations": [
+          "A contoured reclining seat and tilting bowl form a coordinated backwash unit.",
+          "Basin and chair need to remain aligned; styling chairs are a separate product type."
+        ]
+      },
+      {
+        "id": "salon-stations",
+        "title": "Salon stations and cabinetry look book",
+        "url": "https://beauty.takarabelmont.com/wp-content/uploads/2017/12/takara-belmont-look-book.pdf",
+        "organization": "Takara Belmont",
+        "kind": "manufacturer_reference",
+        "location": "Product reference; dimensions remain inference priors",
+        "reviewed_at": "2026-10-31",
+        "locator": null,
+        "observations": [
+          "Styling stations pair mirrors with work surfaces and storage.",
+          "Shampoo storage includes towel and hamper provision; these are functional zones rather than decorative boxes."
+        ]
+      },
+      {
+        "id": "salon-one",
+        "title": "THE ONE integrated salon station",
+        "url": "https://beauty.takarabelmont.co.jp/products/the-one/",
+        "organization": "Takara Belmont",
+        "kind": "manufacturer_reference",
+        "location": "Product reference; dimensions remain inference priors",
+        "reviewed_at": "2026-10-31",
+        "locator": null,
+        "observations": [
+          "Integrated equipment exists, but a generic salon is not assumed to use that proprietary product.",
+          "Rendered independent stations retain coordinated chair, mirror, worktop and stylist space."
+        ]
+      }
+    ],
+    "validation": {
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "metrics": {
+        "facades": 1,
+        "observed_openings": 0,
+        "inferred_openings": 7,
+        "tenant_entries": 1
+      }
+    },
+    "content_sha256": "115a8918e0fe2d56e82e9376880da67fbae7f52a300083d85718c59502da5008"
+  },
+  "envelope": {
+    "windows": [
+      {
+        "id": "engine-salon:facade:0:window:1",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 0.3881333210611743,
+        "v": 0.5328661904360616,
+        "w": 0.9888833578776514,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-salon:facade:0:window:2",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 1.8332833210611743,
+        "v": 0.5328661904360616,
+        "w": 0.9888833578776514,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-salon:facade:0:window:3",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 3.2784333210611742,
+        "v": 0.5328661904360616,
+        "w": 0.9888833578776514,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-salon:facade:0:window:4",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 4.723583321061175,
+        "v": 0.5328661904360616,
+        "w": 0.9888833578776514,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-salon:facade:0:window:5",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 7.5470900146869475,
+        "v": 0.5328661904360616,
+        "w": 0.8517199706261033,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      },
+      {
+        "id": "engine-salon:facade:0:window:6",
+        "kind": "window",
+        "component_kind": "window",
+        "u": 8.791790014686947,
+        "v": 0.5328661904360616,
+        "w": 0.8517199706261033,
+        "h": 2.217133809563938,
+        "transom_fraction": 0.23,
+        "privacy_fraction": 0.28,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        },
+        "a": [
+          0.0,
+          0.0
+        ],
+        "b": [
+          10.0,
+          0.0
+        ],
+        "edge": 3,
+        "exterior_id": "engine-salon",
+        "inferred": true,
+        "measured": false
+      }
+    ],
+    "exterior_entrances": [
+      {
+        "point": [
+          6.6456,
+          0.0
+        ],
+        "width_m": 1.05,
+        "height_m": 2.35,
+        "threshold_m": 0,
+        "evidence": {
+          "measured": false,
+          "inferred": true,
+          "observed": false,
+          "confidence": 0.3,
+          "freshness": "2026-11-05",
+          "corroboration_count": 0,
+          "references": [
+            "salon-stations",
+            "salon-odin",
+            "salon-one",
+            "sf-formula"
+          ]
+        }
+      }
+    ],
+    "exterior_plan_sha256": "115a8918e0fe2d56e82e9376880da67fbae7f52a300083d85718c59502da5008"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.8,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              10.0,
+              0.0
+            ],
+            [
+              10.0,
+              14.0
+            ],
+            [
+              0.0,
+              14.0
+            ],
+            [
+              0.0,
+              0.0
+            ],
+            [
+              10.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0.15,
+              0.15
+            ],
+            [
+              0.15,
+              13.85
+            ],
+            [
+              9.85,
+              13.85
+            ],
+            [
+              9.85,
+              0.15
+            ],
+            [
+              0.15,
+              0.15
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "engine-salon:public",
+          "kind": "salon",
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  9.85,
+                  0.15
+                ],
+                [
+                  0.15,
+                  0.15
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  9.85,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 108.155
+        },
+        {
+          "id": "engine-salon:staff",
+          "kind": "utility",
+          "materials": {
+            "wall": "#acb9a8",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.85,
+                  11.3
+                ],
+                [
+                  2.2,
+                  11.3
+                ],
+                [
+                  2.2,
+                  13.85
+                ],
+                [
+                  9.85,
+                  13.85
+                ],
+                [
+                  9.85,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 19.50749999999999
+        },
+        {
+          "id": "engine-salon:wc",
+          "kind": "toilet",
+          "materials": {
+            "wall": "#ece6dc",
+            "accent_wall": "#ece6dc",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.2,
+                  11.3
+                ],
+                [
+                  0.15,
+                  11.3
+                ],
+                [
+                  0.15,
+                  13.85
+                ],
+                [
+                  2.2,
+                  13.85
+                ],
+                [
+                  2.2,
+                  11.3
+                ]
+              ]
+            ]
+          },
+          "area_m2": 5.227499999999998
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.199999,
+                11.3
+              ],
+              [
+                5.573,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-salon:public",
+            "engine-salon:staff"
+          ],
+          "materials": [
+            "#e5dfd3",
+            "#acb9a8"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.477,
+                11.3
+              ],
+              [
+                9.85,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-salon:public",
+            "engine-salon:staff"
+          ],
+          "materials": [
+            "#e5dfd3",
+            "#acb9a8"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0.15,
+                11.3
+              ],
+              [
+                0.723,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-salon:public",
+            "engine-salon:wc"
+          ],
+          "materials": [
+            "#e5dfd3",
+            "#ece6dc"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.627,
+                11.3
+              ],
+              [
+                2.200001,
+                11.3
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-salon:public",
+            "engine-salon:wc"
+          ],
+          "materials": [
+            "#e5dfd3",
+            "#ece6dc"
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.2,
+                11.3
+              ],
+              [
+                2.2,
+                13.85
+              ]
+            ]
+          },
+          "height_m": 3.6799999999999997,
+          "thickness_m": 0.1,
+          "rooms": [
+            "engine-salon:staff",
+            "engine-salon:wc"
+          ],
+          "materials": [
+            "#acb9a8",
+            "#ece6dc"
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "engine-salon:public:opening:0",
+          "rooms": [
+            "engine-salon:public",
+            "outside"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.1206,
+                0.15
+              ],
+              [
+                7.1706,
+                0.15
+              ]
+            ]
+          },
+          "width_m": 1.0500000000000007,
+          "height_m": 2.35,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-salon:public",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.1706,
+                  1.25
+                ],
+                [
+                  7.1706,
+                  -0.9500000000000001
+                ],
+                [
+                  6.1206,
+                  -0.9500000000000001
+                ],
+                [
+                  6.1206,
+                  1.25
+                ],
+                [
+                  7.1706,
+                  1.25
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "entrance": true,
+          "source_opening": {
+            "point": [
+              6.6456,
+              0.0
+            ],
+            "width_m": 1.05,
+            "height_m": 2.35,
+            "threshold_m": 0,
+            "evidence": {
+              "measured": false,
+              "inferred": true,
+              "observed": false,
+              "confidence": 0.3,
+              "freshness": "2026-11-05",
+              "corroboration_count": 0,
+              "references": [
+                "salon-stations",
+                "salon-odin",
+                "salon-one",
+                "sf-formula"
+              ]
+            }
+          },
+          "source_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.1206,
+                0.0
+              ],
+              [
+                7.1706,
+                0.0
+              ]
+            ]
+          },
+          "appearance": {
+            "design": "glazed_entry",
+            "timber": "#a78660",
+            "frame": "#a78660",
+            "hardware": "#a68b52",
+            "panel_count": 2,
+            "glass": "clear"
+          }
+        },
+        {
+          "id": "engine-salon:staff:opening:100",
+          "rooms": [
+            "engine-salon:staff",
+            "engine-salon:public"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4750000000000005,
+                11.3
+              ],
+              [
+                5.575,
+                11.3
+              ]
+            ]
+          },
+          "width_m": 0.9,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-salon:staff",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.575,
+                  10.58
+                ],
+                [
+                  5.575,
+                  12.020000000000001
+                ],
+                [
+                  6.4750000000000005,
+                  12.020000000000001
+                ],
+                [
+                  6.4750000000000005,
+                  10.58
+                ],
+                [
+                  5.575,
+                  10.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "recessed_panels",
+            "timber": "#a3825d",
+            "frame": "#a3825d",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": null
+          },
+          "hinge_end": false,
+          "open_angle_deg": -90,
+          "open_leaf_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4750000000000005,
+                11.3
+              ],
+              [
+                6.4750000000000005,
+                12.200000000000001
+              ]
+            ]
+          },
+          "open_leaf_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.4510000000000005,
+                  12.200000000000001
+                ],
+                [
+                  6.4990000000000006,
+                  12.200000000000001
+                ],
+                [
+                  6.4990000000000006,
+                  11.3
+                ],
+                [
+                  6.4510000000000005,
+                  11.3
+                ],
+                [
+                  6.4510000000000005,
+                  12.200000000000001
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "engine-salon:wc:opening:101",
+          "rooms": [
+            "engine-salon:wc",
+            "engine-salon:public"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.625,
+                11.3
+              ],
+              [
+                0.7250000000000001,
+                11.3
+              ]
+            ]
+          },
+          "width_m": 0.9,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "material": "painted_timber",
+          "swing_into": "engine-salon:wc",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.7250000000000001,
+                  10.58
+                ],
+                [
+                  0.7250000000000001,
+                  12.020000000000001
+                ],
+                [
+                  1.625,
+                  12.020000000000001
+                ],
+                [
+                  1.625,
+                  10.58
+                ],
+                [
+                  0.7250000000000001,
+                  10.58
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "appearance": {
+            "design": "reeded_privacy",
+            "timber": "#a3825d",
+            "frame": "#a3825d",
+            "hardware": "#505a59",
+            "panel_count": 3,
+            "glass": "frosted_reeded"
+          },
+          "hinge_end": false,
+          "open_angle_deg": -90,
+          "open_leaf_segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.625,
+                11.3
+              ],
+              [
+                1.625,
+                12.200000000000001
+              ]
+            ]
+          },
+          "open_leaf_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.601,
+                  12.200000000000001
+                ],
+                [
+                  1.649,
+                  12.200000000000001
+                ],
+                [
+                  1.649,
+                  11.3
+                ],
+                [
+                  1.601,
+                  11.3
+                ],
+                [
+                  1.601,
+                  12.200000000000001
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "objects": [
+        {
+          "id": "engine-salon:public:item:0",
+          "role": "styling_station",
+          "position_m": [
+            8.424999999999999,
+            0,
+            5.842307692307693
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  6.742307692307693
+                ],
+                [
+                  7.074999999999999,
+                  6.742307692307693
+                ],
+                [
+                  7.074999999999999,
+                  4.9423076923076925
+                ],
+                [
+                  9.774999999999999,
+                  4.9423076923076925
+                ],
+                [
+                  9.774999999999999,
+                  6.742307692307693
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.594999999999999,
+            5.842307692307693
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    6.682307692307693
+                  ],
+                  [
+                    9.274999999999999,
+                    6.682307692307693
+                  ],
+                  [
+                    9.274999999999999,
+                    5.002307692307693
+                  ],
+                  [
+                    9.774999999999999,
+                    5.002307692307693
+                  ],
+                  [
+                    9.774999999999999,
+                    6.682307692307693
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    8.799999999999999,
+                    6.2323076923076925
+                  ],
+                  [
+                    7.749999999999998,
+                    6.2323076923076925
+                  ],
+                  [
+                    7.749999999999998,
+                    5.452307692307693
+                  ],
+                  [
+                    8.799999999999999,
+                    5.452307692307693
+                  ],
+                  [
+                    8.799999999999999,
+                    6.2323076923076925
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:1",
+          "role": "shampoo_station",
+          "position_m": [
+            8.375,
+            0,
+            4.062499999999999
+          ],
+          "size_m": [
+            1.45,
+            1.25,
+            2.8
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.775,
+                  4.787499999999999
+                ],
+                [
+                  6.975,
+                  4.787499999999999
+                ],
+                [
+                  6.975,
+                  3.337499999999999
+                ],
+                [
+                  9.775,
+                  3.337499999999999
+                ],
+                [
+                  9.775,
+                  4.787499999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:shampoo_station",
+            "design_id": null,
+            "role": "shampoo_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.495,
+            4.062499999999999
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    8.53,
+                    4.422499999999999
+                  ],
+                  [
+                    7.38,
+                    4.422499999999999
+                  ],
+                  [
+                    7.38,
+                    3.7024999999999992
+                  ],
+                  [
+                    8.53,
+                    3.7024999999999992
+                  ],
+                  [
+                    8.53,
+                    4.422499999999999
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.084999999999999,
+                    4.437499999999999
+                  ],
+                  [
+                    8.405,
+                    4.437499999999999
+                  ],
+                  [
+                    8.405,
+                    3.687499999999999
+                  ],
+                  [
+                    9.084999999999999,
+                    3.687499999999999
+                  ],
+                  [
+                    9.084999999999999,
+                    4.437499999999999
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:2",
+          "role": "reception_desk",
+          "position_m": [
+            9.45,
+            0,
+            7.517682926829269
+          ],
+          "size_m": [
+            1.15,
+            1.05,
+            0.65
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  8.09268292682927
+                ],
+                [
+                  9.125,
+                  8.09268292682927
+                ],
+                [
+                  9.125,
+                  6.942682926829269
+                ],
+                [
+                  9.774999999999999,
+                  6.942682926829269
+                ],
+                [
+                  9.774999999999999,
+                  8.09268292682927
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "design_id": null,
+            "role": "reception_desk",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.645,
+            7.517682926829269
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    8.09268292682927
+                  ],
+                  [
+                    9.125,
+                    8.09268292682927
+                  ],
+                  [
+                    9.125,
+                    6.942682926829269
+                  ],
+                  [
+                    9.774999999999999,
+                    6.942682926829269
+                  ],
+                  [
+                    9.774999999999999,
+                    8.09268292682927
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:3",
+          "role": "waiting_bench",
+          "position_m": [
+            9.514999999999999,
+            0,
+            9.0675
+          ],
+          "size_m": [
+            1.4,
+            0.8,
+            0.52
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  9.7675
+                ],
+                [
+                  9.254999999999999,
+                  9.7675
+                ],
+                [
+                  9.254999999999999,
+                  8.367500000000001
+                ],
+                [
+                  9.774999999999999,
+                  8.367500000000001
+                ],
+                [
+                  9.774999999999999,
+                  9.7675
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-benchcushionlow",
+            "model": "business-lowpoly/kenney-benchcushionlow.glb",
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "dimensions_m": [
+              1.6,
+              0.7619047260879142,
+              0.8380951603794363
+            ],
+            "role": "waiting_bench",
+            "estimated_cost_usd": 100,
+            "procedural": false
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.774999999999999,
+            9.0675
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    9.7675
+                  ],
+                  [
+                    9.254999999999999,
+                    9.7675
+                  ],
+                  [
+                    9.254999999999999,
+                    8.367500000000001
+                  ],
+                  [
+                    9.774999999999999,
+                    8.367500000000001
+                  ],
+                  [
+                    9.774999999999999,
+                    9.7675
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:4",
+          "role": "styling_station",
+          "position_m": [
+            8.424999999999999,
+            0,
+            2.323076923076922
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  3.223076923076922
+                ],
+                [
+                  7.074999999999999,
+                  3.223076923076922
+                ],
+                [
+                  7.074999999999999,
+                  1.423076923076922
+                ],
+                [
+                  9.774999999999999,
+                  1.423076923076922
+                ],
+                [
+                  9.774999999999999,
+                  3.223076923076922
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.594999999999999,
+            2.323076923076922
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    3.163076923076922
+                  ],
+                  [
+                    9.274999999999999,
+                    3.163076923076922
+                  ],
+                  [
+                    9.274999999999999,
+                    1.4830769230769218
+                  ],
+                  [
+                    9.774999999999999,
+                    1.4830769230769218
+                  ],
+                  [
+                    9.774999999999999,
+                    3.163076923076922
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    8.799999999999999,
+                    2.713076923076922
+                  ],
+                  [
+                    7.749999999999998,
+                    2.713076923076922
+                  ],
+                  [
+                    7.749999999999998,
+                    1.9330769230769218
+                  ],
+                  [
+                    8.799999999999999,
+                    1.9330769230769218
+                  ],
+                  [
+                    8.799999999999999,
+                    2.713076923076922
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:5",
+          "role": "styling_station",
+          "position_m": [
+            1.575,
+            0,
+            5.607692307692308
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999987,
+                  4.707692307692308
+                ],
+                [
+                  2.925,
+                  4.707692307692308
+                ],
+                [
+                  2.925,
+                  6.5076923076923086
+                ],
+                [
+                  0.22499999999999987,
+                  6.5076923076923086
+                ],
+                [
+                  0.22499999999999987,
+                  4.707692307692308
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.4050000000000002,
+            5.607692307692308
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999987,
+                    4.767692307692308
+                  ],
+                  [
+                    0.7249999999999999,
+                    4.767692307692308
+                  ],
+                  [
+                    0.7249999999999999,
+                    6.447692307692308
+                  ],
+                  [
+                    0.22499999999999987,
+                    6.447692307692308
+                  ],
+                  [
+                    0.22499999999999987,
+                    4.767692307692308
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    1.1999999999999997,
+                    5.2176923076923085
+                  ],
+                  [
+                    2.25,
+                    5.2176923076923085
+                  ],
+                  [
+                    2.25,
+                    5.997692307692308
+                  ],
+                  [
+                    1.1999999999999997,
+                    5.997692307692308
+                  ],
+                  [
+                    1.1999999999999997,
+                    5.2176923076923085
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:6",
+          "role": "styling_station",
+          "position_m": [
+            1.575,
+            0,
+            7.484615384615386
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999987,
+                  6.584615384615385
+                ],
+                [
+                  2.925,
+                  6.584615384615385
+                ],
+                [
+                  2.925,
+                  8.384615384615385
+                ],
+                [
+                  0.22499999999999987,
+                  8.384615384615385
+                ],
+                [
+                  0.22499999999999987,
+                  6.584615384615385
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.4050000000000002,
+            7.484615384615386
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999987,
+                    6.644615384615386
+                  ],
+                  [
+                    0.7249999999999999,
+                    6.644615384615386
+                  ],
+                  [
+                    0.7249999999999999,
+                    8.324615384615386
+                  ],
+                  [
+                    0.22499999999999987,
+                    8.324615384615386
+                  ],
+                  [
+                    0.22499999999999987,
+                    6.644615384615386
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    1.1999999999999997,
+                    7.094615384615386
+                  ],
+                  [
+                    2.25,
+                    7.094615384615386
+                  ],
+                  [
+                    2.25,
+                    7.874615384615385
+                  ],
+                  [
+                    1.1999999999999997,
+                    7.874615384615385
+                  ],
+                  [
+                    1.1999999999999997,
+                    7.094615384615386
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:7",
+          "role": "styling_station",
+          "position_m": [
+            1.575,
+            0,
+            3.730769230769231
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999987,
+                  2.830769230769231
+                ],
+                [
+                  2.925,
+                  2.830769230769231
+                ],
+                [
+                  2.925,
+                  4.630769230769231
+                ],
+                [
+                  0.22499999999999987,
+                  4.630769230769231
+                ],
+                [
+                  0.22499999999999987,
+                  2.830769230769231
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.4050000000000002,
+            3.730769230769231
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999987,
+                    2.890769230769231
+                  ],
+                  [
+                    0.7249999999999999,
+                    2.890769230769231
+                  ],
+                  [
+                    0.7249999999999999,
+                    4.570769230769231
+                  ],
+                  [
+                    0.22499999999999987,
+                    4.570769230769231
+                  ],
+                  [
+                    0.22499999999999987,
+                    2.890769230769231
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    1.1999999999999997,
+                    3.3407692307692307
+                  ],
+                  [
+                    2.25,
+                    3.3407692307692307
+                  ],
+                  [
+                    2.25,
+                    4.1207692307692305
+                  ],
+                  [
+                    1.1999999999999997,
+                    4.1207692307692305
+                  ],
+                  [
+                    1.1999999999999997,
+                    3.3407692307692307
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:8",
+          "role": "styling_station",
+          "position_m": [
+            1.575,
+            0,
+            9.361538461538462
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999987,
+                  8.461538461538462
+                ],
+                [
+                  2.925,
+                  8.461538461538462
+                ],
+                [
+                  2.925,
+                  10.261538461538462
+                ],
+                [
+                  0.22499999999999987,
+                  10.261538461538462
+                ],
+                [
+                  0.22499999999999987,
+                  8.461538461538462
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.4050000000000002,
+            9.361538461538462
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999987,
+                    8.521538461538462
+                  ],
+                  [
+                    0.7249999999999999,
+                    8.521538461538462
+                  ],
+                  [
+                    0.7249999999999999,
+                    10.201538461538462
+                  ],
+                  [
+                    0.22499999999999987,
+                    10.201538461538462
+                  ],
+                  [
+                    0.22499999999999987,
+                    8.521538461538462
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    1.1999999999999997,
+                    8.971538461538461
+                  ],
+                  [
+                    2.25,
+                    8.971538461538461
+                  ],
+                  [
+                    2.25,
+                    9.751538461538463
+                  ],
+                  [
+                    1.1999999999999997,
+                    9.751538461538463
+                  ],
+                  [
+                    1.1999999999999997,
+                    8.971538461538461
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:9",
+          "role": "styling_station",
+          "position_m": [
+            1.575,
+            0,
+            1.853846153846154
+          ],
+          "size_m": [
+            1.8,
+            2.1,
+            2.7
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999987,
+                  0.9538461538461539
+                ],
+                [
+                  2.925,
+                  0.9538461538461539
+                ],
+                [
+                  2.925,
+                  2.753846153846154
+                ],
+                [
+                  0.22499999999999987,
+                  2.753846153846154
+                ],
+                [
+                  0.22499999999999987,
+                  0.9538461538461539
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            3.4050000000000002,
+            1.853846153846154
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999987,
+                    1.0138461538461538
+                  ],
+                  [
+                    0.7249999999999999,
+                    1.0138461538461538
+                  ],
+                  [
+                    0.7249999999999999,
+                    2.6938461538461542
+                  ],
+                  [
+                    0.22499999999999987,
+                    2.6938461538461542
+                  ],
+                  [
+                    0.22499999999999987,
+                    1.0138461538461538
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    1.1999999999999997,
+                    1.4638461538461538
+                  ],
+                  [
+                    2.25,
+                    1.4638461538461538
+                  ],
+                  [
+                    2.25,
+                    2.243846153846154
+                  ],
+                  [
+                    1.1999999999999997,
+                    2.243846153846154
+                  ],
+                  [
+                    1.1999999999999997,
+                    1.4638461538461538
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:10",
+          "role": "styling_station",
+          "position_m": [
+            4.766176470588235,
+            0,
+            10.025
+          ],
+          "size_m": [
+            1.55,
+            2.05,
+            2.4
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.991176470588235,
+                  11.225
+                ],
+                [
+                  3.991176470588235,
+                  8.825000000000001
+                ],
+                [
+                  5.541176470588235,
+                  8.825000000000001
+                ],
+                [
+                  5.541176470588235,
+                  11.225
+                ],
+                [
+                  3.991176470588235,
+                  11.225
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            4.766176470588235,
+            8.345
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    4.051176470588235,
+                    11.225
+                  ],
+                  [
+                    4.051176470588235,
+                    10.725
+                  ],
+                  [
+                    5.481176470588235,
+                    10.725
+                  ],
+                  [
+                    5.481176470588235,
+                    11.225
+                  ],
+                  [
+                    4.051176470588235,
+                    11.225
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    4.376176470588235,
+                    10.4
+                  ],
+                  [
+                    4.376176470588235,
+                    9.35
+                  ],
+                  [
+                    5.1561764705882345,
+                    9.35
+                  ],
+                  [
+                    5.1561764705882345,
+                    10.4
+                  ],
+                  [
+                    4.376176470588235,
+                    10.4
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:11",
+          "role": "styling_station",
+          "position_m": [
+            7.338235294117646,
+            0,
+            10.025
+          ],
+          "size_m": [
+            1.55,
+            2.05,
+            2.4
+          ],
+          "rotation_deg": -180.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.5632352941176455,
+                  11.225
+                ],
+                [
+                  6.5632352941176455,
+                  8.825000000000001
+                ],
+                [
+                  8.113235294117645,
+                  8.825000000000001
+                ],
+                [
+                  8.113235294117645,
+                  11.225
+                ],
+                [
+                  6.5632352941176455,
+                  11.225
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:styling_station",
+            "design_id": null,
+            "role": "styling_station",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            7.338235294117646,
+            8.345
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    6.623235294117646,
+                    11.225
+                  ],
+                  [
+                    6.623235294117646,
+                    10.725
+                  ],
+                  [
+                    8.053235294117647,
+                    10.725
+                  ],
+                  [
+                    8.053235294117647,
+                    11.225
+                  ],
+                  [
+                    6.623235294117646,
+                    11.225
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    6.948235294117646,
+                    10.4
+                  ],
+                  [
+                    6.948235294117646,
+                    9.35
+                  ],
+                  [
+                    7.7282352941176455,
+                    9.35
+                  ],
+                  [
+                    7.7282352941176455,
+                    10.4
+                  ],
+                  [
+                    6.948235294117646,
+                    10.4
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:public:item:12",
+          "role": "product_cabinet",
+          "position_m": [
+            9.575,
+            0,
+            10.305232558139535
+          ],
+          "size_m": [
+            0.85,
+            1.8,
+            0.4
+          ],
+          "rotation_deg": 90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  9.774999999999999,
+                  10.730232558139535
+                ],
+                [
+                  9.375,
+                  10.730232558139535
+                ],
+                [
+                  9.375,
+                  9.880232558139534
+                ],
+                [
+                  9.774999999999999,
+                  9.880232558139534
+                ],
+                [
+                  9.774999999999999,
+                  10.730232558139535
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:public",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:product_cabinet",
+            "design_id": null,
+            "role": "product_cabinet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#e5dfd3",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "matte_plaster",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#c9c2b2",
+            "floor_finish": "tile",
+            "roughness": 0.74
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            8.895,
+            10.305232558139535
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    9.774999999999999,
+                    10.730232558139535
+                  ],
+                  [
+                    9.375,
+                    10.730232558139535
+                  ],
+                  [
+                    9.375,
+                    9.880232558139534
+                  ],
+                  [
+                    9.774999999999999,
+                    9.880232558139534
+                  ],
+                  [
+                    9.774999999999999,
+                    10.730232558139535
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:staff:item:0",
+          "role": "utility_sink",
+          "position_m": [
+            5.2043103448275865,
+            0,
+            11.65
+          ],
+          "size_m": [
+            0.65,
+            0.9,
+            0.55
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.529310344827587,
+                  11.375
+                ],
+                [
+                  5.529310344827587,
+                  11.925
+                ],
+                [
+                  4.879310344827586,
+                  11.925
+                ],
+                [
+                  4.879310344827586,
+                  11.375
+                ],
+                [
+                  5.529310344827587,
+                  11.375
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:staff",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:staff",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:utility_sink",
+            "design_id": null,
+            "role": "utility_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#acb9a8",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            5.2043103448275865,
+            12.355
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    5.529310344827587,
+                    11.375
+                  ],
+                  [
+                    5.529310344827587,
+                    11.925
+                  ],
+                  [
+                    4.879310344827586,
+                    11.925
+                  ],
+                  [
+                    4.879310344827586,
+                    11.375
+                  ],
+                  [
+                    5.529310344827587,
+                    11.375
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:staff:item:1",
+          "role": "towel_storage",
+          "position_m": [
+            6.975,
+            0,
+            11.575000000000001
+          ],
+          "size_m": [
+            0.8,
+            1.8,
+            0.4
+          ],
+          "rotation_deg": -0.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.375,
+                  11.375000000000002
+                ],
+                [
+                  7.375,
+                  11.775
+                ],
+                [
+                  6.574999999999999,
+                  11.775
+                ],
+                [
+                  6.574999999999999,
+                  11.375000000000002
+                ],
+                [
+                  7.375,
+                  11.375000000000002
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:staff",
+          "required": false,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:staff",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:towel_storage",
+            "design_id": null,
+            "role": "towel_storage",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#acb9a8",
+            "accent_wall": "#acb9a8",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            6.975,
+            12.205000000000002
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    7.375,
+                    11.375000000000002
+                  ],
+                  [
+                    7.375,
+                    11.775
+                  ],
+                  [
+                    6.574999999999999,
+                    11.775
+                  ],
+                  [
+                    6.574999999999999,
+                    11.375000000000002
+                  ],
+                  [
+                    7.375,
+                    11.375000000000002
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:wc:item:0",
+          "role": "toilet",
+          "position_m": [
+            0.585,
+            0,
+            12.575
+          ],
+          "size_m": [
+            0.6,
+            0.8,
+            0.72
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999998,
+                  12.274999999999999
+                ],
+                [
+                  0.945,
+                  12.274999999999999
+                ],
+                [
+                  0.945,
+                  12.875
+                ],
+                [
+                  0.22499999999999998,
+                  12.875
+                ],
+                [
+                  0.22499999999999998,
+                  12.274999999999999
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "design_id": null,
+            "role": "toilet",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#ece6dc",
+            "accent_wall": "#ece6dc",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.375,
+            12.575
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999998,
+                    12.274999999999999
+                  ],
+                  [
+                    0.945,
+                    12.274999999999999
+                  ],
+                  [
+                    0.945,
+                    12.875
+                  ],
+                  [
+                    0.22499999999999998,
+                    12.875
+                  ],
+                  [
+                    0.22499999999999998,
+                    12.274999999999999
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        },
+        {
+          "id": "engine-salon:wc:item:1",
+          "role": "bath_sink",
+          "position_m": [
+            0.43499999999999994,
+            0,
+            11.881250000000001
+          ],
+          "size_m": [
+            0.5,
+            0.86,
+            0.42
+          ],
+          "rotation_deg": -90.0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.22499999999999995,
+                  11.631250000000001
+                ],
+                [
+                  0.6449999999999999,
+                  11.631250000000001
+                ],
+                [
+                  0.6449999999999999,
+                  12.131250000000001
+                ],
+                [
+                  0.22499999999999995,
+                  12.131250000000001
+                ],
+                [
+                  0.22499999999999995,
+                  11.631250000000001
+                ]
+              ]
+            ]
+          },
+          "room_id": "engine-salon:wc",
+          "required": true,
+          "support": {
+            "kind": "floor",
+            "id": "engine-salon:wc",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "design_id": null,
+            "role": "bath_sink",
+            "procedural": true,
+            "license": "project",
+            "source": "Kerbside parametric fixture",
+            "estimated_cost_usd": 300
+          },
+          "materials": {
+            "wall": "#ece6dc",
+            "accent_wall": "#ece6dc",
+            "trim": "#ded8ca",
+            "ceiling": "#e6decf",
+            "wall_finish": "ceramic_wainscot",
+            "light_temperature_k": 3000,
+            "wood": "#a3825d",
+            "fabric": "#464d48",
+            "metal": "#aaa59c",
+            "countertop": "#ddd2be",
+            "floor": "#ddd2be",
+            "floor_finish": "tile",
+            "roughness": 0.62
+          },
+          "grade": "inferred",
+          "interaction_point_m": [
+            1.075,
+            11.881250000000001
+          ],
+          "collision_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0.22499999999999995,
+                    11.631250000000001
+                  ],
+                  [
+                    0.6449999999999999,
+                    11.631250000000001
+                  ],
+                  [
+                    0.6449999999999999,
+                    12.131250000000001
+                  ],
+                  [
+                    0.22499999999999995,
+                    12.131250000000001
+                  ],
+                  [
+                    0.22499999999999995,
+                    11.631250000000001
+                  ]
+                ]
+              ]
+            }
+          ],
+          "evidence": {
+            "measured": false,
+            "inferred": true,
+            "confidence": 0.25,
+            "freshness": null,
+            "corroboration_count": 0
+          }
+        }
+      ]
+    }
+  ],
+  "stairs": [],
+  "ramps": [],
+  "interaction_targets": [
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        6.594999999999999,
+        5.842307692307693
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        6.495,
+        4.062499999999999
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        8.645,
+        7.517682926829269
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        8.774999999999999,
+        9.0675
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        6.594999999999999,
+        2.323076923076922
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        3.4050000000000002,
+        5.607692307692308
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        3.4050000000000002,
+        7.484615384615386
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        3.4050000000000002,
+        3.730769230769231
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        3.4050000000000002,
+        9.361538461538462
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        3.4050000000000002,
+        1.853846153846154
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        4.766176470588235,
+        8.345
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        7.338235294117646,
+        8.345
+      ]
+    },
+    {
+      "room_id": "engine-salon:public",
+      "point": [
+        8.895,
+        10.305232558139535
+      ]
+    },
+    {
+      "room_id": "engine-salon:staff",
+      "point": [
+        5.2043103448275865,
+        12.355
+      ]
+    },
+    {
+      "room_id": "engine-salon:staff",
+      "point": [
+        6.975,
+        12.205000000000002
+      ]
+    },
+    {
+      "room_id": "engine-salon:wc",
+      "point": [
+        1.375,
+        12.575
+      ]
+    },
+    {
+      "room_id": "engine-salon:wc",
+      "point": [
+        1.075,
+        11.881250000000001
+      ]
+    }
+  ],
+  "source_geometry_sha256": "df38927fa040fda3746af8eec9beacdceacc3c97c6dc2d7ab105740897e3818a",
+  "canonical_geometry_modified": false,
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.25,
+  "freshness": null,
+  "corroboration_count": 0,
+  "references": [
+    {
+      "id": "sf-formula",
+      "title": "Formula Retail Storefront Design",
+      "url": "https://sfplanning.org/sites/default/files/documents/publications/Guide_FormulaRetail_Commission.pdf",
+      "organization": "SF Planning",
+      "kind": "design_guideline",
+      "location": "San Francisco",
+      "reviewed_at": "2026-10-29",
+      "locator": "Storefront Components and Formula Retail Storefront Design",
+      "observations": [
+        "Storefront bays distinguish piers, bulkheads, glazing, transoms and entrances.",
+        "Retain historic components when inserting chain identity; a brand does not imply a replacement building shell."
+      ]
+    },
+    {
+      "id": "salon-odin",
+      "title": "Odin shampoo unit",
+      "url": "https://beauty.takarabelmont.com/odin-shampoo-unit/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "A contoured reclining seat and tilting bowl form a coordinated backwash unit.",
+        "Basin and chair need to remain aligned; styling chairs are a separate product type."
+      ]
+    },
+    {
+      "id": "salon-stations",
+      "title": "Salon stations and cabinetry look book",
+      "url": "https://beauty.takarabelmont.com/wp-content/uploads/2017/12/takara-belmont-look-book.pdf",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Styling stations pair mirrors with work surfaces and storage.",
+        "Shampoo storage includes towel and hamper provision; these are functional zones rather than decorative boxes."
+      ]
+    },
+    {
+      "id": "salon-one",
+      "title": "THE ONE integrated salon station",
+      "url": "https://beauty.takarabelmont.co.jp/products/the-one/",
+      "organization": "Takara Belmont",
+      "kind": "manufacturer_reference",
+      "location": "Product reference; dimensions remain inference priors",
+      "reviewed_at": "2026-10-31",
+      "locator": null,
+      "observations": [
+        "Integrated equipment exists, but a generic salon is not assumed to use that proprietary product.",
+        "Rendered independent stations retain coordinated chair, mirror, worktop and stylist space."
+      ]
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "errors": [],
+    "metrics": {
+      "rooms": 3,
+      "objects": 17,
+      "coverage_m2": 132.89,
+      "dead_hallway_m2": 0
+    }
+  },
+  "content_sha256": "32916fe4ef399520afae9a9cf3fbd2355540af4bfaf17880df38220b6eb15e6e",
+  "provenance": {
+    "geometry": "Synthetic practice tenancy; paired specialty engine layout, not a real-world survey"
+  }
+}
