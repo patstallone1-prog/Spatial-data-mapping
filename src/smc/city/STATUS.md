@@ -586,3 +586,6 @@ See [docs/42-game-clock-night.md](../../../docs/42-game-clock-night.md).
   fixed, 2.25% with the line fitted to the fronts (the test town: 15% -> 0.2%).
 - Still open: 51 shops nobody is sent to (hotels, plain "shop", gyms, spas): no task asks for
   their kinds.
+
+## 2026-11-15: the city's server
+The books are no longer a browser's: `server/city` (deployed at `/api/city`) holds the one world, binds commands to signed sessions, checks movement, takes places and prices from its own record, shows each player only their part, and commits by compare-and-swap. docs/45-city-server.md has the setup (one SQL file, one environment variable) and the limits.

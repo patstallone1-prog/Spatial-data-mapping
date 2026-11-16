@@ -938,7 +938,10 @@ export function installCommerce(CityWorld, CityError) {
     const o = toJSON.call(this), k = K(this);
     o.things = T(this).toJSON();
     o.outcomes = O(this).toJSON();
-    o.commerce = { listings: [...k.listings.values()], consigned: [...k.consigned.values()], rapport: k.rapport, skills: k.skills, cash: k.cash, bought: k.bought, seq: k.seq };
+    // Quotes held and the day's asking are saved too: a world kept on a server is loaded afresh
+    // for every command, and an offer made in one must still stand in the next.
+    o.commerce = { listings: [...k.listings.values()], consigned: [...k.consigned.values()], rapport: k.rapport, skills: k.skills, cash: k.cash, bought: k.bought, seq: k.seq,
+      quotes: [...k.quotes], quoted: k.quoted };
     return o;
   };
   const fromJSON = CityWorld.fromJSON;
@@ -947,7 +950,7 @@ export function installCommerce(CityWorld, CityError) {
     w._things = Things.fromJSON(o.things, R, { seed: w.seed });
     w._outcomes = Outcomes.fromJSON(o.outcomes);
     const c = o.commerce || {};
-    w._commerce = { listings: new Map((c.listings || []).map((l) => [l.id, l])), quotes: new Map(), rapport: c.rapport || {}, skills: c.skills || {}, cash: c.cash || {}, bought: c.bought || {}, quoted: {},
+    w._commerce = { listings: new Map((c.listings || []).map((l) => [l.id, l])), quotes: new Map(c.quotes || []), rapport: c.rapport || {}, skills: c.skills || {}, cash: c.cash || {}, bought: c.bought || {}, quoted: c.quoted || {},
       consigned: new Map((c.consigned || []).map((x) => [x.id, x])), seq: c.seq || 0 };
     return w;
   };

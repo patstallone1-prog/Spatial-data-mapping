@@ -1,6 +1,8 @@
-// The party's world: one authoritative set of books, records and laws that every player in a
-// party acts on through ``submit(player, command, args)`` -- held by one browser (the party's
-// host, or yours alone) and shown to the rest. Pure, as core.mjs is (tests/city.test.mjs).
+// The city's world: one authoritative set of books, records and laws that every player acts on
+// through ``submit(player, command, args)`` -- held by the city's server (server/city), which
+// decides every outcome and shows each player their own part of it; a browser holds one only as
+// an offline practice world that is never brought into the city. Pure, as core.mjs is
+// (tests/city.test.mjs).
 //
 // It follows the Python core (smc.city.world) and adds what the viewer needs: jobs at the
 // buildings in front of you and pay with tax withheld, shopping with sales tax, cars with their
@@ -127,28 +129,12 @@ export class CityWorld {
     this.log("join", { player: pid });
     return { balance: this.ledger.balance(account), home: p.home };
   }
-  //: A player's saved self from their own browser, brought into a party's world: the same
-  //: balance (minted once as an import), the vehicles and the job.
-  cmd_import(pid, { saved }) {
-    const p = this.player(pid);
-    if (p.imported || !saved) throw new CityError("nothing to bring");
-    const extra = Math.max(0, Math.min(saved.balance | 0, 5_000_000_00) - this.ledger.balance(p.account));
-    if (extra) this.ledger.mint(p.account, extra, "import", { at: this.now, key: `import:${pid}` });
-    for (const v of saved.vehicles || []) {
-      if (this.registry.assets.has(v.id) || !this.R.vehicles.models[v.attrs?.model]) continue;
-      this.registry.register(v.id, "vehicle", p.account, v.attrs, this.now);
-    }
-    if (saved.job) p.job = saved.job;
-    if (saved.fastrak) { p.fastrak = { ...saved.fastrak, balance: 0 }; }
-    if (saved.vitals) p.vitals = { ...p.vitals, ...pick(saved.vitals, ["health", "stamina", "strength", "at", "day", "walked", "worked_out"]) };
-    for (const [id, n] of Object.entries(saved.inventory || {})) if (this.R.items[id] && !this.R.items[id].parcel) p.inventory[id] = Math.min(50, n | 0);
-    p.imported = true;
-    return this.cmd_status(pid);
-  }
-  //: Money the backend put in this player's device account (kerbside-account.mjs cityGrants):
-  //: into their wallet once, by the grant's id -- asked again (another load, a lost claim) it is
-  //: not paid twice.
-  cmd_account_grant(pid, { grant, amount }) {
+  //: Money the backend put in this player's device account (supabase/kerbside_city_grants.sql):
+  //: into their wallet once, by the grant's id. This is the city server's to call
+  //: (server/city/authority.mjs: the grant is marked claimed in the same commit); it is not a
+  //: command, so no client can ask for it, and there is no other way money comes in from outside
+  //: -- a balance is never read from a browser (the old ``import`` is gone, 2026-11-15).
+  accountGrant(pid, grant, amount) {
     const p = this.player(pid), id = String(grant ?? "");
     const cents = Math.floor(+amount);
     if (!id || !(cents > 0) || cents > ACCOUNT_GRANT_MAX) throw new CityError("not a grant");
@@ -1672,17 +1658,9 @@ export class CityWorld {
     }
     return w;
   }
-  //: One player's own record, to carry into a party's world.
-  savedSelf(pid) {
-    const p = this.players.get(pid);
-    if (!p) return null;
-    return { balance: this.ledger.balance(p.account), job: p.job, fastrak: p.fastrak ? { tag: p.fastrak.tag, flex: p.fastrak.flex } : null,
-      vehicles: this.registry.owned(p.account, "vehicle").map((v) => ({ id: v.id, attrs: v.attrs })), vitals: p.vitals,
-      inventory: Object.fromEntries(Object.entries(p.inventory || {}).filter(([k]) => k !== "parcel")) };
-  }
 }
 
-const COMMANDS = new Set(["join", "import", "account_grant", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
+const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", "clock_out", "buy", "give_money",
   "buy_vehicle", "offer", "accept", "decline", "return", "take", "drive", "park", "pay_meter", "refuel", "get_fastrak", "set_flex",
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
