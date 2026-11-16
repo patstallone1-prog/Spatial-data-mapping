@@ -580,7 +580,7 @@ function requestStoreInteriors(base) {
     }).catch(error => console.warn("kerbside: store interiors unavailable", error));
 }
 // User designs stay in the city's saved world; its source footprint and facade remain authoritative.
-let homeEditorBridge = null, homeEditorBridgePromise = null, homeEditorAccess = { homes: [], designs: [] };
+let homeEditorBridge = null, homeEditorBridgePromise = null, homeEditorAccess = { homes: [], designs: [] }, homeEditorHost=null, homePropertyMenu=null, homeEditorWasPaused=false;
 async function editorBaseline(buildingId) {
   const entry = footprintById.get(String(buildingId));
   if (!entry) throw new Error("This building is not loaded yet. Visit your property, then open the editor.");
@@ -616,16 +616,15 @@ async function editorBaseline(buildingId) {
   return house;
 }
 function ensureHomeEditorBridge() {
-  if (!homeEditorBridgePromise) homeEditorBridgePromise = import(new URL("../interior-lab/world-bridge.mjs", interiorAssetBase()).href).then(({HomeInteriorBridge}) => {
+  if (!homeEditorBridgePromise) homeEditorBridgePromise = Promise.all([import(new URL("../interior-lab/world-bridge.mjs", interiorAssetBase()).href),import(new URL("../interior-lab/in-game.mjs",interiorAssetBase()).href)]).then(([{HomeInteriorBridge},{GameInteriorHost,propertyMenu}]) => {
+    homePropertyMenu=propertyMenu;homeEditorHost=new GameInteriorHost({pause:()=>{homeEditorWasPaused=worldPaused;worldPaused=true;held.clear();document.exitPointerLock?.();},resume:saved=>{worldPaused=homeEditorWasPaused;held.clear();canvas.focus();requestFrame();if(saved)livingCity?.notify?.("Interior saved. Walk inside to see your changes.");},ready:async()=>{const entry=footprintById.get(homeEditorHost.buildingId),deadline=Date.now()+15000;while(entry?.generatedInteriorPending&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,30));if(entry?.customInteriorFailed)throw Error("Your design was saved, but the world could not rebuild it. Retry saving before returning.");}});
     homeEditorBridge = new HomeInteriorBridge({
       loadBaseline: editorBaseline,
       onApply: args => args.design?.target.propertyKind==='business'?livingCity?.applyBusinessInterior({business:args.home,baseline:args.baseline,design:args.design}):livingCity?.applyHomeInterior(args),
       report: message => { console.warn("kerbside: interior edit", message); livingCity?.notify?.(message); },
-      openEditor: (handoff, tab) => {
-        if (!handoff) return window.open("about:blank", "kerbside-interior-studio");
-        const url = new URL("../interior-lab/", interiorAssetBase()); url.searchParams.set("edit", handoff.token);
-        if (tab && !tab.closed) { tab.opener = null; tab.location.href = url.href; }
-        else window.open(url.href, "_blank", "noopener");
+      openEditor: handoff => {
+        if(!handoff)return homeEditorHost.reserve();
+        const url=new URL("../interior-lab/",interiorAssetBase());url.searchParams.set("edit",handoff.token);homeEditorHost.buildingId=handoff.target.buildingId;homeEditorHost.open(handoff,url.href);
       },
       invalidate: id => {
         const entry = footprintById.get(String(id)); if (!entry) return;
@@ -647,6 +646,14 @@ function setHomeInteriorAccess(access) {
   if (homeEditorBridge) homeEditorBridge.setAccess(access);
   else ensureHomeEditorBridge().catch(error => console.warn("kerbside: interior editor unavailable", error));
 }
+function ownedInteriorContext(event){
+  const feature=pickedFeature(event.clientX,event.clientY);if(feature?.kind!=="building")return false;
+  const id=String(feature.osm_id),targets=homeEditorAccess.homes.filter(h=>h.buildingId===id);if(!targets.length)return false;
+  event.preventDefault();event.stopImmediatePropagation();
+  const entry=footprintById.get(id),x=avatar.position.x,z=avatar.position.z,distance=entry?Math.hypot(Math.max(entry.minX-x,0,x-entry.maxX),Math.max(entry.minZ-z,0,z-entry.maxZ)):Infinity;
+  if(distance>18){livingCity?.notify?.("Walk closer to your property to edit its interior.");return true;}
+  ensureHomeEditorBridge().then(()=>homePropertyMenu({targets,x:event.clientX,y:event.clientY,onEdit:home=>openHomeInteriorLab(home).catch(error=>livingCity?.notify?.(error.message))}));return true;
+}
 async function openHomeInteriorLab(homeId) {
   const bridge = await ensureHomeEditorBridge(); return bridge.open(homeId);
 }
@@ -661,7 +668,7 @@ function requestGeneratedInterior(entry) {
   ]);
   Promise.all([generatedInteriorModules,
     entry.generatedInteriorRef ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
-  ]).then(([[rendererModule, adapter], source]) => {
+  ]).then(async ([[rendererModule, adapter], source]) => {
     if (entry.generatedInteriorRef && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
     const baseline = entry.editorBaseline || adapter.prepareGeneratedHouse(source);
     entry.editorBaseline = structuredClone(baseline);
@@ -671,8 +678,14 @@ function requestGeneratedInterior(entry) {
     if (entry.interior) removeInterior(entry);
     const [lon, lat] = ref.origin_lon_lat;
     const floorY = entryFloorY(entry);
+    const origin=entry.editorOrigin||xy(lon, lat);
+    if(house.envelope?.windows_customized){
+      const {mountWindowShell}=await import(new URL("../interior-lab/window-shell.mjs",interiorAssetBase()).href);
+      entry.customWindowShell?.restore();
+      entry.customWindowShell=mountWindowShell(THREE,{house,baseline,origin,floorY,root,ranges:BUILDING_VISUAL_RANGES.get(String(entry.way.osm_id))||[],extras:[entry.homeShell?.group,storeExteriorDrawn.get(entry.way)]});
+    }
     const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
-      origin: entry.editorOrigin||xy(lon, lat), floorY, assetBase: interiorAssetBase(),
+      origin, floorY, exteriorColor:drawnWallColour(entry.way), assetBase: interiorAssetBase(),
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
       feetY: walkerFeetY, pointInRing, kind: ref.kind, customized
     }, rendererModule.buildInferredHouse);
@@ -680,7 +693,7 @@ function requestGeneratedInterior(entry) {
     // building with no shell -- every restaurant, and a house the shells do not reach -- has
     // only the city's facade, which is not drawn from inside, so its rooms stand in the same
     // lining as a fitted plan's, up to the top of its top storey (outsideWallLining).
-    if (!entry.homeShell) {
+    if (!entry.homeShell && !house.envelope?.windows_customized) {
       const holder = new THREE.Group();
       holder.name = `interior:${entry.way.osm_id}`;
       const top = Math.max(...house.storeys.map((f) => (f.elevation_m || 0) + (f.height_m || 0)));
@@ -691,6 +704,7 @@ function requestGeneratedInterior(entry) {
     entry.interior = interior;
     interiorGroup.add(interior.group); standingSurfaces.add(interior.floorSurface); interiorsBuilt.add(entry);
   }).catch(error => {
+    entry.customWindowShell?.restore();entry.customWindowShell=null;
     entry.generatedInteriorFailed = true; entry.customInteriorFailed = true;
     console.warn("kerbside: generated interior rejected; using fitted plan", error);
     buildInterior(entry);

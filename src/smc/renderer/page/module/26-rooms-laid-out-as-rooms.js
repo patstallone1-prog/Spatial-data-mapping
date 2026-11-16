@@ -1291,6 +1291,7 @@ function fittedInteriorSnapshot(entry) {
 }
 
 function removeInterior(entry) {
+  entry.customWindowShell?.restore();entry.customWindowShell=null;
   if (!entry.interior) return;
   interiorGroup.remove(entry.interior.group);
   standingSurfaces.delete(entry.interior.floorSurface);

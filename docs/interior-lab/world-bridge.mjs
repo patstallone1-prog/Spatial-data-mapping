@@ -28,6 +28,7 @@ export function composeDesigns(baseline, designs) {
       const owned = id => oldIds.has(id) || newIds.has(id);
       f.rooms = [...f.rooms.filter(r => !oldIds.has(r.id)), ...structuredClone(src.rooms.filter(r => newIds.has(r.id)))];
       f.objects = [...f.objects.filter(o => !oldIds.has(o.room_id)), ...structuredClone(src.objects.filter(o => newIds.has(o.room_id)))];
+      if(f.finish_regions||src.finish_regions)f.finish_regions=[...(f.finish_regions||[]).filter(r=>!oldIds.has(r.room_id)),...structuredClone((src.finish_regions||[]).filter(r=>newIds.has(r.room_id)))];
       for (const key of ['walls','openings']) {
         const privatePart = x => x.rooms?.length && x.rooms.every(owned);
         const geometry = x => JSON.stringify({...x, rooms: null, swing_into: null});

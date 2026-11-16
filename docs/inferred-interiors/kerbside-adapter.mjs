@@ -7,7 +7,7 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
   // no table that leaves no way past it (layout-rules.mjs).
   house=context.customized?house:applyLayoutRules(house);
   const {origin, floorY, assetBase, loadAsset, feetY, pointInRing} = context;
-  const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:false,ceilings:true});
+  const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:Boolean(house.envelope?.windows_customized),exteriorThickness:.08,entranceDoors:false,exteriorColor:context.exteriorColor||null,ceilings:true});
   const [east,north]=origin;
   const physics=new TourWorld(house);
   built.group.position.set(east,floorY,-north);built.group.scale.z=-1;

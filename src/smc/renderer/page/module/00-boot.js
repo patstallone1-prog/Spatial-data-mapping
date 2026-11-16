@@ -821,7 +821,7 @@ async function loadStoreExteriorBundle() {
 const STORE_EXTERIOR_RUNTIME = await loadStoreExteriorBundle();
 //: The researched exterior for this building, or null: none in the bundle, a front a person
 //: drew (theirs wins), or a shell it no longer fits (buildingMesh turns it off).
-const storeExteriorBound=new WeakMap();
+const storeExteriorBound=new WeakMap(), storeExteriorDrawn=new WeakMap();
 function storeExteriorFor(feature) {
   if(feature._storeExteriorDisabled || feature.exteriorEdit || !STORE_EXTERIOR_RUNTIME)return null;
   // Asked of a building by every detail pass it has; the shell it is matched against does not
