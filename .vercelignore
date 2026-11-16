@@ -4,6 +4,11 @@
 /*
 !/docs
 !/vercel.json
+# The city's server and its people's voices (vercel.json functions): the functions in api/ and
+# the code they run in server/. Without these the functions named in vercel.json match no file
+# and the whole deployment fails.
+!/api
+!/server
 # The deploy gate (vercel.json ignoreCommand) runs from the clone before anything is served.
 !/tools
 /tools/*
