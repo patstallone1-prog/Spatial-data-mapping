@@ -5,7 +5,8 @@
 //   DEEPSEEK_MODEL      the model id (default below).
 //   DEEPSEEK_BASE_URL   the API's address (default https://api.deepseek.com).
 
-export const DEFAULT_MODEL = "deepseek-v4.1-flash";
+//: DeepSeek V4.1 Flash, as the API's own model list names it (GET /models, 2026-11-16).
+export const DEFAULT_MODEL = "deepseek-flash";
 export const DEFAULT_BASE = "https://api.deepseek.com";
 
 export function modelConfig(env = process.env) {
@@ -14,13 +15,14 @@ export function modelConfig(env = process.env) {
 }
 
 //: One reply. Throws (with ``code``) when the model can not be reached or answers nothing.
-export async function chat(config, messages, { fetch: f = globalThis.fetch, timeout = 7_000, maxTokens = 180, temperature = 0.7 } = {}) {
+export async function chat(config, messages, { fetch: f = globalThis.fetch, timeout = 7_000, maxTokens = 500, temperature = 0.7 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
     const r = await f(`${config.base}/chat/completions`, { method: "POST", signal: controller.signal,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.key}` },
-      body: JSON.stringify({ model: config.model, messages, max_tokens: maxTokens, temperature, stream: false }) });
+      // The model thinks before it speaks and its thinking is counted in max_tokens: low effort, and room for both.
+      body: JSON.stringify({ model: config.model, messages, max_tokens: maxTokens, temperature, stream: false, reasoning_effort: "low" }) });
     if (!r.ok) { const e = new Error(`the model answered ${r.status}`); e.code = r.status === 401 || r.status === 403 ? "model_key" : r.status === 404 || r.status === 400 ? "model_request" : "model_down"; throw e; }
     const out = await r.json();
     const text = out?.choices?.[0]?.message?.content;

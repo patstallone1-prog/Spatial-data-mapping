@@ -76,11 +76,11 @@ To switch it on, set in Vercel (Production) and redeploy:
 | Variable | Value |
 | --- | --- |
 | `DEEPSEEK_API_KEY` | the key |
-| `DEEPSEEK_MODEL` | optional; default `deepseek-v4.1-flash` |
+| `DEEPSEEK_MODEL` | optional; default `deepseek-flash` (DeepSeek V4.1 Flash) |
 | `DEEPSEEK_BASE_URL` | optional; default `https://api.deepseek.com` |
 
-The model id could not be confirmed against DeepSeek's own documentation: check it on their models
-page and set `DEEPSEEK_MODEL` if it differs. It also needs the city server set up (docs/45).
+The model id is the one DeepSeek's own model list gives (`GET /models`). It also needs the city
+server set up (docs/45).
 
 ## Limits
 
