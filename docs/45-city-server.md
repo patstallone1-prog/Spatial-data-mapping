@@ -89,7 +89,7 @@ ownership, world/account identity, footprint (including upper-floor setbacks) an
 The first source-layout fingerprint is pinned per property. Layouts are game hypotheses, not
 surveyed interiors. The editor cannot self-verify a house’s windows.
 
-## Release handoff (2026-11-15)
+## Initial release handoff (2026-11-15)
 
 All seven versioned Supabase migrations have been applied to `tpbugonqwaoxtcswxyki`:
 exterior edits, device accounts, contributors, city grants, login, city server and city identity.
@@ -101,3 +101,26 @@ Code is committed locally; deployment is left to the project owner. Before deplo
 `/Users/elialbukerk/.codex/.kerbside-city-deploy-secret-20261115` (mode 0600). It is outside Git.
 The SQL secret hash already matches that value; do not rerun the SQL’s random-secret footer.
 `KERBSIDE_CITY_STORE` may remain unset (Supabase is the deployed default).
+
+## First three testing accounts (2026-11-16)
+
+Apply `supabase/migrations/20261116230551_city_welcome_first_three.sql` after the city and
+identity migrations. It reserves packages for the first three **named accounts**, ordered by
+sign-up time; anonymous devices do not take a slot. Existing accounts are backfilled in that
+same order. A deleted account does not free its slot for someone else.
+
+On joining the online Marina, each eligible account receives 1,000,000 credits in addition to
+the ordinary starting wallet, plus ownership of a small restaurant and its premises. Initial
+restaurant registration licences are funded separately, so they do not reduce the million.
+The preferred premises are `263347484`, `263343082` and `272598431` (about 111–128 m²).
+An occupied premise is preserved and a free small restaurant is chosen from the alternatives.
+The restaurant opens with its licences; the owner chooses its stock and staff.
+
+The private SQL entitlement is consumed in the same transaction as the world, wallet,
+property and business commit. Retries, concurrent devices and restarts cannot claim it twice.
+The browser cannot choose the beneficiary, amount or slot. The three packages are testing
+provisioning, not a recurring signup reward.
+
+The city secret has been configured in Vercel Production. NPC model responses additionally
+require `DEEPSEEK_API_KEY` there; without it the city still runs with fallback replies. Adding
+or changing an environment variable requires a fresh deployment before it takes effect.
