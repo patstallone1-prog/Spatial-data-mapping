@@ -56,6 +56,7 @@ def lint_owned(path: str) -> bool:
 
 
 RULES = [
+    (["tools/build_city_interior_envelopes.mjs"], ["tests/city_interior_server.test.mjs"]),
     (
         ["tools/ci/**", ".github/workflows/**"],
         ["tests/test_ci_selection.py", "tests/test_ci_workflows.py"],

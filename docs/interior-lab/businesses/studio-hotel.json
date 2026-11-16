@@ -1,0 +1,1821 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-hotel",
+  "name": "Hotel",
+  "kind": "hotel",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": []
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-hotel:public",
+          "kind": "lobby",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 155.51999999999998,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-hotel:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-hotel:toilet",
+          "kind": "guest_room",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  12,
+                  12.96
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 49.89599999999999,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                5.5925,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-hotel:public",
+            "studio-hotel:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                6.4075,
+                12.959999999999999
+              ],
+              [
+                12,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-hotel:public",
+            "studio-hotel:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    12.959999999999999
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-hotel:service",
+            "studio-hotel:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-hotel:service",
+            "studio-hotel:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  12.959999999999999
+                ],
+                [
+                  12,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    12,
+                    12.96
+                  ],
+                  [
+                    12,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-hotel:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-hotel:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-hotel:service:door",
+          "rooms": [
+            "studio-hotel:public",
+            "studio-hotel:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.5925,
+                12.959999999999999
+              ],
+              [
+                6.4075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-hotel:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.5925,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  12.51
+                ],
+                [
+                  6.4075,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  13.409999999999998
+                ],
+                [
+                  5.5925,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-hotel:toilet:door",
+          "rooms": [
+            "studio-hotel:service",
+            "studio-hotel:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-hotel:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-hotel:item:0",
+          "role": "reception_desk",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            1.6,
+            1.05,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "role": "reception_desk",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  6.13
+                ],
+                [
+                  6.8,
+                  6.13
+                ],
+                [
+                  6.8,
+                  6.829999999999999
+                ],
+                [
+                  5.2,
+                  6.829999999999999
+                ],
+                [
+                  5.2,
+                  6.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:1",
+          "role": "sofa",
+          "position_m": [
+            6.0421256804359675,
+            0,
+            7.3214631979727525
+          ],
+          "size_m": [
+            2.731177,
+            1.118264,
+            0.925084
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "sofa_03",
+            "role": "sofa",
+            "model": "sofa_03/sofa_03.gltf",
+            "dimensions_m": [
+              2.731177,
+              1.118264,
+              0.925084
+            ],
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/sofa_03",
+            "attribution": "Poly Haven"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.676537180435967,
+                  6.8589211979727525
+                ],
+                [
+                  7.407714180435968,
+                  6.8589211979727525
+                ],
+                [
+                  7.407714180435968,
+                  7.7840051979727525
+                ],
+                [
+                  4.676537180435967,
+                  7.7840051979727525
+                ],
+                [
+                  4.676537180435967,
+                  6.8589211979727525
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:2",
+          "role": "armchair",
+          "position_m": [
+            6.0868446165231616,
+            0,
+            5.697524492613632
+          ],
+          "size_m": [
+            0.95,
+            0.8918367877571567,
+            0.7948980429057362
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-loungechair",
+            "role": "armchair",
+            "model": "business-lowpoly/kenney-loungechair.glb",
+            "dimensions_m": [
+              0.95,
+              0.8918367877571567,
+              0.7948980429057362
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ],
+                [
+                  6.561844616523161,
+                  5.300075471160764
+                ],
+                [
+                  6.561844616523161,
+                  6.0949735140665
+                ],
+                [
+                  5.611844616523162,
+                  6.0949735140665
+                ],
+                [
+                  5.611844616523162,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:3",
+          "role": "coffee_table",
+          "position_m": [
+            4.914768035073571,
+            0,
+            5.63290649581868
+          ],
+          "size_m": [
+            1.1,
+            0.3827556724671157,
+            0.665662049315831
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-tablecoffee",
+            "role": "coffee_table",
+            "model": "business-lowpoly/kenney-tablecoffee.glb",
+            "dimensions_m": [
+              1.1,
+              0.3827556724671157,
+              0.665662049315831
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.364768035073571,
+                  5.300075471160764
+                ],
+                [
+                  5.464768035073571,
+                  5.300075471160764
+                ],
+                [
+                  5.464768035073571,
+                  5.965737520476595
+                ],
+                [
+                  4.364768035073571,
+                  5.965737520476595
+                ],
+                [
+                  4.364768035073571,
+                  5.300075471160764
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:4",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:5",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:6",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:7",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:8",
+          "role": "bed",
+          "position_m": [
+            7.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.904658,
+            1.201484,
+            2.001726
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "old_bed_frame",
+            "role": "bed",
+            "model": "old_bed_frame/old_bed_frame.gltf",
+            "dimensions_m": [
+              0.904658,
+              1.201484,
+              2.001726
+            ],
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/old_bed_frame",
+            "attribution": "Poly Haven"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.597671,
+                  14.479137
+                ],
+                [
+                  7.502329,
+                  14.479137
+                ],
+                [
+                  7.502329,
+                  16.480863
+                ],
+                [
+                  6.597671,
+                  16.480863
+                ],
+                [
+                  6.597671,
+                  14.479137
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:9",
+          "role": "nightstand",
+          "position_m": [
+            7.883876,
+            0,
+            15.4220965
+          ],
+          "size_m": [
+            0.567752,
+            0.699965,
+            0.424193
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "ClassicNightstand_01",
+            "role": "nightstand",
+            "model": "ClassicNightstand_01/ClassicNightstand_01.gltf",
+            "dimensions_m": [
+              0.567752,
+              0.699965,
+              0.424193
+            ],
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/ClassicNightstand_01",
+            "attribution": "Poly Haven"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.6,
+                  15.21
+                ],
+                [
+                  8.167752,
+                  15.21
+                ],
+                [
+                  8.167752,
+                  15.634193
+                ],
+                [
+                  7.6,
+                  15.634193
+                ],
+                [
+                  7.6,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:10",
+          "role": "dresser",
+          "position_m": [
+            5.9507015,
+            0,
+            15.500329500000001
+          ],
+          "size_m": [
+            1.201403,
+            1.212043,
+            0.580659
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "GothicCommode_01",
+            "role": "dresser",
+            "model": "GothicCommode_01/GothicCommode_01.gltf",
+            "dimensions_m": [
+              1.201403,
+              1.212043,
+              0.580659
+            ],
+            "license": "CC0-1.0",
+            "source": "https://polyhaven.com/a/GothicCommode_01",
+            "attribution": "Poly Haven"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.35,
+                  15.21
+                ],
+                [
+                  6.5514030000000005,
+                  15.21
+                ],
+                [
+                  6.5514030000000005,
+                  15.790659000000002
+                ],
+                [
+                  5.35,
+                  15.790659000000002
+                ],
+                [
+                  5.35,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:11",
+          "role": "desk",
+          "position_m": [
+            8.3,
+            0,
+            16.08388587825986
+          ],
+          "size_m": [
+            1.4,
+            0.7327277925516358,
+            0.7477717565197195
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-desk",
+            "role": "desk",
+            "model": "business-lowpoly/kenney-desk.glb",
+            "dimensions_m": [
+              1.4,
+              0.7327277925516358,
+              0.7477717565197195
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  7.6000000000000005,
+                  15.71
+                ],
+                [
+                  9,
+                  15.71
+                ],
+                [
+                  9,
+                  16.45777175651972
+                ],
+                [
+                  7.6000000000000005,
+                  16.45777175651972
+                ],
+                [
+                  7.6000000000000005,
+                  15.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-hotel:item:12",
+          "role": "armchair",
+          "position_m": [
+            6.075,
+            0,
+            14.607449021452869
+          ],
+          "size_m": [
+            0.95,
+            0.8918367877571567,
+            0.7948980429057362
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-hotel:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-hotel:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-loungechair",
+            "role": "armchair",
+            "model": "business-lowpoly/kenney-loungechair.glb",
+            "dimensions_m": [
+              0.95,
+              0.8918367877571567,
+              0.7948980429057362
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.6000000000000005,
+                  14.21
+                ],
+                [
+                  6.55,
+                  14.21
+                ],
+                [
+                  6.55,
+                  15.004898042905737
+                ],
+                [
+                  5.6000000000000005,
+                  15.004898042905737
+                ],
+                [
+                  5.6000000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

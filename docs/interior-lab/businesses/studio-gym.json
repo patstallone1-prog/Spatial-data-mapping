@@ -1,0 +1,1706 @@
+{
+  "schema": "kerbside.inferred_business/1",
+  "id": "studio-gym",
+  "name": "Gym",
+  "kind": "gym",
+  "units": "metres",
+  "grade": "inferred",
+  "measured": false,
+  "confidence": 0.2,
+  "freshness": null,
+  "corroboration_count": 0,
+  "style": {
+    "id": "studio-business",
+    "usage": "business",
+    "walls": [
+      "#d8dfd2",
+      "#b2c3bb",
+      "#dfc9b5"
+    ],
+    "wood": "#a57d58",
+    "fabric": "#647d78",
+    "metal": "#647075",
+    "stone": "#d2d2c5",
+    "accent": "#668a80"
+  },
+  "envelope": {
+    "windows": [
+      {
+        "edge": 0,
+        "u": 1,
+        "v": 0.9,
+        "w": 2,
+        "h": 1.5
+      },
+      {
+        "edge": 0,
+        "u": 9,
+        "v": 0.9,
+        "w": 2,
+        "h": 1.5
+      }
+    ]
+  },
+  "stairs": [],
+  "ramps": [],
+  "provenance": {
+    "layout": "Editable game starter within supplied tenancy geometry; not a surveyed interior",
+    "geometry": "Synthetic practice tenancy; not a real-world survey"
+  },
+  "storeys": [
+    {
+      "level": 0,
+      "elevation_m": 0,
+      "height_m": 3.2,
+      "footprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "inside": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              12,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              11.52
+            ],
+            [
+              8.399999999999999,
+              18
+            ],
+            [
+              0,
+              18
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      "slab_holes": [],
+      "rooms": [
+        {
+          "id": "studio-gym:public",
+          "kind": "fitness_floor",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.4,
+                  11.52
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 150.336,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-gym:service",
+          "kind": "toilet",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.96
+                ],
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 10.584,
+          "custom_finish": true
+        },
+        {
+          "id": "studio-gym:toilet",
+          "kind": "changing_room",
+          "polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  2.1,
+                  12.96
+                ],
+                [
+                  8.4,
+                  12.96
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  2.1,
+                  18
+                ],
+                [
+                  2.1,
+                  12.96
+                ]
+              ]
+            ]
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "area_m2": 31.752,
+          "custom_finish": true
+        }
+      ],
+      "walls": [
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                0,
+                12.959999999999999
+              ],
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-gym:public",
+            "studio-gym:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                4.6075,
+                12.959999999999999
+              ],
+              [
+                8.4,
+                12.959999999999999
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#d8dfd2",
+            "#d8dfd2"
+          ],
+          "rooms": [
+            "studio-gym:public",
+            "studio-gym:service"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  0
+                ],
+                [
+                  12,
+                  0
+                ],
+                [
+                  12,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  11.52
+                ],
+                [
+                  8.399999999999999,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  0
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    12,
+                    0
+                  ],
+                  [
+                    12,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    11.52
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    0,
+                    0
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    12.959999999999999
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.959999999999999
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                12.96
+              ],
+              [
+                2.1,
+                15.0725
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-gym:service",
+            "studio-gym:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.887500000000001
+              ],
+              [
+                2.1,
+                18
+              ]
+            ]
+          },
+          "thickness_m": 0.1,
+          "height_m": 3.2,
+          "materials": [
+            "#b2c3bb",
+            "#b2c3bb"
+          ],
+          "rooms": [
+            "studio-gym:service",
+            "studio-gym:toilet"
+          ],
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true,
+          "lab_original_polygon": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  12.959999999999999
+                ],
+                [
+                  8.4,
+                  18
+                ],
+                [
+                  0,
+                  18
+                ],
+                [
+                  0,
+                  12.959999999999999
+                ]
+              ]
+            ]
+          },
+          "lab_split_polygons": [
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    0,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    0,
+                    18
+                  ],
+                  [
+                    0,
+                    12.96
+                  ]
+                ]
+              ]
+            },
+            {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [
+                    2.1,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    12.96
+                  ],
+                  [
+                    8.4,
+                    18
+                  ],
+                  [
+                    2.1,
+                    18
+                  ],
+                  [
+                    2.1,
+                    12.96
+                  ]
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "studio-gym:entrance",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                5.2,
+                0
+              ],
+              [
+                6.8,
+                0
+              ]
+            ]
+          },
+          "width_m": 1.6,
+          "height_m": 2.3,
+          "leaf_count": 2,
+          "type": "double_door",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.2,
+                  0.65
+                ],
+                [
+                  6.8,
+                  0.65
+                ],
+                [
+                  6.8,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  -0.65
+                ],
+                [
+                  5.2,
+                  0.65
+                ]
+              ]
+            ]
+          },
+          "entrance": true,
+          "rooms": [
+            "studio-gym:public",
+            "outside"
+          ]
+        },
+        {
+          "id": "studio-gym:service:door",
+          "rooms": [
+            "studio-gym:public",
+            "studio-gym:toilet"
+          ],
+          "type": "doorway",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                3.7925000000000004,
+                12.959999999999999
+              ],
+              [
+                4.6075,
+                12.959999999999999
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 0,
+          "swing_into": "studio-gym:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  3.7925000000000004,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  12.51
+                ],
+                [
+                  4.6075,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  13.409999999999998
+                ],
+                [
+                  3.7925000000000004,
+                  12.51
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        },
+        {
+          "id": "studio-gym:toilet:door",
+          "rooms": [
+            "studio-gym:service",
+            "studio-gym:toilet"
+          ],
+          "type": "single_door",
+          "segment": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                2.1,
+                15.0725
+              ],
+              [
+                2.1,
+                15.887500000000001
+              ]
+            ]
+          },
+          "width_m": 0.815,
+          "height_m": 2.1,
+          "leaf_count": 1,
+          "swing_into": "studio-gym:toilet",
+          "clearance": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1.6500000000000001,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.0725
+                ],
+                [
+                  2.5500000000000003,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.887500000000001
+                ],
+                [
+                  1.6500000000000001,
+                  15.0725
+                ]
+              ]
+            ]
+          },
+          "grade": "inferred",
+          "measured": false,
+          "lab_partition": true
+        }
+      ],
+      "objects": [
+        {
+          "id": "studio-gym:item:0",
+          "role": "treadmill",
+          "position_m": [
+            6,
+            0,
+            6.4799999999999995
+          ],
+          "size_m": [
+            0.85,
+            1.4,
+            1.8
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:treadmill",
+            "role": "treadmill",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.575,
+                  5.579999999999999
+                ],
+                [
+                  6.425,
+                  5.579999999999999
+                ],
+                [
+                  6.425,
+                  7.38
+                ],
+                [
+                  5.575,
+                  7.38
+                ],
+                [
+                  5.575,
+                  5.579999999999999
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:1",
+          "role": "exercise_bench",
+          "position_m": [
+            6.872152052610354,
+            0,
+            6.573613761885559
+          ],
+          "size_m": [
+            0.65,
+            0.55,
+            1.3
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:exercise_bench",
+            "role": "exercise_bench",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  6.547152052610354,
+                  5.923613761885559
+                ],
+                [
+                  7.197152052610354,
+                  5.923613761885559
+                ],
+                [
+                  7.197152052610354,
+                  7.223613761885559
+                ],
+                [
+                  6.547152052610354,
+                  7.223613761885559
+                ],
+                [
+                  6.547152052610354,
+                  5.923613761885559
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:2",
+          "role": "storage_cabinet",
+          "position_m": [
+            6.100075471160764,
+            0,
+            5.093298388016535
+          ],
+          "size_m": [
+            1.6,
+            1.6,
+            0.8335224151611329
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchencabinet",
+            "role": "storage_cabinet",
+            "model": "business-lowpoly/kay-kitchencabinet.glb",
+            "dimensions_m": [
+              1.6,
+              1.6,
+              0.8335224151611329
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160764,
+                  4.676537180435969
+                ],
+                [
+                  6.900075471160764,
+                  4.676537180435969
+                ],
+                [
+                  6.900075471160764,
+                  5.5100595955971015
+                ],
+                [
+                  5.300075471160764,
+                  5.5100595955971015
+                ],
+                [
+                  5.300075471160764,
+                  4.676537180435969
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:3",
+          "role": "reception_desk",
+          "position_m": [
+            6.100075471160764,
+            0,
+            7.832459488697547
+          ],
+          "size_m": [
+            1.6,
+            1.05,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:public",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:public",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:reception_desk",
+            "role": "reception_desk",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#d8dfd2",
+            "floor": "#b9ad96",
+            "floor_finish": "timber",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5.300075471160764,
+                  7.482459488697548
+                ],
+                [
+                  6.900075471160764,
+                  7.482459488697548
+                ],
+                [
+                  6.900075471160764,
+                  8.182459488697548
+                ],
+                [
+                  5.300075471160764,
+                  8.182459488697548
+                ],
+                [
+                  5.300075471160764,
+                  7.482459488697548
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:4",
+          "role": "toilet",
+          "position_m": [
+            1.05,
+            0,
+            15.48
+          ],
+          "size_m": [
+            0.45,
+            0.8,
+            0.7
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:toilet",
+            "role": "toilet",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.8250000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.13
+                ],
+                [
+                  1.2750000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.83
+                ],
+                [
+                  0.8250000000000001,
+                  15.13
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:5",
+          "role": "bath_sink",
+          "position_m": [
+            0.35,
+            0,
+            15.46
+          ],
+          "size_m": [
+            0.7,
+            0.85,
+            0.5
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bath_sink",
+            "role": "bath_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.21
+                ],
+                [
+                  0.7,
+                  15.71
+                ],
+                [
+                  0,
+                  15.71
+                ],
+                [
+                  0,
+                  15.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:6",
+          "role": "handwash_sink",
+          "position_m": [
+            1,
+            0,
+            16.185000000000002
+          ],
+          "size_m": [
+            0.5,
+            0.85,
+            0.45
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:handwash_sink",
+            "role": "handwash_sink",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  0.75,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  15.960000000000003
+                ],
+                [
+                  1.25,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  16.410000000000004
+                ],
+                [
+                  0.75,
+                  15.960000000000003
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:7",
+          "role": "waste_bin",
+          "position_m": [
+            1.157760574955283,
+            0,
+            14.887836951428978
+          ],
+          "size_m": [
+            0.31552114991056596,
+            0.65,
+            0.355673902857955
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:service",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:service",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kenney-trashcan",
+            "role": "waste_bin",
+            "model": "business-lowpoly/kenney-trashcan.glb",
+            "dimensions_m": [
+              0.31552114991056596,
+              0.65,
+              0.355673902857955
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  1,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  14.71
+                ],
+                [
+                  1.3155211499105661,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  15.065673902857956
+                ],
+                [
+                  1,
+                  14.71
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:8",
+          "role": "bench",
+          "position_m": [
+            5.25,
+            0,
+            15.48
+          ],
+          "size_m": [
+            1.5,
+            0.85,
+            0.6
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:bench",
+            "role": "bench",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.5,
+                  15.18
+                ],
+                [
+                  6,
+                  15.18
+                ],
+                [
+                  6,
+                  15.780000000000001
+                ],
+                [
+                  4.5,
+                  15.780000000000001
+                ],
+                [
+                  4.5,
+                  15.18
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:9",
+          "role": "storage_cabinet",
+          "position_m": [
+            5.15,
+            0,
+            14.626761207580568
+          ],
+          "size_m": [
+            1.6,
+            1.6,
+            0.8335224151611329
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "kay-kitchencabinet",
+            "role": "storage_cabinet",
+            "model": "business-lowpoly/kay-kitchencabinet.glb",
+            "dimensions_m": [
+              1.6,
+              1.6,
+              0.8335224151611329
+            ],
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "detail": "low_poly"
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.3500000000000005,
+                  14.21
+                ],
+                [
+                  5.95,
+                  14.21
+                ],
+                [
+                  5.95,
+                  15.043522415161135
+                ],
+                [
+                  4.3500000000000005,
+                  15.043522415161135
+                ],
+                [
+                  4.3500000000000005,
+                  14.21
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "id": "studio-gym:item:10",
+          "role": "clothing_rail",
+          "position_m": [
+            5.3,
+            0,
+            16.235
+          ],
+          "size_m": [
+            1.4,
+            1.7,
+            0.55
+          ],
+          "rotation_deg": 0,
+          "room_id": "studio-gym:toilet",
+          "support": {
+            "kind": "floor",
+            "id": "studio-gym:toilet",
+            "surface_y_m": 0
+          },
+          "asset": {
+            "id": "procedural:clothing_rail",
+            "role": "clothing_rail",
+            "procedural": true
+          },
+          "materials": {
+            "wall": "#b2c3bb",
+            "floor": "#b9ad96",
+            "floor_finish": "tile",
+            "wood": "#a57d58",
+            "fabric": "#647d78",
+            "metal": "#647075",
+            "ceiling": "#eee9df",
+            "trim": "#e4ddcf"
+          },
+          "grade": "inferred",
+          "measured": false,
+          "confidence": 0.2,
+          "freshness": null,
+          "corroboration_count": 0,
+          "footprint": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  4.6,
+                  15.959999999999999
+                ],
+                [
+                  6,
+                  15.959999999999999
+                ],
+                [
+                  6,
+                  16.509999999999998
+                ],
+                [
+                  4.6,
+                  16.509999999999998
+                ],
+                [
+                  4.6,
+                  15.959999999999999
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "passed": true
+  }
+}

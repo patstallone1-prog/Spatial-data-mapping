@@ -208,7 +208,7 @@ def test_a_generated_interior_with_no_shell_stands_inside_a_lining_of_its_outsid
     from tests.test_corridor_geometry_rules import _extract, _page_js
     page = _page_js()
     request = _extract("requestGeneratedInterior", page)
-    assert "if (!entry.homeShell) {" in request
+    assert "if (!entry.homeShell && !house.envelope?.windows_customized) {" in request
     assert "outsideWallLining(entry, holder, floorY" in request and "interior.group = holder;" in request
     # The fitted plans keep the same lining, from the same function.
     assert "outsideWallLining(entry, entry.homeShell ? null : group, floorY, height)" in _extract("buildInterior", page)

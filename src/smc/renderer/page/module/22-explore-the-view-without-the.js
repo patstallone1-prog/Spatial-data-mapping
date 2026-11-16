@@ -1205,6 +1205,7 @@ canvas.addEventListener("contextmenu", (e) => {
   // landed in the middle of a pinch zoom flew the walker to wherever the fingers were. A click
   // moves the walker; search and pins go further.
   e.preventDefault();
+  if(!e.shiftKey&&typeof ownedInteriorContext==="function"&&ownedInteriorContext(e))return;
   // In the game, a right click uses what you hold (eat, drink, wear: U); with Shift it is the
   // exterior editor's (module 28).
   if (!e.shiftKey && cityGame() && typeof livingCity !== "undefined" && livingCity?.useSelected) livingCity.useSelected();

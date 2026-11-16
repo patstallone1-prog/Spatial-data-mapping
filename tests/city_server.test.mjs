@@ -339,3 +339,15 @@ test("the store is closed to pages, and a commit is one compare-and-swap", () =>
   const vercel = JSON.parse(text("../vercel.json"));
   assert.ok(vercel.functions["api/city.mjs"].includeFiles.includes("server/city/canon"));
 });
+
+test("what a function needs is uploaded: .vercelignore lets api/ and server/ through (a deploy failed without them)", () => {
+  const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+  const ignore = read("../.vercelignore").split("\n").map((l) => l.trim());
+  const functions = Object.keys(JSON.parse(read("../vercel.json")).functions);
+  assert.ok(functions.length >= 1);
+  for (const f of functions) {
+    assert.ok(ignore.includes(`!/${f.split("/")[0]}`), `${f}: its folder is uploaded`);
+    // And what it imports from outside docs/ (which is uploaded whole).
+    for (const [, from] of read(`../${f}`).matchAll(/from "\.\.\/([a-z]+)\//g)) assert.ok(from === "docs" || ignore.includes(`!/${from}`), `${f} imports ${from}/`);
+  }
+});

@@ -1158,6 +1158,7 @@ function buildingMesh(feature) {
       height, base: hillLift, clockwise, appearanceBands });
     BUILDING_VISUAL_ID = id;
   }
+  if (kind === "building") BUILDING_VISUAL_ID = String(feature.osm_id);
   if (kind !== "outbuilding") {
     // How the street front is drawn, for the exterior editor: the colour on the vertices and
     // the cladding it multiplies, from the tallest band where the front is drawn in bands.
@@ -1238,7 +1239,7 @@ function buildingMesh(feature) {
     // No shopfront, no bay windows, no balconies. A garden workshop has a door and a roof, and
     // the detail passes are what made these read as houses in the first place.
   } else {
-    if(exteriorPlan) STORE_EXTERIOR_RUNTIME.renderer.mount(group,exteriorPlan,exteriorOrigin);
+    if(exteriorPlan) { const exteriorGroup=new THREE.Group();group.add(exteriorGroup);STORE_EXTERIOR_RUNTIME.renderer.mount(exteriorGroup,exteriorPlan,exteriorOrigin);storeExteriorDrawn.set(feature,exteriorGroup); }
     addGroundFacadeDetail(group, feature, seed, height, tint);
     addSouthFacadeDetail(group, feature, seed, height);
     photoDetailParts(group, feature);

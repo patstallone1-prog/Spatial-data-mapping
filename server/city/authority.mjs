@@ -19,9 +19,10 @@
 // grants claimed here; nothing is ever read from a browser's saved game.
 import { clockOf } from "../../docs/city/clock.mjs";
 import { CityWorld } from "../../docs/city/world.mjs";
-import { openSession, readSession } from "./auth.mjs";
+import { openSession, readSession, keyHash, KEY_PATTERN } from "./auth.mjs";
 import { Refused } from "./canon.mjs";
 import { eligible, position, rate, sanitize } from "./guard.mjs";
+import {INTERIOR_COMMANDS,sanitizeInterior,prepareInterior} from "./interiors.mjs";
 import { viewFor } from "./views.mjs";
 
 export const WORLD_ID = "kerbside";
@@ -52,11 +53,14 @@ export class CityAuthority {
   async handle(body) {
     if (!body || typeof body !== "object") return { ok: false, error: "nothing asked" };
     if (body.op === "session") {
-      const s = openSession(this.secret, body.key, this.now());
+      if(typeof body.key!=="string"||!KEY_PATTERN.test(body.key))return{ok:false,error:"not an account"};
+      const identity=await this.store.identityFor?.(keyHash(body.key))||null;
+      const s = openSession(this.secret, body.key, this.now(),identity);
       return s ? { ok: true, ...s, world: this.worldId } : { ok: false, error: "not an account" };
     }
     const session = readSession(this.secret, body.token, this.now());
     if (!session) return { ok: false, error: "sign in again", code: "session" };
+    if(this.store.identityFor&&(await this.store.identityFor(session.kh)||null)!==(session.aid||null))return{ok:false,error:"your account changed: sign in again",code:"session"};
     if (body.op === "sync") return this.inTurn(() => this.sync(session, body.since));
     if (body.op === "cmd") return this.inTurn(() => this.command(session, body));
     if (body.op === "grants") return this.inTurn(() => this.grants(session));
@@ -105,7 +109,7 @@ export class CityAuthority {
     if (typeof command !== "string" || command.length > 60) return { ok: false, error: "no such command" };
     const id = typeof req === "string" ? req.slice(0, 64) : null;
     let clean;
-    try { clean = sanitize(args); } catch (error) { return this.refused(error); }
+    try { clean = INTERIOR_COMMANDS.has(command)?sanitizeInterior(args):sanitize(args); } catch (error) { return this.refused(error); }
     for (let i = 0; i < TRIES; i += 1) {
       await pause(i);
       const { version, world, srv } = await this.load();
@@ -116,7 +120,7 @@ export class CityAuthority {
       try {
         rate(srv, pid, real);
         const here = position(this.canon, srv, pid, clean.at, real);
-        const canonical = this.canon.canonical(command, { ...clean, at: here }, { week: Math.floor(world.time.day / 7) });
+        const canonical = INTERIOR_COMMANDS.has(command)?prepareInterior(world,this.canon,srv,pid,command,{...clean,at:here}):this.canon.canonical(command, { ...clean, at: here }, { week: Math.floor(world.time.day / 7) });
         result = world.submit(pid, command, eligible(world, this.canon, srv, pid, command, canonical, here));
         clean = { ...clean, at: here };
       } catch (error) {

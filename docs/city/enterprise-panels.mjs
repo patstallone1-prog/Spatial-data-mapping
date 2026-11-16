@@ -10,7 +10,7 @@ const DAY = 86_400_000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function enterprisePanels(api) {
-  const { R, h, act, notify, send, self, me, getView, ctx, district, address, placeArg, openSide, drawSide, getSide, todoReset } = api;
+  const { R, h, act, notify, send, self, me, getView, ctx, district, address, placeArg, openSide, drawSide, getSide, editInterior, todoReset } = api;
   const B = R.business;
   const when = (ms) => { const t = cityTime(ms, R.clock.zone); return `${WEEKDAYS[t.weekday]} ${t.month}/${t.date} ${t.label.slice(4)}`; };
   const date = (ms) => { const t = cityTime(ms, R.clock.zone); return `${t.month}/${t.date}/${t.year}`; };
@@ -174,7 +174,7 @@ export function enterprisePanels(api) {
     const tabs = h("div", { className: "tabs" }, ...[["overview", "Overview"], ["stock", "Stock & prices"], ["staff", "Staff"], ["hours", "Hours & duties"], ["books", "Books"]]
       .map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(side.tab === k), onclick: () => { side.tab = k; drawSide(); } })));
     const head = h("p", { className: "note", textContent: `${stars} (${Math.round(b.reputation)}) · till ${R.fmt(bal)} · open ${hour(b.hours[0])}–${hour(b.hours[1])} · ${b.staff.length} staff` });
-    const out = [title, head, tabs];
+    const out = [title, head, tabs, act("Customize interior", () => editInterior?.(b.id), true)];
     const id = b.id;
     if (side.tab === "overview") {
       const d = b.today;

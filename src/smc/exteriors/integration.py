@@ -9,7 +9,7 @@ it covers (scripts/publish_store_exteriors.py). A page with none over its area l
 from __future__ import annotations
 
 HOOKS = ("async function loadStoreExteriorBundle()", "function storeExteriorFor(feature)",
-         "STORE_EXTERIOR_RUNTIME.renderer.mount(group,exteriorPlan,exteriorOrigin)")
+         "STORE_EXTERIOR_RUNTIME.renderer.mount(exteriorGroup,exteriorPlan,exteriorOrigin)")
 
 
 def instrument_viewer(html: str) -> str:

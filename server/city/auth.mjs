@@ -20,11 +20,11 @@ const b64 = (buf) => Buffer.from(buf).toString("base64url");
 const sign = (secret, body) => b64(createHmac("sha256", secret).update(body).digest());
 
 //: A token for the device whose secret is ``key``, or null when it is not an account secret.
-export function openSession(secret, key, now = Date.now()) {
+export function openSession(secret, key, now = Date.now(), accountId = null) {
   if (!secret) throw new Error("the city server has no signing secret");
   if (typeof key !== "string" || !KEY_PATTERN.test(key)) return null;
-  const kh = keyHash(key), pid = playerId(kh), exp = now + SESSION_MS;
-  const body = b64(JSON.stringify({ pid, kh, exp }));
+  const kh = keyHash(key), pid = playerId(accountId?keyHash("account:"+accountId):kh), exp = now + SESSION_MS;
+  const body = b64(JSON.stringify({ pid, kh, exp, ...(accountId?{aid:accountId}:{}) }));
   return { pid, exp, token: `${body}.${sign(secret, body)}` };
 }
 
@@ -37,7 +37,7 @@ export function readSession(secret, token, now = Date.now()) {
   if (given.length !== want.length || !timingSafeEqual(given, want)) return null;
   try {
     const s = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-    if (typeof s.pid !== "string" || typeof s.kh !== "string" || !(s.exp > now) || playerId(s.kh) !== s.pid) return null;
-    return { pid: s.pid, kh: s.kh, exp: s.exp };
+    if (typeof s.pid !== "string" || typeof s.kh !== "string" || !(s.exp > now) || playerId(s.aid?keyHash("account:"+s.aid):s.kh) !== s.pid) return null;
+    return { pid: s.pid, kh: s.kh, exp: s.exp,...(s.aid?{aid:s.aid}:{}) };
   } catch { return null; }
 }

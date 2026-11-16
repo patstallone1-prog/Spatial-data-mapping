@@ -864,6 +864,8 @@ function entryRoomsPossible(entry) {
   if (!entry || entry.way.parkFacility || entry.way._structure) return false;
   if (entryTunnelConflict(entry)) return false;
   if (entry.generatedInteriorRef && !entry.generatedInteriorFailed) return true;
+  if (!entry.customInteriorFailed && (entry.customInteriorEnabled || homeEditorBridge?.access.designs.some(d=>d.target.buildingId===String(entry.way.osm_id)))) return true;
+  if(emptyMarinaLegacy(entry))return !entry.emptyMarinaFailed;
   if (!HEADSET && commercialInterior(entry)) return false;
   return Boolean(INTERIORS && entry.fit);
 }
@@ -875,6 +877,7 @@ function buildInterior(entry) {
     if (!entry.interior) requestGeneratedInterior(entry);
     return;
   }
+  if(emptyMarinaLegacy(entry)){if(!INTERIORS||!entry.fit||!INTERIORS_SETTLED||!HOME_OPENINGS_SETTLED)return;if(!entry.emptyMarinaFailed){entry.emptyMarinaShell=true;requestGeneratedInterior(entry);}return;}
   // Without an accepted tenant-specific layout keep a shop's shell, not domestic bedrooms,
   // baths and sofas behind its sign. Residential upper floors require a separate envelope.
   if (!HEADSET && commercialInterior(entry)) return;
@@ -1290,6 +1293,7 @@ function fittedInteriorSnapshot(entry) {
 }
 
 function removeInterior(entry) {
+  entry.customWindowShell?.restore();entry.customWindowShell=null;
   if (!entry.interior) return;
   interiorGroup.remove(entry.interior.group);
   standingSurfaces.delete(entry.interior.floorSurface);
