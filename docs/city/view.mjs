@@ -3115,8 +3115,19 @@ export async function startCity(ctx) {
     }
     return step;
   }
+  //: The board's offers. The to-do list asks for them every time the bar is drawn (many times a
+  //: second), and each asking went through every place of the district several times: they are
+  //: worked out again when the board's slot turns over, the district changes, or you have gone
+  //: ten metres (distances on the cards are shown to a tenth of a kilometre).
+  const offersKept = { key: "", list: [] };
   function taskOffers() {
-    const T = R.tasks, here = me(), slot = Math.floor(Date.now() / (T.refresh_minutes * 60000));
+    const here = me(), slot = Math.floor(Date.now() / (R.tasks.refresh_minutes * 60000));
+    const key = `${slot}|${district.key}|${district.places.length}|${Math.round(here.x / 10)}|${Math.round(here.z / 10)}`;
+    if (key !== offersKept.key) { offersKept.key = key; offersKept.list = taskOffersNow(here, slot); }
+    return offersKept.list;
+  }
+  function taskOffersNow(here, slot) {
+    const T = R.tasks;
     const r = rng(district.region, myId, slot), out = [], C = T.courier;
     const d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
     const shops = district.places.filter((x) => deliveryHere(x) && d(x, here) >= C.pickup_m[0] && d(x, here) <= C.pickup_m[1]);
@@ -3855,7 +3866,9 @@ export async function startCity(ctx) {
       const stepped = aside.get(e.id);
       if (stepped) { e.x += stepped[0]; e.z += stepped[1]; e._ax = stepped[0]; e._az = stepped[1]; }
       near.push(e);
-      const key = `${Math.floor(e.x)},${Math.floor(e.z)}`;
+      // (A cell's key is a number: a string made for every person and every cell looked in was
+      // ten thousand strings a frame.)
+      const key = (Math.floor(e.x) + 1048576) * 2097152 + Math.floor(e.z) + 1048576;
       let list = cells.get(key); if (!list) cells.set(key, list = []);
       list.push(e);
     }
@@ -3863,7 +3876,10 @@ export async function startCity(ctx) {
     for (const e of near) {
       let wx = 0, wz = 0;
       const cx = Math.floor(e.x), cz = Math.floor(e.z);
-      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) for (const o of cells.get(`${ix},${iz}`) || []) {
+      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) {
+       const list = cells.get((ix + 1048576) * 2097152 + iz + 1048576);
+       if (list) for (let oi = 0; oi < list.length; oi += 1) {
+        const o = list[oi];
         if (o === e) continue;
         let dx = e.x - o.x, dz = e.z - o.z, d = Math.hypot(dx, dz);
         if (d >= CLEAR_M) continue;
@@ -3873,16 +3889,19 @@ export async function startCity(ctx) {
         wx += (dx / d) * push; wz += (dz / d) * push;
         // Meeting head on: each also a little to their right, so they pass instead of stopping face to face.
         if (e.moving && o.moving && Math.cos(e.yaw - o.yaw) < -0.3) { wx += Math.cos(e.yaw) * 0.25 * (CLEAR_M - d); wz += -Math.sin(e.yaw) * 0.25 * (CLEAR_M - d); }
+       }
       }
       // What they are pushed by is measured from where they stood without their step aside, so the
       // step is carried on: it grows while they are crowded and eases off once there is room.
-      const was = aside.get(e.id) || [0, 0];
-      let ax = (wx || wz) ? was[0] + wx * k : was[0] * (1 - k * 0.35), az = (wx || wz) ? was[1] + wz * k : was[1] * (1 - k * 0.35);
+      const was = aside.get(e.id), was0 = was ? was[0] : 0, was1 = was ? was[1] : 0;
+      // (Nobody near and no step aside: nothing to work out, nothing to keep.)
+      if (!was && !wx && !wz) continue;
+      let ax = (wx || wz) ? was0 + wx * k : was0 * (1 - k * 0.35), az = (wx || wz) ? was1 + wz * k : was1 * (1 - k * 0.35);
       const m = Math.hypot(ax, az);
       // (Up to a couple of paces: a dozen waiting at one crossing need the room to stand apart.)
       if (m > 1.9) { ax *= 1.9 / m; az *= 1.9 / m; }
       if (m < 0.005) { aside.delete(e.id); e.x -= e._ax || 0; e.z -= e._az || 0; e._ax = e._az = 0; continue; }
-      aside.set(e.id, [ax, az]);
+      if (was) { was[0] = ax; was[1] = az; } else aside.set(e.id, [ax, az]);
       e.x += ax - (e._ax || 0); e.z += az - (e._az || 0); e._ax = ax; e._az = az;
     }
     if (aside.size > 4000) aside.clear();
@@ -3913,6 +3932,7 @@ export async function startCity(ctx) {
   const GARAGE_REMOTE_M = 9;
   //: A car held by people on foot this long has the next gap; a walker who has waited this long goes.
   const CAR_TURN_S = 6, WALKER_PATIENCE_S = 18;
+  const kerbTraffic = { at: -1, list: [] };
   function waitsAtKerb(walk, tsec) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
@@ -3923,8 +3943,17 @@ export async function startCity(ctx) {
       if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
       const a = alongRoute(walk.pave, cr.s0), b = alongRoute(walk.pave, cr.s1);
       const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / len, uz = (b.z - a.z) / len, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
-      const mine = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, speed: Math.abs(car.speed), model: car.model }] : [];
-      for (const v of [...drawnCars, ...routeBuses, ...(taxi.at ? [taxi.at] : []), ...mine]) {
+      // (Every vehicle a walker at a kerb looks for, listed once a frame: the list was made
+      // again for every crossing of every walker.)
+      if (kerbTraffic.at !== tsec) {
+        kerbTraffic.at = tsec;
+        const all = kerbTraffic.list; all.length = 0;
+        for (const v of drawnCars) all.push(v);
+        for (const v of routeBuses) all.push(v);
+        if (taxi.at) all.push(taxi.at);
+        if (car.active) all.push({ x: car.x, z: car.z, yaw: car.yaw, speed: Math.abs(car.speed), model: car.model });
+      }
+      for (const v of kerbTraffic.list) {
         if (v.parked || Math.abs(v.x - mx) > 60 || Math.abs(v.z - mz) > 60) continue;
         const [, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
         const sp = v.speed || 0;

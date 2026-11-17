@@ -212,4 +212,36 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
         digest.update(name.encode())
         digest.update((docs / name).read_bytes())
     (docs / "sw.js").write_text(worker.replace("__VERSION__", digest.hexdigest()), encoding="utf-8")
+    write_asset_shards(docs)
     return published
+
+
+def write_asset_shards(docs: Path = DOCS) -> int:
+    """Split docs/asset-map.json by region into docs/asset-map/: a small index and a file a region.
+
+    The whole map is 444,000 names (47 MB of JSON, about 85 MB once parsed) and every name is a
+    region's; the page only ever needs the region it is building. The index carries what is
+    common (where the store is, who may read it, the version); ``<region>.json`` carries that
+    region's names with the ``regions/<region>/`` prefix taken off. Returns the regions written."""
+    source = docs / "asset-map.json"
+    if not source.is_file():
+        return 0
+    whole = json.loads(source.read_text(encoding="utf-8"))
+    by_region: dict[str, dict[str, str]] = {}
+    other: dict[str, str] = {}
+    for name, obj in whole.get("files", {}).items():
+        parts = name.split("/", 2)
+        if len(parts) == 3 and parts[0] == "regions":
+            by_region.setdefault(parts[1], {})[parts[2]] = obj
+        else:
+            other[name] = obj
+    out = docs / "asset-map"
+    out.mkdir(exist_ok=True)
+    for stale in out.glob("*.json"):
+        stale.unlink()
+    for region, files in by_region.items():
+        (out / f"{region}.json").write_text(json.dumps({"files": files}, separators=(",", ":")), encoding="utf-8")
+    index = {k: v for k, v in whole.items() if k != "files"}
+    index.update(schema="kerbside.asset_map_index/1", regions=sorted(by_region), files=other)
+    (out / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
+    return len(by_region)

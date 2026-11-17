@@ -47,9 +47,12 @@ def test_mutable_detail_shards_revalidate_across_all_app_consumers():
         # changed shard is a new chunk, named by the asset map (which is still revalidated).
         assert text.count('cache: "force-cache"') == 1, page
         assert 'const IMMUTABLE_CHUNK = /\\/chunks\\/[0-9a-f]{24}\\.[a-z0-9]+$/;' in text, page
-        # Revalidated, and fetched once for the page and all its attached windows.
-        assert ('const ASSET_MAP = await (globalThis.__kerbsideAssetMap ??= fetch("/asset-map.json", '
-                '{ cache: "no-cache" })') in text, page
+        # The asset map's index is revalidated and read once for the page and all its attached
+        # windows; a region's names are read when that region is first needed, never the whole
+        # map (47 MB of JSON, 85 MB parsed, before any of the page ran).
+        assert 'ASSET_SHARDS.index ??= await globalThis.fetch("/asset-map/index.json", { cache: "no-cache" })' in text, page
+        assert 'fetch("/asset-map.json"' not in text, page
+        assert "globalThis.fetch(`/asset-map/${region}.json?v=" in text, page
 
 
 def test_installed_apps_check_updates_on_resume_without_automatic_reloads():

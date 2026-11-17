@@ -359,6 +359,63 @@ function releaseSomeGeometry() {
   if (releaseSomeGeometry()) setTimeout(releasePump, 120);
 })();
 
+// ---- memory: everything else that is drawn and does not change ----
+// The street surfaces above were a third of the vertex data. The rest -- the simple city's
+// tiles out to the horizon, buildings, kerbs, yards, the landscape -- was kept whole in the
+// page's memory after it had gone to the GPU: 740 MB in City mode (measured 2026-11-16), read by
+// nothing but an occasional ray. Each such buffer is packed (losslessly, in the worker) once it
+// is on the GPU and has been in the scene for two looks; anything that reads it gets the exact
+// array back and it is let go again when the reading stops (recoverable-geometry.mjs). Buffers
+// that change, small ones, skinned figures and the grass that is rebuilt as you walk are left
+// alone. Picking still works: nothing here is taken out of the ray casts.
+const STATIC_RELEASE = { everyMs: 5000, stepMs: 250, minBytes: 16384, bytesPerStep: 24 << 20 };
+const staticSeen = new WeakMap(), staticDone = new WeakSet();
+const staticQueue = [];
+let staticLook = 0;
+const staticStats = { buffers: 0, bytes: 0 };
+function lookForStaticGeometry() {
+  staticLook += 1;
+  scene.traverse((o) => {
+    const g = o.geometry;
+    if (!g || !g.isBufferGeometry || staticDone.has(g) || !(o.isMesh || o.isLine || o.isPoints)) return;
+    if (o.isSkinnedMesh || o.userData.keepArrays || o.userData.surface === "grass_strands") return;
+    const first = staticSeen.get(g);
+    if (first === undefined) { staticSeen.set(g, staticLook); return; }
+    if (staticLook - first >= 2) staticQueue.push(g);
+  });
+}
+function releaseSomeStatic() {
+  let bytes = 0;
+  while (staticQueue.length && bytes < STATIC_RELEASE.bytesPerStep) {
+    const g = staticQueue.pop();
+    if (staticDone.has(g) || !g.attributes) continue;
+    if (g.morphAttributes && Object.keys(g.morphAttributes).length) { staticDone.add(g); continue; }
+    let waiting = false;
+    for (const a of [...Object.values(g.attributes), g.index]) {
+      if (!a || a.isInterleavedBufferAttribute || a.recoverableType || a.usage !== THREE.StaticDrawUsage) continue;
+      const n = a.array?.byteLength || 0;
+      if (n < STATIC_RELEASE.minBytes) continue;
+      // Not on the GPU yet (not drawn so far): looked at again, never packed ahead of its upload.
+      if (!UPLOADED_BUFFERS.has(a)) { waiting = true; continue; }
+      // Culling needs the bounds; they are taken while the vertices are still here.
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      if (!g.boundingBox) g.computeBoundingBox();
+      if (geometryRecovery[0].makeRecoverable(a, geometryRecovery[1], { uploaded: true })) { bytes += n; staticStats.buffers += 1; staticStats.bytes += n; }
+    }
+    if (!waiting) staticDone.add(g);
+  }
+  return staticQueue.length;
+}
+if (!META && !ATTACH && geometryRecovery) {
+  (function staticPump() {
+    if (!staticQueue.length) { try { lookForStaticGeometry(); } catch (error) { console.warn(error); } }
+    let left = 0;
+    try { left = releaseSomeStatic(); } catch (error) { console.warn("kerbside: static geometry left whole", error); staticQueue.length = 0; }
+    setTimeout(staticPump, left ? STATIC_RELEASE.stepMs : STATIC_RELEASE.everyMs);
+  })();
+}
+window.kerbsideStaticGeometry = () => ({ ...staticStats, queued: staticQueue.length });
+
 // ---- inspection ----
 //
 // Everything above is written to be looked at, and for a long stretch of this build there was

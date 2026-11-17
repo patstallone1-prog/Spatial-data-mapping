@@ -263,6 +263,11 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
   // time, the new one taking over once it has everything (a vertex is only ever added at the end,
   // so what is already copied never changes). The doubling in cut() is only the fallback.
   const GROW_SLICE = 1 << 21;
+  // A store that has been replaced, or is finished with, is given back at once (its buffer
+  // emptied): left to the collector, the stores outgrown while the Marina's ground was refined
+  // stood at 860 MB when the load's memory was at its highest (measured 2026-11-16) -- typed
+  // arrays are not in the heap the collector watches most closely, and it came for them late.
+  const giveBack = (store) => { try { store.buffer.transfer?.(0); } catch { /* left to the collector */ } };
   let growing = null;
   const growStep = () => {
     if (!growing) {
@@ -275,11 +280,11 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
       if (!growing) return;
     }
     const g = growing;
-    if (arrays[g.k] !== g.from) { growing = null; return; }
+    if (arrays[g.k] !== g.from) { giveBack(g.from); giveBack(g.to); growing = null; return; }
     const end = Math.min(lengths[g.k], g.copied + GROW_SLICE);
     g.to.set(g.from.subarray(g.copied, end), g.copied);
     g.copied = end;
-    if (g.copied >= lengths[g.k]) { arrays[g.k] = g.to; growing = null; }
+    if (g.copied >= lengths[g.k]) { arrays[g.k] = g.to; growing = null; giveBack(g.from); }
   };
   const cut = (a, b, t0) => {
     const key = a < b ? a * 16777216 + b : b * 16777216 + a;
@@ -292,9 +297,12 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
     for (let k = 0; k < arrays.length; k += 1) {
       const n = sizes[k];
       if (lengths[k] + n > arrays[k].length) {
-        const grown = new Float64Array(arrays[k].length * 2);
-        grown.set(arrays[k]);
+        const grown = new Float64Array(arrays[k].length * 2), outgrown = arrays[k];
+        grown.set(outgrown);
         arrays[k] = grown;
+        // (A slow copy under way from the outgrown store is dropped by growStep; its target is
+        // not this one.)
+        if (!growing || growing.from !== outgrown) giveBack(outgrown);
       }
       const arr = arrays[k];
       for (let c = 0; c < n; c += 1) arr[lengths[k] + c] = arr[lo * n + c] * (1 - s) + arr[hi * n + c] * s;
@@ -336,7 +344,7 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
       else { const m = cut(c, a, at); stack.push(a, b, m, m, b, c); }
     }
   }
-  if (!split) return geometry;
+  if (!split) { arrays.forEach(giveBack); return geometry; }
   // Put together a slice at a time too: millions of values each way, read out in one go, were
   // half a second of one frame. The index takes the type setIndex would give it (Uint16 while
   // every vertex number is under 65,535).
@@ -348,6 +356,7 @@ function* refineForTerrainSteps(geometry, maxEdge = TERRAIN_REFINE_M, chord = TE
       yield;
     }
     refined.setAttribute(names[k], new THREE.BufferAttribute(values, sizes[k]));
+    giveBack(arrays[k]);
   }
   const corners = new Uint32Array(out.length);
   let highest = 0;

@@ -167,6 +167,8 @@ data/ortho
 # released on its own and stays.
 /docs/app-model.html
 /docs/app-regions/*/app-model.html
+# The asset map split by region for the page (smc.renderer.pages.write_asset_shards), made at every deploy.
+/docs/asset-map/
 /docs/runtime-release.json
 /docs/sw.js
 

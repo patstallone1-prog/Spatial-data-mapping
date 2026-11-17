@@ -78,7 +78,10 @@ def public_base(bucket: str) -> str:
 
 def data_files() -> list[Path]:
     return sorted(p for p in DOCS.rglob("*") if p.is_file() and p.suffix in DATA_SUFFIXES
-                  and p.name not in KEEP_ON_SITE and p.stat().st_size >= MIN_BYTES)
+                  and p.name not in KEEP_ON_SITE and p.stat().st_size >= MIN_BYTES
+                  # (The map split by region for the page -- smc.renderer.pages.write_asset_shards
+                  # -- is made from the map at every deploy: never an object of the store itself.)
+                  and p.relative_to(DOCS).parts[0] != "asset-map")
 
 
 def object_name(path: Path) -> str:

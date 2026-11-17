@@ -31,6 +31,10 @@ export const WORLD_ID = "kerbside";
 const IDLE_STEP_MS = 20_000;
 //: How often a command is run again on top of another instance's commit before it gives up.
 const TRIES = 12;
+//: A poll asks the store for the world's version only if this instance last asked longer ago
+//: than this (real ms): a hundred players polling were a hundred store calls every four seconds,
+//: queued one behind another, to learn the same number. (An action always asks.)
+const VERSION_FRESH_MS = 750;
 const pause = (i) => new Promise((done) => setTimeout(done, i ? 4 + Math.random() * 12 * i : 0));
 const freshServer = () => ({ pos: {}, rate: {}, found: {}, reqs: {}, stepped: 0 });
 
@@ -38,13 +42,23 @@ export class CityAuthority {
   //: ``voices``: whether a model answers for the city's people (server/npc): the world then leaves
   //: a real question in a thread unanswered, for the server to answer (``say``).
   constructor({ R, canon, store, secret, worldId = WORLD_ID, now = () => Date.now(), voices = false }) {
-    Object.assign(this, { R, canon, store, secret, worldId, now, voices, cache: null, line: Promise.resolve() });
+    Object.assign(this, { R, canon, store, secret, worldId, now, voices, cache: null, line: Promise.resolve(), live: null, versionAt: -Infinity, versionSeen: 0 });
   }
   //: One at a time within this instance (it never races itself); other instances are told apart
   //: by the store's compare-and-swap.
   inTurn(work) {
     const run = this.line.then(work, work);
     this.line = run.catch(() => {});
+    return run;
+  }
+  //: Polls have a turn of their own: they read the world kept for them (liveWorld) and never the
+  //: copy an action runs on, so they need not wait behind an action's calls to the store -- with
+  //: one queue, every poll stood behind every action's writes. A poll that saves an idle step
+  //: at the moment an action commits loses or wins the store's compare-and-swap like any other
+  //: two writers, and the loser starts again.
+  inReadTurn(work) {
+    const run = (this.readLine || Promise.resolve()).then(work, work);
+    this.readLine = run.catch(() => {});
     return run;
   }
   gameNow(real = this.now()) { return clockOf(this.R).game(real); }
@@ -62,7 +76,7 @@ export class CityAuthority {
     const session = readSession(this.secret, body.token, this.now());
     if (!session) return { ok: false, error: "sign in again", code: "session" };
     if(this.store.identityFor&&(await this.store.identityFor(session.kh)||null)!==(session.aid||null))return{ok:false,error:"your account changed: sign in again",code:"session"};
-    if (body.op === "sync") return this.inTurn(() => this.sync(session, body.since));
+    if (body.op === "sync") return this.inReadTurn(() => this.sync(session, body.since));
     if (body.op === "cmd") return this.inTurn(() => this.command(session, body));
     if (body.op === "grants") return this.inTurn(() => this.grants(session));
     return { ok: false, error: "no such request" };
@@ -84,31 +98,79 @@ export class CityAuthority {
     const state = { world: JSON.parse(JSON.stringify(world.toJSON())), server: srv };
     const done = await this.store.commit(this.worldId, version, state, entry, opts);
     this.cache = done.ok ? { version: done.version, state } : null;
+    if (done.ok) { this.versionSeen = done.version; this.versionAt = this.now(); } else this.versionAt = -Infinity;
+    // The world kept for polls is of the version before: made again from the new record when next asked for.
+    if (!(this.live && this.live.world === world && done.ok)) this.live = null;
     return done;
   }
   answer(world, pid, version, extra = {}) {
     return { ok: true, version, now: world.now, you: pid, state: viewFor(world, pid), ...extra };
   }
 
+  //: The world for polls: read from the record once for each version and kept, brought up to the
+  //: clock each time it is asked for -- not copied and rebuilt for every poll, which was most of
+  //: what a poll cost. Never the copy an action runs on (that is dropped when it is refused).
+  //: {version, world, srv, text, views}.
+  async liveWorld() {
+    const real = this.now();
+    let version = this.versionSeen;
+    if (real - this.versionAt > VERSION_FRESH_MS) {
+      version = await this.store.version(this.worldId);
+      this.versionSeen = version; this.versionAt = this.now();
+    }
+    let L = this.live;
+    if (!L || L.version !== version) {
+      let doc = this.cache;
+      if (!doc || doc.version !== version) doc = version ? await this.store.load(this.worldId) : null;
+      // (An action may have committed while the record was read: its newer record is not put back.)
+      if (doc && (!this.cache || doc.version >= this.cache.version)) this.cache = doc;
+      const world = doc ? CityWorld.fromJSON(this.R, structuredClone(doc.state.world)) : new CityWorld(this.R, { now: this.gameNow(), seed: this.worldId });
+      world.knowTenants?.(this.canon.tenants);
+      world.voices = Boolean(this.voices);
+      L = this.live = { version: doc?.version ?? 0, world, srv: doc ? structuredClone(doc.state.server) : freshServer(), text: null, at: 0, views: new Map() };
+    }
+    L.world.step(this.gameNow());
+    return L;
+  }
+  //: What ``pid`` is shown of the kept world: worked out once for each player and version (the
+  //: whole world is written out once for all of them, not once each).
+  liveAnswer(L, pid) {
+    let shown = L.views.get(pid);
+    if (!shown) {
+      if (L.text === null) { L.text = JSON.stringify(L.world.toJSON()); L.at = L.world.now; }
+      const state = viewFor(L.world, pid, JSON.parse(L.text));
+      shown = { state, now: L.at };
+      L.views.set(pid, shown);
+    }
+    return shown;
+  }
+
   async sync(session, since) {
     for (let i = 0; i < TRIES; i += 1) {
       await pause(i);
-      const { version, world, srv } = await this.load();
+      const L = await this.liveWorld();
+      const { world, srv } = L;
       const real = this.now();
       // A starter restaurant given at a place that is not one to look at is moved to a real one (welcome.mjs).
       const moved = repairWelcome(world, this.canon, srv, session);
       if (moved) {
         srv.stepped = real;
-        const done = await this.commit(version, world, srv, { pid: session.pid, command: "welcome_moved", args: moved, at: world.now, real });
+        const done = await this.commit(L.version, world, srv, { pid: session.pid, command: "welcome_moved", args: moved, at: world.now, real });
+        this.live = null;
         if (done.ok) return this.answer(world, session.pid, done.version, { welcome_moved: moved });
         continue;
       }
-      if (version && real - (srv.stepped || 0) < IDLE_STEP_MS) {
-        return since === version ? { ok: true, version, now: world.now, you: session.pid, unchanged: true } : this.answer(world, session.pid, version);
+      if (!L.version || real - (srv.stepped || 0) >= IDLE_STEP_MS) {
+        srv.stepped = real;
+        const done = await this.commit(L.version, world, srv, null);
+        if (!done.ok) continue;
+        // (The kept world is the one just saved: it goes on as that version.)
+        L.version = done.version; L.text = null; L.views.clear();
       }
-      srv.stepped = real;
-      const done = await this.commit(version, world, srv, null);
-      if (done.ok) return this.answer(world, session.pid, done.version);
+      const version = L.version;
+      if (since === version) return { ok: true, version, now: world.now, you: session.pid, unchanged: true };
+      const shown = this.liveAnswer(L, session.pid);
+      return { ok: true, version, now: shown.now, you: session.pid, state: shown.state };
     }
     return { ok: false, error: "the city is busy: try again", code: "busy" };
   }

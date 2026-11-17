@@ -75,10 +75,10 @@ export class CellCache {
     url=String(url);
     const found=this.entries.get(url);
     if(found) {found.epoch=this.epoch;found.priority=Math.max(found.priority,priority);
-      found.used=performance.now();this.stats.hits++;return found.promise.then(structuredClone);}
+      found.used=performance.now();this.stats.hits++;return found.promise.then(JSON.parse);}
     const entry={url,priority,epoch:this.epoch,used:performance.now(),bytes:0};
     entry.promise=new Promise((resolve,reject)=>{entry.resolve=resolve;entry.reject=reject;});
-    this.entries.set(url,entry);this.queue.push(entry);this.pump();return entry.promise.then(structuredClone);
+    this.entries.set(url,entry);this.queue.push(entry);this.pump();return entry.promise.then(JSON.parse);
   }
   pump() {
     while(this.active<this.concurrency && this.queue.length) {
@@ -96,10 +96,16 @@ export class CellCache {
       };
       Promise.resolve().then(fetchCell).then(async r=>{
         if(!r.ok)throw Error(`cell HTTP ${r.status}: ${entry.url}`);
-        const text=await r.text(), data=JSON.parse(text);
-        // A conservative decoded-JSON allowance, not just compressed network bytes.
+        // What is kept is the file's text, not the object parsed from it: a reader gets an object
+        // of its own parsed from the text (it may write to it), so nothing is held twice. The
+        // cache used to keep the parsed object (four to eight times the text) and hand every
+        // reader a structuredClone of it, a second whole copy made on the main thread.
+        const text=await r.text();
+        // The budget is still counted as what a reader will hold once it is parsed (text x 4),
+        // so the limits callers set keep the cells they always kept; ``textBytes`` is what the
+        // cache really holds.
         entry.bytes=text.length*4;entry.done=true;this.bytes+=entry.bytes;
-        this.stats.fetched++;entry.resolve(data);this.evict();
+        this.stats.fetched++;entry.resolve(text);this.evict();
       }).catch(error=>{this.entries.delete(entry.url);this.stats.failed++;entry.reject(error);})
         .finally(()=>{this.active--;this.pump();});
     }
@@ -111,5 +117,5 @@ export class CellCache {
       const e=old.shift();this.entries.delete(e.url);this.bytes-=e.bytes;this.stats.evicted++;
     }
   }
-  snapshot() {return {...this.stats,residentBytes:this.bytes,active:this.active,queued:this.queue.length};}
+  snapshot() {return {...this.stats,residentBytes:this.bytes,textBytes:Math.round(this.bytes/4),active:this.active,queued:this.queue.length};}
 }
