@@ -4795,6 +4795,7 @@ export async function startCity(ctx) {
     const r = await online.client.grants();
     if (!r.ok || r.waiting) { grantsAsked = false; return; }
     shown(r);
+    if(r.welcome)notify(`Your testing restaurant, ${r.welcome.name}, is yours. Its initial licences are paid.`);
     for (const g of r.granted || []) notify(`${R.fmt(g.amount)} from the backend is in your wallet.`);
   }
   function refresh() {

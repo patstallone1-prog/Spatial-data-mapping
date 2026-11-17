@@ -23,6 +23,7 @@ import { openSession, readSession, keyHash, KEY_PATTERN } from "./auth.mjs";
 import { Refused } from "./canon.mjs";
 import { eligible, position, rate, sanitize } from "./guard.mjs";
 import {INTERIOR_COMMANDS,sanitizeInterior,prepareInterior} from "./interiors.mjs";
+import { applyWelcome } from "./welcome.mjs";
 import { viewFor } from "./views.mjs";
 
 export const WORLD_ID = "kerbside";
@@ -162,20 +163,26 @@ export class CityAuthority {
   //: Backend money for this session's device account, into its wallet: each grant minted and
   //: marked claimed in the one commit, so it is paid once whatever fails in between.
   async grants(session) {
-    if (!this.store.pendingGrants) return { ok: true, granted: [] };
-    const pending = await this.store.pendingGrants(session.kh);
-    if (!pending.length) return { ok: true, granted: [] };
+    const pending = await this.store.pendingGrants?.(session.kh) || [];
+    let welcome = session.aid ? await this.store.welcomeFor?.(session.aid) : null;
+    if (!pending.length && !welcome) return { ok: true, granted: [] };
     for (let i = 0; i < TRIES; i += 1) {
       await pause(i);
       const { version, world, srv } = await this.load();
       if (!world.players.has(session.pid)) return { ok: true, granted: [], waiting: true };
       const granted = [];
+      if (i && welcome) welcome = await this.store.welcomeFor(session.aid);
+      let starter = null;
+      if (welcome) {
+        starter = applyWelcome(world, this.canon, srv, session, welcome);
+        granted.push({ id: starter.grant_id, amount: starter.amount });
+      }
       for (const g of pending) {
         try { if (!world.accountGrant(session.pid, g.id, g.amount).already) granted.push(g); } catch { /* not a grant the world takes */ }
       }
       const done = await this.commit(version, world, srv, { pid: session.pid, command: "account_grant", args: { grants: granted.map((g) => g.id) }, at: world.now, real: this.now() },
-        { grants: pending.map((g) => g.id) });
-      if (done.ok) return this.answer(world, session.pid, done.version, { granted: granted.map((g) => ({ id: g.id, amount: g.amount })) });
+        { grants: pending.map((g) => g.id), welcomeAccount: starter ? session.aid : null });
+      if (done.ok) return this.answer(world, session.pid, done.version, { granted: granted.map((g) => ({ id: g.id, amount: g.amount })), ...(starter ? { welcome: starter } : {}) });
       if (done.why) return { ok: true, granted: [] };
     }
     return { ok: false, error: "the city is busy: try again", code: "busy" };

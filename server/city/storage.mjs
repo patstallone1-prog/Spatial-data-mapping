@@ -76,11 +76,13 @@ export class SupabaseStore {
       return out;
     } finally { clearTimeout(timer); }
   }
+  async welcomeFor(account) { return account ? this.rpc("kerbside_city_welcome", { account }) : null; }
   async identityFor(hash) { const out=await this.rpc("kerbside_city_device_account",{key_sha256:hash});return typeof out==="string"?out:null; }
   async load(id) { const out = await this.rpc("kerbside_city_load", { world: id }); return out?.version ? { version: Number(out.version), state: out.state } : null; }
   async version(id) { return Number((await this.rpc("kerbside_city_version", { world: id }))?.version || 0); }
-  async commit(id, expect, state, entry = null, { grants = [] } = {}) {
-    const out = await this.rpc("kerbside_city_commit", { world: id, expect, state, entry, grants });
+  async commit(id, expect, state, entry = null, { grants = [], welcomeAccount = null } = {}) {
+    const out = await this.rpc(welcomeAccount ? "kerbside_city_commit_with_welcome" : "kerbside_city_commit",
+      { world: id, expect, state, entry, grants, ...(welcomeAccount ? { welcome_account: welcomeAccount } : {}) });
     return { ok: Boolean(out?.ok), version: Number(out?.version || 0), why: out?.why };
   }
   async pendingGrants(keyHash) {
