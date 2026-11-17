@@ -1,0 +1,877 @@
+// The kitchen, played: an animated back-of-house you walk around in (docs/city/kitchen-3d.mjs
+// builds it; docs/city/kitchen.mjs keeps the rules and the world's side).
+//
+// You are the cook. Walk with WASD or the arrows, or click where to go. Click a bin on the front
+// counter, or the fridge, freezer or shelves behind you, and the cook fetches one; click the
+// counter to put it down, a station to cook it, the pass to send it out, the bin to throw it away.
+// Put something down on top of food already on the counter -- or a little off it -- and it is
+// centred onto it: that is how a burger is built, bun, then patty, then cheese. Put it down far
+// from anything and it is a new thing of its own, so several can be made side by side.
+//
+// A stack is one product: the first click on it selects all of it (pick it up, plate it, bin
+// it); a second click selects the one ingredient you clicked inside it; a third picks that up.
+//
+// Tickets are on the rail at the top, the recipe and the plates on the right. Put a finished
+// product on the pass for each dish on the ticket and serve. The Lab tab is the same kitchen
+// with no ticket: what is on the pass is the test dish.
+//
+// view.mjs calls this through a few hooks: actions (the action bar), todo, and open.
+
+import { chain, doneness, donenessWord, ingCost, needs, processSeconds, recipeOf, scorePlate, targetOf } from "./kitchen.mjs";
+import { createKitchenScene } from "./kitchen-3d.mjs";
+
+const HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew", "pour"];
+const SNAP_M = 0.14;   // dropped within this of a product, it is centred onto it
+const STYLE = `
+#city-kitchen{position:fixed;inset:0;z-index:30;font:13px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:#f1f5f9;user-select:none;background:#111}
+#city-kitchen canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+#city-kitchen .glass{background:rgba(17,24,39,.82);-webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.32)}
+#city-kitchen button{font:inherit;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.09);color:inherit;border-radius:7px;padding:4px 9px;cursor:pointer}
+#city-kitchen button:hover:not(:disabled){background:rgba(255,255,255,.18)}
+#city-kitchen button:disabled{opacity:.45;cursor:default}
+#city-kitchen button.primary,#city-kitchen .tabs button[aria-pressed=true]{background:#2f6fe4;border-color:#2f6fe4;color:#fff}
+#city-kitchen button.on{background:rgba(47,111,228,.35);border-color:#2f6fe4}
+#city-kitchen input{box-sizing:border-box;font:inherit;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.28);color:inherit;border-radius:6px;padding:3px 6px;user-select:text}
+#city-kitchen h4{margin:6px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#a9b6c4}
+#city-kitchen .note{color:#a9b6c4;font-size:12px}
+#city-kitchen .top{position:absolute;left:10px;right:10px;top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 10px}
+#city-kitchen .top b{font-size:14px}
+#city-kitchen .top .grow{flex:1}
+#city-kitchen .rail{position:absolute;left:10px;top:62px;right:330px;display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}
+#city-kitchen .ticket{flex:0 0 172px;background:#f7f3e3;color:#222;border-radius:4px;padding:6px 8px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4);border-top:6px solid #c8c0a5}
+#city-kitchen .ticket.sel{outline:3px solid #2f6fe4}
+#city-kitchen .ticket .who{font-weight:600;font-size:12px}
+#city-kitchen .ticket ul{margin:3px 0 4px;padding-left:16px}
+#city-kitchen .ticket .mod{color:#b3261e;font-weight:700;font-size:11px}
+#city-kitchen .ticket .bar{height:6px;border-radius:3px;background:rgba(0,0,0,.18);overflow:hidden;position:relative}
+#city-kitchen .ticket .bar i{position:absolute;left:0;top:0;bottom:0}
+#city-kitchen .side{position:absolute;right:10px;top:62px;width:300px;max-height:calc(100% - 150px);overflow:auto;padding:10px;scrollbar-width:thin}
+#city-kitchen .recipe ol{margin:2px 0;padding-left:18px;color:#a9b6c4}
+#city-kitchen .recipe li.done{color:#7fd39a}
+#city-kitchen .chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+#city-kitchen .result{border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px;margin:6px 0;background:rgba(0,0,0,.25)}
+#city-kitchen .stars{color:#f6c445;font-size:16px;letter-spacing:1px}
+#city-kitchen .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:7px 12px;display:flex;gap:8px;align-items:center;max-width:min(860px,calc(100% - 24px));flex-wrap:wrap;justify-content:center}
+#city-kitchen .tip{position:absolute;pointer-events:none;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,.72);font-size:12px;white-space:nowrap;transform:translate(12px,12px)}
+#city-kitchen .cook{position:absolute;width:74px;transform:translate(-50%,-100%);pointer-events:none}
+#city-kitchen .cook .bar{height:7px;border-radius:4px;background:rgba(0,0,0,.55);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.25)}
+#city-kitchen .cook .ok{position:absolute;top:0;bottom:0;background:rgba(46,157,88,.85)}
+#city-kitchen .cook .burn{position:absolute;top:0;bottom:0;right:0;background:rgba(200,50,40,.8)}
+#city-kitchen .cook .at{position:absolute;top:-1px;bottom:-1px;width:3px;background:#fff}
+#city-kitchen .cook .lbl{font-size:11px;text-align:center;text-shadow:0 1px 2px #000;margin-bottom:2px;white-space:nowrap}
+#city-kitchen .pop{position:absolute;padding:8px;transform:translate(-50%,-110%);display:flex;flex-direction:column;gap:4px;min-width:150px}
+#city-kitchen .pop.list{max-height:360px;overflow:auto;transform:translate(-50%,-50%);min-width:250px}
+#city-kitchen .pop .row{display:flex;justify-content:space-between;gap:8px;text-align:left}
+#city-kitchen .sheet{position:absolute;left:50%;top:62px;transform:translateX(-50%);width:min(760px,calc(100% - 24px));max-height:calc(100% - 90px);overflow:auto;padding:12px}
+#city-kitchen table{border-collapse:collapse;width:100%}
+#city-kitchen td{padding:3px 4px;border-top:1px solid rgba(255,255,255,.08);vertical-align:top}
+#city-kitchen .loading{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;color:#a9b6c4}
+#city-kitchen-tip{position:fixed;z-index:31;right:16px;bottom:120px;width:280px;padding:10px;border-radius:12px;background:rgba(17,24,39,.9);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);font:13px system-ui,sans-serif}
+#city-kitchen-tip button{font:inherit;margin:3px 3px 0 0;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.09);color:inherit;border-radius:7px;padding:4px 8px;cursor:pointer}
+@media (max-width:900px){ #city-kitchen .side{top:auto;bottom:70px;width:auto;left:10px;max-height:34%} #city-kitchen .rail{right:10px} }`;
+
+export function kitchenPanel(api) {
+  const { R, h, send, notify, self, getView, placeArg, district, me, clock, doc = document, THREE, loadModel, asset } = api;
+  const K = R.kitchen, ING = K.ingredients, P = K.processes;
+  const fmt = (x) => R.fmt(x);
+  const iname = (id) => ING[id]?.name || id;
+  let st = null, el = null, raf = 0, poll = 0, uid = 0, gid = 0, tipEl = null, last = 0;
+  const seenNews = new Set(), seenMeals = new Set();
+
+  // ---- where a kitchen can be worked ------------------------------------------------------------------
+  const placeById = (id) => (district.places || []).find((pl) => String(pl.id) === String(id));
+  function kitchenHere(p) {
+    const w = getView(), here = me();
+    if (!w?.kitchenKind || !p) return null;
+    const reach = (R.jobs.workplace_reach_m || 40) * 1.2;
+    if (p.clocked && p.job?.place) {
+      const pl = placeById(p.job.place.id);
+      if (pl && Math.hypot(here.x - pl.x, here.z - pl.z) < reach && w.kitchenKind(placeArg(pl))) return { pl, role: "staff" };
+    }
+    for (const b of w.biz?.values?.() || []) {
+      if (b.owner !== p.account || b.status !== "open") continue;
+      const pl = placeById(b.place.id);
+      if (pl && Math.hypot(here.x - pl.x, here.z - pl.z) < reach && w.kitchenKind(placeArg(pl))) return { pl, role: "owner" };
+    }
+    return null;
+  }
+  function actions(p) {
+    const k = kitchenHere(p);
+    if (!k || el) return [];
+    return [{ id: "kitchen", label: k.role === "owner" ? "Your kitchen: the line, the lab, the pantry" : "Work the kitchen: tickets are up", key: "", run: () => open(k.pl) }];
+  }
+  function todo(p) {
+    const out = [];
+    if (!p) return out;
+    for (const n of p.kitchen_news || []) if (!seenNews.has(`${n.at}:${n.text}`)) { seenNews.add(`${n.at}:${n.text}`); notify(n.text); }
+    for (const m of p.meals || []) {
+      if (m.tipped || seenMeals.has(m.id)) continue;
+      out.push({ label: `Tip ${m.cook_name.split(" ")[0]} for your ${m.dishes.map((d) => R.items[d]?.name.toLowerCase() || "meal").join(" and ")}`, sub: `${m.name}: made to ${m.score}/100`, run: () => tipCard(m) });
+    }
+    const k = kitchenHere(p);
+    if (k && !el) out.push({ label: k.role === "owner" ? "Your kitchen" : "Tickets are up in the kitchen", sub: "The line, the lab and the pantry", run: () => open(k.pl), now: k.role !== "owner" });
+    return out;
+  }
+  function tipCard(m) {
+    tipEl?.remove();
+    const price = m.dishes.reduce((s, d) => s + (R.items[d]?.price || 0), 0);
+    const give = async (share) => {
+      const r = await send("tip_cook", { meal: m.id, amount: Math.round(price * share) });
+      seenMeals.add(m.id); tipEl?.remove(); tipEl = null;
+      notify(r.ok ? (share ? `Tipped ${fmt(Math.round(price * share))}.` : "No tip this time.") : r.error);
+    };
+    tipEl = h("div", { id: "city-kitchen-tip" }, h("b", { textContent: `${m.cook_name} made your ${m.dishes.map((d) => R.items[d]?.name.toLowerCase()).join(" and ")}` }),
+      h("div", { textContent: `${"★".repeat(Math.round(m.score / 20))}${"☆".repeat(5 - Math.round(m.score / 20))} ${m.score}/100`, style: "color:#f6c445;margin:4px 0" }),
+      h("div", {}, ...[0, 0.1, 0.15, 0.2].map((s) => h("button", { textContent: s ? `${Math.round(s * 100)}% (${fmt(Math.round(price * s))})` : "No tip", onclick: () => give(s) }))));
+    doc.body.append(tipEl);
+  }
+
+  // ---- opening and closing --------------------------------------------------------------------------
+  const keys = new Set();
+  function onKey(e) {
+    if (!el) return;
+    e.stopImmediatePropagation();   // the city's own keys stay quiet while you cook
+    if (e.target instanceof HTMLInputElement) return;
+    const k = e.key.toLowerCase();
+    if (e.type === "keyup") { keys.delete(k); return; }
+    if (k === "escape") { e.preventDefault(); if (st.pop) { st.pop = null; hud(); } else close(); return; }
+    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); keys.add(k); st.walk = null; return; }
+    if (e.repeat) return;
+    if (k === "e" || k === " ") { e.preventDefault(); keyUse(); return; }
+    if (k === "delete" || k === "backspace" || k === "q") { e.preventDefault(); keyBin(); }
+  }
+  async function open(pl) {
+    if (el) return;
+    if (!doc.getElementById("city-kitchen-style")) doc.head.append(h("style", { id: "city-kitchen-style", textContent: STYLE }));
+    const place = placeArg(pl);
+    const r = await send("kitchen_open", { place });
+    if (!r.ok) { notify(r.error); return; }
+    if (!st || st.place.id !== place.id) {
+      st?.scene?.dispose();
+      st = { place, tab: "line", items: new Map(), groups: new Map(), held: null, sel: null, ticket: null, extras: new Set(), lab: { name: "" }, results: [], passOrder: [], walk: null, pop: null, canvas: h("canvas", { tabIndex: 0 }) };
+    }
+    st.k = r.kitchen;
+    el = h("section", { id: "city-kitchen", "aria-label": "Kitchen" }, st.canvas);
+    doc.body.append(el);
+    addEventListener("keydown", onKey, true); addEventListener("keyup", onKey, true); addEventListener("resize", resize);
+    if (!st.scene) {
+      const loading = h("div", { className: "loading", textContent: "Setting up the kitchen…" });
+      el.append(loading);
+      const menu = st.k.menu.slice(0, 8).map((d) => ({ name: R.items[d]?.name || d, price: fmt(st.k.prices[d] || 0) }));
+      st.scene = await createKitchenScene(THREE, { canvas: st.canvas, kind: st.k.kind, stations: st.k.stations.map((s) => s.id), kit: { loadModel, asset }, title: st.k.name, menu });
+      await st.scene.setBins(binList(), R);
+      st.plates = await st.scene.kenney("plate", 0.24);
+      st.bunTop = await st.scene.kenney("burger#bun-top", 0.11);
+      st.scene.chef.position.set(0, 0, st.scene.walk.z1);
+      st.scene.chef.rotation.y = Math.PI;
+      st.canvas.addEventListener("pointerdown", onPointer);
+      st.canvas.addEventListener("pointermove", onHover);
+      st.canvas.addEventListener("pointerleave", () => { st.hover = null; });
+      st.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+      loading.remove();
+    }
+    if (!el) return;
+    st.canvas.focus();
+    resize();
+    hud();
+    clearInterval(poll);
+    poll = setInterval(refresh, 4000);
+    last = performance.now();
+    const loop = (t) => { const dt = Math.min(0.05, Math.max(0, (t - last) / 1000)); last = t; if (el) { step(dt); raf = requestAnimationFrame(loop); } };
+    raf = requestAnimationFrame(loop);
+  }
+  function close() {
+    el?.remove(); el = null;
+    removeEventListener("keydown", onKey, true); removeEventListener("keyup", onKey, true); removeEventListener("resize", resize);
+    keys.clear();
+    clearInterval(poll); cancelAnimationFrame(raf);
+  }
+  function resize() { if (el && st?.scene) st.scene.resize(el.clientWidth, el.clientHeight); }
+  async function refresh() {
+    if (!el || !st || st.sending) return;
+    const r = await send("kitchen_state", { place: st.place });
+    if (!r.ok) { notify(r.error); if (/clock in|staff only|go to/.test(r.error)) close(); return; }
+    const before = st.k.tickets.map((t) => t.id).join();
+    st.k = r.kitchen;
+    if (st.ticket && !ticketOf(st.ticket)) { st.ticket = null; notify("A customer gave up waiting and left."); }
+    if (before !== st.k.tickets.map((t) => t.id).join()) hud(); else hudTop();
+  }
+  async function run(cmd, args) {
+    st.sending = true;
+    try {
+      const r = await send(cmd, { place: st.place, ...args });
+      if (!r.ok) { notify(r.error); return null; }
+      if (r.kitchen) st.k = r.kitchen;
+      return r;
+    } finally { st.sending = false; }
+  }
+  //: The bins on the front counter: what the menu uses most, a bin each.
+  function binList() {
+    const count = {};
+    for (const d of st.k.menu) for (const c of recipeOf(R, d, st.k.house_menu)?.build || []) count[c.ing] = (count[c.ing] || 0) + 1;
+    return Object.entries(count).filter(([i]) => !["salt", "sugar"].includes(i)).sort((a, b) => b[1] - a[1]).map(([i]) => i).slice(0, 10);
+  }
+
+  // ---- items and products ----------------------------------------------------------------------------
+  // An item is one unit of an ingredient (as cooked so far); a group is a product: items stacked in
+  // the order they were put down. Every item is in a group: on the counter, on a station, on the
+  // pass, or in the cook's hands.
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  async function newItem(ing) {
+    const it = { uid: ++uid, ing, chain: [], q: 1, ratio: 1, last: null };
+    it.obj = await st.scene.itemObject(ing, ING[ing]?.role, it);
+    mark(it);
+    st.items.set(it.uid, it);
+    return it;
+  }
+  function mark(it) {
+    it.obj.traverse((m) => { if (m.isMesh) m.userData.item = it.uid; });
+    it.h = new THREE.Box3().setFromObject(it.obj).getSize(V(0, 0, 0)).y;
+  }
+  async function relook(it) {
+    const old = it.obj;
+    it.obj = await st.scene.itemObject(it.ing, ING[it.ing]?.role, it);
+    mark(it);
+    old.parent?.remove(old);
+  }
+  function newGroup(items, where, pos) {
+    const g = { gid: ++gid, items: items.map((i) => i.uid), at: where, pos: pos.clone(), node: new THREE.Group(), station: null, cook: null };
+    st.groups.set(g.gid, g);
+    layout(g);
+    return g;
+  }
+  const groupOf = (u) => { for (const g of st.groups.values()) if (g.items.includes(u)) return g; return null; };
+  const itemsOf = (g) => g.items.map((u) => st.items.get(u)).filter(Boolean);
+  //: Stacks a product's items where it is: each on the one below, centred; a burger gets its lid.
+  function layout(g) {
+    const node = g.node;
+    node.clear();
+    let y = 0;
+    if (g.at === "pass" && st.plates) { node.add(st.plates.clone(true)); y = 0.014; }
+    const list = itemsOf(g);
+    list.forEach((it, i) => {
+      it.obj.position.set(0, y, 0);
+      it.obj.rotation.y = i * 0.5;
+      node.add(it.obj);
+      y += Math.max(0.004, it.h * (list.length > 1 ? 0.8 : 1));
+    });
+    if (list[0]?.ing === "bun" && list.length > 1 && st.bunTop) { const top = st.bunTop.clone(true); top.position.y = y - 0.004; node.add(top); y += 0.03; }
+    if (g.at === "held") { st.scene.holdAt.add(node); node.position.set(0, 0, 0); }
+    else { st.scene.scene.add(node); node.position.copy(g.pos); }
+    g.height = y;
+    highlight();
+  }
+  //: The selection glows: the whole product, then the one item in it.
+  function highlight() {
+    for (const it of st.items.values()) it.obj.traverse((m) => { if (m.isMesh && m.material.emissive) m.material.emissive.setHex(0x000000); });
+    const s = st.sel, g = s && st.groups.get(s.gid);
+    if (!g) { st.sel = null; return; }
+    for (const it of itemsOf(g)) {
+      if (s.uid && it.uid !== s.uid) continue;
+      it.obj.traverse((m) => { if (m.isMesh && m.material.emissive) { m.material.emissive.setHex(s.uid ? 0x4a86ff : 0x24509e); m.material.emissiveIntensity = 1; } });
+    }
+  }
+  function drop(g) {
+    g.node.parent?.remove(g.node);
+    for (const u of g.items) st.items.delete(u);
+    st.groups.delete(g.gid);
+    st.passOrder = st.passOrder.filter((x) => x !== g.gid);
+    if (st.held === g.gid) st.held = null;
+    if (st.sel?.gid === g.gid) st.sel = null;
+  }
+  const held = () => (st.held ? st.groups.get(st.held) : null);
+  function hold(g) {
+    st.passOrder = st.passOrder.filter((x) => x !== g.gid);
+    g.at = "held"; g.station = null; g.cook = null; st.held = g.gid; st.sel = null;
+    layout(g); hud();
+  }
+  const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).chain.length;
+
+  // ---- walking ------------------------------------------------------------------------------------
+  //: Walk to stand at ``at`` (kept on the floor between the counters), then do ``then``.
+  function walkTo(at, then = null) {
+    const W = st.scene.walk;
+    st.walk = { target: V(Math.max(W.x0, Math.min(W.x1, at.x)), 0, Math.max(W.z0, Math.min(W.z1, at.z))), then };
+  }
+  const frontOf = (x) => V(x, 0, st.scene.walk.z1);
+  const backOf = (x) => V(x, 0, st.scene.walk.z0);
+  const standAt = (g) => {
+    if (g.at === "station") { const lay = st.scene.layout[g.station.id]; return lay.facing > 0 ? backOf(lay.x) : frontOf(lay.x); }
+    return frontOf(g.pos.x);
+  };
+  function step(dt) {
+    const S3 = st.scene, chef = S3.chef, W = S3.walk;
+    let speed = 0;
+    const kx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
+    const kz = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0);
+    if (kx || kz) {
+      const v = 2.3, n = Math.hypot(kx, kz);
+      chef.position.x = Math.max(W.x0, Math.min(W.x1, chef.position.x + (kx / n) * v * dt));
+      chef.position.z = Math.max(W.z0, Math.min(W.z1, chef.position.z + (kz / n) * v * dt));
+      chef.rotation.y = turn(chef.rotation.y, Math.atan2(kx, kz), dt);
+      speed = v;
+    } else if (st.walk) {
+      const d = st.walk.target.clone().sub(chef.position); d.y = 0;
+      const len = d.length();
+      if (len < 0.04) {
+        const then = st.walk.then; st.walk = null;
+        // Face the counter you came to.
+        chef.rotation.y = chef.position.z > (W.z0 + W.z1) / 2 ? 0 : Math.PI;
+        if (then) then();
+      } else {
+        const v = Math.min(2.6, len * 6 + 0.6);
+        chef.position.addScaledVector(d.normalize(), Math.min(len, v * dt));
+        chef.rotation.y = turn(chef.rotation.y, Math.atan2(d.x, d.z), dt);
+        speed = v;
+      }
+    }
+    S3.pose(dt, { speed, holding: Boolean(st.held), chopping: (st.chopping || 0) > performance.now() });
+    // Cooking: colours move with the time on the heat; steam and sizzle rise.
+    const now = performance.now();
+    for (const g of st.groups.values()) {
+      const c = g.cook;
+      if (!c?.start) continue;
+      const ratio = (now - c.start) / 1000 / Math.max(0.5, c.secs);
+      if (HEAT.includes(c.proc) && now - (c.tinted || 0) > 120) {
+        c.tinted = now;
+        for (const it of itemsOf(g)) S3.tint(it.obj, it.ing, { chain: [...it.chain, c.proc], ratio });
+      }
+      if (Math.random() < dt * 28) {
+        const at = V(g.pos.x, g.pos.y + (g.height || 0.03), g.pos.z);
+        if (["boil", "steam", "brew"].includes(c.proc)) S3.emit(at, "steam");
+        else if (["grill", "fry", "wok", "saute", "toast", "bake"].includes(c.proc)) S3.emit(at, ratio > 1.65 ? "steam" : "sizzle");
+      }
+    }
+    S3.stepPuffs(dt);
+    S3.frame(dt);
+    S3.render();
+    overlay(now);
+  }
+  const turn = (a, b, dt) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * Math.min(1, dt * 12); };
+
+  // ---- clicks -----------------------------------------------------------------------------------------
+  const ndc = (e) => { const r = st.canvas.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1]; };
+  const itemMeshes = () => { const out = []; for (const g of st.groups.values()) if (g.at !== "held") for (const it of itemsOf(g)) it.obj.traverse((m) => m.isMesh && out.push(m)); return out; };
+  function onHover(e) {
+    if (!st?.scene) return;
+    const hit = st.scene.pick(...ndc(e), itemMeshes());
+    st.hover = hit ? { x: e.clientX, y: e.clientY, text: describe(hit) } : null;
+    st.canvas.style.cursor = hit && hit.object.userData.hit?.type !== "floor" ? "pointer" : "default";
+  }
+  function describe(hit) {
+    const u = hit.object.userData.item;
+    if (u) { const it = st.items.get(u), g = groupOf(u); return g ? `${g.items.length > 1 ? `${productName(g)}: ` : ""}${iname(it.ing)} (${stateWord(it)})` : ""; }
+    const d = hit.object.userData.hit;
+    if (d.type === "bin") return `${iname(d.ing)} · ${Math.floor(st.k.pantry[d.ing] || 0)} left`;
+    if (d.type === "station") { const s = stationSpec(d.id); return `${s?.name || d.id}: ${s?.does.map((p) => P[p].name.toLowerCase()).join(", ")}`; }
+    if (d.type === "store") return `${{ fridge: "Fridge", freezer: "Freezer", dry: "Dry-goods shelves" }[d.kept]}: click to choose`;
+    if (d.type === "pass") return "The pass: plates go out from here";
+    if (d.type === "work") return st.held ? "Put it down here" : "The work surface";
+    if (d.type === "trash") return "The bin";
+    return "";
+  }
+  const stateWord = (it) => (it.chain.length ? it.chain.map((p) => P[p].verb).join(", ") + (it.last && it.last !== "just right" ? `, ${it.last}` : "") : "raw");
+  function productName(g) {
+    const list = itemsOf(g).map((i) => i.ing);
+    if (list.length === 1) return iname(list[0]);
+    if (list[0] === "bun") return "Burger";
+    if (list.includes("tortilla") || list.includes("pita")) return "Wrap";
+    if (list.includes("pizza_dough")) return "Pizza";
+    if (list[0] === "bread" || list[0] === "baguette") return "Sandwich";
+    return `${list.length} things`;
+  }
+  function onPointer(e) {
+    if (e.button !== 0 || !st?.scene) return;
+    st.pop = null;
+    const hit = st.scene.pick(...ndc(e), itemMeshes());
+    if (!hit) { hud(); return; }
+    const u = hit.object.userData.item;
+    if (u) { clickItem(u, e); return; }
+    const d = hit.object.userData.hit, p = hit.point;
+    if (d.type === "floor") { walkTo(p); hud(); return; }
+    if (d.type === "bin") { clickSource(d.ing, frontOf(st.scene.bins.find((b) => b.ing === d.ing)?.x ?? p.x)); return; }
+    if (d.type === "store") { clickStore(d.kept, e); return; }
+    if (d.type === "trash") { if (held()) walkTo(st.scene.storage.trash.approach, () => binHeld()); return; }
+    if (d.type === "work") { if (held()) walkTo(frontOf(p.x), () => putDown(p)); else walkTo(frontOf(p.x)); return; }
+    if (d.type === "pass") { walkTo(frontOf(st.scene.PASS.x1 - 0.25), held() ? () => toPass() : null); return; }
+    if (d.type === "station") clickStation(d.id, e);
+  }
+  //: A click on food: the product first, then the item inside, then it is picked up. With
+  //: something in your hands, that goes on top of what you clicked.
+  function clickItem(u, e) {
+    const g = groupOf(u);
+    if (!g) return;
+    const hg = held();
+    if (hg && hg.gid !== g.gid) {
+      if (g.at === "work" || g.at === "pass" || (g.at === "station" && stationSpec(g.station.id)?.batch && !g.cook?.start)) walkTo(standAt(g), () => stackOnto(g));
+      else if (g.at === "station") clickStation(g.station.id, e);   // onto the same station, next to it
+      return;
+    }
+    if (g.at === "station") {
+      // On the board and not chopped yet: a click is a chop. Anything else on a station comes off in one click.
+      if (g.cook?.proc === "chop") walkTo(standAt(g), () => chopTap(g));
+      else walkTo(standAt(g), () => { st.sel = { gid: g.gid, uid: null }; pickSelected(); });
+      return;
+    }
+    const s = st.sel;
+    if (!s || s.gid !== g.gid) st.sel = { gid: g.gid, uid: g.items.length === 1 ? u : null };
+    else if (!s.uid || s.uid !== u) st.sel = { gid: g.gid, uid: u };
+    else { walkTo(standAt(g), () => pickSelected()); return; }
+    highlight(); hud();
+  }
+  async function pickSelected() {
+    const s = st.sel, g = s && st.groups.get(s.gid);
+    if (!g) return;
+    if (held()) { notify("Your hands are full: put that down first."); return; }
+    if (g.cook) await finishCook(g);
+    if (s.uid && g.items.length > 1) {
+      // One thing out of a product: the rest settles down.
+      g.items = g.items.filter((x) => x !== s.uid);
+      layout(g);
+      hold(newGroup([st.items.get(s.uid)], "held", V(0, 0, 0)));
+    } else hold(g);
+  }
+  function clickSource(ing, at) {
+    const hg = held();
+    if (hg) {
+      if (untouched(hg) && st.items.get(hg.items[0]).ing === ing) walkTo(at, () => putBack());
+      else notify("Your hands are full: put that down first.");
+      return;
+    }
+    walkTo(at, () => take(ing));
+  }
+  function clickStore(kept, e) {
+    const hg = held(), loc = st.scene.storage[kept];
+    if (hg && untouched(hg) && ING[st.items.get(hg.items[0]).ing].kept === kept) { walkTo(loc.approach, () => putBack()); return; }
+    if (hg) { notify("Your hands are full: put that down first."); return; }
+    const list = Object.keys(ING).filter((i) => ING[i].kept === kept && (st.k.pantry[i] || 0) >= 1).sort((a, b) => ING[a].name.localeCompare(ING[b].name));
+    st.pop = { kind: "store", kept, x: e.clientX, y: e.clientY, list };
+    walkTo(loc.approach);
+    hud();
+  }
+  async function take(ing) {
+    if (held()) return;
+    const r = await run("kitchen_take", { items: { [ing]: 1 } });
+    if (!r) return;
+    const it = await newItem(ing);
+    hold(newGroup([it], "held", V(0, 0, 0)));
+  }
+  async function putBack() {
+    const g = held();
+    if (!untouched(g)) return;
+    const it = st.items.get(g.items[0]);
+    const r = await run("kitchen_return", { items: { [it.ing]: 1 } });
+    if (!r) return;
+    drop(g); hud();
+  }
+  //: Putting down on the counter: centred onto a product near where you clicked, or a new one there.
+  function putDown(p) {
+    const g = held();
+    if (!g) return;
+    const W = st.scene.WORK;
+    const x = Math.max(W.x0 + 0.06, Math.min(W.x1 - 0.06, p.x)), z = Math.max(W.z0 + 0.05, Math.min(W.z1 - 0.05, p.z));
+    let best = null, bd = SNAP_M;
+    for (const o of st.groups.values()) {
+      if (o.at !== "work" || o.gid === g.gid) continue;
+      const d = Math.hypot(o.pos.x - x, o.pos.z - z);
+      if (d < bd) { bd = d; best = o; }
+    }
+    if (best) { stackOnto(best); return; }
+    g.at = "work"; g.pos = V(x, st.scene.COUNTER_Y, z); st.held = null;
+    layout(g); hud();
+  }
+  function stackOnto(target) {
+    const g = held();
+    if (!g || target.gid === g.gid) return;
+    target.items.push(...g.items);
+    g.items = [];
+    g.node.parent?.remove(g.node);
+    st.groups.delete(g.gid);
+    st.held = null;
+    layout(target);
+    if (st.sel?.gid === target.gid) st.sel = null;
+    highlight(); hud();
+  }
+  function toPass() {
+    const g = held();
+    if (!g) return;
+    const free = st.scene.passSlots.findIndex((_, i) => !st.passOrder.some((id) => st.groups.get(id)?.slot === i));
+    if (free < 0) { notify("The pass is full: serve or take a plate off."); return; }
+    g.at = "pass"; g.slot = free; g.pos = st.scene.passSlots[free].clone(); st.held = null;
+    st.passOrder.push(g.gid);
+    layout(g); hud();
+  }
+  async function binHeld() {
+    const g = held();
+    if (!g) return;
+    const items = {};
+    for (const it of itemsOf(g)) items[it.ing] = (items[it.ing] || 0) + 1;
+    const why = itemsOf(g).map((i) => i.last).find((x) => x && x !== "just right") || "binned";
+    const name = productName(g);
+    const r = await run("kitchen_bin", { items, why });
+    if (!r) return;
+    drop(g);
+    notify(`Binned: ${name.toLowerCase()} (${fmt(r.cost)}, logged as waste).`);
+    hud();
+  }
+  function keyBin() {
+    if (held()) { walkTo(st.scene.storage.trash.approach, () => binHeld()); return; }
+    if (st.sel) pickSelectedThen(() => walkTo(st.scene.storage.trash.approach, () => binHeld()));
+  }
+  function pickSelectedThen(fn) {
+    const g = st.groups.get(st.sel?.gid);
+    if (!g) return;
+    walkTo(standAt(g), async () => { await pickSelected(); fn(); });
+  }
+  //: E or Space: pick up what is selected, or put down what you hold in front of you.
+  function keyUse() {
+    const chef = st.scene.chef.position, W = st.scene.WORK;
+    if (held()) {
+      if (chef.z > st.scene.walk.z1 - 0.15) {
+        if (chef.x < st.scene.PASS.x1 + 0.1) toPass();
+        else putDown(V(chef.x, 0, (W.z0 + W.z1) / 2));
+      } else notify("Walk up to the front counter to put it down, or click where it goes.");
+      return;
+    }
+    if (st.sel) pickSelectedThen(() => {});
+  }
+
+  // ---- stations ---------------------------------------------------------------------------------------
+  const stationSpec = (id) => st.k.stations.find((s) => s.id === id);
+  const onStation = (id) => [...st.groups.values()].filter((g) => g.at === "station" && g.station?.id === id);
+  const stationStand = (id) => { const lay = st.scene.layout[id]; return lay.facing > 0 ? backOf(lay.x) : frontOf(lay.x); };
+  function clickStation(id, e) {
+    const lay = st.scene.layout[id], spec = stationSpec(id);
+    if (!lay || !spec) return;
+    const g = held();
+    if (g) {
+      if (spec.does.length > 1 && !spec.batch) { st.pop = { kind: "proc", id, x: e.clientX, y: e.clientY }; hud(); return; }
+      walkTo(stationStand(id), () => placeOn(id, spec.does[0]));
+      return;
+    }
+    const here = onStation(id);
+    const waiting = here.find((x) => x.cook && !x.cook.start && x.cook.proc !== "chop");
+    if (spec.batch && waiting) { walkTo(stationStand(id), () => startBatch(waiting)); return; }
+    if (here.length && id === "board") { const c = here.find((x) => x.cook?.proc === "chop"); if (c) { walkTo(stationStand(id), () => chopTap(c)); return; } }
+    const cooking = here.find((x) => x.cook?.start) || here[0];
+    if (cooking) { st.sel = { gid: cooking.gid, uid: null }; walkTo(stationStand(id), () => pickSelected()); return; }
+    notify(`${spec.name}: bring something to ${spec.does.map((p) => P[p].name.toLowerCase()).join(" or ")}.`);
+  }
+  function placeOn(id, proc) {
+    const g = held(), lay = st.scene.layout[id], spec = stationSpec(id);
+    if (!g) return;
+    const here = onStation(id);
+    if (spec.batch && here[0]) {
+      if (!here[0].cook?.start) { stackOnto(here[0]); hud(); return; }
+      notify(`The ${spec.name.toLowerCase()} is busy.`); return;
+    }
+    const slots = Math.min(spec.slots, lay.slots.length);
+    const free = [...Array(slots).keys()].find((i) => !here.some((x) => x.station.slot === i));
+    if (free === undefined) { notify(`The ${spec.name.toLowerCase()} is full.`); return; }
+    g.at = "station"; g.station = { id, slot: free }; g.pos = lay.slots[free].clone(); st.held = null;
+    if (proc === "chop") g.cook = { proc, taps: 0, need: P.chop.taps };
+    else if (spec.batch) g.cook = { proc, start: 0 };
+    else g.cook = { proc, start: performance.now(), secs: Math.max(...itemsOf(g).map((i) => processSeconds(R, i.ing, proc))) };
+    layout(g); hud();
+  }
+  function startBatch(g) {
+    g.cook.start = performance.now();
+    g.cook.secs = Math.max(...itemsOf(g).map((i) => processSeconds(R, i.ing, g.cook.proc)));
+    hud();
+  }
+  async function chopTap(g) {
+    if (g.cook?.proc !== "chop") return;
+    g.cook.taps += 1;
+    st.chopping = performance.now() + 220;
+    st.scene.emit(V(g.pos.x, g.pos.y + 0.03, g.pos.z), "sizzle");
+    if (g.cook.taps >= g.cook.need) { await finishCook(g); notify(`Chopped: ${productName(g).toLowerCase()}.`); }
+    hud();
+  }
+  //: Off the heat (or chopped, or mixed): each item gains the process and how well it came out.
+  async function finishCook(g) {
+    const c = g.cook;
+    if (!c) return;
+    g.cook = null;
+    if (c.proc === "chop" && c.taps < c.need) return;   // taken off the board unchopped
+    if (c.proc !== "chop" && !c.start) return;          // a batch never started
+    const ratio = c.start ? (performance.now() - c.start) / 1000 / Math.max(0.5, c.secs) : 1;
+    const q = doneness(R, ratio, c.proc);
+    for (const it of itemsOf(g)) {
+      it.chain.push(c.proc);
+      if (K.heat.includes(c.proc)) { it.q = Math.min(it.q, q); it.ratio = ratio; it.last = donenessWord(q, ratio); }
+      else if ((c.proc === "mix" || c.proc === "blend") && ratio < 0.6) { it.q = Math.min(it.q, 0.6); it.last = "lumpy"; }
+      await relook(it);
+    }
+    layout(g);
+    if (K.heat.includes(c.proc)) notify(`${productName(g)}: ${donenessWord(q, ratio)}.`);
+  }
+
+  // ---- tickets, serving, the lab -----------------------------------------------------------------------
+  const ticketOf = (id) => st.k.tickets.find((t) => t.id === id);
+  const realLeft = (t) => (clock.real(t.due) - Date.now()) / 1000;
+  //: A product as the plate the world scores: its items bottom first, like ones next to each other merged.
+  function plateOf(g) {
+    const out = [];
+    for (const it of itemsOf(g)) {
+      const p = it.chain.join(">") || "-", lastC = out.at(-1);
+      if (lastC && lastC.ing === it.ing && lastC.p === p) { lastC.qty += 1; lastC.q = Math.min(lastC.q, it.q); }
+      else out.push({ ing: it.ing, qty: 1, p, q: it.q, ratio: it.ratio });
+    }
+    return out;
+  }
+  const passGroups = () => st.passOrder.map((id) => st.groups.get(id)).filter(Boolean);
+  async function serve() {
+    const t = ticketOf(st.ticket);
+    if (!t) return;
+    const gs = passGroups().slice(0, t.lines.length);
+    if (gs.length < t.lines.length) { notify(`Put ${t.lines.length} plates on the pass.`); return; }
+    const elapsed = Math.max(0, (Date.now() - clock.real(t.at)) / 1000);
+    const r = await run("kitchen_serve", { ticket: t.id, plates: gs.map(plateOf), extras: [...st.extras], elapsed });
+    if (!r) return;
+    for (const g of gs) sendOut(g);
+    st.ticket = null; st.extras = new Set();
+    st.results.unshift({ who: t.who, score: r.score, tip: r.tip, comp: r.comp_cost, notes: r.scores.flatMap((s) => s.notes).slice(0, 4), paid: t.paid });
+    st.results = st.results.slice(0, 3);
+    if (r.review) notify(r.review);
+    hud();
+  }
+  //: Plates leave the pass: they slide away and are gone.
+  function sendOut(g) {
+    st.passOrder = st.passOrder.filter((x) => x !== g.gid);
+    for (const u of g.items) st.items.delete(u);
+    st.groups.delete(g.gid);
+    if (st.sel?.gid === g.gid) st.sel = null;
+    const node = g.node, t0 = performance.now();
+    const slide = () => { const k2 = (performance.now() - t0) / 700; node.position.z += 0.012; node.position.y += 0.003; node.scale.setScalar(Math.max(0.01, 1 - k2)); if (k2 < 1) requestAnimationFrame(slide); else node.parent?.remove(node); };
+    slide();
+  }
+  async function cover(on) {
+    const r = await run("kitchen_cover", { on });
+    if (!r) return;
+    notify(on ? `${r.cook} has the line. The lab is yours.` : "The line is yours again.");
+    if (on) st.tab = "lab";
+    hud();
+  }
+  async function labTest() {
+    const g = passGroups()[0];
+    if (!g) { notify("Put your dish on the pass first."); return; }
+    const build = plateOf(g).map(({ ing, qty, p, q }) => ({ ing, qty, p, q }));
+    const r = await run("lab_test", { name: st.lab.name || "Test dish", build });
+    if (!r) return;
+    sendOut(g);
+    st.lastTest = r.test;
+    hud();
+  }
+  async function propose(test, price) {
+    const r = await run("lab_propose", { test: test.id, price });
+    if (r) { notify(`Put to ${st.k.owner_name}: "${test.name}" at ${fmt(r.proposal.price)}.`); hud(); }
+  }
+
+  // ---- the HUD ----------------------------------------------------------------------------------------
+  const k = () => st.k;
+  function statusText() {
+    const kk = k(), rec = kk.record;
+    const busy = kk.busy <= 0.04 ? "Closed: no customers now" : kk.busy > 0.7 ? "Rush hour" : kk.busy > 0.35 ? "Steady" : "Quiet";
+    return `${busy} · ${kk.tickets.length} ticket${kk.tickets.length === 1 ? "" : "s"} · rating ${kk.rating}${rec ? ` · tips ${fmt(rec.tips)} · ${rec.served} served` : ""}`;
+  }
+  function hudTop() { const s = el?.querySelector(".top .status"); if (s) s.textContent = statusText(); }
+  function hud() {
+    if (!el || !st?.scene) return;
+    const kk = k();
+    for (const n of el.querySelectorAll(".hud")) n.remove();
+    const tabs = [["line", "The line"], ["lab", "The lab"], [kk.role === "owner" ? "owner" : "you", kk.role === "owner" ? "Owner" : "Your record"]];
+    const parts = [h("div", { className: "top glass hud" },
+      h("b", { textContent: `${kk.name} — kitchen` }),
+      h("div", { className: "tabs chips" }, ...tabs.map(([id, label]) => h("button", { textContent: label, "aria-pressed": String(st.tab === id), onclick: () => { st.tab = id; hud(); } }))),
+      h("span", { className: "note status grow", textContent: statusText() }),
+      kk.covering ? h("button", { textContent: "Take the line back", onclick: () => cover(false) }) : h("button", { textContent: `Hand the line to ${kk.cooks[0].split(" ")[0]} (NPC)`, onclick: () => cover(true) }),
+      h("button", { textContent: "×", title: "Close (Esc)", onclick: close }))];
+    if (st.tab === "owner" || st.tab === "you") parts.push(h("div", { className: "sheet glass hud" }, ...(st.tab === "owner" ? ownerTab() : recordTab())));
+    else {
+      if (st.tab === "line") {
+        const msg = kk.covering ? `${kk.cooks[0]} is covering the line.` : !kk.tickets.length ? (kk.busy <= 0.04 ? "No customers: the restaurant is closed. Try something new in the lab." : "No tickets yet. The next one is coming.") : null;
+        parts.push(h("div", { className: "rail hud" }, ...(msg ? [h("div", { className: "glass note", style: "padding:8px 10px", textContent: msg })] : kk.tickets.map(ticketCard))));
+      }
+      parts.push(h("div", { className: "side glass hud" }, ...(st.tab === "lab" ? labSide() : lineSide())));
+      parts.push(hintBar());
+    }
+    if (st.pop) parts.push(popup());
+    el.append(...parts.filter(Boolean));
+  }
+  function ticketCard(t) {
+    const left = realLeft(t), share = Math.max(0, Math.min(1, left / t.real_s));
+    return h("div", { className: `ticket${st.ticket === t.id ? " sel" : ""}`, "data-ticket": t.id, onclick: () => { st.ticket = t.id; hud(); } },
+      h("div", { className: "who", textContent: `${t.who}${t.paid ? " (paid)" : ""}` }),
+      h("ul", {}, ...t.lines.map((l) => h("li", {}, h("span", { textContent: R.items[l.dish]?.name || l.dish }),
+        ...(l.mods || []).map((m) => h("div", { className: "mod", textContent: m.no ? `NO ${iname(m.no).toUpperCase()}` : `EXTRA ${iname(m.extra).toUpperCase()}` }))))),
+      h("div", { className: "bar" }, h("i", { style: `width:${share * 100}%;background:${share < 0.25 ? "#c0392b" : share < 0.5 ? "#e0a526" : "#2e9d58"}` })),
+      h("div", { className: "left", style: "font-size:11px;color:#666;margin-top:2px", textContent: `${Math.max(0, Math.round(left))} s left` }));
+  }
+  function lineSide() {
+    const out = [], t = ticketOf(st.ticket);
+    if (!t) {
+      out.push(h("h4", { textContent: "How to cook" }),
+        h("p", { className: "note", textContent: "Pick a ticket on the rail. Click a bin on the counter (or the fridge, freezer and shelves) to fetch an ingredient; click a station to cook it; click the counter to put it down. Put things down on top of each other to build the dish, then put it on the pass (left) and serve." }),
+        h("p", { className: "note", textContent: "WASD or the arrows walk · E or Space picks up and puts down · Q or Delete bins · Esc closes" }));
+      for (const x of st.results) out.push(resultCard(x));
+      return out;
+    }
+    const gs = passGroups();
+    t.lines.forEach((line, i) => {
+      const target = targetOf(R, line, k().house_menu), g = gs[i];
+      const plate = g ? plateOf(g) : [];
+      const have = new Set(plate.map((c) => `${c.ing}|${c.p}`));
+      out.push(h("h4", { textContent: `${i + 1}. ${R.items[line.dish]?.name || line.dish}${g ? " — on the pass" : ""}` }));
+      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${c.qty > 1 ? `${c.qty} × ` : ""}${iname(c.ing)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.side ? " (side)" : ""}` }))),
+        target.ordered ? h("div", { className: "note", textContent: "Build it in this order, bottom first." }) : null,
+        g ? h("div", { className: "note", textContent: `As it stands: about ${scorePlate(R, target, plate, { elapsed: Math.max(0, (Date.now() - clock.real(t.at)) / 1000), patience: t.real_s }).score}/100` }) : null));
+    });
+    const extras = (k().menu || []).filter((d) => { const v = recipeOf(R, d)?.vessel; return v === "cup" || v === "glass" || (R.items[d]?.price || 0) < R.money(8); }).slice(0, 8);
+    if (extras.length && !t.paid) {
+      const compCost = [...st.extras].reduce((s, d) => s + Object.entries(needs(recipeOf(R, d, k().house_menu)?.build || [])).reduce((a, [i, n]) => a + ingCost(R, i, n), 0), 0);
+      out.push(h("h4", { textContent: "On the house" }), h("div", { className: "chips" }, ...extras.map((d) => h("button", { className: st.extras.has(d) ? "on" : "", textContent: R.items[d].name,
+        onclick: () => { if (st.extras.has(d)) st.extras.delete(d); else if (st.extras.size < 3) st.extras.add(d); hud(); } }))),
+        h("p", { className: "note", textContent: st.extras.size ? `A bigger tip, but it costs the house ${fmt(compCost)}: logged against you.` : "Slip in something free for a bigger tip. The house pays, and it counts against your rating." }));
+    }
+    const ready = gs.length >= t.lines.length;
+    out.push(h("button", { className: "primary", style: "width:100%;margin-top:6px", textContent: ready ? `Serve ${t.who.split(" ")[0]}` : `Put ${t.lines.length} plate${t.lines.length > 1 ? "s" : ""} on the pass`, disabled: !ready, onclick: serve }));
+    for (const x of st.results.slice(0, 1)) out.push(resultCard(x));
+    return out;
+  }
+  function labSide() {
+    const g = passGroups()[0];
+    const out = [h("h4", { textContent: "The lab" }), h("p", { className: "note", textContent: "Cook anything from the pantry, build your dish, and put it on the pass. It is served free to a customer as a test." }),
+      h("input", { placeholder: "Name your dish", value: st.lab.name, maxLength: 40, style: "width:100%", oninput: (e) => { st.lab.name = e.target.value; } })];
+    if (g) out.push(h("div", { className: "note", style: "margin-top:6px", textContent: `On the pass: ${plateOf(g).map((c) => `${c.qty > 1 ? `${c.qty} ` : ""}${iname(c.ing).toLowerCase()}${c.p !== "-" ? ` (${chain(c.p).map((p) => P[p].verb).join(", ")})` : ""}`).join(", ")} · costs ${fmt(plateOf(g).reduce((s, c) => s + ingCost(R, c.ing, c.qty), 0))}` }));
+    out.push(h("button", { className: "primary", style: "width:100%;margin-top:6px", textContent: "Serve as a free test", disabled: !g, onclick: labTest }));
+    if (st.lastTest) out.push(testCard(st.lastTest, true));
+    const mine = (k().proposals || []).slice(-5).reverse();
+    if (mine.length) out.push(h("h4", { textContent: "Put to the owner" }), ...mine.map((pr) => h("div", { className: "note", textContent: `"${pr.name}" at ${fmt(pr.final_price || pr.price)}: ${pr.status === "pending" ? `waiting for ${k().owner_name}` : pr.status}` })));
+    const menu = k().house_menu || [];
+    if (menu.length) out.push(h("h4", { textContent: "The house's own dishes" }), ...menu.map((d) => h("div", { className: "note", textContent: `${d.name} · ${fmt(d.price)} · by ${d.by_name} · ${d.sold || 0} sold` })));
+    return out;
+  }
+  function hintBar() {
+    const g = held(), s = st.sel && st.groups.get(st.sel.gid);
+    const bits = [];
+    if (g) {
+      bits.push(h("span", { textContent: `Holding: ${productName(g)}${g.items.length === 1 ? ` (${stateWord(st.items.get(g.items[0]))})` : ` (${g.items.length} things)`}. Click the counter to put it down, food to stack it on, a station to cook it, the pass to plate it.` }));
+      if (untouched(g)) bits.push(h("button", { textContent: "Put back", onclick: () => { const it = st.items.get(g.items[0]); const bin = st.scene.bins.find((b) => b.ing === it.ing); walkTo(bin ? frontOf(bin.x) : st.scene.storage[ING[it.ing].kept].approach, () => putBack()); } }));
+      bits.push(h("button", { textContent: "Bin it (Q)", onclick: keyBin }));
+    } else if (s) {
+      const it = st.sel.uid ? st.items.get(st.sel.uid) : null;
+      bits.push(h("span", { textContent: it && s.items.length > 1 ? `Selected: the ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()} (${stateWord(it)}). Click it again to take it out.` : `Selected: ${productName(s)}${it ? ` (${stateWord(it)})` : ` (${s.items.length} things)`}. ${s.items.length > 1 && !it ? "Click again to choose one thing in it." : "Click again to pick it up."}` }));
+      bits.push(h("button", { className: "primary", textContent: "Pick up (E)", onclick: () => pickSelectedThen(() => {}) }), h("button", { textContent: "Bin", onclick: keyBin }));
+    } else bits.push(h("span", { className: "note", textContent: "Click a bin, or the fridge, freezer or shelves, to fetch an ingredient · click food once for the dish, twice for one thing in it" }));
+    return h("div", { className: "hint glass hud" }, ...bits);
+  }
+  function popup() {
+    const p = st.pop;
+    if (p.kind === "proc") {
+      const spec = stationSpec(p.id);
+      return h("div", { className: "pop glass hud", style: `left:${p.x}px;top:${p.y}px` }, h("b", { textContent: spec.name }),
+        ...spec.does.map((pr) => h("button", { textContent: P[pr].name, onclick: () => { st.pop = null; walkTo(stationStand(p.id), () => placeOn(p.id, pr)); hud(); } })));
+    }
+    if (p.kind === "store") {
+      const name = { fridge: "The fridge", freezer: "The freezer", dry: "The dry-goods shelves" }[p.kept];
+      return h("div", { className: "pop list glass hud", style: "left:50%;top:50%" }, h("b", { textContent: name }),
+        ...(p.list.length ? p.list.map((i) => h("button", { className: "row", onclick: () => { st.pop = null; walkTo(st.scene.storage[p.kept].approach, () => take(i)); hud(); } }, h("span", { textContent: iname(i) }), h("span", { className: "note", textContent: String(Math.floor(st.k.pantry[i])) })))
+          : [h("p", { className: "note", textContent: "Empty: the owner has not ordered anything kept here." })]),
+        h("button", { textContent: "Close", onclick: () => { st.pop = null; hud(); } }));
+    }
+    return null;
+  }
+  //: Every frame: the bars over what is cooking, the tooltip, the tickets' patience.
+  function overlay(now) {
+    let layer = el.querySelector(".cooks");
+    if (!layer) { layer = h("div", { className: "cooks" }); el.append(layer); }
+    const list = [...st.groups.values()].filter((g) => g.cook);
+    while (layer.children.length < list.length) layer.append(h("div", { className: "cook" }, h("div", { className: "lbl" }), h("div", { className: "bar" }, h("div", { className: "ok" }), h("div", { className: "burn" }), h("div", { className: "at" }))));
+    while (layer.children.length > list.length) layer.lastChild.remove();
+    const D = K.doneness, span = D.burnt_above * 1.15, W = el.clientWidth, H = el.clientHeight;
+    list.forEach((g, i) => {
+      const node = layer.children[i], c = g.cook;
+      const p = st.scene.project(V(g.pos.x, g.pos.y + (g.height || 0.03) + 0.1, g.pos.z));
+      node.style.left = `${p.x * W}px`; node.style.top = `${p.y * H}px`;
+      const ok = node.querySelector(".ok"), burn = node.querySelector(".burn"), at = node.querySelector(".at"), lbl = node.querySelector(".lbl");
+      if (c.proc === "chop") { lbl.textContent = `Chop ${c.taps}/${c.need}: click it`; ok.style.width = "0"; burn.style.width = "0"; at.style.left = `${(c.taps / c.need) * 100}%`; return; }
+      if (!c.start) { lbl.textContent = `Click the ${stationSpec(g.station.id).name.toLowerCase()} to ${P[c.proc].name.toLowerCase()}`; ok.style.width = "0"; burn.style.width = "0"; at.style.left = "0"; return; }
+      const ratio = (now - c.start) / 1000 / Math.max(0.5, c.secs), heat = K.heat.includes(c.proc);
+      lbl.textContent = heat ? (ratio < D.right[0] ? `${P[c.proc].name}…` : ratio <= D.right[1] ? "Ready: take it off!" : ratio < D.burnt_above ? "Overdone" : "Burnt") : ratio >= 1 ? "Done: take it" : `${P[c.proc].name}…`;
+      ok.style.left = `${(heat ? D.right[0] : 1) / span * 100}%`; ok.style.width = `${(heat ? D.right[1] - D.right[0] : span - 1) / span * 100}%`;
+      burn.style.width = heat ? `${(1 - D.burnt_above / span) * 100}%` : "0";
+      at.style.left = `${Math.min(100, ratio / span * 100)}%`;
+    });
+    let tip = el.querySelector(".tip");
+    if (st.hover?.text && !st.pop) { if (!tip) { tip = h("div", { className: "tip" }); el.append(tip); } tip.textContent = st.hover.text; tip.style.left = `${st.hover.x}px`; tip.style.top = `${st.hover.y}px`; }
+    else tip?.remove();
+    for (const node of el.querySelectorAll("[data-ticket]")) {
+      const t = ticketOf(node.dataset.ticket);
+      if (!t) continue;
+      const share = Math.max(0, Math.min(1, realLeft(t) / t.real_s)), bar = node.querySelector(".bar i");
+      bar.style.width = `${share * 100}%`; bar.style.background = share < 0.25 ? "#c0392b" : share < 0.5 ? "#e0a526" : "#2e9d58";
+      node.querySelector(".left").textContent = `${Math.max(0, Math.round(realLeft(t)))} s left`;
+    }
+  }
+  function resultCard(x) {
+    const stars = Math.round(x.score / 20);
+    return h("div", { className: "result" }, h("div", {}, h("span", { className: "stars", textContent: `${"★".repeat(stars)}${"☆".repeat(5 - stars)}` }), h("b", { textContent: ` ${x.score}/100 for ${x.who}` })),
+      h("div", { textContent: x.paid ? "They paid at the counter: a tip is theirs to give." : `Tip ${fmt(x.tip)}${x.comp ? ` · on the house ${fmt(x.comp)}` : ""}` }),
+      x.notes.length ? h("div", { className: "note", textContent: x.notes.join(" · ") }) : null);
+  }
+  function testCard(x, offer = false) {
+    const price = h("input", { type: "number", step: "0.5", min: "1", value: String(x.price / R.money(1)), style: "width:5.5em" });
+    const done = (k().proposals || []).some((p) => p.test === x.id);
+    return h("div", { className: "result" }, h("b", { textContent: `"${x.name}": ${x.taste}/100` }), h("div", { textContent: `${x.who}: “${x.verdict}”` }),
+      h("div", { className: "note", textContent: `+${x.stamina} stamina · ${x.health >= 0 ? "+" : ""}${x.health} health · costs ${fmt(x.cost)} · a fair price ${fmt(x.price)}` }),
+      x.notes.length ? h("div", { className: "note", textContent: x.notes.join(" · ") }) : null,
+      offer && !done ? h("div", { className: "chips", style: "margin-top:4px" }, h("span", { className: "note", textContent: "Price ₡" }), price,
+        h("button", { className: "primary", textContent: `Put to ${k().owner_name.split(" ")[0]}`, onclick: () => propose(x, Math.round(+price.value * R.money(1))) })) : null);
+  }
+  function ownerTab() {
+    const kk = k(), out = [];
+    st.order ||= {};
+    const ids = Object.keys(ING).sort((a, b) => ING[a].name.localeCompare(ING[b].name));
+    const menuNeeds = new Set((kk.menu || []).flatMap((d) => Object.keys(needs(recipeOf(R, d, kk.house_menu)?.build || []))));
+    const cost = Object.entries(st.order).reduce((s, [i, n]) => s + ingCost(R, i, n), 0);
+    out.push(h("h4", { textContent: "Order for the pantry" }), h("p", { className: "note", textContent: `Paid from the business (${fmt(kk.balance || 0)}); in the pantry within 12 game hours. What the menu uses comes first.` }),
+      h("table", {}, ...ids.filter((i) => menuNeeds.has(i) || kk.pantry[i] > 0).concat(ids.filter((i) => !menuNeeds.has(i) && !(kk.pantry[i] > 0))).slice(0, 140).map((i) => h("tr", {},
+        h("td", { textContent: ING[i].name }), h("td", { className: "note", textContent: `${Math.floor(kk.pantry[i] || 0)} in · ${fmt(ingCost(R, i))}/${ING[i].unit}` }),
+        h("td", {}, h("input", { type: "number", min: "0", value: String(st.order[i] || ""), style: "width:5em", oninput: (e) => { st.order[i] = Math.max(0, +e.target.value || 0); } }))))),
+      h("div", { className: "chips", style: "margin:6px 0" }, h("button", { textContent: "Fill to a week of the menu", onclick: () => { fillWeek(); hud(); } }),
+        h("button", { className: "primary", textContent: `Order (${fmt(cost)})`, onclick: async () => { const items = Object.fromEntries(Object.entries(st.order).filter(([, n]) => n > 0)); const r = await run("kitchen_order", { items }); if (r) { notify(`Ordered: ${fmt(r.cost)}.`); st.order = {}; hud(); } } })));
+    const pend = (kk.proposals || []).filter((p) => p.status === "pending");
+    out.push(h("h4", { textContent: "Dishes put to you" }), pend.length ? h("div", {}, ...pend.map((pr) => {
+      const price = h("input", { type: "number", step: "0.5", value: String(pr.price / R.money(1)), style: "width:5em" });
+      return h("div", { className: "result" }, h("b", { textContent: `"${pr.name}" by ${pr.by}: ${pr.taste}/100` }), h("div", { className: "note", textContent: `+${pr.stamina} stamina, ${pr.health} health · costs ${fmt(pr.cost)} · asks ${fmt(pr.price)}` }),
+        h("div", { className: "note", textContent: pr.build.map((c) => `${c.qty} ${iname(c.ing).toLowerCase()}${chain(c.p).length ? ` ${chain(c.p).map((p) => P[p].verb).join(", ")}` : ""}`).join(" · ") }),
+        h("div", { className: "chips" }, h("span", { className: "note", textContent: "₡" }), price,
+          h("button", { className: "primary", textContent: "On the menu", onclick: async () => { if (await run("kitchen_decide", { proposal: pr.id, accept: true, price: Math.round(+price.value * R.money(1)) })) hud(); } }),
+          h("button", { textContent: "Not now", onclick: async () => { if (await run("kitchen_decide", { proposal: pr.id, accept: false })) hud(); } })));
+    })) : h("p", { className: "note", textContent: "None waiting." }));
+    out.push(h("h4", { textContent: "Your kitchen staff" }), (kk.staff || []).length ? h("table", {}, ...kk.staff.map((s) => h("tr", {}, h("td", { textContent: s.name }),
+      h("td", { textContent: `rating ${s.rating}` }), h("td", { className: "note", textContent: `${s.served} served, ${s.walkouts} walked · avg ${s.served ? Math.round(s.score_sum / s.served) : "–"} · comps ${fmt(s.comps)} · waste ${fmt(s.waste)} · lab ${fmt(s.lab)}` })))) : h("p", { className: "note", textContent: "No one has worked the line yet." }));
+    out.push(logList());
+    return out;
+  }
+  function fillWeek() {
+    const kk = k();
+    for (const d of kk.menu || []) for (const [i, n] of Object.entries(needs(recipeOf(R, d, kk.house_menu)?.build || []))) st.order[i] = Math.max(st.order[i] || 0, Math.ceil(n * 40 - (kk.pantry[i] || 0)));
+    for (const [i, n] of Object.entries(st.order)) if (n <= 0) delete st.order[i];
+  }
+  function recordTab() {
+    const kk = k(), s = kk.record;
+    const out = [h("h4", { textContent: `Your rating: ${kk.rating}` }),
+      h("p", { className: "note", textContent: `${kk.owner_name} sees it: how well you cook and how few customers walk out, less what you give away and spoil against what you sell. A low one gets a warning, then your notice.` })];
+    if (s) out.push(h("table", {}, ...[["Served", s.served], ["Walked out", s.walkouts], ["Average plate", s.served ? `${Math.round(s.score_sum / s.served)}/100` : "–"], ["Tips", fmt(s.tips)],
+      ["Sold", fmt(s.sales)], ["On the house", `${fmt(s.comps)} (${s.comps_n})`], ["Spoiled", fmt(s.waste)], ["Lab tests", `${s.tests} (${fmt(s.lab)})`], ["Your dishes on the menu", s.dishes]].map(([a, b]) => h("tr", {}, h("td", { textContent: a }), h("td", { textContent: String(b) })))));
+    out.push(logList());
+    return out;
+  }
+  function logList() {
+    const log = (k().log || []).slice(-14).reverse();
+    return h("div", {}, h("h4", { textContent: "The kitchen's log" }), ...log.map((e) => h("div", { className: "note", textContent: `${e.memo}${e.cost ? ` (${fmt(e.cost)})` : ""}${e.score !== undefined && e.kind === "served" ? ` · ${e.score}/100` : ""}` })));
+  }
+
+  return { actions, todo, open, close, isOpen: () => Boolean(el), debug: () => st };
+}

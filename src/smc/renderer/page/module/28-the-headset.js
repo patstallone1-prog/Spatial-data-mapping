@@ -844,12 +844,19 @@ function startSpawn() { return readSpawn() || readHomeSpawn(); }
 //: no kerb is drawn near (a park, a pier), or where the point is on a pavement already.
 function sidewalkNear(x, z) {
   if (typeof nearestKerbAt !== "function" || typeof insideCarriageway !== "function") return null;
-  if (!insideCarriageway(x, z, 0.2)) return null;
-  const kerb = nearestKerbAt(x, z, 60);
-  if (!kerb) return null;
-  for (const step of [1.5, 1.0, 2.2]) {
-    const px = kerb.x + kerb.nx * step, pz = kerb.z + kerb.nz * step;
-    if (!insideCarriageway(px, pz, 0.2)) return { x: px, z: pz };
+  // The kerbs are the region's that is built round the walker: the page's own, or the one drawn
+  // in its place (a guest region keeps its own kerbs: City mode's Marina is one).
+  const guest = typeof activeGuest !== "undefined" && activeGuest?.ready ? activeGuest.window?.kerbside : null;
+  const realms = [guest?.insideCarriageway && guest.nearestKerbAt ? { inRoad: guest.insideCarriageway, kerbAt: guest.nearestKerbAt } : null,
+    { inRoad: (px, pz, slack) => insideCarriageway(px, pz, slack), kerbAt: (px, pz, reach) => nearestKerbAt(px, pz, reach) }].filter(Boolean);
+  for (const realm of realms) {
+    if (!realm.inRoad(x, z, 0.2)) continue;
+    const kerb = realm.kerbAt(x, z, 60);
+    if (!kerb) continue;
+    for (const step of [1.5, 1.0, 2.2]) {
+      const px = kerb.x + kerb.nx * step, pz = kerb.z + kerb.nz * step;
+      if (!realm.inRoad(px, pz, 0.2)) return { x: px, z: pz };
+    }
   }
   return null;
 }
@@ -1049,10 +1056,18 @@ WORLD_READY.then(() => {
   check();
 });
 WORLD_LOADED.then(() => settleOnSidewalk());
+// (And the paved covers come off any roadway indexed after they were laid: module 17.)
+WORLD_READY.then(() => { const cut = recutGroundOffRoads(); if (cut) console.info(`kerbside: ${cut} paved triangles taken off the roadway`); });
+WORLD_LOADED.then(() => recutGroundOffRoads());
 window.kerbsideLoadState = () => ({ loaded: worldLoadedNow, waiting: worldLoadedNow ? [] : worldLoadWaiting() });
 pageIsReady();
 
 window.kerbside = {
+  // For checks from outside: whether a point is in a roadway, the nearest kerb, the region built round you.
+  insideCarriageway: (x, z, slack = 0.4) => insideCarriageway(x, z, slack),
+  recutGroundOffRoads: () => recutGroundOffRoads(),
+  nearestKerbAt: (x, z, reach = 30) => nearestKerbAt(x, z, reach),
+  activeGuest: () => (typeof activeGuest !== "undefined" ? activeGuest : null),
   setSkyTime: (date) => environmentController?.setTime(date),
   bikeRacks: () => cityBikeRacks,
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,

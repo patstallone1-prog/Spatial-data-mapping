@@ -412,7 +412,9 @@ export function installEnterprise(CityWorld, CityError) {
     while (s.sim_to < limit) {
       const t = cityTime(s.sim_to + HOUR / 2, R.clock.zone);
       if (t.day !== s.today.day) this.closeShopDay(s, t.day);
-      const o = hourOf(R, b, t, { unlimited: true, first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, noise: dayNoise(s.id, t.day) });
+      const kit = this.kitchenBeforeHour?.(b, t);   // a kitchen that is worked sells from its pantry (kitchen.mjs)
+      const o = hourOf(R, b, t, { unlimited: !kit, first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, noise: dayNoise(s.id, t.day) });
+      if (kit) this.kitchenAfterHour(kit, b, o);
       const d = s.today;
       d.visits += o.visits; d.served += o.served; d.lost += o.lost; d.sales += o.sales; d.tax += o.tax; d.cogs += o.cogs;
       for (const v of Object.values(o.wages)) d.staff_wages = (d.staff_wages || 0) + v;
@@ -424,7 +426,7 @@ export function installEnterprise(CityWorld, CityError) {
   W.closeShopDay = function (s, next) {
     const d = s.today, rent = Math.round(BR(this).storefront_lease_per_week / 7), wages = Math.round(d.staff_wages || 0), sales = d.sales + (d.player_sales || 0);
     const line = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, rent, fees: 0, profit: sales - d.cogs - wages - rent, visits: Math.round(d.visits), served: Math.round(d.served),
-      lost: Math.round(d.lost), orders: Math.round(d.served) + (d.player_orders || 0), player_sales: d.player_sales || 0, units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
+      lost: Math.round(d.lost), orders: Math.round(d.served) + (d.player_orders || 0), player_sales: d.player_sales || 0, waste: d.waste || 0, lab: d.lab || 0, units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
     foldDay(s, line, d.items || {}, { days: 35 });
     s.today = freshDay(next);
   };
@@ -858,7 +860,9 @@ export function installEnterprise(CityWorld, CityError) {
       b.incoming = b.incoming.filter((x) => !x.done);
       b.laws = this.laws;
       const live = b.sim_to + HOUR >= limit;
+      const kit = this.kitchenBeforeHour?.(b, t);   // its dishes are what the pantry can make (kitchen.mjs)
       const o = hourOf(R, b, t, { first: t.hour === b.hours[0] % 24, last: (t.hour + 1) % 24 === b.hours[1] % 24, extra: live ? this.handsIn(b) : 0, noise: dayNoise(b.id, t.day) });
+      if (kit) this.kitchenAfterHour(kit, b, o);
       delete b.laws;
       const d = b.today;
       for (const [id, [n, s2, c]] of Object.entries(o.lines)) { const x = ((d.items ||= {})[id] ||= [0, 0, 0]); x[0] += n; x[1] += s2; x[2] += c; }
@@ -969,7 +973,7 @@ export function installEnterprise(CityWorld, CityError) {
     const counter = d.player_orders || 0;
     const day = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, withheld, unpaid, rent: d.rent, fees: d.fees, ordered: d.ordered || 0,
       profit: sales - d.cogs - wages - d.rent - d.fees, visits: Math.round(d.visits), served: Math.round(d.served), lost: Math.round(d.lost),
-      stockout: d.stockout, reputation: Math.round(b.reputation), orders: Math.round(d.served) + counter, player_sales: d.player_sales || 0,
+      stockout: d.stockout, reputation: Math.round(b.reputation), orders: Math.round(d.served) + counter, player_sales: d.player_sales || 0, waste: d.waste || 0, lab: d.lab || 0,
       units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
     b.since ??= cityTime(b.opened ?? this.now, R.clock.zone).day;
     if (sales || wages || d.rent || d.fees || d.visits) foldDay(b, day, d.items || {});

@@ -14,7 +14,7 @@
 
 export const DAYS_KEPT = 120, WEEKS_KEPT = 60, ITEM_WEEKS = 13, TX_KEPT = 60;
 export const PERIODS = [[30, "Past month"], [90, "Past 3 months"], [365, "Past year"]];
-const SUMS = ["sales", "cogs", "wages", "rent", "fees", "tax", "profit", "orders", "units", "visits", "served", "lost", "player_sales"];
+const SUMS = ["sales", "cogs", "wages", "rent", "fees", "tax", "profit", "orders", "units", "visits", "served", "lost", "player_sales", "waste", "lab"];
 export const weekOf = (day) => Math.floor(day / 7);
 const zero = () => Object.fromEntries(SUMS.map((k) => [k, 0]));
 
@@ -104,7 +104,8 @@ export function analyse(rec, { today, estimate = null, names = (id) => id, weeks
   const items = [...totals].map(([id, [n, s, c]]) => ({ id, name: names(id), units: Math.round(n), sales: Math.round(s), cost: Math.round(c), share: allUnits ? n / allUnits : 0,
     margin: s > 0 ? (s - c) / s : 0, profit: Math.round(s - c), price: n > 0 ? Math.round(s / n) : 0,
     weekly: itemWeeks.map((w) => ({ week: w.week, units: Math.round(w.items[id]?.[0] || 0), estimated: w.estimated })) })).sort((a, b) => b.units - a.units);
-  const costs = periods.map((p) => ({ key: p.key, label: p.label, parts: [["Goods sold", p.cogs], ["Wages", p.wages], ["Rent", p.rent], ["Licences, fees and loan", p.fees]].map(([name, value]) => ({ name, value })),
+  const costs = periods.map((p) => ({ key: p.key, label: p.label, // (A kitchen's spoiled food and its lab's test dishes are goods too: counted in cogs, shown as their own lines.)
+    parts: [["Goods sold", p.cogs - p.waste - p.lab], ["Spoiled and binned", p.waste], ["Lab test dishes", p.lab], ["Wages", p.wages], ["Rent", p.rent], ["Licences, fees and loan", p.fees]].map(([name, value]) => ({ name, value })),
     total: p.cogs + p.wages + p.rent + p.fees }));
   const month = periods[0];
   return { periods, weekly, items, item_weeks: itemWeeks.map((w) => ({ week: w.week, estimated: w.estimated })), costs,

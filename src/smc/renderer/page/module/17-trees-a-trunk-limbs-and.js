@@ -576,6 +576,35 @@ function fenceMaterial(style) {
   });
 }
 
+//: The paved covers laid from parcels (a parcel is surveyed to the property line, not the kerb),
+//: cut off the roadway again once every roadway is known (recutGroundOffRoads).
+const ROAD_CUT_SURFACES = new Set(["plaza", "front_walk", "service_yard", "neutral_ground"]);
+//: ringGeometry cuts these covers off the carriageway as it lays them, but with the roadways known
+//: at that moment. Where a region is built in pieces (City mode's area), some streets are indexed
+//: after the ground is down, and what was paved on them stayed: slabs of pavement across the
+//: lanes, through the bus zones' paint. Once the build has settled, any triangle whose centre and
+//: two corners are on a carriageway is taken out (the same rule, with every roadway in).
+function recutGroundOffRoads() {
+  let cut = 0;
+  const meshes = [];
+  groups.ground.traverse((o) => { if (o.isMesh && ROAD_CUT_SURFACES.has(o.userData?.surface)) meshes.push(o); });
+  for (const mesh of meshes) {
+    const geom = mesh.geometry, pos = geom?.attributes?.position, index = geom?.getIndex();
+    if (!pos || !index || !mesh.parent) continue;
+    mesh.updateMatrixWorld();
+    const e = mesh.matrixWorld.elements, kept = [];
+    const on = (i) => insideCarriageway(pos.getX(i) + e[12], pos.getZ(i) + e[14], 0);
+    for (let t = 0; t < index.count; t += 3) {
+      const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
+      const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
+      if (insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
+      kept.push(a, b, c);
+    }
+    if (kept.length !== index.count) geom.setIndex(kept);
+  }
+  if (cut && typeof requestFrame === "function") requestFrame();
+  return cut;
+}
 function addGround(mesh, what) {
   mesh.userData.surface = what;
   // Covers follow the excavated visual terrain, including the soil beneath a

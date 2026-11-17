@@ -257,3 +257,17 @@ test("X aims at the nearest target's height and turns to it; G walks over with t
   assert.match(src, /ctx\.animateWalk\?\.\(moved, dx \/ d, dz \/ d\);/);
   assert.match(src, /autoWalk: \(dt\) => stepReach\(dt\)/);
 });
+
+test("an empty hand stays empty: something picked up goes to another slot, and is held only when chosen", () => {
+  // Slot 0 is chosen and empty: the apple goes to slot 1, not into the hand.
+  let slots = arrange([], { apple: 1 }, 0);
+  assert.equal(slots[0], null);
+  assert.equal(slots[1], "apple");
+  // With something already chosen and held, the next thing takes the first free place as before.
+  slots = arrange(["axe"], { axe: 1, apple: 1 }, -1);
+  assert.deepEqual(slots.slice(0, 2), ["axe", "apple"]);
+  // Only when everywhere else is full does it land in the kept slot.
+  const full = Array.from({ length: SLOTS }, (_, i) => (i === 3 ? null : `thing${i}`));
+  const inv = Object.fromEntries(full.filter(Boolean).map((id) => [id, 1]));
+  assert.equal(arrange(full, { ...inv, apple: 1 }, 3)[3], "apple");
+});

@@ -18,7 +18,9 @@ export const slotsUsed = (inventory) => Object.values(inventory || {}).reduce((s
 //: slot holds up to STACK of one thing, so a thing has as many slots as it has stacks. What is
 //: gone is taken out (its last slots first), and a new stack goes in the first free place on the
 //: bar, then the grid. Stacks that will not fit (more than SLOTS) are left out of sight.
-export function arrange(slots, inventory) {
+//: ``keep``: a bar slot left empty while anywhere else is free (the chosen slot, when the hand is
+//: empty: what you pick up goes into the bag, not into your hand, until you choose it).
+export function arrange(slots, inventory, keep = -1) {
   const need = new Map(Object.entries(inventory || {}).filter(([, n]) => n > 0).map(([id, n]) => [id, stacksOf(n)]));
   const used = new Map();
   const out = Array.from({ length: SLOTS }, (_, i) => {
@@ -29,7 +31,8 @@ export function arrange(slots, inventory) {
   });
   for (const [id, n] of need) {
     for (let k = used.get(id) || 0; k < n; k += 1) {
-      const free = out.indexOf(null);
+      let free = out.findIndex((v, i) => v === null && i !== keep);
+      if (free < 0) free = out.indexOf(null);
       if (free < 0) return out;
       out[free] = id;
     }

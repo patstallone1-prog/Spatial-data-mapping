@@ -86,13 +86,23 @@ export function messagesPanel(api) {
   const keep = (el) => { for (const k of ["keydown", "keyup", "keypress"]) el.addEventListener(k, (e) => { if (e.key === "Escape") { el.blur(); return; } e.stopPropagation(); }); return el; };
 
   function open(tab = null, thread = null) {
-    ui.open = true; if (tab) ui.tab = tab; ui.thread = thread; ui.person = null; ui.group = false;
+    ui.open = true; if (tab) ui.tab = tab; ui.thread = thread; ui.person = null; ui.group = false; ui.npc = null;
     panel.hidden = false; tabBtn.hidden = true;
     draw(true);
   }
   function close() { ui.open = false; panel.hidden = true; tabBtn.hidden = !ui.on; }
   //: Clicking another player: who they are, and what you can do with them.
   function person(pid, name = null) { open("players"); ui.person = { pid, name: name || nameOf(pid) }; draw(true); }
+  //: Clicking one of the city's people while the messages are open: a conversation with them.
+  //: ``who``: {id, name, title, role, tone}; ``body``: what the server is sent with each line (their sheet).
+  const talks = new Map();
+  function npc(who, body = {}) {
+    open("npc");
+    if (!talks.has(who.id)) talks.set(who.id, {});
+    if (talks.size > 30) talks.delete(talks.keys().next().value);
+    ui.npc = { who, body };
+    draw(true);
+  }
 
   function draw(force = false) {
     const ib = box();
@@ -102,20 +112,21 @@ export function messagesPanel(api) {
     toastNew(ib);
     if (!ui.open) return;
     const t = ui.thread && ib ? Object.values(ib.tabs).flat().find((x) => x.id === ui.thread) : null;
-    const sig = JSON.stringify([ui.tab, ui.thread, ui.person, ui.group, ib && Object.values(ib.tabs).flat().map((x) => [x.id, x.msgs.at(-1)?.id, x.unread, x.msgs.map((m) => m.answered && Object.keys(m.answered).length).join()]), ib?.friends.length, ib?.asked.length, ib?.sent.length, (peers() || []).length]);
+    const sig = JSON.stringify([ui.tab, ui.thread, ui.person, ui.group, ui.npc?.who.id, ib && Object.values(ib.tabs).flat().map((x) => [x.id, x.msgs.at(-1)?.id, x.unread, x.msgs.map((m) => m.answered && Object.keys(m.answered).length).join()]), ib?.friends.length, ib?.asked.length, ib?.sent.length, (peers() || []).length]);
     if (!force && sig === ui.sig) return;
     ui.sig = sig;
     const body = panel.querySelector(".body");
     const keepBottom = body ? body.scrollHeight - body.scrollTop - body.clientHeight < 40 : true;
     const focus = doc.activeElement?.closest?.("#city-msg") ? doc.activeElement.name : null;
-    const head = h("header", {}, ui.thread || ui.person || ui.group ? h("button", { textContent: "←", title: "Back", onclick: () => { ui.thread = null; ui.person = null; ui.group = false; draw(true); } }) : null,
-      h("h3", { textContent: t ? t.name : ui.person ? ui.person.name : ui.group ? "New group" : "Messages" }),
+    const head = h("header", {}, ui.thread || ui.person || ui.group || ui.npc ? h("button", { textContent: "←", title: "Back", onclick: () => { ui.thread = null; ui.person = null; ui.group = false; ui.npc = null; draw(true); } }) : null,
+      h("h3", { textContent: ui.npc ? `${ui.npc.who.name}${ui.npc.who.title ? ` · ${ui.npc.who.title}` : ""}` : t ? t.name : ui.person ? ui.person.name : ui.group ? "New group" : "Messages" }),
       h("button", { className: "x", textContent: "×", title: "Close (Esc)", "aria-label": "Close messages", onclick: close }));
-    const nav = h("nav", {}, ...Object.entries(TAB_LABEL).map(([k, label]) => h("button", { "aria-pressed": String(ui.tab === k && !ui.thread && !ui.person), onclick: () => { ui.tab = k; ui.thread = null; ui.person = null; ui.group = false; draw(true); } },
+    const nav = h("nav", {}, ...Object.entries(TAB_LABEL).map(([k, label]) => h("button", { "aria-pressed": String(ui.tab === k && !ui.thread && !ui.person), onclick: () => { ui.npc = null; ui.tab = k; ui.thread = null; ui.person = null; ui.group = false; draw(true); } },
       label, h("span", { className: "count", textContent: ib && ib.unread[k] ? String(ib.unread[k]) : "" }))));
     const content = h("div", { className: "body" });
     let form = null;
     if (!ib) content.append(h("p", { className: "note", textContent: "Setting up your place in the city…" }));
+    else if (ui.npc && api.talkBox) content.append(h("p", { className: "note", textContent: "Someone you met in the street. This conversation is not kept after you leave." }), keep(api.talkBox(talks.get(ui.npc.who.id) || {}, ui.npc.who, ui.npc.body, () => draw(true))));
     else if (ui.person) content.append(...personView(ib, ui.person));
     else if (ui.group) content.append(...groupForm(ib));
     else if (t) { content.append(...threadView(t)); form = composer(t); }
@@ -277,7 +288,7 @@ export function messagesPanel(api) {
       if (!on) { panel.hidden = true; tabBtn.hidden = true; return; }
       tabBtn.hidden = ui.open; panel.hidden = !ui.open;
     },
-    open, close, person, draw,
+    open, close, person, npc, draw,
     isOpen: () => ui.open,
     stop() { clearInterval(timer); tabBtn.remove(); panel.remove(); },
   };
