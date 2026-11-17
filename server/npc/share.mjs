@@ -7,11 +7,13 @@
 
 const DAY = 86_400_000;
 
-export function playerShare(world, pid, role) {
+export function playerShare(world, pid, role, character = null) {
   const p = world.players.get(pid);
   if (!p) return { name: "a newcomer", note: "not yet a resident of the city" };
   const R = world.R, fmt = R.fmt;
   const out = { name: p.name, days_in_the_city: Math.floor((world.now - (p.joined ?? world.now)) / DAY) };
+  // What you are to each other (docs/city/social.mjs): a stranger, a regular, their boss, their client.
+  if (character && world.relationTo) out.relationship = world.relationTo(pid, character, role);
   if (role === "banker") {
     const rep = world.creditReport(pid), f = rep.facts;
     out.credit_score = rep.score; out.credit_band = rep.band;

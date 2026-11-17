@@ -36,6 +36,7 @@ import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs"
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
 import { THEME_CSS } from "./theme.mjs";
+import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
@@ -1259,7 +1260,11 @@ export async function startCity(ctx) {
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
-  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk }));
+  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who) }));
+  let profileUI = null;
+  const profile = () => (profileUI ||= profilePanel({ R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide: () => side, drawSide,
+    legacy: TABS, crossAt, editHome, redraw: () => refresh(), close: () => { if (panel) openPanel(); },
+    peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId) }));
   //: Something said to one of the city's people: the server's answer, or null when there is no server to ask (the box answers with a set line).
   async function talk(body) { return online.state === "online" && online.client?.talk ? online.client.talk(body) : null; }
   const worldKey = () => (world ? SAVE_SOLO : "kerbside:city:server");
@@ -2799,7 +2804,8 @@ export async function startCity(ctx) {
   //: up to 0.4 m further off (as the blow always has).
   function nearestHittable(reach) {
     const at = me();
-    const who = personInReach(reach, -2), t = strikeTarget(reach);
+    // A person is hit only within arm's length (a little further with something in the hand).
+    const who = personInReach(Math.min(reach, self()?.hands ? 1.6 : 1.1), -2), t = strikeTarget(reach);
     const dw = who ? Math.hypot(who.x - at.x, who.z - at.z) : Infinity, dt = t ? Math.hypot(t.x - at.x, t.z - at.z) : Infinity;
     if (who && dw <= dt + 0.4) return { kind: "person", q: who, x: who.x, z: who.z, d: dw };
     return t ? { kind: "thing", t, x: t.x, z: t.z, d: dt } : null;
@@ -3563,13 +3569,14 @@ export async function startCity(ctx) {
     }
     if (!best) return false;
     const p = best.person, tt = fleetAt(Date.now());
+    talkTo({ id: p.id, name: p.name, title: p.title });
     const show = (context) => messages().npc({ id: p.id, name: p.name, title: p.title, role: "resident", tone: context?.tone?.family || "reserved" }, context ? { npc: context } : {});
     const request = district.city.characterContext(p, tt, view);
     if (request.state === "ready") show(request.context);
     else { show(null); request.ready.then(() => { const again = district.city.characterContext(p, tt, view); if (again.state === "ready" && messages().isOpen()) show(again.context); }).catch(() => {}); }
     return true;
   }
-  //: A click in the game: the shop's checkout panel if it is under the pointer, else a swing.
+  //: A click in the game: the shop's checkout panel, a resident to talk to, another player. Never a swing.
   function click(ray) {
     if (!self()) return;
     if (shop.room?.userData.panel && ray?.intersectObject(shop.room.userData.panel, false).length) { openStore(shop.place); return; }
@@ -3580,7 +3587,7 @@ export async function startCity(ctx) {
       const pid = party.ids.get(peer.id);
       if (pid && pid !== myId && peer.avatar?.visible !== false && peer.avatar && ray?.intersectObject(peer.avatar, true).length) { messages().person(pid, peer.name); return; }
     }
-    swingKey();
+    // (A click is never a blow: X swings, and lands only on what is within arm's reach.)
   }
 
   // ---- the bar of eight and the inventory ------------------------------------------------------
@@ -3808,6 +3815,63 @@ export async function startCity(ctx) {
   //: where a way's offset changes (a street narrows, a footpath meets the pavement) they step
   //: across rather than appear there. A gap wider than ``snap`` (out of sight and back) is taken.
   const glided = new Map();
+  //: Who you are talking with (talkTo): they stand and face you while it lasts.
+  const talking = { id: null, until: 0, at: null, met: new Map() };
+  function talkTo(who) {
+    if (!who?.id) return;
+    if (talking.id !== who.id) talking.at = null;
+    talking.id = who.id; talking.until = performance.now() + 30_000;
+    // The world keeps how often you have talked: it is what they are to you (social.mjs).
+    const last = talking.met.get(who.id) || 0;
+    if (performance.now() - last > 60_000 && self()) { talking.met.set(who.id, performance.now()); send("meet", { id: who.id, name: who.name, title: who.title || null }); }
+  }
+  //: People keep clear of each other: two whose places come within half a metre step apart, each
+  //: to their own right when they meet head on, so they go round and nobody stands in anybody.
+  //: The step is eased in and out (``aside``), and is undone before the next (an entry kept from an
+  //: earlier frame is the same object).
+  const aside = new Map();
+  const CLEAR_M = 0.62;
+  function keepApart(people, you, dt) {
+    const cells = new Map(), near = [];
+    for (const e of people) {
+      if (e._ax) { e.x -= e._ax; e.z -= e._az; e._ax = e._az = 0; }
+      if (e.down || e.indoors || e.through || e.ride) continue;
+      // Stood where their step aside so far has them, so the push is for what is still too close.
+      const stepped = aside.get(e.id);
+      if (stepped) { e.x += stepped[0]; e.z += stepped[1]; e._ax = stepped[0]; e._az = stepped[1]; }
+      near.push(e);
+      const key = `${Math.floor(e.x)},${Math.floor(e.z)}`;
+      let list = cells.get(key); if (!list) cells.set(key, list = []);
+      list.push(e);
+    }
+    const k = Math.min(1, dt * 6);
+    for (const e of near) {
+      let wx = 0, wz = 0;
+      const cx = Math.floor(e.x), cz = Math.floor(e.z);
+      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) for (const o of cells.get(`${ix},${iz}`) || []) {
+        if (o === e) continue;
+        let dx = e.x - o.x, dz = e.z - o.z, d = Math.hypot(dx, dz);
+        if (d >= CLEAR_M) continue;
+        // Exactly together: each off its own way, by its id.
+        if (d < 0.02) { const a = (hash32(e.id) % 628) / 100; dx = Math.cos(a); dz = Math.sin(a); d = 1; }
+        const push = (CLEAR_M - d) * (o.moving && !e.moving ? 0.25 : e.moving && !o.moving ? 1 : 0.5);
+        wx += (dx / d) * push; wz += (dz / d) * push;
+        // Meeting head on: each also a little to their right, so they pass instead of stopping face to face.
+        if (e.moving && o.moving && Math.cos(e.yaw - o.yaw) < -0.3) { wx += Math.cos(e.yaw) * 0.25 * (CLEAR_M - d); wz += -Math.sin(e.yaw) * 0.25 * (CLEAR_M - d); }
+      }
+      // What they are pushed by is measured from where they stood without their step aside, so the
+      // step is carried on: it grows while they are crowded and eases off once there is room.
+      const was = aside.get(e.id) || [0, 0];
+      let ax = (wx || wz) ? was[0] + wx * k : was[0] * (1 - k * 0.35), az = (wx || wz) ? was[1] + wz * k : was[1] * (1 - k * 0.35);
+      const m = Math.hypot(ax, az);
+      // (Up to a couple of paces: a dozen waiting at one crossing need the room to stand apart.)
+      if (m > 1.9) { ax *= 1.9 / m; az *= 1.9 / m; }
+      if (m < 0.005) { aside.delete(e.id); e.x -= e._ax || 0; e.z -= e._az || 0; e._ax = e._az = 0; continue; }
+      aside.set(e.id, [ax, az]);
+      e.x += ax - (e._ax || 0); e.z += az - (e._az || 0); e._ax = ax; e._az = az;
+    }
+    if (aside.size > 4000) aside.clear();
+  }
   function glide(e, now, dt, top, snap) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
@@ -3890,9 +3954,17 @@ export async function startCity(ctx) {
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
       const entry = { id, person: e.p, ...pos, detail: tier };
+      // Someone you are talking with stops where they are and faces you until you are done (or walk off).
+      const held = talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
+      if (held) {
+        talking.at ||= { x: pos.x, z: pos.z };
+        entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = false; entry.gesture = null; entry.activity = "talking with you";
+        entry.yaw = Math.atan2(-(you.x - entry.x), -(you.z - entry.z));
+        if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);   // their walk waits: they go on from here
+      } else if (talking.id === id && (now >= talking.until || Math.hypot(pos.x - you.x, pos.z - you.z) >= 14)) { talking.id = null; talking.at = null; }
       if (pos.through && Math.abs(pos.x - you.x) < 60 && Math.abs(pos.z - you.z) < 60 && !(nudged.get(entry.id) > now - 2500)) { nudged.set(entry.id, now); ctx.nudgeDoor?.(pos.x, pos.z); }
       // Stepping round you: a walker who would walk into you goes by a pace to the side.
-      if (pos.moving && !car.active) {
+      if (pos.moving && !car.active && !held) {
         const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw), dx = you.x - pos.x, dz = you.z - pos.z;
         const ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
         let want = 0;
@@ -3901,7 +3973,7 @@ export async function startCity(ctx) {
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
-      if (pos.walk && pos.moving && !pos.down) {
+      if (pos.walk && pos.moving && !pos.down && !held) {
         const hold = waitsAtKerb(pos.walk, tsec);
         // (One placed only now and then is held for the time since it was last placed.)
         c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
@@ -3932,6 +4004,7 @@ export async function startCity(ctx) {
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    keepApart(people, you, dt);
     drawnTiers.tracked.people = trackedPeople;
     if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
     // The cars: parked where they stand; driving, on their leg.
@@ -4015,6 +4088,16 @@ export async function startCity(ctx) {
       for (const hit of step.hits) carHit(hit, people);
     }
     for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
+    // Inside a shop its room is where you are: no car is drawn through it. (A room is laid inward
+    // from the shop's front; where a front lies nearer the street than the map's kerb, traffic on
+    // the nearest lane ran through the counter.)
+    if (shop.frame && shop.room) {
+      const F = shop.frame, half = F.W / 2 + 1.6;
+      for (let i = vehicles.length - 1; i >= 0; i -= 1) {
+        const q = F.local(vehicles[i].x, vehicles[i].z), reach = (vehicles[i].length || 4.5) / 2;
+        if (q.u > -reach && q.u < F.D + reach && Math.abs(q.v) < half + reach) vehicles.splice(i, 1);
+      }
+    }
     // The bicycles apart from the cars: each with how far it has rolled (its wheels and cranks
     // turn by it), and its rider while it is ridden.
     residentBikes = [];
@@ -4044,6 +4127,7 @@ export async function startCity(ctx) {
   }
   // ---- crashes --------------------------------------------------------------------------------------
   //: A car of the city's that could not stop: it hits you, or someone on foot.
+  let lastCityCrash = -Infinity;
   async function carHit(hit, people) {
     const v = district.roster?.vehicles.get(hit.car);
     jolts.set(hit.car, { t0: performance.now(), speed: hit.speed });
@@ -4055,6 +4139,11 @@ export async function startCity(ctx) {
       if (r.ok) notify(`Hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph: ${r.injury.type}, -${r.injury.health} health. ${r.paid_by ? `${r.paid_by[0].toUpperCase()}${r.paid_by.slice(1)} pays the hospital.` : ""}`);
       return;
     }
+    // Between the city's own people a crash with casualties is an event, not the traffic's
+    // ordinary state: only a hard one (20 mph and over) is taken to the books, and at most one a
+    // minute. (Every touch counted, some twenty residents a minute were hurt and lay where they fell.)
+    if (hit.speed < 9 || performance.now() - lastCityCrash < 60_000) return;
+    lastCityCrash = performance.now();
     const q = hit.kind !== "vehicle" && people.find((x) => x.id === hit.who), other = district.roster?.vehicles.get(hit.who);
     if (!world || !v || (!q && !other)) return;
     const driver = district.roster.people.get(v.owner), targetDriver = other && district.roster.people.get(other.owner);
@@ -4272,7 +4361,7 @@ export async function startCity(ctx) {
 #city-top button.primary{background:#1f6feb}#city-top button.shop{background:#16a34a;padding:6px 16px;font-size:13px}
 #city-top kbd,#city-tasks kbd{font:600 10px/1 ui-monospace,monospace;border:1px solid rgba(255,255,255,.45);border-radius:4px;padding:2px 4px;margin-left:5px;opacity:.85}
 .city-card{position:fixed;top:var(--city-top-y,16px);z-index:36;width:var(--city-card-w,200px);box-sizing:border-box;background:rgba(17,24,39,.86);color:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.25);padding:9px 11px;font:12px/1.35 system-ui,sans-serif}
-#city-tasks{left:var(--city-tasks-x,72px);min-height:var(--city-card-h,0px);max-height:calc(100vh - var(--city-top-y,16px) - 130px);overflow:auto}
+#city-tasks{left:var(--city-tasks-x,72px);width:var(--city-tasks-w,300px);z-index:34;min-height:var(--city-card-h,0px);max-height:min(46vh,calc(100vh - var(--city-top-y,16px) - 130px));overflow:auto}
 #city-tasks h4{margin:0 0 4px;display:flex;align-items:center;gap:6px;font:700 13px/1.2 system-ui,sans-serif;color:#fff}
 #city-tasks h4 .word{flex:1;cursor:pointer}#city-tasks h4 .word:hover{text-decoration:underline}
 #city-tasks h4 button{border:0;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;font:700 13px/1 system-ui,sans-serif;width:26px;height:22px;cursor:pointer}
@@ -4306,7 +4395,7 @@ export async function startCity(ctx) {
 #city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
 #city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
-@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}`;
+@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}${PROFILE_CSS}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
   const hudBox = Object.assign(doc.createElement("div"), { id: "city-hud", title: "The living city: open the City panel" });
   hudBox.onclick = () => openPanel();
@@ -4360,7 +4449,8 @@ export async function startCity(ctx) {
   const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price", onclick: () => openSide("online") }, "Shop");
   const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory");
   const taxiButton = h("button", { title: "Call a taxi to where you stand (Enter gets in when it pulls up)", onclick: () => taxiKey() }, "Taxi");
-  alwaysActions.append(bagButton, tasksButton, onlineButton, taxiButton, helpButton);
+  // (The task board is the card at the bar's edge: one board, not a button to a second.)
+  alwaysActions.append(bagButton, onlineButton, taxiButton, helpButton);
   actionBar.append(alwaysActions, dynamicActions);
   const tasksCard = h("section", { id: "city-tasks", className: "city-card" });
   tasksCard.setAttribute("aria-label", "Tasks");
@@ -4391,10 +4481,16 @@ export async function startCity(ctx) {
     const card = W < 640 ? 150 : W < 1000 ? 180 : 200, y = 16;
     root.style.setProperty("--city-card-w", `${card}px`);
     root.style.setProperty("--city-top-y", `${y}px`);
-    let left = Math.max(F ? F.right + 10 : 12, M ? M.right + 10 : 0);
+    // The one task board: at the bar's edge, beside the map's button (which stays outside it). The
+    // open map pushes it, and the bar with it, towards the middle while the bar still has room for
+    // its buttons; past that nothing moves, and the map lies over the board until it is closed.
+    const tasksW = W < 640 ? 170 : W < 1000 ? 230 : 300;
+    root.style.setProperty("--city-tasks-w", `${tasksW}px`);
     const right = W - 16 - card;                     // the profile card's left edge
-    tasksCard.hidden = !on || !self() || right - left < card + 8;
-    if (!tasksCard.hidden) { root.style.setProperty("--city-tasks-x", `${Math.round(left)}px`); left += card; }
+    const free = F ? F.right + 10 : 12, pushed = Math.max(free, M ? M.right + 10 : 0);
+    let left = right - pushed - tasksW >= 300 ? pushed : free;
+    tasksCard.hidden = !on || !self() || right - left < tasksW + 8;
+    if (!tasksCard.hidden) { root.style.setProperty("--city-tasks-x", `${Math.round(left)}px`); left += tasksW; }
     // The buttons between the cards, joined to them; under them when there is no room.
     const gap = right - left;
     const under = gap < 300;
@@ -4847,10 +4943,10 @@ export async function startCity(ctx) {
       ensureJoined();
       return;
     }
-    const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>
-      h("button", { textContent: id[0].toUpperCase() + id.slice(1), "aria-pressed": String(tab === id), onclick: () => { tab = id; refresh(); } })));
-    tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent.toLowerCase() === tab)));
-    panel.replaceChildren(...youAtAGlance(w, p, close), h("h4", { textContent: "More" }), tabs, ...TABS[tab](w, p));
+    // The profile (profile-panel.mjs): an overview and four pages, each the whole window.
+    // (The people near you are on Relationships: their list refreshes as that page does.)
+    tab = profile().state.tab === "relationships" ? "people" : profile().state.tab;
+    profile().draw(panel, w, p, close);
   }
   //: The top of the window: you at a glance.
   function youAtAGlance(w, p, close) {
@@ -4968,7 +5064,8 @@ export async function startCity(ctx) {
       if (!all.length) return [h("p", { className: "note", textContent: "No bills. Tolls without FasTrak, lane violations, speed camera and parking notices, rent and property tax come here, each with its due date; unpaid, a notice adds its penalty." })];
       return all.map((b) => h("div", { style: "border-top:1px solid rgba(128,128,128,.25);padding:4px 0" },
         h("b", { textContent: `${b.memo || b.kind}` }), h("div", { className: "note", textContent: `${b.kind.replace(/_/g, " ")} · ${R.fmt(b.owed)}${b.stage ? ` (notice ${b.stage + 1})` : ""} · ${b.status === "open" ? "due " + new Date(b.due).toLocaleDateString() : b.status}${b.hearing ? " · hearing " + new Date(b.hearing).toLocaleDateString() : ""}${b.reason ? " · " + b.reason : ""}` }),
-        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), CITATIONS.includes(b.kind) && !b.hearing ? act("Contest", () => send("contest", { bill: b.id })) : null) : null));
+        // A fine is a case: pay it, or contest it (yourself at a hearing, or with a lawyer hired there and then).
+        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), [...(w.cases?.values() || [])].some((c) => c.bill === b.id && !c.closed && !c.verdict) ? act("Contest", () => { openSide("contest"); side.bill = b.id; drawSide(); return null; }) : null) : null));
     },
     taxes(w, p) {
       const s = w.taxSummary(myId);

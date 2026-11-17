@@ -90,7 +90,7 @@ export class NpcService {
     if (!this.model) return done(fallbackLine(who, turn), "fallback", { code: "no_model" });
     if (!this.allowed(pid)) return done(fallbackLine(who, turn), "fallback", { code: "limit" });
     try {
-      const out = await chat(this.model, buildMessages({ sheet, share: playerShare(world, pid, role), text, history, task }), { fetch: this.fetch, maxTokens: task ? 700 : 500 });
+      const out = await chat(this.model, buildMessages({ sheet, share: playerShare(world, pid, role, sheet.identity.id), text, history, task }), { fetch: this.fetch, maxTokens: task ? 700 : 500 });
       this.answered += 1;
       return done(out.text, "ai", { model: this.model.model });
     } catch (error) {

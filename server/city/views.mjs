@@ -47,7 +47,7 @@ export function viewFor(world, pid) {
   });
 
   // ---- people: you in full; of the others, a name -----------------------------------------------
-  o.players = o.players.map((p) => (p.id === pid ? p : { id: p.id, name: p.name, account: p.account, joined: p.joined, resident_since: p.resident_since,
+  o.players = o.players.map((p) => (p.id === pid ? p : { id: p.id, name: p.name, account: p.account, joined: p.joined, resident_since: p.resident_since, backstory: p.backstory || null,
     home: null, job: null, clocked: null, ytd: { year: p.ytd?.year, wages: 0, withheld: 0 }, fastrak: null, driving: null, parked: {}, inventory: {}, worn: {},
     resting: false, delivery: null, ride: null, fainted: null, hands: null, errand: null, mortgages: [], lease: null, injuries: [], task: null }));
   o.offers = o.offers.filter((x) => x.to === pid || x.from === pid);

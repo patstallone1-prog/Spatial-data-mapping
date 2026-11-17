@@ -94,6 +94,8 @@ export const DOOR_STEP_M = 1.6;
 //: Waiting at the kerb for a gap or the light: at most so long behind the day (s), then made up
 //: at this much over the walker's pace.
 export const WALK_LAG_MAX_S = 90, WALK_CATCH_UP = 0.3;
+//: Up to this speed one of the city's drivers stops dead for one of its walkers (about 15 mph).
+export const NPC_STOP_DEAD_MS = 7;
 //: The longest a frame's slice of the district scan may run (ms).
 export const SCAN_SLICE_MS = 10, SCAN_FIRST_SLICE_MS = 60;
 //: Someone out on a break stands at least this far back from the kerb (m).
@@ -2222,6 +2224,16 @@ export class Drivers {
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
         decel = Math.min(T.emergency, Math.max(T.brake, need));
+        // Between the city's own people the law holds: a walker who steps out looks first and a
+        // driver who is too close stops dead, so nobody is run down unless you are in it (on foot
+        // where the cars are, or in a car yourself). Without this the traffic hurt some twenty
+        // residents a minute (measured 2026-11-16): they lay in heaps at the crossings.
+        // (At speed, with no room at all, the blow is real: a car doing 12 m/s does not stop in a hand's width.)
+        if (danger.gap <= 0.15 && st.v > 0.6 && st.v <= NPC_STOP_DEAD_MS && !danger.q.player && !danger.soon) {
+          st.v = 0;
+          out.push({ id: c.id, d: st.d, v: 0, reason, braking: true, route: st.route });
+          continue;
+        }
         if (danger.gap <= 0.15 && st.v > 0.6 && !danger.soon) {
           st.hit = { id: `${c.key}:${danger.q.id}:${Math.round(tsec * 1000)}`, kind: "person", who: danger.q.id, speed: st.v, x: here.x, z: here.z, yaw: here.yaw, until: danger.q.player ? tsec + 9 : 0,
             context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null, gap: danger.gap, target: { x: danger.q.x, z: danger.q.z, vx: danger.q.vx, vz: danger.q.vz } } };
@@ -2378,7 +2390,9 @@ export class Drivers {
           // Do not disguise an unavoidable physical impact as an instantaneous stop. The
           // 25 cm planning buffer still stops ordinary queues without causing a crash.
           const otherSpeed = ost?.v || 0, speed = op ? Math.hypot(st.v * fx + otherSpeed * Math.sin(op.yaw), st.v * fz + otherSpeed * Math.cos(op.yaw)) : 0;
-          if (op && into(next.body, op.body) > 0.25 && speed > 0.6) {
+          // (A crash is contact at speed. Two of the city's cars touching in a queue or a tight turn
+          // stop; counted as crashes they hurt some twenty residents a minute, 2026-11-16.)
+          if (op && into(next.body, op.body) > 0.25 && speed > NPC_STOP_DEAD_MS) {
             st.hit = { id: `${c.key}:${who}:${Math.round(tsec * 1000)}`, kind: "vehicle", who, speed, x: next.x, z: next.z, yaw: next.yaw,
               target: { x: op.x, z: op.z, yaw: op.yaw }, context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, speed: st.v, otherSpeed, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null,
                 other: ost ? { route: ost.key, segment: segInfo(op.c.route, ost), d: ost.d, lane: ost.lane, reason: ost.reason } : null } };

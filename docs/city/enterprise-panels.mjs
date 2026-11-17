@@ -159,6 +159,7 @@ export function enterprisePanels(api) {
     if (side.kind === "business") { drawBusiness(side, close, w, p); return true; }
     if (side.kind === "buy") { drawBuy(side, close, status, w, p); return true; }
     if (side.kind === "recruiter") { drawRecruiter(side, close, status, w, p, null); return true; }
+    if (side.kind === "contest") { drawContest(side, close, status, w, p); return true; }
     if (side.kind === "released") { drawReleased(side, close, p); return true; }
     return false;
   }
@@ -303,6 +304,37 @@ export function enterprisePanels(api) {
       h("table", { className: "wares" }, ...rows),
       h("h4", { textContent: "Expungement" }), h("p", { className: "note", textContent: `Lines on your record over ${B.law.record_years} years old cleared, ${R.fmt(B.law.expunge.fee_base)}.` }),
       act("Clear old lines", () => run("expunge", { place }, (r) => `${r.cleared} line${r.cleared > 1 ? "s" : ""} cleared from your record.`)));
+  }
+
+  //: Contesting a fine from your bills: at a hearing yourself, or with a lawyer of the nearest law
+  //: office hired by phone, who takes it to court for you.
+  function drawContest(side, close, status, w, p) {
+    side.el.classList.add("wide");
+    const bill = w.billing.bills.get(side.bill), c = [...(w.cases?.values() || [])].find((x) => x.bill === side.bill && !x.closed);
+    const title = h("h3", {}, h("span", { textContent: "Contest a fine" }), close);
+    if (!bill || bill.status !== "open" || !c) { side.el.replaceChildren(title, h("p", { className: "note", textContent: "That fine is settled." })); return; }
+    const out = [title, status, h("p", {}, h("b", { textContent: bill.memo || c.charge.replace(/_/g, " ") }), ` — ${R.fmt(bill.owed)}`),
+      h("p", { className: "note", textContent: `${c.class} · evidence ${c.evidence >= 0.85 ? "strong" : c.evidence >= 0.55 ? "a witness" : "thin"}${c.court ? ` · court ${when(c.court)}${c.lawyer ? ` with ${c.lawyer.name}` : ""}` : ""}` })];
+    if (c.lawyer) out.push(h("p", { textContent: `${c.lawyer.name} has this case. The hearing is on your to-do list.` }));
+    else {
+      const own = ["speed_camera", "speeding", "hov_violation", "theft", "parking", "toll_evasion"].includes(bill.kind) && !bill.hearing && !c.court;
+      out.push(h("h4", { textContent: "On your own" }), own ? act("Contest it yourself: a hearing in two weeks", () => run("contest", { bill: bill.id }, "Contested: a hearing in two weeks. Without enough evidence against you it is dismissed."))
+        : h("p", { className: "note", textContent: bill.hearing ? "You have asked for a hearing already." : "This one can not be contested alone: it takes a lawyer." }));
+      const office = nearestOf("shop:law_office");
+      out.push(h("h4", { textContent: "With a lawyer" }));
+      if (!office) out.push(h("p", { className: "note", textContent: "There is no law office in this part of the city." }));
+      else {
+        const place = placeArg(office);
+        let list = [];
+        try { list = w.cmd_lawyers(p.id, { place, case: c.id }).lawyers.filter((l) => l.takes.includes(c.class)); } catch { list = []; }
+        out.push(h("p", { className: "note", textContent: `${address(office.name) || "The nearest law office"}, by phone. A lawyer takes the case to court for you; their odds are their own reading of it.` }),
+          list.length ? h("table", { className: "wares" }, ...list.map((l) => h("tr", {}, h("td", {}, h("b", { textContent: l.name }), h("div", { className: "note", textContent: `${l.title} · ${l.record.wins} won of ${l.record.cases}${l.odds ? ` · ${l.odds}` : ""}` })),
+            h("td", { textContent: l.role === "public" ? (l.free ? "free" : "means-tested") : R.fmt(l.price) }),
+            h("td", {}, act("Hire", () => run("hire_lawyer", { place, lawyer: l.id, case: c.id, remote: true, court: courtPlace() ? placeArg(courtPlace()) : null }, (r) => `${l.name} has your case: court ${when(r.case.court)}. It is on your to-do list.`), true)))))
+            : h("p", { className: "note", textContent: `Nobody there takes ${c.class} cases.` }));
+      }
+    }
+    side.el.replaceChildren(...out);
   }
 
   function drawRecruiter(side, close, status, w, p, place, tabs = "") {
