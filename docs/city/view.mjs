@@ -2799,7 +2799,8 @@ export async function startCity(ctx) {
   //: up to 0.4 m further off (as the blow always has).
   function nearestHittable(reach) {
     const at = me();
-    const who = personInReach(reach, -2), t = strikeTarget(reach);
+    // A person is hit only within arm's length (a little further with something in the hand).
+    const who = personInReach(Math.min(reach, self()?.hands ? 1.6 : 1.1), -2), t = strikeTarget(reach);
     const dw = who ? Math.hypot(who.x - at.x, who.z - at.z) : Infinity, dt = t ? Math.hypot(t.x - at.x, t.z - at.z) : Infinity;
     if (who && dw <= dt + 0.4) return { kind: "person", q: who, x: who.x, z: who.z, d: dw };
     return t ? { kind: "thing", t, x: t.x, z: t.z, d: dt } : null;
@@ -3569,7 +3570,7 @@ export async function startCity(ctx) {
     else { show(null); request.ready.then(() => { const again = district.city.characterContext(p, tt, view); if (again.state === "ready" && messages().isOpen()) show(again.context); }).catch(() => {}); }
     return true;
   }
-  //: A click in the game: the shop's checkout panel if it is under the pointer, else a swing.
+  //: A click in the game: the shop's checkout panel, a resident to talk to, another player. Never a swing.
   function click(ray) {
     if (!self()) return;
     if (shop.room?.userData.panel && ray?.intersectObject(shop.room.userData.panel, false).length) { openStore(shop.place); return; }
@@ -3580,7 +3581,7 @@ export async function startCity(ctx) {
       const pid = party.ids.get(peer.id);
       if (pid && pid !== myId && peer.avatar?.visible !== false && peer.avatar && ray?.intersectObject(peer.avatar, true).length) { messages().person(pid, peer.name); return; }
     }
-    swingKey();
+    // (A click is never a blow: X swings, and lands only on what is within arm's reach.)
   }
 
   // ---- the bar of eight and the inventory ------------------------------------------------------
@@ -4015,6 +4016,16 @@ export async function startCity(ctx) {
       for (const hit of step.hits) carHit(hit, people);
     }
     for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
+    // Inside a shop its room is where you are: no car is drawn through it. (A room is laid inward
+    // from the shop's front; where a front lies nearer the street than the map's kerb, traffic on
+    // the nearest lane ran through the counter.)
+    if (shop.frame && shop.room) {
+      const F = shop.frame, half = F.W / 2 + 1.6;
+      for (let i = vehicles.length - 1; i >= 0; i -= 1) {
+        const q = F.local(vehicles[i].x, vehicles[i].z), reach = (vehicles[i].length || 4.5) / 2;
+        if (q.u > -reach && q.u < F.D + reach && Math.abs(q.v) < half + reach) vehicles.splice(i, 1);
+      }
+    }
     // The bicycles apart from the cars: each with how far it has rolled (its wheels and cranks
     // turn by it), and its rider while it is ridden.
     residentBikes = [];
@@ -4272,7 +4283,7 @@ export async function startCity(ctx) {
 #city-top button.primary{background:#1f6feb}#city-top button.shop{background:#16a34a;padding:6px 16px;font-size:13px}
 #city-top kbd,#city-tasks kbd{font:600 10px/1 ui-monospace,monospace;border:1px solid rgba(255,255,255,.45);border-radius:4px;padding:2px 4px;margin-left:5px;opacity:.85}
 .city-card{position:fixed;top:var(--city-top-y,16px);z-index:36;width:var(--city-card-w,200px);box-sizing:border-box;background:rgba(17,24,39,.86);color:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.25);padding:9px 11px;font:12px/1.35 system-ui,sans-serif}
-#city-tasks{left:var(--city-tasks-x,72px);min-height:var(--city-card-h,0px);max-height:calc(100vh - var(--city-top-y,16px) - 130px);overflow:auto}
+#city-tasks{left:var(--city-tasks-x,72px);width:var(--city-tasks-w,300px);z-index:34;min-height:var(--city-card-h,0px);max-height:min(46vh,calc(100vh - var(--city-top-y,16px) - 130px));overflow:auto}
 #city-tasks h4{margin:0 0 4px;display:flex;align-items:center;gap:6px;font:700 13px/1.2 system-ui,sans-serif;color:#fff}
 #city-tasks h4 .word{flex:1;cursor:pointer}#city-tasks h4 .word:hover{text-decoration:underline}
 #city-tasks h4 button{border:0;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;font:700 13px/1 system-ui,sans-serif;width:26px;height:22px;cursor:pointer}
@@ -4360,7 +4371,8 @@ export async function startCity(ctx) {
   const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price", onclick: () => openSide("online") }, "Shop");
   const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory");
   const taxiButton = h("button", { title: "Call a taxi to where you stand (Enter gets in when it pulls up)", onclick: () => taxiKey() }, "Taxi");
-  alwaysActions.append(bagButton, tasksButton, onlineButton, taxiButton, helpButton);
+  // (The task board is the card at the bar's edge: one board, not a button to a second.)
+  alwaysActions.append(bagButton, onlineButton, taxiButton, helpButton);
   actionBar.append(alwaysActions, dynamicActions);
   const tasksCard = h("section", { id: "city-tasks", className: "city-card" });
   tasksCard.setAttribute("aria-label", "Tasks");
@@ -4391,10 +4403,16 @@ export async function startCity(ctx) {
     const card = W < 640 ? 150 : W < 1000 ? 180 : 200, y = 16;
     root.style.setProperty("--city-card-w", `${card}px`);
     root.style.setProperty("--city-top-y", `${y}px`);
-    let left = Math.max(F ? F.right + 10 : 12, M ? M.right + 10 : 0);
+    // The one task board: at the bar's edge, beside the map's button (which stays outside it). The
+    // open map pushes it, and the bar with it, towards the middle while the bar still has room for
+    // its buttons; past that nothing moves, and the map lies over the board until it is closed.
+    const tasksW = W < 640 ? 170 : W < 1000 ? 230 : 300;
+    root.style.setProperty("--city-tasks-w", `${tasksW}px`);
     const right = W - 16 - card;                     // the profile card's left edge
-    tasksCard.hidden = !on || !self() || right - left < card + 8;
-    if (!tasksCard.hidden) { root.style.setProperty("--city-tasks-x", `${Math.round(left)}px`); left += card; }
+    const free = F ? F.right + 10 : 12, pushed = Math.max(free, M ? M.right + 10 : 0);
+    let left = right - pushed - tasksW >= 300 ? pushed : free;
+    tasksCard.hidden = !on || !self() || right - left < tasksW + 8;
+    if (!tasksCard.hidden) { root.style.setProperty("--city-tasks-x", `${Math.round(left)}px`); left += tasksW; }
     // The buttons between the cards, joined to them; under them when there is no room.
     const gap = right - left;
     const under = gap < 300;
@@ -4968,7 +4986,8 @@ export async function startCity(ctx) {
       if (!all.length) return [h("p", { className: "note", textContent: "No bills. Tolls without FasTrak, lane violations, speed camera and parking notices, rent and property tax come here, each with its due date; unpaid, a notice adds its penalty." })];
       return all.map((b) => h("div", { style: "border-top:1px solid rgba(128,128,128,.25);padding:4px 0" },
         h("b", { textContent: `${b.memo || b.kind}` }), h("div", { className: "note", textContent: `${b.kind.replace(/_/g, " ")} · ${R.fmt(b.owed)}${b.stage ? ` (notice ${b.stage + 1})` : ""} · ${b.status === "open" ? "due " + new Date(b.due).toLocaleDateString() : b.status}${b.hearing ? " · hearing " + new Date(b.hearing).toLocaleDateString() : ""}${b.reason ? " · " + b.reason : ""}` }),
-        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), CITATIONS.includes(b.kind) && !b.hearing ? act("Contest", () => send("contest", { bill: b.id })) : null) : null));
+        // A fine is a case: pay it, or contest it (yourself at a hearing, or with a lawyer hired there and then).
+        b.status === "open" ? h("div", {}, act("Pay", () => send("pay_bill", { bill: b.id }), true), [...(w.cases?.values() || [])].some((c) => c.bill === b.id && !c.closed && !c.verdict) ? act("Contest", () => { openSide("contest"); side.bill = b.id; drawSide(); return null; }) : null) : null));
     },
     taxes(w, p) {
       const s = w.taxSummary(myId);

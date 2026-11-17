@@ -90,7 +90,8 @@ test("a question goes to the model: the shared guidelines, then the character's 
   assert.match(body.messages[1].content, /₡4,123\.00/, "money is written out, not left in minor units");
   assert.match(body.messages[2].content, /^PLAYER NOTES/);
   const notes = JSON.parse(body.messages[2].content.replace("PLAYER NOTES\n", ""));
-  assert.deepEqual(Object.keys(notes).sort(), ["days_in_the_city", "name"], "someone met in the street knows your name and nothing else");
+  assert.deepEqual(Object.keys(notes).sort(), ["days_in_the_city", "name", "relationship"], "someone met in the street knows your name, and what you are to each other");
+  assert.equal(notes.relationship.to_you, "stranger");
   assert.deepEqual(body.messages.slice(3).map((m) => m.role), ["user", "assistant", "user"]);
   assert.equal(body.messages.at(-1).content, "What do you do for work?");
 });

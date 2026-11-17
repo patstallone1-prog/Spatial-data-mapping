@@ -27,6 +27,7 @@ import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
+import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
 import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
@@ -1673,13 +1674,15 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...KITCHEN_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 installCommerce(CityWorld, CityError);
 installHomeInteriors(CityWorld, CityError);
 //: Borrowing: the credit score, the bankers and the loans (credit.mjs).
 installCredit(CityWorld, CityError);
+//: Who you know, and your own account of yourself (social.mjs).
+installSocial(CityWorld, CityError);
 //: Restaurants' kitchens: the line, the pantry, the lab (kitchen.mjs).
 installKitchen(CityWorld, CityError);
 

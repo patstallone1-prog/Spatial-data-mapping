@@ -1031,11 +1031,12 @@ export function installEnterprise(CityWorld, CityError) {
   };
   //: Hiring a lawyer for a case: their retainer to the firm, a court date set (2-14 days on; the
   //: public defender, busy, a couple more). Another player can not be your lawyer.
-  W.cmd_hire_lawyer = function (pid, { place, lawyer, case: cid, player = null }) {
+  //: ``remote``: hired by phone when contesting a fine from your bills (no walk to the office).
+  W.cmd_hire_lawyer = function (pid, { place, lawyer, case: cid, player = null, remote = false }) {
     const p = this.player(pid), R = this.R, L = R.business.law;
     if (player) fail("another player can not be your lawyer while verdicts are a weighted chance");
     if (!(place?.keys || []).includes("shop:law_office")) fail("lawyers are hired at a law office");
-    if (!this.near(p, place, R.stores.reach_m * 4)) fail("go into the law office first");
+    if (!remote && !this.near(p, place, R.stores.reach_m * 4)) fail("go into the law office first");
     const c = this.caseOf(p, cid);
     if (c.verdict) fail("that case has been decided");
     const l = lawyersAt(R, place, this.tenantNames).find((x) => x.id === lawyer);
