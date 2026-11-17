@@ -1053,6 +1053,10 @@ window.kerbsideLoadState = () => ({ loaded: worldLoadedNow, waiting: worldLoaded
 pageIsReady();
 
 window.kerbside = {
+  // For checks from outside: whether a point is in a roadway, the nearest kerb, the region built round you.
+  insideCarriageway: (x, z, slack = 0.4) => insideCarriageway(x, z, slack),
+  nearestKerbAt: (x, z, reach = 30) => nearestKerbAt(x, z, reach),
+  activeGuest: () => (typeof activeGuest !== "undefined" ? activeGuest : null),
   setSkyTime: (date) => environmentController?.setTime(date),
   bikeRacks: () => cityBikeRacks,
   scene, camera, renderer, groups, DATA, DETAIL_MANIFEST, fullDetailFeature, detailKey,

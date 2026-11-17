@@ -18,6 +18,13 @@ export const THEME_CSS = `
 #city-side option,#city option{color:#111;background:#fff}
 #city-side td,#city td{border-top-color:rgba(255,255,255,.1)}
 #city-side a,#city a{color:#8ab4ff}
+/* The profile: as big as what is in it, centred, with the city left in sight round it (no dimmed
+   screen behind, no empty panel below the last tile). */
+#city.pop{left:50%;right:auto;transform:translateX(-50%);top:max(12px,4vh);bottom:auto;width:min(900px,calc(100vw - 32px));max-height:calc(100vh - max(12px,4vh) - 110px);padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+#city.pop .me{gap:12px;margin-bottom:8px}#city.pop .me .face{width:72px;height:72px}
+#city.pop .me h2{font-size:18px}#city.pop .me .worth{font-size:22px}
+#city.pop .tiles{grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px;margin-bottom:8px}
+#city.pop .tile{padding:8px 10px}#city.pop .tile h4{margin-bottom:4px}
 @media (max-width:900px){
   #city-side,#city-side.wide{top:auto;bottom:96px;left:8px;right:8px;width:auto;max-height:44vh}
 }`;

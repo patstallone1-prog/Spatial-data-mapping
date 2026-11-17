@@ -426,7 +426,7 @@ export function installEnterprise(CityWorld, CityError) {
   W.closeShopDay = function (s, next) {
     const d = s.today, rent = Math.round(BR(this).storefront_lease_per_week / 7), wages = Math.round(d.staff_wages || 0), sales = d.sales + (d.player_sales || 0);
     const line = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, rent, fees: 0, profit: sales - d.cogs - wages - rent, visits: Math.round(d.visits), served: Math.round(d.served),
-      lost: Math.round(d.lost), orders: Math.round(d.served) + (d.player_orders || 0), player_sales: d.player_sales || 0, units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
+      lost: Math.round(d.lost), orders: Math.round(d.served) + (d.player_orders || 0), player_sales: d.player_sales || 0, waste: d.waste || 0, lab: d.lab || 0, units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
     foldDay(s, line, d.items || {}, { days: 35 });
     s.today = freshDay(next);
   };
@@ -973,7 +973,7 @@ export function installEnterprise(CityWorld, CityError) {
     const counter = d.player_orders || 0;
     const day = { day: d.day, sales, tax: d.tax, cogs: d.cogs, wages, withheld, unpaid, rent: d.rent, fees: d.fees, ordered: d.ordered || 0,
       profit: sales - d.cogs - wages - d.rent - d.fees, visits: Math.round(d.visits), served: Math.round(d.served), lost: Math.round(d.lost),
-      stockout: d.stockout, reputation: Math.round(b.reputation), orders: Math.round(d.served) + counter, player_sales: d.player_sales || 0,
+      stockout: d.stockout, reputation: Math.round(b.reputation), orders: Math.round(d.served) + counter, player_sales: d.player_sales || 0, waste: d.waste || 0, lab: d.lab || 0,
       units: Math.round(Object.values(d.items || {}).reduce((n, x) => n + x[0], 0)) };
     b.since ??= cityTime(b.opened ?? this.now, R.clock.zone).day;
     if (sales || wages || d.rent || d.fees || d.visits) foldDay(b, day, d.items || {});

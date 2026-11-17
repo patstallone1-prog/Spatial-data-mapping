@@ -37,7 +37,11 @@ export const FINANCE_CSS = `
 #city-side .talk .log{max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
 #city-side .talk .log div{padding:4px 8px;border-radius:8px;max-width:88%;font-size:13px;line-height:1.3}
 #city-side .talk .log .npc{background:var(--grid);align-self:flex-start}#city-side .talk .log .me{background:var(--s1);color:#fff;align-self:flex-end}
-#city-side .talk form{display:flex;gap:6px}#city-side .talk input{flex:1;min-width:0}`;
+#city-side .talk form{display:flex;gap:6px}#city-side .talk input{flex:1;min-width:0}
+#city-msg .talk .log{display:flex;flex-direction:column;gap:5px;margin:6px 0 8px}
+#city-msg .talk .log div{padding:5px 9px;border-radius:9px;max-width:88%;font-size:13px;line-height:1.3}
+#city-msg .talk .log .npc{background:rgba(255,255,255,.12);align-self:flex-start}#city-msg .talk .log .me{background:#2f6fe4;color:#fff;align-self:flex-end}
+#city-msg .talk form{display:flex;gap:6px}#city-msg .talk input{flex:1;min-width:0}`;
 
 const svg = (tag, attrs = {}, ...kids) => {
   const el = document.createElementNS(NS, tag);

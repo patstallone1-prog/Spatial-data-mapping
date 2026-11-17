@@ -1245,14 +1245,15 @@ export async function startCity(ctx) {
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
   let enterpriseUI = null, messagesUI = null, commerceUI = null;
   //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
-  const messages = () => (messagesUI ||= messagesPanel({ talk: (body) => talk(body), R, h, send, notify, me: () => myId, getView: () => view, placeArg,
+  const messages = () => (messagesUI ||= messagesPanel({ talk: (body) => talk(body), talkBox: (...a) => finance().talkBox(...a), R, h, send, notify, me: () => myId, getView: () => view, placeArg,
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
     courtPlace: () => enterprise().courtPlace?.() }));
   const commerce = () => (commerceUI ||= commercePanels({ R, h, notify, send, self, me, getView: () => view, placeArg, nearestPlace, openSide, drawSide, getSide: () => side,
     people: () => visible.people, peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId),
     openMessages: () => messages().open?.("npc"), syncSlots }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
-    openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a) }));
+    openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a),
+    openKitchen: (place) => { const pl = (district.places || []).find((x) => String(x.id) === String(place.id)); if (pl) { closeSide(); kitchen().open(pl); } else notify("Go to the restaurant to open its kitchen."); } }));
   //: The restaurant game: a food shop's line, lab and pantry, for its staff and its owner (kitchen-panel.mjs).
   let kitchenUI = null;
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
@@ -3548,10 +3549,32 @@ export async function startCity(ctx) {
     for (const e of scan.vehicles) consider(e.v);
   }
   const clickRay = new THREE.Raycaster();
+  const clickAt = new THREE.Vector3();
+  //: The resident under the pointer (nearest along the ray, within arm's width of it), brought up in
+  //: the messages with their own sheet; false when nobody is there.
+  function talkToClicked(ray) {
+    let best = null, bd = Infinity;
+    for (const e of visible.people || []) {
+      if (!e.person || e.ride) continue;
+      clickAt.set(e.x, ctx.groundAt(e.x, e.z) + 0.95, e.z);
+      const along = clickAt.clone().sub(ray.ray.origin).dot(ray.ray.direction);
+      if (along < 0 || along > 120 || along >= bd || ray.ray.distanceSqToPoint(clickAt) > 0.75 * 0.75) continue;
+      best = e; bd = along;
+    }
+    if (!best) return false;
+    const p = best.person, tt = fleetAt(Date.now());
+    const show = (context) => messages().npc({ id: p.id, name: p.name, title: p.title, role: "resident", tone: context?.tone?.family || "reserved" }, context ? { npc: context } : {});
+    const request = district.city.characterContext(p, tt, view);
+    if (request.state === "ready") show(request.context);
+    else { show(null); request.ready.then(() => { const again = district.city.characterContext(p, tt, view); if (again.state === "ready" && messages().isOpen()) show(again.context); }).catch(() => {}); }
+    return true;
+  }
   //: A click in the game: the shop's checkout panel if it is under the pointer, else a swing.
   function click(ray) {
     if (!self()) return;
     if (shop.room?.userData.panel && ray?.intersectObject(shop.room.userData.panel, false).length) { openStore(shop.place); return; }
+    // One of the city's people clicked while the messages are open: a conversation with them.
+    if (ray && messages().isOpen() && talkToClicked(ray)) return;
     // Another player clicked: who they are in the messages, to add as a friend or write to.
     for (const peer of party.session?.players() || []) {
       const pid = party.ids.get(peer.id);
@@ -3571,7 +3594,8 @@ export async function startCity(ctx) {
   function syncSlots(now = false) {
     const p = self();
     if (!p) return;
-    const next = arrange(slots, p.inventory);
+    // (An empty hand stays empty: something new goes to another slot, and is held when you choose it.)
+    const next = arrange(slots, p.inventory, slots[chosen] ? -1 : chosen);
     if (next.some((v, i) => v !== slots[i])) { slots = next; saveSlots(); }
     const want = slots[chosen] || null;
     if (p.hands !== want && !holding && !car.active) {
@@ -3892,7 +3916,15 @@ export async function startCity(ctx) {
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else {
+        const before = glided.get(entry.id), bx = before?.x, bz = before?.z, fresh = before && now - before.t < 1500;
         glide(entry, now, dt, 3.2, 60);
+        // Nobody walks backwards: where the step actually drawn goes against the way they face
+        // (a walker being brought back to their place on the way after a detour round a wall, a
+        // crossing's path doubling back), they face the way they are going.
+        if (fresh && entry.moving && !entry.gesture) {
+          const mx = entry.x - bx, mz = entry.z - bz, m = Math.hypot(mx, mz);
+          if (m > 0.04 && (mx * -Math.sin(entry.yaw) + mz * -Math.cos(entry.yaw)) / m < -0.2) entry.yaw = Math.atan2(-mx, -mz);
+        }
         // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
         if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
       }
@@ -4575,6 +4607,8 @@ export async function startCity(ctx) {
         const slotOf = slots.indexOf(pickId);
         if (slotOf >= BAR || slotOf < 0) btns.push(h("button", { textContent: `To the bar (${chosen + 1})`, onclick: () => { const at = slots.indexOf(pickId); if (at >= 0) { slots = swap(slots, at, chosen); saveSlots(); syncSlots(); drawSide(); } } }));
         else if (slotOf !== chosen) btns.push(h("button", { textContent: `Hold it (${slotOf + 1})`, onclick: () => { selectSlot(slotOf); drawSide(); } }));
+        // Off the bar (and out of your hand) into the bag's first free place: nothing has to be held.
+        if (slotOf >= 0 && slotOf < BAR) { const free = slots.findIndex((v, i) => i >= BAR && !v); if (free >= 0) btns.push(h("button", { textContent: slotOf === chosen ? "Put away in the bag" : "To the bag", onclick: () => { slots = swap(slots, slotOf, free); saveSlots(); syncSlots(); drawSide(); } })); }
         if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (U)" : "Wear (U)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (U)`, onclick: () => useSelected() }));
         if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. G picks it up.`).then(() => syncSlots(true)) }));
         if (!it.parcel) for (const { peer, pid } of peers) btns.push(h("button", { textContent: `Give to ${peer.name}`, onclick: () => say(send("give_item", { to: pid, item: pickId }), (r) => `Gave ${r.to} the ${it.name.toLowerCase()}.`).then(() => syncSlots(true)) }));
@@ -5041,7 +5075,10 @@ export async function startCity(ctx) {
     rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
-    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
+    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
+    //: For checks from outside (tests in a browser): who is drawn near you, as placed this frame.
+    peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
+      lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };

@@ -148,3 +148,14 @@ test("the estimate is the buying model's typical week, and an owner's books are 
   assert.ok(viewFor(w, "ana").enterprise.biz.find((b) => b.id === id).weeks.length);
   assert.equal(cityTime(w.now, R.clock.zone).day, w.time.day);
 });
+
+test("a kitchen's spoiled food and lab dishes are their own lines in the costs, and still add up to the goods", () => {
+  const rec = {};
+  for (let d = 700; d < 707; d += 1) foldDay(rec, { day: d, sales: 1000, cogs: 400, wages: 300, rent: 100, fees: 0, tax: 0, profit: 200, orders: 10, units: 25, waste: 30, lab: 20 }, {});
+  const c = analyse(rec, { today: 707 }).costs[0];
+  const part = (name) => c.parts.find((p) => p.name === name).value;
+  assert.equal(part("Spoiled and binned"), 210);
+  assert.equal(part("Lab test dishes"), 140);
+  assert.equal(part("Goods sold") + part("Spoiled and binned") + part("Lab test dishes"), 7 * 400);
+  assert.equal(c.total, 7 * 800);
+});
