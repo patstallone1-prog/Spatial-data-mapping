@@ -1,4 +1,4 @@
-// The memory pass (docs/47-memory-trim.md): what is kept is kept once and compactly, what is
+// The memory pass (docs/48-memory-trim.md): what is kept is kept once and compactly, what is
 // thrown away every frame is not made, and the city's server answers a poll without rebuilding
 // the world -- each with the same answers as before.
 import assert from "node:assert/strict";

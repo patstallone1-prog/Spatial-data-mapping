@@ -234,11 +234,15 @@ function storeReadable() {
 // The region this window is built for (a guest window's assets, or a regional page's own): its names first.
 if (storeReadable() && ASSET_BASE) await loadAssetShard(regionOfPath(new URL(`${ASSET_BASE.replace(/\/+$/, "")}/-`, location.href).pathname));
 function viaStore(href) {
-  if (!storeReadable()) return href;
+  if (!ASSET_MAP?.base) return href;
+  const origins = ASSET_MAP.origins;
+  if (origins && !origins.includes("*") && !origins.includes(location.origin)) return href;
   const url = new URL(href, location.href);
   if (url.origin !== location.origin) return href;
-  const path = url.pathname.replace(/^\/+/, ""), m = REGION_FILE.exec(path);
-  const object = m ? ASSET_SHARDS.files.get(m[1])?.[m[2]] : ASSET_MAP.files?.[path];
+  const path = url.pathname.replace(/^\/+/, ""), m = /^regions\/([^/]+)\/(.+)$/.exec(path);
+  // A region's names from that region's file once it is read; anything the index itself
+  // carries (a name outside the regions, or a release given whole as the map) from the index.
+  const object = (m && typeof ASSET_SHARDS !== "undefined" ? ASSET_SHARDS.files.get(m[1])?.[m[2]] : undefined) ?? ASSET_MAP.files?.[path];
   return object ? `${ASSET_MAP.base.replace(/\/+$/, "")}/${object}` : href;
 }
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);

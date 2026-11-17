@@ -53,12 +53,12 @@ The heap reached 4.1 GB while loading (the engine's ceiling is 4.19 GB) and swun
 
 | | Before | After |
 | --- | --- | --- |
-| Frames a second, walking | 50.5 | 57.9 |
-| Frame time: median / 95th / 99th percentile | 16.7 / 33.4 / 50 ms | 16.7 / 16.8 / 16.8 ms |
+| Frames a second, walking | 50.5 | 57.1 to 57.9 (three runs) |
+| Frame time: median / 95th / 99th percentile | 16.7 / 33.4 / 50 ms | 16.7 / 16.8 / 16.8 to 33.3 ms |
 | Frames over 50 ms / 100 ms / 250 ms in 90 s | 24 / 7 / 5 | 9 / 6 / 3 |
 | Garbage made while walking | 780 MB/s | 470 MB/s |
 | JS heap after a collection (settled / after the walk) | 992 / 1,012 MB | 525 / 578 MB |
-| Page memory, heap and buffers, after the walk | about 2,520 MB | about 1,570 MB |
+| Page memory, heap and buffers, after the walk | about 2,520 MB | 1,570 to 1,660 MB |
 | Vertex data held in the page | 742 MB whole + 352 MB wrapped | 294 MB whole + 801 MB packed into 231 MB |
 | Highest memory while loading | 4,113 MB | 3,349 MB |
 | Highest memory while walking | 3,791 MB | 3,017 MB |
@@ -97,7 +97,7 @@ did not do. A poll's answer also grows with the players (58 KB at 100, 105 KB at
   baked ahead; predictive prefetch; offline packaging.
 - Incremental sync (an event cursor and deltas) and the per-player record on the server.
 - A standalone wrapper with more memory: not needed for 30 frames a second on this machine
-  (57.9 measured), and the desktop app (desktop/) already asks for the engine's full heap.
+  (57 measured), and the desktop app (desktop/) already asks for the engine's full heap.
 
 ## Measuring it again
 
