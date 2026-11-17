@@ -126,6 +126,8 @@ function cityAreaStep() {
     evictTilesHeldByCity();
     if (!cityLock.placed) cityPlaceWalker();
     if (typeof settleOnSidewalk === "function") settleOnSidewalk();
+    // The area is built as its own region: its paved covers come off its roadways now that they are all in.
+    try { activeGuest.window?.kerbside?.recutGroundOffRoads?.(); } catch (error) { console.warn(error); }
     console.info(`kerbside: ${CITY_AREA.name} loaded for City mode in ${activeGuest.buildSeconds?.toFixed(1)} s`);
     requestFrame();
     return;
