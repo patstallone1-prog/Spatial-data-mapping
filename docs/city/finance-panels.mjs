@@ -191,9 +191,12 @@ export function financePanels(api) {
     state.log ||= [{ from: "npc", text: setLine("opening", who) }];
     const log = h("div", { className: "log" }, ...state.log.map((m) => h("div", { className: m.from, textContent: m.text })));
     const input = h("input", { type: "text", maxLength: 400, placeholder: `Say something to ${String(who.name || "them").split(" ")[0]}…`, value: state.draft || "", oninput: (e) => { state.draft = e.target.value; } });
+    // While the box is up they stand and face you (view.mjs talkTo); each line keeps them a while longer.
+    if (who.role === "resident") api.onTalk?.(who);
     const say = async (text, extra = {}) => {
       const mine = talkText(text);
       if (!mine && !extra.ask) return;
+      if (who.role === "resident") api.onTalk?.(who);
       if (mine) state.log.push({ from: "me", text: mine });
       state.draft = "";
       const turn = state.log.length, sorted = sortMessage(mine);

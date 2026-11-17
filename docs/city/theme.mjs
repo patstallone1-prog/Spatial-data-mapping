@@ -3,8 +3,8 @@
 // whole map -- on a narrow window it becomes a sheet along the bottom and the street stays in
 // sight above it. Appended after the panels' own rules (view.mjs), which it settles.
 export const THEME_CSS = `
-#city,#city-side{--cp:rgba(17,24,39,.82);--ci:#f1f5f9;--cm:#a9b6c4;--cb:rgba(255,255,255,.09);background:var(--cp);color:var(--ci);
-  -webkit-backdrop-filter:blur(12px) saturate(1.15);backdrop-filter:blur(12px) saturate(1.15);border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.32);
+#city,#city-side{--cp:rgba(17,24,39,.9);--ci:#f1f5f9;--cm:#a9b6c4;--cb:rgba(255,255,255,.09);background:var(--cp);color:var(--ci);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.32);
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
 #city-side{width:min(380px,calc(100vw - 24px));max-height:min(calc(100vh - var(--city-under,72px) - 130px),74vh)}
 #city-side.wide{width:min(460px,calc(100vw - 24px))}

@@ -36,6 +36,7 @@ import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs"
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
 import { THEME_CSS } from "./theme.mjs";
+import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
@@ -1259,7 +1260,11 @@ export async function startCity(ctx) {
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
-  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk }));
+  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who) }));
+  let profileUI = null;
+  const profile = () => (profileUI ||= profilePanel({ R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide: () => side, drawSide,
+    legacy: TABS, crossAt, editHome, redraw: () => refresh(), close: () => { if (panel) openPanel(); },
+    peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId) }));
   //: Something said to one of the city's people: the server's answer, or null when there is no server to ask (the box answers with a set line).
   async function talk(body) { return online.state === "online" && online.client?.talk ? online.client.talk(body) : null; }
   const worldKey = () => (world ? SAVE_SOLO : "kerbside:city:server");
@@ -3564,6 +3569,7 @@ export async function startCity(ctx) {
     }
     if (!best) return false;
     const p = best.person, tt = fleetAt(Date.now());
+    talkTo({ id: p.id, name: p.name, title: p.title });
     const show = (context) => messages().npc({ id: p.id, name: p.name, title: p.title, role: "resident", tone: context?.tone?.family || "reserved" }, context ? { npc: context } : {});
     const request = district.city.characterContext(p, tt, view);
     if (request.state === "ready") show(request.context);
@@ -3809,6 +3815,57 @@ export async function startCity(ctx) {
   //: where a way's offset changes (a street narrows, a footpath meets the pavement) they step
   //: across rather than appear there. A gap wider than ``snap`` (out of sight and back) is taken.
   const glided = new Map();
+  //: Who you are talking with (talkTo): they stand and face you while it lasts.
+  const talking = { id: null, until: 0, at: null, met: new Map() };
+  function talkTo(who) {
+    if (!who?.id) return;
+    if (talking.id !== who.id) talking.at = null;
+    talking.id = who.id; talking.until = performance.now() + 30_000;
+    // The world keeps how often you have talked: it is what they are to you (social.mjs).
+    const last = talking.met.get(who.id) || 0;
+    if (performance.now() - last > 60_000 && self()) { talking.met.set(who.id, performance.now()); send("meet", { id: who.id, name: who.name, title: who.title || null }); }
+  }
+  //: People keep clear of each other: two whose places come within half a metre step apart, each
+  //: to their own right when they meet head on, so they go round and nobody stands in anybody.
+  //: The step is eased in and out (``aside``), and is undone before the next (an entry kept from an
+  //: earlier frame is the same object).
+  const aside = new Map();
+  const CLEAR_M = 0.62;
+  function keepApart(people, you, dt) {
+    const cells = new Map(), near = [];
+    for (const e of people) {
+      if (e._ax) { e.x -= e._ax; e.z -= e._az; e._ax = e._az = 0; }
+      if (e.down || e.indoors || e.through || e.ride) continue;
+      near.push(e);
+      const key = `${Math.floor(e.x)},${Math.floor(e.z)}`;
+      let list = cells.get(key); if (!list) cells.set(key, list = []);
+      list.push(e);
+    }
+    const k = Math.min(1, dt * 6);
+    for (const e of near) {
+      let wx = 0, wz = 0;
+      const cx = Math.floor(e.x), cz = Math.floor(e.z);
+      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) for (const o of cells.get(`${ix},${iz}`) || []) {
+        if (o === e) continue;
+        let dx = e.x - o.x, dz = e.z - o.z, d = Math.hypot(dx, dz);
+        if (d >= CLEAR_M) continue;
+        // Exactly together: each off its own way, by its id.
+        if (d < 0.02) { const a = (hash32(e.id) % 628) / 100; dx = Math.cos(a); dz = Math.sin(a); d = 1; }
+        const push = (CLEAR_M - d) * (o.moving && !e.moving ? 0.25 : e.moving && !o.moving ? 1 : 0.5);
+        wx += (dx / d) * push; wz += (dz / d) * push;
+        // Meeting head on: each also a little to their right, so they pass instead of stopping face to face.
+        if (e.moving && o.moving && Math.cos(e.yaw - o.yaw) < -0.3) { wx += Math.cos(e.yaw) * 0.25 * (CLEAR_M - d); wz += -Math.sin(e.yaw) * 0.25 * (CLEAR_M - d); }
+      }
+      const was = aside.get(e.id) || [0, 0];
+      let ax = was[0] + (wx - was[0]) * k, az = was[1] + (wz - was[1]) * k;
+      const m = Math.hypot(ax, az);
+      if (m > 0.7) { ax *= 0.7 / m; az *= 0.7 / m; }
+      if (m < 0.005) { aside.delete(e.id); continue; }
+      aside.set(e.id, [ax, az]);
+      e.x += ax; e.z += az; e._ax = ax; e._az = az;
+    }
+    if (aside.size > 4000) aside.clear();
+  }
   function glide(e, now, dt, top, snap) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
@@ -3891,9 +3948,17 @@ export async function startCity(ctx) {
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
       const entry = { id, person: e.p, ...pos, detail: tier };
+      // Someone you are talking with stops where they are and faces you until you are done (or walk off).
+      const held = talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
+      if (held) {
+        talking.at ||= { x: pos.x, z: pos.z };
+        entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = false; entry.gesture = null; entry.activity = "talking with you";
+        entry.yaw = Math.atan2(-(you.x - entry.x), -(you.z - entry.z));
+        if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);   // their walk waits: they go on from here
+      } else if (talking.id === id && (now >= talking.until || Math.hypot(pos.x - you.x, pos.z - you.z) >= 14)) { talking.id = null; talking.at = null; }
       if (pos.through && Math.abs(pos.x - you.x) < 60 && Math.abs(pos.z - you.z) < 60 && !(nudged.get(entry.id) > now - 2500)) { nudged.set(entry.id, now); ctx.nudgeDoor?.(pos.x, pos.z); }
       // Stepping round you: a walker who would walk into you goes by a pace to the side.
-      if (pos.moving && !car.active) {
+      if (pos.moving && !car.active && !held) {
         const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw), dx = you.x - pos.x, dz = you.z - pos.z;
         const ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
         let want = 0;
@@ -3902,7 +3967,7 @@ export async function startCity(ctx) {
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
-      if (pos.walk && pos.moving && !pos.down) {
+      if (pos.walk && pos.moving && !pos.down && !held) {
         const hold = waitsAtKerb(pos.walk, tsec);
         // (One placed only now and then is held for the time since it was last placed.)
         c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
@@ -3933,6 +3998,7 @@ export async function startCity(ctx) {
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    keepApart(people, you, dt);
     drawnTiers.tracked.people = trackedPeople;
     if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
     // The cars: parked where they stand; driving, on their leg.
@@ -4317,7 +4383,7 @@ export async function startCity(ctx) {
 #city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
 #city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
-@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}`;
+@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}${PROFILE_CSS}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
   const hudBox = Object.assign(doc.createElement("div"), { id: "city-hud", title: "The living city: open the City panel" });
   hudBox.onclick = () => openPanel();
@@ -4865,10 +4931,9 @@ export async function startCity(ctx) {
       ensureJoined();
       return;
     }
-    const tabs = h("div", { className: "tabs" }, ...["you", "here", "car", "homes", "bills", "taxes", "laws", "people"].map((id) =>
-      h("button", { textContent: id[0].toUpperCase() + id.slice(1), "aria-pressed": String(tab === id), onclick: () => { tab = id; refresh(); } })));
-    tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent.toLowerCase() === tab)));
-    panel.replaceChildren(...youAtAGlance(w, p, close), h("h4", { textContent: "More" }), tabs, ...TABS[tab](w, p));
+    // The profile (profile-panel.mjs): an overview and four pages, each the whole window.
+    tab = profile().state.legacy || profile().state.tab;
+    profile().draw(panel, w, p, close);
   }
   //: The top of the window: you at a glance.
   function youAtAGlance(w, p, close) {
