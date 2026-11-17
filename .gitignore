@@ -173,3 +173,5 @@ data/ortho
 # The standalone app (desktop/): its packages and builds
 desktop/node_modules/
 desktop/out/
+.vercel/
+supabase/.temp/
