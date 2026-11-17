@@ -3836,6 +3836,9 @@ export async function startCity(ctx) {
     for (const e of people) {
       if (e._ax) { e.x -= e._ax; e.z -= e._az; e._ax = e._az = 0; }
       if (e.down || e.indoors || e.through || e.ride) continue;
+      // Stood where their step aside so far has them, so the push is for what is still too close.
+      const stepped = aside.get(e.id);
+      if (stepped) { e.x += stepped[0]; e.z += stepped[1]; e._ax = stepped[0]; e._az = stepped[1]; }
       near.push(e);
       const key = `${Math.floor(e.x)},${Math.floor(e.z)}`;
       let list = cells.get(key); if (!list) cells.set(key, list = []);
@@ -3856,13 +3859,16 @@ export async function startCity(ctx) {
         // Meeting head on: each also a little to their right, so they pass instead of stopping face to face.
         if (e.moving && o.moving && Math.cos(e.yaw - o.yaw) < -0.3) { wx += Math.cos(e.yaw) * 0.25 * (CLEAR_M - d); wz += -Math.sin(e.yaw) * 0.25 * (CLEAR_M - d); }
       }
+      // What they are pushed by is measured from where they stood without their step aside, so the
+      // step is carried on: it grows while they are crowded and eases off once there is room.
       const was = aside.get(e.id) || [0, 0];
-      let ax = was[0] + (wx - was[0]) * k, az = was[1] + (wz - was[1]) * k;
+      let ax = (wx || wz) ? was[0] + wx * k : was[0] * (1 - k * 0.35), az = (wx || wz) ? was[1] + wz * k : was[1] * (1 - k * 0.35);
       const m = Math.hypot(ax, az);
-      if (m > 0.7) { ax *= 0.7 / m; az *= 0.7 / m; }
-      if (m < 0.005) { aside.delete(e.id); continue; }
+      // (Up to a couple of paces: a dozen waiting at one crossing need the room to stand apart.)
+      if (m > 1.9) { ax *= 1.9 / m; az *= 1.9 / m; }
+      if (m < 0.005) { aside.delete(e.id); e.x -= e._ax || 0; e.z -= e._az || 0; e._ax = e._az = 0; continue; }
       aside.set(e.id, [ax, az]);
-      e.x += ax; e.z += az; e._ax = ax; e._az = az;
+      e.x += ax - (e._ax || 0); e.z += az - (e._az || 0); e._ax = ax; e._az = az;
     }
     if (aside.size > 4000) aside.clear();
   }
@@ -4121,6 +4127,7 @@ export async function startCity(ctx) {
   }
   // ---- crashes --------------------------------------------------------------------------------------
   //: A car of the city's that could not stop: it hits you, or someone on foot.
+  let lastCityCrash = -Infinity;
   async function carHit(hit, people) {
     const v = district.roster?.vehicles.get(hit.car);
     jolts.set(hit.car, { t0: performance.now(), speed: hit.speed });
@@ -4132,6 +4139,11 @@ export async function startCity(ctx) {
       if (r.ok) notify(`Hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph: ${r.injury.type}, -${r.injury.health} health. ${r.paid_by ? `${r.paid_by[0].toUpperCase()}${r.paid_by.slice(1)} pays the hospital.` : ""}`);
       return;
     }
+    // Between the city's own people a crash with casualties is an event, not the traffic's
+    // ordinary state: only a hard one (20 mph and over) is taken to the books, and at most one a
+    // minute. (Every touch counted, some twenty residents a minute were hurt and lay where they fell.)
+    if (hit.speed < 9 || performance.now() - lastCityCrash < 60_000) return;
+    lastCityCrash = performance.now();
     const q = hit.kind !== "vehicle" && people.find((x) => x.id === hit.who), other = district.roster?.vehicles.get(hit.who);
     if (!world || !v || (!q && !other)) return;
     const driver = district.roster.people.get(v.owner), targetDriver = other && district.roster.people.get(other.owner);
