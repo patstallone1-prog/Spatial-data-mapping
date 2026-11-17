@@ -82,8 +82,18 @@ function applyMetaMemoryPlan(plan) {
 //: emptied every four seconds besides -- the flashes to grey and back, and the slowness
 //: (measured at the Marina, 2026-11-08: eleven rebuilds in two minutes standing still).
 //: Now a rebuild is only made when it makes the square smaller, at most once a minute.
-const DESKTOP_MEMORY = { aim: 2.6 * 1073741824, emergency: 3.3 * 1073741824, restoreBelow: 1.9 * 1073741824, everyMs: 4000,
-  minRadius: 150, shrink: 0.6, rebuildEveryMs: 60_000, trimGrowth: 1.12 };
+//:
+//: The lines were 2.6 and 3.3 GiB. City mode's area alone holds about that much, so a walk away
+//: from the start put the heap over ``aim`` for good: the caches were halved, and halved again
+//: each time the heap grew, down to 16 MiB of ground tiles, and were never given back (City
+//: mode skipped the restore). With no room to keep a tile that was not on screen, every step and
+//: every turn dropped the ground behind you and fetched the ground ahead: the screen flashing
+//: dark about once a second (the owner, 2026-11-17). Now the lines sit nearer the 4 GiB the
+//: engine allows, a trim never goes under ``tileFloor`` / ``cellFloor`` (what the view in sight
+//: needs), trims come at most every ``trimEveryMs``, and the tile budget is given back in City
+//: mode too.
+const DESKTOP_MEMORY = { aim: 3.1 * 1073741824, emergency: 3.65 * 1073741824, restoreBelow: 2.5 * 1073741824, everyMs: 4000,
+  minRadius: 150, shrink: 0.6, rebuildEveryMs: 60_000, trimGrowth: 1.12, trimEveryMs: 30_000, tileFloor: 160 * 1048576, cellFloor: 96 * 1048576 };
 const desktopMemory = { level: "ok", cellBytes: worldCellCache.maxBytes, tileBytes: TILE_RESIDENT_BUDGET, radius: STREAM.radius, sheds: 0,
   rebuilds: 0, lastRebuild: -Infinity, trimmedAt: 0 };
 //: What one look at the heap does (pure, for the tests): trim, rebuild smaller, restore, or nothing.
@@ -103,12 +113,13 @@ function desktopMemoryTick() {
   const D = DESKTOP_MEMORY, M = desktopMemory, now = performance.now();
   const windowRadius = activeGuest?.detailRadius || BUILD_WINDOW?.radius || STREAM.radius;
   const plan = desktopMemoryPlan(used, M, D, { attaching: Boolean(attaching), windowRadius, now });
-  if (plan.trim) {
-    worldCellCache.maxBytes = Math.max(32 * 1048576, Math.round(worldCellCache.maxBytes / 2));
+  if (plan.trim && now - (M.lastTrim ?? -Infinity) >= D.trimEveryMs) {
+    // (Never under the floors, and never over what the budget already is: City mode's cells are smaller than the floor.)
+    worldCellCache.maxBytes = Math.min(worldCellCache.maxBytes, Math.max(D.cellFloor, Math.round(worldCellCache.maxBytes / 2)));
     worldCellCache.evict();
-    TILE_RESIDENT_BUDGET = Math.max(16 * 1048576, Math.round(TILE_RESIDENT_BUDGET / 2));
+    TILE_RESIDENT_BUDGET = Math.min(TILE_RESIDENT_BUDGET, Math.max(D.tileFloor, Math.round(TILE_RESIDENT_BUDGET / 2)));
     evictTiles();
-    M.sheds += 1; M.trimmedAt = used;
+    M.sheds += 1; M.trimmedAt = used; M.lastTrim = now;
     console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${plan.level}: caches trimmed`);
   }
   // City mode's area is held as it was built: the caches are trimmed, but it is not built again.
@@ -120,11 +131,11 @@ function desktopMemoryTick() {
     if (region) attachRegion(region, { lon, lat }, STREAM.radius, true);
     console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB: the square round you built again at ${2 * STREAM.radius} m`);
   }
-  // (City mode keeps its own smaller caches: nothing is streamed while it is held.)
-  if (plan.restore && !(typeof cityLock !== "undefined" && cityLock)) {
-    worldCellCache.maxBytes = M.cellBytes;
+  // (City mode keeps its own smaller cell cache and its square: nothing is streamed while it is
+  // held. The ground tiles' budget comes back there too.)
+  if (plan.restore) {
     TILE_RESIDENT_BUDGET = M.tileBytes;
-    STREAM.radius = M.radius;
+    if (!(typeof cityLock !== "undefined" && cityLock)) { worldCellCache.maxBytes = M.cellBytes; STREAM.radius = M.radius; }
     M.trimmedAt = 0;
   }
   M.level = plan.level;

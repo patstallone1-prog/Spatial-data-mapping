@@ -1304,7 +1304,11 @@ export async function startCity(ctx) {
   async function syncCity() {
     if (online.state !== "online" || online.syncing) return;
     online.syncing = true; online.lastSync = performance.now();
-    try { const r = await online.client.sync(online.version); if (r.ok) shown(r); } finally { online.syncing = false; }
+    try {
+      const r = await online.client.sync(online.version);
+      if (r.ok) shown(r);
+      if (r.ok && r.welcome_moved) notify(`${r.welcome_moved.name} has moved to a real restaurant: ${address(r.welcome_moved.place) || "its new address"}. Its till came with it; order its stock again.`);
+    } finally { online.syncing = false; }
   }
   //: The practice world: this browser's own, under its own id.
   function practice(state, why) {
@@ -1707,6 +1711,16 @@ export async function startCity(ctx) {
   // ---- your body: the bars, walking and sprinting ------------------------------------------------
   const body = { walked: 0, sprint: 0, since: performance.now(), sprintHeld: false, sprinting: false, faintSeen: 0, reporting: false };
   const self = () => view?.players.get(myId) || null;
+  //: Everyone in the city's one world is in the city's one room, so players see each other walk
+  //: and drive without sharing a code first. A party of your own (the home screen's Multiplayer)
+  //: takes its place while you are in it; leaving it brings you back here.
+  let cityRoomAt = -Infinity;
+  function cityRoom() {
+    if (online.state !== "online" || !self() || party.session || !ctx.joinCityRoom) return;
+    if (performance.now() - cityRoomAt < 20_000) return;
+    cityRoomAt = performance.now();
+    ctx.joinCityRoom(self().name);
+  }
   //: The home you own is where you start (the page reads this at its next load, when you have
   //: chosen no spawn point of your own): kept as its door's place on the map, and dropped when
   //: you no longer own one.
@@ -3730,6 +3744,7 @@ export async function startCity(ctx) {
     }
     chooseBooks();
     homeSpawn();
+    cityRoom();
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
@@ -5174,7 +5189,7 @@ export async function startCity(ctx) {
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
     //: For checks from outside (tests in a browser): who is drawn near you, as placed this frame.
-    peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
+    peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, indoors: Boolean(e.indoors), dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
       lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
