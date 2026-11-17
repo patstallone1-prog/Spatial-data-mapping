@@ -1304,7 +1304,11 @@ export async function startCity(ctx) {
   async function syncCity() {
     if (online.state !== "online" || online.syncing) return;
     online.syncing = true; online.lastSync = performance.now();
-    try { const r = await online.client.sync(online.version); if (r.ok) shown(r); } finally { online.syncing = false; }
+    try {
+      const r = await online.client.sync(online.version);
+      if (r.ok) shown(r);
+      if (r.ok && r.welcome_moved) notify(`${r.welcome_moved.name} has moved to a real restaurant: ${address(r.welcome_moved.place) || "its new address"}. Its till came with it; order its stock again.`);
+    } finally { online.syncing = false; }
   }
   //: The practice world: this browser's own, under its own id.
   function practice(state, why) {

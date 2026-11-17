@@ -23,7 +23,7 @@ import { openSession, readSession, keyHash, KEY_PATTERN } from "./auth.mjs";
 import { Refused } from "./canon.mjs";
 import { eligible, position, rate, sanitize } from "./guard.mjs";
 import {INTERIOR_COMMANDS,sanitizeInterior,prepareInterior} from "./interiors.mjs";
-import { applyWelcome } from "./welcome.mjs";
+import { applyWelcome, repairWelcome } from "./welcome.mjs";
 import { viewFor } from "./views.mjs";
 
 export const WORLD_ID = "kerbside";
@@ -95,6 +95,14 @@ export class CityAuthority {
       await pause(i);
       const { version, world, srv } = await this.load();
       const real = this.now();
+      // A starter restaurant given at a place that is not one to look at is moved to a real one (welcome.mjs).
+      const moved = repairWelcome(world, this.canon, srv, session);
+      if (moved) {
+        srv.stepped = real;
+        const done = await this.commit(version, world, srv, { pid: session.pid, command: "welcome_moved", args: moved, at: world.now, real });
+        if (done.ok) return this.answer(world, session.pid, done.version, { welcome_moved: moved });
+        continue;
+      }
       if (version && real - (srv.stepped || 0) < IDLE_STEP_MS) {
         return since === version ? { ok: true, version, now: world.now, you: session.pid, unchanged: true } : this.answer(world, session.pid, version);
       }
