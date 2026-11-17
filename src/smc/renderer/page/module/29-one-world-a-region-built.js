@@ -59,7 +59,8 @@ function prewarmPlaceCells(lon, lat) {
   const padLon = PREWARM_RADIUS_M / metersPerLon, padLat = PREWARM_RADIUS_M / metersPerLat;
   const box = [lon - padLon, lat - padLat, lon + padLon, lat + padLat];
   let room = Math.min(PREWARM_BYTES, Math.max(0, worldCellCache.maxBytes - worldCellCache.snapshot().residentBytes));
-  return Promise.all(PREWARM_FILES.map(async (name) => {
+  // (That region's names in the store first: they are read a region at a time.)
+  return loadAssetShard(regionOfPath(new URL(folder).pathname)).then(() => Promise.all(PREWARM_FILES.map(async (name) => {
     const cells = viaStore(folder + name).replace(/([^/]+)\.json$/, "cells/$1/");
     const manifest = await worldCellCache.load(`${cells}manifest.json`, -10).catch(() => null);
     if (!manifest?.cells) return 0;
@@ -71,7 +72,7 @@ function prewarmPlaceCells(lon, lat) {
       worldCellCache.load(`${cells}${cell}.json`, -20).catch(() => {});
     }
     return queued;
-  })).then((counts) => ({ region: region.name, cells: counts.reduce((t, n) => t + n, 0) }));
+  }))).then((counts) => ({ region: region.name, cells: counts.reduce((t, n) => t + n, 0) }));
 }
 function disposeTree(object, all = false) { object.traverse((o) => disposeOne(o, all)); }
 function disposeOne(o, all = false) {

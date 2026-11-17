@@ -17,13 +17,28 @@ const HIDDEN = "others:private";
 
 const pick = (o, keys) => { const out = {}; for (const k of keys) if (o?.[k] !== undefined) out[k] = o[k]; return out; };
 
-export function viewFor(world, pid) {
-  const o = JSON.parse(JSON.stringify(world.toJSON()));
+//: A player's id as the server gives it (auth.mjs playerId).
+const SERVER_ID = /p[0-9a-f]{24}/g;
+//: ``copy``: the world's JSON already copied for this view to cut down (the server writes the
+//: world out once for all the players it answers: authority.mjs liveAnswer).
+export function viewFor(world, pid, copy = null) {
+  const o = copy || JSON.parse(JSON.stringify(world.toJSON()));
   const me = world.players.get(pid) || null;
   const others = [...world.players.keys()].filter((id) => id !== pid);
+  const otherIds = new Set(others), plain = others.every((id) => id.length === 25 && /^p[0-9a-f]{24}$/.test(id));
   const mine = new Set(me ? [me.account] : []);
   for (const b of o.enterprise?.biz || []) if (me && (b.owner === me.account || b.owner_pid === pid)) mine.add(b.account);
-  const names = (text) => typeof text === "string" && others.some((id) => text.includes(id));
+  //: Whether a text names another player. Ids are read out of the text and looked up, instead of
+  //: the text being searched for every other player in turn: with a hundred players that search,
+  //: for every string of the world, for every player shown, was most of what a view cost.
+  const names = (text) => {
+    if (typeof text !== "string") return false;
+    if (!plain) return others.some((id) => text.includes(id));
+    if (text.length < 25) return false;
+    SERVER_ID.lastIndex = 0;
+    for (let m = SERVER_ID.exec(text); m; m = SERVER_ID.exec(text)) { if (otherIds.has(m[0])) return true; SERVER_ID.lastIndex = m.index + 1; }
+    return false;
+  };
   //: An object keyed by player (or by a pair of them): only the keys that are not someone else's.
   const ownKeys = (obj) => Object.fromEntries(Object.entries(obj || {}).filter(([k]) => !names(k) || k.includes(pid)));
 

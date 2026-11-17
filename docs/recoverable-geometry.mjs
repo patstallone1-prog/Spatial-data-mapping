@@ -68,7 +68,29 @@ function pump(deadline) {
 function schedule() { if (!pumping) { pumping = true; later(pump); } }
 //: Every compression still waiting, done now (tests; a page about to measure its memory).
 export function compressPending() { while (pending.length) pending.shift().run(); }
-export function makeRecoverable(attribute, codec) {
+// A copy restored for a reader (a ray cast at the ground under the walker, an edit) is let go
+// again once nothing has read it for a few seconds: its packed bytes are still good. Without
+// this every buffer ever read stayed whole for good. One read every frame stays whole while it
+// is being read -- it is restored once a visit, not once a frame.
+const COOL_MS = 2000, COOL_TICKS = 3;
+const cooling = new Set();
+let tick = 0, coolTimer = null;
+function cool() {
+  coolTimer = null; tick += 1;
+  for (const job of cooling) if (job.cool(tick)) cooling.delete(job);
+  if (cooling.size) coolTimer = setTimeout(cool, COOL_MS);
+}
+//: One look at the restored copies now (tests; the page's own look is every COOL_MS).
+export function coolRestored() { if (coolTimer) { clearTimeout(coolTimer); coolTimer = null; } cool(); }
+function coolLater(job) {
+  cooling.add(job);
+  if (!coolTimer) { coolTimer = setTimeout(cool, COOL_MS); coolTimer.unref?.(); }
+}
+//: A buffer sent to the GPU more often than this is one that changes: it is left whole.
+const CHURN_UPLOADS = 6;
+//: ``uploaded``: the buffer is on the GPU already, so it is packed now (not at its next upload:
+//: there may never be one, and asking for one sends the whole buffer to the GPU a second time).
+export function makeRecoverable(attribute, codec, { uploaded = false } = {}) {
   if (!attribute || wrapped.has(attribute) || !codec?.deflateSync || !codec?.inflateSync)
     return false;
   let raw = attribute.array;
@@ -78,6 +100,7 @@ export function makeRecoverable(attribute, codec) {
   if (descriptor && !descriptor.configurable) return false;
   let packed = null, packedVersion = -1;
   let Type = raw.constructor, length = raw.length;
+  let readTick = tick, uploads = 0, churning = false;
   const previousUpload = attribute.onUploadCallback;
   Object.defineProperty(attribute, 'array', {
     configurable: true, enumerable: true,
@@ -88,7 +111,9 @@ export function makeRecoverable(attribute, codec) {
           throw new Error('Invalid recoverable geometry snapshot');
         // Slice ensures alignment even if the codec returns an offset byte view.
         raw = new Type(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+        coolLater(job);
       }
+      readTick = tick;
       return raw;
     },
     set(value) {
@@ -102,6 +127,9 @@ export function makeRecoverable(attribute, codec) {
   // buffer just to learn its type and length (0.26 s a release, measured).
   Object.defineProperty(attribute, 'recoverableType', { configurable: true, get: () => Type });
   Object.defineProperty(attribute, 'recoverableLength', { configurable: true, get: () => length });
+  // What is held for it now (bytes): the whole array while it is resident, and its packed copy.
+  Object.defineProperty(attribute, 'recoverableHeld', { configurable: true,
+    get: () => (raw ? raw.byteLength : 0) + (packed ? packed.byteLength : 0) });
   let queued = false;
   const settle = (candidate, bytes) => {
     // Incompressible data stays resident; do not grow memory to save memory.
@@ -138,14 +166,28 @@ export function makeRecoverable(attribute, codec) {
       try { settle(candidate, sentBytes); } catch { packed = null; }
       sentArray = null;
     },
+    //: Asked every couple of seconds while a restored copy is held: true once there is nothing
+    //: more to do (it was let go, or it has changed and its next upload packs it again).
+    cool(now) {
+      if (!raw) return true;
+      if (!packed || packedVersion !== attribute.version) return true;
+      if (now - readTick < COOL_TICKS) return false;
+      raw = null;
+      return true;
+    },
   };
   attribute.onUpload(function () {
     if (previousUpload) previousUpload.call(this);
     if (!raw) return;
+    // One that keeps changing (sent to the GPU again and again) is not a static buffer: packing
+    // it after every change would cost more than it saves, so it stays whole from here on.
+    uploads += 1;
+    if (churning || uploads > CHURN_UPLOADS) { churning = true; packed = null; return; }
     // Already packed at this version (a re-upload after a restore): let the copy go at once.
     if (packed && packedVersion === attribute.version) { raw = null; return; }
     if (!queued) { queued = true; pending.push(job); schedule(); }
   });
   wrapped.add(attribute);
+  if (uploaded && !queued) { queued = true; pending.push(job); schedule(); }
   return true;
 }

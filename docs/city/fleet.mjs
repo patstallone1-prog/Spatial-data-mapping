@@ -1815,16 +1815,19 @@ export function junctionAt(streets, node) {
 //: How close two cars' ways through a junction may come and not be in each other's way (two
 //: cars' half widths, and room for a turning car's corners to swing), in metres.
 export const CLEAR_M = 3.0;
+// (Plain functions and plain arithmetic: segGap is called for every pair of segments of every
+// pair of ways through a junction, and made two functions of its own each time.)
+const pointSegGap = (a, b, c) => {
+  const ux = c[0] - b[0], uz = c[1] - b[1], L = ux * ux + uz * uz;
+  const k = L ? Math.max(0, Math.min(1, ((a[0] - b[0]) * ux + (a[1] - b[1]) * uz) / L)) : 0;
+  const dx = a[0] - b[0] - ux * k, dz = a[1] - b[1] - uz * k;
+  return Math.sqrt(dx * dx + dz * dz);
+};
+const turnSign = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
 const segGap = (p, q, r, t) => {
   // The least distance between segments pq and rt.
-  const d = (a, b, c) => {
-    const ux = c[0] - b[0], uz = c[1] - b[1], L = ux * ux + uz * uz;
-    const k = L ? Math.max(0, Math.min(1, ((a[0] - b[0]) * ux + (a[1] - b[1]) * uz) / L)) : 0;
-    return Math.hypot(a[0] - b[0] - ux * k, a[1] - b[1] - uz * k);
-  };
-  const o = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
-  if (o(p, q, r) * o(p, q, t) < 0 && o(r, t, p) * o(r, t, q) < 0) return 0;
-  return Math.min(d(p, r, t), d(q, r, t), d(r, p, q), d(t, p, q));
+  if (turnSign(p, q, r) * turnSign(p, q, t) < 0 && turnSign(r, t, p) * turnSign(r, t, q) < 0) return 0;
+  return Math.min(pointSegGap(p, r, t), pointSegGap(q, r, t), pointSegGap(r, p, q), pointSegGap(t, p, q));
 };
 export function pathGap(A, B) {
   let g = Infinity;
@@ -1923,12 +1926,14 @@ export class Drivers {
     const pos = new Map();
     // In its lane, as it is drawn: the kerb side of the street. A car coming into sight where
     // another already stands (its day had it there; the other was held up) comes in behind it.
-    const grid = new Map(), CELL = 12, cellOf = (x, z) => `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
+    // (Cells are keyed by a number, not a string made for every look: a car looks round itself
+    // several times a frame, twenty-five cells a look.)
+    const grid = new Map(), CELL = 12, cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768), cellOf = (x, z) => cellKey(Math.floor(x / CELL), Math.floor(z / CELL));
     const place = (id, p) => { const k = cellOf(p.x, p.z); p.cell = k; let g = grid.get(k); if (!g) grid.set(k, g = new Set()); g.add(id); };
     const unplace = (id, p) => grid.get(p.cell)?.delete(id);
     const near = (x, z, r, fn) => {
       const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
-      for (let i = i0; i <= i1; i += 1) for (let j = j0; j <= j1; j += 1) { const g = grid.get(`${i},${j}`); if (g) for (const id of g) fn(id); }
+      for (let i = i0; i <= i1; i += 1) for (let j = j0; j <= j1; j += 1) { const g = grid.get(cellKey(i, j)); if (g) for (const id of g) fn(id); }
     };
     // How far into each other two bodies are (each a row of circles down its length), <= 0 apart.
     const bodies = (p, length, width) => {
@@ -2211,11 +2216,22 @@ export class Drivers {
         }
         return false;
       };
-      for (const q of people) {
-        if (dodging && st.hold?.id === `person:${q.id}`) continue;
-        const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
-        for (const tau of q.vx || q.vz ? [0, 1] : [0]) {
-          const qx = q.x + (q.vx || 0) * tau, qz = q.z + (q.vz || 0) * tau;
+      // (Every car against every person in sight, every frame: nothing is made in this loop.
+      // It made an array a person a car a frame to count 0, 1 -- some 460 MB of garbage a
+      // second, most of what the page threw away, and the collector's pauses were the freezes
+      // while walking: measured 2026-11-16. Anyone too far to be reached at all is passed over
+      // on two subtractions.)
+      const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
+      const farOff = reach + c.length + (c.width || 1.9) + 3;
+      const heldPerson = dodging && typeof st.hold?.id === "string" && st.hold.id.startsWith("person:") ? st.hold.id.slice(7) : null;
+      for (let qi = 0; qi < people.length; qi += 1) {
+        const q = people[qi];
+        const qvx = q.vx || 0, qvz = q.vz || 0, far = farOff + Math.abs(qvx) + Math.abs(qvz);
+        if (Math.abs(q.x - here.x) > far || Math.abs(q.z - here.z) > far) continue;
+        if (heldPerson !== null && heldPerson === String(q.id)) continue;
+        const taus = qvx || qvz ? 2 : 1;
+        for (let tau = 0; tau < taus; tau += 1) {
+          const qx = q.x + qvx * tau, qz = q.z + qvz * tau;
           const dx = qx - here.x, dz = qz - here.z;
           const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
           if (fwd < c.length / 2 - 0.5 || lat > c.width / 2 + T.person_half_m + 0.25) continue;

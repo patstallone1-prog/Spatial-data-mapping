@@ -161,8 +161,18 @@ export function serviceDay(sec, zone) {
 }
 //: A timetabled line's trips, ``back`` days before ``sec``'s to ``ahead`` after: [{id, start}],
 //: ``start`` when the trip's timeline begins (s since epoch: its stand at the first stop).
+//: (Kept for the line and the day: the buses are placed every frame, and a day's trips, each
+//: with its id, were listed again for every line each time. Read only by those who ask.)
+const tripsKept = new WeakMap();
 function tripsAround(line, sec, back = 1, ahead = 0) {
-  const S = line.schedule, today = serviceDay(sec, S.zone), out = [];
+  const S = line.schedule, today = serviceDay(sec, S.zone);
+  const key = `${today.start}:${back}:${ahead}`;
+  let kept = tripsKept.get(line);
+  if (!kept) tripsKept.set(line, kept = new Map());
+  if (kept.has(key)) return kept.get(key);
+  if (kept.size > 6) kept.clear();
+  const out = [];
+  kept.set(key, out);
   for (let d = -back; d <= ahead; d += 1) {
     const start = today.start + d * 86400, kind = DAY_KIND[((today.weekday + d) % 7 + 7) % 7];
     for (const m of S.departs[kind] || []) {

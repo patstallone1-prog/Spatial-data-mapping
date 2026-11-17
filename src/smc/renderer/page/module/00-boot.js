@@ -1,4 +1,13 @@
 import * as THREE from "https://esm.sh/three@0.160.0";
+//: Which vertex buffers are on the GPU: every one notes itself here when it is sent (three calls
+//: a buffer's onUploadCallback then; this is the one they all share until given their own). A
+//: buffer that is there and does not change need not also be kept whole in the page's memory
+//: (module 28, the sweep of static geometry). One set for the page and every window built in it.
+const UPLOADED_BUFFERS = (globalThis.__kerbsideUploadedBuffers ??= new WeakSet());
+if (!globalThis.__kerbsideUploadNoted) {
+  globalThis.__kerbsideUploadNoted = true;
+  THREE.BufferAttribute.prototype.onUploadCallback = function () { UPLOADED_BUFFERS.add(this); };
+}
 //: The renderer keeps a logarithmic depth buffer (below): its shaders write each fragment's depth
 //: themselves, and a depth written that way takes no notice of the GL polygon offset -- so every
 //: layer lifted over the one under it by polygonOffset alone (the crossings' paint, the lane
@@ -177,24 +186,59 @@ const ASSET_BASE = ATTACH ? ATTACH.assets
 //: current -- a round trip for every tile and every file of a square, each time it is built.
 //: Everything else (the site's own files, which a deploy replaces) is still revalidated.
 const IMMUTABLE_CHUNK = /\/chunks\/[0-9a-f]{24}\.[a-z0-9]+$/;
-const fetch = (input, init) => (IMMUTABLE_CHUNK.test(String(input?.url ?? input))
-  ? globalThis.fetch(input, { ...init, cache: "force-cache" }) : globalThis.fetch(input, init));
-//: Fetched and parsed once for the page and every window attached to it. 435,000 names, 46 MB
-//: of JSON: each window ran this line again, parsed it again (0.2-0.3 s) and kept its own copy
-//: (85 MB) for as long as the page was open -- a window's code is never unloaded -- so twelve
-//: jumps held a gigabyte of the same map (measured 2026-11-05). It is only ever read.
-const ASSET_MAP = await (globalThis.__kerbsideAssetMap ??= fetch("/asset-map.json", { cache: "no-cache" })
-  .then((r) => (r.ok ? r.json() : null)).catch(() => null));
-function viaStore(href) {
-  const files = ASSET_MAP?.files;
-  if (!files || !ASSET_MAP.base) return href;
-  // Only for a page whose origin the store's CORS lets read it; previews and local
-  // servers on other ports keep reading the site's own copies.
+const fetch = (input, init) => {
+  const direct = (to) => (IMMUTABLE_CHUNK.test(String(to?.url ?? to)) ? globalThis.fetch(to, { ...init, cache: "force-cache" }) : globalThis.fetch(to, init));
+  // A region's file asked for before that region's names are in (a manifest read ahead of its
+  // window): the names first, then the file from where they say it is.
+  if (typeof input === "string" && typeof storeReadable === "function" && storeReadable()) {
+    let region = null;
+    try { const url = new URL(input, location.href); if (url.origin === location.origin) region = regionOfPath(url.pathname); } catch { /* not a URL of ours */ }
+    if (region && !ASSET_SHARDS.files.has(region)) return loadAssetShard(region).then(() => direct(viaStore(input)));
+  }
+  return direct(input);
+};
+//: Where each data file is in the store: the asset map, read a region at a time.
+//:
+//: The whole map (docs/asset-map.json) is 444,000 names, 47 MB of JSON and about 85 MB of heap
+//: once parsed, and every one of its names is some region's. The page fetched and parsed all of
+//: it before it drew anything, to look up the few thousand names of the one region it was
+//: building. The deploy now splits it (smc.renderer.pages.write_asset_shards) into a small index
+//: and a file a region; the index is read at the start, a region's names when that region is
+//: first needed (a window built for it reads them before it runs; anything else asking for a
+//: region's file through ``fetch`` waits for them there). Shared by every window of the page.
+const ASSET_SHARDS = (globalThis.__kerbsideAssetShards ??= { index: null, files: new Map(), loading: new Map() });
+ASSET_SHARDS.index ??= await globalThis.fetch("/asset-map/index.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const ASSET_MAP = ASSET_SHARDS.index;
+const REGION_FILE = /^regions\/([^/]+)\/(.+)$/;
+//: A region's names (null when it has none in the store): fetched once, kept for the page.
+function loadAssetShard(region) {
+  const S = ASSET_SHARDS;
+  if (!S.index || !region || S.files.has(region)) return Promise.resolve(S.files.get(region) || null);
+  if (!(S.index.regions || []).includes(region)) { S.files.set(region, null); return Promise.resolve(null); }
+  let wait = S.loading.get(region);
+  if (!wait) {
+    wait = globalThis.fetch(`/asset-map/${region}.json?v=${encodeURIComponent(S.index.version || "")}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((doc) => { S.files.set(region, doc?.files || null); S.loading.delete(region); return S.files.get(region); });
+    S.loading.set(region, wait);
+  }
+  return wait;
+}
+const regionOfPath = (path) => REGION_FILE.exec(String(path || "").replace(/^\/+/, ""))?.[1] || null;
+//: Whether this page may read the store directly (only the site's own origin: previews and
+//: local servers keep reading the site's own copies).
+function storeReadable() {
+  if (!ASSET_MAP?.base) return false;
   const origins = ASSET_MAP.origins;
-  if (origins && !origins.includes("*") && !origins.includes(location.origin)) return href;
+  return !(origins && !origins.includes("*") && !origins.includes(location.origin));
+}
+// The region this window is built for (a guest window's assets, or a regional page's own): its names first.
+if (storeReadable() && ASSET_BASE) await loadAssetShard(regionOfPath(new URL(`${ASSET_BASE.replace(/\/+$/, "")}/-`, location.href).pathname));
+function viaStore(href) {
+  if (!storeReadable()) return href;
   const url = new URL(href, location.href);
   if (url.origin !== location.origin) return href;
-  const object = files[url.pathname.replace(/^\/+/, "")];
+  const path = url.pathname.replace(/^\/+/, ""), m = REGION_FILE.exec(path);
+  const object = m ? ASSET_SHARDS.files.get(m[1])?.[m[2]] : ASSET_MAP.files?.[path];
   return object ? `${ASSET_MAP.base.replace(/\/+$/, "")}/${object}` : href;
 }
 const asset = (name) => viaStore(ASSET_BASE ? `${ASSET_BASE.replace(/\/+$/, "")}/${name}` : name);
