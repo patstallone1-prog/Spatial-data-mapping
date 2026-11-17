@@ -9,8 +9,10 @@
 //   Relationships  everyone you have a tie to: friends, your boss, your staff, your lawyer, your
 //                  banker, the people of the city you have talked with.
 //
-// The older pages (this place, the laws, the people near you) are behind small buttons on You:
-// kept, but out of the way. Kept out of view.mjs, which hands over what it needs.
+// What the older pages held has a place in these: the building beside you (owner, value, taxes,
+// buying it) is on Assets; the city's laws, the votes and proposing a measure are on Finances;
+// the people out of doors near you, with who they are and a box to talk, are on Relationships.
+// Kept out of view.mjs, which hands over what it needs.
 
 import { BACKSTORY_MAX } from "./social.mjs";
 
@@ -44,7 +46,10 @@ body #city.pop .rel{display:flex;gap:10px;align-items:center;padding:7px 0;borde
 body #city.pop .rel i{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 12px system-ui,sans-serif;font-style:normal;color:#fff}
 body #city.pop .rel div{flex:1;min-width:0}body #city.pop .rel small{display:block;color:var(--cm)}
 body #city.pop .rel em{font-style:normal;font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.12);white-space:nowrap}
-body #city.pop .more{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+body #city.pop .talk .log{display:flex;flex-direction:column;gap:5px;margin:6px 0 8px;max-height:180px;overflow:auto}
+body #city.pop .talk .log div{padding:5px 9px;border-radius:9px;max-width:88%;font-size:13px;line-height:1.3}
+body #city.pop .talk .log .npc{background:rgba(255,255,255,.12);align-self:flex-start}body #city.pop .talk .log .me{background:#2f6fe4;color:#fff;align-self:flex-end}
+body #city.pop .talk form{display:flex;gap:6px}body #city.pop .talk input{flex:1;min-width:0}
 @media (max-width:640px){body #city.pop .ptabs{grid-template-columns:repeat(3,1fr)}body #city.pop .figs{grid-template-columns:repeat(2,1fr)}}`;
 
 export function profilePanel(api) {
@@ -101,8 +106,7 @@ export function profilePanel(api) {
     const story = tile("Your story", box, h("div", { style: "display:flex;gap:8px;align-items:center;margin-top:6px" },
       act("Save", () => send("set_backstory", { text: ui.story }).then((r) => { if (r.ok) { ui.story = r.backstory; notify("Your story is saved: other players see it on your name."); } return r; }), true),
       h("small", { className: "note", textContent: "Shown to other players. The city's people are never told it." })));
-    const more = h("div", { className: "more" }, ...[["here", "This place"], ["laws", "Laws and votes"], ["people", "People near you"]].map(([k, label]) => h("button", { textContent: label, onclick: () => { ui.legacy = k; redraw(); } })));
-    return [figs, h("div", { className: "cols" }, stats, owned, story), more];
+    return [figs, h("div", { className: "cols" }, stats, owned, story)];
   }
   function business(w, p, st) {
     const out = [];
@@ -126,11 +130,15 @@ export function profilePanel(api) {
     const recent = w.ledger.journal.filter((e) => e.lines.some(([a]) => a === p.account)).slice(-14).reverse();
     const history = tile("Recent history", recent.length ? h("table", {}, ...recent.map((e) => { const amount = e.lines.find(([a]) => a === p.account)[1];
       return h("tr", {}, h("td", { textContent: `${String(e.kind).replace(/^mint:/, "").replace(/_/g, " ")}${e.memo ? `: ${e.memo}` : ""}`.slice(0, 60) }), h("td", { className: amount < 0 ? "neg" : "", textContent: money(amount) })); })) : note("Nothing yet."));
-    return [h("div", { className: "cols" }, bank, credit, tile("Bills and fines", ...legacy.bills(w, p)), tile("Taxes", ...legacy.taxes(w, p)), history)];
+    // The city's laws set the rates you pay: what is in force, what is being voted on, and a measure of your own.
+    return [h("div", { className: "cols" }, bank, credit, tile("Bills and fines", ...legacy.bills(w, p)), tile("Taxes", ...legacy.taxes(w, p)), tile("City laws and votes", ...legacy.laws(w, p)), history)];
   }
   function assets(w, p, st) {
     const own = assetsOf(w, p, st);
-    if (!own.length) return [note("Nothing of your own yet. A car from the dealership (below), a home or a building from the Shop's Real estate, a business from a vacant storefront."), ...legacy.car(w, p)];
+    // The building you stand beside: who owns it, what it is worth and taxed, and buying or selling it.
+    const beside = tile("The building beside you", ...legacy.here(w, p));
+    if (!own.length) return [note("Nothing of your own yet. A car from the dealership, a home from the Shop's Real estate, the building beside you, a business from a vacant storefront."),
+      h("div", { className: "cols" }, beside, tile("Cars: dealership, FasTrak, lending", ...legacy.car(w, p)))];
     const cur = own.find((x) => x.id === ui.asset) || own[0];
     const detail = [h("table", {}, row("Worth", money(cur.value)), cur.under ? row(cur.kind === "vehicle" ? "Plate" : "Address", cur.under) : null,
       cur.at ? row("Where it is now", `${cur.at.how} · ${whereText(cur.at)}`) : row("Where it is now", cur.kind === "vehicle" ? (cur.a.custody === "impounded" ? "Impounded: pay its tickets to get it back" : cur.a.custody !== "owner" ? `With someone else (${cur.a.custody})` : "Not parked anywhere on record") : "—"))];
@@ -139,7 +147,7 @@ export function profilePanel(api) {
     if (cur.kind === "home") detail.push(act("Customize the interior", () => { editHome(cur.id); return null; }, true));
     if (cur.kind === "business") detail.push(act("Manage", () => { openSide("business"); Object.assign(getSide(), { biz: cur.id, tab: "overview" }); drawSide(); api.close(); return null; }, true));
     return [h("div", { className: "assets" }, ...own.map((x) => assetCard(x, x.id === cur.id, () => { ui.asset = x.id; redraw(); }))),
-      h("div", { className: "cols" }, tile(`${cur.name}${cur.under ? ` · ${cur.under}` : ""}`, ...detail), tile("Cars: dealership, FasTrak, lending", ...legacy.car(w, p)))];
+      h("div", { className: "cols" }, tile(`${cur.name}${cur.under ? ` · ${cur.under}` : ""}`, ...detail), beside, tile("Cars: dealership, FasTrak, lending", ...legacy.car(w, p)))];
   }
   function relationships(w, p) {
     const list = w.relationships ? w.relationships(p.id) : [];
@@ -154,7 +162,9 @@ export function profilePanel(api) {
     return [h("div", { className: "cols" }, group("Friends and players", [...players, ...here], "No friends yet: click another player, or their name in the messages, to add them."),
       group("Work and services", work, "Nobody yet: a boss when you take a job, staff when you run a business, a lawyer or a banker when you use one."),
       group("People of the city", met, "Nobody yet. Open the messages and click someone in the street to talk: talk a few times and they know you."),
-      tile("Family", note("No family on record. Households are the city's residents' for now.")))];
+      tile("Family", note("No family on record. Households are the city's residents' for now.")),
+      // Who is out of doors round you now: a name opens who they are, and a box to talk to them.
+      tile("People near you now", ...legacy.people(w, p)))];
   }
 
   //: The whole window: the head, the five buttons, and the page they pick.
@@ -162,13 +172,14 @@ export function profilePanel(api) {
     const st = w.cmd_status.call(w, p.id), worth = wealthOf(R, st), img = portrait();
     const head = h("div", { className: "me" }, h("div", { className: "face", style: img ? `background-image:url(${img})` : "" }),
       h("div", {}, h("h2", { textContent: st.name || p.name || "You" }), h("div", { className: "worth" }, h("span", { className: worth.net < 0 ? "neg" : "", textContent: money(worth.net) }), h("small", { textContent: "net worth" }))), close);
-    const tabs = h("div", { className: "ptabs", role: "tablist" }, ...TABS.map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(ui.tab === k && !ui.legacy), onclick: () => go(k) })));
-    let body;
-    if (ui.legacy && legacy[ui.legacy]) body = [h("button", { textContent: "← Back to You", onclick: () => { ui.legacy = null; redraw(); } }), ...legacy[ui.legacy](w, p)];
-    else body = ui.tab === "business" ? business(w, p, st) : ui.tab === "finances" ? finances(w, p, st, worth) : ui.tab === "assets" ? assets(w, p, st) : ui.tab === "relationships" ? relationships(w, p) : you(w, p, st, worth);
+    const tabs = h("div", { className: "ptabs", role: "tablist" }, ...TABS.map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(ui.tab === k), onclick: () => go(k) })));
+    const body = ui.tab === "business" ? business(w, p, st) : ui.tab === "finances" ? finances(w, p, st, worth) : ui.tab === "assets" ? assets(w, p, st) : ui.tab === "relationships" ? relationships(w, p) : you(w, p, st, worth);
     const keepFocus = document.activeElement?.tagName === "TEXTAREA" && panel.contains(document.activeElement);
     if (keepFocus) return;   // typing your story: the window is left as it is until you are done
+    // Typing to someone on Relationships: the page is drawn again as the city moves, and the box keeps the cursor.
+    const typing = document.activeElement?.matches?.(".talk input") && panel.contains(document.activeElement), top = panel.scrollTop;
     panel.replaceChildren(head, tabs, ...body.filter(Boolean));
+    if (typing) { const box = panel.querySelector(".talk input"); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } panel.scrollTop = top; }
   }
   return { draw, open: (tab) => { ui.tab = tab; ui.legacy = null; }, state: ui };
 }

@@ -4944,7 +4944,8 @@ export async function startCity(ctx) {
       return;
     }
     // The profile (profile-panel.mjs): an overview and four pages, each the whole window.
-    tab = profile().state.legacy || profile().state.tab;
+    // (The people near you are on Relationships: their list refreshes as that page does.)
+    tab = profile().state.tab === "relationships" ? "people" : profile().state.tab;
     profile().draw(panel, w, p, close);
   }
   //: The top of the window: you at a glance.
