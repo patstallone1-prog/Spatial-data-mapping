@@ -94,6 +94,8 @@ export const DOOR_STEP_M = 1.6;
 //: Waiting at the kerb for a gap or the light: at most so long behind the day (s), then made up
 //: at this much over the walker's pace.
 export const WALK_LAG_MAX_S = 90, WALK_CATCH_UP = 0.3;
+//: One in this many takes a break out of doors.
+export const BREAK_OUTSIDE_OF = 5;
 //: Up to this speed one of the city's drivers stops dead for one of its walkers (about 15 mph).
 export const NPC_STOP_DEAD_MS = 7;
 //: The longest a frame's slice of the district scan may run (ms).
@@ -1278,11 +1280,17 @@ export class City {
     if (seg.kind === "roam") return this.roaming(p, seg, place, t);
     const a = seg.act;
     if (a.kind === "sport" && place.court) return this.playing(p, seg, place, t);
+    // A break is taken out of doors by one in BREAK_OUTSIDE_OF of a place's people; the rest take
+    // theirs inside. (Everyone out at once stood twenty and more at one doorway: 468 of the 525
+    // people in tight groups in the Marina, 2026-11-17.)
+    // (Those who stay in are in the back, not seen: stood on the shop floor they were the same crowd, indoors.)
+    if (a.kind === "break" && a.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF !== 0) return null;
     if (a.kind === "break" && a.outside) {
       // Out of the door for a break: on the pavement in front of it, a step or so out (door and
-      // front point in) -- not out at the kerb among the parked cars.
+      // front point in) -- not out at the kerb among the parked cars -- and along the front, not
+      // all at the door.
       const r = rng(p.id, t.day, "break"), D = (place.door && this.doorOf(place)) || place.front;
-      const out = DOOR_STEP_M + 0.2 + r() * 0.6, along = (r() - 0.5) * 3;
+      const out = DOOR_STEP_M + 0.2 + r() * 0.9, along = (r() - 0.5) * 9;
       const key = `${p.id}:${t.day}:${Math.round(seg.t0 * 10)}`;
       let at = this.breakSpots.get(key);
       if (at === undefined) {
@@ -1621,7 +1629,7 @@ export class City {
         if (pl.court) { let list = S.courts.get(pl.id); if (!list) S.courts.set(pl.id, list = []); list.push(p.id); if (near(pl.x, pl.z)) people.push({ p, seg }); }
         continue;
       }
-      if ((seg.act.kind === "break" && seg.act.outside && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
+      if ((seg.act.kind === "break" && seg.act.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);

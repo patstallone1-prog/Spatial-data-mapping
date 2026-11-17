@@ -28,6 +28,19 @@ const ICON = {
 };
 const TINT = { vehicle: "#3987e5", home: "#199e70", building: "#c98500", business: "#d95926", goods: "#9085e9" };
 export const PROFILE_CSS = `
+/* Nothing shows through the profile (the task board and the top bar lie under it and their words
+   read through its text), and nothing in it runs over its neighbour: long values wrap, names
+   that will not fit are cut with an ellipsis. */
+body #city.pop{background:rgba(15,21,33,.98)}
+body #city.pop td{overflow-wrap:anywhere}
+body #city.pop td:last-child{white-space:normal;text-align:right;padding-left:10px}
+body #city.pop td:first-child{padding-right:8px}
+body #city.pop .me>div:nth-child(2){min-width:0;flex:1}
+body #city.pop .me h2,body #city.pop .tile h4{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body #city.pop .fig{min-width:0}body #city.pop .fig b{display:block;overflow-wrap:anywhere;line-height:1.15}
+body #city.pop .tile{min-width:0;overflow:hidden}
+body #city.pop .rel b,body #city.pop .rel small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+body #city.pop .bar{min-width:0}
 body #city.pop .ptabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 12px}
 body #city.pop .ptabs button{padding:11px 6px;font:700 14px/1.1 system-ui,sans-serif;border-radius:10px;margin:0}
 body #city.pop .ptabs button[aria-pressed=true]{background:#2f6fe4;border-color:#2f6fe4;color:#fff}

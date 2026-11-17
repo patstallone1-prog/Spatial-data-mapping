@@ -72,6 +72,8 @@ const CITY_AREA = {
   cellBytes: 32 * 1048576,
 };
 //: null in Explore; in City: {ready, requested, placed}.
+//: The room every player in City mode shares (multiplayer.mjs: a code of 4 to 12 letters).
+const CITY_ROOM = "KERBSIDECITY";
 var cityLock = null;
 function cityAreaBoxXZ() {
   const [s, w, n, e] = CITY_AREA.bbox, [x0, y0] = xy(w, s), [x1, y1] = xy(e, n);
@@ -259,6 +261,8 @@ function setAppMode(mode) {
       enabled: () => !state.explore && !homeScreenUp(),
       // The game's keys, bars and buttons: in City mode only.
       cityMode: () => appMode === "city",
+      // The city's own room (docs/city/view.mjs cityRoom): everyone online in City mode is in it.
+      joinCityRoom: (name) => { if (appMode === "city" && !multiplayer.session && typeof multiplayer.join === "function") multiplayer.join(CITY_ROOM, name).catch((error) => console.warn("kerbside: the city's room could not be joined", error)); },
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
