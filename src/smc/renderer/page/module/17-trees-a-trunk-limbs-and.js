@@ -584,20 +584,43 @@ const ROAD_CUT_SURFACES = new Set(["plaza", "front_walk", "service_yard", "neutr
 //: after the ground is down, and what was paved on them stayed: slabs of pavement across the
 //: lanes, through the bus zones' paint. Once the build has settled, any triangle whose centre and
 //: two corners are on a carriageway is taken out (the same rule, with every roadway in).
+//: And off a car park: the covers that are laid over a lot's ground (a lot's parcel is paved, so
+//: it was given the pale paving of a plaza, and the lot's own asphalt showed through it in
+//: patches where the two sheets crossed). Inside a lot's ground as drawn (PARKING_REGIONS: its
+//: rectangle, or its outline) nothing is laid but the lot: the whole of it is its own colour.
+const LOT_CUT_SURFACES = /^(plaza|front_walk|service_yard|neutral_ground|yard|inferred:)/;
+function insideParkingRegion(x, z) {
+  if (typeof PARKING_REGIONS === "undefined") return false;
+  for (const lot of PARKING_REGIONS) {
+    const b = lot.box;
+    if (x < b[0] || x > b[2] || z < b[1] || z > b[3]) continue;
+    const ring = lot.ring;
+    let hit = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      if ((ring[i][1] > z) !== (ring[j][1] > z) && x < (ring[j][0] - ring[i][0]) * (z - ring[i][1]) / (ring[j][1] - ring[i][1]) + ring[i][0]) hit = !hit;
+    }
+    if (hit) return true;
+  }
+  return false;
+}
 function recutGroundOffRoads() {
   let cut = 0;
   const meshes = [];
-  groups.ground.traverse((o) => { if (o.isMesh && ROAD_CUT_SURFACES.has(o.userData?.surface)) meshes.push(o); });
+  const lots = typeof PARKING_REGIONS !== "undefined" && PARKING_REGIONS.length > 0;
+  groups.ground.traverse((o) => { if (o.isMesh && (ROAD_CUT_SURFACES.has(o.userData?.surface) || (lots && LOT_CUT_SURFACES.test(o.userData?.surface || "")))) meshes.push(o); });
   for (const mesh of meshes) {
     const geom = mesh.geometry, pos = geom?.attributes?.position, index = geom?.getIndex();
     if (!pos || !index || !mesh.parent) continue;
     mesh.updateMatrixWorld();
     const e = mesh.matrixWorld.elements, kept = [];
+    const roads = ROAD_CUT_SURFACES.has(mesh.userData.surface), lotCut = lots && LOT_CUT_SURFACES.test(mesh.userData.surface || "");
     const on = (i) => insideCarriageway(pos.getX(i) + e[12], pos.getZ(i) + e[14], 0);
+    const inLot = (i) => insideParkingRegion(pos.getX(i) + e[12], pos.getZ(i) + e[14]);
     for (let t = 0; t < index.count; t += 3) {
       const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
       const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
-      if (insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
+      if (roads && insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
+      if (lotCut && insideParkingRegion(cx, cz) && inLot(a) + inLot(b) + inLot(c) >= 2) { cut += 1; continue; }
       kept.push(a, b, c);
     }
     if (kept.length !== index.count) geom.setIndex(kept);

@@ -41,6 +41,7 @@ import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
+import { buildSignage, normalizeSignage } from "../interior-lab/signage.mjs";
 
 const SAVE_SOLO = "kerbside:city:world";
 const SAVE_ID = "kerbside:city:id";
@@ -352,8 +353,9 @@ export async function startCity(ctx) {
     else district.city.setStreets(streets);
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
-    if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking });
+    if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking, onRoad: ctx.roadAt || null, kerbNear: (x, z, reach) => ctx.kerbAt(x, z, null, null, reach) });
     district.rackCount = -1; syncRacks(0);
+    district.lotCount = -1; district.lotsAt = -1e9; syncLots(0);
     if (!district.drivers) district.drivers = new Drivers(streets, { ...TRAFFIC, main_green_share: R.traffic?.main_green_share ?? 0.5 });
     else { district.drivers.streets = streets; district.drivers.cars.clear(); district.drivers.boxes.clear(); district.drivers.claims.clear(); }
     // The visitors' cars: so many to a place by how busy the district is (rules.json density).
@@ -381,6 +383,59 @@ export async function startCity(ctx) {
     district.rackCount = racks.length;
     district.city.setRacks(racks);
     ctx.log?.(`kerbside: ${racks.length} bicycle racks for the city's riders`);
+  }
+  //: The shops' own signs: a business whose owner has set one in the Interior Studio (its
+  //: design's house.signage: interior-lab/signage.mjs) has it over its door -- the awning, the
+  //: board, the painted name or the sign out front, lettered as they chose, with their line
+  //: under the name. Looked at every few seconds; built again only when the sign, the shop's
+  //: name or its door has changed, and taken down when the business closes or the sign is removed.
+  const storeSigns = new Map();   // business id -> { key, group }
+  let storeSignsAt = -1e9;
+  function dropStoreSign(id) {
+    const have = storeSigns.get(id);
+    if (!have) return;
+    have.group.removeFromParent();
+    have.group.traverse((o) => { o.geometry?.dispose?.(); o.material?.map?.dispose?.(); o.material?.dispose?.(); });
+    storeSigns.delete(id);
+  }
+  function syncStoreSigns(now) {
+    if (now - storeSignsAt < 3000) return;
+    storeSignsAt = now;
+    const src = world || view, designs = src?.businessInteriors, biz = src?.biz, seen = new Set();
+    if (designs && biz && typeof document !== "undefined") {
+      for (const [id, design] of designs) {
+        const sign = normalizeSignage(design?.house?.signage), b = biz.get(id);
+        if (!sign || !b || b.status !== "open" || !b.place) continue;
+        const pl = district.placeById?.get(b.place.id) || district.placeById?.get(String(b.place.id)) || (district.places || []).find((x) => String(x.id) === String(b.place.id));
+        const door = pl?.door;
+        if (!door || !Number.isFinite(door.nx) || !Number.isFinite(door.nz)) continue;
+        seen.add(id);
+        const key = `${JSON.stringify(sign)}|${b.name}|${Math.round(door.x * 10)}:${Math.round(door.z * 10)}`;
+        if (storeSigns.get(id)?.key === key) continue;
+        dropStoreSign(id);
+        try {
+          const g = buildSignage(THREE, sign, { name: b.name || "Shop", frontage: Math.max(3, Math.min(7, Math.sqrt(pl.area || 60) * 0.6)) });
+          // The door's own frame: z out from the wall (the door's n points in), x along the front.
+          g.position.set(door.x - door.nx * 0.05, groundAt(door.x - door.nx * 0.6, door.z - door.nz * 0.6), door.z - door.nz * 0.05);
+          g.rotation.y = Math.atan2(-door.nx, -door.nz);
+          g.userData.business = id;
+          group.add(g);
+          storeSigns.set(id, { key, group: g });
+        } catch (error) { console.warn("kerbside: a shop's sign could not be drawn", id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
+      }
+    }
+    for (const id of [...storeSigns.keys()]) if (!seen.has(id)) dropStoreSign(id);
+  }
+  //: The car parks' stalls the world has drawn (ctx.parkingStalls: module 14), given to the city
+  //: when they come or change, as the racks are.
+  function syncLots(now) {
+    if (!ctx.parkingStalls || !district.city || now - (district.lotsAt || -1e9) < 2500) return;
+    district.lotsAt = now;
+    const stalls = ctx.parkingStalls() || [];
+    if (stalls.length === district.lotCount) return;
+    district.lotCount = stalls.length;
+    district.city.setLots(stalls);
+    ctx.log?.(`kerbside: ${stalls.length} car park stalls for the city's cars`);
   }
   //: The bus lines through the district: the real routes' stops near its streets.
   function makeLines() {
@@ -492,35 +547,38 @@ export async function startCity(ctx) {
     g.setAttribute("tonePart", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(part), 1));
     return g;
   };
+  // Filled out (2026-11-17: "weirdly skinny and long limbed"): the trunk a seventh wider and a
+  // quarter deeper, thighs and upper arms a third thicker, the arm a hand shorter, the head a
+  // little larger. Heights are as they were -- the joints, the poses and the clothes' cuts.
   // Hips at 0.84 (where the legs hang), the belt at 0.93, the shoulders at 1.34 (where the arms do).
-  const torsoGeo = mergeGeos([piece(lathe([[0.001, 0.8], [0.165, 0.81], [0.175, 0.9], [0.152, 1.02], [0.172, 1.14], [0.19, 1.26], [0.2, 1.32], [0.14, 1.385], [0.055, 1.405], [0.001, 1.41]], 10, 0.62))]);
+  const torsoGeo = mergeGeos([piece(lathe([[0.001, 0.8], [0.19, 0.81], [0.2, 0.9], [0.178, 1.02], [0.196, 1.14], [0.214, 1.26], [0.222, 1.32], [0.16, 1.385], [0.065, 1.405], [0.001, 1.41]], 10, 0.74))]);
   // The head: a little longer than wide, a neck, a nose to tell which way it looks (-z, ahead).
   const headGeo = mergeGeos([
-    piece(new THREE.SphereGeometry(0.108, 12, 9).scale(0.9, 1.14, 1).translate(0, 1.54, 0)),
-    piece(new THREE.CylinderGeometry(0.048, 0.055, 0.14, 8, 1, true).translate(0, 1.4, 0.005)),
-    piece(new THREE.BoxGeometry(0.026, 0.04, 0.03).translate(0, 1.525, -0.1)),
-    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(-0.096, 1.54, 0.005)),
-    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(0.096, 1.54, 0.005)),
+    piece(new THREE.SphereGeometry(0.115, 12, 9).scale(0.9, 1.12, 1).translate(0, 1.545, 0)),
+    piece(new THREE.CylinderGeometry(0.056, 0.064, 0.14, 8, 1, true).translate(0, 1.4, 0.005)),
+    piece(new THREE.BoxGeometry(0.026, 0.04, 0.03).translate(0, 1.525, -0.107)),
+    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(-0.102, 1.54, 0.005)),
+    piece(new THREE.SphereGeometry(0.022, 5, 4).scale(0.6, 1, 1).translate(0.102, 1.54, 0.005)),
   ]);
   // A leg from the hip (y 0) to the sole (-0.84): thigh, knee, calf, ankle; the shoe ahead of it.
   const legGeo = mergeGeos([
-    piece(lathe([[0.001, 0.03], [0.07, 0.01], [0.074, -0.12], [0.062, -0.38], [0.052, -0.45], [0.056, -0.56], [0.04, -0.74], [0.036, -0.77], [0.001, -0.78]], 8)),
-    piece(new THREE.BoxGeometry(0.088, 0.075, 0.23).translate(0, -0.8, -0.045), 2),
-    piece(new THREE.SphereGeometry(0.045, 6, 4).scale(1, 0.75, 1.1).translate(0, -0.79, -0.15), 2),
+    piece(lathe([[0.001, 0.03], [0.09, 0.01], [0.097, -0.12], [0.082, -0.36], [0.066, -0.45], [0.072, -0.57], [0.05, -0.74], [0.045, -0.77], [0.001, -0.78]], 8)),
+    piece(new THREE.BoxGeometry(0.104, 0.08, 0.25).translate(0, -0.8, -0.05), 2),
+    piece(new THREE.SphereGeometry(0.052, 6, 4).scale(1, 0.75, 1.1).translate(0, -0.79, -0.165), 2),
   ]);
-  // An arm from the shoulder (y 0): upper arm, elbow, forearm to the wrist (-0.52), the hand skin.
+  // An arm from the shoulder (y 0): upper arm, elbow, forearm to the wrist (-0.49), the hand skin.
   const armGeo = mergeGeos([
-    piece(lathe([[0.001, 0.045], [0.052, 0.02], [0.054, -0.04], [0.046, -0.27], [0.042, -0.3], [0.036, -0.5], [0.031, -0.525], [0.001, -0.53]], 7)),
-    piece(new THREE.SphereGeometry(0.04, 6, 5).scale(0.62, 1.35, 1).translate(0, -0.575, -0.005), 1),
+    piece(lathe([[0.001, 0.05], [0.066, 0.02], [0.07, -0.05], [0.06, -0.25], [0.053, -0.28], [0.048, -0.46], [0.039, -0.49], [0.001, -0.495]], 7)),
+    piece(new THREE.SphereGeometry(0.046, 6, 5).scale(0.66, 1.25, 1).translate(0, -0.54, -0.005), 1),
   ]);
   // Hair: a cap over the crown, and behind it what falls -- to the collar, or the shoulders --
   // cut per person at their hair's length (TONE_TRIM: what is below the cut is not drawn).
   const hairGeo = mergeGeos([
-    piece(new THREE.SphereGeometry(0.118, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.56).scale(0.94, 1.1, 1.04).translate(0, 1.548, 0.008)),
-    piece(new THREE.CylinderGeometry(0.112, 0.13, 0.3, 10, 3, true, -Math.PI / 2 - 0.15, Math.PI + 0.3).translate(0, 1.4, 0.035)),
+    piece(new THREE.SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.56).scale(0.94, 1.09, 1.04).translate(0, 1.553, 0.008)),
+    piece(new THREE.CylinderGeometry(0.119, 0.138, 0.3, 10, 3, true, -Math.PI / 2 - 0.15, Math.PI + 0.3).translate(0, 1.4, 0.035)),
   ]);
   // A skirt: from the belt to the knee, flared.
-  const skirtGeo = mergeGeos([piece(new THREE.CylinderGeometry(0.168, 0.24, 0.44, 12, 1, true).scale(1, 1, 0.72).translate(0, 0.7, 0))]);
+  const skirtGeo = mergeGeos([piece(new THREE.CylinderGeometry(0.2, 0.27, 0.44, 12, 1, true).scale(1, 1, 0.8).translate(0, 0.7, 0))]);
   //: The material that dresses a part: per person ``tonePrimary`` (the cloth), ``toneSecond`` (rgb:
   //: skin or the trousers; w: the cut, in the part's own height, below which it shows) and
   //: ``toneAccent`` (shoes); per vertex ``tonePart`` (0 cloth to the cut, 1 always the second, 2
@@ -609,8 +667,8 @@ export async function startCity(ctx) {
   //: A rider's legs in two bones each, thigh and shin (the walking figure's are one piece from the
   //: hip): a unit long, hanging from the joint, stretched to the bone's length; the shin's foot
   //: darker, a shoe.
-  const thighGeo = box(0.15, 1, 0.16, -0.5);
-  const shinGeo = box(0.13, 1, 0.14, -0.5);
+  const thighGeo = box(0.18, 1, 0.19, -0.5);
+  const shinGeo = box(0.145, 1, 0.155, -0.5);
   {
     const pos = shinGeo.attributes.position, col = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i += 1) { const v = pos.getY(i) < -0.88 ? 0.28 : 1; col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v; }
@@ -636,17 +694,17 @@ export async function startCity(ctx) {
   //: head in another, its crown the hair's shade. Two parts, not seven, and nothing swings: at
   //: sixty metres and more a stride is a few pixels, and a walk reads from the body's bob.
   const midBodyGeo = mergeGeos([
-    piece(lathe([[0.001, 0.8], [0.17, 0.82], [0.155, 1.02], [0.195, 1.28], [0.12, 1.39], [0.001, 1.41]], 6, 0.62)),
-    piece(new THREE.CylinderGeometry(0.068, 0.042, 0.8, 5, 1, true).translate(-0.1, 0.46, 0)),
-    piece(new THREE.CylinderGeometry(0.068, 0.042, 0.8, 5, 1, true).translate(0.1, 0.46, 0)),
+    piece(lathe([[0.001, 0.8], [0.195, 0.82], [0.18, 1.02], [0.218, 1.28], [0.14, 1.39], [0.001, 1.41]], 6, 0.74)),
+    piece(new THREE.CylinderGeometry(0.09, 0.052, 0.8, 5, 1, true).translate(-0.105, 0.46, 0)),
+    piece(new THREE.CylinderGeometry(0.09, 0.052, 0.8, 5, 1, true).translate(0.105, 0.46, 0)),
     piece(box(0.085, 0.07, 0.22, 0.035, -0.1).translate(0, 0, -0.045), 2), piece(box(0.085, 0.07, 0.22, 0.035, 0.1).translate(0, 0, -0.045), 2),
-    piece(new THREE.CylinderGeometry(0.05, 0.036, 0.6, 5, 1, false).translate(-0.27, 1.06, 0)),
-    piece(new THREE.CylinderGeometry(0.05, 0.036, 0.6, 5, 1, false).translate(0.27, 1.06, 0)),
+    piece(new THREE.CylinderGeometry(0.064, 0.046, 0.56, 5, 1, false).translate(-0.29, 1.08, 0)),
+    piece(new THREE.CylinderGeometry(0.064, 0.046, 0.56, 5, 1, false).translate(0.29, 1.08, 0)),
   ]);
-  const midHeadGeo = shadeByHeight(new THREE.SphereGeometry(0.12, 8, 6).translate(0, 1.53, 0), [[1.575, 1], [9, 0.3]]);
+  const midHeadGeo = shadeByHeight(new THREE.SphereGeometry(0.127, 8, 6).translate(0, 1.535, 0), [[1.575, 1], [9, 0.3]]);
   //: Low: one block the person's height in their shirt's colour, legs darker -- a figure, at two
   //: hundred metres, and one part.
-  const lowBodyGeo = shadeByHeight(mergeGeos([box(0.42, 1.4, 0.26, 0.7), box(0.2, 0.22, 0.2, 1.52)]), [[0.8, 0.55], [1.41, 1], [9, 0.85]]);
+  const lowBodyGeo = shadeByHeight(mergeGeos([box(0.48, 1.4, 0.3, 0.7), box(0.22, 0.24, 0.22, 1.52)]), [[0.8, 0.55], [1.41, 1], [9, 0.85]]);
   const midBody = mkTone(midBodyGeo, PEOPLE_CAPS[1]), midHead = mk(midHeadGeo, PEOPLE_CAPS[1], { vertexColors: true });
   const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
   midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
@@ -843,8 +901,8 @@ export async function startCity(ctx) {
           else if (g.kind === "swing") { armR = -0.3 - 1.4 * k; outR = 0.06 + 0.9 * k; }
           else if (g.kind === "guard") { armL = armR = -2.5; outL = -0.45; outR = 0.45; }
         }
-        M.copy(b).multiply(TM.makeTranslation(-0.26, 1.34, 0)).multiply(RM.makeRotationX(armL)); M.multiply(TM.makeRotationZ(outL)); parts.armL.setMatrixAt(n, M);
-        M.copy(b).multiply(TM.makeTranslation(0.26, 1.34, 0)).multiply(RM.makeRotationX(armR)); M.multiply(TM.makeRotationZ(outR)); parts.armR.setMatrixAt(n, M);
+        M.copy(b).multiply(TM.makeTranslation(-0.272, 1.34, 0)).multiply(RM.makeRotationX(armL)); M.multiply(TM.makeRotationZ(outL)); parts.armL.setMatrixAt(n, M);
+        M.copy(b).multiply(TM.makeTranslation(0.272, 1.34, 0)).multiply(RM.makeRotationX(armR)); M.multiply(TM.makeRotationZ(outR)); parts.armR.setMatrixAt(n, M);
         if (body.outfit.bottom === "skirt" && k < MAX_PEOPLE) {
           skirts.setMatrixAt(k, b);
           dressAt(skirts, k, body.outfit.bottoms);
@@ -1728,7 +1786,8 @@ export async function startCity(ctx) {
   function homeSpawn() {
     const p = self();
     if (!p || !view) return;
-    const owned = p.home?.room && view.registry.assets.get(p.home.room)?.owner === p.account && view.registry.assets.get(p.home.room)?.kind === "home";
+    // Your home, owned or rented: where you live is where you start.
+    const owned = Boolean(p.home && (p.home.building || Number.isFinite(p.home.x)));
     const pl = owned ? (district.places || []).find((x) => String(x.id) === String(p.home.building)) : null;
     const at = owned ? (pl?.door ? { x: pl.door.x, z: pl.door.z } : Number.isFinite(p.home.x) ? { x: p.home.x, z: p.home.z } : null) : null;
     const [lon, lat] = at ? ctx.toLonLat(at.x, at.z) : [null, null];
@@ -3706,6 +3765,7 @@ export async function startCity(ctx) {
   // ---- the frame -------------------------------------------------------------------------------
   let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
   let visible = { people: [], vehicles: [] }, frameFailed = false;
+  const ALIVE_FOR_MS = 2500, ALIVE_GIVE_UP_MS = 30_000, aliveSeen = { started: 0, since: 0 };
   // ---- level of detail (detail.mjs) ----------------------------------------------------------------
   //: The field this frame (null before the first), what tier each person and car had (and, for one
   //: only tracked or drawn low, when it is next placed), and how many were drawn at each tier.
@@ -3744,8 +3804,12 @@ export async function startCity(ctx) {
     return Math.min(2500, Math.max(base, Math.hypot(Math.max(focus.x - x0, x1 - focus.x), Math.max(focus.z - z0, z1 - focus.z))));
   }
   function tick(now) {
-    if (!ctx.enabled()) { group.visible = false; return false; }
+    // Behind the loading screen the city runs unseen until its people and traffic are out and
+    // moving (ctx.warming; ``alive`` below says when): nobody is let into streets still filling.
+    const warming = !ctx.enabled() && Boolean(ctx.warming?.());
+    if (!ctx.enabled() && !warming) { group.visible = false; return false; }
     group.visible = true;
+    aliveSeen.started ||= performance.now();
     if (!group.parent) ctx.root.add(group);
     const t = Date.now();
     if (now - lastRegion > 1500) {
@@ -3755,7 +3819,7 @@ export async function startCity(ctx) {
     }
     chooseBooks();
     homeSpawn();
-    cityRoom();
+    if (!warming) cityRoom();
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
@@ -3803,7 +3867,7 @@ export async function startCity(ctx) {
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
       keepClear();
-      syncRacks(now);
+      syncRacks(now); syncLots(now); syncStoreSigns(now);
       stepBikes(dt, t / 1000, focus, now);
       // The residents' bicycles: ridden (their riders on them) and stood by their doors -- the
       // nearest first, as many as are drawn.
@@ -3901,6 +3965,13 @@ export async function startCity(ctx) {
       // (Up to a couple of paces: a dozen waiting at one crossing need the room to stand apart.)
       if (m > 1.9) { ax *= 1.9 / m; az *= 1.9 / m; }
       if (m < 0.005) { aside.delete(e.id); e.x -= e._ax || 0; e.z -= e._az || 0; e._ax = e._az = 0; continue; }
+      // Nobody steps aside into the roadway: off a pavement the step is cut short, or not taken.
+      if (ctx.roadAt) {
+        const bx = e.x - (e._ax || 0), bz = e.z - (e._az || 0);
+        if (ctx.roadAt(bx + ax, bz + az) && !ctx.roadAt(bx, bz)) {
+          if (!ctx.roadAt(bx + ax * 0.4, bz + az * 0.4)) { ax *= 0.4; az *= 0.4; } else { ax = 0; az = 0; }
+        }
+      }
       if (was) { was[0] = ax; was[1] = az; } else aside.set(e.id, [ax, az]);
       e.x += ax - (e._ax || 0); e.z += az - (e._az || 0); e._ax = ax; e._az = az;
     }
@@ -5217,6 +5288,23 @@ export async function startCity(ctx) {
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
+    //: Whether the city is up and running, for the loading screen: {ready, waiting}. Ready when
+    //: the district is built, the first pass over it is done, no vehicle model is still loading,
+    //: and people or traffic have been out and moving for ALIVE_FOR_MS. An hour with nobody out
+    //: (or a district with no streets) is let through after ALIVE_GIVE_UP_MS: never a load for ever.
+    alive() {
+      const now = performance.now();
+      // (The clock starts at the city's first frame, not at the first time this is asked.)
+      const gaveUp = Boolean(aliveSeen.started) && now - aliveSeen.started > ALIVE_GIVE_UP_MS;
+      if (!district.city) return { ready: gaveUp, waiting: "the city's streets" };
+      const loadingModels = [...fleetModels.values()].filter((m) => m === "loading").length;
+      if (loadingModels) { aliveSeen.since = 0; return { ready: gaveUp, waiting: `vehicles (${loadingModels})` }; }
+      const moving = visible.people.some((e) => e.moving) || visible.vehicles.some((v) => v.moving || Math.abs(v.speed ?? v.v ?? 0) > 0.5);
+      const out = visible.people.length + visible.vehicles.length;
+      if (!out || !moving) { aliveSeen.since = 0; return { ready: gaveUp, waiting: "the city's people and traffic" }; }
+      aliveSeen.since ||= now;
+      return { ready: gaveUp || now - aliveSeen.since >= ALIVE_FOR_MS, waiting: "the city's people and traffic", people: visible.people.length, vehicles: visible.vehicles.length };
+    },
     //: For checks from outside (tests in a browser): who is drawn near you, as placed this frame.
     peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, indoors: Boolean(e.indoors), dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
       lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
@@ -5226,6 +5314,7 @@ export async function startCity(ctx) {
       return null;
     },
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), applyBusinessInterior: args => send("customize_business", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
+    storeSigns: () => [...storeSigns].map(([id, x]) => ({ id, key: x.key, parts: x.group.children.length })),
     scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,

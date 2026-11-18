@@ -109,9 +109,22 @@ export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 //: (on foot), else comes later (staying where they were up to ``later_min``), else gives it up
 //: and looks in the windows round about instead. Nobody is let in past the shop's capacity, and
 //: each customer in it has a lane of the floor of their own (City.admit).
+//: How a walk is kept off the roadway (City.legalize): looked at every ``step_m`` along it; a
+//: stretch of roadway by a crossing is that crossing's when it is ``kerb_m`` or less (the
+//: crossing is grown over it, so the wait is at the kerb; ``grow_m`` where no pavement is found); one up to ``mouth_m`` long with pavement either end is the mouth of a side
+//: street or a driveway, walked over; a longer one is moved onto the pavement beside it -- the
+//: nearest kerb within ``kerb_reach_m``, ``out_m`` in from it, never an island (roadway again
+//: within ``island_m`` beyond), no step of it more than ``hop_m`` from the last.
+export const WALK_LEGAL = { step_m: 1, mouth_m: 16, kerb_m: 6, grow_m: 22, kerb_reach_m: 26, out_m: 0.9, island_m: 9, hop_m: 6, every: 2, search_m: 32 };
+//: How a street's drawn kerb is looked for (City.kerbOffset): at so many points along a stretch,
+//: out a step at a time to ``reach_m``; a pavement is ground with no roadway for ``clear_m``.
+export const KERB_SCAN = { points: 3, step_m: 0.5, reach_m: 42, clear_m: 9 };
 //: How the fronts along a stretch of street are looked for (City.walkOffset): a point every
 //: ``every_m`` (``most`` at most), clear of the last ``ends_m`` at each end, stepping out from
 //: the kerb ``step_m`` at a time.
+//: Car parks: a stall is walked to from this far at most; the grid the stalls are kept in; and
+//: the longest car a stall takes.
+export const LOT_WALK_M = 70, LOT_CELL_M = 40, LOT_CAR_MAX_M = 5.8;
 export const FRONT_SCAN = { every_m: 7, most: 14, ends_m: 9, step_m: 0.3 };
 export const SHOP_QUEUE = { queue_len: 4, queue_wait_min: 6, queue_step_m: 0.8, alt_m: 450, later_min: 45, min_stay_min: 5 };
 const CUSTOMER_KINDS = new Set(["errand", "meal", "evening"]);
@@ -347,7 +360,7 @@ export class City {
     this.streets = streets;
     streets.setPreferences?.(this.R.traffic);
     for (const pl of this.roster.places.values()) pl.node = streets.nearest(pl.x, pl.z, "walk", 120) ?? pl.node;
-    this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
+    this.plans = new Map(); this.spots = new Map(); this.taken = new Map(); this.lotTaken = new Map(); this.roams = new Map(); this.walkLags = new Map(); this.breakSpots = new Map(); this._gateways = null; this.homeSlots = null;
     this.shopBooks = new Map(); this.admitted = new Map(); this.staffLanes = new Map(); this._footprints = null;
     this._walkOffsets = null;
     this.rackTaken = new Map();
@@ -355,7 +368,7 @@ export class City {
   //: The kerb as the world draws it (the page's): ``kerbAt(x, z)`` -> {x, z, nx, nz, ax, az}
   //: and ``kerbParking(x, z, ax, az, halfLen, kind)`` -> why a car may not stand there, or null.
   //: Set, every spot is found again against it.
-  setKerbside(k) { this.kerbside = k || null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.shopBooks = new Map(); this.admitted = new Map(); this.rackTaken = new Map(); }
+  setKerbside(k) { this.kerbside = k || null; this._walkOffsets = null; this.spots = new Map(); this.taken = new Map(); this.plans = new Map(); this.breakSpots?.clear(); this.shopBooks = new Map(); this.admitted = new Map(); this.rackTaken = new Map(); this.lotTaken = new Map(); }
   //: The bicycle racks the world draws (the page's module 21 placeCityBikeRacks: the city's
   //: racks, DataSF), each with its places for a bicycle ({x, z, yaw, lock}). A rider out on an
   //: errand locks up to the nearest with a place free, within BIKE_RACK_WALK_M of the
@@ -372,6 +385,46 @@ export class City {
     this.rackTaken = new Map();
     for (const [key, spot] of this.spots) if (spot?.rack) this.spots.delete(key);
     this.plans = new Map();
+  }
+  //: The stalls painted in the world's car parks (the page's module 14 cityParkingStalls):
+  //: {id, lot, x, z, yaw}. A car going to a place with a stall free within LOT_WALK_M of its
+  //: door parks in it, nosed in, one car a stall -- before the kerb is looked at. Set, every
+  //: car's spot (and so the days, planned to them) is found again.
+  setLots(stalls) {
+    this.lots = (stalls || []).filter((q) => Number.isFinite(q.x) && Number.isFinite(q.z) && Number.isFinite(q.yaw));
+    this.lotGrid = new Map();
+    for (const q of this.lots) {
+      const key = `${Math.floor(q.x / LOT_CELL_M)}:${Math.floor(q.z / LOT_CELL_M)}`;
+      if (!this.lotGrid.has(key)) this.lotGrid.set(key, []);
+      this.lotGrid.get(key).push(q);
+    }
+    this.lotTaken = new Map();
+    for (const [key, spot] of this.spots) if (!spot || spot.lot || spot.stacked) this.spots.delete(key);
+    this.plans = new Map();
+  }
+  //: A stall free in a car park near ``at`` for ``vehicle`` (claimed for it), nearest first, or
+  //: null. ``win`` ({day, t0, t1}) is when a visiting car stands there: the stall is its for
+  //: that while, and another's at another hour; with none it is the car's for good (where a
+  //: resident parks for work). Two cars are never given one stall for the same time.
+  lotStall(vehicle, at, win = null, reach = LOT_WALK_M) {
+    if (!this.lots?.length || !at || vehicle.bike) return null;
+    if ((VEHICLE_L[vehicle.model] || 4.6) > LOT_CAR_MAX_M) return null;   // a bus, a box truck: not in a stall
+    const clash = (e) => e.v !== vehicle.id && (!e.win || !win || (e.win.day === win.day && e.win.t0 < win.t1 && win.t0 < e.win.t1));
+    let best = null, bestD = reach;
+    for (let cx = Math.floor((at.x - reach) / LOT_CELL_M); cx <= Math.floor((at.x + reach) / LOT_CELL_M); cx += 1)
+      for (let cz = Math.floor((at.z - reach) / LOT_CELL_M); cz <= Math.floor((at.z + reach) / LOT_CELL_M); cz += 1)
+        for (const q of this.lotGrid.get(`${cx}:${cz}`) || []) {
+          const d = Math.hypot(q.x - at.x, q.z - at.z);
+          if (d >= bestD || this.lotTaken.get(q.id)?.some(clash)) continue;
+          bestD = d; best = q;
+        }
+    if (!best) return null;
+    let held = this.lotTaken.get(best.id);
+    if (!held) this.lotTaken.set(best.id, held = []);
+    // (Yesterday's visitors are gone: their hours are let go.)
+    if (win && held.length > 6) for (let i = held.length - 1; i >= 0; i -= 1) if (held[i].win && held[i].win.day < win.day - 1) held.splice(i, 1);
+    held.push({ v: vehicle.id, win });
+    return best;
   }
   //: A place free at a rack near ``at`` for ``vehicle`` (claimed for it), or null.
   rackSlot(vehicle, at) {
@@ -476,6 +529,14 @@ export class City {
   spotOf(vehicle, placeId, win = null) {
     const key = `${vehicle.id}:${placeId}`;
     let spot = this.spots.get(key);
+    // A stall kept from an earlier visit is theirs again only if no other car has it for these
+    // hours: else another is found.
+    if (spot && spot.lot && win) {
+      const held = this.lotTaken.get(spot.stall) || [];
+      const over = (e) => !e.win || (e.win.day === win.day && e.win.t0 < win.t1 && win.t0 < e.win.t1);
+      if (held.some((e) => e.v !== vehicle.id && over(e))) { this.spots.delete(key); spot = undefined; }
+      else if (!held.some((e) => e.v === vehicle.id && (!e.win || (e.win.day === win.day && e.win.t0 === win.t0)))) { held.push({ v: vehicle.id, win }); this.lotTaken.set(spot.stall, held); }
+    }
     if (spot !== undefined) {
       if (spot && win && spot.held && !spot.garage) this.take(spot.x, spot.z, 0, 0, spot.halfLen, win);
       return spot;
@@ -501,16 +562,44 @@ export class City {
       return spot;
     }
     const garage = Boolean(place && vehicle.garage && placeId === vehicle.home);
-    const edges = s.edges[nodeId].filter((e) => e.drive).sort((a, b) => a.to - b.to);
+    let edges = s.edges[nodeId].filter((e) => e.drive).sort((a, b) => a.to - b.to);
+    // In a car park by the door, where there is one with a stall free: nosed into the stall.
+    if (place && !garage) {
+      const D = place.door || place.front || place, stall = this.lotStall(vehicle, D, placeId === vehicle.home ? null : win);
+      if (stall) {
+        const node = s.nearest(stall.x, stall.z, "drive", 160) ?? nodeId;
+        spot = { garage: false, gateway: false, lot: true, stall: stall.id, node, x: stall.x, z: stall.z, yaw: stall.yaw, door: { x: stall.x, z: stall.z }, place: placeId };
+        this.spotStats = this.spotStats || { kerb: 0, garage: 0, none: 0, legacy: 0 };
+        this.spotStats.lot = (this.spotStats.lot || 0) + 1;
+        this.spots.set(key, spot);
+        return spot;
+      }
+    }
+    // A place whose nearest corner no street runs from (the end of a car park's aisle, a path's
+    // end): the kerb is looked for from the nearest corner a street does run from. Every car
+    // for such a place was stood on that one corner, one inside another (2026-11-17).
+    let kerbNode = nodeId;
+    if (place && !garage && !edges.length) {
+      const other = s.nearest(place.x, place.z, "drive", 260);
+      const there = other === null || other === undefined ? [] : s.edges[other].filter((e) => e.drive).sort((a, b) => a.to - b.to);
+      if (there.length) { kerbNode = other; edges = there; }
+    }
     const n = s.nodes[nodeId];
-    if (garage || !edges.length || typeof placeId === "number") {
+    if (place && !garage && !edges.length) {
+      // No street to stand on anywhere near: at home the car is kept in (a garage, as most
+      // Marina homes have); anywhere else the place is not driven to.
+      if (placeId === vehicle.home) {
+        const door = place.front ? { x: place.front.x, z: place.front.z } : { x: place.x, z: place.z };
+        spot = { garage: true, gateway: false, node: nodeId, x: door.x, z: door.z, yaw: 0, door, place: placeId, full: true };
+      } else { this.spots.set(key, null); return null; }
+    } else if (garage || !edges.length || typeof placeId === "number") {
       const door = place?.front ? { x: place.front.x, z: place.front.z } : place ? { x: place.x, z: place.z } : { x: n.x, z: n.z };
       spot = { garage, gateway: typeof placeId === "number", node: nodeId, x: garage ? door.x : n.x, z: garage ? door.z : n.z, yaw: 0, door, place: placeId };
     } else {
-      spot = this.kerbSpot(vehicle, placeId, nodeId, win);
+      spot = this.kerbSpot(vehicle, placeId, kerbNode, win);
       this.spotStats = this.spotStats || { kerb: 0, garage: 0, none: 0, legacy: 0 };
       if (spot) this.spotStats.kerb += 1;
-      else if (!this.kerbside) { spot = this.legacySpot(vehicle, placeId, nodeId, edges); this.spotStats.legacy += 1; }
+      else if (!this.kerbside) { spot = this.legacySpot(vehicle, placeId, kerbNode, edges); this.spotStats.legacy += 1; }
       else if (place && placeId === vehicle.home) {
         // Nowhere legal on the street near home (the Marina is short of kerb): in the garage
         // under the house, as most Marina homes have one.
@@ -666,8 +755,8 @@ export class City {
     for (let i = 1; i < pts.length; i += 1) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     // Its spots at the kerb at each end: pulled out of and in to (view.mjs eases the car there).
     leg.route = { pts, s: S, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: S[S.length - 1], mode: "drive", bike: Boolean(v?.bike),
-      startSpot: a.edge && !a.garage ? { x: a.x, z: a.z, yaw: a.yaw } : a.locked ? { x: a.x, z: a.z, yaw: a.yaw, lock: a.lock } : null,
-      endSpot: b.edge && !b.garage ? { x: b.x, z: b.z, yaw: b.yaw } : b.locked ? { x: b.x, z: b.z, yaw: b.yaw, lock: b.lock } : null };
+      startSpot: (a.edge && !a.garage) || a.lot ? { x: a.x, z: a.z, yaw: a.yaw } : a.locked ? { x: a.x, z: a.z, yaw: a.yaw, lock: a.lock } : null,
+      endSpot: (b.edge && !b.garage) || b.lot ? { x: b.x, z: b.z, yaw: b.yaw } : b.locked ? { x: b.x, z: b.z, yaw: b.yaw, lock: b.lock } : null };
     return leg.route;
   }
   // -- days --------------------------------------------------------------------------------------
@@ -1074,7 +1163,8 @@ export class City {
     const off = toMin(arrive + leg.ride + 4);
     const walkB = tripMinutes(Math.hypot(B.x - stopB.x, B.z - stopB.z), p.pace) + 0.2;
     const r = rng(p.id, "stop", Math.round(depart));
-    const spot = [stopA.x + (r() - 0.5) * 2.4, stopA.z + (r() - 0.5) * 2.4];
+    // (On the pavement: a stop the map has out in the roadway is waited for from beside it.)
+    const spot = this.standOff(stopA.x + (r() - 0.5) * 2.4, stopA.z + (r() - 0.5) * 2.4);
     return [
       { kind: "go", mode: "walk", t0: depart, t1: depart + walkA, from, toXZ: spot, ride: "bus" },
       { kind: "go", mode: "wait", t0: depart + walkA, t1: board, at: spot, yaw: r() * 6.28, label: `waiting for the ${line.route}`, route: line.route },
@@ -1217,6 +1307,10 @@ export class City {
     const nx = -where.uz * where.side, nz = where.ux * where.side;
     const ends = Math.min(FRONT_SCAN.ends_m, where.len * 0.25), span = where.len - 2 * ends;
     const n = Math.max(1, Math.min(FRONT_SCAN.most, Math.ceil(span / FRONT_SCAN.every_m)));
+    // The kerb as the world draws it on this side (kerbOffset), where it is built: the street's
+    // own half width is the map's, and a street with a cycle lane, a slip lane or an island
+    // along it is wider than that on one side.
+    half = this.kerbOffset(half, where, nx, nz, ends, span);
     let gap = Infinity;
     for (let k = 0; k < n; k += 1) {
       const t = ends + span * (k + 0.5) / n, x = where.x + where.ux * t, z = where.z + where.uz * t;
@@ -1228,6 +1322,154 @@ export class City {
     this._walkOffsets.map.set(key, o);
     if (gap < Infinity) { this.wallFixes ??= {}; this.wallFixes.narrowed = (this.wallFixes.narrowed || 0) + 1; }
     return o;
+  }
+  //: The pavement beside (x, z), a point in a roadway: just in from the nearest kerb -- or null
+  //: where there is none within reach, or the nearest kerb is an island's or a median's.
+  pavementBy(x, z) {
+    const K = this.kerbside, G = WALK_LEGAL;
+    const k = K?.kerbNear?.(x, z, G.kerb_reach_m);
+    if (!k || !K.onRoad) return null;
+    const qx = k.x + k.nx * G.out_m, qz = k.z + k.nz * G.out_m;
+    if (K.onRoad(qx, qz)) return null;
+    for (let d = 3; d <= G.island_m; d += 3) if (K.onRoad(k.x + k.nx * (G.out_m + d), k.z + k.nz * (G.out_m + d))) return null;
+    return { x: qx, z: qz };
+  }
+  //: Somewhere to stand off the roadway near (x, z) -- a stop's pole, a place to wait: the point
+  //: itself where it is no roadway; else the pavement by the nearest kerb; else (that kerb an
+  //: island's) the nearest ground, looked for outwards all round, that is not roadway and has
+  //: none beyond it. [x, z], the point given where nothing is found or the world is not built.
+  standOff(x, z) {
+    const road = this.kerbside?.onRoad, G = WALK_LEGAL;
+    if (!road || !road(x, z)) return [x, z];
+    const by = this.pavementBy(x, z);
+    if (by) return [by.x, by.z];
+    for (let r = 1; r <= G.search_m; r += 1) {
+      for (let k = 0; k < 16; k += 1) {
+        const ux = Math.cos(k * Math.PI / 8), uz = Math.sin(k * Math.PI / 8), px = x + ux * (r + G.out_m), pz = z + uz * (r + G.out_m);
+        if (road(x + ux * r, z + uz * r) || road(px, pz)) continue;
+        let island = false;
+        for (let d = 3; d <= G.island_m; d += 3) if (road(px + ux * d, pz + uz * d)) { island = true; break; }
+        if (!island) return [px, pz];
+      }
+    }
+    return [x, z];
+  }
+  //: A walk (pavementRoute's) made to keep off the roadway as the world draws it (WALK_LEGAL):
+  //: its crossings grown to the kerbs they leave and reach, so the wait is on the pavement; the
+  //: stretches it ran along a roadway moved onto the pavement beside. The same walk where the
+  //: world is not built (no kerbside.onRoad) or nothing needed changing.
+  legalize(pave) {
+    const road = this.kerbside?.onRoad, G = WALK_LEGAL;
+    if (!road || !pave || !pave.pts || pave.pts.length < 2 || !(pave.length > 2)) return pave;
+    const pts = pave.pts, S = pave.s, L = pave.length;
+    const n = Math.floor(L / G.step_m), flag = new Uint8Array(n + 1), X = new Float64Array(n + 1), Z = new Float64Array(n + 1);
+    let any = false;
+    for (let i = 0, k = 0; i <= n; i += 1) {
+      const d = i * G.step_m;
+      while (k + 2 < pts.length && S[k + 1] < d) k += 1;
+      const span = S[k + 1] - S[k] || 1, t = Math.max(0, Math.min(1, (d - S[k]) / span));
+      X[i] = pts[k][0] + (pts[k + 1][0] - pts[k][0]) * t; Z[i] = pts[k][1] + (pts[k + 1][1] - pts[k][1]) * t;
+      if (road(X[i], Z[i])) { flag[i] = 1; any = true; }
+    }
+    if (!any) return pave;
+    const crossings = (pave.crossings || []).map((c) => ({ ...c })), fixes = [];
+    // A stretch of roadway walked that no crossing covers, from ``u`` to ``v`` along the walk,
+    // with the crossing before it and the one after (or null): a few steps of it are the
+    // crossing's own (the crossing is grown over them); more is moved onto the pavement.
+    const piece = (u, v, prev, next, entry) => {
+      u = Math.max(0, u); v = Math.min(L, v);
+      if (!(v - u > 0.01)) return;
+      const grow = () => {
+        if (prev && next) { const m = (u + v) / 2; prev.s1 = Math.max(prev.s1, m); next.s0 = Math.min(next.s0, m); }
+        else if (next) next.s0 = Math.min(next.s0, u);
+        else if (prev) prev.s1 = Math.max(prev.s1, v);
+      };
+      if ((prev || next) && v - u <= G.kerb_m) { grow(); return; }
+      const line = [], m0 = Math.max(0, Math.ceil(u / G.step_m)), m1 = Math.min(n, Math.floor(v / G.step_m));
+      for (let m = m0; m <= m1; m += G.every) {
+        if (!flag[m]) continue;
+        const q = this.pavementBy(X[m], Z[m]), last = line[line.length - 1];
+        if (!q || (last && Math.hypot(q.x - last[0], q.z - last[1]) > G.hop_m)) continue;
+        if (!last && entry && Math.hypot(q.x - entry[0], q.z - entry[1]) > G.hop_m + 2) break;   // not the pavement it came off
+        line.push([q.x, q.z]);
+      }
+      if (line.length >= 2) fixes.push({ a: u, b: v, line, prev, next });
+      else if ((prev || next) && v - u <= G.grow_m) grow();
+    };
+    for (let i = 0; i <= n; i += 1) {
+      if (!flag[i]) continue;
+      let j = i;
+      while (j + 1 <= n && flag[j + 1]) j += 1;
+      const a = i * G.step_m, b = j * G.step_m;
+      const xs = crossings.filter((x) => x.s1 >= a - 1.5 && x.s0 <= b + 1.5).sort((p, q) => p.s0 - q.s0);
+      if (!xs.length) {
+        if (b - a > G.mouth_m && i > 0) piece(a - 0.6, b + 0.6, null, null, [X[i - 1], Z[i - 1]]);
+      } else {
+        let from = a - G.step_m, prev = null;
+        for (const x of xs) {
+          if (x.s0 > from) piece(from, x.s0, prev, x, prev || i === 0 ? null : [X[i - 1], Z[i - 1]]);
+          from = Math.max(from, x.s1); prev = x;
+        }
+        if (b + G.step_m > from) piece(from, b + G.step_m, prev, null, null);
+      }
+      i = j;
+    }
+    if (!fixes.length) return { ...pave, crossings };
+    let P = pts, SS = S;
+    const pointAt = (d) => {
+      let k = 0;
+      while (k + 2 < P.length && SS[k + 1] < d) k += 1;
+      const span = SS[k + 1] - SS[k] || 1, t = Math.max(0, Math.min(1, (d - SS[k]) / span));
+      return [P[k][0] + (P[k + 1][0] - P[k][0]) * t, P[k][1] + (P[k + 1][1] - P[k][1]) * t];
+    };
+    const far = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+    for (let f = fixes.length - 1; f >= 0; f -= 1) {
+      const { a, b, line, prev, next: after } = fixes[f], pa = pointAt(a), pb = pointAt(b), mid = [pa, ...line, pb], next = [];
+      const put = (q) => { const last = next[next.length - 1]; if (!last || far(q, last) > 0.05) next.push(q); };
+      for (let k = 0; k < P.length; k += 1) if (SS[k] < a) put(P[k]);
+      for (const q of mid) put(q);
+      let midLen = 0;
+      for (let k = 1; k < mid.length; k += 1) midLen += far(mid[k], mid[k - 1]);
+      for (let k = 0; k < P.length; k += 1) if (SS[k] > b) put(P[k]);
+      const delta = midLen - (b - a);
+      for (const c of crossings) if (c !== prev && c.s0 >= b - 1e-6) { c.s0 += delta; c.s1 += delta; }
+      // The crossing leaves from, and comes in to, the pavement the walk was moved onto.
+      if (after) after.s0 -= far(line[line.length - 1], pb);
+      if (prev) prev.s1 += far(pa, line[0]);
+      P = next; SS = [0];
+      for (let k = 1; k < P.length; k += 1) SS.push(SS[k - 1] + far(P[k], P[k - 1]));
+    }
+    if (P.length < 2) return { ...pave, crossings };
+    this.wallFixes ??= {}; this.wallFixes.offRoad = (this.wallFixes.offRoad || 0) + fixes.length;
+    return { ...pave, pts: P, s: SS, length: SS[SS.length - 1], halves: P.map(() => 0), classes: P.map(() => null), crossings };
+  }
+  //: How far out from a street's line its pavement begins on one side, as the world is drawn
+  //: (kerbside.onRoad): stepped out from the line at points along the stretch until the
+  //: roadway ends and stays ended for KERB_SCAN.clear_m -- past a cycle lane, a slip lane, the
+  //: other carriageway, and past any island or median on the way (ground with roadway again
+  //: beyond it is the middle of the road, not a pavement). The middle one of the points'
+  //: answers; ``half`` where the world is not built, the line is not in a roadway, or no
+  //: pavement is found within reach. Walkers kept ``half`` + a step out everywhere once, and on
+  //: every street wider than the map says they walked in the road (a quarter of them, counted
+  //: in the Marina at 07:30, 2026-11-17).
+  kerbOffset(half, where, nx, nz, ends, span) {
+    const road = this.kerbside?.onRoad;
+    if (!road || !(half > 0)) return half;
+    const found = [], S = KERB_SCAN;
+    for (let k = 0; k < S.points; k += 1) {
+      const t = ends + span * (k + 0.5) / S.points, x = where.x + where.ux * t, z = where.z + where.uz * t;
+      if (!road(x, z)) continue;   // not a roadway here (a square, a path the map calls a street)
+      let start = -1;
+      for (let d = S.step_m; d <= S.reach_m + S.clear_m; d += S.step_m) {
+        if (road(x + nx * d, z + nz * d)) { start = -1; continue; }
+        if (start < 0) start = d;
+        if (d - start >= S.clear_m) break;
+      }
+      if (start > 0 && start <= S.reach_m) found.push(start - S.step_m / 2);
+    }
+    if (!found.length) return half;
+    found.sort((a, b) => a - b);
+    return Math.max(1.5, found[found.length >> 1]);
   }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
@@ -1265,7 +1507,7 @@ export class City {
       // On the pavement, over the streets at the crosswalks (pavementRoute), as far along as
       // the waits at the kerb have left them (walkLags: held there, then a quicker step after).
       const a0 = this.anchor(seg.from, seg.fromXZ), a1 = this.anchor(seg.to, seg.toXZ);
-      if (seg.pave === undefined) seg.pave = pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
+      if (seg.pave === undefined) seg.pave = this.legalize(pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine }));
       const pave = seg.pave, L = pave.length, pace = L / Math.max(1, (seg.t1 - seg.t0) * 60);
       const key = `${p.id}:${seg.t0}`, lag = this.walkLags.get(key)?.lag || 0, d = Math.max(0, f * L - lag * pace);
       const off = (a, q) => (a && q ? Math.hypot(a.x - q[0], a.z - q[1]) : 0);
@@ -1503,7 +1745,7 @@ export class City {
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine });
+      if (r0 && !drive) r0.pave = this.legalize(pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine }));
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }

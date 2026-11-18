@@ -1083,6 +1083,12 @@ function noteFirstBuild() {
 }
 function goToNow(landing, { travel = false, zoom = false } = {}) {
   if (!landing) return;
+  // In the game there is always a walker to send, and the view goes with it inside the game's
+  // reach: the free view (which sends the view alone, from as far out as it was) is put away
+  // first, and a distance kept from the map is brought in.
+  const game = typeof cityGame === "function" && cityGame();
+  if (game && travel && state.explore) setExplore(false, true);
+  if (game && travel && typeof maxOrbitDist === "function") state.dist = Math.min(state.dist, maxOrbitDist());
   // Exploring there is no walker to send: the view goes, and comes in close as it would.
   if (state.explore && travel) {
     if (zoom) state.dist = ARRIVAL_DIST;
@@ -1112,6 +1118,8 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
   if (travel) {
     avatar.position.set(landing.x, AVATAR_STAND_Y + ground, landing.z);
     if (zoom) state.dist = ARRIVAL_DIST;
+    // (Gone to from the map's view straight down: back to a view of the street.)
+    if (game && state.pitch > 1.2) state.pitch = 0.45;
   }
   state.target.set(landing.x, (travel ? AVATAR_STAND_Y : 0) + ground, landing.z);
   placeCamera();
