@@ -285,11 +285,22 @@ const WORLD_LOADED = new Promise((resolve) => { worldLoaded = resolve; });
 //: still for the whole build and then jumped.
 const BOOT_STAGES = [[/^Loading/, 0, 0.23, 9], [/^Building the streets/, 0.23, 0.33, 4],
   [/^Standing the/, 0.33, 0.70, 14], [/^(Setting|Painting)/, 0.70, 0.80, 4]];
-const bootLoad = { shown: 0, stage: 0, since: performance.now(), figure: 0, peak: 0, readyAt: 0, at: performance.now() };
+const bootLoad = { shown: 0, stage: 0, since: performance.now(), figure: 0, peak: 0, readyAt: 0, at: performance.now(), cityStage: -1, citySince: 0, cityFigure: 0 };
+//: City mode loads more after the first frame than before it: the whole area is built (half a
+//: minute), what it stands on settles, and its people and traffic come out. Each is a stretch of
+//: the bar of its own -- [from, to, seconds expected] -- and the page's first build is the first
+//: two fifths. (The bar ran to 99% at the first frame once and sat there for the rest.)
+const CITY_LOAD_STAGES = [[0.40, 0.74, 44], [0.74, 0.80, 5], [0.80, 1, 20]];
+const CITY_BOOT_SHARE = 0.40 / 0.80;
+function cityLoadWanted() {
+  if (typeof META !== "undefined" && (META || ATTACH)) return false;
+  try { return localStorage.getItem("kerbside:mode") === "city"; } catch { return false; }
+}
 function loadFraction() {
   if (worldLoadedNow) return 1;
   const now = performance.now();
   const ease = (seconds, expected) => 1 - Math.exp(-seconds / Math.max(1, expected));
+  const city = cityLoadWanted();
   let target;
   if (!worldReadyNow) {
     const line = document.getElementById("progress")?.textContent?.trim() || "";
@@ -298,7 +309,19 @@ function loadFraction() {
     if (found === bootLoad.stage) bootLoad.figure = Math.max(bootLoad.figure, Number(line.match(/(\d+)\s*%/)?.[1] || 0) / 100);
     const [, from, to, expected] = BOOT_STAGES[bootLoad.stage];
     const within = Math.max(bootLoad.figure, 0.95 * ease((now - bootLoad.since) / 1000, expected));
-    target = from + (to - from) * Math.min(1, within);
+    target = (from + (to - from) * Math.min(1, within)) * (city ? CITY_BOOT_SHARE : 1);
+  } else if (city) {
+    const waiting = worldLoadWaiting();
+    const built = typeof cityLock !== "undefined" && cityLock?.ready;
+    const stage = !built ? 0 : !waiting.length || waiting.some((item) => /people|traffic|walkers|vehicles/.test(item)) ? 2 : 1;
+    if (stage > bootLoad.cityStage) { bootLoad.cityStage = stage; bootLoad.citySince = now; bootLoad.cityFigure = 0; }
+    // By the clock: steadily to 85% of the stretch over the time it is expected to take, then
+    // creeping. (The build's own figure is of whichever part it is on, and ran to 78% in its
+    // first seconds: the bar leapt and then stood for half a minute.)
+    const [from, to, expected] = CITY_LOAD_STAGES[bootLoad.cityStage];
+    const t = (now - bootLoad.citySince) / 1000;
+    const within = t < expected ? 0.85 * t / expected : 0.85 + 0.14 * ease(t - expected, expected);
+    target = from + (to - from) * Math.min(0.99, within);
   } else {
     bootLoad.readyAt ||= now;
     const left = worldLoadWaiting().reduce((n, item) => n + (Number(item.match(/\((\d+)/)?.[1]) || 1), 0);

@@ -913,10 +913,18 @@ function startSpawn() { return readSpawn() || readHomeSpawn(); }
 function sidewalkNear(x, z) {
   if (typeof nearestKerbAt !== "function" || typeof insideCarriageway !== "function") return null;
   // The kerbs are the region's that is built round the walker: the page's own, or the one drawn
-  // in its place (a guest region keeps its own kerbs: City mode's Marina is one).
-  const guest = typeof activeGuest !== "undefined" && activeGuest?.ready ? activeGuest.window?.kerbside : null;
-  const realms = [guest?.insideCarriageway && guest.nearestKerbAt ? { inRoad: guest.insideCarriageway, kerbAt: guest.nearestKerbAt } : null,
-    { inRoad: (px, pz, slack) => insideCarriageway(px, pz, slack), kerbAt: (px, pz, reach) => nearestKerbAt(px, pz, reach) }].filter(Boolean);
+  // in its place (a guest region keeps its own kerbs, asked in its own frame: City mode's
+  // Marina is one).
+  const g = typeof guestUnder === "function" ? guestUnder(x, z) : null;
+  const realms = g?.api?.insideCarriageway && g.api.kerbAt
+    ? [{ inRoad: (px, pz, slack) => g.api.insideCarriageway(...hostToGuest(g, px, pz), slack),
+      kerbAt: (px, pz, reach) => {
+        const k = g.api.kerbAt(...hostToGuest(g, px, pz), reach);
+        if (!k) return null;
+        const nl = Math.hypot(k.nx * g.sx, k.nz) || 1;
+        return { x: g.ox + k.x * g.sx, z: g.oz + k.z, nx: k.nx * g.sx / nl, nz: k.nz / nl };
+      } }]
+    : [{ inRoad: (px, pz, slack) => insideCarriageway(px, pz, slack), kerbAt: (px, pz, reach) => nearestKerbAt(px, pz, reach) }];
   for (const realm of realms) {
     if (!realm.inRoad(x, z, 0.2)) continue;
     const kerb = realm.kerbAt(x, z, 60);
@@ -1088,6 +1096,10 @@ function worldLoadWaiting() {
   const waiting = [];
   if (!worldReadyNow) return ["drawing the world"];
   const cells = worldCellCache.snapshot();
+  // City mode: the whole area built, then its people and traffic out and moving (the living city
+  // runs behind this screen until they are: module 30 ``warming``, docs/city/view.mjs ``alive``).
+  const cityUp = typeof cityLock !== "undefined" && cityLock && typeof appMode !== "undefined" && appMode === "city";
+  if (cityUp && !cityLock.ready) waiting.push(typeof CITY_AREA !== "undefined" ? CITY_AREA.name : "the area");
   if (attaching || attachWanted) waiting.push("the streets round you");
   if (activeGuest && !activeGuest.ready) waiting.push(activeGuest.region?.title || "the region round you");
   if (cells.active || cells.queued) waiting.push(`map cells (${(cells.active || 0) + (cells.queued || 0)})`);
@@ -1101,6 +1113,11 @@ function worldLoadWaiting() {
   if (groups.furniture.visible) for (const [layer, label] of [["furniture", "street furniture"], ["highway_signs", "freeway signs"]]) {
     if (lazyLayersWanted.has(layer) && lazyLayerBuilders.has(layer) && !lazyLayersSettled.has(layer)) waiting.push(label);
   }
+  if (cityUp && cityLock.ready && !waiting.length && typeof livingCityWanted !== "undefined" && livingCityWanted) {
+    const life = typeof livingCity !== "undefined" && livingCity?.alive ? livingCity.alive() : null;
+    if (!life) waiting.push("the city's people and traffic");
+    else if (!life.ready) waiting.push(life.waiting);
+  }
   return waiting;
 }
 //: A load that has stopped moving is let through: the same things waited for, none of them any
@@ -1111,6 +1128,8 @@ WORLD_READY.then(() => {
   let settledSince = 0, same = "", sameSince = performance.now();
   const check = () => {
     const now = performance.now(), waiting = worldLoadWaiting();
+    // The city warming up behind this screen is run by the frames: asked for while it is waited on.
+    if (typeof cityWarming === "function" && cityWarming()) requestFrame();
     if (waiting.length) settledSince = 0;
     else settledSince ||= now;
     // (What is waited for, and how far along the build under way says it is: a long build that is still moving is not stalled.)

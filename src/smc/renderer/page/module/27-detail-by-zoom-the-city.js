@@ -279,7 +279,9 @@ function animate(now) {
   // and left the creator seconds behind the hand (2026-11-02). Streaming still goes on.
   // Not while a window is being sent to the GPU ahead of its handoff (runPreupload): a batch a
   // frame, at the idle rate, a square took seconds longer to come in.
-  const idle = homeScreenUp() || (now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors
+  // (Nor while the living city warms up behind the loading screen: it is run by these frames.)
+  const warming = typeof cityWarming === "function" && cityWarming();
+  const idle = (homeScreenUp() && !warming) || (!warming && now - Math.max(lastMovedAt, lastInputAt) > IDLE_AFTER_MS && !state.indoors
     && !preuploadJobs?.length);
   const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
   if (!xrFrame && interval && now - lastFrameDrawnAt < interval - 2) return;
@@ -1014,6 +1016,11 @@ function routeOverviewPlan(points, aspect, fov) {
 }
 function showRouteOverview() {
   if (META) return;
+  // In the game the view stays with the walker, within its reach (CITY_MAX_ORBIT_M): the route is
+  // drawn on the streets and followed from where you stand. The map's overview -- the view taken
+  // off to the middle of the route, straight down and out as far as shows all of it -- was held
+  // to the game's 72 m there: a patch of roofs somewhere along the way, and the walker gone.
+  if (typeof cityGame === "function" && cityGame()) { drawRoutes(); return; }
   const chosen = route.results[route.chosen];
   const points = [...(chosen?.line || []), ...route.stops.filter(Boolean).map(s => [s.lon,s.lat])]
     .map(([lon,lat]) => {const [x,y]=xy(lon,lat); return [x,-y];});

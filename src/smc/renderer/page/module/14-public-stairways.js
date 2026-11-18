@@ -433,6 +433,9 @@ function addTunnel(way, renderPoints, roadWidth, roadTop) {
 //: street loop that draws car parks runs before that block does.
 const PARKING_Y = 0.0275;      // a surface car park's asphalt, between the frontages and the courts
 const PARKING_LINE_Y = 0.046;  // the bays painted on it
+//: When a lot's asphalt is drawn: after the terrain and every ground cover (the yards and plazas
+//: at -1, the fills under them), before everything that is depth-tested.
+const PARKING_RENDER_ORDER = -0.8;
 //: A surface lot as Bay Area lots are striped: stalls nosed in square to the aisle, 2.7 m wide
 //: and 5.5 m deep, two-way aisles 7.3 m wide between rows, a drive aisle across each end so a
 //: car can circle the rows, and the front row broken where the lot's entrance is.
@@ -518,9 +521,54 @@ function parkingLayout(ring, reach) {
   return { ox, oz, ex, ez, nx, nz, u0, u1, depth, frontage: Boolean(frontage) };
 }
 
+//: A lot that fills this much of the rectangle round it is that rectangle: mapped a little
+//: ragged (a corner clipped, an edge a metre in), it is drawn square, kerb to wall.
+const PARKING_SQUARE_FILL = 0.8;
+//: Every lot's ground as drawn -- {ring, box: [x0, z0, x1, z1]} -- for what else is laid there:
+//: the paved covers are taken off it (recutGroundOffRoads), so the whole of a lot is its own
+//: asphalt and its own paint. (var: module 17 reads it.)
+var PARKING_REGIONS = [];
+//: The rectangle round a lot, in the frame of its frontage (parkingLayout): its corners as a
+//: closed ring, and how much of it the lot fills.
+function parkingRectangle(ring) {
+  const frame = parkingLayout(ring, PARKING_FORECOURT_MAX_M);
+  if (!frame) return null;
+  const { ox, oz, ex, ez, nx, nz } = frame;
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity, area = 0;
+  for (let i = 0; i < ring.length - 1; i += 1) {
+    const u = (ring[i][0] - ox) * ex + (ring[i][1] - oz) * ez, v = (ring[i][0] - ox) * nx + (ring[i][1] - oz) * nz;
+    u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+    area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  const box = (u1 - u0) * (v1 - v0);
+  if (!(box > 1)) return null;
+  const at = (u, v) => [ox + ex * u + nx * v, oz + ez * u + nz * v];
+  return { ring: [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1), at(u0, v0)], fill: Math.abs(area) / 2 / box };
+}
+//: The stalls painted in this world's car parks -- {id, lot, x, z, yaw} -- for the cars that park
+//: in them (docs/city/fleet.mjs City.setLots).
+function cityParkingStalls() {
+  const out = [];
+  (DATA.ways || []).forEach((way, w) => {
+    if (way.kind !== "parking_lot" || !way._parking?.stalls) return;
+    const lot = String(way.osm_id ?? way.id ?? w);
+    way._parking.stalls.forEach((q, i) => out.push({ id: `${lot}:${i}`, lot, x: q.x, z: q.z, yaw: q.yaw }));
+  });
+  return out;
+}
 function addParkingLot(way) {
-  const ring = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
+  let ring = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   if (ring.length < 4) return null;
+  if (Math.hypot(ring[0][0] - ring[ring.length - 1][0], ring[0][1] - ring[ring.length - 1][1]) > 0.01) ring.push(ring[0].slice());
+  // The rectangle round it, where the lot all but fills one: the whole of that is the lot.
+  const rectangle = parkingRectangle(ring);
+  const squared = Boolean(rectangle && rectangle.fill >= PARKING_SQUARE_FILL);
+  if (squared) ring = rectangle.ring;
+  {
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (const [x, z] of ring) { x0 = Math.min(x0, x); z0 = Math.min(z0, z); x1 = Math.max(x1, x); z1 = Math.max(z1, z); }
+    PARKING_REGIONS.push({ ring, box: [x0, z0, x1, z1], squared });
+  }
   const group = new THREE.Group();
   // The slab.
   const shape = new THREE.Shape(ring.map(([x, z]) => new THREE.Vector2(x, -z)));
@@ -531,10 +579,18 @@ function addParkingLot(way) {
   const pos = slab.getAttribute("position");
   for (let i = 0; i < uv.count; i += 1) uv.setXY(i, pos.getX(i), pos.getZ(i));
   slab.translate(0, PARKING_Y, 0);
-  if (!PARKING_ASPHALT) PARKING_ASPHALT = parkingAsphaltTexture();
+  // The roadway's own asphalt, and the whole of the lot in it: drawn as the ground covers are
+  // (no depth test, straight after the terrain) but after every one of them, so nothing else
+  // laid on the lot's ground -- a parcel's paving, a fill read from imagery -- shows in it, and
+  // without writing depth, so its bays and wheel stops, the pavements and the roads still
+  // stand on it. It was a paler grey of its own, depth-tested a few centimetres up: it read as
+  // pavement, lost to the covers here and won there, and a lot came out in two colours
+  // (the owner, 2026-11-17: "simply raising up the color is a half solution").
   const ground = new THREE.Mesh(slab, new THREE.MeshStandardMaterial({
-    map: PARKING_ASPHALT, color: 0xffffff, roughness: 0.96, metalness: 0.0,
+    map: typeof ROAD !== "undefined" ? ROAD : (PARKING_ASPHALT ||= parkingAsphaltTexture()), color: 0xffffff, roughness: 0.92, metalness: 0.0,
+    depthTest: false, depthWrite: false,
   }));
+  ground.renderOrder = PARKING_RENDER_ORDER;
   ground.userData.surface = "parking_lot";
   group.add(ground);
 
@@ -585,6 +641,7 @@ function addParkingLot(way) {
     geometry.setIndex(index);
     geometry.computeVertexNormals();
     const apron = new THREE.Mesh(geometry, ground.material);
+    apron.renderOrder = PARKING_RENDER_ORDER;
     apron.userData.surface = "parking_lot";
     group.add(apron);
   }
@@ -607,6 +664,9 @@ function addParkingLot(way) {
   const stripes = [];
   const stops = [];
   const accessible = [];
+  //: Every stall kept, for the city's cars (cityParkingStalls): its middle, and the way a car
+  //: nosed into it faces (toward its head: the wall, the kerb or the stall it backs on to).
+  const stalls = [];
   const layout = parkingLayout(ring, PARKING_FORECOURT_MAX_M);
   const rejected = { ring: 0, carriageway: 0, pavement: 0 };
   if (layout) {
@@ -688,6 +748,10 @@ function addParkingLot(way) {
         const inward = row.head === row.va ? 1 : -1;
         const [sx, sz] = at(uc, row.head + inward * 0.75);
         stops.push([sx, sz]);
+        {
+          const [mx, mz] = at(uc, (row.va + row.vb) / 2), nose = -inward;
+          stalls.push({ x: mx, z: mz, yaw: Math.atan2(-nx * nose, -nz * nose) });
+        }
         // One accessible stall, on the front row beside the entrance, painted blue.
         if (firstAccessible && row.front && Math.abs(uc - entryU) < PARKING_ENTRY_M / 2 + W * 1.6) {
           accessible.push([at(uc - W / 2 + 0.06, row.va), at(uc + W / 2 - 0.06, row.va),
@@ -749,7 +813,7 @@ function addParkingLot(way) {
       group.add(stopsMesh);
     }
   }
-  way._parking = { ...(way._parking || {}), stripes: stripes.length, stops: stops.length, rejected };
+  way._parking = { ...(way._parking || {}), stalls, stripes: stripes.length, stops: stops.length, rejected, squared, fill: rectangle ? +rectangle.fill.toFixed(2) : null };
   if (stripes.length) {
     const lines = new THREE.Mesh(lineGeometry(stripes, MARK_W), new THREE.MeshStandardMaterial({
       color: 0xe9ebe6, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide,

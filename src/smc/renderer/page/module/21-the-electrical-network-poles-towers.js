@@ -1512,43 +1512,49 @@ function addBusZonePaint(records, plan = null) {
           return t;
         }).sort((p, q) => p - q)[Math.floor(run.length / 2)];
         const from = (inLane >= run.length * 0.6 ? BIKE_LANE_M + 0.35 : 0) + (builtOut > 0.15 ? builtOut : 0);
-        const ain = from + BUS_ZONE_WIDTH_M, o = ain, w = BUS_ZONE_BORDER_M;
+        // One rectangle a zone: along the street from the run's first kerb point to its last,
+        // from the kerb line (the middle one of its points, so a point caught round a corner or
+        // on a build-out does not tilt it) out the lane's width -- and the whole of it red, with
+        // its white edge. Laid as a quad from each kerb point to the next, the zone followed
+        // every wobble of the kerb: skewed where a point sat on the cross street's corner, in
+        // pieces where a wedge was left out, and part of it up on the pavement (2026-11-17).
+        const first = run[0], last = run[run.length - 1];
+        const span = Math.hypot(last.x - first.x, last.z - first.z);
+        if (span < BUS_ZONE_MIN_M) continue;
+        const ux = (last.x - first.x) / span, uz = (last.z - first.z) / span;
+        // Into the road: square to the street, on the side the kerb's own way in points.
+        let px = -uz, pz = ux, facing = 0;
+        for (const k of run) facing += -k.nx * px + -k.nz * pz;
+        if (facing < 0) { px = -px; pz = -pz; }
+        const lateral = run.map((k) => (k.x - first.x) * px + (k.z - first.z) * pz).sort((p, q) => p - q)[Math.floor(run.length / 2)];
+        const near = lateral + from;
+        const corner = (t, across) => [first.x + ux * t + px * across, first.z + uz * t + pz * across];
+        // Only on the roadway: a rectangle most of which is not carriageway (the kerb line was
+        // a pavement's far edge, or the wrong street's) is not painted at all.
+        let onRoad = 0;
+        const probes = [[0.5, 0.5], [0.15, 0.5], [0.85, 0.5], [0.5, 0.2], [0.5, 0.8], [0.15, 0.8], [0.85, 0.8]];
+        for (const [f, g] of probes) { const [qx, qz] = corner(span * f, near + BUS_ZONE_WIDTH_M * g); if (insideCarriageway(qx, qz, 0)) onRoad += 1; }
+        if (onRoad < probes.length - 1) continue;
         zones += 1;
+        const [ax, az] = corner(0, near), [bx, bz] = corner(span, near);
+        const [cx, cz] = corner(span, near + BUS_ZONE_WIDTH_M), [dx, dz] = corner(0, near + BUS_ZONE_WIDTH_M);
+        zoneAt = [(ax + cx) / 2, (az + cz) / 2];
         // The zone's rectangle of asphalt, claimed on the paint plan as paint already down: a
         // stop's white box is not laid over it, and the stop's words go inside it.
-        {
-          const first = run[0], last = run[run.length - 1], mid = from + BUS_ZONE_WIDTH_M / 2;
-          const ax = first.x - first.nx * mid, az = first.z - first.nz * mid;
-          const bx = last.x - last.nx * mid, bz = last.z - last.nz * mid;
-          const span = Math.hypot(bx - ax, bz - az);
-          zoneAt = [(ax + bx) / 2, (az + bz) / 2];
-          if (plan && span > 0.5) {
-            plan.claim({ kind: "zone", id: `zone:${zones}`, group: `zone:${zones}`, fixed: true, rank: 4,
-              x: zoneAt[0], z: zoneAt[1], ux: (bx - ax) / span, uz: (bz - az) / span, along: span / 2, across: BUS_ZONE_WIDTH_M / 2 });
-          }
+        if (plan && span > 0.5) {
+          plan.claim({ kind: "zone", id: `zone:${zones}`, group: `zone:${zones}`, fixed: true, rank: 4,
+            x: zoneAt[0], z: zoneAt[1], ux, uz, along: span / 2, across: BUS_ZONE_WIDTH_M / 2 });
         }
-        for (let i = 1; i < run.length; i += 1) {
-          const a = run[i - 1];
-          const b = run[i];
-          if (Math.hypot(b.x - a.x, b.z - a.z) < 0.05) continue;
-          // Belt and braces: if the far edge has still converged, the quad is a wedge, not a
-          // stretch of lane, and a wedge of red paint in the road is worse than a short gap.
-          const farA = [a.x - a.nx * BUS_ZONE_WIDTH_M, a.z - a.nz * BUS_ZONE_WIDTH_M];
-          const farB = [b.x - b.nx * BUS_ZONE_WIDTH_M, b.z - b.nz * BUS_ZONE_WIDTH_M];
-          const near = Math.hypot(b.x - a.x, b.z - a.z);
-          if (Math.hypot(farB[0] - farA[0], farB[1] - farA[1]) < near * 0.55) continue;
-          quad(fill,
-            a.x - a.nx * from, a.z - a.nz * from,
-            b.x - b.nx * from, b.z - b.nz * from,
-            b.x - b.nx * ain, b.z - b.nz * ain,
-            a.x - a.nx * ain, a.z - a.nz * ain, BUS_ZONE_Y);
-          // The white edge, on the traffic side only -- the kerb side is the kerb.
-          quad(border,
-            a.x - a.nx * o, a.z - a.nz * o,
-            b.x - b.nx * o, b.z - b.nz * o,
-            b.x - b.nx * (o - w), b.z - b.nz * (o - w),
-            a.x - a.nx * (o - w), a.z - a.nz * (o - w), BUS_ZONE_BORDER_Y);
-        }
+        quad(fill, ax, az, bx, bz, cx, cz, dx, dz, BUS_ZONE_Y);
+        // The white edge: along the traffic side and across each end (the kerb side is the kerb).
+        const w = BUS_ZONE_BORDER_M, far = near + BUS_ZONE_WIDTH_M;
+        const edge = (t0, a0, t1, a1) => {
+          const [e0x, e0z] = corner(t0, a0), [e1x, e1z] = corner(t1, a0), [e2x, e2z] = corner(t1, a1), [e3x, e3z] = corner(t0, a1);
+          quad(border, e0x, e0z, e1x, e1z, e2x, e2z, e3x, e3z, BUS_ZONE_BORDER_Y);
+        };
+        edge(0, far - w, span, far);
+        edge(0, near, w, far - w);
+        edge(span - w, near, span, far - w);
       }
     }
   }

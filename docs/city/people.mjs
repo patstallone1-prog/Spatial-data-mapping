@@ -42,6 +42,8 @@ export function roadClass(way) {
 //: Junction nodes joined by a link shorter than this are one junction, no wider than the span (m).
 //: The most of a way that may go against a one-way street: the last few metres to a kerb.
 export const WRONG_WAY_MAX_M = 40;
+//: How far apart the two lines of one divided street are looked for (Streets.otherCarriageway).
+export const MEDIAN_REACH_M = 45;
 export const JUNCTION_JOIN_M = 13, JUNCTION_SPAN_M = 34, JUNCTION_LINK_M = 4;
 
 class Heap {
@@ -380,6 +382,33 @@ export class Streets {
       }
     }
     return (e._twin = best);
+  }
+  //: The other carriageway of a divided street, for those on foot: where the edge from ``a`` is
+  //: one line of a street drawn as two one-way lines, {gap, half} -- how far off the line going
+  //: the other way runs and its half width -- or null. Wider than twinOf (which is for lanes,
+  //: and wants the two roadways touching): the same street by name, abreast and within
+  //: MEDIAN_REACH_M, is one street with a median down its middle however wide the median.
+  otherCarriageway(a, e) {
+    if (e._other !== undefined) return e._other;
+    let best = null;
+    const A = this.nodes[a], B = this.nodes[e.to], L = e.length;
+    if (L > 0.5 && e.drive && !this.edges[e.to].some((r) => r.to === a && r.drive)) {
+      const ux = (B.x - A.x) / L, uz = (B.z - A.z) / L, mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
+      const c0 = Math.floor((mx - 80) / this.cell), c1 = Math.floor((mx + 80) / this.cell), d0 = Math.floor((mz - 80) / this.cell), d1 = Math.floor((mz + 80) / this.cell);
+      for (let i = c0; i <= c1; i += 1) for (let j = d0; j <= d1; j += 1) for (const c of this.grid.get(`${i},${j}`) || []) {
+        const C = this.nodes[c];
+        for (const f of this.edges[c]) {
+          if (!f.drive || f.length < 0.5 || f === e || this.edges[f.to].some((r) => r.to === c && r.drive)) continue;
+          const D = this.nodes[f.to], vx = (D.x - C.x) / f.length, vz = (D.z - C.z) / f.length;
+          if (ux * vx + uz * vz > -0.85) continue;   // not the other way
+          const k = Math.max(0, Math.min(1, ((mx - C.x) * vx + (mz - C.z) * vz) / f.length)), qx = C.x + vx * f.length * k - mx, qz = C.z + vz * f.length * k - mz;
+          const off = Math.hypot(qx, qz), left = qx * uz - qz * ux;
+          const touching = off < (e.half || 3) + (f.half || 3), named = Boolean(e.name) && e.name === f.name && off < MEDIAN_REACH_M;
+          if ((touching || named) && left > -0.6 && Math.abs(qx * ux + qz * uz) < 3 && (best === null || off < best.gap)) best = { gap: off, half: f.half || 3 };
+        }
+      }
+    }
+    return (e._other = best);
   }
   //: The junction ``node`` is part of (junctions), or null along a street.
   junctionOf(node) { return node >= 0 ? this.junctions().of[node] || null : null; }
@@ -794,6 +823,20 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
   const tail = roundCorner(to, P.length - 1, P.length - 2), head = roundCorner(from, 0, 1);
   if (tail) { P.push(tail.pt); ids.push(undefined); halves.push(tail.half); }
   if (head) { P.unshift(head.pt); ids.unshift(undefined); halves.unshift(head.half); }
+  //: The side of the stretch from node ``a`` to node ``b`` that faces the street's other
+  //: carriageway, where the street is drawn as two one-way lines (Streets.twinOf): {side, gap},
+  //: or null. That side has no pavement: between the two lines is the middle of the road -- a
+  //: median, a kerbed island -- and nobody walks along it. Its "pavement" is the one past the
+  //: other carriageway, ``gap`` further out: the walk keeps to a real pavement, and is on the
+  //: island only while it crosses. (Walkers went along the Marina's medians, 2026-11-17.)
+  const medianOf = (a, b) => {
+    if (a === undefined || b === undefined || !streets?.otherCarriageway || !streets.edges?.[a] || !streets.edges?.[b]) return null;
+    const fwd = streets.edges[a].find((e) => e.to === b), back = streets.edges[b].find((e) => e.to === a);
+    const tf = fwd ? streets.otherCarriageway(a, fwd) : null;
+    if (tf) return { side: -1, gap: tf.gap + tf.half - (fwd.half || 0) };
+    const tb = back ? streets.otherCarriageway(b, back) : null;
+    return tb ? { side: 1, gap: tb.gap + tb.half - (back.half || 0) } : null;
+  };
   const n = P.length, seg = [];
   for (let i = 0; i + 1 < n; i += 1) {
     const dx = P[i + 1][0] - P[i][0], dz = P[i + 1][1] - P[i][1], len = Math.hypot(dx, dz) || 1e-6;
@@ -802,6 +845,8 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
     // The pavement's line on each side of the street: where the buildings stand close to the
     // kerb on one side, that side's line is nearer the kerb (``offset(half, where)``).
     const os = { 1: offset(half, where(1)), [-1]: offset(half, where(-1)) };
+    const median = half > 0 ? medianOf(ids[i], ids[i + 1]) : null;
+    if (median) os[median.side] = offset(half + median.gap, where(median.side));
     seg.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, len, half });
   }
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1], cross = (a, b) => a[0] * b[1] - a[1] * b[0];
@@ -842,6 +887,8 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
       const m = streets.nodes[e.to], L = Math.hypot(m.x - here.x, m.z - here.z) || 1, u = [(m.x - here.x) / L, (m.z - here.z) / L];
       const where = (side) => ({ x: here.x, z: here.z, ux: u[0], uz: u[1], len: L, side });
       const os = { 1: offset(e.half, where(1)), [-1]: offset(e.half, where(-1)) };
+      const median = medianOf(id, e.to);
+      if (median) os[median.side] = offset(e.half + median.gap, where(median.side));
       out.push({ u, nrm: [-u[1], u[0]], o: Math.max(os[1], os[-1]), os, half: e.half });
     }
     return out;
@@ -909,8 +956,15 @@ export function pavementRoute(streets, route, { from = null, to = null, side = 1
           // begins on its line, the step between them taken over the street.)
           const ends = join(a, b, sg, q), at0 = ends[0], at1 = ends[ends.length - 1];
           if (c) {
-            const reach = c.half + 0.4;
-            const before = [at0[0] - ua[0] * reach, at0[1] - ua[1] * reach], after = [at1[0] + ub[0] * reach, at1[1] + ub[1] * reach];
+            // From the corner to the corner: off this block's pavement where it meets the
+            // crossed street's own pavement line, on at the far one. (Its kerbs taken as its
+            // half width out, the walk ran on along the block's line into a crossed street
+            // wider than that -- a slip lane, a cycle lane -- before the crossing began.)
+            const sn = dot(c.nrm, ua) < 0 ? 1 : -1;
+            const reach = c.half + 0.4, far = 4 * Math.max(reach, c.os?.[1] ?? 0, c.os?.[-1] ?? 0);
+            let before = meet(line(a, sg, q), cline(c, sn, q), q), after = meet(line(b, sg, q), cline(c, -sn, q), q);
+            if (!(dot([at0[0] - before[0], at0[1] - before[1]], ua) > 0.2) || Math.hypot(before[0] - at0[0], before[1] - at0[1]) > far) before = [at0[0] - ua[0] * reach, at0[1] - ua[1] * reach];
+            if (!(dot([after[0] - at1[0], after[1] - at1[1]], ub) > 0.2) || Math.hypot(after[0] - at1[0], after[1] - at1[1]) > far) after = [at1[0] + ub[0] * reach, at1[1] + ub[1] * reach];
             marks.push([out.length, i, bearing(c.u), signalled(i)]);
             out.push(before, after);
           } else out.push(...ends);

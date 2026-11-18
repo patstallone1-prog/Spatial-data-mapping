@@ -681,6 +681,7 @@ window.kerbsideGuestApi = {
   buildingTopAt,
   eligibleLanding, pickRayBuilding, streetNameAt, crossStreetsAt,
   // The living city's district here (docs/city/view.mjs): read once, as the region arrives.
+  cityParkingStalls: () => cityParkingStalls(),
   cityWays: () => DATA.ways, cityCourts: () => PARK_EVIDENCE?.court_layout?.courts || [], insideCarriageway, mappedWaterAt, cityInlandAt,
   signalHeads: () => signalLamps?.heads || [], setSignalLights,
   // The kerb as it is drawn, and whether a car may stand at it (the living city's parking).

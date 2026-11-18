@@ -190,6 +190,8 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
     app_assets += sorted((docs / "municipal").glob("*.json"))
     # The living city's modules and rules, and the lanes it charges for (docs/city/view.mjs).
     app_assets += [*sorted(path for path in (docs / "city").rglob("*") if path.is_file()), docs / "managed-lanes.json"]
+    # (And the shops' signs the city draws: view.mjs imports it from the Interior Studio.)
+    app_assets += [docs / "interior-lab" / "signage.mjs"]
     app_assets += [docs / "billboard-creatives.json"] if (docs / "billboard-creatives.json").exists() else []
     app_assets += sorted((docs / "billboards").glob("*"))
     app_assets += sorted(path for directory in ("interior-assets", "inferred-interiors", "inferred-restaurants", "materials", "vendor")

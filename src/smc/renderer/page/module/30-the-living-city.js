@@ -49,6 +49,9 @@ function walkerOnWater(x, z, feet) {
 }
 
 var livingCity = null;
+//: Whether this page starts the living city at all (not the headset, not ?city=0): the loading
+//: screen waits for its people and traffic only then.
+var livingCityWanted = false;
 // ---- City mode's own area: the Marina, loaded once ---------------------------------------------
 //
 // City mode is played in one place: the Marina (Chestnut, Union and Lombard Streets, the Marina
@@ -75,6 +78,11 @@ const CITY_AREA = {
 //: The room every player in City mode shares (multiplayer.mjs: a code of 4 to 12 letters).
 const CITY_ROOM = "KERBSIDECITY";
 var cityLock = null;
+//: The living city running behind the loading screen, once the area is built and until the world
+//: is loaded through: its people and traffic come out and get moving before anyone is let in.
+function cityWarming() {
+  return Boolean(cityLock?.ready) && appMode === "city" && !worldLoadedNow && document.body.classList.contains("home-open");
+}
 function cityAreaBoxXZ() {
   const [s, w, n, e] = CITY_AREA.bbox, [x0, y0] = xy(w, s), [x1, y1] = xy(e, n);
   return [x0, -y1, x1, -y0];
@@ -126,7 +134,8 @@ function cityAreaStep() {
     worldCellCache.maxBytes = CITY_AREA.cellBytes;
     worldCellCache.evict();
     evictTilesHeldByCity();
-    if (!cityLock.placed) cityPlaceWalker();
+    if (!cityLock.placed || citySpawnPoint()) cityPlaceWalker();
+    citySpawnUsed = true;
     if (typeof settleOnSidewalk === "function") settleOnSidewalk();
     // The area is built as its own region: its paved covers come off its roadways now that they are all in.
     try { activeGuest.window?.kerbside?.recutGroundOffRoads?.(); } catch (error) { console.warn(error); }
@@ -147,15 +156,31 @@ function cityAreaStep() {
   }
   setTimeout(cityAreaStep, 250);
 }
+//: Where City mode starts you: the spawn point you set, else your home (startSpawn), when that is
+//: in the area -- once a page load, so back to the home screen and in again leaves you where you
+//: were. (The spawn was lost here once: the page's first view is the free one, which sends the
+//: view and not the walker, so the walker was still "elsewhere" and went to Chestnut & Fillmore.)
+let citySpawnUsed = false;
+function citySpawnPoint() {
+  if (citySpawnUsed || typeof startSpawn !== "function") return null;
+  const spawn = startSpawn();
+  if (!spawn) return null;
+  const [x, y] = xy(spawn.lon, spawn.lat);
+  return cityAreaHolds(x, -y) ? { x, z: -y, yaw: spawn.yaw } : null;
+}
 function cityPlaceWalker() {
   if (!cityLock) return;
   cityLock.placed = true;
-  if (cityAreaHolds(avatar.position.x, avatar.position.z)) return;   // already in it
-  const [x, y] = xy(CITY_AREA.start[0], CITY_AREA.start[1]), z = -y;
+  const spawn = citySpawnPoint();
+  if (!spawn && cityAreaHolds(avatar.position.x, avatar.position.z)) return;   // already in it
+  const [sx, sy] = xy(CITY_AREA.start[0], CITY_AREA.start[1]);
+  const x = spawn ? spawn.x : sx, z = spawn ? spawn.z : -sy;
   const at = (typeof walkerExteriorAt === "function" && walkerExteriorAt(x, z)) || { x, z };
   if (state.explore) setExplore(false);
   avatar.position.set(at.x, AVATAR_STAND_Y + walkerGroundAt(at.x, at.z), at.z);
+  if (spawn && Number.isFinite(spawn.yaw)) state.yaw = spawn.yaw;
   state.target.copy(avatar.position);
+  state.dist = Math.min(state.dist, ARRIVAL_DIST);
   placeCamera();
 }
 //: The walker's head, drawn into a small picture (a data URL) for the profile card. Drawn into its
@@ -259,6 +284,9 @@ function setAppMode(mode) {
       // The view's camera: the crowd is drawn where it can be seen.
       camera: () => camera,
       enabled: () => !state.explore && !homeScreenUp(),
+      //: Behind the loading screen, once the area is built: the city runs (unseen) so its people
+      //: and traffic are out and moving before anyone is let in.
+      warming: () => cityWarming(),
       // The game's keys, bars and buttons: in City mode only.
       cityMode: () => appMode === "city",
       // The city's own room (docs/city/view.mjs cityRoom): everyone online in City mode is in it.
@@ -267,6 +295,13 @@ function setAppMode(mode) {
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
       regionData, onRoad,
+      //: Whether (x, z) is roadway as drawn -- a carriageway, not a deck or the open country
+      //: (onRoad counts those as road, for the car): null where the world is not built in full.
+      roadAt: (x, z) => {
+        const guest = guestUnder(x, z);
+        if (guest?.ready) return guest.api.insideCarriageway ? Boolean(guest.api.insideCarriageway(...hostToGuest(guest, x, z), 0)) : false;
+        return hostWorldActive && typeof insideCarriageway === "function" ? Boolean(insideCarriageway(x, z, 0)) : false;
+      },
       // The kerb as drawn near (x, z) -- {x, z, nx, nz (out of the road), ax, az} -- and whether a
       // car may stand at it (driveways and painted kerb): where the world is built in full.
       kerbAt: (x, z, ax = null, az = null, reach = 6) => {
@@ -379,6 +414,14 @@ function setAppMode(mode) {
           slots: r.slots.map((s) => ({ ...s, ...P(s.x, s.z), yaw: Y(s.yaw), lock: { ...s.lock, ...P(s.lock.x, s.lock.z), yaw: Y(s.lock.yaw) } })) });
         return out;
       },
+      // The stalls painted in the car parks round here -- this page's and the attached region's,
+      // in this page's metres (module 14 cityParkingStalls) -- for the city's cars to park in.
+      parkingStalls: () => {
+        const out = hostWorldActive && typeof cityParkingStalls === "function" ? cityParkingStalls() : [];
+        const g = activeGuest?.ready ? activeGuest : null;
+        for (const q of g?.api.cityParkingStalls?.() || []) out.push({ ...q, id: `g:${q.id}`, x: g.ox + q.x * g.sx, z: g.oz + q.z, yaw: Math.atan2(Math.sin(q.yaw) * g.sx, Math.cos(q.yaw)) });
+        return out;
+      },
       catalogueUrl: sharedAsset("object-catalogue.json"),
       transitUrl: sharedAsset("transit-stops.json"),
       // Inside a shop: the walker's eyes at (x, y, z), looking along ``yaw``; and back out.
@@ -446,9 +489,9 @@ function setAppMode(mode) {
       window.kerbsideCity = () => livingCity;
       requestFrame();
       return livingCity;
-    }).catch((error) => console.warn("kerbside: the living city did not start", error));
+    }).catch((error) => { livingCityWanted = false; console.warn("kerbside: the living city did not start", error); });
     // Started once the world is up, so it costs the first build nothing.
     // ?city=0 leaves it out (for measuring what it costs).
-    if (new URLSearchParams(location.search).get("city") !== "0") WORLD_READY.then(() => setTimeout(start, 1500));
+    if (new URLSearchParams(location.search).get("city") !== "0") { livingCityWanted = true; WORLD_READY.then(() => setTimeout(start, 1500)); }
   }
 }
