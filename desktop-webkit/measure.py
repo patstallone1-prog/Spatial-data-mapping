@@ -63,11 +63,12 @@ def df_free_kb():
 
 
 def cputime_s(s):
-    parts = [float(x) for x in s.replace("-", ":").split(":")]
+    # [dd-]hh:mm:ss.ss: a day is twenty-four hours, not sixty.
+    days, _, clock = s.rpartition("-")
     t = 0.0
-    for x in parts:
-        t = t * 60 + x
-    return t
+    for x in clock.split(":"):
+        t = t * 60 + float(x)
+    return t + (float(days) * 86400 if days else 0.0)
 
 
 def ps_table():
