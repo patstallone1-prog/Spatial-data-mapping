@@ -257,6 +257,9 @@ function requestFrame() {
     if (id === frameRequest && !document.hidden) animate(performance.now());
   }, FRAME_STAND_IN_MS);
 }
+//: How far ahead of you the streaming looks: so many seconds on at your speed, and no further than this.
+const STREAM_LEAD_S = 4, STREAM_LEAD_M = 120;
+const streamLead = { x: 0, z: 0, t: 0, at: new THREE.Vector3() };
 function animate(now) {
   // In the headset the session hands out the frames (renderer.setAnimationLoop), and every one
   // is drawn: a frame withheld there is a frame of nothing in front of your eyes.
@@ -264,6 +267,8 @@ function animate(now) {
   if (!xrFrame) requestFrame();
   now = now || performance.now();
   environmentController?.update(now,{indoors:Boolean(state.indoors)});
+  // The shadows and the light off the street: looked at again when you have moved on or the sun has.
+  proxyLightController?.update(now, state.firstPerson ? avatar.position : state.target, { dist: state.dist, indoors: Boolean(state.indoors) });
   if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
     if(clock)clock.textContent=`Game time: ${environmentController.snapshot()?.localTime || ""} (a day in 72 minutes)`;
     // The walker's rim at night (and the other players'), once their models are in.
@@ -311,7 +316,15 @@ function animate(now) {
   frameCount += 1;
   if (frameCount % 20 === 0) {
     const focus = state.firstPerson ? avatar.position : state.target;
-    updateFacadeStreaming(focus, camera.position.y - focus.y);
+    // The fronts' photographs are fetched ahead of you, not round you: centred four seconds on
+    // the way you are going (120 m at most), so those you are coming to are in before you reach
+    // them and those behind are let go sooner. Standing still it is round you, as before.
+    const was = streamLead, dtS = Math.max(0.05, (now - was.t) / 1000);
+    const vx = was.t ? (focus.x - was.x) / dtS : 0, vz = was.t ? (focus.z - was.z) / dtS : 0, sp = Math.hypot(vx, vz);
+    was.x = focus.x; was.z = focus.z; was.t = now;
+    const lead = sp > 1 && sp < 60 ? Math.min(STREAM_LEAD_M, sp * STREAM_LEAD_S) / sp : 0;
+    was.at.set(focus.x + vx * lead, focus.y, focus.z + vz * lead);
+    updateFacadeStreaming(was.at, camera.position.y - focus.y);
   }
   if (activeGuest && activeGuest.ready) guestFrame(now);
   updateTileTree(now);

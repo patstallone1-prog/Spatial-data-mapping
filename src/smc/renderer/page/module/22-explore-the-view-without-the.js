@@ -490,6 +490,7 @@ function buildCharacterAvatar() {
   return rig;
 }
 const avatar = buildCharacterAvatar();
+PROXY_LIGHT.dynamic.add(avatar);   // you cast no shadow from the stand-in: it is not drawn every frame
 avatar.name="kerbside-walker";
 // An attached region's walker is the page's: its own stands in for it unseen (guestTick moves it).
 if (ATTACH) avatar.visible = false;

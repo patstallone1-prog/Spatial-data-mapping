@@ -66,7 +66,7 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
   const group=new THREE.Group();group.name='inferred-grass-strands';parent.add(group);
   const cells=new Map(),material=new THREE.MeshStandardMaterial({vertexColors:true,
     side:THREE.DoubleSide,roughness:1,metalness:0});
-  material.onBeforeCompile=shader=>{
+  material.onBeforeCompile=shader=>{ globalThis.__kerbsideProxyLight?.patch?.(shader);
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying float vBladeRange;')
       .replace('#include <project_vertex>','#include <project_vertex>\nvBladeRange=length(mvPosition.xyz);');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vBladeRange;')

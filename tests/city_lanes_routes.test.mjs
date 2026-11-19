@@ -116,12 +116,14 @@ test("a car stuck in a junction is driven out; an unavoidable rear-end impact st
   // A stalled car (nothing holds it, it just is not going) with another bearing down on it.
   const r2 = S.route(S.nearest(0, 120, "drive"), S.nearest(600, 120, "drive"), "drive");
   const stalled = { id: "a", key: "a:1", route: r2, sched: () => 50, unsched: () => 0, limit: 12, cruise: 0, length: 4.6, width: 1.85 };
-  const fast = { id: "b", key: "b:1", route: r2, sched: () => 41, unsched: () => 0, limit: 12, cruise: 12, length: 4.6, width: 1.85 };
+  const fast = { id: "b", key: "b:1", route: r2, sched: () => 44, unsched: () => 0, limit: 12, cruise: 12, length: 4.6, width: 1.85 };
   const D2 = new Drivers(S);
   D2.step(dt, 0, [stalled, fast], []);
-  D2.stateOf("a").v = 0; D2.stateOf("b").v = 10;
+  // (A metre and a half behind at 12 m/s: no braking a car has stops it. With more room it
+  // brakes as hard as it takes and does not hit: tests/city_driving.test.mjs.)
+  D2.stateOf("a").v = 0; D2.stateOf("b").v = 12;
   for (let k = 0; k < 10; k += 1) D2.step(dt, k * dt, [stalled, fast], []);
-  assert.ok(D2.stateOf("a").d > 50.05, "the one in front moved on");
+  assert.ok(D2.stateOf("a").d > 50.01, "the one in front moved on");
   assert.equal(D2.stateOf("b").hit.kind, "vehicle");
   assert.equal(D2.stateOf("b").hit.who, "a");
   assert.equal(D2.stateOf("a").hit.id, D2.stateOf("b").hit.id);

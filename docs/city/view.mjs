@@ -28,6 +28,8 @@ import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsO
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { cityClient, cityServerUrl } from "./server-client.mjs";
 import { witnessOf } from "./enforcement.mjs";
+import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
+import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
@@ -528,6 +530,8 @@ export async function startCity(ctx) {
   // people and the traffic went on being worked out and were drawn into nothing (2026-11-08).
   group.userData.bayWide = true;
   ctx.root.add(group);
+  // What moves is left out of the stand-in the shadows are traced through (proxy-light.mjs).
+  globalThis.__kerbsideProxyLight?.dynamic.add(group);
   const lambert = (opts) => new THREE.MeshLambertMaterial(opts);
   const MAX_PEOPLE = 700, MAX_CARS = 320;
   const box = (w, h, d, y = 0, x = 0) => new THREE.BoxGeometry(w, h, d).translate(x, y, 0);
@@ -585,7 +589,7 @@ export async function startCity(ctx) {
   //: the accent). ``trim``: what is below the cut is left out (hair).
   const toneMaterial = (trim = false) => {
     const m = lambert({ color: 0xffffff, side: trim ? THREE.DoubleSide : THREE.FrontSide });
-    m.onBeforeCompile = (sh) => {
+    m.onBeforeCompile = (sh) => { globalThis.__kerbsideProxyLight?.patch?.(sh);
       sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nattribute vec3 tonePrimary; attribute vec4 toneSecond; attribute vec3 toneAccent; attribute float tonePart;\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY;")
         .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTP = tonePrimary; vTS = toneSecond; vTA = toneAccent; vTPart = tonePart; vTY = position.y;");
@@ -805,6 +809,32 @@ export async function startCity(ctx) {
     }
     return fleet.get(kind);
   };
+  // What moves casts no shadow from the stand-in the sun is traced through (proxy-light.mjs: it
+  // is drawn now and then, not every frame). Under each car and each person near you, the dark
+  // where it meets the ground instead: one soft-edged patch, a quad an instance.
+  const shadeTexture = (() => {
+    const cv = globalThis.document.createElement("canvas"); cv.width = cv.height = 64;
+    const g = cv.getContext("2d"), img = g.createImageData(64, 64);
+    for (let j = 0; j < 64; j += 1) for (let i = 0; i < 64; i += 1) {
+      // A rounded box, dark through the middle and gone by the edge.
+      const u = Math.abs(i - 31.5) / 31.5, v = Math.abs(j - 31.5) / 31.5, e = Math.pow(Math.pow(u, 4) + Math.pow(v, 4), 0.25);
+      const a = Math.max(0, Math.min(1, (1 - e) / 0.45));
+      img.data.set([0, 0, 0, Math.round(255 * a * a * (3 - 2 * a))], (j * 64 + i) * 4);
+    }
+    g.putImageData(img, 0, 0);
+    return new THREE.CanvasTexture(cv);
+  })();
+  const shadeGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  const shadeMat = () => new THREE.MeshBasicMaterial({ map: shadeTexture, color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, fog: false, toneMapped: false });
+  const SHADE_PEOPLE = 260;
+  const carShade = instanced(shadeGeo, shadeMat(), MAX_CARS, "city-car-shade"), peopleShade = instanced(shadeGeo, shadeMat(), SHADE_PEOPLE, "city-people-shade");
+  carShade.renderOrder = peopleShade.renderOrder = 1;
+  const SHADE_M = new THREE.Matrix4(), SHADE_Q = new THREE.Quaternion(), SHADE_UP = new THREE.Vector3(0, 1, 0), SHADE_V = new THREE.Vector3(), SHADE_S = new THREE.Vector3();
+  const shadeAt = (mesh, cap, x, y, z, yaw, w, l) => {
+    if (mesh.count >= cap) return;
+    SHADE_M.compose(SHADE_V.set(x, y + 0.04, z), SHADE_Q.setFromAxisAngle(SHADE_UP, yaw), SHADE_S.set(w, 1, l));
+    mesh.setMatrixAt(mesh.count++, SHADE_M); mesh.instanceMatrix.needsUpdate = true;
+  };
   const wheel = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12).rotateZ(Math.PI / 2).translate(0, 0.33, 0);
   const lightGeo = new THREE.BoxGeometry(0.22, 0.12, 0.02);
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
@@ -841,20 +871,39 @@ export async function startCity(ctx) {
     if (out.length > MAX_PEOPLE) { out.sort((a, b) => a.d - b.d); out.length = MAX_PEOPLE; }
     return out;
   }
+  // How the people near you move (clips.mjs): a walk, a run, a telephone at the ear, a look each
+  // way at the kerb -- sampled for each, cross-faded when what they are doing changes. One state
+  // a person in the full ring, let go a few seconds after they leave it.
+  const blends = new Map(), POSE = newPose(), BLEND_OPTS = { speed: 0, height: 1.75, seed: 0 };
+  const UB = new THREE.Matrix4(), HM = new THREE.Matrix4();
+  let blendSweep = 0;
   function drawPeople(list, now) {
+    if (now - blendSweep > 2500) { blendSweep = now; for (const [id, st] of blends) if (now - st.lastNow > 3000) blends.delete(id); }
     const seen = peopleInView(list);
     // Each at the tier the frame gave it (frameCity), or -- a cyclist, a passenger -- by where it is.
     for (const q of seen) q.detail = q.p.detail ?? (detailNow ? detailNow.tier("people", q.p.x, q.p.z) : FULL);
     const [full, mid, low] = byTier(seen, PEOPLE_CAPS);
     drawPeopleSimpler(mid, low, now);
+    peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
     let n = 0, r = 0, k = 0;
     for (const { p, y } of full) {
       if (n >= MAX_PEOPLE) break;
       const body = bodyFor(p.person, bodies), s = body.height / 1.75;
       const phase = now / 1000 * 2 * Math.PI * (p.person.pace / 1.35) * 0.95 + (hash32(p.id) % 100);
       // A step lifts the body a little at each stride (twice a stride, as the legs pass).
-      const bob = p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
+      // (A clip where there is one for what they are doing; the old swing for a fall, a ride, a sport.)
+      const seed = hash32(p.id), clip = clipFor(p, seed);
+      if (clip) {
+        let st = blends.get(p.id);
+        if (!st) blends.set(p.id, st = makeBlend());
+        const dtc = st.lastNow ? Math.min(0.1, (now - st.lastNow) / 1000) : 0; st.lastNow = now;
+        BLEND_OPTS.speed = p.moving ? (p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace)) : 0; BLEND_OPTS.height = body.height; BLEND_OPTS.seed = seed;
+        stepBlend(st, clip, dtc, POSE, BLEND_OPTS);
+      }
+      const bob = clip ? 0 : p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
       const b = base(p.x, y + (p.lift || 0) + bob, p.z, p.yaw + Math.PI, s);
+      if (clip && (POSE.sway || POSE.bob)) b.multiply(TM.makeTranslation(POSE.sway, POSE.bob, 0));
+      if (!p.indoors && !p.ride) shadeAt(peopleShade, SHADE_PEOPLE, p.x, y, p.z, p.yaw, p.down ? 0.9 : 0.8, p.down ? 1.9 : 0.8);
       if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
       // Knocked down: falling backward to the ground (and lying there, hurt).
       if (p.down) b.multiply(RM.makeRotationX(-(p.fall ?? 1) * Math.PI / 2 * 0.96)).multiply(TM.makeTranslation(0, (p.fall ?? 1) * 0.12, 0));
@@ -886,6 +935,23 @@ export async function startCity(ctx) {
         set(parts.legL, -0.1, 0.84, -1.1 + Math.sin(crank) * 0.55); set(parts.legR, 0.1, 0.84, -1.1 - Math.sin(crank) * 0.55);
         M.copy(lean).multiply(TM.makeTranslation(-0.24, 1.34, 0)).multiply(RM.makeRotationX(-1.05)); parts.armL.setMatrixAt(n, M);
         M.copy(lean).multiply(TM.makeTranslation(0.24, 1.34, 0)).multiply(RM.makeRotationX(-1.05)); parts.armR.setMatrixAt(n, M);
+      } else if (clip) {
+        // The trunk leans and turns about the hips; the head on the neck; the arms hang from the
+        // shoulders of the trunk as it leans; the legs from the hips, which do not.
+        UB.copy(b);
+        if (POSE.lean || POSE.twist) UB.multiply(TM.makeTranslation(0, 0.84, 0)).multiply(RM.makeRotationFromEuler(E.set(POSE.lean, POSE.twist, 0, "YXZ"))).multiply(TM.makeTranslation(0, -0.84, 0));
+        HM.copy(UB);
+        if (POSE.headPitch || POSE.headYaw) HM.multiply(TM.makeTranslation(0, 1.4, 0)).multiply(RM.makeRotationFromEuler(E.set(POSE.headPitch, POSE.headYaw, 0, "YXZ"))).multiply(TM.makeTranslation(0, -1.4, 0));
+        E.set(0, 0, 0, "XYZ");
+        parts.torso.setMatrixAt(n, UB); parts.head.setMatrixAt(n, HM); parts.hair.setMatrixAt(n, HM);
+        set(parts.legL, -0.1, 0.84, POSE.legL); set(parts.legR, 0.1, 0.84, POSE.legR);
+        M.copy(UB).multiply(TM.makeTranslation(-0.272, 1.34, 0)).multiply(RM.makeRotationX(POSE.armL)); M.multiply(TM.makeRotationZ(POSE.outL)); parts.armL.setMatrixAt(n, M);
+        M.copy(UB).multiply(TM.makeTranslation(0.272, 1.34, 0)).multiply(RM.makeRotationX(POSE.armR)); M.multiply(TM.makeRotationZ(POSE.outR)); parts.armR.setMatrixAt(n, M);
+        if (body.outfit.bottom === "skirt" && k < MAX_PEOPLE) {
+          skirts.setMatrixAt(k, b);
+          dressAt(skirts, k, body.outfit.bottoms);
+          k += 1;
+        }
       } else {
         parts.torso.setMatrixAt(n, b); parts.head.setMatrixAt(n, b); parts.hair.setMatrixAt(n, b);
         // A stride: the thigh forward and the knee a little bent shows as the leg's swing.
@@ -900,6 +966,9 @@ export async function startCity(ctx) {
           else if (g.kind === "serve") { armR = -3 * k; armL = -1.7 * Math.min(1, k * 1.6); }
           else if (g.kind === "swing") { armR = -0.3 - 1.4 * k; outR = 0.06 + 0.9 * k; }
           else if (g.kind === "guard") { armL = armR = -2.5; outL = -0.45; outR = 0.45; }
+          // A telephone at the ear; one held up to film with.
+          else if (g.kind === "phone") { armR = -2.6; outR = 0.4; }
+          else if (g.kind === "film") { armL = armR = -1.5; outL = 0.12; outR = -0.12; }
         }
         M.copy(b).multiply(TM.makeTranslation(-0.272, 1.34, 0)).multiply(RM.makeRotationX(armL)); M.multiply(TM.makeRotationZ(outL)); parts.armL.setMatrixAt(n, M);
         M.copy(b).multiply(TM.makeTranslation(0.272, 1.34, 0)).multiply(RM.makeRotationX(armR)); M.multiply(TM.makeRotationZ(outR)); parts.armR.setMatrixAt(n, M);
@@ -1148,8 +1217,10 @@ export async function startCity(ctx) {
     CAR_SPHERE.center.set(x, groundAt(x, z) + 1, z); CAR_SPHERE.radius = 5;
     return !CAR_FRUSTUM.intersectsSphere(CAR_SPHERE);
   }
+  let standIn = false;
   function carsInView(list) {
-    const cam = ctx.camera?.(), out = [];
+    // (For the shadows' stand-in every car that stands still is wanted, in view or not: standIn.)
+    const cam = standIn ? null : ctx.camera?.(), out = [];
     if (cam) { cam.getWorldPosition(VIEW_AT); VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); CAR_FRUSTUM.setFromProjectionMatrix(VIEW_PV); }
     for (const v of list) {
       const yours = v.id === transit.ride?.vehicle || v.mine === true;
@@ -1184,11 +1255,29 @@ export async function startCity(ctx) {
     return signs.get(key);
   }
   const SIGN_M = new THREE.Matrix4();
+  // The cars parked at the kerb cast shadows like anything else that stands still: while the
+  // shadows' stand-in is drawn (proxy-light.mjs) only they are shown, of everything the city
+  // draws -- every one of them, not only those in your view. The next frame draws as ever.
+  const standInShown = [];
+  globalThis.__kerbsideProxyLight?.captureHooks?.add({
+    before() {
+      if (!group.parent) return;
+      const bodies = new Set([lowCars]);
+      for (const f of fleet.values()) for (const part of f.parts) if (!part.mesh.material?.transparent) bodies.add(part.mesh);
+      standInShown.length = 0;
+      for (const child of group.children) { standInShown.push(child, child.visible); child.visible = child.visible && bodies.has(child); }
+      standIn = true;
+      try { drawCars(wheels().filter((v) => !v.moving), 0); } finally { standIn = false; }
+      group.visible = true;
+    },
+    after() { for (let i = 0; i < standInShown.length; i += 2) standInShown[i].visible = standInShown[i + 1]; standInShown.length = 0; },
+  });
   function drawCars(list, night) {
     let n = 0, heads = 0, tails = 0, lo = 0;
     for (const f of fleet.values()) f.n = 0;
     for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
+    carShade.count = 0; carShade.instanceMatrix.needsUpdate = true;
     drawnTiers.cars = [full.length, mid.length, low.length];
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
@@ -1199,6 +1288,7 @@ export async function startCity(ctx) {
       // A wreck sits askew; a car in a crash rocks on its springs.
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
+      if (tier !== LOW) shadeAt(carShade, MAX_CARS, v.x, y, v.z, v.yaw, w + 0.7, l + 0.6);
       if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       // The route and where it is going, over the windscreen (on the fleet's bus; just off the
       // code-built one's nose; the low tier's box has none).
@@ -1665,6 +1755,7 @@ export async function startCity(ctx) {
         flings.set(q.id, { t0: now, x: q.x, z: q.z, dx: fx, dz: fz, speed, throw: Math.min(9, 1 + speed * 0.5) });
         jolts.set("me", { t0: now, speed });
         debrisAt(car.x + fx * l / 2, car.z + fz * l / 2, car.yaw, speed * 0.6);
+        noteIncident("crash", car.x + fx * l / 2, car.z + fz * l / 2, true);
         car.speed *= 0.55;
         send("collision", { kind: "hit_person", speed, npc: { id: hitAt.id, name: hitAt.person?.name, x: hitAt.x + fx * Math.min(9, 1 + speed * 0.5), z: hitAt.z + fz * Math.min(9, 1 + speed * 0.5), yaw: car.yaw } })
           .then((r) => { district.city?.forget(hitAt.id); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
@@ -1683,6 +1774,7 @@ export async function startCity(ctx) {
       if (rel < 0.8) return;
       jolts.set(v.id, { t0: now, speed: rel }); district.drivers?.stop(v.id, { who: "me", speed: rel, x: v.x, z: v.z, yaw: v.yaw, until: Date.now() / 1000 + 8 });
       debrisAt((car.x + v.x) / 2, (car.z + v.z) / 2, car.yaw, rel);
+      noteIncident("crash", (car.x + v.x) / 2, (car.z + v.z) / 2, true);
       const owner = v.vehicle?.owner;
       send("collision", { kind: "hit_vehicle", speed: rel, other, vehicle: { id: v.id, plate: v.plate, x: v.x, z: v.z, yaw: v.yaw, driver: v.parked ? null : owner, driverName: district.roster?.people.get(owner)?.name } })
         .then((r) => {
@@ -1988,7 +2080,7 @@ export async function startCity(ctx) {
   const taxi = { id: null, phase: null, route: null, d: 0, at: null, dest: null, n: 0 };
   //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
   //: (Yours and the route buses first, so a crowded street's cap never leaves them out.)
-  function wheels() { return taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; }
+  function wheels() { const out = taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; if (patrol.at) out.push(patrol.at); return out; }
   //: Where you stand from a vehicle: how far to its right (the door side, the kerb's) and along it.
   function besideOf(v, p) {
     const fx = -Math.sin(v.yaw || 0), fz = -Math.cos(v.yaw || 0), rx = -fz, rz = fx;
@@ -3029,6 +3121,7 @@ export async function startCity(ctx) {
   }
   //: A blow to someone: they are hurt by it, and hit back, run, or (an officer) arrest you.
   async function strikePerson(q) {
+    noteIncident("fight", q.x, q.z, true);
     const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, x: q.x, z: q.z, yaw: q.yaw }, witnesses: witnessesNear(q.x, q.z) - 1 });
     if (!r.ok) { notify(r.error); return; }
     const name = q.person?.name || "them";
@@ -3834,6 +3927,8 @@ export async function startCity(ctx) {
       holdBuses(dt);
     } else routeBuses = [];
     stepTaxi(dt);
+    stepPatrol(dt, now);
+    if (district.city) { district.city.wet = wetNow(); district.city.through = R.density?.through_driven ?? THROUGH_DRIVEN; }
     if (transit.ride) followRide();
     stepWork();
     reportExertion();
@@ -3897,6 +3992,101 @@ export async function startCity(ctx) {
   const flings = new Map();   // someone knocked down: id -> {t0, x, z, dx, dz, speed}
   const jolts = new Map();    // a car in a crash: id -> {t0, speed}
   const dodge = new Map();    // someone stepping round you: id -> sideways metres
+  // The people near you decide for themselves (temperament.mjs): out of the way of a car that
+  // is not stopping for them, and -- at a crash or a fight -- to run, to watch, to film it, to
+  // telephone, or to go and help. Only in the full and moderate rings; further off, a person is
+  // where their day has them and nothing else.
+  const scares = new Map();    // id -> {until, dx, dz, k}: stepping out of a car's way
+  const reacting = new Map();  // id -> {kind, until, ix, iz, at: {x, z}, off, told}
+  const incidents = [];        // what has just happened: {id, kind, x, z, t0, byYou, seen: Set}
+  const threats = [];          // the cars a walker might have to get clear of, this frame
+  const styles = new Map();    // vehicle id -> how its driver drives (temperament.mjs drivingStyle)
+  let lastTraffic = [];        // the cars as last placed
+  function noteIncident(kind, x, z, byYou = false) {
+    const now = performance.now();
+    for (const i of incidents) if (i.kind === kind && now - i.t0 < 4000 && Math.hypot(i.x - x, i.z - z) < 10) return;
+    incidents.push({ id: `${kind}:${Math.round(now)}`, kind, x, z, t0: now, byYou, seen: new Set(), called: false });
+    if (incidents.length > 6) incidents.shift();
+  }
+  //: The share of the visitors' trips that are driven where you can see them (fleet.mjs scan:
+  //: a day's through traffic in a 72-minute day is twenty times what the streets carry). At
+  //: this the Marina has some 120 cars moving round you, half of them at any moment, at 3 m/s
+  //: and more; with all of them, 640, one in five moving (measured on the real streets).
+  const THROUGH_DRIVEN = 0.14;
+  const wetStyles = new Map();
+  //: Raining now (environment-runtime.mjs): drivers near you slow down and leave more room, and
+  //: nobody near you takes a break outside.
+  const wetNow = () => Boolean(globalThis.kerbsideWeather?.rain);
+  const styleOf = (v) => {
+    let s = styles.get(v.id);
+    if (!s) { s = drivingStyle(temperamentOf(district.roster?.people.get(v.owner))); styles.set(v.id, s); if (styles.size > 6000) { styles.clear(); wetStyles.clear(); } }
+    if (!wetNow()) return s;
+    let w = wetStyles.get(v.id);
+    if (!w) wetStyles.set(v.id, w = wetStyle(s));
+    return w;
+  };
+  // A patrol car sent to a 911 call: from a few blocks off, by the streets, to the kerb beside
+  // what happened; it stands there half a minute and drives on. Not one of the city's own cars
+  // (their days are planned): the traffic keeps behind it and gives way to it as to yours.
+  const patrol = { phase: null, route: null, d: 0, at: null, until: 0, inc: null, v: 0 };
+  const PATROL = { speed_ms: 15, stay_s: 30, from_m: [260, 420], short_m: 9 };
+  function sendPatrol(inc) {
+    const s = district.streets;
+    if (patrol.phase || !s) return false;
+    const b = s.nearest(inc.x, inc.z, "drive", 140);
+    if (b === null || b === undefined) return false;
+    let best = null;
+    for (let k = 0; k < 12; k += 1) {
+      const ang = (hash32(inc.id, "from", k) % 6283) / 1000, r = PATROL.from_m[0] + (hash32(inc.id, "far", k) % (PATROL.from_m[1] - PATROL.from_m[0]));
+      const a = s.nearest(inc.x + Math.cos(ang) * r, inc.z + Math.sin(ang) * r, "drive", 140);
+      if (a === null || a === undefined || a === b) continue;
+      const route = s.route(a, b, "drive");
+      if (route && route.length > 160 && route.length < 1100 && (!best || route.length < best.length)) best = route;
+    }
+    if (!best) return false;
+    Object.assign(patrol, { phase: "coming", route: best, d: 0, inc, v: PATROL.speed_ms * 0.6, at: null, shift: 0, held: 0, passUntil: 0 });
+    return true;
+  }
+  function stepPatrol(dt, now) {
+    if (!patrol.phase) { patrol.at = null; return; }
+    // (Held up behind a queue it pulls out over the middle line and goes by: ``shift``.)
+    const lane = (...a) => DRIVE_LANE(...a) - (patrol.shift || 0);
+    const R0 = patrol.route, here = alongRoute(R0, patrol.d, lane);
+    if (patrol.phase !== "there") {
+      const left = (patrol.phase === "coming" ? R0.length - PATROL.short_m : R0.length) - patrol.d;
+      let want = Math.max(patrol.phase === "coming" ? 0 : 2, Math.min(PATROL.speed_ms, left / 1.6));
+      // Not through the traffic: behind whatever is in its lane just ahead.
+      const fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw);
+      for (const v of lastTraffic) {
+        const dx = v.x - here.x, dz = v.z - here.z;
+        if (Math.abs(dx) > 30 || Math.abs(dz) > 30) continue;
+        const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
+        if (fwd > 0 && fwd < 26 && lat < 1.8) want = Math.min(want, Math.max(0, (fwd - 7) / 1.5));
+      }
+      patrol.held = patrol.v < 1 && want < 1 && left > 12 ? (patrol.held || 0) + dt : 0;
+      if (patrol.held > 2) patrol.passUntil = now + 7000;
+      patrol.shift = (patrol.shift || 0) + Math.max(-2 * dt, Math.min(2 * dt, (now < (patrol.passUntil || 0) ? 3.0 : 0) - (patrol.shift || 0)));
+      patrol.v += Math.max(-9 * dt, Math.min(3 * dt, want - patrol.v));
+      patrol.d = Math.min(R0.length, patrol.d + Math.max(0, patrol.v) * dt);
+      if (patrol.phase === "coming" && left <= 0.5) {
+        patrol.phase = "there"; patrol.until = now + PATROL.stay_s * 1000; patrol.v = 0;
+        if (Math.hypot(here.x - me().x, here.z - me().z) < 80) notify(patrol.inc?.byYou ? "A patrol car has pulled up. The officer is talking to those who saw it." : "A patrol car has pulled up at the scene.");
+      } else if (patrol.phase === "leaving" && left <= 0.5) { patrol.phase = null; patrol.at = null; return; }
+    } else if (now > patrol.until) {
+      // On its way: to somewhere a few blocks on.
+      const s = district.streets, a = s?.nearest(here.x, here.z, "drive", 80);
+      let next = null;
+      for (let k = 0; k < 8 && !next && a !== null && a !== undefined; k += 1) {
+        const ang = (hash32(patrol.inc?.id, "off", k) % 6283) / 1000, b = s.nearest(here.x + Math.cos(ang) * 380, here.z + Math.sin(ang) * 380, "drive", 160);
+        const route = b !== null && b !== undefined && b !== a ? s.route(a, b, "drive") : null;
+        if (route && route.length > 200) next = route;
+      }
+      if (!next) { patrol.phase = null; patrol.at = null; return; }
+      Object.assign(patrol, { phase: "leaving", route: next, d: 0, v: 0 });
+    }
+    const pos = alongRoute(patrol.route, patrol.d, lane);
+    patrol.at = { id: "patrol:responder", model: "patrol", x: pos.x, z: pos.z, yaw: pos.yaw, speed: patrol.v, moving: patrol.v > 0.2, shade: 0, braking: false };
+  }
   const nudged = new Map();   // someone going through a door: id -> when it was swung open for them
   let drawnCars = [];
   //: Who and what is where this frame: people along their way or at their spot, cars on their
@@ -4054,6 +4244,15 @@ export async function startCity(ctx) {
     const people = [];
     const you = me();
     let trackedPeople = 0;
+    // The cars a walker may have to get clear of: yours, and any of the city's that is moving
+    // fast and not braking (one that is braking has seen them).
+    threats.length = 0;
+    if (car.active && Math.abs(car.speed) > 2.5) threats.push({ x: car.x, z: car.z, vx: -Math.sin(car.yaw) * car.speed, vz: -Math.cos(car.yaw) * car.speed, half: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[0] / 2 });
+    for (const v of lastTraffic) {
+      if (!v.moving || v.braking || !(v.speed > 6) || Math.abs(v.x - focus.x) > 70 || Math.abs(v.z - focus.z) > 70) continue;
+      threats.push({ x: v.x, z: v.z, vx: -Math.sin(v.yaw) * v.speed, vz: -Math.cos(v.yaw) * v.speed, half: 0.95 });
+    }
+    while (incidents.length && now - incidents[0].t0 > REACT.incident_s * 1000) incidents.shift();
     for (const e of scan.people) {
       // Tracked only, or drawn low and placed a moment ago: left as it is until its next look.
       const id = e.p.id, was = personTiers.get(id);
@@ -4087,8 +4286,73 @@ export async function startCity(ctx) {
         const was = dodge.get(entry.id) || 0, now2 = was + (want - was) * Math.min(1, dt * 4);
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
       }
+      // Their own mind (temperament.mjs), near you only: clear of a car that is not stopping,
+      // and what they make of a crash or a fight.
+      let busy = false;
+      if (tier !== LOW && !pos.indoors && !pos.down && !held && !flings.has(id)) {
+        const mind = temperamentOf(e.p);
+        let sc = scares.get(id);
+        if (!sc || now > sc.until) {
+          for (let k = 0; k < threats.length; k += 1) {
+            const th = threats[k];
+            if (Math.abs(th.x - pos.x) > 40 || Math.abs(th.z - pos.z) > 40) continue;
+            const step = stepClear(mind, pos.x, pos.z, th.x, th.z, th.vx, th.vz, th.half);
+            if (!step) continue;
+            sc = { until: now + REACT.jump_s * 1000, dx: step.dx, dz: step.dz, k: sc ? sc.k : 0 };
+            scares.set(id, sc);
+            break;
+          }
+        }
+        if (sc) {
+          const out = now < sc.until;
+          sc.k += ((out ? 1 : 0) - sc.k) * Math.min(1, dt * (out ? 9 : 3));
+          if (!out && sc.k < 0.03) scares.delete(id);
+          else {
+            entry.x += sc.dx * sc.k; entry.z += sc.dz * sc.k;
+            if (out) { busy = true; entry.activity = "getting out of the way"; if (mind.nerve < 0.45) entry.gesture = { kind: "guard", f: 0.5 }; if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true); }
+          }
+        }
+        let re = reacting.get(id);
+        if (!re && !busy) for (const inc of incidents) {
+          if (inc.seen.has(id)) continue;
+          const d = Math.hypot(inc.x - pos.x, inc.z - pos.z);
+          if (d > REACT.notice_m) continue;
+          inc.seen.add(id);
+          let kind = reactionTo(mind, inc, d, id);
+          // (So many do each thing and no more: the rest look on, or walk on.)
+          inc.did ||= {};
+          if (kind !== "carry_on" && (inc.did[kind] || 0) >= REACT.most[kind]) kind = kind !== "watch" && kind !== "flee" && (inc.did.watch || 0) < REACT.most.watch ? "watch" : "carry_on";
+          if (kind !== "carry_on") inc.did[kind] = (inc.did[kind] || 0) + 1;
+          if (kind !== "carry_on") { re = { kind, until: now + reactionFor(mind, kind) * 1000, ix: inc.x, iz: inc.z, at: { x: pos.x, z: pos.z }, off: 0, far: REACT.flee_m[0] + (REACT.flee_m[1] - REACT.flee_m[0]) * (1 - mind.nerve), inc }; reacting.set(id, re); }
+          break;
+        }
+        if (re) {
+          if (now > re.until) reacting.delete(id);
+          else {
+            const ax = re.ix - re.at.x, az = re.iz - re.at.z, L = Math.hypot(ax, az) || 1, ux = ax / L, uz = az / L;
+            busy = true; entry.gesture = null;
+            if (re.kind === "flee") {
+              const next = Math.min(re.far, re.off + REACT.flee_ms * dt), nx = re.at.x - ux * next, nz = re.at.z - uz * next;
+              // (Not into the road, and not through a wall: they stop short and keep their distance.)
+              const going = next > re.off && !(ctx.roadAt?.(nx, nz) && !ctx.roadAt?.(re.at.x, re.at.z)) && !c.footprintAt?.(nx, nz);
+              if (going) re.off = next;
+              entry.x = re.at.x - ux * re.off; entry.z = re.at.z - uz * re.off; entry.moving = going; entry.yaw = Math.atan2(ux, uz); entry.activity = "running from it";
+            } else if (re.kind === "help") {
+              const next = Math.min(Math.max(0, L - 1.8), re.off + 2.4 * dt), going = next > re.off + 1e-4;
+              re.off = next;
+              entry.x = re.at.x + ux * re.off; entry.z = re.at.z + uz * re.off; entry.moving = going; entry.yaw = Math.atan2(-ux, -uz); entry.activity = going ? "going to help" : "helping";
+            } else {
+              entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
+              entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : "watching";
+              if (re.kind !== "watch") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
+              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
+            }
+            if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);
+          }
+        }
+      }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
-      if (pos.walk && pos.moving && !pos.down && !held) {
+      if (pos.walk && pos.moving && !pos.down && !held && !busy) {
         const hold = waitsAtKerb(pos.walk, tsec);
         // (One placed only now and then is held for the time since it was last placed.)
         c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
@@ -4122,6 +4386,8 @@ export async function startCity(ctx) {
     keepApart(people, you, dt);
     drawnTiers.tracked.people = trackedPeople;
     if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
+    if (scares.size > 400) scares.clear();
+    if (reacting.size > 400) for (const [id, q] of reacting) if (now > q.until) reacting.delete(id);
     // The cars: parked where they stand; driving, on their leg.
     const sim = [], vehicles = [], legOf = new Map();
     const limitAt = (model) => (cls) => {
@@ -4162,7 +4428,7 @@ export async function startCity(ctx) {
       // far behind as the traffic left it -- so the cars driven do not only ever grow in number.)
       const off = Math.hypot(probe.x - focus.x, probe.z - focus.z);
       if (off < SIM_M || (off < SIM_M * 1.8 && D.stateOf(v.id)?.key === key)) {
-        sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), cruise: Math.max(v.bike ? 3 : 4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z), bike: Boolean(v.bike) });
+        sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), style: styleOf(v), cruise: Math.max(v.bike ? 3 : 4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z), bike: Boolean(v.bike) });
         legOf.set(v.id, { base, route });
       } else {
         // At the end of its leg it is parked there, in the parking lane (and from the next pass,
@@ -4180,7 +4446,7 @@ export async function startCity(ctx) {
     for (const q of people) if (!q.indoors && !q.down && Math.abs(q.x - focus.x) < SIM_M && Math.abs(q.z - focus.z) < SIM_M) obstacles.push({ id: q.id, x: q.x, z: q.z });
     // In the way of the city's cars, and solid to them: your car, the route buses, your cab.
     const blockers = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, v: car.speed, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2], width: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[0] }] : [];
-    for (const b of [...routeBuses, ...(taxi.at ? [taxi.at] : [])]) {
+    for (const b of [...routeBuses, ...(taxi.at ? [taxi.at] : []), ...(patrol.at ? [patrol.at] : [])]) {
       if (Math.abs(b.x - focus.x) > SIM_M || Math.abs(b.z - focus.z) > SIM_M) continue;
       const [bw, , bl] = VEHICLE_DIMS[b.model || "bus"] || VEHICLE_DIMS.sedan;
       blockers.push({ x: b.x, z: b.z, yaw: b.yaw, v: b.dwelling ? 0 : b.speed || 0, length: bl, width: bw });
@@ -4203,6 +4469,7 @@ export async function startCity(ctx) {
       for (const hit of step.hits) carHit(hit, people);
     }
     for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
+    lastTraffic = vehicles;
     // Inside a shop its room is where you are: no car is drawn through it. (A room is laid inward
     // from the shop's front; where a front lies nearer the street than the map's kerb, traffic on
     // the nearest lane ran through the counter.)
@@ -4249,6 +4516,7 @@ export async function startCity(ctx) {
     debrisAt(hit.x - Math.sin(hit.yaw) * 2, hit.z - Math.cos(hit.yaw) * 2, hit.yaw, hit.speed);
     const dx = -Math.sin(hit.yaw), dz = -Math.cos(hit.yaw);
     if (hit.player) {
+      noteIncident("crash", hit.x, hit.z, false);
       knockBack(dx, dz, hit.speed);
       const r = await send("collision", { kind: "hit_by_car", speed: hit.speed, vehicle: { id: hit.car, plate: v?.plate, x: hit.x, z: hit.z, yaw: hit.yaw } });
       if (r.ok) notify(`Hit by a car (${v?.plate || "?"}) at ${Math.round(hit.speed * MPH)} mph: ${r.injury.type}, -${r.injury.health} health. ${r.paid_by ? `${r.paid_by[0].toUpperCase()}${r.paid_by.slice(1)} pays the hospital.` : ""}`);
@@ -4259,6 +4527,8 @@ export async function startCity(ctx) {
     // minute. (Every touch counted, some twenty residents a minute were hurt and lay where they fell.)
     if (hit.speed < 9 || performance.now() - lastCityCrash < 60_000) return;
     lastCityCrash = performance.now();
+    // (The people near it make of it what they will: view.mjs frameCity, temperament.mjs.)
+    noteIncident("crash", hit.x, hit.z, false);
     const q = hit.kind !== "vehicle" && people.find((x) => x.id === hit.who), other = district.roster?.vehicles.get(hit.who);
     if (!world || !v || (!q && !other)) return;
     const driver = district.roster.people.get(v.owner), targetDriver = other && district.roster.people.get(other.owner);
@@ -5284,7 +5554,8 @@ export async function startCity(ctx) {
     //: low), so many only tracked, and the detail field's stretch ahead.
     detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked },
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
-    rules: R, tick, drive, get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
+    rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
+    get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,

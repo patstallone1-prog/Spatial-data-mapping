@@ -147,7 +147,7 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
   function tintMaterial(material, hex) {
     const m = material.clone();
     m.userData.tint = new THREE.Color(hex);
-    m.onBeforeCompile = (shader) => {
+    m.onBeforeCompile = (shader) => { globalThis.__kerbsideProxyLight?.patch?.(shader);
       shader.uniforms.tintColour = { value: m.userData.tint };
       shader.fragmentShader = "uniform vec3 tintColour;\n" + shader.fragmentShader.replace("#include <map_fragment>",
         `#include <map_fragment>

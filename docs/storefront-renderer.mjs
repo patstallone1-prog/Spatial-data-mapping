@@ -233,7 +233,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
         if (!materialCache.has(key)) {
           const m = material(p.wall, p.roughness).clone();
           const bands = f.observed_bands.filter(b => /^#[0-9a-f]{6}$/i.test(b.colour || ''));
-          m.onBeforeCompile = shader => {
+          m.onBeforeCompile = shader => { globalThis.__kerbsideProxyLight?.patch?.(shader);
             shader.vertexShader = 'varying float facadeY;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nfacadeY = position.y;');
             shader.fragmentShader = 'varying float facadeY;\n' + shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + bands.map(b => {
               const c = new THREE.Color(b.colour); return `if(facadeY>=${Number(b.bottom_m).toFixed(6)}&&facadeY<${Number(b.top_m).toFixed(6)}) diffuseColor.rgb=vec3(${c.r},${c.g},${c.b});`;

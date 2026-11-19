@@ -35,7 +35,7 @@ function portalMaterialFor(stage) {
     m.stencilZPass = THREE.KeepStencilOp;
     if (stage === "clear") {
       // As far as depth goes: the well behind the opening is drawn whatever the pavement wrote.
-      m.onBeforeCompile = (shader) => {
+      m.onBeforeCompile = (shader) => { globalThis.__kerbsideProxyLight?.patch?.(shader);
         shader.fragmentShader = shader.fragmentShader.replace(/}\s*$/, "  gl_FragDepth = 1.0;\n}");
       };
       m.customProgramCacheKey = () => "station-clear";

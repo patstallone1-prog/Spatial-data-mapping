@@ -12,6 +12,7 @@
 // (tests/city.test.mjs).
 
 import { arrivalsAt } from "./transit.mjs";
+import { STEADY_STYLE, timeToMeet } from "./temperament.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
@@ -1831,6 +1832,7 @@ export class City {
   //: The same pass a slice at a time (``budget`` people and cars a call), so a frame is not
   //: held up by the whole district at once: null until the pass is done.
   scanBegin(ms, focus, reach, parkedReach = 180) {
+    this.through ??= 1;
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
       P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
   }
@@ -1871,7 +1873,8 @@ export class City {
         if (pl.court) { let list = S.courts.get(pl.id); if (!list) S.courts.set(pl.id, list = []); list.push(p.id); if (near(pl.x, pl.z)) people.push({ p, seg }); }
         continue;
       }
-      if ((seg.act.kind === "break" && seg.act.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
+      // (Nobody takes their break out in the rain: view.mjs sets ``wet``.)
+      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);
@@ -1880,6 +1883,12 @@ export class City {
       if (s.state === "driving") {
         if (s.roam) { if (near(s.x, s.z, 120)) vehicles.push({ v, s }); continue; }
         const leg = s.leg, P0 = this.endOf(v, leg.from), P1 = this.endOf(v, leg.to);
+        // The through traffic is a day's worth, and the game's day is 72 minutes: driven all at
+        // once it is twenty times what the streets carry, and they stood solid (five hundred
+        // cars in sight of you, one in eight of them moving: measured 2026-11-19). So many of
+        // the visitors' trips are driven where you can see them (``through``: view.mjs), the
+        // same ones every time; the residents' own are all driven.
+        if (v.visitor && this.through < 1 && hash32(v.id, Math.round(leg.t0)) % 1000 >= this.through * 1000) continue;
         if (P0 && P1 && distToSegment(focus.x, focus.z, P0.x, P0.z, P1.x, P1.z) < reach + 250) vehicles.push({ v, s });
       } else if (Math.abs(s.x - focus.x) < parkedReach && Math.abs(s.z - focus.z) < parkedReach) vehicles.push({ v, s });
     }
@@ -1996,7 +2005,9 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // is put on beyond what blocks it -- never driven through it.
   late_s: 8, hopeless_s: 150, teleport_s: 28, box_jump_s: 10, teleport_reach_m: 60,
   // A cyclist ahead is passed at ``pass_over`` m/s more than they go, with room for the whole pass.
-  pass_over: 3.5, turn_speed: 4.5 };
+  pass_over: 3.5, turn_speed: 4.5,
+  // Two cars that have hit stand ``wreck_s`` (a bump) or ``wreck_hard_s`` (20 mph and over), then drive on.
+  wreck_s: 30, wreck_hard_s: 120 };
 //: Which segment of ``route`` distance ``d`` is on.
 export function segOf(route, d) {
   const s = route.s;
@@ -2128,6 +2139,7 @@ export class Drivers {
   //: length, width}. ``people``: {id, x, z} -- you among them. Returns each car's distance
   //: along, speed, and any hits.
   step(dt, tsec, cars, people, blockers = []) {
+    this.nowS = tsec;
     const T = this.T, out = [], hits = [], seen = new Set();
     const live = [];
     // Who is standing in the road, and which way those who are not are going (people come with
@@ -2172,6 +2184,11 @@ export class Drivers {
     // several times a frame, twenty-five cells a look.)
     const grid = new Map(), CELL = 12, cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768), cellOf = (x, z) => cellKey(Math.floor(x / CELL), Math.floor(z / CELL));
     const place = (id, p) => { const k = cellOf(p.x, p.z); p.cell = k; let g = grid.get(k); if (!g) grid.set(k, g = new Set()); g.add(id); };
+    // The people by square too (kept between frames and emptied, not made again).
+    const PCELL = 16, pgrid = (this._pgrid ||= new Map()), pnear = (this._pnear ||= []);
+    for (const g of pgrid.values()) g.length = 0;
+    if (pgrid.size > 4000) pgrid.clear();
+    for (let qi = 0; qi < people.length; qi += 1) { const q = people[qi], k = cellKey(Math.floor(q.x / PCELL), Math.floor(q.z / PCELL)); let g = pgrid.get(k); if (!g) pgrid.set(k, g = []); g.push(qi); }
     const unplace = (id, p) => grid.get(p.cell)?.delete(id);
     const near = (x, z, r, fn) => {
       const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
@@ -2222,6 +2239,24 @@ export class Drivers {
         for (let k = 0; k < 40 && st.d > 0 && deepest(c.id, p.body, p.x, p.z, c.length + 8).worst > 0; k += 1) {
           st.d = Math.max(0, st.d - 1.5); p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9);
         }
+        // And at a speed it can stop from in the room it has: it came in at its cruising speed
+        // whatever stood in front of it, and the first step drove it into the back of a queue
+        // at 12 m/s -- a crash, a wreck stood in the lane, and the next car in did the same
+        // (87 crashes in six minutes of a weekday morning on the real Marina, 85 of them this:
+        // measured 2026-11-19).
+        const efx = -Math.sin(p.yaw), efz = -Math.cos(p.yaw);
+        let room = Infinity, lead = 0;
+        const ahead = (ox, oz, ol, ov, oyaw) => {
+          const dx = ox - p.x, dz = oz - p.z, fwd = dx * efx + dz * efz;
+          if (fwd <= 0 || fwd > T.look_m + 15 || Math.abs(dx * efz - dz * efx) > 2.4) return;
+          const gap = fwd - (c.length + ol) / 2 - T.gap_m, same = Math.cos(oyaw - p.yaw) > 0.4;
+          if (gap < room) { room = gap; lead = same ? Math.max(0, ov) : 0; }
+        };
+        near(p.x + efx * T.look_m / 2, p.z + efz * T.look_m / 2, T.look_m / 2 + 20, (oid) => { if (oid === c.id) return; const o = pos.get(oid), ost = this.cars.get(oid); ahead(o.x, o.z, o.c.length, ost?.hit ? 0 : ost?.v || 0, o.yaw); });
+        for (const o of blockers) ahead(o.x, o.z, o.length || 4.5, o.v || 0, o.yaw);
+        // (And for anyone on foot in front of it.)
+        for (const q of people) { const dx = q.x - p.x, dz = q.z - p.z, fwd = dx * efx + dz * efz; if (fwd > 0 && fwd < T.look_m && Math.abs(dx * efz - dz * efx) < 2.2 && fwd - c.length / 2 - 1.5 < room) { room = fwd - c.length / 2 - 1.5; lead = 0; } }
+        if (room < Infinity) st.v = Math.min(st.v, lead + Math.sqrt(2 * T.brake * 0.8 * Math.max(0, room)));
         st.fresh = false;
       }
       pos.set(c.id, p);
@@ -2280,7 +2315,9 @@ export class Drivers {
       const behind = tsec - c.unsched(st.d), late = behind > T.late_s;
       if (late && !st.late) this.tally.catchups += 1;
       st.late = late;
-      let target = late ? limit : Math.min(limit, c.cruise ?? limit), reason = null;
+      // Their own way of driving (temperament.mjs drivingStyle): the pace they hold, the room they leave.
+      const S = c.style || STEADY_STYLE, headway = T.headway_s * S.headway;
+      let target = late ? limit : Math.min(limit, (c.cruise ?? limit) * S.pace), reason = null;
       // Its lane (one change at a time, into a gap, never in or at a junction's box), and the
       // block after the next junction: stood full, another way is taken (lookAhead).
       const J = this.junctionAhead(c, st);
@@ -2362,7 +2399,11 @@ export class Drivers {
           if (!entered) {
             // Someone on a crosswalk this way goes over (in, or out the far side): waited for.
             const ext = extendPath(J.path, PAVE_M + 1);
-            for (const q of people) {
+            const jr = Math.ceil((J.reach + 6) / PCELL) , ji = Math.floor(J.mid[0] / PCELL), jj = Math.floor(J.mid[1] / PCELL);
+            pnear.length = 0;
+            for (let i = ji - jr; i <= ji + jr; i += 1) for (let j = jj - jr; j <= jj + jr; j += 1) { const g = pgrid.get(cellKey(i, j)); if (g) for (let k = 0; k < g.length; k += 1) pnear.push(g[k]); }
+            for (let qn = 0; qn < pnear.length; qn += 1) {
+              const q = people[pnear[qn]];
               if (Math.abs(q.x - J.mid[0]) > J.reach + 6 || Math.abs(q.z - J.mid[1]) > J.reach + 6) continue;
               // (Someone stood at the kerb waiting is not crossing: they were waited for while
               // they waited for the car. Stood in its very way, they are gone round -- below.)
@@ -2396,6 +2437,7 @@ export class Drivers {
       // The car ahead.
       const queueFree = st.releaseQueue > tsec;
       const look = (fn) => near(here.x + fx * T.look_m / 2, here.z + fz * T.look_m / 2, T.look_m / 2 + 4, fn);
+      let hard = 0;   // the braking the car ahead calls for (m/s2), where that is more than the usual
       look((oid) => {
         const op = pos.get(oid), o = op.c, ost = this.cars.get(oid);
         if (oid === c.id || !ost || arrived(o, ost) || (dodging && st.hold?.id === oid)) return;
@@ -2409,11 +2451,25 @@ export class Drivers {
         const gap = fwd - (c.length + o.length) / 2 - T.gap_m - (ost.dodgeTo !== 0 || ost.holdT > 0.5 ? T.swing_room_m : 0);
         // A crashed car stands where it stopped: gone round, whichever way it faces.
         if (ost.hit) { if (gap < 12) holdIf({ x: op.x, z: op.z, hw: (o.width || 1.9) / 2, hl: o.length / 2, id: oid }, gap); }
-        else if (queueFree || Math.cos(op.yaw - here.yaw) < 0.4) return;
+        else if (Math.cos(op.yaw - here.yaw) < 0.4) {
+          // Facing another way, and squarely in this lane (round something over the middle
+          // line, turned across, stood where it was shut in): not a queue to join, but nothing
+          // to drive into either -- stopped for, as hard as it takes, and gone round if it stands.
+          if (lat < 1.3 && gap < 28) {
+            const v = Math.sqrt(2 * T.brake * Math.max(0, gap - 1));
+            if (v < target) { target = v; reason = "a car in the lane"; }
+            if (gap < 22) hard = Math.max(hard, st.v * st.v / (2 * Math.max(0.4, gap - 1)));
+            if (ost.v < 0.5 && gap < 12) holdIf({ x: op.x, z: op.z, hw: (o.width || 1.9) / 2, hl: o.length / 2, id: oid }, gap);
+          }
+          return;
+        }
+        else if (queueFree) return;
         if (!ost.hit) carGap = Math.min(carGap, gap);
         const lead = ost.hit ? 0 : ost.v;
-        const v = Math.max(0, Math.min(lead + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
+        const v = Math.max(0, Math.min(lead + gap / headway, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = o.id; }
+        // (The one ahead stopped dead -- hit, or shut in: as hard as it takes, not the usual braking.)
+        if (st.v > lead + 0.5 && gap < 30) hard = Math.max(hard, (st.v * st.v - lead * lead) / (2 * Math.max(0.4, gap - 0.5)));
         // A cyclist ahead, slower than this car would go: passed, when there is room (``slow``).
         if (o.bike && !c.bike && !ost.hit && gap < 14 && Math.cos(op.yaw - here.yaw) > 0.7 && ost.v < lawful - 2) holdIf({ x: op.x, z: op.z, hw: (o.width || 0.65) / 2, hl: o.length / 2, id: oid, slow: Math.max(0, ost.v) }, gap);
       });
@@ -2426,8 +2482,9 @@ export class Drivers {
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
         if (fwd <= 0 || fwd > T.look_m || lat > 1.9) continue;
         const gap = fwd - (c.length + (o.length || 4.5)) / 2 - T.gap_m, ov = Math.max(0, o.v || 0);
-        const v = Math.max(0, Math.min(ov + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ov));
+        const v = Math.max(0, Math.min(ov + gap / headway, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ov));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = null; st.byBlocker = ov < 0.5; }
+        if (st.v > ov + 0.5 && gap < 30) hard = Math.max(hard, (st.v * st.v - ov * ov) / (2 * Math.max(0.4, gap - 0.5)));
         if (ov < 0.3 && gap < 12) holdIf({ x: o.x, z: o.z, hw: (o.width || 1.9) / 2, hl: (o.length || 4.5) / 2, id: `blocker:${k}` }, gap);
       }
       // (Blocked last frame by something standing that is not dead ahead: that, too.)
@@ -2463,33 +2520,77 @@ export class Drivers {
       // second, most of what the page threw away, and the collector's pauses were the freezes
       // while walking: measured 2026-11-16. Anyone too far to be reached at all is passed over
       // on two subtractions.)
-      const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
+      const reach = st.v * T.reaction_s * S.alert + st.v * st.v / (2 * T.brake) + 6;
       const farOff = reach + c.length + (c.width || 1.9) + 3;
       const heldPerson = dodging && typeof st.hold?.id === "string" && st.hold.id.startsWith("person:") ? st.hold.id.slice(7) : null;
-      for (let qi = 0; qi < people.length; qi += 1) {
-        const q = people[qi];
+      // (Only those in the squares round the car: every car against every person was 360,000
+      // looks a frame with two thousand people out at lunchtime, and most of the frame.)
+      const pr = Math.ceil((farOff + 8) / PCELL), pci = Math.floor(here.x / PCELL), pcj = Math.floor(here.z / PCELL);
+      pnear.length = 0;
+      for (let i = pci - pr; i <= pci + pr; i += 1) for (let j = pcj - pr; j <= pcj + pr; j += 1) { const g = pgrid.get(cellKey(i, j)); if (g) for (let k = 0; k < g.length; k += 1) pnear.push(g[k]); }
+      for (let qn = 0; qn < pnear.length; qn += 1) {
+        const q = people[pnear[qn]];
         const qvx = q.vx || 0, qvz = q.vz || 0, far = farOff + Math.abs(qvx) + Math.abs(qvz);
         if (Math.abs(q.x - here.x) > far || Math.abs(q.z - here.z) > far) continue;
         if (heldPerson !== null && heldPerson === String(q.id)) continue;
-        const taus = qvx || qvz ? 2 : 1;
+        // (Where they are, where they will be in a second, and -- at speed, when it takes two
+        // seconds to stop -- in two: someone walking out from the kerb is seen before they are in the lane.)
+        const taus = qvx || qvz ? (st.v > 6 ? 3 : 2) : 1;
         for (let tau = 0; tau < taus; tau += 1) {
           const qx = q.x + qvx * tau, qz = q.z + qvz * tau;
           const dx = qx - here.x, dz = qz - here.z;
           const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
           if (fwd < c.length / 2 - 0.5 || lat > c.width / 2 + T.person_half_m + 0.25) continue;
           const gap = fwd - c.length / 2 - T.person_half_m;
-          if (gap > reach || !inRoad(qx, qz)) continue;
+          // (Two seconds on, only if the car would be there by then.)
+          if (gap > reach || (tau === 2 && gap > st.v * 2.4 + 2) || !inRoad(qx, qz)) continue;
           if (!danger || gap < danger.gap) danger = { q, gap, soon: tau > 0 };
           // Stood there (not walking through): to be gone round, whoever else walks by meanwhile.
           if (tau === 0 && q.still >= T.person_still_s && gap < 12) holdIf({ x: q.x, z: q.z, hw: T.person_half_m, hl: T.person_half_m, id: `person:${q.id}` }, gap);
         }
       }
-      let decel = T.brake;
+      // A car coming across its way (yours, a bus pulling out, a bicycle): where the two would
+      // meet within the next two and a half seconds, this driver decides. The assertive, all
+      // but there already, go on through; everyone else brakes for it, as hard as it takes.
+      // (Cars going the same way are the car ahead, above.)
+      let across = 0;
+      // The city's own cars the same: of two whose ways cross, the one that would drive into the
+      // other's side gives way (nose to nose, the one with the later name).
+      // (Looked for every other frame, each car on its own beat; what was found holds between.)
+      const lookAcross = ((st.beat = (st.beat || 0) + 1) & 1) === 0;
+      if (!lookAcross) across = st.acrossWas || 0;
+      if (st.v > 1.5 && lookAcross) near(here.x + fx * 13, here.z + fz * 13, 26, (oid) => {
+        if (oid === c.id) return;
+        const op = pos.get(oid), ost = this.cars.get(oid);
+        if (!ost || ost.hit || ost.v < 1.5 || arrived(op.c, ost)) return;
+        const ox = -Math.sin(op.yaw), oz = -Math.cos(op.yaw), cos = ox * fx + oz * fz;
+        if (Math.abs(cos) > 0.7) return;
+        const tm = timeToMeet(here.x, here.z, fx * st.v, fz * st.v, (c.width || 1.9) / 2 + 0.4, op.x, op.z, ox * ost.v, oz * ost.v, Math.min(2.4, op.c.length / 2), 2.2);
+        if (tm < 0) return;
+        // Where each is then: the other in front of this one's nose, and this one not in front of its.
+        const mx = here.x + fx * st.v * tm, mz = here.z + fz * st.v * tm, qx = op.x + ox * ost.v * tm, qz = op.z + oz * ost.v * tm;
+        const mineAhead = (qx - mx) * fx + (qz - mz) * fz > 0, itsAhead = (mx - qx) * ox + (mz - qz) * oz > 0;
+        if (!mineAhead || (itsAhead && String(c.id) < String(oid))) return;
+        across = Math.max(across, st.v * st.v / (2 * Math.max(0.5, st.v * tm - 1.2)));
+      });
+      if (lookAcross) st.acrossWas = across;
+      if (st.v > 1.5) for (let k = 0; k < blockers.length; k += 1) {
+        const o = blockers[k], ov = o.v || 0;
+        if (Math.abs(ov) < 1.5 || Math.abs(o.x - here.x) > 60 || Math.abs(o.z - here.z) > 60) continue;
+        const ox = -Math.sin(o.yaw), oz = -Math.cos(o.yaw);
+        // (One coming the other way is in its own lane: only what cuts across.)
+        if (Math.abs(ox * fx + oz * fz) > 0.7) continue;
+        const tm = timeToMeet(here.x, here.z, fx * st.v, fz * st.v, (c.width || 1.9) / 2 + 0.5, o.x, o.z, ox * ov, oz * ov, Math.min(2.5, (o.length || 4.5) / 2), 2.5);
+        if (tm < 0 || (S.assertive && tm < 0.7)) continue;
+        across = Math.max(across, st.v * st.v / (2 * Math.max(0.5, st.v * tm - 1.5)));
+      }
+      let decel = hard > T.brake ? Math.min(T.emergency, hard) : T.brake;
+      if (across > 0) { target = 0; reason = "a car coming across"; decel = Math.min(T.emergency, Math.max(decel, across)); if (!st.yielding) { st.yielding = true; this.tally.yields = (this.tally.yields || 0) + 1; } } else st.yielding = false;
       if (danger) {
         const room = Math.max(0.05, danger.gap - 0.6);
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
-        decel = Math.min(T.emergency, Math.max(T.brake, need));
+        decel = Math.min(T.emergency, Math.max(decel, need));
         // Between the city's own people the law holds: a walker who steps out looks first and a
         // driver who is too close stops dead, so nobody is run down unless you are in it (on foot
         // where the cars are, or in a car yourself). Without this the traffic hurt some twenty
@@ -2503,6 +2604,7 @@ export class Drivers {
         if (danger.gap <= 0.15 && st.v > 0.6 && !danger.soon) {
           st.hit = { id: `${c.key}:${danger.q.id}:${Math.round(tsec * 1000)}`, kind: "person", who: danger.q.id, speed: st.v, x: here.x, z: here.z, yaw: here.yaw, until: danger.q.player ? tsec + 9 : 0,
             context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null, gap: danger.gap, target: { x: danger.q.x, z: danger.q.z, vx: danger.q.vx, vz: danger.q.vz } } };
+          this.tally.ran_down = (this.tally.ran_down || 0) + 1;
           hits.push({ car: c.id, ...st.hit, player: Boolean(danger.q.player) });
           st.v = 0;
           out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, reason, route: st.route });
@@ -2538,7 +2640,7 @@ export class Drivers {
         reason = reason || "going round";
       } else if (hold && lawful >= 1 && (st.v < 0.8 || hold.slow >= 0)) {
         st.holdT += dt;
-        if (st.holdT >= T.dodge_after_s && tsec >= (st.nextDodge || 0)) {
+        if (st.holdT >= T.dodge_after_s * S.patience && tsec >= (st.nextDodge || 0)) {
           st.nextDodge = tsec + 0.7;
           const plan = this.planDodge(c, st, here, hold, { near, pos, people, blockers });
           if (plan) {
@@ -2658,12 +2760,16 @@ export class Drivers {
           const otherSpeed = ost?.v || 0, speed = op ? Math.hypot(st.v * fx + otherSpeed * Math.sin(op.yaw), st.v * fz + otherSpeed * Math.cos(op.yaw)) : 0;
           // (A crash is contact at speed. Two of the city's cars touching in a queue or a tight turn
           // stop; counted as crashes they hurt some twenty residents a minute, 2026-11-16.)
-          if (op && into(next.body, op.body) > 0.25 && speed > NPC_STOP_DEAD_MS) {
-            st.hit = { id: `${c.key}:${who}:${Math.round(tsec * 1000)}`, kind: "vehicle", who, speed, x: next.x, z: next.z, yaw: next.yaw,
+          if (op && into(next.body, op.body) > 0.25 && speed > NPC_STOP_DEAD_MS && st.v > 2) {
+            // (They stand a while -- half a minute after a bump, two after a hard one -- and
+            // then drive on: stood for the rest of its leg, every bump was a wall in the lane.)
+            const until = tsec + (speed >= 9 ? T.wreck_hard_s : T.wreck_s);
+            st.hit = { id: `${c.key}:${who}:${Math.round(tsec * 1000)}`, kind: "vehicle", who, speed, x: next.x, z: next.z, yaw: next.yaw, until,
               target: { x: op.x, z: op.z, yaw: op.yaw }, context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, speed: st.v, otherSpeed, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null,
                 other: ost ? { route: ost.key, segment: segInfo(op.c.route, ost), d: ost.d, lane: ost.lane, reason: ost.reason } : null } };
             st.d = d1; st.v = 0;
-            if (ost) { ost.hit = { id: st.hit.id, who: c.id }; ost.v = 0; const drawn = out.find((o) => o.id === who); if (drawn) { drawn.v = 0; drawn.hit = ost.hit; } }
+            if (ost) { ost.hit = { id: st.hit.id, who: c.id, until }; ost.v = 0; const drawn = out.find((o) => o.id === who); if (drawn) { drawn.v = 0; drawn.hit = ost.hit; } }
+            this.tally.crashes = (this.tally.crashes || 0) + 1;
             hits.push({ car: c.id, ...st.hit });
             out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, route: st.route });
             continue;
@@ -2890,6 +2996,10 @@ export class Drivers {
   catchUp(c, st, tsec, { deepest, bodies }) {
     const want = Math.min(this.endOf(c) - 1, c.sched(tsec - this.T.late_s));
     if (!(want > st.d + 30)) return null;
+    // (Looked for once a second, not every frame: a late car with nowhere to be put looked at a
+    // dozen places a frame, and with a few hundred late that was a third of the frame: 2026-11-19.)
+    if (tsec < (st.noPut || 0)) return null;
+    st.noPut = tsec + 1;
     for (let k = 0, d = want; k < 12 && d > st.d + 20; k += 1, d -= 4) {
       const p = alongRoute(c.route, d, st.side);
       if (this.inAnyBox(c.route, d, c.length)) continue;
@@ -2901,6 +3011,8 @@ export class Drivers {
   //: outside any junction, within ``teleport_reach_m`` -- or null (it waits on).
   jumpAhead(c, st, { deepest, bodies, people }, hold = null) {
     const T = this.T, end = this.endOf(c);
+    if (this.nowS < (st.noJump || 0)) return null;
+    st.noJump = this.nowS + 0.5;
     const from = hold ? Math.max(0, hold.gap) + c.length + hold.hl * 2 + T.gap_m + 2 : c.length + 2;
     for (let d = st.d + from; d < Math.min(end, st.d + T.teleport_reach_m); d += 2) {
       if (this.inAnyBox(c.route, d, c.length)) continue;
