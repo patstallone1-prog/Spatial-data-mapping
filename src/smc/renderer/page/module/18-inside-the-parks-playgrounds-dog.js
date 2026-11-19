@@ -654,7 +654,16 @@ const groundReady = (async () => {
   // short of. Drawn below everything, so no mask is needed to keep it off a footway: the
   // footway is drawn over it.
   const inferred = ground.inferred || [];
-  const inferredOf = (k) => inferred.filter((item) => item.k === k);
+  // What the aerial photographs say each of these is (docs/imagery-truth.json, module 21): a
+  // ring they could see -- with the roofs and the shade left out, and a second photograph of
+  // another year agreeing, or its neighbours of the same kind all being one thing -- is drawn
+  // as what it is: a school's yard in asphalt, not the footway's concrete; a planted lot in
+  // grass. One they could not call is drawn as it was inferred.
+  await loadImageryTruth();
+  const coverSeen = IMAGERY_TRUTH?.ground || null;
+  const seenAs = (list, item) => coverSeen?.[list]?.[item.id ?? `${item.p[0][0]},${item.p[0][1]}`] || null;
+  const inferredOf = (k) => inferred.filter((item) => (seenAs("inferred", item) || item.k) === k);
+  const seenGrass = [], seenAsphalt = [];
   const grassRings = classifiedGround
     ? [...(ground.lawns || []), ...(ground.backyards || [])]
     : (ground.yards || []);
@@ -731,7 +740,8 @@ const groundReady = (async () => {
   // The ground left on a commercial, office, downtown or public lot: a forecourt, a service
   // yard, a plaza -- paved, in the same concrete as the footways, so that downtown is not a
   // meadow between the towers (scripts/build_ground_cover.py decides which lots).
-  const plazaGeom = ringGeometry((ground.plazas || []).map((y) => y.p), PLAZA_Y);
+  for (const y of ground.plazas || []) { const k = seenAs("plazas", y); if (k === "grass") seenGrass.push(y.p); else if (k === "asphalt") seenAsphalt.push(y.p); }
+  const plazaGeom = ringGeometry((ground.plazas || []).filter((y) => !["grass", "asphalt"].includes(seenAs("plazas", y))).map((y) => y.p), PLAZA_Y);
   if (plazaGeom) {
     const plazaMesh = new THREE.Mesh(plazaGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xc4c1b8, roughness: 0.96, metalness: 0.0,
@@ -744,9 +754,10 @@ const groundReady = (async () => {
     addGround(plazaMesh, "plaza");
   }
 
-  const neutralService = (ground.service_yards || []).filter((y) => y.basis === "unbuilt_nonpark_parcel");
-  const serviceRings = (ground.service_yards || [])
-    .filter((y) => y.basis !== "unbuilt_nonpark_parcel");
+  const serviceAs = (y) => seenAs("service_yards", y) || (y.basis === "unbuilt_nonpark_parcel" ? "paving" : "asphalt");
+  const neutralService = (ground.service_yards || []).filter((y) => serviceAs(y) === "paving");
+  const serviceRings = (ground.service_yards || []).filter((y) => serviceAs(y) === "asphalt");
+  for (const y of ground.service_yards || []) if (serviceAs(y) === "grass") seenGrass.push(y.p);
   const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y);
   if (neutralServiceGeom) {
     // An unbuilt parcel is not evidence of lawn. Keep it as a restrained hardscape
@@ -771,6 +782,17 @@ const groundReady = (async () => {
     })), "service_yard");
   }
 
+  // The lots the photographs show are planted, or are asphalt (a school's yard): as the fills are.
+  for (const [rings, material, surface] of [
+    [seenGrass, { map: grassTexture("yard", 0), color: 0xffffff, roughness: 0.98 }, "inferred:grass"],
+    [seenAsphalt, { map: ROAD, color: 0xffffff, roughness: 0.92 }, "inferred:asphalt"],
+  ]) {
+    const geom = rings.length ? ringGeometry(rings, PLAZA_Y, false) : null;
+    if (!geom) continue;
+    const mesh = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ ...material, metalness: 0.0, side: THREE.DoubleSide, depthTest: false })), surface);
+    mesh.renderOrder = -1;
+    mesh.userData.basis = "aerial_photograph";
+  }
   for (const [k, material] of [
     ["grass", { map: grassTexture("yard", 0), color: 0xffffff, roughness: 0.98 }],
     ["paving", { map: SIDEWALK, color: 0xd2cfc6, roughness: 0.96 }],

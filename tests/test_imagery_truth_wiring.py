@@ -43,6 +43,11 @@ def test_the_page_has_the_verdicts_and_keeps_to_them():
     assert 'seen.verdict !== "red"' in m21 and 'sharedAsset("imagery-truth.json")' in m21
     m20 = (ROOT / "src/smc/renderer/page/module/20-station-entrances-a-stair-down.js").read_text()
     assert 'imageryVerdict("legends", c.x, c.z, 4)?.verdict === "absent"' in m20
+    # The ground is drawn as what the photographs say it is, where they could say.
+    m18 = (ROOT / "src/smc/renderer/page/module/18-inside-the-parks-playgrounds-dog.js").read_text()
+    assert 'seenAs("inferred", item) || item.k' in m18 and 'seenAs("plazas", y)' in m18 and "await loadImageryTruth();" in m18
+    assert set(doc.get("ground", {})) <= {"plazas", "service_yards", "inferred"}
+    assert all(kind in ("grass", "paving", "asphalt") for rows in doc.get("ground", {}).values() for kind in rows.values())
     # Every building that has a footprint stands (the Moscone Park sheds, the Lombard Garage).
     m15 = (ROOT / "src/smc/renderer/page/module/15-interchanges-every-deck-s-height.js").read_text()
     assert "const building = buildingMesh(way);" in m15 and "way.covered ? buildingMesh(way) : null" not in m15

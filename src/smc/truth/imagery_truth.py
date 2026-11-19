@@ -740,3 +740,263 @@ def _tally(rows: list[dict]) -> dict:
         v = r.get("verdict") or r.get("kind")
         out[v] = out.get(v, 0) + 1
     return out
+
+
+# ---- the ground cover, ring by ring: two photographs, the roofs left out, and the neighbours -------
+
+COVER = {
+    # Of a ring's pixels (roofs and shade left out), the share that must be left to judge it.
+    "visible_min": 0.25, "pixels_min": 40,
+    # ... or this much of it in the open whatever its share: a lot is mostly its building, and
+    # the yard beside the building is what is being asked about (15 m2 of it is enough).
+    "open_px": 240,
+    # One kind's share: sure of it, or only leaning to it.
+    "sure": 0.7, "lean": 0.55,
+    # A ring told by its shape (the page's own inference stands): narrower or smaller than this.
+    "narrow_m": 3.0, "small_m2": 60.0,
+    # The neighbours: rings of the same list within this far, this many of them, this agreed.
+    "near_m": 70.0, "near_min": 3, "near_agree": 0.7,
+}
+
+
+class Naip:
+    """The other photograph: USDA's NAIP (2022, 0.6 m, a different year, month and sun). Read a
+    250 m square at a time and kept on disk, so a second run asks for nothing."""
+
+    def __init__(self, cache: Path):
+        self.cache = Path(cache)
+        self.cache.mkdir(parents=True, exist_ok=True)
+        self.tiles: dict = {}
+
+    def tile(self, i: int, j: int):
+        if (i, j) not in self.tiles:
+            path = self.cache / f"naip_{i}_{j}.npy"
+            if path.exists():
+                data = np.load(path)
+            else:
+                got = self._fetch(i, j)
+                data = got[0] if got is not None else np.zeros((0,), np.uint8)
+                # (Only what was answered is kept: a square the service did not answer for is
+                # asked for again another day.)
+                if got is not None or self.failed < 3:
+                    np.save(path, data) if got is not None else None
+            self.tiles[(i, j)] = data if data.ndim == 3 else None
+        return self.tiles[(i, j)]
+
+    #: Seconds a square is waited for; after three that did not come the service is left alone.
+    WAIT_S = 20.0
+    failed = 0
+
+    def _fetch(self, i: int, j: int):
+        """One square from the service, or None: never waited for longer than WAIT_S (it hung a
+        whole run for an hour, 2026-11-19), and not asked again once it has failed three times."""
+        if self.failed >= 3:
+            return None
+        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import TimeoutError as Late
+
+        from smc.imagery.ortho import read_naip
+
+        pool = ThreadPoolExecutor(1)
+        job = pool.submit(read_naip, (i * 250.0, j * 250.0, (i + 1) * 250.0, (j + 1) * 250.0))
+        try:
+            return job.result(timeout=self.WAIT_S)
+        except (Late, Exception):
+            self.failed += 1
+            return None
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+
+    def plant_share(self, e: np.ndarray, n: np.ndarray) -> float | None:
+        """Of the points (UTM), the share that is growing in NAIP's picture; None where it has none."""
+        i, j = math.floor(float(np.mean(e)) / 250.0), math.floor(float(np.mean(n)) / 250.0)
+        data = self.tile(i, j)
+        if data is None:
+            return None
+        h, w = data.shape[1:]
+        col = np.clip(((e - i * 250.0) / 250.0 * w).astype(int), 0, w - 1)
+        row = np.clip((((j + 1) * 250.0 - n) / 250.0 * h).astype(int), 0, h - 1)
+        ok = (e >= i * 250.0) & (e < (i + 1) * 250.0) & (n >= j * 250.0) & (n < (j + 1) * 250.0)
+        if ok.sum() < 6:
+            return None
+        r, nir = data[0][row[ok], col[ok]].astype(np.float32), data[3][row[ok], col[ok]].astype(np.float32)
+        return float(((nir - r) / np.maximum(1.0, nir + r) > 0.1).mean())
+
+
+def judge_cover(photo: Photo, ring_xz: np.ndarray, roof: np.ndarray, naip: Naip | None, C=COVER) -> dict:
+    """What a ring of ground is: grass, concrete or asphalt by most of what shows of it (roofs
+    and shade left out), how sure, and whether the other photograph says the same."""
+    import cv2
+
+    inside = photo.mask(ring_xz)
+    total = int(inside.sum())
+    area = total * PIXEL_M * PIXEL_M
+    contours, _ = cv2.findContours(inside.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    width = 2 * area / max(1e-6, sum(cv2.arcLength(c, True) for c in contours) * PIXEL_M)
+    out = {"area": round(area, 1), "width": round(width, 2)}
+    if area < C["small_m2"] or width < C["narrow_m"]:
+        return {**out, "verdict": "by_shape", "sure": "shape"}
+    c = photo.cls
+    seen = inside & ~roof & ~c["shade"]
+    n = int(seen.sum())
+    out["visible"] = round(n / max(1, total), 3)
+    if n < C["pixels_min"] or (n / max(1, total) < C["visible_min"] and n < C["open_px"]):
+        return {**out, "verdict": UNSEEN, "sure": "no"}
+    hard = seen & ~c["plant"]
+    shares = {"grass": float((seen & c["plant"]).sum()) / n,
+              "concrete": float((hard & (c["value"] >= 150)).sum()) / n,
+              "asphalt": float((hard & (c["value"] < 150)).sum()) / n}
+    kind = max(shares, key=shares.get)
+    out.update({k: round(v, 3) for k, v in shares.items()})
+    # The other photograph, on the one question it can answer at its grain: growing, or not.
+    second = None
+    if naip is not None:
+        rows, cols = np.nonzero(inside & ~roof)
+        if len(rows) > 12:
+            pick = slice(None, None, max(1, len(rows) // 400))
+            e = photo.bounds[0] + (cols[pick] + 0.5) * PIXEL_M
+            nn = photo.bounds[3] - (rows[pick] + 0.5) * PIXEL_M
+            second = naip.plant_share(e, nn)
+    if second is not None:
+        out["naip_plant"] = round(second, 3)
+    agrees = second is None or (second >= 0.5) == (kind == "grass")
+    if shares[kind] >= C["sure"] and agrees and second is not None:
+        return {**out, "verdict": kind, "sure": "two"}
+    if shares[kind] >= C["lean"] and agrees:
+        return {**out, "verdict": kind, "sure": "one"}
+    return {**out, "verdict": "mixed", "sure": "no", "leans": kind}
+
+
+def by_neighbours(rows: list[dict], C=COVER) -> int:
+    """The rings the photographs could not call (unseen, mixed), called by those round them: where
+    most of the same kind of ring within ``near_m`` are one thing, this one is taken to be the
+    same (a row of back yards is paved or it is planted; a school's yards are all asphalt).
+    Marks them ``sure: "near"``; returns how many."""
+    called = [r for r in rows if r.get("sure") in ("two", "one")]
+    if not called:
+        return 0
+    at = np.array([[r["x"], r["z"]] for r in called])
+    changed = 0
+    for r in rows:
+        if r.get("verdict") not in (UNSEEN, "mixed"):
+            continue
+        near = np.hypot(at[:, 0] - r["x"], at[:, 1] - r["z"]) < C["near_m"]
+        same = [called[k]["verdict"] for k in np.nonzero(near)[0] if called[k]["list"] == r["list"]]
+        if len(same) < C["near_min"]:
+            continue
+        kind = max(set(same), key=same.count)
+        if same.count(kind) / len(same) >= C["near_agree"] and r.get("leans", kind) == kind:
+            r["verdict"], r["sure"], r["near"] = kind, "near", len(same)
+            changed += 1
+    return changed
+
+
+def run_cover(ground: dict, candidates: dict, ortho, journal: Journal, naip: Naip | None, *, log=print,
+              lists=("plazas", "service_yards", "inferred"), limit: int | None = None) -> list[dict]:
+    """The ground file's rings inside the candidates' area, judged and journalled one by one."""
+    import cv2
+
+    frame = Frame.fit(candidates["frame"])
+    f = np.asarray(candidates["frame"], float)
+    x0, x1, z0, z1 = f[:, 0].min(), f[:, 0].max(), f[:, 1].min(), f[:, 1].max()
+    roofs = [np.asarray(r, float) for r in candidates.get("buildings", []) if len(r) >= 3]
+    roof_box = np.array([[r[:, 0].min(), r[:, 1].min(), r[:, 0].max(), r[:, 1].max()] for r in roofs]) if roofs else np.zeros((0, 4))
+    started, done = time.time(), 0
+    for name in lists:
+        items = ground.get(name) or []
+        # The inferred fill is in cells: those of one kind that touch are one patch.
+        groups = _cells_as_patches(items) if name == "inferred" else [[k] for k in range(len(items))]
+        for group in groups:
+            first = items[group[0]]
+            key = f"cover:{name}:{first.get('id') or ''}:{first['p'][0][0]},{first['p'][0][1]}"
+            if journal.done(key):
+                continue
+            rings = []
+            for k in group:
+                ll = np.asarray(items[k]["p"], float)
+                px, pz = frame.from_lonlat(ll[:, 0], ll[:, 1])
+                rings.append(np.c_[px, pz])
+            allp = np.vstack(rings)
+            cx, cz = float(allp[:, 0].mean()), float(allp[:, 1].mean())
+            if not (x0 <= cx <= x1 and z0 <= cz <= z1):
+                continue
+            if limit is not None and done >= limit:
+                break
+            photo = Photo(ortho, frame, allp[:, 0], allp[:, 1], margin=2.0)
+            row = {"task": "cover", "list": name, "x": round(cx, 2), "z": round(cz, 2), "drawn": first.get("k") or name,
+                   "ids": [items[k].get("id") or f"{items[k]['p'][0][0]},{items[k]['p'][0][1]}" for k in group]}
+            if not photo.ok:
+                journal.put(key, {**row, "verdict": UNSEEN, "sure": "no", "why": "no photograph"})
+                continue
+            roof = np.zeros(photo.shape, np.uint8)
+            hit = (roof_box[:, 2] > allp[:, 0].min() - 3) & (roof_box[:, 0] < allp[:, 0].max() + 3) \
+                & (roof_box[:, 3] > allp[:, 1].min() - 3) & (roof_box[:, 1] < allp[:, 1].max() + 3)
+            for k in np.nonzero(hit)[0]:
+                cv2.fillPoly(roof, [np.round(photo.pixels(roofs[k][:, 0], roofs[k][:, 1])).astype(np.int32)], 1)
+            # (A roof leans in the photograph: a metre and a half round each is roof too.)
+            roof = cv2.dilate(roof, np.ones((13, 13), np.uint8)).astype(bool)
+            if len(rings) == 1:
+                judged = judge_cover(photo, rings[0], roof, naip)
+            else:
+                merged = np.zeros(photo.shape, np.uint8)
+                for ring in rings:
+                    cv2.fillPoly(merged, [np.round(photo.pixels(ring[:, 0], ring[:, 1])).astype(np.int32)], 1)
+                judged = judge_cover(_Masked(photo, merged.astype(bool)), None, roof, naip)
+            journal.put(key, {**row, **judged})
+            done += 1
+            if done % 250 == 0:
+                log(f"cover: {done} judged ({time.time() - started:.0f} s)")
+    rows = [dict(r) for r in journal.of("cover")]
+    near = by_neighbours(rows)
+    log(f"cover: {done} judged now, {len(rows)} in the journal, {near} called by their neighbours ({time.time() - started:.0f} s)")
+    return rows
+
+
+class _Masked:
+    """A photograph with the ring already drawn (a patch of many cells)."""
+
+    def __init__(self, photo: Photo, mask: np.ndarray):
+        self.cls, self.bounds, self._mask = photo.cls, photo.bounds, mask
+
+    def mask(self, _ring) -> np.ndarray:
+        return self._mask
+
+
+def _cells_as_patches(items: list[dict]) -> list[list[int]]:
+    parent: dict = {}
+
+    def find(a):
+        while parent.setdefault(a, a) != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for item in items:
+        keys = [(item["k"], round(p[0], 6), round(p[1], 6)) for p in item["p"]]
+        root = find(keys[0])
+        for k in keys[1:]:
+            parent[find(k)] = root
+    groups: dict = {}
+    for i, item in enumerate(items):
+        groups.setdefault(find((item["k"], round(item["p"][0][0], 6), round(item["p"][0][1], 6))), []).append(i)
+    return list(groups.values())
+
+
+#: A verdict as the page draws it.
+DRAWN_AS = {"grass": "grass", "concrete": "paving", "asphalt": "asphalt"}
+
+
+def cover_for_page(rows: list[dict]) -> dict:
+    """{list: {id: kind}} for the rings whose verdict is a kind and is not what is drawn already."""
+    drawn_now = {"plazas": "paving", "service_yards": "asphalt"}
+    out: dict = {}
+    for r in rows:
+        kind = DRAWN_AS.get(r.get("verdict"))
+        if not kind or r.get("sure") not in ("two", "one", "near"):
+            continue
+        now = drawn_now.get(r["list"], r.get("drawn"))
+        if kind == now:
+            continue
+        for item_id in r["ids"]:
+            out.setdefault(r["list"], {})[item_id] = kind
+    return out

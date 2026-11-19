@@ -132,3 +132,65 @@ def test_gutter_pieces_on_one_kerb_become_one_straight_strip_of_their_middle_wid
     assert one["width"] == pytest.approx(0.6, abs=0.01)
     assert abs(one["z0"] - one["z1"]) < 0.02, "straight"
     assert one["wobble"] > 0.2, "and it says how far the pieces were off it"
+
+
+class OtherPhoto:
+    """NAIP's answer, given: the share of a ring that is growing."""
+
+    def __init__(self, share):
+        self.share = share
+
+    def plant_share(self, e, n):
+        return self.share
+
+
+def test_a_ring_of_ground_is_called_with_the_roofs_left_out_and_the_second_photograph_agreeing():
+    img = road(240, 240, 105)
+    nir = np.full((240, 240), 30, np.uint8)
+    ring = np.array([[5.0, 5.0], [45.0, 5.0], [45.0, 45.0], [5.0, 45.0]])
+    # A white roof leans over two thirds of an asphalt yard.
+    img[20:180, 20:130] = (238, 238, 236)
+    roof = np.zeros((240, 240), bool)
+    roof[20:180, 20:130] = True
+    nothing = np.zeros((240, 240), bool)
+    p = photo(img, nir)
+    assert it.judge_cover(p, ring, nothing, OtherPhoto(0.0))["verdict"] == "concrete", "the roof read as paving"
+    with_roof = it.judge_cover(p, ring, roof, OtherPhoto(0.0))
+    assert with_roof["verdict"] == "asphalt" and with_roof["sure"] == "two"
+    # One photograph alone is "one"; the two disagreeing is not called.
+    assert it.judge_cover(p, ring, roof, None)["sure"] == "one"
+    assert it.judge_cover(p, ring, roof, OtherPhoto(0.9))["verdict"] == "mixed"
+    # Grass, both agreeing.
+    img2 = road(240, 240, 105)
+    img2[20:180, 20:180] = (70, 120, 60)
+    nir2 = nir.copy()
+    nir2[20:180, 20:180] = 205
+    grass = it.judge_cover(photo(img2, nir2), ring, nothing, OtherPhoto(0.8))
+    assert grass["verdict"] == "grass" and grass["sure"] == "two"
+    # A strip two metres wide is what its shape says.
+    strip = np.array([[5.0, 5.0], [55.0, 5.0], [55.0, 7.0], [5.0, 7.0]])
+    assert it.judge_cover(p, strip, nothing, None)["verdict"] == "by_shape"
+
+
+def test_what_could_not_be_seen_is_taken_from_its_neighbours_of_the_same_kind_when_they_agree():
+    rows = [{"list": "plazas", "x": 10.0 * k, "z": 0.0, "verdict": "asphalt", "sure": "two", "ids": [f"a{k}"], "drawn": "plazas"} for k in range(4)]
+    rows.append({"list": "plazas", "x": 15.0, "z": 8.0, "verdict": it.UNSEEN, "sure": "no", "ids": ["hidden"], "drawn": "plazas"})
+    rows.append({"list": "plazas", "x": 900.0, "z": 0.0, "verdict": it.UNSEEN, "sure": "no", "ids": ["far"], "drawn": "plazas"})
+    rows.append({"list": "service_yards", "x": 16.0, "z": 9.0, "verdict": it.UNSEEN, "sure": "no", "ids": ["other-kind"], "drawn": "service_yards"})
+    rows.append({"list": "plazas", "x": 12.0, "z": 5.0, "verdict": "mixed", "leans": "grass", "sure": "no", "ids": ["leans-away"], "drawn": "plazas"})
+    assert it.by_neighbours(rows) == 1
+    by_id = {r["ids"][0]: r for r in rows}
+    assert by_id["hidden"]["verdict"] == "asphalt" and by_id["hidden"]["sure"] == "near"
+    assert by_id["far"]["verdict"] == it.UNSEEN and by_id["other-kind"]["verdict"] == it.UNSEEN
+    assert by_id["leans-away"]["verdict"] == "mixed", "what it leans to is not what its neighbours are"
+    # For the page: only what is a kind, is sure, and is not what is drawn already.
+    page = it.cover_for_page(rows)
+    assert page == {"plazas": {**{f"a{k}": "asphalt" for k in range(4)}, "hidden": "asphalt"}}
+    assert it.cover_for_page([{"list": "plazas", "verdict": "concrete", "sure": "two", "ids": ["p"], "drawn": "plazas"}]) == {}
+
+
+def test_cells_of_one_kind_that_touch_are_one_patch():
+    cell = lambda i, j, k: {"k": k, "p": [[i * 1e-5, j * 1e-5], [(i + 1) * 1e-5, j * 1e-5], [(i + 1) * 1e-5, (j + 1) * 1e-5], [i * 1e-5, (j + 1) * 1e-5], [i * 1e-5, j * 1e-5]]}  # noqa: E731
+    items = [cell(0, 0, "paving"), cell(1, 0, "paving"), cell(2, 0, "grass"), cell(9, 9, "paving")]
+    groups = sorted(sorted(g) for g in it._cells_as_patches(items))
+    assert groups == [[0, 1], [2], [3]]

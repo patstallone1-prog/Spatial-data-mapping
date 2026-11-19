@@ -20,7 +20,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from smc.imagery.ortho import Ortho  # noqa: E402
-from smc.truth.imagery_truth import Frame, Journal, assemble, page_file, run  # noqa: E402
+from smc.truth.imagery_truth import (  # noqa: E402
+    Frame,
+    Journal,
+    Naip,
+    assemble,
+    cover_for_page,
+    page_file,
+    run,
+    run_cover,
+)
 
 TASKS = ("bus_zone", "legend", "gutter", "ground", "courts")
 
@@ -33,6 +42,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path)
     ap.add_argument("--journal", type=Path)
     ap.add_argument("--tasks", default=",".join(TASKS))
+    ap.add_argument("--ground", type=Path, help="the ground-cover file (docs/app-sf-corridor-ground.json): its rings are judged too")
+    ap.add_argument("--no-naip", action="store_true", help="do not ask USGS for the second photograph")
     ap.add_argument("--page", type=Path, help="also write the slim file the page reads (docs/imagery-truth.json)")
     ap.add_argument("--limit", type=int, help="at most this many new results a task (a trial run)")
     args = ap.parse_args()
@@ -44,6 +55,8 @@ def main() -> int:
           f"{len(journal.rows)} results already in {journal.path}")
     ortho = Ortho(args.region)
 
+    cover = {"rows": []}
+
     def write():
         out.parent.mkdir(parents=True, exist_ok=True)
         tmp = out.with_suffix(".tmp")
@@ -51,13 +64,24 @@ def main() -> int:
         tmp.replace(out)
         if args.page:
             f = candidates["frame"][0]
-            args.page.write_text(json.dumps(page_file(journal, args.name, frame, (f[0], f[1])), separators=(",", ":")))
+            page = page_file(journal, args.name, frame, (f[0], f[1]))
+            page["ground"] = cover_for_page(cover["rows"])
+            tally: dict = {}
+            for r in cover["rows"]:
+                k = f"{r['list']}:{r['verdict']}:{r.get('sure')}"
+                tally[k] = tally.get(k, 0) + 1
+            page["counts"]["cover"] = tally
+            args.page.write_text(json.dumps(page, separators=(",", ":")))
 
     wanted = [t for t in args.tasks.split(",") if t]
     # (The ground and its courts are one pass over the same patches.)
     both = tuple(t for t in wanted if t in ("ground", "courts"))
     for group in [(t,) for t in wanted if t not in both] + ([both] if both else []):
         run(candidates, ortho, journal, tasks=group, limit=args.limit)
+        write()
+    if args.ground:
+        naip = None if args.no_naip else Naip(journal.path.parent / "naip")
+        cover["rows"] = run_cover(json.loads(args.ground.read_text()), candidates, ortho, journal, naip, limit=args.limit)
         write()
     journal.close()
     doc = json.loads(out.read_text())

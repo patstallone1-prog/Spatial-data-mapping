@@ -44,12 +44,66 @@ zones sit on the kerb lane.
 | **Road legends** | 270: 173 there, 21 not, 76 unseen | paint share is 0.18 (median) where judged there and under 0.011 where judged not; judged by eye on a sheet of the 21 |
 | **Courts** | 7 rectangles of line on paved ground, 3 of them the Marina Middle School yard's basketball courts | on the school yard and Moscone's courts directly: all six big painted courts found; before building footprints were excluded it "found" 75, nearly all roof parapets |
 | **Gutters** | 2,385 pieces along the kerbs become 311 straight strips (median 0.46 m wide; pieces were 0.22 m off the line at the median, 0.93 m at worst); the pale gutter pan shows under 137 | not checked against a survey |
-| **Inferred ground** | 866 patches: 386 told by shape (narrow or small), 381 "concrete", 93 mixed | **not trusted**: back yards read as concrete where roofs lean over them; not used |
+| **Inferred ground** (first pass) | 866 patches: 386 told by shape, 381 "concrete", 93 mixed | **not trusted**: roofs lean over yards. Replaced by the second pass below |
 
 Drawn now from this: no red box where there is none, a pale pad where there is one, and no
 word or stop box where the photograph shows bare road.
 
-Not drawn yet: the courts it found, the straightened gutters, and any change to inferred ground.
+Not drawn yet: the courts it found (the school's own were already mapped).
+
+## Second pass, 2026-11-19: gutters and pavement, with more than the one photograph
+
+### Gutters (no photograph needed: a gutter is a straight strip along a block)
+
+`docs/waterworks-renderer.mjs` laid the pan sample by sample at each street's nominal half-width,
+keeping or dropping each sample by whether the roadway happened to stop just there; wherever the
+drawn kerb stood a little off the nominal line the pan came and went every metre or two. Now, for
+each run of street that goes straight on (a block), the kerb's real distance out is measured
+every three metres, the middle one taken for the block, the pan laid on that one line, breaks of
+up to nine metres closed (a driveway) and scraps under five left out.
+
+| the Marina's gutter strips | before | now |
+| --- | --- | --- |
+| pieces | 1,464 | 657 |
+| a piece's length, the middle one | 5.9 m | 66 m |
+| scraps under 5 m | 668 | 86 |
+| total length | 43.3 km | 43.9 km |
+
+The photograph agrees where it can see: the pale gutter pan shows under 137 of the 311 lines the
+pieces fall on (most of the rest are in shade or under parked cars).
+
+### Pavement, ring by ring (`run_cover`, `judge_cover`, `by_neighbours`)
+
+The first pass failed on roofs leaning over yards. This one reads the ground-cover file's own
+rings (`docs/app-sf-corridor-ground.json`: commercial and public lots, service yards, the
+inferred fill) and uses four things, in order:
+
+1. **the photograph with the roofs and the shade left out**: every building footprint, grown a
+   metre and a half for the lean, is not ground; a lot is judged on the open ground beside its
+   building (15 m2 of it is enough);
+2. **a second photograph**: USDA's NAIP of May 2022 (0.6 m; another year, season and sun), asked
+   the one thing it can answer at its grain -- growing, or hard. The two agree on 141 of the
+   160 rings both could see; where they disagree the ring is not called;
+3. **shape**: a strip under 3 m wide or a patch under 60 m2 keeps the page's own inference
+   (2,553 of the inferred cells' patches);
+4. **the neighbours**: a ring neither photograph could call takes the kind of the rings of the
+   same list within 70 m when three or more of them are 70% one thing (45 lots).
+
+| in the Marina | called | of which by neighbours | not called |
+| --- | --- | --- | --- |
+| commercial and public lots (244) | 77 asphalt, 16 concrete, 6 grass | 45 | 145 (108 unseen, 37 mixed) |
+| service yards (279) | 7 concrete, 4 asphalt, 2 grass | 0 | 266 |
+| inferred fill, patches over 60 m2 (57) | 23 concrete, 6 asphalt, 3 grass | 0 | 25 |
+
+Drawn from it: 77 lots in asphalt instead of the footway's concrete (the Marina Middle School
+yard among them: 26,000 m2), 6 lots and 2 service yards in grass, 7 service yards and 22 fill
+patches as paving, 5 fill patches as asphalt.
+
+Still not called: most service yards (the rings are the whole parcel and nearly all roof).
+Other sources looked at: the city's lidar (its heights are in already; its intensity would tell
+asphalt from concrete, but the point cells are archived off this machine); Waymo's open data
+does not cover these streets as a map; street-level photographs would settle the lots hidden
+from above and are the next source to add.
 
 ## What a quarter of a metre a pixel cannot do
 

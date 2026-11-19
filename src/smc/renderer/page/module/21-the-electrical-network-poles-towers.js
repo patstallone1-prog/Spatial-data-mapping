@@ -1466,7 +1466,9 @@ function joinBusZones(records) {
 // none has red paint in the road (16 are bare asphalt, 10 a pale concrete bus pad, one is under
 // a tree), and 21 of its 270 road legends are not on the road. What the photograph could not
 // see (a tree, a parked bus, deep shade) is left as it was.
-let IMAGERY_TRUTH = null;
+// (``var``, and never set here: the ground is laid (module 18) before this line is reached, and
+// asks for the file first.)
+var IMAGERY_TRUTH, IMAGERY_TRUTH_ASKED;
 //: The photograph's row for the thing of ``kind`` nearest (x, z), within ``reach`` m, or null.
 function imageryVerdict(kind, x, z, reach = 6) {
   const rows = IMAGERY_TRUTH?.[kind];
@@ -1478,7 +1480,8 @@ function imageryVerdict(kind, x, z, reach = 6) {
 //: The file, if it is of this page's ground: it carries one point both ways (longitude and
 //: latitude, and the page's metres), and a page whose own map puts that point elsewhere is not
 //: the page it was made for.
-async function loadImageryTruth() {
+function loadImageryTruth() { return (IMAGERY_TRUTH_ASKED ||= readImageryTruth()); }
+async function readImageryTruth() {
   try {
     const doc = await fetch(sharedAsset("imagery-truth.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null));
     if (doc?.schema !== "kerbside.imagery_truth/1" || !doc.check) return null;
@@ -1486,7 +1489,7 @@ async function loadImageryTruth() {
     if (Math.hypot(x - doc.check.x, -y - doc.check.z) > 1.5) return null;
     IMAGERY_TRUTH = doc;
   } catch (error) { console.warn("kerbside: the photograph's verdicts did not load", error); }
-  return IMAGERY_TRUTH;
+  return IMAGERY_TRUTH || null;
 }
 
 function addBusZonePaint(records, plan = null) {
