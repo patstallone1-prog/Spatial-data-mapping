@@ -897,7 +897,7 @@ const indoorCut = {
   guestBox: { value: boxSet([]) },
 };
 TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
-  PROXY_LIGHT.patch(shader);
+  globalThis.__kerbsideProxyLight?.patch?.(shader);
   shader.uniforms.uCutRing = indoorCut.ring;
   shader.uniforms.uCutCount = indoorCut.count;
   shader.uniforms.uCutFloor = indoorCut.floor;
