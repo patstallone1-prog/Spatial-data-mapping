@@ -1832,6 +1832,7 @@ export class City {
   //: The same pass a slice at a time (``budget`` people and cars a call), so a frame is not
   //: held up by the whole district at once: null until the pass is done.
   scanBegin(ms, focus, reach, parkedReach = 180) {
+    this.through ??= 1;
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
       P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
   }
@@ -1872,7 +1873,8 @@ export class City {
         if (pl.court) { let list = S.courts.get(pl.id); if (!list) S.courts.set(pl.id, list = []); list.push(p.id); if (near(pl.x, pl.z)) people.push({ p, seg }); }
         continue;
       }
-      if ((seg.act.kind === "break" && seg.act.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
+      // (Nobody takes their break out in the rain: view.mjs sets ``wet``.)
+      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);
@@ -1881,6 +1883,12 @@ export class City {
       if (s.state === "driving") {
         if (s.roam) { if (near(s.x, s.z, 120)) vehicles.push({ v, s }); continue; }
         const leg = s.leg, P0 = this.endOf(v, leg.from), P1 = this.endOf(v, leg.to);
+        // The through traffic is a day's worth, and the game's day is 72 minutes: driven all at
+        // once it is twenty times what the streets carry, and they stood solid (five hundred
+        // cars in sight of you, one in eight of them moving: measured 2026-11-19). So many of
+        // the visitors' trips are driven where you can see them (``through``: view.mjs), the
+        // same ones every time; the residents' own are all driven.
+        if (v.visitor && this.through < 1 && hash32(v.id, Math.round(leg.t0)) % 1000 >= this.through * 1000) continue;
         if (P0 && P1 && distToSegment(focus.x, focus.z, P0.x, P0.z, P1.x, P1.z) < reach + 250) vehicles.push({ v, s });
       } else if (Math.abs(s.x - focus.x) < parkedReach && Math.abs(s.z - focus.z) < parkedReach) vehicles.push({ v, s });
     }
@@ -2131,6 +2139,7 @@ export class Drivers {
   //: length, width}. ``people``: {id, x, z} -- you among them. Returns each car's distance
   //: along, speed, and any hits.
   step(dt, tsec, cars, people, blockers = []) {
+    this.nowS = tsec;
     const T = this.T, out = [], hits = [], seen = new Set();
     const live = [];
     // Who is standing in the road, and which way those who are not are going (people come with
@@ -2175,6 +2184,11 @@ export class Drivers {
     // several times a frame, twenty-five cells a look.)
     const grid = new Map(), CELL = 12, cellKey = (i, j) => (i + 32768) * 65536 + (j + 32768), cellOf = (x, z) => cellKey(Math.floor(x / CELL), Math.floor(z / CELL));
     const place = (id, p) => { const k = cellOf(p.x, p.z); p.cell = k; let g = grid.get(k); if (!g) grid.set(k, g = new Set()); g.add(id); };
+    // The people by square too (kept between frames and emptied, not made again).
+    const PCELL = 16, pgrid = (this._pgrid ||= new Map()), pnear = (this._pnear ||= []);
+    for (const g of pgrid.values()) g.length = 0;
+    if (pgrid.size > 4000) pgrid.clear();
+    for (let qi = 0; qi < people.length; qi += 1) { const q = people[qi], k = cellKey(Math.floor(q.x / PCELL), Math.floor(q.z / PCELL)); let g = pgrid.get(k); if (!g) pgrid.set(k, g = []); g.push(qi); }
     const unplace = (id, p) => grid.get(p.cell)?.delete(id);
     const near = (x, z, r, fn) => {
       const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
@@ -2385,7 +2399,11 @@ export class Drivers {
           if (!entered) {
             // Someone on a crosswalk this way goes over (in, or out the far side): waited for.
             const ext = extendPath(J.path, PAVE_M + 1);
-            for (const q of people) {
+            const jr = Math.ceil((J.reach + 6) / PCELL) , ji = Math.floor(J.mid[0] / PCELL), jj = Math.floor(J.mid[1] / PCELL);
+            pnear.length = 0;
+            for (let i = ji - jr; i <= ji + jr; i += 1) for (let j = jj - jr; j <= jj + jr; j += 1) { const g = pgrid.get(cellKey(i, j)); if (g) for (let k = 0; k < g.length; k += 1) pnear.push(g[k]); }
+            for (let qn = 0; qn < pnear.length; qn += 1) {
+              const q = people[pnear[qn]];
               if (Math.abs(q.x - J.mid[0]) > J.reach + 6 || Math.abs(q.z - J.mid[1]) > J.reach + 6) continue;
               // (Someone stood at the kerb waiting is not crossing: they were waited for while
               // they waited for the car. Stood in its very way, they are gone round -- below.)
@@ -2505,8 +2523,13 @@ export class Drivers {
       const reach = st.v * T.reaction_s * S.alert + st.v * st.v / (2 * T.brake) + 6;
       const farOff = reach + c.length + (c.width || 1.9) + 3;
       const heldPerson = dodging && typeof st.hold?.id === "string" && st.hold.id.startsWith("person:") ? st.hold.id.slice(7) : null;
-      for (let qi = 0; qi < people.length; qi += 1) {
-        const q = people[qi];
+      // (Only those in the squares round the car: every car against every person was 360,000
+      // looks a frame with two thousand people out at lunchtime, and most of the frame.)
+      const pr = Math.ceil((farOff + 8) / PCELL), pci = Math.floor(here.x / PCELL), pcj = Math.floor(here.z / PCELL);
+      pnear.length = 0;
+      for (let i = pci - pr; i <= pci + pr; i += 1) for (let j = pcj - pr; j <= pcj + pr; j += 1) { const g = pgrid.get(cellKey(i, j)); if (g) for (let k = 0; k < g.length; k += 1) pnear.push(g[k]); }
+      for (let qn = 0; qn < pnear.length; qn += 1) {
+        const q = people[pnear[qn]];
         const qvx = q.vx || 0, qvz = q.vz || 0, far = farOff + Math.abs(qvx) + Math.abs(qvz);
         if (Math.abs(q.x - here.x) > far || Math.abs(q.z - here.z) > far) continue;
         if (heldPerson !== null && heldPerson === String(q.id)) continue;
@@ -2533,7 +2556,10 @@ export class Drivers {
       let across = 0;
       // The city's own cars the same: of two whose ways cross, the one that would drive into the
       // other's side gives way (nose to nose, the one with the later name).
-      if (st.v > 1.5) near(here.x + fx * 14, here.z + fz * 14, 34, (oid) => {
+      // (Looked for every other frame, each car on its own beat; what was found holds between.)
+      const lookAcross = ((st.beat = (st.beat || 0) + 1) & 1) === 0;
+      if (!lookAcross) across = st.acrossWas || 0;
+      if (st.v > 1.5 && lookAcross) near(here.x + fx * 13, here.z + fz * 13, 26, (oid) => {
         if (oid === c.id) return;
         const op = pos.get(oid), ost = this.cars.get(oid);
         if (!ost || ost.hit || ost.v < 1.5 || arrived(op.c, ost)) return;
@@ -2547,6 +2573,7 @@ export class Drivers {
         if (!mineAhead || (itsAhead && String(c.id) < String(oid))) return;
         across = Math.max(across, st.v * st.v / (2 * Math.max(0.5, st.v * tm - 1.2)));
       });
+      if (lookAcross) st.acrossWas = across;
       if (st.v > 1.5) for (let k = 0; k < blockers.length; k += 1) {
         const o = blockers[k], ov = o.v || 0;
         if (Math.abs(ov) < 1.5 || Math.abs(o.x - here.x) > 60 || Math.abs(o.z - here.z) > 60) continue;
@@ -2969,6 +2996,10 @@ export class Drivers {
   catchUp(c, st, tsec, { deepest, bodies }) {
     const want = Math.min(this.endOf(c) - 1, c.sched(tsec - this.T.late_s));
     if (!(want > st.d + 30)) return null;
+    // (Looked for once a second, not every frame: a late car with nowhere to be put looked at a
+    // dozen places a frame, and with a few hundred late that was a third of the frame: 2026-11-19.)
+    if (tsec < (st.noPut || 0)) return null;
+    st.noPut = tsec + 1;
     for (let k = 0, d = want; k < 12 && d > st.d + 20; k += 1, d -= 4) {
       const p = alongRoute(c.route, d, st.side);
       if (this.inAnyBox(c.route, d, c.length)) continue;
@@ -2980,6 +3011,8 @@ export class Drivers {
   //: outside any junction, within ``teleport_reach_m`` -- or null (it waits on).
   jumpAhead(c, st, { deepest, bodies, people }, hold = null) {
     const T = this.T, end = this.endOf(c);
+    if (this.nowS < (st.noJump || 0)) return null;
+    st.noJump = this.nowS + 0.5;
     const from = hold ? Math.max(0, hold.gap) + c.length + hold.hl * 2 + T.gap_m + 2 : c.length + 2;
     for (let d = st.d + from; d < Math.min(end, st.d + T.teleport_reach_m); d += 2) {
       if (this.inAnyBox(c.route, d, c.length)) continue;

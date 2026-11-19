@@ -66,3 +66,17 @@ test("every lit material is given the lookup, and what moves is left out of the 
   for (const file of ["docs/grass-strands.mjs", "docs/avatar-builder.mjs", "docs/storefront-renderer.mjs", "docs/nature-runtime.mjs", "docs/city/vehicles.mjs", "docs/city/view.mjs"])
     assert.match(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), /__kerbsideProxyLight\?\.patch\?\.\(/, file);
 });
+
+test("the street lamps, the parked cars and the look ahead are wired in", () => {
+  const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  // Every lamp head is put where the light map can find it, and read at night.
+  assert.match(read("src/smc/renderer/page/module/21-the-electrical-network-poles-towers.js"), /__kerbsideProxyLight\?\.lamps/);
+  assert.match(read("src/smc/renderer/page/module/02-reconstructed-world-objects.js"), /texture2D\(kbPLLampMap, kbUv\)/);
+  // The stand-in is drawn a part a frame, and only parked cars of the city's are shown to it.
+  assert.ok(PROXY.tiles >= 2);
+  assert.match(read("docs/proxy-light.mjs"), /job\.tile < N \* N/);
+  assert.match(read("docs/city/view.mjs"), /captureHooks\?\.add\(/);
+  assert.match(read("docs/city/view.mjs"), /wheels\(\)\.filter\(\(v\) => !v\.moving\)/);
+  // The fronts' photographs are streamed ahead of the way you are going.
+  assert.match(read("src/smc/renderer/page/module/27-detail-by-zoom-the-city.js"), /updateFacadeStreaming\(was\.at,/);
+});

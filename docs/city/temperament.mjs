@@ -68,6 +68,11 @@ export function drivingStyle(t = STEADY_TEMPERAMENT) {
   };
 }
 
+//: The same driver in the rain: slower, with more room, braking earlier.
+export function wetStyle(s) {
+  return { pace: +(s.pace * 0.9).toFixed(3), headway: +Math.min(1.9, s.headway * 1.25).toFixed(3), patience: s.patience, alert: +(s.alert * 1.15).toFixed(3), assertive: false };
+}
+
 //: How people near you react. Times in seconds, lengths in metres; [bold, timid] where two.
 export const REACT = {
   notice_m: 30,               // an incident this near is noticed

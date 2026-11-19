@@ -92,3 +92,12 @@ test("of two of the city's cars whose ways cross, one gives way and neither is h
   }
   assert.equal(crashes, 0);
 });
+
+test("only a share of the through traffic is driven in sight, the same trips every time; the residents' own all are", async () => {
+  const { readFileSync } = await import("node:fs");
+  const fleet = readFileSync(new URL("../docs/city/fleet.mjs", import.meta.url), "utf8"), view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.match(fleet, /if \(v\.visitor && this\.through < 1 && hash32\(v\.id, Math\.round\(leg\.t0\)\) % 1000 >= this\.through \* 1000\) continue;/);
+  assert.match(view, /district\.city\.through = R\.density\?\.through_driven \?\? THROUGH_DRIVEN/);
+  const share = Number(/const THROUGH_DRIVEN = ([\d.]+);/.exec(view)[1]);
+  assert.ok(share > 0.05 && share <= 0.3, `a share that leaves the streets moving: ${share}`);
+});

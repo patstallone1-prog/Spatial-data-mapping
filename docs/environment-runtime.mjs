@@ -174,6 +174,8 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     rain.visible=Boolean(weather.rain && !indoors);
     // The wind the plants sway in (foliage-motion.mjs), and the rain slanting with it.
     globalThis.kerbsideWind={speed:weather.wind,from:weather.windFrom};
+    // (What the city's people and drivers go by: city/view.mjs.)
+    globalThis.kerbsideWeather={rain:Boolean(weather.rain),cloud:weather.cloud};
     if(now-lastClock<250)return;lastClock=now;
     // City mode: the game's time, not the wall clock's. Explore: live (setClock). The headset
     // sets its own noon.

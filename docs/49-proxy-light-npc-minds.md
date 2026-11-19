@@ -76,7 +76,115 @@ Not done: a 911 call does not send a patrol car (the server already counts witne
 strike or a collision); drivers brake but do not swerve for a car coming across; the far ring
 does not react to anything, by design.
 
-## Planned: the rest of the list
+## Second pass, 2026-11-19: the rest of the list
+
+### Drivers (the part that mattered most)
+
+Measured on the real Marina in node (the page's own streets, places and people dumped from a
+running page; `Drivers` driven as view.mjs drives it), then on the page.
+
+What was wrong, in order of size:
+
+1. **Cars came into sight already crashing.** A car entering the simulated area was put where
+   its day had it at cruising speed, whatever stood there: its first step drove it into the back
+   of a queue at 12 m/s. That was a crash; the wreck stood in the lane for the rest of its trip;
+   the next car in did the same. 85 of 87 crashes in six minutes were this. Now a car comes in
+   at a speed it can stop from in the room it has.
+2. **A wreck stood for good.** Two cars that had hit never moved again while they were in
+   sight. Now they stand 30 s after a bump, two minutes after a hard one, and drive on.
+3. **No hard braking for a car.** A driver braked at 3.2 m/s2 for the car ahead however
+   suddenly it stopped; the 8.5 m/s2 was kept for people. Now as hard as it takes.
+4. **A car facing the wrong way in the lane was not seen at all** (only cars going the same
+   way were). Now stopped for, and gone round if it stands.
+5. **Crossing cars**: of two whose ways cross, the one that would drive into the other's side
+   gives way (yours and the buses already were).
+6. **Too many cars.** The through traffic is a day's worth and the game's day is 72 minutes:
+   driven all at once it is twenty times what the streets carry -- 640 cars in sight, one in
+   five moving, on main as much as here. Now 14% of the visitors' trips are driven where you
+   can see them (the same ones every time); the residents' own all are.
+7. **Cost.** Every car looked at every person every frame (268 x 1,300), and a late car looked
+   for somewhere to be put a dozen times a frame. People are now found by square, and the
+   looking is once a second.
+
+| the real Marina, node, 5-6 minutes | main | now |
+| --- | --- | --- |
+| crashes between the city's cars, real-time density (86 cars) | 87 | 5 |
+| crashes at the page's density, all through traffic (530-650 cars) | 1,496 | 58 |
+| ... with the through traffic thinned to 20% (163 cars, no one on foot) | -- | 13 |
+| cars stood over a minute (86 cars) | 56 | 10 |
+| a wreck or a frozen car in the lane: cars that drove through it | -- | 0 |
+| ... cars that hit it or piled in behind (three runs) | -- | 0, 1, 3 |
+
+On the page (headless Chrome, Marina, about 1,100 people in sight): 141 cars driven, **1 crash
+in 90 s**, the traffic step 4.6 ms a frame (it was 20-25 ms with the crowd out), 58.6 fps.
+
+Still true: the harness has people walking out without waiting at the kerb, so its counts of
+people hit are too high and are not quoted; on the page 2 were run down in two minutes before
+the thinning and none in the 90 s after. Queues still clear some knots by putting a car on
+past them (19 in 90 s).
+
+### Lighting
+
+- **Street lamps**: every lamp head (SFPUC's layer, module 21) throws a pool of warm light at
+  night on the street and the foot of the fronts, from one more small picture in the same square.
+- **Parked cars** are in the stand-in and cast shadows (view.mjs shows them alone while it is drawn).
+- **Dappled light**: where the shade is a tree's (the stand-in is green there), patches of sun.
+- **In slices**: the stand-in is drawn a quarter a frame, each quarter through a camera that
+  sees only that quarter: about 10 ms of the page's time a frame for four frames, not 11-31 at once.
+
+### People
+
+- **Clips** (`docs/city/clips.mjs`, written by a subagent, wired into drawPeople): the near ring
+  walks, strolls, jogs and runs with cadence matched to speed, leans, turns its head; stands
+  idle, waits at a kerb looking each way, telephones, films, watches, helps. Keyframed poses
+  for the rig as it is (no knees or elbows): not retargeted motion capture, which needs skinned
+  bodies and licensed clips.
+- **A patrol car answers a 911 call**: from a few blocks off by the streets, round a queue if
+  held, to the kerb beside it; stands 30 s; drives on. (Checked: 284 m in about 40 s.)
+- **Rain**: drivers near you hold 90% of their pace with a quarter more room; nobody takes a
+  break outside.
+- **Streaming ahead**: the fronts' photographs are fetched four seconds ahead of the way you
+  are going (120 m at most) and let go sooner behind.
+
+### Off Chromium: built and measured (`desktop-webkit/`, by a subagent)
+
+A 240 KB macOS app on the system's WebKit (the Electron one is 289 MB). Two five-minute runs of
+the live site (before this pull request), City mode; reports in `desktop-webkit/reports/`.
+
+| | WebKit shell |
+| --- | --- |
+| app on disk | 240 KB |
+| website data after a cold load | 191 MB, nearly all HTTP cache; 1.5 MB of site data |
+| lobby / in the city, cold | 1.1 s / 145 s (warm 136 s: loading is compute, not network) |
+| page memory: peak / steady in the city | about 10 GB / 5.8-7.4 GB (of which only 2.9-3.9 GB resident: the rest compressed or swapped) |
+| GPU process | about 650 MB |
+| **frames a second in the city** | **4.7** |
+| processes killed or reloaded | 0 |
+
+Where it spikes: **the people and the traffic arriving** (+4.7 GB in four seconds, falling back
+3-4 GB within ten); "Loading the Marina" (steps of 0.7-1.25 GB over 70 s); tree pits (+0.9 GB).
+
+What it means: WebKit removes the 4 GiB ceiling and the 289 MB, but **it is not usable yet**:
+4.7 fps with the page's main thread mostly idle (frames are waiting on the GPU process;
+why was not profiled), and with no `performance.memory` the page's memory governor never runs,
+so it grows until the machine swaps. The Electron app stays the one to use.
+
+What to optimise, from the numbers: (1) find the WebKit frame time (blocking WebGL calls to
+its GPU process: likely the per-frame instanced buffer updates and 1,000 draw calls); (2) the
+arrival burst, spread over frames; (3) a governor that counts its own bytes; (4) the Marina
+load; (5) typed arrays kept after upload (0.9-1.2 GB).
+
+### Not done
+
+- **The simulation in a worker.** Not built. The WebKit run measured the page's process at
+  38-48% of one core in the city with frames waiting elsewhere, and the traffic step is now
+  4.6 ms: a worker would not have bought frames, and it is a rewrite of how view.mjs reads the
+  city every frame. It remains the way to take the simulation's memory out of the page's heap.
+- **Merging far blocks into one mesh** (the other half of streaming).
+- **Retargeted motion capture** (see Clips).
+- Drivers brake and go round what stands; they do not swerve round what moves.
+
+## The plan as it was written on 2026-11-18
 
 In the order I would do them.
 

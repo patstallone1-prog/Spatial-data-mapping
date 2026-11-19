@@ -21,8 +21,12 @@
 // this keeps a height and a colour a point (so a bridge is a wall and an arcade is solid), and
 // one bounce.
 //
+// The street lamps are a fourth thing in the same square: a soft pool under each, added up into a
+// small picture and read at night. A tree's shadow lets light through in patches (the bounce's
+// fourth channel says where the shade is a tree's).
+//
 // What it costs: three pictures on the GPU (PROXY.size squared: colour 4 bytes, depth 4, light 8
-// a texel) and one small one -- 17 MiB at 1024 -- and nothing in the page's own memory.
+// a texel) and two small ones -- 18 MiB at 1024 -- and nothing in the page's own memory.
 
 //: The stand-in's size and the look. Lengths in metres, times in milliseconds.
 export const PROXY = {
@@ -42,6 +46,10 @@ export const PROXY = {
   albedo_gain: 1.0,           // the stand-in's colour to a surface's own (measured: see capture())
   march_steps: 112, march_even: 64, march_growth: 0.14,   // a texel a step for the first 64, then longer strides
   fade_per_s: 2.5,
+  tiles: 2,                   // the stand-in is drawn a quarter a frame (tiles x tiles), so no frame pays for all of it
+  lamp_size: 512, lamp_reach_m: 15, lamp_peak: 0.55,   // a street lamp's pool: how far it reaches, how bright under it
+  lamp_colour: [1.0, 0.84, 0.62], lamp_strength: 1.5,  // warm white; against the night's own light
+  dapple: 0.6,                // how much light comes through a tree's shadow, in patches
 };
 
 //: Where the stand-in is centred for a focus: on a texel, so that it does not swim as you walk.
@@ -120,10 +128,14 @@ void main() {
 }`;
 
 const BOUNCE_FRAG = `
-uniform sampler2D tLight, tColour; uniform vec2 sunUv; uniform float sinEl, cosEl, texel, metres, albedo;
+uniform sampler2D tLight, tColour; uniform vec2 sunUv; uniform float sinEl, cosEl, tanEl, texel, metres, albedo;
 varying vec2 vUv;
 void main() {
-  float h0 = texture2D(tLight, vUv).b;
+  vec4 L0 = texture2D(tLight, vUv); float h0 = L0.b;
+  // What shades this point, if anything: back towards the sun to where the ray meets the
+  // shadow's top. Green there is a tree, and a tree's shadow has light in it.
+  float leafy = 0.0;
+  if (L0.r > h0 + 0.5) { vec3 c = texture2D(tColour, vUv + sunUv * (texel * (L0.r - h0) / tanEl / metres)).rgb; leafy = smoothstep(1.08, 1.3, c.g / max(0.02, max(c.r, c.b))); }
   vec3 sum = vec3(0.0); float all = 0.0;
   for (int i = 0; i < 24; i++) {
     float r = sqrt((float(i) + 0.5) / 24.0) * 28.0, a = float(i) * 2.39996;
@@ -143,7 +155,7 @@ void main() {
       sum += mix(colour, vec3(0.55), 0.6) * (sunny * cosEl * clamp(wall / 10.0, 0.0, 1.0) * w * 1.5);
     }
   }
-  gl_FragColor = vec4(clamp(sum / all * 2.0, 0.0, 1.0), 1.0);
+  gl_FragColor = vec4(clamp(sum / all * 2.0, 0.0, 1.0), leafy);
 }`;
 
 //: The stand-in and its light for a page. ``uniforms`` is module 02's PROXY_LIGHT (what the
@@ -164,10 +176,35 @@ export function createProxyLight({ THREE, renderer, scene, sun, ambient, uniform
   const flat = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), quadScene = new THREE.Scene();
   const pass = (fragmentShader, u) => new THREE.ShaderMaterial({ vertexShader: QUAD_VERT, fragmentShader, uniforms: u, depthTest: false, depthWrite: false, toneMapped: false, fog: false });
   const lightPass = pass(LIGHT_FRAG(P), { tDepth: { value: capture.depthTexture }, sunUv: { value: new THREE.Vector2() }, tanEl: { value: 1 }, texel: { value: 1 / P.size }, metres: { value: 1 }, top: { value: 0 }, span: { value: 1 } });
-  const bouncePass = pass(BOUNCE_FRAG, { tLight: { value: light.texture }, tColour: { value: capture.texture }, sunUv: { value: new THREE.Vector2() }, sinEl: { value: 1 }, cosEl: { value: 0 }, texel: { value: 1 / P.size }, metres: { value: 1 }, albedo: { value: P.albedo_gain } });
+  const bouncePass = pass(BOUNCE_FRAG, { tLight: { value: light.texture }, tColour: { value: capture.texture }, sunUv: { value: new THREE.Vector2() }, sinEl: { value: 1 }, cosEl: { value: 0 }, tanEl: { value: 1 }, texel: { value: 1 / P.size }, metres: { value: 1 }, albedo: { value: P.albedo_gain } });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), lightPass);
   quad.frustumCulled = false; quadScene.add(quad);
   U.map.value = light.texture; U.bounce.value = bounce.texture;
+  // The street lamps: a soft disc each, added up, drawn from above into a picture of their own.
+  const lampRT = new THREE.WebGLRenderTarget(P.lamp_size, P.lamp_size, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false, stencilBuffer: false });
+  const LAMP_MAX = 4096, lampScene = new THREE.Scene();
+  const lampMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+    vertexShader: "varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = projectionMatrix * viewMatrix * instanceMatrix * vec4(position, 1.0); }",
+    fragmentShader: `varying vec2 vUv;\nvoid main() { float r = length(vUv - 0.5) * 2.0, f = max(0.0, 1.0 - r * r); gl_FragColor = vec4(vec3(f * f * ${P.lamp_peak.toFixed(3)}), 1.0); }`,
+    blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true, toneMapped: false, fog: false }), LAMP_MAX);
+  lampMesh.frustumCulled = false; lampMesh.count = 0; lampScene.add(lampMesh);
+  U.lampMap.value = lampRT.texture;
+  const lampM = new THREE.Matrix4();
+  function drawLamps(c, extent, y) {
+    const L = U.lamps || [], half = extent / 2 + P.lamp_reach_m;
+    let n = 0;
+    for (let i = 0; i + 2 < L.length && n < LAMP_MAX; i += 3) {
+      if (Math.abs(L[i] - c.x) > half || Math.abs(L[i + 2] - c.z) > half) continue;
+      lampM.makeScale(P.lamp_reach_m, 1, P.lamp_reach_m).setPosition(L[i], y, L[i + 2]);
+      lampMesh.setMatrixAt(n++, lampM);
+    }
+    lampMesh.count = n; lampMesh.instanceMatrix.needsUpdate = true;
+    renderer.getClearColor(keep.clear); const clearA = renderer.getClearAlpha();
+    renderer.setClearColor(0x000000, 1);
+    try { drawTo(lampRT, () => renderer.render(lampScene, above)); } finally { renderer.setClearColor(keep.clear, clearA); }
+    state.lamps = n;
+  }
+
   const white = new THREE.Color(1, 1, 1), keep = { sky: new THREE.Color(), ground: new THREE.Color(), clear: new THREE.Color() };
 
   function drawTo(target, draw) {
@@ -179,24 +216,32 @@ export function createProxyLight({ THREE, renderer, scene, sun, ambient, uniform
 
   //: The stand-in drawn from above round ``focus``: the world as it is shown now, in the sky's
   //: light alone and of one strength (so its colour is the surfaces' own, whatever the hour),
-  //: without what moves. One drawing of the scene.
-  function captureAt(focus, extent, now) {
-    const t0 = performance.now(), c = snapCentre(focus.x, focus.z, extent, P.size), half = extent / 2;
-    above.left = -half; above.right = half; above.top = half; above.bottom = -half;
-    above.position.set(c.x, focus.y + P.up_m, c.z); above.lookAt(c.x, focus.y, c.z);
+  //: without what moves (the cars parked at the kerb are in it: view.mjs's hook shows them
+  //: alone). A part of it a frame -- ``P.tiles`` squared parts, each the scene drawn through a
+  //: camera that sees only that part -- and the light is traced again when the last is in.
+  function beginCapture(focus, extent, now) {
+    state.pending = { c: snapCentre(focus.x, focus.z, extent, P.size), extent, y: focus.y, tile: 0, t0: now, ms: 0 };
+  }
+  function captureTile() {
+    const job = state.pending, t0 = performance.now(), c = job.c, half = job.extent / 2, N = Math.max(1, P.tiles | 0);
+    const i = job.tile % N, j = Math.floor(job.tile / N), w = job.extent / N, px = P.size / N;
+    above.left = -half + i * w; above.right = above.left + w; above.bottom = -half + j * w; above.top = above.bottom + w;
+    above.position.set(c.x, job.y + P.up_m, c.z); above.lookAt(c.x, job.y, c.z);
     above.updateProjectionMatrix(); above.updateMatrixWorld(true);
+    capture.viewport.set(i * px, j * px, px, px); capture.scissor.set(i * px, j * px, px, px); capture.scissorTest = true;
     const hidden = [];
     for (const o of U.dynamic) if (o && o.visible) { o.visible = false; hidden.push(o); }
-    const background = scene.background, fog = scene.fog, sunI = sun.intensity, ambI = ambient.intensity, strength = U.k.value.x, skyK = U.k.value.z, dark = night?.night?.value ?? 0;
+    const background = scene.background, fog = scene.fog, sunI = sun.intensity, ambI = ambient.intensity, on = U.k.value.w, dark = night?.night?.value ?? 0, lampR = U.lamp.value.x, lampG = U.lamp.value.y, lampB = U.lamp.value.z;
     const fogWas = fog ? (fog.isFogExp2 ? fog.density : [fog.near, fog.far]) : null;
     keep.sky.copy(ambient.color); if (ambient.groundColor) keep.ground.copy(ambient.groundColor);
     renderer.getClearColor(keep.clear); const clearA = renderer.getClearAlpha();
     try {
+      for (const h of U.captureHooks || []) try { h.before?.(); } catch (error) { console.warn("kerbside: stand-in hook", error); }
       scene.background = null;
       // (The fog is thinned, not taken off: a scene with no fog is a different program for every material.)
       if (fog) { if (fog.isFogExp2) fog.density = 0; else { fog.near = 1e7; fog.far = 2e7; } }
       sun.intensity = 0; ambient.intensity = 1; ambient.color.copy(white); ambient.groundColor?.copy(white);
-      U.k.value.x = 0; U.k.value.z = 0;
+      U.k.value.w = 0; U.lamp.value.x = U.lamp.value.y = U.lamp.value.z = 0;
       if (night?.night) night.night.value = 0;
       renderer.setClearColor(0x000000, 0);
       drawTo(capture, () => renderer.render(scene, above));
@@ -204,25 +249,32 @@ export function createProxyLight({ THREE, renderer, scene, sun, ambient, uniform
       scene.background = background;
       if (fog) { if (fog.isFogExp2) fog.density = fogWas; else { fog.near = fogWas[0]; fog.far = fogWas[1]; } }
       sun.intensity = sunI; ambient.intensity = ambI; ambient.color.copy(keep.sky); ambient.groundColor?.copy(keep.ground);
-      U.k.value.x = strength; U.k.value.z = skyK;
+      U.k.value.w = on; U.lamp.value.x = lampR; U.lamp.value.y = lampG; U.lamp.value.z = lampB;
       if (night?.night) night.night.value = dark;
       renderer.setClearColor(keep.clear, clearA);
+      for (const h of U.captureHooks || []) try { h.after?.(); } catch (error) { console.warn("kerbside: stand-in hook", error); }
       for (const o of hidden) o.visible = true;
     }
-    Object.assign(state, { extent, cx: c.x, cz: c.z, yc: focus.y, captured: now, geoms: renderer.info.memory.geometries, captures: state.captures + 1, lastCaptureMs: performance.now() - t0 });
-    U.box.value.set(c.x, c.z, 1 / extent, focus.y);
+    job.ms = Math.max(job.ms, performance.now() - t0); job.tile += 1;
+    if (job.tile < N * N) return false;
+    // The last part is in: the whole square is the new one.
+    above.left = -half; above.right = half; above.bottom = -half; above.top = half; above.updateProjectionMatrix();
+    drawLamps(c, job.extent, job.y);
+    Object.assign(state, { pending: null, extent: job.extent, cx: c.x, cz: c.z, yc: job.y, captured: job.t0, geoms: renderer.info.memory.geometries, captures: state.captures + 1, lastCaptureMs: job.ms });
+    U.box.value.set(c.x, c.z, 1 / job.extent, job.y);
     U.k.value.y = c.texel;
     lightPass.uniforms.metres.value = bouncePass.uniforms.metres.value = c.texel;
     // The depth runs from the camera's near plane to its far one; heights are counted from you.
     lightPass.uniforms.top.value = P.up_m - above.near;
     lightPass.uniforms.span.value = above.far - above.near;
+    return true;
   }
 
   //: The sun traced through the stand-in: the light map, then what is thrown back.
   function relight(dir) {
     const t0 = performance.now(), s = sunInMap(dir);
     lightPass.uniforms.sunUv.value.set(s.u, s.v); lightPass.uniforms.tanEl.value = s.tan;
-    bouncePass.uniforms.sunUv.value.set(s.u, s.v); bouncePass.uniforms.sinEl.value = s.sin; bouncePass.uniforms.cosEl.value = s.cos;
+    bouncePass.uniforms.sunUv.value.set(s.u, s.v); bouncePass.uniforms.sinEl.value = s.sin; bouncePass.uniforms.cosEl.value = s.cos; bouncePass.uniforms.tanEl.value = s.tan;
     quad.material = lightPass; drawTo(light, () => renderer.render(quadScene, flat));
     quad.material = bouncePass; drawTo(bounce, () => renderer.render(quadScene, flat));
     state.sunDir.copy(dir); state.lights += 1; state.lastLightMs = performance.now() - t0;
@@ -234,18 +286,27 @@ export function createProxyLight({ THREE, renderer, scene, sun, ambient, uniform
   function update(now, focus, { dist = 0, indoors = false } = {}) {
     const dt = Math.min(0.25, Math.max(0, (now - (state.prev || now)) / 1000)); state.prev = now;
     dir.copy(sun.position).normalize();
-    const want = state.on && !indoors && sun.intensity > 0.02 && dir.y > 0.02 && focus ? 1 : 0;
+    const want = state.on && !indoors && focus ? 1 : 0, sunUp = sun.intensity > 0.02 && dir.y > 0.02 ? 1 : 0;
     state.level += Math.max(-1, Math.min(1, want - state.level)) * Math.min(1, dt * P.fade_per_s || 1);
     if (Math.abs(want - state.level) < 0.01) state.level = want;
-    const ready = state.captured && state.lights ? state.level : 0;
-    U.k.value.x = P.strength * ready; U.k.value.z = P.sky * ready;
-    U.sun.value.set(sun.color.r, sun.color.g, sun.color.b).multiplyScalar(sun.intensity * Math.PI * P.bounce * ready);
-    if (!want) return false;
-    const extent = extentFor(dist, state.extent, P), since = now - state.captured;
-    const off = Math.max(Math.abs(focus.x - state.cx), Math.abs(focus.z - state.cz), Math.abs(focus.y - state.yc) * 2);
-    const arrivals = renderer.info.memory.geometries !== state.geoms;
+    const ready = state.captured && state.lights ? state.level : 0, dark = night?.night?.value ?? 0;
+    U.k.value.w = ready; U.k.value.x = P.strength * ready * sunUp; U.k.value.z = P.sky * ready;
+    U.sun.value.set(sun.color.r, sun.color.g, sun.color.b).multiplyScalar(sun.intensity * Math.PI * P.bounce * ready * sunUp);
+    const lamp = P.lamp_strength * dark * ready;
+    U.lamp.value.set(P.lamp_colour[0] * lamp, P.lamp_colour[1] * lamp, P.lamp_colour[2] * lamp, P.dapple);
+    if (!want) { state.pending = null; return false; }
     let drawn = false;
-    if (!state.captured || extent !== state.extent || (since > P.min_gap_ms && off > extent * P.recentre_share) || (arrivals && since > P.arrivals_gap_ms) || since > P.refresh_ms) { captureAt(focus, extent, now); drawn = true; }
+    if (state.pending) { if (!captureTile()) return true; drawn = true; }
+    else {
+      const extent = extentFor(dist, state.extent, P), since = now - state.captured;
+      const off = Math.max(Math.abs(focus.x - state.cx), Math.abs(focus.z - state.cz), Math.abs(focus.y - state.yc) * 2);
+      const arrivals = renderer.info.memory.geometries !== state.geoms;
+      if (!state.captured || extent !== state.extent || (since > P.min_gap_ms && off > extent * P.recentre_share) || (arrivals && since > P.arrivals_gap_ms) || since > P.refresh_ms) {
+        beginCapture(focus, extent, now);
+        if (!captureTile()) return true;
+        drawn = true;
+      }
+    }
     if (drawn || !state.lights || state.sunDir.angleTo(dir) > P.sun_step_rad) { relight(dir); drawn = true; }
     return drawn;
   }
@@ -253,12 +314,12 @@ export function createProxyLight({ THREE, renderer, scene, sun, ambient, uniform
   return {
     update,
     //: What is kept and what it last cost (ms are the page's own time; the GPU's work comes after).
-    stats: () => ({ ok: true, on: state.on, level: +state.level.toFixed(2), extent: state.extent, centre: [state.cx, state.cz], captures: state.captures, relights: state.lights, capture_ms: +state.lastCaptureMs.toFixed(2), relight_ms: +state.lastLightMs.toFixed(2), gpu_bytes: P.size * P.size * 16 + P.bounce_size * P.bounce_size * 4 }),
+    stats: () => ({ ok: true, on: state.on, level: +state.level.toFixed(2), extent: state.extent, centre: [state.cx, state.cz], captures: state.captures, relights: state.lights, capture_ms: +state.lastCaptureMs.toFixed(2), lamps: state.lamps || 0, relight_ms: +state.lastLightMs.toFixed(2), gpu_bytes: P.size * P.size * 16 + P.bounce_size * P.bounce_size * 4 + P.lamp_size * P.lamp_size * 4 }),
     setEnabled(on) { state.on = Boolean(on); },
     get enabled() { return state.on; },
     settings: P,
     //: The pictures, for a look at them (tests, a debug view).
-    targets: { capture, light, bounce },
-    dispose() { capture.depthTexture.dispose(); capture.dispose(); light.dispose(); bounce.dispose(); quad.geometry.dispose(); lightPass.dispose(); bouncePass.dispose(); U.map.value = null; U.bounce.value = null; U.k.value.x = 0; U.k.value.z = 0; },
+    targets: { capture, light, bounce, lamps: lampRT },
+    dispose() { capture.depthTexture.dispose(); capture.dispose(); light.dispose(); bounce.dispose(); lampRT.dispose(); lampMesh.geometry.dispose(); lampMesh.material.dispose(); U.lampMap.value = null; quad.geometry.dispose(); lightPass.dispose(); bouncePass.dispose(); U.map.value = null; U.bounce.value = null; U.k.value.x = 0; U.k.value.z = 0; },
   };
 }

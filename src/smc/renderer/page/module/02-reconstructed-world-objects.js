@@ -492,7 +492,11 @@ const PROXY_LIGHT = globalThis.__kerbsideProxyLight ||= {
   map: { value: null },                                   // r: shadow's top, g: sky seen, b: the surface's height, a: the edge's softness
   bounce: { value: null },                                // the share of sunlight thrown back, by colour
   box: { value: new THREE.Vector4(0, 0, 0, 0) },          // centre x, centre z, 1 / extent, the height the map counts from
-  k: { value: new THREE.Vector4(0, 0, 1, 0) },            // shadow strength, the map's texel (m), sky strength
+  k: { value: new THREE.Vector4(0, 0, 1, 0) },            // shadow strength, the map's texel (m), sky strength, whether the map is there at all
+  lampMap: { value: null },                               // the street lamps' pools of light, from above
+  lamp: { value: new THREE.Vector4(0, 0, 0, 0) },         // the lamps' colour, and (w) how much dappled light comes through a tree
+  lamps: [],                                              // every lamp head, [x, y, z, ...]: module 21 puts them here
+  captureHooks: new Set(),                                // {before(), after()}: what moves shows only what stands still (view.mjs)
   sun: { value: new THREE.Vector3(0, 0, 0) },             // the sun's light, as bounced
   dynamic: new Set(),                                     // what moves: left out of the stand-in
   missed: 0,
@@ -504,13 +508,13 @@ PROXY_LIGHT.patch ||= function proxyLightPatch(shader) {
   if (!shader || shader.uniforms.kbPLMap || !shader.fragmentShader.includes("#include <lights_fragment_begin>") || !shader.vertexShader.includes("#include <project_vertex>")) return;
   const begin = THREE.ShaderChunk.lights_fragment_begin, call = "getDirectionalLightInfo( directionalLight, directLight );";
   if (!begin.includes(call)) { if (!P.missed++) console.warn("kerbside: this three.js lights differently; no shadows"); return; }
-  shader.uniforms.kbPLMap = P.map; shader.uniforms.kbPLBounce = P.bounce; shader.uniforms.kbPLBox = P.box; shader.uniforms.kbPLK = P.k; shader.uniforms.kbPLSun = P.sun;
+  shader.uniforms.kbPLMap = P.map; shader.uniforms.kbPLBounce = P.bounce; shader.uniforms.kbPLBox = P.box; shader.uniforms.kbPLK = P.k; shader.uniforms.kbPLSun = P.sun; shader.uniforms.kbPLLampMap = P.lampMap; shader.uniforms.kbPLLamp = P.lamp;
   shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;")
     .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbPLp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbPLp = instanceMatrix * kbPLp;\n#endif\nkbPLw = (modelMatrix * kbPLp).xyz; }");
   shader.fragmentShader = shader.fragmentShader
-    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun;")
+    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun; uniform sampler2D kbPLLampMap; uniform vec4 kbPLLamp;")
     .replace("#include <lights_fragment_begin>", `float kbLit = 1.0, kbSky = 1.0; vec3 kbBnc = vec3(0.0);
-if (kbPLK.x > 0.0) {
+if (kbPLK.w > 0.0) {
   vec3 kbN = inverseTransformDirection(normal, viewMatrix);
   // Looked up a texel and a half out from the surface: a wall reads the street it faces, not the roof behind it.
   vec2 kbAt = kbPLw.xz + kbN.xz * kbPLK.y * 1.6 - kbPLBox.xy;
@@ -523,7 +527,13 @@ if (kbPLK.x > 0.0) {
     kbLit = mix(1.0, smoothstep(-kbL.a, kbL.a, kbY - kbL.r + 0.3), kbEdge * kbPLK.x);
     float kbOpen = clamp((kbY - kbL.b) / 22.0, 0.0, 1.0);
     kbSky = mix(1.0, mix(kbL.g, 1.0, kbOpen), kbEdge * kbPLK.z);
-    kbBnc = texture2D(kbPLBounce, kbUv).rgb * kbPLSun * (kbEdge * (1.0 - kbOpen) * mix(1.0, 0.35, clamp(kbN.y, 0.0, 1.0)));
+    vec4 kbB = texture2D(kbPLBounce, kbUv);
+    kbBnc = kbB.rgb * kbPLSun * (kbEdge * (1.0 - kbOpen) * mix(1.0, 0.35, clamp(kbN.y, 0.0, 1.0)));
+    // Under a tree the shadow is not whole: light comes through the leaves in patches.
+    float kbLeaf = sin(kbPLw.x * 2.1 + sin(kbPLw.z * 1.3) * 1.7) * sin(kbPLw.z * 2.3 + sin(kbPLw.x * 1.7) * 1.7) * 0.5 + 0.5;
+    kbLit = mix(kbLit, max(kbLit, smoothstep(0.38, 0.72, kbLeaf)), kbB.a * kbPLLamp.w * kbEdge);
+    // The street lamps: a pool under each, on the street and the foot of the fronts, at night.
+    kbBnc += kbPLLamp.rgb * (texture2D(kbPLLampMap, kbUv).r * kbEdge * (1.0 - smoothstep(4.0, 10.0, kbY - kbL.b)));
   }
 }
 ${begin.replace(call, `${call}\n directLight.color *= kbLit;`)}
@@ -535,7 +545,7 @@ irradiance = irradiance * kbSky + kbBnc;
 iblIrradiance *= kbSky;
 #endif
 #if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
-radiance *= mix(1.0, kbSky * (0.4 + 0.6 * kbLit), min(1.0, kbPLK.x));
+radiance *= mix(1.0, kbSky * (0.4 + 0.6 * kbLit), min(1.0, kbPLK.x) * kbPLK.w);
 #endif`);
 };
 // Every lit material, without each being told: a material with no hook of its own uses this one,

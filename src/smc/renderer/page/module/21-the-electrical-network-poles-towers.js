@@ -1692,6 +1692,8 @@ function addStreetLights(records,anchorFor=furnitureAnchor) {
     for (const rod of parts.rods) rods.push({ a: world(rod.a), b: world(rod.b), r: rod.r || STREET_LIGHT_ARM_R, c: finish });
     for (const head of parts.heads) heads.push({ at: world(head.at), yaw });
     for (const globe of parts.globes) globes.push({ ...globe, at: world(globe.at), yaw });
+    // (Where each lamp is, for the pools of light they throw at night: proxy-light.mjs.)
+    { const L = globalThis.__kerbsideProxyLight?.lamps; if (L && L.length < 60000) for (const q of [...parts.heads, ...parts.globes]) { const w = world(q.at); L.push(w.x, w.y, w.z); } }
     for (const cap of parts.caps) caps.push({ ...cap, at: world(cap.at), c: item.finish === "red_steel" ? finish : 0x2a2f33 });
   }
   const dummy = new THREE.Object3D(), up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
