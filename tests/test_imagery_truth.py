@@ -7,7 +7,7 @@ import pytest
 
 cv2 = pytest.importorskip("cv2")   # the judging reads pictures; a machine without OpenCV runs the wiring tests only
 
-from smc.truth import imagery_truth as it
+from smc.truth import imagery_truth as it  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 

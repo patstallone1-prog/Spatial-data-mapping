@@ -47,3 +47,16 @@ def test_the_page_has_the_verdicts_and_keeps_to_them():
     m15 = (ROOT / "src/smc/renderer/page/module/15-interchanges-every-deck-s-height.js").read_text()
     assert "const building = buildingMesh(way);" in m15 and "way.covered ? buildingMesh(way) : null" not in m15
     assert "feature._carPark = true" in (ROOT / "src/smc/renderer/page/module/12-what-a-roof-is-made.js").read_text()
+
+
+def test_the_runner_and_the_exporter_are_as_the_notes_say():
+    import py_compile
+
+    runner = ROOT / "tools/build_imagery_truth.py"
+    py_compile.compile(str(runner), doraise=True)
+    text = runner.read_text()
+    assert "--journal" in text and "page_file(" in text and "Journal(" in text
+    exporter = (ROOT / "tools/truth/export_candidates.mjs").read_text()
+    for surface in ("bus_zone:fill", "furniture:road_legend", "waterworks:gutter", "inferred:paving", "plaza"):
+        assert f'"{surface}"' in exporter
+    assert "out.buildings" in exporter and "out.frame" in exporter, "footprints (no court on a roof) and the frame"
