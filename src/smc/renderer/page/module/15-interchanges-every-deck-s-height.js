@@ -471,12 +471,18 @@ for (const way of DRAW_ORDER) {
     // for the covered ones too it is 15,213 slabs lying under 15,213 buildings, entirely hidden
     // and entirely paid for: sixteen thousand draw calls a frame that cannot be seen.
     if (way.covered) { dropEditedWallGarages(way); dropStorefrontGarages(way); }
-    const building = way.covered ? buildingMesh(way) : null;
+    // Every building that has a footprint stands, surveyed or not. One outside the survey's
+    // coverage (``covered`` false: 41 in the Marina -- the houses of Casa Way and Rico Way, the
+    // park buildings at Moscone) was left as a faint plate on the ground, and the city put its
+    // door there all the same: a door standing in the air (2026-11-19). Its height is the
+    // city's lidar's, its walls the plain ones of its kind.
+    const building = buildingMesh(way);
     if (!building) {
       const base = footprintMesh(way.points, way.covered ? 0x2b4148 : 0x1b2a2f,
                                  way.covered ? 0.42 : 0.18, 0.04);
       if (base) addMerged("footprint", base, "footprint");
     }
+    if (!way.covered && building && building.isObject3D) groups.mapped3d.add(building);
     if (way.covered) {
       if (building && building.isObject3D) groups.mapped3d.add(building);
       // A dropped kerb outside means a way in. The city records 14,130 of these against

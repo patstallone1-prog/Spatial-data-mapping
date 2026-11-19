@@ -272,6 +272,7 @@ export async function startCity(ctx) {
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
+  const MIN_PLACE_M2 = 8;
   let scan = { people: [], vehicles: [] }, scanAt = { x: Infinity, z: Infinity }, scanning = false, scanReach = 0;
   function buildDistrict(data) {
     const ways = [], buildings = [];
@@ -312,7 +313,9 @@ export async function startCity(ctx) {
     const wayKey = (w) => (w.kind === "street" && w.id !== undefined ? `s:${w.id}`
       : `p:${Math.round(w.pts[0][0])},${Math.round(w.pts[0][1])}:${Math.round(w.pts[w.pts.length - 1][0])},${Math.round(w.pts[w.pts.length - 1][1])}:${w.pts.length}`);
     for (const w of ways) { const k = wayKey(w); if (!district.allWays.has(k)) { district.allWays.set(k, w); added += 1; } }
-    const fresh = buildings.filter((b) => !district.allBuildings.has(b.id));
+    // (Nothing under 8 m2 is a place to go into: a kiosk, a pump house, a mapping sliver. The
+    // world draws no walls for one, and its door stood in the air.)
+    const fresh = buildings.filter((b) => !district.allBuildings.has(b.id) && !(b.area < MIN_PLACE_M2));
     for (const b of fresh) district.allBuildings.set(b.id, b);
     district.key = data.key;
     if (!added && !fresh.length && district.city) return;

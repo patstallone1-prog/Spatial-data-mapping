@@ -1458,6 +1458,37 @@ function joinBusZones(records) {
   return out;
 }
 
+// ---- what the aerial photograph says (docs/imagery-truth.json, tools/build_imagery_truth.py) ----
+//
+// Some of what is painted here is inferred: a transit-red box in the road at every bus zone, a
+// word at every stop. The photograph of the same ground has been looked at, thing by thing, and
+// where it could see that something is not there, it is not drawn: of the Marina's 27 bus zones
+// none has red paint in the road (16 are bare asphalt, 10 a pale concrete bus pad, one is under
+// a tree), and 21 of its 270 road legends are not on the road. What the photograph could not
+// see (a tree, a parked bus, deep shade) is left as it was.
+let IMAGERY_TRUTH = null;
+//: The photograph's row for the thing of ``kind`` nearest (x, z), within ``reach`` m, or null.
+function imageryVerdict(kind, x, z, reach = 6) {
+  const rows = IMAGERY_TRUTH?.[kind];
+  if (!rows) return null;
+  let best = null, near = reach;
+  for (const row of rows) { const d = Math.hypot(row.x - x, row.z - z); if (d < near) { near = d; best = row; } }
+  return best;
+}
+//: The file, if it is of this page's ground: it carries one point both ways (longitude and
+//: latitude, and the page's metres), and a page whose own map puts that point elsewhere is not
+//: the page it was made for.
+async function loadImageryTruth() {
+  try {
+    const doc = await fetch(sharedAsset("imagery-truth.json"), { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null));
+    if (doc?.schema !== "kerbside.imagery_truth/1" || !doc.check) return null;
+    const [x, y] = xy(doc.check.lon, doc.check.lat);
+    if (Math.hypot(x - doc.check.x, -y - doc.check.z) > 1.5) return null;
+    IMAGERY_TRUTH = doc;
+  } catch (error) { console.warn("kerbside: the photograph's verdicts did not load", error); }
+  return IMAGERY_TRUTH;
+}
+
 function addBusZonePaint(records, plan = null) {
   // The red box in the roadway at a bus zone.
   records = joinBusZones(records);
@@ -1468,6 +1499,7 @@ function addBusZonePaint(records, plan = null) {
   // the zone from behind rather than having to read the kerb.
   const fill = { positions: [], index: [], at: [] };
   const border = { positions: [], index: [], at: [] };
+  const pad = { positions: [], index: [], at: [] };
   let zones = 0;
   // Where the zone being painted stands: every vertex of it carries that (clipAt), so a
   // window's edge takes or leaves the zone whole and the words in it are never left on bare road.
@@ -1539,6 +1571,14 @@ function addBusZonePaint(records, plan = null) {
         const [ax, az] = corner(0, near), [bx, bz] = corner(span, near);
         const [cx, cz] = corner(span, near + BUS_ZONE_WIDTH_M), [dx, dz] = corner(0, near + BUS_ZONE_WIDTH_M);
         zoneAt = [(ax + cx) / 2, (az + cz) / 2];
+        // Looked for in the photograph: red only where it is red. A concrete bus pad is laid as
+        // one; bare road is left bare, and the stop's own box and words are laid as at any stop.
+        const seen = imageryVerdict("bus_zones", zoneAt[0], zoneAt[1]);
+        if (seen && seen.verdict !== "red") {
+          zones -= 1;
+          if (seen.verdict === "pad") quad(pad, ax, az, bx, bz, cx, cz, dx, dz, BUS_ZONE_Y);
+          continue;
+        }
         // The zone's rectangle of asphalt, claimed on the paint plan as paint already down: a
         // stop's white box is not laid over it, and the stop's words go inside it.
         if (plan && span > 0.5) {
@@ -1576,6 +1616,7 @@ function addBusZonePaint(records, plan = null) {
   };
   emit(fill, 0x8c2f2a, "bus_zone:fill", 0.9);
   emit(border, 0xf2f5ef, "bus_zone:border", 0.82);
+  emit(pad, 0xa7a8a1, "bus_zone:pad", 0.95);
   return zones;
 }
 
@@ -1909,6 +1950,7 @@ registerLazyLayer("furniture", async () => {
   // The city's bicycle racks (scripts/build_bike_racks.py), where the region has them.
   const bikeRacks = await fetch(asset("bike-racks.json"), { cache: "no-cache" })
     .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  await loadImageryTruth();
   await renderStreetFurniture(furniture, transit, creatives, cityPaint, bikeRacks?.schema === "kerbside.bike_racks/1" ? bikeRacks : null);
 });
 
