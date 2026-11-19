@@ -12,6 +12,7 @@
 // (tests/city.test.mjs).
 
 import { arrivalsAt } from "./transit.mjs";
+import { STEADY_STYLE, timeToMeet } from "./temperament.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
   BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
@@ -2280,7 +2281,9 @@ export class Drivers {
       const behind = tsec - c.unsched(st.d), late = behind > T.late_s;
       if (late && !st.late) this.tally.catchups += 1;
       st.late = late;
-      let target = late ? limit : Math.min(limit, c.cruise ?? limit), reason = null;
+      // Their own way of driving (temperament.mjs drivingStyle): the pace they hold, the room they leave.
+      const S = c.style || STEADY_STYLE, headway = T.headway_s * S.headway;
+      let target = late ? limit : Math.min(limit, (c.cruise ?? limit) * S.pace), reason = null;
       // Its lane (one change at a time, into a gap, never in or at a junction's box), and the
       // block after the next junction: stood full, another way is taken (lookAhead).
       const J = this.junctionAhead(c, st);
@@ -2412,7 +2415,7 @@ export class Drivers {
         else if (queueFree || Math.cos(op.yaw - here.yaw) < 0.4) return;
         if (!ost.hit) carGap = Math.min(carGap, gap);
         const lead = ost.hit ? 0 : ost.v;
-        const v = Math.max(0, Math.min(lead + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
+        const v = Math.max(0, Math.min(lead + gap / headway, Math.sqrt(2 * T.brake * Math.max(0, gap)) + lead));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = o.id; }
         // A cyclist ahead, slower than this car would go: passed, when there is room (``slow``).
         if (o.bike && !c.bike && !ost.hit && gap < 14 && Math.cos(op.yaw - here.yaw) > 0.7 && ost.v < lawful - 2) holdIf({ x: op.x, z: op.z, hw: (o.width || 0.65) / 2, hl: o.length / 2, id: oid, slow: Math.max(0, ost.v) }, gap);
@@ -2426,7 +2429,7 @@ export class Drivers {
         const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
         if (fwd <= 0 || fwd > T.look_m || lat > 1.9) continue;
         const gap = fwd - (c.length + (o.length || 4.5)) / 2 - T.gap_m, ov = Math.max(0, o.v || 0);
-        const v = Math.max(0, Math.min(ov + gap / T.headway_s, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ov));
+        const v = Math.max(0, Math.min(ov + gap / headway, Math.sqrt(2 * T.brake * Math.max(0, gap)) + ov));
         if (v < target) { target = v; reason = "the car ahead"; st.leader = null; st.byBlocker = ov < 0.5; }
         if (ov < 0.3 && gap < 12) holdIf({ x: o.x, z: o.z, hw: (o.width || 1.9) / 2, hl: (o.length || 4.5) / 2, id: `blocker:${k}` }, gap);
       }
@@ -2463,7 +2466,7 @@ export class Drivers {
       // second, most of what the page threw away, and the collector's pauses were the freezes
       // while walking: measured 2026-11-16. Anyone too far to be reached at all is passed over
       // on two subtractions.)
-      const reach = st.v * T.reaction_s + st.v * st.v / (2 * T.brake) + 6;
+      const reach = st.v * T.reaction_s * S.alert + st.v * st.v / (2 * T.brake) + 6;
       const farOff = reach + c.length + (c.width || 1.9) + 3;
       const heldPerson = dodging && typeof st.hold?.id === "string" && st.hold.id.startsWith("person:") ? st.hold.id.slice(7) : null;
       for (let qi = 0; qi < people.length; qi += 1) {
@@ -2484,12 +2487,28 @@ export class Drivers {
           if (tau === 0 && q.still >= T.person_still_s && gap < 12) holdIf({ x: q.x, z: q.z, hw: T.person_half_m, hl: T.person_half_m, id: `person:${q.id}` }, gap);
         }
       }
+      // A car coming across its way (yours, a bus pulling out, a bicycle): where the two would
+      // meet within the next two and a half seconds, this driver decides. The assertive, all
+      // but there already, go on through; everyone else brakes for it, as hard as it takes.
+      // (Cars going the same way are the car ahead, above.)
+      let across = 0;
+      if (st.v > 1.5) for (let k = 0; k < blockers.length; k += 1) {
+        const o = blockers[k], ov = o.v || 0;
+        if (Math.abs(ov) < 1.5 || Math.abs(o.x - here.x) > 60 || Math.abs(o.z - here.z) > 60) continue;
+        const ox = -Math.sin(o.yaw), oz = -Math.cos(o.yaw);
+        // (One coming the other way is in its own lane: only what cuts across.)
+        if (Math.abs(ox * fx + oz * fz) > 0.7) continue;
+        const tm = timeToMeet(here.x, here.z, fx * st.v, fz * st.v, (c.width || 1.9) / 2 + 0.5, o.x, o.z, ox * ov, oz * ov, Math.min(2.5, (o.length || 4.5) / 2), 2.5);
+        if (tm < 0 || (S.assertive && tm < 0.7)) continue;
+        across = Math.max(across, st.v * st.v / (2 * Math.max(0.5, st.v * tm - 1.5)));
+      }
       let decel = T.brake;
+      if (across > 0) { target = 0; reason = "a car coming across"; decel = Math.min(T.emergency, Math.max(T.brake, across)); if (!st.yielding) { st.yielding = true; this.tally.yields = (this.tally.yields || 0) + 1; } } else st.yielding = false;
       if (danger) {
         const room = Math.max(0.05, danger.gap - 0.6);
         const need = st.v * st.v / (2 * room);
         target = 0; reason = danger.q.player ? "you" : "someone in the road";
-        decel = Math.min(T.emergency, Math.max(T.brake, need));
+        decel = Math.min(T.emergency, Math.max(decel, need));
         // Between the city's own people the law holds: a walker who steps out looks first and a
         // driver who is too close stops dead, so nobody is run down unless you are in it (on foot
         // where the cars are, or in a car yourself). Without this the traffic hurt some twenty
@@ -2538,7 +2557,7 @@ export class Drivers {
         reason = reason || "going round";
       } else if (hold && lawful >= 1 && (st.v < 0.8 || hold.slow >= 0)) {
         st.holdT += dt;
-        if (st.holdT >= T.dodge_after_s && tsec >= (st.nextDodge || 0)) {
+        if (st.holdT >= T.dodge_after_s * S.patience && tsec >= (st.nextDodge || 0)) {
           st.nextDodge = tsec + 0.7;
           const plan = this.planDodge(c, st, here, hold, { near, pos, people, blockers });
           if (plan) {

@@ -476,8 +476,83 @@ function nightRim(material) {
 function nightRimAll(object) {
   object?.traverse?.((o) => { if (!o.isMesh) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && !isPatched(m, "kbNightRim") && "emissive" in m) nightRim(m); });
 }
+// ---- the sun's shadows and the light off the street: a low-detail stand-in for the world -------
+//
+// Nothing here casts a shadow the usual way (a shadow map draws every building, tree and kerb
+// again from the sun, every frame). Instead the world near you is kept as a stand-in a metre or
+// so coarse -- how high the top of it is at each point, and what colour (docs/proxy-light.mjs
+// draws it from above, now and then) -- and the sun is traced through that, once each time it
+// has moved: where its light is cut off, how much of the sky a street can see, and how much
+// sunlight the ground and the fronts across the way throw back. Every lit material then looks
+// those three things up in two small pictures: a pair of texture reads a pixel.
+// (After Unreal's Lumen, cut down: it traces a simplified copy of the scene and keeps the light
+// on a low-detail cache of its surfaces; this keeps one height and one colour a point.)
+// One for the page and every region attached to it, as the night is.
+const PROXY_LIGHT = globalThis.__kerbsideProxyLight ||= {
+  map: { value: null },                                   // r: shadow's top, g: sky seen, b: the surface's height, a: the edge's softness
+  bounce: { value: null },                                // the share of sunlight thrown back, by colour
+  box: { value: new THREE.Vector4(0, 0, 0, 0) },          // centre x, centre z, 1 / extent, the height the map counts from
+  k: { value: new THREE.Vector4(0, 0, 1, 0) },            // shadow strength, the map's texel (m), sky strength
+  sun: { value: new THREE.Vector3(0, 0, 0) },             // the sun's light, as bounced
+  dynamic: new Set(),                                     // what moves: left out of the stand-in
+  missed: 0,
+};
+//: The lookup, put into a lit material's shader (``shader`` as onBeforeCompile is given it). A
+//: material with no lighting of its own (a sign, a lamp, the sky) is left as it is.
+PROXY_LIGHT.patch ||= function proxyLightPatch(shader) {
+  const P = globalThis.__kerbsideProxyLight;
+  if (!shader || shader.uniforms.kbPLMap || !shader.fragmentShader.includes("#include <lights_fragment_begin>") || !shader.vertexShader.includes("#include <project_vertex>")) return;
+  const begin = THREE.ShaderChunk.lights_fragment_begin, call = "getDirectionalLightInfo( directionalLight, directLight );";
+  if (!begin.includes(call)) { if (!P.missed++) console.warn("kerbside: this three.js lights differently; no shadows"); return; }
+  shader.uniforms.kbPLMap = P.map; shader.uniforms.kbPLBounce = P.bounce; shader.uniforms.kbPLBox = P.box; shader.uniforms.kbPLK = P.k; shader.uniforms.kbPLSun = P.sun;
+  shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;")
+    .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbPLp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbPLp = instanceMatrix * kbPLp;\n#endif\nkbPLw = (modelMatrix * kbPLp).xyz; }");
+  shader.fragmentShader = shader.fragmentShader
+    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun;")
+    .replace("#include <lights_fragment_begin>", `float kbLit = 1.0, kbSky = 1.0; vec3 kbBnc = vec3(0.0);
+if (kbPLK.x > 0.0) {
+  vec3 kbN = inverseTransformDirection(normal, viewMatrix);
+  // Looked up a texel and a half out from the surface: a wall reads the street it faces, not the roof behind it.
+  vec2 kbAt = kbPLw.xz + kbN.xz * kbPLK.y * 1.6 - kbPLBox.xy;
+  vec2 kbUv = vec2(kbAt.x, -kbAt.y) * kbPLBox.z + 0.5;
+  vec2 kbIn = min(kbUv, 1.0 - kbUv);
+  float kbEdge = clamp(min(kbIn.x, kbIn.y) * 14.0, 0.0, 1.0);
+  if (kbEdge > 0.0) {
+    vec4 kbL = texture2D(kbPLMap, kbUv);
+    float kbY = kbPLw.y - kbPLBox.w;
+    kbLit = mix(1.0, smoothstep(-kbL.a, kbL.a, kbY - kbL.r + 0.3), kbEdge * kbPLK.x);
+    float kbOpen = clamp((kbY - kbL.b) / 22.0, 0.0, 1.0);
+    kbSky = mix(1.0, mix(kbL.g, 1.0, kbOpen), kbEdge * kbPLK.z);
+    kbBnc = texture2D(kbPLBounce, kbUv).rgb * kbPLSun * (kbEdge * (1.0 - kbOpen) * mix(1.0, 0.35, clamp(kbN.y, 0.0, 1.0)));
+  }
+}
+${begin.replace(call, `${call}\n directLight.color *= kbLit;`)}
+#if defined( RE_IndirectDiffuse )
+irradiance = irradiance * kbSky + kbBnc;
+#endif`)
+    .replace("#include <lights_fragment_maps>", `#include <lights_fragment_maps>
+#if defined( RE_IndirectDiffuse ) && defined( USE_ENVMAP ) && defined( STANDARD ) && defined( ENVMAP_TYPE_CUBE_UV )
+iblIrradiance *= kbSky;
+#endif
+#if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
+radiance *= mix(1.0, kbSky * (0.4 + 0.6 * kbLit), min(1.0, kbPLK.x));
+#endif`);
+};
+// Every lit material, without each being told: a material with no hook of its own uses this one,
+// and those that chain a hook (patchMaterial, the box clips) call it first. A material that sets
+// its own hook outright calls PROXY_LIGHT.patch itself.
+if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
+  const hook = function (shader) { globalThis.__kerbsideProxyLight.patch(shader); };
+  hook.kbProxyLight = true;
+  THREE.Material.prototype.onBeforeCompile = hook;
+}
+let proxyLightController = null;
 if(!ATTACH) {
   // Do not add a top-level suspension here: regional labels initialize later.
+  if(!META)import(sharedAsset("proxy-light.mjs")).then(({createProxyLight})=>{
+    proxyLightController=createProxyLight({THREE,renderer,scene,sun,ambient:amb,uniforms:PROXY_LIGHT,night:NIGHT});
+    window.kerbsideProxyLight=()=>proxyLightController;
+  }).catch((error)=>console.warn("kerbside: no shadows",error));
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
   environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon,night:NIGHT,asset:sharedAsset});
   // Made after the mode was first set, as often as not: the city's sky is on the game's clock.
@@ -822,6 +897,7 @@ const indoorCut = {
   guestBox: { value: boxSet([]) },
 };
 TERRAIN_MATERIAL.onBeforeCompile = (shader) => {
+  PROXY_LIGHT.patch(shader);
   shader.uniforms.uCutRing = indoorCut.ring;
   shader.uniforms.uCutCount = indoorCut.count;
   shader.uniforms.uCutFloor = indoorCut.floor;

@@ -443,7 +443,7 @@ export function createNatureWorld({THREE,root,atlas,toPage,fromPage,heightAt,wat
   function terrainMaterial(coarse,morph={value:1}){
     const m=material.clone();
     if(coarse)m.vertexColors=false;
-    m.onBeforeCompile=shader=>{
+    m.onBeforeCompile=shader=>{ globalThis.__kerbsideProxyLight?.patch?.(shader);
       shader.uniforms.uNatureActive=activeUniform;
       shader.uniforms.uNatureMorph=morph;
       shader.uniforms.uNatureCover={value:coverTexture};
@@ -1002,7 +1002,7 @@ if(fract(dot(gl_FragCoord.xy,vec2(.75487766,.56984029)))>1.-smoothstep(${NEAR0}.
     return null;
   }
   const buildingMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.86,metalness:0,side:THREE.DoubleSide});
-  buildingMaterial.onBeforeCompile=shader=>{
+  buildingMaterial.onBeforeCompile=shader=>{ globalThis.__kerbsideProxyLight?.patch?.(shader);
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 facade;\nvarying vec3 vFacade;')
       .replace('#include <begin_vertex>','#include <begin_vertex>\nvFacade=facade;');
     // Windows: a pane every 3.4 m along a wall, a storey every 3.1 m from 0.9 m up, none in

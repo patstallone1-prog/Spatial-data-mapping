@@ -345,7 +345,7 @@ export function kenneyGeometry(THREE, gltf, dims, name = "") {
 //: The kit's material: its texture, the paint taking the instance colour (and only the paint).
 export function kenneyMaterial(THREE, map) {
   const m = new THREE.MeshLambertMaterial({ map, color: 0xffffff });
-  m.onBeforeCompile = (shader) => {
+  m.onBeforeCompile = (shader) => { globalThis.__kerbsideProxyLight?.patch?.(shader);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nattribute float paintMask;\nvarying float vPaint;")
       .replace("#include <color_vertex>", "#include <color_vertex>\nvPaint = paintMask;\n#ifdef USE_INSTANCING_COLOR\nvColor.xyz = mix(vec3(1.0), instanceColor.xyz, paintMask);\n#endif");
@@ -567,7 +567,7 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
   if (!part.tint) return m;
   const atlas = part.name === "paint-atlas";
   const plain = "vec3 liveryAt(vec3 p, vec3 paint) { return paint; }";
-  m.onBeforeCompile = (shader) => {
+  m.onBeforeCompile = (shader) => { globalThis.__kerbsideProxyLight?.patch?.(shader);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", ["#include <common>", atlas ? "" : "attribute float _paint;", "varying vec3 vPaint;", "varying float vPaintW;", "varying vec3 vBodyPos;"].join("\n"))
       .replace("#include <color_vertex>", ["#include <color_vertex>", "vPaint = vec3(1.0);", "#ifdef USE_INSTANCING_COLOR", "vPaint = instanceColor.xyz;", "#endif", "vBodyPos = position;",

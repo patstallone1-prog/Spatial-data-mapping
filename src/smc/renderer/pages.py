@@ -140,7 +140,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
         "runtime_assets_sha256": {
             str(path.relative_to(docs)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in [docs / "recoverable-geometry.mjs", docs / "recoverable-geometry-worker.mjs", docs / "world-streaming.mjs",
-                         docs / "environment-runtime.mjs", docs / "sky-clock.mjs", docs / "sky-history.mjs", docs / "municipal-context.manifest.json",
+                         docs / "environment-runtime.mjs", docs / "proxy-light.mjs", docs / "sky-clock.mjs", docs / "sky-history.mjs", docs / "municipal-context.manifest.json",
                          *sorted((docs / "municipal").glob("*.json")), docs / "nature-runtime.mjs",
                          docs / "nature-ecology.mjs", docs / "vegetation-geometry.mjs", docs / "grass-strands.mjs", docs / "foliage-motion.mjs", docs / "street-paint.mjs", docs / "street-paint.json", docs / "nature/ecology.json",
                          docs / "forest-floor.mjs", docs / "globe.mjs", docs / "teleport-map.mjs",
@@ -185,7 +185,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
                                            "sf-corridor-roof-shapes.json", "sf-corridor-access.json")
                    if (docs / name).exists()]
     app_assets += [docs / "recoverable-geometry.mjs", docs / "recoverable-geometry-worker.mjs", docs / "sf-corridor-storefront-names.json",
-                   docs / "search-index.json", docs / "world-streaming.mjs", docs / "environment-runtime.mjs",
+                   docs / "search-index.json", docs / "world-streaming.mjs", docs / "environment-runtime.mjs", docs / "proxy-light.mjs",
                    docs / "sky-clock.mjs", docs / "sky-history.mjs", docs / "foliage-motion.mjs", docs / "street-paint.mjs", docs / "street-paint.json", docs / "municipal-context.manifest.json"]
     app_assets += sorted((docs / "municipal").glob("*.json"))
     # The living city's modules and rules, and the lanes it charges for (docs/city/view.mjs).

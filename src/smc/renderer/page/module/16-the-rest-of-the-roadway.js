@@ -944,6 +944,7 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
     map, color: 0xffffff, roughness, metalness: 0.0, side: THREE.DoubleSide, depthTest: false,
   });
   material.onBeforeCompile = (shader) => {
+    PROXY_LIGHT.patch(shader);
     shader.uniforms.groundHardMask = { value: hardMask.texture };
     shader.vertexShader = shader.vertexShader.replace("#include <common>",
       "#include <common>\nvarying vec2 vGroundHardUv;");
