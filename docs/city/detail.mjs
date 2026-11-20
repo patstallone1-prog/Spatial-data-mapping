@@ -11,12 +11,14 @@
 export const FULL = 0, MODERATE = 1, LOW = 2, TRACKED = 3;
 
 //: The rings' radii at a standstill (m): full, moderate and low; past the last, tracked only.
-//: Cars carry further than people (bigger, and seen down the length of a street).
-export const DETAIL_RINGS = { people: [55, 130, 240], cars: [85, 190, 360] };
+//: Cars carry further than people (bigger, and seen down the length of a street). (People's full
+//: ring half as far again, 2026-11-19: 55 m let you see figures change as they came near.)
+export const DETAIL_RINGS = { people: [82, 165, 280], cars: [100, 200, 360] };
 
-//: A thing changes tier only once it is this share past the ring (either way), so one standing on
-//: a ring's edge -- or you, pacing on it -- does not flick between two forms frame after frame.
-export const DETAIL_HYSTERESIS = 0.08;
+//: A thing comes up to a finer tier as soon as it is inside the ring, and goes back down only
+//: once it is this share past it: what comes towards you is ready in full before it is near, and
+//: one standing on a ring's edge -- or you, pacing on it -- does not flick between two forms.
+export const DETAIL_HYSTERESIS = 0.16;
 
 //: How far ahead the rings reach for a given speed (m/s): one at a standstill, 1.4 at a walk,
 //: three or four at a city driving speed, never more than DETAIL_STRETCH_MAX.
@@ -68,7 +70,7 @@ export function detailField(focus, { vx = 0, vz = 0, ahead = null } = {}) {
     const rings = DETAIL_RINGS[kind] || DETAIL_RINGS.people, e = eff(x, z);
     for (let i = 0; i < rings.length; i += 1) {
       const r = rings[i];
-      const bound = was === undefined ? r : was <= i ? r * (1 + DETAIL_HYSTERESIS) : r * (1 - DETAIL_HYSTERESIS);
+      const bound = was === undefined || was > i ? r : r * (1 + DETAIL_HYSTERESIS);
       if (e < bound) return i;
     }
     return TRACKED;

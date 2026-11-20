@@ -45,6 +45,8 @@ import { workshopPanel } from "./workshop-panel.mjs";
 import { isWorkshop, visitingCars } from "./workshop.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
 import { NEAR_FIGURES_MAX, npcFigures } from "./npc-figures.mjs";
+import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
+import { strideBodies } from "./stride.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 import { buildSignage, normalizeSignage } from "../interior-lab/signage.mjs";
 
@@ -121,7 +123,6 @@ export function adultHeight(female, z) {
   const { mean, sd } = female ? ADULT_HEIGHT.female : ADULT_HEIGHT.male, hold = ADULT_HEIGHT.hold;
   return mean + sd * Math.max(-hold, Math.min(hold, z));
 }
-const HAIR = ["#1b1410", "#2b1d14", "#3b2a1d", "#5a3d26", "#7a5a3a", "#a8834f", "#c9a66b", "#8f8f8f", "#d8d2c4", "#6b2b1a"];
 export function bodyFor(person, cache) {
   let b = cache.get(person.id);
   if (b) return b;
@@ -135,35 +136,22 @@ export function bodyFor(person, cache) {
     build = (female ? 0.9 : 1.0) + (r() - 0.5) * 0.28;
   }
   const grey = age > 55 && r() < 0.6;
-  b = { height, build, female, hair: grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : HAIR[Math.floor(r() * 7)], bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
+  // Skin and hair from San Francisco's own people (wardrobe.mjs looksOf): its heritages in their
+  // shares, and nobody drawn paper-white.
+  const looks = looksOf(person, { grey });
+  b = { height, build, female, hair: looks.hair, skin: looks.skin, heritage: looks.heritage, bald: age > 30 && r() < 0.1, phase: r() * 6.28 };
   b.outfit = outfitFor(person, b);
   if (cache.size > 20000) cache.clear();
   cache.set(person.id, b);
   return b;
 }
-//: What a person has on below the shirt (the shirt is their ``uniform`` colour): long trousers,
-//: shorts or a skirt; long or short sleeves; shoes; hair short, to the collar or long. From a
-//: stream of their own (``outfit``), so the body's draws -- heights, builds -- are as they were.
-//: San Francisco is cool: shorts are few, short sleeves a third. Someone in a work uniform (a
-//: role) is in its trousers and long sleeves.
-const BOTTOMS = ["#2c3440", "#3d3d3d", "#4b5563", "#1f2937", "#6b5b45", "#3b4a6b", "#33507a", "#41618f", "#7a6a55", "#c2b59b"];
-const SHOES = ["#1b1b1d", "#2a211b", "#3b2a1e", "#1f2430", "#e8e6e1", "#8a8f99"];
-export const OUTFIT_SHARES = { shorts: 0.12, skirt_female: 0.3, short_sleeves: 0.34, long_hair_female: 0.62, long_hair_male: 0.08, collar_hair: 0.22 };
+//: What a person wears (wardrobe.mjs dressFor): a top and a bottom chosen for who they are -- their
+//: work, their age, how bold their temperament is -- in colours that go with the garment and
+//: with each other. From streams of their own, so the body's draws -- heights, builds -- are as
+//: they were.
+export const OUTFIT_SHARES = { skirt_female: 0.3, short_sleeves: 0.34, long_hair_female: 0.62, long_hair_male: 0.08, collar_hair: 0.22 };
 export function outfitFor(person, body) {
-  const r = rng(person.id || "?", "outfit"), S = OUTFIT_SHARES;
-  const work = Boolean(person.role);
-  const draw = r(), sleeve = r(), hairDraw = r(), shoe = r(), colour = r();
-  const bottom = work ? "trousers"
-    : body.female && draw < S.skirt_female ? "skirt"
-    : draw > 1 - S.shorts ? "shorts" : "trousers";
-  const long = body.female ? S.long_hair_female : S.long_hair_male;
-  return {
-    bottom,
-    bottoms: BOTTOMS[Math.floor(colour * BOTTOMS.length)],
-    sleeves: !work && sleeve < S.short_sleeves ? "short" : "long",
-    shoes: SHOES[Math.floor(shoe * SHOES.length)],
-    hair: body.bald ? "none" : hairDraw < long ? "long" : hairDraw < long + S.collar_hair ? "collar" : "short",
-  };
+  return dressFor(person, body, temperamentOf(person), OUTFIT_SHARES);
 }
 //: What you are worth, from your status (world.mjs cmd_status): the money in your account and on
 //: your FasTrak tag, what you own (cars at what they cost you, buildings and homes at their
@@ -220,7 +208,6 @@ export function signalNodeNear(streets, x, z, reach = SIGNAL_HEAD_NODE_M) {
 export function signalShown(streets, node, yaw, tsec) {
   return node === null || node === undefined ? null : signalAt(streets, node, Math.atan2(-Math.sin(yaw), -Math.cos(yaw)), tsec);
 }
-const SKIN = ["#f1c9a5", "#e0ac7e", "#c68c5c", "#a26c45", "#7d4f32", "#5a3824", "#f6d8bf", "#d29b6c"];
 
 const store = {
   get(key) { try { return JSON.parse(globalThis.localStorage?.getItem(key) || "null"); } catch { return null; } },
@@ -594,17 +581,47 @@ export async function startCity(ctx) {
   //: skin or the trousers; w: the cut, in the part's own height, below which it shows) and
   //: ``toneAccent`` (shoes); per vertex ``tonePart`` (0 cloth to the cut, 1 always the second, 2
   //: the accent). ``trim``: what is below the cut is left out (hair).
+  //: The garments' marks (wardrobe.mjs TOP_CODE, BOTTOM_CODE in ``vTT.w``, the trim's colour in
+  //: ``vTT.rgb``), drawn on the cloth by where a point is on its part (``vTL``: x, z, and the
+  //: part -- 1 the torso, 2 an arm, 3 a leg). The front is -z.
+  const GARMENT_GLSL = `if (vTT.w > 0.5 && vTPart < 0.5 && vTY >= vTS.w) {
+  float kbX = abs(vTL.x), kbY = vTY, kbS = vTT.w; bool kbFront = vTL.y < 0.0;
+  if (vTL.z > 0.5 && vTL.z < 1.5) {
+    if (abs(kbS - 4.0) < 0.5) { if (kbY > 1.355 || (kbFront && kbX < 0.011 && kbY > 0.95)) kbCloth = vTT.rgb; }
+    else if (abs(kbS - 5.0) < 0.5) {
+      if (kbFront && kbY > 1.04 && kbX < (kbY - 1.04) * 0.42) kbCloth = (kbX < 0.017 && kbY < 1.36 && distance(vTA, vTP) > 0.01) ? vTA : vTT.rgb;
+      else if (kbFront && kbY > 1.0 && kbY < 1.04 && abs(kbX - 0.012) < 0.006) kbCloth = vTP * 0.6;
+    }
+    else if (abs(kbS - 2.0) < 0.5 || abs(kbS - 3.0) < 0.5) { if (kbY < 0.99) kbCloth = vTT.rgb; else if (abs(kbS - 3.0) < 0.5 && !kbFront && kbY > 1.29) kbCloth = vTT.rgb; else if (abs(kbS - 3.0) < 0.5 && kbFront && kbY > 1.12 && kbY < 1.22 && kbX < 0.1) kbCloth = vTP * 0.86; }
+    else if (abs(kbS - 6.0) < 0.5) { if (kbX > 0.165) kbCloth = vTT.rgb; }
+    else if (abs(kbS - 9.0) < 0.5) { if (abs(kbY - 1.06) < 0.02 || abs(kbY - 1.2) < 0.02 || (kbX > 0.06 && kbX < 0.09 && kbY > 1.06)) kbCloth = vTT.rgb; }
+    else if (abs(kbS - 10.0) < 0.5) { if (kbY > 1.36 || (kbFront && abs(kbX - 0.055) < 0.009 && fract(kbY * 11.0) < 0.3 && kbY > 1.0)) kbCloth = vTT.rgb; }
+    else if (abs(kbS - 7.0) < 0.5) { if (kbFront && kbY > 1.3 && kbX < (kbY - 1.3) * 0.75) kbCloth = vTT.rgb; }
+    else if (abs(kbS - 1.0) < 0.5) { if (kbY > 1.39) kbCloth = vTT.rgb; }
+  } else if (vTL.z > 1.5 && vTL.z < 2.5) {
+    if ((kbS > 1.5 && kbS < 3.5) && kbY < -0.42) kbCloth = vTT.rgb;
+    else if ((abs(kbS - 4.0) < 0.5 || abs(kbS - 5.0) < 0.5) && kbY < -0.45) kbCloth = vTT.rgb;
+    else if (abs(kbS - 6.0) < 0.5 && kbX > 0.05) kbCloth = vTT.rgb;
+  } else if (vTL.z > 2.5) {
+    if (abs(kbS - 1.0) < 0.5 && kbFront && kbY > -0.42 && kbY < -0.08) kbCloth = mix(kbCloth, vec3(1.0), 0.09);
+    else if (abs(kbS - 4.0) < 0.5 && kbY < -0.68) kbCloth = vTT.rgb;
+    else if (abs(kbS - 3.0) < 0.5 && kbFront && kbX < 0.007) kbCloth = kbCloth * 1.12;
+    else if (abs(kbS - 6.0) < 0.5 && abs(vTL.x) > 0.062 && abs(vTL.y) < 0.04) kbCloth = vTT.rgb;
+  }
+}`;
   const toneMaterial = (trim = false) => {
     const m = lambert({ color: 0xffffff, side: trim ? THREE.DoubleSide : THREE.FrontSide });
     m.onBeforeCompile = (sh) => { globalThis.__kerbsideProxyLight?.patch?.(sh);
       sh.vertexShader = sh.vertexShader
-        .replace("#include <common>", "#include <common>\nattribute vec3 tonePrimary; attribute vec4 toneSecond; attribute vec3 toneAccent; attribute float tonePart;\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY;")
-        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTP = tonePrimary; vTS = toneSecond; vTA = toneAccent; vTPart = tonePart; vTY = position.y;");
+        .replace("#include <common>", "#include <common>\nattribute vec3 tonePrimary; attribute vec4 toneSecond; attribute vec3 toneAccent; attribute float tonePart; attribute vec4 toneTrim; attribute float toneZone;\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY; varying vec4 vTT; varying vec3 vTL;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvTP = tonePrimary; vTS = toneSecond; vTA = toneAccent; vTPart = tonePart; vTY = position.y; vTT = toneTrim; vTL = vec3(position.x, position.z, toneZone);");
       sh.fragmentShader = sh.fragmentShader
-        .replace("#include <common>", "#include <common>\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY;")
+        .replace("#include <common>", "#include <common>\nvarying vec3 vTP; varying vec4 vTS; varying vec3 vTA; varying float vTPart; varying float vTY; varying vec4 vTT; varying vec3 vTL;")
         .replace("#include <color_fragment>", trim
           ? "if (vTY < vTS.w) discard;\ndiffuseColor.rgb *= vTP;"
-          : "diffuseColor.rgb *= vTPart > 1.5 ? vTA : ((vTPart > 0.5 || vTY < vTS.w) ? vTS.rgb : vTP);");
+          : `vec3 kbCloth = vTPart > 1.5 ? vTA : ((vTPart > 0.5 || vTY < vTS.w) ? vTS.rgb : vTP);
+${GARMENT_GLSL}
+diffuseColor.rgb *= kbCloth;`);
     };
     m.customProgramCacheKey = () => (trim ? "kerbside-tone-trim" : "kerbside-tone");
     return m;
@@ -614,8 +631,11 @@ export async function startCity(ctx) {
   // against a dark street.
   if (ctx.nightRim) { ctx.nightRim(TONE_MAT); ctx.nightRim(TRIM_MAT); }
   //: A dressed part: its own copy of the shape (the per-person colours live on it) and its colours.
-  const mkTone = (geo, max, trim = false) => {
+  //: ``zone``: which part of a body it is, for the garments' marks (1 torso, 2 arm, 3 leg, 0 none).
+  const mkTone = (geo, max, trim = false, zone = 0) => {
     const g = geo.clone();
+    g.setAttribute("toneTrim", new THREE.InstancedBufferAttribute(new Float32Array(max * 4), 4).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute("toneZone", new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(zone), 1));
     g.setAttribute("tonePrimary", new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute("toneSecond", new THREE.InstancedBufferAttribute(new Float32Array(max * 4), 4).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute("toneAccent", new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage));
@@ -625,16 +645,18 @@ export async function startCity(ctx) {
     return m;
   };
   const TONE_A = new THREE.Color(), TONE_B = new THREE.Color(), TONE_C = new THREE.Color();
-  //: Person ``i`` of ``mesh`` in ``primary``, ``second`` below ``cut`` (or where the part says), ``accent``.
-  const dressAt = (mesh, i, primary, second, cut, accent) => {
+  //: Person ``i`` of ``mesh`` in ``primary``, ``second`` below ``cut`` (or where the part says),
+  //: ``accent``; ``trim`` and ``style`` the garment's marks (GARMENT_GLSL; 0: none).
+  const dressAt = (mesh, i, primary, second, cut, accent, trim, style = 0) => {
     const a = mesh.geometry.attributes;
     TONE_A.set(primary); TONE_B.set(second ?? primary); TONE_C.set(accent ?? primary);
     a.tonePrimary.setXYZ(i, TONE_A.r, TONE_A.g, TONE_A.b);
     a.toneSecond.setXYZW(i, TONE_B.r, TONE_B.g, TONE_B.b, cut ?? -99);
     a.toneAccent.setXYZ(i, TONE_C.r, TONE_C.g, TONE_C.b);
+    if (a.toneTrim) { TONE_C.set(trim ?? primary); a.toneTrim.setXYZW(i, TONE_C.r, TONE_C.g, TONE_C.b, style || 0); }
   };
-  const toneDone = (mesh) => { const a = mesh.geometry.attributes; a.tonePrimary.needsUpdate = a.toneSecond.needsUpdate = a.toneAccent.needsUpdate = true; };
-  const parts = { torso: mkTone(torsoGeo, MAX_PEOPLE), head: mkTone(headGeo, MAX_PEOPLE), hair: mkTone(hairGeo, MAX_PEOPLE, true), legL: mkTone(legGeo, MAX_PEOPLE), legR: mkTone(legGeo, MAX_PEOPLE), armL: mkTone(armGeo, MAX_PEOPLE), armR: mkTone(armGeo, MAX_PEOPLE) };
+  const toneDone = (mesh) => { const a = mesh.geometry.attributes; a.tonePrimary.needsUpdate = a.toneSecond.needsUpdate = a.toneAccent.needsUpdate = true; if (a.toneTrim) a.toneTrim.needsUpdate = true; };
+  const parts = { torso: mkTone(torsoGeo, MAX_PEOPLE, false, 1), head: mkTone(headGeo, MAX_PEOPLE), hair: mkTone(hairGeo, MAX_PEOPLE, true), legL: mkTone(legGeo, MAX_PEOPLE, false, 3), legR: mkTone(legGeo, MAX_PEOPLE, false, 3), armL: mkTone(armGeo, MAX_PEOPLE, false, 2), armR: mkTone(armGeo, MAX_PEOPLE, false, 2) };
   const skirts = mkTone(skirtGeo, MAX_PEOPLE);
   for (const [k, m] of Object.entries(parts)) m.name = `city-people-${k}`;
   skirts.name = "city-people-skirt";
@@ -690,7 +712,7 @@ export async function startCity(ctx) {
   // ---- the crowd further off (detail.mjs) ------------------------------------------------------
   //: Drawn in full (seven parts, limbs swinging) at most this many, nearest first; then moderate,
   //: then low. Past a tier's cap a person is drawn at the next tier down, not left out.
-  const PEOPLE_CAPS = [240, 520, 900];
+  const PEOPLE_CAPS = [420, 560, 900];
   //: Shaded by height under the instance's colour (the shirt's): trousers and shoes darker.
   const shadeByHeight = (geo, rows) => {
     const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
@@ -727,6 +749,8 @@ export async function startCity(ctx) {
   //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
   //: sport or on the telephone (the jointed figure has those poses; the clips do not).
   const figureFits = (p) => !p.ride && !p.down && !p.gesture && !p.fall;
+  // Loaded with the city, not when the first person comes near: nobody waits for the files.
+  figures.start?.();
   let figuresLast = 0;
   // The traffic: each kind of vehicle its own three instanced parts (vehicles.mjs) -- paint,
   // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
@@ -901,14 +925,21 @@ export async function startCity(ctx) {
     // Near you, the characters; then the jointed figures, which were the near ring, for the rest
     // of it and the moderate ring; past that the basic shapes. (While the characters load, the
     // rings are as they were.)
+    // The nearest who can be characters -- those already drawn as one first, among the nearest few
+    // more than there are characters, so one at the edge of the count does not change back and forth.
     const near = [];
-    if (!figures.failed) for (const q of full) if (near.length < NEAR_FIGURES_MAX && figureFits(q.p)) near.push(q);
+    if (!figures.failed) {
+      const fits = [];
+      for (const q of full) { if (figureFits(q.p)) fits.push(q); if (fits.length >= NEAR_FIGURES_MAX + 6) break; }
+      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && figures.has?.(q.p.id)) near.push(q);
+      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && !near.includes(q)) near.push(q);
+    }
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
       const body = bodyFor(p.person, bodies), o = body.outfit;
       return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female === true,
         moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace),
-        look: { top: p.person.uniform, bottom: o.bottoms, hair: body.hair, skin: SKIN[hash32(p.id) % SKIN.length] } };
+        look: { top: o.topColour, bottom: o.bottoms, hair: body.hair, skin: body.skin } };
     }), now, dtFig);
     if (asFigures) {
       const drawn = new Set(near.slice(0, asFigures));
@@ -953,7 +984,7 @@ export async function startCity(ctx) {
         bone(parts.armL, n, pose.shoulders[0], pose.hands[0], 0.6, s); bone(parts.armR, n, pose.shoulders[1], pose.hands[1], 0.6, s);
         bone(riderLegs.thighL, r, pose.hips[0], pose.knees[0], 1, s); bone(riderLegs.thighR, r, pose.hips[1], pose.knees[1], 1, s);
         bone(riderLegs.shinL, r, pose.knees[0], pose.feet[0], 1, s); bone(riderLegs.shinR, r, pose.knees[1], pose.feet[1], 1, s);
-        const o = body.outfit, skin = SKIN[hash32(p.id) % SKIN.length];
+        const o = body.outfit, skin = body.skin;
         riderLegs.thighL.setColorAt(r, C.set(o.bottoms)); riderLegs.thighR.setColorAt(r, C);
         riderLegs.shinL.setColorAt(r, C.set(o.bottom === "trousers" ? o.bottoms : skin)); riderLegs.shinR.setColorAt(r, C);
         r += 1;
@@ -1010,14 +1041,14 @@ export async function startCity(ctx) {
           k += 1;
         }
       }
-      const h = hash32(p.id), o = body.outfit, skin = SKIN[h % SKIN.length];
-      dressAt(parts.torso, n, p.person.uniform, o.bottoms, 0.93);
+      const o = body.outfit, skin = body.skin, topStyle = TOP_CODE[o.top] || 0;
+      dressAt(parts.torso, n, o.topColour, o.bottoms, 0.93, o.tie || o.topColour, o.trim, topStyle);
       dressAt(parts.head, n, skin);
       dressAt(parts.hair, n, body.hair, null, HAIR_CUT[o.hair]);
       const hem = o.bottom === "shorts" ? -0.36 : o.bottom === "skirt" ? 0.2 : null;
-      dressAt(parts.legL, n, o.bottoms, skin, hem, o.shoes); dressAt(parts.legR, n, o.bottoms, skin, hem, o.shoes);
+      dressAt(parts.legL, n, o.bottoms, skin, hem, o.shoes, o.legTrim, BOTTOM_CODE[o.legs] || 0); dressAt(parts.legR, n, o.bottoms, skin, hem, o.shoes, o.legTrim, BOTTOM_CODE[o.legs] || 0);
       const cuff = o.sleeves === "short" ? -0.16 : null;
-      dressAt(parts.armL, n, p.person.uniform, skin, cuff); dressAt(parts.armR, n, p.person.uniform, skin, cuff);
+      dressAt(parts.armL, n, o.topColour, skin, cuff, null, o.trim, topStyle); dressAt(parts.armR, n, o.topColour, skin, cuff, null, o.trim, topStyle);
       n += 1;
     }
     skirts.count = k; skirts.instanceMatrix.needsUpdate = true; toneDone(skirts);
@@ -1049,16 +1080,16 @@ export async function startCity(ctx) {
       return b;
     };
     for (const q of mid) {
-      const b = place(q), h = hash32(q.p.id);
+      const b = place(q);
       midBody.setMatrixAt(m, b); midHead.setMatrixAt(m, b);
       const o = bodyFor(q.p.person, bodies).outfit;
-      dressAt(midBody, m, q.p.person.uniform, o.bottoms, 0.93, o.shoes);
-      midHead.setColorAt(m, C.set(SKIN[h % SKIN.length]));
+      dressAt(midBody, m, o.topColour, o.bottoms, 0.93, o.shoes);
+      midHead.setColorAt(m, C.set(bodyFor(q.p.person, bodies).skin));
       m += 1;
     }
     for (const q of low) {
       lowBody.setMatrixAt(l, place(q));
-      lowBody.setColorAt(l, C.set(q.p.person.uniform));
+      lowBody.setColorAt(l, C.set(bodyFor(q.p.person, bodies).outfit.topColour));
       l += 1;
     }
     for (const [mesh, k] of [[midBody, m], [midHead, m], [lowBody, l]]) {
@@ -4149,6 +4180,8 @@ export async function startCity(ctx) {
   //: earlier frame is the same object).
   const aside = new Map();
   const CLEAR_M = 0.62;
+  const strides = strideBodies();
+  let stridesSwept = 0;
   function keepApart(people, you, dt) {
     const cells = new Map(), near = [];
     for (const e of people) {
@@ -4405,15 +4438,8 @@ export async function startCity(ctx) {
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else {
-        const before = glided.get(entry.id), bx = before?.x, bz = before?.z, fresh = before && now - before.t < 1500;
         glide(entry, now, dt, 3.2, 60);
-        // Nobody walks backwards: where the step actually drawn goes against the way they face
-        // (a walker being brought back to their place on the way after a detour round a wall, a
-        // crossing's path doubling back), they face the way they are going.
-        if (fresh && entry.moving && !entry.gesture) {
-          const mx = entry.x - bx, mz = entry.z - bz, m = Math.hypot(mx, mz);
-          if (m > 0.04 && (mx * -Math.sin(entry.yaw) + mz * -Math.cos(entry.yaw)) / m < -0.2) entry.yaw = Math.atan2(-mx, -mz);
-        }
+        // (Nobody walks backwards: see strides below, once everyone has stepped apart.)
         // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
         if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
       }
@@ -4422,6 +4448,14 @@ export async function startCity(ctx) {
       people.push(entry);
     }
     keepApart(people, you, dt);
+    // Nobody walks backwards or sideways (stride.mjs): each one near you is drawn on a body that
+    // turns round -- on the spot when slow, round a wider turn the faster -- and steps only the way
+    // it faces. (Not the low tier, placed now and then and kept from frame to frame.)
+    for (const e of people) {
+      if (e.detail === LOW || e.down || e.ride || e.fall || e.gesture || e.lift) { strides.forget(e.id); continue; }
+      strides.follow(e, now, dt, e.person?.pace ?? 1.35);
+    }
+    if (now - stridesSwept > 2000) { stridesSwept = now; strides.sweep(now); }
     drawnTiers.tracked.people = trackedPeople;
     if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
     if (scares.size > 400) scares.clear();

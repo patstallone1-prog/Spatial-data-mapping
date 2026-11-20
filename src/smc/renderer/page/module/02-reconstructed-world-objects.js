@@ -520,7 +520,8 @@ if (kbPLK.w > 0.0) {
   vec2 kbAt = kbPLw.xz + kbN.xz * kbPLK.y * 1.6 - kbPLBox.xy;
   vec2 kbUv = vec2(kbAt.x, -kbAt.y) * kbPLBox.z + 0.5;
   vec2 kbIn = min(kbUv, 1.0 - kbUv);
-  float kbEdge = clamp(min(kbIn.x, kbIn.y) * 14.0, 0.0, 1.0);
+  // The shadows fade out over the square's last eighth (from about 400 m on foot), not at a line.
+  float kbEdge = smoothstep(0.0, 1.0, clamp(min(kbIn.x, kbIn.y) * 8.0, 0.0, 1.0));
   if (kbEdge > 0.0) {
     vec4 kbL = texture2D(kbPLMap, kbUv);
     float kbY = kbPLw.y - kbPLBox.w;

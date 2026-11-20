@@ -26,16 +26,19 @@
 // fourth channel says where the shade is a tree's).
 //
 // What it costs: three pictures on the GPU (PROXY.size squared: colour 4 bytes, depth 4, light 8
-// a texel) and two small ones -- 18 MiB at 1024 -- and nothing in the page's own memory.
+// a texel) and two small ones -- about 40 MiB at 1536 -- and nothing in the page's own memory.
 
 //: The stand-in's size and the look. Lengths in metres, times in milliseconds.
 export const PROXY = {
-  size: 1024,                 // texels a side
+  size: 1536,                 // texels a side (0.7 m a texel on foot, as at 1024 over 720 m)
   bounce_size: 256,
-  extents_m: [720, 1440, 2880],   // the square covered: the first on foot, wider as the view pulls out
-  extent_per_dist: 5,         // the square is at least this many times the camera's distance across
+  // The square covered: the first on foot, wider as the view pulls out. (Half as wide again,
+  // 2026-11-19: at 720 m its edge -- where the shadows end -- showed down a street, and moved as
+  // you walked or zoomed.)
+  extents_m: [1080, 2160, 4320],
+  extent_per_dist: 4,         // the square is at least this many times the camera's distance across
   up_m: 420, down_m: 220,     // how far above and below you the stand-in reaches
-  recentre_share: 0.16,       // drawn again once you are this share of the square from its middle
+  recentre_share: 0.08,       // drawn again once you are this share of the square from its middle (small steps, often)
   min_gap_ms: 2500,           // never drawn again sooner than this
   arrivals_gap_ms: 5000,      // more of the world having arrived: drawn again, this long after the last
   refresh_ms: 120000,         // and at least this often (things shown and hidden as you go)
@@ -46,7 +49,7 @@ export const PROXY = {
   albedo_gain: 1.0,           // the stand-in's colour to a surface's own (measured: see capture())
   march_steps: 112, march_even: 64, march_growth: 0.14,   // a texel a step for the first 64, then longer strides
   fade_per_s: 2.5,
-  tiles: 2,                   // the stand-in is drawn a quarter a frame (tiles x tiles), so no frame pays for all of it
+  tiles: 3,                   // the stand-in is drawn a ninth a frame (tiles x tiles), so no frame pays for all of it
   lamp_size: 512, lamp_reach_m: 15, lamp_peak: 0.55,   // a street lamp's pool: how far it reaches, how bright under it
   lamp_colour: [1.0, 0.84, 0.62], lamp_strength: 1.5,  // warm white; against the night's own light
   dapple: 0.6,                // how much light comes through a tree's shadow, in patches

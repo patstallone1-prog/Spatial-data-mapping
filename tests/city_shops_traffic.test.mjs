@@ -116,7 +116,7 @@ test("people are of many heights and builds, from their ids, and walk with a ste
   // From the normal curve (city_npc.test.mjs measures the averages and the spread).
   assert.ok(VIEW.includes("height = adultHeight(female, g);") && VIEW.includes("g = normalDraw(r);"));
   assert.ok(VIEW.includes("dressAt(parts.hair, n, body.hair, null, HAIR_CUT[o.hair]);"), "hair cut to its length");
-  assert.ok(VIEW.includes("legL: mkTone(legGeo, MAX_PEOPLE)"), "shoes and bare legs by the part's own colours, no extra part");
+  assert.ok(VIEW.includes("legL: mkTone(legGeo, MAX_PEOPLE, false, 3)"), "shoes and bare legs by the part's own colours, no extra part");
 });
 
 test("the compass is a reading in the city (the game keeps its own time) and opens the sun box in Explore", () => {

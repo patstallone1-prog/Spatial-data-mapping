@@ -78,8 +78,11 @@ test("cloneSkinned gives a figure its own skeleton", () => {
 
 test("the view draws at most NEAR_FIGURES_MAX near people as figures and steps the rest down a ring", () => {
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
-  assert.equal(NEAR_FIGURES_MAX, 16);
-  assert.match(view, /near\.length < NEAR_FIGURES_MAX && figureFits\(q\.p\)/);
+  assert.equal(NEAR_FIGURES_MAX, 20);
+  // Those already drawn as characters first, among the nearest few more than there are.
+  assert.match(view, /if \(figureFits\(q\.p\)\) fits\.push\(q\); if \(fits\.length >= NEAR_FIGURES_MAX \+ 6\) break;/);
+  assert.match(view, /near\.length < NEAR_FIGURES_MAX && figures\.has\?\.\(q\.p\.id\)/);
+  assert.match(view, /figures\.start\?\.\(\);/, "loaded with the city");
   assert.match(view, /full = full\.filter\(\(q\) => !drawn\.has\(q\)\)\.concat\(mid\); mid = low; low = \[\];/);
   assert.match(view, /if \(!figures\.failed\)/, "the old jointed figures stay until the models load");
 });
@@ -91,4 +94,11 @@ test("the near-surface shader has one photo and normal for each surface kind", (
     for (const f of ["color", "normal"]) readFileSync(new URL(`../docs/textures/near/${kind}-${f}.jpg`, import.meta.url));
   }
   assert.match(src, /new THREE\.Vector3\(32, 58, 1\)/, "full within 32 m, gone by 58 m");
+});
+
+test("the characters are made ahead and their shaders compiled out of sight before anyone needs one", () => {
+  const src = readFileSync(new URL("../docs/city/npc-figures.mjs", import.meta.url), "utf8");
+  assert.match(src, /export const PREBAKE = \{ ada: \d+, manny: \d+, per_frame: \d+ \}/);
+  assert.match(src, /f\.holder\.position\.set\(0, -500, 0\)/, "the first of each kind drawn once, below the world");
+  assert.match(src, /if \(!S\.ready\) \{ start\(\); return 0; \}\n    prebake\(\);/);
 });
