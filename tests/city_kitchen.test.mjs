@@ -9,6 +9,8 @@ import { test } from "node:test";
 
 import { loadRules } from "../docs/city/core.mjs";
 import { batchSeconds, buildCost, cookedPart, displayAmount, doneness, makeable, needs, processesAt, ratingOf, recipeOf, recognizeDish, scorePlate, serviceWindow, tasteOf, targetOf, tipFor } from "../docs/city/kitchen.mjs";
+import { doughDimensions, validShape, workableDough } from "../docs/city/dough.mjs";
+import { sanitize } from "../server/city/guard.mjs";
 import { CityWorld, PLAYER_COMMANDS } from "../docs/city/world.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
@@ -322,4 +324,26 @@ test("a novel long preparation survives approval, save/load, NPC cover and servi
   assert.ok(served.ok, served.error);
   assert.equal(served.score, 100);
   assert.equal(served.analyses[0].kcal, res.test.kcal);
+});
+
+test("dough shapes conserve volume and change bake time, and measured portions survive multiplayer submission", () => {
+  const grams = 200, factors = { ball: Math.PI / 6, circle: Math.PI / 4, triangle: 0.5, rectangle: 1 };
+  for (const [form, factor] of Object.entries(factors)) {
+    const shape = { form, span: 16, aspect: 1.5 };
+    assert.ok(validShape(shape));
+    const {width,length,height} = doughDimensions(grams,shape);
+    assert.ok(Math.abs(width*length*height*factor*1.08 - grams) < 1e-8);
+    assert.equal(width/length,1.5);
+  }
+  const thin = { ing: "flour",qty: 1,shape: {form:"rectangle",span:16,aspect:1} };
+  const thick = {...thin,shape:{form:"ball",span:4,aspect:1}};
+  assert.ok(batchSeconds(R,[thin],"bake") < batchSeconds(R,[thick],"bake"));
+  assert.equal(validShape({...thin.shape,aspect:Infinity}),false);
+  const mix = ["flour","water"].map(ing=>({ing,batch:2,chain:["mix"]}));
+  assert.ok(workableDough(mix));
+  assert.equal(workableDough(mix.map(i=>({...i,chain:["mix","bake"]}))),false);
+  const plates = [[{...thin,qty:0.125}]];
+  assert.deepEqual(sanitize({plates},"kitchen_serve").plates,plates);
+  assert.deepEqual(sanitize({build:plates[0]},"lab_test").build,plates[0]);
+  assert.equal(sanitize({qty:1.2},"buy").qty,1);
 });

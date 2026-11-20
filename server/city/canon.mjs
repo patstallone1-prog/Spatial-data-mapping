@@ -6,6 +6,7 @@
 // price, a floor area, a position or a use is never the client's word. A place the record does
 // not hold is refused. The record is built from the page's own district
 // (tools/build_city_canon.mjs) and read once.
+import { Roster } from "../../docs/city/fleet.mjs";
 import { homeListings } from "../../docs/city/market.mjs";
 
 export class Refused extends Error {
@@ -66,6 +67,30 @@ export class Canon {
     }
     return n;
   }
+  // A browser observes who reached the counter. Resolve the actual owner, car and plate
+  // from the same seeded household or visitor roster used by the street simulation.
+  serviceDriver(given) {
+    const region = this.district?.split(":").slice(0,-3).join(":") || this.district || "district";
+    this.serviceRoster ??= new Roster(this.R, { seed: region });
+    const roster = this.serviceRoster, id = String(given.id);
+    const visitor = /^visitor:(\d+)$/.exec(id), resident = /^npc:(.+):(\d+)$/.exec(id);
+    let person;
+    if (visitor && Number(visitor[1]) < this.R.density.visitors_max) {
+      roster.visitorsUpTo(Number(visitor[1]) + 1);
+      person = roster.visitors.get(id);
+    } else if (resident) {
+      const home = this.place(resident[1]);
+      if (home?.use === "residential" && !roster.homesDone.has(home.id)) {
+        roster.homesDone.add(home.id);
+        // The canon omits live kerb occupancy. Include eligible street-parked resident cars.
+        roster.house({ ...home, kerb: true });
+      }
+      person = roster.people.get(id);
+    }
+    const car = roster.vehicles.get(person?.car);
+    if (!car || car.id !== given.vehicle || car.plate !== given.plate) throw new Refused("The city cannot match that vehicle to this customer.");
+    return { ...given, id: person.id, name: person.name, model: car.model, shade: car.shade };
+  }
   //: A command's arguments with every place and listing in them made canonical. Throws Refused.
   canonical(command, args, { week }) {
     const walk = (value, key, depth) => {
@@ -87,6 +112,7 @@ export class Canon {
       return out;
     };
     const out = walk(args || {}, "", 0);
+    if (command === "workshop_intake" && out.visitor) out.visitor = this.serviceDriver(out.visitor);
     if ("rivals" in out) {
       const place = out.place?.id ? this.place(out.place.id) : null;
       out.rivals = place ? this.rivals(place, typeof out.kind === "string" ? out.kind : null) : 0;

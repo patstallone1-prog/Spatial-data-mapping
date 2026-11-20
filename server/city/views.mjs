@@ -82,6 +82,10 @@ export function viewFor(world, pid, copy = null) {
   E.shops = (E.shops || []).filter((x) => x.watchers?.[pid]).map((x) => ({ ...x, watchers: { [pid]: x.watchers[pid] } }));
   E.storefronts = (E.storefronts || []).map((s) => (s.pid === pid ? s : { place: s.place, holder: s.holder, pid: s.pid, since: s.since }));
   o.enterprise = E;
+  const mechanic = world.players.get(pid);
+  o.workOrders = (o.workOrders || []).filter(([,order]) => mine.has(order.payer) ||
+    (mechanic?.clocked && mechanic.job?.role === "mechanic" && String(mechanic.job.place.id) === order.shop) ||
+    E.biz.some(b => mine.has(b.account) && String(b.place.id) === order.shop));
   // A kitchen: its menu and pantry are the staff's to see; tickets, boards, tests and records are
   // each cook's own, and the owner's (kitchen.mjs).
   o.kitchens = (o.kitchens || []).map((k) => {

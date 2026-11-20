@@ -26,6 +26,7 @@
 // Installed on CityWorld's prototype (installKitchen, from world.mjs); tests in
 // tests/city_kitchen.test.mjs.
 
+import { validShape, doughDimensions } from "./dough.mjs";
 import { cityTime, itemTax, storesAt } from "./core.mjs";
 import { estimateWeek, groupOf, hoursFor, isOpen, itemsFor, priceDemand, unitCost } from "./enterprise.mjs";
 import { FIRST, LAST, hash32, rng } from "./people.mjs";
@@ -113,7 +114,9 @@ export function displayAmount(R, ing, qty) {
 export function batchSeconds(R, build, proc) {
   const grams = build.reduce((n, c) => n + ingredient(R, c.ing).grams * c.qty, 0);
   const base = Math.max(...build.map((c) => processSeconds(R, c.ing, proc)), 1);
-  return base * clamp(0.85 + Math.sqrt(grams / 200) * 0.22, 0.85, 3);
+  const shape = build.find(c => c.shape)?.shape;
+  const thickness = proc === "bake" && shape ? clamp(Math.sqrt(doughDimensions(grams, shape).height / 2), 0.65, 1.8) : 1;
+  return base * thickness * clamp(0.85 + Math.sqrt(grams / 200) * 0.22, 0.85, 3);
 }
 
 // Estimate hands-on time and concurrent station time separately. Each additional course adds work.
@@ -314,7 +317,9 @@ export function scorePlate(R, target, plate, { elapsed = 0, patience = 120, targ
   const ing = clamp((pairs.length - 0.5 * extra.length) / n, 0, 1);
   let proc = 0, done = 0, done_n = 0, portions = 0, ill = false;
   for (const [w, g] of pairs) {
-    const ok = g.p === w.p, last = chain(g.p).at(-1) === chain(w.p).at(-1);
+    const shaped = !w.shape || (g.shape?.form === w.shape.form && Math.abs(g.shape.span / w.shape.span - 1) < 0.15 && Math.abs(g.shape.aspect / w.shape.aspect - 1) < 0.15);
+    if (!shaped) notes.push(`shape the dough into a ${w.shape.form} about ${w.shape.span} cm across`);
+    const ok = g.p === w.p && shaped, last = chain(g.p).at(-1) === chain(w.p).at(-1);
     proc += ok ? 1 : last ? 0.5 : 0;
     if (!ok) notes.push(`${ingredient(R, w.ing).name.toLowerCase()} should be ${chain(w.p).map((x) => R.kitchen.processes[x].verb).join(" then ") || "as it comes"}`);
     if (isHeat(R, w.p)) {
@@ -810,11 +815,13 @@ export function installKitchen(CityWorld, CityError) {
     const allowed = processesAt(R, kind);
     return plate.map(c => {
       if (!c || !ingredient(R, c.ing) || !Number.isFinite(c.qty) || c.qty <= 0) fail("invalid ingredient or quantity");
+      if (c.shape && !validShape(c.shape)) fail("invalid dough shape");
       const steps = chain(c.p);
       if (steps.length > 128 || steps.some(p => !allowed.has(p))) fail("the kitchen cannot make that process chain");
       if (c.ratios != null && (!Array.isArray(c.ratios) || c.ratios.length !== steps.length ||
           c.ratios.some(r => !Number.isFinite(r) || r < 0))) fail("invalid step times");
       return { ing: c.ing, qty: c.qty, p: steps.join(">") || "-", q: clamp(+c.q || 0, 0, 1),
+        ...(c.shape ? { shape: { form: c.shape.form, span: c.shape.span, aspect: c.shape.aspect } } : {}),
         ...(c.ratios ? { ratios: c.ratios.map(r => Math.min(10, r)) } : {}), ...(Number.isFinite(c.ratio) ? { ratio: c.ratio } : {}) };
     });
   }
@@ -960,7 +967,7 @@ export function installKitchen(CityWorld, CityError) {
     const family = recognizeDish(R, comps, k.menu);
     const nm = family?.name || proposedName;
     const r = rng("taster", k.id, k.seq + 1), who = nameOf(r);
-    const test = { id: `lab:${k.id}:${++k.seq}`, pid, by: p.name, name: nm, family: family?.id || null, build: comps.map(({ ing, qty, p, ratios }) => ({ ing, qty, p, ...(ratios ? { ratios } : {}) })), quality: comps.reduce((s, c) => s + c.q, 0) / comps.length,
+    const test = { id: `lab:${k.id}:${++k.seq}`, pid, by: p.name, name: nm, family: family?.id || null, build: comps.map(({ ing, qty, p, shape, ratios }) => ({ ing, qty, p, ...(shape ? {shape} : {}), ...(ratios ? { ratios } : {}) })), quality: comps.reduce((s, c) => s + c.q, 0) / comps.length,
       who, at: this.now, ...res };
     k.tests.push(test);
     if (k.tests.length > 30) k.tests.splice(0, k.tests.length - 30);

@@ -18,6 +18,7 @@
 // view.mjs calls this through a few hooks: actions (the action bar), todo, and open.
 
 import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare } from "./kitchen.mjs";
+import { DOUGH_FORMS, doughDimensions, doughMesh, workableDough } from "./dough.mjs";
 import { createKitchenScene } from "./kitchen-3d.mjs";
 
 const HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew", "pour"];
@@ -249,12 +250,22 @@ export function kitchenPanel(api) {
   //: Stacks a product's items where it is: each on the one below, centred; a burger gets its lid.
   function layout(g) {
     const node = g.node;
+    for (const m of node.children) if (m.userData.shaped) { m.geometry.dispose(); m.material.dispose(); }
     node.clear();
     let y = 0;
     if (g.at === "pass" && st.plates) { node.add(st.plates.clone(true)); y = 0.014; }
     const list = itemsOf(g);
     const shown = new Set();
     list.forEach((it, i) => {
+      if (it.shape) {
+        const key = it.batch || it;
+        if (shown.has(key)) return;
+        shown.add(key);
+        const grams = list.filter(i => (i.batch || i) === key).reduce((n, i) => n + cookedPart(R, { ...i, p: i.chain.join(">") }).grams, 0);
+        const mesh = doughMesh(THREE, grams, it.shape, it.chain.includes("bake"));
+        mesh.userData = { item: it.uid, shaped: true }; mesh.position.y = y + mesh.scale.y / 2;
+        node.add(mesh); y += mesh.scale.y; return;
+      }
       if (it.batch && st.bowl) {
         if (shown.has(it.batch)) return;
         shown.add(it.batch);
@@ -298,7 +309,7 @@ export function kitchenPanel(api) {
     g.at = "held"; g.station = null; g.cook = null; st.held = g.gid; st.sel = null;
     layout(g); hud();
   }
-  const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).chain.length;
+  const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).shape && !st.items.get(g.items[0]).chain.length;
 
   // ---- walking ------------------------------------------------------------------------------------
   //: Walk to stand at ``at`` (kept on the floor between the counters), then do ``then``.
@@ -386,6 +397,7 @@ export function kitchenPanel(api) {
   const stateWord = (it) => (it.chain.length ? it.chain.map((p) => P[p].verb).join(", ") + (it.last && it.last !== "just right" ? `, ${it.last}` : "") : "raw");
   function productName(g) {
     const list = itemsOf(g);
+    if (list[0]?.shape && list.every(i => i.shape === list[0].shape)) return `${DOUGH_FORMS[list[0].shape.form]} · ${list[0].shape.span} cm · ${Number(groupGrams(g).toFixed(1))} g`;
     if (list[0]?.batch && list.every(i => i.batch === list[0].batch)) {
       const grams = groupGrams(g);
       const label = list.some(i => i.chain.includes("blend")) ? "Blend" :
@@ -642,7 +654,7 @@ export function kitchenPanel(api) {
     for (const it of itemsOf(g)) {
       it.chain.push(c.proc);
       it.ratios.push(Math.min(10, ratio));
-      if (batch) it.batch = batch;
+      if (batch) { it.batch = batch; delete it.shape; }
       if (K.heat.includes(c.proc)) { it.q = Math.min(it.q, q); it.ratio = ratio; it.last = donenessWord(q, ratio); }
       else if ((c.proc === "mix" || c.proc === "blend") && ratio < 0.6) { it.q = Math.min(it.q, 0.6); it.last = "lumpy"; }
       await relook(it);
@@ -660,8 +672,8 @@ export function kitchenPanel(api) {
     const out = [];
     for (const it of itemsOf(g)) {
       const p = it.chain.join(">") || "-", lastC = out.at(-1);
-      if (lastC && lastC.ing === it.ing && lastC.p === p && lastC.ratios.every((r, i) => r === it.ratios[i])) lastC.qty += it.qty;
-      else out.push({ ing: it.ing, qty: it.qty, p, q: it.q, ratios: [...it.ratios], ratio: it.ratio });
+      if (lastC && lastC.ing === it.ing && lastC.p === p && lastC.shape === it.shape && lastC.ratios.every((r, i) => r === it.ratios[i])) lastC.qty += it.qty;
+      else out.push({ ing: it.ing, qty: it.qty, p, q: it.q, ...(it.shape ? {shape: it.shape} : {}), ratios: [...it.ratios], ratio: it.ratio });
     }
     return out;
   }
@@ -688,6 +700,7 @@ export function kitchenPanel(api) {
     const portion = itemsOf(g).map(it => {
       const copy = { ...it, batch, uid: ++uid, qty: it.qty * fraction, chain: [...it.chain], ratios: [...it.ratios], obj: it.obj.clone(true) };
       it.qty -= copy.qty;
+      if (it.shape) { delete copy.shape; delete it.shape; }
       mark(copy); st.items.set(copy.uid, copy);
       return copy;
     });
@@ -795,7 +808,7 @@ export function kitchenPanel(api) {
       const plate = g ? plateOf(g) : [];
       const have = new Set(plate.map((c) => `${c.ing}|${c.p}`));
       out.push(h("h4", { textContent: `${i + 1}. ${R.items[line.dish]?.name || line.dish}${g ? " — on the pass" : ""}` }));
-      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.side ? " (side)" : ""}` }))),
+      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.shape ? ` · ${DOUGH_FORMS[c.shape.form]}, ${c.shape.span} × ${Number((c.shape.span / c.shape.aspect).toFixed(1))} cm` : ""}${c.side ? " (side)" : ""}` }))),
         target.ordered ? h("div", { className: "note", textContent: "Build it in this order, bottom first." }) : null,
         g ? h("div", { className: "note", textContent: `As it stands: about ${scorePlate(R, target, plate, { elapsed: Math.max(0, (Date.now() - clock.real(t.at)) / 1000), patience: t.real_s, targetSeconds: t.target_s }).score}/100` }) : null));
     });
@@ -838,6 +851,9 @@ export function kitchenPanel(api) {
       const it = st.sel.uid ? st.items.get(st.sel.uid) : null;
       bits.push(h("span", { textContent: homogeneous ? `Selected: ${productName(s)}. Pick up the batch or weigh out a portion.` : it && s.items.length > 1 ? `Selected: the ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()} (${stateWord(it)}). Click it again to take it out.` : `Selected: ${productName(s)}${it ? ` (${stateWord(it)})` : ` (${s.items.length} things)`}. ${s.items.length > 1 && !it ? "Click again to choose one thing in it." : "Click again to pick it up."}` }));
       bits.push(h("button", { className: "primary", textContent: "Pick up (E)", onclick: () => pickSelectedThen(() => {}) }), h("button", { textContent: "Bin", onclick: keyBin }));
+      if (s.at === "work" && workableDough(itemsOf(s))) bits.push(h("button", { textContent: "Shape dough", onclick: () => {
+        walkTo(standAt(s), () => { st.pop = { kind: "shape", group: s }; hud(); });
+      } }));
       const portion = portionControl(s); if (portion) bits.push(portion);
     } else bits.push(h("span", { className: "note", textContent: "Click a labeled bin or walk up and press E to enter a quantity. The fridge, freezer and shelves hold more ingredients." }));
     if (!g) bits.push(h("button", { textContent: "Pantry (B)", onclick: openPantry }));
@@ -845,6 +861,25 @@ export function kitchenPanel(api) {
   }
   function popup() {
     const p = st.pop;
+    if (p.kind === "shape") {
+      const g = p.group, mass = groupGrams(g), current = itemsOf(g)[0].shape;
+      const form = h("select", { "aria-label": "Dough form" }, ...Object.entries(DOUGH_FORMS).map(([id,name]) => h("option", { value: id, textContent: name })));
+      form.value = current?.form || "ball";
+      const span = h("input", { type: "range", min: 3, max: 50, step: 0.1, value: current?.span ?? Math.min(50, Math.max(3, Math.cbrt(mass / 1.08 * 6 / Math.PI))) });
+      const aspect = h("input", { type: "range", min: 0.4, max: 2.5, step: 0.05, value: current?.aspect ?? 1 });
+      const readout = h("output"), apply = h("button", { textContent: "Shape portion", className: "primary" });
+      const shape = () => ({ form: form.value, span: +span.value, aspect: +aspect.value });
+      function preview() {
+        const d = doughDimensions(mass, shape());
+        readout.textContent = `${Math.round(mass)} g · ${d.width.toFixed(1)} × ${d.length.toFixed(1)} × ${d.height.toFixed(1)} cm`;
+        apply.disabled = d.height < 0.1 || d.height > Math.min(d.width, d.length) * (form.value === "ball" ? 2 : 0.6);
+        if (apply.disabled) readout.textContent += " · adjust the footprint to fit this portion";
+      }
+      form.onchange = span.oninput = aspect.oninput = preview; preview();
+      apply.onclick = () => { const spec = shape(); for (const it of itemsOf(g)) it.shape = spec; st.pop = null; layout(g); hud(); };
+      return h("div", { className: "pop list glass hud", style: "left:50%;top:50%" }, form, h("label", {}, "Width ", span), h("label", {}, "Width / length ", aspect), readout, apply,
+        h("button", { textContent: "Cancel", onclick: () => { st.pop = null; hud(); } }));
+    }
     if (p.kind === "quantity" || p.kind === "portion") {
       const source = p.kind === "quantity";
       const counted = source ? ING[p.ing].measure === "count" : p.counted;

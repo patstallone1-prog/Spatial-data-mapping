@@ -180,7 +180,7 @@ export class CityAuthority {
     if (typeof command !== "string" || command.length > 60) return { ok: false, error: "no such command" };
     const id = typeof req === "string" ? req.slice(0, 64) : null;
     let clean;
-    try { clean = INTERIOR_COMMANDS.has(command)?sanitizeInterior(args):sanitize(args); } catch (error) { return this.refused(error); }
+    try { clean = INTERIOR_COMMANDS.has(command)?sanitizeInterior(args):sanitize(args, command); } catch (error) { return this.refused(error); }
     for (let i = 0; i < TRIES; i += 1) {
       await pause(i);
       const { version, world, srv } = await this.load();

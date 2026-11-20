@@ -223,7 +223,7 @@
       "civil_servant":     {"title": "City employee", "pay": 1875, "at": ["use:civic"], "shifts": [[8, 17]], "days": "weekdays", "uniform": "#1f618d", "share": 0.025},
       "police":            {"title": "Police officer", "pay": 2705, "at": ["use:civic"], "shifts": [[6, 16], [14, 24], [21, 31]], "days": "rotating", "uniform": "#1b2631", "share": 0.012, "outdoor": "patrol"},
       "firefighter":       {"title": "Firefighter", "pay": 2480, "at": ["use:civic"], "shifts": [[8, 32]], "days": "every_third", "uniform": "#922b21", "share": 0.006},
-      "mechanic":          {"title": "Mechanic", "pay": 1240, "at": ["use:gas_station", "use:industrial", "shop:auto_parts"], "shifts": [[7, 16]], "days": "weekdays", "uniform": "#2c3e50", "share": 0.008},
+      "mechanic":          {"title": "Mechanic", "pay": 1240, "at": ["use:gas_station", "use:industrial", "shop:auto_parts", "shop:fuel"], "shifts": [[7, 16]], "days": "weekdays", "uniform": "#2c3e50", "share": 0.008},
       "attendant":         {"title": "Gas station attendant", "pay": 730, "at": ["use:gas_station", "shop:fuel"], "shifts": [[6, 14], [14, 22], [22, 30]], "days": "daily", "uniform": "#c0392b", "share": 0.006},
       "parking_attendant": {"title": "Parking attendant", "pay": 750, "at": ["use:parking"], "shifts": [[6, 14], [14, 22]], "days": "daily", "uniform": "#d4ac0d", "share": 0.008},
       "warehouse_worker":  {"title": "Warehouse worker", "pay": 940, "at": ["use:industrial"], "shifts": [[6, 14], [14, 22], [22, 30]], "days": "weekdays", "uniform": "#ca6f1e", "share": 0.012},
@@ -239,7 +239,7 @@
       "retiree":           {"title": "Retired", "pay": 0, "at": ["home"], "shifts": [], "days": "none", "uniform": "#c39bd3", "share": 0.08},
       "unemployed":        {"title": "Looking for work", "pay": 0, "at": ["home"], "shifts": [], "days": "none", "uniform": "#bdc3c7", "share": 0.035}
     },
-    "player_jobs": ["barista", "baker", "cook", "server", "bartender", "clerk", "grocer", "stylist", "laundry_attendant", "housekeeper", "attendant", "parking_attendant", "janitor", "security_guard", "delivery_driver", "taxi_driver"],
+    "player_jobs": ["mechanic", "barista", "baker", "cook", "server", "bartender", "clerk", "grocer", "stylist", "laundry_attendant", "housekeeper", "attendant", "parking_attendant", "janitor", "security_guard", "delivery_driver", "taxi_driver"],
     "workplace_reach_m": 45
   },
   "density": {

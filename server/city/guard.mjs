@@ -34,7 +34,7 @@ const CLAMPS = {
 };
 
 //: A command's arguments as plain, finite, bounded data (a copy). Throws Refused.
-export function sanitize(args) {
+export function sanitize(args, command) {
   let text;
   try { text = JSON.stringify(args ?? {}); } catch { throw new Refused("that command cannot be read"); }
   if (text.length > LIMITS.bytes) throw new Refused("that command is too large");
@@ -50,7 +50,8 @@ export function sanitize(args) {
     const out = {};
     for (const [k, x] of entries) {
       if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
-      const c = CLAMPS[k];
+      const measured = k === "qty" && (command === "lab_test" || command === "kitchen_serve");
+      const c = measured ? null : CLAMPS[k];
       if (c && typeof x === "number") { const n = Math.max(c[0], Math.min(c[1], x)); out[k] = c[2] ? Math.round(n) : n; }
       else out[k] = walk(x, depth + 1);
     }

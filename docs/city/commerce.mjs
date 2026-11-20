@@ -376,7 +376,7 @@ export function installCommerce(CityWorld, CityError) {
     return fn.call(this, p, sku, args);
   };
   const ownCarNear = (w, p, id = null) => {
-    const list = w.registry.held(p.account).filter((a) => a.kind === "vehicle" && a.custody === "owner" && a.owner === p.account && (!id || a.id === id));
+    const list = w.registry.held(p.account).filter((a) => a.kind === "vehicle" && a.custody === "owner" && a.owner === p.account && !a.attrs.serviceBay && (!id || a.id === id));
     const a = list.find((x) => x.attrs.x !== undefined && near(p, x.attrs.x, x.attrs.z, U(w).install.reach_m));
     if (!a) fail("stand by a car of yours (parked, within a few metres)");
     if (p.driving?.vehicle === a.id) fail("get out of it first");

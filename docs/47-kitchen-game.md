@@ -122,3 +122,7 @@ An accepted dish becomes one of the city's items. From then on:
 - **Saving**: kitchens are saved in the world's JSON as `kitchens`.
 - **Privacy**: the server's per-player view (`server/city/views.mjs`) shows a cook only their own tickets, board, tests and record. The owner sees everything.
 - **Trust**: the cooking itself happens in the page. The world validates quantities and available techniques and measures service delay on the world clock. It takes the page’s word on station doneness.
+
+## Shaping dough
+
+Set raw dough on the work counter, select it, and choose **Shape dough**. Choose a ball, flat circle, triangle, or rectangle. Set the width and width-to-length ratio. The preview shows the resulting thickness for the portion’s weight. A thick piece takes longer in the oven. Baking and chilling preserve its form, and a house recipe records the dimensions. Weigh out individual portions before shaping them.
