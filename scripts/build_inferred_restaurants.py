@@ -34,7 +34,14 @@ def write(path, value):
     tmp.replace(path)
 
 
-def candidates(region="sf-corridor", price_path=None):
+#: The listed food tenants the engine fits by default, and every one it can (a cafe, a pizzeria,
+#: a bakery at a counter; a bar with its bar counter where one fits).
+FOOD_TAGS = ("restaurant", "fast_food")
+ALL_FOOD_TAGS = ("restaurant", "fast_food", "cafe", "pizza", "bakery", "bar")
+
+
+def candidates(region="sf-corridor", price_path=None, *, tags=FOOD_TAGS, keep=None):
+    """Every single-tenant food building of ``tags`` in the region (and passing ``keep(way)``)."""
     base = ROOT / "docs" if region == "sf-corridor" else ROOT / "docs/regions" / region
     page = json.loads((base / "sf-corridor-3d.json").read_text())
     pool = []
@@ -48,7 +55,8 @@ def candidates(region="sf-corridor", price_path=None):
         if (
             w["kind"] != "building"
             or len(shops) != 1
-            or shops[0].get("t") not in {"restaurant", "fast_food"}
+            or shops[0].get("t") not in set(tags)
+            or (keep is not None and not keep(w))
         ):
             continue
         fit = fits.get(str(w["osm_id"]))
@@ -81,9 +89,9 @@ def candidates(region="sf-corridor", price_path=None):
                 "service_mode": "pickup"
                 if stratum == "pickup"
                 else "counter"
-                if shops[0]["t"] == "fast_food"
+                if shops[0]["t"] in {"fast_food", "cafe", "pizza", "bakery"}
                 else "auto",
-                "bar": stratum == "large",
+                "bar": stratum == "large" or shops[0]["t"] == "bar",
                 "average_spend_per_person": {
                     "pickup": 15,
                     "narrow": 18,
