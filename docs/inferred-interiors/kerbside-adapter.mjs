@@ -1,3 +1,5 @@
+import { fittedKitchenFixtures } from "../city/restaurant-room.mjs";
+import { restaurantScene } from "../city/restaurant-scene.mjs";
 import {TourWorld,inPolygon} from './tour-world.mjs';
 import {applyLayoutRules} from './layout-rules.mjs';
 export const prepareGeneratedHouse = house => applyLayoutRules(house);
@@ -8,6 +10,13 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
   house=context.customized?house:applyLayoutRules(house);
   const {origin, floorY, assetBase, loadAsset, feetY, pointInRing} = context;
   const built=buildInferredHouse(THREE,house,{loadAsset,assetBase,wallHeight:4.5,exterior:Boolean(house.envelope?.windows_customized),exteriorThickness:.08,entranceDoors:false,exteriorColor:context.exteriorColor||null,ceilings:true});
+  if (context.foodService) for (const floor of house.storeys) {
+    const fixtures = fittedKitchenFixtures(floor, context.foodService);
+    if (!fixtures.length) continue;
+    const line = restaurantScene(THREE, { fixtures }, {doc:document, shellEnabled:false, finish:house.style});
+    line.position.y = floor.elevation_m;
+    built.group.add(line);
+  }
   const [east,north]=origin;
   const physics=new TourWorld(house);
   built.group.position.set(east,floorY,-north);built.group.scale.z=-1;

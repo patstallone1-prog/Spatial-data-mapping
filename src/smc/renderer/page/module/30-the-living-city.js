@@ -463,6 +463,37 @@ function setAppMode(mode) {
       setHomeInteriorAccess: data => setHomeInteriorAccess(data),
       editHome: homeId => openHomeInteriorLab(homeId),
       // A building's doors (the ones the walker uses: Enter), as {x, z, nx, nz} with n pointing in.
+      enterFittedShop: id => {
+        const entry=footprintById.get(String(id));
+        if (!entry || !(entry.generatedInteriorRef && !entry.generatedInteriorFailed || entry.customInteriorEnabled && !entry.customInteriorFailed)) return false;
+        if (enteredEntry===entry && insideFootprint(entry,avatar.position.x,avatar.position.z)) return true;
+        const doors=(entry.doors||[]).filter(d=>!d.atGrade);
+        const door=doors.sort((a,b)=>Math.hypot(a.cx-avatar.position.x,a.cz-avatar.position.z)-Math.hypot(b.cx-avatar.position.x,b.cz-avatar.position.z))[0];
+        if (!door) return false;
+        const at=toggleDoor(door);
+        if(at)placeWalkerAtDoor(at);
+        return true;
+      },
+      // The building whose fitted interior the walker is in (module 24's enteredEntry), by id.
+      insideFitted: () => (typeof enteredEntry !== "undefined" && enteredEntry?.way ? String(enteredEntry.way.osm_id) : null),
+      restaurantFront: id => {
+        const entry = footprintById.get(String(id));
+        if (!entry) return null;
+        const exterior = storeExteriorFor(entry.way);
+        const windows = [];
+        if (exterior?.origin_lon_lat) {
+          const [ox, north] = xy(...exterior.origin_lon_lat);
+          for (const f of exterior.facades || []) {
+            const dx=f.b[0]-f.a[0], dy=f.b[1]-f.a[1], length=Math.hypot(dx,dy);
+            if (!length) continue;
+            for (const o of f.openings || []) if (o.kind==="window") {
+              const t=(o.u+o.w/2)/length;
+              windows.push({x:ox+f.a[0]+dx*t,z:-(north+f.a[1]+dy*t),width:o.w,sill:o.v,height:o.h});
+            }
+          }
+        }
+        return { windows };
+      },
       doorsOf: (id) => {
         const entry = typeof footprintById !== "undefined" ? footprintById.get(String(id)) : null;
         return (entry?.doors || []).filter((d) => !d.atGrade).map((d) => ({ x: d.cx, z: d.cz, nx: d.nx, nz: d.nz }));

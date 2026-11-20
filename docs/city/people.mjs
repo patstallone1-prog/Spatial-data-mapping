@@ -1549,6 +1549,16 @@ export function indoorSpot(p, a, place, t, lane = null) {
   const staff = a.kind === "work" && COUNTER_ROLES.has(p.role);
   const customer = (a.kind === "errand" || a.kind === "meal" || a.kind === "evening") && place.shops.length;
   if (!staff && !customer) return null;
+  const frame=place.diningFrame, dining=frame?.restaurant;
+  if(dining){
+    const index=lane?.k ?? hash32(p.id)%12;
+    const seat=customer && a.kind!=="errand" ? dining.seats[index] : null;
+    const depth=staff ? dining.counterZ+.67+index*.62 : dining.counterZ-.60-index*.64;
+    if(!seat && (depth<.45 || depth>dining.depth-.9))return null;
+    const pos=seat?frame.at(seat.z,seat.x):frame.at(depth,dining.aisle);
+    return {...pos,yaw:Math.atan2(frame.I.nx,frame.I.nz)+(seat?seat.yaw:staff?0:Math.PI),moving:false,mode:"walk",indoors:place.id,
+      ...(seat?{gesture:{kind:"sit",f:1}}:{}),activity:seat?"at a table":staff?"behind the counter":"at the counter"};
+  }
   const n = lane ? Math.max(1, Math.floor((2 * L.width) / SHOP_LANE_M) + 1) : 0;
   const laneAt = lane ? (n > 1 ? -L.width + ((lane.k % n) * (2 * L.width)) / (n - 1) : 0) : null;
   // A customer's row: with depth for more than one, each keeps to a band of it (the first by

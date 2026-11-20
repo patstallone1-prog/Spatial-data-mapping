@@ -529,6 +529,20 @@ fetch(sharedAsset("sf-corridor-home-openings.json"), { cache: "no-cache" })
 // fails to load falls back to it too. Off in the headset, whose memory it would not fit, and
 // with ?inferredInteriors=0.
 let generatedInteriorModules = null;
+let restaurantRules;
+async function restaurantServiceFor(entry, kind) {
+  const live = typeof livingCity!=="undefined" && livingCity?.restaurantAt?.(String(entry.way.osm_id));
+  if (live) return live;
+  restaurantRules ||= Promise.all([
+    import(new URL("../city/restaurant-room.mjs",interiorAssetBase()).href),
+    import(new URL("../city/core.mjs",interiorAssetBase()).href),
+    fetch(new URL("../city/rules.json",interiorAssetBase()).href).then(r=>r.json())
+  ]).then(([rooms,core,raw])=>({rooms,rules:core.loadRules(raw)})).catch(e=>{restaurantRules=null;throw e;});
+  const {rooms,rules}=await restaurantRules;
+  const tag=kind || entry.way.shops?.find(s=>rules.kitchen.kitchens[s.t])?.t || "restaurant";
+  const profile=rules.kitchen.kitchens[tag]?tag:tag==="fast_food"?"american":"restaurant";
+  return rooms.restaurantService(rules,profile);
+}
 function commercialInterior(entry) {
   const w = entry.way;
   return Boolean(w.shops?.length || ["retail","restaurant","office","hotel","industrial","commercial"].includes(w.archetype)
@@ -677,7 +691,8 @@ async function editorBaseline(buildingId) {
     const height=Number(entry.way.storey_m)||Number(entry.fit?.[10])||Math.min(Number(entry.way.height_m)||3.2,band||3.2);
     const windows=(entry.homeShell?.group.userData.windows||[]).map(w=>({edge:w.edge,u:w.u,v:w.v-entryFloorY(entry),w:w.w,h:w.h})).filter(w=>Number.isInteger(w.edge)&&[w.u,w.v,w.w,w.h].every(Number.isFinite)&&w.v>=0&&w.v<height);
     if(exterior?.origin_lon_lat){const {windowsFromStorefront}=await import(new URL("../interior-lab/source-windows.mjs",interiorAssetBase()).href);windows.push(...windowsFromStorefront(exterior,{planOrigin:xy(...exterior.origin_lon_lat),origin,footprint:{type:"Polygon",coordinates:[ring]},baseElevation:(Number(entry.way._hillLiftM)||groundBaseFor(entry.way.points))-entryFloorY(entry),height}));}
-    house=businessStarter({id:String(buildingId),kind:info.businessKind,footprint:{type:'Polygon',coordinates:[ring]},height,entrances,windows,name:info.label,assets:assetCatalog.assets||[]});
+    const service=/^(fast_food|restaurant|american|diner|mexican|japanese|chinese|thai|vietnamese|indian|korean|italian|mediterranean|seafood|pizza|ice_cream|deli|cafe|bakery)$/.test(info.businessKind) ? await restaurantServiceFor(entry,info.businessKind) : null;
+    house=businessStarter({service,id:String(buildingId),kind:info.businessKind,footprint:{type:'Polygon',coordinates:[ring]},height,entrances,windows,name:info.label,assets:assetCatalog.assets||[]});
   } else {
     entry.capturingEditorBaseline = true;
     try {
@@ -759,7 +774,10 @@ function requestGeneratedInterior(entry) {
       entry.customWindowShell?.restore();
       entry.customWindowShell=mountWindowShell(THREE,{house,baseline,origin,floorY,root,ranges:BUILDING_VISUAL_RANGES.get(String(entry.way.osm_id))||[],extras:[entry.homeShell?.group,storeExteriorDrawn.get(entry.way)]});
     }
+    const foodService=house.schema==="kerbside.inferred_restaurant/1" || house.storeys.some(f=>f.rooms.some(r=>r.kind==="professional_kitchen"))
+      ? await restaurantServiceFor(entry,house.kind) : null;
     const interior = adapter.mountGeneratedInterior(THREE, house, entry, {
+      foodService,
       origin, floorY, exteriorColor:drawnWallColour(entry.way), assetBase: interiorAssetBase(),
       loadAsset: url => new GLTFLoader().loadAsync(url).then(g => plainGlass(g.scene)),
       feetY: walkerFeetY, pointInRing, kind: ref.kind, customized
