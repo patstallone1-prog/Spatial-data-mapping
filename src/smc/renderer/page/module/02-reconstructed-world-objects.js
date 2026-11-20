@@ -566,6 +566,16 @@ const NEAR_SURFACE = globalThis.__kerbsideNearSurface ||= {
     // relief: how strongly its normal map bends the light.
     asphalt: { tile_m: 3.2, mean: [0.471, 0.471, 0.471], relief: 0.9 },
     concrete: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6 },
+    // A public sidewalk as San Francisco pours it (Public Works standard plans, residential:
+    // the Marina and every neighbourhood outside the downtown grid): the same photograph,
+    // and over it, in the slabs' own UVs, what the finisher's tools leave -- a tooled joint
+    // round every five-foot square with a smooth troweled margin either side, the broom's
+    // fine striations across the walk inside it, and the deeper contraction joint every third
+    // square (fifteen feet) along the block. Near you only, as the photograph is.
+    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk" },
+    // The curb (Standard Plan 87,185: six inches across the top, a rounded nose, the street face
+    // battered one in four) is steel-troweled, not broomed, and jointed only every fifteen feet.
+    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.35, photo: "concrete", scored: "curb" },
     wood: { tile_m: 2.0, mean: [0.313, 0.243, 0.18], relief: 0.8 },
     "painted-wood": { tile_m: 2.6, mean: [0.7, 0.652, 0.588], relief: 0.9 },
   },
@@ -589,7 +599,7 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
     mean: { value: new THREE.Vector3(...k.mean.map((c) => Math.pow(c, 2.2))) } };
   NEAR_SURFACE.uniforms.set(kind, u);
   const loader = new THREE.TextureLoader();
-  const load = (file, srgb, slot, ready) => loader.load(sharedAsset(`textures/near/${kind}-${file}.jpg`), (t) => {
+  const load = (file, srgb, slot, ready) => loader.load(sharedAsset(`textures/near/${k.photo || kind}-${file}.jpg`), (t) => {
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     u[slot].value = t; if (ready) u.tile.value.z = 1;
@@ -597,6 +607,64 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
   load("color", true, "map", true);
   load("normal", false, "relief", false);
   return u;
+};
+//: The finisher's marks, for a scored kind, read from the slabs' own UVs (the sidewalk's map:
+//: four squares of SLAB_M to a repeat, ``u`` along the street and ``v`` across it). Distances
+//: are in metres from the nearest joint. "walk": every square tooled, broomed inside a troweled
+//: margin, a deeper joint each third square; "curb": the fifteen-foot joints only, troweled.
+//: Its marks bend the light (kbSwBx along u, kbSwBz across) for scoredNormal.
+NEAR_SURFACE.scoredColor ||= function (mode) {
+  if (!mode) return "";
+  const walk = mode === "walk" ? 1 : 0;
+  return `float kbSwBx = 0.0, kbSwBz = 0.0;
+#ifdef USE_MAP
+if (kbNsF > 0.0) {
+  vec2 kbSwS = vMapUv * 4.0, kbSwFr = fract(kbSwS), kbSwD = min(kbSwFr, 1.0 - kbSwFr) * 1.52;
+  float kbSwUp = step(0.6, abs(normalize(kbNsN).y));
+  // Every square's joints on the walk's top; on a face (the kerb's), and on a curb, only the
+  // contraction joints across the run.
+  float kbSwThird = abs(fract(kbSwS.x / 3.0 + 0.5) - 0.5) * 3.0 * 1.52;
+  float kbSwDx = ${walk}.0 > 0.5 ? kbSwD.x : kbSwThird;
+  float kbSwDz = ${walk}.0 > 0.5 && kbSwUp > 0.5 ? kbSwD.y : 9.0;
+  float kbSwJ = min(kbSwDx, kbSwDz);
+  // A tooled joint is a groove a quarter-inch wide with radiused shoulders; the contraction
+  // joint is cut deeper and reads darker.
+  float kbSwGroove = 1.0 - smoothstep(0.0025, 0.0065, kbSwJ);
+  float kbSwDeep = 1.0 - smoothstep(0.003, 0.009, kbSwThird);
+  float kbSwMargin = (1.0 - smoothstep(0.035, 0.055, kbSwJ)) * ${walk}.0;
+  // The broom, pulled across the walk: fine streaks along it, each a shade off the next, wavering
+  // a little as a broom does, and none in the troweled margin or on a face.
+  float kbSwAlong = kbSwS.x * 1.52 + 0.004 * sin(kbSwS.y * 9.0 + floor(kbSwS.x) * 3.1);
+  float kbSwStreak = fract(sin(floor(kbSwAlong * 260.0) * 91.7 + floor(kbSwS.x) * 7.3) * 43758.5);
+  float kbSwBroom = (kbSwStreak - 0.5) * (1.0 - kbSwMargin) * kbSwUp * ${walk}.0;
+  vec3 kbSwC = diffuseColor.rgb * (1.0 + 0.11 * kbSwBroom + 0.05 * kbSwMargin);
+  kbSwC *= 1.0 - 0.42 * max(kbSwGroove, kbSwDeep * 1.3);
+  diffuseColor.rgb = mix(diffuseColor.rgb, kbSwC, kbNsF);
+  // The shoulders fall toward the joint: the light bends that way just either side of it.
+  float kbSwSh = smoothstep(0.002, 0.005, kbSwJ) * (1.0 - smoothstep(0.005, 0.013, kbSwJ));
+  float kbSwSx = ${walk}.0 > 0.5 ? sign(kbSwFr.x - 0.5) : sign(fract(kbSwS.x / 3.0) - 0.5);
+  kbSwBx = (kbSwDx <= kbSwDz ? kbSwSx : 0.0) * kbSwSh + kbSwBroom * 0.3;
+  kbSwBz = (kbSwDz < kbSwDx ? sign(kbSwFr.y - 0.5) : 0.0) * kbSwSh;
+}
+#endif`;
+};
+NEAR_SURFACE.scoredNormal ||= function (mode) {
+  if (!mode) return "";
+  return `#ifdef USE_MAP
+if (kbNsF > 0.0 && (kbSwBx != 0.0 || kbSwBz != 0.0)) {
+  // The slabs' u and v as directions on the surface, from how they change across the pixel.
+  vec3 kbSwQ1 = dFdx(kbNsW), kbSwQ2 = dFdy(kbNsW);
+  vec2 kbSwT1 = dFdx(vMapUv), kbSwT2 = dFdy(vMapUv);
+  float kbSwDet = sign(kbSwT1.x * kbSwT2.y - kbSwT2.x * kbSwT1.y);
+  vec3 kbSwN = normalize(kbNsN);
+  vec3 kbSwTu = (kbSwQ1 * kbSwT2.y - kbSwQ2 * kbSwT1.y) * kbSwDet;
+  vec3 kbSwTv = (kbSwQ2 * kbSwT1.x - kbSwQ1 * kbSwT2.x) * kbSwDet;
+  kbSwTu = normalize(kbSwTu - kbSwN * dot(kbSwN, kbSwTu) + vec3(1e-6));
+  kbSwTv = normalize(kbSwTv - kbSwN * dot(kbSwN, kbSwTv) + vec3(1e-6));
+  vec3 kbSwBent = normalize(kbSwN + (kbSwTu * kbSwBx + kbSwTv * kbSwBz) * 0.9);
+  normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbSwBent, 0.0)).xyz), kbNsF));
+}
+#endif`;
 };
 //: Into a material's shader (``shader`` as onBeforeCompile is given it) for a kind.
 NEAR_SURFACE.patch ||= function (shader, kind) {
@@ -634,14 +702,16 @@ if (kbNsNear.z * kbNsTile.z > 0.0) {
   vec3 kbNsC2 = texture2D(kbNsMap, mat2(0.8, -0.6, 0.6, 0.8) * kbNsAt * 0.37 + 0.31).rgb;
   vec3 kbNsD = mix(kbNsC, kbNsC * (kbNsC2 / kbNsMean), 0.35) / kbNsMean;
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * clamp(kbNsD, 0.0, 2.5), kbNsF);
-}`)
+}
+${NEAR_SURFACE.scoredColor(NEAR_SURFACE.kinds[kind].scored)}`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 if (kbNsNear.z * kbNsTile.z > 0.0 && kbNsTile.y > 0.0) {
   vec3 kbNsR = texture2D(kbNsRelief, kbNsAt).xyz * 2.0 - 1.0;
   vec3 kbNsWN = normalize(kbNsN);
   vec3 kbNsBent = normalize(kbNsT * kbNsR.x * kbNsTile.y + kbNsB * kbNsR.y * kbNsTile.y + kbNsWN * max(kbNsR.z, 0.2));
   normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbNsBent, 0.0)).xyz), kbNsF));
-}`);
+}
+${NEAR_SURFACE.scoredNormal(NEAR_SURFACE.kinds[kind].scored)}`);
 };
 // Every lit material, without each being told: a material with no hook of its own uses this one,
 // and those that chain a hook (patchMaterial, the box clips) call it first. A material that sets

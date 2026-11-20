@@ -362,9 +362,10 @@ function tiledMap(base, name, repeatU, repeatV) {
 //: the vertex UVs rather than in a cloned texture, a footway's slabs stay 1.52 m whatever the
 //: shape of the run.
 function surfaceScale(surface, width) {
-  if (surface === "walk") return [SLAB_M, SLAB_M];
-  if (surface === "kerb") return [SLAB_M, SLAB_M];
-  if (surface === "walk_underlay") return [SLAB_M, SLAB_M];
+  // The sidewalk's texture holds SLAB_BLOCK squares a side: one repeat is WALK_UV_M.
+  if (surface === "walk") return [WALK_UV_M, WALK_UV_M];
+  if (surface === "kerb") return [WALK_UV_M, WALK_UV_M];
+  if (surface === "walk_underlay") return [WALK_UV_M, WALK_UV_M];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];
   if (surface === "bike") return [5.5, BIKE_LANE_M];
   if (surface === "road") return [8.0, 8.0];
@@ -379,7 +380,7 @@ function surfaceScale(surface, width) {
 function surfaceBase(surface) {
   if (surface && surface.startsWith("path:")) return pedestrianTexture(surface.slice(5));
   if (surface === "walk") return SIDEWALK;
-  if (surface === "kerb") return SIDEWALK;
+  if (surface === "kerb") return KERB_CONCRETE;
   if (surface === "walk_underlay") return SIDEWALK;
   if (surface === "walk_narrow") return NARROW_SIDEWALK;
   if (surface === "bike") return BIKE_LANE;
@@ -528,6 +529,23 @@ function crossingStripePhase(length) {
   return (1 - margin / CROSSING_PERIOD_M) % 1;
 }
 
+//: San Francisco's standard concrete curb (Public Works Standard Plan 87,185), as the kerb tile
+//: draws its street side: the nose rounded on a radius (m), the face battered one in four
+//: (``batter``: out per up) over its exposed height (``face``, six inches nominal), plumb below.
+const KERB_PROFILE = { nose: 0.025, noseSteps: 4, batter: 0.25, face: 0.15 };
+//: Which edge of a kerb band faces the street: 1 its left (as mitredEdges gives it), -1 its
+//: right, 0 where neither can be told from the other (it is drawn as a plain block).
+function kerbStreetSide(left, right) {
+  let l = 0, r = 0;
+  const step = Math.max(1, Math.floor(left.length / 6));
+  for (let i = 0; i < left.length; i += step) {
+    const dx = left[i][0] - right[i][0], dz = left[i][1] - right[i][1], run = Math.hypot(dx, dz) || 1;
+    if (insideCarriageway(left[i][0] + dx / run * 0.35, left[i][1] + dz / run * 0.35, 0)) l += 1;
+    if (insideCarriageway(right[i][0] - dx / run * 0.35, right[i][1] - dz / run * 0.35, 0)) r += 1;
+  }
+  return l === r ? 0 : l > r ? 1 : -1;
+}
+
 function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surface = null) {
   const edges = mitredEdges(points, widthOrWidths);
   if (!edges) return new THREE.Group();
@@ -549,13 +567,28 @@ function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surfa
     return position.length / 3 - 1;
   };
 
+  // A kerb's street side, where it can be told: its top stops short of the edge by the nose's
+  // radius and the nose and battered face are drawn down from there (KERB_PROFILE).
+  const street = surface === "kerb" && thickness > 0.05 ? kerbStreetSide(left, right) : 0;
+  const inward = (i) => {
+    const [ex, ez] = street > 0 ? left[i] : right[i], [ox, oz] = street > 0 ? right[i] : left[i];
+    const run = Math.hypot(ox - ex, oz - ez) || 1;
+    return [(ox - ex) / run, (oz - ez) / run];
+  };
+  // v runs from the back of the kerb (the joint with the sidewalk) toward the street, so the
+  // sidewalk's squares do not put a joint along the nose.
+  const vLeft = street > 0 ? width / scaleV : 0, vRight = street > 0 ? 0 : width / scaleV;
+  const nose = street ? Math.min(KERB_PROFILE.nose, width * 0.4) : 0;
+
   // The running surface.
   const topRow = [];
   for (let i = 0; i < left.length; i += 1) {
     const u = distances[i] / scaleU + phaseU;
+    const [wx, wz] = street ? inward(i) : [0, 0];
+    const lIn = street > 0 ? nose : 0, rIn = street < 0 ? nose : 0;
     topRow.push([
-      push(left[i][0], left[i][1], top, u, 0),
-      push(right[i][0], right[i][1], top, u, width / scaleV),
+      push(left[i][0] + wx * lIn, left[i][1] + wz * lIn, top, u, vLeft - Math.sign(vLeft - vRight) * lIn / scaleV),
+      push(right[i][0] + wx * rIn, right[i][1] + wz * rIn, top, u, vRight - Math.sign(vRight - vLeft) * rIn / scaleV),
     ]);
   }
   for (let i = 1; i < topRow.length; i += 1) {
@@ -564,9 +597,47 @@ function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surfa
     index.push(al, bl, ar, ar, bl, br);
   }
 
+  // The kerb's street side: the nose rounded down from the top, the face battered back as it
+  // rises, and below the gutter's line plumb to the bottom of the band.
+  if (street) {
+    const face = Math.min(KERB_PROFILE.face, thickness * 0.9);
+    const profile = [];
+    for (let k = 0; k <= KERB_PROFILE.noseSteps; k += 1) {
+      const phi = (k / KERB_PROFILE.noseSteps) * Math.PI / 2;
+      profile.push([nose * (1 - Math.sin(phi)), -nose * (1 - Math.cos(phi))]);
+    }
+    const toe = -KERB_PROFILE.batter * (face - nose);
+    profile.push([toe, -face], [toe, -thickness]);
+    // Down the profile, v carries on from the top's street edge by the length walked.
+    const vEdge = street > 0 ? vLeft : vRight, vStep = Math.sign(vEdge - (street > 0 ? vRight : vLeft)) || 1;
+    const along = [0];
+    for (let k = 1; k < profile.length; k += 1)
+      along.push(along[k - 1] + Math.hypot(profile[k][0] - profile[k - 1][0], profile[k][1] - profile[k - 1][1]));
+    const edge = street > 0 ? left : right;
+    const rows = [];
+    for (let i = 0; i < edge.length; i += 1) {
+      const u = distances[i] / scaleU + phaseU;
+      const [wx, wz] = inward(i);
+      const row = [topRow[i][street > 0 ? 0 : 1]];   // the profile's first point is the top's edge
+      for (let k = 1; k < profile.length; k += 1) {
+        const [o, h] = profile[k];
+        row.push(push(edge[i][0] + wx * o, edge[i][1] + wz * o, top + h, u, vEdge + vStep * along[k] / scaleV));
+      }
+      rows.push(row);
+    }
+    for (let i = 1; i < rows.length; i += 1) {
+      for (let k = 1; k < profile.length; k += 1) {
+        const at = rows[i - 1][k - 1], ab = rows[i - 1][k], bt = rows[i][k - 1], bb = rows[i][k];
+        if (street > 0) index.push(at, ab, bt, bt, ab, bb);
+        else index.push(at, bt, ab, ab, bt, bb);
+      }
+    }
+  }
+
   // The two faces of the band's own thickness, which is what a kerb is.
   if (thickness > 0.05) {
     for (const [side, sign] of [[left, 1], [right, -1]]) {
+      if ((street > 0 && sign > 0) || (street < 0 && sign < 0)) continue;   // drawn as the profile
       const rows = [];
       for (let i = 0; i < side.length; i += 1) {
         const u = distances[i] / scaleU + phaseU;

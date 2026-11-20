@@ -1449,9 +1449,10 @@ function addPavementRibbon(points, width, color, opacity, y, thickness, surface,
 //: Widths to try for a kerbside footway, widest first, before giving up on one. The inner edge
 //: stays on the kerb at every width, so a narrower attempt is the same pavement with less of it
 //: rather than a pavement somewhere else.
-//: The kerb's own tile: four inches of the top of the pavement at the street edge, and the face
-//: down to the gutter. It is what curb paint is painted on.
-const KERB_LIP_M = 0.1016;
+//: The kerb's own tile: the top of the curb at the street edge -- six inches across, San
+//: Francisco's standard curb -- and the face down to the gutter. It is what curb paint is
+//: painted on.
+const KERB_LIP_M = 0.1524;
 const WALK_FALLBACK_WIDTHS_M = [1.0, 0.72, 0.52, 0.36, 0.24];
 //: Below this share of the block face surviving, the width is too wide for the room there is.
 const WALK_ENOUGH = 0.55;
