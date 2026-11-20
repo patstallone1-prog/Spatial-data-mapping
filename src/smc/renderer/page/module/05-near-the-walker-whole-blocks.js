@@ -419,7 +419,9 @@ function pedestrianTexture(material) {
     for(let y=0;y<256;y+=32)for(let x=-(y%64?32:0);x<256;x+=64)ctx.strokeRect(x,y,64,32);
   }
   const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-  texture.colorSpace=THREE.SRGBColorSpace;PEDESTRIAN_TEXTURES.set(material,texture);return texture;
+  texture.colorSpace=THREE.SRGBColorSpace;PEDESTRIAN_TEXTURES.set(material,texture);
+  if (["wood","boardwalk"].includes(material)) NEAR_SURFACE.mark(texture, "wood");
+  return texture;
 }
 
 const FOOTWAY_LOOK = new Set(["unknown", "concrete", "paved"]);
