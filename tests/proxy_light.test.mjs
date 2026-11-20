@@ -6,25 +6,28 @@ import { readFileSync } from "node:fs";
 import { PROXY, extentFor, marchSteps, shadowTop, snapCentre, sunInMap } from "../docs/proxy-light.mjs";
 
 test("the stand-in sits on its own texels, so it does not swim as you walk", () => {
-  const a = snapCentre(-1493.2, -344.6, 720, 1024), b = snapCentre(-1493.3, -344.7, 720, 1024);
+  const a = snapCentre(-1493.2, -344.6, 1080, 1536), b = snapCentre(-1493.3, -344.7, 1080, 1536);
   assert.deepEqual(a, b);
-  assert.ok(Math.abs(a.x + 1493.2) <= a.texel && Math.abs(a.texel - 720 / 1024) < 1e-12);
+  assert.ok(Math.abs(a.x + 1493.2) <= a.texel && Math.abs(a.texel - 1080 / 1536) < 1e-12);
 });
 
 test("it covers what the camera sees, and does not flick between sizes", () => {
-  assert.equal(extentFor(45), 720);
-  assert.equal(extentFor(200), 1440);
-  assert.equal(extentFor(5000), 2880);
+  assert.equal(extentFor(45), 1080);
+  assert.equal(extentFor(200), 1080, "zoomed well out on foot: the same square");
+  assert.equal(extentFor(400), 2160);
+  assert.equal(extentFor(5000), 4320);
   // Pulled back in a little from a wider view: the wider one is kept.
-  assert.equal(extentFor(140, 1440), 1440);
-  assert.equal(extentFor(60, 1440), 720);
+  assert.equal(extentFor(250, 2160), 2160);
+  assert.equal(extentFor(100, 2160), 1080);
+  // Shadows reach half as far again as they did (720 m), at the same sharpness.
+  assert.ok(PROXY.extents_m[0] / PROXY.size <= 720 / 1024 + 1e-9);
 });
 
 test("the march reads every texel near by and reaches a tall building's whole shadow", () => {
   const s = marchSteps();
   assert.equal(s.length, PROXY.march_steps);
   for (let i = 1; i <= PROXY.march_even; i += 1) assert.equal(s[i] - s[i - 1], 1);
-  assert.ok(s.at(-1) * (720 / 1024) > 150, "over 150 m at the finest size");
+  assert.ok(s.at(-1) * (PROXY.extents_m[0] / PROXY.size) > 150, "over 150 m at the finest size");
 });
 
 test("the sun in the map's terms: east is +u, north (-z) is +v, and it climbs with its height", () => {

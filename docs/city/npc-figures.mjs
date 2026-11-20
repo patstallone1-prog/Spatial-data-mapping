@@ -10,7 +10,10 @@
 // published -- the page draws the people as it always did.
 
 //: How many people at most are drawn as characters at once (each is its own skinned mesh).
-export const NEAR_FIGURES_MAX = 16;
+export const NEAR_FIGURES_MAX = 20;
+//: Characters made ahead, a few a frame, once the files are in: enough of each kind for the ring
+//: to fill without a copy made the moment someone steps into it.
+export const PREBAKE = { ada: 12, manny: 14, per_frame: 2 };
 //: A figure kept for someone who has stepped out of the ring, to be had again without a fresh
 //: copy, this long (ms); then it is put back in the pool.
 const LINGER_MS = 2500;
@@ -29,7 +32,7 @@ const TEX = { body: "ada-body.jpg", bodyN: "ada-body-normal.jpg", face: "ada-fac
 //: names the build. Without it, or without a build there, the models come from ``base`` beside the
 //: page (a local build; the folder is not in the public repo).
 export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/npc/", store = null }) {
-  const S = { ready: false, failed: false, loading: null, kinds: {}, clips: null, pool: { ada: [], manny: [] }, live: new Map() };
+  const S = { ready: false, failed: false, loading: null, kinds: {}, clips: null, pool: { ada: [], manny: [] }, live: new Map(), made: { ada: 0, manny: 0 }, warmed: null };
   let from = null;
   const url = (f) => (from ? from + f : asset(base + f));
   const storeBuild = async () => {
@@ -172,11 +175,24 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
 
   //: Each frame: ``list`` is [{id, x, y, z, yaw, height, build, speed, moving, female, look}],
   //: nearest first. Returns how many were drawn as characters.
-  function draw(list, now, dt) {
-    if (!S.ready) {
-      if (!S.loading && !S.failed && list.length) S.loading = load().catch((e) => { S.failed = true; console.warn("kerbside: the near-ring characters did not load; the jointed figures stand in", e?.message || e); });
-      return 0;
+  const start = () => { if (!S.loading && !S.failed) S.loading = load().catch((e) => { S.failed = true; console.warn("kerbside: the near-ring characters did not load; the jointed figures stand in", e?.message || e); }); };
+  //: Made ahead (PREBAKE), a few a frame; the first of each kind drawn once out of sight, so its
+  //: shaders are compiled before anyone needs it (every copy of a kind shares them).
+  function prebake() {
+    if (S.warmed) { for (const f of S.warmed) { f.holder.visible = false; f.holder.position.set(0, 0, 0); S.pool[f.kind].push(f); } S.warmed = []; }
+    let n = 0;
+    for (const kind of ["manny", "ada"]) {
+      while (S.made[kind] < PREBAKE[kind] && n < PREBAKE.per_frame) {
+        const f = make(kind); S.made[kind] += 1; n += 1;
+        parent.add(f.holder);
+        if (S.made[kind] === 1) { f.holder.visible = true; f.holder.position.set(0, -500, 0); f.mixer.update(0); (S.warmed ||= []).push(f); }
+        else { f.holder.visible = false; S.pool[kind].push(f); }
+      }
     }
+  }
+  function draw(list, now, dt) {
+    if (!S.ready) { start(); return 0; }
+    prebake();
     let n = 0;
     for (const q of list) {
       if (n >= NEAR_FIGURES_MAX) break;
@@ -184,7 +200,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       let f = S.live.get(q.id);
       if (f && f.kind !== kind) { release(f); f = null; }
       if (!f) {
-        f = S.pool[kind].pop() || make(kind);
+        f = S.pool[kind].pop() || (S.made[kind] += 1, make(kind));
         f.id = q.id; S.live.set(q.id, f);
         if (!f.holder.parent) parent.add(f.holder);
       }
@@ -213,7 +229,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     f.id = null; f.holder.visible = false;
     S.pool[f.kind].push(f);
   }
-  return { draw, get ready() { return S.ready; }, get failed() { return S.failed; }, stats: () => ({ ready: S.ready, live: S.live.size, pooled: S.pool.ada.length + S.pool.manny.length }) };
+  return { draw, start, has: (id) => S.live.has(id), get ready() { return S.ready; }, get failed() { return S.failed; }, stats: () => ({ ready: S.ready, live: S.live.size, pooled: S.pool.ada.length + S.pool.manny.length }) };
 }
 
 //: A copy of a hierarchy with skinned meshes, each bound to the copy's own bones (three's

@@ -300,31 +300,70 @@ test("adults average 5 ft 10 (men) and 5 ft 5 (women), spread as the CDC's refer
   assert.equal(bodyFor({ id: "person:7", age: 30 }, new Map()).height, bodyFor({ id: "person:7", age: 30 }, new Map()).height);
 });
 
-test("people are dressed: trousers, shorts or a skirt, sleeves, shoes, hair -- from their ids, the same every time", async () => {
-  const { bodyFor, outfitFor, OUTFIT_SHARES } = await import("../docs/city/view.mjs");
-  const cache = new Map(), n = 20000, count = {};
-  let women = 0, skirts = 0, shortSleeves = 0, bald = 0, noHair = 0;
+test("people are dressed: a top and a bottom for who they are, sleeves, shoes, hair -- from their ids, the same every time", async () => {
+  const { bodyFor, outfitFor } = await import("../docs/city/view.mjs");
+  const { TOPS, BOTTOMS, luminance } = await import("../docs/city/wardrobe.mjs");
+  const cache = new Map(), n = 20000, count = {}, tops = {};
+  let bald = 0, noHair = 0;
   for (let i = 0; i < n; i += 1) {
     const b = bodyFor({ id: `person:${i}`, age: 20 + (i % 60) }, cache), o = b.outfit;
-    count[o.bottom] = (count[o.bottom] || 0) + 1;
-    if (b.female) women += 1;
-    if (o.bottom === "skirt") { skirts += 1; assert.ok(b.female, "a skirt on a woman (the figures are not told apart otherwise)"); }
-    if (o.sleeves === "short") shortSleeves += 1;
+    count[o.legs] = (count[o.legs] || 0) + 1; tops[o.top] = (tops[o.top] || 0) + 1;
+    assert.ok(TOPS.includes(o.top) && BOTTOMS.includes(o.legs));
+    if (o.bottom === "skirt") assert.ok(b.female, "a skirt on a woman (the figures are not told apart otherwise)");
+    if (o.top === "suit") assert.equal(o.bottoms, o.topColour, "a suit's trousers match its jacket");
     if (b.bald) bald += 1;
     if (o.hair === "none") noHair += 1;
-    assert.ok(/^#[0-9a-f]{6}$/.test(o.bottoms) && /^#[0-9a-f]{6}$/.test(o.shoes));
+    for (const c of [o.bottoms, o.shoes, o.topColour, o.trim]) assert.ok(/^#[0-9a-f]{6}$/.test(c), c);
+    // The top and the bottom read apart (or are one garment).
+    if (o.legs !== "scrubs" && o.legs !== "suit_trousers" && o.top !== "suit") assert.ok(Math.abs(luminance(o.topColour) - luminance(o.bottoms)) > 0.08, `${o.top} ${o.topColour} on ${o.legs} ${o.bottoms}`);
   }
-  assert.ok(Math.abs(skirts / women - OUTFIT_SHARES.skirt_female) < 0.02, `skirts ${(skirts / women).toFixed(3)}`);
-  assert.ok(Math.abs(shortSleeves / n - OUTFIT_SHARES.short_sleeves) < 0.02);
-  assert.ok(Math.abs(count.shorts / n - OUTFIT_SHARES.shorts) < 0.015, "few in shorts: San Francisco is cool");
+  // A mix: sweatshirts, hoodies, button-ups, tees, jeans, shorts, sweatpants -- shorts few.
+  for (const k of ["tee", "sweatshirt", "hoodie", "button_up", "running"]) assert.ok(tops[k] / n > 0.04, `${k} ${tops[k]}`);
+  for (const k of ["jeans", "chinos", "sweatpants", "shorts"]) assert.ok(count[k] / n > 0.04, `${k} ${count[k]}`);
+  assert.ok(count.jeans / n > 0.3 && count.shorts / n < 0.12, "jeans common, shorts few: San Francisco is cool");
   assert.equal(bald, noHair, "the bald have no hair drawn");
-  // Someone at work is in the uniform's trousers and long sleeves.
+  // At work in the work's clothes: police in a uniform shirt and trousers, nurses in scrubs, a
+  // lawyer in a suit or a shirt and suit trousers, an engineer casual.
   for (let i = 0; i < 300; i += 1) {
-    const o = outfitFor({ id: `npc:${i}`, role: "officer" }, { female: i % 2 === 0, bald: false });
-    assert.equal(o.bottom, "trousers"); assert.equal(o.sleeves, "long");
+    const body = { female: i % 2 === 0, bald: false };
+    const cop = outfitFor({ id: `npc:${i}`, role: "police", uniform: "#1b2631" }, body);
+    assert.equal(cop.bottom, "trousers"); assert.equal(cop.sleeves, "long"); assert.equal(cop.topColour, "#1b2631");
+    assert.equal(outfitFor({ id: `npc:${i}`, role: "nurse", uniform: "#48c9b0" }, body).legs, "scrubs");
+    const lawyer = outfitFor({ id: `npc:${i}`, title: "Lawyer" }, body);
+    assert.ok(["suit", "button_up"].includes(lawyer.top) && (lawyer.legs === "suit_trousers" || (body.female && lawyer.legs === "skirt")), JSON.stringify(lawyer));
+    assert.ok(!["suit", "chef", "scrubs"].includes(outfitFor({ id: `npc:${i}`, role: "software_engineer" }, body).top));
   }
   // The same person dressed the same, and their height not moved by it.
   const a = bodyFor({ id: "person:42", age: 33 }, new Map()), b = bodyFor({ id: "person:42", age: 33 }, new Map());
   assert.deepEqual(a.outfit, b.outfit);
   assert.equal(a.height, b.height);
+});
+
+test("a bold runner is in bright running gear, a careful one in plain", async () => {
+  const { dressFor, RUNNER_SHARE } = await import("../docs/city/wardrobe.mjs");
+  let bright = 0, plain = 0, runners = 0, n = 0;
+  const vivid = new Set(["#ff4f9a", "#ff7a2e", "#22c1ee", "#a3e635", "#a35cff", "#ff3d5a", "#ffd23f"]);
+  for (let i = 0; i < 40000; i += 1) {
+    const bold = i % 2 === 0, t = bold ? { temper: 0.95, care: 0.1, civic: 0.6, nerve: 0.5, patience: 0.5 } : { temper: 0.05, care: 0.95, civic: 0.1, nerve: 0.5, patience: 0.5 };
+    const o = dressFor({ id: `r:${i}`, age: 30, pace: 1.5 }, { female: false }, t);
+    n += 1;
+    if (o.top !== "running") continue;
+    runners += 1;
+    if (vivid.has(o.topColour)) bold ? (bright += 1) : (plain += 1);
+  }
+  assert.ok(runners / n > RUNNER_SHARE && runners / n < RUNNER_SHARE * 2 + 0.02, `${runners / n}`);
+  assert.ok(bright > plain * 4, `bright ${bright}, plain ${plain}`);
+});
+
+test("skin and hair from San Francisco's people, and nobody drawn paper-white", async () => {
+  const { bodyFor } = await import("../docs/city/view.mjs");
+  const { SF_HERITAGE, SKIN_TONES, SKIN_LIGHTEST, luminance } = await import("../docs/city/wardrobe.mjs");
+  for (const list of Object.values(SKIN_TONES)) for (const c of list) assert.ok(luminance(c) <= SKIN_LIGHTEST, c);
+  const cache = new Map(), n = 30000, seen = {};
+  for (let i = 0; i < n; i += 1) {
+    const b = bodyFor({ id: `person:${i}`, age: 30 }, cache);
+    seen[b.heritage] = (seen[b.heritage] || 0) + 1;
+    assert.ok(SKIN_TONES[b.heritage].includes(b.skin));
+  }
+  for (const [k, share] of Object.entries(SF_HERITAGE)) assert.ok(Math.abs(seen[k] / n - share) < 0.012, `${k} ${(seen[k] / n).toFixed(3)} vs ${share}`);
 });

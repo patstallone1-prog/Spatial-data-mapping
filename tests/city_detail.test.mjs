@@ -51,10 +51,10 @@ test("riding, the route ahead round the corner is drawn in full before it comes 
 test("at a ring's edge a thing keeps its tier rather than flick between two", () => {
   const f = detailField({ x: 0, z: 0 });
   const r = DETAIL_RINGS.people[0];
-  assert.equal(f.tier("people", r * 1.04, 0, FULL), FULL, "just past the ring, still full");
-  assert.equal(f.tier("people", r * 0.96, 0, MODERATE), MODERATE, "just inside it, not yet full");
-  assert.equal(f.tier("people", r * 0.9, 0, MODERATE), FULL);
-  assert.equal(f.tier("people", r * 1.1, 0, FULL), MODERATE);
+  assert.equal(f.tier("people", r * 1.12, 0, FULL), FULL, "just past the ring, still full");
+  assert.equal(f.tier("people", r * 0.99, 0, MODERATE), FULL, "coming in: full as soon as inside it");
+  assert.equal(f.tier("people", r * 1.03, 0, MODERATE), MODERATE, "not before");
+  assert.equal(f.tier("people", r * 1.2, 0, FULL), MODERATE);
 });
 
 test("over a tier's cap the rest are drawn one tier down, nearest first, and tracked ones not at all", () => {
