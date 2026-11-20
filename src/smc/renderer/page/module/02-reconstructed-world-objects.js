@@ -104,13 +104,17 @@ function sweepGeometryLocal(path, breaks, closedPath, profile, closedProfile, ca
   for (let k = 0; k < count - 1; k += 1) edges.push([k, k + 1]);
   if (closedProfile) edges.push([count - 1, 0]);
   const cuts = [0, ...breaks.filter((b) => b > 0 && b < n - 1), n - 1];
-  const vertices = [], index = [];
+  // Metres along the path and round the section, for a surface laid by them (uv, in metres).
+  const along = [0], round = [0];
+  for (let i = 1; i < n; i += 1) along.push(along[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+  for (let k = 1; k < count; k += 1) round.push(round[k - 1] + Math.hypot(profile[k][0] - profile[k - 1][0], profile[k][1] - profile[k - 1][1]));
+  const vertices = [], index = [], uv = [];
   for (let c = 0; c < cuts.length - 1; c += 1) {
     const a = cuts[c], b = cuts[c + 1], m = b - a + 1;
     for (const [k0, k1] of edges) {
       const base = vertices.length / 3;
-      for (let i = a; i <= b; i += 1) vertices.push(...rings[i][k0]);
-      for (let i = a; i <= b; i += 1) vertices.push(...rings[i][k1]);
+      for (let i = a; i <= b; i += 1) { vertices.push(...rings[i][k0]); uv.push(along[i], round[k0]); }
+      for (let i = a; i <= b; i += 1) { vertices.push(...rings[i][k1]); uv.push(along[i], k1 ? round[k1] : round[count - 1] + Math.hypot(profile[0][0] - profile[count - 1][0], profile[0][1] - profile[count - 1][1])); }
       for (let i = 0; i < m - 1; i += 1) {
         const A = base + i, B = base + m + i, C = base + m + i + 1, D = base + i + 1;
         index.push(A, B, C, A, C, D);
@@ -121,11 +125,38 @@ function sweepGeometryLocal(path, breaks, closedPath, profile, closedProfile, ca
     const tris = earClip(profile);
     for (const [ring, flip] of [[rings[0], true], [rings[n - 1], false]]) {
       const base = vertices.length / 3;
-      for (const p of ring) vertices.push(...p);
+      for (const p of ring) { vertices.push(...p); uv.push(p[0], p[2]); }
       for (const [i0, i1, i2] of tris) index.push(...(flip ? [base + i2, base + i1, base + i0] : [base + i0, base + i1, base + i2]));
     }
   }
-  return { vertices, index };
+  return { vertices, index, uv };
+}
+
+//: A surveyed curb's section as San Francisco's standard curb is drawn (KERB_PROFILE, module
+//: 05): from the toe at the gutter, the face battered back one in four, the nose rounded, the
+//: top out to the measured back. Its height, its back and which way it faces are the survey's;
+//: its section was a toe, a 15 mm lean and a square corner. Same order (toe first or last) as
+//: the section given, so its faces keep facing out.
+function sfCurbSection(profile) {
+  if (!profile || profile.length < 3) return profile;
+  const toeFirst = Math.abs(profile[0][1]) < Math.abs(profile[profile.length - 1][1]);
+  const ordered = toeFirst ? profile : [...profile].reverse();
+  const toe = ordered[0], back = ordered[ordered.length - 1], height = back[1] - toe[1];
+  if (!(height > 0.03)) return profile;
+  const s = Math.sign(back[0] - toe[0]) || -1;
+  const r = Math.min(KERB_PROFILE.nose * 1.2, height * 0.4), b = KERB_PROFILE.batter;
+  // The corner where the battered face would meet the top, and the nose rounded into it.
+  const corner = [toe[0] + s * b * height, back[1]];
+  const fl = Math.hypot(b, 1), f = [s * b / fl, 1 / fl];
+  const p1 = [corner[0] - f[0] * r, corner[1] - f[1] * r], p2 = [corner[0] + s * r, corner[1]];
+  const out = [[toe[0], toe[1]], p1];
+  for (let k = 1; k < KERB_PROFILE.noseSteps; k += 1) {
+    const t = k / KERB_PROFILE.noseSteps, u = 1 - t;
+    out.push([u * u * p1[0] + 2 * u * t * corner[0] + t * t * p2[0], u * u * p1[1] + 2 * u * t * corner[1] + t * t * p2[1]]);
+  }
+  out.push(p2);
+  if (Math.abs(back[0] - toe[0]) > Math.abs(p2[0] - toe[0]) + 0.01) out.push([back[0], back[1]]);
+  return toeFirst ? out : out.reverse();
 }
 
 function earClip(polygon) {

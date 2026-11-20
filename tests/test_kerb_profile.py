@@ -104,3 +104,30 @@ def test_sidewalk_and_curb_take_their_finishes_near_the_eye() -> None:
     assert "1.0 > 0.5 ? kbSwD.x" in got["walk"] and "0.0 > 0.5 ? kbSwD.x" in got["curb"]
     assert got["none"] == ""
     assert "dFdx(vMapUv)" in got["normal"]
+
+
+def test_surveyed_curb_section_keeps_its_survey_and_takes_the_standard_shape() -> None:
+    js = _page_js()
+    start = js.index("const KERB_PROFILE =")
+    script = "\n".join([
+        js[start:js.index(";", start) + 1],
+        _extract("sfCurbSection", js),
+        "const a = sfCurbSection([[0, 0], [-0.015, 0.126], [-0.165, 0.126]]);",
+        "const b = sfCurbSection([[0.165, 0.126], [0.015, 0.126], [0, 0]]);",
+        "console.log(JSON.stringify({ a, b }));",
+    ])
+    out = subprocess.run([NODE, "--input-type=module", "-e", script], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    got = json.loads(out.stdout)
+    a, b = got["a"], got["b"]
+    # Toe first stays toe first (its faces keep facing out); the mirror image stays mirrored.
+    assert a[0] == [0, 0] and b[-1] == [0, 0]
+    assert a[-1] == pytest.approx([-0.165, 0.126]) and b[0] == pytest.approx([0.165, 0.126])
+    # The face is battered one in four up to the nose, and the nose is rounded over several points.
+    x1, y1 = a[1]
+    assert x1 / y1 == pytest.approx(-0.25, abs=0.01)
+    nose = [p for p in a if 0.09 < p[1] < 0.126]
+    assert len(nose) >= 3
+    # The top is level from the nose back to the surveyed back.
+    assert all(p[1] == pytest.approx(0.126) for p in a[-2:])
+    assert [c for x, y in a for c in (-x, y)] == pytest.approx([c for p in reversed(b) for c in p])
