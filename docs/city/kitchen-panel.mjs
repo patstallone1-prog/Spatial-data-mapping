@@ -2,7 +2,7 @@
 // builds it; docs/city/kitchen.mjs keeps the rules and the world's side).
 //
 // You are the cook. Walk with WASD or the arrows, or click where to go. Click a bin on the front
-// counter, or the fridge, freezer or shelves behind you, and the cook fetches one; click the
+// counter, or the fridge, freezer or shelves behind you, and enter a quantity; click the
 // counter to put it down, a station to cook it, the pass to send it out, the bin to throw it away.
 // Put something down on top of food already on the counter -- or a little off it -- and it is
 // centred onto it: that is how a burger is built, bun, then patty, then cheese. Put it down far
@@ -17,7 +17,8 @@
 //
 // view.mjs calls this through a few hooks: actions (the action bar), todo, and open.
 
-import { chain, doneness, donenessWord, ingCost, needs, processSeconds, recipeOf, scorePlate, targetOf } from "./kitchen.mjs";
+import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare } from "./kitchen.mjs";
+import { DOUGH_FORMS, doughDimensions, doughMesh, workableDough } from "./dough.mjs";
 import { createKitchenScene } from "./kitchen-3d.mjs";
 
 const HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew", "pour"];
@@ -131,12 +132,14 @@ export function kitchenPanel(api) {
   function onKey(e) {
     if (!el) return;
     e.stopImmediatePropagation();   // the city's own keys stay quiet while you cook
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement && e.key !== "Escape") return;
     const k = e.key.toLowerCase();
     if (e.type === "keyup") { keys.delete(k); return; }
     if (k === "escape") { e.preventDefault(); if (st.pop) { st.pop = null; hud(); } else close(); return; }
+    if (st.pop) return;
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); keys.add(k); st.walk = null; return; }
     if (e.repeat) return;
+    if (k === "b" && !held()) { e.preventDefault(); openPantry(); return; }
     if (k === "e" || k === " ") { e.preventDefault(); keyUse(); return; }
     if (k === "delete" || k === "backspace" || k === "q") { e.preventDefault(); keyBin(); }
   }
@@ -160,6 +163,7 @@ export function kitchenPanel(api) {
       const menu = st.k.menu.slice(0, 8).map((d) => ({ name: R.items[d]?.name || d, price: fmt(st.k.prices[d] || 0) }));
       st.scene = await createKitchenScene(THREE, { canvas: st.canvas, kind: st.k.kind, stations: st.k.stations.map((s) => s.id), kit: { loadModel, asset }, title: st.k.name, menu });
       await st.scene.setBins(binList(), R);
+      st.bowl = await st.scene.kenney("bowl-broth", 0.19);
       st.plates = await st.scene.kenney("plate", 0.24);
       st.bunTop = await st.scene.kenney("burger#bun-top", 0.11);
       st.scene.chef.position.set(0, 0, st.scene.walk.z1);
@@ -194,9 +198,10 @@ export function kitchenPanel(api) {
     const before = st.k.tickets.map((t) => t.id).join();
     st.k = r.kitchen;
     if (st.ticket && !ticketOf(st.ticket)) { st.ticket = null; notify("A customer gave up waiting and left."); }
-    if (before !== st.k.tickets.map((t) => t.id).join()) hud(); else hudTop();
+    if (!st.pop && before !== st.k.tickets.map((t) => t.id).join()) hud(); else hudTop();
   }
   async function run(cmd, args) {
+    if (st.sending) return null;
     st.sending = true;
     try {
       const r = await send(cmd, { place: st.place, ...args });
@@ -217,8 +222,8 @@ export function kitchenPanel(api) {
   // the order they were put down. Every item is in a group: on the counter, on a station, on the
   // pass, or in the cook's hands.
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  async function newItem(ing) {
-    const it = { uid: ++uid, ing, chain: [], q: 1, ratio: 1, last: null };
+  async function newItem(ing, qty) {
+    const it = { uid: ++uid, ing, qty, chain: [], ratios: [], q: 1, ratio: 1, last: null };
     it.obj = await st.scene.itemObject(ing, ING[ing]?.role, it);
     mark(it);
     st.items.set(it.uid, it);
@@ -245,11 +250,30 @@ export function kitchenPanel(api) {
   //: Stacks a product's items where it is: each on the one below, centred; a burger gets its lid.
   function layout(g) {
     const node = g.node;
+    for (const m of node.children) if (m.userData.shaped) { m.geometry.dispose(); m.material.dispose(); }
     node.clear();
     let y = 0;
     if (g.at === "pass" && st.plates) { node.add(st.plates.clone(true)); y = 0.014; }
     const list = itemsOf(g);
+    const shown = new Set();
     list.forEach((it, i) => {
+      if (it.shape) {
+        const key = it.batch || it;
+        if (shown.has(key)) return;
+        shown.add(key);
+        const grams = list.filter(i => (i.batch || i) === key).reduce((n, i) => n + cookedPart(R, { ...i, p: i.chain.join(">") }).grams, 0);
+        const mesh = doughMesh(THREE, grams, it.shape, it.chain.includes("bake"));
+        mesh.userData = { item: it.uid, shaped: true }; mesh.position.y = y + mesh.scale.y / 2;
+        node.add(mesh); y += mesh.scale.y; return;
+      }
+      if (it.batch && st.bowl) {
+        if (shown.has(it.batch)) return;
+        shown.add(it.batch);
+        const bowl = st.bowl.clone(true);
+        bowl.traverse(m => { if (m.isMesh) m.userData.item = it.uid; });
+        bowl.position.y = y; node.add(bowl); y += 0.08;
+        return;
+      }
       it.obj.position.set(0, y, 0);
       it.obj.rotation.y = i * 0.5;
       node.add(it.obj);
@@ -285,7 +309,7 @@ export function kitchenPanel(api) {
     g.at = "held"; g.station = null; g.cook = null; st.held = g.gid; st.sel = null;
     layout(g); hud();
   }
-  const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).chain.length;
+  const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).shape && !st.items.get(g.items[0]).chain.length;
 
   // ---- walking ------------------------------------------------------------------------------------
   //: Walk to stand at ``at`` (kept on the floor between the counters), then do ``then``.
@@ -351,7 +375,7 @@ export function kitchenPanel(api) {
 
   // ---- clicks -----------------------------------------------------------------------------------------
   const ndc = (e) => { const r = st.canvas.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1]; };
-  const itemMeshes = () => { const out = []; for (const g of st.groups.values()) if (g.at !== "held") for (const it of itemsOf(g)) it.obj.traverse((m) => m.isMesh && out.push(m)); return out; };
+  const itemMeshes = () => { const out = []; for (const g of st.groups.values()) if (g.at !== "held") g.node.traverse((m) => m.isMesh && m.userData.item && out.push(m)); return out; };
   function onHover(e) {
     if (!st?.scene) return;
     const hit = st.scene.pick(...ndc(e), itemMeshes());
@@ -360,9 +384,9 @@ export function kitchenPanel(api) {
   }
   function describe(hit) {
     const u = hit.object.userData.item;
-    if (u) { const it = st.items.get(u), g = groupOf(u); return g ? `${g.items.length > 1 ? `${productName(g)}: ` : ""}${iname(it.ing)} (${stateWord(it)})` : ""; }
+    if (u) { const it = st.items.get(u), g = groupOf(u); if (it?.batch && g) return `${productName(g)} · ${stateWord(it)}`; return g ? `${g.items.length > 1 ? `${productName(g)}: ` : ""}${iname(it.ing)} (${stateWord(it)})` : ""; }
     const d = hit.object.userData.hit;
-    if (d.type === "bin") return `${iname(d.ing)} · ${Math.floor(st.k.pantry[d.ing] || 0)} left`;
+    if (d.type === "bin") return `${iname(d.ing)} · ${displayAmount(R, d.ing, st.k.pantry[d.ing] || 0)} available`;
     if (d.type === "station") { const s = stationSpec(d.id); return `${s?.name || d.id}: ${s?.does.map((p) => P[p].name.toLowerCase()).join(", ")}`; }
     if (d.type === "store") return `${{ fridge: "Fridge", freezer: "Freezer", dry: "Dry-goods shelves" }[d.kept]}: click to choose`;
     if (d.type === "pass") return "The pass: plates go out from here";
@@ -372,16 +396,20 @@ export function kitchenPanel(api) {
   }
   const stateWord = (it) => (it.chain.length ? it.chain.map((p) => P[p].verb).join(", ") + (it.last && it.last !== "just right" ? `, ${it.last}` : "") : "raw");
   function productName(g) {
-    const list = itemsOf(g).map((i) => i.ing);
-    if (list.length === 1) return iname(list[0]);
-    if (list[0] === "bun") return "Burger";
-    if (list.includes("tortilla") || list.includes("pita")) return "Wrap";
-    if (list.includes("pizza_dough")) return "Pizza";
-    if (list[0] === "bread" || list[0] === "baguette") return "Sandwich";
-    return `${list.length} things`;
+    const list = itemsOf(g);
+    if (list[0]?.shape && list.every(i => i.shape === list[0].shape)) return `${DOUGH_FORMS[list[0].shape.form]} · ${list[0].shape.span} cm · ${Number(groupGrams(g).toFixed(1))} g`;
+    if (list[0]?.batch && list.every(i => i.batch === list[0].batch)) {
+      const grams = groupGrams(g);
+      const label = list.some(i => i.chain.includes("blend")) ? "Blend" :
+        list.some(i => i.ing === "flour") && list.some(i => i.ing === "water") ? "Dough" : "Mixture";
+      const baked = list.every(i => i.chain.findLast(step => step !== "cool" && step !== "chill") === "bake");
+      return `${baked ? "Baked " + label.toLowerCase() : label} · ${Number(grams.toFixed(2))} g`;
+    }
+    if (list.length === 1) return `${iname(list[0].ing)} · ${displayAmount(R, list[0].ing, list[0].qty)}`;
+    return recognizeDish(R, plateOf(g), st.k.house_menu)?.name || `${list.length} ingredients`;
   }
   function onPointer(e) {
-    if (e.button !== 0 || !st?.scene) return;
+    if (e.button !== 0 || !st?.scene || st.fetching || st.sending) return;
     st.pop = null;
     const hit = st.scene.pick(...ndc(e), itemMeshes());
     if (!hit) { hud(); return; }
@@ -415,6 +443,7 @@ export function kitchenPanel(api) {
     }
     const s = st.sel;
     if (!s || s.gid !== g.gid) st.sel = { gid: g.gid, uid: g.items.length === 1 ? u : null };
+    else if (itemsOf(g).every(i => i.batch && i.batch === st.items.get(u).batch)) { walkTo(standAt(g), () => pickSelected()); return; }
     else if (!s.uid || s.uid !== u) st.sel = { gid: g.gid, uid: u };
     else { walkTo(standAt(g), () => pickSelected()); return; }
     highlight(); hud();
@@ -423,12 +452,15 @@ export function kitchenPanel(api) {
     const s = st.sel, g = s && st.groups.get(s.gid);
     if (!g) return;
     if (held()) { notify("Your hands are full: put that down first."); return; }
-    if (g.cook) await finishCook(g);
+    if (g.cook && !await finishCook(g)) return;
     if (s.uid && g.items.length > 1) {
       // One thing out of a product: the rest settles down.
-      g.items = g.items.filter((x) => x !== s.uid);
+      const selected = st.items.get(s.uid);
+      const taken = selected.batch ? itemsOf(g).filter(i => i.batch === selected.batch) : [selected];
+      if (taken.length === g.items.length) { hold(g); return; }
+      g.items = g.items.filter(u => !taken.some(i => i.uid === u));
       layout(g);
-      hold(newGroup([st.items.get(s.uid)], "held", V(0, 0, 0)));
+      hold(newGroup(taken, "held", V(0, 0, 0)));
     } else hold(g);
   }
   function clickSource(ing, at) {
@@ -438,29 +470,44 @@ export function kitchenPanel(api) {
       else notify("Your hands are full: put that down first.");
       return;
     }
-    walkTo(at, () => take(ing));
+    walkTo(at, () => chooseQuantity(ing));
+  }
+  function openPantry() {
+    const list = Object.keys(ING).filter(i => st.k.pantry[i] > 0).sort((a, b) => iname(a).localeCompare(iname(b)));
+    st.pop = { kind: "store", list }; hud();
   }
   function clickStore(kept, e) {
     const hg = held(), loc = st.scene.storage[kept];
     if (hg && untouched(hg) && ING[st.items.get(hg.items[0]).ing].kept === kept) { walkTo(loc.approach, () => putBack()); return; }
     if (hg) { notify("Your hands are full: put that down first."); return; }
-    const list = Object.keys(ING).filter((i) => ING[i].kept === kept && (st.k.pantry[i] || 0) >= 1).sort((a, b) => ING[a].name.localeCompare(ING[b].name));
+    const list = Object.keys(ING).filter((i) => ING[i].kept === kept && (st.k.pantry[i] || 0) > 0).sort((a, b) => ING[a].name.localeCompare(ING[b].name));
     st.pop = { kind: "store", kept, x: e.clientX, y: e.clientY, list };
     walkTo(loc.approach);
     hud();
   }
-  async function take(ing) {
-    if (held()) return;
-    const r = await run("kitchen_take", { items: { [ing]: 1 } });
-    if (!r) return;
-    const it = await newItem(ing);
-    hold(newGroup([it], "held", V(0, 0, 0)));
+  function chooseQuantity(ing) {
+    const spec = ING[ing], stock = st.k.pantry[ing] || 0;
+    const max = spec.measure === "g" ? stock * spec.grams : Math.floor(stock);
+    st.pop = { kind: "quantity", ing, max, value: Math.min(max, spec.measure === "g" ? spec.grams : 1) };
+    hud();
+    const input = el.querySelector(".pop input");
+    input?.focus(); input?.select();
+  }
+  async function take(ing, amount) {
+    if (held() || st.fetching) return;
+    st.fetching = true;
+    try {
+      const qty = ING[ing].measure === "g" ? amount / ING[ing].grams : amount;
+      const r = await run("kitchen_take", { items: { [ing]: qty } });
+      if (!r) return;
+      hold(newGroup([await newItem(ing, qty)], "held", V(0, 0, 0)));
+    } finally { st.fetching = false; }
   }
   async function putBack() {
     const g = held();
     if (!untouched(g)) return;
     const it = st.items.get(g.items[0]);
-    const r = await run("kitchen_return", { items: { [it.ing]: 1 } });
+    const r = await run("kitchen_return", { items: { [it.ing]: it.qty } });
     if (!r) return;
     drop(g); hud();
   }
@@ -505,7 +552,7 @@ export function kitchenPanel(api) {
     const g = held();
     if (!g) return;
     const items = {};
-    for (const it of itemsOf(g)) items[it.ing] = (items[it.ing] || 0) + 1;
+    for (const it of itemsOf(g)) items[it.ing] = (items[it.ing] || 0) + it.qty;
     const why = itemsOf(g).map((i) => i.last).find((x) => x && x !== "just right") || "binned";
     const name = productName(g);
     const r = await run("kitchen_bin", { items, why });
@@ -533,7 +580,11 @@ export function kitchenPanel(api) {
       } else notify("Walk up to the front counter to put it down, or click where it goes.");
       return;
     }
-    if (st.sel) pickSelectedThen(() => {});
+    if (st.sel) { pickSelectedThen(() => {}); return; }
+    if (chef.z >= st.scene.walk.z1 - 0.2) {
+      const bin = st.scene.bins.reduce((near, b) => !near || Math.abs(chef.x - b.x) < Math.abs(chef.x - near.x) ? b : near, null);
+      if (bin && Math.abs(chef.x - bin.x) < 0.22) chooseQuantity(bin.ing);
+    }
   }
 
   // ---- stations ---------------------------------------------------------------------------------------
@@ -571,12 +622,12 @@ export function kitchenPanel(api) {
     g.at = "station"; g.station = { id, slot: free }; g.pos = lay.slots[free].clone(); st.held = null;
     if (proc === "chop") g.cook = { proc, taps: 0, need: P.chop.taps };
     else if (spec.batch) g.cook = { proc, start: 0 };
-    else g.cook = { proc, start: performance.now(), secs: Math.max(...itemsOf(g).map((i) => processSeconds(R, i.ing, proc))) };
+    else g.cook = { proc, start: performance.now(), secs: batchSeconds(R, itemsOf(g), proc) };
     layout(g); hud();
   }
   function startBatch(g) {
     g.cook.start = performance.now();
-    g.cook.secs = Math.max(...itemsOf(g).map((i) => processSeconds(R, i.ing, g.cook.proc)));
+    g.cook.secs = batchSeconds(R, itemsOf(g), g.cook.proc);
     hud();
   }
   async function chopTap(g) {
@@ -591,19 +642,26 @@ export function kitchenPanel(api) {
   async function finishCook(g) {
     const c = g.cook;
     if (!c) return;
-    g.cook = null;
-    if (c.proc === "chop" && c.taps < c.need) return;   // taken off the board unchopped
-    if (c.proc !== "chop" && !c.start) return;          // a batch never started
+    if (c.proc === "chop" && c.taps < c.need) { g.cook = null; return true; }   // taken off the board unchopped
+    if (c.proc !== "chop" && !c.start) { g.cook = null; return true; }          // a batch never started
     const ratio = c.start ? (performance.now() - c.start) / 1000 / Math.max(0.5, c.secs) : 1;
+    if ((c.proc === "cool" || c.proc === "chill") && ratio < 1) {
+      notify(`Still ${c.proc === "cool" ? "cooling" : "chilling"}.`); return false;
+    }
+    g.cook = null;
     const q = doneness(R, ratio, c.proc);
+    const batch = c.proc === "mix" || c.proc === "blend" ? ++gid : null;
     for (const it of itemsOf(g)) {
       it.chain.push(c.proc);
+      it.ratios.push(Math.min(10, ratio));
+      if (batch) { it.batch = batch; delete it.shape; }
       if (K.heat.includes(c.proc)) { it.q = Math.min(it.q, q); it.ratio = ratio; it.last = donenessWord(q, ratio); }
       else if ((c.proc === "mix" || c.proc === "blend") && ratio < 0.6) { it.q = Math.min(it.q, 0.6); it.last = "lumpy"; }
       await relook(it);
     }
     layout(g);
     if (K.heat.includes(c.proc)) notify(`${productName(g)}: ${donenessWord(q, ratio)}.`);
+    return true;
   }
 
   // ---- tickets, serving, the lab -----------------------------------------------------------------------
@@ -614,10 +672,39 @@ export function kitchenPanel(api) {
     const out = [];
     for (const it of itemsOf(g)) {
       const p = it.chain.join(">") || "-", lastC = out.at(-1);
-      if (lastC && lastC.ing === it.ing && lastC.p === p) { lastC.qty += 1; lastC.q = Math.min(lastC.q, it.q); }
-      else out.push({ ing: it.ing, qty: 1, p, q: it.q, ratio: it.ratio });
+      if (lastC && lastC.ing === it.ing && lastC.p === p && lastC.shape === it.shape && lastC.ratios.every((r, i) => r === it.ratios[i])) lastC.qty += it.qty;
+      else out.push({ ing: it.ing, qty: it.qty, p, q: it.q, ...(it.shape ? {shape: it.shape} : {}), ratios: [...it.ratios], ratio: it.ratio });
     }
     return out;
+  }
+  function groupGrams(g) {
+    return plateOf(g).reduce((sum, c) => sum + cookedPart(R, c).grams, 0);
+  }
+  function portionControl(g) {
+    const list = itemsOf(g), batch = list[0].batch;
+    if (g.at !== "work" || (list.length > 1 && !list.every(i => batch && i.batch === batch))) return null;
+    const counted = !batch && ING[list[0].ing].measure === "count";
+    const max = counted ? list[0].qty : groupGrams(g);
+    if (max <= (counted ? 1 : 0.01)) return null;
+    return h("button", { textContent: "Take a portion", onclick: () => {
+      walkTo(standAt(g), () => {
+        st.pop = { kind: "portion", group: g, max, counted, value: counted ? 1 : Number((max / 2).toFixed(2)) };
+        hud(); const input = el.querySelector(".pop input"); input.focus(); input.select();
+      });
+    } });
+  }
+  function splitPortion(g, fraction) {
+    if (held() || !st.groups.has(g.gid)) return;
+    if (fraction >= 1) { hold(g); return; }
+    const batch = itemsOf(g)[0].batch ? ++gid : null;
+    const portion = itemsOf(g).map(it => {
+      const copy = { ...it, batch, uid: ++uid, qty: it.qty * fraction, chain: [...it.chain], ratios: [...it.ratios], obj: it.obj.clone(true) };
+      it.qty -= copy.qty;
+      if (it.shape) { delete copy.shape; delete it.shape; }
+      mark(copy); st.items.set(copy.uid, copy);
+      return copy;
+    });
+    layout(g); hold(newGroup(portion, "held", V(0, 0, 0)));
   }
   const passGroups = () => st.passOrder.map((id) => st.groups.get(id)).filter(Boolean);
   async function serve() {
@@ -625,12 +712,11 @@ export function kitchenPanel(api) {
     if (!t) return;
     const gs = passGroups().slice(0, t.lines.length);
     if (gs.length < t.lines.length) { notify(`Put ${t.lines.length} plates on the pass.`); return; }
-    const elapsed = Math.max(0, (Date.now() - clock.real(t.at)) / 1000);
-    const r = await run("kitchen_serve", { ticket: t.id, plates: gs.map(plateOf), extras: [...st.extras], elapsed });
+    const r = await run("kitchen_serve", { ticket: t.id, plates: gs.map(plateOf), extras: [...st.extras] });
     if (!r) return;
     for (const g of gs) sendOut(g);
     st.ticket = null; st.extras = new Set();
-    st.results.unshift({ who: t.who, score: r.score, tip: r.tip, comp: r.comp_cost, notes: r.scores.flatMap((s) => s.notes).slice(0, 4), paid: t.paid });
+    st.results.unshift({ who: t.who, analyses: r.analyses, score: r.score, tip: r.tip, comp: r.comp_cost, notes: r.scores.flatMap((s) => s.notes).slice(0, 4), paid: t.paid });
     st.results = st.results.slice(0, 3);
     if (r.review) notify(r.review);
     hud();
@@ -655,7 +741,7 @@ export function kitchenPanel(api) {
   async function labTest() {
     const g = passGroups()[0];
     if (!g) { notify("Put your dish on the pass first."); return; }
-    const build = plateOf(g).map(({ ing, qty, p, q }) => ({ ing, qty, p, q }));
+    const build = plateOf(g);
     const r = await run("lab_test", { name: st.lab.name || "Test dish", build });
     if (!r) return;
     sendOut(g);
@@ -701,7 +787,7 @@ export function kitchenPanel(api) {
   function ticketCard(t) {
     const left = realLeft(t), share = Math.max(0, Math.min(1, left / t.real_s));
     return h("div", { className: `ticket${st.ticket === t.id ? " sel" : ""}`, "data-ticket": t.id, onclick: () => { st.ticket = t.id; hud(); } },
-      h("div", { className: "who", textContent: `${t.who}${t.paid ? " (paid)" : ""}` }),
+      h("div", { className: "who", textContent: `${t.who} · ${t.service || "Customer"}${t.paid ? " (paid)" : ""}` }),
       h("ul", {}, ...t.lines.map((l) => h("li", {}, h("span", { textContent: R.items[l.dish]?.name || l.dish }),
         ...(l.mods || []).map((m) => h("div", { className: "mod", textContent: m.no ? `NO ${iname(m.no).toUpperCase()}` : `EXTRA ${iname(m.extra).toUpperCase()}` }))))),
       h("div", { className: "bar" }, h("i", { style: `width:${share * 100}%;background:${share < 0.25 ? "#c0392b" : share < 0.5 ? "#e0a526" : "#2e9d58"}` })),
@@ -722,9 +808,9 @@ export function kitchenPanel(api) {
       const plate = g ? plateOf(g) : [];
       const have = new Set(plate.map((c) => `${c.ing}|${c.p}`));
       out.push(h("h4", { textContent: `${i + 1}. ${R.items[line.dish]?.name || line.dish}${g ? " — on the pass" : ""}` }));
-      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${c.qty > 1 ? `${c.qty} × ` : ""}${iname(c.ing)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.side ? " (side)" : ""}` }))),
+      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.shape ? ` · ${DOUGH_FORMS[c.shape.form]}, ${c.shape.span} × ${Number((c.shape.span / c.shape.aspect).toFixed(1))} cm` : ""}${c.side ? " (side)" : ""}` }))),
         target.ordered ? h("div", { className: "note", textContent: "Build it in this order, bottom first." }) : null,
-        g ? h("div", { className: "note", textContent: `As it stands: about ${scorePlate(R, target, plate, { elapsed: Math.max(0, (Date.now() - clock.real(t.at)) / 1000), patience: t.real_s }).score}/100` }) : null));
+        g ? h("div", { className: "note", textContent: `As it stands: about ${scorePlate(R, target, plate, { elapsed: Math.max(0, (Date.now() - clock.real(t.at)) / 1000), patience: t.real_s, targetSeconds: t.target_s }).score}/100` }) : null));
     });
     const extras = (k().menu || []).filter((d) => { const v = recipeOf(R, d)?.vessel; return v === "cup" || v === "glass" || (R.items[d]?.price || 0) < R.money(8); }).slice(0, 8);
     if (extras.length && !t.paid) {
@@ -740,9 +826,10 @@ export function kitchenPanel(api) {
   }
   function labSide() {
     const g = passGroups()[0];
+    const family = g && recognizeDish(R, plateOf(g), k().house_menu);
     const out = [h("h4", { textContent: "The lab" }), h("p", { className: "note", textContent: "Cook anything from the pantry, build your dish, and put it on the pass. It is served free to a customer as a test." }),
-      h("input", { placeholder: "Name your dish", value: st.lab.name, maxLength: 40, style: "width:100%", oninput: (e) => { st.lab.name = e.target.value; } })];
-    if (g) out.push(h("div", { className: "note", style: "margin-top:6px", textContent: `On the pass: ${plateOf(g).map((c) => `${c.qty > 1 ? `${c.qty} ` : ""}${iname(c.ing).toLowerCase()}${c.p !== "-" ? ` (${chain(c.p).map((p) => P[p].verb).join(", ")})` : ""}`).join(", ")} · costs ${fmt(plateOf(g).reduce((s, c) => s + ingCost(R, c.ing, c.qty), 0))}` }));
+      h("input", { placeholder: "Name your dish", "aria-label": "Dish name", disabled: Boolean(family), value: family?.name || st.lab.name, maxLength: 40, style: "width:100%", oninput: (e) => { st.lab.name = e.target.value; } })];
+    if (g) out.push(h("div", { className: "note", style: "margin-top:6px", textContent: `On the pass: ${plateOf(g).map((c) => `${displayAmount(R, c.ing, c.qty)} ${iname(c.ing).toLowerCase()}${c.p !== "-" ? ` (${chain(c.p).map((p) => P[p].verb).join(", ")})` : ""}`).join(", ")} · costs ${fmt(plateOf(g).reduce((s, c) => s + ingCost(R, c.ing, c.qty), 0))}` }));
     out.push(h("button", { className: "primary", style: "width:100%;margin-top:6px", textContent: "Serve as a free test", disabled: !g, onclick: labTest }));
     if (st.lastTest) out.push(testCard(st.lastTest, true));
     const mine = (k().proposals || []).slice(-5).reverse();
@@ -759,23 +846,67 @@ export function kitchenPanel(api) {
       if (untouched(g)) bits.push(h("button", { textContent: "Put back", onclick: () => { const it = st.items.get(g.items[0]); const bin = st.scene.bins.find((b) => b.ing === it.ing); walkTo(bin ? frontOf(bin.x) : st.scene.storage[ING[it.ing].kept].approach, () => putBack()); } }));
       bits.push(h("button", { textContent: "Bin it (Q)", onclick: keyBin }));
     } else if (s) {
+      const batch = itemsOf(s)[0].batch;
+      const homogeneous = batch && itemsOf(s).every(i => i.batch === batch);
       const it = st.sel.uid ? st.items.get(st.sel.uid) : null;
-      bits.push(h("span", { textContent: it && s.items.length > 1 ? `Selected: the ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()} (${stateWord(it)}). Click it again to take it out.` : `Selected: ${productName(s)}${it ? ` (${stateWord(it)})` : ` (${s.items.length} things)`}. ${s.items.length > 1 && !it ? "Click again to choose one thing in it." : "Click again to pick it up."}` }));
+      bits.push(h("span", { textContent: homogeneous ? `Selected: ${productName(s)}. Pick up the batch or weigh out a portion.` : it && s.items.length > 1 ? `Selected: the ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()} (${stateWord(it)}). Click it again to take it out.` : `Selected: ${productName(s)}${it ? ` (${stateWord(it)})` : ` (${s.items.length} things)`}. ${s.items.length > 1 && !it ? "Click again to choose one thing in it." : "Click again to pick it up."}` }));
       bits.push(h("button", { className: "primary", textContent: "Pick up (E)", onclick: () => pickSelectedThen(() => {}) }), h("button", { textContent: "Bin", onclick: keyBin }));
-    } else bits.push(h("span", { className: "note", textContent: "Click a bin, or the fridge, freezer or shelves, to fetch an ingredient · click food once for the dish, twice for one thing in it" }));
+      if (s.at === "work" && workableDough(itemsOf(s))) bits.push(h("button", { textContent: "Shape dough", onclick: () => {
+        walkTo(standAt(s), () => { st.pop = { kind: "shape", group: s }; hud(); });
+      } }));
+      const portion = portionControl(s); if (portion) bits.push(portion);
+    } else bits.push(h("span", { className: "note", textContent: "Click a labeled bin or walk up and press E to enter a quantity. The fridge, freezer and shelves hold more ingredients." }));
+    if (!g) bits.push(h("button", { textContent: "Pantry (B)", onclick: openPantry }));
     return h("div", { className: "hint glass hud" }, ...bits);
   }
   function popup() {
     const p = st.pop;
+    if (p.kind === "shape") {
+      const g = p.group, mass = groupGrams(g), current = itemsOf(g)[0].shape;
+      const form = h("select", { "aria-label": "Dough form" }, ...Object.entries(DOUGH_FORMS).map(([id,name]) => h("option", { value: id, textContent: name })));
+      form.value = current?.form || "ball";
+      const span = h("input", { type: "range", min: 3, max: 50, step: 0.1, value: current?.span ?? Math.min(50, Math.max(3, Math.cbrt(mass / 1.08 * 6 / Math.PI))) });
+      const aspect = h("input", { type: "range", min: 0.4, max: 2.5, step: 0.05, value: current?.aspect ?? 1 });
+      const readout = h("output"), apply = h("button", { textContent: "Shape portion", className: "primary" });
+      const shape = () => ({ form: form.value, span: +span.value, aspect: +aspect.value });
+      function preview() {
+        const d = doughDimensions(mass, shape());
+        readout.textContent = `${Math.round(mass)} g · ${d.width.toFixed(1)} × ${d.length.toFixed(1)} × ${d.height.toFixed(1)} cm`;
+        apply.disabled = d.height < 0.1 || d.height > Math.min(d.width, d.length) * (form.value === "ball" ? 2 : 0.6);
+        if (apply.disabled) readout.textContent += " · adjust the footprint to fit this portion";
+      }
+      form.onchange = span.oninput = aspect.oninput = preview; preview();
+      apply.onclick = () => { const spec = shape(); for (const it of itemsOf(g)) it.shape = spec; st.pop = null; layout(g); hud(); };
+      return h("div", { className: "pop list glass hud", style: "left:50%;top:50%" }, form, h("label", {}, "Width ", span), h("label", {}, "Width / length ", aspect), readout, apply,
+        h("button", { textContent: "Cancel", onclick: () => { st.pop = null; hud(); } }));
+    }
+    if (p.kind === "quantity" || p.kind === "portion") {
+      const source = p.kind === "quantity";
+      const counted = source ? ING[p.ing].measure === "count" : p.counted;
+      const unit = counted ? (source ? ING[p.ing].unit : ING[itemsOf(p.group)[0].ing].unit) : "g";
+      const input = h("input", { type: "number", step: counted ? "1" : "any", min: counted ? "1" : "0.000001",
+        max: String(p.max), value: String(p.value), required: true, "aria-label": `Quantity in ${unit}` });
+      const submit = e => {
+        e.preventDefault(); const amount = input.valueAsNumber;
+        if (!input.reportValidity() || !Number.isFinite(amount) || amount <= 0 || amount > p.max) return;
+        st.pop = null; hud();
+        if (source) take(p.ing, amount); else splitPortion(p.group, amount / p.max);
+      };
+      return h("form", { className: "pop list glass hud", style: "left:50%;top:50%", onsubmit: submit },
+        h("b", { textContent: source ? iname(p.ing) : productName(p.group) }),
+        h("label", {}, `Quantity (${unit}) · ${Number(p.max.toFixed(2))} available`, input),
+        h("button", { className: "primary", type: "submit", textContent: "Take" }),
+        h("button", { type: "button", textContent: "Cancel", onclick: () => { st.pop = null; hud(); } }));
+    }
     if (p.kind === "proc") {
       const spec = stationSpec(p.id);
       return h("div", { className: "pop glass hud", style: `left:${p.x}px;top:${p.y}px` }, h("b", { textContent: spec.name }),
         ...spec.does.map((pr) => h("button", { textContent: P[pr].name, onclick: () => { st.pop = null; walkTo(stationStand(p.id), () => placeOn(p.id, pr)); hud(); } })));
     }
     if (p.kind === "store") {
-      const name = { fridge: "The fridge", freezer: "The freezer", dry: "The dry-goods shelves" }[p.kept];
+      const name = { fridge: "The fridge", freezer: "The freezer", dry: "The dry-goods shelves" }[p.kept] || "Ingredient bins";
       return h("div", { className: "pop list glass hud", style: "left:50%;top:50%" }, h("b", { textContent: name }),
-        ...(p.list.length ? p.list.map((i) => h("button", { className: "row", onclick: () => { st.pop = null; walkTo(st.scene.storage[p.kept].approach, () => take(i)); hud(); } }, h("span", { textContent: iname(i) }), h("span", { className: "note", textContent: String(Math.floor(st.k.pantry[i])) })))
+        ...(p.list.length ? p.list.map((i) => h("button", { className: "row", onclick: () => { st.pop = null; const bin = st.scene.bins.find(b => b.ing === i); walkTo(bin?.approach || st.scene.storage[ING[i].kept].approach, () => chooseQuantity(i)); hud(); } }, h("span", { textContent: iname(i) }), h("span", { className: "note", textContent: displayAmount(R, i, st.k.pantry[i]) })))
           : [h("p", { className: "note", textContent: "Empty: the owner has not ordered anything kept here." })]),
         h("button", { textContent: "Close", onclick: () => { st.pop = null; hud(); } }));
     }
@@ -810,22 +941,32 @@ export function kitchenPanel(api) {
       if (!t) continue;
       const share = Math.max(0, Math.min(1, realLeft(t) / t.real_s)), bar = node.querySelector(".bar i");
       bar.style.width = `${share * 100}%`; bar.style.background = share < 0.25 ? "#c0392b" : share < 0.5 ? "#e0a526" : "#2e9d58";
-      node.querySelector(".left").textContent = `${Math.max(0, Math.round(realLeft(t)))} s left`;
+      const left = Math.max(0, Math.round(realLeft(t))), elapsed = t.real_s - left;
+      const onTime = Math.ceil((t.target_s ?? t.real_s * 0.6) - elapsed);
+      node.querySelector(".left").textContent = t.paid ? `${left}s left` : onTime > 0 ?
+        `Full tip for ${onTime}s · leaves in ${left}s` : `${Math.round(100 * waitTipShare(t, elapsed))}% tip potential · leaves in ${left}s`;
     }
   }
   function resultCard(x) {
     const stars = Math.round(x.score / 20);
     return h("div", { className: "result" }, h("div", {}, h("span", { className: "stars", textContent: `${"★".repeat(stars)}${"☆".repeat(5 - stars)}` }), h("b", { textContent: ` ${x.score}/100 for ${x.who}` })),
       h("div", { textContent: x.paid ? "They paid at the counter: a tip is theirs to give." : `Tip ${fmt(x.tip)}${x.comp ? ` · on the house ${fmt(x.comp)}` : ""}` }),
+      ...(x.analyses || []).map((a, i) => h("div", { className: "note", textContent: `Plate ${i + 1} · ≈${a.kcal} kcal · taste ${a.taste}/100` })),
       x.notes.length ? h("div", { className: "note", textContent: x.notes.join(" · ") }) : null);
+  }
+  function flavourNotes(profile) {
+    const labels = { sw: "sweet", sa: "salty", so: "sour", bi: "bitter", um: "savory", fa: "rich", sp: "spicy", fr: "fresh" };
+    const dominant = Object.entries(profile).filter(([, amount]) => amount > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    return dominant.length ? dominant.map(([key]) => labels[key]).join(" · ") : "Mild";
   }
   function testCard(x, offer = false) {
     const price = h("input", { type: "number", step: "0.5", min: "1", value: String(x.price / R.money(1)), style: "width:5.5em" });
     const done = (k().proposals || []).some((p) => p.test === x.id);
     return h("div", { className: "result" }, h("b", { textContent: `"${x.name}": ${x.taste}/100` }), h("div", { textContent: `${x.who}: “${x.verdict}”` }),
-      h("div", { className: "note", textContent: `+${x.stamina} stamina · ${x.health >= 0 ? "+" : ""}${x.health} health · costs ${fmt(x.cost)} · a fair price ${fmt(x.price)}` }),
+      h("div", { className: "note", textContent: `${x.kcal != null ? `≈${x.kcal} kcal · ${x.grams} g · ` : ""}+${x.stamina} stamina · ${x.health >= 0 ? "+" : ""}${x.health} health · costs ${fmt(x.cost)} · a fair price ${fmt(x.price)}` }),
+      x.flavour ? h("div", { className: "note", textContent: flavourNotes(x.flavour) }) : null,
       x.notes.length ? h("div", { className: "note", textContent: x.notes.join(" · ") }) : null,
-      offer && !done ? h("div", { className: "chips", style: "margin-top:4px" }, h("span", { className: "note", textContent: "Price ₡" }), price,
+      offer && !done && !(x.family && (k().menu.includes(x.family) || k().house_menu.some(d => d.id === x.family))) ? h("div", { className: "chips", style: "margin-top:4px" }, h("span", { className: "note", textContent: "Price ₡" }), price,
         h("button", { className: "primary", textContent: `Put to ${k().owner_name.split(" ")[0]}`, onclick: () => propose(x, Math.round(+price.value * R.money(1))) })) : null);
   }
   function ownerTab() {
@@ -836,7 +977,7 @@ export function kitchenPanel(api) {
     const cost = Object.entries(st.order).reduce((s, [i, n]) => s + ingCost(R, i, n), 0);
     out.push(h("h4", { textContent: "Order for the pantry" }), h("p", { className: "note", textContent: `Paid from the business (${fmt(kk.balance || 0)}); in the pantry within 12 game hours. What the menu uses comes first.` }),
       h("table", {}, ...ids.filter((i) => menuNeeds.has(i) || kk.pantry[i] > 0).concat(ids.filter((i) => !menuNeeds.has(i) && !(kk.pantry[i] > 0))).slice(0, 140).map((i) => h("tr", {},
-        h("td", { textContent: ING[i].name }), h("td", { className: "note", textContent: `${Math.floor(kk.pantry[i] || 0)} in · ${fmt(ingCost(R, i))}/${ING[i].unit}` }),
+        h("td", { textContent: ING[i].name }), h("td", { className: "note", textContent: `${displayAmount(R, i, kk.pantry[i] || 0)} in · ${fmt(ingCost(R, i))} per ${ING[i].unit} (${ING[i].grams} g)` }),
         h("td", {}, h("input", { type: "number", min: "0", value: String(st.order[i] || ""), style: "width:5em", oninput: (e) => { st.order[i] = Math.max(0, +e.target.value || 0); } }))))),
       h("div", { className: "chips", style: "margin:6px 0" }, h("button", { textContent: "Fill to a week of the menu", onclick: () => { fillWeek(); hud(); } }),
         h("button", { className: "primary", textContent: `Order (${fmt(cost)})`, onclick: async () => { const items = Object.fromEntries(Object.entries(st.order).filter(([, n]) => n > 0)); const r = await run("kitchen_order", { items }); if (r) { notify(`Ordered: ${fmt(r.cost)}.`); st.order = {}; hud(); } } })));

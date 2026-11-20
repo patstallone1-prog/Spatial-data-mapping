@@ -41,6 +41,8 @@ import { THEME_CSS } from "./theme.mjs";
 import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
+import { workshopPanel } from "./workshop-panel.mjs";
+import { isWorkshop, visitingCars } from "./workshop.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
 import { NEAR_FIGURES_MAX, npcFigures } from "./npc-figures.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
@@ -345,6 +347,7 @@ export async function startCity(ctx) {
     const roster = district.roster;
     roster.add(places);
     district.streets = streets; district.places = roster.list; district.county = data.county;
+    district.workshops = district.places.filter(pl => isWorkshop(R, pl));
     district.people = [...roster.people.values()];
     district.placeById = roster.places;
     const harm = (id, ms) => harmNow((world || view)?.harm?.get(id), ms);
@@ -1379,7 +1382,7 @@ export async function startCity(ctx) {
     const g = vehicleGroup(THREE, model, colour);
     g.userData = { model, dims: [w, h, l] };
     g.name = "city-car";
-    if (FLEET_FOR[model]) fleetReady(model, "full").then((parts) => { if (parts) dressFull(g, model, parts, colour); });
+    if (FLEET_FOR[model]) fleetReady(model, "full").then((parts) => { if (parts && !g.userData.bayDisposed) dressFull(g, model, parts, colour); });
     return g;
   }
   //: ``g``'s code-built body swapped for the fleet's full model: one of each part (an instance of
@@ -1433,7 +1436,10 @@ export async function startCity(ctx) {
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a),
     openKitchen: (place) => { const pl = (district.places || []).find((x) => String(x.id) === String(place.id)); if (pl) { closeSide(); kitchen().open(pl); } else notify("Go to the restaurant to open its kitchen."); } }));
-  //: The restaurant game: a food shop's line, lab and pantry, for its staff and its owner (kitchen-panel.mjs).
+  let bayUI = null;
+  const workshop = () => (bayUI ||= workshopPanel({ R, h, doc, THREE, send, notify, self, getView: () => view, makeCar,
+    visitors: place => visitingCars(visible.people, district.city, fleetAt(Date.now()), place), placeArg }));
+  //: A food shop's line, lab and pantry, for its staff and its owner.
   let kitchenUI = null;
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
@@ -1579,11 +1585,11 @@ export async function startCity(ctx) {
     const [lon, lat] = ctx.toLonLat(p.x, p.z);
     return { x: p.x, z: p.z, lon, lat, county: district.county };
   }
-  function nearestPlace(test = () => true, reach = 60) {
+  function nearestPlace(test = () => true, reach = 60, places = district.places) {
     const p = me();
     let best = null, bestD = reach;
     const nodes = district.streets?.nodes || [];
-    for (const pl of district.places) {
+    for (const pl of places) {
       if (!test(pl)) continue;
       // From its middle, or from the pavement in front of it (a big building's middle is far in).
       const front = nodes[pl.node];
@@ -3614,6 +3620,8 @@ export async function startCity(ctx) {
     if (p.job && !p.clocked && Math.hypot(here.x - p.job.place.x, here.z - p.job.place.z) < R.jobs.workplace_reach_m) out.push({ id: "clock", label: `Clock in: ${p.job.title}`, key: "", run: workKey });
     const task = p.clocked?.task;
     if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
+    const bay = shop.place || nearestPlace(undefined, R.jobs.workplace_reach_m, district.workshops || []);
+    if (bay && isWorkshop(R, bay, view.bizAt(bay.id))) out.push({ id: "repair-bay", label: "Repair shop · service desk", key: "", run: () => workshop().open(bay) });
     if (shop.place) {
       out.push({ id: "shop", label: "Buy: the shop panel by the door", key: "", run: () => openStore(shop.place) });
       if (p.hands) out.push(...handActions(p));
@@ -4431,6 +4439,7 @@ export async function startCity(ctx) {
       const wasCar = carTiers.get(e.v.id);
       if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
+      if (h0?.out) continue;
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
       if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
       if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true, lock: s0.lock || null }); continue; }
@@ -4656,7 +4665,7 @@ export async function startCity(ctx) {
     const w = view;
     if (!w) return;
     const p = w.players.get(myId);
-    const mine = p ? w.registry.held(p.account).filter((a) => a.kind === "vehicle") : [];
+    const mine = p ? w.registry.held(p.account).filter((a) => a.kind === "vehicle" && !a.attrs.serviceBay) : [];
     const ids = new Set(mine.map((a) => a.id));
     for (const [id, mesh] of parked) if (!ids.has(id) || (car.active && car.vehicle === id)) { mesh.removeFromParent(); parked.delete(id); }
     for (const a of mine) {

@@ -26,6 +26,7 @@
 // Installed on CityWorld's prototype (installKitchen, from world.mjs); tests in
 // tests/city_kitchen.test.mjs.
 
+import { validShape, doughDimensions } from "./dough.mjs";
 import { cityTime, itemTax, storesAt } from "./core.mjs";
 import { estimateWeek, groupOf, hoursFor, isOpen, itemsFor, priceDemand, unitCost } from "./enterprise.mjs";
 import { FIRST, LAST, hash32, rng } from "./people.mjs";
@@ -52,7 +53,7 @@ export function stationsFor(R, kind) {
 //: The processes a kitchen of ``kind`` can do.
 export function processesAt(R, kind) { return new Set(stationsFor(R, kind).flatMap((s) => s.does)); }
 //: An ingredient's spec.
-export const ingredient = (R, id) => R.kitchen.ingredients[id];
+export const ingredient = (R, id) => Object.hasOwn(R.kitchen.ingredients, id) ? R.kitchen.ingredients[id] : undefined;
 //: What ``qty`` of an ingredient costs the kitchen (minor units).
 export function ingCost(R, id, qty = 1) { return Math.round(R.money(1) * (ingredient(R, id)?.cost || 0) * qty); }
 //: A component as the rules write it ([ing, qty, "chop>fry", side?]) as an object.
@@ -103,6 +104,143 @@ export function processSeconds(R, ing, proc) {
   const P = R.kitchen.processes[proc];
   return ingredient(R, ing)?.times?.[proc] ?? P?.seconds ?? 0;
 }
+// Pantry quantities stay in the original recipe denomination, including in older saves.
+export function displayAmount(R, ing, qty) {
+  const spec = ingredient(R, ing);
+  const n = spec.measure === "g" ? qty * spec.grams : qty;
+  return `${Number(n.toFixed(2))} ${spec.measure === "g" ? "g" : "× " + spec.unit}`;
+}
+
+export function batchSeconds(R, build, proc) {
+  const grams = build.reduce((n, c) => n + ingredient(R, c.ing).grams * c.qty, 0);
+  const base = Math.max(...build.map((c) => processSeconds(R, c.ing, proc)), 1);
+  const shape = build.find(c => c.shape)?.shape;
+  const thickness = proc === "bake" && shape ? clamp(Math.sqrt(doughDimensions(grams, shape).height / 2), 0.65, 1.8) : 1;
+  return base * thickness * clamp(0.85 + Math.sqrt(grams / 200) * 0.22, 0.85, 3);
+}
+
+// Estimate hands-on time and concurrent station time separately. Each additional course adds work.
+export function serviceWindow(R, kind, lines, menu, service, patience = 1) {
+  let work = 0;
+  for (const line of lines) {
+    const build = targetOf(R, line, menu).build;
+    const stages = new Map();
+    for (const c of build) {
+      const path = [];
+      for (const step of chain(c.p)) {
+        path.push(step);
+        const key = path.join(">");
+        const group = stages.get(key) || [];
+        group.push(c);
+        stages.set(key, group);
+      }
+    }
+    work += 5 + build.length * 3;
+    for (const [path, group] of stages) {
+      const step = path.split(">").at(-1);
+      work += step === "chop" ? group.length * 3 : batchSeconds(R, group, step);
+    }
+  }
+  const tier = R.kitchen.service[kind]?.pace ?? 1;
+  const seated = service === "Sit-down";
+  const target_s = Math.ceil((20 + work) * tier * (seated ? 1.25 : 1));
+  const real_s = target_s + Math.ceil((seated ? 45 : 25) * patience + work * 0.35);
+  return { service, target_s, real_s };
+}
+
+export function waitTipShare(t, elapsed) {
+  const target = t.target_s ?? t.real_s * 0.6;
+  return clamp((t.real_s - elapsed) / Math.max(1, t.real_s - target), 0, 1);
+}
+
+// Evaluate each ingredient in order. Dry heat removes moisture, frying brings in oil,
+// and cold service mutes aroma. Reheating reverses the cold effect on the final bite.
+export function cookedPart(R, c) {
+  const I = ingredient(R, c.ing), raw = I.grams * c.qty;
+  let grams = raw, kcal = raw * I.kcal_100g / 100, temperature = "ambient";
+  const flavour = { ...I.taste };
+  const steps = chain(c.p);
+  let hydrated = false, exposed = false;
+  for (const [index, step] of steps.entries()) {
+    const P = R.kitchen.processes[step];
+    const ratio = c.ratios?.[index] ?? (index === steps.length - 1 ? c.ratio : null) ?? 1;
+    const exposure = clamp(ratio, 0, 2);
+    if (step === "chop" || step === "blend") {
+      // Opening cells releases aromas. Repeated chopping cannot keep intensifying them.
+      if (!exposed && ["fruit", "veg", "herb"].includes(I.role)) {
+        for (const key of ["sw", "so", "sp", "fr"]) {
+          if (flavour[key]) flavour[key] *= 1 + (step === "blend" ? 0.2 : 0.1) * Math.min(1, exposure);
+        }
+      }
+      exposed = true;
+    }
+    if (R.kitchen.heat.includes(step)) {
+      temperature = "hot";
+      if (flavour.fr) flavour.fr *= Math.max(0.3, 1 - (exposed ? 0.4 : 0.2) * exposure);
+    }
+    if (step === "cool" && ratio >= 0.82) temperature = "ambient";
+    if (step === "chill" && ratio >= 0.82) temperature = temperature === "hot" && ratio < 1.2 ? "ambient" : "cold";
+    if (["bake", "toast", "grill", "wok", "saute", "fry"].includes(step)) {
+      grams = Math.max(raw * 0.65, grams * (1 - 0.06 * exposure));
+      if (ratio > 1.2) flavour.bi = (flavour.bi || 0) + Math.min(2, ratio - 1.2);
+    }
+    if (!hydrated && ["boil", "steam"].includes(step) && I.water_gain) {
+      grams += raw * I.water_gain * Math.min(1, exposure);
+      hydrated = true;
+    }
+    if (!hydrated && step === "brew" && I.brew_grams) {
+      grams = c.qty * I.brew_grams;
+      kcal *= 0.1;  // the spent leaves or grounds stay in the filter
+      hydrated = true;
+    }
+    if (step === "fry") {
+      const oil = raw * 0.06 * exposure;
+      grams += oil; kcal += oil * 8.84;
+    }
+    for (const [key, v] of Object.entries(P.taste || {})) flavour[key] = Math.min(5, (flavour[key] || 0) + v * exposure);
+  }
+  if (temperature === "cold") {
+    for (const key of ["sw", "um", "sp"]) if (flavour[key]) flavour[key] *= 0.85;
+  }
+  return { grams, kcal, flavour, temperature };
+}
+
+// Compare proportions independently of batch size. The second overlap compares ingredient
+// AND ordered technique, so raw batter and a finished cake have different identities.
+export function recognizeDish(R, build, menu = []) {
+  function profile(parts) {
+    const foods = new Map(), methods = new Map(), cooked = new Map();
+    let total = 0;
+    for (const c of parts.map(part)) {
+      const mass = ingredient(R, c.ing).grams * c.qty;
+      const method = c.ing + "|" + c.p;
+      const mainMethod = c.ing + "|" + chain(c.p).filter(step => step !== "chop").join(">");
+      cooked.set(mainMethod, (cooked.get(mainMethod) || 0) + mass);
+      foods.set(c.ing, (foods.get(c.ing) || 0) + mass);
+      methods.set(method, (methods.get(method) || 0) + mass);
+      total += mass;
+    }
+    return { foods, methods, cooked, total };
+  }
+  const plate = profile(build);
+  if (!plate.total) return null;
+  const overlap = (a, b, other) => [...a].reduce((n, [k, v]) =>
+    n + Math.min(v / plate.total, (b.get(k) || 0) / other), 0);
+  let best = null, bestScore = 0;
+  for (const id of [...Object.keys(R.kitchen.recipes), ...menu.map(d => d.id)]) {
+    const recipe = recipeOf(R, id, menu), ref = profile(recipe.build);
+    const coverage = [...ref.foods.keys()].filter(k => plate.foods.has(k)).length / ref.foods.size;
+    const composition = overlap(plate.foods, ref.foods, ref.total);
+    const exact = overlap(plate.methods, ref.methods, ref.total);
+    const technique = exact * 0.2 + overlap(plate.cooked, ref.cooked, ref.total) * 0.8;
+    const score = composition * 0.45 + technique * 0.45 + coverage * 0.1;
+    if (coverage >= 0.75 && composition >= 0.82 && technique >= 0.76 && score > bestScore) {
+      best = { id, name: recipe.name }; bestScore = score;
+    }
+  }
+  return best;
+}
+
 //: How well a thing is done after ``ratio`` of its time on the heat: 1 is right, raw under, burnt over.
 export function doneness(R, ratio, proc = null) {
   const D = R.kitchen.doneness, cap = R.kitchen.processes[proc]?.quality_cap ?? 1;
@@ -126,6 +264,7 @@ export function unsafe(R, c) {
   const I = ingredient(R, c.ing);
   if (!I || I.raw_ok) return false;
   if (I.role !== "protein" && I.role !== "starch") return false;
+  if (c.ratios?.length) return !chain(c.p).some((step, i) => R.kitchen.heat.includes(step) && c.ratios[i] >= R.kitchen.doneness.right[0]);
   return !isHeat(R, c.p) || (c.q ?? 1) < 0.3;
 }
 // The longest increasing run (patience sorting): how much of the order was right.
@@ -138,13 +277,32 @@ function lisLength(seq) {
 //: A plate scored against what was asked for: 0-100 and the parts of it, with notes for the cook.
 //: ``plate`` is the components in the order they were put on ({ing, qty, p, q, side}); ``target``
 //: the recipe (targetOf). ``elapsed`` and ``patience`` are real seconds.
-export function scorePlate(R, target, plate, { elapsed = 0, patience = 120 } = {}) {
+export function scorePlate(R, target, plate, { elapsed = 0, patience = 120, targetSeconds = patience * 0.5 } = {}) {
   const W = R.kitchen.score.weights, notes = [];
-  const want = target.build.map((c, i) => ({ ...c, i })), got = (plate || []).map((c, j) => ({ ...part(c), q: clamp(+c.q || 0, 0, 1), j }));
+  const want = target.build.map((c, i) => ({ ...c, i }));
+  const pieces = (plate || []).map((c, j) => ({ ...part(c), q: clamp(+c.q || 0, 0, 1), j }));
+  const got = [];
+  // Two separately cooked scoops can fill one portion. Preserve distinct layers (sandwich bread).
+  const key = c => c.ing + "|" + c.p;
+  const layers = new Set(), seen = new Set(), portionsByKey = new Map();
+  for (const c of want) {
+    if (seen.has(key(c))) layers.add(key(c));
+    seen.add(key(c));
+  }
+  for (const c of pieces) {
+    const id = key(c), prior = portionsByKey.get(id);
+    if (prior && !layers.has(id)) {
+      prior.q = (prior.q * prior.qty + c.q * c.qty) / (prior.qty + c.qty);
+      prior.qty += c.qty;
+    } else {
+      const portion = { ...c };
+      got.push(portion); portionsByKey.set(id, portion);
+    }
+  }
   const used = new Set(), pairs = [];
   // Each wanted component matched to the best unused one of the same ingredient (the right process first).
   for (const w of want) {
-    let best = null, bs = -1;
+    let best = null, bs = -Infinity;
     for (const g of got) {
       if (used.has(g.j) || g.ing !== w.ing) continue;
       const s = (g.p === w.p ? 2 : 0) + (chain(g.p).at(-1) === chain(w.p).at(-1) ? 1 : 0) - Math.abs(g.qty - w.qty) * 0.1;
@@ -159,20 +317,22 @@ export function scorePlate(R, target, plate, { elapsed = 0, patience = 120 } = {
   const ing = clamp((pairs.length - 0.5 * extra.length) / n, 0, 1);
   let proc = 0, done = 0, done_n = 0, portions = 0, ill = false;
   for (const [w, g] of pairs) {
-    const ok = g.p === w.p, last = chain(g.p).at(-1) === chain(w.p).at(-1);
+    const shaped = !w.shape || (g.shape?.form === w.shape.form && Math.abs(g.shape.span / w.shape.span - 1) < 0.15 && Math.abs(g.shape.aspect / w.shape.aspect - 1) < 0.15);
+    if (!shaped) notes.push(`shape the dough into a ${w.shape.form} about ${w.shape.span} cm across`);
+    const ok = g.p === w.p && shaped, last = chain(g.p).at(-1) === chain(w.p).at(-1);
     proc += ok ? 1 : last ? 0.5 : 0;
     if (!ok) notes.push(`${ingredient(R, w.ing).name.toLowerCase()} should be ${chain(w.p).map((x) => R.kitchen.processes[x].verb).join(" then ") || "as it comes"}`);
     if (isHeat(R, w.p)) {
       done += g.q; done_n += 1;
       if (g.q < 0.95) notes.push(`${ingredient(R, w.ing).name.toLowerCase()} ${donenessWord(g.q, g.ratio)}`);
     }
-    portions += g.qty === w.qty ? 1 : Math.abs(g.qty - w.qty) === 1 ? 0.5 : 0;
-    if (g.qty !== w.qty) notes.push(`${g.qty} ${ingredient(R, w.ing).unit} of ${ingredient(R, w.ing).name.toLowerCase()}, not ${w.qty}`);
+    portions += Math.max(0, 1 - Math.abs(g.qty - w.qty) / Math.max(w.qty, g.qty));
+    if (Math.abs(g.qty - w.qty) > 1e-6) notes.push(`${ingredient(R, w.ing).name}: ${displayAmount(R, w.ing, g.qty)} (asked for ${displayAmount(R, w.ing, w.qty)})`);
   }
-  for (const g of got) if (unsafe(R, g)) { ill = true; notes.push(`undercooked ${ingredient(R, g.ing).name.toLowerCase()}: not safe to eat`); }
+  for (const g of pieces) if (unsafe(R, g)) { ill = true; notes.push(`undercooked ${ingredient(R, g.ing).name.toLowerCase()}: not safe to eat`); }
   const np = Math.max(1, pairs.length);
   const parts = { ingredients: ing, processes: proc / np, doneness: done_n ? done / done_n : (pairs.length ? 1 : 0), portions: portions / np,
-    speed: clamp(1 - (elapsed - patience * 0.5) / (patience * 0.5), 0, 1) };
+    speed: waitTipShare({ real_s: patience, target_s: targetSeconds }, elapsed) };
   // The order of the build (bun, patty, cheese...): the longest run in the right order.
   let weights = { ...W };
   if (target.ordered) {
@@ -205,26 +365,30 @@ export function tipFor(R, score, price, comps = 0, generosity = 1) {
 export function tasteOf(R, build, { kind = null } = {}) {
   const K = R.kitchen, comps = (build || []).map((c) => ({ ...part(c), q: clamp(+(c.q ?? 1), 0, 1) })).filter((c) => K.ingredients[c.ing] && c.qty > 0);
   const flav = Object.fromEntries(TASTES.map((k) => [k, 0]));
-  let stamina = 0, health = 0, qty = 0, q = 0, qn = 0;
+  let stamina = 0, health = 0, q = 0, qn = 0, grams = 0, kcal = 0;
   const roles = new Set(), tags = {}, notes = [];
   for (const c of comps) {
     const I = K.ingredients[c.ing];
     let st = I.stamina * c.qty, he = I.health * c.qty;
-    for (const k of TASTES) flav[k] += (I.taste[k] || 0) * c.qty;
+    const cooked = cookedPart(R, c);
+    grams += cooked.grams; kcal += cooked.kcal;
+    for (const k of TASTES) flav[k] += (cooked.flavour[k] || 0) * cooked.grams;
+    // A gram of seasoning can change the whole plate.
+    if (c.ing === "salt") flav.sa += 75 * cooked.grams;
+    if (c.ing === "chili" || c.ing === "wasabi") flav.sp += 8 * cooked.grams;
     for (const p of chain(c.p)) {
       const P = K.processes[p];
-      for (const [k, v] of Object.entries(P.taste || {})) flav[k] += v * c.qty;
       st *= P.stamina || 1; he += (P.health || 0) * c.qty;
     }
-    if (isHeat(R, c.p)) { q += c.q; qn += 1; }
+    if (c.p !== "-") { q += c.q * cooked.grams; qn += cooked.grams; }
     if (unsafe(R, c)) { he -= 10; notes.push(`the ${I.name.toLowerCase()} was undercooked`); }
-    stamina += st; health += he; qty += c.qty;
+    stamina += st; health += he;
     roles.add(I.role);
-    for (const t of I.tags) tags[t] = (tags[t] || 0) + c.qty;
+    for (const t of I.tags) tags[t] = (tags[t] || 0) + cooked.grams;
   }
-  if (!comps.length) return { taste: 0, stamina: 0, health: 0, cost: 0, price: 0, notes: ["there was nothing on the plate"], flavour: flav, verdict: "…" };
+  if (!comps.length) return { grams: 0, kcal: 0, taste: 0, stamina: 0, health: 0, cost: 0, price: 0, notes: ["there was nothing on the plate"], flavour: flav, verdict: "…" };
   // Balance: some savour or sweetness, salt in the right range, not all one thing, something fresh against the fat.
-  const per = (k) => flav[k] / qty;
+  const per = (k) => flav[k] / grams;
   let taste = 50;
   const savoury = per("um") + per("sa") * 0.6, sweet = per("sw");
   taste += clamp(Math.max(savoury, sweet) * 12, 0, 18);
@@ -238,8 +402,10 @@ export function tasteOf(R, build, { kind = null } = {}) {
   // Variety of what is on the plate: a base, a protein, a vegetable, a sauce.
   const want = ["starch", "protein", "veg", "sauce", "dairy", "herb", "fruit"].filter((r) => roles.has(r)).length;
   taste += clamp((want - 1) * 3, 0, 12);
-  const top = Math.max(...comps.map((c) => c.qty)) / qty;
-  if (comps.length > 2 && top > 0.6) { taste -= 6; notes.push("too much of one thing"); }
+  const amounts = needs(comps);
+  const top = Math.max(...Object.entries(amounts).map(([id, n]) => ingredient(R, id).grams * n)) /
+    comps.reduce((sum, c) => sum + ingredient(R, c.ing).grams * c.qty, 0);
+  if (Object.keys(amounts).length > 2 && top > 0.75) { taste -= 6; notes.push("too much of one thing"); }
   // Pairs that lift it, cuisines that agree, and clashes.
   const has = new Set(comps.map((c) => c.ing));
   let paired = 0;
@@ -247,7 +413,7 @@ export function tasteOf(R, build, { kind = null } = {}) {
   taste += Math.min(12, paired * 4);
   const tagList = Object.entries(tags).sort((a, b) => b[1] - a[1]);
   const lead = tagList[0]?.[1] || 0;
-  taste += clamp(lead / qty * 10 - 3, -3, 6);
+  taste += clamp(lead / grams * 10 - 3, -3, 6);
   // A clash is between kinds of ingredient ("role" or "role:cuisine"): ice cream with fried fish.
   const isA = (spec) => { const [role, tag] = spec.split(":"); return comps.filter((c) => K.ingredients[c.ing].role === role && (!tag || K.ingredients[c.ing].tags.includes(tag))); };
   for (const [a, b] of K.clashes) {
@@ -260,15 +426,16 @@ export function tasteOf(R, build, { kind = null } = {}) {
   if (qn && cooked < 0.7) notes.push(cooked < 0.4 ? "badly cooked" : "not cooked quite right");
   const drink = comps.every((c) => ["drink", "dairy", "fruit", "sweet"].includes(K.ingredients[c.ing].role));
   if (drink && per("bi") > 1.4) taste += 9;   // coffee is meant to be bitter
-  if (!drink && qty < 2) { taste -= 6; notes.push("a very small portion"); } else if (qty > 16) { taste -= 6; notes.push("an enormous portion"); }
+  if (!drink && grams < 65) { taste -= 6; notes.push("a very small portion"); } else if (grams > 1200) { taste -= 6; notes.push("an enormous portion"); }
   if (kind && tagList.length && !(R.kitchen.kitchens[kind] || []).length) taste -= 2;
+  if (comps.some(c => unsafe(R, c))) taste = Math.min(30, taste);
   taste = Math.round(clamp(taste, 0, 100));
   const cost = buildCost(R, comps);
   const [lo, hi] = K.lab.markup, unit = R.money(0.5);
   const price = Math.max(R.money(2), Math.round(cost * lerp(lo, hi, taste / 100) / unit) * unit);
   const verdict = taste >= 85 ? "Outstanding. I'd come back for this." : taste >= 72 ? "Really good. I'd order it again." : taste >= 60 ? "Pretty good, it needs a little something."
     : taste >= 45 ? "It's okay. I wouldn't order it again." : taste >= 30 ? "Not great, honestly." : "I couldn't finish it.";
-  return { taste, stamina: Math.round(clamp(stamina * (0.7 + 0.3 * cooked), 0, 80)), health: Math.round(clamp(health, -20, 15)), cost, price,
+  return { grams: Math.round(grams * 100) / 100, kcal: Math.round(kcal), taste, stamina: Math.round(clamp(stamina * (0.7 + 0.3 * cooked), 0, 80)), health: Math.round(clamp(health, -20, 15)), cost, price,
     flavour: Object.fromEntries(TASTES.map((k) => [k, Math.round(per(k) * 10) / 10])), notes: [...new Set(notes)].slice(0, 4), verdict, cuisine: tagList[0]?.[0] || null };
 }
 
@@ -301,7 +468,7 @@ export function installKitchen(CityWorld, CityError) {
   //: An approved dish, as one of the city's items (so it can be bought, carried and eaten).
   function registerDish(R, d) {
     if (R.items[d.id]) { Object.assign(R.items[d.id], { name: d.name, price: d.price, use: { stamina: d.stamina, health: d.health } }); return; }
-    R.items[d.id] = { name: d.name, price: d.price, kg: 0.4, kind: "prepared_food", use: { stamina: d.stamina, ...(d.health ? { health: d.health } : {}) },
+    R.items[d.id] = { name: d.name, price: d.price, kg: d.grams ? d.grams / 1000 : 0.4, kind: "prepared_food", use: { stamina: d.stamina, ...(d.health ? { health: d.health } : {}) },
       material_of: "food", hold: "hand", length_m: 0.15, house_dish: d.place };
   }
 
@@ -348,7 +515,7 @@ export function installKitchen(CityWorld, CityError) {
     const wk = estimateWeek(R, k.place, k.kind, { rivals: this.shops.get(k.id)?.rivals ?? 1, week: Math.floor(t.day / 7) });
     const daysLeft = partial ? Math.max(3, 31 - t.date) : 30;
     const r = rng("thrift", k.id, k.month), buffer = lerp(P.month_buffer[0], P.month_buffer[1], r());
-    const order = {};
+    const order = { water: daysLeft * 2, flour: daysLeft };
     for (const dish of itemsFor(R, k.kind)) {
       const rec = recipeOf(R, dish);
       if (!rec) continue;
@@ -448,9 +615,11 @@ export function installKitchen(CityWorld, CityError) {
     const dishes = lines.filter((l) => recipeOf(this.R, l.item, k.menu));
     if (cook && pid && dishes.length) {
       const p = this.players.get(pid), L = cook[1];
-      const t = { id: `t:${k.id}:${++k.seq}`, at: this.now, due: this.now + realMs(this, KR(this).tickets.player_patience_s), real_s: KR(this).tickets.player_patience_s,
+      const t = { id: `t:${k.id}:${++k.seq}`, at: this.now,
         who: p?.name || "A customer", player: pid, generosity: 1, paid: true,
         lines: dishes.flatMap((l) => Array.from({ length: Math.min(3, l.qty) }, () => ({ dish: l.item, mods: [] }))) };
+      const window = serviceWindow(this.R, k.kind, t.lines, k.menu, "Takeout");
+      Object.assign(t, window, { due: this.now + realMs(this, window.real_s) });
       L.tickets.push(t);
       return;
     }
@@ -543,9 +712,10 @@ export function installKitchen(CityWorld, CityError) {
         lines[0].mods.push(r() < 0.6 ? { no: c.ing } : { extra: c.ing });
       }
     }
-    const patience = lerp(T.patience_s[0], T.patience_s[1], r()) + T.per_item_s * (lines.length - 1);
+    const service = r() < (R.kitchen.service[k.kind]?.takeout ?? 0.35) ? "Takeout" : "Sit-down";
+    const window = serviceWindow(R, k.kind, lines, k.menu, service, 0.8 + 0.4 * r());
     const G = KR(this).tips.generosity;
-    return { id: `t:${k.id}:${n}`, at, due: at + realMs(this, patience), real_s: Math.round(patience), who: nameOf(r), generosity: Math.round(lerp(G[0], G[1], r()) * 100) / 100, lines };
+    return { id: `t:${k.id}:${n}`, at, due: this.clock.after(at, window.real_s * 1000), ...window, who: nameOf(r), generosity: Math.round(lerp(G[0], G[1], r()) * 100) / 100, lines };
   };
   //: The line brought up to now: customers who gave up, new tickets, and the NPC cook's.
   W.kitchenTick = function (k, pid) {
@@ -553,7 +723,7 @@ export function installKitchen(CityWorld, CityError) {
     const busy = this.kitchenBusy(k);
     // Walked out: the ticket's time ran out.
     for (const t of [...L.tickets]) {
-      if (this.now <= t.due) continue;
+      if (this.now < t.due) continue;
       L.tickets = L.tickets.filter((x) => x !== t);
       const rec = staffRec(k, pid);
       rec.walkouts += 1;
@@ -584,17 +754,31 @@ export function installKitchen(CityWorld, CityError) {
     const R = this.R, C = KR(this).npc_cover, r = rng("npc", t.id);
     let price = 0, cost = 0, tax = 0;
     const d = this.kitchenBooks(k), b = k.business ? this.biz.get(k.business) : null;
+    const made = [], skill = lerp(C.skill[0], C.skill[1], r());
     for (const l of t.lines) {
       const target = targetOf(R, l, k.menu);
       if (!target || !draw(k.pantry, needs(target.build))) continue;
       const p = (b ? this.priceAt(b.place, l.dish) : R.items[l.dish]?.price) || 0;
+      const prepared = target.build.map(c => {
+        const steps = chain(c.p);
+        const ratios = steps.map((step, i) => {
+          const intended = c.ratios?.[i] ?? 1;
+          const minimum = step === "cool" || step === "chill" ? 1 : 0;
+          return Math.max(minimum, intended + (r() - 0.5) * (1 - skill));
+        });
+        const q = Math.min(1, ...steps.map((step, i) => R.kitchen.heat.includes(step) ? doneness(R, ratios[i], step) : 1));
+        return { ...c, ratios, q };
+      });
+      const { taste, kcal } = tasteOf(R, prepared);
+      made.push({ dish: l.dish, score: scorePlate(R, target, prepared).score, taste, kcal });
       cost += buildCost(R, target.build);
       if (!t.paid) { price += p; tax += itemTax(R, b?.chain || [], R.items[l.dish], p, this.laws || {}); }
     }
     if (d && !t.paid) {
       d.sales += price; d.tax += tax; d.cogs += cost;
     }
-    this.kitchenLog(k, { kind: "npc", memo: `${pick(r, k.cooks)} made ${t.who}'s order`, score: Math.round(100 * lerp(C.skill[0], C.skill[1], r())) });
+    this.kitchenLog(k, { kind: "npc", memo: `${pick(r, k.cooks)} filled ${made.length}/${t.lines.length} dishes for ${t.who}`,
+      made, score: made.length ? Math.round(made.reduce((sum, x) => sum + x.score, 0) / made.length) : 0 });
     if (k.business) this.syncStock(k);
   };
 
@@ -624,13 +808,35 @@ export function installKitchen(CityWorld, CityError) {
     return { kitchen: this.kitchenView(k, p, role) };
   };
   W.cmd_kitchen_state = function (pid, { place }) { return this.cmd_kitchen_open(pid, { place }); };
+  // Validate the whole plate before debiting anything. A divided mixture may legitimately
+  // contain fractions of a counted ingredient. Only withdrawals require whole pieces.
+  function cleanPlate(R, plate, kind) {
+    if (!Array.isArray(plate) || plate.length > R.kitchen.lab.max_components) fail("too many components on the plate");
+    const allowed = processesAt(R, kind);
+    return plate.map(c => {
+      if (!c || !ingredient(R, c.ing) || !Number.isFinite(c.qty) || c.qty <= 0) fail("invalid ingredient or quantity");
+      if (c.shape && !validShape(c.shape)) fail("invalid dough shape");
+      const steps = chain(c.p);
+      if (steps.length > 128 || steps.some(p => !allowed.has(p))) fail("the kitchen cannot make that process chain");
+      if (c.ratios != null && (!Array.isArray(c.ratios) || c.ratios.length !== steps.length ||
+          c.ratios.some(r => !Number.isFinite(r) || r < 0))) fail("invalid step times");
+      return { ing: c.ing, qty: c.qty, p: steps.join(">") || "-", q: clamp(+c.q || 0, 0, 1),
+        ...(c.shape ? { shape: { form: c.shape.form, span: c.shape.span, aspect: c.shape.aspect } } : {}),
+        ...(c.ratios ? { ratios: c.ratios.map(r => Math.min(10, r)) } : {}), ...(Number.isFinite(c.ratio) ? { ratio: c.ratio } : {}) };
+    });
+  }
   //: Taking ingredients from the pantry onto your board.
   W.cmd_kitchen_take = function (pid, { place, items = {} }) {
     const p = this.player(pid), { k, role } = kitchenFor(this, p, place);
-    const want = Object.fromEntries(Object.entries(items).map(([i, n]) => [i, Math.max(0, Math.min(12, n | 0))]).filter(([i, n]) => n > 0 && ingredient(this.R, i)));
+    const want = {};
+    for (const [id, n] of Object.entries(items)) {
+      const spec = ingredient(this.R, id);
+      if (!spec || !Number.isFinite(n) || n <= 0 ||
+          (spec.measure === "count" && !Number.isSafeInteger(n))) fail("enter a positive quantity in the bin's unit");
+      want[id] = n;
+    }
     if (!Object.keys(want).length) fail("take something");
-    for (const [i, n] of Object.entries(want)) if ((k.pantry[i] || 0) < n) fail(`out of ${ingredient(this.R, i).name.toLowerCase()}: the owner has to order more`);
-    draw(k.pantry, want);
+    if (!draw(k.pantry, want)) fail("the pantry does not have that quantity");
     addTo((k.held[pid] ||= {}), want);
     this.syncStock(k);
     return { kitchen: this.kitchenView(k, p, role) };
@@ -638,7 +844,7 @@ export function installKitchen(CityWorld, CityError) {
   //: Putting back what was taken and not yet touched.
   W.cmd_kitchen_return = function (pid, { place, items = {} }) {
     const p = this.player(pid), { k, role } = kitchenFor(this, p, place), held = (k.held[pid] ||= {});
-    const back = Object.fromEntries(Object.entries(items).map(([i, n]) => [i, Math.min(held[i] || 0, Math.max(0, n | 0))]).filter(([, n]) => n > 0));
+    const back = Object.fromEntries(Object.entries(items).map(([i, n]) => [i, Math.min(held[i] || 0, Number.isFinite(n) ? Math.max(0, n) : 0)]).filter(([, n]) => n > 0));
     draw(held, back); addTo(k.pantry, back);
     this.syncStock(k);
     return { kitchen: this.kitchenView(k, p, role) };
@@ -657,7 +863,7 @@ export function installKitchen(CityWorld, CityError) {
     return { kitchen: this.kitchenView(k, p, role), cost };
   };
   //: Serving a ticket: a plate a line, and anything on the house. Scored, sold, tipped.
-  W.cmd_kitchen_serve = function (pid, { place, ticket, plates = [], extras = [], elapsed = null }) {
+  W.cmd_kitchen_serve = function (pid, { place, ticket, plates = [], extras = [] }) {
     const p = this.player(pid), R = this.R, { k, role } = kitchenFor(this, p, place);
     const L = this.kitchenTick(k, pid);
     const t = L.tickets.find((x) => x.id === ticket);
@@ -665,10 +871,9 @@ export function installKitchen(CityWorld, CityError) {
     if (!Array.isArray(plates) || plates.length !== t.lines.length) fail(`the ticket is for ${t.lines.length} ${t.lines.length === 1 ? "dish" : "dishes"}: plate each one`);
     // What is on the plates must be what you took from the pantry.
     const held = (k.held[pid] ||= {}), use = {};
-    const clean = plates.map((pl) => (Array.isArray(pl) ? pl : []).slice(0, KR(this).lab.max_components + 4).map((c) => ({ ing: String(c.ing), qty: Math.max(1, Math.min(6, c.qty | 0)), p: String(c.p || "-").slice(0, 40),
-      q: clamp(+c.q || 0, 0, 1), ratio: Number.isFinite(+c.ratio) ? +c.ratio : undefined })).filter((c) => ingredient(R, c.ing)));
+    const clean = plates.map(pl => cleanPlate(R, pl, k.kind));
     for (const pl of clean) for (const c of pl) use[c.ing] = (use[c.ing] || 0) + c.qty;
-    for (const [i, n] of Object.entries(use)) if ((held[i] || 0) < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board: take it from the pantry`);
+    for (const [i, n] of Object.entries(use)) if ((held[i] || 0) + 1e-9 < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board: take it from the pantry`);
     const menu = new Set(this.kitchenMenu(k));
     const comps = (Array.isArray(extras) ? extras : []).slice(0, 3).filter((d) => recipeOf(R, d, k.menu) && (menu.has(d) || makeable(k.pantry, recipeOf(R, d, k.menu).build) > 0));
     let compNeed = {};
@@ -676,8 +881,9 @@ export function installKitchen(CityWorld, CityError) {
     for (const [i, q] of Object.entries(compNeed)) if ((k.pantry[i] || 0) < q) fail(`no ${ingredient(R, i).name.toLowerCase()} left for that on the house`);
     draw(held, use);
     draw(k.pantry, compNeed);
-    const real = Number.isFinite(+elapsed) ? clamp(+elapsed, 0, 3600) : Math.max(0, (this.now - t.at) / Math.max(1, realMs(this, 1)));
-    const scores = t.lines.map((l, i) => scorePlate(R, targetOf(R, l, k.menu), clean[i], { elapsed: real, patience: t.real_s }));
+    const real = Math.max(0, (this.clock.real(this.now) - this.clock.real(t.at)) / 1000);
+    const scores = t.lines.map((l, i) => scorePlate(R, targetOf(R, l, k.menu), clean[i], { elapsed: real, patience: t.real_s, targetSeconds: t.target_s }));
+    const analyses = clean.map(pl => tasteOf(R, pl, { kind: k.kind }));
     const score = Math.round(scores.reduce((s, x) => s + x.score, 0) / scores.length);
     // The sale (a player customer paid at the counter), and the tip.
     const b = k.business ? this.biz.get(k.business) : null, d = this.kitchenBooks(k);
@@ -693,7 +899,7 @@ export function installKitchen(CityWorld, CityError) {
       d.cogs += cost;
       if (compCost) { d.cogs += compCost; d.comps = (d.comps || 0) + compCost; }
     }
-    const tip = t.player ? 0 : tipFor(R, score, price, comps.length, t.generosity);
+    const tip = t.player ? 0 : tipFor(R, score, price, comps.length, t.generosity * waitTipShare(t, real));
     if (tip > 0) {
       const employer = role === "owner" ? b.account : this.ledger.open(p.job.employer, "business");
       this.ledger.mint(employer, tip, "npc_income", { at: this.now, memo: "tips" });
@@ -716,7 +922,7 @@ export function installKitchen(CityWorld, CityError) {
     if (p.job?.role) p.experience[p.job.role] = (p.experience[p.job.role] || 0) + 1;
     this.syncStock(k);
     const review = this.reviewStaff(k, pid);
-    return { score, scores, tip, price, comp_cost: compCost, rating: ratingOf(R, rec), review, kitchen: this.kitchenView(k, p, role) };
+    return { score, scores, analyses, tip, price, comp_cost: compCost, rating: ratingOf(R, rec), review, kitchen: this.kitchenView(k, p, role) };
   };
   //: An NPC cook covering the line (and you to the lab), or the line back.
   W.cmd_kitchen_cover = function (pid, { place, on = true }) {
@@ -751,18 +957,17 @@ export function installKitchen(CityWorld, CityError) {
   //: for the bars and what it costs. Its ingredients come out of the pantry like any other.
   W.cmd_lab_test = function (pid, { place, name = "", build = [] }) {
     const p = this.player(pid), R = this.R, { k, role } = kitchenFor(this, p, place), held = (k.held[pid] ||= {});
-    const nm = String(name || "").trim().replace(/\s+/g, " ").slice(0, 40) || "Test dish";
-    const comps = (Array.isArray(build) ? build : []).slice(0, KR(this).lab.max_components).map((c) => ({ ing: String(c.ing), qty: Math.max(1, Math.min(6, c.qty | 0)),
-      p: chain(String(c.p || "-")).filter((x) => R.kitchen.processes[x]).join(">") || "-", q: clamp(+c.q || 0, 0, 1) })).filter((c) => ingredient(R, c.ing));
+    const proposedName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 40) || "Test dish";
+    const comps = cleanPlate(R, build, k.kind);
     if (!comps.length) fail("put something in the dish first");
-    const does = processesAt(R, k.kind);
-    for (const c of comps) for (const x of chain(c.p)) if (!does.has(x)) fail(`this kitchen cannot ${R.kitchen.processes[x].name.toLowerCase()}`);
     const use = needs(comps);
-    for (const [i, n] of Object.entries(use)) if ((held[i] || 0) < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board`);
+    for (const [i, n] of Object.entries(use)) if ((held[i] || 0) + 1e-9 < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board`);
     draw(held, use);
     const res = tasteOf(R, comps, { kind: k.kind });
+    const family = recognizeDish(R, comps, k.menu);
+    const nm = family?.name || proposedName;
     const r = rng("taster", k.id, k.seq + 1), who = nameOf(r);
-    const test = { id: `lab:${k.id}:${++k.seq}`, pid, by: p.name, name: nm, build: comps.map(({ ing, qty, p: pp }) => ({ ing, qty, p: pp })), quality: comps.reduce((s, c) => s + c.q, 0) / comps.length,
+    const test = { id: `lab:${k.id}:${++k.seq}`, pid, by: p.name, name: nm, family: family?.id || null, build: comps.map(({ ing, qty, p, shape, ratios }) => ({ ing, qty, p, ...(shape ? {shape} : {}), ...(ratios ? { ratios } : {}) })), quality: comps.reduce((s, c) => s + c.q, 0) / comps.length,
       who, at: this.now, ...res };
     k.tests.push(test);
     if (k.tests.length > 30) k.tests.splice(0, k.tests.length - 30);
@@ -778,10 +983,11 @@ export function installKitchen(CityWorld, CityError) {
     const p = this.player(pid), R = this.R, { k, role } = kitchenFor(this, p, place), Lb = KR(this).lab;
     const x = k.tests.find((t) => t.id === test && t.pid === pid);
     if (!x) fail("test the dish on a customer first");
+    if (x.family && (itemsFor(R, k.kind).includes(x.family) || k.menu.some(d => d.id === x.family))) fail("this dish is already on the menu");
     if (k.proposals.some((pr) => pr.test === test)) fail("you have put that one to the owner already");
     if (k.proposals.filter((pr) => pr.status === "pending").length >= Lb.proposals_most) fail("the owner has enough to taste: wait for an answer");
     const ask = Number.isFinite(+price) && +price > 0 ? Math.round(+price) : x.price;
-    const pr = { id: `prop:${k.id}:${++k.seq}`, test, pid, by: p.name, name: x.name, build: x.build, taste: x.taste, stamina: x.stamina, health: x.health, cost: x.cost,
+    const pr = { id: `prop:${k.id}:${++k.seq}`, test, pid, by: p.name, name: x.name, kcal: x.kcal, grams: x.grams, family: x.family, build: x.build, taste: x.taste, stamina: x.stamina, health: x.health, cost: x.cost,
       price: clamp(ask, x.cost, x.cost * 8), status: "pending", at: this.now, decide_at: this.now + Lb.decide_game_hours * HOUR };
     k.proposals.push(pr);
     if (k.proposals.length > 30) k.proposals.splice(0, k.proposals.length - 30);
@@ -803,7 +1009,7 @@ export function installKitchen(CityWorld, CityError) {
     if (accept) {
       const unit = R.money(0.5);
       const d = { id: `dish:${k.id}:${k.menu.length + 1}:${hash32(pr.id) % 1000}`, place: k.id, name: pr.name, build: pr.build, price: Math.max(unit, Math.round(price / unit) * unit),
-        stamina: pr.stamina, health: pr.health, taste: pr.taste, by: pr.pid, by_name: pr.by, at: this.now, sold: 0 };
+        stamina: pr.stamina, health: pr.health, taste: pr.taste, kcal: pr.kcal, grams: pr.grams, family: pr.family, by: pr.pid, by_name: pr.by, at: this.now, sold: 0 };
       k.menu.push(d);
       registerDish(R, d);
       const rec = k.staff[pr.pid];

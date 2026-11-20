@@ -8,6 +8,7 @@ import { test } from "node:test";
 import { cityTime, loadRules } from "../docs/city/core.mjs";
 import { City, Drivers, PARKING, Roster, TRAFFIC, harmNow, injuryFor, junctionAt, kerbRunFor, residentsIn, signalAt, vehicleDamage } from "../docs/city/fleet.mjs";
 import { Streets, alongRoute, placeFromBuilding } from "../docs/city/people.mjs";
+import { visitingCars } from "../docs/city/workshop.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 import { VEHICLE_DIMS } from "../docs/city/vehicles.mjs";
 
@@ -427,4 +428,25 @@ test("a car is given only a kerb space as long as it is: a gap a hatchback fits 
   for (const model of ["pickup", "box_truck", "delivery_van"]) assert.equal(spot(model), null, `a ${model} is not squeezed into the hatchback's gap`);
   // Held by the hatchback for its while, the gap is gone for the next one.
   assert.equal(spot("economy"), null);
+});
+
+test("a scheduled service visitor walks into the shop while their registered car is parked outside", () => {
+  const streets = grid(), roster = new Roster(R, { seed: "service" });
+  const shop = placeFromBuilding({ id: "garage17", x: 250, z: 250, archetype: "gas_station", shops: [{ t: "fuel" }],
+    inside: { x: 250, z: 250, nx: 0, nz: 1, half: 5, depth: 10 }, area: 180 }, streets, R);
+  roster.add([shop]); roster.visitorsUpTo(600);
+  const city = new City(R, roster, streets, { seed: "service", timeAt }), noon = timeAt(NOON);
+  for (const person of roster.visitors.values()) {
+    const visit = city.planOf(person, noon).segs.find(s => s.act?.label === "At the auto service counter");
+    if (!visit) continue;
+    const minute = (visit.t0 + visit.t1) / 2, t = { ...noon, minute, ms: NOON + (minute-noon.minute)*60000 };
+    const position = city.personAt(person,t,visit,shop);
+    assert.equal(position.indoors,shop.id);
+    const [order] = visitingCars([{ person, ...position }],city,t,shop);
+    assert.equal(order.vehicle,person.car);
+    assert.equal(order.name,person.name);
+    assert.equal(order.plate,roster.vehicles.get(person.car).plate);
+    return;
+  }
+  assert.fail("Expected at least one real appointment in the seeded fleet");
 });

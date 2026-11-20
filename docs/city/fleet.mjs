@@ -1211,6 +1211,12 @@ export class City {
     const n = lo + Math.floor(r() * (hi - lo + 1));
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
     for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
+    // Some existing visiting motorists book an indoor appointment on their own street network.
+    const service = rng(this.seed, p.id, t.day, "auto service");
+    if (!K.stop && trips.length && service() < 1 / 18) {
+      const workshops = places.filter(pl => pl.inside && ["shop:auto_parts", "use:gas_station", "shop:fuel"].some(key => pl.keys.has(key)));
+      if (workshops.length) Object.assign(trips[0], { at: (8 + service() * 7) * 60, visit: pick(service, workshops).id, dwell: 45 + service() * 35, service: true });
+    }
     trips.sort((a, b) => a.at - b.at);
     // (Planned in game minutes, driven in real ones: clock.mjs fleetTime.)
     const F = t.toFleet || ((m) => m);
@@ -1239,7 +1245,9 @@ export class City {
         segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d1, from: trip.g1, to: trip.visit, vehicle: v.id, visitor: true });
         const w = tripMinutes(Math.hypot(spot.x - P.x, spot.z - P.z), p.pace) + 0.5;
         segs.push({ kind: "go", mode: "walk", t0: depart + d1, t1: depart + d1 + w, fromXZ: [spot.x, spot.z], to: trip.visit, visitor: true });
-        segs.push({ kind: "roam", t0: depart + d1 + w, t1: depart + d1 + w + trip.dwell, place: trip.visit, act: { kind: "stroll", start: depart + d1 + w }, visitor: true });
+        const start = depart + d1 + w;
+        segs.push({ kind: trip.service ? "stay" : "roam", t0: start, t1: start + trip.dwell, place: trip.visit,
+          act: trip.service ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: "At the auto service counter" } : { kind: "stroll", start }, visitor: true });
         const back = depart + d1 + w + trip.dwell;
         segs.push({ kind: "go", mode: "walk", t0: back, t1: back + w, from: trip.visit, toXZ: [spot.x, spot.z], visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS);
@@ -1254,6 +1262,7 @@ export class City {
         clock = depart + d;
       }
     }
+    if (trips.some(trip => trip.service)) this.admitShoppers(p, t.day, segs);
     return { segs, drives: segs.filter((s) => s.mode === "drive"), start: null, visitor: true };
   }
   // -- where they are ----------------------------------------------------------------------------
@@ -3135,6 +3144,7 @@ export class Drivers {
 export function harmNow(h, ms) {
   if (!h) return null;
   if (h.kind === "vehicle") {
+    if (h.serviceBay) return { out: true, state: "repair", condition: h.condition };
     if (h.tow_at && ms < h.tow_at) return { stays: true, state: h.state, at: h.at, condition: h.condition, label: h.state };
     if (h.out_until && ms < h.out_until) return { out: true, state: "repair", condition: h.condition };
     return h.condition < 100 ? { condition: h.condition, state: h.state } : null;

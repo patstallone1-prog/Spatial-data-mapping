@@ -28,6 +28,7 @@ import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
+import { WORKSHOP_COMMANDS, installWorkshop } from "./workshop.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
 import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
@@ -77,6 +78,7 @@ export class CityWorld {
     this.ledger.open("business:bank", "business");
     this.ledger.open("business:residents", "business");
     this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
+    this.workOrders = new Map();
     this.kitchenInit();      // restaurants' kitchens: pantries, tickets, the lab (kitchen.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
@@ -630,6 +632,7 @@ export class CityWorld {
     if (!o || o.to !== pid) throw new CityError("no such offer to you");
     const p = this.player(o.from), q = this.player(pid);
     const a = this.registry.get(o.asset);
+    if (a.attrs.serviceBay) throw new CityError("Release the vehicle from the repair bay first.");
     const here = this.where(q);
     if (o.kind === "sale") {
       const taxes = a.kind === "vehicle" ? [[this.treasury(here.city || here.county), salesTax(this.R, here.chain, o.price, "taxable", this.laws)]]
@@ -648,6 +651,7 @@ export class CityWorld {
   cmd_take(pid, { asset, witnesses = 0 }) {
     const p = this.player(pid);
     const a = this.registry.get(asset);
+    if (a.attrs.serviceBay) throw new CityError("The vehicle is in the repair bay.");
     const t = this.registry.take(asset, p.account, this.now);
     const evidence = [...(a.kind === "vehicle" ? ["the car's alarm"] : []), ...Array.from({ length: witnesses }, (_, i) => `witness ${i + 1}`)];
     let bill = null;
@@ -667,6 +671,8 @@ export class CityWorld {
     if (a.custody === "impounded") throw new CityError("it is impounded: pay the tow and storage to release it");
     if (a.holder !== p.account) throw new CityError("not yours to drive");
     if (a.attrs.registered_until && a.attrs.registered_until < this.now) throw new CityError("its registration has run out");
+    if (a.attrs.serviceBay) throw new CityError("The vehicle is checked into a repair bay.");
+    if (["ground","relay"].includes(a.attrs.serviceFault)) throw new CityError("The low-voltage power circuit needs repair.");
     if (a.attrs.in_shop_until > this.now) throw new CityError(`it is in the body shop until ${new Date(a.attrs.in_shop_until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
     p.driving = { vehicle, since: this.now, km: 0 };
     delete p.parked[vehicle];
@@ -984,7 +990,7 @@ export class CityWorld {
       this.harm.set(id, h);
       if (this.harm.size > 4000) {
         // The longest mended go first.
-        const old = [...this.harm.values()].filter((x) => (x.out_until || 0) < this.now - DAY && x !== h).sort((a, b) => (a.last || 0) - (b.last || 0))[0];
+        const old = [...this.harm.values()].filter((x) => !x.serviceBay && !x.serviceWork && !(x.servicedAt > this.now - 7 * DAY) && (x.out_until || 0) < this.now - DAY && x !== h).sort((a, b) => (a.last || 0) - (b.last || 0))[0];
         if (old) this.harm.delete(old.id);
       }
     }
@@ -1636,7 +1642,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], workOrders: [...this.workOrders], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1657,6 +1663,7 @@ export class CityWorld {
     w.businessInteriors = new Map(o.businessInteriors || []);
     w.enterpriseLoad(o.enterprise);
     w.kitchenLoad(o.kitchens);
+    w.workOrders = new Map(o.workOrders || []);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);
@@ -1674,7 +1681,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 installCommerce(CityWorld, CityError);
@@ -1685,6 +1692,7 @@ installCredit(CityWorld, CityError);
 installSocial(CityWorld, CityError);
 //: Restaurants' kitchens: the line, the pantry, the lab (kitchen.mjs).
 installKitchen(CityWorld, CityError);
+installWorkshop(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

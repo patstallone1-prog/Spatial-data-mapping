@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { cityClient, cityServerUrl } from "../docs/city/server-client.mjs";
+import { Roster } from "../docs/city/fleet.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 import { keyHash, openSession, playerId, readSession } from "../server/city/auth.mjs";
 import { CityAuthority } from "../server/city/authority.mjs";
@@ -350,4 +351,22 @@ test("what a function needs is uploaded: .vercelignore lets api/ and server/ thr
     // And what it imports from outside docs/ (which is uploaded whole).
     for (const [, from] of read(`../${f}`).matchAll(/from "\.\.\/([a-z]+)\//g)) assert.ok(from === "docs" || ignore.includes(`!/${from}`), `${f} imports ${from}/`);
   }
+});
+
+test("repair intake resolves a visiting car and its owner from the city roster", async () => {
+  const c = city(), place = [...canon.places.values()].find(p => p.keys.includes("use:gas_station"));
+  const at = near(place), roster = new Roster(R,{seed:"sf-corridor"}); roster.visitorsUpTo(2);
+  const driver=roster.visitors.get("visitor:1"), car=roster.vehicles.get(driver.car);
+  const visitor={id:driver.id,name:"Wrong driver",model:"Wrong car",shade:0,vehicle:car.id,plate:car.plate,indoors:place.id,parkedAt:place.id};
+  assert.ok((await c.cmd("ana","join",{name:"Ana",at})).result.ok);
+  assert.ok((await c.cmd("ana","take_job",{role:"mechanic",place,at})).result.ok);
+  assert.ok((await c.cmd("ana","clock_in",{at})).result.ok);
+  const args={place,at,vehicle:car.id,visitor};
+  const wrong=await c.cmd("ana","workshop_intake",{...args,visitor:{...visitor,plate:"wrong"}});
+  assert.equal(wrong.result?.ok ?? wrong.ok,false);
+  const {result}=await c.cmd("ana","workshop_intake",args);
+  assert.ok(result.ok,result.error);
+  assert.equal(result.order.customer,driver.name);
+  assert.equal(result.order.model,car.model);
+  assert.equal(result.order.shade,car.shade);
 });
