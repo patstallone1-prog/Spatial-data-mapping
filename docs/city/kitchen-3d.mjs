@@ -330,6 +330,16 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
         o.scale.multiplyScalar(sc); o.position.set((k - 1) * Math.min(0.07, w / 4), 0.08 + k * 0.004, (k % 2) * 0.03 - 0.015); o.rotation.y = k * 1.3;
         g.add(o);
       }
+      const spec = R.kitchen.ingredients[ing];
+      const tag = canvasTex(THREE, (ctx, size) => {
+        ctx.fillStyle = "#fff5d9"; ctx.fillRect(0, 0, size, size);
+        ctx.textAlign = "center"; ctx.fillStyle = "#182332";
+        ctx.font = "bold 58px sans-serif"; ctx.fillText(spec.name, size / 2, 117, size - 12);
+        ctx.font = "48px sans-serif"; ctx.fillText(spec.measure === "g" ? "grams" : spec.unit, size / 2, 196, size - 12);
+      });
+      const label = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.96, 0.12), new THREE.MeshBasicMaterial({ map: tag }));
+      label.position.set(0, 0.115, -0.11); label.rotation.x = -Math.PI / 3;
+      g.add(label);
       hit(g, { type: "bin", ing });
       bins.push({ ing, group: g, x, z, approach: new THREE.Vector3(x, 0, walk.z1) });
     }
@@ -364,6 +374,14 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
       glow = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.08, 0.46), new THREE.MeshBasicMaterial({ color: 0xff5a1f, transparent: true, opacity: 0 })); glow.rotation.x = -Math.PI / 2; glow.position.y = COUNTER_Y + 0.032; g.add(glow);
       for (let i = 0; i < 4; i += 1) slots.push(new THREE.Vector3(-w / 2 + (w / 4) * (i + 0.5), COUNTER_Y + 0.031, 0.05));
       topY = COUNTER_Y + 0.031;
+    } else if (id === "cooler") {
+      const tray = box(w * 0.95, 0.065, 0.42, std("#89b9c5"));
+      tray.position.y = COUNTER_Y + 0.033; g.add(tray);
+      for (let i = 0; i < 7; i++) {
+        const rail = box(w * 0.9, 0.012, 0.01, steel);
+        rail.position.set(0, COUNTER_Y + 0.073, (i - 3) * 0.055); g.add(rail);
+      }
+      for (const side of [-1, 1]) slots.push(new THREE.Vector3(side * w / 4, COUNTER_Y + 0.085, 0));
     } else if (id === "fryer") {
       const body = box(w, 0.06, 0.55, steel); body.position.y = COUNTER_Y + 0.03; g.add(body);
       for (const sx of [-1, 1]) {

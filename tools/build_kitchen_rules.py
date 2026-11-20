@@ -141,10 +141,55 @@ ING = {
     "tea_leaves": ("Tea", "bag", 0.2, "dry", "drink", 4, 1, T(bi=1, fr=1), ["cafe", "chinese", "japanese", "thai"], False, {"brew": 5}),
     "soda_syrup": ("Soda", "cup", 0.4, "dry", "drink", 4, 0, T(sw=3), ["american", "mexican", "mediterranean", "italian"], False, {"pour": 2}),
     "ice": ("Ice", "scoop", 0.02, "freezer", "drink", 0, 0, T(fr=1), ["cafe", "american"], True, {}),
+    "water": ("Water", "cup", 0.01, "dry", "drink", 0, 0, T(), [], True, {}),
     "water_bottle": ("Bottled water", "bottle", 0.4, "dry", "drink", 4, 1, T(fr=1), ["cafe", "american"], True, {}),
     "beer_keg": ("Draft beer", "pint", 1.4, "fridge", "drink", 4, -1, T(bi=2), ["american", "mexican", "japanese", "korean", "indian", "seafood", "thai"], False, {"pour": 3}),
     "wine": ("House wine", "glass", 2.2, "fridge", "drink", 3, -1, T(so=1, bi=1), ["italian", "seafood"], False, {"pour": 2}),
 }
+
+# Approximate edible grams per existing pantry unit and kcal per 100 g, as stocked.
+# These are game estimates. Keeping the pantry denomination preserves existing kitchens and orders.
+FOOD_MEASURES = {
+    "bun": (60, 270), "bread": (30, 265), "baguette": (85, 275), "bagel": (95, 260),
+    "tortilla": (45, 310), "pita": (60, 275), "pizza_dough": (220, 235),
+    "pizza_slice_baked": (120, 265), "naan_dough": (90, 245), "pastry_dough": (65, 405),
+    "dumpling_wrappers": (96, 290), "pasta": (85, 370), "arborio": (80, 360),
+    "rice": (75, 360), "noodles": (80, 380), "rice_noodles": (80, 365),
+    "ramen_noodles": (100, 275), "flour": (120, 364), "potato": (150, 77),
+    "nori": (3, 300), "chips_bag": (30, 535), "beef_patty": (115, 250),
+    "steak": (200, 205), "chicken": (120, 120), "chicken_half": (280, 175),
+    "chicken_wings": (150, 190), "pork": (100, 190), "bacon": (20, 420),
+    "ham": (28, 145), "turkey": (28, 115), "beef_slices": (100, 190),
+    "lamb": (110, 240), "shrimp": (90, 85), "fish_fillet": (140, 95),
+    "salmon": (100, 208), "tuna": (95, 132), "oysters": (90, 68),
+    "crab": (140, 87), "clams": (85, 74), "tofu": (150, 80), "egg": (50, 143),
+    "chickpeas": (165, 164), "beans": (170, 130), "cheese": (20, 400),
+    "mozzarella": (45, 280), "parmesan": (5, 420), "cream_cheese": (15, 340),
+    "butter": (5, 717), "milk": (240, 61), "cream": (30, 340), "yogurt": (200, 62),
+    "sour_cream": (15, 195), "ice_cream": (65, 207), "lettuce": (10, 15),
+    "tomato": (90, 18), "onion": (100, 40), "pickles": (15, 12), "cucumber": (120, 15),
+    "carrot": (65, 41), "cabbage": (80, 25), "bell_pepper": (100, 31), "chili": (8, 40),
+    "mushroom": (40, 22), "garlic": (3, 149), "ginger": (8, 80), "scallion": (15, 32),
+    "cilantro": (2, 23), "basil": (2, 23), "bean_sprouts": (40, 30), "spinach": (30, 23),
+    "broccoli": (160, 34), "peas": (40, 81), "avocado": (135, 160), "lime": (45, 30),
+    "lemon": (60, 29), "peanuts": (28, 567), "oranges": (130, 47), "banana": (118, 89),
+    "berries": (50, 50), "coconut_milk": (400, 190), "ketchup": (15, 112),
+    "mustard": (5, 66), "mayo": (15, 680), "hot_sauce": (4, 12), "bbq_sauce": (18, 170),
+    "salsa": (20, 36), "soy_sauce": (5, 53), "fish_sauce": (5, 35), "teriyaki_sauce": (18, 90),
+    "curry_paste": (15, 120), "tikka_sauce": (90, 105), "tomato_sauce": (90, 45),
+    "olive_oil": (8, 884), "broth": (120, 7), "ramen_broth": (150, 45),
+    "tahini": (15, 595), "gochujang": (15, 210), "tartar_sauce": (15, 210),
+    "wasabi": (3, 110), "maple_syrup": (20, 260), "chocolate": (10, 535),
+    "chocolate_syrup": (18, 280), "sugar": (12, 387), "salt": (1, 0),
+    "spice_mix": (2, 300), "coffee_beans": (8, 320), "tea_leaves": (2, 100),
+    "soda_syrup": (30, 265), "ice": (80, 0), "water": (240, 0), "water_bottle": (500, 0),
+    "beer_keg": (473, 43), "wine": (150, 83),
+}
+# Whole, separately handled pieces. Loose, spooned and poured ingredients are measured in grams.
+COUNT_UNITS = {"bun", "slice", "roll", "bagel", "tortilla", "pita", "ball", "piece", "potato",
+               "sheet", "bag", "patty", "steak", "half", "rasher", "fillet", "crab", "block", "egg",
+               "leaf", "tomato", "onion", "cucumber", "carrot", "wedge", "pepper", "chili", "clove",
+               "stalk", "sprig", "head", "avocado", "lime", "lemon", "orange", "banana", "bottle"}
 
 # ---- stations ------------------------------------------------------------------------------------
 # what each can do, and the ideal real seconds of each process (an ingredient may say otherwise)
@@ -160,6 +205,8 @@ PROCESSES = {
     "steam": {"name": "Steam", "verb": "steamed", "seconds": 8, "taste": T(), "health": 0.5},
     "wok": {"name": "Wok", "verb": "stir-fried", "seconds": 6, "taste": T(fa=0.6, um=0.6), "health": -0.5},
     "blend": {"name": "Blend", "verb": "blended", "seconds": 4, "taste": T(), "health": 0},
+    "cool": {"name": "Cool", "verb": "cooled", "seconds": 6},
+    "chill": {"name": "Chill", "verb": "chilled", "seconds": 10},
     "mix": {"name": "Mix", "verb": "mixed", "seconds": 3, "taste": T(), "health": 0},
     "brew": {"name": "Brew", "verb": "brewed", "seconds": 5, "taste": T(), "health": 0},
     "pour": {"name": "Pour", "verb": "poured", "seconds": 2, "taste": T(), "health": 0},
@@ -167,6 +214,7 @@ PROCESSES = {
 HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew"]
 
 STATIONS = {
+    "cooler": {"name": "Cooling rack and chiller", "does": ["cool", "chill"], "slots": 2},
     "board": {"name": "Cutting board", "does": ["chop"], "slots": 1},
     "bowl": {"name": "Mixing bowl", "does": ["mix"], "slots": 4, "batch": True},
     "grill": {"name": "Flat-top grill", "does": ["grill", "toast"], "slots": 4},
@@ -184,7 +232,7 @@ STATIONS = {
     "kettle": {"name": "Kettle", "does": ["brew"], "slots": 2},
     "drinks": {"name": "Drinks fountain and taps", "does": ["pour"], "slots": 2},
 }
-BASE = ["board", "bowl", "microwave"]
+BASE = ["board", "bowl", "microwave", "cooler"]
 KITCHENS = {
     "restaurant": BASE + ["grill", "fryer", "stove", "oven", "steamer", "drinks"],
     "american": BASE + ["grill", "fryer", "stove", "oven", "blender", "drinks"],
@@ -237,9 +285,9 @@ RECIPES = {
     "smoothie": (False, "cup", [c("banana", 1, "blend"), c("berries", 1, "blend"), c("yogurt", 1, "blend"), c("ice", 1, "blend")]),
     "pastry": (False, "plate", [c("pastry_dough", 1, "bake")]),
     "bagel": (True, "plate", [c("bagel", 1, "toast"), c("cream_cheese")]),
-    "bread": (False, "bag", [c("flour", 3, "mix>bake"), c("salt", 1, "mix>bake"), c("butter", 1, "mix>bake")]),
+    "bread": (False, "bag", [c("flour", 3, "mix>bake"), c("water", 1, "mix>bake"), c("salt", 1, "mix>bake"), c("butter", 1, "mix>bake")]),
     "donut": (True, "bag", [c("flour", 1, "mix>fry"), c("sugar", 1, "mix>fry"), c("egg", 1, "mix>fry"), c("sugar")]),
-    "cake": (True, "plate", [c("flour", 3, "mix>bake"), c("sugar", 2, "mix>bake"), c("egg", 2, "mix>bake"), c("butter", 2, "mix>bake"), c("cream", 2), c("berries", 2)]),
+    "cake": (True, "plate", [c("flour", 3, "mix>bake>cool>chill"), c("sugar", 2, "mix>bake>cool>chill"), c("egg", 2, "mix>bake>cool>chill"), c("butter", 2, "mix>bake>cool>chill"), c("cream", 2, "chill"), c("berries", 2, "chill")]),
     "dessert": (True, "cup", [c("ice_cream", 2), c("berries", 1), c("chocolate_syrup"), c("cream")]),
     "ice_cream": (False, "cup", [c("ice_cream", 2)]),
     "chips": (False, "bag", [c("chips_bag")]),
@@ -279,13 +327,27 @@ RECIPES = {
 # delivery, spoilage, trim and San Francisco's markups are in (approx.).
 COST_SCALE = 2.2
 
+# Water supplied by the pot or brewer. Flour in a mixing bowl uses water from the pantry.
+WATER_GAIN = {"pasta": 1.3, "arborio": 1.8, "rice": 2.0, "noodles": 1.2, "rice_noodles": 1.5, "ramen_noodles": 0.6}
+BREW_GRAMS = {"coffee_beans": 35, "tea_leaves": 240}
+
 RULES_BLOCK = {
     "basis": "the restaurant game (docs/city/kitchen.mjs): a food shop's kitchen, worked by its staff. An ingredient's cost is wholesale, set so a dish's ingredients come to about 28-38% of its menu price (the usual US restaurant food-cost share, approx.). Process seconds are real seconds of play, kept short on purpose; doneness is right within ±15-20% of a process's time, raw well under it and burnt well over it. Tips are a share of the ticket by how well it was made (US restaurant norms of 15-20% for good service, approx.), and a little more for something on the house; the house pays for what it gives away.",
     "processes": PROCESSES,
     "heat": HEAT,
     "stations": STATIONS,
     "kitchens": KITCHENS,
-    "ingredients": {k: {"name": v[0], "unit": v[1], "cost": round(v[2] * COST_SCALE, 2), "kept": v[3], "role": v[4], "stamina": v[5], "health": v[6], "taste": v[7], "tags": v[8], "raw_ok": v[9], **({"times": v[10]} if v[10] else {})} for k, v in ING.items()},
+    # Typical service mix and pacing in the game's kitchen styles.
+    "service": {kind: {"takeout": takeout, "pace": pace}
+                for kinds, takeout, pace in [
+                    (["american", "pizza", "deli", "ice_cream", "bakery", "cafe"], 0.8, 1.0),
+                    (["restaurant", "italian", "seafood", "mediterranean"], 0.18, 1.35),
+                    (["diner", "mexican", "japanese", "chinese", "thai", "vietnamese", "indian", "korean"], 0.45, 1.15),
+                ] for kind in kinds},
+    "ingredients": {k: {"name": v[0], "unit": v[1], "measure": "count" if v[1] in COUNT_UNITS else "g",
+                        "grams": FOOD_MEASURES[k][0], "kcal_100g": FOOD_MEASURES[k][1],
+                        **({"water_gain": WATER_GAIN[k]} if k in WATER_GAIN else {}),
+                        **({"brew_grams": BREW_GRAMS[k]} if k in BREW_GRAMS else {}), "cost": round(v[2] * COST_SCALE, 2), "kept": v[3], "role": v[4], "stamina": v[5], "health": v[6], "taste": v[7], "tags": v[8], "raw_ok": v[9], **({"times": v[10]} if v[10] else {})} for k, v in ING.items()},
     "recipes": {k: {"ordered": v[0], "vessel": v[1], "build": v[2]} for k, v in RECIPES.items()},
     "doneness": {"raw_below": 0.5, "right": [0.82, 1.2], "burnt_above": 1.65},
     "score": {"weights": {"ingredients": 34, "processes": 20, "doneness": 20, "order": 10, "portions": 8, "speed": 8}},
@@ -294,7 +356,7 @@ RULES_BLOCK = {
     "pantry": {"month_buffer": [1.1, 1.3], "player_start_portions": 30, "order_lead_hours": 12},
     "rating": {"start": 70, "warn_below": 45, "let_go_below": 30, "after_tickets": 12, "comp_share_ok": 0.06, "waste_share_ok": 0.05},
     "npc_cover": {"skill": [0.55, 0.85], "seconds_per_ticket": [25, 45]},
-    "lab": {"max_components": 10, "markup": [2.0, 3.0], "accept_taste": 66, "decide_game_hours": 2, "proposals_most": 6, "menu_most": 6},
+    "lab": {"max_components": 128, "markup": [2.0, 3.0], "accept_taste": 66, "decide_game_hours": 2, "proposals_most": 6, "menu_most": 6},
     "pairs_basis": "flavour pairs that lift a dish (tomato-basil, lime-chili...) and clashes that sink it (sweet desserts with fish); a test customer tastes these on top of the dish's balance",
     "pairs": [["tomato", "basil"], ["tomato", "mozzarella"], ["lime", "chili"], ["lime", "cilantro"], ["garlic", "butter"], ["beef_patty", "cheese"], ["bacon", "egg"], ["soy_sauce", "ginger"], ["soy_sauce", "scallion"], ["lemon", "fish_fillet"], ["lemon", "salmon"], ["chocolate", "berries"], ["banana", "chocolate"], ["coconut_milk", "curry_paste"], ["rice", "soy_sauce"], ["potato", "salt"], ["avocado", "lime"], ["mushroom", "parmesan"], ["cream_cheese", "salmon"], ["peanuts", "lime"], ["gochujang", "egg"], ["honey", "yogurt"], ["chili", "pork"], ["tahini", "lemon"], ["ice_cream", "chocolate_syrup"], ["coffee_beans", "milk"], ["maple_syrup", "bacon"]],
     "clashes_basis": "each side is an ingredient role (sweet, drink, protein...), or a role with a cuisine (protein:seafood is fish and shellfish)", "clashes": [["sweet", "protein:seafood"], ["sweet", "protein:korean"], ["sweet", "protein:indian"], ["sweet", "protein:mexican"], ["sweet", "sauce:japanese"], ["drink", "protein"]],

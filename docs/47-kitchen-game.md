@@ -25,14 +25,14 @@ The action bar and the to-do list offer **Work the kitchen**. The owner of a pla
 - **Tickets** come in from the front.
   - They come faster at rush hour, and none come while the shop is shut.
   - A ticket is a main dish, perhaps with a side and a drink, and sometimes with an ask ("NO TOMATO", "EXTRA CHEESE").
-  - The customer waits for 80–150 real seconds, plus 30 s for each extra dish. When the time runs out they walk out.
+  - Each ticket shows takeout or sit-down service, a full-tip window and a walkout countdown. Its window accounts for components, batch sizes, shared preparation steps, extra courses and the pace of the restaurant. After the target time, tip potential falls continuously until the customer leaves.
   - A player who buys a dish at the counter while a cook is on the line becomes that cook's ticket. That player can tip the cook from their to-do list.
 - **The room.** The kitchen is an animated 3D room. Your cook stands between two counters:
   - the **front counter** holds bins of the menu's ingredients, the work surface, the cutting board, the mixing bowl and the pass (left, under heat lamps);
   - the **back counter** holds the stations; the fridge and freezer stand on the left and the dry-goods rack on the right.
   - Its look follows the kind of restaurant: fast food (red and white tiles, steel), café (planks and wood), fine dining (slate, marble, brass pendants), Asian (dark wood, red lanterns) and Indian (terracotta and copper). The ingredients and stations give it the rest of its character.
 - **Moving.** Click where to go, or walk with WASD or the arrows. A click on anything walks the cook there first, then acts.
-- **Fetching.** Click a bin to take one unit (it leaves the pantry). The fridge, freezer and shelves open a list of everything kept there. An untouched ingredient can be put back.
+- **Fetching.** Click a labeled bin, or walk up to it and press E. Enter a count for pieces such as eggs and lettuce leaves, or grams for loose ingredients such as flour and liquids such as water. The fridge, freezer and shelves list their stock. B opens the pantry list and selecting an ingredient walks you to it. You can return an untouched withdrawal.
 - **Putting down.** Click the work surface. If you drop within 14 cm of food already there, it snaps onto that food and stacks on top; further away, it starts a new pile. You can keep several things going at once.
 - **Selecting.** The first click on a pile selects the whole product; the second selects one thing inside it; the third takes that thing out. E or Space picks up what is selected, or puts down what you hold. Q or Delete bins it (logged as waste).
 - **The stations** depend on the kind of restaurant (`kitchen.kitchens`).
@@ -40,7 +40,7 @@ The action bar and the to-do list offer **Work the kitchen**. The owner of a pla
   - Click a station while holding food to put it on. A station that does more than one thing (the grill toasts or grills) asks which.
   - A cooking bar floats over the food, with a green window (82–120% of the time) and a red burnt zone. The food changes colour and steams or sizzles as it cooks. One click takes it off.
   - On the board, each click is a chop; five chops and it is chopped.
-  - The bowl and the blender take several things, then start with a click on the station.
+  - Load ingredients into the bowl or blender, then click the station to start. A finished batch travels together and is weighed in grams. Set it on the work surface, select it and choose **Take a portion** to weigh out part of it. Each portion retains its share of every ingredient and all prior preparation steps. The cooling rack and chiller support successive stages, including baking, cooling, adding toppings, then chilling the assembled dish.
 - **The plate** is the pile, bottom first. Put it on the pass, pick the ticket on the rail, and serve. The side card shows the recipe, ticks off what is already on the pass, and estimates the score.
 - **On the house**: you can slip in up to three sides or drinks. Each one lifts the tip by 5 percentage points (12 at most), but its cost is logged against you.
 
@@ -68,7 +68,7 @@ Raw meat, egg or dough caps the score at 15, because it isn't safe to eat.
 | 88 | 20% |
 | 96 and up | 25% |
 
-Each customer's generosity then scales the tip by 0.7–1.35.
+Each customer's generosity scales the tip by 0.7–1.35. After the full-tip window, the remaining share decreases to zero at the walkout deadline. Paid player orders keep their manual tip.
 
 ## The pantry is finite
 
@@ -99,7 +99,8 @@ A player owner sees each cook's record and rating in the Owner tab.
 1. Use the same pantry and stations to make anything you like.
 2. Serve it free to a customer as a test.
 3. The test (`tasteOf`) returns a taste score and what the dish does for stamina and health, and suggests a fair price.
-   - Taste is judged on balance, salt, freshness against fat, variety, known good pairs and clashes (ice cream with fried fish), and how well it was cooked.
+   - The lab reports estimated kcal and grams for the entire portion, a flavor profile and a taste score. It combines ingredient-specific energy densities and edible weights with the ordered techniques. For example, rice gains water as it steams, dry heat removes moisture, frying adds oil, and chilling a cooled dish mutes its sweetness. These are gameplay estimates.
+   - The lab compares ingredient proportions and preparation with the 59 house recipes and this kitchen’s learned dishes. A small variation keeps its familiar name. Enter a name for a new creation before serving the test.
 4. Put the dish to the owner, at a price you suggest.
    - A resident owner decides after 2 game hours. They accept a dish that tastes 66 or more, at your price if it falls between 2.2× and 5× its cost.
    - A player owner decides in their Owner tab.
@@ -120,4 +121,4 @@ An accepted dish becomes one of the city's items. From then on:
 
 - **Saving**: kitchens are saved in the world's JSON as `kitchens`.
 - **Privacy**: the server's per-player view (`server/city/views.mjs`) shows a cook only their own tickets, board, tests and record. The owner sees everything.
-- **Trust**: the cooking itself happens in the page. The world checks every plate against what you took from the pantry. It takes the page's word on doneness and timing, so a modified client could claim a perfect cook.
+- **Trust**: the cooking itself happens in the page. The world validates quantities and available techniques and measures service delay on the world clock. It takes the page’s word on station doneness.
