@@ -177,3 +177,7 @@ desktop/node_modules/
 desktop/out/
 .vercel/
 supabase/.temp/
+
+# Near-ring NPC figures: Epic content (MetaHuman, UE mannequin) built locally by
+# tools/build_npc_characters.mjs; not committed to this public repo (docs/51).
+/docs/city/models/npc/

@@ -42,6 +42,7 @@ import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
+import { NEAR_FIGURES_MAX, npcFigures } from "./npc-figures.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
 import { buildSignage, normalizeSignage } from "../interior-lab/signage.mjs";
 
@@ -272,6 +273,7 @@ export async function startCity(ctx) {
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
+  const MIN_PLACE_M2 = 8;
   let scan = { people: [], vehicles: [] }, scanAt = { x: Infinity, z: Infinity }, scanning = false, scanReach = 0;
   function buildDistrict(data) {
     const ways = [], buildings = [];
@@ -312,7 +314,9 @@ export async function startCity(ctx) {
     const wayKey = (w) => (w.kind === "street" && w.id !== undefined ? `s:${w.id}`
       : `p:${Math.round(w.pts[0][0])},${Math.round(w.pts[0][1])}:${Math.round(w.pts[w.pts.length - 1][0])},${Math.round(w.pts[w.pts.length - 1][1])}:${w.pts.length}`);
     for (const w of ways) { const k = wayKey(w); if (!district.allWays.has(k)) { district.allWays.set(k, w); added += 1; } }
-    const fresh = buildings.filter((b) => !district.allBuildings.has(b.id));
+    // (Nothing under 8 m2 is a place to go into: a kiosk, a pump house, a mapping sliver. The
+    // world draws no walls for one, and its door stood in the air.)
+    const fresh = buildings.filter((b) => !district.allBuildings.has(b.id) && !(b.area < MIN_PLACE_M2));
     for (const b of fresh) district.allBuildings.set(b.id, b);
     district.key = data.key;
     if (!added && !fresh.length && district.city) return;
@@ -713,6 +717,14 @@ export async function startCity(ctx) {
   const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
   midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
   const bodies = new Map();
+  // The nearest few as Unreal characters (npc-figures.mjs): the MetaHuman and the mannequin,
+  // skinned and walking on the mannequin's clips. Until they load -- or where they are not
+  // published -- the near ring is drawn as it was.
+  const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, store: ctx.npcStore || null, parent: group });
+  //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
+  //: sport or on the telephone (the jointed figure has those poses; the clips do not).
+  const figureFits = (p) => !p.ride && !p.down && !p.gesture && !p.fall;
+  let figuresLast = 0;
   // The traffic: each kind of vehicle its own three instanced parts (vehicles.mjs) -- paint,
   // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
   // show through the windows. They were one painted box and a pale cabin box for every kind.
@@ -882,9 +894,26 @@ export async function startCity(ctx) {
     const seen = peopleInView(list);
     // Each at the tier the frame gave it (frameCity), or -- a cyclist, a passenger -- by where it is.
     for (const q of seen) q.detail = q.p.detail ?? (detailNow ? detailNow.tier("people", q.p.x, q.p.z) : FULL);
-    const [full, mid, low] = byTier(seen, PEOPLE_CAPS);
+    let [full, mid, low] = byTier(seen, PEOPLE_CAPS);
+    // Near you, the characters; then the jointed figures, which were the near ring, for the rest
+    // of it and the moderate ring; past that the basic shapes. (While the characters load, the
+    // rings are as they were.)
+    const near = [];
+    if (!figures.failed) for (const q of full) if (near.length < NEAR_FIGURES_MAX && figureFits(q.p)) near.push(q);
+    const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
+    const asFigures = figures.draw(near.map(({ p, y }) => {
+      const body = bodyFor(p.person, bodies), o = body.outfit;
+      return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female === true,
+        moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace),
+        look: { top: p.person.uniform, bottom: o.bottoms, hair: body.hair, skin: SKIN[hash32(p.id) % SKIN.length] } };
+    }), now, dtFig);
+    if (asFigures) {
+      const drawn = new Set(near.slice(0, asFigures));
+      full = full.filter((q) => !drawn.has(q)).concat(mid); mid = low; low = [];
+    }
     drawPeopleSimpler(mid, low, now);
     peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
+    if (asFigures) for (const { p, y } of near.slice(0, asFigures)) if (!p.indoors) shadeAt(peopleShade, SHADE_PEOPLE, p.x, y, p.z, p.yaw, 0.8, 0.8);
     let n = 0, r = 0, k = 0;
     for (const { p, y } of full) {
       if (n >= MAX_PEOPLE) break;
@@ -992,6 +1021,7 @@ export async function startCity(ctx) {
     for (const mesh of Object.values(parts)) { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; if (mesh.userData.tone) toneDone(mesh); }
     for (const mesh of Object.values(riderLegs)) { mesh.count = r; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
     drawnTiers.people = [n, mid.length, low.length];
+    drawnTiers.figures = asFigures;
     return n;
   }
   //: The moderate and the low tiers: the same person in the same place, facing the same way, of
@@ -3864,7 +3894,7 @@ export async function startCity(ctx) {
   //: only tracked or drawn low, when it is next placed), and how many were drawn at each tier.
   let detailNow = null;
   const personTiers = new Map(), carTiers = new Map(), focusVelocity = velocityTracker();
-  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 } };
+  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 }, figures: 0 };
   //: Someone tracked only is placed again about once a second (each at its own moment, so the
   //: crowd's are spread over the frames): often enough to come into range on time at a walk, or
   //: in a car at the speed limit, before the low ring's edge (DETAIL_RINGS) is reached.
@@ -5552,7 +5582,7 @@ export async function startCity(ctx) {
   return {
     //: How the crowd and the traffic were drawn last frame: so many at each tier (full, moderate,
     //: low), so many only tracked, and the detail field's stretch ahead.
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked },
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(),
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,

@@ -520,6 +520,7 @@ function facadeTextureFor(material, seed) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, style, variant);
     texture.userData = { material, seed: effectiveSeed, style, variant, shared: true };
+    NEAR_SURFACE.mark(texture, nearWallKind(material));
     FACADE_CACHE.set(key, texture);
   }
   return FACADE_CACHE.get(key);
@@ -532,6 +533,13 @@ function facadeTextureFor(material, seed) {
 //: house looks from the street.
 const HOUSE_PATTERNED_CLASSES = new Set(["brick", "stone", "ceramic_tile"]);
 let HOUSE_FLAT_WALL = null;
+//: Which near photograph a wall takes (module 02, NEAR_SURFACE): concrete for concrete, the
+//: painted boards for a painted or wooden one (San Francisco's wood siding is painted), none
+//: for the rest. A flat house wall is one plain map a kind, so each knows which it is.
+function nearWallKind(material) {
+  return material?.name === "concrete" ? "concrete" : material?.name === "painted" || material?.name === "wood" ? "painted-wood" : null;
+}
+const HOUSE_FLAT_WALLS = new Map();
 function houseWallIsFlat(material) {
   return !HOUSE_PATTERNED_CLASSES.has(material.photoLabel) && material.name !== "brick" && material.name !== "stone";
 }
@@ -541,6 +549,21 @@ function houseWallIsFlat(material) {
 //: house the street sees and the house the walker opens are one surface.
 function bareFacadeTextureFor(material, seed) {
   if (houseWallIsFlat(material)) {
+    const near = nearWallKind(material);
+    if (near) {
+      if (!HOUSE_FLAT_WALLS.has(near)) {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 4;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 4, 4);
+        const flat = new THREE.CanvasTexture(canvas);
+        flat.wrapS = flat.wrapT = THREE.RepeatWrapping;
+        flat.userData = { flat: true };
+        HOUSE_FLAT_WALLS.set(near, NEAR_SURFACE.mark(flat, near));
+      }
+      return HOUSE_FLAT_WALLS.get(near);
+    }
     if (!HOUSE_FLAT_WALL) {
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 4;
@@ -559,6 +582,7 @@ function bareFacadeTextureFor(material, seed) {
     const effectiveSeed = seed + variant * 977;
     const texture = facadeFor(material, effectiveSeed, 0, variant, false);
     texture.userData = { material, seed: effectiveSeed, style: 0, variant, bare: true, shared: true };
+    NEAR_SURFACE.mark(texture, nearWallKind(material));
     bareWallMaps.set(key, texture);
   }
   return bareWallMaps.get(key);
@@ -724,7 +748,7 @@ function roadTexture() {
   return texture;
 }
 
-const ROAD = roadTexture();
+const ROAD = NEAR_SURFACE.mark(roadTexture(), "asphalt");
 //: Spacing of the saw cuts, in metres. Four and a half is a common bay for a concrete street.
 const ROAD_SLAB_M = 4.5;
 
@@ -760,7 +784,7 @@ function dividerBlockTexture() {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
-const DIVIDER_BLOCK = dividerBlockTexture();
+const DIVIDER_BLOCK = NEAR_SURFACE.mark(dividerBlockTexture(), "concrete");
 
 function crossingTexture() {
   // Continental bars: each stripe crosses the width of the crosswalk, so a person walking the

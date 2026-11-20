@@ -2337,8 +2337,8 @@ function sidewalkTexture(variant = "square") {
   return texture;
 }
 
-const SIDEWALK = sidewalkTexture();
-const NARROW_SIDEWALK = sidewalkTexture("narrow");
+const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "concrete");
+const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "concrete");
 //: One scored square, in metres. Five feet is the usual San Francisco pour.
 const SLAB_M = 1.52;
 const WALK_UV_M = SLAB_M * SLAB_BLOCK;

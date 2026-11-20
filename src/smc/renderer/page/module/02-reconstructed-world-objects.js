@@ -548,13 +548,117 @@ iblIrradiance *= kbSky;
 radiance *= mix(1.0, kbSky * (0.4 + 0.6 * kbLit), min(1.0, kbPLK.x) * kbPLK.w);
 #endif`);
 };
+//: Photographed surfaces near you (docs/51-near-ring-people-and-surfaces.md). Four materials --
+//: asphalt, concrete, wood and painted wood -- each have one photograph (docs/textures/near/,
+//: ambientCG, CC0) and its relief. Every surface of that kind takes it, laid in metres of the
+//: world rather than the surface's own UVs, so the same reference is at the same scale on every
+//: road, kerb, deck and wall. Only near you: full within ``near.x`` of the camera, gone by
+//: ``near.y``; past that the surface is drawn as it always was (its own canvas texture), and far
+//: off the tiles are the core shapes they were. The photograph adds its detail to the colour the
+//: surface already has (its light and dark about its own average), so a measured shade -- a
+//: road's, a house's paint -- is kept and there is no ring where the colour changes.
+//: A material says what it is by its map (``mark(texture, kind)``) or by ``userData.nearSurface``.
+const NEAR_SURFACE = globalThis.__kerbsideNearSurface ||= {
+  near: { value: new THREE.Vector3(32, 58, 1) },     // full within x, faded by y (m); z: on (1) or off (0)
+  kinds: {
+    // tile_m: the metres one photograph spans; mean: its average colour (linear-ish, from sRGB);
+    // relief: how strongly its normal map bends the light.
+    asphalt: { tile_m: 3.2, mean: [0.471, 0.471, 0.471], relief: 0.9 },
+    concrete: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6 },
+    wood: { tile_m: 2.0, mean: [0.313, 0.243, 0.18], relief: 0.8 },
+    "painted-wood": { tile_m: 2.6, mean: [0.7, 0.652, 0.588], relief: 0.9 },
+  },
+  byMap: new WeakMap(),
+  uniforms: new Map(),
+  missed: 0,
+};
+NEAR_SURFACE.mark ||= function (texture, kind) { if (texture && NEAR_SURFACE.kinds[kind]) NEAR_SURFACE.byMap.set(texture, kind); return texture; };
+NEAR_SURFACE.kindOf ||= function (material) {
+  if (!material || !material.isMeshStandardMaterial && !material.isMeshPhongMaterial && !material.isMeshLambertMaterial) return null;
+  const own = material.userData?.nearSurface;
+  if (own !== undefined) return NEAR_SURFACE.kinds[own] ? own : null;
+  return (material.map && NEAR_SURFACE.byMap.get(material.map)) || null;
+};
+//: One set of uniforms a kind, its two pictures loaded the first time a material of it compiles.
+NEAR_SURFACE.uniformsFor ||= function (kind) {
+  let u = NEAR_SURFACE.uniforms.get(kind);
+  if (u) return u;
+  const k = NEAR_SURFACE.kinds[kind];
+  u = { map: { value: null }, relief: { value: null }, tile: { value: new THREE.Vector4(1 / k.tile_m, k.relief, 0, 0) },
+    mean: { value: new THREE.Vector3(...k.mean.map((c) => Math.pow(c, 2.2))) } };
+  NEAR_SURFACE.uniforms.set(kind, u);
+  const loader = new THREE.TextureLoader();
+  const load = (file, srgb, slot, ready) => loader.load(sharedAsset(`textures/near/${kind}-${file}.jpg`), (t) => {
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    u[slot].value = t; if (ready) u.tile.value.z = 1;
+  }, undefined, () => { if (!NEAR_SURFACE.missed++) console.warn("kerbside: a near-surface photograph did not load"); });
+  load("color", true, "map", true);
+  load("normal", false, "relief", false);
+  return u;
+};
+//: Into a material's shader (``shader`` as onBeforeCompile is given it) for a kind.
+NEAR_SURFACE.patch ||= function (shader, kind) {
+  if (!shader || shader.uniforms.kbNsMap) return;
+  const fs = shader.fragmentShader, vs = shader.vertexShader;
+  if (!fs.includes("#include <color_fragment>") || !fs.includes("#include <normal_fragment_maps>") || !vs.includes("#include <beginnormal_vertex>") || !vs.includes("#include <project_vertex>")) return;
+  const u = NEAR_SURFACE.uniformsFor(kind);
+  shader.uniforms.kbNsMap = u.map; shader.uniforms.kbNsRelief = u.relief; shader.uniforms.kbNsTile = u.tile; shader.uniforms.kbNsMean = u.mean; shader.uniforms.kbNsNear = NEAR_SURFACE.near;
+  shader.vertexShader = vs.replace("#include <common>", "#include <common>\nvarying vec3 kbNsW; varying vec3 kbNsN;")
+    .replace("#include <project_vertex>", `#include <project_vertex>
+{ vec4 kbNsP = vec4(transformed, 1.0); vec3 kbNsO = objectNormal;
+#ifdef USE_INSTANCING
+kbNsP = instanceMatrix * kbNsP; kbNsO = mat3(instanceMatrix) * kbNsO;
+#endif
+kbNsW = (modelMatrix * kbNsP).xyz; kbNsN = normalize(mat3(modelMatrix) * kbNsO); }`);
+  shader.fragmentShader = fs.replace("#include <common>", `#include <common>
+varying vec3 kbNsW; varying vec3 kbNsN;
+uniform sampler2D kbNsMap; uniform sampler2D kbNsRelief; uniform vec4 kbNsTile; uniform vec3 kbNsMean; uniform vec3 kbNsNear;
+// The photograph's place on a surface: the ground by its x and z, a wall by its run and height.
+vec2 kbNsUv(vec3 w, vec3 n, out vec3 t, out vec3 b) {
+  vec3 a = abs(n);
+  if (a.y > 0.6) { t = vec3(1.0, 0.0, 0.0); b = vec3(0.0, 0.0, -1.0); return vec2(w.x, -w.z); }
+  if (a.x > a.z) { t = vec3(0.0, 0.0, -sign(n.x)); b = vec3(0.0, 1.0, 0.0); return vec2(-w.z * sign(n.x), w.y); }
+  t = vec3(sign(n.z), 0.0, 0.0); b = vec3(0.0, 1.0, 0.0); return vec2(w.x * sign(n.z), w.y);
+}`)
+    .replace("#include <color_fragment>", `#include <color_fragment>
+float kbNsF = kbNsNear.z * kbNsTile.z * (1.0 - smoothstep(kbNsNear.x, kbNsNear.y, distance(kbNsW, cameraPosition)));
+vec3 kbNsT, kbNsB; vec2 kbNsAt = vec2(0.0);
+// (Sampled wherever the pictures are in, not only inside the ring: a branch that differs from one
+// pixel to the next would leave the texture's mip level undefined along the ring's edge.)
+if (kbNsNear.z * kbNsTile.z > 0.0) {
+  kbNsAt = kbNsUv(kbNsW, normalize(kbNsN), kbNsT, kbNsB) * kbNsTile.x;
+  // The one photograph, and a second look at it turned and larger, so its repeat does not show.
+  vec3 kbNsC = texture2D(kbNsMap, kbNsAt).rgb;
+  vec3 kbNsC2 = texture2D(kbNsMap, mat2(0.8, -0.6, 0.6, 0.8) * kbNsAt * 0.37 + 0.31).rgb;
+  vec3 kbNsD = mix(kbNsC, kbNsC * (kbNsC2 / kbNsMean), 0.35) / kbNsMean;
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * clamp(kbNsD, 0.0, 2.5), kbNsF);
+}`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+if (kbNsNear.z * kbNsTile.z > 0.0 && kbNsTile.y > 0.0) {
+  vec3 kbNsR = texture2D(kbNsRelief, kbNsAt).xyz * 2.0 - 1.0;
+  vec3 kbNsWN = normalize(kbNsN);
+  vec3 kbNsBent = normalize(kbNsT * kbNsR.x * kbNsTile.y + kbNsB * kbNsR.y * kbNsTile.y + kbNsWN * max(kbNsR.z, 0.2));
+  normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbNsBent, 0.0)).xyz), kbNsF));
+}`);
+};
 // Every lit material, without each being told: a material with no hook of its own uses this one,
 // and those that chain a hook (patchMaterial, the box clips) call it first. A material that sets
-// its own hook outright calls PROXY_LIGHT.patch itself.
+// its own hook outright calls PROXY_LIGHT.patch itself. The same hook lays the near photographs
+// on a surface that is one of their kinds, and its program is kept apart from the plain one's.
 if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
-  const hook = function (shader) { globalThis.__kerbsideProxyLight.patch(shader); };
+  const hook = function (shader) {
+    globalThis.__kerbsideProxyLight.patch(shader);
+    const N = globalThis.__kerbsideNearSurface, kind = N?.kindOf(this);
+    if (kind) N.patch(shader, kind);
+  };
   hook.kbProxyLight = true;
   THREE.Material.prototype.onBeforeCompile = hook;
+  const key = THREE.Material.prototype.customProgramCacheKey;
+  THREE.Material.prototype.customProgramCacheKey = function () {
+    const kind = globalThis.__kerbsideNearSurface?.kindOf(this);
+    return kind ? `${key.call(this)}|near:${kind}` : key.call(this);
+  };
 }
 let proxyLightController = null;
 if(!ATTACH) {
