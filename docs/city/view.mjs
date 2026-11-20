@@ -720,7 +720,7 @@ export async function startCity(ctx) {
   // The nearest few as Unreal characters (npc-figures.mjs): the MetaHuman and the mannequin,
   // skinned and walking on the mannequin's clips. Until they load -- or where they are not
   // published -- the near ring is drawn as it was.
-  const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, parent: group });
+  const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, store: ctx.npcStore || null, parent: group });
   //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
   //: sport or on the telephone (the jointed figure has those poses; the clips do not).
   const figureFits = (p) => !p.ride && !p.down && !p.gesture && !p.fall;

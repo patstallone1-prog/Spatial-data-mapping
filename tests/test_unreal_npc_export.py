@@ -46,3 +46,26 @@ def test_options_tolerate_a_missing_property() -> None:
     o = m.options(fake, 2, False)
     assert o.set["default_level_of_detail"] == 2 and o.set["export_vertex_skin_weights"] is True
     assert o.set["bake_material_inputs"] == "off"
+
+
+def test_publish_puts_a_stamped_build_and_current_last(tmp_path: Path) -> None:
+    spec = importlib.util.spec_from_file_location("publish_npc_characters", ROOT / "tools" / "publish_npc_characters.py")
+    pub = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pub)
+    build = tmp_path / "npc"
+    build.mkdir()
+    for name in ("manifest.json", "clips.glb", "ada-body.jpg"):
+        (build / name).write_bytes(name.encode())
+    puts = []
+
+    class Store:
+        def put_file(self, key, source, **kw):
+            puts.append(key)
+
+        def put_json(self, key, body, **kw):
+            puts.append((key, body))
+
+    current = pub.publish(build, Store())
+    assert puts[-1] == ("npc/current.json", current)
+    assert all(k.startswith(f"npc/{current['build']}/") for k in puts[:-1]) and len(puts) == 4
+    assert pub.stamp(build) == current["build"]

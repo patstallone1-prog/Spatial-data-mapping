@@ -25,9 +25,19 @@ const FILES = {
 };
 const TEX = { body: "ada-body.jpg", bodyN: "ada-body-normal.jpg", face: "ada-face.jpg", faceN: "ada-face-normal.jpg", eye: "ada-eye.jpg", hair: "ada-hair.jpg" };
 
-export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/npc/" }) {
+//: ``store`` is the public store's npc/ folder (tools/publish_npc_characters.py): its current.json
+//: names the build. Without it, or without a build there, the models come from ``base`` beside the
+//: page (a local build; the folder is not in the public repo).
+export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/npc/", store = null }) {
   const S = { ready: false, failed: false, loading: null, kinds: {}, clips: null, pool: { ada: [], manny: [] }, live: new Map() };
-  const url = (f) => asset(base + f);
+  let from = null;
+  const url = (f) => (from ? from + f : asset(base + f));
+  const storeBuild = async () => {
+    if (!store) return null;
+    const r = await fetch(new URL("current.json", store), { cache: "no-cache" }).catch(() => null);
+    const cur = r?.ok ? await r.json().catch(() => null) : null;
+    return cur?.build ? new URL(`${cur.build}/`, store).href : null;
+  };
   const texLoader = new THREE.TextureLoader();
   const tex = (f, srgb = true) => new Promise((ok, no) => texLoader.load(url(f), (t) => {
     t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; ok(t);
@@ -49,6 +59,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   }
 
   async function load() {
+    from = await storeBuild();
     const [body, face, outfit, hair, manny, clips, t] = await Promise.all([
       loadModel(url(FILES.body)), loadModel(url(FILES.face)), loadModel(url(FILES.outfit)), loadModel(url(FILES.hair)),
       loadModel(url(FILES.manny)), loadModel(url(FILES.clips)),

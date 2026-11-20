@@ -32,6 +32,7 @@ Build them locally from the Unreal project (UE 5.8, `Kerbside.uproject`, on the 
 KERBSIDE_NPC_OUT=/path/to/out UnrealEditor Kerbside.uproject -run=pythonscript \
   -script=tools/unreal/export_npc_characters.py -nullrhi -unattended
 node tools/build_npc_characters.mjs /path/to/out docs/city/models/npc
+python tools/publish_npc_characters.py docs/city/models/npc --store s3://<public bucket>
 ```
 
 **Exporter bug:** Unreal's glTF exporter writes MetaHuman skin weights as uint8 holding the low
@@ -40,8 +41,10 @@ hands and feet. `reweight()` in the build tool keeps Unreal's list of bones for 
 weights them again by the vertex's distance from each bone segment. A listed bone far beyond the
 nearest gets nothing.
 
-The pages fetch the models from `city/models/npc/`. A deployed site has them only if they are
-uploaded (to the store or bucket), so check Epic's licence terms for MetaHuman and UE content first.
+The page reads the models from the public store: `/store/npc/current.json` names the build, and
+the files sit under `/store/npc/<build>/`. Build 95c2da3cb91d was published on 2026-11-19, with
+the owner's OK. Without a build in the store, the page falls back to a local
+`docs/city/models/npc/`.
 
 ## Surfaces (`NEAR_SURFACE`, page module 02)
 
