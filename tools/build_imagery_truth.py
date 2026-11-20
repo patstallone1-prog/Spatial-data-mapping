@@ -43,6 +43,8 @@ def main() -> int:
     ap.add_argument("--journal", type=Path)
     ap.add_argument("--tasks", default=",".join(TASKS))
     ap.add_argument("--ground", type=Path, help="the ground-cover file (docs/app-sf-corridor-ground.json): its rings are judged too")
+    ap.add_argument("--lidar-cache", type=Path, help="where the point cloud's tiles are kept (e.g. the drive's lidar-cache-main): the lidar is a witness")
+    ap.add_argument("--street", type=Path, help="a segmentation_cache JSONL of street photographs' labels: the street is a witness")
     ap.add_argument("--no-naip", action="store_true", help="do not ask USGS for the second photograph")
     ap.add_argument("--page", type=Path, help="also write the slim file the page reads (docs/imagery-truth.json)")
     ap.add_argument("--limit", type=int, help="at most this many new results a task (a trial run)")
@@ -81,7 +83,19 @@ def main() -> int:
         write()
     if args.ground:
         naip = None if args.no_naip else Naip(journal.path.parent / "naip")
-        cover["rows"] = run_cover(json.loads(args.ground.read_text()), candidates, ortho, journal, naip, limit=args.limit)
+        lidar = street = None
+        f = [row[:2] for row in candidates["frame"]]
+        box = (min(p[0] for p in f), min(p[1] for p in f), max(p[0] for p in f), max(p[1] for p in f))
+        if args.lidar_cache:
+            from smc.truth.sources import LidarGround
+
+            lidar = LidarGround(frame, journal.path.parent / "lidar", args.lidar_cache)
+        if args.street and args.street.exists():
+            from smc.truth.sources import StreetViews
+
+            street = StreetViews.load(args.street, frame, box)
+            print(f"street: {len(street.views)} photographs' labels in the area")
+        cover["rows"] = run_cover(json.loads(args.ground.read_text()), candidates, ortho, journal, naip, limit=args.limit, lidar=lidar, street=street)
         write()
     journal.close()
     doc = json.loads(out.read_text())

@@ -100,10 +100,26 @@ yard among them: 26,000 m2), 6 lots and 2 service yards in grass, 7 service yard
 patches as paving, 5 fill patches as asphalt.
 
 Still not called: most service yards (the rings are the whole parcel and nearly all roof).
-Other sources looked at: the city's lidar (its heights are in already; its intensity would tell
-asphalt from concrete, but the point cells are archived off this machine); Waymo's open data
-does not cover these streets as a map; street-level photographs would settle the lots hidden
-from above and are the next source to add.
+Other sources looked at: Waymo's open data does not cover these streets as a map.
+
+### Two more witnesses: lidar intensity and street photographs (`smc.truth.sources`)
+
+- **Lidar intensity.** `LidarGround` reads the 2023 USGS 3DEP point cloud from the drive's
+  `lidar-cache-main`, using ground returns only. It keeps the middle strength in each half-metre
+  cell, in 250 m tiles cached beside the journal.
+- **Street photographs.** `StreetViews` reads Mapillary's own label maps from the drive's
+  `electrical-imagery-cache/segmentation.jsonl`: 640 in the Marina. No photograph is stored.
+  A point of ground 4 to 32 m from a camera is road, footway or planted.
+- **Fusion.** `imagery_truth.fuse` puts both witnesses beside the two aerial photographs. A ring
+  is called only where the witnesses that could see it agree.
+
+Marina run of 2026-11-19 (1,965 rings, journal on the HP drive in `Kerbside/imagery-truth/`):
+
+- The lidar barely tells asphalt from concrete here. Its middle strengths are 27,958 for asphalt
+  and 27,497 for concrete, and its call matches the photographs in 61% of rings.
+- No ring was changed. 10 lots were newly called where the lidar and the street agreed, and
+  55 more were called from their neighbours.
+- The street photographs reach only lots next to the road.
 
 ## What a quarter of a metre a pixel cannot do
 

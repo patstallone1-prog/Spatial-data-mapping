@@ -892,7 +892,7 @@ def by_neighbours(rows: list[dict], C=COVER) -> int:
 
 
 def run_cover(ground: dict, candidates: dict, ortho, journal: Journal, naip: Naip | None, *, log=print,
-              lists=("plazas", "service_yards", "inferred"), limit: int | None = None) -> list[dict]:
+              lists=("plazas", "service_yards", "inferred"), limit: int | None = None, lidar=None, street=None) -> list[dict]:
     """The ground file's rings inside the candidates' area, judged and journalled one by one."""
     import cv2
 
@@ -942,14 +942,93 @@ def run_cover(ground: dict, candidates: dict, ortho, journal: Journal, naip: Nai
                 for ring in rings:
                     cv2.fillPoly(merged, [np.round(photo.pixels(ring[:, 0], ring[:, 1])).astype(np.int32)], 1)
                 judged = judge_cover(_Masked(photo, merged.astype(bool)), None, roof, naip)
+            # The other two witnesses, on the same ground (roofs left out): the lidar's
+            # strength over it, and what the street's cameras call it.
+            if judged.get("verdict") != "by_shape" and (lidar is not None or street is not None):
+                open_ground = (merged.astype(bool) if len(rings) > 1 else photo.mask(rings[0])) & ~roof
+                rr, cc = np.nonzero(open_ground)
+                if len(rr) > 12:
+                    pick = slice(None, None, max(1, len(rr) // 600))
+                    gx, gz = frame.page(photo.bounds[0] + (cc[pick] + 0.5) * PIXEL_M, photo.bounds[3] - (rr[pick] + 0.5) * PIXEL_M, (cx, cz))
+                    if lidar is not None:
+                        s = lidar.strength(gx, gz)
+                        if np.isfinite(s).sum() >= 20:
+                            judged["lidar"], judged["lidar_n"] = round(float(np.nanmedian(s)), 1), int(np.isfinite(s).sum())
+                    if street is not None:
+                        seen = street.see(gx, gz)
+                        if seen["cameras"]:
+                            judged["street"] = seen
             journal.put(key, {**row, **judged})
             done += 1
             if done % 250 == 0:
                 log(f"cover: {done} judged ({time.time() - started:.0f} s)")
     rows = [dict(r) for r in journal.of("cover")]
+    fused = fuse(rows)
     near = by_neighbours(rows)
-    log(f"cover: {done} judged now, {len(rows)} in the journal, {near} called by their neighbours ({time.time() - started:.0f} s)")
+    log(f"cover: {done} judged now, {len(rows)} in the journal; lidar {fused['lidar']}; {fused['changed']} changed and "
+        f"{fused['called']} newly called by the lidar and the street; {near} by their neighbours ({time.time() - started:.0f} s)")
     return rows
+
+
+FUSE = {
+    # The lidar is used only if its cut between asphalt and concrete gets this share right of
+    # the rings both photographs were sure of.
+    "lidar_right": 0.7, "lidar_margin": 0.05, "lidar_cells": 40,
+    # The street: this many sightings from this many cameras before it is heard.
+    "street_sightings": 25, "street_cameras": 2, "street_planted": 0.6, "street_hard": 0.25, "street_kind": 0.65,
+}
+
+
+def fuse(rows: list[dict], F=FUSE) -> dict:
+    """The lidar and the street beside the photographs, ring by ring (the rows are changed).
+
+    The lidar tells asphalt from concrete, in shade as in sun; its cut is found from the rings
+    the two photographs were both sure of, and it is not used at all unless it gets enough of
+    those right. The street tells planted from paved, and road from footway, for what it can
+    see. A ring the photographs called keeps its kind unless both the others say another; a
+    ring they could not call is called where the others can -- but a strong lidar return alone
+    is not concrete, since grass sends back as much: something must say the ground is hard."""
+    from smc.truth.sources import threshold_between
+
+    sure = [r for r in rows if r.get("sure") == "two" and "lidar" in r]
+    cut = threshold_between([r["lidar"] for r in sure if r["verdict"] == "asphalt"], [r["lidar"] for r in sure if r["verdict"] == "concrete"])
+    use_lidar = bool(cut and cut["right"] >= F["lidar_right"])
+    changed = called = 0
+    for r in rows:
+        if r.get("verdict") == "by_shape":
+            continue
+        s = r.get("street") or {}
+        hard_n, all_n = s.get("road", 0) + s.get("walk", 0), s.get("road", 0) + s.get("walk", 0) + s.get("planted", 0)
+        heard = all_n >= F["street_sightings"] and s.get("cameras", 0) >= F["street_cameras"]
+        street_planted = None if not heard else True if s["planted"] / all_n >= F["street_planted"] else False if s["planted"] / all_n <= F["street_hard"] else None
+        street_kind = None
+        if heard and hard_n >= F["street_sightings"]:
+            street_kind = "asphalt" if s["road"] / hard_n >= F["street_kind"] else "concrete" if s["walk"] / hard_n >= F["street_kind"] else None
+        lidar_kind = None
+        if use_lidar and r.get("lidar_n", 0) >= F["lidar_cells"]:
+            lidar_kind = "concrete" if r["lidar"] >= cut["cut"] * (1 + F["lidar_margin"]) else "asphalt" if r["lidar"] <= cut["cut"] * (1 - F["lidar_margin"]) else None
+        others = [k for k in (lidar_kind, street_kind) if k]
+        by = [n for n, k in (("lidar", lidar_kind), ("street", street_kind)) if k]
+        if r.get("sure") in ("one", "two") and r["verdict"] in ("asphalt", "concrete"):
+            if len(others) == 2 and others[0] == others[1] != r["verdict"]:
+                r.update(verdict=others[0], sure="two", by=by, was=r["verdict"])
+                changed += 1
+            elif others and all(k == r["verdict"] for k in others):
+                r.update(sure="two", by=["photograph", *by])
+            elif others and r["sure"] == "one" and all(k != r["verdict"] for k in others):
+                r.update(verdict="mixed", sure="no", leans=r["verdict"])
+        elif r.get("sure") in ("one", "two") and r["verdict"] == "grass":
+            if street_planted is False:
+                r.update(sure="one", by=["photograph"], street_says="hard")
+        elif r.get("verdict") in (UNSEEN, "mixed"):
+            naip = r.get("naip_plant")
+            if street_planted is True and (naip is None or naip >= 0.4):
+                r.update(verdict="grass", sure="two" if naip is not None else "one", by=["street"] + (["naip"] if naip is not None else []))
+                called += 1
+            elif others and len(set(others)) == 1 and (street_planted is False or (naip is not None and naip < 0.3)):
+                r.update(verdict=others[0], sure="two" if len(others) == 2 else "one", by=by)
+                called += 1
+    return {"lidar": cut if cut else "too few sure rings to set its cut", "lidar_used": use_lidar, "changed": changed, "called": called}
 
 
 class _Masked:
