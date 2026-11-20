@@ -34,7 +34,7 @@ test("the view gives what is yours the full tier and the full model", () => {
   assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
   assert.match(VIEW, /const model3d = coded \? null : \(hero && fleetModel\(kind, "full"\)\) \|\| fleetModel\(kind, "npc"\);/);
   // Your car, your party's and your parked ones: the full model always (makeCar -> dressFull).
-  assert.match(VIEW, /if \(FLEET_FOR\[model\]\) fleetReady\(model, "full"\)\.then\(\(parts\) => \{ if \(parts\) dressFull\(g, model, parts, colour\); \}\);/);
+  assert.match(VIEW, /if \(FLEET_FOR\[model\]\) fleetReady\(model, "full"\)\.then\(\(parts\) => \{ if \(parts && !g\.userData\.bayDisposed\) dressFull\(g, model, parts, colour\); \}\);/);
   // A bicycle of yours: the full tier, its wheels and crank turning, and you on it in full.
   assert.match(VIEW, /const tier = b\.mine \? FULL : detailNow \? detailNow\.tier\("people", b\.x, b\.z\) : FULL;/);
   assert.match(VIEW, /\.\.\.\(b\.mine \? \{ detail: FULL \} : \{\}\)/);
