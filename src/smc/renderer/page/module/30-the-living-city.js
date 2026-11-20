@@ -393,6 +393,8 @@ function setAppMode(mode) {
       // The traffic's car models (the imported fleet, meshopt-compressed, and the Kenney Car Kit)
       // and crash debris.
       loadModel: (url) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url),
+      // The near ring's Unreal characters: Epic content, read from the store, not the repo (docs/51).
+      npcStore: new URL("npc/", storeInteriorBase() || new URL("/store/", location.href)).href,
       // A figure's rim of light at night (module 02 nightRim): the city's people stand out.
       nightRim: (material) => nightRim(material),
       // The landscape's own trees round (x, z) (out past the regions: the Presidio's forest), and

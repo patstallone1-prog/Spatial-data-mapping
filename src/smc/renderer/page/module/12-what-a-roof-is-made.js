@@ -981,6 +981,12 @@ function buildingMesh(feature) {
   if (cap && (feature.height_source === "inferred_default" || !feature.height_source)) {
     height = Math.min(height, cap);
   }
+  // A car park measured more than a storey high is a building -- a multi-storey garage -- not a
+  // lot: drawn as a lot (a slab and its bay lines on the ground) the Lombard Garage, four
+  // storeys and 1,900 m2, and the Pierce Street Garage were not there at all (2026-11-19).
+  if (feature.archetype === "parking" && height > 5 && height <= 24 && feature.height_source && feature.height_source !== "inferred_default") {
+    feature._carPark = true; feature.archetype = "generic";
+  }
   // And a "parking" building that is measured well above any parking structure is not one: it
   // is a tower with a garage in it, and gets a tower's cladding rather than a car park's.
   if (feature.archetype === "parking" && height > 24 && feature.height_source !== "inferred_default") {

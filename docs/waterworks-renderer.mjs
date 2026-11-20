@@ -124,6 +124,60 @@ function lidTexture(THREE, doc, word) {
 //: part on a hill (see the gutters, below).
 export const GUTTER_LIFT_M = 0.03;
 
+//: Kerb segments ([ax, az, bx, bz, half]) as blocks: runs that go straight on, end to start,
+//: at one width -- a street between two corners, however many pieces its line is drawn in.
+export function kerbBlocks(segments, { turn = 0.07, gap = 0.6 } = {}) {
+  const blocks = [];
+  let block = null, last = null;
+  for (const seg of segments) {
+    const [ax, az, bx, bz, half] = seg, len = Math.hypot(bx - ax, bz - az);
+    if (!(len > 0)) continue;
+    const ux = (bx - ax) / len, uz = (bz - az) / len;
+    const on = last && Math.hypot(ax - last.bx, az - last.bz) < gap && Math.abs(half - last.half) < 0.6
+      && ux * last.ux + uz * last.uz > Math.cos(turn);
+    if (!on) { block = []; blocks.push(block); }
+    block.push(seg);
+    last = { bx, bz, ux, uz, half };
+  }
+  return blocks;
+}
+//: How far out from a street's middle its kerb stands: the first place, going out from 2.5 m
+//: inside the nominal half-width to 2.5 m beyond it, where ``road(o)`` (is it roadway, o metres
+//: out?) stops being true -- to a tenth of a metre -- or null where the roadway does not stop
+//: (a junction's mouth) or is not there.
+export function kerbOffset(road, half, reach = 2.5) {
+  let o = Math.max(0.6, half - reach);
+  if (!road(o)) return null;
+  for (o += 0.5; o <= half + reach + 1e-9; o += 0.5) {
+    if (road(o)) continue;
+    let lo = o - 0.5, hi = o;
+    while (hi - lo > 0.1) { const mid = (lo + hi) / 2; if (road(mid)) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  return null;
+}
+//: Which samples of a kerb's line carry the gutter: the kerbed ones, with breaks of up to
+//: ``fill`` samples between two kerbed stretches closed (a driveway, a sample that fell on the
+//: wrong side of a wobble), and stretches shorter than ``least`` left out (a scrap is not a gutter).
+export function gutterRuns(kerbed, { fill = 9, least = 5 } = {}) {
+  const keep = kerbed.map(Boolean), n = keep.length;
+  for (let i = 0; i < n;) {
+    if (keep[i]) { i += 1; continue; }
+    let j = i;
+    while (j < n && !keep[j]) j += 1;
+    if (i > 0 && j < n && j - i <= fill) for (let k = i; k < j; k += 1) keep[k] = true;
+    i = j;
+  }
+  for (let i = 0; i < n;) {
+    if (!keep[i]) { i += 1; continue; }
+    let j = i;
+    while (j < n && keep[j]) j += 1;
+    if (j - i < least) for (let k = i; k < j; k += 1) keep[k] = false;
+    i = j;
+  }
+  return keep;
+}
+
 // -- the drawing ------------------------------------------------------------------------------------------
 
 export function buildWaterworks(THREE, tiles, {
@@ -232,25 +286,57 @@ export function buildWaterworks(THREE, tiles, {
     // Tract). Over the road by GUTTER_LIFT_M it clears the road's own chords; a pan is flush with
     // the road, and three centimetres under a thirteen-centimetre kerb does not read as a step.
     const step = 1;
-    for (const seg of kerbSegments()) {
-      const [ax, az, bx, bz, half] = seg;
-      const len = Math.hypot(bx - ax, bz - az);
-      if (len < 1 || half < 1.2) continue;
-      const ux = (bx - ax) / len, uz = (bz - az) / len;
+    // A gutter is one straight strip along a block, beside the kerb, from one corner to the
+    // next. It was laid sample by sample at the street's nominal half-width, kept or dropped at
+    // each by whether the roadway happened to stop just there: where the drawn kerb stood a
+    // little further out or in than the nominal line the pan came and went every metre or two
+    // -- 2,385 pieces along the Marina's kerbs, with ragged ends (2026-11-19). Now, for each run
+    // of street that goes straight on (a block), the kerb's real distance out is found at every
+    // few metres, their middle one taken for the whole block, and the pan laid on that line;
+    // breaks shorter than a driveway or two are closed and scraps shorter than a car left out.
+    for (const block of kerbBlocks(kerbSegments())) {
       for (const side of [1, -1]) {
-        const nx = -uz * side, nz = ux * side;          // out of the road on this side
-        const n = Math.max(1, Math.ceil(len / step));
+        // The kerb's distance from the street's middle, measured along the block.
+        const found = [];
+        for (const [ax, az, bx, bz, half] of block) {
+          const len = Math.hypot(bx - ax, bz - az);
+          if (len < 1 || half < 1.2) continue;
+          const ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz * side, nz = ux * side;
+          for (let t = Math.min(1.5, len / 2); t < len; t += 3) {
+            const e = kerbOffset((o) => onRoad(ax + ux * t + nx * o, az + uz * t + nz * o, 0.3), half);
+            if (e !== null && inArea(ax + ux * t + nx * e, az + uz * t + nz * e)) found.push(e);
+          }
+        }
+        // (Where the roadway cannot be asked for -- a page that gives none -- the nominal line,
+        // as before.)
+        const measured = found.length >= 2;
+        if (!measured) for (const seg of block) found.push(seg[4]);
+        if (!found.length) continue;
+        found.sort((a, b) => a - b);
+        const out = found[Math.floor(found.length / 2)];
+        // Where the kerb is there at all (not across a junction's mouth), a metre at a time.
+        const samples = [];
+        for (const [ax, az, bx, bz, half] of block) {
+          const len = Math.hypot(bx - ax, bz - az);
+          if (len < 1 || half < 1.2) continue;
+          const ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz * side, nz = ux * side;
+          const n = Math.max(1, Math.ceil(len / step));
+          for (let i = 0; i <= n; i += 1) {
+            const t = Math.min(len, i * step), ex = ax + ux * t + nx * out, ez = az + uz * t + nz * out;
+            samples.push({ ex, ez, nx, nz, kerbed: inArea(ex, ez) && !onRoad(ex + nx * 0.45, ez + nz * 0.45, 0.3) && (!measured || onRoad(ex - nx * 0.6, ez - nz * 0.6, 0.3)) });
+          }
+        }
+        const keep = gutterRuns(samples.map((s) => s.kerbed));
         let open = false;
-        for (let i = 0; i <= n; i += 1) {
-          const t = Math.min(len, i * step);
-          const ex = ax + ux * t + nx * half, ez = az + uz * t + nz * half;
-          // A kerb is there only where the roadway stops: not across a junction's mouth.
-          const kerbed = inArea(ex, ez) && !onRoad(ex + nx * 0.35, ez + nz * 0.35, 0.3);
-          if (!kerbed) { open = false; continue; }
-          const y = level(ex, ez) + roadTop;
+        for (let i = 0; i < samples.length; i += 1) {
+          const s = samples[i];
+          if (!keep[i]) { open = false; continue; }
+          // (Two samples at one place, where one piece of the block ends and the next begins.)
+          if (open && i && Math.hypot(s.ex - samples[i - 1].ex, s.ez - samples[i - 1].ez) < 0.05) continue;
+          const y = level(s.ex, s.ez) + roadTop;
           const base = pos.length / 3;
-          pos.push(ex - nx * 0.01, y + GUTTER_LIFT_M, ez - nz * 0.01,
-            ex - nx * SIZE.gutter, y + GUTTER_LIFT_M + 0.004, ez - nz * SIZE.gutter);
+          pos.push(s.ex - s.nx * 0.01, y + GUTTER_LIFT_M, s.ez - s.nz * 0.01,
+            s.ex - s.nx * SIZE.gutter, y + GUTTER_LIFT_M + 0.004, s.ez - s.nz * SIZE.gutter);
           if (open) idx.push(base - 2, base - 1, base, base - 1, base + 1, base);
           counts.gutters_m += open ? step : 0;
           open = true;

@@ -259,7 +259,7 @@ def test_ground_cover_classifies_small_frontage_and_backyard_remainders() -> Non
     assert "const grassRings = classifiedGround" in source
     assert "const frontWalkGeom = ringGeometry((ground.front_walks || [])" in source
     assert "const serviceRings = (ground.service_yards || [])" in source
-    assert 'const neutralService = (ground.service_yards || []).filter((y) => y.basis === "unbuilt_nonpark_parcel")' in source
+    assert 'const serviceAs = (y) => seenAs("service_yards", y) || (y.basis === "unbuilt_nonpark_parcel" ? "paving" : "asphalt");' in source
     assert '"neutral_ground"' in source
 
 

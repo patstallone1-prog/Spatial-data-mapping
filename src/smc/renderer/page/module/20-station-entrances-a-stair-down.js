@@ -902,6 +902,9 @@ function layStreetPaint(plan) {
   for (const c of settled.laid) {
     if (c.fixed) continue;
     const surface = c.data?.surface || "furniture:road_legend";
+    // (A word or a stop's box the photograph shows is not on the road is not laid: module 21,
+    // imageryVerdict. A stop line is the city's own record, and is.)
+    if (c.kind !== "bar" && imageryVerdict("legends", c.x, c.z, 4)?.verdict === "absent") continue;
     if (c.kind === "bar") {
       push(listFor(`line:${surface}`, surface, white), c.data.corners.map(([x, z]) => [x, z, 0, 0]), c.x, c.z);
     } else if (c.kind === "box") {
