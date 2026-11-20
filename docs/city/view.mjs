@@ -30,7 +30,7 @@ import { cityClient, cityServerUrl } from "./server-client.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
 import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
-import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
+import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
@@ -41,6 +41,10 @@ import { THEME_CSS } from "./theme.mjs";
 import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
+import { restaurantService, planRestaurant, canWalkRestaurant } from "./restaurant-room.mjs";
+import { restaurantScene } from "./restaurant-scene.mjs";
+import { buildWindowDisplay, tradeSignage, windowDisplayOf } from "./storefronts.mjs";
+import { canWalkStore, planStore, storeFixtures } from "./store-room.mjs";
 import { workshopPanel } from "./workshop-panel.mjs";
 import { isWorkshop, visitingCars } from "./workshop.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
@@ -420,8 +424,45 @@ export async function startCity(ctx) {
         } catch (error) { console.warn("kerbside: a shop's sign could not be drawn", id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
       }
     }
+    // Every other shop near you: its trade's sign (storefronts.mjs) -- an awning in the trade's
+    // look, its name and what it sells -- and, where it shows its goods, a lit display in the
+    // window beside the door. The nearest few dozen, built as you come and taken down behind.
+    if (typeof document !== "undefined" && district.places?.length) {
+      const you = me(), owned = new Set([...seen].map((id) => String(biz?.get(id)?.place?.id)));
+      const near = district.places.filter((pl) => pl.shops?.length && pl.door && Number.isFinite(pl.door.nx) && !owned.has(String(pl.id))
+        && Math.abs(pl.x - you.x) < TRADE_SIGN_M && Math.abs(pl.z - you.z) < TRADE_SIGN_M)
+        .sort((a, b) => Math.hypot(a.x - you.x, a.z - you.z) - Math.hypot(b.x - you.x, b.z - you.z)).slice(0, TRADE_SIGN_MAX);
+      for (const pl of near) {
+        const id = `trade:${pl.id}`, door = pl.door;
+        seen.add(id);
+        const kind = view?.kitchenKind?.(pl) || pl.shops[0];
+        const style = view?.kitchenKind?.(pl) ? restaurantService(R, kind, view.bizAt(pl.id), view.kitchens?.get(String(pl.id)))?.style : null;
+        const name = view?.bizAt?.(pl.id)?.name || pl.name || R.stores?.kinds?.[kind]?.name || "Shop";
+        const key = `${kind}|${style}|${name}|${Math.round(door.x * 10)}:${Math.round(door.z * 10)}`;
+        if (storeSigns.get(id)?.key === key) continue;
+        dropStoreSign(id);
+        try {
+          const frontage = Math.max(3, Math.min(7, Math.sqrt(pl.area || 60) * 0.6));
+          const g = buildSignage(THREE, tradeSignage(kind, pl.id, { style, tagline: R.stores?.kinds?.[kind]?.name && R.stores.kinds[kind].name !== name ? R.stores.kinds[kind].name : "" }), { name, frontage });
+          const display = windowDisplayOf(kind, style);
+          if (display && frontage >= 3.6) {
+            const w = Math.min(1.8, frontage / 2 - 0.9), side = hash32(String(pl.id)) % 2 ? 1 : -1;
+            const d = buildWindowDisplay(THREE, display, { width: w, seed: hash32(String(pl.id), "window") });
+            d.position.set(side * (0.75 + w / 2), 0, 0.02);
+            g.add(d);
+          }
+          g.position.set(door.x - door.nx * 0.05, groundAt(door.x - door.nx * 0.6, door.z - door.nz * 0.6), door.z - door.nz * 0.05);
+          g.rotation.y = Math.atan2(-door.nx, -door.nz);
+          g.userData.place = pl.id;
+          group.add(g);
+          storeSigns.set(id, { key, group: g });
+        } catch (error) { console.warn("kerbside: a shop's front could not be drawn", pl.id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
+      }
+    }
     for (const id of [...storeSigns.keys()]) if (!seen.has(id)) dropStoreSign(id);
   }
+  //: How near (m, either way) and how many shops' fronts are drawn.
+  const TRADE_SIGN_M = 160, TRADE_SIGN_MAX = 30;
   //: The car parks' stalls the world has drawn (ctx.parkingStalls: module 14), given to the city
   //: when they come or change, as the racks are.
   function syncLots(now) {
@@ -759,6 +800,7 @@ diffuseColor.rgb *= kbCloth;`);
   // The traffic's bodies where the imported fleet has none: the Kenney Car Kit's (vehicles.mjs),
   // loaded once; the code-built ones until they are.
   const kenney = new Map();   // kit model name -> {geometry, material} | null
+  const kenneyLoads = new Map();
   let kenneyLoading = false;
   function loadKenney() {
     if (kenneyLoading || !ctx.loadModel) return;
@@ -766,18 +808,14 @@ diffuseColor.rgb *= kbCloth;`);
     const names = [...new Set(Object.values(KENNEY_FOR).flat())];
     const dimsOf = (name) => VEHICLE_DIMS[Object.keys(KENNEY_FOR).find((k) => KENNEY_FOR[k].includes(name) && VEHICLE_DIMS[k])] || VEHICLE_DIMS.sedan;
     for (const name of names) {
-      ctx.loadModel(ctx.asset(`city/models/kenney/${name}.glb`)).then((gltf) => {
+      kenneyLoads.set(name, ctx.loadModel(ctx.asset(`city/models/kenney/${name}.glb`)).then((gltf) => {
         const k = kenneyGeometry(THREE, gltf, dimsOf(name), name);
-        kenney.set(name, { geometry: k.geometry, material: kenneyMaterial(THREE, k.map), livery: k.livery });
-      }).catch((error) => { kenney.set(name, null); console.warn("kerbside: a car model did not load", name, error); });
+        kenney.set(name, { name, geometry: k.geometry, material: kenneyMaterial(THREE, k.map), livery: k.livery });
+      }).catch((error) => { kenney.set(name, null); console.warn("kerbside: a car model did not load", name, error); }));
     }
   }
   const kenneyOf = (model, shade) => {
-    const list = KENNEY_FOR[model];
-    if (!list) return null;
-    const name = list[Math.floor((shade ?? 0) * 997) % list.length];
-    const k = kenney.get(name);
-    return k ? { name, ...k } : null;
+    return kenney.get(kenneyVariant(model, shade)) || null;
   };
   loadKenney();
   // The imported fleet (vehicles.mjs FLEET_FOR; docs/city/models/fleet): each kind it draws has
@@ -1408,18 +1446,34 @@ diffuseColor.rgb *= kbCloth;`);
   //: whatever the traffic's rings say -- the fleet's full model, inside and all, for a kind it
   //: draws (the code-built body, which has its seats and wheel, until that has loaded), else the
   //: code-built one.
-  function makeCar(model, colour) {
+  function makeCar(model, colour, shade = 0) {
     const [w, h, l] = CAR_DIMS[model] || CAR_DIMS.sedan;
     const g = vehicleGroup(THREE, model, colour);
     g.userData = { model, dims: [w, h, l] };
     g.name = "city-car";
-    if (FLEET_FOR[model]) fleetReady(model, "full").then((parts) => { if (parts && !g.userData.bayDisposed) dressFull(g, model, parts, colour); });
+    const fitKit = async () => {
+      const variant = kenneyVariant(model, shade);
+      await kenneyLoads.get(variant);
+      const kit = kenney.get(variant);
+      if (!kit || g.userData.bayDisposed) return;
+      clearCarBody(g);
+      g.add(importedKitCar(THREE, kit, colour));
+      g.userData.variant = variant;
+    };
+    if (FLEET_FOR[model]) fleetReady(model, "full").then(parts => {
+      if (g.userData.bayDisposed) return;
+      if (parts) dressFull(g, model, parts, colour); else fitKit();
+    });
+    else fitKit();
     return g;
   }
   //: ``g``'s code-built body swapped for the fleet's full model: one of each part (an instance of
   //: one, so the paint takes the car's colour as the traffic's does).
-  function dressFull(g, model, parts, colour) {
+  function clearCarBody(g) {
     for (const o of [...g.children]) { o.removeFromParent(); if (o.material && o.material !== VMAT.fixed && o.material !== VMAT.glass) o.material.dispose(); }
+  }
+  function dressFull(g, model, parts, colour) {
+    clearCarBody(g);
     for (const part of parts) {
       const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: true, livery: model === "bus" ? BUS_LIVERY : null }), 1);
       mesh.setMatrixAt(0, M.identity());
@@ -2489,15 +2543,40 @@ diffuseColor.rgb *= kbCloth;`);
   const SHOP_TINT = { cafe: 0x8b5a3c, coffee: 0x8b5a3c, bakery: 0xb07a4a, restaurant: 0x6e3b2a, bar: 0x3d2a22, pub: 0x3d2a22, pharmacy: 0xdfe6ea, chemist: 0xdfe6ea,
     hardware: 0x7d8a6a, doityourself: 0x7d8a6a, supermarket: 0xd9d4c6, convenience: 0xd9d4c6, clothes: 0xcbb9a8, books: 0x7a5a3a, florist: 0x6f9a6a };
   function shopFrame(place) {
-    const I = place.front || place.inside;
+    let I = place.front || place.inside;
     if (!I) return null;
+    const kind = view?.kitchenKind?.(place);
+    if (kind && place.ring && place.door) {
+      const front = frontOf(place.ring,place.x,place.z,place.door);
+      if (front) I=front;
+    }
     const L = counterLine(I);
-    const D = Math.min(I.depth, 14), W = Math.max(3, Math.min(12, I.half * 2));
+    // As deep as the building runs (to 20 m) and, a shop on its own in its building, as wide.
+    let D = Math.min(I.depth, 20), W = Math.max(3, Math.min(12, I.half * 2));
+    if (place.ring && place.shops?.length <= 1) {
+      const across=place.ring.map(([x,z])=>(x-I.x)*I.nz-(z-I.z)*I.nx);
+      W=Math.max(W,Math.min(22,2*Math.max(...across.map(Math.abs))));
+    }
     // Local frame: u inward from the front, v along it (to the right seen from the street).
     const lx = I.nz, lz = -I.nx;
     const y = groundAt(I.x - I.nx * 0.8, I.z - I.nz * 0.8);
     const at = (u, v) => ({ x: I.x + I.nx * u + lx * v, z: I.z + I.nz * u + lz * v });
-    return { I, L, D, W, lx, lz, y, at, local: (x, z) => ({ u: (x - I.x) * I.nx + (z - I.z) * I.nz, v: (x - I.x) * lx + (z - I.z) * lz }) };
+    const local=(x,z)=>({u:(x-I.x)*I.nx+(z-I.z)*I.nz,v:(x-I.x)*lx+(z-I.z)*lz});
+    const F = { I,L,D,W,lx,lz,y,at,local };
+    if (kind) {
+      const source=ctx.restaurantFront?.(place.id),door=place.door && local(place.door.x,place.door.z);
+      const outline=place.ring?.map(([x,z])=>{const p=local(x,z);return [p.v,p.u];});
+      const doorX=door && Math.abs(door.u)<.6 && Math.abs(door.v)<W/2-.45 ? door.v : 0;
+      const windows=(source?.windows || []).map(w=>{const p=local(w.x,w.z);return {...w,x:p.v,z:p.u};});
+      const service=restaurantService(R,kind,view.bizAt(place.id),view.kitchens.get(String(place.id)));
+      F.restaurant=planRestaurant({width:W,depth:D,outline,doorX,windows},service);
+    } else {
+      // Any other shop: fitted to its trade (store-room.mjs), its door where the building's is.
+      const door=place.door && local(place.door.x,place.door.z);
+      const doorX=door && Math.abs(door.u)<.6 && Math.abs(door.v)<W/2-.6 ? door.v : 0;
+      F.store=planStore({width:W,depth:D,doorX},place.shops?.[0] || "shop");
+    }
+    return F;
   }
   //: The checkout panel's face: what it is and what to do, at the panel's own shape (0.8 x 0.5 m).
   function panelTexture() {
@@ -2550,6 +2629,11 @@ diffuseColor.rgb *= kbCloth;`);
   function buildRoom(place, F) {
     const g = new THREE.Group(); g.name = "city-shop-room";
     g.position.set(F.I.x, F.y, F.I.z); g.rotation.y = Math.atan2(F.I.nx, F.I.nz);
+    if(F.restaurant){
+      const room=restaurantScene(THREE,F.restaurant,{doc,name:view.bizAt(place.id)?.name || place.name || R.stores.kinds[F.restaurant.service.kind]?.name});
+      g.add(room);g.userData.panel=room.userData.panel;
+      return g;
+    }
     const kind = place.shops[0] || "shop";
     const tint = SHOP_TINT[kind] ?? 0xcfc6b8;
     // Unlit colours, shaded by hand: a light added to the scene would recompile every material in it.
@@ -2564,18 +2648,23 @@ diffuseColor.rgb *= kbCloth;`);
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
-    const counter = new THREE.Mesh(box(F.L.width * 2, 1.0, 0.62, 0.5), lambert({ color: tint }));
-    counter.position.z = F.L.counter; counter.rotation.y = 0; g.add(counter);
-    const top = new THREE.Mesh(box(F.L.width * 2 + 0.1, 0.05, 0.72, 1.02), lambert({ color: 0xe9e4da })); top.position.z = F.L.counter; g.add(top);
-    const till = new THREE.Mesh(box(0.42, 0.28, 0.36, 1.19), lambert({ color: 0x24292e })); till.position.set(F.L.width * 0.5, 0, F.L.counter); g.add(till);
-    // Shelves along the back wall, stocked.
-    const shelfZ = Math.min(F.D - 0.3, F.L.back + 0.6);
+    // The room fitted to its trade (store-room.mjs): the till by the door, the walls and the floor
+    // as such a shop has them, the stock room behind. (Before, a counter straight across.)
+    if (F.store) g.add(storeFixtures(THREE, F.store, { seed: hash32(String(place.id), "store"), tint }));
+    else {
+      const counter = new THREE.Mesh(box(F.L.width * 2, 1.0, 0.62, 0.5), lambert({ color: tint }));
+      counter.position.z = F.L.counter; counter.rotation.y = 0; g.add(counter);
+      const top = new THREE.Mesh(box(F.L.width * 2 + 0.1, 0.05, 0.72, 1.02), lambert({ color: 0xe9e4da })); top.position.z = F.L.counter; g.add(top);
+      const till = new THREE.Mesh(box(0.42, 0.28, 0.36, 1.19), lambert({ color: 0x24292e })); till.position.set(F.L.width * 0.5, 0, F.L.counter); g.add(till);
+    }
+    // Shelves along the back wall (of the shop floor), stocked -- where the trade keeps them there.
+    const shelfZ = F.store ? F.store.floorEnd - 0.3 : Math.min(F.D - 0.3, F.L.back + 0.6);
     // What it sells, on the shelves as itself (objects.mjs): its wares with a model, a run of each,
     // as many as a player's business has in stock; the rest as plain stock.
     const sells = storesAt(R, place.keys).flatMap((st) => st.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service && !R.items[id].parcel);
     const biz = view?.bizAt?.(place.id);
     const modelled = kit ? sells.filter((id) => bindingOf(OBJ, id) && (R.items[id].length_m || 0) <= 0.6) : [];
-    [0.45, 1.05, 1.65].forEach((h0, row) => {
+    if (!F.store || F.store.rearShelves) [0.45, 1.05, 1.65].forEach((h0, row) => {
       const shelf = new THREE.Mesh(box(F.W - 0.6, 0.04, 0.4, h0), lambert({ color: 0x6b5440 })); shelf.position.z = shelfZ; g.add(shelf);
       const n = Math.max(4, Math.floor((F.W - 0.8) / 0.32));
       const r = rng(place.id, "goods", h0);
@@ -2609,7 +2698,7 @@ diffuseColor.rgb *= kbCloth;`);
       g.add(goods);
     });
     // Tables toward the window where it serves food or drink.
-    if (["cafe", "coffee", "restaurant", "bar", "pub", "bakery", "fast_food", "ice_cream"].includes(kind) && F.L.front > 1.4) {
+    if (!F.store && ["cafe", "coffee", "restaurant", "bar", "pub", "bakery", "fast_food", "ice_cream"].includes(kind) && F.L.front > 1.4) {
       const tables = Math.max(1, Math.floor(F.W / 2.2));
       for (let k = 0; k < tables; k += 1) {
         const tx = -F.W / 2 + (k + 0.5) * (F.W / tables);
@@ -2655,28 +2744,36 @@ diffuseColor.rgb *= kbCloth;`);
     if (!F) return false;
     if (car.active || transit.ride) return false;
     leaveShop(true);
-    shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place);
+    // A shop whose building has its interior fitted (the Interior Studio's, or the one inferred for
+    // its trade and its space) is walked into as that interior; its staff, at work, get the room
+    // their tasks are laid out in.
+    if (!asStaff && !isMyWorkplace(place) && ctx.enterFittedShop?.(place.id)) { notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. Buy from the action bar; walk out through the door to leave.`); refresh(); return true; }
+    shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place) || view.bizAt(place.id)?.owner === self()?.account;
+    if(F.restaurant) (district.placeById?.get(place.id) || place).diningFrame=F;
     shop.room = buildRoom(place, F); group.add(shop.room);
     ctx.setFloor?.(F.y);
     shop.was = Boolean(ctx.isFirstPerson?.());
     ctx.firstPerson?.(true);
     // A couple of steps in: turned round, the checkout panel by the door is in plain view.
-    const start = F.at(Math.max(0.9, Math.min(1.9, F.L.counter - 0.7)), 0);
+    const start = F.restaurant || F.store ? F.at(.6,(F.restaurant || F.store).doorX) : F.at(Math.max(0.9, Math.min(1.9, F.L.counter - 0.7)), 0);
     ctx.placeAvatar(start.x, F.y, start.z, Math.atan2(-F.I.nx, -F.I.nz));
     ctx.setPitch?.(-0.06);
-    notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. To buy, click the blue SHOP panel beside the door (behind you)${shop.staff ? "; V for your task" : ""}. Enter at the door, or walking out, leaves.`);
+    if(F.restaurant) notify("Use the checkout at the counter. Walk back through the entrance to leave.");
+    else notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. To buy, click the blue SHOP panel beside the door (behind you)${shop.staff ? "; V for your task" : ""}. Enter at the door, or walking out, leaves.`);
     refresh();
     return true;
   }
   function leaveShop(quiet = false) {
     if (!shop.place) return;
     const F = shop.frame;
+    delete (district.placeById?.get(shop.place.id) || shop.place).diningFrame;
     shop.room?.removeFromParent();
     shop.room?.traverse((o) => { o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); } });
     shop.place = null; shop.room = null; shop.frame = null;
     ctx.setFloor?.(null);
     if (!shop.was) ctx.firstPerson?.(false);
-    ctx.moveAvatarTo(F.I.x - F.I.nx * 1.6, F.I.z - F.I.nz * 1.6);
+    const exit=F.at(-1.6,(F.restaurant || F.store)?.doorX || 0);
+    ctx.moveAvatarTo(exit.x,exit.z);
     if (side?.kind === "store") closeSide();
     if (!quiet) notify("Back out on the street.");
     refresh();
@@ -2701,7 +2798,8 @@ diffuseColor.rgb *= kbCloth;`);
     const speed = 1.5 * walkFactorNow();
     const p = me();
     const want = F.local(p.x + mx / len * speed * dt, p.z + mz / len * speed * dt);
-    if (want.u < 0.15) { leaveShop(); return true; }
+    const plan0 = F.restaurant || F.store;
+    if (want.u < .24 && (!plan0 || Math.abs(want.v-plan0.doorX)<.65)) { leaveShop(); return true; }
     const behind = shop.staff || isMyWorkplace(shop.place);
     const was = F.local(p.x, p.z);
     // The counter is in the way, but for its gap at the right-hand end where staff go through.
@@ -2712,7 +2810,14 @@ diffuseColor.rgb *= kbCloth;`);
     if (!behind) u = Math.min(u, F.L.counter - 0.45);
     u = Math.max(0.2, Math.min(F.D - 0.35, u));
     const v = Math.max(-F.W / 2 + 0.3, Math.min(F.W / 2 - 0.3, want.v));
-    const at = F.at(u, v);
+    let at;
+    if(F.restaurant || F.store){
+      const plan=F.restaurant || F.store, ok=F.restaurant ? canWalkRestaurant : canWalkStore;
+      let x=was.v, z=was.u;
+      if(ok(plan,want.v,z,behind)) x=want.v;
+      if(ok(plan,x,want.u,behind)) z=want.u;
+      at=F.at(z,x);
+    }else at=F.at(u,v);
     ctx.placeAvatar(at.x, F.y, at.z);
     const stepped = Math.hypot(at.x - p.x, at.z - p.z);
     // Legs that walk it, facing the way (a shop's floor glided like the walk over to a thing did).
@@ -2734,6 +2839,16 @@ diffuseColor.rgb *= kbCloth;`);
     const node = place && district.streets?.nodes[place.node];
     const kerb = F ? F.at(-1.4, 0) : node ? { x: node.x, z: node.z } : { x: place.x, z: place.z };
     if (!F) return { counter: kerb, back: kerb, kerb };
+    if(F.restaurant){
+      const r=F.restaurant;return {counter:F.at(r.counterZ+.52,r.aisle),back:F.at(Math.min(r.depth-.94,r.counterZ+1.3),r.aisle),kerb:F.at(-1.4,r.doorX)};
+    }
+    if(F.store){
+      // Behind the till (its staff side), and the stock room (or the back of the floor).
+      const s=F.store, till=s.fixtures.find(f=>f.role==="till"||f.role==="bar");
+      const counter=till ? (till.side ? F.at(till.z,till.x+till.side*.75) : F.at(till.z+.7,till.x)) : F.at(1.5,0);
+      const part=s.fixtures.find(f=>f.role==="partition");
+      return {counter,back:part?F.at(Math.min(s.depth-.5,part.z+1.1),part.door):F.at(s.floorEnd-1.2,0),kerb:F.at(-1.4,s.doorX)};
+    }
     return { counter: F.at(F.L.staff, 0), back: F.at(F.L.back, -F.L.width * 0.4), kerb };
   }
   const taskInside = (task) => ["counter", "back"].includes(task?.where) && shopFrame(district.placeById?.get(self()?.job?.place.id) || {});
@@ -3654,9 +3769,17 @@ diffuseColor.rgb *= kbCloth;`);
     const bay = shop.place || nearestPlace(undefined, R.jobs.workplace_reach_m, district.workshops || []);
     if (bay && isWorkshop(R, bay, view.bizAt(bay.id))) out.push({ id: "repair-bay", label: "Repair shop · service desk", key: "", run: () => workshop().open(bay) });
     if (shop.place) {
+      if(shop.frame?.restaurant && shop.staff) out.push(...kitchen().actions(p,here));
       out.push({ id: "shop", label: "Buy: the shop panel by the door", key: "", run: () => openStore(shop.place) });
       if (p.hands) out.push(...handActions(p));
       out.push({ id: "leave", label: "Leave by the door", key: "Enter", run: () => leaveShop() });
+      return out;
+    }
+    // Inside a shop's fitted interior (enterShop): buying is from here, and the kitchen to its staff.
+    const fittedId = ctx.insideFitted?.(), fitted = fittedId && (district.placeById?.get(fittedId) || district.placeById?.get(Number(fittedId)));
+    if (fitted && storesAt(R, fitted.keys).length) {
+      out.push({ id: "shop", label: `Buy: ${storesAt(R, fitted.keys).map((s) => s.name).join(", ")}`, key: "", run: () => openStore(fitted) });
+      if (view?.kitchenKind?.(fitted) && (isMyWorkplace(fitted) || view.bizAt(fitted.id)?.owner === self()?.account)) out.push(...kitchen().actions(p, here));
       return out;
     }
     const shopAt = nearestShop();
@@ -5628,6 +5751,10 @@ diffuseColor.rgb *= kbCloth;`);
     detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(),
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
+    restaurantAt(id) {
+      const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
+      return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
+    },
     get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),

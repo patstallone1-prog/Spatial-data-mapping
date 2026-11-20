@@ -270,6 +270,20 @@ export const KENNEY_FOR = {
   pickup: ["truck"], delivery_van: ["delivery", "van"], box_truck: ["garbage-truck"], taxi: ["taxi"], patrol: ["police"],
   ambulance: ["ambulance"], firetruck: ["firetruck"],
 };
+export function kenneyVariant(model, shade = 0) {
+  const variants = KENNEY_FOR[model];
+  return variants?.[Math.floor((shade ?? 0) * 997) % variants.length];
+}
+
+// A single city vehicle uses the same atlas, paint mask and livery as the instanced street fleet.
+export function importedKitCar(THREE, kit, colour) {
+  const mesh = new THREE.InstancedMesh(kit.geometry, kenneyMaterial(THREE, kit.material.map), 1);
+  mesh.setMatrixAt(0, new THREE.Matrix4());
+  mesh.setColorAt(0, new THREE.Color(kit.livery ? 0xffffff : colour));
+  mesh.castShadow = mesh.receiveShadow = true;
+  mesh.name = "city-car-" + kit.name;
+  return mesh;
+}
 //: Liveried: their colours are theirs, not repainted.
 export const KENNEY_LIVERY = new Set(["taxi", "police", "ambulance", "firetruck", "garbage-truck"]);
 export const KENNEY_DEBRIS = ["debris-bumper", "debris-door", "debris-plate-a", "debris-plate-small-a", "debris-tire", "debris-spoiler-a", "debris-bolt"];

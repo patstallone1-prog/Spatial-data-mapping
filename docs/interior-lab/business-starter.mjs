@@ -2,7 +2,7 @@ import {createDraft,dispatch,suggestPlacement,validateDraft} from './model.mjs';
 import {PROGRAMS,businessKind,ROOM_ROLES,FIXTURES} from './profiles.mjs';
 
 // This lays out a game hypothesis inside a supplied tenancy. It never claims an as-built interior.
-export function businessStarter({id,kind,footprint,height=3.2,entrances=[],windows=[],name,assets=[]}) {
+export function businessStarter({id,kind,footprint,height=3.2,entrances=[],windows=[],name,assets=[],service=null}) {
   const assetRef=a=>Object.fromEntries(['id','role','model','dimensions_m','license','source','attribution','detail'].filter(k=>a[k]!==undefined).map(k=>[k,structuredClone(a[k])]));
   const program=PROGRAMS[businessKind(kind)];
   if(!program||!id||footprint?.type!=='Polygon'||!entrances.length)throw Error('A supported business, its actual tenancy polygon and an entrance are required.');
@@ -30,7 +30,9 @@ export function businessStarter({id,kind,footprint,height=3.2,entrances=[],windo
   f=draft.house.storeys[0];
   for(const room of f.rooms){
     const roles=room.kind===program.primary?program.roles:ROOM_ROLES[room.kind]||['storage_cabinet'];
-    for(const role of roles){if(role==='dining_chair'&&f.objects.some(o=>o.room_id===room.id&&o.role==='dining_table'))continue;const count=role==='hospital_bed'?4:role==='dining_chair'?4:role==='dining_table'?3:/gondola|commercial_washer|commercial_dryer|barber_chair|salon_chair/.test(role)?3:1;
+    for(const role of roles){if(role==='dining_chair'&&f.objects.some(o=>o.room_id===room.id&&o.role==='dining_table'))continue;const area=room.area_m2 ?? (bounds[2]-bounds[0])*(bounds[3]-bounds[1]);
+      const tables=service?Math.max(1,Math.min(12,Math.floor(area/(service.style==='dining'?10:7)))):3;
+      const count=role==='hospital_bed'?4:role==='dining_chair'?4:role==='dining_table'?tables:/gondola|commercial_washer|commercial_dryer|barber_chair|salon_chair/.test(role)?3:1;
       for(let i=0;i<count;i++){
         const asset=assets.find(a=>a.role===role&&a.model&&a.detail==='low_poly')||assets.find(a=>a.role===role&&a.model),size=asset?.dimensions_m||FIXTURES[role];if(!size)continue;
         const coordinates=room.polygon.coordinates[0],xs=coordinates.map(p=>p[0]),zs=coordinates.map(p=>p[1]),loX=Math.min(...xs),hiX=Math.max(...xs),loZ=Math.min(...zs),hiZ=Math.max(...zs);
@@ -40,7 +42,8 @@ export function businessStarter({id,kind,footprint,height=3.2,entrances=[],windo
         const attempt=dispatch(draft,{type:'add-object',level:0,object});if(validateDraft(attempt).valid){draft=attempt;f=draft.house.storeys[0];
           if(['dining_table','meeting_table'].includes(role)){
             const chairRole=role==='meeting_table'?'office_chair':'dining_chair',chairAsset=assets.find(a=>a.role===chairRole&&a.detail==='low_poly')||assets.find(a=>a.role===chairRole&&a.model),chairSize=chairAsset?.dimensions_m||FIXTURES[chairRole];
-            for(const [sx,sz,rotation]of[[1,0,90],[-1,0,-90],[0,1,0],[0,-1,180]]){
+            const seats=service && (area<26 || service.style==='counter' && i%2===0)?[[0,1,0],[0,-1,180]]:[[1,0,90],[-1,0,-90],[0,1,0],[0,-1,180]];
+            for(const [sx,sz,rotation]of seats){
               const chair={id:`${id}:item:${f.objects.length}`,role:chairRole,position_m:[position[0]+sx*(size[0]/2+chairSize[2]/2+.12),0,position[2]+sz*(size[2]/2+chairSize[2]/2+.12)],size_m:[...chairSize],rotation_deg:rotation,room_id:room.id,support:{kind:'floor',id:room.id,surface_y_m:0},asset:chairAsset?assetRef(chairAsset):{id:'procedural:'+chairRole,role:chairRole,procedural:true},materials:structuredClone(room.materials),grade:'inferred',measured:false,confidence:.2,freshness:null,corroboration_count:0};
               const seated=dispatch(draft,{type:'add-object',level:0,object:chair});if(validateDraft(seated).valid){draft=seated;f=draft.house.storeys[0];}
             }

@@ -66,7 +66,7 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
   const root = new T.Group();
   root.position.y = lift;
   scene.add(root);
-  const car = makeCar(order.model, colour);
+  const car = makeCar(order.model, colour, order.shade);
   root.add(car);
   const loc = serviceGeometry(order.model),
     point = (id) => new T.Vector3(...loc[id]);

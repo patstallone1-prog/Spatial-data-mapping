@@ -480,6 +480,7 @@ export function clipFor(e, seed = e?.seed ?? 0) {
   const g = e.gesture?.kind;
   if (g && SPORT.has(g)) return null;
   const moving = Boolean(e.moving);
+  if (g === "sit" && !moving) return "sit";
   if (g === "phone") return moving ? "walk_phone" : "phone";
   if (g === "film") return moving ? "walk_text" : "film";
   const k = kindOf(e.activity), kind = k >= 0 ? KINDS[k] : null;
