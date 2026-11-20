@@ -873,14 +873,43 @@ function squarePavementMesh(ring, kerbEdges, topAt, bottom, uOf, vOf, color, opa
   }
   // Counter-clockwise in (east, north) is counter-clockwise seen from above, which faces up.
   for (let i = 1; i + 1 < order.length; i += 1) index.push(0, i, i + 1);
+  // The kerb faces as the street's curb is drawn (KERB_PROFILE): a rounded nose off the slab's
+  // edge, then the face battered back one in four, plumb below.
+  let cx = 0, cn = 0;
+  for (const q of ring) { cx += q[0] / ring.length; cn += q[1] / ring.length; }
   for (const [a, b] of kerbEdges) {
     const qa = ring[a], qb = ring[b];
-    const base = position.length / 3;
-    const run = Math.hypot(qb[0] - qa[0], qb[1] - qa[1]) / WALK_UV_M, face = 0.15 / WALK_UV_M;
-    position.push(qa[0], topAt(qa), -qa[1], qb[0], topAt(qb), -qb[1],
-                  qb[0], bottom, -qb[1], qa[0], bottom, -qa[1]);
-    uv.push(0, 0, run, 0, run, face, 0, face);
-    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    const length = Math.hypot(qb[0] - qa[0], qb[1] - qa[1]);
+    if (!(length > 1e-3)) continue;
+    let ie = -(qb[1] - qa[1]) / length, iN = (qb[0] - qa[0]) / length;   // into the slab
+    if ((cx - qa[0]) * ie + (cn - qa[1]) * iN < 0) { ie = -ie; iN = -iN; }
+    const run = length / WALK_UV_M;
+    const rows = [];
+    for (const [q, u] of [[qa, 0], [qb, run]]) {
+      const top = topAt(q), drop = Math.max(0.01, top - bottom);
+      const face = Math.min(KERB_PROFILE.face, drop * 0.9), r = KERB_PROFILE.nose;
+      const toe = -KERB_PROFILE.batter * (face - r);
+      const profile = [];
+      for (let k = 0; k <= KERB_PROFILE.noseSteps; k += 1) {
+        const phi = (k / KERB_PROFILE.noseSteps) * Math.PI / 2;
+        profile.push([r * (1 - Math.sin(phi)), -r * (1 - Math.cos(phi))]);
+      }
+      profile.push([toe, -face], [toe, -drop]);
+      const row = [];
+      let walked = 0;
+      profile.forEach(([o, h], k) => {
+        if (k) walked += Math.hypot(o - profile[k - 1][0], h - profile[k - 1][1]);
+        row.push(position.length / 3);
+        // (Out from the slab's edge by the radius, so the nose rounds off that edge itself.)
+        position.push(q[0] + ie * (o - r), top + h, -(q[1] + iN * (o - r)));
+        uv.push(u, walked / WALK_UV_M);
+      });
+      rows.push(row);
+    }
+    for (let k = 1; k < rows[0].length; k += 1) {
+      const at = rows[0][k - 1], ab = rows[0][k], bt = rows[1][k - 1], bb = rows[1][k];
+      index.push(at, bt, bb, at, bb, ab);
+    }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
@@ -2316,6 +2345,8 @@ function sidewalkSlab(variant, size, seed) {
     ctx.fillStyle = grit(y * 29) < 0.5 ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(0, y, size, 1);
   }
+  // A curb is one long troweled pour, jointed every fifteen feet: no squares scored in it.
+  if (variant === "curb") return canvas;
   ctx.fillStyle = "rgba(58,60,56,0.20)";
   ctx.fillRect(0, 0, size, 6); ctx.fillRect(0, 0, 6, size);
   ctx.strokeStyle = "rgba(38,40,38,0.62)"; ctx.lineWidth = 3.0;
@@ -2337,9 +2368,13 @@ function sidewalkTexture(variant = "square") {
   return texture;
 }
 
-const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "concrete");
+//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), the
+//: curb its own troweled pour ("curb").
+const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "sidewalk");
 const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "concrete");
-//: One scored square, in metres. Five feet is the usual San Francisco pour.
+const KERB_CONCRETE = NEAR_SURFACE.mark(sidewalkTexture("curb"), "curb");
+//: One scored square, in metres. Five feet is the usual San Francisco pour: the Marina's
+//: residential sidewalks, outside the downtown three-foot grid.
 const SLAB_M = 1.52;
 const WALK_UV_M = SLAB_M * SLAB_BLOCK;
 const NARROW_SLAB_M = 2.75;

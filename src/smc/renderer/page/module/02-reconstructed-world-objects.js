@@ -104,13 +104,17 @@ function sweepGeometryLocal(path, breaks, closedPath, profile, closedProfile, ca
   for (let k = 0; k < count - 1; k += 1) edges.push([k, k + 1]);
   if (closedProfile) edges.push([count - 1, 0]);
   const cuts = [0, ...breaks.filter((b) => b > 0 && b < n - 1), n - 1];
-  const vertices = [], index = [];
+  // Metres along the path and round the section, for a surface laid by them (uv, in metres).
+  const along = [0], round = [0];
+  for (let i = 1; i < n; i += 1) along.push(along[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+  for (let k = 1; k < count; k += 1) round.push(round[k - 1] + Math.hypot(profile[k][0] - profile[k - 1][0], profile[k][1] - profile[k - 1][1]));
+  const vertices = [], index = [], uv = [];
   for (let c = 0; c < cuts.length - 1; c += 1) {
     const a = cuts[c], b = cuts[c + 1], m = b - a + 1;
     for (const [k0, k1] of edges) {
       const base = vertices.length / 3;
-      for (let i = a; i <= b; i += 1) vertices.push(...rings[i][k0]);
-      for (let i = a; i <= b; i += 1) vertices.push(...rings[i][k1]);
+      for (let i = a; i <= b; i += 1) { vertices.push(...rings[i][k0]); uv.push(along[i], round[k0]); }
+      for (let i = a; i <= b; i += 1) { vertices.push(...rings[i][k1]); uv.push(along[i], k1 ? round[k1] : round[count - 1] + Math.hypot(profile[0][0] - profile[count - 1][0], profile[0][1] - profile[count - 1][1])); }
       for (let i = 0; i < m - 1; i += 1) {
         const A = base + i, B = base + m + i, C = base + m + i + 1, D = base + i + 1;
         index.push(A, B, C, A, C, D);
@@ -121,11 +125,38 @@ function sweepGeometryLocal(path, breaks, closedPath, profile, closedProfile, ca
     const tris = earClip(profile);
     for (const [ring, flip] of [[rings[0], true], [rings[n - 1], false]]) {
       const base = vertices.length / 3;
-      for (const p of ring) vertices.push(...p);
+      for (const p of ring) { vertices.push(...p); uv.push(p[0], p[2]); }
       for (const [i0, i1, i2] of tris) index.push(...(flip ? [base + i2, base + i1, base + i0] : [base + i0, base + i1, base + i2]));
     }
   }
-  return { vertices, index };
+  return { vertices, index, uv };
+}
+
+//: A surveyed curb's section as San Francisco's standard curb is drawn (KERB_PROFILE, module
+//: 05): from the toe at the gutter, the face battered back one in four, the nose rounded, the
+//: top out to the measured back. Its height, its back and which way it faces are the survey's;
+//: its section was a toe, a 15 mm lean and a square corner. Same order (toe first or last) as
+//: the section given, so its faces keep facing out.
+function sfCurbSection(profile) {
+  if (!profile || profile.length < 3) return profile;
+  const toeFirst = Math.abs(profile[0][1]) < Math.abs(profile[profile.length - 1][1]);
+  const ordered = toeFirst ? profile : [...profile].reverse();
+  const toe = ordered[0], back = ordered[ordered.length - 1], height = back[1] - toe[1];
+  if (!(height > 0.03)) return profile;
+  const s = Math.sign(back[0] - toe[0]) || -1;
+  const r = Math.min(KERB_PROFILE.nose * 1.2, height * 0.4), b = KERB_PROFILE.batter;
+  // The corner where the battered face would meet the top, and the nose rounded into it.
+  const corner = [toe[0] + s * b * height, back[1]];
+  const fl = Math.hypot(b, 1), f = [s * b / fl, 1 / fl];
+  const p1 = [corner[0] - f[0] * r, corner[1] - f[1] * r], p2 = [corner[0] + s * r, corner[1]];
+  const out = [[toe[0], toe[1]], p1];
+  for (let k = 1; k < KERB_PROFILE.noseSteps; k += 1) {
+    const t = k / KERB_PROFILE.noseSteps, u = 1 - t;
+    out.push([u * u * p1[0] + 2 * u * t * corner[0] + t * t * p2[0], u * u * p1[1] + 2 * u * t * corner[1] + t * t * p2[1]]);
+  }
+  out.push(p2);
+  if (Math.abs(back[0] - toe[0]) > Math.abs(p2[0] - toe[0]) + 0.01) out.push([back[0], back[1]]);
+  return toeFirst ? out : out.reverse();
 }
 
 function earClip(polygon) {
@@ -566,6 +597,16 @@ const NEAR_SURFACE = globalThis.__kerbsideNearSurface ||= {
     // relief: how strongly its normal map bends the light.
     asphalt: { tile_m: 3.2, mean: [0.471, 0.471, 0.471], relief: 0.9 },
     concrete: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6 },
+    // A public sidewalk as San Francisco pours it (Public Works standard plans, residential:
+    // the Marina and every neighbourhood outside the downtown grid): the same photograph,
+    // and over it, in the slabs' own UVs, what the finisher's tools leave -- a tooled joint
+    // round every five-foot square with a smooth troweled margin either side, the broom's
+    // fine striations across the walk inside it, and the deeper contraction joint every third
+    // square (fifteen feet) along the block. Near you only, as the photograph is.
+    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk" },
+    // The curb (Standard Plan 87,185: six inches across the top, a rounded nose, the street face
+    // battered one in four) is steel-troweled, not broomed, and jointed only every fifteen feet.
+    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.35, photo: "concrete", scored: "curb" },
     wood: { tile_m: 2.0, mean: [0.313, 0.243, 0.18], relief: 0.8 },
     "painted-wood": { tile_m: 2.6, mean: [0.7, 0.652, 0.588], relief: 0.9 },
   },
@@ -589,7 +630,7 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
     mean: { value: new THREE.Vector3(...k.mean.map((c) => Math.pow(c, 2.2))) } };
   NEAR_SURFACE.uniforms.set(kind, u);
   const loader = new THREE.TextureLoader();
-  const load = (file, srgb, slot, ready) => loader.load(sharedAsset(`textures/near/${kind}-${file}.jpg`), (t) => {
+  const load = (file, srgb, slot, ready) => loader.load(sharedAsset(`textures/near/${k.photo || kind}-${file}.jpg`), (t) => {
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     u[slot].value = t; if (ready) u.tile.value.z = 1;
@@ -597,6 +638,64 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
   load("color", true, "map", true);
   load("normal", false, "relief", false);
   return u;
+};
+//: The finisher's marks, for a scored kind, read from the slabs' own UVs (the sidewalk's map:
+//: four squares of SLAB_M to a repeat, ``u`` along the street and ``v`` across it). Distances
+//: are in metres from the nearest joint. "walk": every square tooled, broomed inside a troweled
+//: margin, a deeper joint each third square; "curb": the fifteen-foot joints only, troweled.
+//: Its marks bend the light (kbSwBx along u, kbSwBz across) for scoredNormal.
+NEAR_SURFACE.scoredColor ||= function (mode) {
+  if (!mode) return "";
+  const walk = mode === "walk" ? 1 : 0;
+  return `float kbSwBx = 0.0, kbSwBz = 0.0;
+#ifdef USE_MAP
+if (kbNsF > 0.0) {
+  vec2 kbSwS = vMapUv * 4.0, kbSwFr = fract(kbSwS), kbSwD = min(kbSwFr, 1.0 - kbSwFr) * 1.52;
+  float kbSwUp = step(0.6, abs(normalize(kbNsN).y));
+  // Every square's joints on the walk's top; on a face (the kerb's), and on a curb, only the
+  // contraction joints across the run.
+  float kbSwThird = abs(fract(kbSwS.x / 3.0 + 0.5) - 0.5) * 3.0 * 1.52;
+  float kbSwDx = ${walk}.0 > 0.5 ? kbSwD.x : kbSwThird;
+  float kbSwDz = ${walk}.0 > 0.5 && kbSwUp > 0.5 ? kbSwD.y : 9.0;
+  float kbSwJ = min(kbSwDx, kbSwDz);
+  // A tooled joint is a groove a quarter-inch wide with radiused shoulders; the contraction
+  // joint is cut deeper and reads darker.
+  float kbSwGroove = 1.0 - smoothstep(0.0025, 0.0065, kbSwJ);
+  float kbSwDeep = 1.0 - smoothstep(0.003, 0.009, kbSwThird);
+  float kbSwMargin = (1.0 - smoothstep(0.035, 0.055, kbSwJ)) * ${walk}.0;
+  // The broom, pulled across the walk: fine streaks along it, each a shade off the next, wavering
+  // a little as a broom does, and none in the troweled margin or on a face.
+  float kbSwAlong = kbSwS.x * 1.52 + 0.004 * sin(kbSwS.y * 9.0 + floor(kbSwS.x) * 3.1);
+  float kbSwStreak = fract(sin(floor(kbSwAlong * 260.0) * 91.7 + floor(kbSwS.x) * 7.3) * 43758.5);
+  float kbSwBroom = (kbSwStreak - 0.5) * (1.0 - kbSwMargin) * kbSwUp * ${walk}.0;
+  vec3 kbSwC = diffuseColor.rgb * (1.0 + 0.11 * kbSwBroom + 0.05 * kbSwMargin);
+  kbSwC *= 1.0 - 0.42 * max(kbSwGroove, kbSwDeep * 1.3);
+  diffuseColor.rgb = mix(diffuseColor.rgb, kbSwC, kbNsF);
+  // The shoulders fall toward the joint: the light bends that way just either side of it.
+  float kbSwSh = smoothstep(0.002, 0.005, kbSwJ) * (1.0 - smoothstep(0.005, 0.013, kbSwJ));
+  float kbSwSx = ${walk}.0 > 0.5 ? sign(kbSwFr.x - 0.5) : sign(fract(kbSwS.x / 3.0) - 0.5);
+  kbSwBx = (kbSwDx <= kbSwDz ? kbSwSx : 0.0) * kbSwSh + kbSwBroom * 0.3;
+  kbSwBz = (kbSwDz < kbSwDx ? sign(kbSwFr.y - 0.5) : 0.0) * kbSwSh;
+}
+#endif`;
+};
+NEAR_SURFACE.scoredNormal ||= function (mode) {
+  if (!mode) return "";
+  return `#ifdef USE_MAP
+if (kbNsF > 0.0 && (kbSwBx != 0.0 || kbSwBz != 0.0)) {
+  // The slabs' u and v as directions on the surface, from how they change across the pixel.
+  vec3 kbSwQ1 = dFdx(kbNsW), kbSwQ2 = dFdy(kbNsW);
+  vec2 kbSwT1 = dFdx(vMapUv), kbSwT2 = dFdy(vMapUv);
+  float kbSwDet = sign(kbSwT1.x * kbSwT2.y - kbSwT2.x * kbSwT1.y);
+  vec3 kbSwN = normalize(kbNsN);
+  vec3 kbSwTu = (kbSwQ1 * kbSwT2.y - kbSwQ2 * kbSwT1.y) * kbSwDet;
+  vec3 kbSwTv = (kbSwQ2 * kbSwT1.x - kbSwQ1 * kbSwT2.x) * kbSwDet;
+  kbSwTu = normalize(kbSwTu - kbSwN * dot(kbSwN, kbSwTu) + vec3(1e-6));
+  kbSwTv = normalize(kbSwTv - kbSwN * dot(kbSwN, kbSwTv) + vec3(1e-6));
+  vec3 kbSwBent = normalize(kbSwN + (kbSwTu * kbSwBx + kbSwTv * kbSwBz) * 0.9);
+  normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbSwBent, 0.0)).xyz), kbNsF));
+}
+#endif`;
 };
 //: Into a material's shader (``shader`` as onBeforeCompile is given it) for a kind.
 NEAR_SURFACE.patch ||= function (shader, kind) {
@@ -634,14 +733,16 @@ if (kbNsNear.z * kbNsTile.z > 0.0) {
   vec3 kbNsC2 = texture2D(kbNsMap, mat2(0.8, -0.6, 0.6, 0.8) * kbNsAt * 0.37 + 0.31).rgb;
   vec3 kbNsD = mix(kbNsC, kbNsC * (kbNsC2 / kbNsMean), 0.35) / kbNsMean;
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * clamp(kbNsD, 0.0, 2.5), kbNsF);
-}`)
+}
+${NEAR_SURFACE.scoredColor(NEAR_SURFACE.kinds[kind].scored)}`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 if (kbNsNear.z * kbNsTile.z > 0.0 && kbNsTile.y > 0.0) {
   vec3 kbNsR = texture2D(kbNsRelief, kbNsAt).xyz * 2.0 - 1.0;
   vec3 kbNsWN = normalize(kbNsN);
   vec3 kbNsBent = normalize(kbNsT * kbNsR.x * kbNsTile.y + kbNsB * kbNsR.y * kbNsTile.y + kbNsWN * max(kbNsR.z, 0.2));
   normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbNsBent, 0.0)).xyz), kbNsF));
-}`);
+}
+${NEAR_SURFACE.scoredNormal(NEAR_SURFACE.kinds[kind].scored)}`);
 };
 // Every lit material, without each being told: a material with no hook of its own uses this one,
 // and those that chain a hook (patchMaterial, the box clips) call it first. A material that sets

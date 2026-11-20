@@ -1041,13 +1041,23 @@ function worldPavedBeside(anchor, east, north, nx, ny) {
   }
   return false;
 }
+//: The surveyed curbs' concrete: the curb's troweled pour (KERB_CONCRETE, its fifteen-foot joints
+//: near you), in the survey's shade.
+let SURVEYED_CURB_MATERIAL = null;
+function surveyedCurbMaterial() {
+  return SURVEYED_CURB_MATERIAL ||= new THREE.MeshStandardMaterial({
+    map: KERB_CONCRETE, color: 0xd8d6d0, roughness: 0.9, metalness: 0.0 });
+}
 function emitWorldSweeps() {
   for (const record of (WORLD_OBJECTS.objects || [])) {
     if (!record.sweep) continue;
     const side = record.sweep.params && record.sweep.params.side ? record.sweep.params.side.value : 0;
+    const curb = record.type === "curb";
     for (const piece of worldSupportedPieces(record, side)) {
-      const { vertices, index } = sweepGeometryLocal(piece.path, piece.breaks, false, piece.profile,
-                                                     !!record.sweep.closed_profile, !!record.sweep.caps);
+      // A curb in the standard section, laid with the curb's own concrete by the metre.
+      const { vertices, index, uv } = sweepGeometryLocal(piece.path, piece.breaks, false,
+                                                         curb ? sfCurbSection(piece.profile) : piece.profile,
+                                                         !!record.sweep.closed_profile, !!record.sweep.caps);
       if (!index.length) continue;
       const position = new Float32Array(vertices.length);
       for (let i = 0; i < vertices.length; i += 3) {
@@ -1058,9 +1068,10 @@ function emitWorldSweeps() {
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.BufferAttribute(position, 3));
+      if (curb) geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv.map((m) => m / WALK_UV_M), 2));
       geometry.setIndex(index);
       geometry.computeVertexNormals();
-      const mesh = new THREE.Mesh(geometry, worldObjectMaterial(record.material));
+      const mesh = new THREE.Mesh(geometry, curb ? surveyedCurbMaterial() : worldObjectMaterial(record.material));
       mesh.userData.surface = "kerb";
       addMerged(`reconstructed:${record.type}`, mesh, "kerb");
       worldSweepStats.drawn += 1;
