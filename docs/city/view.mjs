@@ -808,8 +808,8 @@ diffuseColor.rgb *= kbCloth;`);
   const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
   midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
   const bodies = new Map();
-  // The nearest few as Unreal characters (npc-figures.mjs): the MetaHuman and the mannequin,
-  // skinned and walking on the mannequin's clips. Until they load -- or where they are not
+  // The nearest as MakeHuman people (npc-figures.mjs): two bodies dressed in parts, every part
+  // one instanced draw skinned on the graphics card. Until they load -- or where they are not
   // published -- the near ring is drawn as it was.
   const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, store: ctx.npcStore || null, parent: group });
   //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
@@ -983,7 +983,12 @@ diffuseColor.rgb *= kbCloth;`);
   const FIG_CAM = { x: 0, z: 0 }, FIG_YOU = { x: 0, z: 0 }, figPeople = [], figEntries = [], figInView = new Map(), figReady = [];
   const figHas = (id) => figures.has?.(id);
   let figLast = null;
-  const lookOf = (p) => { const body = bodyFor(p.person, bodies), o = body.outfit; return { body, look: { top: o.topColour, bottom: o.bottoms, hair: body.hair, skin: body.skin } }; };
+  // What a near-ring person looks like (npc-figures.mjs crowdLook picks their parts from it): kept
+  // with their body, one object a person, not one a frame.
+  const lookOf = (p) => {
+    const body = bodyFor(p.person, bodies), o = body.outfit;
+    return { body, look: body.look ||= { top: o.topColour, bottom: o.bottoms, shoes: o.shoes, hair: body.hair, skin: body.skin, garment: o.top, legs: o.legs, cut: o.hair, bald: body.bald, heritage: body.heritage, age: p.person?.age ?? 35 } };
+  };
   function drawPeople(list, now, focus = null) {
     if (now - blendSweep > 2500) { blendSweep = now; for (const [id, st] of blends) if (now - st.lastNow > 3000) blends.delete(id); }
     const seen = peopleInView(list);
@@ -1033,7 +1038,7 @@ diffuseColor.rgb *= kbCloth;`);
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
       const { body, look } = lookOf(p);
-      return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female === true,
+      return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
         moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace), look };
     }), now, dtFig, ready, want);
     if (asFigures) {
