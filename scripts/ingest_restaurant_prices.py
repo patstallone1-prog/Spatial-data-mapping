@@ -27,11 +27,18 @@ from smc.config import load_env_file  # noqa: E402
 from smc.interiors.restaurants.prices import apply_price, price_evidence  # noqa: E402
 
 FIELDS = "id,displayName,formattedAddress,location,priceLevel,priceRange"
+#: How the place serves, in the same request (Google's dine-in / takeout / reservations flags,
+#: its place type and what it serves): read for counter or table service and menu breadth.
+SERVICE_FIELDS = (
+    "primaryType,types,dineIn,takeout,delivery,reservable,servesBreakfast,servesBrunch,"
+    "servesLunch,servesDinner,servesBeer,servesWine,servesCocktails,servesDessert,servesCoffee,"
+    "servesVegetarianFood,userRatingCount"
+)
 
 
 def name_key(value):
     text = unicodedata.normalize("NFKD", value).lower()
-    text = re.sub(r"\b(restaurant|restaurants|cafe|llc|inc)\b", "", text)
+    text = re.sub(r"\b(restaurant|restaurants|cafe|llc|inc|san francisco|sf)\b", "", text)
     return re.sub(r"[^a-z0-9]", "", text)
 
 
@@ -42,7 +49,10 @@ def matching_place(venue, places):
     for place in places:
         name = (place.get("displayName") or {}).get("text") or place.get("name", "")
         a, b = name_key(venue["name"]), name_key(name)
-        if not a or not b or SequenceMatcher(None, a, b).ratio() < 0.88:
+        # The same name, or one the other's whole name plus a suffix ("Viva Goa" and "Viva Goa
+        # Indian Cuisine"); the 30 m and one-place rules below still decide.
+        contained = min(len(a), len(b)) >= 5 and (a in b or b in a)
+        if not a or not b or (SequenceMatcher(None, a, b).ratio() < 0.88 and not contained):
             continue
         loc = place.get("location") or {}
         x, y = loc.get("longitude", place.get("lon")), loc.get("latitude", place.get("lat"))
@@ -76,15 +86,35 @@ def fetch_places(venue, key):
         headers={
             "Content-Type": "application/json",
             "X-Goog-Api-Key": key,
-            "X-Goog-FieldMask": ",".join("places." + f for f in FIELDS.split(",")),
+            "X-Goog-FieldMask": ",".join(
+                "places." + f for f in (FIELDS + "," + SERVICE_FIELDS).split(",")
+            ),
         },
     )
     with urllib.request.urlopen(request, timeout=20) as response:
         return json.load(response).get("places", [])
 
 
+def service_record(place, venue, distance, fetched_at):
+    """Google's own service flags for a matched place, as evidence (never measured)."""
+    keys = [k for k in SERVICE_FIELDS.split(",") if k in place]
+    if not keys:
+        return None
+    return {
+        "provider": "google_places",
+        "place_id": str(place.get("id") or place.get("place_id") or ""),
+        "venue_id": venue["id"],
+        "building_id": venue.get("osm_id"),
+        **{k: place[k] for k in keys},
+        "match_distance_m": round(distance, 2),
+        "fetched_at": fetched_at.isoformat().replace("+00:00", "Z"),
+        "measured": False,
+    }
+
+
 def ingest(venues, cache, *, imported=(), fetch=None, max_requests=0, bands=None):
     records = cache.setdefault("restaurants", {})
+    services = cache.setdefault("services", {})
     report = {
         "venues": len(venues),
         "fresh_cached": 0,
@@ -94,7 +124,9 @@ def ingest(venues, cache, *, imported=(), fetch=None, max_requests=0, bands=None
         "errors": [],
     }
     for venue in venues:
-        if apply_price(dict(venue), records.get(venue["id"])):
+        cached = records.get(venue["id"])
+        # A fresh price whose request also read the service flags (or found none) is reused.
+        if apply_price(dict(venue), cached) and (venue["id"] in services or cached.get("service_checked")):
             report["fresh_cached"] += 1
             continue
         match = matching_place(venue, imported)
@@ -117,6 +149,10 @@ def ingest(venues, cache, *, imported=(), fetch=None, max_requests=0, bands=None
                 if timestamp
                 else datetime.now(UTC)
             )
+            service = service_record(place, venue, distance, fetched)
+            if service:
+                services[venue["id"]] = service
+                report["services"] = report.get("services", 0) + 1
             evidence = price_evidence(place, fetched_at=fetched, bands=bands)
             if evidence:
                 evidence.update(
@@ -124,6 +160,7 @@ def ingest(venues, cache, *, imported=(), fetch=None, max_requests=0, bands=None
                     match_distance_m=round(distance, 2),
                     match_method="unique name agreement and within 30m of Kerbside building",
                     building_id=venue.get("osm_id"),
+                    service_checked=True,
                     region=venue.get("geometry_evidence", {}).get("region"),
                 )
                 if apply_price(dict(venue), evidence):

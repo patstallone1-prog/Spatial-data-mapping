@@ -68,6 +68,8 @@ class RestaurantInput:
     economics_source: str = "unspecified"
     geometry_evidence: dict | None = None
     price_evidence: dict | None = None
+    #: The tier where a classification decided it (classify_service); else from mode and spend.
+    service_tier: str | None = None
 
     @classmethod
     def from_json(cls, row):
@@ -86,6 +88,7 @@ class RestaurantInput:
             row.get("economics_source", "unspecified"),
             row.get("geometry_evidence"),
             row.get("price_evidence"),
+            row.get("service_tier"),
         )
 
     def __post_init__(self):
@@ -137,7 +140,7 @@ def restaurant_style(spec):
         ),
     )
     s.pop("neighborhood_price_per_sqft", None)
-    service = service_tier(spec.service_mode, spend)
+    service = spec.service_tier or service_tier(spec.service_mode, spend)
     s.update(
         service_tier=service,
         finish=SERVICE_TIERS[service]["finish"],
@@ -147,6 +150,9 @@ def restaurant_style(spec):
     # a casual one, an upholstered banquette along the wall in fine dining.
     if SERVICE_TIERS[service]["booth"]:
         s["booth_design"] = SERVICE_TIERS[service]["booth"]
+    elif tier == "economy":
+        # A cheap place that seats you (a taqueria, a diner) sits on laminate booths too.
+        s["booth_design"] = "laminate"
     if tier == "economy":
         s.update(wood="#c5bbaa", fabric="#b75640", metal="#777d80", stone="#d5d2c9")
     elif tier == "premium":

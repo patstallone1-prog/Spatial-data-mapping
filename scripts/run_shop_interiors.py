@@ -49,35 +49,37 @@ def inside(box):
     return keep
 
 
-#: With no price evidence for a venue, how it serves is read from its listing (its OSM tag and
-#: its name), never from the size of its building: (words, service mode, spend per person).
-LISTING_RULES = (
-    (("coffee", "roastery", "bagel", "bakery", "crumble", "pizza", "taqueria", "bento", "box",
-      "wings", "curry", "boba", "tea", "juice", "donut", "burrito", "deli"), "counter", 14),
-    (("ihop", "drive-in", "diner", "home plate", "pancake", "breakfast"), "auto", 21),
-    (("bistro", "brasserie", "steakhouse", "omakase", "trattoria"), "auto", 55),
-)
-COUNTER_TAGS = {"fast_food", "cafe", "bakery"}
+#: Words in a listing's name that read as a counter place, and as fine dining (used for fine
+#: dining only where no price was found).
+COUNTER_WORDS = ("coffee", "roastery", "bagel", "bakery", "crumble", "pizza", "taqueria", "bento",
+                 "box", "wings", "curry", "boba", "tea", "juice", "donut", "burrito", "deli")
+DINING_WORDS = ("bistro", "brasserie", "steakhouse", "omakase", "trattoria")
+#: Spend per person where no price was found, by how the venue serves.
+DEFAULT_SPEND = {"counter": 14, "casual": 30, "dining": 55}
+PRICES = ROOT / "data/restaurant-prices.json"
 
 
-def listing_service(row, tag):
-    """Service mode and spend from the listing where no price was observed for the venue."""
-    if row.get("price_evidence"):
-        return row
-    if row["stratum"] == "pickup":
-        return {**row, "average_spend_per_person": 14,
-                "economics_source": "pickup-sized tenancy; no observed price"}
+def listing_service(row, tag, google=None):
+    """How the venue serves (counter or table, and the tier), never from building size alone:
+    its menu's breadth, room, reservations, Google's type, price and listing (classify_service)."""
+    from shapely.geometry import shape
+
+    from smc.interiors.restaurants.service import classify_service
+
     name = row["name"].lower()
-    for words, mode, spend in LISTING_RULES:
-        if any(w in name for w in words):
-            return {**row, "service_mode": mode, "average_spend_per_person": spend,
-                    "economics_source": f"read from the listing's name ({mode}); no observed price"}
-    if tag in COUNTER_TAGS:
-        return {**row, "service_mode": "counter", "average_spend_per_person": 14,
-                "economics_source": f"read from the listing's tag ({tag}); no observed price"}
-    # A neighbourhood restaurant or bar: casual service, an ordinary cover.
-    return {**row, "service_mode": "auto", "average_spend_per_person": 30,
-            "economics_source": "no observed price; casual table service assumed"}
+    price = row.get("price_evidence")
+    c = classify_service(area_m2=shape(row["footprint"]).area, tag=tag, google=google, price=price,
+                         name_counter=any(w in name for w in COUNTER_WORDS))
+    tier = c["tier"]
+    if not price and c["service_mode"] == "auto" and any(w in name for w in DINING_WORDS):
+        tier = "dining"
+        c["signals"].append("fine dining: its name, with no price found")
+    out = {**row, "service_mode": c["service_mode"], "service_tier": tier,
+           "bar": row.get("bar", False) or c["bar"], "service_classification": c}
+    if not price:
+        out.update(average_spend_per_person=DEFAULT_SPEND[tier],
+                   economics_source=f"no price found; an ordinary {tier} cover")
+    return out
 
 
 def restaurant_jobs(keep, region="sf-corridor"):
@@ -86,9 +88,10 @@ def restaurant_jobs(keep, region="sf-corridor"):
     world = json.loads((ROOT / "docs/sf-corridor-3d.json").read_text()) if region == "sf-corridor" else None
     tags = {str(w["osm_id"]): w["shops"][0].get("t") for w in (world or {}).get("ways", [])
             if w.get("kind") == "building" and len(w.get("shops") or []) == 1}
+    services = json.loads(PRICES.read_text()).get("services", {}) if PRICES.exists() else {}
     return [
         {"engine": "restaurant", "osm_id": r["osm_id"], "name": r["name"],
-         "row": listing_service(r, tags.get(r["osm_id"]))}
+         "row": listing_service(r, tags.get(r["osm_id"]), services.get(r["id"]))}
         for r in candidates(region, tags=ALL_FOOD_TAGS, keep=keep)
     ]
 

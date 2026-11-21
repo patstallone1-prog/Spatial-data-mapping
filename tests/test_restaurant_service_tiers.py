@@ -46,7 +46,8 @@ def test_tiers_and_crew_match_the_city_fitter() -> None:
         assert {k: ours[k] for k in crew} == crew
         assert kitchen_depth_for(ours) == pytest.approx(depth)
     assert service_tier("counter", 40) == "counter" and service_tier("pickup", None) == "counter"
-    assert service_tier("auto", 18) == "counter" and service_tier("auto", 32) == "casual"
+    # A cheap place that seats you is casual table service, not a counter.
+    assert service_tier("auto", 18) == "casual" and service_tier("auto", 32) == "casual"
     assert service_tier("auto", 65) == "dining"
 
 
@@ -54,7 +55,8 @@ def test_tiers_and_crew_match_the_city_fitter() -> None:
 def tiers():
     room = box(0, 0, 11, 16)
     return {
-        spend: infer_restaurant(RestaurantInput(f"tier-{spend}", room, average_spend_per_person=spend))
+        spend: infer_restaurant(RestaurantInput(f"tier-{spend}", room, average_spend_per_person=spend,
+                                                service_mode="counter" if spend < 20 else "auto"))
         for spend in (18, 32, 70)
     }
 
@@ -110,23 +112,51 @@ def dining_objects(h):
     return h["storeys"][0]["objects"]
 
 
-def test_an_area_run_reads_service_from_the_listing_not_the_building_size() -> None:
+def test_counter_or_table_from_menu_room_reservations_and_price() -> None:
+    from smc.interiors.restaurants.service import classify_service
+
+    broad = {"servesBreakfast": True, "servesLunch": True, "servesDinner": True,
+             "servesBeer": True, "servesWine": True, "servesCocktails": True, "dineIn": True}
+    # A cheap taqueria with a broad menu and a big room seats you.
+    taqueria = classify_service(area_m2=318, google={**broad, "primaryType": "mexican_restaurant"},
+                                price={"price_level": 1, "average_spend_per_person": 15},
+                                name_counter=True)
+    assert taqueria["service_mode"] == "auto" and taqueria["tier"] == "casual"
+    # A large restaurant with nothing else known still seats you; a coffee shop does not.
+    assert classify_service(area_m2=319)["service_mode"] == "auto"
+    coffee = classify_service(area_m2=227, tag="cafe", name_counter=True,
+                              google={"primaryType": "coffee_shop", "servesBreakfast": True})
+    assert coffee["service_mode"] == "counter" and coffee["tier"] == "counter"
+    # No dine-in is a counter whatever else; a tiny tenancy is pickup.
+    assert classify_service(area_m2=200, google={**broad, "dineIn": False})["service_mode"] == "pickup"
+    assert classify_service(area_m2=44)["service_mode"] == "pickup"
+    # Fine dining: $$$ and up, or $$ with reservations and a $50 cover.
+    assert classify_service(area_m2=128, google={**broad, "reservable": True},
+                            price={"price_level": 3, "average_spend_per_person": 75})["tier"] == "dining"
+    assert classify_service(area_m2=225, google={**broad, "reservable": True},
+                            price={"price_level": 2, "average_spend_per_person": 45})["tier"] == "casual"
+    # Every signal is kept, so a classification can be read back.
+    assert any("reservations" in s for s in classify_service(
+        area_m2=100, google={"reservable": True})["signals"])
+
+
+def test_an_area_run_classifies_each_venue_and_keeps_its_price() -> None:
     import importlib.util
+
+    from shapely.geometry import box, mapping
 
     spec = importlib.util.spec_from_file_location("shop_run", ROOT / "scripts/run_shop_interiors.py")
     run = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(run)
-
-    def tier(name, tag="restaurant", stratum="large", **extra):
-        row = run.listing_service({"name": name, "stratum": stratum, "service_mode": "auto",
-                                   "average_spend_per_person": 70, **extra}, tag)
-        return service_tier(row["service_mode"], row["average_spend_per_person"])
-
-    # A large building is not fine dining by its size: a pancake house is a casual diner,
-    # a taqueria and a coffee bar serve at a counter, a bistro lays its tables.
-    assert tier("IHOP") == "casual" and tier("Bonita Taqueria") == "counter"
-    assert tier("Peet's Coffee", "cafe") == "counter" and tier("Bistro Aix") == "dining"
-    assert tier("Chotto") == "casual" and tier("Some Cafe", "cafe") == "counter"
-    assert tier("Tiny", stratum="pickup") == "counter"
-    # An observed price wins over any reading of the listing.
-    assert tier("IHOP", price_evidence={"level": 4}) == "dining"
+    big = mapping(box(0, 0, 16, 20))
+    ihop = run.listing_service({"name": "IHOP", "footprint": big, "stratum": "large",
+                                "average_spend_per_person": 70}, "restaurant")
+    # The placeholder spend for a large building is replaced, and size does not make it fine.
+    assert ihop["service_tier"] == "casual" and ihop["average_spend_per_person"] == 30
+    bistro = run.listing_service({"name": "Bistro Aix", "footprint": big, "stratum": "large"}, "restaurant")
+    assert bistro["service_tier"] == "dining"
+    priced = run.listing_service({"name": "A16", "footprint": big, "stratum": "large",
+                                  "average_spend_per_person": 75,
+                                  "price_evidence": {"price_level": 3, "average_spend_per_person": 75}},
+                                 "restaurant", {"reservable": True})
+    assert priced["service_tier"] == "dining" and priced["average_spend_per_person"] == 75

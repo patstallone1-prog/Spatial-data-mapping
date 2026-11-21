@@ -55,7 +55,8 @@ EXTRA_COOK_SPEND = 56
 
 def service_tier(service_mode: str, spend: float | None) -> str:
     """The tier from how it serves and what a cover costs."""
-    if service_mode in {"counter", "pickup"} or (spend is not None and spend < 20):
+    # A cheap place that seats you is still table service (casual, on the economy finish).
+    if service_mode in {"counter", "pickup"}:
         return "counter"
     if spend is not None and spend >= DINING_SPEND:
         return "dining"
@@ -96,3 +97,93 @@ def kitchen_depth_for(staff: dict, stations: int = 7) -> float:
             + (0.6 if staff["manager"] else 0),
         ),
     )
+
+
+#: Google place types that order at a counter, and the weaker one (a pizzeria may seat you).
+COUNTER_TYPES = {
+    "coffee_shop", "cafe", "bagel_shop", "bakery", "fast_food_restaurant", "sandwich_shop",
+    "meal_takeaway", "ice_cream_shop", "donut_shop", "juice_shop", "dessert_shop", "tea_house",
+    "acai_shop", "confectionery", "deli", "food_court",
+}
+BAR_TYPES = {"bar", "sports_bar", "cocktail_bar", "wine_bar", "pub", "bar_and_grill", "lounge_bar"}
+MEALS = ("servesBreakfast", "servesBrunch", "servesLunch", "servesDinner")
+DRINKS = ("servesBeer", "servesWine", "servesCocktails")
+
+
+def classify_service(*, area_m2, tag=None, name_counter=False, google=None, price=None):
+    """Counter or table service, and the tier, from what is known of a venue.
+
+    How big and how complex its menu is (Google's meal periods, drinks and dessert are the
+    nearest published measure: a place that does breakfast to dinner with a bar is a kitchen
+    that seats you), how big its room is (a large restaurant seats you even if it is cheap),
+    whether it takes reservations, what Google calls it, and its price. Each signal is scored;
+    the record keeps every one, so a classification can be read back. Not observed service.
+    """
+    g = google or {}
+    level = (price or {}).get("price_level")
+    spend = (price or {}).get("average_spend_per_person")
+    meals = sum(bool(g.get(k)) for k in MEALS)
+    drinks = sum(bool(g.get(k)) for k in DRINKS)
+    breadth = meals + drinks + bool(g.get("servesDessert"))
+    kind = g.get("primaryType") or ""
+    table, counter, why = 0, 0, []
+
+    def add(side, points, reason):
+        nonlocal table, counter
+        if side == "table":
+            table += points
+        else:
+            counter += points
+        why.append(f"{side} +{points}: {reason}")
+
+    if g.get("reservable"):
+        add("table", 3, "takes reservations")
+    if breadth >= 5:
+        add("table", 2, f"broad menu ({meals} meal periods, {drinks} kinds of drink)")
+    elif breadth >= 3:
+        add("table", 1, f"mid-sized menu ({meals} meal periods, {drinks} kinds of drink)")
+    if g.get("servesCocktails"):
+        add("table", 1, "a full bar")
+    if area_m2 >= 220:
+        add("table", 2, f"a large room ({area_m2:.0f} m²)")
+    elif area_m2 >= 150:
+        add("table", 1, f"a mid-sized room ({area_m2:.0f} m²)")
+    if level and level >= 3:
+        add("table", 2, "price level " + "$" * level)
+    elif level == 2:
+        add("table", 1, "price level $$")
+    if kind in COUNTER_TYPES:
+        add("counter", 3, f"Google lists it as {kind}")
+    elif kind == "pizza_restaurant":
+        add("counter", 1, "a pizzeria")
+    if g.get("dineIn") is False:
+        add("counter", 4, "no dine-in")
+    if name_counter:
+        add("counter", 1 if g else 2, "its name reads as a counter place")
+    if tag in {"cafe", "fast_food", "bakery"}:
+        add("counter", 1, f"mapped as {tag}")
+    bar = kind in BAR_TYPES or tag == "bar"
+    if area_m2 < 60 or g.get("dineIn") is False:
+        # A tenancy too small to seat anyone, or a takeaway Google says has no dine-in.
+        mode = "pickup"
+        why.append(f"pickup: a {area_m2:.0f} m² tenancy" if area_m2 < 60 else "pickup: takeaway only")
+    elif table > counter or (table == counter and area_m2 >= 150):
+        mode = "auto"
+    else:
+        mode = "counter"
+    if mode != "auto":
+        tier = "counter"
+    elif (level and level >= 3) or (level == 2 and (spend or 0) >= 50 and g.get("reservable")):
+        tier = "dining"
+    else:
+        tier = "casual"
+    return {
+        "service_mode": mode,
+        "tier": tier,
+        "bar": bar,
+        "table_score": table,
+        "counter_score": counter,
+        "menu_breadth": breadth,
+        "signals": why,
+        "basis": "Google service flags, price, room size and listing; not observed service",
+    }
