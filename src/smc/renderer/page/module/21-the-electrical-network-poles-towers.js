@@ -2128,12 +2128,18 @@ var ORBIT_RISE_STEP = 0.06, ORBIT_RISE_MAX_PITCH = 1.52;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
-//: In City mode (the game) the view stays down among the streets: out no further than 72 m, a
-//: fifth in from just under a city block (San Francisco's run 100 to 125 m; it was 90 m).
-//: Explore, the map, still goes out to the globe.
-const CITY_MAX_ORBIT_M = 72;
+//: In City mode (the game) the view stays down among the streets: out no further than 65 m,
+//: a tenth in from 72 (San Francisco's blocks run 100 to 125 m; it was 90 m, then 72), and in
+//: as close as CITY_MIN_ORBIT_M, over the walker's shoulder. Explore, the map, still goes out
+//: to the globe and in to 8 m.
+const CITY_MAX_ORBIT_M = 65;
+const CITY_MIN_ORBIT_M = 3;
+const MIN_ORBIT_DIST_M = 8;
 function maxOrbitDist() {
   return typeof cityGame === "function" && cityGame() ? CITY_MAX_ORBIT_M : MAX_ORBIT_DIST_M;
+}
+function minOrbitDist() {
+  return typeof cityGame === "function" && cityGame() ? CITY_MIN_ORBIT_M : MIN_ORBIT_DIST_M;
 }
 //: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
 //: itself; walking out puts back the view it had. There is no view from above into a house:
@@ -2427,7 +2433,7 @@ function zoomBy(factor) {
   factor **= zoomSensitivity(state.dist);
   // Past the Bay each turn of the wheel covers more: a few turns from the region to the globe.
   if (state.dist > 30000) factor **= 1.9;
-  state.dist = Math.max(8, Math.min(typeof maxOrbitDist === "function" ? maxOrbitDist() : MAX_ORBIT_DIST_M, state.dist * factor));
+  state.dist = Math.max(typeof minOrbitDist === "function" ? minOrbitDist() : 8, Math.min(typeof maxOrbitDist === "function" ? maxOrbitDist() : MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
   if (typeof autoExploreByZoom === "function") autoExploreByZoom();
 }

@@ -371,7 +371,7 @@ returnToGps();console.log(JSON.stringify({feet:avatar.position.y-AVATAR_STAND_Y,
 def test_attached_region_preserves_occupied_level_and_surface_kind_in_host_frame():
     result = run("""
 let received;
-const guest={oy:100,api:{walkerGroundInfo(x,z,y){received=[x,z,y];return {y:12,kind:'tunnel'};}}};
+const guest={oy:100,ox:200,oz:300,sx:1,api:{walkerGroundInfo(x,z,y){received=[x,z,y];return {y:12,kind:'tunnel'};}}};
 function guestUnder(){return guest;}
 function hostToGuest(g,x,z){return [x-200,z-300];}
 console.log(JSON.stringify({info:walkerGroundInfo(205,307,112),received}));
