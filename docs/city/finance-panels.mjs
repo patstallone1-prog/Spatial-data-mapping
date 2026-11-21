@@ -10,6 +10,7 @@
 import { cityTime, storesAt } from "./core.mjs";
 import { bankersAt, creditRules } from "./credit.mjs";
 import { fallbackLine, setLine, sortMessage, talkText } from "./npc-talk.mjs";
+import { FAVOURS, askedFavour, favourLine } from "./npc-favours.mjs";
 
 const DAY = 86_400_000;
 const NS = "http://www.w3.org/2000/svg";
@@ -195,19 +196,34 @@ export function financePanels(api) {
     if (who.role === "resident") api.onTalk?.(who);
     const say = async (text, extra = {}) => {
       const mine = talkText(text);
-      if (!mine && !extra.ask) return;
+      if (!mine && !extra.ask && !extra.favour) return;
       if (who.role === "resident") api.onTalk?.(who);
       if (mine) state.log.push({ from: "me", text: mine });
       state.draft = "";
       const turn = state.log.length, sorted = sortMessage(mine);
-      let reply = null;
-      if (sorted.route === "set" && !extra.ask) reply = setLine(sorted.intent, who, turn);
+      // Asked for a hand (npc-favours.mjs): the world decides; the character says it.
+      const kind = who.role === "resident" ? extra.favour || askedFavour(mine) : null;
+      let reply = null, decided = null;
+      if (kind && api.askFavour) {
+        state.busy = true; redraw();
+        decided = await api.askFavour(who, kind, { offer: extra.offer || 0 });
+        state.busy = false;
+        if (decided && !decided.ok) { state.log.push({ from: "npc", text: decided.error || fallbackLine(who, turn) }); redraw(); return; }
+      }
+      if (sorted.route === "set" && !extra.ask && !decided) reply = setLine(sorted.intent, who, turn);
       else {
         state.busy = true; redraw();
-        const r = await talk({ role: who.role, text: mine, turn, history: state.log.slice(-9, -1), ...body, ...extra });
+        const r = await talk({ role: who.role, text: mine || `(asks you to ${FAVOURS[kind]?.label || "help"})`, turn, history: state.log.slice(-9, -1), ...body, ...(decided ? { favour: true } : {}) });
         state.busy = false;
-        reply = r?.ok && r.reply ? r.reply : fallbackLine(who, turn);
+        reply = r?.ok && r.reply ? r.reply : decided ? favourLine(decided.verdict, { kind, terms: decided.terms, tone: who.tone, seed: `${who.id}|${turn}` }) : fallbackLine(who, turn);
+        // The character noticed an ask the words here did not: put to the world now.
+        if (!decided && r?.favour_hint && api.askFavour) {
+          state.log.push({ from: "npc", text: reply });
+          redraw();
+          return say("", { favour: r.favour_hint });
+        }
       }
+      state.ask = decided && decided.verdict === "argue" && decided.terms?.pay ? { kind, pay: decided.terms.pay } : null;
       state.log.push({ from: "npc", text: reply });
       if (state.log.length > 40) state.log.splice(0, state.log.length - 40);
       redraw();
@@ -215,7 +231,12 @@ export function financePanels(api) {
     state.say = say;
     const form = h("form", { onsubmit: (e) => { e.preventDefault(); if (!state.busy) say(input.value); } }, input, h("button", { type: "submit", textContent: state.busy ? "…" : "Say", disabled: Boolean(state.busy) }));
     setTimeout(() => { log.scrollTop = log.scrollHeight; }, 0);
-    return h("div", { className: "talk" }, log, form);
+    // Asking a stranger for a hand, in so many words; and their terms, when they argue.
+    const asks = who.role === "resident" && api.askFavour ? h("div", { className: "asks", style: "display:flex;flex-wrap:wrap;gap:4px;margin-top:6px" },
+      ...(state.ask ? [h("button", { className: "primary", textContent: `Offer ${R.fmt(state.ask.pay)}`, disabled: Boolean(state.busy), onclick: () => say(`I'll give you ${R.fmt(state.ask.pay)} for it.`, { favour: state.ask.kind, offer: state.ask.pay }) })] : []),
+      ...[["carry", "Could you give me a hand carrying this?"], ["wait", "Could you wait here a moment?"], ["make_way", "Excuse me, could you step aside?"], ["come", "Could you come with me?"], ["ride", "Could you give me a lift?"]]
+        .map(([k, line]) => h("button", { textContent: FAVOURS[k].label.replace(/^./, (c) => c.toUpperCase()), title: line, disabled: Boolean(state.busy), onclick: () => say(line, { favour: k }) }))) : null;
+    return h("div", { className: "talk" }, log, form, asks || "");
   }
 
   // ---- your credit file -----------------------------------------------------------------------------------

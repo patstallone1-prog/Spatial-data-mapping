@@ -200,3 +200,25 @@ test("the deployed door (api/npc.mjs) is the same service beside the city's, and
   assert.deepEqual(seen.map(([u]) => u), ["https://example.test/api/city", "https://example.test/api/npc"]);
   assert.deepEqual([seen[1][1].op, seen[1][1].token, seen[1][1].text], ["talk", "t", "hi"]);
 });
+
+test("a favour: the world decides it (ask_favour), the character only says so; a tag of the model's is a hint, not a yes", async () => {
+  const { city, service, sent, open } = await setup();
+  const a = await open(KEY_A, "Ana");
+  const asked = await city.handle({ op: "cmd", token: a.token, command: "ask_favour", args: { npc: { id: "p:17", name: "Dana Okafor", age: 34, role: "barista" }, kind: "move_house", on: { kind: "shift", spare: 0 } } });
+  assert.equal(asked.result?.ok, true, JSON.stringify(asked));
+  assert.notEqual(asked.result.verdict, "help");
+  const r = await service.handle({ op: "talk", token: a.token, role: "resident", text: "Could you help me move my couch?", favour: true, npc: NPC });
+  assert.equal(r.ok, true);
+  const task = sent.at(-1).body.messages.find((x) => /^TASK/.test(x.content));
+  const decision = JSON.parse(task.content.split("DECISION\n")[1]);
+  assert.equal(decision.verdict, asked.result.verdict);
+  // The page's word that they said yes is not asked for and not taken.
+  assert.equal((await city.load()).world.players.get(a.pid).favour ?? null, null);
+  // No model: the decision in a set line.
+  const quiet = (await setup({ model: false }));
+  const q = await quiet.open(KEY_A, "Ana");
+  await quiet.city.handle({ op: "cmd", token: q.token, command: "ask_favour", args: { npc: { id: "p:17", name: "Dana", age: 34 }, kind: "make_way", on: { kind: "leisure", spare: 60 } } });
+  const said = await quiet.service.handle({ op: "talk", token: q.token, role: "resident", text: "excuse me, you're blocking my car", favour: true, npc: NPC });
+  assert.equal(said.ok, true);
+  assert.ok(said.reply && said.reply.length > 1);
+});

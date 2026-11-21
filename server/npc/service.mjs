@@ -20,6 +20,7 @@ import { fallbackLine, setLine, sortMessage, talkText, TALK_HISTORY_MAX, TALK_RO
 import { readSession } from "../city/auth.mjs";
 import { chat, modelConfig } from "./deepseek.mjs";
 import { buildMessages, sheetFromContext, sheetFromPersona } from "./prompt.mjs";
+import { FAVOURS, favourLine, favourTag } from "../../docs/city/npc-favours.mjs";
 import { playerShare } from "./share.mjs";
 
 //: Model calls a player may make: so many in a window (per warm instance).
@@ -77,6 +78,18 @@ export class NpcService {
             total_interest: d.approved ? R.fmt(d.interest) : null, most_we_would_lend: d.max !== undefined ? R.fmt(d.max) : null, why: d.reasons } : { approved: false, why: [q.error] } };
       }
     } else sheet = sheetFromContext(R, body.npc && typeof body.npc === "object" ? body.npc : {});
+    // A favour asked of a resident: the world has decided it (npc-favours.mjs cmd_ask_favour, read
+    // here from the server's own world); the character says so.
+    let favour = null;
+    if (body.favour && role === "resident" && !thread) {
+      const fa = world.players.get(pid)?.favourAsk;
+      if (fa && fa.npc === sheet.identity.id && Math.abs(world.now - fa.at) < 15 * 60_000) {
+        favour = fa;
+        const F = FAVOURS[fa.kind];
+        task = { instruction: `The player has just asked you to ${F.label}. You have decided (the DECISION). Say it in character in one or two sentences: "help" -- agree and say you will do it now; "argue" -- say you would, but only on the terms given; "refuse" -- decline, with the first reason; "ignore" -- a brush-off of a few words. Do not change the decision.`,
+          decision: { verdict: fa.verdict, asked: F.label, terms: fa.terms?.pay ? `${R.fmt(fa.terms.pay)} for your time` : fa.terms?.shorter ? "only if it is much shorter" : null, why: fa.reasons } };
+      }
+    }
     if (!thread) history = (Array.isArray(body.history) ? body.history : []).slice(-TALK_HISTORY_MAX).map((m) => ({ from: m?.from === "npc" ? "npc" : "me", text: talkText(m?.text) })).filter((m) => m.text);
     const who = { id: sheet.identity.id, name: sheet.identity.name, title: sheet.job?.title, tone: sheet.tone.family, role };
     const done = async (reply, source, extra = {}) => {
@@ -87,15 +100,18 @@ export class NpcService {
     if (thread && (sorted.route === "set" || !this.model)) return { ok: true, reply: null, source: "set" };
     if (sorted.route === "set" && !task) return done(setLine(sorted.intent, who, turn), "set");
     this.asked += 1;
-    if (!this.model) return done(fallbackLine(who, turn), "fallback", { code: "no_model" });
-    if (!this.allowed(pid)) return done(fallbackLine(who, turn), "fallback", { code: "limit" });
+    const unvoiced = () => (favour ? favourLine(favour.verdict, { kind: favour.kind, terms: favour.terms, tone: who.tone, seed: `${who.id}|${turn}` }) : fallbackLine(who, turn));
+    if (!this.model) return done(unvoiced(), "fallback", { code: "no_model" });
+    if (!this.allowed(pid)) return done(unvoiced(), "fallback", { code: "limit" });
     try {
       const out = await chat(this.model, buildMessages({ sheet, share: playerShare(world, pid, role, sheet.identity.id), text, history, task }), { fetch: this.fetch, maxTokens: task ? 700 : 500 });
       this.answered += 1;
-      return done(out.text, "ai", { model: this.model.model });
+      // An ask the words did not catch, noticed by the character: put to the world by the page.
+      const tagged = favourTag(out.text);
+      return done(tagged.text || out.text, "ai", { model: this.model.model, ...(tagged.kind && !favour ? { favour_hint: tagged.kind } : {}) });
     } catch (error) {
       console.error("kerbside npc:", error?.code || "", error?.message || error);
-      return done(fallbackLine(who, turn), "fallback", { code: error?.code || "model_down" });
+      return done(unvoiced(), "fallback", { code: error?.code || "model_down" });
     }
   }
 }

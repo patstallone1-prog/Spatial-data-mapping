@@ -93,20 +93,36 @@ const LINES = {
   fuel: ["Hi. Pump number? Anything from inside? Here's {link}.", "{greet}. Here's {link} -- coffee's fresh."],
   shop: ["{greet}! Let me know if you need anything. Here's {link}.", "Hi there, welcome in. Have a look at {link}."],
 };
-const LINK_TEXT = { menu: { fine: "the menu", board: "the menu" }, shop: "what we have" };
+const LINK_TEXT = { menu: { fine: "the menu", board: "the menu" }, shop: "what we have", counter: "what's behind the counter" };
+//: A shop you walk round (its goods on its shelves, shopping.mjs): the staff point you to the
+//: baskets and the till, not to a list; {link}, where there is one, is only what is kept behind
+//: the counter (what has no place on a shelf).
+const FLOOR_LINES = {
+  grocery: ["{greet}! Baskets and carts are by the door. Bring it all to any open lane, or the self-checkouts are just there.",
+    "Hi there. Let me know if you can't find anything -- I'll ring you up when you're ready."],
+  pharmacy: ["{greet}. Have a look round; I'll ring you up here. Anything on prescription, ask me -- {link}.", "Hi, how can I help? Pay here when you're ready."],
+  liquor: ["Hey. Take what you want up to the counter -- I'll need to see ID for anything with alcohol.", "{greet}. Have a look round; pay here when you're ready."],
+  hardware: ["{greet}. What are you working on? Have a look round, and bring it up here when you're done.", "Hi. Baskets are by the door; pay at the counter."],
+  fuel: ["Hi. Grab what you need and bring it up here. Pump number?", "{greet}. Coffee's fresh -- bring it all up when you're ready."],
+  shop: ["{greet}! Have a look round. Bring it up to the till when you're ready.", "Hi there, welcome in. Baskets are by the door; I'll ring you up here."],
+};
 
 //: What the person serving says as you walk up: {who, kind, text (with the link's words marked
 //: as [[...]]), link: {kind: "menu" | "shop", style: "fine" | "board" | null, label}}.
 //: ``visit`` varies the words from one visit to the next.
-export function clerkLine({ storeKind, serviceStyle = null, name = null, hour = 12, staffName = null, visit = 0, place = "" } = {}) {
+//: ``floor``: a shop walked round (its goods on shelves): the line points to the baskets and the
+//: till; ``counter``: it keeps some things behind the counter, linked (else no link at all).
+export function clerkLine({ storeKind, serviceStyle = null, name = null, hour = 12, staffName = null, visit = 0, place = "", floor = false, counter = false } = {}) {
   const kind = clerkKind(storeKind, serviceStyle), spec = CLERK_KINDS[kind];
-  const options = LINES[kind] || LINES.shop;
-  const line = options[hash32(String(place), visit, kind) % options.length];
-  const label = spec.link === "menu" ? LINK_TEXT.menu[spec.menu] : LINK_TEXT.shop;
+  const walked = floor && spec.link === "shop";
+  const options = walked ? (FLOOR_LINES[kind] || FLOOR_LINES.shop).filter((l) => counter || !/\{link\}/i.test(l)) : LINES[kind] || LINES.shop;
+  const line = options[hash32(String(place), visit, kind) % options.length] || FLOOR_LINES.shop[0];
+  const label = spec.link === "menu" ? LINK_TEXT.menu[spec.menu] : walked ? LINK_TEXT.counter : LINK_TEXT.shop;
   // (A place known only by its trade -- "Restaurant" -- is welcomed into, not named.)
   const text = (name ? line.replace("{name}", name) : line.replace(/ to \{name\}/, " in").replace("{name}", "here")).replace("{greet}", greetingFor(hour))
     .replace("{Link}", `[[${label.charAt(0).toUpperCase()}${label.slice(1)}]]`).replace("{link}", `[[${label}]]`);
-  return { who: spec.who, kind, staffName, text, link: { kind: spec.link, style: spec.menu || null, label } };
+  const linked = /\[\[/.test(text);
+  return { who: spec.who, kind, staffName, text, link: linked ? { kind: walked ? "counter" : spec.link, style: spec.menu || null, label } : null };
 }
 
 //: The clerk among the people drawn: someone at work at ``placeId`` indoors, the nearest to
