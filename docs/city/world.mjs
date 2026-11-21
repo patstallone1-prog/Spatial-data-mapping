@@ -30,6 +30,8 @@ import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
 import { WORKSHOP_COMMANDS, installWorkshop } from "./workshop.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
+import { SHOPPING_COMMANDS, installShopping } from "./shopping.mjs";
+import { FAVOUR_COMMANDS, installFavours } from "./npc-favours.mjs";
 import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/home-world.mjs";
 
 const rngOnce = (...parts) => rng(...parts)();
@@ -352,7 +354,9 @@ export class CityWorld {
   }
   //: The shop's checkout: everything in the basket at once, with the sales tax, if you can pay for
   //: all of it and carry it; else nothing is bought.
-  cmd_checkout(pid, { place, cart = [] } = {}) {
+  //: ``overflow``: "bag" -- what will not fit in your inventory or what you can carry is bagged
+  //: and left for you at the shop's door (the tills of shopping.mjs), not refused.
+  cmd_checkout(pid, { place, cart = [], overflow = null } = {}) {
     const p = this.player(pid);
     const lines = (cart || []).map((l) => ({ item: l.item, qty: Math.max(1, Math.min(20, l.qty | 0)) })).filter((l) => this.R.items[l.item]);
     if (!lines.length) throw new CityError("the basket is empty");
@@ -376,24 +380,53 @@ export class CityWorld {
     this.stockCheck(place, lines);
     const after = { ...p.inventory };
     for (const l of lines) if (!this.R.items[l.item].service) after[l.item] = (after[l.item] || 0) + l.qty;
-    if (slotsUsed(after) > SLOTS) throw new CityError(`no room in your inventory for it all: ${SLOTS} slots of up to ${STACK} each`);
     const c = this.carry(p);
-    if (c.kg + kg > c.capacity) throw new CityError(`too heavy to carry it all: ${c.kg} of ${c.capacity} kg already, and the basket is ${Math.round(kg * 10) / 10} kg`);
+    const bagged = overflow === "bag" ? {} : null;
+    if (bagged) {
+      // One at a time into your inventory while there is room and you can carry it; the rest in bags.
+      const into = { ...p.inventory };
+      let carried = c.kg;
+      for (const l of lines) {
+        const spec = this.R.items[l.item];
+        if (spec.service) continue;
+        for (let k = 0; k < l.qty; k += 1) {
+          const next = { ...into, [l.item]: (into[l.item] || 0) + 1 };
+          if (slotsUsed(next) <= SLOTS && carried + (spec.kg || 0) <= c.capacity) { into[l.item] = next[l.item]; carried += spec.kg || 0; }
+          else bagged[l.item] = (bagged[l.item] || 0) + 1;
+        }
+      }
+    } else {
+      if (slotsUsed(after) > SLOTS) throw new CityError(`no room in your inventory for it all: ${SLOTS} slots of up to ${STACK} each`);
+      if (c.kg + kg > c.capacity) throw new CityError(`too heavy to carry it all: ${c.kg} of ${c.capacity} kg already, and the basket is ${Math.round(kg * 10) / 10} kg`);
+    }
     const balance = this.ledger.balance(p.account);
     if (balance < price + tax) throw new CityError(`not enough credits: the total is ${this.R.fmt(price + tax)} and you have ${this.R.fmt(balance)}`);
     const shop = this.tillOf(place);
     this.ledger.pay(p.account, [[shop, price], [this.treasury(here.city || here.county), tax]].filter(([, v]) => v > 0),
       { kind: "purchase", memo: lines.map((l) => `${l.qty > 1 ? l.qty + " x " : ""}${this.R.items[l.item].name}`).join(", ").slice(0, 120), at: this.now });
     this.soldHere(place, lines, pid);
-    const effects = [];
+    const effects = [], left = bagged ? { ...bagged } : null;
     for (const l of lines) {
       const spec = this.R.items[l.item];
       if (spec.service) { effects.push([l.item, this.useEffect(p, spec)]); if (spec.grants) this.permit(p, spec.grants, 2); }
-      else p.inventory[l.item] = (p.inventory[l.item] || 0) + l.qty;
+      else {
+        const bag = left?.[l.item] ? Math.min(left[l.item], l.qty) : 0;
+        if (bag) left[l.item] -= bag;
+        if (l.qty > bag) p.inventory[l.item] = (p.inventory[l.item] || 0) + l.qty - bag;
+      }
       if (spec.needs) this.permit(p, spec.needs, -l.qty);
     }
+    // The bags at the door: yours, on the ground where you come out of the shop.
+    const bags = [];
+    if (bagged) for (const [item, qty] of Object.entries(bagged)) {
+      if (!(qty > 0)) continue;
+      const id = this.id("item"), at = place?.door || place || p;
+      this.items.set(id, { id, item, qty, x: at.x ?? p.x ?? 0, z: at.z ?? p.z ?? 0, by: pid, at: this.now, bagged: String(place?.id ?? "") });
+      bags.push({ id, item, qty });
+      if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
+    }
     this.log("checkout", { player: pid, lines: lines.length, price, tax });
-    return { lines, price, tax, total: price + tax, effects, balance: this.ledger.balance(p.account), carry: this.carry(p), vitals: p.vitals };
+    return { lines, price, tax, total: price + tax, effects, balance: this.ledger.balance(p.account), carry: this.carry(p), vitals: p.vitals, ...(bags.length ? { bags } : {}) };
   }
   cmd_use(pid, { item }) {
     const p = this.player(pid);
@@ -1681,7 +1714,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 installCommerce(CityWorld, CityError);
@@ -1693,6 +1726,10 @@ installSocial(CityWorld, CityError);
 //: Restaurants' kitchens: the line, the pantry, the lab (kitchen.mjs).
 installKitchen(CityWorld, CityError);
 installWorkshop(CityWorld, CityError);
+//: Shopping in person: baskets, shelves and the tills (shopping.mjs).
+installShopping(CityWorld, CityError);
+//: Favours asked of the city's people: weighed, done, and what they cost them (npc-favours.mjs).
+installFavours(CityWorld, CityError);
 
 function take(inv, item, n) { inv[item] = (inv[item] || 0) - n; if (inv[item] <= 0) delete inv[item]; }
 //: The hands let go of what is no longer carried.

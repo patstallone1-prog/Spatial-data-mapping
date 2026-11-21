@@ -55,6 +55,10 @@ import { kitchenPanel } from "./kitchen-panel.mjs";
 import { recipeOf } from "./kitchen.mjs";
 import { clerkLine, clerkNear, lineParts } from "./clerk.mjs";
 import { shopWindow } from "./shop-window.mjs";
+import { shopFloor } from "./shop-floor.mjs";
+import { favourRun } from "./favour-run.mjs";
+import { onTheirWay } from "./npc-favours.mjs";
+import { doorHolds, swerveAhead } from "./npc-steer.mjs";
 import { figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
 import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
 import { strideBodies } from "./stride.mjs";
@@ -1617,6 +1621,28 @@ diffuseColor.rgb *= kbCloth;`);
     syncSlots(true);
     return r;
   }
+  // Shopping in person (shop-floor.mjs, shopping.mjs): the shelves' products taken into a basket and
+  // paid for at a till; and the favours the city's people do you (favour-run.mjs).
+  const floor = shopFloor({ THREE, R, send, notify, getView: () => view, self: () => self(), kit, sync: (now) => syncSlots(now) });
+  const favours = favourRun({ send, notify, inCar: () => Boolean(car.active), onLift: (job) => { taxi.lift = job.name; notify(`${job.name.split(" ")[0]} will give you a lift: choose where to (Taxi), and it's their car that comes, no fare.`); openSide("ride"); } });
+  const gameHour = () => { const t = fleetAt(Date.now()); return ((t.gameMinute ?? t.minute) / 60) % 24; };
+  // A fitted interior's shelves and tills are drawn when it is (the hooks below), not when you go in:
+  // kept a while, and given to the floor when you are inside.
+  const fittedDrawn = [];
+  function fittedFloor() {
+    const place = ctx.insideFitted?.() && placeInside();
+    if (!place) { if (floor.active() && !shop.place) floor.close(); return; }
+    if (floor.active()) return;
+    floor.fitted(place);
+    for (let k = fittedDrawn.length - 1; k >= 0; k -= 1) {
+      const f = fittedDrawn[k];
+      if (!f.obj.parent) { fittedDrawn.splice(k, 1); continue; }
+      f.obj.updateWorldMatrix(true, false);
+      const e = f.obj.matrixWorld.elements;
+      if (Math.hypot(e[12] - place.x, e[14] - place.z) > 70) continue;
+      if (f.till) floor.till(f.obj, f.till); else floor.stocked(f.sku, f.stock, f.list, f.have, f.obj);
+    }
+  }
   const shopWindowUI = () => (shopWin ||= shopWindow({ h, doc, fmt: (x) => R.fmt(x), price: menuNumber, order: (lines) => buyHere(lines, true), checkout: (lines) => buyHere(lines, false) }));
   //: The shop you are in: its room (enterShop) or its fitted interior.
   function placeInside() {
@@ -1650,7 +1676,8 @@ diffuseColor.rgb *= kbCloth;`);
     const kk = w?.kitchenKind?.(place), own = kk ? R.stores.kinds[kk] : null;
     const title = (w?.bizAt?.(place.id)?.name) || place.name && !/^\d/.test(place.name) && place.name || own?.name || stores[0]?.name || "The shop";
     const priceOf = (id) => (w?.priceAt ? w.priceAt(place, id) : R.items[id].price);
-    const ids = [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    let ids = [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    if (line.link.kind === "counter") ids = counterOnly(place);
     if (line.link.kind === "menu") {
       const k = w?.kitchens?.get?.(String(place.id)), own = new Map((k?.menu || []).map((d) => [d.id, d]));
       const items = ids.map((id) => {
@@ -1665,13 +1692,23 @@ diffuseColor.rgb *= kbCloth;`);
     return { kind: "shop", title, subtitle: place.name ? address(place.name) : null, items, categories };
   }
   function hideClerk() { clerk.el?.remove(); clerk.el = null; clerk.id = null; }
+  //: What a walk-round shop sells that is on none of its shelves (no model to stand there): sold
+  //: from behind the counter.
+  function counterOnly(place) {
+    const stores = view?.storesHere ? view.storesHere(place) : storesAt(R, place.keys);
+    return [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel && !floor.has(id));
+  }
   function showClerk(place, e) {
     hideClerk();
     const st = storesAt(R, place.keys)[0];
     const kind = view?.kitchenKind?.(place) || st?.kind;
     const style = view?.kitchenKind?.(place) ? restaurantService(R, kind, view?.bizAt?.(place.id), view?.kitchens?.get?.(String(place.id)))?.style : null;
     const tt = fleetAt(Date.now());
-    const line = clerkLine({ storeKind: kind || st?.kind, serviceStyle: style, name: (view?.bizAt?.(place.id)?.name) || (place.name && !/^\d/.test(place.name) ? place.name : null), hour: (tt.gameMinute ?? tt.minute) / 60, staffName: e.person.name, visit: clerk.visits, place: place.id });
+    // (A shop walked round -- its goods on its shelves, shop-floor.mjs -- is not bought from a list:
+    // its staff point to the baskets and the till, and link only what is kept behind the counter.)
+    const walked = floor.active() && floor.counterItems() > 0 && !view?.kitchenKind?.(place);
+    const behind = walked ? counterOnly(place).length > 0 : false;
+    const line = clerkLine({ storeKind: kind || st?.kind, serviceStyle: style, name: (view?.bizAt?.(place.id)?.name) || (place.name && !/^\d/.test(place.name) ? place.name : null), hour: (tt.gameMinute ?? tt.minute) / 60, staffName: e.person.name, visit: clerk.visits, place: place.id, floor: walked, counter: behind });
     if (!String(e.person.id).startsWith("counter:")) talkTo({ id: e.person.id, name: e.person.name, title: e.person.title });
     const parts = lineParts(line.text).map((x) => (typeof x === "string" ? x : h("a", { href: "#", textContent: x.link, onclick: (ev) => { ev.preventDefault(); shopWindowUI().open(windowSpec(place, line)); } })));
     clerk.el = h("div", { id: "city-clerk", className: "glass", role: "dialog", "aria-label": `${e.person.name}, the ${line.who}` },
@@ -1683,6 +1720,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: Whether someone serving is in front of you (half a second at a time): they greet you once as
   //: you come up, and the line goes as you walk off.
   function clerkCheck() {
+    fittedFloor();
     const place = placeInside();
     if (!place || !storesAt(R, place.keys).length || isMyWorkplace(place) || view?.bizAt?.(place.id)?.owner === self()?.account) { hideClerk(); clerk.place = null; return; }
     if (clerk.place?.id !== place.id) { clerk.place = place; clerk.visits += 1; clerk.dismissed = null; hideClerk(); }
@@ -1780,7 +1818,21 @@ diffuseColor.rgb *= kbCloth;`);
   function stepSeat() { if (seated.on && Math.hypot(me().x - seated.x, me().z - seated.z) > 0.12) standUp(); }
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
-  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who) }));
+  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who), askFavour: (who, kind, o) => askFavour(who, kind, o) }));
+  //: Asking someone you are talking with for a hand (npc-favours.mjs): what they are on their way
+  //: to, from their day, and the world weighs it; a yes is begun here (favour-run.mjs).
+  async function askFavour(who, kind, { offer = 0 } = {}) {
+    const e = (visible.people || []).find((x) => x.id === who.id || x.person?.id === who.id), person = e?.person, tt = fleetAt(Date.now());
+    let on = { kind: "idle", spare: 60 };
+    try { const plan = person && district.city?.planOf?.(person, tt); if (plan) on = onTheirWay(plan, tt.minute); } catch { /* their day not to hand: free */ }
+    const r = await send("ask_favour", { npc: { id: who.id, name: who.name, age: person?.age, role: person?.role || person?.base?.role, wage: person?.wage }, kind, on, offer });
+    if (r.ok && r.verdict === "help" && r.favour) {
+      talking.until = 0;
+      favours.start(r.favour, e ? { x: e.x, z: e.z, yaw: e.yaw } : me(), { ...me(), yaw: ctx.getYaw() });
+      refresh();
+    }
+    return r;
+  }
   let profileUI = null;
   const profile = () => (profileUI ||= profilePanel({ R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide: () => side, drawSide,
     legacy: TABS, crossAt, editHome, redraw: () => refresh(), close: () => { if (panel) openPanel(); },
@@ -2415,6 +2467,8 @@ diffuseColor.rgb *= kbCloth;`);
   async function pickUp() {
     const at = me(), pl = self();
     if (!pl || pose.kind || reach.t || car.active || transit.ride) return;
+    const shelf = floor.near(at, ctx.getYaw());
+    if (shelf) { await floor.take(shelf.item); refresh(); return; }
     const lift = liftKg(R, pl.vitals.strength), near = thingsNear(at.x, at.z, PICK_REACH_M);
     const t = near.find((x) => physOf(R, x.item).kg <= lift) || near[0];
     if (!t) { notify("Nothing within reach to pick up. Things on the ground have a yellow ring."); return; }
@@ -2522,7 +2576,7 @@ diffuseColor.rgb *= kbCloth;`);
       notify(`The ${v.route} leaves ${ctx.areaName?.() || "the city"} after this stop. ${BOUNDARY_MESSAGE}`);
       return;
     }
-    const r = await send("board", { kind: v.model, vehicle: v.id });
+    const r = await send("board", { kind: v.model, vehicle: v.id, ...(taxi.lift && v.id === taxi.id ? { lift: true } : {}) });
     if (!r.ok) { notify(r.error); return; }
     transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
     if (v.id === taxi.id) taxiToDestination();
@@ -2545,6 +2599,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (!ride) return;
     transit.ride = null;
     const r = await send("alight", { km: ride.km });
+    // A lift someone gave you (a favour): no fare, and they go on with their day.
+    if (r.ok && r.kind === "lift") { why = `${String(r.by || "They").split(" ")[0]} drops you off: no fare.`; taxi.lift = null; favours.finish(); }
     ctx.avatarVisible(true);
     const p = me(), yaw = v?.yaw ?? ride.yaw ?? 0;
     // Out onto the pavement: at the stop's pole where it is on the door side, else off the door
@@ -3010,6 +3066,7 @@ diffuseColor.rgb *= kbCloth;`);
         stock.count(have);
         stock.group.userData.shared = true;
         g.add(stock.group);
+        if (shop.room === g) floor.stocked(id, stock, list, have, g);
       }).catch(() => {});
     }
     // Strip lights down each aisle and the hanging signs: drawn by storeFixtures (signs).
@@ -3020,7 +3077,11 @@ diffuseColor.rgb *= kbCloth;`);
   const ENGINE_AISLES = { produce: ["produce"], dairy: ["dairy"], meat_and_deli: ["meat_seafood"], frozen: ["frozen"], drinks: ["drinks"], beverages: ["drinks"], bakery: ["bakery"], pantry: ["pantry", "condiments", "spices"], cereal_and_snacks: ["breakfast", "snacks"], household: ["household", "personal_care", "pets"], snacks: ["snacks", "checkout"], checkout: ["checkout"] };
   if (kit) globalThis.kerbsideStockShelf = (parent, shelves, { section = "pantry", id = "" } = {}) => {
     aisles ||= aisleMap(R);
-    const range = R.stores.kinds.grocery?.items || [], sizeOf = (x) => itemSize(OBJ, R, x);
+    // (What the shop being drawn sells, where it is one of the city's; a grocery's range otherwise.)
+    const at = parent.updateWorldMatrix && (parent.updateWorldMatrix(true, false), parent.matrixWorld.elements);
+    const owner = at && (district.places || []).find((pl) => pl.shops?.length && Math.hypot(pl.x - at[12], pl.z - at[14]) < 40 && storesAt(R, pl.keys).length);
+    const own = owner ? storesAt(R, owner.keys).flatMap((st) => st.items).filter((x) => R.items[x] && !R.items[x].service && !R.items[x].parcel) : [];
+    const range = own.length ? own : R.stores.kinds.grocery?.items || [], sizeOf = (x) => itemSize(OBJ, R, x);
     let ids = range.filter((x) => (ENGINE_AISLES[section] || ["pantry"]).includes(aisles.aisleOf[x]) && sizeOf(x));
     if (!ids.length) return false;
     const turn = hash32(String(id), "stock") % ids.length;
@@ -3030,9 +3091,13 @@ diffuseColor.rgb *= kbCloth;`);
       if (!stock || !parent.parent) return;
       list.forEach((q, k) => { E.set(0, q.yaw, 0); Q.setFromEuler(E); M.compose(V.set(q.x, q.y, q.z), Q, S3.set(1, 1, 1)); stock.set(k, M); });
       stock.count(list.length); stock.group.userData.shared = true; parent.add(stock.group);
+      fittedDrawn.push({ sku, stock, list, have: list.length, obj: parent });
+      if (fittedDrawn.length > 4000) fittedDrawn.splice(0, fittedDrawn.length - 4000);
+      if (floor.active() && !shop.place) floor.stocked(sku, stock, list, list.length, parent);
     }).catch(() => {});
     return placed.size > 0;
   };
+  globalThis.kerbsideTill = (obj, o) => { fittedDrawn.push({ obj, till: o }); if (floor.active() && !shop.place) floor.till(obj, o); };
   //: Into the shop beside you: through its door, into the room, the counter in front of you.
   //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
   //: shop's room, or its counter where it has none; false where no shop of the city's is there.
@@ -3055,6 +3120,7 @@ diffuseColor.rgb *= kbCloth;`);
     shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place) || view.bizAt(place.id)?.owner === self()?.account;
     if(F.restaurant) (district.placeById?.get(place.id) || place).diningFrame=F;
     shop.room = buildRoom(place, F); group.add(shop.room);
+    if (F.store && !shop.staff) floor.room(place, F, F.store, shop.room);
     ctx.setFloor?.(F.y);
     shop.was = Boolean(ctx.isFirstPerson?.());
     ctx.firstPerson?.(true);
@@ -3070,6 +3136,7 @@ diffuseColor.rgb *= kbCloth;`);
   function leaveShop(quiet = false) {
     if (!shop.place) return;
     standUp(); hideClerk(); shopWin?.close();
+    floor.close();
     const F = shop.frame;
     delete (district.placeById?.get(shop.place.id) || shop.place).diningFrame;
     shop.room?.removeFromParent();
@@ -4078,8 +4145,10 @@ diffuseColor.rgb *= kbCloth;`);
     if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
     const bay = shop.place || nearestPlace(undefined, R.jobs.workplace_reach_m, district.workshops || []);
     if (bay && isWorkshop(R, bay, view.bizAt(bay.id))) out.push({ id: "repair-bay", label: "Repair shop · service desk", key: "", run: () => workshop().open(bay) });
+    out.push(...favours.actions());
     if (shop.place) {
       if(shop.frame?.restaurant && shop.staff) out.push(...kitchen().actions(p,here));
+      out.push(...floor.actions(here, ctx.getYaw(), gameHour()));
       if (p.hands) out.push(...handActions(p));
       out.push({ id: "leave", label: "Leave by the door", key: "Enter", run: () => leaveShop() });
       return out;
@@ -4087,6 +4156,7 @@ diffuseColor.rgb *= kbCloth;`);
     // Inside a shop's fitted interior (enterShop): buying is from here, and the kitchen to its staff.
     const fittedId = ctx.insideFitted?.(), fitted = fittedId && (district.placeById?.get(fittedId) || district.placeById?.get(Number(fittedId)));
     if (fitted && storesAt(R, fitted.keys).length) {
+      out.push(...floor.actions(here, ctx.getYaw(), gameHour()));
       if (view?.kitchenKind?.(fitted) && (isMyWorkplace(fitted) || view.bizAt(fitted.id)?.owner === self()?.account)) out.push(...kitchen().actions(p, here));
       return out;
     }
@@ -4137,6 +4207,8 @@ diffuseColor.rgb *= kbCloth;`);
       if (transit.ride.route) requestStop(); else alight();
       return true;
     }
+    const till = floor.active() ? floor.actions(me(), ctx.getYaw(), gameHour()).find((a) => a.id === "pay") : null;
+    if (till) { till.run().then(() => refresh()); return true; }
     if (shop.place) {
       const at = shop.frame.local(me().x, me().z);
       if (at.u < 2.2) { leaveShop(); return true; }
@@ -4617,6 +4689,21 @@ diffuseColor.rgb *= kbCloth;`);
   //: (The squares and the list of who is near, kept between frames and emptied, not made again:
   //: a map and a list a square every frame were 15 MB a second of garbage, 2026-11-20.)
   const apartCells = new Map(), apartNear = [];
+  //: Looking ahead (npc-steer.mjs swerveAhead): who stood within three metres of ``e`` last frame
+  //: (keepApart's squares, still as they were until it runs again); where a step aside may go.
+  const aheadNear = [], swerved = new Map();
+  let swerveFrom = null, favourWalk = null, favourDt = 0;
+  const swerveFree = (x, z) => !(ctx.roadAt?.(x, z) && !ctx.roadAt?.(swerveFrom.x, swerveFrom.z)) && !district.city?.footprintAt?.(x, z);
+  const holdFavoured = () => { if (favourWalk) district.city?.holdWalk(favourWalk.key, favourDt, true); };
+  function aheadOf(e) {
+    aheadNear.length = 0;
+    const cx = Math.floor(e.x), cz = Math.floor(e.z);
+    for (let ix = cx - 3; ix <= cx + 3; ix += 1) for (let iz = cz - 3; iz <= cz + 3; iz += 1) {
+      const list = apartCells.get((ix + 1048576) * 2097152 + iz + 1048576);
+      if (list) for (let k = 0; k < list.length; k += 1) if (list[k].id !== e.id) aheadNear.push(list[k]);
+    }
+    return aheadNear;
+  }
   function keepApart(people, you, dt) {
     const cells = apartCells, near = apartNear;
     for (const list of cells.values()) list.length = 0;
@@ -4854,8 +4941,13 @@ diffuseColor.rgb *= kbCloth;`);
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
       const entry = { id, person: e.p, ...pos, detail: tier };
+      // In the shop room you are in: walked round its aisles to a till and out (shop-floor.mjs).
+      const walkedIn = Boolean(pos.indoors && shop.frame?.store && floor.walk(entry, you, dt, gameHour()));
+      // Doing you a favour (favour-run.mjs): where the favour has them, their day kept waiting.
+      favourWalk = pos.walk; favourDt = Math.min(dt, 0.25);
+      const favoured = !walkedIn && favours.drive(entry, pos, you, dt, holdFavoured);
       // Someone you are talking with stops where they are and faces you until you are done (or walk off).
-      const held = talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
+      const held = !favoured && talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
       if (held) {
         talking.at ||= { x: pos.x, z: pos.z };
         entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = false; entry.gesture = null; entry.activity = "talking with you";
@@ -4864,7 +4956,7 @@ diffuseColor.rgb *= kbCloth;`);
       } else if (talking.id === id && (now >= talking.until || Math.hypot(pos.x - you.x, pos.z - you.z) >= 14)) { talking.id = null; talking.at = null; }
       if (pos.through && Math.abs(pos.x - you.x) < 60 && Math.abs(pos.z - you.z) < 60 && !(nudged.get(entry.id) > now - 2500)) { nudged.set(entry.id, now); ctx.nudgeDoor?.(pos.x, pos.z); }
       // Stepping round you: a walker who would walk into you goes by a pace to the side.
-      if (pos.moving && !car.active && !held) {
+      if (pos.moving && !car.active && !held && !favoured && !walkedIn) {
         const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw), dx = you.x - pos.x, dz = you.z - pos.z;
         const ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
         let want = 0;
@@ -4872,10 +4964,18 @@ diffuseColor.rgb *= kbCloth;`);
         const was = dodge.get(entry.id) || 0, now2 = was + (want - was) * Math.min(1, dt * 4);
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
       }
+      // Looking ahead (npc-steer.mjs): round someone standing in their way, the side chosen and the
+      // step begun before they get there, not when they bump.
+      if (pos.moving && !held && !favoured && !pos.indoors && !pos.through && !pos.down && tier !== LOW) {
+        swerveFrom = entry;
+        const want = swerveAhead(entry.x, entry.z, pos.yaw, aheadOf(entry), { free: swerveFree, look: 3.2 });
+        const was0 = swerved.get(id) || 0, s2 = was0 + (want - was0) * Math.min(1, dt * 3);
+        if (Math.abs(s2) > 0.01) { swerved.set(id, s2); entry.x += Math.cos(pos.yaw) * s2; entry.z -= Math.sin(pos.yaw) * s2; } else if (was0) swerved.delete(id);
+      }
       // Their own mind (temperament.mjs), near you only: clear of a car that is not stopping,
       // and what they make of a crash or a fight.
       let busy = false;
-      if (tier !== LOW && !pos.indoors && !pos.down && !held && !flings.has(id)) {
+      if (tier !== LOW && !pos.indoors && !pos.down && !held && !favoured && !flings.has(id)) {
         const mind = temperamentOf(e.p);
         let sc = scares.get(id);
         if (!sc || now > sc.until) {
@@ -4962,9 +5062,21 @@ diffuseColor.rgb *= kbCloth;`);
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    // In line at a door: going the same way through it, one at a time (npc-steer.mjs).
+    let doorway = 0;
+    for (const e of people) if (e.through) doorway += 1;
+    if (doorway > 1) for (const id of doorHolds(people)) {
+      const e = people.find((x) => x.id === id);
+      if (!e) continue;
+      e.moving = false; e.activity = "waiting at the door";
+      if (e.walk) c.holdWalk(e.walk.key, Math.min(dt, 0.25), true);
+    }
     keepApart(people, you, dt);
     spreadClumps(people, c, now, dt);
     drawnTiers.clumps = clumps;
+    if (shop.frame?.store) floor.step({ x: you.x, z: you.z }, dt);
+    floor.frame({ x: you.x, z: you.z, yaw: ctx.getYaw() });
+    if (swerved.size > 4000) swerved.clear();
     // Nobody walks backwards or sideways (stride.mjs): each one near you is drawn on a body that
     // turns round -- on the spot when slow, round a wider turn the faster -- and steps only the way
     // it faces. (Not the low tier, placed now and then and kept from frame to frame.)
@@ -5621,7 +5733,9 @@ diffuseColor.rgb *= kbCloth;`);
         return h("span", { className: "qty" }, h("button", { textContent: "−", title: "One fewer", disabled: !n, onclick: () => { cart[id] = Math.max(0, n - 1); drawSide(); } }),
           h("b", { textContent: String(n) }), h("button", { textContent: "+", title: "One more", disabled: n >= most, onclick: () => { cart[id] = Math.min(most, n + 1); drawSide(); } }));
       };
-      const rows = store0.items.filter((id) => !R.items[id].service).map((id) => {
+      // A shop you are walking round: its goods are on its shelves (shop-floor.mjs), not in a list.
+      const walkedHere = floor.active() && floor.counterItems() > 0 && String(placeInside()?.id) === String(place.id);
+      const rows = store0.items.filter((id) => !R.items[id].service && !walkedHere).map((id) => {
         const it = R.items[id], ph = physOf(R, id);
         const t1 = itemTax(R, chain, it, priceOf(id), w.laws);
         const info = `${effectText(it)}${it.service ? "" : ` · ${weightClass(R, ph.kg, p.vitals.strength)}`}`;
@@ -5641,6 +5755,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
       extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
+      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (G), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
           h("span", { className: "note", textContent: count ? `${count} in the basket · ${R.fmt(sub)} before tax` : "Choose how many with + and −." }),
