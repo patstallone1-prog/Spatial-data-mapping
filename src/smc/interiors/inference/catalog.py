@@ -86,6 +86,10 @@ class Catalog:
                 if "round" not in r["id"].lower()
                 and min(r.get("dimensions_m", [1, 1, 1])[::2]) > 0.5
             ]
+        if role == "booth" and style.get("booth_design") in {"banquette", "laminate"}:
+            # No source model is a fine-dining banquette or a fast-food laminate booth: the
+            # parametric one is drawn in that form, the same piece along every wall.
+            rows = []
         if role in {"sofa", "bed"}:
             # Do not force an ornate source model into a contemporary palette simply
             # because that role exists. A matching parametric piece is a valid fallback.

@@ -140,9 +140,35 @@ def test_the_page_reads_only_this_stores_house_files_and_keeps_the_sites_own() -
     for foreign in ("https://x.invalid/interiors/houses/a/osm-1.json", "interiors/houses/../a/osm-1.json",
                     "interiors/houses/a/osm-1.json?x=1", "/interiors/houses/a/osm-1.json"):
         assert not pattern.match(foreign), foreign
+    assert pattern.match("interiors/shops/sf-corridor/osm-12.json")
     store = _extract("requestStoreInteriors", page)
-    assert "entry.generatedInteriorRef ||" in store and "fileBase: store" in store
+    # The site's own accepted interior stays, unless it is an older layout of the same shop.
+    assert "if (entry.generatedInteriorRef && !(shop && shopLayout(entry.generatedInteriorRef))) continue;" in store
+    assert "fileBase: store" in store and "if (shop && !shopLayoutFits(entry, ref)) continue;" in store
     assert "ref.fileBase || ref.base" in _extract("requestGeneratedInterior", page)
+
+
+def test_a_shop_layout_goes_only_into_its_own_listed_shop() -> None:
+    import subprocess
+
+    from tests.test_corridor_geometry_rules import _extract, _page_js
+    page = _page_js()
+    start = page.index("const SHOP_LAYOUT_KINDS")
+    script = "\n".join([
+        page[start:page.index(";", start) + 1],
+        *(_extract(n, page) for n in ("commercialInterior", "shopLayout", "shopLayoutFits")),
+        """const pts=[[0,0],[1,0],[1,1],[0,0]], shop=(n)=>({way:{points:pts,shops:[{n,t:'restaurant'}]}});
+const ref={kind:'restaurant',name:'Isa',footprint:pts,file:'interiors/shops/sf-corridor/osm-1.json'};
+console.log(JSON.stringify([
+  shopLayoutFits(shop('Isa'),ref), shopLayoutFits(shop('Chotto'),ref),
+  shopLayoutFits({way:{points:pts,shops:[{n:'Isa'},{n:'B'}]}},ref),
+  shopLayoutFits({way:{points:[[0,0],[2,0],[2,2],[0,0]],shops:[{n:'Isa'}]}},ref),
+  shopLayoutFits({way:{points:pts,shops:[]}},ref),
+  shopLayout(ref), shopLayout({file:'../inferred-stores/retail-osm-1.json'}), shopLayout({file:'houses/a/osm-1.json'}),
+]));""",
+    ])
+    out = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, check=True)
+    assert json.loads(out.stdout) == [True, False, False, False, False, True, True, False]
 
 
 def test_a_front_door_never_stands_on_a_party_wall_while_another_wall_will_take_it() -> None:

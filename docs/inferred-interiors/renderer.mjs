@@ -12,6 +12,10 @@ export function buildInferredHouse(THREE, house, options = {}) {
   // Retain diffuse response inside rooms: no HDR reflection map is required by the tour.
   const steel=material('#b6bdc0',{metalness:.35,roughness:.38});
   const restaurant=house.schema==='kerbside.inferred_restaurant/1',economy=restaurant&&house.style.tier==='economy';
+  // The service tier (Kerbside City's counter / casual / dining): fine dining lays its tables
+  // with linen and upholsters its banquettes in velvet; a counter place seats on laminate.
+  const finedining=restaurant&&house.style.service_tier==='dining';
+  const linen=material('#f4f1ea',{roughness:.92}),velvet=material(house.style.fabric,{roughness:.95}),laminate=material('#c9c2b4',{roughness:.45});
   const cream = material('#e8e1d3'), dark = material(house.style.metal), ceramic = material('#f0efea');
   function shapeOf(geometry) {
     const rings=geometry.coordinates;
@@ -96,7 +100,7 @@ export function buildInferredHouse(THREE, house, options = {}) {
     if(role==='workbench') {
       box(parent,w,.06,d,0,h-.03,0,timber(house.style.wood));for(const x of [-w*.43,w*.43])for(const z of [-d*.4,d*.4])box(parent,.045,h-.06,.045,x,(h-.06)/2,z,steel);return;
     }
-    if(['commercial_range','warewash_sink','handwash_sink','prep_table','cutting_board','commercial_fridge','commercial_hood','dishwasher','dry_storage','waste_bin','service_counter','bar_counter','pickup_shelf','payment_terminal','booth'].includes(role)) {
+    if(['commercial_range','warewash_sink','handwash_sink','prep_table','cutting_board','commercial_fridge','commercial_hood','dishwasher','dry_storage','waste_bin','service_counter','bar_counter','pickup_shelf','payment_terminal','booth','host_stand','computer'].includes(role)) {
       if(role==='commercial_range') {
         box(parent,w,h-.1,d,0,(h-.1)/2,0,steel);box(parent,w,.065,d,0,h-.03,0,dark);
         for(const x of [-w*.30,0,w*.30])for(const z of [-d*.23,d*.23]) {
@@ -123,6 +127,26 @@ export function buildInferredHouse(THREE, house, options = {}) {
         for(const x of [-w*.44,w*.44])for(const z of [-d*.40,d*.40])box(parent,.035,h,.035,x,h/2,z,mat);
       }else if(role==='dishwasher') {
         box(parent,w,h,d,0,h/2,0,steel);box(parent,w*.9,.025,.04,0,h*.8,d/2+.025,dark);box(parent,w*.8,.18,.022,0,h*.4,d/2+.015,steel);
+      }else if(role==='booth'&&(o.asset.design_id||house.style.booth_design)==='banquette') {
+        // One long upholstered bench along the wall: a deep tufted back, a piped seat, a plinth.
+        box(parent,w,.16,d,0,.08,0,dark);box(parent,w,.24,d*.96,0,.31,.01,velvet);
+        box(parent,w,.035,d*.97,0,.445,.01,velvet);
+        box(parent,w,h-.46,.17,0,(h+.46)/2,-d/2+.085,velvet);
+        for(let x=-w*.46;x<w*.47;x+=.2)for(const y of [.62,.8,.96]){
+          const button=new THREE.Mesh(new THREE.SphereGeometry(.016,8,6),dark);button.position.set(x+((y*10|0)%2)*.1,y,-d/2+.175);parent.add(button);}
+      }else if(role==='booth'&&(o.asset.design_id||house.style.booth_design)==='laminate') {
+        // A fast-food booth: a moulded laminate seat and back on a steel frame.
+        box(parent,w,.40,d*.9,0,.2,0,steel);box(parent,w,.05,d,0,.43,0,laminate);
+        box(parent,w,h-.45,.06,0,(h+.45)/2,-d/2+.03,laminate);
+      }else if(role==='host_stand') {
+        // The host's lectern, its sloped top with the bookings, a lamp.
+        box(parent,w,h-.08,d,0,(h-.08)/2,0,wood);const top=box(parent,w*1.04,.04,d*1.1,0,h-.04,0,dark);top.rotation.x=.18;
+        box(parent,w*.5,.012,d*.6,0,h-.005,0,cream);box(parent,.03,.22,.03,w*.38,h+.11,-d*.3,dark);
+      }else if(role==='computer') {
+        // The manager's computer: a screen on its stand and the keyboard before it.
+        box(parent,w*.14,h*.25,d*.4,0,h*.125,-d*.2,dark);const screen=box(parent,w,h*.68,.03,0,h*.6,-d*.25,dark);
+        box(parent,w*.92,h*.6,.004,0,h*.6,-d*.25+.017,material('#5f7f95',{emissive:'#1c2b36'}));
+        box(parent,w*.8,.02,d*.45,0,.01,d*.22,dark);void screen;
       }else if(role==='booth') {
         const design=o.asset.design_id||house.style.booth_design||'channel';
         box(parent,w,.12,d,0,.06,0,wood);box(parent,w,.30,d,0,.27,0,wood);box(parent,w,.16,d*.94,0,.46,.02,fabric);
@@ -152,6 +176,9 @@ export function buildInferredHouse(THREE, house, options = {}) {
     } else if(['dining_table','coffee_table','desk','nightstand'].includes(role)) {
       box(parent,w,.055,d,0,h-.0275,0,economy?material(house.style.stone):wood);
       for(const x of [-w*.39,w*.39])for(const z of [-d*.36,d*.36])box(parent,.055,h-.055,.055,x,(h-.055)/2,z,economy?steel:wood);
+      // A cloth over each fine-dining table, falling a hand's breadth over the edge.
+      if(finedining&&role==='dining_table'){box(parent,w+.04,.006,d+.04,0,h+.003,0,linen);
+        for(const s of [-1,1]){box(parent,w+.04,.2,.006,0,h-.1,s*(d/2+.02),linen);box(parent,.006,.2,d+.04,s*(w/2+.02),h-.1,0,linen);}}
     } else if(['dining_chair','office_chair','bar_stool'].includes(role)) {
       const seatY=role==='bar_stool'?.72:.46;box(parent,w,.06,d,0,seatY,0,economy?steel:fabric);if(role!=='bar_stool')box(parent,w,h-.43,.045,0,(h+.43)/2,-d/2,economy?steel:wood);
       for(const x of [-w*.36,w*.36])for(const z of [-d*.36,d*.36])box(parent,.035,role==='bar_stool'?.70:.44,.035,x,role==='bar_stool'?.35:.22,z,economy?steel:wood);

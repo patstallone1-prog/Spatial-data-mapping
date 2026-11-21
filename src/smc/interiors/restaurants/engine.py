@@ -34,6 +34,12 @@ from smc.interiors.restaurants.seating import (
     solid_backing,
     wall_backed,
 )
+from smc.interiors.restaurants.service import (
+    SERVICE_TIERS,
+    kitchen_depth_for,
+    restaurant_staff,
+    service_tier,
+)
 
 ROUTE_RADIUS = 0.475  # 0.95m clear customer route; design heuristic, not certification.
 KITCHEN_ROLES = {
@@ -62,6 +68,8 @@ class RestaurantInput:
     economics_source: str = "unspecified"
     geometry_evidence: dict | None = None
     price_evidence: dict | None = None
+    #: The tier where a classification decided it (classify_service); else from mode and spend.
+    service_tier: str | None = None
 
     @classmethod
     def from_json(cls, row):
@@ -80,6 +88,7 @@ class RestaurantInput:
             row.get("economics_source", "unspecified"),
             row.get("geometry_evidence"),
             row.get("price_evidence"),
+            row.get("service_tier"),
         )
 
     def __post_init__(self):
@@ -131,6 +140,19 @@ def restaurant_style(spec):
         ),
     )
     s.pop("neighborhood_price_per_sqft", None)
+    service = spec.service_tier or service_tier(spec.service_mode, spend)
+    s.update(
+        service_tier=service,
+        finish=SERVICE_TIERS[service]["finish"],
+        seat_m2=SERVICE_TIERS[service]["seat_m2"],
+    )
+    # The booth's form by tier: laminate at a counter place, the venue's own cushioned booth at
+    # a casual one, an upholstered banquette along the wall in fine dining.
+    if SERVICE_TIERS[service]["booth"]:
+        s["booth_design"] = SERVICE_TIERS[service]["booth"]
+    elif tier == "economy":
+        # A cheap place that seats you (a taqueria, a diner) sits on laminate booths too.
+        s["booth_design"] = "laminate"
     if tier == "economy":
         s.update(wood="#c5bbaa", fabric="#b75640", metal="#777d80", stone="#d5d2c9")
     elif tier == "premium":
@@ -267,7 +289,7 @@ def _furnisher(room, style, catalog, opens, radius=0.45):
     return RoomFurnisher(room, style, catalog, portals, 0, portal_zones=zones, walk_radius=radius)
 
 
-def _kitchen(room, style, catalog, opens):
+def _kitchen(room, style, catalog, opens, staff=None):
     stations = (
         ("commercial_range", [(1.2, 0.8, 0.9), (0.9, 0.75, 0.9)]),
         ("warewash_sink", [(1.8, 0.7, 0.9), (1.5, 0.65, 0.9)]),
@@ -313,6 +335,17 @@ def _kitchen(room, style, catalog, opens):
     )
     hood["support"] = {"kind": "wall", "id": room["id"], "surface_y_m": 2.0}
     hood["mount"] = "exhaust routing requires evidence"
+    # The manager's desk and computer against a wall, where the crew is big enough to have one
+    # (or it is fine dining); then wall shelving (boxes, spare plates, takeaway packaging) on
+    # whatever wall is still bare.
+    if staff and (staff["manager"] or style.get("service_tier") == "dining" or staff["total"] >= 6):
+        desk = f.wall("desk", [(1.1, 0.6, 0.75), (0.9, 0.55, 0.75)], required=False)
+        if desk:
+            desk["purpose"] = "manager_office"
+            f.on_top(desk, "computer", (0.5, 0.25, 0.42))
+    for _ in range(2):
+        if not f.wall("dry_storage", [(0.9, 0.4, 1.8), (0.6, 0.35, 1.8)], required=False):
+            break
     return f.items, [
         {"room_id": room["id"], "point": [q.x, q.y], "kind": "staff_workstation"} for q in f.targets
     ]
@@ -405,12 +438,32 @@ def _seating(room, style, catalog, opens, mode):
     accessible_inside = room["shape"].buffer(-0.07)
     door_zones = [shape(o["clearance"]) for o in opens if room["id"] in o["rooms"]]
     angles = frame_angles(room["shape"])
+    tier = SERVICE_TIERS[style.get("service_tier", "casual")]
+    # The room's corners (convex ones, where two walls meet): small tables are pushed into them.
+    ring = list(room["shape"].exterior.coords)[:-1]
+    corners = [
+        Point(ring[i])
+        for i in range(len(ring))
+        if room["shape"].buffer(-0.05).contains(
+            Point(
+                ring[i][0] + ((ring[i - 1][0] - ring[i][0]) + (ring[(i + 1) % len(ring)][0] - ring[i][0])) * 0.02,
+                ring[i][1] + ((ring[i - 1][1] - ring[i][1]) + (ring[(i + 1) % len(ring)][1] - ring[i][1])) * 0.02,
+            )
+        )
+    ]
 
-    def place(seats, booth):
+    def place(seats, booth, corner=False):
         n = seats // 2
-        position_key = (seats, booth)
+        position_key = (seats, booth, corner)
         if position_key in candidate_positions:
             candidates = candidate_positions[position_key]
+        elif corner:
+            near = [
+                (min(Point(p).distance(c) for c in corners), p)
+                for p in spots
+                if corners and min(Point(p).distance(c) for c in corners) < 1.7
+            ]
+            candidates = [(x, y, angle) for _, (x, y) in sorted(near) for angle in angles]
         elif booth:
             candidates = []
             for bx, by, angle, _target, nx, ny in f.wall_spots(n * 0.72, 0.58):
@@ -452,7 +505,8 @@ def _seating(room, style, catalog, opens, mode):
                     targets,
                     footprints,
                     occupied_shape,
-                    occupied_shape.buffer(0.08),
+                    # Fine dining sets its tables wide apart, a counter place packs them tight.
+                    occupied_shape.buffer(tier["spacing_m"]),
                 )
             defs, targets, footprints, occupied_shape, padded = geometries[key]
             if any(padded.intersects(p) for p in obstacles + reservations):
@@ -530,15 +584,31 @@ def _seating(room, style, catalog, opens, mode):
         return False
 
     # Reserve different party sizes before filling spare capacity. Booths never
-    # consume every wall position before freestanding four/six-tops get a chance.
+    # consume every wall position before freestanding four/six-tops get a chance. Fine dining
+    # first lays a long banquette along a wall (four tables before it, chairs opposite).
+    if style.get("service_tier") == "dining":
+        # The host stand goes in before any table, so the way in keeps its place for it.
+        _host_stand(f, room, opens, obstacles, starts)
+        place(8, True) or place(6, True)
     for seats in (6, 4, 2):
-        if seats > 2 and style["tier"] != "economy" and place(seats, True):
+        if seats > 2 and place(seats, True):
             continue
         place(seats, False)
+    # The room seats no more than its tier's floor per seat allows (wide in fine dining).
+    cap = max(4, room["shape"].area / tier["seat_m2"])
+
+    def seated():
+        return sum(g["seat_count"] for g in groups)
+
+    # Then a table for two pushed into each corner where one fits (not at a counter place).
+    if style.get("service_tier") != "counter":
+        for _ in range(len(corners)):
+            if seated() + 2 > cap or not place(2, False, corner=True):
+                break
     for index in range(60):
         placed = False
         for seats in (4, 2, 6) if index % 2 == 0 else (2, 4, 6):
-            if place(seats, False):
+            if seated() + seats <= cap and place(seats, False):
                 placed = True
                 break
         if not placed:
@@ -553,6 +623,43 @@ def _seating(room, style, catalog, opens, mode):
         queue,
         accessible,
     )
+
+
+def _host_stand(f, room, opens, obstacles, starts):
+    """Fine dining: a host stand just inside the door, to one side of the way in."""
+    door = next((o for o in opens if o.get("entrance") and room["id"] in o["rooms"]), None)
+    if door is None:
+        return None
+    seg = shape(door["segment"])
+    (ax, ay), (bx, by) = seg.coords[0], seg.coords[-1]
+    ux, uy = (bx - ax) / seg.length, (by - ay) / seg.length
+    c = seg.centroid
+    nx, ny = -uy, ux
+    if not room["shape"].contains(Point(c.x + nx * 0.5, c.y + ny * 0.5)):
+        nx, ny = -nx, -ny
+    zones = [shape(o["clearance"]) for o in opens if room["id"] in o["rooms"]]
+    angle = math.degrees(math.atan2(uy, ux))
+    for depth in (0.75, 1.1, 1.5):
+        for side in (1, -1):
+            for along in (0.95, 1.3):
+                x = c.x + nx * depth + side * ux * along
+                y = c.y + ny * depth + side * uy * along
+                box_ = oriented_box(x, y, 0.6, 0.45, angle)
+                if (
+                    not room["shape"].buffer(-0.06).covers(box_)
+                    or any(box_.intersects(z) for z in zones)
+                    or any(box_.buffer(0.1).intersects(p) for p in obstacles)
+                ):
+                    continue
+                if _component(room["shape"], [*obstacles, box_], starts) is None:
+                    continue
+                target = Point(x - nx * 0.6, y - ny * 0.6)
+                item = _item(f, "host_stand", x, y, 0.6, 0.45, 1.1, angle + 180)
+                item["required"] = False
+                item["interaction_point_m"] = [target.x, target.y]
+                obstacles.append(box_)
+                return item
+    return None
 
 
 def _steps(a, b, step):
@@ -636,9 +743,16 @@ def _build(spec, style, inside, rooms, opens, catalog):
     groups = []
     accessible = []
     queue = None
+    staff = None
     for r in rooms:
         if r["kind"] == "professional_kitchen":
-            items, ts = _kitchen(r, style, catalog, opens)
+            # The dining room is fitted first, so its seats size the crew this kitchen serves.
+            staff = restaurant_staff(
+                sum(g["seat_count"] for g in groups),
+                style.get("service_tier", "casual"),
+                spec.average_spend_per_person,
+            )
+            items, ts = _kitchen(r, style, catalog, opens, staff)
         elif r["kind"] == "toilet":
             f = _furnisher(r, style, catalog, opens)
             f.wall("toilet", [(0.65, 0.75, 0.8)], required=True)
@@ -681,6 +795,22 @@ def _build(spec, style, inside, rooms, opens, catalog):
                     "rooms": [a["id"], b["id"]],
                 }
             )
+    seats = sum(g["seat_count"] for g in groups)
+    staff = staff or restaurant_staff(seats, style.get("service_tier", "casual"), spec.average_spend_per_person)
+    kitchen = next((r for r in rooms if r["kind"] == "professional_kitchen"), None)
+    service = {
+        "tier": style.get("service_tier", "casual"),
+        "finish": style.get("finish"),
+        "seat_m2": style.get("seat_m2"),
+        "seats": seats,
+        # Depth behind the pass (the back-of-house band's short side), against what its crew
+        # needs.
+        "kitchen_depth_m": width(kitchen["shape"]) if kitchen else None,
+        "kitchen_depth_needed_m": kitchen_depth_for(staff),
+        "host_stand": any(o["role"] == "host_stand" for o in objects),
+        "manager_desk": any(o.get("purpose") == "manager_office" for o in objects),
+        "basis": "Kerbside City service tiers (docs/city/restaurant-room.mjs), not observed",
+    }
     ring = list(spec.footprint.exterior.coords)
     door = next(o for o in opens if o.get("entrance"))
     centre = shape(door["segment"]).centroid
@@ -725,6 +855,8 @@ def _build(spec, style, inside, rooms, opens, catalog):
         "units": "metres",
         "style": style,
         "service_mode": mode,
+        "service": service,
+        "staff": staff,
         "total_height_m": spec.height_m,
         "footprint_area_m2": spec.footprint.area,
         "footprint_area_sqft": spec.footprint.area * 10.7639104167,
@@ -857,7 +989,7 @@ def validate_restaurant(h):
             errors.append("booth back is not against a solid wall")
     for group in h["seating"]:
         table_ids = group.get("table_ids", [group["table_id"]])
-        if group["seat_count"] not in {2, 4, 6} or len(table_ids) * 2 != group["seat_count"]:
+        if group["seat_count"] not in {2, 4, 6, 8} or len(table_ids) * 2 != group["seat_count"]:
             errors.append("invalid modular table capacity")
         tables = [o for o in objects if o["id"] in table_ids]
         if len(tables) != len(table_ids) or any(o["role"] != "dining_table" for o in tables):
@@ -966,12 +1098,23 @@ def infer_restaurant(spec: RestaurantInput, catalog=None):
     base = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
     failures = []
     solutions = []
+    # The crew the room's likely seats need, and so how deep a kitchen to cut first.
+    tier = SERVICE_TIERS[style["service_tier"]]
+    guess = restaurant_staff(
+        int(spec.footprint.area * 0.5 / tier["seat_m2"]), style["service_tier"], spec.average_spend_per_person
+    )
+    need = kitchen_depth_for(guess)
     for rotation in (0, 90, 180, 270):
-        for fraction in (
+        _, frame = _frame(spec, base + rotation)
+        extent = frame.bounds[3] - frame.bounds[1]
+        fractions = (
             (0.35, 0.42, 0.50, 0.30, 0.55, 0.60)
             if spec.service_mode == "pickup"
             else (0.35, 0.42, 0.50, 0.30)
-        ):
+        )
+        # Deep enough for the crew first (the shallowest such cut), then the rest in turn.
+        fractions = sorted(fractions, key=lambda q: (q * extent < need, q if q * extent >= need else -q))
+        for fraction in fractions:
             for side in (0, 1):
                 try:
                     inside, rooms = _parts(spec, style, base + rotation, fraction, side)
@@ -992,6 +1135,11 @@ def infer_restaurant(spec: RestaurantInput, catalog=None):
                         + len({g["seat_count"] for g in result["seating"]}) * 2
                         + sum(g["booth"] for g in result["seating"]) * 0.2
                         - result["space_efficiency"]["isolated_clear_floor_m2"] * 5
+                        - 4 * max(
+                            0,
+                            result["service"]["kitchen_depth_needed_m"]
+                            - (result["service"]["kitchen_depth_m"] or 0),
+                        )
                     )
                     solutions.append((score, result))
                     # Evaluate multiple orientations without tuning to the first successful venue.

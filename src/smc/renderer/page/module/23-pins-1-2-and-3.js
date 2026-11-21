@@ -559,6 +559,20 @@ function interiorStatus(id) {
     rooms:h?.storeys.flatMap(f=>f.rooms.map(r=>r.kind)) || [],
     objects:h?.storeys.reduce((n,f)=>n+f.objects.length,0) || 0};
 }
+//: The kinds of generated layout fitted to one listed shop (the site's restaurant, grocery and
+//: specialty engines), as against a home. A site store layout from before kinds were recorded
+//: is known by its folder.
+const SHOP_LAYOUT_KINDS = new Set(["restaurant", "store", "specialty"]);
+function shopLayout(ref) {
+  return SHOP_LAYOUT_KINDS.has(ref?.kind) || /(^|\/)inferred-stores\//.test(String(ref?.file || ""));
+}
+// A shop's layout belongs to its own building only: the one listed tenant, by name, in the
+// very footprint the layout was fitted to.
+function shopLayoutFits(entry, ref) {
+  if (!commercialInterior(entry) || entry.way.shops?.length !== 1) return false;
+  if (ref.name && entry.way.shops[0].n !== ref.name) return false;
+  return !ref.footprint || JSON.stringify(ref.footprint) === JSON.stringify(entry.way.points);
+}
 function requestGeneratedInteriors() {
   if (HEADSET || new URLSearchParams(location.search).get("inferredInteriors") === "0") return;
   const base = new URL("../inferred-interiors/", interiorAssetBase());
@@ -567,11 +581,10 @@ function requestGeneratedInteriors() {
     for (const data of layers) for (const [id, ref] of Object.entries(data?.buildings || {})) {
       const entry = footprintById.get(id);
       if (entry && !entry.way.parkFacility && !entry.way._structure) {
-        // A ground-floor restaurant is not a family house, even if a generic fitted plan
-        // exists for its building. Multi-tenant buildings need tenant boundaries first.
-        if (commercialInterior(entry) !== (ref.kind === "restaurant")) continue;
-        if (ref.kind === "restaurant" && (JSON.stringify(ref.footprint) !== JSON.stringify(entry.way.points)
-          || entry.way.shops?.length !== 1 || entry.way.shops[0].n !== ref.name)) continue;
+        // A ground-floor restaurant or shop is not a family house, even if a generic fitted
+        // plan exists for its building. Multi-tenant buildings need tenant boundaries first.
+        if (commercialInterior(entry) !== shopLayout(ref)) continue;
+        if (shopLayout(ref) && !shopLayoutFits(entry, ref)) continue;
         entry.generatedInteriorRef = {...ref, base};
         if (entry.interior) removeInterior(entry);
       }
@@ -582,7 +595,7 @@ function requestGeneratedInteriors() {
 //: The engine's houses beyond the site's own (scripts/run_interior_engine.py --homes --store):
 //: each a gzipped file in the public store, listed by the overlay tile of its 0.02 degree square
 //: (interiors/overlay/<tile>.json, named in its index.json). Only this store's own files are read.
-const STORE_HOUSE_FILE = /^interiors\/houses\/[a-z0-9-]+\/osm-[0-9]+\.json$/;
+const STORE_HOUSE_FILE = /^interiors\/(houses|shops)\/[a-z0-9-]+\/osm-[0-9]+\.json$/;
 const STORE_TILE_KEY = /^-?[0-9]{1,5}_-?[0-9]{1,5}$/;
 function storeInteriorBase() {
   // The site's own /store path: every deployment rewrites it to the store, so it is read from
@@ -609,8 +622,12 @@ function requestStoreInteriors(base) {
           for (const [id, ref] of Object.entries(tile?.buildings || {})) {
             if (!STORE_HOUSE_FILE.test(String(ref?.file))) continue;
             const entry = footprintById.get(id);
-            // The site's own accepted interior, where it has one, stays.
-            if (!entry || entry.generatedInteriorRef || entry.way.parkFacility || entry.way._structure) continue;
+            if (!entry || entry.way.parkFacility || entry.way._structure) continue;
+            const shop = String(ref.file).startsWith("interiors/shops/");
+            if (shop && !shopLayoutFits(entry, ref)) continue;
+            // The site's own accepted interior, where it has one, stays; but a shop fitted by the
+            // current engines replaces the site's older layout for the same shop.
+            if (entry.generatedInteriorRef && !(shop && shopLayout(entry.generatedInteriorRef))) continue;
             entry.generatedInteriorRef = {...ref, base, fileBase: store};
             if (entry.interior) removeInterior(entry);
           }

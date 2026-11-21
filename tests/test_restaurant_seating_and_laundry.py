@@ -33,7 +33,9 @@ def dining():
 
 def test_joined_two_top_modules_form_two_four_and_six_person_tables(dining):
     assert validate_restaurant(dining)["passed"]
-    assert {g["seat_count"] for g in dining["seating"]} == {2, 4, 6}
+    # Fine dining ($65 a head) adds an eight-seat banquette: four tables before a wall bench.
+    assert {g["seat_count"] for g in dining["seating"]} == {2, 4, 6, 8}
+    assert all(g["booth"] for g in dining["seating"] if g["seat_count"] == 8)
     f = dining["storeys"][0]
     assert len({o["asset"]["id"] for o in f["objects"] if o["role"] == "dining_chair"}) == 1
     assert len({o["asset"]["id"] for o in f["objects"] if o["role"] == "booth"}) == 1

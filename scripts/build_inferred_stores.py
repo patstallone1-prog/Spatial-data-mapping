@@ -122,7 +122,11 @@ def synthetic():
     return rows
 
 
-def mapped(out):
+def mapped(out, *, keep=None, cohort=(6, 4), markets=False):
+    """Mapped grocery and corner-store shells, the first ``cohort`` (grocery, corner) of each in
+    SHA order (``None``: all of them), of the buildings passing ``keep(way)``. With ``markets``
+    an independent grocer (an OSM shop=grocery or supermarket with no chain) is fitted too:
+    as a grocery from 150 m², else as a corner store."""
     grocery = []
     corners = []
     observations = json.loads((ROOT / "data/grocery-stores/parking-observations.json").read_text())[
@@ -136,7 +140,7 @@ def mapped(out):
         fits = json.loads((page.parent / "sf-corridor-interiors.json").read_text())["buildings"]
         for w in json.loads(page.read_text())["ways"]:
             shops = w.get("shops", [])
-            if w.get("kind") != "building" or len(shops) != 1:
+            if w.get("kind") != "building" or len(shops) != 1 or (keep and not keep(w)):
                 continue
             s = shops[0]
             name = s.get("n", "")
@@ -146,12 +150,16 @@ def mapped(out):
                 or name == "Rainbow Grocery Coop"
                 else "corner_store"
                 if s.get("t") == "convenience"
+                else "market"
+                if markets and s.get("t") in {"grocery", "supermarket"}
                 else None
             )
             if not kind:
                 continue
             g = mapped_geometry(w, fits.get(str(w["osm_id"])), region=region)
             area = Polygon(g["footprint"]["coordinates"][0]).area
+            if kind == "market":
+                kind = "grocery" if area >= 150 else "corner_store"
             if (
                 not (150 <= area <= 7000 if kind == "grocery" else 45 <= area <= 230)
                 or not 2.4 <= g["height_m"] <= 7
@@ -174,9 +182,10 @@ def mapped(out):
                     row["parking"] = obs["parking"]
             (grocery if kind == "grocery" else corners).append(row)
     # Stratification and SHA order happen before any layout attempt.
+    g_n, c_n = cohort or (None, None)
     selected = (
-        sorted(grocery, key=lambda r: r["selection_hash"])[:6]
-        + sorted(corners, key=lambda r: r["selection_hash"])[:4]
+        sorted(grocery, key=lambda r: r["selection_hash"])[:g_n]
+        + sorted(corners, key=lambda r: r["selection_hash"])[:c_n]
     )
     for region in dict.fromkeys(r["region"] for r in selected):
         group = [r for r in selected if r["region"] == region]
@@ -253,7 +262,8 @@ def publish(out, site=None):
         h = json.loads(file.read_text())
         if h.get("schema") != "kerbside.inferred_store/1" or not validate_store(h)["passed"]:
             raise ValueError("cannot publish an invalid retail hypothesis")
-        previous["buildings"][osm_id] = {**ref, "file": os.path.relpath(file, site)}
+        previous["buildings"][osm_id] = {**ref, "kind": "store", "name": h.get("name"),
+                                         "file": os.path.relpath(file, site)}
     index.write_text(json.dumps(previous, indent=1) + "\n")
     return len(refs)
 
