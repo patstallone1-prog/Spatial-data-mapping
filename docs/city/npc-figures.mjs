@@ -17,6 +17,8 @@ export const PREBAKE = { ada: 12, manny: 14, per_frame: 2 };
 //: A figure kept for someone who has stepped out of the ring, to be had again without a fresh
 //: copy, this long (ms); then it is put back in the pool.
 const LINGER_MS = 2500;
+//: The turn from a person's yaw to the export's own facing (+z) for it to face their way (-z).
+export const FACING_OFFSET = Math.PI;
 //: The clips' own speeds (m/s): a walk played at a person's pace turns as fast as they go.
 const WALK_MS = 1.35, JOG_MS = 3.4;
 //: The MetaHuman skin photograph's average colour (linear): a person's own tone is laid over it.
@@ -207,8 +209,11 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       f.seen = now; f.holder.visible = true;
       const s = q.height / f.height;
       f.holder.position.set(q.x, q.y, q.z);
-      // The export faces down -z: turned to the person's heading (yaw 0 = +z, as view.mjs walks).
-      f.holder.rotation.set(0, q.yaw, 0);
+      // The export faces +z (its toes lie +z of its feet: tests/city_npc_figures.test.mjs reads
+      // the model files), and a person's yaw 0 walks -z (stride.mjs, view.mjs): turned half round,
+      // as view.mjs turns the jointed figures (p.yaw + Math.PI). Drawn at q.yaw itself, every
+      // character walked backwards while its yaw was right (2026-11-19 to 11-20).
+      f.holder.rotation.set(0, q.yaw + FACING_OFFSET, 0);
       f.holder.scale.set(s * q.build, s, s * (0.92 + q.build * 0.08));
       dress(f, q.look);
       // The clip by pace: still, walking, jogging -- cross-faded by weight, played at their speed.

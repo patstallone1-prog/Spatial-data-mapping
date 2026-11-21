@@ -2,10 +2,10 @@
 // clips, and the view's wiring (docs/51-near-ring-people-and-surfaces.md).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import * as THREE from "../docs/vendor/three-0.160.0/three.module.min.js";
 import { readGlb, writeGlb, reweight } from "../tools/build_npc_characters.mjs";
-import { NEAR_FIGURES_MAX, retarget, cloneSkinned } from "../docs/city/npc-figures.mjs";
+import { NEAR_FIGURES_MAX, FACING_OFFSET, retarget, cloneSkinned } from "../docs/city/npc-figures.mjs";
 
 // A two-bone arm along +y (shoulder at 0, elbow at 1, wrist at 2) with one vertex by each bone,
 // written as Unreal's exporter writes them: uint8 lists padded with a far-off filler bone (2).
@@ -101,4 +101,42 @@ test("the characters are made ahead and their shaders compiled out of sight befo
   assert.match(src, /export const PREBAKE = \{ ada: \d+, manny: \d+, per_frame: \d+ \}/);
   assert.match(src, /f\.holder\.position\.set\(0, -500, 0\)/, "the first of each kind drawn once, below the world");
   assert.match(src, /if \(!S\.ready\) \{ start\(\); return 0; \}\n    prebake\(\);/);
+});
+
+
+// Walking backwards (three fixes to the yaw before this): the yaw was right and the characters
+// were drawn facing away from it. A person's yaw 0 walks -z (stride.mjs); the export faces +z.
+const strideForward = (yaw) => [-Math.sin(yaw), -Math.cos(yaw)];
+const turned = (v, yaw) => { const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw); return new THREE.Vector3(...v).applyQuaternion(q); };
+
+test("a character drawn at a person's yaw faces the way that person walks", () => {
+  for (const yaw of [0, 0.7, Math.PI / 2, 2.4, -1.9]) {
+    const face = turned([0, 0, 1], yaw + FACING_OFFSET), [fx, fz] = strideForward(yaw);
+    assert.ok(face.x * fx + face.z * fz > 0.999, `yaw ${yaw}`);
+  }
+  // The same turn as the jointed figures' (view.mjs: base(..., p.yaw + Math.PI, s)), and used.
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.match(view, /base\(p\.x, y \+ \(p\.lift \|\| 0\) \+ bob, p\.z, p\.yaw \+ Math\.PI, s\)/);
+  assert.equal(FACING_OFFSET, Math.PI);
+  const figures = readFileSync(new URL("../docs/city/npc-figures.mjs", import.meta.url), "utf8");
+  assert.match(figures, /f\.holder\.rotation\.set\(0, q\.yaw \+ FACING_OFFSET, 0\)/);
+});
+
+// The models are not in the repository (they come from the store); where a local build is,
+// read which way it faces: the toes lie forward of the feet in its bind pose.
+const MODELS = new URL("../docs/city/models/npc/", import.meta.url);
+test("the exported characters face +z, as the turn assumes", { skip: !existsSync(new URL("manny.glb", MODELS)) && "no local character build" }, () => {
+  for (const file of ["manny.glb", "ada-body.glb", "clips.glb"]) {
+    const { json } = readGlb(readFileSync(new URL(file, MODELS)));
+    const parent = new Map();
+    json.nodes.forEach((n, i) => (n.children || []).forEach((c) => parent.set(c, i)));
+    const local = (n) => n.matrix ? new THREE.Matrix4().fromArray(n.matrix) : new THREE.Matrix4().compose(
+      new THREE.Vector3(...(n.translation || [0, 0, 0])), new THREE.Quaternion(...(n.rotation || [0, 0, 0, 1])), new THREE.Vector3(...(n.scale || [1, 1, 1])));
+    const world = (i) => { const m = local(json.nodes[i]); for (let j = parent.get(i); j !== undefined; j = parent.get(j)) m.premultiply(local(json.nodes[j])); return new THREE.Vector3().setFromMatrixPosition(m); };
+    const at = (name) => world(json.nodes.findIndex((n) => n.name === name));
+    for (const side of ["l", "r"]) {
+      const toe = at(`ball_${side}`).sub(at(`foot_${side}`));
+      assert.ok(toe.z > 0.8 * toe.length(), `${file} ${side}: toes toward ${toe.toArray().map((v) => v.toFixed(2))}`);
+    }
+  }
 });
