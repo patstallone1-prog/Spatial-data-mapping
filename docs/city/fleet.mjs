@@ -166,6 +166,9 @@ function redundant(R, T, m, role, hh) {
   return m.relation === "partner" && !hh.members.some((x) => x.relation === "child");
 }
 
+//: How far apart along the pavement by a bus stop's pole its riders wait (m), and how many are in
+//: sight there at once: a busy Muni stop at the evening peak has a dozen or so at the pole.
+const STOP_SPREAD_M = 6, STOP_WAIT_MAX = 12;
 export class Roster {
   constructor(R, { seed = "district", saved = null, toLonLat = null } = {}) {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
@@ -934,6 +937,13 @@ export class City {
         const at = next?.act?.gameStart ?? t.toGame(next ? next.t0 : g.t1);
         g.unseen = at - t.toGame(g.t0) > most || hash32(p.id, t.day, "walk", Math.round(g.t0 * 10)) % 1000 >= WS * 1000;
       }
+      // The wait at a bus stop or the kerb for a cab is seen as the walk there is: all of a stop's
+      // riders were drawn while most of their walks were not, and 70 stood at the 30's pole at
+      // Chestnut and Fillmore at four in the afternoon (2026-11-21).
+      for (let i = 1; i < segs.length; i += 1) {
+        const g = segs[i], w = segs[i - 1];
+        if (g.kind === "go" && g.mode === "wait" && w.kind === "go" && w.mode === "walk") g.unseen = Boolean(w.unseen);
+      }
     }
     // In at the shops' doors as far as there is room (each shop's capacity), the rest waiting,
     // going elsewhere, coming later or giving it up.
@@ -1234,7 +1244,8 @@ export class City {
     const walkB = tripMinutes(Math.hypot(B.x - stopB.x, B.z - stopB.z), p.pace) + 0.2;
     const r = rng(p.id, "stop", Math.round(depart));
     // (On the pavement: a stop the map has out in the roadway is waited for from beside it.)
-    const spot = this.standOff(stopA.x + (r() - 0.5) * 2.4, stopA.z + (r() - 0.5) * 2.4);
+    // Spread along the pavement by the pole (STOP_SPREAD_M), not all on the one square metre.
+    const spot = this.standOff(stopA.x + (r() - 0.5) * STOP_SPREAD_M, stopA.z + (r() - 0.5) * STOP_SPREAD_M);
     return [
       { kind: "go", mode: "walk", t0: depart, t1: depart + walkA, from, toXZ: spot, ride: "bus" },
       { kind: "go", mode: "wait", t0: depart + walkA, t1: board, at: spot, yaw: r() * 6.28, label: `waiting for the ${line.route}`, route: line.route },
@@ -1934,7 +1945,7 @@ export class City {
   scanBegin(ms, focus, reach, parkedReach = 180) {
     this.through ??= 1;
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
-      P: [...this.roster.people.values(), ...this.roster.visitors.values(), ...this.roster.commuters.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
+      P: [...this.roster.people.values(), ...this.roster.visitors.values(), ...this.roster.commuters.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map(), waits: new Map() };
   }
   scanMore(budget = 2500, whole = false) {
     const S = this._scan;
@@ -1963,7 +1974,14 @@ export class City {
         for (const L of seg.cabLegs || []) if (L.t0 <= t.minute && t.minute < L.t1) this.cabNear(vehicles, L, t, focus, reach);
         if (seg.mode === "drive") { if (seg.cab) this.cabNear(vehicles, seg, t, focus, reach); continue; }
         if (seg.mode === "bus") continue;
-        if (seg.mode === "wait") { if (near(seg.at[0], seg.at[1])) people.push({ p, seg }); continue; }
+        if (seg.mode === "wait") {
+          if (!near(seg.at[0], seg.at[1])) continue;
+          // No more at one stop than STOP_WAIT_MAX: the rest are not in sight (as most walks are not).
+          const key = seg.route ? `${seg.route}:${Math.round(seg.at[0] / 12)}:${Math.round(seg.at[1] / 12)}` : null;
+          if (key) { const k = (S.waits.get(key) || 0) + 1; S.waits.set(key, k); if (k > STOP_WAIT_MAX) continue; }
+          people.push({ p, seg });
+          continue;
+        }
         const A = seg.fromXZ ? { x: seg.fromXZ[0], z: seg.fromXZ[1] } : P.get(seg.from), B = seg.toXZ ? { x: seg.toXZ[0], z: seg.toXZ[1] } : P.get(seg.to);
         if (A && B && distToSegment(focus.x, focus.z, A.x, A.z, B.x, B.z) < reach + 60) people.push({ p, seg });
         continue;

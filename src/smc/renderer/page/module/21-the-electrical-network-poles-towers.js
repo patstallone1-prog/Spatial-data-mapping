@@ -700,6 +700,15 @@ const BUS_ZONE_BORDER_M = 0.12;
 //: Below the lane lines, above the asphalt: the box is a surface treatment and the markings are
 //: painted over it.
 const BUS_ZONE_Y = ROAD_TOP_M + 0.006;
+//: A bus zone (its red, its white edge, a concrete pad) and the words painted in it, set on the
+//: road surface as it is drawn once they are laid: stood a few millimetres over the ground
+//: there, the road's own triangles, bowed differently over the grade, came up through them --
+//: a pad at Fillmore and Chestnut in pale patches with the asphalt in holes across it, "chunks
+//: missing" (2026-11-21). Their quads are already cut to half a metre (``quad``), so they are
+//: not refined (which would drop their clipAt).
+const BUS_ZONE_SETTLE_RULE = { from: () => [groups.furniture], onto: new Set(["road", "bike", "parking_lot"]),
+  above: { "bus_zone:fill": 0.012, "bus_zone:pad": 0.012, "bus_zone:border": 0.016, "furniture:road_legend": 0.02 },
+  grid: 0, label: "Laying the bus zones on the road" };
 const BUS_ZONE_BORDER_Y = ROAD_TOP_M + 0.010;
 //: Where the kerb turns more than this, the zone ends. Twenty degrees is a bend in a street;
 //: more than that is a corner, and a bus zone does not wrap one.
@@ -1508,10 +1517,13 @@ function addBusZonePaint(records, plan = null) {
   // window's edge takes or leaves the zone whole and the words in it are never left on bare road.
   let zoneAt = [0, 0];
   const quad = (sink, ax, az, bx, bz, cx, cz, dx, dz, y) => {
-    // Cut to a metre along and in two across, and every corner stood on the ground here (the
+    // Cut into a grid of small quads, and every corner stood on the ground here (the
     // mesh is marked as standing): the words laid in the zone are stood on it every half metre,
     // and on a hill a zone in long flat quads rose through them and took letters away.
-    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.0)), m = 2;
+    // Half a metre each way: settled on the road (BUS_ZONE_SETTLE_RULE), a zone two vertices
+    // across let the road's crown come up through its middle in a jagged strip.
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.5));
+    const m = Math.max(2, Math.ceil(Math.hypot(dx - ax, dz - az) / 0.5));
     const at = (i, j) => {
       const s = i / n, t = j / m;
       const x = (ax * (1 - s) + bx * s) * (1 - t) + (dx * (1 - s) + cx * s) * t;
@@ -1904,6 +1916,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     road_legends: paintRoadLegends(paintPlan),
     street_paint: layStreetPaint(paintPlan),
   };
+  placed.bus_zones_settled = await settleOnto(BUS_ZONE_SETTLE_RULE);
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
   // Where the sign posts stand, for the storm drains (waterworks, below): a drain's opening is
