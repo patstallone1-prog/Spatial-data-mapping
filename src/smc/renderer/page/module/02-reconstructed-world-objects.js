@@ -603,16 +603,49 @@ const NEAR_SURFACE = globalThis.__kerbsideNearSurface ||= {
     // round every five-foot square with a smooth troweled margin either side, the broom's
     // fine striations across the walk inside it, and the deeper contraction joint every third
     // square (fifteen feet) along the block. Near you only, as the photograph is.
-    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk" },
+    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 4 },
+    // A narrow walk (module 09 NARROW_SIDEWALK, a footway or a walk under 1.8 m) is poured and
+    // finished the same way; its map repeats once a 2.75 m slab, so the squares are read at that.
+    "narrow-walk": { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 2.75 / 1.52 },
     // The curb (Standard Plan 87,185: six inches across the top, a rounded nose, the street face
     // battered one in four) is steel-troweled, not broomed, and jointed only every fifteen feet.
-    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.35, photo: "concrete", scored: "curb" },
+    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.35, photo: "concrete", scored: "curb", slabs: 4 },
     wood: { tile_m: 2.0, mean: [0.313, 0.243, 0.18], relief: 0.8 },
     "painted-wood": { tile_m: 2.6, mean: [0.7, 0.652, 0.588], relief: 0.9 },
   },
   byMap: new WeakMap(),
   uniforms: new Map(),
   missed: 0,
+};
+//: How far the photographs reach: out to all the ground the view sees at more than ``flat_deg``
+//: below the horizon (tests/near_ground_reach.test.mjs) -- from eye height that is under fifteen
+//: metres, from the City's camera (72 m back at most, 14-73 degrees down) up to some 240 -- and
+//: never less than ``full_min_m``. Only ground seen flatter than that, foreshortened six to one and
+//: more, is past it. (It had been 32 m full and gone by 58 m from the camera: from the City's own
+//: camera, 45 m back, the walk round you was half faded, and pulled out to 72 m none of it had the
+//: finish -- 2026-11-21.) The photographs are sampled on every lit surface of their kinds whatever
+//: the ring (their mip levels), so a wider ring costs no more to draw.
+NEAR_SURFACE.reach ||= { full_min_m: 32, flat_deg: 10, fade: 1.3, fade_add_m: 12, most_m: 420 };
+//: The ring for a camera ``height`` m over the ground whose shallowest ray in view goes
+//: ``depression`` radians below the horizon (negative: above it): [full within, gone by].
+NEAR_SURFACE.reachFor ||= function (height, depression) {
+  const r = NEAR_SURFACE.reach, flat = r.flat_deg * Math.PI / 180;
+  const full = Math.min(r.most_m, Math.max(r.full_min_m, Math.max(0.3, height) / Math.sin(Math.max(flat, depression)) * 1.04));
+  return [full, full * r.fade + r.fade_add_m];
+};
+//: Each frame: the ring set for ``camera`` over ground at ``groundY``. (Its own scratch vectors:
+//: nothing made a frame.)
+NEAR_SURFACE.follow ||= function (camera, groundY) {
+  const t = NEAR_SURFACE.scratch ||= { v: new THREE.Vector3(), corners: [[-1, 1], [1, 1], [0, 1], [-1, -1], [1, -1]] };
+  let low = Infinity;
+  for (const [x, y] of t.corners) {
+    t.v.set(x, y, 0.5).unproject(camera).sub(camera.position);
+    const len = t.v.length();
+    if (len > 0) low = Math.min(low, Math.asin(Math.max(-1, Math.min(1, -t.v.y / len))));
+  }
+  const [full, gone] = NEAR_SURFACE.reachFor(camera.position.y - (Number.isFinite(groundY) ? groundY : 0), low);
+  NEAR_SURFACE.near.value.x = full; NEAR_SURFACE.near.value.y = gone;
+  return full;
 };
 NEAR_SURFACE.mark ||= function (texture, kind) { if (texture && NEAR_SURFACE.kinds[kind]) NEAR_SURFACE.byMap.set(texture, kind); return texture; };
 NEAR_SURFACE.kindOf ||= function (material) {
@@ -644,13 +677,17 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
 //: are in metres from the nearest joint. "walk": every square tooled, broomed inside a troweled
 //: margin, a deeper joint each third square; "curb": the fifteen-foot joints only, troweled.
 //: Its marks bend the light (kbSwBx along u, kbSwBz across) for scoredNormal.
-NEAR_SURFACE.scoredColor ||= function (mode) {
+NEAR_SURFACE.scoredColor ||= function (mode, slabs = 4) {
   if (!mode) return "";
   const walk = mode === "walk" ? 1 : 0;
   return `float kbSwBx = 0.0, kbSwBz = 0.0;
 #ifdef USE_MAP
 if (kbNsF > 0.0) {
-  vec2 kbSwS = vMapUv * 4.0, kbSwFr = fract(kbSwS), kbSwD = min(kbSwFr, 1.0 - kbSwFr) * 1.52;
+  vec2 kbSwS = vMapUv * ${Number(slabs).toFixed(5)}, kbSwFr = fract(kbSwS), kbSwD = min(kbSwFr, 1.0 - kbSwFr) * 1.52;
+  // The ground a pixel covers (m): further off, a joint narrower than that is drawn as the share
+  // of the pixel it darkens, and the broom's streaks, a few millimetres apart, as their average --
+  // not a line that flickers in and out between pixels (the ring reaches 200 m and more).
+  float kbSwPx = max(length(fwidth(kbSwS)), 1e-5) * 1.52;
   float kbSwUp = step(0.6, abs(normalize(kbNsN).y));
   // Every square's joints on the walk's top; on a face (the kerb's), and on a curb, only the
   // contraction joints across the run.
@@ -660,19 +697,19 @@ if (kbNsF > 0.0) {
   float kbSwJ = min(kbSwDx, kbSwDz);
   // A tooled joint is a groove a quarter-inch wide with radiused shoulders; the contraction
   // joint is cut deeper and reads darker.
-  float kbSwGroove = 1.0 - smoothstep(0.0025, 0.0065, kbSwJ);
-  float kbSwDeep = 1.0 - smoothstep(0.003, 0.009, kbSwThird);
-  float kbSwMargin = (1.0 - smoothstep(0.035, 0.055, kbSwJ)) * ${walk}.0;
+  float kbSwGroove = (1.0 - smoothstep(0.0025, 0.0065 + kbSwPx, kbSwJ)) * min(1.0, 0.0085 / (kbSwPx + 0.002));
+  float kbSwDeep = (1.0 - smoothstep(0.003, 0.009 + kbSwPx, kbSwThird)) * min(1.0, 0.011 / (kbSwPx + 0.002));
+  float kbSwMargin = (1.0 - smoothstep(0.035, 0.055 + kbSwPx, kbSwJ)) * ${walk}.0;
   // The broom, pulled across the walk: fine streaks along it, each a shade off the next, wavering
   // a little as a broom does, and none in the troweled margin or on a face.
   float kbSwAlong = kbSwS.x * 1.52 + 0.004 * sin(kbSwS.y * 9.0 + floor(kbSwS.x) * 3.1);
   float kbSwStreak = fract(sin(floor(kbSwAlong * 260.0) * 91.7 + floor(kbSwS.x) * 7.3) * 43758.5);
-  float kbSwBroom = (kbSwStreak - 0.5) * (1.0 - kbSwMargin) * kbSwUp * ${walk}.0;
+  float kbSwBroom = (kbSwStreak - 0.5) * (1.0 - kbSwMargin) * kbSwUp * ${walk}.0 * (1.0 - smoothstep(0.002, 0.01, kbSwPx));
   vec3 kbSwC = diffuseColor.rgb * (1.0 + 0.11 * kbSwBroom + 0.05 * kbSwMargin);
   kbSwC *= 1.0 - 0.42 * max(kbSwGroove, kbSwDeep * 1.3);
   diffuseColor.rgb = mix(diffuseColor.rgb, kbSwC, kbNsF);
   // The shoulders fall toward the joint: the light bends that way just either side of it.
-  float kbSwSh = smoothstep(0.002, 0.005, kbSwJ) * (1.0 - smoothstep(0.005, 0.013, kbSwJ));
+  float kbSwSh = smoothstep(0.002, 0.005, kbSwJ) * (1.0 - smoothstep(0.005, 0.013, kbSwJ)) * (1.0 - smoothstep(0.004, 0.02, kbSwPx));
   float kbSwSx = ${walk}.0 > 0.5 ? sign(kbSwFr.x - 0.5) : sign(fract(kbSwS.x / 3.0) - 0.5);
   kbSwBx = (kbSwDx <= kbSwDz ? kbSwSx : 0.0) * kbSwSh + kbSwBroom * 0.3;
   kbSwBz = (kbSwDz < kbSwDx ? sign(kbSwFr.y - 0.5) : 0.0) * kbSwSh;
@@ -734,7 +771,7 @@ if (kbNsNear.z * kbNsTile.z > 0.0) {
   vec3 kbNsD = mix(kbNsC, kbNsC * (kbNsC2 / kbNsMean), 0.35) / kbNsMean;
   diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * clamp(kbNsD, 0.0, 2.5), kbNsF);
 }
-${NEAR_SURFACE.scoredColor(NEAR_SURFACE.kinds[kind].scored)}`)
+${NEAR_SURFACE.scoredColor(NEAR_SURFACE.kinds[kind].scored, NEAR_SURFACE.kinds[kind].slabs)}`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 if (kbNsNear.z * kbNsTile.z > 0.0 && kbNsTile.y > 0.0) {
   vec3 kbNsR = texture2D(kbNsRelief, kbNsAt).xyz * 2.0 - 1.0;

@@ -30,7 +30,9 @@ const AISLES = {
   meat_seafood: { display: "cooler", items: ["chicken_breast", "ground_beef", "bacon", "deli_meat", "hot_dogs", "fresh_fish"] },
   frozen: { display: "freezer", items: ["frozen_pizza", "ice_cream_tub", "ice_cream_bar", "frozen_vegetables", "frozen_meals", "bag_of_ice"] },
   breakfast: { display: "stack", items: ["cereal", "oatmeal", "coffee_beans", "instant_coffee", "tea_box", "hot_cocoa", "peanut_butter", "jam", "honey", "pancake_mix", "maple_syrup"] },
-  pantry: { display: "stack", items: ["dry_pasta", "rice", "flour", "sugar", "salt", "cooking_oil", "canned_soup", "canned_beans", "canned_tuna", "canned_tomatoes", "pasta_sauce", "broth", "black_pepper", "baking_soda", "instant_noodles"] },
+  pantry: { display: "stack", items: ["dry_pasta", "rice", "flour", "sugar", "cooking_oil", "canned_soup", "canned_beans", "canned_tuna", "canned_tomatoes", "pasta_sauce", "broth", "baking_soda", "instant_noodles"] },
+  //: Salt, pepper and the spice jars (rules items jar_*), filled in from rules.json below.
+  spices: { display: "row", items: [] },
   condiments: { display: "row", items: ["ketchup", "mustard", "mayonnaise", "hot_sauce", "soy_sauce", "salad_dressing", "vinegar"] },
   snacks: { display: "stack", items: ["chips", "crackers", "cookies", "candy_bar", "snack_bar", "nuts", "pretzels", "popcorn", "gum"] },
   drinks: { display: "cooler", items: ["water", "sparkling_water", "soda", "iced_tea", "sports_drink", "energy_drink", "juice_box", "protein_shake"] },
@@ -58,7 +60,8 @@ const STAPLES = {
   meat_seafood: [["chicken_breast", 0], ["ground_beef", 0], ["bacon", 0], ["fresh_fish", 0], ["deli_meat", 0], ["hot_dogs", 1]],
   frozen: [["frozen_pizza", 1], ["ice_cream_tub", 1], ["frozen_vegetables", 0], ["bag_of_ice", 1], ["frozen_meals", 1]],
   breakfast: [["cereal", 1], ["oatmeal", 0], ["coffee_beans", 1], ["instant_coffee", 1], ["tea_box", 1], ["peanut_butter", 1], ["jam", 1], ["honey", 0], ["pancake_mix", 0], ["maple_syrup", 0]],
-  pantry: [["dry_pasta", 1], ["rice", 1], ["flour", 0], ["sugar", 1], ["salt", 1], ["black_pepper", 0], ["cooking_oil", 1], ["canned_soup", 1], ["canned_beans", 1], ["canned_tuna", 1], ["canned_tomatoes", 0], ["pasta_sauce", 0], ["instant_noodles", 1], ["broth", 0], ["baking_soda", 0]],
+  pantry: [["dry_pasta", 1], ["rice", 1], ["flour", 0], ["sugar", 1], ["cooking_oil", 1], ["canned_soup", 1], ["canned_beans", 1], ["canned_tuna", 1], ["canned_tomatoes", 0], ["pasta_sauce", 0], ["instant_noodles", 1], ["broth", 0], ["baking_soda", 0]],
+  spices: [["jar_salt", 1], ["jar_black_pepper", 1], ["jar_garlic_powder", 0], ["jar_cinnamon", 0], ["jar_paprika", 0], ["jar_oregano", 0], ["jar_chili_powder", 0], ["jar_cumin", 0], ["jar_red_pepper_flakes", 0]],
   condiments: [["ketchup", 1], ["mustard", 1], ["mayonnaise", 1], ["hot_sauce", 1], ["soy_sauce", 0], ["salad_dressing", 0], ["vinegar", 0]],
   snacks: [["chips", 1], ["crackers", 1], ["cookies", 1], ["candy_bar", 1], ["snack_bar", 1], ["gum", 1], ["nuts", 1], ["popcorn", 0], ["pretzels", 0]],
   drinks: [["water", 1], ["sparkling_water", 1], ["soda", 1], ["iced_tea", 1], ["sports_drink", 1], ["energy_drink", 1], ["juice_box", 0]],
@@ -73,6 +76,7 @@ const STAPLES = {
 const sellers = {};
 for (const [k, s] of Object.entries(kinds)) if (k !== "basis" && s.items) for (const id of s.items) (sellers[id] ||= []).push(k);
 const aisleOf = {};
+AISLES.spices.items = Object.keys(R.items).filter((id) => id.startsWith("jar_") && R.items[id].ingredient);
 for (const [a, v] of Object.entries(AISLES)) for (const id of v.items) aisleOf[id] ||= a;
 //: What an item is drawn with: the model, its source and how good a match it is.
 function model(id) {

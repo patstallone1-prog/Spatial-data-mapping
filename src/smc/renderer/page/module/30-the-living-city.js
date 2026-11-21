@@ -299,7 +299,9 @@ function setAppMode(mode) {
       //: (onRoad counts those as road, for the car): null where the world is not built in full.
       roadAt: (x, z) => {
         const guest = guestUnder(x, z);
-        if (guest?.ready) return guest.api.insideCarriageway ? Boolean(guest.api.insideCarriageway(...hostToGuest(guest, x, z), 0)) : false;
+        // (The guest's own frame worked out here: a pair spread into the call was garbage made for
+        // every person stepping aside, every frame -- 70 MB a second, 2026-11-20.)
+        if (guest?.ready) return guest.api.insideCarriageway ? Boolean(guest.api.insideCarriageway((x - guest.ox) / guest.sx, z - guest.oz, 0)) : false;
         return hostWorldActive && typeof insideCarriageway === "function" ? Boolean(insideCarriageway(x, z, 0)) : false;
       },
       // The kerb as drawn near (x, z) -- {x, z, nx, nz (out of the road), ax, az} -- and whether a

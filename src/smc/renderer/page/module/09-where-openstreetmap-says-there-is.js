@@ -2368,10 +2368,10 @@ function sidewalkTexture(variant = "square") {
   return texture;
 }
 
-//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), the
-//: curb its own troweled pour ("curb").
+//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), a narrow
+//: walk the same at its own slab ("narrow-walk"), the curb its own troweled pour ("curb").
 const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "sidewalk");
-const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "concrete");
+const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "narrow-walk");
 const KERB_CONCRETE = NEAR_SURFACE.mark(sidewalkTexture("curb"), "curb");
 //: One scored square, in metres. Five feet is the usual San Francisco pour: the Marina's
 //: residential sidewalks, outside the downtown three-foot grid.

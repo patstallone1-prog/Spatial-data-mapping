@@ -46,11 +46,16 @@ export const VISITOR_KINDS = [
   { kind: "taxi", title: "Taxi driver", share: 0.05, trips: [10, 16], stop: [0.5, 1, 3], models: [["taxi", 1]] },
   { kind: "delivery", title: "Delivery driver", share: 0.15, trips: [8, 14], stop: [0.8, 3, 8], models: [["delivery_van", 0.75], ["box_truck", 0.1], ["pickup", 0.15]] },
   { kind: "private", title: "Visitor", share: 0.5, trips: null, stop: null, models: [["economy", 0.3], ["sedan", 0.23], ["suv", 0.2], ["compact_ev", 0.14], ["pickup", 0.06], ["delivery_van", 0.05], ["sports", 0.02]] },
+  // Someone who lives outside the district and works outside it, seen only as they drive through
+  // on their way, once a game day (Roster.commutersUpTo): never drawn by the share above.
+  { kind: "commuter", title: "Commuter", share: 0, trips: [1, 1], stop: [0, 0, 0], models: [["economy", 0.28], ["sedan", 0.26], ["suv", 0.22], ["compact_ev", 0.16], ["pickup", 0.06], ["sports", 0.02]] },
 ];
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
 //: A car's lane: right of the street's middle, clear of the cars parked at its kerb, and the lane
 //: for the turn ahead on a street of more than one each way (people.mjs DRIVE_LANE).
 const KERB = DRIVE_LANE;
+//: How far apart (m) a through trip's way in and way out are, at the least, where they can be.
+const THROUGH_MIN_M = 600;
 //: Parking at the kerb (kerbSpot): how a spot is looked for and how close in a car stands.
 //: Two whiles at the kerb overlap: either held all day, or the same day and their times meet.
 const overlaps = (a, b) => !a || !b || (a.day === b.day && a.t0 < b.t1 && b.t0 < a.t1);
@@ -152,10 +157,19 @@ export function residentsIn(R, home) {
 
 // ---- the roster: who lives here, and what they drive ------------------------------------------------
 
+//: Whether a household member is one of the redundant (rules.json density.trim): an adult
+//: flatmate, or a partner where there are no children, whose trade is one of ``roles`` (the big
+//: cohorts sharing one story and voice) and who has none of the parts the district needs.
+function redundant(R, T, m, role, hh) {
+  if (!(m.age >= 18) || !T.roles?.includes(role)) return false;
+  if (m.relation === "flatmate") return true;
+  return m.relation === "partner" && !hh.members.some((x) => x.relation === "child");
+}
+
 export class Roster {
   constructor(R, { seed = "district", saved = null, toLonLat = null } = {}) {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
-    this.places = new Map(); this.people = new Map(); this.vehicles = new Map(); this.visitors = new Map();
+    this.places = new Map(); this.people = new Map(); this.vehicles = new Map(); this.visitors = new Map(); this.commuters = new Map();
     this.homesDone = new Set(); this.list = []; this.work = {}; this.households = new Map(); this.open = [];
     this.saved = { work: { ...(saved?.work || {}) }, npcGroups: Array.isArray(saved?.npcGroups) ? saved.npcGroups : [] };
     this.version = 0; this.dirty = false;
@@ -188,9 +202,13 @@ export class Roster {
   house(home) {
     const R = this.R, roles = Object.entries(R.jobs.roles).filter(([id]) => id !== "student" && id !== "retiree");
     const total = roles.reduce((s, [, x]) => s + x.share, 0);
-    const outgoing = this.toLonLat ? densityAt(R, ...this.toLonLat(home.x, home.z), "walkers") : 1;
+    // (A hotspot's passers-by multiplier is for the crowd beyond the residents: on the residents'
+    // own days it made nearly everyone run every errand and go out every evening. Capped.)
+    const outgoing = Math.min(R.density?.resident_outgoing_max ?? Infinity, this.toLonLat ? densityAt(R, ...this.toLonLat(home.x, home.z), "walkers") : 1);
+    const T = R.density?.trim;
     for (const hh of householdsFor(R, home, { cap: R.households?.cap ?? HOME_CAP })) {
       this.households.set(hh.id, hh);
+      const cut = new Set();
       for (const m of hh.members) {
         const id = `npc:${home.id}:${m.k}`, r = rng(id, "person");
         // By age: at school, at college (some), a trade by the rules' shares, or retired.
@@ -200,6 +218,11 @@ export class Roster {
         else if (m.age < 23 && r() < 0.35) role = "student";
         else if (m.age >= 66) role = "retiree";
         const spec = R.jobs.roles[role];
+        // The redundant ones are not made (rules.json density.trim): a flatmate, or a partner in a
+        // home with no children, in one of the big trades every member of which tells the same
+        // story in the same voice (npc-stories.mjs: a cohort's shared backstory), with no part to
+        // play the district needs -- no counter to serve at, no round, no vehicle, no school.
+        if (T && redundant(R, T, m, role, hh) && hash32(id, "trim") % 1000 < T.share * 1000) { cut.add(m.k); continue; }
         const pace = R.routine.walk_speed_ms[0] + r() * (R.routine.walk_speed_ms[1] - R.routine.walk_speed_ms[0]);
         const height = m.age < 6 ? 0.95 + r() * 0.2 : m.age < 13 ? 1.2 + r() * 0.25 : m.age < 18 ? 1.5 + r() * 0.2 : 1.58 + r() * 0.3;
         const shift = Math.floor(r() * Math.max(1, spec.shifts.length));
@@ -219,6 +242,7 @@ export class Roster {
           p.bike = `bike:${id}`;
         }
       }
+      if (cut.size) { hh.members = hh.members.filter((m) => !cut.has(m.k)); hh.size = hh.members.length; this.trimmed = (this.trimmed || 0) + cut.size; }
     }
   }
   //: Someone's work on ``day`` (npc-economy.mjs careerOf): jobs are left and new ones found, so
@@ -279,6 +303,20 @@ export class Roster {
       this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model: mixPick(r, spec.models), shade: r(), plate: plateOf(id), visitor: true, kind });
     }
   }
+  //: Those who live and work outside the district and drive through it once a game day, on
+  //: their way to work or home (rules.json density.commuters): traffic without anyone to keep
+  //: track of the rest of the day.
+  commutersUpTo(n) {
+    const K = VISITOR_KINDS.find((x) => x.kind === "commuter");
+    for (let k = this.commuters.size; k < n; k += 1) {
+      const id = `commuter:${k}`, r = rng(this.seed, id);
+      this.commuters.set(id, { id, name: `${pick(r, FIRST)} ${pick(r, LAST)}`, role: "visitor", kind: "commuter", title: K.title, uniform: pick(r, CLOTHES),
+        pace: 1.1 + r() * 0.4, height: 1.56 + r() * 0.34, visitor: true, commuter: true, car: `veh:${id}` });
+      this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model: mixPick(r, K.models), shade: r(), plate: plateOf(id), visitor: true, kind: "commuter" });
+    }
+  }
+  //: A visitor or a commuter by id.
+  visitorOf(id) { return this.visitors.get(id) || this.commuters.get(id); }
   //: What to keep on this device: who works where.
   toJSON() { return { work: this.saved.work, npcGroups: this.saved.npcGroups }; }
 }
@@ -290,27 +328,39 @@ export const WALL_CLEAR_M = 0.35;
 //: Whether (x, z) is inside ``ring`` ([[x, z], ...], either way round).
 export function inRing(ring, x, z) {
   let inside = false;
+  // (Read by index, not destructured: asked for everyone near a building every frame, the
+  // destructuring made iterators -- 91 MB a second of garbage in the Marina, 2026-11-20.)
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
-    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    const pi = ring[i], pj = ring[j], xi = pi[0], zi = pi[1], xj = pj[0], zj = pj[1];
     if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
 }
 //: The nearest point WALL_CLEAR_M outside ``ring`` from (x, z) inside it that ``ok(x, z)`` takes
 //: (in no other building), or the nearest outside point at all.
+//: (Kept in reused scratch arrays, nearest first by insertion: it is asked for everyone standing
+//: in a footprint every frame, and a list of three-number lists a wall each time was 12 MB a
+//: second of garbage in the Marina, measured 2026-11-20. Same answers.)
+let ringScratch = new Float64Array(3 * 64), ringOrder = new Int32Array(64);
 export function outOfRing(ring, x, z, ok = () => true) {
-  const cands = [];
+  if (ring.length > ringOrder.length) { ringScratch = new Float64Array(3 * ring.length); ringOrder = new Int32Array(ring.length); }
+  const C = ringScratch, O = ringOrder;
+  let n = 0;
   for (let i = 0; i < ring.length; i += 1) {
-    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length], ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez;
+    const a = ring[i], b = ring[(i + 1) % ring.length], ax = a[0], az = a[1], ex = b[0] - ax, ez = b[1] - az, L2 = ex * ex + ez * ez;
     if (L2 < 1e-6) continue;
     const u = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)), qx = ax + ex * u, qz = az + ez * u, L = Math.sqrt(L2);
     let nx = ez / L, nz = -ex / L;
     if (inRing(ring, qx + nx * 0.05, qz + nz * 0.05)) { nx = -nx; nz = -nz; }
-    cands.push([Math.hypot(x - qx, z - qz), qx + nx * WALL_CLEAR_M, qz + nz * WALL_CLEAR_M]);
+    const d = Math.hypot(x - qx, z - qz), o = 3 * n;
+    C[o] = d; C[o + 1] = qx + nx * WALL_CLEAR_M; C[o + 2] = qz + nz * WALL_CLEAR_M;
+    // Stable insertion by distance (Array.prototype.sort is stable: ties keep wall order).
+    let j = n;
+    while (j > 0 && C[3 * O[j - 1]] > d) { O[j] = O[j - 1]; j -= 1; }
+    O[j] = n; n += 1;
   }
-  cands.sort((a, b) => a[0] - b[0]);
-  for (const c of cands) if (!inRing(ring, c[1], c[2]) && ok(c[1], c[2])) return [c[1], c[2]];
-  for (const c of cands) if (!inRing(ring, c[1], c[2])) return [c[1], c[2]];
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz) && ok(cx, cz)) return [cx, cz]; }
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz)) return [cx, cz]; }
   return null;
 }
 
@@ -866,6 +916,25 @@ export class City {
       prev = a;
     }
     segs.sort((x, y) => x.t0 - y.t0);
+    // The walks seen. On the game's clock a day is 72 minutes and a walk is as long as it really
+    // is, so a day's walking done at once had a third of the district out on the pavements at
+    // every hour (8,300 out of doors at 20:00 in the Marina, 2,600 walking at 03:00: measured
+    // 2026-11-20). Most walks are out of sight (rules.json density.walks_seen), as most of the
+    // through traffic is (``through``); and so is one that would have them out long before the
+    // thing it is for -- leaving home in the small hours to be at work by eight
+    // (``walk_early_max``, game minutes).
+    const WS = this.R.density?.walks_seen;
+    if (WS !== undefined && t.toGame) {
+      const most = this.R.density?.walk_early_max ?? 240;
+      for (let i = 0; i < segs.length; i += 1) {
+        const g = segs[i];
+        if (g.kind !== "go" || g.mode !== "walk") continue;
+        let next = null;
+        for (let j = i + 1; j < segs.length; j += 1) if (segs[j].kind !== "go") { next = segs[j]; break; }
+        const at = next?.act?.gameStart ?? t.toGame(next ? next.t0 : g.t1);
+        g.unseen = at - t.toGame(g.t0) > most || hash32(p.id, t.day, "walk", Math.round(g.t0 * 10)) % 1000 >= WS * 1000;
+      }
+    }
     // In at the shops' doors as far as there is room (each shop's capacity), the rest waiting,
     // going elsewhere, coming later or giving it up.
     this.admitShoppers(p, t.day, segs);
@@ -1183,6 +1252,8 @@ export class City {
     const nets = [...this.byNetwork.entries()], total = nets.reduce((a, [, n]) => a + n.size, 0);
     let x = r() * total, net = nets[0];
     for (const e of nets) { x -= e[1].size; if (x <= 0) { net = e; break; } }
+    // (A commuter is on the through routes, which are the largest network's.)
+    if (p.commuter) net = nets.reduce((a, b) => (b[1].size > a[1].size ? b : a), nets[0]);
     const G = net[1].gates, box = net[1].box;
     // (Worked out once a network, not once a visitor: the street search for every place, per
     // visitor's day, held a frame up for a second at a time while the district was scanned.)
@@ -1198,11 +1269,23 @@ export class City {
     // When they drive: commuters in the rush hours, deliveries in the working day, ride-hail
     // into the evening, the rest as through traffic does (rules.json traffic.by_hour).
     const H = this.R.traffic?.by_hour || {};
-    const curve = (p.kind === "ride_hail" || p.kind === "taxi" ? H.ride_hail : p.kind === "delivery" ? H.delivery : hash32(p.id, "commuter") % 5 < 2 ? H.commute : H.through) || TRAFFIC_BY_HOUR;
+    const curve = (p.kind === "ride_hail" || p.kind === "taxi" ? H.ride_hail : p.kind === "delivery" ? H.delivery : p.commuter || hash32(p.id, "commuter") % 5 < 2 ? H.commute : H.through) || TRAFFIC_BY_HOUR;
     const hourPick = () => { const total = curve.reduce((s, x) => s + x, 0); let x = r() * total; for (let h = 0; h < 24; h += 1) { x -= curve[h]; if (x <= 0) return h; } return 12; };
-    const share = this.R.traffic?.corridor_share ?? 0;
+    // (A commuter keeps to the through routes: Lombard, Marina Boulevard, the avenues.)
+    const share = p.commuter ? this.R.density?.commuters?.corridor_share ?? 0.8 : this.R.traffic?.corridor_share ?? 0;
     const Gin = this.gatesFor(G, "in"), Gout = this.gatesFor(G, "out");
-    const ends = () => { const c = r() < share ? this.corridorTrip(r, G) : null; return c || [this.pickGate(r, Gin), this.pickGate(r, Gout)]; };
+    // A way through is through: the edges it comes in and goes out at drawn till they are a few
+    // hundred metres apart (drawn at random, three in four were the two ends of one street at the
+    // edge, tens of metres apart, and the trip was too short to drive: measured 2026-11-20).
+    const gd = (a, b) => { const A = this.streets.nodes[a], B = this.streets.nodes[b]; return A && B ? Math.hypot(A.x - B.x, A.z - B.z) : 0; };
+    const ends = () => {
+      const c = r() < share ? this.corridorTrip(r, G) : null;
+      if (c && gd(c[0], c[1]) >= THROUGH_MIN_M) return c;
+      const a = this.pickGate(r, Gin);
+      let b = this.pickGate(r, Gout), bd = gd(a, b);
+      for (let k = 0; k < 8 && bd < THROUGH_MIN_M; k += 1) { const x = this.pickGate(r, Gout), dx = gd(a, x); if (dx > bd) { b = x; bd = dx; } }
+      return [a, b];
+    };
     const trips = [];
     // Through traffic is most of a district's traffic: a visitor's car comes through a few
     // times a day (rules.json density.visitor_trips), now and then stopping.
@@ -1223,9 +1306,15 @@ export class City {
     if (t.toFleet) for (const tr of trips) { const at = tr.at; tr.at = F(at); tr.dwell = F(at + tr.dwell) - tr.at; }
     const node = (id) => this.streets.nodes[id];
     let clock = 0;
-    for (const trip of trips) {
+    // The through traffic is a day's worth, and the game's day is 72 minutes: so many of the
+    // visitors' trips are seen (``through``: view.mjs), each trip whole -- its drive, the walk
+    // from the kerb and the hour about the shops -- not a car hidden and its driver seen walking
+    // out of it. A commuter's one trip a day is always seen.
+    for (const [k, trip] of trips.entries()) {
       const depart = Math.max(trip.at, clock + 5);
       if (depart > F(1430)) break;
+      const from = segs.length, seen = p.commuter || !(this.through < 1) || hash32(p.id, t.day, "trip", k) % 1000 < this.through * 1000;
+      const mark = () => { for (let i = from; i < segs.length; i += 1) segs[i].unseen = !seen; };
       const A = node(trip.g1);
       if (trip.visit && trip.brief) {
         // A fare picked up or dropped, a parcel handed over: a few minutes at the kerb.
@@ -1235,7 +1324,7 @@ export class City {
         segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d1, from: trip.g1, to: trip.visit, vehicle: v.id, visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS), back = depart + d1 + trip.dwell;
         segs.push({ kind: "go", mode: "drive", t0: back, t1: back + d2, from: trip.visit, to: trip.g2, vehicle: v.id, visitor: true });
-        clock = back + d2;
+        clock = back + d2; mark();
       } else if (trip.visit) {
         const P = this.roster.places.get(trip.visit);
         const d1 = P ? tripMinutes(Math.hypot(P.x - A.x, P.z - A.z), DRIVE_MS) : 0;
@@ -1252,14 +1341,14 @@ export class City {
         segs.push({ kind: "go", mode: "walk", t0: back, t1: back + w, from: trip.visit, toXZ: [spot.x, spot.z], visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS);
         segs.push({ kind: "go", mode: "drive", t0: back + w, t1: back + w + d2, from: trip.visit, to: trip.g2, vehicle: v.id, visitor: true });
-        clock = back + w + d2;
+        clock = back + w + d2; mark();
       } else {
         const g2 = trip.g2 === trip.g1 ? Gout[(Gout.indexOf(trip.g1) + 1) % Gout.length] : trip.g2;
         const B = node(g2);
         const d = tripMinutes(Math.hypot(B.x - A.x, B.z - A.z), DRIVE_MS);
         if (d < 1) continue;
         segs.push({ kind: "go", mode: "drive", t0: depart, t1: depart + d, from: trip.g1, to: g2, vehicle: v.id, visitor: true });
-        clock = depart + d;
+        clock = depart + d; mark();
       }
     }
     if (trips.some(trip => trip.service)) this.admitShoppers(p, t.day, segs);
@@ -1292,9 +1381,11 @@ export class City {
       if (x1 - x0 > 600 || z1 - z0 > 600) continue;
       const f = { pl, ring, x0, z0, x1, z1 };
       for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i += 1) for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j += 1) {
-        const k = `${i},${j}`;
-        if (!grid.has(k)) grid.set(k, []);
-        grid.get(k).push(f);
+        // (A cell's key is a number: footprintAt is asked for everyone every frame, and a string
+        // made for each ask was garbage that added up.)
+        const k = (i + 1048576) * 2097152 + j + 1048576;
+        let at = grid.get(k); if (!at) grid.set(k, at = []);
+        at.push(f);
       }
     }
     this._footprints = { n: list.length, grid, CELL };
@@ -1483,7 +1574,7 @@ export class City {
   }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
-    const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
+    const F = this.footprints(), cell = F.grid.get((Math.floor(x / F.CELL) + 1048576) * 2097152 + Math.floor(z / F.CELL) + 1048576);
     if (!cell) return null;
     for (const f of cell) {
       if (x < f.x0 || x > f.x1 || z < f.z0 || z > f.z1 || (except !== null && f.pl.id === except)) continue;
@@ -1496,7 +1587,7 @@ export class City {
   keepOutside(pos, why = "walk") {
     const f = this.footprintAt(pos.x, pos.z);
     if (!f) return false;
-    const best = outOfRing(f.ring, pos.x, pos.z, (x, z) => !this.footprintAt(x, z));
+    const best = outOfRing(f.ring, pos.x, pos.z, this._inNoFootprint ??= (x, z) => !this.footprintAt(x, z));
     if (!best) return false;
     pos.x = best[0]; pos.z = best[1];
     this.wallFixes[why] = (this.wallFixes[why] || 0) + 1;
@@ -1802,7 +1893,7 @@ export class City {
     const h = this.harm(v.id, t.ms);
     if (h?.at && h.stays) return { state: h.state, x: h.at.x, z: h.at.z, yaw: h.at.yaw || 0, moving: false, harm: h };
     if (h?.out) return { state: "repair", hidden: true, harm: h };
-    const owner = v.visitor ? this.roster.visitors.get(v.owner) : this.roster.people.get(v.owner);
+    const owner = v.visitor ? this.roster.visitorOf(v.owner) : this.roster.people.get(v.owner);
     if (!owner) return null;
     const plan = this.planOf(owner, t), m = t.minute;
     let last = null;
@@ -1843,7 +1934,7 @@ export class City {
   scanBegin(ms, focus, reach, parkedReach = 180) {
     this.through ??= 1;
     this._scan = { t: this.timeAt(ms), focus: { x: focus.x, z: focus.z }, reach, parkedReach, people: [], vehicles: [],
-      P: [...this.roster.people.values(), ...this.roster.visitors.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
+      P: [...this.roster.people.values(), ...this.roster.visitors.values(), ...this.roster.commuters.values()], V: [...this.roster.vehicles.values()], i: 0, j: 0, garaged: [], courts: new Map() };
   }
   scanMore(budget = 2500, whole = false) {
     const S = this._scan;
@@ -1864,6 +1955,9 @@ export class City {
       const h = this.harm(p.id, t.ms);
       if (h?.down) { if (near(h.at.x, h.at.z)) people.push({ p, seg: null }); continue; }
       if (!seg || h?.out) continue;
+      // (A walk not seen: on the game's clock a day's walking is done in its 72 minutes, so most
+      // of it is out of sight -- residentPlan, visitorPlan.)
+      if (seg.unseen) continue;
       if (seg.kind === "go") {
         // A taxi on its way in or away while its fare walks, and the cab the fare is riding.
         for (const L of seg.cabLegs || []) if (L.t0 <= t.minute && t.minute < L.t1) this.cabNear(vehicles, L, t, focus, reach);
@@ -1897,7 +1991,7 @@ export class City {
         // cars in sight of you, one in eight of them moving: measured 2026-11-19). So many of
         // the visitors' trips are driven where you can see them (``through``: view.mjs), the
         // same ones every time; the residents' own are all driven.
-        if (v.visitor && this.through < 1 && hash32(v.id, Math.round(leg.t0)) % 1000 >= this.through * 1000) continue;
+        if (leg.unseen || (leg.unseen === undefined && v.visitor && this.through < 1 && hash32(v.id, Math.round(leg.t0)) % 1000 >= this.through * 1000)) continue;
         if (P0 && P1 && distToSegment(focus.x, focus.z, P0.x, P0.z, P1.x, P1.z) < reach + 250) vehicles.push({ v, s });
       } else if (Math.abs(s.x - focus.x) < parkedReach && Math.abs(s.z - focus.z) < parkedReach) vehicles.push({ v, s });
     }
@@ -1944,7 +2038,7 @@ export class City {
     };
     const v = R.vehicles.get(id);
     if (v) {
-      const owner = v.visitor ? R.visitors.get(v.owner) : R.people.get(v.owner);
+      const owner = v.visitor ? R.visitorOf(v.owner) : R.people.get(v.owner);
       const plan = owner ? this.planOf(owner, t) : null;
       out.push(`${v.plate}: ${owner?.name || "?"}'s ${String(v.model).replace("_", " ")}${v.visitor ? ", a visitor's" : ""}.`);
       if (plan?.start !== null && plan?.start !== undefined) out.push(`00:00 at ${name(plan.start, v)}.`);
@@ -1957,7 +2051,7 @@ export class City {
       }
       return out;
     }
-    const p = R.people.get(id) || R.visitors.get(id);
+    const p = R.people.get(id) || R.visitorOf(id);
     if (!p) return out;
     const plan = this.planOf(p, t);
     out.push(`${p.name}, ${p.visitor ? "visiting" : `${p.age}, ${p.title.toLowerCase()}`}${p.home ? `; lives at ${name(p.home)}` : ""}${p.work && p.work !== p.home ? `; works at ${name(p.work)}` : ""}.`);
@@ -2031,6 +2125,8 @@ export function edgeKey(route, i) {
   const p = route.pts[i], q = route.pts[i + 1];
   return `${Math.round(p[0])},${Math.round(p[1])}>${Math.round(q[0])},${Math.round(q[1])}`;
 }
+// A fresh alongRoute point with its car on it (alongRoute makes a new one each call: no copy).
+const withCar = (p, c) => { p.c = c; return p; };
 //: A car's own side of the street (for alongRoute): the lane it is in, or on its way across to
 //: the next over (``lt`` 0..1), eased.
 export function laneSide(st) {
@@ -2211,7 +2307,8 @@ export class Drivers {
     };
     const into = (A, B) => {
       let worst = -Infinity;
-      for (const a of A.at) for (const b of B.at) worst = Math.max(worst, A.r + B.r + 0.25 - Math.hypot(a[0] - b[0], a[1] - b[1]));
+      const AA = A.at, BB = B.at, rr = A.r + B.r + 0.25;
+      for (let i = 0; i < AA.length; i += 1) { const a = AA[i]; for (let j = 0; j < BB.length; j += 1) { const b = BB[j], dx = a[0] - b[0], dz = a[1] - b[1], g = rr - Math.sqrt(dx * dx + dz * dz); if (g > worst) worst = g; } }
       return worst;
     };
     const others = blockers.map((o, k) => ({ id: `blocker:${k}`, body: bodies(o, o.length || 4.5, o.width || 1.9) }));
@@ -2242,11 +2339,11 @@ export class Drivers {
     // (The cars already in the traffic first, then those come into sight, behind them.)
     live.sort((a, b) => (a[1].fresh ? 1 : 0) - (b[1].fresh ? 1 : 0));
     for (const [c, st] of live) {
-      let p = { ...alongRoute(c.route, st.d, st.side), c };
+      let p = withCar(alongRoute(c.route, st.d, st.side), c);
       p.body = bodies(p, c.length, c.width || 1.9);
       if (st.fresh) {
         for (let k = 0; k < 40 && st.d > 0 && deepest(c.id, p.body, p.x, p.z, c.length + 8).worst > 0; k += 1) {
-          st.d = Math.max(0, st.d - 1.5); p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9);
+          st.d = Math.max(0, st.d - 1.5); p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9);
         }
         // And at a speed it can stop from in the room it has: it came in at its cruising speed
         // whatever stood in front of it, and the first step drove it into the back of a queue
@@ -2289,6 +2386,17 @@ export class Drivers {
     // with no route -- your car, a bus at its stop -- stands where it is); if they would meet,
     // the one in front is moved on (the one behind brakes, as ever).
     const pushes = new Set();
+    // Each car's bodies at those moments, worked out once a step (a car is in many pairs).
+    const ahead = (this._ahead ||= new Map()); ahead.clear();
+    const predicted = (car, cst) => {
+      let a = ahead.get(car.id);
+      if (!a) {
+        a = [];
+        for (const tau of T.predict_s) a.push(bodies(alongRoute(car.route, Math.min(car.route.length, cst.d + cst.v * tau), cst.side), car.length, car.width || 1.9));
+        ahead.set(car.id, a);
+      }
+      return a;
+    };
     for (const [c, st] of live) {
       if (st.hit || arrived(c, st)) continue;
       const p = pos.get(c.id);
@@ -2297,10 +2405,9 @@ export class Drivers {
         const o = this.cars.get(oid), op = pos.get(oid);
         if (!o || !op || o.hit || arrived(op.c, o) || (st.v < 0.2 && o.v < 0.2)) return;
         const now = into(p.body, op.body);
-        for (const tau of T.predict_s) {
-          const a = alongRoute(c.route, Math.min(c.route.length, st.d + st.v * tau), st.side);
-          const b = alongRoute(op.c.route, Math.min(op.c.route.length, o.d + o.v * tau), o.side);
-          const meet = into(bodies(a, c.length, c.width || 1.9), bodies(b, op.c.length, op.c.width || 1.9));
+        const A = predicted(c, st), B = predicted(op.c, o);
+        for (let ti = 0; ti < A.length; ti += 1) {
+          const meet = into(A[ti], B[ti]);
           if (meet > 0 && meet > now + 1e-4) {
             const ahead = (op.x - p.x) * -Math.sin(p.yaw) + (op.z - p.z) * -Math.cos(p.yaw);
             pushes.add(ahead > 0 ? oid : c.id);
@@ -2672,7 +2779,7 @@ export class Drivers {
             const why = `jumps_${String(hold.id).split(":")[0]}${inside ? "_box" : ""}`; this.tally[why] = (this.tally[why] || 0) + 1;
             this.jams.set(blockKey, tsec + T.shut_known_s); this.jams.set(`shut:${blockKey}`, tsec + T.shut_known_s);
             st.d = to; st.holdT = 0; st.blocked = 0; st.blockedBy = null; this.tally.jumps += 1;
-            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
             this.delays.set(c.key, tsec - c.unsched(st.d));
             out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what shut the street", jump: true, route: st.route });
             continue;
@@ -2697,7 +2804,7 @@ export class Drivers {
           if (to !== null) {
             st.d = to; st.stuckT = 0; st.holdT = 0; st.blocked = 0; st.blockedBy = null; st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.backUp = 0;
             this.tally.jumps += 1; this.tally.jumps_stuck = (this.tally.jumps_stuck || 0) + 1;
-            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
             this.delays.set(c.key, tsec - c.unsched(st.d));
             out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what held it", jump: true, route: st.route });
             continue;
@@ -2718,7 +2825,7 @@ export class Drivers {
         const to = this.catchUp(c, st, tsec, { deepest, bodies });
         if (to !== null) {
           st.d = to; st.v = Math.min(limit, c.cruise ?? limit); st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.blocked = 0; st.blockedBy = null; st.backUp = 0;
-          const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+          const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
           this.delays.set(c.key, tsec - c.unsched(st.d)); this.tally.jumps += 1; this.tally.jumps_unseen = (this.tally.jumps_unseen || 0) + 1;
           out.push({ id: c.id, d: st.d, v: st.v, reason: "back on its day", jump: true, route: st.route });
           continue;
@@ -2730,7 +2837,7 @@ export class Drivers {
       if (st.backUp > 0 && !danger) {
         const d1 = Math.max(0, st.d - T.back_speed * dt), was = st.dodge;
         st.dodge = swing(st.d - d1);
-        const next = { ...alongRoute(c.route, d1, st.side) };
+        const next = alongRoute(c.route, d1, st.side);
         next.body = bodies(next, c.length, c.width || 1.9);
         if (d1 < st.d && !blocking(c.id, here, next, c.length + 6, -1) && !blocking(c.id, here, next, c.length + 6, 1)) {
           st.backUp -= st.d - d1; st.d = d1; st.v = 0; st.reason = "backing up";
@@ -2759,7 +2866,7 @@ export class Drivers {
       if (d1 > st.d) {
         const was = st.dodge;
         st.dodge = swing(d1 - st.d);
-        const next = { ...alongRoute(c.route, d1, st.side) };
+        const next = alongRoute(c.route, d1, st.side);
         next.body = bodies(next, c.length, c.width || 1.9);
         const who = blocking(c.id, here, next, c.length + 6);
         if (who) {
@@ -2806,7 +2913,7 @@ export class Drivers {
                   mine: segInfo(c.route, st), theirs: op && o ? segInfo(op.c.route, o) : null });
                 if (this.knots.length > 40) this.knots.shift(); }
               st.d = to; st.blocked = 0; st.blockedBy = null; st.backed = false; st.dodge = 0; st.dodgeTo = 0; st.hold = null; this.tally.jumps += 1;
-              const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+              const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
               this.delays.set(c.key, tsec - c.unsched(st.d));
               out.push({ id: c.id, d: st.d, v: 0, reason: "put on past a knot", jump: true, route: st.route });
               continue;
@@ -2823,7 +2930,7 @@ export class Drivers {
       st.reason = reason;
       if (reason !== "the car ahead") st.leader = null;
       st.d = d1;
-      { const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
+      { const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
       out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay, held: st.pedT || 0 });

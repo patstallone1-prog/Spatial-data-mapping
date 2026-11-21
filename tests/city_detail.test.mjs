@@ -79,7 +79,8 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   assert.match(VIEW, /let \[full, mid, low\] = byTier\(seen, PEOPLE_CAPS\)/);
   // The nearest as Unreal characters; the rings step down a form each once they are drawn.
   assert.match(VIEW, /figures\.draw\(near\.map/);
-  assert.match(VIEW, /full = full\.filter\(\(q\) => !drawn\.has\(q\)\)\.concat\(mid\); mid = low; low = \[\];/);
+  // (A character drawn is in no other list: the rings below it step up, without it.)
+  assert.match(VIEW, /full = full\.filter\(\(q\) => !drawn\.has\(q\)\)\.concat\(mid\.filter\(\(q\) => !drawn\.has\(q\)\)\); mid = low\.filter\(\(q\) => !drawn\.has\(q\)\); low = \[\];/);
   assert.match(VIEW, /midBody = mkTone\(midBodyGeo/);
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
   // Cars: in view only, kit / code-built / a box.

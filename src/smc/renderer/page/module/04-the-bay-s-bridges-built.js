@@ -974,12 +974,17 @@ const TILE_FACADE_TEXTURE = (()=>{
 })();
 TILE_BUILDING_MATERIAL.map=TILE_FACADE_TEXTURE;
 const TILE_ROAD_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_ROAD, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
+// A tile's carriageways and pavements take the near photographs too (module 02 NEAR_SURFACE):
+// where a street has no ribbon of its own over the tile, the ground near you is still asphalt
+// and poured concrete, not a flat shade (they have no map to score squares by).
+TILE_ROAD_MATERIAL.userData.nearSurface = "asphalt";
 //: The footway and the paint on the road. The page's own concrete and its own white are what
 //: the street renderer uses a few metres away, so the seam at the region's edge is a seam in
 //: detail and not in colour.
 const TILE_WALK = new THREE.Color(0x8e918a);
 const TILE_PAINT_COLOUR = new THREE.Color(0xe8e8e4);
 const TILE_WALK_MATERIAL = new THREE.MeshStandardMaterial({ color: TILE_WALK, roughness: 0.96, metalness: 0.0, transparent: true, side: THREE.DoubleSide });
+TILE_WALK_MATERIAL.userData.nearSurface = "concrete";
 //: The grass from far off (the tiles' lawns layer: parks, lawns and back yards): one plain
 //: green, the average of the turf the street renderer lays. Matched by eye on the screen where
 //: the two meet (the Marina, noon, 2026-11-09): the old 0x3a6630 drew (105, 173, 90) beside the

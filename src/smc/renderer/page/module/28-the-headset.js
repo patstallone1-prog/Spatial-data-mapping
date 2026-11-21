@@ -93,7 +93,8 @@ function applyMetaMemoryPlan(plan) {
 //: needs), trims come at most every ``trimEveryMs``, and the tile budget is given back in City
 //: mode too.
 const DESKTOP_MEMORY = { aim: 3.1 * 1073741824, emergency: 3.65 * 1073741824, restoreBelow: 2.5 * 1073741824, everyMs: 4000,
-  minRadius: 150, shrink: 0.6, rebuildEveryMs: 60_000, trimGrowth: 1.12, trimEveryMs: 30_000, tileFloor: 160 * 1048576, cellFloor: 96 * 1048576 };
+  minRadius: 150, shrink: 0.6, rebuildEveryMs: 60_000, trimGrowth: 1.12, trimEveryMs: 30_000, tileFloor: 160 * 1048576, cellFloor: 96 * 1048576,
+  liveWindowS: 60, hardLine: 3.85 * 1073741824 };
 const desktopMemory = { level: "ok", cellBytes: worldCellCache.maxBytes, tileBytes: TILE_RESIDENT_BUDGET, radius: STREAM.radius, sheds: 0,
   rebuilds: 0, lastRebuild: -Infinity, trimmedAt: 0 };
 //: What one look at the heap does (pure, for the tests): trim, rebuild smaller, restore, or nothing.
@@ -107,9 +108,28 @@ function desktopMemoryPlan(used, M, D, { attaching = false, windowRadius = M.rad
   if (used < D.restoreBelow && M.level !== "ok") return { level: "ok", restore: true };
   return { level: M.level };
 }
-function desktopMemoryTick() {
+//: What the page holds, not what it holds and has thrown away: the heap at its lowest over the
+//: last ``liveWindowS`` seconds, read every second. usedJSHeapSize counts the garbage not yet
+//: collected -- half the reading at a busy hour, a forced collection took one from 2.99 GiB to
+//: 1.51 -- and the caches were trimmed for garbage the trim could not touch (the tile and cell
+//: caches the view needs halved, the garbage that caused it left: 2026-11-20). The lowest reading
+//: over a window with a full collection in it is what stays. Only near the engine's own limit
+//: (``hardLine``) is the reading taken as it is.
+const HEAP_SEEN = new Float64Array(64);
+let heapSeenN = 0, heapSeenAt = 0;
+function heapSample() {
   const used = performance.memory?.usedJSHeapSize;
-  if (!(used > 0) || document.hidden) return;
+  if (used > 0) { HEAP_SEEN[heapSeenAt] = used; heapSeenAt = (heapSeenAt + 1) % DESKTOP_MEMORY.liveWindowS; heapSeenN = Math.min(DESKTOP_MEMORY.liveWindowS, heapSeenN + 1); }
+}
+function liveHeap(used) {
+  let low = used;
+  for (let i = 0; i < heapSeenN; i += 1) if (HEAP_SEEN[i] < low) low = HEAP_SEEN[i];
+  return used >= DESKTOP_MEMORY.hardLine ? used : low;
+}
+function desktopMemoryTick() {
+  const reading = performance.memory?.usedJSHeapSize;
+  if (!(reading > 0) || document.hidden) return;
+  const used = liveHeap(reading);
   const D = DESKTOP_MEMORY, M = desktopMemory, now = performance.now();
   const windowRadius = activeGuest?.detailRadius || BUILD_WINDOW?.radius || STREAM.radius;
   const plan = desktopMemoryPlan(used, M, D, { attaching: Boolean(attaching), windowRadius, now });
@@ -120,7 +140,7 @@ function desktopMemoryTick() {
     TILE_RESIDENT_BUDGET = Math.min(TILE_RESIDENT_BUDGET, Math.max(D.tileFloor, Math.round(TILE_RESIDENT_BUDGET / 2)));
     evictTiles();
     M.sheds += 1; M.trimmedAt = used; M.lastTrim = now;
-    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB, ${plan.level}: caches trimmed`);
+    console.info(`kerbside: heap ${(used / 1073741824).toFixed(2)} GiB held (${(reading / 1073741824).toFixed(2)} with garbage), ${plan.level}: caches trimmed`);
   }
   // City mode's area is held as it was built: the caches are trimmed, but it is not built again.
   if (plan.rebuild && !(typeof cityLock !== "undefined" && cityLock)) {
@@ -140,8 +160,8 @@ function desktopMemoryTick() {
   }
   M.level = plan.level;
 }
-window.kerbsideMemory = () => ({ ...desktopMemory, heap: performance.memory?.usedJSHeapSize || null, limits: DESKTOP_MEMORY });
-if (!META && !ATTACH && performance.memory) setInterval(desktopMemoryTick, DESKTOP_MEMORY.everyMs);
+window.kerbsideMemory = () => ({ ...desktopMemory, heap: performance.memory?.usedJSHeapSize || null, live: performance.memory ? liveHeap(performance.memory.usedJSHeapSize) : null, limits: DESKTOP_MEMORY });
+if (!META && !ATTACH && performance.memory) { setInterval(heapSample, 1000); setInterval(desktopMemoryTick, DESKTOP_MEMORY.everyMs); }
 if (META) {
   for (const id of ["hud", "settings-toggle", "settings-page", "compass", "addr", "route-end", "fold"]) {
     const element = document.getElementById(id);
