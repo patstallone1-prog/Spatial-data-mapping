@@ -30,6 +30,7 @@ import { validShape, doughDimensions } from "./dough.mjs";
 import { cityTime, itemTax, storesAt } from "./core.mjs";
 import { estimateWeek, groupOf, hoursFor, isOpen, itemsFor, priceDemand, unitCost } from "./enterprise.mjs";
 import { FIRST, LAST, hash32, rng } from "./people.mjs";
+import { menuDishes } from "./menu-dish.mjs";
 
 const HOUR = 3_600_000, DAY = 86_400_000;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -463,8 +464,18 @@ export function installKitchen(CityWorld, CityError) {
   W.kitchenJSON = function () { return [...(this.kitchens || new Map()).values()]; };
   W.kitchenLoad = function (list = []) {
     this.kitchenInit();
-    for (const k of list || []) { this.kitchens.set(k.id, k); for (const d of k.menu || []) registerDish(this.R, d); }
+    for (const k of list || []) { this.kitchens.set(k.id, k); seedRealMenu(this.R, k); for (const d of k.menu || []) registerDish(this.R, d); }
   };
+  //: A restaurant whose real menu is known (rules.json ``menus``): its dishes are the real ones,
+  //: each rebuilt from the menu's name and description (menu-dish.mjs dishFromMenu), in place of
+  //: the house's own list. A dish put on the menu from the lab is kept beside them.
+  function seedRealMenu(R, k) {
+    const real = R.menus?.places?.[k.id];
+    if (!real?.items?.length || (k.real && k.real.fetched === (real.fetched || null))) return;
+    const own = (k.menu || []).filter((d) => !d.real);
+    k.menu = [...menuDishes(R, k.id, real.items, { kind: k.kind }), ...own];
+    k.real = { name: real.name || null, source: real.source || null, fetched: real.fetched || null, style: real.style || null };
+  }
   //: An approved dish, as one of the city's items (so it can be bought, carried and eaten).
   function registerDish(R, d) {
     if (R.items[d.id]) { Object.assign(R.items[d.id], { name: d.name, price: d.price, use: { stamina: d.stamina, health: d.health } }); return; }
@@ -493,6 +504,8 @@ export function installKitchen(CityWorld, CityError) {
       owner_name: b ? null : nameOf(rng("owner", id)), cooks: [nameOf(r), nameOf(r), nameOf(r)], pantry: {}, incoming: [], month: null, ordered: {}, menu: [], proposals: [], tests: [],
       lines: {}, held: {}, staff: {}, log: [], seq: 0, carry: {}, opened: this.now };
     this.kitchens.set(id, k);
+    seedRealMenu(this.R, k);
+    for (const d of k.menu) registerDish(this.R, d);
     if (b) {
       // A player's business: its shelves of ready dishes become the pantry they were made from.
       for (const dish of itemsFor(this.R, b.kind)) {
@@ -516,7 +529,7 @@ export function installKitchen(CityWorld, CityError) {
     const daysLeft = partial ? Math.max(3, 31 - t.date) : 30;
     const r = rng("thrift", k.id, k.month), buffer = lerp(P.month_buffer[0], P.month_buffer[1], r());
     const order = { water: daysLeft * 2, flour: daysLeft };
-    for (const dish of itemsFor(R, k.kind)) {
+    for (const dish of k.real ? [] : itemsFor(R, k.kind)) {
       const rec = recipeOf(R, dish);
       if (!rec) continue;
       const units = Math.max(P.player_start_portions / 3, (wk.items?.[dish]?.[0] || 0) / 7 * daysLeft) * buffer;
@@ -593,10 +606,14 @@ export function installKitchen(CityWorld, CityError) {
   // ---- the shop's counter: what players buy comes out of the pantry too ---------------------------
   const storesHere = W.storesHere, stockCheck = W.stockCheck, soldHere = W.soldHere, orderStock = W.cmd_order_stock;
   W.storesHere = function (place) {
-    const out = storesHere.call(this, place), k = this.kitchens?.get(String(place?.id ?? ""));
+    const id = String(place?.id ?? "");
+    // (A restaurant with a real menu has its kitchen, and so its real dishes, from the first look.)
+    const out = storesHere.call(this, place), k = this.kitchens?.get(id) || (this.R.menus?.places?.[id] && place?.keys ? this.kitchenAt(place, true) : null);
     if (!k?.menu.length || !out.length) return out;
     const own = k.menu.filter((d) => makeable(k.pantry, d.build) > 0).map((d) => d.id);
-    return out.map((s, i) => (i === 0 ? { ...s, items: [...s.items, ...own] } : s));
+    // Its real menu in place of the house's list for its kind (what has no recipe, a bottle of
+    // water, is still sold).
+    return out.map((s, i) => (i === 0 ? { ...s, items: [...(k.real ? s.items.filter((d) => !recipeOf(this.R, d)) : s.items), ...own] } : s));
   };
   W.stockCheck = function (place, lines) {
     stockCheck.call(this, place, lines);
@@ -680,7 +697,8 @@ export function installKitchen(CityWorld, CityError) {
   //: The dishes customers can order: the menu, less what the pantry cannot make.
   W.kitchenMenu = function (k) {
     const R = this.R;
-    const house = itemsFor(R, k.kind).filter((d) => recipeOf(R, d) && makeable(k.pantry, recipeOf(R, d).build) > 0);
+    // (A restaurant with its real menu serves that, not the house's list for its kind.)
+    const house = k.real ? [] : itemsFor(R, k.kind).filter((d) => recipeOf(R, d) && makeable(k.pantry, recipeOf(R, d).build) > 0);
     const own = k.menu.filter((d) => makeable(k.pantry, d.build) > 0).map((d) => d.id);
     return [...house, ...own];
   };

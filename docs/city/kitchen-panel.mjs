@@ -20,6 +20,7 @@
 import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare } from "./kitchen.mjs";
 import { DOUGH_FORMS, doughDimensions, doughMesh, workableDough } from "./dough.mjs";
 import { createKitchenScene } from "./kitchen-3d.mjs";
+import { cookingSteps } from "./menu-dish.mjs";
 
 const HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew", "pour"];
 const SNAP_M = 0.14;   // dropped within this of a product, it is centred onto it
@@ -49,6 +50,11 @@ const STYLE = `
 #city-kitchen .side{position:absolute;right:10px;top:62px;width:300px;max-height:calc(100% - 150px);overflow:auto;padding:10px;scrollbar-width:thin}
 #city-kitchen .recipe ol{margin:2px 0;padding-left:18px;color:#a9b6c4}
 #city-kitchen .recipe li.done{color:#7fd39a}
+#city-kitchen .steps{margin:6px 0 2px}
+#city-kitchen .steps summary{cursor:pointer;font-weight:600;color:#dbe6f1}
+#city-kitchen .steps ol{margin:4px 0;padding-left:20px;color:#c9d4df;line-height:1.35}
+#city-kitchen .steps li{margin:2px 0}
+#city-kitchen .steps li .at{color:#8fa3b6;font-size:11px}
 #city-kitchen .chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 #city-kitchen .result{border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px;margin:6px 0;background:rgba(0,0,0,.25)}
 #city-kitchen .stars{color:#f6c445;font-size:16px;letter-spacing:1px}
@@ -810,6 +816,10 @@ export function kitchenPanel(api) {
       out.push(h("h4", { textContent: `${i + 1}. ${R.items[line.dish]?.name || line.dish}${g ? " — on the pass" : ""}` }));
       if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.shape ? ` · ${DOUGH_FORMS[c.shape.form]}, ${c.shape.span} × ${Number((c.shape.span / c.shape.aspect).toFixed(1))} cm` : ""}${c.side ? " (side)" : ""}` }))),
         target.ordered ? h("div", { className: "note", textContent: "Build it in this order, bottom first." }) : null,
+        // Clicking a ticket opens its step-by-step: what to start first so it all comes out together.
+        h("details", { className: "steps", open: st.steps !== false, ontoggle: (e) => { st.steps = e.target.open; } },
+          h("summary", { textContent: "Step by step" }),
+          h("ol", {}, ...cookingSteps(R, k().kind, target).map((s) => h("li", {}, h("span", { textContent: s.text }), s.station ? h("span", { className: "at", textContent: ` · ${s.station}` }) : null)))),
         g ? h("div", { className: "note", textContent: `As it stands: about ${scorePlate(R, target, plate, { elapsed: Math.max(0, (Date.now() - clock.real(t.at)) / 1000), patience: t.real_s, targetSeconds: t.target_s }).score}/100` }) : null));
     });
     const extras = (k().menu || []).filter((d) => { const v = recipeOf(R, d)?.vessel; return v === "cup" || v === "glass" || (R.items[d]?.price || 0) < R.money(8); }).slice(0, 8);

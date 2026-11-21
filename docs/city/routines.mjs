@@ -75,6 +75,12 @@ const ROUND_LABEL = { patrol: "On patrol", deliveries: "Making deliveries", fare
 const KIND_LABEL = { sleep: "Asleep", home: "At home", work: "At work", break: "On a break", errand: "Running an errand",
   meal: "Eating out", stroll: "Out for a walk", sport: "Playing sport", evening: "Out for the evening" };
 const WORKING = new Set(["day_shift", "late_shift", "night_shift", "rounds", "student", "remote"]);
+//: The kinds of day on which a homebody stays in (rules.json routine.homebody_share): no shift
+//: or school to go out to (and no work to look for: someone out of work goes job hunting).
+const HOMEBODY_DAYS = new Set(["retiree", "remote", "day_off"]);
+//: Whether someone is one of those who stay at home (the same ones every day): a share of the
+//: retired, of those working from home, and of anyone on a day off.
+export function isHomebody(R, person) { return (R.routine?.homebody_share || 0) * 1000 > hash32(person.id, "homebody") % 1000; }
 const PARENTAL = new Set(["day_shift", "late_shift", "remote", "job_seeker", "day_off"]);
 
 // ---- who does what today ---------------------------------------------------------------------------
@@ -370,7 +376,9 @@ function build(R, person, day, weekday, places, type, career) {
   if (drop) fit("school_drop", 480, 500);
   if (nearSchool) fit("school_pick", 900, 930);
 
-  // ---- the tasks, by the kind of day
+  // ---- the tasks, by the kind of day (none for a homebody on a day with nothing to go out to:
+  // up and dressed, and in all day)
+  if (!(HOMEBODY_DAYS.has(base) && !parent && isHomebody(R, person))) {
   const errandsN = () => some(routine.errand_chance * (parent ? 1.4 : 1), routine.errand_chance * 0.5);
   const kind = base === "rounds" ? cls : base;
   if (shift && (kind === "day_shift" || kind === "late_shift" || kind === "night_shift" || base === "student")) {
@@ -432,6 +440,8 @@ function build(R, person, day, weekday, places, type, career) {
     else if (chance(routine.stroll_chance)) fit("walk", 600, 1200);
     if (chance(routine.meal_out_chance)) fit("dinner", 1050, 1260);
     if (chance(routine.evening_out_chance * 1.3)) fit("drink", 1170, 1350);
+  }
+
   }
 
   // ---- home and to bed (none after a shift that runs past midnight)
