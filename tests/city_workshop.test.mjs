@@ -48,11 +48,16 @@ test("a player authorizes their own parked car, a mechanic fits a fender, and th
   assert.equal(viewFor(w, "tech").workOrders.length, 1);
   assert.equal(action(w, v, "check", { site: "wing", check: "inspect" }, "other").ok, false);
   assert.equal(action(w, v, "check", { site: "load", check: "inspect" }).ok, false);
+  ok(action(w,v,"ask"));
   ok(action(w, v, "check", { site: "wing", check: "inspect" }));
   assert.equal(action(w, v, "check", { site: "wing", check: "inspect", revision: 0 }).ok, false);
   assert.equal(action(w, v, "diagnose", { part: "ground" }).ok, false);
   ok(action(w, v, "diagnose", { part: "fender" }));
   assert.equal(action(w, v, "fit", { site: "wing", part: "fender", orientation: "reversed" }).ok, false);
+  const bins = w.workshopStock.get(place.id), before=bins.fender;
+  ok(action(w,v,"issue",{part:"fender"}));
+  assert.equal(bins.fender,before-1);
+  assert.equal(action(w,v,"issue",{part:"fender"}).ok,false);
   ok(action(w, v, "fit", { site: "wing", part: "fender", orientation: REPAIRS.fender.orientation }));
   assert.equal(action(w, v, "attach", { site: "rail", tool: "Trim clip pliers" }).ok, false);
   assert.equal(action(w, v, "verify").ok, false);
@@ -66,7 +71,7 @@ test("a player authorizes their own parked car, a mechanic fits a fender, and th
   assert.equal(bill.payer, "player:driver");
   assert.equal(bill.payee, "business:" + place.id);
   ok(w.submit("driver", "pay_bill", { bill: bill.id }));
-  assert.equal(w.ledger.balance(bill.payee), bill.amount);
+  assert.equal(w.ledger.balance(bill.payee), bill.amount-order.bonus);
   assert.equal(action(w, v, "release").ok, false);
   assert.ok(car.attrs.condition > 60);
   assert.equal(w.player("tech").experience.mechanic, 1);
@@ -101,8 +106,10 @@ for (const fault of ["ground", "relay"])
     );
     ok(w.submit("tech", "workshop_intake", intake));
     assert.equal(harmNow(w.harm.get(v), w.now).out, true);
+    ok(action(w,v,"ask"));
     ok(action(w, v, "check", { site: fault === "ground" ? "ground" : "load", check: spec.test }));
     ok(action(w, v, "diagnose", { part: fault }));
+    ok(action(w,v,"issue",{part:fault}));
     ok(action(w, v, "fit", { site: spec.seat, part: fault, orientation: spec.orientation }));
     const paid = totalBill(ok(action(w, v, "withdraw")).order);
     w = CityWorld.fromJSON(R, JSON.parse(JSON.stringify(w.toJSON())));
@@ -119,7 +126,7 @@ for (const fault of ["ground", "relay"])
     const { order } = ok(action(w, v, "release"));
     const invoice = w.billing.bills.get(order.bill);
     assert.equal(invoice.status, "paid");
-    assert.equal(w.ledger.balance(invoice.payee), paid + invoice.amount);
+    assert.equal(w.ledger.balance(invoice.payee), paid + invoice.amount-order.bonus);
     assert.equal(invoice.payer, visitor.id);
     assert.equal(order.plate, vehicle.plate);
     assert.equal(
@@ -129,3 +136,32 @@ for (const fault of ["ground", "relay"])
     assert.equal(w.harm.get(v).serviceFault, undefined);
     assert.equal(w.harm.get(v).serviceBay, undefined);
   });
+
+test("two orders share the last part, including wasted material and shop-paid replenishment", () => {
+  const w = setup();
+  ok(w.submit("other", "take_job", { role: "mechanic", place }));
+  ok(w.submit("other", "clock_in", { at }));
+  for (const id of ["car-a", "car-b"]) {
+    w.registry.register(id, "vehicle", "player:driver", { ...at, plate: id, model: "sedan", condition: 50 }, w.now);
+    ok(w.submit("driver", "workshop_intake", { place, vehicle: id, concern: "Wing came loose." }));
+    ok(action(w, id, "ask"));
+    ok(action(w, id, "check", { site: "wing", check: "inspect" }));
+    ok(action(w, id, "diagnose", { part: "fender" }));
+  }
+  const bins = w.workshopStock.get(place.id);
+  bins.fender = 1;
+  const wrong = ok(action(w, "car-a", "issue", { part: "relay" }));
+  assert.equal(wrong.order.mistakes, 1);
+  assert.equal(wrong.order.lines.at(-1).amount, R.money(REPAIRS.relay.price));
+  assert.equal(bins.relay, 3);
+  ok(action(w, "car-a", "issue", { part: "fender" }));
+  assert.equal(action(w, "car-b", "issue", { part: "fender" }, "other").ok, false);
+  assert.equal(bins.fender, 0);
+  const payee = w.workOrders.get("car-a").payee;
+  w.ledger.open(payee, "business");
+  w.ledger.mint(payee, R.money(500), "npc_income");
+  ok(action(w, "car-b", "restock", { part: "fender" }));
+  assert.equal(w.ledger.balance(payee), R.money(500 - 3 * 155));
+  ok(action(w, "car-b", "issue", { part: "fender" }, "other"));
+  assert.equal(bins.fender, 2);
+});

@@ -81,6 +81,7 @@ export class CityWorld {
     this.ledger.open("business:residents", "business");
     this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
     this.workOrders = new Map();
+    this.workshopStock = new Map();
     this.kitchenInit();      // restaurants' kitchens: pantries, tickets, the lab (kitchen.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
@@ -859,6 +860,7 @@ export class CityWorld {
     const b = this.billing.bills.get(bill);
     if (!b || b.payer !== p.account) throw new CityError("not your bill");
     const paid = this.billing.pay(bill, p.account, this.now);
+    if (b.repairBonus) this.payRepairBonus(b);
     // A car impounded for tickets is released once they are paid.
     for (const v of this.registry.owned(p.account, "vehicle")) {
       if (v.custody === "impounded" && !this.billing.open(p.account).some((x) => x.kind === "parking" || x.kind === "tow")) this.registry.release(v.id, "authority:sfmta", this.now);
@@ -1675,7 +1677,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], workOrders: [...this.workOrders], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], workOrders: [...this.workOrders], workshopStock: [...this.workshopStock], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1697,6 +1699,7 @@ export class CityWorld {
     w.enterpriseLoad(o.enterprise);
     w.kitchenLoad(o.kitchens);
     w.workOrders = new Map(o.workOrders || []);
+    w.workshopStock = new Map(o.workshopStock || []);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);

@@ -50,7 +50,7 @@ export function sanitize(args, command) {
     const out = {};
     for (const [k, x] of entries) {
       if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
-      const measured = k === "qty" && (command === "lab_test" || command === "kitchen_serve");
+      const measured = k === "qty" && ["lab_test","kitchen_serve","kitchen_bin","kitchen_prepare"].includes(command);
       const c = measured ? null : CLAMPS[k];
       if (c && typeof x === "number") { const n = Math.max(c[0], Math.min(c[1], x)); out[k] = c[2] ? Math.round(n) : n; }
       else out[k] = walk(x, depth + 1);

@@ -121,7 +121,7 @@ An accepted dish becomes one of the city's items. From then on:
 
 - **Saving**: kitchens are saved in the world's JSON as `kitchens`.
 - **Privacy**: the server's per-player view (`server/city/views.mjs`) shows a cook only their own tickets, board, tests and record. The owner sees everything.
-- **Trust**: the cooking itself happens in the page. The world validates quantities and available techniques and measures service delay on the world clock. It takes the page’s word on station doneness.
+- In the shared city, starting a station reserves its ingredients. The city records the station, elapsed time, cuts, and resulting portions. Serving or tasting consumes those portions once. Reopening the kitchen restores the cook’s ingredients and active batches. Offline practice has separate books.
 
 ## Shaping dough
 

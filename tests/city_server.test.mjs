@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { cityClient, cityServerUrl } from "../docs/city/server-client.mjs";
-import { Roster } from "../docs/city/fleet.mjs";
+import { Roster, serviceBooking } from "../docs/city/fleet.mjs";
+import { REPAIRS, MOUNTS, CIRCUITS } from "../docs/city/workshop.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 import { keyHash, openSession, playerId, readSession } from "../server/city/auth.mjs";
 import { CityAuthority } from "../server/city/authority.mjs";
@@ -354,19 +355,102 @@ test("what a function needs is uploaded: .vercelignore lets api/ and server/ thr
 });
 
 test("repair intake resolves a visiting car and its owner from the city roster", async () => {
-  const c = city(), place = [...canon.places.values()].find(p => p.keys.includes("use:gas_station"));
-  const at = near(place), roster = new Roster(R,{seed:"sf-corridor"}); roster.visitorsUpTo(2);
-  const driver=roster.visitors.get("visitor:1"), car=roster.vehicles.get(driver.car);
-  const visitor={id:driver.id,name:"Wrong driver",model:"Wrong car",shade:0,vehicle:car.id,plate:car.plate,indoors:place.id,parkedAt:place.id};
-  assert.ok((await c.cmd("ana","join",{name:"Ana",at})).result.ok);
-  assert.ok((await c.cmd("ana","take_job",{role:"mechanic",place,at})).result.ok);
-  assert.ok((await c.cmd("ana","clock_in",{at})).result.ok);
-  const args={place,at,vehicle:car.id,visitor};
-  const wrong=await c.cmd("ana","workshop_intake",{...args,visitor:{...visitor,plate:"wrong"}});
-  assert.equal(wrong.result?.ok ?? wrong.ok,false);
-  const {result}=await c.cmd("ana","workshop_intake",args);
-  assert.ok(result.ok,result.error);
-  assert.equal(result.order.customer,driver.name);
-  assert.equal(result.order.model,car.model);
-  assert.equal(result.order.shade,car.shade);
+  const c = city(),
+    place = [...canon.places.values()].find((p) => p.keys.includes("use:gas_station"));
+  const at = near(place),
+    roster = new Roster(R, { seed: "sf-corridor" });
+  roster.visitorsUpTo(600);
+  const world = (await c.A.load()).world,
+    day = world.time.day;
+  const driver = [...roster.visitors.values()].find((p) => serviceBooking("sf-corridor", p, day, place.id)),
+    car = roster.vehicles.get(driver.car);
+  const booking = serviceBooking("sf-corridor", driver, day, place.id);
+  c.clock.t = world.clock.real(world.now + (booking.at + 5 - world.time.minute) * 60000);
+  const visitor = {
+    id: driver.id,
+    name: "Wrong driver",
+    model: "Wrong car",
+    shade: 0,
+    vehicle: car.id,
+    plate: car.plate,
+    indoors: place.id,
+    parkedAt: place.id,
+  };
+  assert.ok((await c.cmd("ana", "join", { name: "Ana", at })).result.ok);
+  assert.ok((await c.cmd("ana", "take_job", { role: "mechanic", place, at })).result.ok);
+  assert.ok((await c.cmd("ana", "clock_in", { at })).result.ok);
+  const args = { place, at, vehicle: car.id, visitor };
+  const wrong = await c.cmd("ana", "workshop_intake", { ...args, visitor: { ...visitor, plate: "wrong" } });
+  assert.equal(wrong.result?.ok ?? wrong.ok, false);
+  const { result } = await c.cmd("ana", "workshop_intake", args);
+  assert.ok(result.ok, result.error);
+  assert.equal(result.order.customer, driver.name);
+  assert.equal(result.order.model, car.model);
+  assert.equal(result.order.shade, car.shade);
+  let order = result.order;
+  async function work(action, data = {}) {
+    c.clock.t += 2400;
+    const r = await c.cmd(
+      "ana",
+      "workshop_action",
+      { place, at, vehicle: car.id, orderId: order.id, revision: order.revision, action, ...data },
+      c.make(),
+    );
+    assert.ok(r.result?.ok, r.result?.error || r.error);
+    order = r.result.order;
+  }
+  const spec = REPAIRS[order.fault];
+  await work("ask");
+  await work("check", { check: spec.test, site: { inspect: "wing", drop: "ground", output: "load" }[spec.test] });
+  await work("diagnose", { part: order.fault });
+  await work("issue", { part: order.fault });
+  await work("fit", { part: order.fault, site: spec.seat, orientation: spec.orientation });
+  for (const site of spec.mounts) await work("attach", { site, tool: MOUNTS[site], circuit: CIRCUITS[site] });
+  await work("verify");
+  const previous = c.balance("ana");
+  await work("release");
+  assert.equal(order.bonus, R.money(7));
+  assert.equal(c.balance("ana"), previous + order.bonus);
+  assert.equal(c.stored().state.world.harm.find((h) => h.id === car.id).serviceBay, undefined);
+});
+
+test("city kitchen reserves stock and uses its own timer and preparation history at tasting", async () => {
+  const c = city();
+  const place = [...canon.places.values()].find(
+    (p) => p.keys.includes("shop:american") && p.keys.includes("use:restaurant"),
+  );
+  const at = near(place);
+  const cmd = async (name, data = {}) => {
+    const response = await c.cmd("ana", name, { at, place, ...data });
+    return response.result ?? response;
+  };
+  for (const [name, data] of [
+    ["join", { name: "Ana" }],
+    ["take_job", { role: "cook" }],
+    ["clock_in", {}],
+  ]) {
+    const r = await cmd(name, data);
+    assert.ok(r.ok, r.error);
+  }
+  const opened = await cmd("kitchen_open");
+  assert.ok(opened.kitchen.serverPrep);
+  const ing = Object.keys(opened.kitchen.pantry).find((i) => opened.kitchen.pantry[i] >= 2);
+  const parts = [{ ing, qty: 1 }];
+  assert.ok((await cmd("kitchen_take", { items: { [ing]: 1 } })).ok);
+  const forged = await cmd("lab_test", { build: [{ ing, qty: 1, p: "bake>chill", q: 1, ratios: [1, 1] }] });
+  assert.equal(forged.ok, false);
+  const started = await cmd("kitchen_prepare", { action: "start", station: "cooler", proc: "chill", parts });
+  assert.ok(started.ok, started.error);
+  const finish = () => cmd("kitchen_prepare", { action: "finish", job: started.job, ratio: 1 });
+  assert.equal((await finish()).ok, false);
+  assert.equal((await cmd("lab_test", { build: parts })).ok, false);
+  c.clock.t += Math.ceil(started.secs * 1000) + 100;
+  const finished = await finish();
+  assert.ok(finished.ok, finished.error);
+  const build = [{ ...finished.parts[0], p: "bake", q: 0, ratios: [10] }];
+  const tasted = await cmd("lab_test", { build });
+  assert.ok(tasted.ok, tasted.error);
+  assert.equal(tasted.test.build[0].p, "chill");
+  assert.equal(tasted.test.quality, 1);
+  assert.equal((await cmd("lab_test", { build })).ok, false);
 });

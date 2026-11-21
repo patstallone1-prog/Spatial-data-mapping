@@ -68,6 +68,28 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
   scene.add(root);
   const car = makeCar(order.model, colour, order.shade);
   root.add(car);
+  // Recessed floor pan, crossmembers and axle housings are visible from the lift pit.
+  box(root, 0, h * 0.17, 0, w * 0.66, 0.055, l * 0.62, rubber);
+  for (const z of [-l * 0.3, l * 0.29]) {
+    box(root, 0, h * 0.14, z, w * 0.8, 0.07, 0.12, steel);
+    for (const side of [-1, 1]) {
+      const arm = box(root, side * w * 0.32, h * 0.12, z + 0.09, 0.06, 0.055, w * 0.34, steel);
+      arm.rotation.y = side * 0.72;
+      mesh(root, new T.CylinderGeometry(0.052, 0.052, 0.035, 6), brass, side * w * 0.31, h * 0.094, z);
+    }
+  }
+  if (order.model === "compact_ev") box(root, 0, h * 0.125, 0.02, w * 0.68, 0.085, l * 0.4, steel);
+  else {
+    mesh(
+      root,
+      new T.CylinderGeometry(0.032, 0.032, l * 0.63, 12).rotateX(Math.PI / 2),
+      steel,
+      w * 0.19,
+      h * 0.11,
+      0,
+    );
+    box(root, w * 0.19, h * 0.12, l * 0.22, 0.21, 0.11, 0.42, steel);
+  }
   const loc = serviceGeometry(order.model),
     point = (id) => new T.Vector3(...loc[id]);
   const power = order.fault !== "fender",
@@ -158,10 +180,19 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     panel.scale.set(l * 0.27, h * 0.65, 1);
   }
   const targets = [],
+    fasteners = {},
     markers = {};
   for (const [id, coords] of Object.entries(loc)) {
     const m = mat(0x77bab4, 0.65);
     const bolt = mesh(bay, new T.CylinderGeometry(0.032, 0.032, 0.035, 6), m, ...coords);
+    fasteners[id] = bolt;
+    const washer = mesh(bay, new T.TorusGeometry(0.033, 0.006, 6, 18), steel, ...coords);
+    washer.rotation.x = -Math.PI / 2;
+    washer.position.y -= 0.017;
+    if (id === "coil" || id === "load") {
+      box(bay, coords[0], coords[1] - 0.016, coords[2], 0.065, 0.035, 0.078, rubber);
+      box(bay, coords[0], coords[1], coords[2] - 0.022, 0.012, 0.018, 0.036, brass);
+    }
     const ring = mesh(bay, new T.TorusGeometry(0.058, 0.008, 8, 28), m, ...coords);
     ring.rotation.x = -Math.PI / 2;
     bolt.userData.site = ring.userData.site = id;
@@ -179,7 +210,20 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     pulse = 0;
   const focus = new T.Vector3(0, lift + h * 0.5, -l * 0.13),
     goal = focus.clone();
-  const tool = box(bay, 0, 0, 0, 0.028, 0.028, 0.26, brass);
+  const tool = new T.Group();
+  bay.add(tool);
+  mesh(tool, new T.CylinderGeometry(0.032, 0.032, 0.06, 12), steel, 0, 0, 0);
+  box(tool, 0, 0.035, 0.105, 0.029, 0.023, 0.22, steel);
+  box(tool, 0, 0.036, 0.225, 0.046, 0.039, 0.12, rubber);
+  const jaws = new T.Group();
+  bay.add(jaws);
+  for (const side of [-1, 1]) {
+    const grip = box(jaws, side * 0.032, 0.025, 0.115, 0.022, 0.028, 0.16, blue);
+    grip.rotation.y = side * 0.21;
+    box(jaws, side * 0.012, 0.024, 0.008, 0.013, 0.018, 0.078, steel);
+  }
+  let workedSite = null,
+    previousMounts = new Set(order.mounts);
   tool.visible = false;
   function select(id, zoom = false) {
     if (!loc[id]) return;
@@ -206,7 +250,7 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
   canvas.onpointermove = (e) => {
     if (!drag) return;
     angle -= (e.clientX - drag.x) * 0.008;
-    pitch = Math.min(1.44, Math.max(0.1, pitch + (e.clientY - drag.y) * 0.006));
+    pitch = Math.min(1.44, Math.max(-1.38, pitch + (e.clientY - drag.y) * 0.006));
     drag.x = e.clientX;
     drag.y = e.clientY;
   };
@@ -231,6 +275,8 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     radius = Math.min(l * 2, Math.max(0.6, radius * Math.exp(e.deltaY * 0.001)));
   };
   function update(o) {
+    workedSite = o.mounts.find((id) => !previousMounts.has(id)) || null;
+    previousMounts = new Set(o.mounts);
     order = o;
     if (!o.active && o.verified) {
       for (const [mesh, original] of originals) mesh.material = original;
@@ -251,7 +297,7 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     focus.lerp(goal, 0.09);
     camera.position.set(
       focus.x + Math.sin(angle) * Math.cos(pitch) * radius,
-      focus.y + Math.sin(pitch) * radius,
+      Math.max(0.08, focus.y + Math.sin(pitch) * radius),
       focus.z - Math.cos(angle) * Math.cos(pitch) * radius,
     );
     camera.lookAt(focus);
@@ -260,11 +306,19 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     replacement.position.set(power ? 0 : -t * 0.6, power ? t * 0.5 : 0, 0);
     for (const id of Object.keys(markers))
       markers[id].color.setHex(order.mounts.includes(id) ? 0x62c48a : id === selected ? 0xffcc65 : 0x77bab4);
-    tool.visible = !!selected && now - pulse < 650;
-    if (tool.visible) {
-      tool.position.copy(point(selected));
-      tool.position.y += 0.06;
-      tool.rotation.y = Math.sin((now - pulse) / 70) * 0.45;
+    const motion = Math.min(1, Math.max(0, (now - pulse) / 750));
+    const gripping = ["lug", "arch", "coil", "load"].includes(workedSite);
+    tool.visible = Boolean(workedSite && motion < 1 && !gripping);
+    jaws.visible = Boolean(workedSite && motion < 1 && gripping);
+    if (workedSite) {
+      const hand = gripping ? jaws : tool;
+      hand.position.copy(point(workedSite));
+      hand.position.y += 0.05 + (1 - motion) * 0.04;
+      hand.rotation.y = Math.sin(motion * Math.PI * 5) * 0.48;
+      if (gripping) jaws.scale.x = 0.8 + 0.3 * Math.cos(motion * Math.PI * 4);
+      const bolt = fasteners[workedSite];
+      bolt.rotation.y = motion * Math.PI * 3;
+      bolt.position.y = loc[workedSite][1] + (1 - motion) * 0.035;
     }
     renderer.render(scene, camera);
   }
@@ -273,7 +327,15 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
   return {
     select,
     update,
+    underbody() {
+      goal.set(0, lift + 0.18, 0);
+      pitch = -1.3;
+      radius = 0.88;
+      angle = -0.25;
+    },
     overview() {
+      pitch = 0.52;
+      angle = -0.72;
       goal.set(0, lift + h * 0.5, -l * 0.13);
       radius = l * 1.38;
     },
@@ -283,8 +345,7 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
       const shared = vehicleMaterials(T);
       for (const [m, original] of originals) {
         m.material = original;
-        if (original !== shared.fixed && original !== shared.glass && original !== shared.paint)
-          original.dispose();
+        if (original !== shared.fixed && original !== shared.glass && original !== shared.paint) original.dispose();
         if (m.isInstancedMesh) m.dispose();
       }
       car.traverse((m) => {

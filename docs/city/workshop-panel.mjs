@@ -159,12 +159,19 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
         (a) =>
           a.kind === "vehicle" &&
           a.owner === p.account &&
+          (a.attrs.serviceFault || (a.attrs.condition ?? 100) < 100) &&
           p.driving?.vehicle !== a.id &&
           !view.workOrders.get(a.id)?.active &&
           Math.hypot((p.parked[a.id] || a.attrs).x - place.x, (p.parked[a.id] || a.attrs).z - place.z) <=
             R.jobs.workplace_reach_m,
       );
     list.append(h("h3", { textContent: "Your parked vehicles" }));
+    const concern = h("input", {
+      placeholder: "What did you notice?",
+      maxLength: 180,
+      "aria-label": "Symptoms for the mechanic",
+    });
+    if (owned.length) list.append(concern);
     for (const a of owned)
       list.append(
         h(
@@ -172,11 +179,11 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
           { className: "row" },
           h("span", { textContent: `${name(a.attrs)} · ${a.attrs.plate}` }),
           btn("Authorize up to " + R.fmt(R.money(SHOP_LIMIT)), () =>
-            command("workshop_intake", { vehicle: a.id }),
+            command("workshop_intake", { vehicle: a.id, concern: concern.value }),
           ),
         ),
       );
-    if (!owned.length) list.append(note("Park a vehicle you own at this shop to request service."));
+    if (!owned.length) list.append(note("Park your damaged vehicle at this shop to request service."));
     if (staff()) {
       list.append(h("h3", { textContent: "Customers at the counter" }));
       const here = visitors(place).filter(
@@ -216,6 +223,7 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
         "div",
         { className: "view-controls" },
         btn("Whole vehicle", () => scene.overview()),
+        btn("Look underneath", () => scene.underbody()),
         h("small", { textContent: "  Drag to orbit · scroll to zoom" }),
       ),
     );
@@ -239,7 +247,9 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
       note(o.plate + " · " + o.customer),
       h("p", {
         textContent: o.active
-          ? "“" + spec.complaint + "”"
+          ? o.interview || !o.partsRequired
+            ? "“" + (o.concern || spec.complaint) + "”"
+            : "Customer waiting for intake."
           : o.verified
             ? "Functional check passed · vehicle released"
             : "Customer collected vehicle before completion",
@@ -251,8 +261,20 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
       points.onchange = () => {
         if (points.value) scene.select(points.value, true);
       };
-      sidebar.append(h("h3", { textContent: "Inspection point" }), points);
-      if (!o.diagnosed) {
+      sidebar.append(
+        h("h3", { textContent: o.diagnosed ? "Attachment point" : "1 · Inspect and diagnose" }),
+        points,
+      );
+      const bins = getView().workshopStock.get(o.shop) || {};
+      for (const [id, n] of Object.entries(bins))
+        if (!n)
+          sidebar.append(
+            btn("Order empty bin · " + (REPAIRS[id]?.part || SITES[id.slice(6)] + " hardware"), () =>
+              act("restock", { part: id }),
+            ),
+          );
+      if (o.partsRequired && !o.interview) sidebar.append(btn("Ask what happened", () => act("ask")));
+      else if (!o.diagnosed) {
         const tools = select(
           "Diagnostic tool",
           Object.entries(CHECKS).map(([id, t]) => [id, t.label + " · " + R.fmt(R.money(t.cost))]),
@@ -276,24 +298,37 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
           "Replacement part",
           Object.entries(REPAIRS).map(([id, t]) => [id, t.part + " · " + R.fmt(R.money(t.price))]),
         );
-        const facing = select(
-          "Part orientation",
-          ["Select orientation", "wheel opening down", "bare contact inward", "keyway forward", "reversed"].map(
-            (x) => [x, x],
-          ),
-        );
-        sidebar.append(
-          h("h3", { textContent: "Place replacement" }),
-          group(
+        if (o.partsRequired && !o.issued) {
+          sidebar.append(
+            h("h3", { textContent: "2 · Get parts" }),
             parts,
-            facing,
-            btn(
-              "Seat at selected point",
-              () => act("fit", { part: parts.value, orientation: facing.value }),
-              true,
+            note(
+              Object.keys(REPAIRS)
+                .map((id) => REPAIRS[id].part + ": " + (bins[id] ?? 0))
+                .join(" · "),
             ),
-          ),
-        );
+            btn("Draw selected part", () => act("issue", { part: parts.value })),
+          );
+        } else {
+          const facing = select(
+            "Part orientation",
+            ["Select orientation", "wheel opening down", "bare contact inward", "keyway forward", "reversed"].map(
+              (x) => [x, x],
+            ),
+          );
+          sidebar.append(
+            h("h3", { textContent: "3 · Fit and verify" }),
+            group(
+              parts,
+              facing,
+              btn(
+                "Seat at selected point",
+                () => act("fit", { part: parts.value, orientation: facing.value }),
+                true,
+              ),
+            ),
+          );
+        }
       } else if (!o.verified) {
         const tool = select("Fitting tool", [
           ["", "Select a fitting tool"],
@@ -319,6 +354,7 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
         );
       } else sidebar.append(btn("Release vehicle and issue invoice", () => act("release"), true));
     }
+    if (o.bonus) sidebar.append(note("Employee bonus · " + R.fmt(o.bonus)));
     for (const reading of Object.values(o.checks)) sidebar.append(note(reading));
     sidebar.append(
       h("output", { "aria-live": "polite", textContent: message }),
@@ -334,7 +370,7 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
         ),
       );
     sidebar.append(h("b", { textContent: "Total " + R.fmt(totalBill(o)) }));
-    if (o.active && o.payer === self().account)
+    if (o.active && (o.payer === self().account || (o.npc && staff())))
       sidebar.append(group(btn("Withdraw car and bill work to date", () => act("withdraw"))));
   }
   return { open, close };

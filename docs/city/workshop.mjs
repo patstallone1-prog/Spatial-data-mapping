@@ -1,5 +1,5 @@
 import { hash32 } from "./people.mjs";
-import { plateOf, vehicleState } from "./fleet.mjs";
+import { plateOf, vehicleState, serviceBooking } from "./fleet.mjs";
 
 export const WORKSHOP_COMMANDS = ["workshop_intake", "workshop_action"];
 export const SITES = {
@@ -79,6 +79,12 @@ export const CHECKS = {
     normal: "12.5 V supply, 12.4 V switched · relay closes.",
   },
 };
+export const BIN_START = {
+  fender: 3,
+  relay: 4,
+  ground: 4,
+  ...Object.fromEntries(Object.keys(MOUNTS).map((site) => ["mount:" + site, 12])),
+};
 export const SHOP_LIMIT = 350;
 export function isWorkshop(R, place, business) {
   return (
@@ -96,7 +102,7 @@ export function canWorkBay(p, place, business) {
 }
 // The live street simulation owns NPC schedules and parking. An intake is offered only when
 // both the driver and that driver's parked vehicle are at the same shop.
-export function visitingCars(people, fleet, time, place) {
+export function visitingCars(people, fleet, time, place, bookedOnly = false) {
   const result = [];
   if (!fleet) return result;
   for (const entry of people) {
@@ -109,6 +115,11 @@ export function visitingCars(people, fleet, time, place) {
       !["economy", "suv", "sports", "sedan", "compact_ev", "pickup", "delivery_van", "taxi"].includes(v.model)
     )
       continue;
+    if (bookedOnly) {
+      const slot = serviceBooking(fleet.seed, p, time.day, place.id),
+        minute = time.gameMinute ?? time.minute;
+      if (!slot || minute < slot.at || minute >= slot.at + slot.dwell) continue;
+    }
     const at = fleet.vehicleAt(v, time);
     if (at?.state !== "parked" || String(at.spot?.place) !== String(place.id)) continue;
     result.push({
@@ -141,7 +152,18 @@ export function installWorkshop(World, CityError) {
       fail("Go to the repair shop.");
     return { p, b, staff: canWorkBay(p, place, b) };
   }
-  World.prototype.cmd_workshop_intake = function (pid, { place, vehicle, visitor }) {
+  World.prototype.payRepairBonus = function (bill) {
+    const bonus = bill.repairBonus;
+    if (!bonus || bonus.paid || bill.status !== "paid") return;
+    this.ledger.transfer(bill.payee, bonus.account, bonus.amount, {
+      kind: "bonus",
+      at: this.now,
+      memo: "Verified repair",
+      key: "bonus:" + bill.id,
+    });
+    bonus.paid = true;
+  };
+  World.prototype.cmd_workshop_intake = function (pid, { place, vehicle, visitor, concern }) {
     const { p, b, staff } = access(this, pid, place);
     let payer, customer, model, plate, shade, record;
     if (visitor) {
@@ -190,6 +212,8 @@ export function installWorkshop(World, CityError) {
       (record.condition ?? 100) >= record.servicedCondition
     )
       fail("This vehicle was just serviced.");
+    if (!visitor && !record.serviceFault && (record.condition ?? 100) >= 100)
+      fail("This car has no recorded damage or service fault.");
     const fault =
       record.serviceFault ||
       ((record.condition ?? 100) < 75
@@ -208,6 +232,15 @@ export function installWorkshop(World, CityError) {
       plate,
       shade,
       fault,
+      interview: false,
+      concern: visitor
+        ? ""
+        : String(concern || "")
+            .trim()
+            .slice(0, 180),
+      partsRequired: true,
+      startedAt: this.now,
+      mistakes: 0,
       checks: {},
       diagnosed: false,
       seated: false,
@@ -219,7 +252,12 @@ export function installWorkshop(World, CityError) {
     };
     if (record.serviceWork) Object.assign(order, record.serviceWork);
     if (!visitor && p.parked[vehicle]) Object.assign(p.parked[vehicle], { metered: false, offstreet: true });
+    if (!this.workshopStock.has(order.shop)) this.workshopStock.set(order.shop, { ...BIN_START });
     this.workOrders.set(vehicle, order);
+    if (visitor && !record.serviceFault) {
+      record.condition = Math.min(record.condition ?? 100, fault === "fender" ? 78 : 90);
+      record.state = vehicleState(this.R, record.condition);
+    }
     record.serviceBay = order.shop;
     record.serviceFault = fault;
     return { order };
@@ -241,8 +279,44 @@ export function installWorkshop(World, CityError) {
       if (totalBill(o) + amount > this.R.money(SHOP_LIMIT)) fail("The authorized estimate is used up.");
       o.lines.push(...lines);
     };
+    const now = this.clock.real(this.now);
+    if (this.authoritativeJobs && action !== "withdraw" && now < (o.readyAt || 0))
+      fail("Finish the current operation first.");
     let message;
-    if (action === "check") {
+    const stock = this.workshopStock.get(o.shop) || { ...BIN_START };
+    this.workshopStock.set(o.shop, stock);
+    const need = (id) => {
+      if (!(stock[id] > 0)) fail("That bin is empty. Order replacement stock.");
+    };
+    if (action === "ask") {
+      if (o.interview) fail("The customer statement is already on the order.");
+      o.interview = true;
+      o.startedAt = this.now;
+      message = o.concern || spec.complaint;
+    } else if (action === "restock") {
+      if (!Object.hasOwn(BIN_START, part)) fail("Choose a parts bin.");
+      if (stock[part] > 0) fail("This bin still has stock.");
+      const unit = REPAIRS[part]?.price || 3;
+      const price = this.R.money(unit * BIN_START[part]);
+      if (this.ledger.balance(o.payee) < price) fail("The shop till cannot cover this delivery.");
+      this.ledger.transfer(o.payee, this.ledger.open("business:parts-supplier", "business"), price, {
+        kind: "stock",
+        at: this.now,
+        memo: part,
+      });
+      stock[part] = BIN_START[part];
+      message = "Delivery received.";
+    } else if (action === "issue") {
+      if (!o.diagnosed || o.seated || o.issued || !Object.hasOwn(REPAIRS, part))
+        fail("Check the work order before drawing a part.");
+      need(part);
+      cost([REPAIRS[part].part + (part === o.fault ? "" : " · wasted"), REPAIRS[part].price]);
+      stock[part]--;
+      if (part === o.fault) o.issued = part;
+      else o.mistakes++;
+      message = o.issued ? "Part drawn from the bin." : "Incorrect replacement drawn. Material charged.";
+    } else if (action === "check") {
+      if (o.partsRequired && !o.interview) fail("Ask the customer about the symptoms first.");
       const tool = Object.hasOwn(CHECKS, check) && CHECKS[check];
       if (!tool || site !== tool.site || o.seated) fail("Select the appropriate test point first.");
       if (Object.hasOwn(o.checks, check)) fail("This reading is already on the work order.");
@@ -258,8 +332,14 @@ export function installWorkshop(World, CityError) {
     } else if (action === "fit") {
       if (!o.diagnosed || o.seated || part !== o.fault || site !== spec.seat || orientation !== spec.orientation)
         fail("Check part, location and orientation before seating it.");
-      cost([spec.part, spec.price]);
+      if (o.partsRequired && o.issued !== o.fault) fail("Draw the replacement from its bin first.");
+      if (!o.issued) {
+        need(o.fault);
+        cost([spec.part, spec.price]);
+        stock[o.fault]--;
+      }
       o.seated = true;
+      o.fitter = pid;
       message = "Part seated. Secure each connection.";
     } else if (action === "attach") {
       const i = spec.mounts.indexOf(site);
@@ -268,7 +348,9 @@ export function installWorkshop(World, CityError) {
       if (tool !== MOUNTS[site]) fail("That tool cannot secure this attachment.");
       if (CIRCUITS[site] && circuit !== CIRCUITS[site])
         fail("Trace the lead on the circuit card before connecting it.");
+      need("mount:" + site);
       cost([SITES[site] + " · hardware", spec.materials[i]], [SITES[site] + " · fitting labor", 6]);
+      stock["mount:" + site]--;
       o.mounts.push(site);
       message = SITES[site] + " secured.";
     } else if (action === "verify") {
@@ -276,6 +358,7 @@ export function installWorkshop(World, CityError) {
         fail("Complete every attachment before the functional check.");
       cost(["Functional check and release inspection", 12]);
       o.verified = true;
+      o.inspector = pid;
       message =
         o.fault === "fender"
           ? "Panel secure. Wheel clearance passed."
@@ -296,6 +379,11 @@ export function installWorkshop(World, CityError) {
       }
       if (!o.verified)
         record.serviceWork = {
+          interview: o.interview,
+          fitter: o.fitter,
+          issued: o.issued,
+          startedAt: o.startedAt,
+          mistakes: o.mistakes,
           checks: { ...o.checks },
           diagnosed: o.diagnosed,
           seated: o.seated,
@@ -327,8 +415,25 @@ export function installWorkshop(World, CityError) {
           this.billing.pay(bill.id, o.payer, this.now);
         }
       }
+      const employee = this.players.get(o.fitter || o.inspector);
+      if (
+        o.verified &&
+        employee?.clocked &&
+        employee.job?.role === "mechanic" &&
+        String(employee.job.place.id) === o.shop
+      ) {
+        const elapsed = (this.clock.real(this.now) - this.clock.real(o.startedAt ?? this.now)) / 1000;
+        o.bonus = this.R.money((o.mistakes ? 0 : 4) + (elapsed <= 150 && !o.mistakes ? 3 : 0));
+        const bill = this.billing.bills.get(o.bill);
+        if (bill && o.bonus) {
+          bill.repairBonus = { account: employee.account, amount: o.bonus };
+          if (bill.status === "paid") this.payRepairBonus(bill);
+        }
+      }
       message = "Vehicle released. Invoice " + this.R.fmt(amount);
     } else fail("Unknown bay action.");
+    const seconds = { ask: 1, check: 2, diagnose: 1, issue: 1, fit: 2, attach: 1, verify: 2 };
+    if (this.authoritativeJobs) o.readyAt = now + (seconds[action] || 0) * 1000;
     o.revision++;
     return { order: o, message };
   };

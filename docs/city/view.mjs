@@ -1615,7 +1615,7 @@ diffuseColor.rgb *= kbCloth;`);
     openKitchen: (place) => { const pl = (district.places || []).find((x) => String(x.id) === String(place.id)); if (pl) { closeSide(); kitchen().open(pl); } else notify("Go to the restaurant to open its kitchen."); } }));
   let bayUI = null;
   const workshop = () => (bayUI ||= workshopPanel({ R, h, doc, THREE, send, notify, self, getView: () => view, makeCar,
-    visitors: place => visitingCars(visible.people, district.city, fleetAt(Date.now()), place), placeArg }));
+    visitors: place => visitingCars(visible.people, district.city, fleetAt(Date.now()), place, !world), placeArg }));
   //: A food shop's line, lab and pantry, for its staff and its owner.
   let kitchenUI = null;
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));

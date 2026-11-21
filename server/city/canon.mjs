@@ -6,7 +6,7 @@
 // price, a floor area, a position or a use is never the client's word. A place the record does
 // not hold is refused. The record is built from the page's own district
 // (tools/build_city_canon.mjs) and read once.
-import { Roster } from "../../docs/city/fleet.mjs";
+import { Roster, serviceBooking } from "../../docs/city/fleet.mjs";
 import { homeListings } from "../../docs/city/market.mjs";
 
 export class Refused extends Error {
@@ -69,7 +69,7 @@ export class Canon {
   }
   // A browser observes who reached the counter. Resolve the actual owner, car and plate
   // from the same seeded household or visitor roster used by the street simulation.
-  serviceDriver(given) {
+  serviceDriver(given, shop, time) {
     const region = this.district?.split(":").slice(0,-3).join(":") || this.district || "district";
     this.serviceRoster ??= new Roster(this.R, { seed: region });
     const roster = this.serviceRoster, id = String(given.id);
@@ -92,10 +92,13 @@ export class Canon {
     }
     const car = roster.vehicles.get(person?.car);
     if (!car || car.id !== given.vehicle || car.plate !== given.plate) throw new Refused("The city cannot match that vehicle to this customer.");
-    return { ...given, id: person.id, name: person.name, model: car.model, shade: car.shade };
+    const booking = time && serviceBooking(region, person, time.day, shop);
+    if (!booking || time.minute < booking.at || time.minute >= booking.at + booking.dwell)
+      throw new Refused("This driver has no current service appointment here.");
+    return { id: person.id, vehicle:car.id, plate:car.plate, name: person.name, model: car.model, shade: car.shade, indoors:shop, parkedAt:shop };
   }
   //: A command's arguments with every place and listing in them made canonical. Throws Refused.
-  canonical(command, args, { week }) {
+  canonical(command, args, { week,time }) {
     const walk = (value, key, depth) => {
       if (depth > 6) throw new Refused("that command is too deep");
       if (Array.isArray(value)) return value.map((v) => walk(v, key, depth + 1));
@@ -115,7 +118,7 @@ export class Canon {
       return out;
     };
     const out = walk(args || {}, "", 0);
-    if (command === "workshop_intake" && out.visitor) out.visitor = this.serviceDriver(out.visitor);
+    if (command === "workshop_intake" && out.visitor) out.visitor = this.serviceDriver(out.visitor,out.place?.id,time);
     if ("rivals" in out) {
       const place = out.place?.id ? this.place(out.place.id) : null;
       out.rivals = place ? this.rivals(place, typeof out.kind === "string" ? out.kind : null) : 0;

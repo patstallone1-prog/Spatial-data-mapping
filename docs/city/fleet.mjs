@@ -51,6 +51,14 @@ export const VISITOR_KINDS = [
   // on their way, once a game day (Roster.commutersUpTo): never drawn by the share above.
   { kind: "commuter", title: "Commuter", share: 0, trips: [1, 1], stop: [0, 0, 0], models: [["economy", 0.28], ["sedan", 0.26], ["suv", 0.22], ["compact_ev", 0.16], ["pickup", 0.06], ["sports", 0.02]] },
 ];
+// Shared by the street itinerary and the city service desk. Only this shop and
+// this game-day booking can authorize this visitor's NPC-funded repair.
+export function serviceBooking(region, person, day, shop) {
+  if (!person.visitor || person.kind !== "private") return null;
+  const r = rng(region, person.id, day, String(shop), "service booking");
+  if (r() >= 1/24) return null;
+  return { at: (8 + r()*7)*60, dwell: 65 + r()*35, visit:String(shop), service:true };
+}
 export const ROLE_VEHICLE = { police: "patrol", taxi_driver: "taxi", delivery_driver: "delivery_van", street_cleaner: "box_truck" };
 //: A car's lane: right of the street's middle, clear of the cars parked at its kerb, and the lane
 //: for the turn ahead on a street of more than one each way (people.mjs DRIVE_LANE).
@@ -1319,10 +1327,14 @@ export class City {
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
     for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
     // Some existing visiting motorists book an indoor appointment on their own street network.
-    const service = rng(this.seed, p.id, t.day, "auto service");
-    if (!K.stop && trips.length && service() < 1 / 18) {
-      const workshops = places.filter(pl => pl.inside && ["shop:auto_parts", "use:gas_station", "shop:fuel"].some(key => pl.keys.has(key)));
-      if (workshops.length) Object.assign(trips[0], { at: (8 + service() * 7) * 60, visit: pick(service, workshops).id, dwell: 45 + service() * 35, service: true });
+    if (trips.length && !K.stop) {
+      const booking = places.filter(pl => pl.inside && ["shop:auto_parts","use:gas_station","shop:fuel"].some(key=>pl.keys.has(key)))
+        .map(pl=>serviceBooking(this.seed,p,t.day,pl.id)).filter(Boolean).sort((a,b)=>a.at-b.at)[0];
+      if (booking) {
+        Object.assign(trips[0],booking);
+        // Leave a clear approach before the reserved slot.
+        for(let i=trips.length-1;i>0;i--) if(trips[i].at<booking.at+booking.dwell) trips.splice(i,1);
+      }
     }
     trips.sort((a, b) => a.at - b.at);
     // (Planned in game minutes, driven in real ones: clock.mjs fleetTime.)
