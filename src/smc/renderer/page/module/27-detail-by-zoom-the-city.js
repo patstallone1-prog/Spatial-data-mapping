@@ -348,6 +348,8 @@ function animate(now) {
   if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
   if (!worldPaused) {
     if (!xrFrame) runPreupload();
+    // The near photographs out to all the ground in view but what is seen at a grazing angle.
+    NEAR_SURFACE.follow(camera, (state.firstPerson ? avatar.position : state.target).y);
     renderer.render(scene, camera);
     if (!ATTACH) markBootRendered();
   }

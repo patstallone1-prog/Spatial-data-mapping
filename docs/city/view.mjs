@@ -51,7 +51,7 @@ import { kitchenPanel } from "./kitchen-panel.mjs";
 import { recipeOf } from "./kitchen.mjs";
 import { clerkLine, clerkNear, lineParts } from "./clerk.mjs";
 import { shopWindow } from "./shop-window.mjs";
-import { NEAR_FIGURES_MAX, npcFigures } from "./npc-figures.mjs";
+import { figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
 import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
 import { strideBodies } from "./stride.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
@@ -959,7 +959,12 @@ diffuseColor.rgb *= kbCloth;`);
   const blends = new Map(), POSE = newPose(), BLEND_OPTS = { speed: 0, height: 1.75, seed: 0 };
   const UB = new THREE.Matrix4(), HM = new THREE.Matrix4();
   let blendSweep = 0;
-  function drawPeople(list, now) {
+  // (Its entries kept from frame to frame and filled again: nothing made a person a frame.)
+  const FIG_CAM = { x: 0, z: 0 }, FIG_YOU = { x: 0, z: 0 }, figPeople = [], figEntries = [], figInView = new Map(), figReady = [];
+  const figHas = (id) => figures.has?.(id);
+  let figLast = null;
+  const lookOf = (p) => { const body = bodyFor(p.person, bodies), o = body.outfit; return { body, look: { top: o.topColour, bottom: o.bottoms, hair: body.hair, skin: body.skin } }; };
+  function drawPeople(list, now, focus = null) {
     if (now - blendSweep > 2500) { blendSweep = now; for (const [id, st] of blends) if (now - st.lastNow > 3000) blends.delete(id); }
     const seen = peopleInView(list);
     // Each at the tier the frame gave it (frameCity), or -- a cyclist, a passenger -- by where it is.
@@ -968,25 +973,54 @@ diffuseColor.rgb *= kbCloth;`);
     // Near you, the characters; then the jointed figures, which were the near ring, for the rest
     // of it and the moderate ring; past that the basic shapes. (While the characters load, the
     // rings are as they were.)
-    // The nearest who can be characters -- those already drawn as one first, among the nearest few
-    // more than there are characters, so one at the edge of the count does not change back and forth.
+    // Characters (npc-figures.mjs figurePlan): everyone in view big enough on the screen to be told
+    // from a jointed figure, or near you, whatever the ring or the count -- and, hidden, everyone
+    // out of view in that or on their way into it in the next few seconds, so each is a character
+    // the moment they are seen. (It had been the nearest 20 in view of the full ring: the
+    // twenty-first beside you, and anyone you turned round to, a jointed figure first.)
     const near = [];
+    let ready = [], want = null;
     if (!figures.failed) {
-      const fits = [];
-      for (const q of full) { if (figureFits(q.p)) fits.push(q); if (fits.length >= NEAR_FIGURES_MAX + 6) break; }
-      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && figures.has?.(q.p.id)) near.push(q);
-      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && !near.includes(q)) near.push(q);
+      const cam = ctx.camera?.();
+      if (cam) { cam.getWorldPosition(VIEW_AT); FIG_CAM.x = VIEW_AT.x; FIG_CAM.z = VIEW_AT.z; }
+      FIG_YOU.x = focus?.x ?? FIG_CAM.x; FIG_YOU.z = focus?.z ?? FIG_CAM.z;
+      const reach = figureReach(cam?.fov || 50, globalThis.innerHeight || 900);
+      figInView.clear();
+      for (const q of seen) figInView.set(q.p, q);
+      figPeople.length = 0;
+      let k = 0;
+      for (const p of list) {
+        // (Only those who could come near: the rest are well out of both reaches.)
+        if (Math.abs(p.x - FIG_CAM.x) > reach + 60 && Math.abs(p.x - FIG_YOU.x) > 90 || Math.abs(p.z - FIG_CAM.z) > reach + 60 && Math.abs(p.z - FIG_YOU.z) > 90) continue;
+        const v = p.moving ? (p.speed ?? p.person?.pace ?? 1.3) : 0, e = figEntries[k] ||= {};
+        e.id = p.id; e.p = p; e.x = p.x; e.z = p.z; e.vx = -Math.sin(p.yaw || 0) * v; e.vz = -Math.cos(p.yaw || 0) * v;
+        e.female = bodyFor(p.person, bodies).female === true; e.fits = figureFits(p); e.inView = figInView.has(p);
+        figPeople.push(e); k += 1;
+      }
+      const plan = figurePlan(figPeople, FIG_CAM, FIG_YOU, reach, { has: figHas });
+      // (What the page reports of it: kerbsideCity().detail().figurePlan. ``unfit``: in view and
+      // within it, but doing what a character has no clip for -- riding, fallen -- so a jointed figure.)
+      let unfit = 0;
+      for (const e of figPeople) if (!e.fits && e.inView && Math.hypot(e.x - FIG_CAM.x, e.z - FIG_CAM.z) <= reach) unfit += 1;
+      const fl = figLast ||= {};
+      fl.reach = reach; fl.drawn = plan.draw.length; fl.ready = plan.ready.length; fl.spilled = plan.spilled; fl.unfit = unfit;
+      for (const e of plan.draw) near.push(figInView.get(e.p));
+      figReady.length = 0;
+      for (const e of plan.ready) { const r = e.readyEntry ||= {}; r.id = e.id; r.female = e.female; r.look = lookOf(e.p).look; figReady.push(r); }
+      ready = figReady;
+      want = plan.want;
     }
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
-      const body = bodyFor(p.person, bodies), o = body.outfit;
+      const { body, look } = lookOf(p);
       return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female === true,
-        moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace),
-        look: { top: o.topColour, bottom: o.bottoms, hair: body.hair, skin: body.skin } };
-    }), now, dtFig);
+        moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace), look };
+    }), now, dtFig, ready, want);
     if (asFigures) {
+      // The rest step down a ring: the jointed figures for those in the full ring not drawn as
+      // characters (further off than a character shows), and so on out.
       const drawn = new Set(near.slice(0, asFigures));
-      full = full.filter((q) => !drawn.has(q)).concat(mid); mid = low; low = [];
+      full = full.filter((q) => !drawn.has(q)).concat(mid.filter((q) => !drawn.has(q))); mid = low.filter((q) => !drawn.has(q)); low = [];
     }
     drawPeopleSimpler(mid, low, now);
     peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
@@ -4328,7 +4362,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (residentBikes.length > MAX_BIKES - bikes.length) residentBikes.sort((a, b) => ((a.x - focus.x) ** 2 + (a.z - focus.z) ** 2) - ((b.x - focus.x) ** 2 + (b.z - focus.z) ** 2));
       bikes = [...bikes.filter((b) => !b.resident), ...residentBikes.slice(0, Math.max(0, MAX_BIKES - bikes.length))];
       lightSignals(t / 1000, now);
-      drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
+      drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now, focus);
       drawBikes();
       drawCars(wheels(), lastNight);
       drawThings(now);
@@ -5915,7 +5949,7 @@ diffuseColor.rgb *= kbCloth;`);
   return {
     //: How the crowd and the traffic were drawn last frame: so many at each tier (full, moderate,
     //: low), so many only tracked, and the detail field's stretch ahead.
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(),
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(), figurePlan: figLast,
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
