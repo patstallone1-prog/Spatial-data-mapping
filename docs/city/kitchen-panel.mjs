@@ -17,7 +17,7 @@
 //
 // view.mjs calls this through a few hooks: actions (the action bar), todo, and open.
 
-import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare } from "./kitchen.mjs";
+import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare, wholeUnits } from "./kitchen.mjs";
 import { DOUGH_FORMS, doughDimensions, doughMesh, workableDough } from "./dough.mjs";
 import { createKitchenScene } from "./kitchen-3d.mjs";
 import { cookingSteps } from "./menu-dish.mjs";
@@ -220,7 +220,8 @@ export function kitchenPanel(api) {
   function binList() {
     const count = {};
     for (const d of st.k.menu) for (const c of recipeOf(R, d, st.k.house_menu)?.build || []) count[c.ing] = (count[c.ing] || 0) + 1;
-    return Object.entries(count).filter(([i]) => !["salt", "sugar"].includes(i)).sort((a, b) => b[1] - a[1]).map(([i]) => i).slice(0, 10);
+    // (Salt, sugar and the spices are shaken from their jars on the dry shelf, not kept in bins.)
+    return Object.entries(count).filter(([i]) => i !== "sugar" && ING[i]?.role !== "spice").sort((a, b) => b[1] - a[1]).map(([i]) => i).slice(0, 10);
   }
 
   // ---- items and products ----------------------------------------------------------------------------
@@ -493,7 +494,7 @@ export function kitchenPanel(api) {
   }
   function chooseQuantity(ing) {
     const spec = ING[ing], stock = st.k.pantry[ing] || 0;
-    const max = spec.measure === "g" ? stock * spec.grams : Math.floor(stock);
+    const max = spec.measure === "g" ? stock * spec.grams : Math.floor(stock);   // (shakes and pieces are whole)
     st.pop = { kind: "quantity", ing, max, value: Math.min(max, spec.measure === "g" ? spec.grams : 1) };
     hud();
     const input = el.querySelector(".pop input");
@@ -689,7 +690,7 @@ export function kitchenPanel(api) {
   function portionControl(g) {
     const list = itemsOf(g), batch = list[0].batch;
     if (g.at !== "work" || (list.length > 1 && !list.every(i => batch && i.batch === batch))) return null;
-    const counted = !batch && ING[list[0].ing].measure === "count";
+    const counted = !batch && wholeUnits(ING[list[0].ing]);
     const max = counted ? list[0].qty : groupGrams(g);
     if (max <= (counted ? 1 : 0.01)) return null;
     return h("button", { textContent: "Take a portion", onclick: () => {
@@ -892,10 +893,14 @@ export function kitchenPanel(api) {
     }
     if (p.kind === "quantity" || p.kind === "portion") {
       const source = p.kind === "quantity";
-      const counted = source ? ING[p.ing].measure === "count" : p.counted;
-      const unit = counted ? (source ? ING[p.ing].unit : ING[itemsOf(p.group)[0].ing].unit) : "g";
+      const counted = source ? wholeUnits(ING[p.ing]) : p.counted;
+      const shakes = source && ING[p.ing].measure === "shake";
+      const unit = shakes ? "shakes" : counted ? (source ? ING[p.ing].unit : ING[itemsOf(p.group)[0].ing].unit) : "g";
       const input = h("input", { type: "number", step: counted ? "1" : "any", min: counted ? "1" : "0.000001",
         max: String(p.max), value: String(p.value), required: true, "aria-label": `Quantity in ${unit}` });
+      // A shaker is shaken a controlled number of times: one more, one fewer.
+      const nudge = (d) => h("button", { type: "button", className: "nudge", textContent: d > 0 ? "+1 shake" : "−1", onclick: () => {
+        input.value = String(Math.max(1, Math.min(p.max, (Math.round(input.valueAsNumber) || 0) + d))); } });
       const submit = e => {
         e.preventDefault(); const amount = input.valueAsNumber;
         if (!input.reportValidity() || !Number.isFinite(amount) || amount <= 0 || amount > p.max) return;
@@ -904,7 +909,8 @@ export function kitchenPanel(api) {
       };
       return h("form", { className: "pop list glass hud", style: "left:50%;top:50%", onsubmit: submit },
         h("b", { textContent: source ? iname(p.ing) : productName(p.group) }),
-        h("label", {}, `Quantity (${unit}) · ${Number(p.max.toFixed(2))} available`, input),
+        h("label", {}, `${shakes ? "Shakes" : `Quantity (${unit})`} · ${Number(p.max.toFixed(2))} available${shakes ? ` · ${ING[p.ing].grams} g a shake` : ""}`, input),
+        ...(shakes ? [h("span", { className: "row" }, nudge(-1), nudge(1))] : []),
         h("button", { className: "primary", type: "submit", textContent: "Take" }),
         h("button", { type: "button", textContent: "Cancel", onclick: () => { st.pop = null; hud(); } }));
     }

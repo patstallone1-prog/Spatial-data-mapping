@@ -12,12 +12,18 @@
 // tasted with tasteOf for its profile. Every guess is written down (``basis``) so a dish can be
 // read back.
 //
+// It is the real recipe that is rebuilt, not one fitted to the game: a dish is seasoned as such
+// a dish is seasoned (a burger's patty with salt and pepper, a shawarma's lamb with cumin,
+// coriander, paprika, turmeric and cinnamon), in shakes of each spice, every spice the menu names
+// is that spice, and a process the kitchen has no station for is still the process -- the
+// kitchen gets the station (kitchen.mjs stationsNeeded), as the real restaurant has it.
+//
 // cookingSteps turns any build into the steps a cook follows at a kitchen's own stations: the
 // longest things on the heat first, the chopping while they cook, the plate built in order.
 //
 // Pure (tests/city_menu_dish.test.mjs).
 
-import { chain, ingredient, part, processesAt, processSeconds, recipeOf, stationsFor, tasteOf } from "./kitchen.mjs";
+import { chain, ingredient, part, processSeconds, recipeOf, stationsFor, tasteOf } from "./kitchen.mjs";
 
 // Lower case, accents off, punctuation gone but for commas (which separate what a menu lists).
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[;/|\u2022\u00b7]+/g, ",").replace(/[^a-z0-9', ]+/g, " ")
@@ -90,7 +96,7 @@ export const INGREDIENT_WORDS = {
   ginger: ["ginger"],
   scallion: ["scallion", "green onion", "spring onion", "chive"],
   cilantro: ["cilantro", "coriander"],
-  basil: ["basil", "thai basil", "parsley", "mint", "herbs", "oregano", "dill"],
+  basil: ["basil", "thai basil", "parsley", "mint", "herbs", "fresh oregano", "dill"],
   bean_sprouts: ["bean sprout", "sprout"],
   spinach: ["spinach", "chard", "greens"],
   broccoli: ["broccoli", "broccolini", "asparagus", "green bean", "zucchini", "vegetables", "seasonal vegetables", "brussels sprout", "cauliflower"],
@@ -116,7 +122,7 @@ export const INGREDIENT_WORDS = {
   olive_oil: ["olive oil", "evoo", "vinaigrette", "dressing", "oil"],
   broth: ["broth", "stock", "soup", "consomme", "bisque"],
   ramen_broth: ["tonkotsu", "shoyu", "miso", "ramen broth"],
-  tahini: ["tahini", "sesame"],
+  tahini: ["tahini", "sesame paste"],
   gochujang: ["gochujang", "korean chili"],
   tartar_sauce: ["tartar", "tartare sauce"],
   wasabi: ["wasabi"],
@@ -124,8 +130,36 @@ export const INGREDIENT_WORDS = {
   chocolate: ["chocolate", "cocoa", "fudge", "brownie"],
   chocolate_syrup: ["chocolate sauce", "chocolate syrup"],
   sugar: ["sugar", "caramel", "honey", "sweet"],
-  salt: ["salt", "sea salt", "salted"],
-  spice_mix: ["spice", "spiced", "cajun", "blackened", "jerk", "za'atar", "seasoned", "dry rub", "rub", "five spice", "garam masala", "curry powder"],
+  salt: ["salt", "sea salt", "salted", "kosher salt", "flaky salt", "maldon"],
+  black_pepper: ["black pepper", "cracked pepper", "cracked black pepper", "peppercorn", "pepper crusted", "au poivre", "ground pepper"],
+  cumin: ["cumin", "cumin seed", "jeera"],
+  paprika: ["paprika"],
+  smoked_paprika: ["smoked paprika", "pimenton"],
+  chili_powder: ["chili powder", "chile powder", "ancho chili powder"],
+  cayenne: ["cayenne", "cayenne pepper"],
+  red_pepper_flakes: ["red pepper flake", "chili flake", "chile flake", "crushed red pepper", "pepper flake", "gochugaru"],
+  oregano: ["oregano", "dried oregano"],
+  thyme: ["thyme"],
+  rosemary: ["rosemary"],
+  italian_seasoning: ["italian seasoning", "italian herb", "herbes de provence"],
+  garlic_powder: ["garlic powder", "granulated garlic"],
+  onion_powder: ["onion powder"],
+  cinnamon: ["cinnamon"],
+  nutmeg: ["nutmeg"],
+  turmeric: ["turmeric", "haldi"],
+  coriander_ground: ["ground coriander", "coriander seed", "coriander powder"],
+  ground_ginger: ["ground ginger", "ginger powder"],
+  garam_masala: ["garam masala"],
+  curry_powder: ["curry powder", "madras"],
+  five_spice: ["five spice", "5 spice", "star anise"],
+  cajun_seasoning: ["cajun", "blackened", "creole"],
+  jerk_seasoning: ["jerk"],
+  seafood_seasoning: ["old bay", "seafood seasoning", "bay seasoning"],
+  zaatar: ["za'atar", "zaatar", "zatar"],
+  sesame_seeds: ["sesame", "sesame seed", "toasted sesame", "furikake"],
+  everything_seasoning: ["everything seasoning", "everything spice"],
+  bay_leaf: ["bay leaf", "bay leaves"],
+  spice_mix: ["spice", "spiced", "spice blend", "house spice", "dukkah", "berbere", "ras el hanout", "shichimi", "togarashi"],
   coffee_beans: ["coffee", "espresso", "americano", "latte", "cappuccino", "macchiato", "cold brew", "mocha", "cortado", "flat white"],
   tea_leaves: ["tea", "chai", "matcha", "earl grey", "green tea", "oolong"],
   soda_syrup: ["soda", "cola", "coke", "sprite", "soft drink", "lemonade"],
@@ -141,28 +175,37 @@ export const MIXTURES = {
   "garlic aioli": { name: "garlic aioli", build: [["mayo", 1, "mix"], ["garlic", 0.5, "chop>mix"]] },
   "chipotle mayo": { name: "chipotle mayonnaise", build: [["mayo", 1, "mix"], ["chili", 0.3, "chop>mix"]] },
   "spicy mayo": { name: "spicy mayonnaise", build: [["mayo", 1, "mix"], ["hot_sauce", 0.3, "mix"]] },
-  guacamole: { name: "guacamole", build: [["avocado", 1, "chop>mix"], ["lime", 0.3, "chop>mix"], ["onion", 0.3, "chop>mix"], ["cilantro", 0.3, "chop>mix"], ["salt", 0.3, "mix"]] },
-  guac: { name: "guacamole", build: [["avocado", 1, "chop>mix"], ["lime", 0.3, "chop>mix"], ["onion", 0.3, "chop>mix"], ["cilantro", 0.3, "chop>mix"]] },
-  pesto: { name: "pesto", build: [["basil", 1, "blend"], ["parmesan", 0.5, "blend"], ["garlic", 0.3, "blend"], ["olive_oil", 0.5, "blend"], ["peanuts", 0.3, "blend"]] },
-  "pico de gallo": { name: "pico de gallo", build: [["tomato", 1, "chop>mix"], ["onion", 0.4, "chop>mix"], ["cilantro", 0.3, "chop>mix"], ["lime", 0.3, "chop>mix"], ["chili", 0.2, "chop>mix"]] },
-  tzatziki: { name: "tzatziki", build: [["yogurt", 1, "mix"], ["cucumber", 0.5, "chop>mix"], ["garlic", 0.2, "chop>mix"], ["lemon", 0.2, "chop>mix"]] },
-  hummus: { name: "hummus", build: [["chickpeas", 1, "boil>blend"], ["tahini", 0.5, "blend"], ["lemon", 0.3, "blend"], ["garlic", 0.2, "blend"], ["olive_oil", 0.3, "blend"]] },
+  guacamole: { name: "guacamole", build: [["avocado", 1, "chop>mix"], ["lime", 0.3, "chop>mix"], ["onion", 0.3, "chop>mix"], ["cilantro", 0.3, "chop>mix"], ["salt", 3, "mix"]] },
+  guac: { name: "guacamole", build: [["avocado", 1, "chop>mix"], ["lime", 0.3, "chop>mix"], ["onion", 0.3, "chop>mix"], ["cilantro", 0.3, "chop>mix"], ["salt", 3, "mix"]] },
+  pesto: { name: "pesto", build: [["basil", 1, "blend"], ["parmesan", 0.5, "blend"], ["garlic", 0.3, "blend"], ["olive_oil", 0.5, "blend"], ["peanuts", 0.3, "blend"], ["salt", 1, "blend"]] },
+  "pico de gallo": { name: "pico de gallo", build: [["tomato", 1, "chop>mix"], ["onion", 0.4, "chop>mix"], ["cilantro", 0.3, "chop>mix"], ["lime", 0.3, "chop>mix"], ["chili", 0.2, "chop>mix"], ["salt", 2, "mix"]] },
+  tzatziki: { name: "tzatziki", build: [["yogurt", 1, "mix"], ["cucumber", 0.5, "chop>mix"], ["garlic", 0.2, "chop>mix"], ["lemon", 0.2, "chop>mix"], ["salt", 1, "mix"]] },
+  hummus: { name: "hummus", build: [["chickpeas", 1, "boil>blend"], ["tahini", 0.5, "blend"], ["lemon", 0.3, "blend"], ["garlic", 0.2, "blend"], ["olive_oil", 0.3, "blend"], ["cumin", 1, "blend"], ["salt", 2, "blend"]] },
   coleslaw: { name: "coleslaw", build: [["cabbage", 1, "chop>mix"], ["carrot", 0.5, "chop>mix"], ["mayo", 0.5, "mix"]] },
   slaw: { name: "slaw", build: [["cabbage", 1, "chop>mix"], ["carrot", 0.5, "chop>mix"], ["mayo", 0.4, "mix"]] },
-  vinaigrette: { name: "vinaigrette", build: [["olive_oil", 1, "mix"], ["lemon", 0.3, "chop>mix"], ["mustard", 0.2, "mix"]] },
-  "caesar dressing": { name: "Caesar dressing", build: [["mayo", 0.6, "mix"], ["parmesan", 0.4, "mix"], ["lemon", 0.2, "chop>mix"], ["garlic", 0.2, "chop>mix"]] },
-  "ranch": { name: "ranch", build: [["mayo", 0.5, "mix"], ["sour_cream", 0.5, "mix"], ["basil", 0.2, "chop>mix"]] },
-  "special sauce": { name: "special sauce", build: [["mayo", 0.6, "mix"], ["ketchup", 0.4, "mix"], ["pickles", 0.3, "chop>mix"]] },
+  vinaigrette: { name: "vinaigrette", build: [["olive_oil", 1, "mix"], ["lemon", 0.3, "chop>mix"], ["mustard", 0.2, "mix"], ["salt", 1, "mix"], ["black_pepper", 1, "mix"]] },
+  "caesar dressing": { name: "Caesar dressing", build: [["mayo", 0.6, "mix"], ["parmesan", 0.4, "mix"], ["lemon", 0.2, "chop>mix"], ["garlic", 0.2, "chop>mix"], ["black_pepper", 2, "mix"]] },
+  "ranch": { name: "ranch", build: [["mayo", 0.5, "mix"], ["sour_cream", 0.5, "mix"], ["basil", 0.2, "chop>mix"], ["garlic_powder", 1, "mix"], ["onion_powder", 1, "mix"], ["black_pepper", 1, "mix"], ["salt", 1, "mix"]] },
+  "special sauce": { name: "special sauce", build: [["mayo", 0.6, "mix"], ["ketchup", 0.4, "mix"], ["pickles", 0.3, "chop>mix"], ["paprika", 1, "mix"]] },
   "house sauce": { name: "house sauce", build: [["mayo", 0.6, "mix"], ["ketchup", 0.3, "mix"], ["mustard", 0.2, "mix"]] },
   "secret sauce": { name: "secret sauce", build: [["mayo", 0.6, "mix"], ["ketchup", 0.4, "mix"], ["pickles", 0.3, "chop>mix"]] },
   "teriyaki": { name: "teriyaki", build: [["soy_sauce", 1, "boil"], ["sugar", 0.5, "boil"], ["ginger", 0.2, "chop>boil"]] },
   "peanut sauce": { name: "peanut sauce", build: [["peanuts", 1, "blend"], ["coconut_milk", 0.5, "blend"], ["soy_sauce", 0.3, "blend"], ["lime", 0.2, "blend"]] },
   "nuoc cham": { name: "nuoc cham", build: [["fish_sauce", 1, "mix"], ["lime", 0.4, "chop>mix"], ["sugar", 0.3, "mix"], ["chili", 0.2, "chop>mix"]] },
-  "alfredo": { name: "Alfredo sauce", build: [["cream", 1, "saute"], ["butter", 0.5, "saute"], ["parmesan", 0.6, "saute"]] },
-  "bolognese": { name: "bolognese", build: [["tomato_sauce", 1, "boil"], ["beef_slices", 0.6, "chop>saute"], ["onion", 0.3, "chop>saute"], ["carrot", 0.3, "chop>saute"]] },
-  "chimichurri": { name: "chimichurri", build: [["basil", 1, "chop>mix"], ["garlic", 0.3, "chop>mix"], ["olive_oil", 0.5, "mix"], ["chili", 0.2, "chop>mix"]] },
-  "gravy": { name: "gravy", build: [["broth", 1, "boil"], ["flour", 0.3, "mix>boil"], ["butter", 0.3, "boil"]] },
-  "hollandaise": { name: "hollandaise", build: [["egg", 0.5, "mix>boil"], ["butter", 0.6, "mix>boil"], ["lemon", 0.2, "chop>mix"]] },
+  "alfredo": { name: "Alfredo sauce", build: [["cream", 1, "saute"], ["butter", 0.5, "saute"], ["parmesan", 0.6, "saute"], ["nutmeg", 1, "saute"], ["black_pepper", 2, "saute"], ["salt", 1, "saute"]] },
+  "bolognese": { name: "bolognese", build: [["tomato_sauce", 1, "boil"], ["beef_slices", 0.6, "chop>saute"], ["onion", 0.3, "chop>saute"], ["carrot", 0.3, "chop>saute"], ["salt", 2, "boil"], ["black_pepper", 1, "boil"], ["nutmeg", 1, "boil"], ["bay_leaf", 1, "boil"]] },
+  "chimichurri": { name: "chimichurri", build: [["basil", 1, "chop>mix"], ["garlic", 0.3, "chop>mix"], ["olive_oil", 0.5, "mix"], ["chili", 0.2, "chop>mix"], ["oregano", 3, "mix"], ["red_pepper_flakes", 2, "mix"], ["salt", 2, "mix"]] },
+  "gravy": { name: "gravy", build: [["broth", 1, "boil"], ["flour", 0.3, "mix>boil"], ["butter", 0.3, "boil"], ["salt", 1, "boil"], ["black_pepper", 2, "boil"]] },
+  "hollandaise": { name: "hollandaise", build: [["egg", 0.5, "mix>boil"], ["butter", 0.6, "mix>boil"], ["lemon", 0.2, "chop>mix"], ["cayenne", 1, "mix"], ["salt", 1, "mix"]] },
+  "everything bagel": { name: "everything bagel", build: [["bagel", 1, "toast"], ["everything_seasoning", 3, "-"]] },
+  // Seasonings that go onto what they season, cooked with it (``season``: the main protein's process).
+  "salt and pepper": { name: "salt and pepper", season: true, build: [["salt", 3, "-"], ["black_pepper", 2, "-"]] },
+  "salt pepper": { name: "salt and pepper", season: true, build: [["salt", 3, "-"], ["black_pepper", 2, "-"]] },
+  seasoned: { name: "seasoning", season: true, build: [["salt", 3, "-"], ["black_pepper", 2, "-"]] },
+  "lemon pepper": { name: "lemon pepper", season: true, build: [["lemon", 0.2, "chop"], ["black_pepper", 3, "-"], ["salt", 2, "-"]] },
+  "taco seasoning": { name: "taco seasoning", season: true, build: [["chili_powder", 4, "-"], ["cumin", 3, "-"], ["paprika", 2, "-"], ["garlic_powder", 1, "-"], ["onion_powder", 1, "-"], ["oregano", 2, "-"], ["salt", 2, "-"], ["black_pepper", 1, "-"]] },
+  "dry rub": { name: "dry rub", season: true, build: [["paprika", 3, "-"], ["sugar", 0.3, "-"], ["garlic_powder", 2, "-"], ["black_pepper", 2, "-"], ["salt", 3, "-"], ["cayenne", 1, "-"]] },
+  "bbq rub": { name: "barbecue rub", season: true, build: [["paprika", 3, "-"], ["sugar", 0.3, "-"], ["garlic_powder", 2, "-"], ["black_pepper", 2, "-"], ["salt", 3, "-"], ["cayenne", 1, "-"]] },
   "whipped cream": { name: "whipped cream", build: [["cream", 1, "mix"], ["sugar", 0.2, "mix"]] },
   croutons: { name: "croutons", build: [["bread", 1, "chop>toast"], ["olive_oil", 0.2, "-"]] },
   crouton: { name: "croutons", build: [["bread", 1, "chop>toast"], ["olive_oil", 0.2, "-"]] },
@@ -211,13 +254,56 @@ export const DISH_WORDS = [
 
 //: Words for something served beside the dish, and what it is.
 const SIDE_WORDS = [
-  [/\b(with|and|side of|served with) (french )?(fries|frites|chips)\b/, [["potato", 2, "chop>fry", 1], ["salt", 1, "-", 1]]],
+  [/\b(with|and|side of|served with) (french )?(fries|frites|chips)\b/, [["potato", 2, "chop>fry", 1], ["salt", 3, "-", 1]]],
   [/\b(with|and|side of|served with) (steamed |jasmine |basmati )?rice\b/, [["rice", 1, "steam", 1]]],
-  [/\b(with|and|side of|served with) (a )?(side )?(green |house |mixed )?salad\b/, [["lettuce", 1, "chop", 1], ["tomato", 0.5, "chop", 1], ["olive_oil", 0.3, "-", 1]]],
-  [/(\b(with|and|side of|served with)|,) (mashed potato|mash|potato puree|pomme puree)/, [["potato", 2, "chop>boil", 1], ["butter", 0.5, "-", 1]]],
+  [/\b(with|and|side of|served with) (a )?(side )?(green |house |mixed )?salad\b/, [["lettuce", 1, "chop", 1], ["tomato", 0.5, "chop", 1], ["olive_oil", 0.3, "-", 1], ["salt", 1, "-", 1], ["black_pepper", 1, "-", 1]]],
+  [/(\b(with|and|side of|served with)|,) (mashed potato|mash|potato puree|pomme puree)/, [["potato", 2, "chop>boil", 1], ["butter", 0.5, "-", 1], ["milk", 0.2, "-", 1], ["salt", 2, "-", 1]]],
   [/\b(with|and|side of|served with) (garlic )?naan\b/, [["naan_dough", 1, "bake", 1]]],
   [/\b(with|and|side of|served with) (house )?(slaw|coleslaw)\b/, [["cabbage", 1, "chop", 1], ["mayo", 0.4, "-", 1]]],
 ];
+
+//: How each house dish's real recipe seasons it, in shakes for one portion, and what each goes on:
+//: "protein" (the dish's main protein, whichever the menu has), an ingredient, or "-" (sprinkled
+//: over to finish). A seasoning goes on before what it seasons is cooked and is cooked with it.
+//: (Approx., from the common published recipe for each: a 1/4 lb patty takes about 1/8 tsp each of
+//: salt and pepper; pasta water is salted to taste like the sea.)
+export const SEASONINGS = {
+  burger_fries: [["salt", 3, "protein"], ["black_pepper", 2, "protein"]],
+  steak_frites: [["salt", 4, "protein"], ["black_pepper", 3, "protein"]],
+  wings: [["salt", 2, "protein"], ["black_pepper", 1, "protein"], ["garlic_powder", 2, "protein"], ["paprika", 2, "protein"]],
+  roast_chicken: [["salt", 5, "protein"], ["black_pepper", 3, "protein"], ["thyme", 3, "protein"], ["paprika", 2, "protein"], ["salt", 2, "potato"], ["rosemary", 2, "potato"]],
+  salad: [["salt", 1, "-"], ["black_pepper", 2, "-"]],
+  breakfast_plate: [["salt", 1, "egg"], ["black_pepper", 1, "egg"], ["salt", 2, "potato"], ["paprika", 1, "potato"]],
+  pancakes: [["salt", 2, "flour"]],
+  donut: [["salt", 1, "flour"], ["nutmeg", 1, "flour"]],
+  cake: [["salt", 1, "flour"]],
+  burrito: [["cumin", 2, "protein"], ["chili_powder", 2, "protein"], ["garlic_powder", 1, "protein"], ["salt", 2, "protein"], ["salt", 1, "rice"]],
+  tacos: [["cumin", 2, "protein"], ["chili_powder", 2, "protein"], ["oregano", 2, "protein"], ["salt", 2, "protein"], ["black_pepper", 1, "protein"]],
+  quesadilla: [["cumin", 1, "protein"], ["chili_powder", 2, "protein"], ["salt", 1, "protein"]],
+  ramen: [["sesame_seeds", 2, "-"], ["black_pepper", 1, "-"]],
+  teriyaki: [["sesame_seeds", 3, "-"]],
+  dumplings: [["salt", 1, "protein"], ["black_pepper", 1, "protein"]],
+  fried_rice: [["salt", 1, "rice"], ["black_pepper", 1, "rice"]],
+  chow_mein: [["salt", 1, "noodles"], ["black_pepper", 1, "noodles"]],
+  soup: [["black_pepper", 2, "broth"], ["thyme", 1, "broth"], ["bay_leaf", 1, "broth"]],
+  pad_thai: [["red_pepper_flakes", 1, "-"]],
+  pho: [["five_spice", 1, "broth"], ["cinnamon", 1, "broth"], ["coriander_ground", 1, "broth"]],
+  banh_mi: [["five_spice", 1, "protein"], ["black_pepper", 1, "protein"]],
+  tikka_masala: [["garam_masala", 3, "protein"], ["cumin", 2, "protein"], ["paprika", 2, "protein"], ["turmeric", 1, "protein"], ["salt", 2, "protein"]],
+  bibimbap: [["salt", 1, "protein"], ["black_pepper", 1, "protein"], ["sesame_seeds", 3, "-"]],
+  korean_bbq: [["black_pepper", 2, "protein"], ["sesame_seeds", 2, "-"]],
+  pasta_dish: [["salt", 6, "pasta"], ["oregano", 1, "tomato_sauce"], ["black_pepper", 2, "-"]],
+  risotto: [["salt", 2, "arborio"], ["black_pepper", 2, "-"]],
+  pizza: [["oregano", 2, "tomato_sauce"]],
+  shawarma: [["cumin", 2, "protein"], ["coriander_ground", 2, "protein"], ["paprika", 2, "protein"], ["turmeric", 1, "protein"], ["cinnamon", 1, "protein"], ["black_pepper", 1, "protein"], ["salt", 2, "protein"]],
+  falafel: [["cumin", 2, "chickpeas"], ["coriander_ground", 2, "chickpeas"], ["cayenne", 1, "chickpeas"], ["salt", 2, "chickpeas"]],
+  fish_and_chips: [["salt", 2, "flour"], ["black_pepper", 1, "flour"]],
+  clam_chowder: [["salt", 2, "cream"], ["black_pepper", 2, "cream"], ["thyme", 1, "cream"], ["bay_leaf", 1, "cream"]],
+  crab: [["seafood_seasoning", 3, "protein"]],
+  meal: [["salt", 2, "protein"], ["black_pepper", 1, "protein"], ["rosemary", 1, "potato"]],
+};
+//: Spices put on at the end (a scatter over the top), not cooked in.
+const TOPPING_SPICES = new Set(["sesame_seeds", "everything_seasoning", "red_pepper_flakes", "zaatar"]);
 
 //: What the house recipes do with each ingredient: its usual process (most used) and amount
 //: (the median), read from rules.json's recipes.
@@ -242,9 +328,6 @@ export function habitsOf(R) {
 
 //: How a kind of ingredient is cooked when no recipe says (protein on the grill, veg chopped).
 const ROLE_PROCESS = { protein: "grill", veg: "chop", herb: "chop", fruit: "chop", starch: "-", dairy: "-", sauce: "-", sweet: "-", drink: "pour" };
-//: A process a kitchen lacks, and the nearest it may have.
-const STAND_IN = { grill: ["saute", "bake", "wok"], fry: ["bake", "saute"], wok: ["saute", "grill"], steam: ["boil", "micro"], toast: ["grill", "bake"],
-  bake: ["grill", "micro"], saute: ["wok", "grill", "boil"], boil: ["steam", "micro"], blend: ["mix", "chop"], brew: ["boil"], chill: ["cool"], pour: [] };
 
 // The phrase table, longest first: each entry [phrase, ingredient].
 const PHRASES = new WeakMap();
@@ -300,8 +383,9 @@ export function templateFor(R, name, description = "") {
 }
 
 //: A real menu's dish ({name, description?, price?, section?}) as a build the game can cook, with
-//: its profile (tasteOf) and how each part was arrived at. ``kind``: the kitchen's kind, whose
-//: stations decide which processes can be done (others swapped for the nearest it has).
+//: its profile (tasteOf) and how each part was arrived at. ``kind``: the kitchen's kind (for its
+//: cuisine); a process its stations lack stays as the recipe has it, and the kitchen is given the
+//: station (kitchen.mjs stationsNeeded).
 export function dishFromMenu(R, item, { kind = null } = {}) {
   const name = String(item?.name || "").trim(), desc = String(item?.description || "").trim();
   const nameN = norm(name), descN = norm(desc), text = `${nameN} . ${descN}`;
@@ -311,11 +395,7 @@ export function dishFromMenu(R, item, { kind = null } = {}) {
   if (tpl) basis.push(`shaped on the house's ${R.items[tpl.id]?.name || tpl.id} ("${tpl.word}")`);
   else basis.push("no house dish matches the name: built from the ingredients alone");
   const habits = habitsOf(R);
-  const can = kind ? processesAt(R, kind) : null;
-  const doable = (p) => {
-    if (!can) return p;
-    return chain(p).map((step) => (can.has(step) ? step : (STAND_IN[step] || []).find((s) => can.has(s)) || step)).join(">") || "-";
-  };
+  const doable = (p) => chain(p).join(">") || "-";
   // What the menu names: mixtures first (aioli is not just garlic), then single ingredients.
   const mixTable = Object.entries(MIXTURES).map(([w, m]) => [norm(w), m]).sort((a, b) => b[0].length - a[0].length);
   const mixes = findAll(text, mixTable);
@@ -367,6 +447,20 @@ export function dishFromMenu(R, item, { kind = null } = {}) {
       else basis.push(`left out the house dish's ${I.name.toLowerCase()} (not on the menu's list)`);
     }
   }
+  // The dish seasoned as its real recipe seasons it: the house dish's seasonings (a protein's on
+  // whichever protein the menu has). (With no house dish, below, once the menu's own are in.)
+  const heated = (c) => chain(c.p).some((x) => R.kitchen.heat.includes(x));
+  const mainProtein = () => build.find((c) => !c.side && ingredient(R, c.ing)?.role === "protein" && heated(c)) || build.find((c) => !c.side && ingredient(R, c.ing)?.role === "protein");
+  const seasonOn = (spice, qty, target, why) => {
+    if (!ingredient(R, spice)) return;
+    const on = target === "-" ? null : target === "protein" ? mainProtein() : build.find((c) => c.ing === target);
+    if (target !== "-" && !on) return;
+    // (In beside what it seasons, so a layered dish keeps its order.)
+    let at = on ? build.indexOf(on) + 1 : build.length;
+    while (on && at < build.length && build[at].on === on.ing) at += 1;   // after its other seasonings
+    build.splice(at, 0, { ing: spice, qty, p: on && heated(on) ? on.p : "-", side: on?.side || false, why, on: on?.ing || null });
+  };
+  if (tpl && SEASONINGS[tpl.id]) for (const [spice, qty, target] of SEASONINGS[tpl.id]) seasonOn(spice, qty, target, `the real recipe's seasoning${target === "-" ? ", over the top" : ""}`);
   // Something beside it the menu promises ("with fries", "served with rice"): a side, not a
   // part of the dish.
   const sideParts = [];
@@ -376,13 +470,25 @@ export function dishFromMenu(R, item, { kind = null } = {}) {
   // What else the menu names: put in at the house's usual amount, cooked as the menu says or as
   // the house recipes usually cook it.
   const extras = [];
-  for (const n of named.values()) {
+  // (The spices last, so each goes on whatever the menu names it with: "blackened salmon". A
+  // "-spiced" or "spices" beside a named spice is that spice, not another blend.)
+  const spiceNamed = [...named.values()].some((n) => ingredient(R, n.ing)?.role === "spice" && n.ing !== "spice_mix") || mixes.some((m) => m.what.season);
+  const order = [...named.values()].sort((a, b) => (ingredient(R, a.ing)?.role === "spice") - (ingredient(R, b.ing)?.role === "spice"));
+  for (const n of order) {
     const I = ingredient(R, n.ing);
     if (build.some((c) => c.ing === n.ing) || sideParts.some((c) => c.ing === n.ing)) continue;
+    if (n.ing === "spice_mix" && (spiceNamed || (tpl && SEASONINGS[tpl.id]))) { basis.push(`"${n.phrase}" read as the dish's own spices`); continue; }
     const habit = habits[n.ing];
     // (A vegetable the menu adds goes the way the dish's own vegetables do: raw cabbage on a
     // taco, not the boiled cabbage of a dumpling's filling.)
     const fresh = ["veg", "herb", "fruit"].includes(I.role);
+    if (I.role === "spice") {
+      // A spice the menu names goes on the main protein, cooked with it ("cumin-spiced lamb",
+      // "blackened salmon"), or over the top where it is a topping or there is no protein.
+      const on = TOPPING_SPICES.has(n.ing) ? null : (build.find((c) => !c.side && ingredient(R, c.ing)?.role === "protein") || extras.find((c) => ingredient(R, c.ing)?.role === "protein") || null);
+      extras.push({ ing: n.ing, qty: I.measure === "shake" ? 3 : 1, p: on && chain(on.p).some((x) => R.kitchen.heat.includes(x)) ? on.p : "-", side: false, why: `named ("${n.phrase}")${on ? `, on the ${ingredient(R, on.ing).name.toLowerCase()}` : ", over the top"}`, on: on?.ing || null });
+      continue;
+    }
     const likeTpl = fresh && recipe ? recipe.build.map(part).filter((c) => !c.side && ["veg", "herb", "fruit"].includes(ingredient(R, c.ing).role)).map((c) => c.p) : [];
     const tplVeg = likeTpl.length ? likeTpl.sort((a, b) => likeTpl.filter((x) => x === b).length - likeTpl.filter((x) => x === a).length)[0] : null;
     let p = n.cue ? (fresh ? `chop>${n.cue}` : n.cue) : tplVeg || habit?.p || ROLE_PROCESS[I.role] || "-";
@@ -392,14 +498,30 @@ export function dishFromMenu(R, item, { kind = null } = {}) {
     extras.push({ ing: n.ing, qty, p: doable(p), side: false, why: `named ("${n.phrase}")${n.cue ? `, ${n.cue} as the menu says` : habit ? ", cooked as the house usually does" : ""}` });
   }
   for (const m of mixes) {
-    for (const c of m.what.build.map(part)) extras.push({ ...c, p: doable(c.p), side: false, why: `in the ${m.what.name}` });
+    const onto = m.what.season ? (build.find((c) => !c.side && ingredient(R, c.ing)?.role === "protein") || extras.find((c) => ingredient(R, c.ing)?.role === "protein")) : null;
+    for (const c of m.what.build.map(part)) {
+      // A seasoning ("salt and pepper wings") goes on the protein and is cooked with it.
+      const p = onto && ingredient(R, c.ing)?.role === "spice" && chain(onto.p).some((x) => R.kitchen.heat.includes(x)) ? onto.p : c.p;
+      extras.push({ ...c, p: doable(p), side: false, why: `in the ${m.what.name}`, on: onto && ingredient(R, c.ing)?.role === "spice" ? onto.ing : null });
+    }
     basis.push(`${m.what.name} made from ${m.what.build.map(([i]) => ingredient(R, i)?.name.toLowerCase()).join(", ")}`);
   }
+  // With no house dish, what is cooked is seasoned as any cook seasons it: salt and pepper on a
+  // protein the menu names no seasoning for.
+  if (!tpl) for (const c of extras.filter((x) => !x.side && ingredient(R, x.ing)?.role === "protein" && chain(x.p).some((y) => R.kitchen.heat.includes(y)))) {
+    if (extras.some((x) => x.on === c.ing)) continue;
+    const at = extras.indexOf(c) + 1;
+    extras.splice(at, 0, { ing: "salt", qty: 2, p: c.p, side: false, why: "seasoned, as any cook seasons meat or fish", on: c.ing }, { ing: "black_pepper", qty: 1, p: c.p, side: false, why: "seasoned, as any cook seasons meat or fish", on: c.ing });
+  }
   // Layered dishes (a burger, a sandwich): the extras go in under the top of the bread.
+  // (What is scattered over the top at the end stays the last thing done.)
+  const finish = [];
+  while (build.length && ingredient(R, build[build.length - 1].ing)?.role === "spice" && !build[build.length - 1].on && !build[build.length - 1].side) finish.unshift(build.pop());
   if (recipe?.ordered && build.length > 1 && ingredient(R, build[build.length - 1].ing)?.role === "starch" && !build[build.length - 1].side) {
     const top = build.pop();
-    build.push(...extras, top);
+    build.push(...extras, top, ...finish);
   } else {
+    build.push(...finish);
     const sides = build.filter((c) => c.side);
     build = [...build.filter((c) => !c.side), ...extras, ...sides];
   }
@@ -455,27 +577,45 @@ export function menuDishes(R, place, items, { kind = null } = {}) {
 //: Each step: {text, station, seconds}.
 export function cookingSteps(R, kind, target) {
   if (!target?.build?.length) return [];
-  const stations = kind ? stationsFor(R, kind) : Object.entries(R.kitchen.stations).map(([id, s]) => ({ id, ...s }));
-  const stationFor = (proc) => stations.find((s) => s.does.includes(proc)) || null;
+  const all = Object.entries(R.kitchen.stations).map(([id, s]) => ({ id, ...s }));
+  const stations = kind ? stationsFor(R, kind) : all;
+  // (A station the kind lacks is one this kitchen was given for its menu: kitchen.mjs stationsNeeded.)
+  const stationFor = (proc) => stations.find((s) => s.does.includes(proc)) || all.find((s) => s.does.includes(proc)) || null;
   const P = R.kitchen.processes, heat = new Set(R.kitchen.heat);
   const iname = (id) => (ingredient(R, id)?.name || id).toLowerCase();
+  const isSpice = (c) => ingredient(R, c.ing)?.role === "spice";
   const parts = target.build.map(part);
   const steps = [];
-  const amount = (c) => { const I = ingredient(R, c.ing); return I?.measure === "g" ? `${Math.round(c.qty * I.grams)} g` : `${Number(c.qty.toFixed(2))} ${I?.unit ? (c.qty > 1 ? plural(I.unit) : I.unit) : ""}`.trim(); };
+  const amount = (c) => {
+    const I = ingredient(R, c.ing), n = Number(c.qty.toFixed(2));
+    if (I?.measure === "shake") return `${n} ${n === 1 ? "shake" : "shakes"}`;
+    return I?.measure === "g" ? `${Math.round(c.qty * I.grams)} g` : `${n} ${I?.unit ? (c.qty > 1 ? plural(I.unit) : I.unit) : ""}`.trim();
+  };
+  const listOf = (names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]);
+  const shakesOf = (list) => listOf(list.map((c) => `${amount(c)} of ${iname(c.ing)}`));
   // 1. Everything out of the pantry.
   steps.push({ text: `Fetch ${parts.map((c) => `${iname(c.ing)} (${amount(c)})`).join(", ")}.`, station: null, seconds: 0, kind: "fetch" });
-  // 2. The chains with heat in them, longest first: each one's prep, then onto its station.
+  // 2. The chains with heat in them, longest first: each one's prep, its seasoning, then onto its
+  // station. A spice cooked the same way as something on the plate is that thing's seasoning.
   const timed = parts.map((c, i) => {
     const ch = chain(c.p);
     const hot = ch.map((s, k) => ({ s, k })).filter(({ s }) => heat.has(s));
     const secs = hot.reduce((n, { s }) => n + processSeconds(R, c.ing, s), 0);
     return { c, i, ch, hot, secs };
   });
-  const cooking = timed.filter((t) => t.hot.length).sort((a, b) => b.secs - a.secs);
+  const seasoning = new Map(), loose = [];
+  for (const t of timed.filter((x) => isSpice(x.c) && x.hot.length)) {
+    const on = timed.filter((x) => !isSpice(x.c) && x.c.p === t.c.p && x.c.side === t.c.side && x.i < t.i).pop() || timed.find((x) => !isSpice(x.c) && x.c.p === t.c.p && x.c.side === t.c.side);
+    if (on) { if (!seasoning.has(on.i)) seasoning.set(on.i, []); seasoning.get(on.i).push(t.c); } else loose.push(t.c);
+  }
+  const cooking = timed.filter((t) => t.hot.length && !isSpice(t.c)).sort((a, b) => b.secs - a.secs);
+  if (loose.length) steps.push({ text: `Season with ${shakesOf(loose)}.`, station: null, seconds: loose.length * 2, kind: "season" });
   for (const t of cooking) {
     const prep = t.ch.slice(0, t.hot[0].k);
     const verbs = prep.map((s) => P[s]?.name?.toLowerCase() || s);
     if (verbs.length) steps.push({ text: `${cap(verbs.join(" then "))} the ${iname(t.c.ing)}${prep.includes("chop") ? " on the cutting board" : ""}.`, station: stationFor(prep[prep.length - 1])?.name || null, seconds: prep.reduce((n, s) => n + processSeconds(R, t.c.ing, s), 0), kind: "prep" });
+    const spices = seasoning.get(t.i);
+    if (spices) steps.push({ text: `Season the ${iname(t.c.ing)} with ${shakesOf(spices)}${prep.includes("mix") ? ", mixed in" : ", all over"}.`, station: null, seconds: spices.reduce((n, c) => n + Math.max(1, c.qty * 0.5), 0), kind: "season" });
     for (const { s, k } of t.hot) {
       const st = stationFor(s);
       const sec = Math.round(processSeconds(R, t.c.ing, s));
@@ -485,27 +625,31 @@ export function cookingSteps(R, kind, target) {
     for (const s of after) steps.push({ text: `Then ${P[s]?.verb ? (P[s].name || s).toLowerCase() : s} the ${iname(t.c.ing)}.`, station: stationFor(s)?.name || null, seconds: Math.round(processSeconds(R, t.c.ing, s)), kind: "finish" });
   }
   // 3. While it cooks: what is only chopped, mixed, blended or brewed, together where it is the
-  // same work ("chop the lettuce, tomato and onion"; a sauce's parts mixed in one bowl).
+  // same work ("chop the lettuce, tomato and onion"; a sauce's parts mixed in one bowl, its spices
+  // shaken in by the shake).
   const cold = timed.filter((t) => !t.hot.length && t.ch.length);
   const groups = new Map();
   for (const t of cold) { const k = t.ch.join(">"); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
   let first = true;
   for (const [k, list] of groups) {
     const ch = k.split(">"), st = stationFor(ch[ch.length - 1]);
-    const names = list.map((t) => iname(t.c.ing));
-    const what = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+    const what = listOf(list.map((t) => (isSpice(t.c) ? `${iname(t.c.ing)} (${amount(t.c)})` : iname(t.c.ing))));
     const verb = ch.map((s) => (P[s]?.name || s).toLowerCase()).join(" then ");
     const together = ch[ch.length - 1] === "mix" || ch[ch.length - 1] === "blend" ? (list.length > 1 ? " together" : "") : "";
     steps.push({ text: cap(`${cooking.length && first ? "while that cooks, " : ""}${verb} the ${what}${together}${st ? ` (${st.name.toLowerCase()})` : ""}.`), station: st?.name || null,
       seconds: Math.round(list.reduce((n, t) => n + t.ch.reduce((m, s) => m + processSeconds(R, t.c.ing, s), 0), 0)), kind: "prep" });
     first = false;
   }
-  // 4. The plate: built in order (bottom first) where the order matters.
-  const main = parts.filter((c) => !c.side), sides = parts.filter((c) => c.side);
+  // 4. The plate: built in order (bottom first) where the order matters; what is scattered over
+  // it last, and the sides seasoned as they come off.
+  const raw = (c) => isSpice(c) && !chain(c.p).length;
+  const main = parts.filter((c) => !c.side && !isSpice(c)), sides = parts.filter((c) => c.side && !isSpice(c));
+  const over = parts.filter((c) => !c.side && raw(c)), sideOver = parts.filter((c) => c.side && raw(c));
   const vessel = target.vessel || "plate";
   if (target.ordered) steps.push({ text: `Build it on the ${vessel}, bottom first: ${main.map((c) => iname(c.ing)).join(", then ")}.`, station: null, seconds: main.length * 3, kind: "build" });
   else steps.push({ text: `Put it together in the ${vessel}: ${main.map((c) => iname(c.ing)).join(", ")}.`, station: null, seconds: main.length * 3, kind: "build" });
-  if (sides.length) steps.push({ text: `On the side: ${sides.map((c) => iname(c.ing)).join(", ")}.`, station: null, seconds: sides.length * 2, kind: "build" });
+  if (over.length) steps.push({ text: `Finish with ${shakesOf(over)} over the top.`, station: null, seconds: over.length * 2, kind: "season" });
+  if (sides.length) steps.push({ text: `On the side: ${sides.map((c) => iname(c.ing)).join(", ")}${sideOver.length ? `, seasoned with ${shakesOf(sideOver)} as ${sides.length > 1 ? "they come" : "it comes"} off` : ""}.`, station: null, seconds: sides.length * 2, kind: "build" });
   steps.push({ text: "Put it on the pass and serve.", station: null, seconds: 2, kind: "serve" });
   return steps.map((s, i) => ({ n: i + 1, ...s }));
 }

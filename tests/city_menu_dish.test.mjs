@@ -8,6 +8,7 @@ import { test } from "node:test";
 
 import { loadRules } from "../docs/city/core.mjs";
 import { cookingSteps, dishFromMenu, menuDishes, templateFor } from "../docs/city/menu-dish.mjs";
+import { stationsNeeded } from "../docs/city/kitchen.mjs";
 import { clerkKind, clerkLine, clerkNear, lineParts } from "../docs/city/clerk.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
 
@@ -27,6 +28,9 @@ test("a burger with what the menu lists: the house burger's shape, its sauce mad
   assert.equal(d.price, R.money(18));
   assert.ok(d.profile.taste > 50 && d.profile.kcal > 400 && d.profile.cuisine);
   assert.ok(d.basis.some((b) => /house sauce made from/.test(b)));
+  // Seasoned as a burger is: salt and pepper on the patty, cooked with it; the fries salted.
+  assert.deepEqual(d.build.filter((c) => c[2] === "grill" && ["salt", "black_pepper"].includes(c[0])).map((c) => c[0]), ["salt", "black_pepper"]);
+  assert.ok(d.build.some((c) => c[0] === "salt" && c[3] === 1), "the fries' salt");
 });
 
 test("the named protein replaces the house one, cooked as the menu says", () => {
@@ -53,11 +57,63 @@ test("what a menu says comes with it is a side; a dish with no house shape is bu
   assert.equal(templateFor(R, "Cappuccino").id, "latte");
 });
 
-test("a process the kitchen has no station for is done the nearest way it can", () => {
+test("the real recipe is kept: a process the kitchen's kind has no station for is still the process, and the kitchen gets the station", () => {
   const cafe = dishFromMenu(R, { name: "Cappuccino" }, { kind: "cafe" });
-  const diner = dishFromMenu(R, { name: "Cappuccino" }, { kind: "american" });
+  const american = dishFromMenu(R, { name: "Cappuccino" }, { kind: "american" });
   assert.equal(of(cafe, "coffee_beans")[2], "brew");
-  assert.notEqual(of(diner, "coffee_beans")[2], "brew");
+  assert.equal(of(american, "coffee_beans")[2], "brew");
+  assert.deepEqual(stationsNeeded(R, "american", [american.build]), ["espresso"]);
+  assert.deepEqual(stationsNeeded(R, "cafe", [cafe.build]), []);
+  const steps = cookingSteps(R, "american", american);
+  assert.ok(steps.some((s) => s.kind === "heat" && /espresso/i.test(s.station || "")), "brewed on the espresso machine it has been given");
+});
+
+test("spices are shaken: one shake a unit, each the real spice the menu or the real recipe calls for", () => {
+  for (const [id, I] of Object.entries(R.kitchen.ingredients)) if (I.role === "spice" && id !== "bay_leaf") {
+    assert.equal(I.measure, "shake", id); assert.equal(I.unit, "shake", id);
+    assert.ok(I.grams > 0.01 && I.grams < 0.5, `${id}: ${I.grams} g a shake`);
+    assert.ok(I.potent && Object.keys(I.potent).length, `${id} seasons the plate`);
+  }
+  assert.ok(R.kitchen.ingredients.salt.grams > R.kitchen.ingredients.black_pepper.grams, "a shake of salt outweighs one of ground pepper");
+  // A shawarma's lamb is seasoned with what a shawarma's is; "cumin-spiced" is the cumin.
+  const sh = dishFromMenu(R, { name: "Lamb Shawarma", description: "cumin-spiced lamb, tahini, pickles, tomato" }, { kind: "mediterranean" });
+  for (const sp of ["cumin", "coriander_ground", "paprika", "turmeric", "cinnamon", "black_pepper", "salt"]) assert.equal(of(sh, sp)?.[2], "grill", `${sp} on the lamb`);
+  assert.ok(!ings(sh).includes("spice_mix"));
+  // Named spices go on what the menu names them with, before it is cooked.
+  const bl = dishFromMenu(R, { name: "Blackened Salmon", description: "cajun spices, mashed potatoes" }, { kind: "seafood" });
+  assert.equal(of(bl, "cajun_seasoning")[2], "grill");
+  assert.ok(!ings(bl).includes("spice_mix"));
+  const wings = dishFromMenu(R, { name: "Salt and Pepper Wings" }, { kind: "american" });
+  assert.equal(of(wings, "black_pepper")[2], "fry");
+  // A topping spice is scattered over at the end; a dish with no house shape is still seasoned.
+  const pasta = dishFromMenu(R, { name: "Spaghetti Pomodoro", description: "tomato, basil, chili flakes" }, { kind: "italian" });
+  assert.equal(of(pasta, "red_pepper_flakes")[2], "-");
+  assert.equal(of(pasta, "salt")[2], "boil", "the pasta water salted");
+  const fish = dishFromMenu(R, { name: "Pan Seared Halibut", description: "seasonal vegetables, lemon butter" });
+  assert.equal(of(fish, "salt")[2], "grill"); assert.equal(of(fish, "black_pepper")[2], "grill");
+  // The steps say how many shakes of what go on what.
+  const steps = cookingSteps(R, "mediterranean", sh);
+  const season = steps.findIndex((s) => /^Season the shawarma lamb with 2 shakes of ground cumin/.test(s.text));
+  const grill = steps.findIndex((s) => s.kind === "heat" && /lamb/.test(s.text));
+  assert.ok(season >= 0 && season < grill, steps.map((s) => s.text).join("\n"));
+  assert.ok(/Finish with 2 shakes of black pepper/.test(cookingSteps(R, "italian", pasta).map((s) => s.text).join(" ")));
+});
+
+test("the spices are where they should be: in the grocers', and in the pantry of a kitchen whose menu calls for them", () => {
+  const grocery = new Set(R.stores.kinds.grocery.items);
+  for (const [id, I] of Object.entries(R.kitchen.ingredients)) if (I.role === "spice" && id !== "spice_mix") {
+    const jar = R.items[`jar_${id}`];
+    assert.ok(jar && jar.ingredient === id && jar.holds > 10 && jar.price > 1, `a jar of ${id}`);
+    assert.ok(grocery.has(`jar_${id}`), `the grocer sells ${id}`);
+  }
+  for (const id of ["jar_salt", "jar_black_pepper"]) assert.ok(R.stores.kinds.convenience.items.includes(id));
+  const R2 = rules();
+  R2.menus = { places: { k7: { name: "Test Grill", source: "test", fetched: "2026-11-20", items: [{ name: "Lamb Shawarma", price: 16 }, { name: "Blackened Salmon", description: "cajun spices", price: 28 }] } } };
+  const place = { id: "k7", x: 0, z: 0, name: "2200 Chestnut St", keys: ["use:restaurant", "shop:mediterranean"], area: 140, lon: -122.4368, lat: 37.8003, county: "county:san-francisco" };
+  const w = new CityWorld(R2, { now: Date.UTC(2026, 10, 11, 20), seed: "spices" });
+  const k = w.kitchenAt(place);
+  for (const sp of ["cumin", "turmeric", "cinnamon", "cajun_seasoning", "salt", "black_pepper"]) assert.ok(k.pantry[sp] >= 10, `${sp}: ${k.pantry[sp]} shakes in the pantry`);
+  assert.ok(Number.isInteger(k.pantry.cumin), "ordered by the whole shake");
 });
 
 test("the steps: fetch it all, the longest on the heat first, chop while it cooks, build it in order", () => {

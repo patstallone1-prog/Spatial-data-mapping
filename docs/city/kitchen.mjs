@@ -53,6 +53,24 @@ export function stationsFor(R, kind) {
 }
 //: The processes a kitchen of ``kind`` can do.
 export function processesAt(R, kind) { return new Set(stationsFor(R, kind).flatMap((s) => s.does)); }
+//: The stations a kitchen has: its kind's, and any its real menu needs that the kind lacks (a diner
+//: whose menu has a cappuccino has an espresso machine).
+export function kitchenStations(R, k) {
+  const own = stationsFor(R, k.kind);
+  return [...own, ...(k.extra_stations || []).filter((id) => R.kitchen.stations[id] && !own.some((s) => s.id === id)).map((id) => ({ id, ...R.kitchen.stations[id] }))];
+}
+//: The stations ``kind`` lacks for ``builds``' processes: the first station of the house's that does each.
+export function stationsNeeded(R, kind, builds) {
+  const can = processesAt(R, kind), out = [];
+  for (const b of builds) for (const c of b.map(part)) for (const proc of chain(c.p)) {
+    if (can.has(proc)) continue;
+    const id = Object.keys(R.kitchen.stations).find((s) => R.kitchen.stations[s].does.includes(proc));
+    if (id && !out.includes(id)) { out.push(id); for (const d of R.kitchen.stations[id].does) can.add(d); }
+  }
+  return out;
+}
+//: Whether an ingredient is counted out in whole units (pieces, or shakes of a shaker).
+export const wholeUnits = (spec) => spec?.measure === "count" || spec?.measure === "shake";
 //: An ingredient's spec.
 export const ingredient = (R, id) => Object.hasOwn(R.kitchen.ingredients, id) ? R.kitchen.ingredients[id] : undefined;
 //: What ``qty`` of an ingredient costs the kitchen (minor units).
@@ -109,6 +127,7 @@ export function processSeconds(R, ing, proc) {
 export function displayAmount(R, ing, qty) {
   const spec = ingredient(R, ing);
   const n = spec.measure === "g" ? qty * spec.grams : qty;
+  if (spec.measure === "shake") return `${Number(n.toFixed(2))} ${n === 1 ? "shake" : "shakes"}`;
   return `${Number(n.toFixed(2))} ${spec.measure === "g" ? "g" : "× " + spec.unit}`;
 }
 
@@ -374,9 +393,8 @@ export function tasteOf(R, build, { kind = null } = {}) {
     const cooked = cookedPart(R, c);
     grams += cooked.grams; kcal += cooked.kcal;
     for (const k of TASTES) flav[k] += (cooked.flavour[k] || 0) * cooked.grams;
-    // A gram of seasoning can change the whole plate.
-    if (c.ing === "salt") flav.sa += 75 * cooked.grams;
-    if (c.ing === "chili" || c.ing === "wasabi") flav.sp += 8 * cooked.grams;
+    // A gram of seasoning can change the whole plate (rules.json ``potent``: salt, the spices, chili).
+    if (I.potent) for (const [k, v] of Object.entries(I.potent)) flav[k] += v * cooked.grams;
     for (const p of chain(c.p)) {
       const P = K.processes[p];
       st *= P.stamina || 1; he += (P.health || 0) * c.qty;
@@ -475,6 +493,8 @@ export function installKitchen(CityWorld, CityError) {
     const own = (k.menu || []).filter((d) => !d.real);
     k.menu = [...menuDishes(R, k.id, real.items, { kind: k.kind }), ...own];
     k.real = { name: real.name || null, source: real.source || null, fetched: real.fetched || null, style: real.style || null };
+    // The real recipes as they are cooked: a station the kind lacks is one this kitchen has.
+    k.extra_stations = stationsNeeded(R, k.kind, k.menu.map((d) => d.build));
   }
   //: An approved dish, as one of the city's items (so it can be bought, carried and eaten).
   function registerDish(R, d) {
@@ -809,7 +829,7 @@ export function installKitchen(CityWorld, CityError) {
     const owner = role === "owner";
     return {
       id: k.id, kind: k.kind, name: k.name, role, owner_name: b ? (this.players.get(b.owner_pid)?.name || "the owner") : k.owner_name, cooks: k.cooks,
-      stations: stationsFor(R, k.kind), pantry: k.pantry, ordered: k.ordered, incoming: owner ? k.incoming : k.incoming.map((x) => ({ at: x.at })),
+      stations: kitchenStations(R, k), pantry: k.pantry, ordered: k.ordered, incoming: owner ? k.incoming : k.incoming.map((x) => ({ at: x.at })),
       menu: this.kitchenMenu(k), house_menu: k.menu, held: k.held[p.id] || {}, tickets: L?.tickets || [], covering: Boolean(L?.covering), busy: this.kitchenBusy(k),
       rating: ratingOf(R, rec), record: rec || null, tests: k.tests.filter((x) => owner || x.pid === p.id).slice(-12),
       proposals: k.proposals.filter((x) => owner || x.pid === p.id).slice(-12),
@@ -828,9 +848,9 @@ export function installKitchen(CityWorld, CityError) {
   W.cmd_kitchen_state = function (pid, { place }) { return this.cmd_kitchen_open(pid, { place }); };
   // Validate the whole plate before debiting anything. A divided mixture may legitimately
   // contain fractions of a counted ingredient. Only withdrawals require whole pieces.
-  function cleanPlate(R, plate, kind) {
+  function cleanPlate(R, plate, k) {
     if (!Array.isArray(plate) || plate.length > R.kitchen.lab.max_components) fail("too many components on the plate");
-    const allowed = processesAt(R, kind);
+    const allowed = new Set(kitchenStations(R, k).flatMap((s) => s.does));
     return plate.map(c => {
       if (!c || !ingredient(R, c.ing) || !Number.isFinite(c.qty) || c.qty <= 0) fail("invalid ingredient or quantity");
       if (c.shape && !validShape(c.shape)) fail("invalid dough shape");
@@ -850,7 +870,7 @@ export function installKitchen(CityWorld, CityError) {
     for (const [id, n] of Object.entries(items)) {
       const spec = ingredient(this.R, id);
       if (!spec || !Number.isFinite(n) || n <= 0 ||
-          (spec.measure === "count" && !Number.isSafeInteger(n))) fail("enter a positive quantity in the bin's unit");
+          (wholeUnits(spec) && !Number.isSafeInteger(n))) fail(spec?.measure === "shake" ? "shake out a whole number of shakes" : "enter a positive quantity in the bin's unit");
       want[id] = n;
     }
     if (!Object.keys(want).length) fail("take something");
@@ -889,7 +909,7 @@ export function installKitchen(CityWorld, CityError) {
     if (!Array.isArray(plates) || plates.length !== t.lines.length) fail(`the ticket is for ${t.lines.length} ${t.lines.length === 1 ? "dish" : "dishes"}: plate each one`);
     // What is on the plates must be what you took from the pantry.
     const held = (k.held[pid] ||= {}), use = {};
-    const clean = plates.map(pl => cleanPlate(R, pl, k.kind));
+    const clean = plates.map(pl => cleanPlate(R, pl, k));
     for (const pl of clean) for (const c of pl) use[c.ing] = (use[c.ing] || 0) + c.qty;
     for (const [i, n] of Object.entries(use)) if ((held[i] || 0) + 1e-9 < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board: take it from the pantry`);
     const menu = new Set(this.kitchenMenu(k));
@@ -976,7 +996,7 @@ export function installKitchen(CityWorld, CityError) {
   W.cmd_lab_test = function (pid, { place, name = "", build = [] }) {
     const p = this.player(pid), R = this.R, { k, role } = kitchenFor(this, p, place), held = (k.held[pid] ||= {});
     const proposedName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 40) || "Test dish";
-    const comps = cleanPlate(R, build, k.kind);
+    const comps = cleanPlate(R, build, k);
     if (!comps.length) fail("put something in the dish first");
     const use = needs(comps);
     for (const [i, n] of Object.entries(use)) if ((held[i] || 0) + 1e-9 < n) fail(`you have not got ${n} ${ingredient(R, i).name.toLowerCase()} on your board`);
