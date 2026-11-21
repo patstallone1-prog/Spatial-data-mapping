@@ -45,6 +45,9 @@ import { restaurantService, planRestaurant, canWalkRestaurant } from "./restaura
 import { restaurantScene } from "./restaurant-scene.mjs";
 import { buildWindowDisplay, tradeSignage, windowDisplayOf } from "./storefronts.mjs";
 import { canWalkStore, planStore, storeFixtures } from "./store-room.mjs";
+import { lanePoints } from "./grocery-room.mjs";
+import { itemSize, sectionsFor, stockShelves } from "./shelf-stock.mjs";
+import { aisleMap } from "./aisles.mjs";
 import { workshopPanel } from "./workshop-panel.mjs";
 import { isWorkshop, visitingCars } from "./workshop.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
@@ -1685,6 +1688,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (!F) return null;
     const plan = F.restaurant || F.store;
     if (plan) {
+      const lane = plan.fixtures?.find((x) => x.role === "checkout");
+      if (lane) { const p = lanePoints(lane).shopper; return F.at(p.z, p.x); }
       const f = plan.fixtures?.find((x) => x.role === "host") || plan.fixtures?.find((x) => x.role === "counter" || x.role === "till" || x.role === "bar");
       if (f) return F.at(Math.max(0.4, f.z - f.d / 2 - 0.45), f.x);
     }
@@ -2811,7 +2816,7 @@ diffuseColor.rgb *= kbCloth;`);
       // Any other shop: fitted to its trade (store-room.mjs), its door where the building's is.
       const door=place.door && local(place.door.x,place.door.z);
       const doorX=door && Math.abs(door.u)<.6 && Math.abs(door.v)<W/2-.6 ? door.v : 0;
-      F.store=planStore({width:W,depth:D,doorX},place.shops?.[0] || "shop");
+      F.store=planStore({width:W,depth:D,doorX,name:view.bizAt?.(place.id)?.name || place.name || ""},place.shops?.[0] || "shop");
     }
     return F;
   }
@@ -2881,6 +2886,9 @@ diffuseColor.rgb *= kbCloth;`);
     // The room fitted to its trade (store-room.mjs): the till by the door, the walls and the floor
     // as such a shop has them, the stock room behind. (Before, a counter straight across.)
     if (F.store) g.add(storeFixtures(THREE, F.store, { seed: hash32(String(place.id), "store"), tint }));
+    // A supermarket's shelves stocked with what it sells, each product where its aisle is and
+    // faced the way a store faces it (shelf-stock.mjs), its strip lights over the aisles.
+    if (F.store?.shelves?.length) stockRoom(g, place, F.store);
     else {
       const counter = new THREE.Mesh(box(F.L.width * 2, 1.0, 0.62, 0.5), lambert({ color: tint }));
       counter.position.z = F.L.counter; counter.rotation.y = 0; g.add(counter);
@@ -2951,6 +2959,54 @@ diffuseColor.rgb *= kbCloth;`);
     // (No checkout panel by the door any more: you buy from whoever serves at the till -- clerk.mjs.)
     return g;
   }
+  //: The products on a fitted room's shelves: each sold item with a model, as one instanced mesh
+  //: of its lowest tier (a few hundred triangles: thousands are faced), as many as fit its stretches
+  //: -- a player's business only what it has in stock. The models are the kit's, shared: they
+  //: are marked so leaving the shop does not dispose them.
+  let aisles = null;
+  function stockRoom(g, place, plan) {
+    if (!kit) return;
+    aisles ||= aisleMap(R);
+    const sells = storesAt(R, place.keys).flatMap((st) => st.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    const sizeOf = (id) => itemSize(OBJ, R, id);
+    const placed = stockShelves(plan, sectionsFor(plan, sells, aisles.aisleOf, (id) => Boolean(sizeOf(id))), sizeOf, (id) => aisles.displayOf[id]);
+    const biz = view?.bizAt?.(place.id);
+    for (const [id, list] of placed) {
+      const have = biz ? Math.min(list.length, biz.stock?.[id] || 0) : list.length;
+      if (have <= 0) continue;
+      kit.instanced(id, have, "low").then((stock) => {
+        if (!stock || !g.parent) return;
+        for (let k = 0; k < have; k += 1) {
+          const q = list[k];
+          E.set(0, q.yaw, 0); Q.setFromEuler(E);
+          M.compose(V.set(q.x, q.y, q.z), Q, S3.set(1, 1, 1)); stock.set(k, M);
+        }
+        stock.count(have);
+        stock.group.userData.shared = true;
+        g.add(stock.group);
+      }).catch(() => {});
+    }
+    // Strip lights down each aisle and the hanging signs: drawn by storeFixtures (signs).
+  }
+  //: The same for a fitted store (Codex's retail engine, inferred-interiors/retail-fixtures.mjs):
+  //: each fixture's shelves, in its own frame, stocked from the grocery's range for the engine's
+  //: section -- each fixture starting at its own place in the list, so no two bins are alike.
+  const ENGINE_AISLES = { produce: ["produce"], dairy: ["dairy"], meat_and_deli: ["meat_seafood"], frozen: ["frozen"], drinks: ["drinks"], beverages: ["drinks"], bakery: ["bakery"], pantry: ["pantry", "condiments", "spices"], cereal_and_snacks: ["breakfast", "snacks"], household: ["household", "personal_care", "pets"], snacks: ["snacks", "checkout"], checkout: ["checkout"] };
+  if (kit) globalThis.kerbsideStockShelf = (parent, shelves, { section = "pantry", id = "" } = {}) => {
+    aisles ||= aisleMap(R);
+    const range = R.stores.kinds.grocery?.items || [], sizeOf = (x) => itemSize(OBJ, R, x);
+    let ids = range.filter((x) => (ENGINE_AISLES[section] || ["pantry"]).includes(aisles.aisleOf[x]) && sizeOf(x));
+    if (!ids.length) return false;
+    const turn = hash32(String(id), "stock") % ids.length;
+    ids = [...ids.slice(turn), ...ids.slice(0, turn)];
+    const placed = stockShelves({ shelves }, { [section]: ids }, sizeOf, (x) => aisles.displayOf[x], { cap: 360 });
+    for (const [sku, list] of placed) kit.instanced(sku, list.length, "low").then((stock) => {
+      if (!stock || !parent.parent) return;
+      list.forEach((q, k) => { E.set(0, q.yaw, 0); Q.setFromEuler(E); M.compose(V.set(q.x, q.y, q.z), Q, S3.set(1, 1, 1)); stock.set(k, M); });
+      stock.count(list.length); stock.group.userData.shared = true; parent.add(stock.group);
+    }).catch(() => {});
+    return placed.size > 0;
+  };
   //: Into the shop beside you: through its door, into the room, the counter in front of you.
   //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
   //: shop's room, or its counter where it has none; false where no shop of the city's is there.
@@ -2991,7 +3047,12 @@ diffuseColor.rgb *= kbCloth;`);
     const F = shop.frame;
     delete (district.placeById?.get(shop.place.id) || shop.place).diningFrame;
     shop.room?.removeFromParent();
-    shop.room?.traverse((o) => { o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); } });
+    shop.room?.traverse((o) => {
+      // The kit's models are shared with every other shop and the street: only the shelf's own
+      // instance buffers go.
+      if (o.userData?.shared || o.parent?.userData?.shared) { if (o.isInstancedMesh) o.dispose?.(); return; }
+      o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); }
+    });
     shop.place = null; shop.room = null; shop.frame = null;
     ctx.setFloor?.(null);
     if (!shop.was) ctx.firstPerson?.(false);
@@ -3067,8 +3128,8 @@ diffuseColor.rgb *= kbCloth;`);
     }
     if(F.store){
       // Behind the till (its staff side), and the stock room (or the back of the floor).
-      const s=F.store, till=s.fixtures.find(f=>f.role==="till"||f.role==="bar");
-      const counter=till ? (till.side ? F.at(till.z,till.x+till.side*.75) : F.at(till.z+.7,till.x)) : F.at(1.5,0);
+      const s=F.store, till=s.fixtures.find(f=>f.role==="till"||f.role==="bar"), lane=s.fixtures.find(f=>f.role==="checkout");
+      const counter=lane ? (({cashier:c})=>F.at(c.z,c.x))(lanePoints(lane)) : till ? (till.side ? F.at(till.z,till.x+till.side*.75) : F.at(till.z+.7,till.x)) : F.at(1.5,0);
       const part=s.fixtures.find(f=>f.role==="partition");
       return {counter,back:part?F.at(Math.min(s.depth-.5,part.z+1.1),part.door):F.at(s.floorEnd-1.2,0),kerb:F.at(-1.4,s.doorX)};
     }

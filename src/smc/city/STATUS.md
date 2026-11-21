@@ -604,3 +604,21 @@ voices (npc-talk.mjs, server/npc, /api/npc); one dark-glass surface for every ci
 
 Left: the DeepSeek key and model id are the owner's to set; a banker's panel was checked with a
 rendered world, not by walking into a bank in the game; residents' sheets are sent by the page.
+
+## 2026-11-21: the store catalogue, grocery rooms, spices and stocked shelves
+
+Built (docs/53-store-catalogue.md): every buyable thing in one list (docs/city/catalogue.json) with
+each store item's aisle and display; 80 grocery staples and the kitchen's 29 spices on the shelves;
+120 store products drawn with real models imported from Objaverse, Poly Haven, Google Scanned
+Objects and YCB, cut to 2000/700/220 triangles with one colour policy (the spices one jar painted
+each spice's colour); supermarkets laid out as Codex's retail engine lays one out (grocery-room.mjs):
+lanes and self-checkout by the door, produce inside it, dairy, meat and drinks in cold banks on the
+walls, a frozen aisle, numbered gondola aisles by the catalogue's sections; every shelf stocked with
+the shop's own products at their size (shelf-stock.mjs), corner stores and Codex's fitted stores
+included. Shopping cart, basket and checkout counter are fixtures.
+
+Left: picking a product up into a cart and paying at a lane (the placements are known products at
+known spots; cmd_checkout takes a cart); 14 staples with no importable model (tortillas, rice,
+flour, ice cream pints, gum...); real brands on scanned packs to relabel before a commercial
+release; a credits screen for the CC-BY models. Seen by eye in store-sheet.html and
+fitted-sheet.html, not yet by walking into a Marina grocery in the running game.

@@ -14,11 +14,11 @@ const KINDS = ["supermarket", "convenience", "clothes", "shoes", "books", "pharm
 
 test("every trade's room: its fixtures, a till, a clear way in from the door to the back, and the stock room kept for staff", () => {
   for (const kind of KINDS) for (const size of [{ width: 5, depth: 7 }, { width: 8, depth: 12 }, { width: 12, depth: 20 }]) for (const doorX of [0, 1.2, -1.5]) {
-    const p = planStore({ ...size, doorX }, kind), P = STORE_PROGRAMS[p.program];
-    assert.ok(p.fixtures.some((f) => f.role === "till" || f.role === "bar"), `${kind} has a till`);
+    const p = planStore({ ...size, doorX }, kind), P = STORE_PROGRAMS[p.program] || { wall: "multideck", island: "gondola" };
+    assert.ok(p.fixtures.some((f) => f.role === "till" || f.role === "bar" || f.role === "checkout"), `${kind} has a till`);
     assert.ok(p.fixtures.some((f) => f.role === P.wall || f.role === P.island), `${kind} has its trade's fixtures`);
     // Nothing overlaps, and everything is inside the room.
-    const solid = p.fixtures.filter((f) => f.role !== "partition" && f.role !== "stocked");
+    const solid = p.fixtures.filter((f) => f.role !== "partition" && f.role !== "stocked" && f.role !== "stock_shelf");
     for (const [i, a] of solid.entries()) {
       assert.ok(Math.abs(a.x) + a.w / 2 <= size.width / 2 && a.z + a.d / 2 <= size.depth, `${kind} ${a.role} inside`);
       for (const b of solid.slice(i + 1)) assert.ok(Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.z - b.z) >= (a.d + b.d) / 2, `${kind} ${a.role}/${b.role} apart`);
@@ -33,6 +33,7 @@ test("every trade's room: its fixtures, a till, a clear way in from the door to 
     }
   }
   assert.equal(storeProgramOf("supermarket"), "grocery");
+  assert.equal(storeProgramOf("convenience"), "corner");
   assert.equal(storeProgramOf("something_new"), "shop");
 });
 

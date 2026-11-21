@@ -82,11 +82,11 @@ export function objectKit(THREE, ctx, O, R) {
     const a = O.assets[id];
     const p = !a || !ctx.loadModel ? Promise.resolve(null) : ctx.loadModel(ctx.asset(`city/models/objects/${a.file}`)).then((gltf) => {
       const scene = gltf.scene;
-      const near = scene.getObjectByName("near") || scene, far = scene.getObjectByName("far") || null;
-      for (const t of [near, far]) t?.traverse((o) => { if (o.isMesh) { o.material = Array.isArray(o.material) ? o.material.map(lit) : lit(o.material); o.castShadow = true; o.receiveShadow = true; } });
-      near.removeFromParent(); far?.removeFromParent();
-      near.position.set(0, 0, 0); far?.position.set(0, 0, 0);
-      return { near, far };
+      const near = scene.getObjectByName("near") || scene, far = scene.getObjectByName("far") || null, low = scene.getObjectByName("low") || null;
+      for (const t of [near, far, low]) t?.traverse((o) => { if (o.isMesh) { o.material = Array.isArray(o.material) ? o.material.map(lit) : lit(o.material); o.castShadow = true; o.receiveShadow = true; } });
+      near.removeFromParent(); far?.removeFromParent(); low?.removeFromParent();
+      near.position.set(0, 0, 0); far?.position.set(0, 0, 0); low?.position.set(0, 0, 0);
+      return { near, far, low };
     }).catch((error) => { console.warn("kerbside: an object model did not load", id, error); return null; });
     models.set(id, p);
     return p;
@@ -110,11 +110,29 @@ export function objectKit(THREE, ctx, O, R) {
       m.material = Array.isArray(m.material) ? m.material.map(swap) : swap(m.material);
     });
   }
+  //: Parts of one model painted per product (``paint`` {material name pattern: colour}): one
+  //: spice jar is every spice, its contents the spice's colour. Painted materials are kept per
+  //: colour, shared by every jar of that spice.
+  function paint(o, plan) {
+    const rules = Object.entries(plan).map(([rx, colour]) => [new RegExp(rx), colour]);
+    o.traverse((m) => {
+      if (!m.isMesh) return;
+      const swap = (mat) => {
+        const hit = rules.find(([rx]) => rx.test(mat.name || ""));
+        if (!hit) return mat;
+        const key = `${mat.uuid}:paint:${hit[1]}`;
+        if (!tinted.has(key)) { const t = mat.clone(); t.map = null; t.color?.set(hit[1]); tinted.set(key, t); }
+        return tinted.get(key);
+      };
+      m.material = Array.isArray(m.material) ? m.material.map(swap) : swap(m.material);
+    });
+  }
   //: A copy of asset ``id``'s tier, scaled so its longest side is ``len`` (m), its bottom at y 0.
   async function piece(id, len, tier = "near") {
     const m = await load(id);
     if (!m) return null;
-    const src = (tier === "far" && m.far) || m.near;
+    // "low": a store product's lowest tier (a stocked shelf), else its far one.
+    const src = (tier === "low" && (m.low || m.far)) || (tier === "far" && m.far) || m.near;
     const o = src.clone(true);
     const dims = O.assets[id].dims, s = len / Math.max(...dims);
     o.scale.setScalar(s);
@@ -152,6 +170,7 @@ export function objectKit(THREE, ctx, O, R) {
       const o = await piece(b.asset, Math.max(...O.assets[b.asset].dims), tier);
       if (!o) return null;
       if (b.tint) tint(o, b.tint, b.glass);
+      if (b.paint) paint(o, b.paint);
       if (upright) {
         const turn = uprightTurn(O.assets[b.asset].dims);
         if (turn) {
