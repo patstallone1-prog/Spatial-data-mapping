@@ -1,8 +1,8 @@
 """The curb as San Francisco pours it, and the sidewalk's squares, run from the page's own code.
 
 Public Works Standard Plan 87,185: a six-inch top, a rounded nose, the street face battered one
-in four over its six-inch exposure. The Marina's residential sidewalk is scored in five-foot
-squares (outside the downtown three-foot grid). These extract the page's ribbon and run it on a
+in four over its six-inch exposure. The sidewalk is scored in four-foot squares counted from the
+property line; the curb's top is the plain lip the last row stops at. These extract the page's ribbon and run it on a
 straight kerb with the road to one side, then read the vertices that come out.
 """
 
@@ -29,7 +29,7 @@ const THREE = {
 const surfaceMaterial = (surface) => ({ surface });
 const crossingStripePhase = () => 0;
 const xy = (east, north) => [east, north];   // the page's metres: z is minus north
-const SLAB_M = 1.52, SLAB_BLOCK = 4, WALK_UV_M = SLAB_M * SLAB_BLOCK, NARROW_SLAB_M = 2.75;
+const SLAB_M = 1.2192, SLAB_BLOCK = 4, WALK_UV_M = SLAB_M * SLAB_BLOCK, NARROW_SLAB_M = 2.75;
 const BIKE_LANE_M = 1.5, CROSSING_PERIOD_M = 1.2, DIVIDER_TILE_M = 0.6;
 // The road is everything south of z = 0; the kerb band runs east along it, just north.
 const insideCarriageway = (x, z) => z < 0;
@@ -77,9 +77,9 @@ console.log(JSON.stringify({ out, uv: surfaceScale("walk", 2), kerbScale: surfac
         assert toe and toe[0] == pytest.approx(-0.25 * (0.15 - 0.025), abs=1e-3)
         # Nothing of the street side stands plumb at the edge from top to bottom any more.
         assert not any(z == pytest.approx(0.0, abs=1e-4) and h < -0.03 for z, h in section)
-    # One texture repeat is four five-foot squares, on the walk and the curb alike.
-    assert result["uv"] == [1.52 * 4, 1.52 * 4]
-    assert result["kerbScale"] == [1.52 * 4, 1.52 * 4]
+    # One texture repeat is four four-foot squares, on the walk and the curb alike.
+    assert result["uv"] == pytest.approx([1.2192 * 4, 1.2192 * 4])
+    assert result["kerbScale"] == pytest.approx([1.2192 * 4, 1.2192 * 4])
 
 
 def test_sidewalk_and_curb_take_their_finishes_near_the_eye() -> None:
@@ -99,9 +99,16 @@ def test_sidewalk_and_curb_take_their_finishes_near_the_eye() -> None:
     assert out.returncode == 0, out.stderr
     got = json.loads(out.stdout)
     assert got["kinds"]["sidewalk"]["photo"] == "concrete" and got["kinds"]["sidewalk"]["scored"] == "walk"
-    assert got["kinds"]["curb"]["scored"] == "curb"
-    # The walk: every square's joint, the broom inside a troweled margin; the curb: neither.
-    assert "1.0 > 0.5 ? kbSwD.x" in got["walk"] and "0.0 > 0.5 ? kbSwD.x" in got["curb"]
+    # The curb is one long troweled strip and a driveway's apron one plain pour: no joints in
+    # either, in the walk's own concrete.
+    for plain in ("curb", "apron"):
+        assert not got["kinds"][plain].get("scored")
+        assert got["kinds"][plain]["photo"] == "concrete"
+        assert got["kinds"][plain]["mean"] == got["kinds"]["sidewalk"]["mean"]
+        assert got["kinds"][plain]["relief"] == got["kinds"]["sidewalk"]["relief"]
+    # Four-foot squares.
+    assert got["kinds"]["sidewalk"]["slab_m"] == pytest.approx(1.2192)
+    assert "1.0 > 0.5 ? kbSwD.x" in got["walk"] and "* 1.21920" in got["walk"]
     assert got["none"] == ""
     assert "dFdx(vMapUv)" in got["normal"]
 

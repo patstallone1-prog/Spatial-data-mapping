@@ -15,7 +15,11 @@
 //: Each trade's room: what is on the walls (``wall``), what stands in rows on the floor
 //: (``island``), anything by the window (``front``), what is at the back (``rear``), and the
 //: counter (``till``: "side" by the door, "back" across the back, "bar" down one side).
+import { SUPERMARKET_KINDS, drawGrocery, inPocket, planGrocery, signCanvas } from "./grocery-room.mjs";
+
 export const STORE_PROGRAMS = {
+  //: A corner store: drinks behind glass doors down the walls, the till by the door.
+  corner: { wall: "cooler_doors", island: "gondola", front: "produce", rear: "shelf", till: "side", tills: 1 },
   grocery: { wall: "chiller", island: "gondola", front: "produce", rear: "chiller", till: "side", tills: 2 },
   clothing: { wall: "rail", island: "display_table", front: "mannequin", rear: "fitting", till: "side" },
   books: { wall: "bookshelf", island: "display_table", front: "display_table", rear: "bookshelf", till: "side", seat: "armchair" },
@@ -29,7 +33,7 @@ export const STORE_PROGRAMS = {
   shop: { wall: "shelf", island: "gondola", front: "display_table", rear: "shelf", till: "side" },
 };
 const PROGRAM_OF = {
-  grocery: "grocery", supermarket: "grocery", convenience: "grocery", greengrocer: "grocery", liquor: "grocery", wine_shop: "grocery", smoke_shop: "grocery", deli: "grocery",
+  grocery: "grocery", supermarket: "grocery", greengrocer: "grocery", convenience: "corner", liquor: "corner", wine_shop: "corner", smoke_shop: "corner", deli: "corner",
   clothing: "clothing", clothes: "clothing", shoes: "clothing", boutique: "clothing", jewelry: "clothing",
   books: "books", gallery: "books", gifts: "books", toys: "books",
   pharmacy: "pharmacy", chemist: "pharmacy", optician: "pharmacy",
@@ -44,7 +48,7 @@ export const storeProgramOf = (kind) => PROGRAM_OF[kind] || "shop";
 
 //: Footprints (w across the wall it stands against or across a row, d deep), m.
 const SIZE = {
-  chiller: [1.2, 0.75], rail: [1.4, 0.6], bookshelf: [1.0, 0.4], shelf: [1.0, 0.45], pegboard: [1.2, 0.35], plant_tiers: [1.2, 0.6],
+  chiller: [1.2, 0.75], cooler_doors: [1.5, 0.85], rail: [1.4, 0.6], bookshelf: [1.0, 0.4], shelf: [1.0, 0.45], pegboard: [1.2, 0.35], plant_tiers: [1.2, 0.6],
   styling: [1.2, 0.55], washer: [0.75, 0.75], booth_wall: [1.6, 1.5], gondola: [2.4, 0.9], display_table: [1.4, 0.8], produce: [1.4, 0.9],
   mannequin: [0.5, 0.5], flower_table: [1.2, 0.7], folding: [1.8, 0.8], high_table: [0.7, 0.7], waiting: [1.4, 0.5], armchair: [0.8, 0.8],
   fitting: [1.0, 1.1], dispensary: [2.4, 0.7], workbench: [1.8, 0.75], shampoo: [0.8, 1.3], desk: [1.4, 0.7], dryer: [0.75, 0.75], backbar: [2.4, 0.5],
@@ -52,8 +56,10 @@ const SIZE = {
 //: The aisle kept clear between fixtures (m), the way from the door, and the stock room's depth.
 export const STORE_AISLE_M = 1.2, STOCKROOM_M = 2.4;
 
-//: The room for a shop of ``kind`` in a space ``width`` x ``depth`` with its door at ``doorX``.
-export function planStore({ width, depth, doorX = 0 }, kind) {
+//: The room for a shop of ``kind`` in a space ``width`` x ``depth`` with its door at ``doorX``:
+//: a supermarket big enough for one laid out as one (grocery-room.mjs, ``name`` its chain).
+export function planStore({ width, depth, doorX = 0, name = "" }, kind) {
+  if (SUPERMARKET_KINDS.has(kind)) { const g = planGrocery({ width, depth, doorX, name }, kind); if (g) return g; }
   const P = STORE_PROGRAMS[storeProgramOf(kind)];
   const half = width / 2, fixtures = [];
   const add = (role, x, z, w, d, extra = {}) => {
@@ -119,7 +125,31 @@ export function planStore({ width, depth, doorX = 0 }, kind) {
     }
   }
   if (P.seat) add(P.seat, -tillSide * (half - 0.6), floorEnd * 0.55, 0.8, 0.8, { side: -tillSide });
-  return { kind, program: storeProgramOf(kind), fixtures, width, depth, doorX, floorEnd, rearShelves };
+  const program = storeProgramOf(kind);
+  return { kind, program, fixtures, width, depth, doorX, floorEnd, rearShelves, ...(program === "grocery" || program === "corner" ? { shelves: smallShopShelves(fixtures) } : {}) };
+}
+
+//: A small grocery's or corner store's shelves (the shelf slots shelf-stock.mjs faces its
+//: products on), from its fixtures as storeFixtures draws them: drinks and dairy behind the
+//: coolers' doors, the gondolas' two faces by turns of the corner-store range, fruit on the
+//: front table.
+const CORNER_SECTIONS = ["snacks", "pantry", "household", "breakfast", "personal_care", "condiments", "checkout", "alcohol"];
+function smallShopShelves(fixtures) {
+  const out = [];
+  let g = 0, coolers = 0;
+  const push = (f, i, section, levels, lz, deep, h, yawAdd = 0, display) => {
+    const yaw = (f.wall ? f.side * Math.PI / 2 : f.island ? Math.PI / 2 : f.back ? Math.PI : 0) + yawAdd;
+    const along = f.wall || f.island ? f.d : f.w, c = Math.cos(yaw), sn = Math.sin(yaw);
+    for (const [k, y] of levels.entries()) out.push({ fixture: i, section, x: f.x + lz * sn, z: f.z + lz * c, y, yaw, len: along - 0.08, deep, h: k === levels.length - 1 ? 0.4 : h, ...(display ? { display } : {}) });
+  };
+  fixtures.forEach((f, i) => {
+    const deep = f.wall || f.island ? f.w : f.d;
+    if (f.role === "cooler_doors") push(f, i, coolers++ % 3 === 2 ? "dairy" : "drinks", [0.22, 0.58, 0.94, 1.3, 1.64], -deep / 2 + 0.12 + 0.28, 0.5, 0.32);
+    else if (f.role === "chiller") push(f, i, "dairy", [0.15, 0.59, 1.03, 1.46], 0, deep * 0.7, 0.4);
+    else if (f.role === "gondola") for (const face of [0, Math.PI]) push(f, i, CORNER_SECTIONS[g++ % CORNER_SECTIONS.length], [0.15, 0.567, 0.983, 1.4], -deep * 0.24, deep * 0.4, 0.38, face);
+    else if (f.role === "produce") push(f, i, "produce", [0.83], 0, deep - 0.12, 0.25, 0, "bin");
+  });
+  return out;
 }
 
 //: Whether one can stand at (x, z): inside the room, off every fixture, and (not staff) out of
@@ -128,6 +158,7 @@ export function canWalkStore(plan, x, z, staff = false) {
   const half = plan.width / 2;
   if (x < -half + 0.25 || x > half - 0.25 || z < 0.12 || z > plan.depth - 0.25) return false;
   for (const f of plan.fixtures) {
+    if (staff && inPocket(f, x, z)) continue;   // a lane's cashier, in the pocket
     if (f.role === "partition") {
       if (Math.abs(z - f.z) < 0.25 && !(staff && Math.abs(x - f.door) < 0.5)) return false;
       if (!staff && z > f.z) return false;
@@ -146,11 +177,14 @@ export function storeFixtures(THREE, plan, { seed = 1, tint = 0xcfc6b8 } = {}) {
   const mats = new Map();
   const mat = (c, extra) => { const k = `${c}|${extra ? JSON.stringify(extra) : ""}`; if (!mats.has(k)) mats.set(k, new THREE.MeshBasicMaterial({ color: c, ...(extra || {}) })); return mats.get(k); };
   const geos = new Map(), batches = new Map(), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3();
+  const TQ = new THREE.Quaternion(), XA = new THREE.Vector3(1, 0, 0);
   const prim = (kind, x, y, z, w, h, d, c, extra) => {
     if (!geos.has(kind)) geos.set(kind, kind === "box" ? new THREE.BoxGeometry() : kind === "ball" ? new THREE.SphereGeometry(0.5, 10, 8) : new THREE.CylinderGeometry(0.5, 0.5, 1, 14));
-    const m = mat(c, extra), key = kind + m.uuid;
+    // ``tilt``: turned about the fixture's own x (a produce bin sloping to the aisle).
+    const { tilt, ...look } = extra || {};
+    const m = mat(c, Object.keys(look).length ? look : undefined), key = kind + m.uuid;
     if (!batches.has(key)) batches.set(key, { geo: geos.get(kind), m, list: [] });
-    batches.get(key).list.push(M.compose(V.set(x, y, z), Q, S.set(w, h, d)).clone().premultiply(frame));
+    batches.get(key).list.push(M.compose(V.set(x, y, z), tilt ? TQ.setFromAxisAngle(XA, tilt) : Q, S.set(w, h, d)).clone().premultiply(frame));
   };
   const box = (...a) => prim("box", ...a), ball = (...a) => prim("ball", ...a), can = (...a) => prim("can", ...a);
   let frame = new THREE.Matrix4();
@@ -158,7 +192,8 @@ export function storeFixtures(THREE, plan, { seed = 1, tint = 0xcfc6b8 } = {}) {
   const goodsColour = () => [0xd9822b, 0x2e86c1, 0xf2f1ec, 0xc0392b, 0x27ae60, 0xe3c45c, 0x6b4f8a, 0x2b2d31][Math.floor(r() * 8)];
   const steel = 0xb8c0c4, dark = 0x2a2d30, wood = 0x8a6440, light = 0xf4f2ee;
   // Shelving: uprights, ``rows`` shelves, goods on each. Its length runs along local x.
-  const shelving = (len, deep, rows, h, colour = steel, goods = true) => {
+  // (A room with shelf slots has its real products faced on them, not the coloured stand-ins.)
+  const shelving = (len, deep, rows, h, colour = steel, goods = !plan.shelves?.length) => {
     for (const s of [-1, 1]) box(s * (len / 2 - 0.02), h / 2, 0, 0.04, h, deep, colour);
     box(0, h / 2, deep / 2 - 0.02, len, h, 0.03, 0xe8e4dc);
     for (let i = 0; i < rows; i += 1) {
@@ -172,9 +207,15 @@ export function storeFixtures(THREE, plan, { seed = 1, tint = 0xcfc6b8 } = {}) {
     // fixture faces in from its wall, a rear one faces the door, an island runs front to back.
     // (rotationY(θ) turns the front, -z, to (-sin θ, -cos θ): a fixture on the wall at side s
     // faces -s, so θ = s·π/2; the back wall's faces the door, θ = π.)
+    if (f.yaw !== undefined && f.len !== undefined) {
+      // A fixture planned with its own frame (grocery-room.mjs).
+      frame = new THREE.Matrix4().makeRotationY(f.yaw).setPosition(f.x, 0, f.z);
+      if (drawGrocery(f, { box, can, ball }, { tint: plan.accent ? parseInt(plan.accent.slice(1), 16) : tint, r })) continue;
+    }
     const yaw = f.wall ? f.side * Math.PI / 2 : f.island ? Math.PI / 2 : f.role === "till" || f.role === "bar" ? (f.side ? f.side * Math.PI / 2 : 0) : f.back ? Math.PI : 0;
     frame = new THREE.Matrix4().makeRotationY(yaw).setPosition(f.x, 0, f.z);
     const along = f.wall || f.island || (f.side && (f.role === "till" || f.role === "bar")) ? f.d : f.w, deep = f.wall || f.island || (f.side && (f.role === "till" || f.role === "bar")) ? f.w : f.d;
+    if (f.role === "cooler_doors" && drawGrocery({ ...f, len: along, deep }, { box, can, ball }, { tint, r })) continue;
     switch (f.role) {
       case "partition": {
         frame = new THREE.Matrix4().setPosition(0, 0, f.z);
@@ -201,7 +242,7 @@ export function storeFixtures(THREE, plan, { seed = 1, tint = 0xcfc6b8 } = {}) {
         box(0, h, 0, along, 0.05, deep, f.role === "folding" ? light : wood);
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(sx * (along / 2 - 0.05), h / 2, sz * (deep / 2 - 0.05), 0.05, h, 0.05, dark);
         if (f.role === "flower_table") for (let k = 0; k < 6; k += 1) { const x = -along / 2 + 0.15 + k * (along - 0.3) / 5; can(x, h + 0.15, 0, 0.18, 0.3, 0.18, 0x5d6f7a); for (let j = 0; j < 4; j += 1) ball(x + (r() - 0.5) * 0.15, h + 0.38 + r() * 0.15, (r() - 0.5) * 0.12, 0.11, 0.11, 0.11, [0xd64570, 0xf2c14e, 0xf5f0e6, 0xe76f51][Math.floor(r() * 4)]); }
-        else if (f.role === "produce") for (let k = 0; k < 4; k += 1) { const c = [0xd64045, 0xf2a03d, 0x7cb342, 0xffd23f][k]; box(-along / 2 + (k + 0.5) * along / 4, h + 0.08, 0, along / 4 - 0.05, 0.12, deep - 0.1, 0x8a6a45); for (let j = 0; j < 8; j += 1) ball(-along / 2 + (k + 0.5) * along / 4 + (r() - 0.5) * 0.25, h + 0.17, (r() - 0.5) * (deep - 0.2), 0.09, 0.09, 0.09, c); }
+        else if (f.role === "produce" && !plan.shelves?.length) for (let k = 0; k < 4; k += 1) { const c = [0xd64045, 0xf2a03d, 0x7cb342, 0xffd23f][k]; box(-along / 2 + (k + 0.5) * along / 4, h + 0.08, 0, along / 4 - 0.05, 0.12, deep - 0.1, 0x8a6a45); for (let j = 0; j < 8; j += 1) ball(-along / 2 + (k + 0.5) * along / 4 + (r() - 0.5) * 0.25, h + 0.17, (r() - 0.5) * (deep - 0.2), 0.09, 0.09, 0.09, c); }
         else if (f.role === "high_table") { for (const s of [-1, 1]) { can(s * 0.5, 0.38, 0, 0.32, 0.04, 0.32, dark); can(s * 0.5, 0.2, 0, 0.04, 0.4, 0.04, steel); } }
         else for (let k = 0; k < Math.floor(along / 0.3); k += 1) box(-along / 2 + 0.18 + k * 0.3, h + 0.06, (r() - 0.5) * 0.3, 0.24, 0.08 + r() * 0.06, 0.18, goodsColour());
         break;
@@ -226,6 +267,31 @@ export function storeFixtures(THREE, plan, { seed = 1, tint = 0xcfc6b8 } = {}) {
         break;
       }
       default: box(0, 0.6, 0, along, 1.2, deep, steel);
+    }
+  }
+  if (plan.grocery) {
+    // The shelves of the cases and tables (the gondolas draw their own): a board under each
+    // shelf's goods and its price-ticket strip along the front edge.
+    for (const sh of plan.shelves || []) {
+      const f = plan.fixtures[sh.fixture];
+      if (!f || f.role === "gondola" || f.role === "checkout") continue;
+      frame = new THREE.Matrix4().makeRotationY(sh.yaw).setPosition(sh.x, 0, sh.z);
+      const cold = f.role !== "produce_table";
+      box(0, sh.y - 0.012, 0, sh.len, 0.024, sh.deep, cold ? 0xdfe3e4 : 0x6f5238);
+      box(0, sh.y + 0.012, -sh.deep / 2 + 0.006, sh.len, 0.045, 0.012, cold ? 0xf3f1e8 : 0xe9dcb8);
+    }
+    // Strip lights down every aisle under the ceiling, and the hanging signs.
+    frame = new THREE.Matrix4();
+    for (const sg of plan.signs || []) if (sg.number) box(sg.x, 3.13, sg.z, 0.16, 0.035, Math.max(2, plan.floorEnd - 7), 0xfffdf4);
+    for (const x of [-plan.width / 4, plan.width / 4]) box(x, 3.13, 2.6, 0.16, 0.035, 3.6, 0xfffdf4);
+    const doc = globalThis.document;
+    if (doc) for (const sg of plan.signs || []) {
+      const tex = new THREE.CanvasTexture(signCanvas(doc, sg, plan.accent));
+      if ("SRGBColorSpace" in THREE) tex.colorSpace = THREE.SRGBColorSpace;
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.52), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+      board.position.set(sg.x, sg.y, sg.z); board.rotation.y = sg.wall ? sg.yaw + Math.PI : Math.PI;
+      g.add(board);
+      if (!sg.wall) for (const s0 of [-0.6, 0.6]) box(sg.x + s0, sg.y + 0.45, sg.z, 0.01, 0.38, 0.01, 0x9aa0a4);
     }
   }
   for (const { geo, m, list } of batches.values()) {

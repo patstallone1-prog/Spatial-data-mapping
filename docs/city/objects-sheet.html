@@ -1,0 +1,49 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Objects sheet</title>
+<!-- Every store item drawn by objects.mjs as the city draws it (near tier, catalogue size), for checking
+     the imports by eye: ?only=milk,eggs  ?tier=far  ?cols=10  ?all=1 (every item with a model). -->
+<style>body{margin:0;background:#e9e6df;font:11px system-ui}#grid{display:grid;grid-template-columns:repeat(var(--cols),160px);gap:2px;padding:4px}
+.c{width:160px;height:176px;position:relative;background:#f6f4ef}.c span{position:absolute;left:3px;bottom:2px;right:3px;white-space:nowrap;overflow:hidden}
+canvas{position:absolute;left:0;top:0;pointer-events:none}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body><div id="grid"></div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { objectKit } from "./objects.mjs";
+const q = new URLSearchParams(location.search);
+const O = await (await fetch("objects.json")).json(), R = await (await fetch("rules.json")).json();
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const kit = objectKit(THREE, { loadModel: (u) => loader.loadAsync(u), asset: (p) => "../" + p }, O, R);
+const tier = q.get("tier") || "near";
+let skus = Object.entries(O.items).filter(([, b]) => (q.get("all") ? b.asset || b.recipe : b.status === "imported")).map(([k]) => k);
+if (q.get("only")) skus = q.get("only").split(",");
+const cols = +(q.get("cols") || 8); document.body.style.setProperty("--cols", cols);
+const grid = document.getElementById("grid");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(innerWidth, Math.max(innerHeight, Math.ceil(skus.length / cols) * 178 + 8));
+document.body.appendChild(renderer.domElement); renderer.setScissorTest(true); renderer.outputColorSpace = THREE.SRGBColorSpace;
+const cells = [];
+for (const sku of skus) {
+  const d = document.createElement("div"); d.className = "c"; const s = document.createElement("span");
+  const b = O.items[sku]; s.textContent = `${sku} ${b.asset || "recipe"}`; d.appendChild(s); grid.appendChild(d);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x6b6157, 1.4));
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.8); sun.position.set(2, 4, 3); scene.add(sun);
+  const g = await kit.build(sku, { tier }).catch((e) => { s.textContent += " ERR " + e.message; return null; });
+  if (g) scene.add(g);
+  const box = new THREE.Box3().setFromObject(scene), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const r = Math.max(size.x, size.y, size.z) || 0.1;
+  const cam = new THREE.PerspectiveCamera(30, 160 / 160, r / 100, r * 100);
+  cam.position.set(c.x + r * 1.3, c.y + r * 0.9, c.z + r * 1.9); cam.lookAt(c);
+  cells.push({ d, scene, cam, dims: g ? new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()) : null });
+  s.textContent += g ? ` ${(Math.max(size.x, size.y, size.z) * 100).toFixed(0)}cm` : " (none)";
+}
+for (const { d, scene, cam } of cells) {
+  const r = d.getBoundingClientRect(), H = renderer.domElement.height;
+  renderer.setViewport(r.left, H - r.top - 160, 160, 160); renderer.setScissor(r.left, H - r.top - 160, 160, 160);
+  renderer.setClearColor(0xf6f4ef); renderer.render(scene, cam);
+}
+document.title = "ready " + cells.length;
+</script></body></html>

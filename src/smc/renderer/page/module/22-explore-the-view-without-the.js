@@ -647,7 +647,7 @@ try {
     avatar.position.set(x, AVATAR_STAND_Y + walkerGroundAt(x, -y), -y);
     state.yaw = Number.isFinite(saved.yaw) ? saved.yaw : state.yaw;
     state.pitch = Number.isFinite(saved.pitch) ? saved.pitch : state.pitch; state.tilt = 0;
-    state.dist = Number.isFinite(saved.dist) ? Math.max(8, saved.dist) : ARRIVAL_DIST;
+    state.dist = Number.isFinite(saved.dist) ? Math.max(typeof minOrbitDist === "function" ? minOrbitDist() : 8, saved.dist) : ARRIVAL_DIST;
     state.firstPerson = Boolean(saved.firstPerson);
     sessionStorage.removeItem("kerbside:region-arrival");
   }

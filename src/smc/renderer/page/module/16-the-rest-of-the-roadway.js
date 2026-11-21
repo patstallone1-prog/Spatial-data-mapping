@@ -241,9 +241,50 @@ function fillRoadwayToKerbs() {
 if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const roadwayFilled = fillRoadwayToKerbs();
 
+//: An island ring ([x, z] points) as far as it is off the roadway this page draws -- the
+//: carriageways the traffic drives and the junction boxes. The survey and the photograph put an
+//: island where the kerbs are; the page's streets come from OpenStreetMap, and where the two
+//: disagree the island lay across lanes the cars drove through: Fillmore's centre median ran its
+//: nose (and a 7 m² refuge beside it) into the page's Chestnut and Fillmore crossroads, white
+//: concrete across the lanes at the bus stop, and a 27 cm "island" 119 m long lay down the middle
+//: of a lane near Lombard (2026-11-21). An island mostly on the roadway (ISLAND_ROAD_MAX of its
+//: area) is not drawn; one partly on it loses the part that is (its outline densified to
+//: ISLAND_TRIM_STEP_M and the points on the roadway dropped). Null where less than
+//: ISLAND_TRIM_MIN_M2 is left.
+const ISLAND_TRIM_STEP_M = 0.5, ISLAND_TRIM_MIN_M2 = 1.0, ISLAND_ROAD_MAX = 0.35;
+const islandStats = { kept: 0, trimmed: 0, dropped: 0 };
+function islandRingOffRoadway(ring) {
+  const onRoad = (x, z) => insideCarriageway(x, z, 0) || insideJunctionBox(x, z);
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+  let inside = 0, road = 0;
+  for (let x = x0 + 0.25; x < x1; x += 0.5) for (let z = z0 + 0.25; z < z1; z += 0.5) {
+    if (!pointInRing(x, z, ring)) continue;
+    inside += 1;
+    if (onRoad(x, z)) road += 1;
+  }
+  if (!road) { islandStats.kept += 1; return ring; }
+  if (road > inside * ISLAND_ROAD_MAX) { islandStats.dropped += 1; return null; }
+  const dense = [];
+  for (let i = 0; i < ring.length; i += 1) {
+    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length];
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / ISLAND_TRIM_STEP_M));
+    for (let k = 0; k < n; k += 1) dense.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]);
+  }
+  const kept = dense.filter(([x, z]) => !onRoad(x, z));
+  let area = 0;
+  for (let i = 0; i < kept.length; i += 1) {
+    const [ax, az] = kept[i], [bx, bz] = kept[(i + 1) % kept.length];
+    area += ax * bz - bx * az;
+  }
+  if (kept.length < 3 || Math.abs(area) / 2 < ISLAND_TRIM_MIN_M2) { islandStats.dropped += 1; return null; }
+  islandStats.trimmed += 1;
+  return kept;
+}
 function addClosedOfficialIslandSurfaces() {
   let laid = 0;
-  const rings = ISLAND_RINGS || (OFFICIAL_GEOMETRY.curb_lines || []).map(closedOfficialIslandRing);
+  const rings = (ISLAND_RINGS || (OFFICIAL_GEOMETRY.curb_lines || []).map(closedOfficialIslandRing))
+    .map((ring) => (ring ? islandRingOffRoadway(ring) : null));
   for (const ring of rings) {
     if (!ring) continue;
     // The closed official curb is the physical evidence. Do not reject it using
@@ -267,6 +308,7 @@ function addClosedOfficialIslandSurfaces() {
   return laid;
 }
 const officialIslandsLaid = addClosedOfficialIslandSurfaces();
+window.kerbsideIslands = islandStats;   // (for checks: how many were kept, trimmed off the roadway, dropped)
 
 //: The pavement out to the property line. The city surveys each street's sidewalk width, kerb to
 //: property line, but the pavement is laid at the widest strip that fits the whole side -- often

@@ -1472,7 +1472,7 @@ function walkerGroundInfo(x, z, referenceY) {
   // (Guarded: these ground and wall functions are also run on their own, by the tests.)
   const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
   if (guest) {
-    const [gx, gz] = hostToGuest(guest, x, z);
+    const gx = (x - guest.ox) / guest.sx, gz = z - guest.oz;   // (hostToGuest, without a pair made a look)
     const info=guest.api.walkerGroundInfo
       ? guest.api.walkerGroundInfo(gx,gz,Number.isFinite(feet) ? feet-guest.oy : null)
       : { y:guest.api.walkerGroundAt(gx,gz),kind:"terrain" };

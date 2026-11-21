@@ -1752,7 +1752,7 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, st
         const surface = inset <= NARROW_WALK_M ? "walk_narrow" : "walk";
         stampPaved(run, inset, y + thickness / 2);
         addMerged(`walk:${surface}:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`,
-                  ribbon(run, inset, color, opacity, y, thickness, surface), surface);
+                  ribbon(side < 0 ? run.slice().reverse() : run, inset, color, opacity, y, thickness, surface), surface);
         laid += wayLength(run);
         const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));
         stampPaved(kerb, KERB_LIP_M, y + thickness / 2);
@@ -1905,7 +1905,7 @@ function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color,
            offsetWay(stretch, side * (inner + width / 2)), width)) {
       stampParkPavement(run, width);
       addMerged("walk:property-underlay",
-                ribbon(run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
+                ribbon(side < 0 ? run.slice().reverse() : run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
                        PROPERTY_LINE_PAVEMENT_THICKNESS_M, "walk_underlay"),
                 "walk_underlay");
       laid += wayLength(run);
@@ -2368,14 +2368,18 @@ function sidewalkTexture(variant = "square") {
   return texture;
 }
 
-//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), the
-//: curb its own troweled pour ("curb").
+//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), a narrow
+//: walk the same at its own slab ("narrow-walk"), the curb its own troweled pour ("curb").
 const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "sidewalk");
-const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "concrete");
+const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "narrow-walk");
 const KERB_CONCRETE = NEAR_SURFACE.mark(sidewalkTexture("curb"), "curb");
-//: One scored square, in metres. Five feet is the usual San Francisco pour: the Marina's
-//: residential sidewalks, outside the downtown three-foot grid.
-const SLAB_M = 1.52;
+//: One scored square, in metres: four feet, laid square from the property line, so the
+//: last row at the street side is what is left over, cut off by the curb's six-inch lip
+//: (KERB_LIP_M, one troweled strip with no joints in it).
+const SLAB_M = 1.2192;
+//: A ribbon's v starts at its left edge, so a walk on the right of the street (side -1) is laid
+//: along its run backwards (addKerbsidePavement, the property-line underlay): on both sides the
+//: squares are counted from the property line out to the curb.
 const WALK_UV_M = SLAB_M * SLAB_BLOCK;
 const NARROW_SLAB_M = 2.75;
 const NARROW_WALK_M = 1.8;

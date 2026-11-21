@@ -79,7 +79,7 @@ The people and the traffic are out in both modes.
 | Arrows | Walk; at the wheel, accelerate, brake and steer | always |
 | Shift (hold) | Sprint, while stamina lasts | always ("Sprint", held) |
 | Space | Jump: the height comes from your legs' push (leg length, body weight, strength) against your weight plus what you carry (`handling.mjs` `jumpOf`) | — |
-| Click | Inside a shop, on its blue SHOP panel beside the door: the shop's wares. Anywhere else: swing (as X) | inside a shop ("Buy: the shop panel by the door") |
+| Click | Inside a shop or a restaurant, on a chair, stool or booth: sit down (walk to get up). The person serving greets you as you walk up; their link opens the menu or the shop's wares in the middle of the screen. Anywhere else: swing (as X) | inside a shop (walk up to the counter) |
 | Right click | Use what is in your hand (as U) | — |
 | 1 – 8 | Choose a slot on the bar of eight: what is in it is in your hand; an empty slot is an empty hand | the bar is always shown |
 | I | The inventory: a grid of 24 above the bar of 8. Click a thing, then another slot, to move it; its details say how it is held, its weight class, and whether it swings or throws | always ("Inventory" on the bar) |

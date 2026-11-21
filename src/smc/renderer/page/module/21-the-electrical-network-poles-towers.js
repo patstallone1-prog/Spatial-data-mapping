@@ -700,6 +700,15 @@ const BUS_ZONE_BORDER_M = 0.12;
 //: Below the lane lines, above the asphalt: the box is a surface treatment and the markings are
 //: painted over it.
 const BUS_ZONE_Y = ROAD_TOP_M + 0.006;
+//: A bus zone (its red, its white edge, a concrete pad) and the words painted in it, set on the
+//: road surface as it is drawn once they are laid: stood a few millimetres over the ground
+//: there, the road's own triangles, bowed differently over the grade, came up through them --
+//: a pad at Fillmore and Chestnut in pale patches with the asphalt in holes across it, "chunks
+//: missing" (2026-11-21). Their quads are already cut to half a metre (``quad``), so they are
+//: not refined (which would drop their clipAt).
+const BUS_ZONE_SETTLE_RULE = { from: () => [groups.furniture], onto: new Set(["road", "bike", "parking_lot"]),
+  above: { "bus_zone:fill": 0.012, "bus_zone:pad": 0.012, "bus_zone:border": 0.016, "furniture:road_legend": 0.02 },
+  grid: 0, label: "Laying the bus zones on the road" };
 const BUS_ZONE_BORDER_Y = ROAD_TOP_M + 0.010;
 //: Where the kerb turns more than this, the zone ends. Twenty degrees is a bend in a street;
 //: more than that is a corner, and a bus zone does not wrap one.
@@ -1508,10 +1517,13 @@ function addBusZonePaint(records, plan = null) {
   // window's edge takes or leaves the zone whole and the words in it are never left on bare road.
   let zoneAt = [0, 0];
   const quad = (sink, ax, az, bx, bz, cx, cz, dx, dz, y) => {
-    // Cut to a metre along and in two across, and every corner stood on the ground here (the
+    // Cut into a grid of small quads, and every corner stood on the ground here (the
     // mesh is marked as standing): the words laid in the zone are stood on it every half metre,
     // and on a hill a zone in long flat quads rose through them and took letters away.
-    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.0)), m = 2;
+    // Half a metre each way: settled on the road (BUS_ZONE_SETTLE_RULE), a zone two vertices
+    // across let the road's crown come up through its middle in a jagged strip.
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.5));
+    const m = Math.max(2, Math.ceil(Math.hypot(dx - ax, dz - az) / 0.5));
     const at = (i, j) => {
       const s = i / n, t = j / m;
       const x = (ax * (1 - s) + bx * s) * (1 - t) + (dx * (1 - s) + cx * s) * t;
@@ -1904,6 +1916,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     road_legends: paintRoadLegends(paintPlan),
     street_paint: layStreetPaint(paintPlan),
   };
+  placed.bus_zones_settled = await settleOnto(BUS_ZONE_SETTLE_RULE);
   // Checked once everything stands: no two plates meet, no post is on a crossing.
   placed.sign_audit = auditSignPlates(plates.spots);
   // Where the sign posts stand, for the storm drains (waterworks, below): a drain's opening is
@@ -2128,12 +2141,18 @@ var ORBIT_RISE_STEP = 0.06, ORBIT_RISE_MAX_PITCH = 1.52;
 const ORBIT_MAX_TILT = ORBIT_MIN_PITCH + LOOK_LIMIT;
 //: With the globe (docs/globe.mjs) the view goes out until the whole Earth is in it.
 const MAX_ORBIT_DIST_M = globe ? 18000000 : 20000;
-//: In City mode (the game) the view stays down among the streets: out no further than 72 m, a
-//: fifth in from just under a city block (San Francisco's run 100 to 125 m; it was 90 m).
-//: Explore, the map, still goes out to the globe.
-const CITY_MAX_ORBIT_M = 72;
+//: In City mode (the game) the view stays down among the streets: out no further than 65 m,
+//: a tenth in from 72 (San Francisco's blocks run 100 to 125 m; it was 90 m, then 72), and in
+//: as close as CITY_MIN_ORBIT_M, over the walker's shoulder. Explore, the map, still goes out
+//: to the globe and in to 8 m.
+const CITY_MAX_ORBIT_M = 65;
+const CITY_MIN_ORBIT_M = 3;
+const MIN_ORBIT_DIST_M = 8;
 function maxOrbitDist() {
   return typeof cityGame === "function" && cityGame() ? CITY_MAX_ORBIT_M : MAX_ORBIT_DIST_M;
+}
+function minOrbitDist() {
+  return typeof cityGame === "function" && cityGame() ? CITY_MIN_ORBIT_M : MIN_ORBIT_DIST_M;
 }
 //: ``autoFirstPerson``: the walker went into a building and the view went to its eyes by
 //: itself; walking out puts back the view it had. There is no view from above into a house:
@@ -2427,7 +2446,7 @@ function zoomBy(factor) {
   factor **= zoomSensitivity(state.dist);
   // Past the Bay each turn of the wheel covers more: a few turns from the region to the globe.
   if (state.dist > 30000) factor **= 1.9;
-  state.dist = Math.max(8, Math.min(typeof maxOrbitDist === "function" ? maxOrbitDist() : MAX_ORBIT_DIST_M, state.dist * factor));
+  state.dist = Math.max(typeof minOrbitDist === "function" ? minOrbitDist() : 8, Math.min(typeof maxOrbitDist === "function" ? maxOrbitDist() : MAX_ORBIT_DIST_M, state.dist * factor));
   placeCamera();
   if (typeof autoExploreByZoom === "function") autoExploreByZoom();
 }

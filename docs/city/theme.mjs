@@ -7,6 +7,12 @@ export const THEME_CSS = `
   border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.32);
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
 #city-side{width:min(380px,calc(100vw - 24px));max-height:min(calc(100vh - var(--city-under,72px) - 130px),74vh)}
+#city-clerk{position:fixed;left:50%;bottom:calc(var(--city-under,72px) + 64px);transform:translateX(-50%);z-index:40;width:min(520px,calc(100vw - 32px));
+  background:rgba(17,24,39,.92);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 40px 12px 16px;box-shadow:0 8px 28px rgba(0,0,0,.35);font:14px/1.45 system-ui,sans-serif}
+#city-clerk b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#a9b6c4;margin-bottom:4px}
+#city-clerk p{margin:0}
+#city-clerk a{color:#7cc4ff;font-weight:600;text-decoration:underline;cursor:pointer}
+#city-clerk button{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:12px;border:0;background:rgba(255,255,255,.1);color:inherit;cursor:pointer}
 #city-side.wide{width:min(460px,calc(100vw - 24px))}
 #city-side select{max-width:100%}
 #city-side button,#city button{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.09);color:inherit}

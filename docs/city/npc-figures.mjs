@@ -4,19 +4,72 @@
 // tools/unreal/export_npc_characters.py and packed by tools/build_npc_characters.mjs into
 // docs/city/models/npc/ (docs/51-near-ring-people-and-surfaces.md).
 //
-// Only the nearest few (NEAR_FIGURES_MAX) are drawn this way; the rest of the near ring and the
-// moderate ring are the jointed figures that were the near ring (view.mjs drawPeople), and past
-// those the basic shapes. Nothing here is required: until the files load -- or where they are not
-// published -- the page draws the people as it always did.
+// Everyone in view big enough on the screen to be told from a jointed figure is drawn this way
+// (figurePlan: FIGURE_MIN_PX tall, or within FIGURE_NEAR_YOU_M of you), and everyone on their way
+// into that is given a character ahead, hidden, so it is one the moment they arrive. The jointed
+// figures (view.mjs drawPeople) are only those further off, and past them the basic shapes.
+// Nothing here is required: until the files load -- or where they are not published -- the page
+// draws the people as it always did.
 
-//: How many people at most are drawn as characters at once (each is its own skinned mesh).
-export const NEAR_FIGURES_MAX = 20;
-//: Characters made ahead, a few a frame, once the files are in: enough of each kind for the ring
-//: to fill without a copy made the moment someone steps into it.
-export const PREBAKE = { ada: 12, manny: 14, per_frame: 2 };
+//: How many people at most are drawn as characters at once (each is its own skinned mesh). (It had
+//: been the nearest 20 in view: on a busy block the twenty-first beside you was a jointed figure.)
+export const NEAR_FIGURES_MAX = 64;
+//: Characters at most held at once, drawn and readied together.
+export const FIGURES_HELD_MAX = 96;
+//: Characters made ahead, a few a frame, once the files are in: at least this many of each kind,
+//: and more as more are coming (figurePlan's ``want``), so none is copied the moment someone steps in.
+export const PREBAKE = { ada: 12, manny: 14, per_frame: 2, spare: 4 };
+//: A person this many CSS pixels tall on the screen, or more, is drawn as a character: below it
+//: a jointed figure and a character are a few pixels apart (at 1080 pixels high and the page's 50
+//: degree view, about 78 m off).
+export const FIGURE_MIN_PX = 26;
+//: Within this of you (the walker), a character however small the view makes them.
+export const FIGURE_NEAR_YOU_M = 30;
+//: Readied this long before they come into it, along the way they are going (s), and this much
+//: further out besides (m: the camera moves too).
+export const FIGURE_PREP_S = 6, FIGURE_PREP_M = 8;
+
+//: How far off (m, from the camera) a person ``height`` m tall stands FIGURE_MIN_PX tall, for a
+//: view ``fovDeg`` degrees high on a screen ``screenPx`` CSS pixels high.
+export function figureReach(fovDeg, screenPx, height = 1.75, minPx = FIGURE_MIN_PX) {
+  return (height * screenPx) / (2 * Math.tan((fovDeg * Math.PI) / 360) * minPx);
+}
+//: Who is a character this frame. ``people``: [{id, x, z, vx, vz, female, fits, inView}] (fits: a
+//: character can do what they are doing). ``cam``, ``you``: {x, z}. Returns {draw, ready, want}:
+//: those drawn (in view, within ``reach`` of the camera or FIGURE_NEAR_YOU_M of you, nearest
+//: first), those to hold a character for, hidden (within it out of view, or heading into it within
+//: FIGURE_PREP_S), and how many of each kind are wanted made.
+export function figurePlan(people, cam, you, reach, { prepS = FIGURE_PREP_S, prepM = FIGURE_PREP_M, max = NEAR_FIGURES_MAX, held = FIGURES_HELD_MAX, has = null } = {}) {
+  // (One already a character keeps it a little further out, so one on the edge does not flick.)
+  const inside = (q, x, z, grow) => {
+    const g = grow + (has && has(q.id) ? reach * 0.12 : 0);
+    return Math.hypot(x - cam.x, z - cam.z) <= reach + g || Math.hypot(x - you.x, z - you.z) <= FIGURE_NEAR_YOU_M + g;
+  };
+  const draw = [], ready = [];
+  for (const q of people) {
+    if (!q.fits) continue;
+    q.d = Math.hypot(q.x - cam.x, q.z - cam.z);
+    if (inside(q, q.x, q.z, 0)) { (q.inView ? draw : ready).push(q); continue; }
+    // On the way in: anywhere along the next prepS seconds of their way (sampled each second).
+    const v = Math.hypot(q.vx || 0, q.vz || 0);
+    if (v <= 0.05) { if (inside(q, q.x, q.z, prepM)) ready.push(q); continue; }
+    for (let t = 1; t <= prepS; t += 1) if (inside(q, q.x + q.vx * t, q.z + q.vz * t, prepM)) { ready.push(q); break; }
+  }
+  const byD = (a, b) => a.d - b.d;
+  draw.sort(byD); ready.sort(byD);
+  const spilled = Math.max(0, draw.length - max);
+  if (spilled) draw.length = max;
+  if (ready.length > held - draw.length) ready.length = Math.max(0, held - draw.length);
+  const want = { ada: 0, manny: 0 };
+  for (const q of draw) want[q.female ? "ada" : "manny"] += 1;
+  for (const q of ready) want[q.female ? "ada" : "manny"] += 1;
+  return { draw, ready, want, spilled };
+}
 //: A figure kept for someone who has stepped out of the ring, to be had again without a fresh
 //: copy, this long (ms); then it is put back in the pool.
 const LINGER_MS = 2500;
+//: The turn from a person's yaw to the export's own facing (+z) for it to face their way (-z).
+export const FACING_OFFSET = Math.PI;
 //: The clips' own speeds (m/s): a walk played at a person's pace turns as fast as they go.
 const WALK_MS = 1.35, JOG_MS = 3.4;
 //: The MetaHuman skin photograph's average colour (linear): a person's own tone is laid over it.
@@ -32,7 +85,9 @@ const TEX = { body: "ada-body.jpg", bodyN: "ada-body-normal.jpg", face: "ada-fac
 //: names the build. Without it, or without a build there, the models come from ``base`` beside the
 //: page (a local build; the folder is not in the public repo).
 export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/npc/", store = null }) {
-  const S = { ready: false, failed: false, loading: null, kinds: {}, clips: null, pool: { ada: [], manny: [] }, live: new Map(), made: { ada: 0, manny: 0 }, warmed: null };
+  // (cold: drawn without one readied; madeLate: copied at that moment; readied: given one ahead.)
+  const S = { ready: false, failed: false, loading: null, kinds: {}, clips: null, pool: { ada: [], manny: [] }, live: new Map(), made: { ada: 0, manny: 0 }, warmed: null,
+    cold: 0, madeLate: 0, readied: 0, short: 0 };
   let from = null;
   const url = (f) => (from ? from + f : asset(base + f));
   const storeBuild = async () => {
@@ -161,6 +216,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   }
   const tmp = new THREE.Color();
   function dress(f, look) {
+    // (The same look object as last frame: nothing to do, and no key string made for it.)
+    if (f.dressedLook === look && f.dressedTop === look.top && f.dressedBottom === look.bottom && f.dressedHair === look.hair && f.dressedSkin === look.skin) return;
+    f.dressedLook = look; f.dressedTop = look.top; f.dressedBottom = look.bottom; f.dressedHair = look.hair; f.dressedSkin = look.skin;
     const key = `${look.top}|${look.bottom}|${look.hair}|${look.skin}`;
     if (f.dressed === key) return;
     f.dressed = key;
@@ -178,11 +236,13 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   const start = () => { if (!S.loading && !S.failed) S.loading = load().catch((e) => { S.failed = true; console.warn("kerbside: the near-ring characters did not load; the jointed figures stand in", e?.message || e); }); };
   //: Made ahead (PREBAKE), a few a frame; the first of each kind drawn once out of sight, so its
   //: shaders are compiled before anyone needs it (every copy of a kind shares them).
-  function prebake() {
+  function prebake(want) {
     if (S.warmed) { for (const f of S.warmed) { f.holder.visible = false; f.holder.position.set(0, 0, 0); S.pool[f.kind].push(f); } S.warmed = []; }
     let n = 0;
     for (const kind of ["manny", "ada"]) {
-      while (S.made[kind] < PREBAKE[kind] && n < PREBAKE.per_frame) {
+      // Enough for everyone drawn or coming, and a few to spare: made ahead, never at the moment.
+      const target = Math.max(PREBAKE[kind], Math.min(FIGURES_HELD_MAX, (want?.[kind] || 0) + PREBAKE.spare));
+      while (S.made[kind] < target && n < PREBAKE.per_frame) {
         const f = make(kind); S.made[kind] += 1; n += 1;
         parent.add(f.holder);
         if (S.made[kind] === 1) { f.holder.visible = true; f.holder.position.set(0, -500, 0); f.mixer.update(0); (S.warmed ||= []).push(f); }
@@ -190,32 +250,57 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       }
     }
   }
-  function draw(list, now, dt) {
+  //: ``ready``: those to hold a character for, out of sight (figurePlan), given one from those
+  //: made ahead and dressed, so it is theirs when they come into view; ``want`` the kinds wanted.
+  function hold(q) {
+    const kind = q.female ? "ada" : "manny";
+    let f = S.live.get(q.id);
+    if (f && f.kind !== kind) { release(f); f = null; }
+    return { f, kind };
+  }
+  function draw(list, now, dt, ready = [], want = null) {
     if (!S.ready) { start(); return 0; }
-    prebake();
+    prebake(want);
+    for (const q of ready) {
+      let { f, kind } = hold(q);
+      if (!f) {
+        f = S.pool[kind].pop();
+        if (!f) { S.short += 1; continue; }    // (none made yet: prebake makes them)
+        f.id = q.id; S.live.set(q.id, f);
+        if (!f.holder.parent) parent.add(f.holder);
+        S.readied += 1;
+      }
+      f.seen = now; f.holder.visible = false;
+      dress(f, q.look);
+    }
     let n = 0;
     for (const q of list) {
       if (n >= NEAR_FIGURES_MAX) break;
-      const kind = q.female ? "ada" : "manny";
-      let f = S.live.get(q.id);
-      if (f && f.kind !== kind) { release(f); f = null; }
+      let { f, kind } = hold(q);
       if (!f) {
-        f = S.pool[kind].pop() || (S.made[kind] += 1, make(kind));
+        // Nobody readied: one made now (the stall this is all to avoid; counted).
+        f = S.pool[kind].pop() || (S.made[kind] += 1, S.madeLate += 1, make(kind));
         f.id = q.id; S.live.set(q.id, f);
         if (!f.holder.parent) parent.add(f.holder);
+        S.cold += 1;
       }
       f.seen = now; f.holder.visible = true;
       const s = q.height / f.height;
       f.holder.position.set(q.x, q.y, q.z);
-      // The export faces down -z: turned to the person's heading (yaw 0 = +z, as view.mjs walks).
-      f.holder.rotation.set(0, q.yaw, 0);
+      // The export faces +z (its toes lie +z of its feet: tests/city_npc_figures.test.mjs reads
+      // the model files), and a person's yaw 0 walks -z (stride.mjs, view.mjs): turned half round,
+      // as view.mjs turns the jointed figures (p.yaw + Math.PI). Drawn at q.yaw itself, every
+      // character walked backwards while its yaw was right (2026-11-19 to 11-20).
+      f.holder.rotation.set(0, q.yaw + FACING_OFFSET, 0);
       f.holder.scale.set(s * q.build, s, s * (0.92 + q.build * 0.08));
       dress(f, q.look);
       // The clip by pace: still, walking, jogging -- cross-faded by weight, played at their speed.
       const v = q.moving ? q.speed : 0;
       const want = v < 0.2 ? "idle" : v < 2.3 ? "walk" : "jog";
       const blend = Math.min(1, dt * 6);
-      for (const [name, a] of Object.entries(f.actions)) a.weight += ((name === want ? 1 : 0) - a.weight) * blend;
+      // (The clips as a list kept on the figure: Object.entries made two lists a figure a frame.)
+      const clips = f.clipList ||= Object.entries(f.actions);
+      for (let i = 0; i < clips.length; i += 1) { const a = clips[i][1]; a.weight += ((clips[i][0] === want ? 1 : 0) - a.weight) * blend; }
       f.actions.walk.timeScale = Math.max(0.4, v / WALK_MS);
       f.actions.jog.timeScale = Math.max(0.6, v / JOG_MS);
       f.mixer.update(dt);
@@ -229,7 +314,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     f.id = null; f.holder.visible = false;
     S.pool[f.kind].push(f);
   }
-  return { draw, start, has: (id) => S.live.has(id), get ready() { return S.ready; }, get failed() { return S.failed; }, stats: () => ({ ready: S.ready, live: S.live.size, pooled: S.pool.ada.length + S.pool.manny.length }) };
+  return { draw, start, has: (id) => S.live.has(id), get ready() { return S.ready; }, get failed() { return S.failed; }, stats: () => ({ ready: S.ready, live: S.live.size, pooled: S.pool.ada.length + S.pool.manny.length, made: S.made.ada + S.made.manny, cold: S.cold, madeLate: S.madeLate, readied: S.readied, short: S.short }) };
 }
 
 //: A copy of a hierarchy with skinned meshes, each bound to the copy's own bones (three's

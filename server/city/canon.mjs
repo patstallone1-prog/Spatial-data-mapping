@@ -73,11 +73,14 @@ export class Canon {
     const region = this.district?.split(":").slice(0,-3).join(":") || this.district || "district";
     this.serviceRoster ??= new Roster(this.R, { seed: region });
     const roster = this.serviceRoster, id = String(given.id);
-    const visitor = /^visitor:(\d+)$/.exec(id), resident = /^npc:(.+):(\d+)$/.exec(id);
+    const visitor = /^visitor:(\d+)$/.exec(id), commuter = /^commuter:(\d+)$/.exec(id), resident = /^npc:(.+):(\d+)$/.exec(id);
     let person;
     if (visitor && Number(visitor[1]) < this.R.density.visitors_max) {
       roster.visitorsUpTo(Number(visitor[1]) + 1);
       person = roster.visitors.get(id);
+    } else if (commuter && Number(commuter[1]) < (this.R.density.commuters?.count ?? 0)) {
+      roster.commutersUpTo(Number(commuter[1]) + 1);
+      person = roster.commuters.get(id);
     } else if (resident) {
       const home = this.place(resident[1]);
       if (home?.use === "residential" && !roster.homesDone.has(home.id)) {

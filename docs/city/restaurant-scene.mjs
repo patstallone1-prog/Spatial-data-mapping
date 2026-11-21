@@ -13,6 +13,13 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
     velvet=material(finish.fabric||0x3d4f5c), screen=material(0x1d3b4a), lamp=material(0xffd27a), boxes=material(0xb08d5e);
   const matrix=new T.Matrix4(),rot=new T.Quaternion(),pos=new T.Vector3(),scale=new T.Vector3();
   const identity=new T.Matrix4();let frame=identity;
+  // Every place to sit, in the room's own metres: where the seat is and the way a sitter faces
+  // (``yaw`` as the walker's: 0 looks along -z), for a click on a chair (view.mjs seatClicked).
+  const seats=[];
+  function seat(x,z,s,y=.46){
+    const at=new T.Vector3(x,y,z).applyMatrix4(frame), ahead=new T.Vector3(x,y,z-s).applyMatrix4(frame);
+    seats.push({x:at.x,y:at.y,z:at.z,yaw:Math.atan2(-(ahead.x-at.x),-(ahead.z-at.z))});
+  }
   function primitive(kind,x,y,z,w,h,d,m){
     if(!geo.has(kind))geo.set(kind,kind==="box"?new T.BoxGeometry():new T.CylinderGeometry(.5,.5,1,20));
     const key=kind+m.uuid;if(!batches.has(key))batches.set(key,{geometry:geo.get(kind),m,instances:[]});
@@ -122,6 +129,7 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
   //: A chair at a table's side ``s`` (+z or -z): a moulded seat on a chrome frame at a counter
   //: place, a wooden one at a diner, an upholstered one in fine dining.
   function chair(tier,x,z,s){
+    seat(x,z,s);
     const legs=tier==="counter"?chrome:tier==="dining"?darkWood:wood;
     for(const dx of [-.17,.17])for(const dz of [-.15,.15])box(x+dx,.23,z+dz,.035,.46,.035,legs);
     if(tier==="counter"){box(x,.46,z,.44,.05,.42,plastic);box(x,.7,z+s*.19,.42,.36,.04,plastic);}
@@ -131,6 +139,7 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
   //: One side of a booth: its frame and seat cushion, and a back to the shoulders (a banquette's
   //: is tall and buttoned).
   function boothSide(tier,banquette,s){
+    for(const dx of [-.4,.4])seat(dx,s*.76,s,.5);
     const cushion=tier==="counter"?plastic:banquette?velvet:vinyl, body=tier==="counter"?chrome:darkWood;
     box(0,.22,s*.76,1.56,.42,.5,body);box(0,.47,s*.76,1.53,.11,.48,cushion);
     const back=banquette?.86:.62;
@@ -255,7 +264,7 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
     const mesh=new T.InstancedMesh(geometry,m,instances.length);
     instances.forEach((x,i)=>mesh.setMatrixAt(i,x));group.add(mesh);
   }
-  group.name="restaurant-interior";group.userData.panel=panel;
+  group.name="restaurant-interior";group.userData.panel=panel;group.userData.seats=seats;
   return group;
 }
 

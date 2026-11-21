@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Store sheet</title>
+<!-- A shop room as the City builds it (store-room.mjs, grocery-room.mjs) with its shelves stocked
+     (shelf-stock.mjs, objects.mjs), for checking by eye: ?w=22&d=20&door=0&name=Safeway&kind=supermarket
+     &view=over|aisle|produce|checkout|cold|frozen|front  (or ?cam=x,y,z,tx,ty,tz). -->
+<style>html,body{margin:0;height:100%;background:#222}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { objectKit } from "./objects.mjs";
+import { planStore, storeFixtures } from "./store-room.mjs";
+import { itemSize, sectionsFor, stockShelves } from "./shelf-stock.mjs";
+import { aisleMap } from "./aisles.mjs";
+const q = new URLSearchParams(location.search), num = (k, v) => +(q.get(k) ?? v);
+const O = await (await fetch("objects.json")).json(), R = await (await fetch("rules.json")).json();
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const kit = objectKit(THREE, { loadModel: (u) => loader.loadAsync(u), asset: (p) => "../" + p }, O, R);
+const W = num("w", 22), D = num("d", 20), kind = q.get("kind") || "supermarket";
+const plan = planStore({ width: W, depth: D, doorX: num("door", 0), name: q.get("name") || "Safeway" }, kind);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2b2b2b);
+scene.add(new THREE.HemisphereLight(0xf4f6f8, 0x6b6157, 1.6));
+const sun = new THREE.DirectionalLight(0xfff6e8, 1.1); sun.position.set(3, 8, 2); scene.add(sun);
+// The shell, as view.mjs buildRoom draws it (floor, walls, ceiling left off to look in).
+const shell = new THREE.Group(); scene.add(shell);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D).rotateX(-Math.PI / 2).translate(0, 0, D / 2), new THREE.MeshBasicMaterial({ color: 0xcfcabd })); shell.add(floor);
+for (const [x, z, w, rot] of [[-W / 2, D / 2, D, Math.PI / 2], [W / 2, D / 2, D, -Math.PI / 2], [0, D, W, Math.PI]]) {
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, 3.2).translate(0, 1.6, 0), new THREE.MeshBasicMaterial({ color: 0xe4ddd1 })); wall.position.set(x, 0, z); wall.rotation.y = rot; shell.add(wall);
+}
+const room = storeFixtures(THREE, plan, { seed: 11, tint: 0xd9d4c6 }); scene.add(room);
+const { aisleOf, displayOf } = aisleMap(R);
+const sells = Object.values(R.stores.kinds).filter((s) => s.at?.some((a) => a === `shop:${kind}` || (kind === "supermarket" && a === "shop:grocery"))).flatMap((s) => s.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service);
+const sizeOf = (id) => itemSize(O, R, id);
+const placed = stockShelves(plan, sectionsFor(plan, sells, aisleOf, (id) => Boolean(sizeOf(id))), sizeOf, (id) => displayOf[id]);
+const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1);
+let n = 0, drawn = 0;
+await Promise.all([...placed].map(async ([id, list]) => {
+  const stock = await kit.instanced(id, list.length, q.get("tier") || "low").catch(() => null);
+  if (!stock) return;
+  list.forEach((p, k) => { E.set(0, p.yaw, 0); Q.setFromEuler(E); stock.set(k, M.compose(V.set(p.x, p.y, p.z), Q, S)); });
+  stock.count(list.length); scene.add(stock.group); n += 1; drawn += list.length;
+}));
+const views = {
+  over: [0, 24, -4, 0, 0, D * 0.55], front: [plan.doorX, 1.65, 0.4, plan.doorX, 1.3, 8],
+  aisle: null, produce: null, checkout: null, cold: null, frozen: null,
+};
+const g = plan.fixtures.find((f) => f.role === "gondola"), lane = plan.fixtures.find((f) => f.role === "checkout"), pt = plan.fixtures.find((f) => f.role === "produce_table");
+const dairy = plan.fixtures.find((f) => f.section === "dairy"), frozen = plan.fixtures.find((f) => f.role === "freezer_island") || plan.fixtures.find((f) => f.role === "freezer_doors");
+if (g) views.aisle = [g.x + 1.45, 1.6, g.z - g.d / 2 - 0.8, g.x + 1.2, 1.0, g.z + 2];
+if (pt) views.produce = [pt.x + 1.2 * Math.sign(plan.produceSide), 1.7, pt.z + 2.4, pt.x, 0.8, pt.z];
+if (lane) views.checkout = [lane.x - plan.checkoutSide * 1.0, 1.65, lane.z + 3.1, lane.x - plan.checkoutSide * 0.2, 0.95, lane.z - 0.8];
+if (dairy) views.cold = [dairy.x - Math.sin(dairy.yaw) * 2.4, 1.6, dairy.z - 2.0, dairy.x, 1.1, dairy.z + 1.5];
+if (frozen) views.frozen = [frozen.x + plan.checkoutSide * 1.5, 1.6, frozen.z - 3.2, frozen.x + plan.checkoutSide * 1.4, 1.0, frozen.z + 2];
+const v = q.get("cam") ? q.get("cam").split(",").map(Number) : views[q.get("view") || "over"] || views.over;
+const cam = new THREE.PerspectiveCamera(q.get("view") === "over" || !q.get("view") ? 50 : 62, innerWidth / innerHeight, 0.05, 200);
+cam.position.set(v[0], v[1], v[2]); cam.lookAt(v[3], v[4], v[5]);
+// The room's frame is the City's (x across, z in from the front); seen from the street, x runs
+// to the right: mirror the view so left is left.
+renderer.render(scene, cam);
+document.title = `ready ${n} products, ${drawn} on shelves`;
+window.__plan = plan;
+</script></body></html>

@@ -227,10 +227,61 @@ function* dropKerbsAtDrivewaysSteps(ways) {
       pos.needsUpdate = true;
       o.geometry.computeVertexNormals();
       o.geometry.computeBoundingSphere();
+      if (o.userData.surface !== "kerb") apronsOutOf(o, grid, cell);
     }
     yield;
   }
   return lowered;
+}
+//: Where the curb is cut, the walk let down to the gutter is one plain pour (NEAR_SURFACE
+//: "apron"): no squares scored across a driveway. The walk's triangles whose middle is over a
+//: cut -- the driveway's width and half its flare, from the gutter back to the property line --
+//: are taken out of its mesh into one of their own, with their own copies of the vertices (the
+//: lift and the terrain drape that follow move each mesh's vertices once).
+const APRON_MATERIALS = new Map();
+function apronsOutOf(o, grid, cell) {
+  const g = o.geometry, pos = g.getAttribute("position"), index = g.getIndex();
+  const triangles = index ? index.count / 3 : pos.count / 3;
+  const vertexOf = index ? (t, k) => index.getX(t * 3 + k) : (t, k) => t * 3 + k;
+  const keep = [], cut = [];
+  for (let t = 0; t < triangles; t += 1) {
+    const a = vertexOf(t, 0), b = vertexOf(t, 1), c = vertexOf(t, 2);
+    const x = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3, z = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3;
+    let over = false;
+    for (const d of grid.get(`${Math.floor(x / cell)}:${Math.floor(z / cell)}`) || []) {
+      const dx = x - d.x, dz = z - d.z, inward = dx * d.ox + dz * d.oz;
+      if (inward >= -0.35 && inward <= d.depth && Math.abs(-dx * d.oz + dz * d.ox) <= d.half + APRON_FLARE_M / 2) { over = true; break; }
+    }
+    (over ? cut : keep).push(a, b, c);
+  }
+  if (!cut.length || !o.parent || Array.isArray(o.material)) return;
+  // The apron's own vertices, in the order its triangles first use them.
+  const slot = new Map(), order = [];
+  const local = cut.map((v) => { let s = slot.get(v); if (s === undefined) { slot.set(v, s = order.length); order.push(v); } return s; });
+  const apron = new THREE.BufferGeometry();
+  for (const name of Object.keys(g.attributes)) {
+    const src = g.getAttribute(name), size = src.itemSize, out = new Float32Array(order.length * size);
+    order.forEach((v, i) => { for (let k = 0; k < size; k += 1) out[i * size + k] = src.getComponent(v, k); });
+    apron.setAttribute(name, new THREE.BufferAttribute(out, size, src.normalized));
+  }
+  apron.setIndex(local);
+  apron.computeBoundingSphere();
+  g.setIndex(keep);
+  let material = APRON_MATERIALS.get(o.material);
+  if (!material) {
+    material = o.material.clone();
+    material.map = KERB_CONCRETE;
+    material.userData = { ...o.material.userData, nearSurface: "apron" };
+    APRON_MATERIALS.set(o.material, material);
+  }
+  const mesh = new THREE.Mesh(apron, material);
+  mesh.name = `${o.name || "walk"}:apron`;
+  mesh.userData = { ...o.userData, apron: true };
+  mesh.position.copy(o.position); mesh.quaternion.copy(o.quaternion); mesh.scale.copy(o.scale);
+  mesh.matrixAutoUpdate = o.matrixAutoUpdate; mesh.matrix.copy(o.matrix); mesh.matrixWorldNeedsUpdate = true;
+  mesh.renderOrder = o.renderOrder; mesh.castShadow = o.castShadow; mesh.receiveShadow = o.receiveShadow;
+  mesh.frustumCulled = o.frustumCulled; mesh.layers.mask = o.layers.mask;
+  o.parent.add(mesh);
 }
 // Before the lift, while every height is still the flat model's: the drop reads the gutter as
 // ROAD_TOP_M, and run after the lift it let every kerb and pavement near a driveway on a hill
