@@ -158,7 +158,7 @@ for (const [sku, imp] of Object.entries(imports.items || {})) {
     for (const p of recipe.parts) used.add(p.asset);
     continue;
   }
-  items[sku] = { status: "imported", asset: ids[0], name: imp.name, source_kind: imp.source_kind, ...(ids.length > 1 ? { variants: ids.slice(1) } : {}) };
+  items[sku] = { status: "imported", asset: ids[0], name: imp.name, source_kind: imp.source_kind, ...(ids.length > 1 ? { variants: ids.slice(1) } : {}), ...(imp.paint ? { paint: imp.paint } : {}) };
   for (const a of ids) used.add(a);
 }
 const fixtures = {};
@@ -225,6 +225,20 @@ for (const id of [...used].sort()) {
     }
     scene.addChild(farNode);
   }
+  // A store product's lowest tier too ("low", a few hundred triangles): a fully stocked shelf
+  // draws hundreds of each (shelf-stock.mjs), seen from an aisle away.
+  const low = id.startsWith("imp-") ? lods.find((l) => l.level > (far || near).level && l.triangles <= 400 && l.triangles <= (far || near).triangles * 0.8) || null : null;
+  if (low) {
+    const other = await io.read(join(LAB, low.file));
+    const map = mergeDocuments(doc, other);
+    const lowNode = doc.createNode("low");
+    for (const s of other.getRoot().listScenes()) {
+      const mine = map.get(s);
+      for (const n of mine.listChildren()) { mine.removeChild(n); lowNode.addChild(n); }
+      mine.dispose();
+    }
+    scene.addChild(lowNode);
+  }
   // Lit, not unlit: the furniture kit's colours are flat swatches meant for an unlit look.
   for (const ext of root.listExtensionsUsed()) if (ext.extensionName === "KHR_materials_unlit") ext.dispose();
   for (const m of root.listMaterials()) if (m.getRoughnessFactor() === 1 && m.getMetallicFactor() === 1 && !m.getMetallicRoughnessTexture()) m.setMetallicFactor(0).setRoughnessFactor(0.8);
@@ -240,7 +254,7 @@ for (const id of [...used].sort()) {
   outAssets[id] = {
     file, bytes, provider: a.provider, pack: a.pack || null, source: a.source, license: a.license, ...(a.author ? { author: a.author, title: a.name } : {}),
     dims: [b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]].map((v) => +v.toFixed(4)),
-    tiers: [{ node: "near", triangles: near.triangles, lod: near.level }, ...(far ? [{ node: "far", triangles: far.triangles, lod: far.level }] : [])],
+    tiers: [{ node: "near", triangles: near.triangles, lod: near.level }, ...(far ? [{ node: "far", triangles: far.triangles, lod: far.level }] : []), ...(low ? [{ node: "low", triangles: low.triangles, lod: low.level }] : [])],
   };
   process.stdout.write(`${id} ${(bytes / 1024).toFixed(0)} KB ${outAssets[id].tiers.map((t) => t.triangles).join("/")}\n`);
 }

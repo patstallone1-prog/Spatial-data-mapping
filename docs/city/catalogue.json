@@ -6,10 +6,10 @@
   "goods": 329,
   "services": 20,
   "sold_somewhere": 335,
-  "drawn_with_model": 203,
-  "imported": 100,
+  "drawn_with_model": 245,
+  "imported": 143,
   "store_items_with_aisle": 165,
-  "store_items_imported": 99,
+  "store_items_imported": 142,
   "vehicles": 11,
   "licences": 3,
   "kitchen_ingredients": 141,
@@ -3699,12 +3699,15 @@
    "kg": 0.2,
    "length_m": 0.12,
    "model": {
-    "status": "reference_only",
-    "asset": null,
-    "providers": [],
-    "license": null,
-    "drawn": false,
-    "recognisable": false
+    "status": "imported",
+    "asset": "imp-bagel",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "scan",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -4796,15 +4799,15 @@
    "kg": 0.3,
    "length_m": 0.2,
    "model": {
-    "status": "label_required",
-    "asset": "k-food-can-small",
+    "status": "imported",
+    "asset": "imp-pet-treats",
     "providers": [
-     "Kenney"
+     "Objaverse (Sketchfab)"
     ],
-    "license": "CC0-1.0",
-    "tint": "#c94f7c",
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
     "drawn": true,
-    "recognisable": false
+    "recognisable": true
    }
   },
   {
@@ -6626,8 +6629,15 @@
    "kg": 0.45,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-ground-beef",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7680,8 +7690,15 @@
    "kg": 0.45,
    "length_m": 0.12,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-sour-cream",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7699,8 +7716,15 @@
    "kg": 0.95,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-half-and-half",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7718,8 +7742,15 @@
    "kg": 0.25,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-deli-meat",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7737,8 +7768,15 @@
    "kg": 0.45,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-hot-dogs",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7756,8 +7794,15 @@
    "kg": 0.3,
    "length_m": 0.22,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-frozen-meals",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7842,8 +7887,15 @@
    "kg": 0.7,
    "length_m": 0.18,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-pasta-sauce",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7903,8 +7955,15 @@
    "kg": 0.3,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-soy-sauce",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7921,8 +7980,15 @@
    "kg": 0.45,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-salad-dressing",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7959,8 +8025,18 @@
    "kg": 0.45,
    "length_m": 0.15,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-nuts-can",
+    "variants": [
+     "imp-nuts"
+    ],
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7978,8 +8054,15 @@
    "kg": 0.3,
    "length_m": 0.2,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-popcorn",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -7997,8 +8080,15 @@
    "kg": 0.45,
    "length_m": 0.25,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-pretzels",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8134,8 +8224,15 @@
    "kg": 0.787,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-salt",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "scan",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8153,8 +8250,15 @@
    "kg": 0.135,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-black-pepper",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8171,8 +8275,15 @@
    "kg": 0.092,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8189,8 +8300,15 @@
    "kg": 0.121,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8207,8 +8325,15 @@
    "kg": 0.107,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8225,8 +8350,15 @@
    "kg": 0.121,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8243,8 +8375,15 @@
    "kg": 0.095,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8262,8 +8401,15 @@
    "kg": 0.087,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8280,8 +8426,15 @@
    "kg": 0.071,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8298,8 +8451,15 @@
    "kg": 0.072,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8316,8 +8476,15 @@
    "kg": 0.078,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8334,8 +8501,15 @@
    "kg": 0.071,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8353,8 +8527,15 @@
    "kg": 0.138,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8371,8 +8552,15 @@
    "kg": 0.124,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8389,8 +8577,15 @@
    "kg": 0.118,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8407,8 +8602,15 @@
    "kg": 0.104,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8425,8 +8627,15 @@
    "kg": 0.104,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8443,8 +8652,15 @@
    "kg": 0.087,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8461,8 +8677,15 @@
    "kg": 0.095,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8479,8 +8702,15 @@
    "kg": 0.101,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8497,8 +8727,15 @@
    "kg": 0.098,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8515,8 +8752,15 @@
    "kg": 0.098,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8533,8 +8777,15 @@
    "kg": 0.12,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8551,8 +8802,15 @@
    "kg": 0.115,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8569,8 +8827,15 @@
    "kg": 0.22,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8587,8 +8852,15 @@
    "kg": 0.107,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8605,8 +8877,15 @@
    "kg": 0.118,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8623,8 +8902,15 @@
    "kg": 0.115,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   },
   {
@@ -8641,8 +8927,15 @@
    "kg": 0.054,
    "length_m": 0.11,
    "model": {
-    "status": "none",
-    "note": "not in the object manifest: the page draws it"
+    "status": "imported",
+    "asset": "imp-jar-spice",
+    "providers": [
+     "Objaverse (Sketchfab)"
+    ],
+    "license": "CC-BY-4.0",
+    "source_kind": "model",
+    "drawn": true,
+    "recognisable": true
    }
   }
  ],
@@ -9881,47 +10174,24 @@
    "at_grocery": 126,
    "corner_staples": 75,
    "at_corner_store": 75,
-   "imported_model": 89,
-   "other_model": 4,
+   "imported_model": 112,
+   "other_model": 3,
    "needed_items": [],
    "needed_models": [
     "tortillas (none)",
-    "bagel (none)",
-    "sour_cream (none)",
-    "half_and_half (none)",
     "chicken_breast (kit model)",
-    "ground_beef (none)",
-    "deli_meat (none)",
-    "hot_dogs (none)",
     "ice_cream_tub (none)",
     "frozen_vegetables (none)",
     "bag_of_ice (none)",
-    "frozen_meals (none)",
     "maple_syrup (none)",
     "rice (none)",
     "flour (none)",
-    "pasta_sauce (none)",
     "baking_soda (none)",
-    "jar_salt (none)",
-    "jar_black_pepper (none)",
-    "jar_garlic_powder (none)",
-    "jar_cinnamon (none)",
-    "jar_paprika (none)",
-    "jar_oregano (none)",
-    "jar_chili_powder (none)",
-    "jar_cumin (none)",
-    "jar_red_pepper_flakes (none)",
-    "soy_sauce (none)",
-    "salad_dressing (none)",
     "vinegar (none)",
     "gum (labelled stand-in)",
-    "nuts (none)",
-    "popcorn (none)",
-    "pretzels (none)",
     "plastic_wrap (none)",
     "zip_bags (none)",
-    "dog_food (labelled stand-in)",
-    "pet_treats (labelled stand-in)"
+    "dog_food (labelled stand-in)"
    ]
   },
   "by_aisle": {
@@ -10078,7 +10348,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "hamburger_buns",
@@ -10152,7 +10422,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "half_and_half",
@@ -10160,7 +10430,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     }
    ],
    "meat_seafood": [
@@ -10178,7 +10448,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "bacon",
@@ -10202,7 +10472,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "hot_dogs",
@@ -10210,7 +10480,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     }
    ],
    "frozen": [
@@ -10252,7 +10522,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     }
    ],
    "breakfast": [
@@ -10416,7 +10686,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "instant_noodles",
@@ -10450,7 +10720,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_black_pepper",
@@ -10458,7 +10728,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_garlic_powder",
@@ -10466,7 +10736,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_cinnamon",
@@ -10474,7 +10744,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_paprika",
@@ -10482,7 +10752,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_oregano",
@@ -10490,7 +10760,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_chili_powder",
@@ -10498,7 +10768,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_cumin",
@@ -10506,7 +10776,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "jar_red_pepper_flakes",
@@ -10514,7 +10784,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     }
    ],
    "condiments": [
@@ -10556,7 +10826,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "salad_dressing",
@@ -10564,7 +10834,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "vinegar",
@@ -10630,7 +10900,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "popcorn",
@@ -10638,7 +10908,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     },
     {
      "id": "pretzels",
@@ -10646,7 +10916,7 @@
      "in_city": true,
      "grocery": true,
      "corner": true,
-     "model": "none"
+     "model": "imported"
     }
    ],
    "drinks": [
@@ -10962,7 +11232,7 @@
      "in_city": true,
      "grocery": true,
      "corner": false,
-     "model": "labelled stand-in"
+     "model": "imported"
     }
    ]
   }

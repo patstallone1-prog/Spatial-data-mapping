@@ -65,30 +65,38 @@ out together, and `length_m` is the span of that group, so an apple is apple-siz
 
 ## Grocery survey (catalogue.json `grocery_survey`)
 
-The survey checks 119 staples a US grocery carries; 74 of them are typical corner-store stock. All
-119 are now in the city and on the grocery's shelves. The 74 corner-store staples are all at the
-corner store. 91 are drawn with an imported model and 4 more with a kit model. These 28 still need a
-model:
+The survey checks 126 staples a US grocery carries, with salt, pepper and seven everyday spices;
+75 of them are typical corner-store stock. All 126 are in the city and on the grocery's shelves,
+and the 75 corner-store staples are at the corner store. 112 are drawn with an imported model and
+3 with a kit model. These 14 still have no usable model anywhere searched:
 
-| aisle | imported | still to find |
-|---|---:|---|
-| produce | 16 / 16 | — |
-| dairy | 7 / 9 | sour cream, half and half |
-| bakery | 2 / 4 | tortillas, bagel |
-| meat & seafood | 2 / 6 | chicken breast (kit), ground beef, deli meat, hot dogs |
-| frozen | 1 / 5 | ice cream pint, frozen vegetables, bag of ice, frozen meals |
-| breakfast | 9 / 10 | maple syrup |
-| pantry | 11 / 15 | rice, flour, pasta sauce, baking soda |
-| condiments | 4 / 7 | soy sauce, salad dressing, vinegar |
-| snacks | 5 / 9 | gum, nuts, popcorn, pretzels |
-| drinks, alcohol, personal care, pharmacy | all | — |
-| household | 10 / 12 | plastic wrap, zip bags |
-| pets | 1 / 3 | dog food, pet treats |
+| aisle | still to find |
+|---|---|
+| bakery | tortillas |
+| meat & seafood | chicken breast (kit model) |
+| frozen | ice cream pint, frozen vegetables, bag of ice |
+| breakfast | maple syrup |
+| pantry | rice, flour, baking soda |
+| condiments | vinegar |
+| snacks | gum (a labelled stand-in) |
+| household | plastic wrap, zip bags |
+| pets | dog food (a labelled stand-in) |
 
-Packaged meat, frozen boxes and the dry-goods bags were searched for and nothing usable was found.
-The search covered all of Objaverse's 800k model names and tags, plus Google Scanned Objects, YCB
-and Poly Haven. For these, a clean generic package model (a tray, a carton, a bag) with a printed
-label texture is the next step. Unlike a scan, that label could carry the city's own brand.
+A second search ran over every Objaverse name, tag *and description* (800k models) with 24 sets
+of terms (spice jars, shakers, tubs, cartons, meat trays, sacks, sauce jars, snack bags, pet
+food). It found the hot-dog pack, salami, a film-covered meat tray (its contents painted raw
+beef), a black frozen-dinner tray, a pretzel bag, a popcorn bucket, loose peanuts and a can of
+nuts, a dog biscuit, a sauce jar (painted red), a cream-cheese tub (sour cream), a pint carton
+(half and half), a soy-sauce-style bottle, a dressing bottle and a bagel. Bags of rice and
+flour, a pint of ice cream, gum packs and plastic wrap turned up nothing usable: scans of the
+contents (a heap of flour), toys or game props. For these, a generic package with the city's own
+printed label is still the way.
+
+**Spices.** The kitchen's 29 spices (rules items `jar_*`, sold by the jar at every grocery: salt
+and pepper at the corner store too) are one imported glass shaker jar (CC-BY, Objaverse), its
+contents painted the spice's own colour (`paint` in objects.json: paprika red, turmeric yellow,
+oregano green, garlic powder cream...) and its cap white. Salt is a round canister and pepper a
+grinder, their own imports. A spice aisle on the gondolas holds them.
 
 ## Where the models come from
 
@@ -136,8 +144,9 @@ cleared.
   - A bottle modelled lying down is stood up (`turn`).
 - **City build:** `build_city_objects.mjs` halves textures to 256 px WebP and meshopt-compresses.
 
-The result is 5.6 MB for the imports and 8.9 MB for the whole object set. Each model is fetched the
-first time it's drawn, never at start. The test budget for the set rose from 6 to 9 MB.
+The result is about 7 MB for the imports with their shelf tier and 10.4 MB for the whole object
+set. Each model is fetched the first time it's drawn, never at start: a store's products when
+you walk into it. The test budget for the set is 11 MB.
 
 Files in the lab:
 
@@ -147,6 +156,50 @@ Files in the lab:
 - `store-imports.json`: which item draws with which model, plus variants (a second chip brand, a
   milk carton next to the gallon) and the rejects with the reason for each.
 - `tools/acquire_imports.py`: re-fetches the sources.
+
+## Grocery rooms: produce, refrigerated aisles, checkouts (grocery-room.mjs)
+
+A supermarket in the City (a `supermarket`, `grocery` or `greengrocer` at least 9 m wide with 9 m
+of floor) is laid out as Codex's retail engine lays one out (`src/smc/interiors/stores/engine.py`,
+docs/28), fitted to the City's shop room:
+
+- **Checkouts across the front** on the side with more room beside the door: a self-checkout
+  bank nearest the door (two kiosks a bay, an attendant's podium) and staffed lanes out to the
+  wall, in the chain's mix (Codex's priors: Safeway 45% self-service, Whole Foods 50%, Trader
+  Joe's none, an independent 25%). A lane is a belt counter with its divider rail, scanner glass,
+  register screen and card terminal, a bagging well with a bag carousel, the lane light's pole
+  and number, and the cashier's pocket behind it (staff stand there, shoppers do not). Its
+  impulse rack faces the next lane's queue. The queue and a cross aisle run behind them.
+- **Produce inside the door** on the other side: farm-stand tables with two stepped tiers each
+  face, and a refrigerated produce case down the wall.
+- **Refrigerated walls and a frozen aisle:** dairy in open multidecks down the produce side's
+  wall, meat and seafood across the back (a gap at the stock room's door), drinks behind glass
+  doors down the other wall and, in a room 15 m wide or more, an island of back-to-back glass-door
+  freezers facing them (the frozen aisle); narrower, freezer doors on the wall.
+- **Gondolas** front to back between them, packed from the walls, the way in from the door kept
+  clear to the back and a cross aisle through long runs. Each aisle's sections follow the
+  catalogue's (`aisles.mjs`): bakery, breakfast, pantry, spices, condiments, snacks, beer and
+  wine, household, personal care, pharmacy, pets, shared out by how much shelf each wants. A
+  numbered sign hangs over each aisle, department signs over the walls, strip lights down every
+  aisle.
+- **Stocked with the shop's own products** (`shelf-stock.mjs`): every shelf slot gets its section's
+  products at their catalogue size, faced as a store faces them -- cans and small boxes stacked
+  up to three, bottles and jars in a row, produce heaped two layers deep -- up to 7,500
+  placements a room. They are drawn at each model's lowest tier (`low`, about 220 triangles,
+  added to the store imports for this), one instanced mesh per product. A player's business
+  shows only what it has in stock.
+- Smaller groceries and corner stores keep the small shop's room (till by the door, glass-door
+  drink coolers, gondolas, a fruit table) and now get the same real stock on those shelves.
+
+Codex's fitted interiors (a shop with a published site layout, drawn by
+`inferred-interiors/retail-fixtures.mjs`) get the same: the lane and kiosk as above, produce
+bins as stepped farm-stand tiers, and their gondolas, cases and bins stocked with real products
+through `globalThis.kerbsideStockShelf` (set by the City when its object kit runs; the engine's
+coloured packs otherwise).
+
+`docs/city/store-sheet.html` (`?w=22&d=20&door=0&name=Safeway&view=aisle|produce|checkout|cold|frozen|front|over`)
+and `docs/city/fitted-sheet.html` draw them for checking by eye; `tests/city_grocery_room.test.mjs`
+checks the program, that every shelf is reached from the door, the cashier's pocket and the stock.
 
 ## Toward walk-in shopping
 
@@ -169,8 +222,8 @@ shelf facing of 12 is one draw call. The inferred retail interiors already have 
 bins, coolers, freezer cases and checkout lanes (`docs/inferred-interiors/retail-fixtures.mjs`).
 What is left:
 
-1. Map aisles to those fixtures.
-2. Fill each facing by its display type: stack heights from the model's `dims`, rows one deep and
-   several back.
-3. Let the player pick an item up into the cart's `container`.
+1. ~~Map aisles to those fixtures.~~ Done (grocery-room.mjs, retail-fixtures.mjs).
+2. ~~Fill each facing by its display type.~~ Done (shelf-stock.mjs).
+3. Let the player pick an item up into the cart's `container` (each placement is already a known
+   product at a known shelf spot).
 4. Run the cart through `checkout`. `world.mjs cmd_checkout` already takes a cart of lines.

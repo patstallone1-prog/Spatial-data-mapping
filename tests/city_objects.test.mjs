@@ -28,10 +28,11 @@ test("every model the manifest names is on disk, small, CC0 or credited CC-BY, a
     if (a.license === "CC-BY-4.0") assert.ok(credited.has(id), `${id} is credited`);
     assert.equal(a.tiers[0].node, "near");
     assert.ok(a.tiers[0].triangles <= O.lod.near_max_triangles, `${id} near tier ${a.tiers[0].triangles}`);
-    if (a.tiers[1]) assert.ok(a.tiers[1].triangles < a.tiers[0].triangles, `${id}: far is lighter than near`);
+    for (let i = 1; i < a.tiers.length; i += 1) assert.ok(a.tiers[i].triangles < a.tiers[i - 1].triangles, `${id}: ${a.tiers[i].node} is lighter than ${a.tiers[i - 1].node}`);
   }
-  // 3.3 MB of the lab's kits and ~4.8 MB of store products (each fetched on first use, never at start).
-  assert.ok(total < 9_000_000, `the whole set is ${(total / 1e6).toFixed(1)} MB`);
+  // 3.3 MB of the lab's kits and ~7 MB of store products with their shelf tier (each fetched on
+  // first use, never at start: a store's own products when you walk into it).
+  assert.ok(total < 11_000_000, `the whole set is ${(total / 1e6).toFixed(1)} MB`);
 });
 
 test("items are drawn only with models the lab found fit: reference-only and gaps keep the page's shape", () => {
