@@ -247,7 +247,7 @@ for (const id of [...used].sort()) {
 
 const manifest = {
   schema: "kerbside.city_objects/1",
-  basis: "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). The lab's own models are CC0 (Kenney, Poly Haven, Poly Pizza); the store imports (store-imports.json, docs/52-store-catalogue.md) are CC-BY 4.0 or CC0 and credited one by one under attributions. An item is drawn at its catalogue length_m (rules.json items).",
+  basis: "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). The lab's own models are CC0 (Kenney, Poly Haven, Poly Pizza); the store imports (store-imports.json, docs/53-store-catalogue.md) are CC-BY 4.0 or CC0 and credited one by one under attributions. An item is drawn at its catalogue length_m (rules.json items).",
   lod: { near_px: 160, far_px: 48, cull_px: 5, hysteresis: 0.15, near_max_triangles: NEAR_MAX, texture_px: TEX },
   credits: [...new Set(Object.values(outAssets).map((a) => `${a.provider}${a.pack ? ` (${a.pack})` : ""}, ${a.license}`))].sort(),
   attributions: Object.entries(outAssets).filter(([, a]) => /^CC-BY/.test(a.license)).map(([id, a]) => ({ asset: id, title: a.title || id, author: a.author || a.provider, source: a.source, license: a.license })),

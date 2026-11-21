@@ -1,6 +1,6 @@
 {
  "schema": "kerbside.city_catalogue/1",
- "basis": "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/52-store-catalogue.md).",
+ "basis": "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/53-store-catalogue.md).",
  "counts": {
   "items": 322,
   "goods": 302,

@@ -3,7 +3,7 @@
 // storefronts, the services, the licences a business buys and the ingredients a kitchen buys
 // wholesale -- and, for the stores a player walks through, a survey of the staples a US grocery
 // and a corner store carry against what the city has, with each store item's aisle and how it is
-// displayed (the first data for aisle, stacking and display logic: docs/52-store-catalogue.md).
+// displayed (the first data for aisle, stacking and display logic: docs/53-store-catalogue.md).
 //
 //   node scripts/build_store_catalogue.mjs        -> docs/city/catalogue.json
 //
@@ -137,7 +137,7 @@ const summary = {
 const store = Object.values(catItems).filter((i) => i.aisle);
 const out = {
   schema: "kerbside.city_catalogue/1",
-  basis: "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/52-store-catalogue.md).",
+  basis: "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/53-store-catalogue.md).",
   counts: {
     items: catItems.length, goods: catItems.filter((i) => !i.service).length, services: catItems.filter((i) => i.service).length,
     sold_somewhere: catItems.filter((i) => i.sold_at.length).length, drawn_with_model: catItems.filter((i) => i.model.drawn).length,

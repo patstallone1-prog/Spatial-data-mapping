@@ -22,7 +22,7 @@ test("every model the manifest names is on disk, small, CC0 or credited CC-BY, a
     const bytes = statSync(file).size;
     total += bytes;
     assert.ok(bytes < 200_000, `${id} is ${bytes} bytes`);
-    // The lab's own kits are CC0; the store imports (docs/52-store-catalogue.md) are CC0 or CC-BY
+    // The lab's own kits are CC0; the store imports (docs/53-store-catalogue.md) are CC0 or CC-BY
     // 4.0, and a CC-BY model is credited by title, author and source.
     assert.ok(["CC0-1.0", "CC-BY-4.0"].includes(a.license), `${id}: ${a.license}`);
     if (a.license === "CC-BY-4.0") assert.ok(credited.has(id), `${id} is credited`);
