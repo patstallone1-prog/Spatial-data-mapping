@@ -1,6 +1,6 @@
 {
  "schema": "kerbside.city_objects/1",
- "basis": "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). Models are CC0 (Kenney, Poly Haven, Poly Pizza); sizes are the lab's proposed representative dimensions, and an item is drawn at its catalogue length_m (rules.json items).",
+ "basis": "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). The lab's own models are CC0 (Kenney, Poly Haven, Poly Pizza); the store imports (store-imports.json, docs/52-store-catalogue.md) are CC-BY 4.0 or CC0 and credited one by one under attributions. An item is drawn at its catalogue length_m (rules.json items).",
  "lod": {
   "near_px": 160,
   "far_px": 48,
@@ -10,31 +10,3632 @@
   "texture_px": 256
  },
  "credits": [
+  "Google Scanned Objects, CC-BY-4.0",
   "Kenney (food-kit), CC0-1.0",
   "Kenney (furniture-kit), CC0-1.0",
   "Kenney (retro-urban-kit), CC0-1.0",
   "Kenney (survival-kit), CC0-1.0",
+  "Objaverse (Sketchfab), CC-BY-4.0",
   "Poly Haven (textured-realistic), CC0-1.0",
-  "Poly Pizza (everyday), CC0-1.0"
+  "Poly Haven, CC0-1.0",
+  "Poly Pizza (everyday), CC0-1.0",
+  "YCB Object and Model Set, CC-BY-4.0"
+ ],
+ "attributions": [
+  {
+   "asset": "imp-aluminium-foil",
+   "title": "Aluminum foil from Poly by Google",
+   "author": "ie-niels",
+   "source": "https://sketchfab.com/3d-models/8dd82f8dc8d748aabcfc49c9fe947443",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-bacon",
+   "title": "Bacon from Poly by Google",
+   "author": "ie-niels",
+   "source": "https://sketchfab.com/3d-models/e2bc52c43b9d415196cbb720e849869a",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-bandage",
+   "title": "Bandage Roll",
+   "author": "Tactical_Beard",
+   "source": "https://sketchfab.com/3d-models/dd33fad87aec468daeb0398ea4a6389f",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-bar-soap",
+   "title": "Famous Beauty Soap",
+   "author": "connectionsxr",
+   "source": "https://sketchfab.com/3d-models/b53852c259fd4a9898455bfe70d493bd",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-batteries",
+   "title": "battery duracell",
+   "author": "yulaflibiskuvi",
+   "source": "https://sketchfab.com/3d-models/3c3fcc0d17754c9494a2f9c2deaa6139",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-beer",
+   "title": "German Beer Bottle with Crown Cap",
+   "author": "christianrehm",
+   "source": "https://sketchfab.com/3d-models/f8a536bd4cd042afa1945083d69f17d9",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-bell-peppers",
+   "title": "Red Bell Pepper",
+   "author": "meerschaumdigital",
+   "source": "https://sketchfab.com/3d-models/7dceb5e3fa574027b6b8c6ffff8c980c",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-black-pepper",
+   "title": "Pepper Shaker",
+   "author": "KatH10",
+   "source": "https://sketchfab.com/3d-models/76fcdf15d166452a94ec5fec385d907e",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-bread",
+   "title": "Crusty Sourdough Bread",
+   "author": "janeminty",
+   "source": "https://sketchfab.com/3d-models/27ef8b1c9240430e9fa851094a134ee5",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-broth",
+   "title": "KA Bone Broth",
+   "author": "spinks",
+   "source": "https://sketchfab.com/3d-models/5f39405a4064400a8454efe63a0ac8cb",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-butter",
+   "title": "PB121 Butter Mid",
+   "author": "pbr-scans",
+   "source": "https://sketchfab.com/3d-models/291b81868a8d4f97beffc64cb9eed6d3",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-candy-bar",
+   "title": "Snickers",
+   "author": "ishutov_il",
+   "source": "https://sketchfab.com/3d-models/0be224499da94192b4c6a7fc61d21f95",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-canned-beans",
+   "title": "Green Beans",
+   "author": "chin4grci4",
+   "source": "https://sketchfab.com/3d-models/056e0c896ce34f13b92dca2c39de44d0",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-canned-soup",
+   "title": "005_tomato_soup_can",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-canned-tomatoes",
+   "title": "Retro Style Peeled Tomatoes: Itali",
+   "author": "PickledCactusAlan",
+   "source": "https://sketchfab.com/3d-models/e47e43b2a846471495dbff41689ae2fb",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-canned-tuna",
+   "title": "007_tuna_fish_can",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-carrots",
+   "title": "Carrot photogrammetry | Game ready",
+   "author": "alexey_ra",
+   "source": "https://sketchfab.com/3d-models/00a7fb2929b14f0a82a745ce5454dbb5",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cash-register",
+   "title": "Cash Register",
+   "author": "bretzel44",
+   "source": "https://sketchfab.com/3d-models/1efcbed7fd124a89a9265c693d91b655",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cat-food",
+   "title": "Cat Food Bag",
+   "author": "jku08",
+   "source": "https://sketchfab.com/3d-models/a6aa2be5b93249bd9b004a49ec012700",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cereal",
+   "title": "Vans_Cereal_Honey_Nut_Crunch_11_oz",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Vans_Cereal_Honey_Nut_Crunch_11_oz_box",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cheese",
+   "title": "Cheddar Cheese",
+   "author": "dragonclaws",
+   "source": "https://sketchfab.com/3d-models/448d96d564be46dba7eaefc38232fa62",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-chips",
+   "title": "Lays Packet",
+   "author": "tarun_tkg",
+   "source": "https://sketchfab.com/3d-models/00d1be4411f848efaeb72b936d4d1692",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-chips-2",
+   "title": "Doritos",
+   "author": "tasiadraws",
+   "source": "https://sketchfab.com/3d-models/751eb629d6c84e64a45f3545d47a86c3",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-coffee-beans",
+   "title": "Coffee Packet",
+   "author": "kellettupholstery",
+   "source": "https://sketchfab.com/3d-models/10c473aca9f1483499f52d86c3c24323",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cold-medicine",
+   "title": "Phillips_Milk_of_Magnesia_Saline_L",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Phillips_Milk_of_Magnesia_Saline_Laxative_Liquid_Original",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cookies",
+   "title": "Oreos",
+   "author": "miriamalghanim",
+   "source": "https://sketchfab.com/3d-models/d1adb336aed941df8f21154dea8e4996",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cooking-oil",
+   "title": "Olive Oil",
+   "author": "KSFX",
+   "source": "https://sketchfab.com/3d-models/db96970b2e1643bdbfa4090ed87b7365",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-crackers",
+   "title": "003_cracker_box",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cream-cheese",
+   "title": "Amostra - Cream Cheese Regina 150g",
+   "author": "artesbrasil",
+   "source": "https://sketchfab.com/3d-models/47b6f137dc504d0babeea212d642bee0",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-cucumbers",
+   "title": "Pickling Cucumber",
+   "author": "chapmanecodesign",
+   "source": "https://sketchfab.com/3d-models/2f0743a1d27345269d1444a8becfce59",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-deodorant",
+   "title": "Axe deodorant",
+   "author": "chin4grci4",
+   "source": "https://sketchfab.com/3d-models/3755774afcb64807b6d2bdb8b637a839",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-diapers",
+   "title": "Medium UltraFresh Ultra Thin Taped",
+   "author": "Ultrafreshph",
+   "source": "https://sketchfab.com/3d-models/44f7246910a74d0586ef6941962331ef",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-dish-soap",
+   "title": "Dish Detergent",
+   "author": "sirfizx",
+   "source": "https://sketchfab.com/3d-models/68a23aa70dc84a9a8d27f902a9b3b5e4",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-dry-pasta",
+   "title": "Big Elbow Macaroni",
+   "author": "iftikhar.1998ahmad",
+   "source": "https://sketchfab.com/3d-models/1513019d6c2a4fdd895a260f13f2a509",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-eggs",
+   "title": "Egg box",
+   "author": "adresen",
+   "source": "https://sketchfab.com/3d-models/39fcb564613c45c1a2689410fb49c6f0",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-energy-drink",
+   "title": "Monster Energy Drink",
+   "author": "dark-minaz",
+   "source": "https://sketchfab.com/3d-models/d9e8651b357e4b11909ae305024e1d37",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-feminine-care",
+   "title": "Sanitary Napkins",
+   "author": "shadow_schinider",
+   "source": "https://sketchfab.com/3d-models/7bc5765e54b54950a6b7af9a8ef9a198",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-fresh-fish",
+   "title": "Trout/ørret",
+   "author": "olahagensen",
+   "source": "https://sketchfab.com/3d-models/42abeb524ecf4c099c427edd2e99b121",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-frozen-pizza",
+   "title": "Califlower Pizza Box",
+   "author": "rentless",
+   "source": "https://sketchfab.com/3d-models/b7763a7d62424ae1a3f3b41daed92700",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-garlic",
+   "title": "Garlic Scan low poly",
+   "author": "Austin.Beaulier",
+   "source": "https://sketchfab.com/3d-models/919d746a04c149e8872d3deb78c438b1",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-grapes",
+   "title": "Grapes - Low Poly",
+   "author": "calebcram",
+   "source": "https://sketchfab.com/3d-models/e376f374aabc4a468f033ad78c3eab14",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-grocery-tote",
+   "title": "Grocery Bag",
+   "author": "adresen",
+   "source": "https://sketchfab.com/3d-models/86d735e7933c4486aa60d70c55529b1b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-honey",
+   "title": "Honey bear bottle",
+   "author": "Batuhan13",
+   "source": "https://sketchfab.com/3d-models/6f4c1566b9674a208d618b4a00d0343c",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-hot-cocoa",
+   "title": "Nestle_Nesquik_Chocolate_Powder_Fl",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Nestle_Nesquik_Chocolate_Powder_Flavored_Milk_Additive_109_Oz_Canister",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-hot-sauce",
+   "title": "Sriracha Redesign",
+   "author": "afen",
+   "source": "https://sketchfab.com/3d-models/cd04322124754ea5a6c771e304976edf",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-iced-tea",
+   "title": "Brisk_Iced_Tea_Lemon_12_12_fl_oz_3",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Brisk_Iced_Tea_Lemon_12_12_fl_oz_355_ml_cans_144_fl_oz_426_lt",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-instant-coffee",
+   "title": "Nescafe_Tasters_Choice_Instant_Cof",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Nescafe_Tasters_Choice_Instant_Coffee_Decaf_House_Blend_Light_7_oz",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-instant-noodles",
+   "title": "Maruchan Con Camarón",
+   "author": "mareduvs",
+   "source": "https://sketchfab.com/3d-models/cb51c7212b6649aba697a9c4157a0836",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-jam",
+   "title": "Jam 2k 3",
+   "author": "eyes360vr",
+   "source": "https://sketchfab.com/3d-models/e22a7d919a5443de9736884cd69f2648",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-juice-box",
+   "title": "Juice Box",
+   "author": "TrentPierce",
+   "source": "https://sketchfab.com/3d-models/b8ac289fd0ef4818be26c3731a58444f",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-ketchup",
+   "title": "Ketchup Bottle low poly",
+   "author": "krolzuzannapl",
+   "source": "https://sketchfab.com/3d-models/aa840004cd12489daf8d8f5ca0fef013",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-laundry-detergent",
+   "title": "Tide Detergent",
+   "author": "khc62",
+   "source": "https://sketchfab.com/3d-models/1be92918ba3541eb89c8e9bc0759394b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-lettuce",
+   "title": "F020 Lettuce",
+   "author": "bimage",
+   "source": "https://sketchfab.com/3d-models/0e3052b91eab49899344154d60d16bc1",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-light-bulbs",
+   "title": "Philips_EcoVantage_43_W_Light_Bulb",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Philips_EcoVantage_43_W_Light_Bulbs_Natural_Light_2_pack",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-lighter",
+   "title": "Lighter",
+   "author": "shedmon",
+   "source": "https://sketchfab.com/3d-models/a70ce8c533cb4641be8df4d8e8c93190",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-magazine",
+   "title": "VR trend Magazine issue#1",
+   "author": "vrtrend",
+   "source": "https://sketchfab.com/3d-models/c71f570d21634b7ab50364277e1badcf",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-mayonnaise",
+   "title": "Mayonnaise 220ml",
+   "author": "iftikhar.1998ahmad",
+   "source": "https://sketchfab.com/3d-models/09ad76d6fdea4fb1b6f1ea7ff3c5a9f0",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-milk",
+   "title": "milk gallon",
+   "author": "deathgirl1",
+   "source": "https://sketchfab.com/3d-models/2e0e34afe2fb4980ad4185e05c1fa742",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-milk-2",
+   "title": "Milk test",
+   "author": "eyes360vr",
+   "source": "https://sketchfab.com/3d-models/4f8003c35c13451eaf176ba3e44de20b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-mustard",
+   "title": "006_mustard_bottle",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-newspaper",
+   "title": "Folded Newspaper",
+   "author": "abdillaamy",
+   "source": "https://sketchfab.com/3d-models/4fc14ea5129b4ea3b34a22844a6f1b3f",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-oatmeal",
+   "title": "Quaker Oats Box",
+   "author": "crystal",
+   "source": "https://sketchfab.com/3d-models/0ec65bd0f38b4a7ca6a3f2604cacbcf5",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-orange-juice",
+   "title": "Orange Juice Box - 3D mockup",
+   "author": "pityafinwe",
+   "source": "https://sketchfab.com/3d-models/19f848c62bef44c0a3cbe72fbcd44ec6",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-oranges",
+   "title": "017_orange",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-pain-relief",
+   "title": "Tylenol Bottle And Box",
+   "author": "ritesh3",
+   "source": "https://sketchfab.com/3d-models/3ca0a3a97cad4cdf88c6f8c8eeb15215",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-pancake-mix",
+   "title": "pancake mix",
+   "author": "msjung20",
+   "source": "https://sketchfab.com/3d-models/6eacb6fd996b4622919ac32d211c1848",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-paper-towels",
+   "title": "Paper Towel Roll",
+   "author": "hippostance",
+   "source": "https://sketchfab.com/3d-models/e10eb527561048b6bc1786c8c44cd0f5",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-peanut-butter",
+   "title": "Peanut Butter",
+   "author": "chin4grci4",
+   "source": "https://sketchfab.com/3d-models/0baad2ab0df5463fa55a4b03ba9caa09",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-pears",
+   "title": "Pear 3D scan",
+   "author": "bfg900",
+   "source": "https://sketchfab.com/3d-models/f957a31cde7046e6908e464b588db822",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-phone-charger",
+   "title": "Phone Charger Low Poly",
+   "author": "vadzaecc",
+   "source": "https://sketchfab.com/3d-models/9735f27518fa4a5491a6c59fc5cfa72b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-potatoes",
+   "title": "potato",
+   "author": "Madman05",
+   "source": "https://sketchfab.com/3d-models/ada08ecce8184524b640e139050e1fd6",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-razor",
+   "title": "Shaver for man.",
+   "author": "Leandcoel3d",
+   "source": "https://sketchfab.com/3d-models/20ca53d875a64da8b7dc2173ef3e6047",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-salt",
+   "title": "Tesco Table Salt [Photogrammetry]",
+   "author": "JadDeeb",
+   "source": "https://sketchfab.com/3d-models/3f3d74c938834ac1bd1ac4244f9015a1",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-shampoo",
+   "title": "Il Gele Shampoo",
+   "author": "sara3dbear",
+   "source": "https://sketchfab.com/3d-models/2b4ac2c020c7437ea7149ea53d2786dd",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-shopping-basket",
+   "title": "45L ROLLING SHOPPING BASKET",
+   "author": "stephanieroots",
+   "source": "https://sketchfab.com/3d-models/760c06d6a8224eed895d55dfefed8f05",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-shopping-cart-2",
+   "title": "Shopping Trolley",
+   "author": "mehran1500",
+   "source": "https://sketchfab.com/3d-models/5770a906c5004041b65604126e71b620",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-six-pack",
+   "title": "Jack Vled Sixpack",
+   "author": "Carlos.Eduardo.Marruffo.Vegas",
+   "source": "https://sketchfab.com/3d-models/d5954b344fbd44c5b493dc24531a0e2b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-smartphone",
+   "title": "iPhone 12 Pro",
+   "author": "DatSketch",
+   "source": "https://sketchfab.com/3d-models/05dfc991665e45c68c8b7062136c0c6e",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-smartphone-2",
+   "title": "Apple iPhone 13 Pro Max",
+   "author": "DatSketch",
+   "source": "https://sketchfab.com/3d-models/4328dea00e47497dbeac73c556121bc9",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-snack-bar",
+   "title": "Granola Bar",
+   "author": "karmadefender",
+   "source": "https://sketchfab.com/3d-models/9efbda4311a64782a73b5ce382a6e841",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-soda",
+   "title": "Soda Can",
+   "author": "L4P",
+   "source": "https://sketchfab.com/3d-models/71669f5079874f8e95d27bbdaca0e4cc",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-sparkling-water",
+   "title": "Sparkling Water Can",
+   "author": "karmadefender",
+   "source": "https://sketchfab.com/3d-models/98c0fdc024494e6cafd322cbdfad7b89",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-spirits",
+   "title": "Bottle of \"Brazilian Rum\" - J. Hab",
+   "author": "WirtualneMuzeaMalopolski",
+   "source": "https://sketchfab.com/3d-models/f755e3f9e9e64c8db5ba49b0c821bf36",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-sponges",
+   "title": "Big_O_Sponges_Assorted_Cellulose_1",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Big_O_Sponges_Assorted_Cellulose_12_pack",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-sports-drink",
+   "title": "Gatorade Bottle",
+   "author": "thematthewcunningham",
+   "source": "https://sketchfab.com/3d-models/e83926de8d37476686b8a721e23b2a14",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-strawberries",
+   "title": "012_strawberry",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-sugar",
+   "title": "004_sugar_box",
+   "author": "Calli et al. (YCB benchmarks)",
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-sunscreen",
+   "title": "sunblock",
+   "author": "esraa-el-zeiny",
+   "source": "https://sketchfab.com/3d-models/215ccd599be646f69941f19225ac2925",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-tea-box",
+   "title": "PG Tips Tea Box",
+   "author": "rjh41",
+   "source": "https://sketchfab.com/3d-models/e2b969ad8c4a4e9eaf4b7fcd74fb3e8b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-tissues",
+   "title": "Tissue box",
+   "author": "edc",
+   "source": "https://sketchfab.com/3d-models/f14a3c24388c4c2b8e4f3112ae9679c0",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-toilet-paper",
+   "title": "CC0 - Toilet Paper Roll",
+   "author": "plaggy",
+   "source": "https://sketchfab.com/3d-models/6d5284b842434413a17133f7bf259669",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-tomatoes",
+   "title": "Tomato",
+   "author": "rhcreations",
+   "source": "https://sketchfab.com/3d-models/a64e1ac7f8c44821bbc365f0581d95b2",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-toothbrush",
+   "title": "Toothbrush from Poly by Google",
+   "author": "ie-niels",
+   "source": "https://sketchfab.com/3d-models/0c1dd562535f4ef48d9e040332f12a9c",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-toothpaste",
+   "title": "colgate toothpaste tube",
+   "author": "parmaryash2599",
+   "source": "https://sketchfab.com/3d-models/3a77c506eaea4e08a10f1d288d2ce45d",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-vegetables",
+   "title": "(Game-Ready Free) Broccoli",
+   "author": "HaVe",
+   "source": "https://sketchfab.com/3d-models/37831c39556e472cbd722846573b0e38",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-vegetables-2",
+   "title": "Peppers",
+   "author": "fakefurfetishferre",
+   "source": "https://sketchfab.com/3d-models/22bb95b8fda7420e97be7a1b52aaf759",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-vitamins",
+   "title": "Krill_Oil",
+   "author": "Google Research",
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Krill_Oil",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-water",
+   "title": "Plastic Water Bottle",
+   "author": "Bajeel",
+   "source": "https://sketchfab.com/3d-models/07b07f7292ed41019a8b6aebd98a5c29",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-wine-bottle",
+   "title": "Wine Bottle",
+   "author": "luanche",
+   "source": "https://sketchfab.com/3d-models/c810196bb3224ed2804084d77577336b",
+   "license": "CC-BY-4.0"
+  },
+  {
+   "asset": "imp-yogurt",
+   "title": "Chobani Yogurt",
+   "author": "lukus1",
+   "source": "https://sketchfab.com/3d-models/88fa74f76e6b4e389016fcef513aa9fe",
+   "license": "CC-BY-4.0"
+  }
  ],
  "assets": {
-  "k-food-apple": {
-   "file": "k-food-apple.glb",
-   "bytes": 19120,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
+  "imp-aluminium-foil": {
+   "file": "imp-aluminium-foil.glb",
+   "bytes": 36268,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/8dd82f8dc8d748aabcfc49c9fe947443",
+   "license": "CC-BY-4.0",
+   "author": "ie-niels",
+   "title": "Aluminum foil from Poly by Google",
    "dims": [
-    0.14,
-    0.1361,
-    0.14
+    0.32,
+    0.0455,
+    0.1465
    ],
    "tiers": [
     {
      "node": "near",
-     "triangles": 136,
+     "triangles": 1740,
      "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-apple": {
+   "file": "imp-apple.glb",
+   "bytes": 47620,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/food_apple_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.08,
+    0.0703,
+    0.0789
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-avocados": {
+   "file": "imp-avocados.glb",
+   "bytes": 34732,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/food_avocado_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0665,
+    0.1,
+    0.0661
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-bacon": {
+   "file": "imp-bacon.glb",
+   "bytes": 16372,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e2bc52c43b9d415196cbb720e849869a",
+   "license": "CC-BY-4.0",
+   "author": "ie-niels",
+   "title": "Bacon from Poly by Google",
+   "dims": [
+    0.28,
+    0.0408,
+    0.2191
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 288,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 218,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-bananas": {
+   "file": "imp-bananas.glb",
+   "bytes": 44924,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/bananas",
+   "license": "CC0-1.0",
+   "dims": [
+    0.2,
+    0.0594,
+    0.0806
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1996,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-bandage": {
+   "file": "imp-bandage.glb",
+   "bytes": 19480,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/dd33fad87aec468daeb0398ea4a6389f",
+   "license": "CC-BY-4.0",
+   "author": "Tactical_Beard",
+   "title": "Bandage Roll",
+   "dims": [
+    0.0822,
+    0.0791,
+    0.1
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 752,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 220,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-bar-soap": {
+   "file": "imp-bar-soap.glb",
+   "bytes": 57920,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/b53852c259fd4a9898455bfe70d493bd",
+   "license": "CC-BY-4.0",
+   "author": "connectionsxr",
+   "title": "Famous Beauty Soap",
+   "dims": [
+    0.0649,
+    0.0353,
+    0.1
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 736,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-batteries": {
+   "file": "imp-batteries.glb",
+   "bytes": 53896,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/3c3fcc0d17754c9494a2f9c2deaa6139",
+   "license": "CC-BY-4.0",
+   "author": "yulaflibiskuvi",
+   "title": "battery duracell",
+   "dims": [
+    0.0245,
+    0.1,
+    0.0245
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-beer": {
+   "file": "imp-beer.glb",
+   "bytes": 44004,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/f8a536bd4cd042afa1945083d69f17d9",
+   "license": "CC-BY-4.0",
+   "author": "christianrehm",
+   "title": "German Beer Bottle with Crown Cap",
+   "dims": [
+    0.1508,
+    0.23,
+    0.0868
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2006,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-bell-peppers": {
+   "file": "imp-bell-peppers.glb",
+   "bytes": 37080,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/7dceb5e3fa574027b6b8c6ffff8c980c",
+   "license": "CC-BY-4.0",
+   "author": "meerschaumdigital",
+   "title": "Red Bell Pepper",
+   "dims": [
+    0.0819,
+    0.09,
+    0.0858
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-black-pepper": {
+   "file": "imp-black-pepper.glb",
+   "bytes": 36448,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/76fcdf15d166452a94ec5fec385d907e",
+   "license": "CC-BY-4.0",
+   "author": "KatH10",
+   "title": "Pepper Shaker",
+   "dims": [
+    0.0664,
+    0.12,
+    0.066
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-bleach": {
+   "file": "imp-bleach.glb",
+   "bytes": 42804,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/bleach_bottle",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0903,
+    0.3,
+    0.0626
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-bread": {
+   "file": "imp-bread.glb",
+   "bytes": 30152,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/27ef8b1c9240430e9fa851094a134ee5",
+   "license": "CC-BY-4.0",
+   "author": "janeminty",
+   "title": "Crusty Sourdough Bread",
+   "dims": [
+    0.2583,
+    0.3,
+    0.1949
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-broth": {
+   "file": "imp-broth.glb",
+   "bytes": 45216,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/5f39405a4064400a8454efe63a0ac8cb",
+   "license": "CC-BY-4.0",
+   "author": "spinks",
+   "title": "KA Bone Broth",
+   "dims": [
+    0.1045,
+    0.2,
+    0.0771
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 696,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-butter": {
+   "file": "imp-butter.glb",
+   "bytes": 44500,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/291b81868a8d4f97beffc64cb9eed6d3",
+   "license": "CC-BY-4.0",
+   "author": "pbr-scans",
+   "title": "PB121 Butter Mid",
+   "dims": [
+    0.0808,
+    0.0328,
+    0.13
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-candy-bar": {
+   "file": "imp-candy-bar.glb",
+   "bytes": 37296,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/0be224499da94192b4c6a7fc61d21f95",
+   "license": "CC-BY-4.0",
+   "author": "ishutov_il",
+   "title": "Snickers",
+   "dims": [
+    0.1013,
+    0.0226,
+    0.12
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 736,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-canned-beans": {
+   "file": "imp-canned-beans.glb",
+   "bytes": 116380,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/056e0c896ce34f13b92dca2c39de44d0",
+   "license": "CC-BY-4.0",
+   "author": "chin4grci4",
+   "title": "Green Beans",
+   "dims": [
+    0.0966,
+    0.11,
+    0.0977
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2119,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 769,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-canned-soup": {
+   "file": "imp-canned-soup.glb",
+   "bytes": 33160,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "005_tomato_soup_can",
+   "dims": [
+    0.0665,
+    0.1,
+    0.0665
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-canned-tomatoes": {
+   "file": "imp-canned-tomatoes.glb",
+   "bytes": 21556,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e47e43b2a846471495dbff41689ae2fb",
+   "license": "CC-BY-4.0",
+   "author": "PickledCactusAlan",
+   "title": "Retro Style Peeled Tomatoes: Itali",
+   "dims": [
+    0.0875,
+    0.12,
+    0.0875
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 520,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 220,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-canned-tuna": {
+   "file": "imp-canned-tuna.glb",
+   "bytes": 30876,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "007_tuna_fish_can",
+   "dims": [
+    0.09,
+    0.0353,
+    0.09
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-carrots": {
+   "file": "imp-carrots.glb",
+   "bytes": 54084,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/00a7fb2929b14f0a82a745ce5454dbb5",
+   "license": "CC-BY-4.0",
+   "author": "alexey_ra",
+   "title": "Carrot photogrammetry | Game ready",
+   "dims": [
+    0.2474,
+    0.066,
+    0.25
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 768,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cash-register": {
+   "file": "imp-cash-register.glb",
+   "bytes": 70880,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/1efcbed7fd124a89a9265c693d91b655",
+   "license": "CC-BY-4.0",
+   "author": "bretzel44",
+   "title": "Cash Register",
+   "dims": [
+    1.6,
+    0.9846,
+    1.1106
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2050,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cat-food": {
+   "file": "imp-cat-food.glb",
+   "bytes": 11496,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/a6aa2be5b93249bd9b004a49ec012700",
+   "license": "CC-BY-4.0",
+   "author": "jku08",
+   "title": "Cat Food Bag",
+   "dims": [
+    0.2252,
+    0.3,
+    0.1816
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 172,
+     "lod": 0
+    }
+   ]
+  },
+  "imp-cereal": {
+   "file": "imp-cereal.glb",
+   "bytes": 25588,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Vans_Cereal_Honey_Nut_Crunch_11_oz_box",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Vans_Cereal_Honey_Nut_Crunch_11_oz",
+   "dims": [
+    0.2158,
+    0.3,
+    0.0593
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1446,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cheese": {
+   "file": "imp-cheese.glb",
+   "bytes": 32776,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/448d96d564be46dba7eaefc38232fa62",
+   "license": "CC-BY-4.0",
+   "author": "dragonclaws",
+   "title": "Cheddar Cheese",
+   "dims": [
+    0.0659,
+    0.1017,
+    0.15
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-chips": {
+   "file": "imp-chips.glb",
+   "bytes": 44140,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/00d1be4411f848efaeb72b936d4d1692",
+   "license": "CC-BY-4.0",
+   "author": "tarun_tkg",
+   "title": "Lays Packet",
+   "dims": [
+    0.2166,
+    0.25,
+    0.0789
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-chips-2": {
+   "file": "imp-chips-2.glb",
+   "bytes": 39552,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/751eb629d6c84e64a45f3545d47a86c3",
+   "license": "CC-BY-4.0",
+   "author": "tasiadraws",
+   "title": "Doritos",
+   "dims": [
+    0.1762,
+    0.0817,
+    0.25
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-coffee-beans": {
+   "file": "imp-coffee-beans.glb",
+   "bytes": 44220,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/10c473aca9f1483499f52d86c3c24323",
+   "license": "CC-BY-4.0",
+   "author": "kellettupholstery",
+   "title": "Coffee Packet",
+   "dims": [
+    0.1551,
+    0.25,
+    0.0921
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 720,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cold-medicine": {
+   "file": "imp-cold-medicine.glb",
+   "bytes": 29216,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Phillips_Milk_of_Magnesia_Saline_Laxative_Liquid_Original",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Phillips_Milk_of_Magnesia_Saline_L",
+   "dims": [
+    0.0626,
+    0.15,
+    0.049
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cookies": {
+   "file": "imp-cookies.glb",
+   "bytes": 31628,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/d1adb336aed941df8f21154dea8e4996",
+   "license": "CC-BY-4.0",
+   "author": "miriamalghanim",
+   "title": "Oreos",
+   "dims": [
+    0.2,
+    0.1748,
+    0.1802
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cooking-oil": {
+   "file": "imp-cooking-oil.glb",
+   "bytes": 67004,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/db96970b2e1643bdbfa4090ed87b7365",
+   "license": "CC-BY-4.0",
+   "author": "KSFX",
+   "title": "Olive Oil",
+   "dims": [
+    0.1703,
+    0.27,
+    0.1469
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 513,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-crackers": {
+   "file": "imp-crackers.glb",
+   "bytes": 31128,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "003_cracker_box",
+   "dims": [
+    0.0705,
+    0.21,
+    0.1614
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cream-cheese": {
+   "file": "imp-cream-cheese.glb",
+   "bytes": 71248,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/47b6f137dc504d0babeea212d642bee0",
+   "license": "CC-BY-4.0",
+   "author": "artesbrasil",
+   "title": "Amostra - Cream Cheese Regina 150g",
+   "dims": [
+    0.12,
+    0.0324,
+    0.0814
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2128,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 715,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-cucumbers": {
+   "file": "imp-cucumbers.glb",
+   "bytes": 37136,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/2f0743a1d27345269d1444a8becfce59",
+   "license": "CC-BY-4.0",
+   "author": "chapmanecodesign",
+   "title": "Pickling Cucumber",
+   "dims": [
+    0.2,
+    0.0396,
+    0.0383
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-deodorant": {
+   "file": "imp-deodorant.glb",
+   "bytes": 53776,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/3755774afcb64807b6d2bdb8b637a839",
+   "license": "CC-BY-4.0",
+   "author": "chin4grci4",
+   "title": "Axe deodorant",
+   "dims": [
+    0.0802,
+    0.15,
+    0.0367
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1996,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-diapers": {
+   "file": "imp-diapers.glb",
+   "bytes": 116824,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/44f7246910a74d0586ef6941962331ef",
+   "license": "CC-BY-4.0",
+   "author": "Ultrafreshph",
+   "title": "Medium UltraFresh Ultra Thin Taped",
+   "dims": [
+    0.4,
+    0.3242,
+    0.1663
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-dish-soap": {
+   "file": "imp-dish-soap.glb",
+   "bytes": 54096,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/68a23aa70dc84a9a8d27f902a9b3b5e4",
+   "license": "CC-BY-4.0",
+   "author": "sirfizx",
+   "title": "Dish Detergent",
+   "dims": [
+    0.1434,
+    0.25,
+    0.0635
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1962,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-dry-pasta": {
+   "file": "imp-dry-pasta.glb",
+   "bytes": 67508,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/1513019d6c2a4fdd895a260f13f2a509",
+   "license": "CC-BY-4.0",
+   "author": "iftikhar.1998ahmad",
+   "title": "Big Elbow Macaroni",
+   "dims": [
+    0.2377,
+    0.3,
+    0.0706
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1997,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-eggs": {
+   "file": "imp-eggs.glb",
+   "bytes": 92664,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/39fcb564613c45c1a2689410fb49c6f0",
+   "license": "CC-BY-4.0",
+   "author": "adresen",
+   "title": "Egg box",
+   "dims": [
+    0.3,
+    0.1351,
+    0.2062
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 574,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-energy-drink": {
+   "file": "imp-energy-drink.glb",
+   "bytes": 39296,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/d9e8651b357e4b11909ae305024e1d37",
+   "license": "CC-BY-4.0",
+   "author": "dark-minaz",
+   "title": "Monster Energy Drink",
+   "dims": [
+    0.0602,
+    0.15,
+    0.0602
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-feminine-care": {
+   "file": "imp-feminine-care.glb",
+   "bytes": 40116,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/7bc5765e54b54950a6b7af9a8ef9a198",
+   "license": "CC-BY-4.0",
+   "author": "shadow_schinider",
+   "title": "Sanitary Napkins",
+   "dims": [
+    0.2,
+    0.1391,
+    0.0756
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-fresh-fish": {
+   "file": "imp-fresh-fish.glb",
+   "bytes": 38432,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/42abeb524ecf4c099c427edd2e99b121",
+   "license": "CC-BY-4.0",
+   "author": "olahagensen",
+   "title": "Trout/ørret",
+   "dims": [
+    0.35,
+    0.1544,
+    0.0825
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1997,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 696,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-frozen-pizza": {
+   "file": "imp-frozen-pizza.glb",
+   "bytes": 10616,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/b7763a7d62424ae1a3f3b41daed92700",
+   "license": "CC-BY-4.0",
+   "author": "rentless",
+   "title": "Califlower Pizza Box",
+   "dims": [
+    0.35,
+    0.0651,
+    0.3351
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 210,
+     "lod": 0
+    }
+   ]
+  },
+  "imp-garlic": {
+   "file": "imp-garlic.glb",
+   "bytes": 56348,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/919d746a04c149e8872d3deb78c438b1",
+   "license": "CC-BY-4.0",
+   "author": "Austin.Beaulier",
+   "title": "Garlic Scan low poly",
+   "dims": [
+    0.0492,
+    0.065,
+    0.0427
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-grapes": {
+   "file": "imp-grapes.glb",
+   "bytes": 84788,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e376f374aabc4a468f033ad78c3eab14",
+   "license": "CC-BY-4.0",
+   "author": "calebcram",
+   "title": "Grapes - Low Poly",
+   "dims": [
+    0.1554,
+    0.22,
+    0.1628
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2062,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 694,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-grocery-tote": {
+   "file": "imp-grocery-tote.glb",
+   "bytes": 56536,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/86d735e7933c4486aa60d70c55529b1b",
+   "license": "CC-BY-4.0",
+   "author": "adresen",
+   "title": "Grocery Bag",
+   "dims": [
+    0.3971,
+    0.3441,
+    0.45
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2133,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-hamburger-buns": {
+   "file": "imp-hamburger-buns.glb",
+   "bytes": 37604,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/hamburger_buns",
+   "license": "CC0-1.0",
+   "dims": [
+    0.25,
+    0.0399,
+    0.0717
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-honey": {
+   "file": "imp-honey.glb",
+   "bytes": 84956,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/6f4c1566b9674a208d618b4a00d0343c",
+   "license": "CC-BY-4.0",
+   "author": "Batuhan13",
+   "title": "Honey bear bottle",
+   "dims": [
+    0.0694,
+    0.15,
+    0.066
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 697,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-hot-cocoa": {
+   "file": "imp-hot-cocoa.glb",
+   "bytes": 30032,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Nestle_Nesquik_Chocolate_Powder_Flavored_Milk_Additive_109_Oz_Canister",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Nestle_Nesquik_Chocolate_Powder_Fl",
+   "dims": [
+    0.0863,
+    0.2,
+    0.1481
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-hot-sauce": {
+   "file": "imp-hot-sauce.glb",
+   "bytes": 84200,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/cd04322124754ea5a6c771e304976edf",
+   "license": "CC-BY-4.0",
+   "author": "afen",
+   "title": "Sriracha Redesign",
+   "dims": [
+    0.0634,
+    0.2,
+    0.0636
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1994,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 739,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-iced-tea": {
+   "file": "imp-iced-tea.glb",
+   "bytes": 34504,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Brisk_Iced_Tea_Lemon_12_12_fl_oz_355_ml_cans_144_fl_oz_426_lt",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Brisk_Iced_Tea_Lemon_12_12_fl_oz_3",
+   "dims": [
+    0.22,
+    0.0707,
+    0.0771
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-instant-coffee": {
+   "file": "imp-instant-coffee.glb",
+   "bytes": 30204,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Nescafe_Tasters_Choice_Instant_Coffee_Decaf_House_Blend_Light_7_oz",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Nescafe_Tasters_Choice_Instant_Cof",
+   "dims": [
+    0.078,
+    0.15,
+    0.064
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-instant-noodles": {
+   "file": "imp-instant-noodles.glb",
+   "bytes": 32856,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/cb51c7212b6649aba697a9c4157a0836",
+   "license": "CC-BY-4.0",
+   "author": "mareduvs",
+   "title": "Maruchan Con Camarón",
+   "dims": [
+    0.1085,
+    0.12,
+    0.1086
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 632,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 232,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-jam": {
+   "file": "imp-jam.glb",
+   "bytes": 36312,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e22a7d919a5443de9736884cd69f2648",
+   "license": "CC-BY-4.0",
+   "author": "eyes360vr",
+   "title": "Jam 2k 3",
+   "dims": [
+    0.1199,
+    0.0981,
+    0.12
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-juice-box": {
+   "file": "imp-juice-box.glb",
+   "bytes": 84904,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/b8ac289fd0ef4818be26c3731a58444f",
+   "license": "CC-BY-4.0",
+   "author": "TrentPierce",
+   "title": "Juice Box",
+   "dims": [
+    0.2,
+    0.1441,
+    0.0575
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2153,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 529,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-ketchup": {
+   "file": "imp-ketchup.glb",
+   "bytes": 44212,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/aa840004cd12489daf8d8f5ca0fef013",
+   "license": "CC-BY-4.0",
+   "author": "krolzuzannapl",
+   "title": "Ketchup Bottle low poly",
+   "dims": [
+    0.0577,
+    0.2,
+    0.0576
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2040,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-laundry-detergent": {
+   "file": "imp-laundry-detergent.glb",
+   "bytes": 32968,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/1be92918ba3541eb89c8e9bc0759394b",
+   "license": "CC-BY-4.0",
+   "author": "khc62",
+   "title": "Tide Detergent",
+   "dims": [
+    0.1957,
+    0.3,
+    0.1485
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-lemons": {
+   "file": "imp-lemons.glb",
+   "bytes": 35552,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/lemon",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0504,
+    0.07,
+    0.0501
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-lettuce": {
+   "file": "imp-lettuce.glb",
+   "bytes": 137768,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/0e3052b91eab49899344154d60d16bc1",
+   "license": "CC-BY-4.0",
+   "author": "bimage",
+   "title": "F020 Lettuce",
+   "dims": [
+    0.22,
+    0.1403,
+    0.1745
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1908,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 572,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-light-bulbs": {
+   "file": "imp-light-bulbs.glb",
+   "bytes": 27184,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Philips_EcoVantage_43_W_Light_Bulbs_Natural_Light_2_pack",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Philips_EcoVantage_43_W_Light_Bulb",
+   "dims": [
+    0.1487,
+    0.15,
+    0.0935
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-lighter": {
+   "file": "imp-lighter.glb",
+   "bytes": 49484,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/a70ce8c533cb4641be8df4d8e8c93190",
+   "license": "CC-BY-4.0",
+   "author": "shedmon",
+   "title": "Lighter",
+   "dims": [
+    0.0149,
+    0.08,
+    0.0279
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1992,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-limes": {
+   "file": "imp-limes.glb",
+   "bytes": 40256,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/food_lime_01",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0437,
+    0.055,
+    0.0447
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-magazine": {
+   "file": "imp-magazine.glb",
+   "bytes": 24680,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/c71f570d21634b7ab50364277e1badcf",
+   "license": "CC-BY-4.0",
+   "author": "vrtrend",
+   "title": "VR trend Magazine issue#1",
+   "dims": [
+    0.2544,
+    0.28,
+    0.0465
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 404,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 76,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-mayonnaise": {
+   "file": "imp-mayonnaise.glb",
+   "bytes": 52848,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/09ad76d6fdea4fb1b6f1ea7ff3c5a9f0",
+   "license": "CC-BY-4.0",
+   "author": "iftikhar.1998ahmad",
+   "title": "Mayonnaise 220ml",
+   "dims": [
+    0.1092,
+    0.19,
+    0.0509
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2042,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 721,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-milk": {
+   "file": "imp-milk.glb",
+   "bytes": 25740,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/2e0e34afe2fb4980ad4185e05c1fa742",
+   "license": "CC-BY-4.0",
+   "author": "deathgirl1",
+   "title": "milk gallon",
+   "dims": [
+    0.1912,
+    0.27,
+    0.1863
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-milk-2": {
+   "file": "imp-milk-2.glb",
+   "bytes": 93644,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/4f8003c35c13451eaf176ba3e44de20b",
+   "license": "CC-BY-4.0",
+   "author": "eyes360vr",
+   "title": "Milk test",
+   "dims": [
+    0.0849,
+    0.24,
+    0.0809
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2019,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 708,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-mustard": {
+   "file": "imp-mustard.glb",
+   "bytes": 29004,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "006_mustard_bottle",
+   "dims": [
+    0.0966,
+    0.19,
+    0.066
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-newspaper": {
+   "file": "imp-newspaper.glb",
+   "bytes": 43840,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/4fc14ea5129b4ea3b34a22844a6f1b3f",
+   "license": "CC-BY-4.0",
+   "author": "abdillaamy",
+   "title": "Folded Newspaper",
+   "dims": [
+    0.2104,
+    0.0267,
+    0.3
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1158,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-oatmeal": {
+   "file": "imp-oatmeal.glb",
+   "bytes": 82288,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/0ec65bd0f38b4a7ca6a3f2604cacbcf5",
+   "license": "CC-BY-4.0",
+   "author": "crystal",
+   "title": "Quaker Oats Box",
+   "dims": [
+    0.24,
+    0.2123,
+    0.1352
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2066,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 667,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-onions": {
+   "file": "imp-onions.glb",
+   "bytes": 41680,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/yellow_onion",
+   "license": "CC0-1.0",
+   "dims": [
+    0.0671,
+    0.08,
+    0.0636
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-orange-juice": {
+   "file": "imp-orange-juice.glb",
+   "bytes": 39436,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/19f848c62bef44c0a3cbe72fbcd44ec6",
+   "license": "CC-BY-4.0",
+   "author": "pityafinwe",
+   "title": "Orange Juice Box - 3D mockup",
+   "dims": [
+    0.0896,
+    0.25,
+    0.0896
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 744,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-oranges": {
+   "file": "imp-oranges.glb",
+   "bytes": 23948,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "017_orange",
+   "dims": [
+    0.0731,
+    0.0723,
+    0.075
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 706,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-pain-relief": {
+   "file": "imp-pain-relief.glb",
+   "bytes": 108408,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/3ca0a3a97cad4cdf88c6f8c8eeb15215",
+   "license": "CC-BY-4.0",
+   "author": "ritesh3",
+   "title": "Tylenol Bottle And Box",
+   "dims": [
+    0.0372,
+    0.0561,
+    0.1
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2018,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 721,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-pancake-mix": {
+   "file": "imp-pancake-mix.glb",
+   "bytes": 25888,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/6eacb6fd996b4622919ac32d211c1848",
+   "license": "CC-BY-4.0",
+   "author": "msjung20",
+   "title": "pancake mix",
+   "dims": [
+    0.0577,
+    0.24,
+    0.1635
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1060,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-paper-towels": {
+   "file": "imp-paper-towels.glb",
+   "bytes": 36932,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e10eb527561048b6bc1786c8c44cd0f5",
+   "license": "CC-BY-4.0",
+   "author": "hippostance",
+   "title": "Paper Towel Roll",
+   "dims": [
+    0.1457,
+    0.28,
+    0.1324
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 736,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-peanut-butter": {
+   "file": "imp-peanut-butter.glb",
+   "bytes": 149888,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/0baad2ab0df5463fa55a4b03ba9caa09",
+   "license": "CC-BY-4.0",
+   "author": "chin4grci4",
+   "title": "Peanut Butter",
+   "dims": [
+    0.0869,
+    0.13,
+    0.0851
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2015,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 743,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-pears": {
+   "file": "imp-pears.glb",
+   "bytes": 35264,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/f957a31cde7046e6908e464b588db822",
+   "license": "CC-BY-4.0",
+   "author": "bfg900",
+   "title": "Pear 3D scan",
+   "dims": [
+    0.0677,
+    0.1,
+    0.0649
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-phone-charger": {
+   "file": "imp-phone-charger.glb",
+   "bytes": 35768,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/9735f27518fa4a5491a6c59fc5cfa72b",
+   "license": "CC-BY-4.0",
+   "author": "vadzaecc",
+   "title": "Phone Charger Low Poly",
+   "dims": [
+    0.15,
+    0.0155,
+    0.1272
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-potatoes": {
+   "file": "imp-potatoes.glb",
+   "bytes": 33720,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/ada08ecce8184524b640e139050e1fd6",
+   "license": "CC-BY-4.0",
+   "author": "Madman05",
+   "title": "potato",
+   "dims": [
+    0.1,
+    0.0697,
+    0.0685
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-razor": {
+   "file": "imp-razor.glb",
+   "bytes": 41264,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/20ca53d875a64da8b7dc2173ef3e6047",
+   "license": "CC-BY-4.0",
+   "author": "Leandcoel3d",
+   "title": "Shaver for man.",
+   "dims": [
+    0.0455,
+    0.15,
+    0.0221
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2147,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 711,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-salt": {
+   "file": "imp-salt.glb",
+   "bytes": 44500,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/3f3d74c938834ac1bd1ac4244f9015a1",
+   "license": "CC-BY-4.0",
+   "author": "JadDeeb",
+   "title": "Tesco Table Salt [Photogrammetry]",
+   "dims": [
+    0.0656,
+    0.14,
+    0.0657
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2064,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-shampoo": {
+   "file": "imp-shampoo.glb",
+   "bytes": 54652,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/2b4ac2c020c7437ea7149ea53d2786dd",
+   "license": "CC-BY-4.0",
+   "author": "sara3dbear",
+   "title": "Il Gele Shampoo",
+   "dims": [
+    0.0771,
+    0.22,
+    0.0772
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1996,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 770,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-shopping-basket": {
+   "file": "imp-shopping-basket.glb",
+   "bytes": 69416,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/760c06d6a8224eed895d55dfefed8f05",
+   "license": "CC-BY-4.0",
+   "author": "stephanieroots",
+   "title": "45L ROLLING SHOPPING BASKET",
+   "dims": [
+    0.3913,
+    0.45,
+    0.3153
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1688,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 526,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-shopping-cart-2": {
+   "file": "imp-shopping-cart-2.glb",
+   "bytes": 55740,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/5770a906c5004041b65604126e71b620",
+   "license": "CC-BY-4.0",
+   "author": "mehran1500",
+   "title": "Shopping Trolley",
+   "dims": [
+    0.3895,
+    0.95,
+    0.8101
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1970,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 754,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-six-pack": {
+   "file": "imp-six-pack.glb",
+   "bytes": 66840,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/d5954b344fbd44c5b493dc24531a0e2b",
+   "license": "CC-BY-4.0",
+   "author": "Carlos.Eduardo.Marruffo.Vegas",
+   "title": "Jack Vled Sixpack",
+   "dims": [
+    0.25,
+    0.1126,
+    0.0381
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2026,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 755,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-smartphone": {
+   "file": "imp-smartphone.glb",
+   "bytes": 89836,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/05dfc991665e45c68c8b7062136c0c6e",
+   "license": "CC-BY-4.0",
+   "author": "DatSketch",
+   "title": "iPhone 12 Pro",
+   "dims": [
+    0.0733,
+    0.15,
+    0.0085
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1480,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 587,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-smartphone-2": {
+   "file": "imp-smartphone-2.glb",
+   "bytes": 113932,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/4328dea00e47497dbeac73c556121bc9",
+   "license": "CC-BY-4.0",
+   "author": "DatSketch",
+   "title": "Apple iPhone 13 Pro Max",
+   "dims": [
+    0.0738,
+    0.15,
+    0.0096
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1994,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 734,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-snack-bar": {
+   "file": "imp-snack-bar.glb",
+   "bytes": 106336,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/9efbda4311a64782a73b5ce382a6e841",
+   "license": "CC-BY-4.0",
+   "author": "karmadefender",
+   "title": "Granola Bar",
+   "dims": [
+    0.12,
+    0.0519,
+    0.0201
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1996,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 696,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-soda": {
+   "file": "imp-soda.glb",
+   "bytes": 88536,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/71669f5079874f8e95d27bbdaca0e4cc",
+   "license": "CC-BY-4.0",
+   "author": "L4P",
+   "title": "Soda Can",
+   "dims": [
+    0.0574,
+    0.12,
+    0.0574
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1997,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 720,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-sparkling-water": {
+   "file": "imp-sparkling-water.glb",
+   "bytes": 37008,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/98c0fdc024494e6cafd322cbdfad7b89",
+   "license": "CC-BY-4.0",
+   "author": "karmadefender",
+   "title": "Sparkling Water Can",
+   "dims": [
+    0.0637,
+    0.12,
+    0.0637
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1998,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-spirits": {
+   "file": "imp-spirits.glb",
+   "bytes": 79868,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/f755e3f9e9e64c8db5ba49b0c821bf36",
+   "license": "CC-BY-4.0",
+   "author": "WirtualneMuzeaMalopolski",
+   "title": "Bottle of \"Brazilian Rum\" - J. Hab",
+   "dims": [
+    0.1221,
+    0.3,
+    0.1044
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1997,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 697,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-sponges": {
+   "file": "imp-sponges.glb",
+   "bytes": 28764,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Big_O_Sponges_Assorted_Cellulose_12_pack",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Big_O_Sponges_Assorted_Cellulose_1",
+   "dims": [
+    0.0835,
+    0.0224,
+    0.15
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-sports-drink": {
+   "file": "imp-sports-drink.glb",
+   "bytes": 35660,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e83926de8d37476686b8a721e23b2a14",
+   "license": "CC-BY-4.0",
+   "author": "thematthewcunningham",
+   "title": "Gatorade Bottle",
+   "dims": [
+    0.0654,
+    0.22,
+    0.0646
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1997,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-strawberries": {
+   "file": "imp-strawberries.glb",
+   "bytes": 26328,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "012_strawberry",
+   "dims": [
+    0.0346,
+    0.035,
+    0.0347
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-sugar": {
+   "file": "imp-sugar.glb",
+   "bytes": 31676,
+   "provider": "YCB Object and Model Set",
+   "pack": null,
+   "source": "https://www.ycbbenchmarks.com/",
+   "license": "CC-BY-4.0",
+   "author": "Calli et al. (YCB benchmarks)",
+   "title": "004_sugar_box",
+   "dims": [
+    0.0506,
+    0.18,
+    0.0963
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-sunscreen": {
+   "file": "imp-sunscreen.glb",
+   "bytes": 77680,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/215ccd599be646f69941f19225ac2925",
+   "license": "CC-BY-4.0",
+   "author": "esraa-el-zeiny",
+   "title": "sunblock",
+   "dims": [
+    0.0627,
+    0.15,
+    0.045
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2110,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 694,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-tea-box": {
+   "file": "imp-tea-box.glb",
+   "bytes": 35548,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/e2b969ad8c4a4e9eaf4b7fcd74fb3e8b",
+   "license": "CC-BY-4.0",
+   "author": "rjh41",
+   "title": "PG Tips Tea Box",
+   "dims": [
+    0.15,
+    0.1412,
+    0.1412
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 864,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 240,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-tissues": {
+   "file": "imp-tissues.glb",
+   "bytes": 94636,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/f14a3c24388c4c2b8e4f3112ae9679c0",
+   "license": "CC-BY-4.0",
+   "author": "edc",
+   "title": "Tissue box",
+   "dims": [
+    0.1846,
+    0.25,
+    0.194
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2056,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 728,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-toilet-paper": {
+   "file": "imp-toilet-paper.glb",
+   "bytes": 16980,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/6d5284b842434413a17133f7bf259669",
+   "license": "CC-BY-4.0",
+   "author": "plaggy",
+   "title": "CC0 - Toilet Paper Roll",
+   "dims": [
+    0.1083,
+    0.0977,
+    0.11
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 456,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 220,
+     "lod": 2
+    }
+   ]
+  },
+  "imp-tomatoes": {
+   "file": "imp-tomatoes.glb",
+   "bytes": 46520,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/a64e1ac7f8c44821bbc365f0581d95b2",
+   "license": "CC-BY-4.0",
+   "author": "rhcreations",
+   "title": "Tomato",
+   "dims": [
+    0.0655,
+    0.07,
+    0.0655
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1310,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 697,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-toothbrush": {
+   "file": "imp-toothbrush.glb",
+   "bytes": 69776,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/0c1dd562535f4ef48d9e040332f12a9c",
+   "license": "CC-BY-4.0",
+   "author": "ie-niels",
+   "title": "Toothbrush from Poly by Google",
+   "dims": [
+    0.19,
+    0.0217,
+    0.0185
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1996,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 698,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-toothpaste": {
+   "file": "imp-toothpaste.glb",
+   "bytes": 41596,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/3a77c506eaea4e08a10f1d288d2ce45d",
+   "license": "CC-BY-4.0",
+   "author": "parmaryash2599",
+   "title": "colgate toothpaste tube",
+   "dims": [
+    0.0619,
+    0.042,
+    0.2
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2002,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 707,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-trash-bag": {
+   "file": "imp-trash-bag.glb",
+   "bytes": 36876,
+   "provider": "Poly Haven",
+   "pack": null,
+   "source": "https://polyhaven.com/a/trashbag",
+   "license": "CC0-1.0",
+   "dims": [
+    0.6429,
+    0.7,
+    0.5635
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-vegetables": {
+   "file": "imp-vegetables.glb",
+   "bytes": 52252,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/37831c39556e472cbd722846573b0e38",
+   "license": "CC-BY-4.0",
+   "author": "HaVe",
+   "title": "(Game-Ready Free) Broccoli",
+   "dims": [
+    0.1734,
+    0.2,
+    0.1738
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2098,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-vegetables-2": {
+   "file": "imp-vegetables-2.glb",
+   "bytes": 115588,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/22bb95b8fda7420e97be7a1b52aaf759",
+   "license": "CC-BY-4.0",
+   "author": "fakefurfetishferre",
+   "title": "Peppers",
+   "dims": [
+    0.2,
+    0.0768,
+    0.1533
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2192,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 745,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-vitamins": {
+   "file": "imp-vitamins.glb",
+   "bytes": 27440,
+   "provider": "Google Scanned Objects",
+   "pack": null,
+   "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Krill_Oil",
+   "license": "CC-BY-4.0",
+   "author": "Google Research",
+   "title": "Krill_Oil",
+   "dims": [
+    0.0561,
+    0.1,
+    0.0552
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2000,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 700,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-water": {
+   "file": "imp-water.glb",
+   "bytes": 45792,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/07b07f7292ed41019a8b6aebd98a5c29",
+   "license": "CC-BY-4.0",
+   "author": "Bajeel",
+   "title": "Plastic Water Bottle",
+   "dims": [
+    0.0604,
+    0.22,
+    0.0604
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1999,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 699,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-wine-bottle": {
+   "file": "imp-wine-bottle.glb",
+   "bytes": 58840,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/c810196bb3224ed2804084d77577336b",
+   "license": "CC-BY-4.0",
+   "author": "luanche",
+   "title": "Wine Bottle",
+   "dims": [
+    0.1034,
+    0.3,
+    0.1023
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 1734,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 763,
+     "lod": 1
+    }
+   ]
+  },
+  "imp-yogurt": {
+   "file": "imp-yogurt.glb",
+   "bytes": 56800,
+   "provider": "Objaverse (Sketchfab)",
+   "pack": null,
+   "source": "https://sketchfab.com/3d-models/88fa74f76e6b4e389016fcef513aa9fe",
+   "license": "CC-BY-4.0",
+   "author": "lukus1",
+   "title": "Chobani Yogurt",
+   "dims": [
+    0.1,
+    0.0457,
+    0.0999
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 2066,
+     "lod": 0
+    },
+    {
+     "node": "far",
+     "triangles": 695,
+     "lod": 1
     }
    ]
   },
@@ -94,26 +3695,6 @@
     {
      "node": "near",
      "triangles": 114,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-banana": {
-   "file": "k-food-banana.glb",
-   "bytes": 18988,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.0437,
-    0.0622,
-    0.2
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 104,
      "lod": 0
     }
    ]
@@ -238,26 +3819,6 @@
     }
    ]
   },
-  "k-food-broccoli": {
-   "file": "k-food-broccoli.glb",
-   "bytes": 20880,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.1246,
-    0.14,
-    0.1246
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 220,
-     "lod": 0
-    }
-   ]
-  },
   "k-food-burger": {
    "file": "k-food-burger.glb",
    "bytes": 28496,
@@ -343,26 +3904,6 @@
     }
    ]
   },
-  "k-food-candy-bar-wrapper": {
-   "file": "k-food-candy-bar-wrapper.glb",
-   "bytes": 18616,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.16,
-    0.0444,
-    0.064
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 48,
-     "lod": 0
-    }
-   ]
-  },
   "k-food-carrot": {
    "file": "k-food-carrot.glb",
    "bytes": 19744,
@@ -379,26 +3920,6 @@
     {
      "node": "near",
      "triangles": 148,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-carton": {
-   "file": "k-food-carton.glb",
-   "bytes": 19252,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.0623,
-    0.16,
-    0.0623
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 94,
      "lod": 0
     }
    ]
@@ -439,46 +3960,6 @@
     {
      "node": "near",
      "triangles": 52,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-cheese": {
-   "file": "k-food-cheese.glb",
-   "bytes": 40164,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.14,
-    0.0453,
-    0.14
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 576,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-chinese": {
-   "file": "k-food-chinese.glb",
-   "bytes": 23332,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.1121,
-    0.14,
-    0.1376
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 162,
      "lod": 0
     }
    ]
@@ -663,26 +4144,6 @@
     }
    ]
   },
-  "k-food-egg": {
-   "file": "k-food-egg.glb",
-   "bytes": 18164,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.0984,
-    0.14,
-    0.1136
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 44,
-     "lod": 0
-    }
-   ]
-  },
   "k-food-egg-cooked": {
    "file": "k-food-egg-cooked.glb",
    "bytes": 18772,
@@ -823,26 +4284,6 @@
     }
    ]
   },
-  "k-food-ice-cream-cup": {
-   "file": "k-food-ice-cream-cup.glb",
-   "bytes": 18624,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.1386,
-    0.1243,
-    0.16
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 68,
-     "lod": 0
-    }
-   ]
-  },
   "k-food-lemon-half": {
    "file": "k-food-lemon-half.glb",
    "bytes": 18756,
@@ -854,26 +4295,6 @@
     0.1213,
     0.0784,
     0.14
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 116,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-loaf": {
-   "file": "k-food-loaf.glb",
-   "bytes": 19024,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.3,
-    0.2289,
-    0.1894
    ],
    "tiers": [
     {
@@ -1054,26 +4475,6 @@
     0.0606,
     0.1352,
     0.14
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 68,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-onion": {
-   "file": "k-food-onion.glb",
-   "bytes": 18300,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.1193,
-    0.14,
-    0.1378
    ],
    "tiers": [
     {
@@ -1408,26 +4809,6 @@
     }
    ]
   },
-  "k-food-soda-can": {
-   "file": "k-food-soda-can.glb",
-   "bytes": 19780,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.1025,
-    0.16,
-    0.1025
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 164,
-     "lod": 0
-    }
-   ]
-  },
   "k-food-soda-can-crushed": {
    "file": "k-food-soda-can-crushed.glb",
    "bytes": 20476,
@@ -1624,26 +5005,6 @@
     {
      "node": "near",
      "triangles": 368,
-     "lod": 0
-    }
-   ]
-  },
-  "k-food-wine-red": {
-   "file": "k-food-wine-red.glb",
-   "bytes": 19328,
-   "provider": "Kenney",
-   "pack": "food-kit",
-   "source": "https://kenney.nl/assets/food-kit",
-   "license": "CC0-1.0",
-   "dims": [
-    0.0846,
-    0.31,
-    0.0733
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 132,
      "lod": 0
     }
    ]
@@ -2643,31 +6004,6 @@
     }
    ]
   },
-  "ph-trashbag": {
-   "file": "ph-trashbag.glb",
-   "bytes": 62780,
-   "provider": "Poly Haven",
-   "pack": "textured-realistic",
-   "source": "https://polyhaven.com/a/trashbag",
-   "license": "CC0-1.0",
-   "dims": [
-    0.6429,
-    0.7,
-    0.5635
-   ],
-   "tiers": [
-    {
-     "node": "near",
-     "triangles": 1800,
-     "lod": 1
-    },
-    {
-     "node": "far",
-     "triangles": 500,
-     "lod": 2
-    }
-   ]
-  },
   "ph-vintage_suitcase": {
    "file": "ph-vintage_suitcase.glb",
    "bytes": 70724,
@@ -2866,10 +6202,10 @@
    "name": "Whole pizza"
   },
   "beer": {
-   "status": "label_required",
-   "asset": "k-food-soda-can",
+   "status": "imported",
+   "asset": "imp-beer",
    "name": "Beer",
-   "tint": "#b9852c"
+   "source_kind": "model"
   },
   "cocktail": {
    "status": "generic_match",
@@ -2903,41 +6239,74 @@
    "name": "Bar snacks"
   },
   "soda": {
-   "status": "generic_match",
-   "asset": "k-food-soda-can",
-   "name": "Soda"
+   "status": "imported",
+   "asset": "imp-soda",
+   "name": "Soda",
+   "source_kind": "model"
   },
   "water": {
-   "status": "representative",
-   "asset": "k-food-soda-bottle",
-   "name": "Bottle of water"
+   "status": "imported",
+   "asset": "imp-water",
+   "name": "Bottle of water",
+   "source_kind": "model"
   },
   "energy_drink": {
-   "status": "label_required",
-   "asset": "k-food-soda",
+   "status": "imported",
+   "asset": "imp-energy-drink",
    "name": "Energy drink",
-   "tint": "#3fb34f"
+   "source_kind": "model"
   },
   "snack_bar": {
-   "status": "generic_match",
-   "asset": "k-food-candy-bar-wrapper",
-   "name": "Snack bar"
+   "status": "imported",
+   "asset": "imp-snack-bar",
+   "name": "Snack bar",
+   "source_kind": "model"
   },
   "bread": {
-   "status": "generic_match",
-   "asset": "k-food-loaf",
-   "name": "Loaf of bread"
+   "status": "imported",
+   "asset": "imp-bread",
+   "name": "Loaf of bread",
+   "source_kind": "model"
   },
   "apple": {
-   "status": "generic_match",
-   "asset": "k-food-apple",
-   "name": "Apples"
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-apple",
+      "len": 0.08,
+      "x": -0.044000000000000004,
+      "z": -0.024,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-apple",
+      "len": 0.08,
+      "x": 0.044000000000000004,
+      "z": -0.024,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-apple",
+      "len": 0.08,
+      "x": 0,
+      "z": 0.048,
+      "yaw": 2.6
+     }
+    ]
+   },
+   "name": "Apples",
+   "source_kind": "scan"
   },
   "milk": {
-   "status": "label_required",
-   "asset": "k-food-carton",
+   "status": "imported",
+   "asset": "imp-milk",
    "name": "Milk",
-   "tint": "#e9eef2"
+   "source_kind": "model",
+   "variants": [
+    "imp-milk-2"
+   ]
   },
   "groceries": {
    "status": "composed",
@@ -2974,28 +6343,28 @@
    "tint": "#d8c9a6"
   },
   "bandage": {
-   "status": "label_required",
-   "asset": "k-food-carton-small",
+   "status": "imported",
+   "asset": "imp-bandage",
    "name": "Bandages",
-   "tint": "#d9534f"
+   "source_kind": "model"
   },
   "pain_relief": {
-   "status": "label_required",
-   "asset": "k-food-carton-small",
+   "status": "imported",
+   "asset": "imp-pain-relief",
    "name": "Pain relief",
-   "tint": "#3b6fb6"
+   "source_kind": "model"
   },
   "cold_medicine": {
-   "status": "label_required",
-   "asset": "k-food-carton-small",
+   "status": "imported",
+   "asset": "imp-cold-medicine",
    "name": "Cold medicine",
-   "tint": "#e08b2b"
+   "source_kind": "scan"
   },
   "vitamins": {
-   "status": "label_required",
-   "asset": "k-food-carton-small",
+   "status": "imported",
+   "asset": "imp-vitamins",
    "name": "Vitamins",
-   "tint": "#f2c94c"
+   "source_kind": "scan"
   },
   "first_aid_kit": {
    "status": "representative",
@@ -3240,20 +6609,25 @@
    "name": "Backpack"
   },
   "phone_charger": {
-   "status": "gap",
-   "asset": null,
-   "name": "Phone charger"
+   "status": "imported",
+   "asset": "imp-phone-charger",
+   "name": "Phone charger",
+   "source_kind": "model"
   },
   "candy_bar": {
-   "status": "generic_match",
-   "asset": "k-food-candy-bar-wrapper",
-   "name": "Candy bar"
+   "status": "imported",
+   "asset": "imp-candy-bar",
+   "name": "Candy bar",
+   "source_kind": "model"
   },
   "chips": {
-   "status": "label_required",
-   "asset": "k-food-bag-flat",
+   "status": "imported",
+   "asset": "imp-chips",
    "name": "Bag of chips",
-   "tint": "#d64933"
+   "source_kind": "model",
+   "variants": [
+    "imp-chips-2"
+   ]
   },
   "gum": {
    "status": "label_required",
@@ -3272,74 +6646,34 @@
    "name": "Cup of drip coffee"
   },
   "iced_tea": {
-   "status": "label_required",
-   "asset": "k-food-soda-bottle",
+   "status": "imported",
+   "asset": "imp-iced-tea",
    "name": "Bottle of iced tea",
-   "tint": "#9a5a24"
+   "source_kind": "scan"
   },
   "sports_drink": {
-   "status": "label_required",
-   "asset": "k-food-soda",
+   "status": "imported",
+   "asset": "imp-sports-drink",
    "name": "Sports drink",
-   "tint": "#2a7de1"
+   "source_kind": "model"
   },
   "six_pack": {
-   "status": "composed",
-   "recipe": {
-    "base": null,
-    "parts": [
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": -0.068,
-      "z": -0.034
-     },
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": -0.068,
-      "z": 0.034
-     },
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": 0,
-      "z": -0.034
-     },
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": 0,
-      "z": 0.034
-     },
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": 0.068,
-      "z": -0.034
-     },
-     {
-      "asset": "k-food-soda-can",
-      "len": 0.123,
-      "x": 0.068,
-      "z": 0.034
-     }
-    ]
-   },
-   "from": "recipe_required",
-   "name": "Six-pack of beer"
+   "status": "imported",
+   "asset": "imp-six-pack",
+   "name": "Six-pack of beer",
+   "source_kind": "model"
   },
   "wine_bottle": {
-   "status": "label_required",
-   "asset": "k-food-wine-red",
+   "status": "imported",
+   "asset": "imp-wine-bottle",
    "name": "Bottle of wine",
-   "tint": "#5b1220"
+   "source_kind": "model"
   },
   "spirits": {
-   "status": "label_required",
-   "asset": "k-food-wine-red",
+   "status": "imported",
+   "asset": "imp-spirits",
    "name": "Bottle of spirits",
-   "tint": "#9a6a2a"
+   "source_kind": "model"
   },
   "bag_of_ice": {
    "status": "gap",
@@ -3347,146 +6681,68 @@
    "name": "Bag of ice"
   },
   "lighter": {
-   "status": "gap",
-   "asset": null,
-   "name": "Lighter"
+   "status": "imported",
+   "asset": "imp-lighter",
+   "name": "Lighter",
+   "source_kind": "model"
   },
   "instant_noodles": {
-   "status": "representative",
-   "asset": "k-food-chinese",
-   "name": "Cup of instant noodles"
+   "status": "imported",
+   "asset": "imp-instant-noodles",
+   "name": "Cup of instant noodles",
+   "source_kind": "model"
   },
   "eggs": {
-   "status": "composed",
-   "recipe": {
-    "base": {
-     "asset": "k-furniture-cardboardBoxOpen",
-     "len": 0.3,
-     "squash": 0.25
-    },
-    "on": 0.35,
-    "parts": [
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.1175,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.1175,
-      "z": 0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.07050000000000001,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.07050000000000001,
-      "z": 0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.0235,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": -0.0235,
-      "z": 0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.0235,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.0235,
-      "z": 0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.07050000000000001,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.07050000000000001,
-      "z": 0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.1175,
-      "z": -0.024
-     },
-     {
-      "asset": "k-food-egg",
-      "len": 0.055,
-      "x": 0.1175,
-      "z": 0.024
-     }
-    ]
-   },
-   "from": "recipe_required",
-   "name": "Dozen eggs"
+   "status": "imported",
+   "asset": "imp-eggs",
+   "name": "Dozen eggs",
+   "source_kind": "model"
   },
   "cheese": {
-   "status": "generic_match",
-   "asset": "k-food-cheese",
-   "name": "Block of cheese"
+   "status": "imported",
+   "asset": "imp-cheese",
+   "name": "Block of cheese",
+   "source_kind": "model"
   },
   "bananas": {
-   "status": "generic_match",
-   "asset": "k-food-banana",
-   "name": "Bananas"
+   "status": "imported",
+   "asset": "imp-bananas",
+   "name": "Bananas",
+   "source_kind": "scan"
   },
   "vegetables": {
-   "status": "composed",
+   "status": "imported",
    "recipe": {
     "base": null,
     "parts": [
      {
-      "asset": "k-food-broccoli",
-      "len": 0.14,
+      "asset": "imp-vegetables",
+      "len": 0.16,
       "x": -0.05
      },
      {
-      "asset": "k-food-carrot",
-      "len": 0.17,
-      "x": 0.05,
-      "z": 0.03,
-      "yaw": 1.4,
-      "lie": true
+      "asset": "imp-vegetables-2",
+      "len": 0.09,
+      "x": 0.06,
+      "z": -0.03
      },
      {
-      "asset": "k-food-tomato",
-      "len": 0.07,
+      "asset": "imp-carrots",
+      "len": 0.2,
       "x": 0.04,
-      "z": -0.05
+      "z": 0.06,
+      "yaw": 1.4
      },
      {
-      "asset": "k-food-onion",
+      "asset": "imp-tomatoes",
       "len": 0.07,
-      "x": -0.02,
-      "z": 0.06
+      "x": -0.04,
+      "z": 0.07
      }
     ]
    },
-   "from": "recipe_required",
-   "name": "Fresh vegetables"
+   "name": "Fresh vegetables",
+   "source_kind": "model"
   },
   "chicken_breast": {
    "status": "representative",
@@ -3494,39 +6750,40 @@
    "name": "Chicken breasts"
   },
   "fresh_fish": {
-   "status": "generic_match",
-   "asset": "k-food-fish",
-   "name": "Fresh fish"
+   "status": "imported",
+   "asset": "imp-fresh-fish",
+   "name": "Fresh fish",
+   "source_kind": "model"
   },
   "cereal": {
-   "status": "label_required",
-   "asset": "k-food-carton",
+   "status": "imported",
+   "asset": "imp-cereal",
    "name": "Box of cereal",
-   "tint": "#e9a43a"
+   "source_kind": "scan"
   },
   "coffee_beans": {
-   "status": "label_required",
-   "asset": "k-food-bag-flat",
+   "status": "imported",
+   "asset": "imp-coffee-beans",
    "name": "Bag of coffee beans",
-   "tint": "#5a3b26"
+   "source_kind": "model"
   },
   "dry_pasta": {
-   "status": "label_required",
-   "asset": "k-food-bag-flat",
+   "status": "imported",
+   "asset": "imp-dry-pasta",
    "name": "Pasta and sauce",
-   "tint": "#e6c56b"
+   "source_kind": "model"
   },
   "frozen_pizza": {
-   "status": "label_required",
-   "asset": "k-food-pizza-box",
+   "status": "imported",
+   "asset": "imp-frozen-pizza",
    "name": "Frozen pizza",
-   "tint": "#3b6fb6"
+   "source_kind": "model"
   },
   "yogurt": {
-   "status": "label_required",
-   "asset": "k-food-ice-cream-cup",
+   "status": "imported",
+   "asset": "imp-yogurt",
    "name": "Yogurt",
-   "tint": "#f1f1f1"
+   "source_kind": "model"
   },
   "burger_fries": {
    "status": "composed",
@@ -4147,29 +7404,34 @@
    "name": "Smoothie"
   },
   "toothpaste": {
-   "status": "gap",
-   "asset": null,
-   "name": "Toothpaste"
+   "status": "imported",
+   "asset": "imp-toothpaste",
+   "name": "Toothpaste",
+   "source_kind": "model"
   },
   "shampoo": {
-   "status": "reference_only",
-   "asset": null,
-   "name": "Shampoo"
+   "status": "imported",
+   "asset": "imp-shampoo",
+   "name": "Shampoo",
+   "source_kind": "model"
   },
   "sunscreen": {
-   "status": "reference_only",
-   "asset": null,
-   "name": "Sunscreen"
+   "status": "imported",
+   "asset": "imp-sunscreen",
+   "name": "Sunscreen",
+   "source_kind": "model"
   },
   "tissues": {
-   "status": "gap",
-   "asset": null,
-   "name": "Box of tissues"
+   "status": "imported",
+   "asset": "imp-tissues",
+   "name": "Box of tissues",
+   "source_kind": "model"
   },
   "razor": {
-   "status": "gap",
-   "asset": null,
-   "name": "Razors"
+   "status": "imported",
+   "asset": "imp-razor",
+   "name": "Razors",
+   "source_kind": "model"
   },
   "lipstick": {
    "status": "gap",
@@ -4218,15 +7480,16 @@
    "name": "Duct tape"
   },
   "light_bulbs": {
-   "status": "gap",
-   "asset": null,
-   "name": "Light bulbs (4)"
+   "status": "imported",
+   "asset": "imp-light-bulbs",
+   "name": "Light bulbs (4)",
+   "source_kind": "scan"
   },
   "batteries": {
-   "status": "label_required",
-   "asset": "k-food-carton-small",
+   "status": "imported",
+   "asset": "imp-batteries",
    "name": "Batteries (8)",
-   "tint": "#2c2c2c"
+   "source_kind": "model"
   },
   "rope": {
    "status": "gap",
@@ -4335,9 +7598,10 @@
    "name": "Boots"
   },
   "magazine": {
-   "status": "reference_only",
-   "asset": null,
-   "name": "Magazine"
+   "status": "imported",
+   "asset": "imp-magazine",
+   "name": "Magazine",
+   "source_kind": "model"
   },
   "greeting_card": {
    "status": "reference_only",
@@ -4345,9 +7609,10 @@
    "name": "Greeting card"
   },
   "newspaper": {
-   "status": "reference_only",
-   "asset": null,
-   "name": "Newspaper"
+   "status": "imported",
+   "asset": "imp-newspaper",
+   "name": "Newspaper",
+   "source_kind": "model"
   },
   "single_rose": {
    "status": "gap",
@@ -4361,10 +7626,10 @@
    "tint": "#b5651d"
   },
   "cat_food": {
-   "status": "label_required",
-   "asset": "k-food-can-small",
+   "status": "imported",
+   "asset": "imp-cat-food",
    "name": "Cat food",
-   "tint": "#7a4fa3"
+   "source_kind": "model"
   },
   "pet_treats": {
    "status": "label_required",
@@ -4624,9 +7889,10 @@
    "name": "Drink carrier"
   },
   "grocery_tote": {
-   "status": "gap",
-   "asset": null,
-   "name": "Reusable grocery tote"
+   "status": "imported",
+   "asset": "imp-grocery-tote",
+   "name": "Reusable grocery tote",
+   "source_kind": "model"
   },
   "shipping_box_small": {
    "status": "generic_match",
@@ -4649,14 +7915,19 @@
    "name": "Insulated courier bag"
   },
   "smartphone": {
-   "status": "generic_match",
-   "asset": "pp-smartphone",
-   "name": "Smartphone"
+   "status": "imported",
+   "asset": "imp-smartphone",
+   "name": "Smartphone",
+   "source_kind": "model",
+   "variants": [
+    "imp-smartphone-2"
+   ]
   },
   "trash_bag": {
-   "status": "generic_match",
-   "asset": "ph-trashbag",
-   "name": "Trash bag"
+   "status": "imported",
+   "asset": "imp-trash-bag",
+   "name": "Trash bag",
+   "source_kind": "scan"
   },
   "storage_box": {
    "status": "generic_match",
@@ -4766,9 +8037,10 @@
    "name": "Pen"
   },
   "shopping_cart": {
-   "status": "reference_only",
-   "asset": null,
-   "name": "Shopping cart"
+   "status": "imported",
+   "asset": "imp-shopping-cart-2",
+   "name": "Shopping cart",
+   "source_kind": "model"
   },
   "dolly": {
    "status": "gap",
@@ -4784,6 +8056,625 @@
    "status": "gap",
    "asset": null,
    "name": "Fire extinguisher"
+  },
+  "cream_cheese": {
+   "status": "imported",
+   "asset": "imp-cream-cheese",
+   "name": "Cream cheese",
+   "source_kind": "model"
+  },
+  "butter": {
+   "status": "imported",
+   "asset": "imp-butter",
+   "name": "Butter (1 lb)",
+   "source_kind": "model"
+  },
+  "oranges": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-oranges",
+      "len": 0.075,
+      "x": -0.04125,
+      "z": -0.0225,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-oranges",
+      "len": 0.075,
+      "x": 0.04125,
+      "z": -0.0225,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-oranges",
+      "len": 0.075,
+      "x": 0,
+      "z": 0.045,
+      "yaw": 2.6
+     }
+    ]
+   },
+   "name": "Oranges",
+   "source_kind": "scan"
+  },
+  "lemons": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-lemons",
+      "len": 0.07,
+      "x": -0.038500000000000006,
+      "z": -0.021,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-lemons",
+      "len": 0.07,
+      "x": 0.038500000000000006,
+      "z": -0.021,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-lemons",
+      "len": 0.07,
+      "x": 0,
+      "z": 0.042,
+      "yaw": 2.6
+     }
+    ]
+   },
+   "name": "Lemons",
+   "source_kind": "scan"
+  },
+  "limes": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-limes",
+      "len": 0.055,
+      "x": -0.0286,
+      "z": -0.0286,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-limes",
+      "len": 0.055,
+      "x": 0.0286,
+      "z": -0.0286,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-limes",
+      "len": 0.055,
+      "x": -0.0286,
+      "z": 0.0286,
+      "yaw": 2.6
+     },
+     {
+      "asset": "imp-limes",
+      "len": 0.055,
+      "x": 0.0286,
+      "z": 0.0286,
+      "yaw": 3.9000000000000004
+     }
+    ]
+   },
+   "name": "Limes",
+   "source_kind": "scan"
+  },
+  "avocados": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-avocados",
+      "len": 0.1,
+      "x": -0.05,
+      "z": 0,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-avocados",
+      "len": 0.1,
+      "x": 0.05,
+      "z": 0,
+      "yaw": 1.3
+     }
+    ]
+   },
+   "name": "Avocados",
+   "source_kind": "scan"
+  },
+  "onions": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-onions",
+      "len": 0.08,
+      "x": -0.044000000000000004,
+      "z": -0.024,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-onions",
+      "len": 0.08,
+      "x": 0.044000000000000004,
+      "z": -0.024,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-onions",
+      "len": 0.08,
+      "x": 0,
+      "z": 0.048,
+      "yaw": 2.6
+     }
+    ]
+   },
+   "name": "Onions",
+   "source_kind": "scan"
+  },
+  "potatoes": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-potatoes",
+      "len": 0.1,
+      "x": -0.052000000000000005,
+      "z": -0.052000000000000005,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-potatoes",
+      "len": 0.1,
+      "x": 0.052000000000000005,
+      "z": -0.052000000000000005,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-potatoes",
+      "len": 0.1,
+      "x": -0.052000000000000005,
+      "z": 0.052000000000000005,
+      "yaw": 2.6
+     },
+     {
+      "asset": "imp-potatoes",
+      "len": 0.1,
+      "x": 0.052000000000000005,
+      "z": 0.052000000000000005,
+      "yaw": 3.9000000000000004
+     }
+    ]
+   },
+   "name": "Potatoes",
+   "source_kind": "model"
+  },
+  "carrots": {
+   "status": "imported",
+   "asset": "imp-carrots",
+   "name": "Carrots",
+   "source_kind": "model"
+  },
+  "lettuce": {
+   "status": "imported",
+   "asset": "imp-lettuce",
+   "name": "Lettuce",
+   "source_kind": "model"
+  },
+  "pears": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-pears",
+      "len": 0.1,
+      "x": -0.05,
+      "z": 0,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-pears",
+      "len": 0.1,
+      "x": 0.05,
+      "z": 0,
+      "yaw": 1.3
+     }
+    ]
+   },
+   "name": "Pears",
+   "source_kind": "model"
+  },
+  "strawberries": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": -0.036750000000000005,
+      "z": -0.0175,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": 0,
+      "z": -0.0175,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": 0.036750000000000005,
+      "z": -0.0175,
+      "yaw": 2.6
+     },
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": -0.036750000000000005,
+      "z": 0.0175,
+      "yaw": 3.9000000000000004
+     },
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": 0,
+      "z": 0.0175,
+      "yaw": 5.2
+     },
+     {
+      "asset": "imp-strawberries",
+      "len": 0.035,
+      "x": 0.036750000000000005,
+      "z": 0.0175,
+      "yaw": 6.5
+     }
+    ]
+   },
+   "name": "Strawberries",
+   "source_kind": "scan"
+  },
+  "sugar": {
+   "status": "imported",
+   "asset": "imp-sugar",
+   "name": "Sugar",
+   "source_kind": "scan"
+  },
+  "cooking_oil": {
+   "status": "imported",
+   "asset": "imp-cooking-oil",
+   "name": "Olive oil",
+   "source_kind": "model"
+  },
+  "canned_soup": {
+   "status": "imported",
+   "asset": "imp-canned-soup",
+   "name": "Canned soup",
+   "source_kind": "scan"
+  },
+  "canned_beans": {
+   "status": "imported",
+   "asset": "imp-canned-beans",
+   "name": "Canned beans",
+   "source_kind": "model"
+  },
+  "canned_tuna": {
+   "status": "imported",
+   "asset": "imp-canned-tuna",
+   "name": "Canned tuna",
+   "source_kind": "scan"
+  },
+  "peanut_butter": {
+   "status": "imported",
+   "asset": "imp-peanut-butter",
+   "name": "Peanut butter",
+   "source_kind": "model"
+  },
+  "jam": {
+   "status": "imported",
+   "asset": "imp-jam",
+   "name": "Jam",
+   "source_kind": "model"
+  },
+  "honey": {
+   "status": "imported",
+   "asset": "imp-honey",
+   "name": "Honey",
+   "source_kind": "model"
+  },
+  "ketchup": {
+   "status": "imported",
+   "asset": "imp-ketchup",
+   "name": "Ketchup",
+   "source_kind": "model"
+  },
+  "mustard": {
+   "status": "imported",
+   "asset": "imp-mustard",
+   "name": "Mustard",
+   "source_kind": "scan"
+  },
+  "hot_sauce": {
+   "status": "imported",
+   "asset": "imp-hot-sauce",
+   "name": "Hot sauce",
+   "source_kind": "model"
+  },
+  "oatmeal": {
+   "status": "imported",
+   "asset": "imp-oatmeal",
+   "name": "Oatmeal",
+   "source_kind": "model"
+  },
+  "crackers": {
+   "status": "imported",
+   "asset": "imp-crackers",
+   "name": "Crackers",
+   "source_kind": "scan"
+  },
+  "tea_box": {
+   "status": "imported",
+   "asset": "imp-tea-box",
+   "name": "Box of tea",
+   "source_kind": "model"
+  },
+  "hot_cocoa": {
+   "status": "imported",
+   "asset": "imp-hot-cocoa",
+   "name": "Hot cocoa mix",
+   "source_kind": "scan"
+  },
+  "instant_coffee": {
+   "status": "imported",
+   "asset": "imp-instant-coffee",
+   "name": "Instant coffee",
+   "source_kind": "scan"
+  },
+  "sparkling_water": {
+   "status": "imported",
+   "asset": "imp-sparkling-water",
+   "name": "Sparkling water",
+   "source_kind": "model"
+  },
+  "orange_juice": {
+   "status": "imported",
+   "asset": "imp-orange-juice",
+   "name": "Orange juice",
+   "source_kind": "model"
+  },
+  "toilet_paper": {
+   "status": "imported",
+   "asset": "imp-toilet-paper",
+   "name": "Toilet paper roll",
+   "source_kind": "model"
+  },
+  "paper_towels": {
+   "status": "imported",
+   "asset": "imp-paper-towels",
+   "name": "Paper towels",
+   "source_kind": "model"
+  },
+  "dish_soap": {
+   "status": "imported",
+   "asset": "imp-dish-soap",
+   "name": "Dish soap",
+   "source_kind": "model"
+  },
+  "laundry_detergent": {
+   "status": "imported",
+   "asset": "imp-laundry-detergent",
+   "name": "Laundry detergent",
+   "source_kind": "model"
+  },
+  "sponges": {
+   "status": "imported",
+   "asset": "imp-sponges",
+   "name": "Sponges",
+   "source_kind": "scan"
+  },
+  "bleach": {
+   "status": "imported",
+   "asset": "imp-bleach",
+   "name": "Bleach",
+   "source_kind": "scan"
+  },
+  "aluminium_foil": {
+   "status": "imported",
+   "asset": "imp-aluminium-foil",
+   "name": "Aluminium foil",
+   "source_kind": "model"
+  },
+  "toothbrush": {
+   "status": "imported",
+   "asset": "imp-toothbrush",
+   "name": "Toothbrush",
+   "source_kind": "model"
+  },
+  "bar_soap": {
+   "status": "imported",
+   "asset": "imp-bar-soap",
+   "name": "Bar soap",
+   "source_kind": "model"
+  },
+  "deodorant": {
+   "status": "imported",
+   "asset": "imp-deodorant",
+   "name": "Deodorant",
+   "source_kind": "model"
+  },
+  "shopping_basket": {
+   "status": "imported",
+   "asset": "imp-shopping-basket",
+   "name": "Shopping basket",
+   "source_kind": "model"
+  },
+  "tomatoes": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-tomatoes",
+      "len": 0.07,
+      "x": -0.038500000000000006,
+      "z": -0.021,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-tomatoes",
+      "len": 0.07,
+      "x": 0.038500000000000006,
+      "z": -0.021,
+      "yaw": 1.3
+     },
+     {
+      "asset": "imp-tomatoes",
+      "len": 0.07,
+      "x": 0,
+      "z": 0.042,
+      "yaw": 2.6
+     }
+    ]
+   },
+   "name": "Tomatoes",
+   "source_kind": "model"
+  },
+  "bacon": {
+   "status": "imported",
+   "asset": "imp-bacon",
+   "name": "Bacon",
+   "source_kind": "model"
+  },
+  "mayonnaise": {
+   "status": "imported",
+   "asset": "imp-mayonnaise",
+   "name": "Mayonnaise",
+   "source_kind": "model"
+  },
+  "cookies": {
+   "status": "imported",
+   "asset": "imp-cookies",
+   "name": "Cookies",
+   "source_kind": "model"
+  },
+  "cucumbers": {
+   "status": "imported",
+   "asset": "imp-cucumbers",
+   "name": "Cucumbers",
+   "source_kind": "model"
+  },
+  "diapers": {
+   "status": "imported",
+   "asset": "imp-diapers",
+   "name": "Diapers",
+   "source_kind": "model"
+  },
+  "grapes": {
+   "status": "imported",
+   "asset": "imp-grapes",
+   "name": "Grapes",
+   "source_kind": "model"
+  },
+  "bell_peppers": {
+   "status": "imported",
+   "recipe": {
+    "base": null,
+    "parts": [
+     {
+      "asset": "imp-bell-peppers",
+      "len": 0.09,
+      "x": -0.045,
+      "z": 0,
+      "yaw": 0
+     },
+     {
+      "asset": "imp-bell-peppers",
+      "len": 0.09,
+      "x": 0.045,
+      "z": 0,
+      "yaw": 1.3
+     }
+    ]
+   },
+   "name": "Bell peppers",
+   "source_kind": "model"
+  },
+  "salt": {
+   "status": "imported",
+   "asset": "imp-salt",
+   "name": "Salt",
+   "source_kind": "scan"
+  },
+  "garlic": {
+   "status": "imported",
+   "asset": "imp-garlic",
+   "name": "Garlic",
+   "source_kind": "scan"
+  },
+  "black_pepper": {
+   "status": "imported",
+   "asset": "imp-black-pepper",
+   "name": "Black pepper",
+   "source_kind": "model"
+  },
+  "juice_box": {
+   "status": "imported",
+   "asset": "imp-juice-box",
+   "name": "Juice boxes (8)",
+   "source_kind": "model"
+  },
+  "broth": {
+   "status": "imported",
+   "asset": "imp-broth",
+   "name": "Broth",
+   "source_kind": "model"
+  },
+  "feminine_care": {
+   "status": "imported",
+   "asset": "imp-feminine-care",
+   "name": "Pads and tampons",
+   "source_kind": "model"
+  },
+  "canned_tomatoes": {
+   "status": "imported",
+   "asset": "imp-canned-tomatoes",
+   "name": "Canned tomatoes",
+   "source_kind": "model"
+  },
+  "pancake_mix": {
+   "status": "imported",
+   "asset": "imp-pancake-mix",
+   "name": "Pancake mix",
+   "source_kind": "model"
+  },
+  "hamburger_buns": {
+   "status": "imported",
+   "asset": "imp-hamburger-buns",
+   "name": "Hamburger buns",
+   "source_kind": "scan"
+  }
+ },
+ "fixtures": {
+  "cash_register": {
+   "asset": "imp-cash-register",
+   "name": "cash_register",
+   "source_kind": "model"
   }
  },
  "world": {

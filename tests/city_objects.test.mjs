@@ -13,20 +13,25 @@ import { rewindToNormals, fleetFile, FULL_FOR_TRAFFIC } from "../docs/city/vehic
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
 const O = JSON.parse(readFileSync(new URL("../docs/city/objects.json", import.meta.url)));
 
-test("every model the manifest names is on disk, small, credited CC0, and has a near tier", () => {
+test("every model the manifest names is on disk, small, CC0 or credited CC-BY, and has a near tier", () => {
   let total = 0;
+  const credited = new Set((O.attributions || []).filter((c) => c.author && c.source && c.title).map((c) => c.asset));
   for (const [id, a] of Object.entries(O.assets)) {
     const file = new URL(`../docs/city/models/objects/${a.file}`, import.meta.url);
     assert.ok(existsSync(file), `${id}: ${a.file}`);
     const bytes = statSync(file).size;
     total += bytes;
     assert.ok(bytes < 200_000, `${id} is ${bytes} bytes`);
-    assert.equal(a.license, "CC0-1.0", id);
+    // The lab's own kits are CC0; the store imports (docs/52-store-catalogue.md) are CC0 or CC-BY
+    // 4.0, and a CC-BY model is credited by title, author and source.
+    assert.ok(["CC0-1.0", "CC-BY-4.0"].includes(a.license), `${id}: ${a.license}`);
+    if (a.license === "CC-BY-4.0") assert.ok(credited.has(id), `${id} is credited`);
     assert.equal(a.tiers[0].node, "near");
     assert.ok(a.tiers[0].triangles <= O.lod.near_max_triangles, `${id} near tier ${a.tiers[0].triangles}`);
     if (a.tiers[1]) assert.ok(a.tiers[1].triangles < a.tiers[0].triangles, `${id}: far is lighter than near`);
   }
-  assert.ok(total < 6_000_000, `the whole set is ${(total / 1e6).toFixed(1)} MB`);
+  // 3.3 MB of the lab's kits and ~4.8 MB of store products (each fetched on first use, never at start).
+  assert.ok(total < 9_000_000, `the whole set is ${(total / 1e6).toFixed(1)} MB`);
 });
 
 test("items are drawn only with models the lab found fit: reference-only and gaps keep the page's shape", () => {
@@ -37,9 +42,28 @@ test("items are drawn only with models the lab found fit: reference-only and gap
   assert.equal(bindingOf(O, "scrap_metal").recipe?.parts[0].asset, "k-food-soda-can-crushed", "scrap is crushed metal, not an intact fuel can");
   assert.ok(bindingOf(O, "hammer")?.asset, "a hammer has its model");
   assert.ok(bindingOf(O, "burger_fries")?.recipe, "a dish is composed: plate, burger, fries");
-  assert.ok(bindingOf(O, "beer")?.tint, "a can family labelled the product's colour");
+  assert.ok(bindingOf(O, "motor_oil")?.tint, "a can family labelled the product's colour");
   const drawn = Object.keys(R.items).filter((k) => k !== "basis" && bindingOf(O, k));
   assert.ok(drawn.length >= 120, `${drawn.length} shop items drawn with a model`);
+});
+
+test("a store's staples are drawn with the product itself, imported, and loose produce as a few real-size pieces", () => {
+  for (const sku of ["milk", "eggs", "cheese", "butter", "bread", "cereal", "canned_soup", "peanut_butter", "toilet_paper", "smartphone", "shopping_cart", "shopping_basket"]) {
+    const b = bindingOf(O, sku);
+    assert.equal(b?.status, "imported", sku);
+    assert.match(b.asset, /^imp-/, sku);
+  }
+  for (const sku of ["apple", "oranges", "lemons", "limes", "avocados", "onions", "potatoes", "tomatoes", "pears", "strawberries"]) {
+    const b = bindingOf(O, sku);
+    assert.ok(b?.recipe?.parts.length >= 2 && b.recipe.parts.every((p) => p.asset === b.recipe.parts[0].asset && /^imp-/.test(p.asset)), sku);
+    // Drawn at the catalogue length, a piece of fruit is its own size (within a fifth).
+    const piece = b.recipe.parts[0].len * itemScale(O, R, sku, b);
+    assert.ok(Math.abs(piece / b.recipe.parts[0].len - 1) < 0.2, `${sku}: a piece is ${(piece * 100).toFixed(1)} cm`);
+  }
+  // Every imported model stands on its bottom at the product's real size, and the checkout has one.
+  for (const [id, a] of Object.entries(O.assets)) if (id.startsWith("imp-")) assert.ok(Math.max(...a.dims) > 0.02 && Math.max(...a.dims) < 2, `${id}: ${a.dims}`);
+  assert.match(O.fixtures?.cash_register?.asset || "", /^imp-/);
+  assert.ok(R.fixtures?.shopping_cart?.container && !R.items.shopping_cart, "a cart is a fixture you fill, never sold");
 });
 
 test("an item is drawn at its catalogue size", () => {
