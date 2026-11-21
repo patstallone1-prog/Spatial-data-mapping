@@ -300,7 +300,10 @@ function animate(now) {
   if(natureWorld?.tick(now,camera,state.firstPerson?avatar.position:state.target))lastMovedAt=now;
   globe?.update(camera);
   foliageMotion?.update(now,avatar.position);natureMotion?.update(now,avatar.position);
-  if(grassStrands&&grassSurfaceAt){const focus=state.firstPerson?avatar.position:state.target;
+  // (Not on an attached region's page: its host's frame moves its grass, through guestTick, to
+  // where the walker stands. From here as well, its focus was its own unset target (0, 0) in the
+  // follow view, so every frame looked a 1.5 km jump and the layer rebuilt -- 2026-11-20.)
+  if(grassStrands&&grassSurfaceAt&&!ATTACH){const focus=state.firstPerson?avatar.position:state.target;
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
   if (multiplayer?.session?.tick(now)) lastMovedAt = now;

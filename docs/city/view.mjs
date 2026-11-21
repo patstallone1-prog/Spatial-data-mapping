@@ -691,15 +691,25 @@ diffuseColor.rgb *= kbCloth;`);
     return m;
   };
   const TONE_A = new THREE.Color(), TONE_B = new THREE.Color(), TONE_C = new THREE.Color();
+  //: A colour as the page writes it ("#rrggbb", a name, a number), read once: Color.set on a
+  //: string parses it with regular expressions, and dressAt set four for everyone drawn every
+  //: frame (26 MB a second of garbage, measured 2026-11-20). Same colours.
+  const toneCache = new Map();
+  const setTone = (c, v) => {
+    if (typeof v !== "string") return c.set(v);
+    let read = toneCache.get(v);
+    if (!read) { if (toneCache.size > 4096) toneCache.clear(); toneCache.set(v, read = new THREE.Color().set(v)); }
+    return c.copy(read);
+  };
   //: Person ``i`` of ``mesh`` in ``primary``, ``second`` below ``cut`` (or where the part says),
   //: ``accent``; ``trim`` and ``style`` the garment's marks (GARMENT_GLSL; 0: none).
   const dressAt = (mesh, i, primary, second, cut, accent, trim, style = 0) => {
     const a = mesh.geometry.attributes;
-    TONE_A.set(primary); TONE_B.set(second ?? primary); TONE_C.set(accent ?? primary);
+    setTone(TONE_A, primary); setTone(TONE_B, second ?? primary); setTone(TONE_C, accent ?? primary);
     a.tonePrimary.setXYZ(i, TONE_A.r, TONE_A.g, TONE_A.b);
     a.toneSecond.setXYZW(i, TONE_B.r, TONE_B.g, TONE_B.b, cut ?? -99);
     a.toneAccent.setXYZ(i, TONE_C.r, TONE_C.g, TONE_C.b);
-    if (a.toneTrim) { TONE_C.set(trim ?? primary); a.toneTrim.setXYZW(i, TONE_C.r, TONE_C.g, TONE_C.b, style || 0); }
+    if (a.toneTrim) { setTone(TONE_C, trim ?? primary); a.toneTrim.setXYZW(i, TONE_C.r, TONE_C.g, TONE_C.b, style || 0); }
   };
   const toneDone = (mesh) => { const a = mesh.geometry.attributes; a.tonePrimary.needsUpdate = a.toneSecond.needsUpdate = a.toneAccent.needsUpdate = true; if (a.toneTrim) a.toneTrim.needsUpdate = true; };
   const parts = { torso: mkTone(torsoGeo, MAX_PEOPLE, false, 1), head: mkTone(headGeo, MAX_PEOPLE), hair: mkTone(hairGeo, MAX_PEOPLE, true), legL: mkTone(legGeo, MAX_PEOPLE, false, 3), legR: mkTone(legGeo, MAX_PEOPLE, false, 3), armL: mkTone(armGeo, MAX_PEOPLE, false, 2), armR: mkTone(armGeo, MAX_PEOPLE, false, 2) };
@@ -1902,11 +1912,22 @@ diffuseColor.rgb *= kbCloth;`);
   //: The shop you are at the door of: within a few steps of its shopfront (rules.json
   //: stores.door_reach_m), measured from the front as the page draws it -- not from the
   //: building's middle, which had you "at" a shop from across the street.
+  //: Whether a place sells anything, kept per place: asked every frame of every place, storesAt
+  //: built a set and three lists for each (7-8 MB a second of garbage, measured 2026-11-20).
+  //: Asked again only when the place's keys change.
+  const sellsCache = new WeakMap();
+  const sells = (pl) => {
+    const c = sellsCache.get(pl);
+    if (c && c.keys === pl.keys && c.n === pl.keys.length) return c.sells;
+    const v = storesAt(R, pl.keys).length > 0;
+    sellsCache.set(pl, { keys: pl.keys, n: pl.keys.length, sells: v });
+    return v;
+  };
   function nearestShop() {
     const p = me(), reach = R.stores.door_reach_m ?? 3.5;
     let best = null, bestD = reach;
     for (const pl of district.places) {
-      if (!storesAt(R, pl.keys).length) continue;
+      if (!sells(pl)) continue;
       const I = pl.front || pl.inside;
       let d;
       if (I) {
@@ -4506,8 +4527,14 @@ diffuseColor.rgb *= kbCloth;`);
   const CLEAR_M = 0.62;
   const strides = strideBodies();
   let stridesSwept = 0;
+  //: (The squares and the list of who is near, kept between frames and emptied, not made again:
+  //: a map and a list a square every frame were 15 MB a second of garbage, 2026-11-20.)
+  const apartCells = new Map(), apartNear = [];
   function keepApart(people, you, dt) {
-    const cells = new Map(), near = [];
+    const cells = apartCells, near = apartNear;
+    for (const list of cells.values()) list.length = 0;
+    if (cells.size > 20000) cells.clear();
+    near.length = 0;
     for (const e of people) {
       if (e._ax) { e.x -= e._ax; e.z -= e._az; e._ax = e._az = 0; }
       if (e.down || e.indoors || e.through || e.ride) continue;
@@ -4589,6 +4616,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: A car held by people on foot this long has the next gap; a walker who has waited this long goes.
   const CAR_TURN_S = 6, WALKER_PATIENCE_S = 18;
   const kerbTraffic = { at: -1, list: [] };
+  const crossingEnds = new WeakMap();
   function waitsAtKerb(walk, tsec) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
@@ -4597,7 +4625,12 @@ diffuseColor.rgb *= kbCloth;`);
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
       if (before < -0.05 || before > 1.2) continue;   // on it already: on over
       if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
-      const a = alongRoute(walk.pave, cr.s0), b = alongRoute(walk.pave, cr.s1);
+      // (The crossing's two ends, kept on it: they were worked out again for every walker near a
+      // kerb every frame -- 10 MB a second of garbage, 2026-11-20.)
+      let ends = crossingEnds.get(cr);
+      if (!ends || ends.pave !== walk.pave || ends.s0 !== cr.s0 || ends.s1 !== cr.s1)
+        crossingEnds.set(cr, ends = { pave: walk.pave, s0: cr.s0, s1: cr.s1, a: alongRoute(walk.pave, cr.s0), b: alongRoute(walk.pave, cr.s1) });
+      const a = ends.a, b = ends.b;
       const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / len, uz = (b.z - a.z) / len, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
       // (Every vehicle a walker at a kerb looks for, listed once a frame: the list was made
       // again for every crossing of every walker.)
@@ -4611,7 +4644,7 @@ diffuseColor.rgb *= kbCloth;`);
       }
       for (const v of kerbTraffic.list) {
         if (v.parked || Math.abs(v.x - mx) > 60 || Math.abs(v.z - mz) > 60) continue;
-        const [, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+        const vl = (VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan)[2];   // (read by index: destructuring made an iterator a car a look)
         const sp = v.speed || 0;
         // (A car stood waiting for someone on foot is not waited for in turn: it had been -- the
         // walker at the kerb for the car, the car for the walker, and the street behind it.)
@@ -4786,6 +4819,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (reacting.size > 400) for (const [id, q] of reacting) if (now > q.until) reacting.delete(id);
     // The cars: parked where they stand; driving, on their leg.
     const sim = [], vehicles = [], legOf = new Map();
+    const parkedAt = (base, spot) => { Object.assign(base, spot); base.moving = false; base.parked = true; return base; };
     const limitAt = (model) => (cls) => {
       const law = cls === "residential" ? (view || world)?.laws?.speed_limit_kmh_residential : null;
       const top = (law ? law / 3.6 : SPEED_MS[cls || "residential"]) * (model === "bus" || model === "box_truck" ? 0.8 : 0.95);
@@ -4798,9 +4832,11 @@ diffuseColor.rgb *= kbCloth;`);
       if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
       if (h0?.out) continue;
+      // (``base`` is this frame's own record of the car, made here and drawn once: it is filled in,
+      // not copied, whichever way below it goes.)
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
-      if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
-      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true, lock: s0.lock || null }); continue; }
+      if (h0?.stays) { base.x = h0.at.x; base.z = h0.at.z; base.yaw = h0.at.yaw || 0; base.moving = false; base.wrecked = true; vehicles.push(base); continue; }
+      if (s0.state !== "driving") { base.x = s0.x; base.z = s0.z; base.yaw = s0.yaw; base.moving = false; base.parked = true; base.lock = s0.lock || null; vehicles.push(base); continue; }
       // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
@@ -4808,7 +4844,7 @@ diffuseColor.rgb *= kbCloth;`);
         const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tt);
         if (!round) {
           const pos = owner && c.personAt(owner, tt, undefined, focus);
-          if (pos && pos.mode === "drive") vehicles.push({ ...base, ...pos, moving: true });
+          if (pos && pos.mode === "drive") { Object.assign(base, pos).moving = true; vehicles.push(base); }
           continue;
         }
         leg = round; route = round.route; key = `${v.id}:${round.key}`;
@@ -4830,11 +4866,11 @@ diffuseColor.rgb *= kbCloth;`);
       } else {
         // At the end of its leg it is parked there, in the parking lane (and from the next pass,
         // at its spot).
-        if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (lagged >= route.length - 0.5) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // Not off yet (its leg starts later than the scan saw it): parked where it starts.
-        if (lagged <= 0.05) { vehicles.push({ ...base, ...(route.startSpot || alongRoute(route, 0, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (lagged <= 0.05) { vehicles.push(parkedAt(base, route.startSpot || alongRoute(route, 0, PARK_LANE))); continue; }
         const pos = easeToSpots(route, lagged, alongRoute(route, lagged, v.bike ? BIKE_LANE : DRIVE_LANE));
-        vehicles.push({ ...base, ...pos, moving: true, speed: route.length / durS });
+        Object.assign(base, pos); base.moving = true; base.speed = route.length / durS; vehicles.push(base);
       }
     }
     // Driven by the rules: you and everyone near on foot are in the way to be braked for.
@@ -4858,10 +4894,11 @@ diffuseColor.rgb *= kbCloth;`);
         // day, or past what shut the street -- it is there at once, not slid across the map.)
         const { base } = legOf.get(r0.id), route = r0.route || legOf.get(r0.id).route;
         if (r0.jump) glided.delete(r0.id);
-        if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (r0.arrived) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // In its own lane (Drivers: the lane it chose, or on its way across to the next).
         const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
-        vehicles.push({ ...base, ...pos, moving: Math.abs(r0.v) > 0.2, speed: Math.abs(r0.v), braking: r0.braking, reversing: r0.reversing, reason: r0.reason, behind: r0.behind, held: r0.held || 0 });
+        Object.assign(base, pos); base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
+        vehicles.push(base);
       }
       for (const hit of step.hits) carHit(hit, people);
     }

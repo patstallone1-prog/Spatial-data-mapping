@@ -328,27 +328,39 @@ export const WALL_CLEAR_M = 0.35;
 //: Whether (x, z) is inside ``ring`` ([[x, z], ...], either way round).
 export function inRing(ring, x, z) {
   let inside = false;
+  // (Read by index, not destructured: asked for everyone near a building every frame, the
+  // destructuring made iterators -- 91 MB a second of garbage in the Marina, 2026-11-20.)
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
-    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    const pi = ring[i], pj = ring[j], xi = pi[0], zi = pi[1], xj = pj[0], zj = pj[1];
     if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
 }
 //: The nearest point WALL_CLEAR_M outside ``ring`` from (x, z) inside it that ``ok(x, z)`` takes
 //: (in no other building), or the nearest outside point at all.
+//: (Kept in reused scratch arrays, nearest first by insertion: it is asked for everyone standing
+//: in a footprint every frame, and a list of three-number lists a wall each time was 12 MB a
+//: second of garbage in the Marina, measured 2026-11-20. Same answers.)
+let ringScratch = new Float64Array(3 * 64), ringOrder = new Int32Array(64);
 export function outOfRing(ring, x, z, ok = () => true) {
-  const cands = [];
+  if (ring.length > ringOrder.length) { ringScratch = new Float64Array(3 * ring.length); ringOrder = new Int32Array(ring.length); }
+  const C = ringScratch, O = ringOrder;
+  let n = 0;
   for (let i = 0; i < ring.length; i += 1) {
-    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length], ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez;
+    const a = ring[i], b = ring[(i + 1) % ring.length], ax = a[0], az = a[1], ex = b[0] - ax, ez = b[1] - az, L2 = ex * ex + ez * ez;
     if (L2 < 1e-6) continue;
     const u = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)), qx = ax + ex * u, qz = az + ez * u, L = Math.sqrt(L2);
     let nx = ez / L, nz = -ex / L;
     if (inRing(ring, qx + nx * 0.05, qz + nz * 0.05)) { nx = -nx; nz = -nz; }
-    cands.push([Math.hypot(x - qx, z - qz), qx + nx * WALL_CLEAR_M, qz + nz * WALL_CLEAR_M]);
+    const d = Math.hypot(x - qx, z - qz), o = 3 * n;
+    C[o] = d; C[o + 1] = qx + nx * WALL_CLEAR_M; C[o + 2] = qz + nz * WALL_CLEAR_M;
+    // Stable insertion by distance (Array.prototype.sort is stable: ties keep wall order).
+    let j = n;
+    while (j > 0 && C[3 * O[j - 1]] > d) { O[j] = O[j - 1]; j -= 1; }
+    O[j] = n; n += 1;
   }
-  cands.sort((a, b) => a[0] - b[0]);
-  for (const c of cands) if (!inRing(ring, c[1], c[2]) && ok(c[1], c[2])) return [c[1], c[2]];
-  for (const c of cands) if (!inRing(ring, c[1], c[2])) return [c[1], c[2]];
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz) && ok(cx, cz)) return [cx, cz]; }
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz)) return [cx, cz]; }
   return null;
 }
 
@@ -1369,9 +1381,11 @@ export class City {
       if (x1 - x0 > 600 || z1 - z0 > 600) continue;
       const f = { pl, ring, x0, z0, x1, z1 };
       for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i += 1) for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j += 1) {
-        const k = `${i},${j}`;
-        if (!grid.has(k)) grid.set(k, []);
-        grid.get(k).push(f);
+        // (A cell's key is a number: footprintAt is asked for everyone every frame, and a string
+        // made for each ask was garbage that added up.)
+        const k = (i + 1048576) * 2097152 + j + 1048576;
+        let at = grid.get(k); if (!at) grid.set(k, at = []);
+        at.push(f);
       }
     }
     this._footprints = { n: list.length, grid, CELL };
@@ -1560,7 +1574,7 @@ export class City {
   }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
-    const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
+    const F = this.footprints(), cell = F.grid.get((Math.floor(x / F.CELL) + 1048576) * 2097152 + Math.floor(z / F.CELL) + 1048576);
     if (!cell) return null;
     for (const f of cell) {
       if (x < f.x0 || x > f.x1 || z < f.z0 || z > f.z1 || (except !== null && f.pl.id === except)) continue;
@@ -1573,7 +1587,7 @@ export class City {
   keepOutside(pos, why = "walk") {
     const f = this.footprintAt(pos.x, pos.z);
     if (!f) return false;
-    const best = outOfRing(f.ring, pos.x, pos.z, (x, z) => !this.footprintAt(x, z));
+    const best = outOfRing(f.ring, pos.x, pos.z, this._inNoFootprint ??= (x, z) => !this.footprintAt(x, z));
     if (!best) return false;
     pos.x = best[0]; pos.z = best[1];
     this.wallFixes[why] = (this.wallFixes[why] || 0) + 1;
@@ -2111,6 +2125,8 @@ export function edgeKey(route, i) {
   const p = route.pts[i], q = route.pts[i + 1];
   return `${Math.round(p[0])},${Math.round(p[1])}>${Math.round(q[0])},${Math.round(q[1])}`;
 }
+// A fresh alongRoute point with its car on it (alongRoute makes a new one each call: no copy).
+const withCar = (p, c) => { p.c = c; return p; };
 //: A car's own side of the street (for alongRoute): the lane it is in, or on its way across to
 //: the next over (``lt`` 0..1), eased.
 export function laneSide(st) {
@@ -2291,7 +2307,8 @@ export class Drivers {
     };
     const into = (A, B) => {
       let worst = -Infinity;
-      for (const a of A.at) for (const b of B.at) worst = Math.max(worst, A.r + B.r + 0.25 - Math.hypot(a[0] - b[0], a[1] - b[1]));
+      const AA = A.at, BB = B.at, rr = A.r + B.r + 0.25;
+      for (let i = 0; i < AA.length; i += 1) { const a = AA[i]; for (let j = 0; j < BB.length; j += 1) { const b = BB[j], dx = a[0] - b[0], dz = a[1] - b[1], g = rr - Math.sqrt(dx * dx + dz * dz); if (g > worst) worst = g; } }
       return worst;
     };
     const others = blockers.map((o, k) => ({ id: `blocker:${k}`, body: bodies(o, o.length || 4.5, o.width || 1.9) }));
@@ -2322,11 +2339,11 @@ export class Drivers {
     // (The cars already in the traffic first, then those come into sight, behind them.)
     live.sort((a, b) => (a[1].fresh ? 1 : 0) - (b[1].fresh ? 1 : 0));
     for (const [c, st] of live) {
-      let p = { ...alongRoute(c.route, st.d, st.side), c };
+      let p = withCar(alongRoute(c.route, st.d, st.side), c);
       p.body = bodies(p, c.length, c.width || 1.9);
       if (st.fresh) {
         for (let k = 0; k < 40 && st.d > 0 && deepest(c.id, p.body, p.x, p.z, c.length + 8).worst > 0; k += 1) {
-          st.d = Math.max(0, st.d - 1.5); p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9);
+          st.d = Math.max(0, st.d - 1.5); p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9);
         }
         // And at a speed it can stop from in the room it has: it came in at its cruising speed
         // whatever stood in front of it, and the first step drove it into the back of a queue
@@ -2369,6 +2386,17 @@ export class Drivers {
     // with no route -- your car, a bus at its stop -- stands where it is); if they would meet,
     // the one in front is moved on (the one behind brakes, as ever).
     const pushes = new Set();
+    // Each car's bodies at those moments, worked out once a step (a car is in many pairs).
+    const ahead = (this._ahead ||= new Map()); ahead.clear();
+    const predicted = (car, cst) => {
+      let a = ahead.get(car.id);
+      if (!a) {
+        a = [];
+        for (const tau of T.predict_s) a.push(bodies(alongRoute(car.route, Math.min(car.route.length, cst.d + cst.v * tau), cst.side), car.length, car.width || 1.9));
+        ahead.set(car.id, a);
+      }
+      return a;
+    };
     for (const [c, st] of live) {
       if (st.hit || arrived(c, st)) continue;
       const p = pos.get(c.id);
@@ -2377,10 +2405,9 @@ export class Drivers {
         const o = this.cars.get(oid), op = pos.get(oid);
         if (!o || !op || o.hit || arrived(op.c, o) || (st.v < 0.2 && o.v < 0.2)) return;
         const now = into(p.body, op.body);
-        for (const tau of T.predict_s) {
-          const a = alongRoute(c.route, Math.min(c.route.length, st.d + st.v * tau), st.side);
-          const b = alongRoute(op.c.route, Math.min(op.c.route.length, o.d + o.v * tau), o.side);
-          const meet = into(bodies(a, c.length, c.width || 1.9), bodies(b, op.c.length, op.c.width || 1.9));
+        const A = predicted(c, st), B = predicted(op.c, o);
+        for (let ti = 0; ti < A.length; ti += 1) {
+          const meet = into(A[ti], B[ti]);
           if (meet > 0 && meet > now + 1e-4) {
             const ahead = (op.x - p.x) * -Math.sin(p.yaw) + (op.z - p.z) * -Math.cos(p.yaw);
             pushes.add(ahead > 0 ? oid : c.id);
@@ -2752,7 +2779,7 @@ export class Drivers {
             const why = `jumps_${String(hold.id).split(":")[0]}${inside ? "_box" : ""}`; this.tally[why] = (this.tally[why] || 0) + 1;
             this.jams.set(blockKey, tsec + T.shut_known_s); this.jams.set(`shut:${blockKey}`, tsec + T.shut_known_s);
             st.d = to; st.holdT = 0; st.blocked = 0; st.blockedBy = null; this.tally.jumps += 1;
-            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
             this.delays.set(c.key, tsec - c.unsched(st.d));
             out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what shut the street", jump: true, route: st.route });
             continue;
@@ -2777,7 +2804,7 @@ export class Drivers {
           if (to !== null) {
             st.d = to; st.stuckT = 0; st.holdT = 0; st.blocked = 0; st.blockedBy = null; st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.backUp = 0;
             this.tally.jumps += 1; this.tally.jumps_stuck = (this.tally.jumps_stuck || 0) + 1;
-            const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+            const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
             this.delays.set(c.key, tsec - c.unsched(st.d));
             out.push({ id: c.id, d: st.d, v: 0, reason: "put on past what held it", jump: true, route: st.route });
             continue;
@@ -2798,7 +2825,7 @@ export class Drivers {
         const to = this.catchUp(c, st, tsec, { deepest, bodies });
         if (to !== null) {
           st.d = to; st.v = Math.min(limit, c.cruise ?? limit); st.dodge = 0; st.dodgeTo = 0; st.hold = null; st.blocked = 0; st.blockedBy = null; st.backUp = 0;
-          const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+          const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
           this.delays.set(c.key, tsec - c.unsched(st.d)); this.tally.jumps += 1; this.tally.jumps_unseen = (this.tally.jumps_unseen || 0) + 1;
           out.push({ id: c.id, d: st.d, v: st.v, reason: "back on its day", jump: true, route: st.route });
           continue;
@@ -2810,7 +2837,7 @@ export class Drivers {
       if (st.backUp > 0 && !danger) {
         const d1 = Math.max(0, st.d - T.back_speed * dt), was = st.dodge;
         st.dodge = swing(st.d - d1);
-        const next = { ...alongRoute(c.route, d1, st.side) };
+        const next = alongRoute(c.route, d1, st.side);
         next.body = bodies(next, c.length, c.width || 1.9);
         if (d1 < st.d && !blocking(c.id, here, next, c.length + 6, -1) && !blocking(c.id, here, next, c.length + 6, 1)) {
           st.backUp -= st.d - d1; st.d = d1; st.v = 0; st.reason = "backing up";
@@ -2839,7 +2866,7 @@ export class Drivers {
       if (d1 > st.d) {
         const was = st.dodge;
         st.dodge = swing(d1 - st.d);
-        const next = { ...alongRoute(c.route, d1, st.side) };
+        const next = alongRoute(c.route, d1, st.side);
         next.body = bodies(next, c.length, c.width || 1.9);
         const who = blocking(c.id, here, next, c.length + 6);
         if (who) {
@@ -2886,7 +2913,7 @@ export class Drivers {
                   mine: segInfo(c.route, st), theirs: op && o ? segInfo(op.c.route, o) : null });
                 if (this.knots.length > 40) this.knots.shift(); }
               st.d = to; st.blocked = 0; st.blockedBy = null; st.backed = false; st.dodge = 0; st.dodgeTo = 0; st.hold = null; this.tally.jumps += 1;
-              const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
+              const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
               this.delays.set(c.key, tsec - c.unsched(st.d));
               out.push({ id: c.id, d: st.d, v: 0, reason: "put on past a knot", jump: true, route: st.route });
               continue;
@@ -2903,7 +2930,7 @@ export class Drivers {
       st.reason = reason;
       if (reason !== "the car ahead") st.leader = null;
       st.d = d1;
-      { const p = { ...alongRoute(c.route, st.d, st.side), c }; p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
+      { const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
       out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay, held: st.pedT || 0 });

@@ -938,17 +938,19 @@ function insideMeasuredCarriageway(x, z, slack) {
   return false;
 }
 
+//: (Read by index: asked for every person stepping aside and every car, every frame, from the
+//: living city's roadAt -- each segment destructured made an iterator, 179 MB a second of garbage
+//: in the Marina, measured 2026-11-20. Same answers.)
 function insideCarriageway(x, z, slack = 0.4) {
   const cx = Math.floor(x / CARRIAGEWAY_CELL);
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
-      if (bucket) {
-        for (const [ax, az, bx, bz, half] of bucket) {
-          const limit = Math.max(0, half - slack);
-          if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
-        }
+      if (!bucket) continue;
+      for (let i = 0; i < bucket.length; i += 1) {
+        const s = bucket[i], limit = Math.max(0, s[4] - slack);
+        if (distanceToSegmentSquared(x, z, s[0], s[1], s[2], s[3]) < limit * limit) return true;
       }
     }
   }
@@ -971,7 +973,8 @@ function onAnotherCarriageway(x, z, slack, exclude) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
-      for (const [ax, az, bx, bz, half, , source] of bucket) {
+      for (let i = 0; i < bucket.length; i += 1) {
+        const seg = bucket[i], ax = seg[0], az = seg[1], bx = seg[2], bz = seg[3], half = seg[4], source = seg[6];
         if (source && exclude.includes(source)) continue;
         const ex = bx - ax, ez = bz - az;
         const l2 = ex * ex + ez * ez;

@@ -62,9 +62,20 @@ export function triangleGroundSampler(meshes,cell=4){
   sample.clear=()=>{grid.clear();tri=new Float64Array(0);};
   return sample;
 }
+//: What every grass layer has done, for checking from outside (globalThis.__kerbsideGrassStats()):
+//: cells built and how many came out empty, rebuilds forced, moves and visibility flips.
+const grassLayers=[];
+export function grassStats(){return grassLayers.map(l=>({...l.stats,cells:l.cells.size,meshes:l.group.children.length}));}
+globalThis.__kerbsideGrassStats=grassStats;
 export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8,radius=14,maxCells=16,motion=null}={}){
   const group=new THREE.Group();group.name='inferred-grass-strands';parent.add(group);
-  const cells=new Map(),material=new THREE.MeshStandardMaterial({vertexColors:true,
+  const stats={builds:0,empty:0,emptyKnown:0,invalidations:0,moves:0,flips:0,dropped:0,trail:[]};
+  //: Cells that came out with no grass, remembered until the ground changes (invalidate): the
+  //: ground they were sampled on is the same, so they would come out empty again. Dropped out of
+  //: reach and asked for again, they were built again -- every frame where the focus moved (all
+  //: 1,463 cells built in two minutes in the Marina were empty: 35 MB a second of garbage, 2026-11-20).
+  const emptyCells=new Set();
+  const cells=new Map();grassLayers.push({stats,cells,group});const material=new THREE.MeshStandardMaterial({vertexColors:true,
     side:THREE.DoubleSide,roughness:1,metalness:0});
   material.onBeforeCompile=shader=>{ globalThis.__kerbsideProxyLight?.patch?.(shader);
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying float vBladeRange;')
@@ -109,7 +120,9 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
     mesh.receiveShadow=true;onMesh(mesh);return mesh;
   }
   return {group,update(x,z,eyeHeight=0){
-    const changed=Math.hypot(x-lastX,z-lastZ)>=3||group.visible!==(eyeHeight<70);
+    const moved=Math.hypot(x-lastX,z-lastZ)>=3,flipped=group.visible!==(eyeHeight<70);
+    if(moved){stats.moves++;stats.trail.push([+x.toFixed(1),+z.toFixed(1)]);if(stats.trail.length>8)stats.trail.shift();}if(flipped)stats.flips++;
+    const changed=moved||flipped;
     group.visible=eyeHeight<70;if(!group.visible)return;
     if(changed){lastX=x;lastZ=z;const wanted=[];
     for(let tz=Math.floor((z-radius)/cellSize);tz<=Math.floor((z+radius)/cellSize);tz++)
@@ -119,12 +132,14 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
       }
     wanted.sort((a,b)=>a.distance-b.distance);wanted.length=Math.min(wanted.length,maxCells);
     const keys=new Set(wanted.map(v=>v.key));
-    for(const [key,mesh] of cells)if(!keys.has(key)){if(mesh){group.remove(mesh);mesh.geometry.dispose();}cells.delete(key);}
+    for(const [key,mesh] of cells)if(!keys.has(key)){if(mesh){group.remove(mesh);mesh.geometry.dispose();}cells.delete(key);stats.dropped++;}
     desired=wanted;}
     // Incremental, nearest-first: never construct the entire lawn in one frame.
     if(performance.now()-lastBuild<80)return;
-    const v=desired.find(v=>!cells.has(v.key));if(!v)return;
-    lastBuild=performance.now();const mesh=make(v.tx,v.tz);cells.set(v.key,mesh);if(mesh)group.add(mesh);
-  },invalidate(){lastX=Infinity;for(const mesh of cells.values())if(mesh){group.remove(mesh);mesh.geometry.dispose();}cells.clear();},
+    let v=null;for(const w of desired){if(cells.has(w.key))continue;if(emptyCells.has(w.key)){cells.set(w.key,null);stats.emptyKnown++;continue;}v=w;break;}if(!v)return;
+    lastBuild=performance.now();const mesh=make(v.tx,v.tz);stats.builds++;
+    if(!mesh){stats.empty++;if(emptyCells.size>4096)emptyCells.clear();emptyCells.add(v.key);}
+    cells.set(v.key,mesh);if(mesh)group.add(mesh);
+  },invalidate(){stats.invalidations++;emptyCells.clear();lastX=Infinity;for(const mesh of cells.values())if(mesh){group.remove(mesh);mesh.geometry.dispose();}cells.clear();},
   dispose(){for(const mesh of cells.values())mesh?.geometry.dispose();cells.clear();material.dispose();parent.remove(group);}};
 }

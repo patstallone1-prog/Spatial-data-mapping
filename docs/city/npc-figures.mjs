@@ -216,6 +216,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   }
   const tmp = new THREE.Color();
   function dress(f, look) {
+    // (The same look object as last frame: nothing to do, and no key string made for it.)
+    if (f.dressedLook === look && f.dressedTop === look.top && f.dressedBottom === look.bottom && f.dressedHair === look.hair && f.dressedSkin === look.skin) return;
+    f.dressedLook = look; f.dressedTop = look.top; f.dressedBottom = look.bottom; f.dressedHair = look.hair; f.dressedSkin = look.skin;
     const key = `${look.top}|${look.bottom}|${look.hair}|${look.skin}`;
     if (f.dressed === key) return;
     f.dressed = key;
@@ -295,7 +298,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       const v = q.moving ? q.speed : 0;
       const want = v < 0.2 ? "idle" : v < 2.3 ? "walk" : "jog";
       const blend = Math.min(1, dt * 6);
-      for (const [name, a] of Object.entries(f.actions)) a.weight += ((name === want ? 1 : 0) - a.weight) * blend;
+      // (The clips as a list kept on the figure: Object.entries made two lists a figure a frame.)
+      const clips = f.clipList ||= Object.entries(f.actions);
+      for (let i = 0; i < clips.length; i += 1) { const a = clips[i][1]; a.weight += ((clips[i][0] === want ? 1 : 0) - a.weight) * blend; }
       f.actions.walk.timeScale = Math.max(0.4, v / WALK_MS);
       f.actions.jog.timeScale = Math.max(0.6, v / JOG_MS);
       f.mixer.update(dt);
