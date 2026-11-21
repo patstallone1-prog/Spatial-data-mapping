@@ -41,8 +41,10 @@ const freshServer = () => ({ pos: {}, rate: {}, found: {}, reqs: {}, stepped: 0 
 export class CityAuthority {
   //: ``voices``: whether a model answers for the city's people (server/npc): the world then leaves
   //: a real question in a thread unanswered, for the server to answer (``say``).
-  constructor({ R, canon, store, secret, worldId = WORLD_ID, now = () => Date.now(), voices = false }) {
-    Object.assign(this, { R, canon, store, secret, worldId, now, voices, cache: null, line: Promise.resolve(), live: null, versionAt: -Infinity, versionSeen: 0 });
+  //: ``announce(world, version)``: say each committed version to the pages listening
+  //: (announce.mjs), and ``liveInfo`` where they listen -- both null where nobody can listen.
+  constructor({ R, canon, store, secret, worldId = WORLD_ID, now = () => Date.now(), voices = false, announce = null, liveInfo = null }) {
+    Object.assign(this, { R, canon, store, secret, worldId, now, voices, announce, liveInfo, cache: null, line: Promise.resolve(), live: null, versionAt: -Infinity, versionSeen: 0, announced: 0 });
   }
   //: One at a time within this instance (it never races itself); other instances are told apart
   //: by the store's compare-and-swap.
@@ -71,7 +73,7 @@ export class CityAuthority {
       if(typeof body.key!=="string"||!KEY_PATTERN.test(body.key))return{ok:false,error:"not an account"};
       const identity=await this.store.identityFor?.(keyHash(body.key))||null;
       const s = openSession(this.secret, body.key, this.now(),identity);
-      return s ? { ok: true, ...s, world: this.worldId } : { ok: false, error: "not an account" };
+      return s ? { ok: true, ...s, world: this.worldId, ...(this.liveInfo ? { live: this.liveInfo } : {}) } : { ok: false, error: "not an account" };
     }
     const session = readSession(this.secret, body.token, this.now());
     if (!session) return { ok: false, error: "sign in again", code: "session" };
@@ -101,6 +103,11 @@ export class CityAuthority {
     if (done.ok) { this.versionSeen = done.version; this.versionAt = this.now(); } else this.versionAt = -Infinity;
     // The world kept for polls is of the version before: made again from the new record when next asked for.
     if (!(this.live && this.live.world === world && done.ok)) this.live = null;
+    // Every page listening is told there is a new version (each then asks for its own part).
+    if (done.ok && this.announce && done.version > this.announced) {
+      this.announced = done.version;
+      await this.announce(this.worldId, done.version).catch(() => false);
+    }
     return done;
   }
   answer(world, pid, version, extra = {}) {

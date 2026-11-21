@@ -169,6 +169,15 @@ function redundant(R, T, m, role, hh) {
 //: How far apart along the pavement by a bus stop's pole its riders wait (m), and how many are in
 //: sight there at once: a busy Muni stop at the evening peak has a dozen or so at the pole.
 const STOP_SPREAD_M = 6, STOP_WAIT_MAX = 12;
+//: Where across the pavement each walker keeps: their own line, this share of the way from the
+//: kerb to the pavement's middle line and past it (by their id). Everyone had walked the one line
+//: PAVE_M out, so they met in single file, and at each corner all of a block's walkers came to
+//: the one point where two lines meet -- a crowd at every corner, pushing to stand apart
+//: (Chestnut and Fillmore, 2026-11-21).
+const LANE_SPREAD = [0.55, 1.45];
+//: A pavement narrower than this kerb to wall (m) is a narrow walk: fewer walk it (rules.json
+//: density.narrow_walk_keep, the share of a walk all on one kept), as fewer walk a narrow one.
+const NARROW_WALK_W_M = 2.4;
 export class Roster {
   constructor(R, { seed = "district", saved = null, toLonLat = null } = {}) {
     this.R = R; this.seed = seed; this.toLonLat = toLonLat;
@@ -1244,8 +1253,11 @@ export class City {
     const walkB = tripMinutes(Math.hypot(B.x - stopB.x, B.z - stopB.z), p.pace) + 0.2;
     const r = rng(p.id, "stop", Math.round(depart));
     // (On the pavement: a stop the map has out in the roadway is waited for from beside it.)
-    // Spread along the pavement by the pole (STOP_SPREAD_M), not all on the one square metre.
-    const spot = this.standOff(stopA.x + (r() - 0.5) * STOP_SPREAD_M, stopA.z + (r() - 0.5) * STOP_SPREAD_M);
+    // Spread along the pavement by the pole (STOP_SPREAD_M either way along the kerb, and a step
+    // to a couple of metres in from it), not all on the one square metre. (Spread round the pole
+    // and stood off the road, half of them came to the one point beside the kerb: eight within a
+    // metre at the 30's pole at Chestnut and Fillmore, 2026-11-21.)
+    const spot = this.stopSpot(stopA, r);
     return [
       { kind: "go", mode: "walk", t0: depart, t1: depart + walkA, from, toXZ: spot, ride: "bus" },
       { kind: "go", mode: "wait", t0: depart + walkA, t1: board, at: spot, yaw: r() * 6.28, label: `waiting for the ${line.route}`, route: line.route },
@@ -1450,6 +1462,26 @@ export class City {
   //: itself where it is no roadway; else the pavement by the nearest kerb; else (that kerb an
   //: island's) the nearest ground, looked for outwards all round, that is not roadway and has
   //: none beyond it. [x, z], the point given where nothing is found or the world is not built.
+  //: Where one waiting at the stop ``at`` stands (``r``: their own random): along the kerb by
+  //: the pole and in on the pavement, or round the pole where the kerb is not known.
+  stopSpot(at, r) {
+    const along = (r() - 0.5) * 2 * STOP_SPREAD_M, inward = 0.7 + r() * 1.8;
+    // (A pole the map has out in the roadway -- the 30's at Chestnut and Fillmore is in the
+    // crossroads -- has no kerb of its own: the kerb is the one beside the pavement it is stood
+    // off onto.)
+    let k = this.kerbside?.kerbAt?.(at.x, at.z);
+    if (!k && this.kerbside?.kerbAt) { const [px, pz] = this.standOff(at.x, at.z); k = this.kerbside.kerbAt(px, pz); }
+    if (k && Number.isFinite(k.nx) && Number.isFinite(k.ax)) {
+      const road = this.kerbside?.onRoad;
+      // A pole at a corner has the crossroads on one side: a spot out in it is taken the same
+      // way up the kerb on the other side (and nearer the pole if that will not do).
+      for (const a of [along, -along, along / 2, -along / 2]) {
+        const x = k.x + k.ax * a + k.nx * inward, z = k.z + k.az * a + k.nz * inward;
+        if (!(road && road(x, z)) && !this.footprintAt?.(x, z)) return [x, z];
+      }
+    }
+    return this.standOff(at.x + along * 0.5, at.z + (r() - 0.5) * STOP_SPREAD_M);
+  }
   standOff(x, z) {
     const road = this.kerbside?.onRoad, G = WALK_LEGAL;
     if (!road || !road(x, z)) return [x, z];
@@ -1619,8 +1651,15 @@ export class City {
       // On the pavement, over the streets at the crosswalks (pavementRoute), as far along as
       // the waits at the kerb have left them (walkLags: held there, then a quicker step after).
       const a0 = this.anchor(seg.from, seg.fromXZ), a1 = this.anchor(seg.to, seg.toXZ);
-      if (seg.pave === undefined) seg.pave = this.legalize(pavementRoute(this.streets, route, { from: a0, to: a1, side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine }));
+      if (seg.pave === undefined) seg.pave = this.paveFor(p, route, { from: a0, to: a1 });
       const pave = seg.pave, L = pave.length, pace = L / Math.max(1, (seg.t1 - seg.t0) * 60);
+      // Fewer on the narrow walks: a walk mostly along one is out of sight more often (decided
+      // once, with the walk's way, before they are ever drawn).
+      if (seg.thin === undefined) {
+        const keep = this.R.density?.narrow_walk_keep ?? 0.45, share = pave.narrowShare || 0;
+        seg.thin = share > 0 && hash32(p.id, Math.round(seg.t0 * 10), "narrow") % 1000 >= 1000 * (1 - (1 - keep) * share);
+      }
+      if (seg.thin) return null;
       const key = `${p.id}:${seg.t0}`, lag = this.walkLags.get(key)?.lag || 0, d = Math.max(0, f * L - lag * pace);
       const off = (a, q) => (a && q ? Math.hypot(a.x - q[0], a.z - q[1]) : 0);
       // (Drawn in from the pavement to a door or a pole over a little more than its distance off.)
@@ -1782,6 +1821,22 @@ export class City {
     }
     return route;
   }
+  //: ``p``'s way on foot along ``route``: on the pavement, on their own line across it
+  //: (LANE_SPREAD), over at the crosswalks. ``narrowShare``: how much of it is along a narrow
+  //: walk (NARROW_WALK_W_M).
+  paveFor(p, route, ends = {}) {
+    const k = LANE_SPREAD[0] + (LANE_SPREAD[1] - LANE_SPREAD[0]) * ((hash32(p.id, "lane") % 1000) / 999);
+    let narrow = 0, all = 0;
+    const offset = (half, where) => {
+      const o = this.paveLine(half, where);
+      if (!half) return o;
+      if (where?.len > 0) { all += where.len; if ((o - half) * 2 < NARROW_WALK_W_M) narrow += where.len; }
+      return half + (o - half) * k;
+    };
+    const pave = this.legalize(pavementRoute(this.streets, route, { ...ends, side: hash32(p.id) % 2 ? 1 : -1, offset }));
+    if (pave) pave.narrowShare = all > 0 ? narrow / all : 0;
+    return pave;
+  }
   //: A walker at the kerb (``walk.key`` from personAt) held there for ``dt`` seconds (``hold``),
   //: or making up the time after: a third quicker until they are where their day has them.
   holdWalk(key, dt, hold) {
@@ -1857,7 +1912,7 @@ export class City {
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = this.legalize(pavementRoute(this.streets, route, { from: this.anchor(seg.place, null, { door: false }), side: hash32(p.id) % 2 ? 1 : -1, offset: this.paveLine }));
+      if (r0 && !drive) r0.pave = this.paveFor(p, route, { from: this.anchor(seg.place, null, { door: false }) });
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }

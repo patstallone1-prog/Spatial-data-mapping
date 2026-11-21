@@ -23,12 +23,21 @@ export function cityServerUrl(location) {
   } catch { return null; }
 }
 
+//: The server's word on where to listen for new versions, checked: an https project address and
+//: a short key and topic, or null.
+export function readLiveInfo(x) {
+  if (!x || typeof x !== "object") return null;
+  const ok = (v, n) => typeof v === "string" && v.length > 0 && v.length <= n;
+  if (!ok(x.url, 200) || !ok(x.key, 200) || !ok(x.topic, 80) || !/^https:\/\//.test(x.url) || !/^[\w:.-]+$/.test(x.topic)) return null;
+  return { url: x.url, key: x.key, topic: x.topic };
+}
+
 //: ``open()`` signs in; ``send(command, args)`` asks for an action; ``sync()`` asks what has
 //: changed; ``grants()`` has the server pay in what the backend granted. Each resolves to the
 //: server's answer, or {ok: false, error, code} -- "offline" when it could not be reached,
 //: "not_configured" when it is not set up.
 export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10_000 }) {
-  let token = null, pid = null, version = 0, n = 0;
+  let token = null, pid = null, version = 0, n = 0, live = null;
   const run = Math.random().toString(36).slice(2, 8);
   //: The voices of the city's people are next door to the city's server (server/npc).
   const voices = url.replace(/\/api\/city(?=$|[?#])/, "/api/npc");
@@ -47,7 +56,7 @@ export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10
   }
   async function open() {
     const r = await post({ op: "session", key });
-    if (r.ok) { token = r.token; pid = r.pid; }
+    if (r.ok) { token = r.token; pid = r.pid; live = readLiveInfo(r.live); }
     return r;
   }
   //: Signed, and signed in again once if the session has run out.
@@ -59,7 +68,8 @@ export function cityClient({ url, key, fetch: f = globalThis.fetch, timeout = 10
     return r;
   }
   return {
-    open, get pid() { return pid; }, get version() { return version; },
+    //: Where this page hears of each new version (live.mjs): {url, key, topic}, or null.
+    open, get pid() { return pid; }, get version() { return version; }, get live() { return live; },
     send: (command, args = {}) => signed({ op: "cmd", req: `${run}:${n += 1}`, command, args }),
     sync: (since = version) => signed({ op: "sync", since }),
     grants: () => signed({ op: "grants" }),

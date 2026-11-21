@@ -598,20 +598,20 @@ const NEAR_SURFACE = globalThis.__kerbsideNearSurface ||= {
     asphalt: { tile_m: 3.2, mean: [0.471, 0.471, 0.471], relief: 0.9 },
     concrete: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6 },
     // A public sidewalk as San Francisco pours it: the same photograph, and over it, in the
-    // slabs' own UVs, what the finisher's tools leave -- a tooled joint round every four-foot
-    // square (counted from the property line, module 09 SLAB_M) with a smooth troweled margin
-    // either side, the broom's fine striations across the walk inside it, and the deeper
-    // contraction joint every third square along the block.
-    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 4, slab_m: 1.2192 },
+    // slabs' own UVs, what the finisher's tools leave -- a tooled joint round every square (three
+    // feet along, rows across stretched to fit, counted from the property line: module 09 SLAB_M,
+    // walkRowM), a groove in the same concrete that only its shadow darkens, and the broom's fine
+    // striations across the walk.
+    sidewalk: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 4, slab_m: 0.9144 },
     // A narrow walk (module 09 NARROW_SIDEWALK, a footway or a walk under 1.8 m) is poured and
     // finished the same way; its map repeats once a 2.75 m slab, so the squares are read at that.
-    "narrow-walk": { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 2.75 / 1.2192, slab_m: 1.2192 },
+    "narrow-walk": { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "walk", slabs: 2.75 / 0.9144, slab_m: 0.9144 },
     // The curb (Standard Plan 87,185: six inches across the top, a rounded nose, the street face
     // battered one in four) is the lip the walk's last squares stop at: the walk's own concrete
-    // and colour, one long strip with no joints across it. A driveway's dropped walk
-    // ("apron", module 19) is the same plain pour.
-    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete" },
-    apron: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete" },
+    // and colour and the same broom finish ("lip": the walk's marks without its joints), one long
+    // strip. A driveway's dropped walk ("apron", module 19) is the same plain pour.
+    curb: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "lip", slabs: 4, slab_m: 0.9144 },
+    apron: { tile_m: 2.4, mean: [0.566, 0.532, 0.451], relief: 0.6, photo: "concrete", scored: "lip", slabs: 4, slab_m: 0.9144 },
     wood: { tile_m: 2.0, mean: [0.313, 0.243, 0.18], relief: 0.8 },
     "painted-wood": { tile_m: 2.6, mean: [0.7, 0.652, 0.588], relief: 0.9 },
   },
@@ -681,43 +681,46 @@ NEAR_SURFACE.uniformsFor ||= function (kind) {
 //: property line). Distances are in metres from the nearest joint. "walk": every square tooled,
 //: broomed inside a troweled margin, a deeper joint each third square.
 //: Its marks bend the light (kbSwBx along u, kbSwBz across) for scoredNormal.
-NEAR_SURFACE.scoredColor ||= function (mode, slabs = 4, slabM = 1.2192) {
+NEAR_SURFACE.scoredColor ||= function (mode, slabs = 4, slabM = 0.9144) {
   if (!mode) return "";
-  const M = Number(slabM).toFixed(5);   // metres a square
+  const M = Number(slabM).toFixed(5);   // metres a square along the walk
   const walk = mode === "walk" ? 1 : 0;
   return `float kbSwBx = 0.0, kbSwBz = 0.0;
 #ifdef USE_MAP
 if (kbNsF > 0.0) {
-  vec2 kbSwS = vMapUv * ${Number(slabs).toFixed(5)}, kbSwFr = fract(kbSwS), kbSwD = min(kbSwFr, 1.0 - kbSwFr) * ${M};
+  vec2 kbSwS = vMapUv * ${Number(slabs).toFixed(5)}, kbSwFr = fract(kbSwS);
+  // Metres a square on each axis, from how the surface's place and its UVs change across the
+  // pixel: along the walk always three feet, across it the walk's own row (module 09 walkRowM,
+  // stretched up to four and a half feet so no part-square is left at an edge).
+  vec3 kbSwQ1 = dFdx(kbNsW), kbSwQ2 = dFdy(kbNsW);
+  vec2 kbSwT1 = dFdx(kbSwS), kbSwT2 = dFdy(kbSwS);
+  float kbSwJd = kbSwT1.x * kbSwT2.y - kbSwT2.x * kbSwT1.y;
+  vec2 kbSwMs = vec2(${M});
+  if (abs(kbSwJd) > 1e-12) kbSwMs = clamp(vec2(length(kbSwQ1 * kbSwT2.y - kbSwQ2 * kbSwT1.y), length(kbSwQ2 * kbSwT1.x - kbSwQ1 * kbSwT2.x)) / abs(kbSwJd), vec2(0.2), vec2(3.0));
+  vec2 kbSwD = min(kbSwFr, 1.0 - kbSwFr) * kbSwMs;
   // The ground a pixel covers (m): further off, a joint narrower than that is drawn as the share
   // of the pixel it darkens, and the broom's streaks, a few millimetres apart, as their average --
   // not a line that flickers in and out between pixels (the ring reaches 200 m and more).
-  float kbSwPx = max(length(fwidth(kbSwS)), 1e-5) * ${M};
+  float kbSwPx = max(length(fwidth(kbSwS) * kbSwMs), 1e-5);
   float kbSwUp = step(0.6, abs(normalize(kbNsN).y));
-  // Every square's joints on the walk's top; on a face (the kerb's), and on a curb, only the
-  // contraction joints across the run.
-  float kbSwThird = abs(fract(kbSwS.x / 3.0 + 0.5) - 0.5) * 3.0 * ${M};
-  float kbSwDx = ${walk}.0 > 0.5 ? kbSwD.x : kbSwThird;
-  float kbSwDz = ${walk}.0 > 0.5 && kbSwUp > 0.5 ? kbSwD.y : 9.0;
-  float kbSwJ = min(kbSwDx, kbSwDz);
-  // A tooled joint is a groove a quarter-inch wide with radiused shoulders; the contraction
-  // joint is cut deeper and reads darker.
+  // The joints: every square's, all alike, on the walk's top. The lip, a driveway and the curb's
+  // face have none (mode "lip").
+  float kbSwJ = ${walk}.0 > 0.5 && kbSwUp > 0.5 ? min(kbSwD.x, kbSwD.y) : 9.0;
+  // A tooled joint is a groove a quarter-inch wide with radiused shoulders, in the same concrete:
+  // only the shadow in it is darker.
   float kbSwGroove = (1.0 - smoothstep(0.0025, 0.0065 + kbSwPx, kbSwJ)) * min(1.0, 0.0085 / (kbSwPx + 0.002));
-  float kbSwDeep = (1.0 - smoothstep(0.003, 0.009 + kbSwPx, kbSwThird)) * min(1.0, 0.011 / (kbSwPx + 0.002));
-  float kbSwMargin = (1.0 - smoothstep(0.035, 0.055 + kbSwPx, kbSwJ)) * ${walk}.0;
-  // The broom, pulled across the walk: fine streaks along it, each a shade off the next, wavering
-  // a little as a broom does, and none in the troweled margin or on a face.
-  float kbSwAlong = kbSwS.x * ${M} + 0.004 * sin(kbSwS.y * 9.0 + floor(kbSwS.x) * 3.1);
-  float kbSwStreak = fract(sin(floor(kbSwAlong * 260.0) * 91.7 + floor(kbSwS.x) * 7.3) * 43758.5);
-  float kbSwBroom = (kbSwStreak - 0.5) * (1.0 - kbSwMargin) * kbSwUp * ${walk}.0 * (1.0 - smoothstep(0.002, 0.01, kbSwPx));
-  vec3 kbSwC = diffuseColor.rgb * (1.0 + 0.11 * kbSwBroom + 0.05 * kbSwMargin);
-  kbSwC *= 1.0 - 0.42 * max(kbSwGroove, kbSwDeep * 1.3);
+  // The broom, pulled across the walk and the lip alike: fine streaks along it, each a shade
+  // off the next, wavering a little as a broom does; none on a face.
+  float kbSwAlong = kbSwS.x * kbSwMs.x + 0.004 * sin(kbSwS.y * kbSwMs.y * 9.8);
+  float kbSwStreak = fract(sin(floor(kbSwAlong * 260.0) * 91.7) * 43758.5);
+  float kbSwBroom = (kbSwStreak - 0.5) * kbSwUp * (1.0 - smoothstep(0.002, 0.01, kbSwPx));
+  vec3 kbSwC = diffuseColor.rgb * (1.0 + 0.11 * kbSwBroom);
+  kbSwC *= 1.0 - 0.42 * kbSwGroove;
   diffuseColor.rgb = mix(diffuseColor.rgb, kbSwC, kbNsF);
   // The shoulders fall toward the joint: the light bends that way just either side of it.
   float kbSwSh = smoothstep(0.002, 0.005, kbSwJ) * (1.0 - smoothstep(0.005, 0.013, kbSwJ)) * (1.0 - smoothstep(0.004, 0.02, kbSwPx));
-  float kbSwSx = ${walk}.0 > 0.5 ? sign(kbSwFr.x - 0.5) : sign(fract(kbSwS.x / 3.0) - 0.5);
-  kbSwBx = (kbSwDx <= kbSwDz ? kbSwSx : 0.0) * kbSwSh + kbSwBroom * 0.3;
-  kbSwBz = (kbSwDz < kbSwDx ? sign(kbSwFr.y - 0.5) : 0.0) * kbSwSh;
+  kbSwBx = (kbSwD.x <= kbSwD.y ? sign(kbSwFr.x - 0.5) : 0.0) * kbSwSh + kbSwBroom * 0.3;
+  kbSwBz = (kbSwD.y < kbSwD.x ? sign(kbSwFr.y - 0.5) : 0.0) * kbSwSh;
 }
 #endif`;
 };

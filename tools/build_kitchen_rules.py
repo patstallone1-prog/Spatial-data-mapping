@@ -13,7 +13,6 @@ Run: python3 tools/build_kitchen_rules.py   (rewrites the one line; idempotent)
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 RULES = Path(__file__).resolve().parents[1] / "docs" / "city" / "rules.json"
@@ -310,24 +309,24 @@ STATIONS = {
 }
 BASE = ["board", "bowl", "microwave", "cooler"]
 KITCHENS = {
-    "restaurant": BASE + ["grill", "fryer", "stove", "oven", "steamer", "drinks"],
-    "american": BASE + ["grill", "fryer", "stove", "oven", "blender", "drinks"],
-    "diner": BASE + ["grill", "fryer", "stove", "toaster", "blender", "espresso", "drinks"],
-    "mexican": BASE + ["grill", "fryer", "stove", "steamer", "drinks"],
-    "japanese": BASE + ["grill", "fryer", "stove", "steamer", "kettle", "drinks"],
-    "chinese": BASE + ["wok", "steamer", "stove", "fryer", "kettle"],
-    "thai": BASE + ["wok", "stove", "steamer", "kettle", "drinks"],
-    "vietnamese": BASE + ["stove", "grill", "toaster", "steamer", "wok", "kettle"],
-    "indian": BASE + ["tandoor", "stove", "steamer", "grill", "drinks"],
-    "korean": BASE + ["grill", "stove", "steamer", "wok", "drinks"],
-    "italian": BASE + ["stove", "oven", "grill", "drinks"],
-    "mediterranean": BASE + ["grill", "fryer", "stove", "drinks"],
-    "seafood": BASE + ["fryer", "stove", "steamer", "grill", "toaster", "drinks"],
-    "pizza": BASE + ["pizza_oven", "fryer", "drinks"],
-    "ice_cream": BASE + ["blender", "drinks"],
-    "deli": BASE + ["toaster", "stove", "espresso", "drinks", "grill"],
-    "cafe": BASE + ["espresso", "kettle", "blender", "toaster", "oven", "drinks"],
-    "bakery": BASE + ["oven", "fryer", "toaster", "espresso"],
+    "restaurant": [*BASE, "grill", "fryer", "stove", "oven", "steamer", "drinks"],
+    "american": [*BASE, "grill", "fryer", "stove", "oven", "blender", "drinks"],
+    "diner": [*BASE, "grill", "fryer", "stove", "toaster", "blender", "espresso", "drinks"],
+    "mexican": [*BASE, "grill", "fryer", "stove", "steamer", "drinks"],
+    "japanese": [*BASE, "grill", "fryer", "stove", "steamer", "kettle", "drinks"],
+    "chinese": [*BASE, "wok", "steamer", "stove", "fryer", "kettle"],
+    "thai": [*BASE, "wok", "stove", "steamer", "kettle", "drinks"],
+    "vietnamese": [*BASE, "stove", "grill", "toaster", "steamer", "wok", "kettle"],
+    "indian": [*BASE, "tandoor", "stove", "steamer", "grill", "drinks"],
+    "korean": [*BASE, "grill", "stove", "steamer", "wok", "drinks"],
+    "italian": [*BASE, "stove", "oven", "grill", "drinks"],
+    "mediterranean": [*BASE, "grill", "fryer", "stove", "drinks"],
+    "seafood": [*BASE, "fryer", "stove", "steamer", "grill", "toaster", "drinks"],
+    "pizza": [*BASE, "pizza_oven", "fryer", "drinks"],
+    "ice_cream": [*BASE, "blender", "drinks"],
+    "deli": [*BASE, "toaster", "stove", "espresso", "drinks", "grill"],
+    "cafe": [*BASE, "espresso", "kettle", "blender", "toaster", "oven", "drinks"],
+    "bakery": [*BASE, "oven", "fryer", "toaster", "espresso"],
 }
 
 # ---- recipes -------------------------------------------------------------------------------------
@@ -338,11 +337,11 @@ def c(ing, qty=1, p="-", side=False):
 
 FRIES = [c("potato", 2, "chop>fry", True), c("salt", 3, "-", True)]
 RECIPES = {
-    "burger_fries": (True, "plate", [c("bun", 1, "toast"), c("beef_patty", 1, "grill"), c("cheese"), c("lettuce", 1, "chop"), c("tomato", 1, "chop"), c("pickles"), c("ketchup")] + FRIES),
+    "burger_fries": (True, "plate", [c("bun", 1, "toast"), c("beef_patty", 1, "grill"), c("cheese"), c("lettuce", 1, "chop"), c("tomato", 1, "chop"), c("pickles"), c("ketchup"), *FRIES]),
     "fries": (False, "basket", [c("potato", 2, "chop>fry"), c("salt", 3)]),
     "wings": (False, "basket", [c("chicken_wings", 1, "fry"), c("hot_sauce", 1, "mix"), c("butter", 1, "mix")]),
     "roast_chicken": (False, "plate", [c("chicken_half", 1, "bake"), c("potato", 1, "chop>bake"), c("garlic", 1, "chop"), c("butter")]),
-    "steak_frites": (False, "plate", [c("steak", 1, "grill"), c("butter")] + FRIES),
+    "steak_frites": (False, "plate", [c("steak", 1, "grill"), c("butter"), *FRIES]),
     "salad": (False, "bowl", [c("lettuce", 2, "chop"), c("tomato", 1, "chop"), c("cucumber", 1, "chop"), c("carrot", 1, "chop"), c("olive_oil"), c("lemon", 1, "chop")]),
     "milkshake": (False, "cup", [c("ice_cream", 2, "blend"), c("milk", 1, "blend"), c("chocolate_syrup", 1, "blend")]),
     "soda": (False, "cup", [c("ice"), c("soda_syrup", 1, "pour")]),
@@ -393,7 +392,7 @@ RECIPES = {
     "shawarma": (True, "wrap", [c("pita", 1, "grill"), c("lamb", 1, "grill"), c("tomato", 1, "chop"), c("onion", 1, "chop"), c("pickles"), c("tahini")]),
     "falafel": (True, "wrap", [c("pita", 1, "grill"), c("chickpeas", 2, "mix>fry"), c("lettuce", 1, "chop"), c("tomato", 1, "chop"), c("tahini")]),
     "oysters": (False, "plate", [c("oysters", 1, "chop"), c("lemon", 1, "chop"), c("hot_sauce", 1, "-", True)]),
-    "fish_and_chips": (False, "basket", [c("fish_fillet", 1, "fry"), c("flour", 1, "mix>fry"), c("tartar_sauce", 1, "-", True), c("lemon", 1, "chop", True)] + FRIES),
+    "fish_and_chips": (False, "basket", [c("fish_fillet", 1, "fry"), c("flour", 1, "mix>fry"), c("tartar_sauce", 1, "-", True), c("lemon", 1, "chop", True), *FRIES]),
     "clam_chowder": (False, "bowl", [c("clams", 1, "boil"), c("potato", 1, "chop>boil"), c("onion", 1, "chop>boil"), c("cream", 1, "boil"), c("butter", 1, "boil")]),
     "crab": (False, "plate", [c("crab", 1, "steam"), c("butter", 1, "micro", True), c("lemon", 1, "chop", True)]),
     "meal": (False, "plate", [c("chicken", 1, "grill"), c("potato", 1, "chop>bake"), c("broccoli", 1, "steam"), c("butter"), c("salt", 3)]),
@@ -462,7 +461,7 @@ def main() -> None:
             if not r:
                 problems.append(f"{kind}: no recipe for {dish}")
                 continue
-            for ing, qty, proc, *side in r["build"]:
+            for ing, _qty, proc, *_side in r["build"]:
                 if ing not in K["ingredients"]:
                     problems.append(f"{dish}: unknown ingredient {ing}")
                 for p in proc.split(">"):

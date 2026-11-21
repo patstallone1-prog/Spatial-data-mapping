@@ -362,8 +362,10 @@ function tiledMap(base, name, repeatU, repeatV) {
 //: the vertex UVs rather than in a cloned texture, a footway's slabs stay 1.52 m whatever the
 //: shape of the run.
 function surfaceScale(surface, width) {
-  // The sidewalk's texture holds SLAB_BLOCK squares a side: one repeat is WALK_UV_M.
-  if (surface === "walk") return [WALK_UV_M, WALK_UV_M];
+  // The sidewalk's texture holds SLAB_BLOCK squares a side: one repeat is WALK_UV_M along the
+  // walk, and across it SLAB_BLOCK of the walk's own rows (walkRowM: three feet stretched to
+  // share the width out evenly, from the property line).
+  if (surface === "walk") return [WALK_UV_M, walkRowM(width) * SLAB_BLOCK];
   if (surface === "kerb") return [WALK_UV_M, WALK_UV_M];
   if (surface === "walk_underlay") return [WALK_UV_M, WALK_UV_M];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];

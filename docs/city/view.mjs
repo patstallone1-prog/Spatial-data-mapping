@@ -27,6 +27,7 @@ import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { cityClient, cityServerUrl } from "./server-client.mjs";
+import { cityLive, syncPlan } from "./live.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
 import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
@@ -64,6 +65,8 @@ const SAVE_SOLO = "kerbside:city:world";
 const SAVE_ID = "kerbside:city:id";
 //: How often the page asks the city's server what has changed (ms).
 const SYNC_MS = 4000;
+//: While the page hears of each new version (live.mjs), it still asks this often (a missed one).
+const SYNC_LIVE_MS = 30_000;
 const MPH = 2.23694;
 //: A car's footprint on foot: its body, corners rounded this much (bumpers and wings are round).
 const CAR_CORNER_M = 0.35;
@@ -1551,7 +1554,24 @@ diffuseColor.rgb *= kbCloth;`);
   // offline practice world of this browser's own, said so in the panel.
   const party = { session: null, unlisten: null, ids: new Map() };
   //: state: "off" (practice, by where you are), "connecting", "online", "practice" (the server did not answer).
-  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0, live: null, heard: 0, syncAt: 0 };
+  //: Hearing of each new version of the city as it is committed (live.mjs): asked for then, not
+  //: every few seconds. Stopped with the connection it was for.
+  function listenLive(info) {
+    online.live?.close(); online.live = null; online.heard = 0; online.syncAt = 0;
+    if (!info) return;
+    online.live = cityLive({ ...info, onVersion: (v) => {
+      online.heard = Math.max(online.heard, v);
+      const at = syncPlan({ heard: online.heard, have: online.version, lastAsked: online.lastSync, now: performance.now() });
+      if (at !== null && (!online.syncAt || at < online.syncAt)) online.syncAt = at;
+    } });
+  }
+  //: Whether to ask the server now: when told of a version not yet had, or, with nothing heard,
+  //: every SYNC_LIVE_MS while listening (SYNC_MS while not).
+  function syncDue(now) {
+    if (online.syncAt && now >= online.syncAt) return true;
+    return now - online.lastSync > (online.live?.state() === "live" ? SYNC_LIVE_MS : SYNC_MS);
+  }
   const SERVER_URL = cityServerUrl(globalThis.location);
   const wantOnline = () => Boolean(SERVER_URL && ctx.cityMode?.());
   let world = null;     // the offline practice world (this browser's own; never the city's)
@@ -1803,15 +1823,20 @@ diffuseColor.rgb *= kbCloth;`);
   //: What others have done since: asked every few seconds (the answer is empty when nothing has).
   async function syncCity() {
     if (online.state !== "online" || online.syncing) return;
-    online.syncing = true; online.lastSync = performance.now();
+    online.syncing = true; online.lastSync = performance.now(); online.syncAt = 0;
     try {
       const r = await online.client.sync(online.version);
       if (r.ok) shown(r);
       if (r.ok && r.welcome_moved) notify(`${r.welcome_moved.name} has moved to a real restaurant: ${address(r.welcome_moved.place) || "its new address"}. Its till came with it; order its stock again.`);
-    } finally { online.syncing = false; }
+    } finally {
+      online.syncing = false;
+      // (Answered by an instance that had not yet seen the version heard of: asked again shortly.)
+      if (online.heard > online.version) online.syncAt = syncPlan({ heard: online.heard, have: online.version, lastAsked: online.lastSync, now: performance.now() }) ?? 0;
+    }
   }
   //: The practice world: this browser's own, under its own id.
   function practice(state, why) {
+    listenLive(null);
     online.state = state; online.why = why; online.retry = performance.now();
     myId = localId;
     if (!world) { world = loadSolo(); view = world; }
@@ -1836,6 +1861,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (online.state !== "connecting"||generation!==online.connectionGeneration) return;   // Explore again while it was asked
     if (!r.ok) { practice("practice", r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
     myId = r.pid; online.state = "online"; online.version = 0; online.since = performance.now(); grantsAsked = false;
+    listenLive(client.live);
     if (party.session) party.session.city.send({ t: "hello", pid: myId });
     await syncCity();
     ensureJoined();
@@ -4339,7 +4365,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: only tracked or drawn low, when it is next placed), and how many were drawn at each tier.
   let detailNow = null;
   const personTiers = new Map(), carTiers = new Map(), focusVelocity = velocityTracker();
-  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 }, figures: 0 };
+  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 }, figures: 0, clumps: null };
   //: Someone tracked only is placed again about once a second (each at its own moment, so the
   //: crowd's are spread over the frames): often enough to come into range on time at a walk, or
   //: in a car at the speed limit, before the low ring's edge (DETAIL_RINGS) is reached.
@@ -4391,7 +4417,7 @@ diffuseColor.rgb *= kbCloth;`);
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
-    if (online.state === "online" && performance.now() - online.lastSync > SYNC_MS) { syncCity().then(ensureJoined); }
+    if (online.state === "online" && syncDue(performance.now())) { syncCity().then(ensureJoined); }
 
     const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
@@ -4650,6 +4676,72 @@ diffuseColor.rgb *= kbCloth;`);
     }
     if (aside.size > 4000) aside.clear();
   }
+  //: No more than CLUMP_MOST people within CLUMP_M of one another for longer than CLUMP_S, but a
+  //: household out together: past that, the rest (by their ids) let the group go -- one walking
+  //: slows to let it get ahead, one stood waiting stands back from it, a pace or two, and keeps
+  //: there till there is room. (Twenty and more stood at a corner pushing to stand apart, a wall
+  //: across the pavement, 2026-11-21.)
+  const CLUMP_M = 1.5, CLUMP_MOST = 6, CLUMP_S = 5, CLUMP_BACK_M = 2.5, CLUMP_SLOW = 0.6, CLUMP_KEEP_S = 20;
+  const clumpSince = new Map(), clumpBack = new Map(), clumpCells = new Map(), clumpNear = [];
+  const clumps = { over: 0, slowed: 0, stoodBack: 0, most: 0 };
+  function spreadClumps(people, c, now, dt) {
+    const cells = clumpCells, near = clumpNear;
+    for (const list of cells.values()) list.length = 0;
+    if (cells.size > 20000) cells.clear();
+    near.length = 0;
+    clumps.over = clumps.slowed = clumps.stoodBack = clumps.most = 0;
+    for (const e of people) {
+      if (e._bx) { e.x -= e._bx; e.z -= e._bz; e._bx = e._bz = 0; }
+      if (e.down || e.indoors || e.through || e.ride || e.lift) continue;
+      near.push(e);
+      const key = (Math.floor(e.x / CLUMP_M) + 1048576) * 2097152 + Math.floor(e.z / CLUMP_M) + 1048576;
+      let list = cells.get(key); if (!list) cells.set(key, list = []);
+      list.push(e);
+    }
+    const r2 = CLUMP_M * CLUMP_M;
+    for (const e of near) {
+      const hh = e.person?.hh, mine = hash32(e.id, "clump");
+      let n = 0, below = 0;
+      const cx = Math.floor(e.x / CLUMP_M), cz = Math.floor(e.z / CLUMP_M);
+      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) {
+        const list = cells.get((ix + 1048576) * 2097152 + iz + 1048576);
+        if (list) for (let oi = 0; oi < list.length; oi += 1) {
+          const o = list[oi];
+          if (o === e || (hh && o.person?.hh === hh)) continue;   // their own household: together
+          const dx = o.x - e.x, dz = o.z - e.z;
+          if (dx * dx + dz * dz > r2) continue;
+          n += 1;
+          if (hash32(o.id, "clump") < mine) below += 1;
+        }
+      }
+      clumps.most = Math.max(clumps.most, n + 1);
+      let since = clumpSince.get(e.id);
+      if (n + 1 > CLUMP_MOST) { if (since === undefined) clumpSince.set(e.id, since = now); }
+      else if (since !== undefined) { clumpSince.delete(e.id); since = undefined; }
+      const extra = since !== undefined && now - since > CLUMP_S * 1000 && below >= CLUMP_MOST;
+      if (extra) clumps.over += 1;
+      // A walker who is one too many slows and lets the group get ahead.
+      if (extra && e.moving && e.walk) { c.holdWalk(e.walk.key, Math.min(dt, 0.25) * CLUMP_SLOW, true); clumps.slowed += 1; }
+      // One stood (waiting, at the kerb or anywhere) stands back from it; low-tier entries are
+      // kept from frame to frame, so the step back is undone first, as keepApart's is.
+      // (Kept back a while once stood back, or the group is under the most again, they step
+      // in, it is over again, and they go back and forth.)
+      let b = clumpBack.get(e.id);
+      if (extra && !e.moving) { if (!b) clumpBack.set(e.id, b = { off: 0, until: 0 }); b.until = now + CLUMP_KEEP_S * 1000; }
+      if (!b) continue;
+      const want = !e.moving && now < b.until ? CLUMP_BACK_M : 0;
+      b.off += Math.sign(want - b.off) * Math.min(Math.abs(want - b.off), dt * 1.1);
+      if (b.off < 0.01 && want === 0) { clumpBack.delete(e.id); continue; }
+      const off = b.off;
+      const bx = Math.sin(e.yaw || 0) * off, bz = Math.cos(e.yaw || 0) * off;
+      // Not back into the road or a wall: as far as there is pavement.
+      let k = 1;
+      if ((ctx.roadAt?.(e.x + bx, e.z + bz) && !ctx.roadAt?.(e.x, e.z)) || c.footprintAt?.(e.x + bx, e.z + bz)) k = 0;
+      if (k) { e.x += bx; e.z += bz; e._bx = bx; e._bz = bz; clumps.stoodBack += 1; }
+    }
+    if (clumpSince.size > 4000) for (const [id, t] of clumpSince) if (now - t > 60_000) clumpSince.delete(id);
+    if (clumpBack.size > 4000) clumpBack.clear();
+  }
   function glide(e, now, dt, top, snap) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
@@ -4678,13 +4770,18 @@ diffuseColor.rgb *= kbCloth;`);
   const CAR_TURN_S = 6, WALKER_PATIENCE_S = 18;
   const kerbTraffic = { at: -1, list: [] };
   const crossingEnds = new WeakMap();
+  //: How far back from a crosswalk each walker waits (m, by their walk): a step short of it, or a
+  //: pace or few back, so those waiting stand one behind another and not all at the kerb's edge.
+  const KERB_BACK_M = [1.2, 0.5, 5];
+  const kerbBack = (walk) => KERB_BACK_M[0] + KERB_BACK_M[1] * (hash32(walk.key) % KERB_BACK_M[2]);
   function waitsAtKerb(walk, tsec) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
     const waited = district.city?.walkLags.get(walk.key)?.lag || 0;
+    const back = kerbBack(walk);
     for (const cr of list) {
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
-      if (before < -0.05 || before > 1.2) continue;   // on it already: on over
+      if (before < -0.05 || before > back) continue;   // on it already: on over
       if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
       // (The crossing's two ends, kept on it: they were worked out again for every walker near a
       // kerb every frame -- 10 MB a second of garbage, 2026-11-20.)
@@ -4866,6 +4963,8 @@ diffuseColor.rgb *= kbCloth;`);
       people.push(entry);
     }
     keepApart(people, you, dt);
+    spreadClumps(people, c, now, dt);
+    drawnTiers.clumps = clumps;
     // Nobody walks backwards or sideways (stride.mjs): each one near you is drawn on a body that
     // turns round -- on the spot when slow, round a wider turn the faster -- and steps only the way
     // it faces. (Not the low tier, placed now and then and kept from frame to frame.)
@@ -6047,7 +6146,9 @@ diffuseColor.rgb *= kbCloth;`);
   return {
     //: How the crowd and the traffic were drawn last frame: so many at each tier (full, moderate,
     //: low), so many only tracked, and the detail field's stretch ahead.
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(), figurePlan: figLast,
+    //: The district's fleet (for the crowd checks from outside: the headless harness).
+    fleetNow: () => district.city,
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast,
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {

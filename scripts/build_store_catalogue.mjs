@@ -5,7 +5,8 @@
 // and a corner store carry against what the city has, with each store item's aisle and how it is
 // displayed (the first data for aisle, stacking and display logic: docs/53-store-catalogue.md).
 //
-//   node scripts/build_store_catalogue.mjs        -> docs/city/catalogue.json
+//   node scripts/build_store_catalogue.mjs          -> docs/city/catalogue.json
+//   node scripts/build_store_catalogue.mjs --check  -> exit 1 if the committed one is out of date
 //
 // It reads docs/city/rules.json and docs/city/objects.json only; nothing here is invented that the
 // rules do not say, except the aisle and display of each store item and the staples list, which
@@ -121,6 +122,15 @@ const out = {
   vehicles, homes, business, kitchen_ingredients: ingredients,
   grocery_survey: { summary, by_aisle: survey },
 };
-writeFileSync(new URL("../docs/city/catalogue.json", import.meta.url), `${JSON.stringify(out, null, 1)}\n`);
-console.log(JSON.stringify(out.counts));
-console.log(JSON.stringify(summary));
+const target = new URL("../docs/city/catalogue.json", import.meta.url), text = `${JSON.stringify(out, null, 1)}\n`;
+if (process.argv.includes("--check")) {
+  // (Nothing written: whether the committed catalogue is what the rules and objects make now.)
+  let had = null;
+  try { had = readFileSync(target, "utf8"); } catch { had = null; }
+  if (had !== text) { console.error("docs/city/catalogue.json is out of date: run node scripts/build_store_catalogue.mjs"); process.exit(1); }
+  console.log(JSON.stringify({ current: true, ...out.counts }));
+} else {
+  writeFileSync(target, text);
+  console.log(JSON.stringify(out.counts));
+  console.log(JSON.stringify(summary));
+}

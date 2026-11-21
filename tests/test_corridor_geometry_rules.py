@@ -3459,9 +3459,14 @@ def test_a_pavement_is_not_one_slab_stamped_across_the_city():
     assert "const SLAB_BLOCK" in js
     assert "function sidewalkSlab(variant, size, seed)" in js
     assert "const grit = (n) => random(n + seed * 977);" in js
+    # The grain only: every slab is the one pour's colour, no slab a shade off the next.
+    slab = js[js.index("function sidewalkSlab("):js.index("function sidewalkTexture(")]
+    assert "const base = [0x69, 0x6d, 0x65];" in slab and "tone" not in slab
     # And every UV written for a pavement is in units of the block, not of the slab: divide by
     # the slab and one slab's ground shows the whole block squeezed into it.
-    assert "/ SLAB_M" not in js, "a pavement UV is still in slab units"
+    # (walkRowM counts the rows across a walk in slabs; it writes no UV.)
+    row_fn = js[js.index("function walkRowM("):js.index("\n}\n", js.index("function walkRowM("))]
+    assert "/ SLAB_M" not in js.replace(row_fn, ""), "a pavement UV is still in slab units"
     assert "const WALK_UV_M = SLAB_M * SLAB_BLOCK;" in js
 
 

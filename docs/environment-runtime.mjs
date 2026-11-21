@@ -1,6 +1,7 @@
 import {WEATHER,solarState,previewTime} from './sky-clock.mjs';
 import {Sky} from './vendor/three-sky-r160.mjs';
 import {makeClock,CLOCK_SPEC} from './city/clock.mjs';
+import {createClouds} from './sky-clouds.mjs';
 
 // The sky, the sun and the weather, on the game's clock (city/clock.mjs: a day in 72 real
 // minutes, 48 of daylight and 24 of night). The night is meant to be played (2026-11-14): cool
@@ -53,24 +54,8 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
   let clockMode='live';
   const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date();
   let environment=null,preset='sunny',override=null,observed=null,lastClock=-Infinity,lastCapture=-Infinity,capturedDay=-1,latest=null;
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
-  const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(256,256);
-  // Periodic low-frequency cloud cover, independent of world tiles and geometry.
-  for(let y=0;y<256;y++)for(let x=0;x<256;x++) {
-    const v=.5+.18*Math.sin(x*.049)+.15*Math.sin(y*.074+x*.025)+.12*Math.cos(x*.098-y*.049);
-    const i=(y*256+x)*4;pixels.data.set([255,255,255,Math.max(0,Math.min(255,v*255))],i);
-  }
-  ctx.putImageData(pixels,0,0);
-  const cloudTexture=new THREE.CanvasTexture(canvas);cloudTexture.wrapS=cloudTexture.wrapT=THREE.RepeatWrapping;
-  const cloudMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,
-    uniforms:{cover:{value:.05},day:{value:1},time:{value:0},map:{value:cloudTexture}},
-    vertexShader:'varying vec3 direction; void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    // (By night the clouds are the night sky's blue-grey, lit from below by the city.)
-    fragmentShader:`uniform sampler2D map;uniform float cover,day,time;varying vec3 direction;
-      void main(){vec3 d=normalize(direction);float n=texture2D(map,d.xz/max(.18,d.y)*.15+vec2(time,0.)).a;
-      float a=smoothstep(1.-cover,1.12-cover,n)*smoothstep(.01,.2,d.y)*.92;
-      gl_FragColor=vec4(mix(vec3(.1,.12,.19),vec3(.72,.76,.8),day),a);}`});
-  const clouds=new THREE.Mesh(new THREE.SphereGeometry(40000,24,12),cloudMaterial);clouds.frustumCulled=false;scene.add(clouds);
+  // The clouds (sky-clouds.mjs): a few patterns through the game's day, at the far plane.
+  const deck=createClouds(THREE),clouds=deck.mesh;scene.add(clouds);
   const rainPositions=new Float32Array(600*6);
   for(let i=0;i<600;i++){const x=((i*73)%601)/601*50-25,z=((i*137)%607)/607*50-25,y=((i*31)%593)/593*32;
     rainPositions.set([x,y,z,x-.12,y-1.1,z],i*6);}
@@ -160,7 +145,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     // Above the air the sky is space: the dome and the cloud deck go, and the globe stands in black.
     const altitude=camera.position.y,space=altitude>100000;sky.visible=!space;clouds.visible=altitude<25000;dome.visible=!space;
     if(space!==inSpace){inSpace=space;scene.background=space?spaceColour:null;}
-    cloudMaterial.uniforms.time.value=(now/1000000)%1;starMaterial.uniforms.time.value=now/1000;
+    starMaterial.uniforms.time.value=now/1000;
     rain.position.copy(camera.position);rain.position.y-=((now/1000*12)%32);
     // The stars and the moon go with the eye, as the sky does.
     if(stars.visible){stars.matrix.copy(starMatrix).setPosition(camera.position);stars.matrixWorldNeedsUpdate=true;}
@@ -176,6 +161,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     globalThis.kerbsideWind={speed:weather.wind,from:weather.windFrom};
     // (What the city's people and drivers go by: city/view.mjs.)
     globalThis.kerbsideWeather={rain:Boolean(weather.rain),cloud:weather.cloud};
+    deck.update(now,{weather});
     if(now-lastClock<250)return;lastClock=now;
     // City mode: the game's time, not the wall clock's. Explore: live (setClock). The headset
     // sets its own noon.
@@ -202,7 +188,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     // The fill: never black; deep blue by night.
     ambient.intensity=lerp(NIGHT_LOOK.ambient_night,.22+.68+weather.cloud*.35,day); // Low navigation fill, not photometric evidence.
     if(ambient.groundColor){ambient.color.copy(ambSkyNight).lerp(ambSkyDay,day);ambient.groundColor.copy(ambGroundNight).lerp(ambGroundDay,day);}
-    cloudMaterial.uniforms.cover.value=weather.cloud;cloudMaterial.uniforms.day.value=day;
+    const clouded=deck.update(now,{look:true,date,weather,sunDir,altitude:s.altitude,day});
     domeMaterial.uniforms.night.value=smooth(-s.altitude,-.02,.22)*.97;
     starMaterial.uniforms.show.value=smooth(-s.altitude,.1,.3)*(1-weather.cloud*.92);
     if(stars.visible)placeStars(date);
@@ -212,7 +198,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     if(night){night.night.value=smooth(-s.altitude,-.03,.12);night.lit.value=litShare(hour);night.rim.value=NIGHT_LOOK.rim*dark;}
     latest={...s,preset:observed?.preset||preset,weatherBasis:observed?'nws_station_observation':'user_selected_visual_preset_not_live_observation',
       observed:observed&&{station:observed.station,at:observed.observed,standsIn:observed.standsIn,text:observed.text},date:date.toISOString(),live:!override,
-      game:!override,day,moon:moonShow,stars:starMaterial.uniforms.show.value,night:night&&{dark:night.night.value,lit:night.lit.value,rim:night.rim.value}};
+      game:!override,day,clouds:clouded&&{pattern:clouded.name,blend:clouded.blend},moon:moonShow,stars:starMaterial.uniforms.show.value,night:night&&{dark:night.night.value,lit:night.lit.value,rim:night.rim.value}};
     // The reflections taken again as the light changes (the day is short now), never per frame.
     if(now-lastCapture>=300000 || (Math.abs(day-capturedDay)>.06 && now-lastCapture>=4000)){lastCapture=now;capturedDay=day;
       const next=pmrem.fromScene(skyScene,0,.1,100000);scene.environment=next.texture;environment?.dispose();environment=next;}
@@ -225,7 +211,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
     clockMode:()=>clockMode,
     setTime(value){const date=value===null?null:new Date(value);if(date && !Number.isFinite(+date))throw Error('Invalid date');override=date;lastClock=lastCapture=-Infinity;},
     dispose(){scene.remove(sky,clouds,rain,dome,stars,moon,halo);sky.geometry.dispose();sky.material.dispose();captureSky.geometry.dispose();captureSky.material.dispose();
-      cloudTexture.dispose();clouds.geometry.dispose();cloudMaterial.dispose();rainGeometry.dispose();rain.material.dispose();
+      deck.texture.dispose();clouds.geometry.dispose();deck.material.dispose();rainGeometry.dispose();rain.material.dispose();
       dome.geometry.dispose();domeMaterial.dispose();stars.geometry.dispose();starMaterial.dispose();moonTexture.dispose();haloTexture.dispose();
       moon.material.dispose();halo.material.dispose();environment?.dispose();pmrem.dispose();scene.environment=priorEnvironment;}};
 }

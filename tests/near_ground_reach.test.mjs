@@ -104,7 +104,7 @@ test("the scored finish thins to what a pixel can show as the ring reaches furth
   // (scoredColor is defined after the object; read it from the source.)
   const src = M02.slice(M02.indexOf("NEAR_SURFACE.scoredColor ||="), M02.indexOf("NEAR_SURFACE.scoredNormal ||="));
   assert.equal(glsl, null);
-  assert.match(src, /float kbSwPx = max\(length\(fwidth\(kbSwS\)\)/);
+  assert.match(src, /float kbSwPx = max\(length\(fwidth\(kbSwS\) \* kbSwMs\)/, "a pixel measured in metres on each axis");
   assert.match(src, /kbSwGroove = \(1\.0 - smoothstep\(0\.0025, 0\.0065 \+ kbSwPx/);
   assert.match(src, /kbSwBroom = .*\(1\.0 - smoothstep\(0\.002, 0\.01, kbSwPx\)\)/);
   assert.match(src, /vMapUv \* \$\{Number\(slabs\)/, "each walk at its own slab");
