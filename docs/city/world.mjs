@@ -28,6 +28,7 @@ import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
+import { ANIMAL_COMMANDS, installAnimals } from "./animals.mjs";
 import { WORKSHOP_COMMANDS, installWorkshop } from "./workshop.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
 import { SHOPPING_COMMANDS, installShopping } from "./shopping.mjs";
@@ -1718,7 +1719,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
 installCommerce(CityWorld, CityError);
@@ -1727,6 +1728,8 @@ installHomeInteriors(CityWorld, CityError);
 installCredit(CityWorld, CityError);
 //: Who you know, and your own account of yourself (social.mjs).
 installSocial(CityWorld, CityError);
+//: Pets: taking one in, feeding it, where it is to be, hurt and healed (animals.mjs).
+installAnimals(CityWorld, CityError, { storesAt });
 //: Restaurants' kitchens: the line, the pantry, the lab (kitchen.mjs).
 installKitchen(CityWorld, CityError);
 installWorkshop(CityWorld, CityError);
