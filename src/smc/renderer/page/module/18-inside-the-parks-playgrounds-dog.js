@@ -858,7 +858,6 @@ const groundReady = (async () => {
     return tree;
   });
   treeIslandStats.stood_back = treesStoodBack;
-  const islandTrees = [];
   const notThere = stackedTreesToDrop(ground.trees || [], (tree) => {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const seg = nearestCarriagewaySegment(tx, -ty);
