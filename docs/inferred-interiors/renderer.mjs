@@ -427,8 +427,14 @@ export function buildInferredHouse(THREE, house, options = {}) {
       const points=room.polygon.coordinates[0],x=points.reduce((s,p)=>s+p[0],0)/points.length,z=points.reduce((s,p)=>s+p[1],0)/points.length;
       if(!inPolygon(x,z,room.polygon))continue;
       const y=f.elevation_m+f.height_m-.18;
-      const light=new THREE.Mesh(new THREE.CylinderGeometry(.20,.23,.065,28),material('#e8d5ab',{emissive:'#efc77b',emissiveIntensity:.35}));light.position.set(x,y-.04,z);fg.add(light);
-      const glow=new THREE.PointLight('#ffe0ad',.28,7,2);glow.position.set(x,y-.18,z);fg.add(glow);
+      // The fitting glows; it is not a light in the scene. A PointLight a room made the number of
+      // lights change as houses came and went near you (1, then 16, then 29), and three.js
+      // compiles every lit material again for each new count: about a hundred programs at a time,
+      // a freeze of one to twenty seconds, and every pixel of the city shaded against twenty-nine
+      // lights (measured in Kerbside.app, 2026-11-22). The room you are in is lit by the page's
+      // one indoor light. ``options.roomLights`` keeps them for a page that shows one house alone.
+      const light=new THREE.Mesh(new THREE.CylinderGeometry(.20,.23,.065,28),material('#e8d5ab',{emissive:'#efc77b',emissiveIntensity:options.roomLights?.35:.9}));light.position.set(x,y-.04,z);fg.add(light);
+      if(options.roomLights){const glow=new THREE.PointLight('#ffe0ad',.28,7,2);glow.position.set(x,y-.18,z);fg.add(glow);}
     }
 
     for(const s of house.stairs.filter(s=>s.from_level===f.level&&s.guard_segment)) {
