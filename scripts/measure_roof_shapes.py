@@ -58,9 +58,20 @@ def dataset_of(name: str) -> str:
     return SF_DATASET
 
 
+#: The site's own corridor (the Marina, Cow Hollow, Lombard): its payload is the page's at the
+#: root of docs/, not in a region folder.
+ROOT_REGION = "sf-corridor"
+
+
+def payload_paths(name: str) -> list[Path]:
+    """Every payload a region is drawn from: the app's copy, the website's, or the root's."""
+    if name == ROOT_REGION:
+        return [ROOT / "docs" / "sf-corridor-3d.json"]
+    return [ROOT / "docs" / base / name / "sf-corridor-3d.json" for base in ("app-regions", "regions")]
+
+
 def payload_of(name: str) -> tuple[Path, dict]:
-    for base in ("app-regions", "regions"):
-        path = ROOT / "docs" / base / name / "sf-corridor-3d.json"
+    for path in payload_paths(name):
         if path.exists():
             return path, json.loads(path.read_text())
     raise SystemExit(f"{name}: no payload")
@@ -130,8 +141,7 @@ def measure(name: str) -> dict:
     (lidar_dir / "roof_shapes.json").write_text(json.dumps({
         "region": name, "dataset": dataset, "counts": dict(counts), "buildings": out}))
     by_id = {str(b["osm_id"]): b for b in buildings}
-    for base in ("app-regions", "regions"):
-        payload_path = ROOT / "docs" / base / name / "sf-corridor-3d.json"
+    for payload_path in payload_paths(name):
         if not payload_path.exists():
             continue
         here = payload if payload_path == path else json.loads(payload_path.read_text())
@@ -153,7 +163,7 @@ def measure(name: str) -> dict:
             "source": f"USGS 3DEP {dataset}: planes fitted to the returns inside each footprint (smc.lidar.roofs)",
             "drawn": sorted(DRAWN), "tested": "hip right 64% held out, 76% overall; never a flat roof (cloud/docs/roofs-ramps-paint-tests.md)",
             "buildings": drawn}, separators=(",", ":")) + "\n")
-        print(f"  {base}/{name}: {len(drawn)} hipped roofs published", flush=True)
+        print(f"  {payload_path.parent.relative_to(ROOT)}: {len(drawn)} hipped roofs published", flush=True)
     return dict(counts)
 
 
