@@ -806,7 +806,10 @@ const PLAIN_LIGHT = globalThis.__kerbsidePlainLight ||= {
   patch(shader, material) {
     if (!this.on(material) || !shader.fragmentShader.includes("#include <lights_physical_fragment>")) return;
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <lights_physical_pars_fragment>", "#include <lights_lambert_pars_fragment>")
+      // (Lambert's terms declare the view position again; the standard program already has: a
+      // second declaration is a compile error on some drivers, and what used it was not drawn.)
+      .replace("#include <lights_physical_pars_fragment>", /varying\s+vec3\s+vViewPosition\s*;/.test(shader.fragmentShader)
+        ? THREE.ShaderChunk.lights_lambert_pars_fragment.replace(/varying\s+vec3\s+vViewPosition\s*;/, "") : "#include <lights_lambert_pars_fragment>")
       .replace("#include <lights_physical_fragment>", "float specularStrength = 1.0;\n#include <lights_lambert_fragment>");
   },
 };

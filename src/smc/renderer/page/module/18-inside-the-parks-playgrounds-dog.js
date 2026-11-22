@@ -618,18 +618,168 @@ function insideBBoxPage(x, z) {
   return x >= w && x <= e && z <= -s && z >= -n;
 }
 
+// ---- fences on property lines ----
+//
+// docs/property-fences.json (tools/build_property_fences.py) says which properties are fenced:
+// a school round its yard, a reservoir or a works yard, a park on the sides the parks department
+// surveyed a fence on and no others, a car park that is closed to the public or has a mapped
+// fence. An open car park, a public building (its walls are the barrier) and a park side with no
+// recorded fence get nothing. Here the line is walked against what stands there: no fence where
+// a building is on the line, none across a roadway, none where a court's or a playground's own
+// fence already is. The gates are the recorded ones, and inferred ones where people would come
+// in (docs/property-fences.mjs placeGates): each is a clear opening with a dark frame round it.
+const PROPERTY_FENCE_STYLE = {
+  chain_link: { surface: "fence:chainlink", post: 0x8d979c },
+  bars: { surface: "fence:picket", post: 0x22272a },
+  rail: { surface: "fence:picket", post: 0x22272a },
+  picket: { surface: "fence:picket", post: 0x2f3a33 },
+  split_rail: { surface: "fence:picket", post: 0x5a4632 },
+  board: { surface: "fence:board", post: 0x3a2b20 },
+  wall: { surface: "fence:wall", post: null },
+  hedge: { surface: "fence:wall", post: null },
+};
+async function buildPropertyFences() {
+  const b = DATA.bbox;
+  if (!b) return null;
+  const box = BUILD_WINDOW?.box || [b.west, b.south, b.east, b.north];
+  if (box[0] > -122.34 || box[2] < -122.53 || box[1] > 37.84 || box[3] < 37.70) return null;
+  const [api, response] = await Promise.all([import(sharedAsset("property-fences.mjs")), fetch(sharedAsset("property-fences.json"))]);
+  if (!response.ok) throw Error("property fences HTTP " + response.status);
+  const data = await response.json();
+  const stats = { properties: 0, fence_m: 0, gates: 0, gates_recorded: 0, gates_inferred: 0, by_kind: {}, skipped_m: 0 };
+  // The fences others draw: a court's surround, a playground's, a garden's.
+  const drawn = [];
+  for (const pad of COURT_PADS) drawn.push(pad.local);
+  for (const area of PARK_EVIDENCE?.areas || []) if (area.kind === "playground" || area.kind === "garden" || area.fence) drawn.push(pageRing(area.p));
+  const drawnGrid = new Map(), cell = (x, z) => Math.floor(x / 12) + ":" + Math.floor(z / 12);
+  for (const ring of drawn) for (let i = 0; i + 1 < ring.length; i += 1) {
+    const a = ring[i], q = ring[i + 1], n = Math.max(1, Math.ceil(Math.hypot(q[0] - a[0], q[1] - a[1]) / 6));
+    for (let k = 0; k <= n; k += 1) { const key = cell(a[0] + (q[0] - a[0]) * k / n, a[1] + (q[1] - a[1]) * k / n); if (!drawnGrid.has(key)) drawnGrid.set(key, []); if (!drawnGrid.get(key).includes(ring)) drawnGrid.get(key).push(ring); }
+  }
+  const alreadyFenced = (x, z) => {
+    for (let dx = -12; dx <= 12; dx += 12) for (let dz = -12; dz <= 12; dz += 12)
+      for (const ring of drawnGrid.get(cell(x + dx, z + dz)) || [])
+        for (let i = 0; i + 1 < ring.length; i += 1) if (distanceToSegmentSquared(x, z, ring[i][0], ring[i][1], ring[i + 1][0], ring[i + 1][1]) < 2.5 * 2.5) return true;
+    return false;
+  };
+  const streetOff = (x, z) => { const seg = nearestCarriagewaySegment(x, z); return seg ? Math.sqrt(distanceToSegmentSquared(x, z, seg[0], seg[1], seg[2], seg[3])) : Infinity; };
+  // On a property's own line: no fence where a building stands on it, or a roadway crosses it.
+  const lineBlocked = (x, z, ux, uz) => insideCarriageway(x, z, 0.15) || buildingAt(x, z) || buildingAt(x - uz * 0.9, z + ux * 0.9) || buildingAt(x + uz * 0.9, z - ux * 0.9) || alreadyFenced(x, z);
+  // A recorded fence is where it was recorded: only off the roadway and out of the buildings.
+  const recordedBlocked = (x, z) => insideCarriageway(x, z, 0.15) || buildingAt(x, z) || alreadyFenced(x, z);
+  // How good a spot is for a way in: beside a footway or a park path, facing a street, with open
+  // ground both sides -- never straight into a wall or out into the roadway.
+  const gateScore = (x, z, ux, uz) => {
+    const nx = -uz, nz = ux;
+    let v = 0, walls = 0;
+    for (const side of [1, -1]) {
+      if (buildingAt(x + nx * side * 2, z + nz * side * 2)) walls += 1;
+      if (insideCarriageway(x + nx * side * 1.2, z + nz * side * 1.2, 0)) return -Infinity;
+      for (const reach of [1.5, 3]) {
+        const px = x + nx * side * reach, pz = z + nz * side * reach;
+        if (parkPavementAt(px, pz)) { v += 3; break; }
+        if (pavementSurfaceAt(px, pz) !== null) { v += 2; break; }
+      }
+    }
+    if (walls === 2) return -Infinity;
+    const off = streetOff(x, z);
+    if (off < 16) v += 3 - off / 8;
+    return v - walls * 2;
+  };
+  const sinks = new Map(), frames = [];
+  const sinkOf = (style) => { if (!sinks.has(style)) sinks.set(style, { positions: [], uvs: [], indices: [], posts: [] }); return sinks.get(style); };
+  const toPage = (p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; };
+  let k = 0;
+  for (const prop of data.properties) {
+    if (((k += 1) & 7) === 0) await new Promise((r) => setTimeout(r));
+    const ring = prop.ring.map(toPage);
+    if (!ring.some(([x, z]) => insideBBoxPage(x, z))) continue;
+    // What carries fence: the line itself where the property is fenced, and the recorded lines.
+    const sets = [];
+    if (prop.verdict === "fenced") sets.push({ style: prop.fence.style, h: prop.fence.height_m, runs: api.fenceRuns([ring], { blocked: lineBlocked }) });
+    for (const run of prop.runs || []) sets.push({ style: run.style, h: run.height_m, runs: api.fenceRuns([run.p.map(toPage)], { blocked: recordedBlocked }) });
+    const runs = sets.flatMap((g) => g.runs.map((run) => ({ ...run, style: g.style, h: g.h })));
+    if (!runs.length) continue;
+    const known = (prop.gates || []).map((g) => { const [x, z] = toPage(g.p); return { x, z, w: g.width_m, src: g.src }; });
+    const gates = api.placeGates(runs, { known, score: gateScore, drive: prop.kind === "parking", rules: { max_between_m: data.rules.gate_max_between_m, min_apart_m: data.rules.gate_min_apart_m } });
+    stats.properties += 1; stats.by_kind[prop.kind] = (stats.by_kind[prop.kind] || 0) + 1;
+    runs.forEach((run, i) => {
+      const { panels, openings } = api.cutGates(run, gates.filter((g) => g.run === i));
+      const sink = sinkOf(run.style), tile = run.style === "chain_link" ? 0.6 : run.style === "board" || run.style === "wall" || run.style === "hedge" ? 1.5 : 1;
+      for (const panel of panels) for (let j = 0; j + 1 < panel.length; j += 1) {
+        const [ax, az] = panel[j], [bx, bz] = panel[j + 1], span = Math.hypot(bx - ax, bz - az);
+        if (span < 0.2) continue;
+        groundedFencePanel(sink, ax, az, bx, bz, YARD_Y, run.h, tile, run.style === "chain_link" ? 0.4 : run.h);
+        stats.fence_m += span;
+        for (let d = 0; d < span; d += 2.8) sink.posts.push([ax + (bx - ax) * d / span, az + (bz - az) * d / span, run.h + 0.08]);
+        sink.posts.push([bx, bz, run.h + 0.08]);
+      }
+      for (const o of openings) {
+        frames.push({ ...o, h: run.h, drive: o.w > 3 });
+        stats.gates += 1; if (o.basis === "recorded") stats.gates_recorded += 1; else stats.gates_inferred += 1;
+      }
+    });
+  }
+  const chainMap = chainlinkTexture(), barMap = playFenceTexture();
+  const materialOf = (style) => style === "chain_link" ? new THREE.MeshStandardMaterial({ map: chainMap, alphaTest: 0.55, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.45, color: 0xc6ced2 })
+    : style === "board" ? fenceMaterial(FENCE_STYLE.board) : style === "wall" ? fenceMaterial(FENCE_STYLE.wall)
+    : style === "hedge" ? new THREE.MeshStandardMaterial({ color: 0x2f4a2a, roughness: 1, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ map: barMap, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55, metalness: style === "split_rail" ? 0 : 0.45, color: PROPERTY_FENCE_STYLE[style]?.post ?? 0x22272a });
+  const dummy = new THREE.Object3D();
+  for (const [style, sink] of sinks) {
+    if (!sink.indices.length) continue;
+    const look = PROPERTY_FENCE_STYLE[style] || PROPERTY_FENCE_STYLE.chain_link;
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+    geom.setIndex(sink.indices);
+    geom.computeVertexNormals();
+    const mesh = addGround(new THREE.Mesh(geom, materialOf(style)), look.surface + "|property");
+    mesh.userData.liftedOntoGround = true; mesh.userData.elevationBasis = "terrain_sampled_0.75m"; mesh.userData.basis = "property_fences";
+    if (look.post !== null && sink.posts.length) {
+      const posts = new THREE.InstancedMesh(parkGeometry("cyl"), new THREE.MeshStandardMaterial({ color: look.post, roughness: 0.5, metalness: 0.5 }), sink.posts.length);
+      sink.posts.forEach(([x, z, h], i) => { dummy.position.set(x, groundLiftAt(x, z) + YARD_Y + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(0.06, h, 0.06); dummy.updateMatrix(); posts.setMatrixAt(i, dummy.matrix); });
+      posts.instanceMatrix.needsUpdate = true;
+      posts.userData = { surface: look.surface + "_post|property", liftedOntoGround: true };
+      groups.ground.add(posts);
+    }
+  }
+  // The ways in: a clear opening, a dark post each side and (a walk gate) a dark bar over it, so
+  // it reads as a doorway in the fence from down the street.
+  if (frames.length) {
+    const parts = [];
+    for (const f of frames) {
+      const top = f.drive ? f.h + 0.25 : Math.max(2.25, f.h + 0.3), ux = (f.b[0] - f.a[0]) / (f.w || 1), uz = (f.b[1] - f.a[1]) / (f.w || 1), yaw = Math.atan2(-uz, ux);
+      const ya = groundLiftAt(f.a[0], f.a[1]) + YARD_Y, yb = groundLiftAt(f.b[0], f.b[1]) + YARD_Y;
+      parts.push([f.a[0], ya + top / 2, f.a[1], 0.14, top, 0.14, yaw], [f.b[0], yb + top / 2, f.b[1], 0.14, top, 0.14, yaw]);
+      if (!f.drive) parts.push([(f.a[0] + f.b[0]) / 2, Math.max(ya, yb) + top - 0.07, (f.a[1] + f.b[1]) / 2, f.w + 0.14, 0.14, 0.14, yaw]);
+    }
+    const frame = new THREE.InstancedMesh(parkGeometry("box"), new THREE.MeshStandardMaterial({ color: 0x14171a, roughness: 0.6, metalness: 0.3 }), parts.length);
+    parts.forEach(([x, y, z, sx, sy, sz, yaw], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, yaw, 0); dummy.scale.set(sx, sy, sz); dummy.updateMatrix(); frame.setMatrixAt(i, dummy.matrix); });
+    frame.instanceMatrix.needsUpdate = true;
+    frame.userData = { surface: "fence:gate_frame|property", gates: frames.length, liftedOntoGround: true };
+    groups.ground.add(frame);
+  }
+  stats.fence_m = Math.round(stats.fence_m);
+  stats.decided_open = data.decided_open.length;
+  return stats;
+}
+
 // Inventory-only structures are separate visual evidence, not appended to DATA.ways.
 for (const feature of PARK_STRUCTURES) {
   const mesh=parkFacilityMesh(feature);if(mesh)groups.mapped3d.add(mesh);
 }
 
 const treePlotCorners = new Map();
+//: A trunk stands this clear of the roadway's edge at least (m); the opening cut for a tree in
+//: paving that is not a footway (the city's 4 ft minimum), and how far over the ground it is laid.
+const TREE_ROAD_CLEAR_M = 0.3, TREE_HARD_OPENING_M = 1.22, TREE_HARD_OPENING_Y = 0.045;
 //: Public Works / Better Streets: how far a tree's opening stands from what the survey records
 //: near it (tools/build_sf_tree_survey.py CLEARANCE_M) -- 25 ft from a stop sign, 5 ft from a
 //: hydrant, 3 ft from a parking sign or a meter.
 const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
 //: How many openings were put on the walk's squares, and how many were left where the survey has them.
-const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0 };
+const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0, merged: 0, mergedFrom: 0, hardOpening: 0, kerbEdge: 0 };
 const sfSurvey = (async () => {
   const b = DATA.bbox;
   if (!b) return null;
@@ -834,6 +984,8 @@ const groundReady = (async () => {
   }
 
   await runStepsSliced(buildFencesSteps(ground));
+  // The fences on property lines: schools, yards, the parks' surveyed ones, the closed car parks.
+  window.kerbsidePropertyFences = await buildPropertyFences().catch((error) => { console.warn("kerbside: property fences", error); return null; });
 
   // ---- tree pits ----
   //
@@ -878,6 +1030,15 @@ const groundReady = (async () => {
     return seg ? Math.sqrt(distanceToSegmentSquared(tx, -ty, seg[0], seg[1], seg[2], seg[3])) : Infinity;
   });
   treeIslandStats.address_points = notThere.size;
+  // One tree recorded more than once a little apart (re-surveyed, or in two sources) is one tree,
+  // at the average of its records (sf-tree-placement.mjs mergeClumps).
+  if ((ground.trees || []).length > 1) {
+    const clumps = await import(sharedAsset("sf-tree-placement.mjs"));
+    const before = ground.trees.length - notThere.size;
+    ground.trees = clumps.mergeClumps(ground.trees.filter((t) => !notThere.has(t)));
+    treeSquareStats.merged = ground.trees.filter((t) => t.merged).length;
+    treeSquareStats.mergedFrom = before - ground.trees.length + treeSquareStats.merged;
+  }
   const trunkGrid = new Map(), trunkCell=(x,z)=>Math.floor(x/5)+":"+Math.floor(z/5);
   for (const t of ground.trees || []) {
     if (notThere.has(t)) continue;
@@ -953,7 +1114,8 @@ const groundReady = (async () => {
             corners:plot.corners.map(([px,pz])=>[px+ax*d,pz+az*d]) };
           let placed = null;
           if (!impossible(plot.center)) {
-            for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M]) {
+            // (A tree that is the average of several records has no exact spot: looked for further.)
+            for (const d of tree.merged ? [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M, 3*SLAB_M, -3*SLAB_M, 4*SLAB_M, -4*SLAB_M] : [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M]) {
               const p = slid(d);
               if (d && !p.corners.every(([px,pz])=>walkable(px,pz))) continue;
               if (!impossible(p.center) && !breaksRule(p)) { placed = p; if (d) treeSquareStats.slid += 1; break; }
@@ -972,7 +1134,12 @@ const groundReady = (async () => {
       }
     }
     if (buildingAt(tx,tz) || inDriveway(tx,tz) || insideBikeLane(tx,tz,.1)) return false;
-    if (!insideCarriageway(tx,tz,0)) return true;
+    // None in the street: not in a junction's box, and not with its trunk on the roadway's edge.
+    if (!insideCarriageway(tx,tz,0)) {
+      if (insideJunctionBox(tx,tz)) { treeIslandStats.junction += 1; return false; }
+      if (insideCarriageway(tx,tz,-TREE_ROAD_CLEAR_M)) { treeSquareStats.kerbEdge += 1; return false; }
+      return true;
+    }
     if (!tree.island || insideJunctionBox(tx, tz)) {
       treeIslandStats.junction += 1;
       return false;
@@ -981,26 +1148,47 @@ const groundReady = (async () => {
     return true;   // drawn, on its island (and with no pit: the island is planted)
   });
   addTreeIslands(islandTrees);
+  // Every tree standing in anything but natural ground has an opening. Off the footways (a
+  // plaza, a paved lot, a school's yard, a car park, a playground's surface) it is a four-foot
+  // square of soil, square to the nearest street.
+  const hardPits = { positions: [], uvs: [], indices: [] };
+  const inferredHard = [...inferredOf("paving"), ...inferredOf("asphalt"), ...inferredOf("service")].map((item) => {
+    const ring = item.p.map((q) => { const [x, y] = xy(q[0], q[1]); return [x, -y]; });
+    return { ring, minX: Math.min(...ring.map((q) => q[0])), maxX: Math.max(...ring.map((q) => q[0])), minZ: Math.min(...ring.map((q) => q[1])), maxZ: Math.max(...ring.map((q) => q[1])) };
+  });
+  const hardGroundAt = (x, z) => excludeGrassAt(x, z) || insideParkingRegion(x, z)
+    || inferredHard.some((r) => x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ && pointInRing(x, z, r.ring));
+  const hardOpening = (tree, tx, tz) => {
+    if (treePlotCorners.has(tree) || islandTrees.some((t) => t.tree === tree) || !hardGroundAt(tx, tz)) return false;
+    const seg = nearestCarriagewaySegment(tx, tz), len = seg ? Math.hypot(seg[2] - seg[0], seg[3] - seg[1]) || 1 : 1;
+    const c = seg ? (seg[2] - seg[0]) / len : 1, s = seg ? (seg[3] - seg[1]) / len : 0, half = TREE_HARD_OPENING_M / 2;
+    const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([u, v]) => [tx + u * c - v * s, tz + u * s + v * c]);
+    if (corners.some(([x, z]) => insideCarriageway(x, z, 0) || buildingAt(x, z))) return false;
+    const base = hardPits.positions.length / 3;
+    corners.forEach(([x, z], i) => { hardPits.positions.push(x, groundLiftAt(x, z) + TREE_HARD_OPENING_Y, z); hardPits.uvs.push(i === 1 || i === 2 ? 1 : 0, i >= 2 ? 1 : 0); });
+    hardPits.indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
+    treePlotCorners.set(tree, corners);
+    treeSquareStats.hardOpening += 1;
+    return true;
+  };
   for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const tz = -ty;
     const top = pavementTopAt(tx, tz);
-    if (top === undefined) continue;
+    if (top === undefined) { hardOpening(tree, tx, tz); continue; }
     if (insideCarriageway(tx, tz, 0.2)) continue;
     let corners = treePlotCorners.get(tree);
     if (!corners) {
-      // The lidar's canopy trees are the yards' and the parks': grass under them, no opening.
-      if (tree.src?.startsWith("lidar_canopy")) continue;
       // Any other tree standing in paving -- a surveyed tree with no curb-side opening of its
       // own (a property-side cutout, a tree the survey placed on the walk), or the inventory's --
       // has an opening: one of the walk's own squares, three feet, square to the walk. On grass
       // (a park, a lawn, a yard: no paving under it) it has none.
       const bearing = pavementBearingAt(tx, tz);
-      if (bearing === undefined) { if (survey) treeSquareStats.onGrass += 1; continue; }
+      if (bearing === undefined) { if (!hardOpening(tree, tx, tz) && survey) treeSquareStats.onGrass += 1; continue; }
       const c=Math.cos(bearing),s=Math.sin(bearing),half=.4572;
       const square=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([u,v])=>[tx+u*c-v*s,tz+u*s+v*c]);
       const open = (q) => q.every(([x,z])=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0) && !insideBikeLane(x,z,.15));
-      if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }
+      if (!open(square)) { if (!hardOpening(tree, tx, tz) && survey) treeSquareStats.onGrass += 1; continue; }
       let plot = { center:[tx,tz], corners:square };
       if (walkSquares) { const squared = walkSquarePlot(walkSquares, plot); if (squared !== plot && open(squared.corners)) plot = squared; }
       corners = plot.corners;
@@ -1027,6 +1215,17 @@ const groundReady = (async () => {
       polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6,
     })), "tree_pit");
   }
+  if (hardPits.indices.length) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(hardPits.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(hardPits.uvs, 2));
+    geom.setIndex(hardPits.indices);
+    geom.computeVertexNormals();
+    // (Drawn as the paving it is cut in is: over the coarse backdrop, after the plazas.)
+    const mesh = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ map: soilTexture(), color: 0xffffff, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide, depthTest: false })), "tree_pit|hard_ground");
+    mesh.renderOrder = -0.9;
+  }
+  window.kerbsideTreeOpenings = () => ({ ...treeSquareStats, footway: pitCount });
 
   // Trees, one instanced mesh per variant. The trunk diameter the city recorded sets the size:
   // a three inch stem is a sapling and a thirty inch one has a crown over the roadway.
