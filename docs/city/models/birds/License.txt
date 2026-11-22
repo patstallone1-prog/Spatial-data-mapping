@@ -1,0 +1,14 @@
+The city's birds are built from these models, each licensed under Creative Commons Attribution 3.0
+(https://creativecommons.org/licenses/by/3.0/):
+
+  "Seagull" by Poly by Google -- https://poly.pizza/m/0WRzrtCIIRp
+  "Flying seagull" by Poly by Google -- https://poly.pizza/m/6Tpj_vcWP3f
+  "Dove" by Poly by Google -- https://poly.pizza/m/2jmH3trzPFf
+  "Crow" by Poly by Google -- https://poly.pizza/m/1MIvWQ5Q3R9
+  "Sparrow" by Poly by Google -- https://poly.pizza/m/3rTjKefT184
+  "Flying Raven" by Google Data Arts Team -- https://poly.pizza/m/p4puYPVor6
+
+Changes: textures baked to vertex colours, re-oriented and scaled to each species, wings cut at
+the shoulder and levelled for flapping, decimated, and recoloured (the dove as a rock pigeon, the
+seagull as a western gull, the flying seagull as a pigeon in flight, the flying raven as a
+sparrow in flight). See birds.json and tools/blender/build_city_birds.py.

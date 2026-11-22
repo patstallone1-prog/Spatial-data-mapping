@@ -11,11 +11,19 @@
 //             straight. Birds are never drawn finer than this: a body and two wings that beat.
 //   low       one shape, a few hundred triangles or fewer: a dog across the street, a sparrow, a rat.
 //
-// Modelled here (no files fetched): smooth lofted shapes to each breed's proportions, not scans
-// of real animals. THREE is passed in; nothing here touches the page.
-import { SPECIES } from "./animals.mjs";
+// Modelled here: smooth lofted shapes to each breed's proportions, not scans of real animals.
+// The birds are imported models (docs/city/models/birds, CC-BY 3.0, credited in birds.json):
+// fetched the first time a species is drawn, the lofted bird standing in until it has come.
+// THREE is passed in; nothing here touches the page.
+import { FLIGHT, SPECIES } from "./animals.mjs";
 
 export const ANIMAL_CAPS = { full: 24, mid: 120, low: 260, birds: 300, birdsLow: 320, rats: 24, leads: 60 };
+
+//: The imported birds: one file a species, six parts each (tools/blender/build_city_birds.py).
+//: ``stand`` has its origin at the feet; ``fly`` at the body's middle; each wing at its shoulder,
+//: where it hinges, held level. Metres, the head toward -z. ``_low`` parts are the far tier.
+export const BIRD_PARTS = ["stand", "stand_low", "fly", "fly_wing_l", "fly_wing_r", "fly_low"];
+export const birdFile = (species) => `city/models/birds/${species}.glb`;
 
 //: How each kind of pet is built on the one set of parts: scales of the reference dog (shoulder
 //: 0.5 m, body 0.7 m).
@@ -26,7 +34,7 @@ const BUILD = {
 };
 const H0 = 0.5, L0 = 0.7;
 
-export function animalFigures({ THREE, add }) {
+export function animalFigures({ THREE, add, loadModel = null, asset = (path) => path }) {
   // ---- shapes ----------------------------------------------------------------------------------
   //: A lofted tube along -z (the way it faces): rings [{z, rx, ry, y, x?}] of ``sides`` points.
   const loft = (rings, sides, { capA = true, capB = true } = {}) => {
@@ -286,6 +294,8 @@ export function animalFigures({ THREE, add }) {
   //: A bird: {x, y, z, yaw, species, flap (0..1), air, tier (1 or 2), k}.
   function bird(b) {
     const Sp = SPECIES[b.species]; if (!Sp) return;
+    const model = birdModel(b.species);
+    if (model) { modelBird(b, model); return; }
     const s = Sp.length / 0.3, ws = (Sp.span / 2) / 0.3;
     C1.setHex(Sp.coat[0]); C2.setHex(Sp.coat[1]);
     if (b.tier >= 2 || !b.air && b.tier >= 2) {
@@ -294,13 +304,76 @@ export function animalFigures({ THREE, add }) {
       return;
     }
     // On the ground it stands a little up on its legs and pecks; in the air it banks into its turn.
-    const peck = b.air ? 0 : Math.max(0, Math.sin(clock * 3 + (b.k || 0) * 1.3)) * 0.5;
+    // (Perched, it sits up and looks about: no pecking at a lamp arm.)
+    const peck = b.air || b.perch ? 0 : Math.max(0, Math.sin(clock * 3 + (b.k || 0) * 1.3)) * 0.5;
     T.makeTranslation(b.x, b.y + (b.air ? 0 : 0.055 * s), b.z); R.makeRotationFromEuler(E.set(b.air ? -0.05 : 0.25 + peck, b.yaw, b.air ? 0.25 : 0, "YXZ")); S.makeScale(s, s, s);
     ROOT.multiplyMatrices(T, R); M.copy(ROOT).multiply(S);
     if (!put(birds.body, C1)) return;
-    const beat = b.air ? Math.sin(clock * (Sp.span > 1 ? 7 : 16) + (b.k || 0)) * (0.2 + 0.6 * (b.flap ?? 1)) : -1.35;
+    // Flapping, the beat as wide as the flap asks; gliding (flap near 0), the wings held out a
+    // little above level, still -- a gull's long glide, a pigeon's between bursts.
+    const f = b.flap ?? 1, hz = FLIGHT[b.species]?.hz ?? (Sp.span > 1 ? 3 : 8);
+    const beat = b.air ? (f > 0.08 ? Math.sin(clock * hz * Math.PI * 2 + (b.k || 0)) * (0.15 + 0.7 * f) : 0.12) : -1.35;
     for (const sx of [-1, 1]) { T.makeTranslation(sx * 0.03 * s, 0.02 * s, -0.01 * s); R.makeRotationFromEuler(E.set(0, b.air ? 0 : sx * 1.2, sx * beat, "YXZ")); S.makeScale(sx * ws, s, s * (b.air ? 1 : 0.8)); M.multiplyMatrices(ROOT, T).multiply(R).multiply(S); put(birds.wing, C2); }
     stats.birds += 1; stats.triangles += 60;
+  }
+  // ---- the imported birds ----------------------------------------------------------------------
+  //: species -> undefined (not asked for), null (on its way), false (did not come), or its parts:
+  //: {part: {mesh, at (the part's origin in the bird), tris}}.
+  const models = new Map(), imported = new Set(), birdMat = mat();
+  const shared = { stand: ANIMAL_CAPS.birds, stand_low: ANIMAL_CAPS.birdsLow, fly: ANIMAL_CAPS.birds, fly_wing_l: ANIMAL_CAPS.birds, fly_wing_r: ANIMAL_CAPS.birds, fly_low: ANIMAL_CAPS.birdsLow };
+  function birdModel(species) {
+    const have = models.get(species);
+    if (have !== undefined || !loadModel) return have || null;
+    models.set(species, null);
+    let asked; try { asked = Promise.resolve(loadModel(asset(birdFile(species)))); } catch (error) { asked = Promise.reject(error); }
+    asked.then((gltf) => {
+      const found = {};
+      gltf.scene.traverse((o) => { if (o.isMesh && BIRD_PARTS.includes(o.name)) found[o.name] = o; });
+      const missing = BIRD_PARTS.filter((p) => !found[p]);
+      if (missing.length) throw new Error(`no ${missing.join(", ")}`);
+      const set = {};
+      for (const p of BIRD_PARTS) {
+        const o = found[p], g = o.geometry;
+        // (Its own colours, a face at a time; each bird's instance colour only lightens or darkens it.)
+        if (!g.attributes.color) throw new Error(`${p} has no colours`);
+        const mesh = inst(`city-bird-${species}-${p}`, g, shared[p], birdMat);
+        mesh.visible = false; all.push(mesh); n.set(mesh, 0); imported.add(mesh);
+        set[p] = { mesh, at: o.position.clone(), tris: g.index ? g.index.count / 3 : g.attributes.position.count / 3 };
+      }
+      models.set(species, set);
+    }).catch((error) => { models.set(species, false); console.warn(`kerbside: the ${species} model did not load; drawing the modelled one`, error?.message || error); });
+    return null;
+  }
+  //: A bird from its model: the same {x, y, z, yaw, flap, air, perch, tier, k} as bird().
+  function modelBird(b, set) {
+    // Each bird a shade lighter or darker than the next (a flock is not one bird copied).
+    const k = b.k || 0, h = Math.sin(k * 12.9898) * 43758.5453, shade = 0.9 + 0.2 * (h - Math.floor(h));
+    C1.setRGB(shade, shade, shade);
+    if (b.tier >= 2) {
+      const part = b.air ? set.fly_low : set.stand_low;
+      T.makeTranslation(b.x, b.y, b.z); R.makeRotationFromEuler(E.set(b.air ? -0.05 : 0, b.yaw, b.air ? 0.25 : 0, "YXZ")); M.multiplyMatrices(T, R);
+      if (put(part.mesh, C1)) { stats.birds += 1; stats.triangles += part.tris; }
+      return;
+    }
+    if (!b.air) {
+      // Stood on its feet (the origin): pecking tips it forward over them; perched, it sits still.
+      const peck = b.perch ? 0 : Math.max(0, Math.sin(clock * 3 + k * 1.3)) * 0.5;
+      T.makeTranslation(b.x, b.y, b.z); R.makeRotationFromEuler(E.set(-peck * 0.8, b.yaw, 0, "YXZ")); M.multiplyMatrices(T, R);
+      if (put(set.stand.mesh, C1)) { stats.birds += 1; stats.triangles += set.stand.tris; }
+      return;
+    }
+    // In the air: banked into its turn; each wing beats on its own shoulder, about the body's
+    // length (z) -- raised as the beat goes positive. Gliding, held a little above level.
+    T.makeTranslation(b.x, b.y, b.z); R.makeRotationFromEuler(E.set(-0.05, b.yaw, 0.25, "YXZ")); ROOT.multiplyMatrices(T, R); M.copy(ROOT);
+    if (!put(set.fly.mesh, C1)) return;
+    const f = b.flap ?? 1, hz = FLIGHT[b.species]?.hz ?? 6;
+    const beat = f > 0.08 ? Math.sin(clock * hz * Math.PI * 2 + k) * (0.15 + 0.7 * f) : 0.06;
+    let tris = set.fly.tris;
+    for (const [part, side] of [[set.fly_wing_l, -1], [set.fly_wing_r, 1]]) {
+      T.makeTranslation(part.at.x, part.at.y, part.at.z); R.makeRotationZ(side * beat); M.multiplyMatrices(ROOT, T).multiply(R);
+      if (put(part.mesh, C1)) tris += part.tris;
+    }
+    stats.birds += 1; stats.triangles += tris;
   }
   function rat(r) {
     const Sp = SPECIES.rat; C1.setHex(Sp.coat[0]);
@@ -318,7 +391,9 @@ export function animalFigures({ THREE, add }) {
   function begin(t) { clock = t; for (const m of all) n.set(m, 0); stats.full = stats.mid = stats.low = stats.birds = stats.rats = stats.triangles = 0; }
   function end() {
     for (const m of all) { const k = n.get(m); if (m.count !== k || k) { m.count = k; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; } }
+    // (A species' parts with none drawn this frame are left out of the draw altogether.)
+    for (const m of imported) m.visible = n.get(m) > 0;
   }
   return { begin, end, quadruped, bird, rat, lead, stats: () => ({ ...stats }), meshes: all,
-    triangles: TRI };
+    triangles: TRI, birdModels: () => Object.fromEntries([...models].map(([sp, m]) => [sp, m ? "loaded" : m === null ? "loading" : "failed"])) };
 }

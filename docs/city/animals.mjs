@@ -53,7 +53,7 @@ export const SPECIES = {
   // Never drawn in full: a bird is a few pixels and stays away; a rat is a glimpse at the kerb.
   pigeon: { name: "Pigeon", kind: "bird", top: 1, rings: [0, 35, 150], span: 0.62, length: 0.32, ground: true, flock: [5, 18], coat: [0x7f8792, 0x4d5560] },
   gull: { name: "Gull", kind: "bird", top: 1, rings: [0, 45, 260], span: 1.35, length: 0.6, ground: false, flock: [1, 4], coat: [0xf1f2f1, 0x8a9198] },
-  sparrow: { name: "Sparrow", kind: "bird", top: 2, rings: [0, 0, 55], span: 0.22, length: 0.15, ground: true, flock: [3, 9], coat: [0x8a6a4a, 0x5a4634] },
+  sparrow: { name: "Sparrow", kind: "bird", top: 1, rings: [0, 12, 55], span: 0.22, length: 0.15, ground: true, flock: [3, 9], coat: [0x8a6a4a, 0x5a4634] },
   crow: { name: "Crow", kind: "bird", top: 1, rings: [0, 40, 200], span: 0.9, length: 0.45, ground: true, flock: [1, 3], coat: [0x15151a, 0x15151a] },
   rat: { name: "Rat", kind: "vermin", top: 2, rings: [0, 0, 45], length: 0.22, coat: [0x5a5048, 0x5a5048] },
 };
@@ -280,12 +280,53 @@ export function stoopCat(place, hour, wet = false, Rs = RESIDENT) {
 
 // ---- pigeons, gulls, sparrows, crows and rats: the ambient field ------------------------------
 
-export const AMBIENT = { cell_m: 48, reach_cells: 4, birds_most: 260, rats_most: 14, flush_m: 7, flush_car_m: 9, air_s: 9 };
+export const AMBIENT = { cell_m: 48, reach_cells: 4, birds_most: 260, rats_most: 14, flush_m: 7, flush_car_m: 9, air_s: 9,
+  // Flocks going over: a straight way across the district (pass_m long) at a height between
+  // pass_alt, again every so often (pass_every_s), each on a way of its own, mostly along the
+  // wind (pass_with_wind of them within pass_wind_rad of it) -- the way birds cross a city.
+  pass_m: 520, pass_alt: [16, 55], pass_every_s: [260, 620], pass_with_wind: 0.6, pass_wind_rad: 0.45,
+  // Birds sitting up on a street light's arm or a pole's top: so many to a perch at most.
+  perch_most: 4 };
+//: Each kind's way of flying: its speed through the air (m/s), how much it flaps in still air
+//: (0 a glider, 1 never stops), and the beat (Hz). A gull soars and glides; a pigeon flaps hard
+//: and glides between bursts; a crow rows steadily; a sparrow bounds, flapping and folding.
+export const FLIGHT = {
+  pigeon: { air: 15, flap: 0.75, burst: 0.55, hz: 7 },
+  gull: { air: 11, flap: 0.25, burst: 0.2, hz: 3 },
+  crow: { air: 12, flap: 0.7, burst: 0.15, hz: 4 },
+  sparrow: { air: 9, flap: 0.85, burst: 0.5, hz: 10 },
+};
+//: The wind as the sky has it (globalThis.kerbsideWind: speed m/s, and where it blows from, in
+//: degrees clockwise from north) to the way it blows in x, z (east +x, north -z), m/s.
+export function windXZ(wind) {
+  if (!wind || !Number.isFinite(wind.speed) || wind.speed <= 0) return [0, 0];
+  const to = (((Number.isFinite(wind.from) ? wind.from : 290) + 180) * Math.PI) / 180;
+  return [Math.sin(to) * wind.speed, -Math.cos(to) * wind.speed];
+}
+//: A bird going over the ground at (gx, gz) m/s in wind (wx, wz): it faces the way it goes
+//: through the air -- crabbed into a crosswind -- and flaps harder into a headwind, less with
+//: one behind it, and not at all gliding down. {yaw (atan2 of the way it faces), flap 0..1}.
+export function flightIn(species, gx, gz, wx, wz, climb = 0, t = 0, k = 0) {
+  const F = FLIGHT[species] || FLIGHT.pigeon;
+  const ax = gx - wx, az = gz - wz, a = Math.hypot(ax, az) || 1, g = Math.hypot(gx, gz) || 1;
+  // Headwind: the wind against the way it goes over the ground, as a share of its air speed.
+  const head = -((wx * gx + wz * gz) / g) / F.air;
+  let flap = F.flap + 0.55 * head + 0.35 * Math.max(-1, Math.min(1, climb));
+  // Flap and glide: bursts of beats, then wings held out (not a gull's: it mostly holds them).
+  const cycle = 0.5 + 0.5 * Math.sin(t * (0.7 + (k % 3) * 0.13) + k * 1.7);
+  if (cycle < F.burst * 0.8 && head < 0.25 && climb <= 0.1) flap *= 0.15;
+  // (The figure's head is toward -z: a yaw of atan2(-x, -z) points it the way (x, z).)
+  return { yaw: Math.atan2(-ax / a, -az / a), flap: Math.max(0, Math.min(1, flap)) };
+}
 
 //: What lives in cell (i, j) at ``hour``: [{id, species, n, x, z, r, alt, perch}] -- flocks, each
 //: on a path of its own. ``what(x, z)``: {water: m to the shore or null, shops: eating places
 //: near, park: bool} -- where the page knows it. The same cell at the same hour has the same.
-export function ambientCell(i, j, hour, what = null, A = AMBIENT) {
+//: ``wind``: the sky's ({speed, from}), which the flocks going over mostly fly along.
+//: A flock is on the ground (``perch`` false), up on a perch (``perch`` true: the page puts it on
+//: the nearest street light or pole in the cell, or drops it), circling (a gull's beat), or going
+//: over (``pass``: {heading, alt, every, phase}).
+export function ambientCell(i, j, hour, what = null, A = AMBIENT, wind = null) {
   const out = [], cx = (i + 0.5) * A.cell_m, cz = (j + 0.5) * A.cell_m, w = what?.(cx, cz) || {};
   const night = hour < 5.5 || hour > 20.5, slot = Math.floor(hour / 3);
   const put = (species, k, chance) => {
@@ -298,15 +339,57 @@ export function ambientCell(i, j, hour, what = null, A = AMBIENT) {
     put("pigeon", 0, 0.16 + Math.min(0.5, (w.shops || 0) * 0.14) + (w.park ? 0.12 : 0));
     put("sparrow", 0, 0.1 + Math.min(0.3, (w.shops || 0) * 0.1) + (w.park ? 0.15 : 0));
     put("crow", 0, w.park ? 0.2 : 0.05);
-    if (w.water !== undefined && w.water !== null && w.water < 220) { put("gull", 0, 0.55); put("gull", 1, 0.3); }
+    const shore = w.water !== undefined && w.water !== null && w.water < 220;
+    if (shore) { put("gull", 0, 0.55); put("gull", 1, 0.3); }
     else put("gull", 0, 0.04);
+    // Up on the street lights and the poles: pigeons most, a crow or two, gulls by the water.
+    const perch = (species, chance) => {
+      if (unit("amb-perch", species, i, j, slot) > chance) return;
+      const S = SPECIES[species], n = 1 + (hash32("amb-pn", species, i, j, slot) % Math.min(A.perch_most, S.flock ? S.flock[1] : 1));
+      out.push({ id: `${species}:perch:${i}:${j}`, species, n, perch: true, x: cx + (unit("apx", species, i, j) - 0.5) * A.cell_m * 0.8,
+        z: cz + (unit("apz", species, i, j) - 0.5) * A.cell_m * 0.8, r: 0, alt: 0, seed: hash32("amb-ps", species, i, j, slot) });
+    };
+    perch("pigeon", 0.3 + Math.min(0.2, (w.shops || 0) * 0.06));
+    perch("crow", w.park ? 0.18 : 0.1);
+    if (shore) perch("gull", 0.3);
+    // Going over: a flock on a way of its own across the district, again every few minutes.
+    const [wx, wz] = windXZ(wind), windAng = Math.atan2(wz, wx), calm = !(Math.hypot(wx, wz) > 0.5);
+    const pass = (species, chance) => {
+      if (unit("amb-pass", species, i, j, slot) > chance) return;
+      const S = SPECIES[species], n = S.flock ? S.flock[0] + (hash32("amb-pn2", species, i, j, slot) % (S.flock[1] - S.flock[0] + 1)) : 1;
+      const along = !calm && unit("amb-pw", species, i, j, slot) < A.pass_with_wind;
+      // Along the wind (with it or into it) or any way at all.
+      const heading = along ? windAng + (unit("amb-pd", species, i, j, slot) < 0.5 ? 0 : Math.PI) + (unit("amb-pj", species, i, j, slot) - 0.5) * 2 * A.pass_wind_rad
+        : unit("amb-ph", species, i, j, slot) * Math.PI * 2;
+      const every = A.pass_every_s[0] + unit("amb-pe", species, i, j, slot) * (A.pass_every_s[1] - A.pass_every_s[0]);
+      out.push({ id: `${species}:pass:${i}:${j}`, species, n, pass: { heading, every, phase: unit("amb-pp", species, i, j, slot) * every,
+        alt: A.pass_alt[0] + unit("amb-pa", species, i, j, slot) * (A.pass_alt[1] - A.pass_alt[0]) },
+        x: cx, z: cz, r: 0, alt: 0, seed: hash32("amb-pss", species, i, j, slot) });
+    };
+    pass("pigeon", 0.022);
+    pass("gull", shore ? 0.05 : 0.02);
+    pass("crow", 0.012);
   } else put("rat", 0, 0.05 + Math.min(0.4, (w.shops || 0) * 0.12));
   return out;
 }
 
 //: Where bird ``k`` of flock ``f`` is at ``t`` s, flushed at ``f.up`` (s) or not: on the ground
 //: pecking about its spot, or in the air on its circle. {x, y, z, yaw, flap (0..1), air}.
-export function birdAt(f, k, t, A = AMBIENT, out = {}) {
+export function birdAt(f, k, t, A = AMBIENT, out = {}, wind = null) {
+  out.hidden = false; out.perch = false;
+  const [wx, wz] = windXZ(wind);
+  if (f.pass) return passAt(f, k, t, A, out, wx, wz);
+  if (f.perch) {
+    // Sat in a row along the arm (or one to a pole top), facing into the wind as birds sit, a
+    // turn of the head now and then.
+    const along = (k - (f.n - 1) / 2) * 0.24, a = ((f.seed % 628) / 100);
+    out.x = f.x + Math.cos(a) * along; out.z = f.z + Math.sin(a) * along; out.y = 0;
+    // (Into the wind: the head toward where it comes from, -(wx, wz); the figure's head is -z.)
+    const into = Math.hypot(wx, wz) > 0.5 ? Math.atan2(wx, wz) : a + Math.PI / 2;
+    out.yaw = into + Math.sin(t * 0.4 + k * 2.1) * 0.35 * (Math.floor(t / 3 + k) % 4 === 0 ? 1 : 0.15);
+    out.flap = 0; out.air = false; out.perch = true;
+    return out;
+  }
   const S = SPECIES[f.species], a0 = ((hash32(f.seed, k) % 6283) / 1000), up = f.up !== undefined && f.up !== null ? t - f.up : -1;
   const flying = !S.ground || (up >= 0 && up < A.air_s);
   if (!flying) {
@@ -320,7 +403,29 @@ export function birdAt(f, k, t, A = AMBIENT, out = {}) {
   const w = (S.ground ? 1.5 : 0.35 + (f.seed % 7) * 0.03) * (f.seed % 2 ? 1 : -1), ang = a0 * (S.ground ? 0.25 : 1) + t * w;
   out.x = f.x + Math.cos(ang) * R0 * (S.ground ? rise : 1); out.z = f.z + Math.sin(ang) * R0 * (S.ground ? rise : 1);
   out.y = S.ground ? 0.2 + rise * (5 + (k % 4)) : f.alt + Math.sin(t * 0.3 + k) * 1.5;
-  out.yaw = Math.atan2(-(-Math.sin(ang) * w), -(Math.cos(ang) * w)); out.flap = S.ground ? 1 : 0.35 + 0.65 * Math.max(0, Math.sin(t * 0.21 + k)); out.air = true;
+  // Faced the way it goes through the air (crabbed into a crosswind); flapping as the wind and
+  // the climb ask -- up off the ground it beats hard, coming down it glides.
+  const R1 = R0 * (S.ground ? rise : 1), gx = -Math.sin(ang) * w * R1, gz = Math.cos(ang) * w * R1;
+  const climb = S.ground ? Math.cos(Math.min(1, up / A.air_s) * Math.PI) : 0;
+  const fl = flightIn(f.species, gx, gz, wx, wz, climb, t, k);
+  out.yaw = fl.yaw; out.flap = fl.flap; out.air = true;
+  return out;
+}
+//: A bird of a flock going over: along its way at its speed over the ground (its air speed, less
+//: the wind against it, more the wind behind), across the district and gone, and again ``every``
+//: seconds; hidden while it is not over the district. The flock flies loose, a few metres apart.
+function passAt(f, k, t, A, out, wx, wz) {
+  const P = f.pass, F = FLIGHT[f.species] || FLIGHT.pigeon, ux = Math.cos(P.heading), uz = Math.sin(P.heading);
+  // Crabbed: across the way it goes, its air speed holds off the crosswind; along it, what is left.
+  const cross = -wx * uz + wz * ux, along = wx * ux + wz * uz;
+  const ground = Math.max(3, Math.sqrt(Math.max(0, F.air * F.air - cross * cross)) + along);
+  const s = ((t + P.phase) % P.every) * ground - A.pass_m / 2 - (k % 5) * 1.6 - Math.floor(k / 5) * 2.2;
+  if (s < -A.pass_m / 2 || s > A.pass_m / 2) { out.hidden = true; out.air = true; return out; }
+  const side = ((hash32(f.seed, k, "side") % 1000) / 1000 - 0.5) * Math.min(14, 2 + f.n * 0.8);
+  out.x = f.x + ux * s - uz * side; out.z = f.z + uz * s + ux * side;
+  out.y = P.alt + ((hash32(f.seed, k, "alt") % 1000) / 1000 - 0.5) * 3 + Math.sin(t * 0.5 + k) * 0.8;
+  const fl = flightIn(f.species, ux * ground, uz * ground, wx, wz, 0, t, k);
+  out.yaw = fl.yaw; out.flap = fl.flap; out.air = true;
   return out;
 }
 

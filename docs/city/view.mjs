@@ -1654,10 +1654,12 @@ diffuseColor.rgb *= kbCloth;`);
     openMessages: () => messages().open?.("npc"), syncSlots }));
   // Animals (animals-view.mjs): your pets, the neighbourhood's dogs and cats, the birds, the rats.
   let animalsUI = null, eatingPlaces = null;
-  const animals = () => (animalsUI ||= animalsView({ R, THREE, add: (m) => group.add(m), h, act, send, notify, self, me, getYaw: () => ctx.getYaw(), car, groundAt,
+  const animals = () => (animalsUI ||= animalsView({ R, THREE, add: (m) => group.add(m), loadModel: ctx.loadModel, asset: ctx.asset, h, act, send, notify, self, me, getYaw: () => ctx.getYaw(), car, groundAt,
     blocked: (x, z, r) => walkerBlocked(x, z, r), onRoad: (x, z) => Boolean(ctx.onRoad?.(x, z)), vehicles: () => visible.vehicles, people: () => visible.people, places: () => district.places,
     gameHour, wet: wetNow, camera: () => { const c = ctx.camera?.(); return c?.position ? { x: c.position.x, z: c.position.z } : me(); },
     waterAt: (x, z) => Boolean(ctx.waterAt?.(x, z)), placeArg, noteIncident, drawSide: () => drawSide(),
+    // Where the birds sit up off the street: the street lights the map has (module 21, through 30).
+    perches: (x, z, reach) => ctx.perches?.(x, z, reach) || [],
     threats: () => incidents.filter((i) => i.kind === "fight" && performance.now() - i.t0 < 12000),
     // What a cell of the birds' field is like: water near, eating places near.
     whatAt: (x, z) => {
@@ -6363,7 +6365,7 @@ diffuseColor.rgb *= kbCloth;`);
       return;
     }
     // The controls.
-    const keys = [["Arrows", "walk: Up goes the way you face, Left / Right turn you as you go (together, a curve; let go and you walk on straight), Down turns you round; at the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
+    const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve (tighter the slower; let go and you walk on straight). Down turns you round: one step slow, two at a sprint. At the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
       ["K", "your pets: how each is, feed it, take one in, the vet when you are at one"], ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car. Drive off before one is in and it waits where it was"],

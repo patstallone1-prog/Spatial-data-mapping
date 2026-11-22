@@ -1728,6 +1728,22 @@ function courtEquipmentClear(x,z,ground) {
     return Math.abs(u)<c.l/2+.15 && Math.abs(v)<c.w/2+.15;
   });
 }
+//: Where the birds can sit up off the street: each street light the map has, at the top of its
+//: arm or its pole, in this page's metres, with room for so many birds -- indexed in 32 m cells
+//: (the living city's animals ask streetPerchesNear, through module 30 for an attached region).
+var STREET_PERCH_CELL_M = 32, streetPerchGrid = new Map(), streetPerchCount = 0;
+function streetPerchAdd(x, y, z, room) {
+  if (![x, y, z].every(Number.isFinite)) return;
+  const k = `${Math.floor(x / STREET_PERCH_CELL_M)}:${Math.floor(z / STREET_PERCH_CELL_M)}`;
+  if (!streetPerchGrid.has(k)) streetPerchGrid.set(k, []);
+  streetPerchGrid.get(k).push({ key: `lamp:${streetPerchCount++}`, x, y, z, room });
+}
+function streetPerchesNear(x, z, reach) {
+  const out = [], c = STREET_PERCH_CELL_M, n = Math.ceil(reach / c);
+  for (let i = Math.floor(x / c) - n; i <= Math.floor(x / c) + n; i += 1) for (let j = Math.floor(z / c) - n; j <= Math.floor(z / c) + n; j += 1)
+    for (const q of streetPerchGrid.get(`${i}:${j}`) || []) if (Math.abs(q.x - x) <= reach && Math.abs(q.z - z) <= reach) out.push(q);
+  return out;
+}
 function addStreetLights(records,anchorFor=furnitureAnchor) {
   const rows = records.map((item) => ({ item, anchor: anchorFor(item) })).filter((row) => row.anchor);
   if (!rows.length) return { rows, drawn: 0 };
@@ -1748,6 +1764,9 @@ function addStreetLights(records,anchorFor=furnitureAnchor) {
     for (const rod of parts.rods) rods.push({ a: world(rod.a), b: world(rod.b), r: rod.r || STREET_LIGHT_ARM_R, c: finish });
     for (const head of parts.heads) heads.push({ at: world(head.at), yaw });
     for (const globe of parts.globes) globes.push({ ...globe, at: world(globe.at), yaw });
+    // Where a bird sits: on the arm over the lamp (room for a few) or on the pole's top (one).
+    { const arm = parts.heads[0] || parts.globes[0], at = arm ? world(arm.at) : world([0, parts.shaft, 0]);
+      streetPerchAdd(at.x, at.y + (arm ? 0.16 : 0.06), at.z, arm && (form === "mast_arm" || form === "twin_pendant") ? 4 : arm ? 2 : 1); }
     // (Where each lamp is, for the pools of light they throw at night: proxy-light.mjs.)
     { const L = globalThis.__kerbsideProxyLight?.lamps; if (L && L.length < 60000) for (const q of [...parts.heads, ...parts.globes]) { const w = world(q.at); L.push(w.x, w.y, w.z); } }
     for (const cap of parts.caps) caps.push({ ...cap, at: world(cap.at), c: item.finish === "red_steel" ? finish : 0x2a2f33 });
