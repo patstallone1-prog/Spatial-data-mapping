@@ -56,6 +56,8 @@ function magicClear(aim, dy, dp) {
 //: Each frame, before the view is placed: how fast you are going, how far ahead to look, and --
 //: every so often while you move -- the smallest turn or rise that clears what is in the way.
 function magicCameraStep(dt) {
+  // (The page draws frames while its module is still being read: until this part has run, nothing.)
+  if (typeof MAGIC === "undefined" || !MAGIC) return;
   if (!magicCameraOn()) { MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0; MAGIC.lead = 0; MAGIC.back = 0; return; }
   const t = state.target;
   if (MAGIC.lastX !== null && dt > 0) {
