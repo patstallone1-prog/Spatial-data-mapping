@@ -591,7 +591,7 @@ function* buildParkAreasSteps(areas) {
     }
   }
   for (const [finish, rings] of surfaces) {
-    const geom = ringGeometry(rings, PLAYGROUND_Y);
+    const geom = ringGeometry(rings, PLAYGROUND_Y, true, null, finish === "skate");
     if (!geom) continue;
     // As a mapped plaza is: the coarse terrain backdrop bridges above fine ground on a steep
     // cell, so the surface is drawn over that backdrop, not depth-fought against it.
@@ -629,7 +629,7 @@ const treePlotCorners = new Map();
 //: hydrant, 3 ft from a parking sign or a meter.
 const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
 //: How many openings were put on the walk's squares, and how many were left where the survey has them.
-const treeSquareStats = { squared: 0, unsquared: 0 };
+const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0 };
 const sfSurvey = (async () => {
   const b = DATA.bbox;
   if (!b) return null;
@@ -749,7 +749,7 @@ const groundReady = (async () => {
     }
   }
 
-  const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y);
+  const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y, true, null, true);
   if (frontWalkGeom) {
     addGround(new THREE.Mesh(frontWalkGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xffffff, roughness: 0.96, metalness: 0.0,
@@ -761,7 +761,7 @@ const groundReady = (async () => {
   // yard, a plaza -- paved, in the same concrete as the footways, so that downtown is not a
   // meadow between the towers (scripts/build_ground_cover.py decides which lots).
   for (const y of ground.plazas || []) { const k = seenAs("plazas", y); if (k === "grass") seenGrass.push(y.p); else if (k === "asphalt") seenAsphalt.push(y.p); }
-  const plazaGeom = ringGeometry((ground.plazas || []).filter((y) => !["grass", "asphalt"].includes(seenAs("plazas", y))).map((y) => y.p), PLAZA_Y);
+  const plazaGeom = ringGeometry((ground.plazas || []).filter((y) => !["grass", "asphalt"].includes(seenAs("plazas", y))).map((y) => y.p), PLAZA_Y, true, null, true);
   if (plazaGeom) {
     const plazaMesh = new THREE.Mesh(plazaGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xc4c1b8, roughness: 0.96, metalness: 0.0,
@@ -778,7 +778,7 @@ const groundReady = (async () => {
   const neutralService = (ground.service_yards || []).filter((y) => serviceAs(y) === "paving");
   const serviceRings = (ground.service_yards || []).filter((y) => serviceAs(y) === "asphalt");
   for (const y of ground.service_yards || []) if (serviceAs(y) === "grass") seenGrass.push(y.p);
-  const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y);
+  const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y, true, null, true);
   if (neutralServiceGeom) {
     // An unbuilt parcel is not evidence of lawn. Keep it as a restrained hardscape
     // fallback until city land-use or imagery resolves it.
@@ -825,7 +825,7 @@ const groundReady = (async () => {
     // terrain is a coarse backdrop that bridges above the finer ground in places, and depth
     // tested against it whole patches of the fill vanished -- a fifth of a square kilometre in
     // Oakland. Before the yards and plazas, so a mapped surface always paints over a fill.
-    const geom = ringGeometry(inferredOf(k).map((item) => item.p), INFERRED_Y, false);
+    const geom = ringGeometry(inferredOf(k).map((item) => item.p), INFERRED_Y, false, null, k === "paving" || k === "service");
     if (geom) {
       const mesh = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
         ...material, metalness: 0.0, side: THREE.DoubleSide, depthTest: false })), `inferred:${k}`);
@@ -932,17 +932,40 @@ const groundReady = (async () => {
           else treeSquareStats.unsquared += 1;
         }
         if (plot) {
-          const [x,z]=plot.center;
-          const junction=junctionSquares.some(q=>Math.hypot(q.kx-x,q.kz-z)<q.reach+7.62);
-          const driveway=DRIVEWAY_ZONES.some(d=>x>=d.minX-1.524 && x<=d.maxX+1.524 && z>=d.minZ-1.524 && z<=d.maxZ+1.524
-            && (pointInRing(x,z,d.ring) || d.ring.some((a,i)=>{const b=d.ring[(i+1)%d.ring.length];return distanceToSegmentSquared(x,z,...a,...b)<1.524**2;})));
-          const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
-            const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(TREE_OBSTACLE_CLEARANCE_M[kind] ?? .9144);
-          }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
-          if (!obstructed && !junction && !driveway && !insideJunctionBox(x,z) && !overWaterAt(x,z) &&
-            !treeCrowding(x,z,tree) && !treeCrossingNear(x,z)) {
+          // The Public Works distances, asked of an opening.
+          const breaksRule = (p) => {
+            const [x,z]=p.center;
+            const junction=junctionSquares.some(q=>Math.hypot(q.kx-x,q.kz-z)<q.reach+7.62);
+            const driveway=DRIVEWAY_ZONES.some(d=>x>=d.minX-1.524 && x<=d.maxX+1.524 && z>=d.minZ-1.524 && z<=d.maxZ+1.524
+              && (pointInRing(x,z,d.ring) || d.ring.some((a,i)=>{const b=d.ring[(i+1)%d.ring.length];return distanceToSegmentSquared(x,z,...a,...b)<1.524**2;})));
+            const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
+              const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(TREE_OBSTACLE_CLEARANCE_M[kind] ?? .9144);
+            }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
+            return obstructed || junction || driveway || treeCrowding(x,z,tree) || treeCrossingNear(x,z);
+          };
+          // Where no tree could ever stand: in the junction's box, in the water, across a drive.
+          const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);
+          // The opening slid along the walk a whole square or two, to where the distances hold;
+          // the tree goes with it (the survey's own fix is a metre or two either way).
+          const [c0,c1]=plot.corners, run=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]) || 1;
+          const ax=(c1[0]-c0[0])/run, az=(c1[1]-c0[1])/run;
+          const slid = (d) => d === 0 ? plot : { ...plot, center:[plot.center[0]+ax*d,plot.center[1]+az*d],
+            corners:plot.corners.map(([px,pz])=>[px+ax*d,pz+az*d]) };
+          let placed = null;
+          if (!impossible(plot.center)) {
+            for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M]) {
+              const p = slid(d);
+              if (d && !p.corners.every(([px,pz])=>walkable(px,pz))) continue;
+              if (!impossible(p.center) && !breaksRule(p)) { placed = p; if (d) treeSquareStats.slid += 1; break; }
+            }
+            // A surveyed tree is there whatever the rules say: where no slide clears them, its
+            // opening is cut where it stands, a real one, not the tree in bare concrete.
+            if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }
+          }
+          if (placed) {
+            const [x,z]=placed.center;
             tree.p=[x/metersPerLon+midLon,-z/metersPerLat+midLat];
-            treePlotCorners.set(tree,plot.corners);
+            treePlotCorners.set(tree,placed.corners);
             return true;
           }
         }
@@ -966,14 +989,24 @@ const groundReady = (async () => {
     if (insideCarriageway(tx, tz, 0.2)) continue;
     let corners = treePlotCorners.get(tree);
     if (!corners) {
-      // The SF survey distinguishes pots, yards and medians from sidewalk openings.
-      if (survey || tree.src) continue;
+      // The lidar's canopy trees are the yards' and the parks': grass under them, no opening.
+      if (tree.src?.startsWith("lidar_canopy")) continue;
+      // Any other tree standing in paving -- a surveyed tree with no curb-side opening of its
+      // own (a property-side cutout, a tree the survey placed on the walk), or the inventory's --
+      // has an opening: one of the walk's own squares, three feet, square to the walk. On grass
+      // (a park, a lawn, a yard: no paving under it) it has none.
       const bearing = pavementBearingAt(tx, tz);
-      if (bearing === undefined) continue;
+      if (bearing === undefined) { if (survey) treeSquareStats.onGrass += 1; continue; }
       const c=Math.cos(bearing),s=Math.sin(bearing),half=.4572;
-      corners=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([u,v])=>[tx+u*c-v*s,tz+u*s+v*c]);
-      if(corners.some(([x,z])=>pavementSurfaceAt(x,z)===null || insideCarriageway(x,z,0) || insideBikeLane(x,z,.15))) continue;
+      const square=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([u,v])=>[tx+u*c-v*s,tz+u*s+v*c]);
+      const open = (q) => q.every(([x,z])=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0) && !insideBikeLane(x,z,.15));
+      if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }
+      let plot = { center:[tx,tz], corners:square };
+      if (walkSquares) { const squared = walkSquarePlot(walkSquares, plot); if (squared !== plot && open(squared.corners)) plot = squared; }
+      corners = plot.corners;
+      if (plot.center[0] !== tx || plot.center[1] !== tz) tree.p=[plot.center[0]/metersPerLon+midLon,-plot.center[1]/metersPerLat+midLat];
       treePlotCorners.set(tree,corners);
+      treeSquareStats.squareOpening += 1;
     }
     const base = pits.positions.length / 3;
     for (const [i,[x,z]] of corners.entries()) {

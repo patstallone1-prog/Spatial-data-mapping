@@ -73,6 +73,8 @@ test("a crowd is many different people: outfits mixed and matched, every hairsty
     const hat = assetOf(a.sex, a, "hat");
     if (hat) { hats.yes += 1; hatKinds[hat] = (hatKinds[hat] || 0) + 1; }
     walks.add(a.walk);
+    // Hands in the front pockets only with pockets to put them in.
+    if (a.walk === "WalkPockets") assert.ok(!NO_POCKETS.has(q.look.legs) && q.p.age >= 12, `pockets for ${a.walk}`);
   }
   assert.ok(outfits.size >= 30, `${outfits.size} top-and-bottom pairs`);
   // A top over another suit's bottom happens.

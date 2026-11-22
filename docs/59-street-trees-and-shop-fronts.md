@@ -1,6 +1,6 @@
-# 59 · Street trees from the city's survey, and one shop front
+# 59 · Street trees from the city's survey, one pavement, and one shop front
 
-Two reworks that leave one version of each thing in the world, where two had been drawn over
+Reworks that leave one version of each thing in the world, where two had been drawn over
 each other.
 
 ## Street trees
@@ -41,6 +41,25 @@ Sidewalk openings follow the Public Works / Better Streets rules (`docs/sf-tree-
   No public layer gives sewer laterals or utility meters, so those clearances cannot be checked.
 - **Trees in the road:** a tree in a carriageway is drawn only on a surveyed island, and never in
   a junction's box.
+
+### Every surveyed tree has a real opening, unless it stands on grass
+
+The tree is there, whatever the rules say, so a surveyed tree is never left standing in bare
+concrete.
+
+- **Sliding to keep the distances.** Where a curb-side opening breaks one of the distances above,
+  it is slid along the walk one or two whole squares (3 or 6 ft) either way, to the first place
+  where every distance holds. The tree goes with it; the survey's own position is good to about
+  that.
+- **Cut where it stands.** Where no slide clears the distances, the opening is cut where the tree
+  stands. Only an opening in a junction's box, in the water or across a driveway is refused.
+- **Other trees in paving.** A tree with no curb-side opening of its own (a property-side cutout,
+  a tree the survey places on the walk) is given one of the walk's own squares, 3 ft, square to
+  the walk, where it stands in paving.
+- **On grass, none.** A tree on grass (a park, a lawn, a yard: no paving under it) has no opening,
+  and neither do the lidar's canopy trees, which are the yards' and the parks'.
+- **Counts.** `window.kerbsideTreeSquares` gives `slid`, `asSurveyed`, `squareOpening` and
+  `onGrass`.
 
 ### The opening is one of the walk's squares
 
@@ -105,6 +124,23 @@ python tools/build_sf_tree_survey.py obstacles docs/sf-tree-survey \
   --signs docs/sf-corridor-furniture.json --hydrants <sf-hydrants.json>
 ```
 
+## One pavement: the walk's three-foot squares everywhere
+
+Under and beside the walk there was a second pavement: the paving laid on a lot (a forecourt, a
+plaza, the paving fill inferred from the aerial photographs, a front path). It used the walk's own
+concrete, but its UVs were metres over 8, so its joints made two-metre squares, square to the map
+rather than to the street. Where it showed between the walk and a house front, it read as an older
+five-foot pavement under the walk's three-foot squares.
+
+- **One scoring.** Every ground ring drawn with the sidewalk's map (`ringGeometry` with `slabs`) is
+  now scored in the walk's three-foot squares (`WALK_UV_M`, four squares a repeat), square to the
+  ring's longest side. That is its frontage, so its joints run with the street, in the same phase
+  as the frontage fill that carries the walk on to the house fronts (module 16).
+- **The rest of the concrete.** The paved islands (module 16) and concrete footways (module 05)
+  are scored in the same three-foot squares; they had been metre squares.
+- **To the lip.** The walk itself is laid from the curb's 6 in lip (`KERB_LIP_M`) out to the
+  property line, and the frontage fill carries it on to the house fronts.
+
 ## One shop front
 
 A shop had two fronts:
@@ -132,3 +168,21 @@ How it works now:
   only where a building has no exterior plan.
 - **Doors.** The entry door is a glass leaf in a frame (module 24); the wood-block leaves are
   gone. On a designed front the engine's own door is the one seen.
+
+## People walking
+
+The crowd's walk was the soldier model's own march, its arms swung stiff from the shoulder with
+the elbows locked; the ways of walking only scaled that swing. Now (`docs/city/npc-figures.mjs`
+`swingArms`) each arm is a pendulum on the stride:
+
+- **Timing.** It swings against its own side's leg, 0.38 rad (about 6% of the stride) after it,
+  since the arm is carried by the step. The stride's start and the body's left are read from the
+  walk itself.
+- **Shape.** The upper arm swings a little further back than forward. The elbow is always a little
+  bent (0.22 rad) and bends further on the forward swing, later again (it follows through). The
+  arm comes in toward the body as it comes forward, and the wrist trails the swing.
+- **The chest** turns a little with the arms, against the hips.
+- **Styles.** Brisk, easy and sway walkers swing wider or narrower on the same pendulum.
+- **A new walk: hands in pockets** (`WalkPockets`). Both hands in the front pockets, carried by
+  the hips, the elbows out and back, the shoulders a little hunched. Only someone whose legs have
+  pockets walks this way.

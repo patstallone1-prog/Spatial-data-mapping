@@ -2197,12 +2197,14 @@ function placeCamera() {
   // From further out (the overview, a city from the air) nothing is pulled in: a tower near what
   // the view looks at would otherwise drag the camera down to the street.
   let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(aim, camera.position) : null;
-  // The magic camera is not shoved: where nothing it tried clears the building (or the view was
-  // turned there), it stands outside it -- seeing its side, never its rooms -- and you are drawn
-  // through it as an outline.
+  // The magic camera is not shoved or stopped: where nothing it tried clears the building (or
+  // the view was turned there), it zooms in, eased, to stand on your side of it (magicPullIn).
+  // For the moment the ease has not caught up you are drawn through the wall as an outline.
+  let magicNear = null;
   if (magic) {
-    if (blocked !== null) magicOutOfBuildings(aim, camera.position);
-    magicShowGhost(blocked !== null);
+    magicNear = magicPullIn(blocked, distV);
+    if (magicNear !== null) { camera.position.sub(aim).setLength(magicNear).add(aim); cameraPulledIn = true; }
+    magicShowGhost(blocked !== null && (magicNear === null || magicNear > blocked + 0.05));
     blocked = null;
   } else if (typeof magicShowGhost === "function") magicShowGhost(false);
   // Over it first. Pulled straight in, a camera with a shop behind it was shoved from sixty
@@ -2226,7 +2228,7 @@ function placeCamera() {
   // walls), the camera stood inside the walker's legs -- "a super zoomed view of the jeans, and
   // inside them". So it looks from the walker's eyes instead, the way the view faces, and the
   // walker is not drawn, until the view has room again (2026-11-12).
-  if (typeof walkerEyeView === "function" && walkerEyeView(cameraPulledIn ? blocked : null)) return;
+  if (typeof walkerEyeView === "function" && walkerEyeView(cameraPulledIn ? (magicNear ?? blocked) : null)) return;
   // The ground stops it too. Not under the ground (a walker in a tunnel or a station has its
   // own bore to keep the camera in: constrainWorldCamera), and not from the air.
   cameraOnGround = false;

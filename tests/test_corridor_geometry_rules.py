@@ -717,7 +717,47 @@ def test_ground_cover_is_clipped_off_the_carriageway() -> None:
     assert "insideCarriageway" in body, "the clip does not consult the carriageway"
     # And it is on by default, because the caller that forgets is the one that puts a garden in
     # the road.
-    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true, excludeAt = null\)", js)
+    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true, excludeAt = null, slabs = false\)", js)
+
+
+def test_every_concrete_pour_is_scored_in_the_walks_three_foot_squares() -> None:
+    """The lot paving drawn under the walk was scored in two-metre squares, square to the map.
+
+    Where it showed between the walk and a house front (or under the walk's edge) it read as an
+    older, larger pavement under the walk's own three-foot squares. Every ground ring drawn with
+    the sidewalk's map is scored in WALK_UV_M (three feet a square), square to its frontage.
+    """
+    js = _page_js()
+    body = _extract("ringGeometry", js)
+    assert "(x * fu + yy * fv) / WALK_UV_M" in body
+    assert "uvs.push(...uvAt(" in body and "/ 8, pos.getY(i) / 8" not in body
+    for caller in [
+        "ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y, true, null, true)",
+        ".map((y) => y.p), PLAZA_Y, true, null, true)",
+        "ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y, true, null, true)",
+        'INFERRED_Y, false, null, k === "paving" || k === "service")',
+        'ringGeometry(rings, PLAYGROUND_Y, true, null, finish === "skate")',
+    ]:
+        assert caller in js, caller
+    # The islands and the concrete footways too.
+    assert "quad(island, ring, top, WALK_UV_M)" in js
+    assert 'pedestrianTexture(surface.slice(5)) === SIDEWALK) return [WALK_UV_M, WALK_UV_M]' in js
+
+
+def test_a_surveyed_tree_has_a_real_opening_unless_it_stands_on_grass() -> None:
+    """A tree the city surveyed is there whatever the placement rules say.
+
+    Its opening is slid along the walk a square or two to where the Public Works distances hold;
+    where none does it is cut where the tree stands. A tree with no curb-side opening of its own
+    has one of the walk's squares if it stands in paving, and none on grass (a park, a yard).
+    """
+    js = _page_js()
+    assert "for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M])" in js
+    assert "if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }" in js
+    assert "const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);" in js
+    assert 'if (tree.src?.startsWith("lidar_canopy")) continue;' in js
+    assert "if (survey || tree.src) continue;" not in js
+    assert "if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }" in js
 
 
 def test_lane_markings_are_painted_with_a_width() -> None:
@@ -1720,7 +1760,7 @@ def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
     pit = js[js.index("// ---- tree pits ----"):js.index("// Trees, one instanced mesh per")]
     assert "random(" not in pit, "the pit is still being turned by a die roll"
     # And the whole pit is tested against the roadway, not only the tree in the middle of it.
-    assert "corners.some(([x,z])" in pit
+    assert "q.every(([x,z])=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)" in pit
     assert "insideBikeLane(x,z" in pit
 
 

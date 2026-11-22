@@ -600,8 +600,9 @@ def test_storefronts_are_drawn_for_their_trade_on_a_ground_storey_of_their_own()
     assert "const standalone = height <= STOREFRONT_STANDALONE_MAX_M;" in source
     # The bays the fronts are drawn in are the bays the signs go over.
     assert source.count("shopBays(feature, wall)") >= 2
-    # Ink that reads on the board it is on.
-    assert 'signSlot(shop.n, trade, inkFor(colour))' in source
+    # The old awning-and-board flow that drew a second name over the exterior engine's front is
+    # gone (docs/59): a shop's name is on the one front, the engine's.
+    assert "function addShopfronts(" not in source and "AWNING_MIX" not in source
     # The old one-picture-for-everything is gone, and so are its words.
     assert 'if (archetype === "retail" || archetype === "restaurant") {' not in source
     assert '"CAFE"' not in source and '"SHOP"' not in source

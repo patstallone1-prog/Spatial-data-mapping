@@ -92,7 +92,8 @@ function fillRoadwayToKerbs() {
     const ring = [prev.a, cur.a, cur.b, prev.b];
     if (cur.island && prev.island) {
       const top = ROAD_TOP_M + MEDIAN_KERB_M;
-      quad(island, ring, top, 4);
+      // The walk's own three-foot squares (WALK_UV_M a repeat), not metre ones.
+      quad(island, ring, top, WALK_UV_M);
       stampPavedRing(ring, top);
       face(island, prev.a, cur.a, top, ROAD_TOP_M);
       face(island, cur.b, prev.b, top, ROAD_TOP_M);
@@ -1005,7 +1006,14 @@ function maskedGrassMaterial(map, hardMask, roughness, park = false) {
   return material;
 }
 
-function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
+//: ``slabs``: the ring is poured concrete (a forecourt, a plaza, a front path, the paving
+//: fill on a lot), drawn with the sidewalk's own map. Its UVs then score the same three-foot
+//: squares as the walk beside it (WALK_UV_M a repeat, SLAB_BLOCK squares), laid square to the
+//: ring's longest side -- its frontage, so the joints run with the street -- and in the frontage
+//: fill's own phase (module 16 quad), so the two meet joint to joint. In metres over 8 they were
+//: two-metre squares square to the map instead: a second, larger pavement showing from under
+//: the walk's three-foot squares.
+function ringGeometry(rings, y, clipToRoad = true, excludeAt = null, slabs = false) {
   // One geometry for every ring handed in, triangulated by ear clipping through THREE.Shape.
   const positions = [];
   const uvs = [];
@@ -1020,6 +1028,19 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
       if (!started) { shape.moveTo(x, z); started = true; } else shape.lineTo(x, z);
     }
     if (!started) continue;
+    // The squares' frame (in the shape's own x, y): along the ring's longest side.
+    let fu = 1, fv = 0;
+    if (slabs) {
+      let best = 0;
+      for (let i = 0; i < ring.length; i += 1) {
+        const [ax, ay] = xy(...ring[i]), [bx, by] = xy(...ring[(i + 1) % ring.length]);
+        const len = Math.hypot(bx - ax, by - ay);
+        if (len > best) { best = len; fu = (bx - ax) / len; fv = (by - ay) / len; }
+      }
+    }
+    const uvAt = slabs
+      ? (x, yy) => [(x * fu + yy * fv) / WALK_UV_M, (yy * fu - x * fv) / WALK_UV_M]
+      : (x, yy) => [x / 8, yy / 8];
     let geom;
     try {
       geom = new THREE.ShapeGeometry(shape);
@@ -1031,7 +1052,7 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
     for (let i = 0; i < pos.count; i += 1) {
       // ShapeGeometry lays the shape in XY; this is a ground plane, so its y becomes -z.
       positions.push(pos.getX(i), y, -pos.getY(i));
-      uvs.push(pos.getX(i) / 8, pos.getY(i) / 8);
+      uvs.push(...uvAt(pos.getX(i), pos.getY(i)));
     }
     const index = geom.getIndex();
     if (clipToRoad) {
@@ -1098,7 +1119,7 @@ function ringGeometry(rings, y, clipToRoad = true, excludeAt = null) {
       }
       for (let k = 0; k < extra; k += 1) {
         positions.push(extraPos[k * 2], y, -extraPos[k * 2 + 1]);
-        uvs.push(extraPos[k * 2] / 8, extraPos[k * 2 + 1] / 8);
+        uvs.push(...uvAt(extraPos[k * 2], extraPos[k * 2 + 1]));
       }
       for (let k = 0; k < kept.length; k += 1) indices.push(base + kept[k]);
     } else if (index) {

@@ -175,8 +175,38 @@ test("the magic camera is City mode's and comes round faster the further you hav
   const cam = page("32-the-magic-camera.js"), walk = page("26-rooms-laid-out-as-rooms.js"), place = page("21-the-electrical-network-poles-towers.js");
   assert.match(cam, /function magicCameraOn\(\)[\s\S]*cityGame\(\)/);
   assert.match(walk, /urgent = !eyes && typeof magicCameraOn === "function" && magicCameraOn\(\)/);
-  // Not shoved: kept out of buildings, and you drawn through them.
-  assert.match(place, /if \(magic\) \{\s*if \(blocked !== null\) magicOutOfBuildings\(aim, camera\.position\);\s*magicShowGhost\(blocked !== null\);/);
+  // Not shoved or stopped: zoomed in, eased, to stand on your side of a building.
+  assert.match(place, /if \(magic\) \{\s*magicNear = magicPullIn\(blocked, distV\);/);
+  assert.doesNotMatch(cam, /magicOutOfBuildings/);
+  assert.match(cam, /function magicWallLean\(aim\)/);
   // Only the car is kept out of the water; the walker goes in, in City mode.
   assert.match(page("23-pins-1-2-and-3.js"), /walkerMayWade\(\)\)\) break;/);
+});
+
+test("the magic camera zooms in short of a building, eased, and back out when it has passed", () => {
+  const cam = page("32-the-magic-camera.js");
+  let now = 0;
+  const make = new Function("performance", "THREE", `
+    const state = { yaw: 0, pitch: 0.3, dist: 10 }, dragging = false;
+    ${cam}
+    return { MAGIC, magicPullIn };`);
+  const { MAGIC, magicPullIn } = make({ now: () => now }, {});
+  const step = (wall, ms = 16) => { now += ms; return magicPullIn(wall, 10); };
+  // Nothing in the way: at the distance asked for.
+  assert.equal(step(null), null);
+  // A building comes between at 4 m: in short of it, not past its face, within a fifth of a second.
+  let d = step(4);
+  assert.ok(d !== null && d <= 4.35, `first frame ${d}`);
+  for (let k = 0; k < 40; k += 1) d = step(4);
+  assert.ok(Math.abs(d - 4) < 0.05, `settled ${d}`);
+  // It has passed: back out, eased (not at once), and all the way.
+  const out1 = step(null);
+  assert.ok(out1 > 4 && out1 < 5, `first frame out ${out1}`);
+  let out = out1;
+  for (let k = 0; k < 300 && out !== null; k += 1) out = step(null);
+  assert.equal(out, null);
+  // A building a moment ahead on your way starts the zoom before it comes between.
+  MAGIC.ahead = 5; MAGIC.aheadUntil = now + 1000;
+  d = step(null);
+  assert.ok(d !== null && d < 10, `ahead ${d}`);
 });
