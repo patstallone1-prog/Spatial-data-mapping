@@ -308,10 +308,8 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
   }
 }
 await settleOntoPavement();
-// The tree pits come down with the ground cover, before these streets or after them: set into the
-// pavement once both are (PIT_SETTLE_RULE).
+// Pits set into the pavement once both are down (PIT_SETTLE_RULE); openings cut on these walks.
 await runStepsSliced(cellFineSurfacesSteps(groups.streets));
-// The walks are laid, with their squares: the trees' openings are cut on them (module 17).
 markStreetSurfacesLaid?.();
 groundReady.then(async ok => {
   if (ok === false || !vegetationLibrary || !treePlotCorners.size) return;
