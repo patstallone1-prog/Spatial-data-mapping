@@ -27,6 +27,7 @@ import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
 import { cityClient, cityServerUrl } from "./server-client.mjs";
+import { cityLive, syncPlan } from "./live.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
 import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
@@ -45,10 +46,20 @@ import { restaurantService, planRestaurant, canWalkRestaurant } from "./restaura
 import { restaurantScene } from "./restaurant-scene.mjs";
 import { buildWindowDisplay, tradeSignage, windowDisplayOf } from "./storefronts.mjs";
 import { canWalkStore, planStore, storeFixtures } from "./store-room.mjs";
+import { lanePoints } from "./grocery-room.mjs";
+import { itemSize, sectionsFor, stockShelves } from "./shelf-stock.mjs";
+import { aisleMap } from "./aisles.mjs";
 import { workshopPanel } from "./workshop-panel.mjs";
 import { isWorkshop, visitingCars } from "./workshop.mjs";
 import { kitchenPanel } from "./kitchen-panel.mjs";
-import { NEAR_FIGURES_MAX, npcFigures } from "./npc-figures.mjs";
+import { recipeOf } from "./kitchen.mjs";
+import { clerkLine, clerkNear, lineParts } from "./clerk.mjs";
+import { shopWindow } from "./shop-window.mjs";
+import { shopFloor } from "./shop-floor.mjs";
+import { favourRun } from "./favour-run.mjs";
+import { onTheirWay } from "./npc-favours.mjs";
+import { doorHolds, swerveAhead } from "./npc-steer.mjs";
+import { figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
 import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
 import { strideBodies } from "./stride.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
@@ -58,6 +69,8 @@ const SAVE_SOLO = "kerbside:city:world";
 const SAVE_ID = "kerbside:city:id";
 //: How often the page asks the city's server what has changed (ms).
 const SYNC_MS = 4000;
+//: While the page hears of each new version (live.mjs), it still asks this often (a missed one).
+const SYNC_LIVE_MS = 30_000;
 const MPH = 2.23694;
 //: A car's footprint on foot: its body, corners rounded this much (bumpers and wings are round).
 const CAR_CORNER_M = 0.35;
@@ -362,6 +375,8 @@ export async function startCity(ctx) {
     const [clon, clat] = ctx.toLonLat(me().x, me().z);
     const busy = Math.max(R.density?.default?.traffic ?? 1, ...((R.density?.hotspots || []).filter((h0) => clat >= h0.bbox[0] - 0.01 && clat <= h0.bbox[2] + 0.01 && clon >= h0.bbox[1] - 0.01 && clon <= h0.bbox[3] + 0.01).map((h0) => h0.traffic || 1)));
     roster.visitorsUpTo(Math.min(R.density?.visitors_max ?? 5000, Math.round(roster.places.size * (R.density?.visitors_per_place ?? 0.8) * busy)));
+    // Those who live and work outside, driving through once a day (rules.json density.commuters).
+    roster.commutersUpTo(R.density?.commuters?.count ?? 0);
     if (roster.dirty) { store.set(`kerbside:city:roster:${region}`, roster.toJSON()); roster.dirty = false; }
     district.cameras = speedCameras([...district.allWays.values()], data);
     ensureJoined();
@@ -686,15 +701,25 @@ diffuseColor.rgb *= kbCloth;`);
     return m;
   };
   const TONE_A = new THREE.Color(), TONE_B = new THREE.Color(), TONE_C = new THREE.Color();
+  //: A colour as the page writes it ("#rrggbb", a name, a number), read once: Color.set on a
+  //: string parses it with regular expressions, and dressAt set four for everyone drawn every
+  //: frame (26 MB a second of garbage, measured 2026-11-20). Same colours.
+  const toneCache = new Map();
+  const setTone = (c, v) => {
+    if (typeof v !== "string") return c.set(v);
+    let read = toneCache.get(v);
+    if (!read) { if (toneCache.size > 4096) toneCache.clear(); toneCache.set(v, read = new THREE.Color().set(v)); }
+    return c.copy(read);
+  };
   //: Person ``i`` of ``mesh`` in ``primary``, ``second`` below ``cut`` (or where the part says),
   //: ``accent``; ``trim`` and ``style`` the garment's marks (GARMENT_GLSL; 0: none).
   const dressAt = (mesh, i, primary, second, cut, accent, trim, style = 0) => {
     const a = mesh.geometry.attributes;
-    TONE_A.set(primary); TONE_B.set(second ?? primary); TONE_C.set(accent ?? primary);
+    setTone(TONE_A, primary); setTone(TONE_B, second ?? primary); setTone(TONE_C, accent ?? primary);
     a.tonePrimary.setXYZ(i, TONE_A.r, TONE_A.g, TONE_A.b);
     a.toneSecond.setXYZW(i, TONE_B.r, TONE_B.g, TONE_B.b, cut ?? -99);
     a.toneAccent.setXYZ(i, TONE_C.r, TONE_C.g, TONE_C.b);
-    if (a.toneTrim) { TONE_C.set(trim ?? primary); a.toneTrim.setXYZW(i, TONE_C.r, TONE_C.g, TONE_C.b, style || 0); }
+    if (a.toneTrim) { setTone(TONE_C, trim ?? primary); a.toneTrim.setXYZW(i, TONE_C.r, TONE_C.g, TONE_C.b, style || 0); }
   };
   const toneDone = (mesh) => { const a = mesh.geometry.attributes; a.tonePrimary.needsUpdate = a.toneSecond.needsUpdate = a.toneAccent.needsUpdate = true; if (a.toneTrim) a.toneTrim.needsUpdate = true; };
   const parts = { torso: mkTone(torsoGeo, MAX_PEOPLE, false, 1), head: mkTone(headGeo, MAX_PEOPLE), hair: mkTone(hairGeo, MAX_PEOPLE, true), legL: mkTone(legGeo, MAX_PEOPLE, false, 3), legR: mkTone(legGeo, MAX_PEOPLE, false, 3), armL: mkTone(armGeo, MAX_PEOPLE, false, 2), armR: mkTone(armGeo, MAX_PEOPLE, false, 2) };
@@ -783,13 +808,16 @@ diffuseColor.rgb *= kbCloth;`);
   const lowBody = mk(lowBodyGeo, PEOPLE_CAPS[2], { vertexColors: true });
   midBody.name = "city-people-moderate"; midHead.name = "city-people-moderate-head"; lowBody.name = "city-people-low";
   const bodies = new Map();
-  // The nearest few as Unreal characters (npc-figures.mjs): the MetaHuman and the mannequin,
-  // skinned and walking on the mannequin's clips. Until they load -- or where they are not
+  // The nearest as MakeHuman people (npc-figures.mjs): two bodies dressed in parts, every part
+  // one instanced draw skinned on the graphics card. Until they load -- or where they are not
   // published -- the near ring is drawn as it was.
   const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, store: ctx.npcStore || null, parent: group });
-  //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
-  //: sport or on the telephone (the jointed figure has those poses; the clips do not).
-  const figureFits = (p) => !p.ride && !p.down && !p.gesture && !p.fall;
+  //: Who can be drawn as a character: walking, standing or running, on the telephone or filming,
+  //: on a bicycle -- not fallen, at a sport, sat down or riding in something (the jointed figure has
+  //: those poses; the characters' clips do not).
+  const figureFits = (p) => !p.down && !p.fall && (!p.ride || (p.ride === "bike" && p.bike)) && (!p.gesture || p.gesture.kind === "phone" || p.gesture.kind === "film");
+  //: Out running: a runner's stroll (people.mjs), or running from something.
+  const RUNNING = /running|for a run/;
   // Loaded with the city, not when the first person comes near: nobody waits for the files.
   figures.start?.();
   let figuresLast = 0;
@@ -914,6 +942,18 @@ diffuseColor.rgb *= kbCloth;`);
   };
   const wheel = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12).rotateZ(Math.PI / 2).translate(0, 0.33, 0);
   const lightGeo = new THREE.BoxGeometry(0.22, 0.12, 0.02);
+  // Somebody is driving: in every car near you that is not parked, a driver from the waist up
+  // behind the glass -- shoulders and a head, in their own clothes' colour. That is all a
+  // driver is from the street, and for the partial people (the commuters: fleet.mjs
+  // commutersUpTo) it is all there is of them. Two instanced meshes for the whole street.
+  const DRIVER_SKIN = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0x8d5524, 0x5c3a21, 0xf5d7bd];
+  const DRIVER_CLOTH = [0x2f4858, 0x33658a, 0x86bbd8, 0x758e4f, 0xf6ae2d, 0xb23a48, 0x4a4e69, 0x9a8c98, 0xe9e4d8, 0x2b2d42];
+  const driverBody = instanced(new THREE.BoxGeometry(0.44, 0.5, 0.26).translate(0, 0.25, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-drivers");
+  const driverHead = instanced(new THREE.SphereGeometry(0.11, 10, 8).translate(0, 0.66, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-driver-heads");
+  const DRIVER_M = new THREE.Matrix4(), DRIVER_C = new THREE.Color();
+  //: Where the driver sits in a car ``w`` wide, ``h`` high and ``l`` long: on the left, a little
+  //: ahead of the middle (a bus's or a truck's, right at the front), their hips at seat height.
+  const driverSeat = (model, w, h, l) => ({ side: w * 0.23, ahead: model === "bus" || model === "box_truck" || model === "delivery_van" ? l * 0.36 : l * 0.06, up: Math.max(0.42, h * 0.36) });
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
   const tailLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f }), MAX_CARS * 2);
   for (const l of [headLights, tailLights]) { l.count = 0; l.frustumCulled = false; l.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(l); }
@@ -954,7 +994,17 @@ diffuseColor.rgb *= kbCloth;`);
   const blends = new Map(), POSE = newPose(), BLEND_OPTS = { speed: 0, height: 1.75, seed: 0 };
   const UB = new THREE.Matrix4(), HM = new THREE.Matrix4();
   let blendSweep = 0;
-  function drawPeople(list, now) {
+  // (Its entries kept from frame to frame and filled again: nothing made a person a frame.)
+  const FIG_CAM = { x: 0, z: 0 }, FIG_YOU = { x: 0, z: 0 }, figPeople = [], figEntries = [], figInView = new Map(), figReady = [];
+  const figHas = (id) => figures.has?.(id);
+  let figLast = null;
+  // What a near-ring person looks like (npc-figures.mjs crowdLook picks their parts from it): kept
+  // with their body, one object a person, not one a frame.
+  const lookOf = (p) => {
+    const body = bodyFor(p.person, bodies), o = body.outfit;
+    return { body, look: body.look ||= { top: o.topColour, bottom: o.bottoms, shoes: o.shoes, hair: body.hair, skin: body.skin, garment: o.top, legs: o.legs, cut: o.hair, bald: body.bald, heritage: body.heritage, age: p.person?.age ?? 35 } };
+  };
+  function drawPeople(list, now, focus = null) {
     if (now - blendSweep > 2500) { blendSweep = now; for (const [id, st] of blends) if (now - st.lastNow > 3000) blends.delete(id); }
     const seen = peopleInView(list);
     // Each at the tier the frame gave it (frameCity), or -- a cyclist, a passenger -- by where it is.
@@ -963,25 +1013,62 @@ diffuseColor.rgb *= kbCloth;`);
     // Near you, the characters; then the jointed figures, which were the near ring, for the rest
     // of it and the moderate ring; past that the basic shapes. (While the characters load, the
     // rings are as they were.)
-    // The nearest who can be characters -- those already drawn as one first, among the nearest few
-    // more than there are characters, so one at the edge of the count does not change back and forth.
+    // Characters (npc-figures.mjs figurePlan): everyone in view big enough on the screen to be told
+    // from a jointed figure, or near you, whatever the ring or the count -- and, hidden, everyone
+    // out of view in that or on their way into it in the next few seconds, so each is a character
+    // the moment they are seen. (It had been the nearest 20 in view of the full ring: the
+    // twenty-first beside you, and anyone you turned round to, a jointed figure first.)
     const near = [];
+    let ready = [], want = null;
     if (!figures.failed) {
-      const fits = [];
-      for (const q of full) { if (figureFits(q.p)) fits.push(q); if (fits.length >= NEAR_FIGURES_MAX + 6) break; }
-      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && figures.has?.(q.p.id)) near.push(q);
-      for (const q of fits) if (near.length < NEAR_FIGURES_MAX && !near.includes(q)) near.push(q);
+      const cam = ctx.camera?.();
+      if (cam) { cam.getWorldPosition(VIEW_AT); FIG_CAM.x = VIEW_AT.x; FIG_CAM.z = VIEW_AT.z; }
+      FIG_YOU.x = focus?.x ?? FIG_CAM.x; FIG_YOU.z = focus?.z ?? FIG_CAM.z;
+      const reach = figureReach(cam?.fov || 50, globalThis.innerHeight || 900);
+      figInView.clear();
+      for (const q of seen) figInView.set(q.p, q);
+      figPeople.length = 0;
+      let k = 0;
+      for (const p of list) {
+        // (Only those who could come near: the rest are well out of both reaches.)
+        if (Math.abs(p.x - FIG_CAM.x) > reach + 60 && Math.abs(p.x - FIG_YOU.x) > 90 || Math.abs(p.z - FIG_CAM.z) > reach + 60 && Math.abs(p.z - FIG_YOU.z) > 90) continue;
+        const v = p.moving ? (p.speed ?? p.person?.pace ?? 1.3) : 0, e = figEntries[k] ||= {};
+        e.id = p.id; e.p = p; e.x = p.x; e.z = p.z; e.vx = -Math.sin(p.yaw || 0) * v; e.vz = -Math.cos(p.yaw || 0) * v;
+        e.female = bodyFor(p.person, bodies).female === true; e.fits = figureFits(p); e.inView = figInView.has(p);
+        figPeople.push(e); k += 1;
+      }
+      const plan = figurePlan(figPeople, FIG_CAM, FIG_YOU, reach, { has: figHas });
+      // (What the page reports of it: kerbsideCity().detail().figurePlan. ``unfit``: in view and
+      // within it, but doing what a character has no clip for -- riding, fallen -- so a jointed figure.)
+      let unfit = 0;
+      for (const e of figPeople) if (!e.fits && e.inView && Math.hypot(e.x - FIG_CAM.x, e.z - FIG_CAM.z) <= reach) unfit += 1;
+      const fl = figLast ||= {};
+      fl.reach = reach; fl.drawn = plan.draw.length; fl.ready = plan.ready.length; fl.spilled = plan.spilled; fl.unfit = unfit;
+      for (const e of plan.draw) near.push(figInView.get(e.p));
+      figReady.length = 0;
+      for (const e of plan.ready) { const r = e.readyEntry ||= {}; r.id = e.id; r.female = e.female; r.look = lookOf(e.p).look; figReady.push(r); }
+      ready = figReady;
+      want = plan.want;
     }
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
-      const body = bodyFor(p.person, bodies), o = body.outfit;
-      return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female === true,
-        moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace),
-        look: { top: o.topColour, bottom: o.bottoms, hair: body.hair, skin: body.skin } };
-    }), now, dtFig);
+      const { body, look } = lookOf(p);
+      // What they are doing, for the phone and the mouth: the city's clip (clips.mjs) -- filming
+      // held up to film, walking or not -- and talking (to you, to each other, on the phone).
+      const clip = p.gesture?.kind === "film" ? "film" : clipFor(p, hash32(p.id));
+      const talking = clip === "talk" || clip === "phone" || clip === "walk_phone";
+      // (A cyclist sat on the bicycle as it is drawn: on the ground under it, its crank turned as
+      // its wheels have gone.)
+      const bike = p.ride === "bike" ? p.bike : null;
+      return { id: p.id, x: p.x, y: y + (bike ? 0 : p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
+        moving: Boolean(p.moving), speed: p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace), look,
+        clip, talking, ride: Boolean(bike), crank: bike ? crankTurn(bike.odo || 0) : 0 };
+    }), now, dtFig, ready, want);
     if (asFigures) {
+      // The rest step down a ring: the jointed figures for those in the full ring not drawn as
+      // characters (further off than a character shows), and so on out.
       const drawn = new Set(near.slice(0, asFigures));
-      full = full.filter((q) => !drawn.has(q)).concat(mid); mid = low; low = [];
+      full = full.filter((q) => !drawn.has(q)).concat(mid.filter((q) => !drawn.has(q))); mid = low.filter((q) => !drawn.has(q)); low = [];
     }
     drawPeopleSimpler(mid, low, now);
     peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
@@ -998,7 +1085,7 @@ diffuseColor.rgb *= kbCloth;`);
         let st = blends.get(p.id);
         if (!st) blends.set(p.id, st = makeBlend());
         const dtc = st.lastNow ? Math.min(0.1, (now - st.lastNow) / 1000) : 0; st.lastNow = now;
-        BLEND_OPTS.speed = p.moving ? (p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace)) : 0; BLEND_OPTS.height = body.height; BLEND_OPTS.seed = seed;
+        BLEND_OPTS.speed = p.moving ? (p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace)) : 0; BLEND_OPTS.height = body.height; BLEND_OPTS.seed = seed;
         stepBlend(st, clip, dtc, POSE, BLEND_OPTS);
       }
       const bob = clip ? 0 : p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
@@ -1381,6 +1468,7 @@ diffuseColor.rgb *= kbCloth;`);
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
     carShade.count = 0; carShade.instanceMatrix.needsUpdate = true;
     drawnTiers.cars = [full.length, mid.length, low.length];
+    let drivers = 0;
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
@@ -1391,6 +1479,14 @@ diffuseColor.rgb *= kbCloth;`);
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
       if (tier !== LOW) shadeAt(carShade, MAX_CARS, v.x, y, v.z, v.yaw, w + 0.7, l + 0.6);
+      if (tier !== LOW && !standIn && !v.parked && !v.wrecked && !v.bike && v.model !== "bike" && v.mine !== true && drivers < MAX_CARS) {
+        const seat = driverSeat(v.model, w, hgt, l), fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), who = hash32(v.vehicle?.owner || v.id);
+        // (Left of the way it faces: the kerb, and the doors a bus opens, are on its right.)
+        DRIVER_M.makeRotationY(v.yaw).setPosition(v.x + fx * seat.ahead + fz * seat.side, y + seat.up, v.z + fz * seat.ahead - fx * seat.side);
+        driverBody.setMatrixAt(drivers, DRIVER_M); driverBody.setColorAt(drivers, DRIVER_C.setHex(DRIVER_CLOTH[who % DRIVER_CLOTH.length]));
+        driverHead.setMatrixAt(drivers, DRIVER_M); driverHead.setColorAt(drivers, DRIVER_C.setHex(DRIVER_SKIN[(who >>> 5) % DRIVER_SKIN.length]));
+        drivers += 1;
+      }
       if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       // The route and where it is going, over the windscreen (on the fleet's bus; just off the
       // code-built one's nose; the low tier's box has none).
@@ -1423,6 +1519,8 @@ diffuseColor.rgb *= kbCloth;`);
     }
     for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
+    for (const mesh of [driverBody, driverHead]) { mesh.count = drivers; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+    drawnTiers.drivers = drivers;
     lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
@@ -1499,7 +1597,24 @@ diffuseColor.rgb *= kbCloth;`);
   // offline practice world of this browser's own, said so in the panel.
   const party = { session: null, unlisten: null, ids: new Map() };
   //: state: "off" (practice, by where you are), "connecting", "online", "practice" (the server did not answer).
-  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0 };
+  const online = { client: null, state: "off", why: "you are exploring", version: 0, lastSync: 0, syncing: false, retry: 0, live: null, heard: 0, syncAt: 0 };
+  //: Hearing of each new version of the city as it is committed (live.mjs): asked for then, not
+  //: every few seconds. Stopped with the connection it was for.
+  function listenLive(info) {
+    online.live?.close(); online.live = null; online.heard = 0; online.syncAt = 0;
+    if (!info) return;
+    online.live = cityLive({ ...info, onVersion: (v) => {
+      online.heard = Math.max(online.heard, v);
+      const at = syncPlan({ heard: online.heard, have: online.version, lastAsked: online.lastSync, now: performance.now() });
+      if (at !== null && (!online.syncAt || at < online.syncAt)) online.syncAt = at;
+    } });
+  }
+  //: Whether to ask the server now: when told of a version not yet had, or, with nothing heard,
+  //: every SYNC_LIVE_MS while listening (SYNC_MS while not).
+  function syncDue(now) {
+    if (online.syncAt && now >= online.syncAt) return true;
+    return now - online.lastSync > (online.live?.state() === "live" ? SYNC_LIVE_MS : SYNC_MS);
+  }
   const SERVER_URL = cityServerUrl(globalThis.location);
   const wantOnline = () => Boolean(SERVER_URL && ctx.cityMode?.());
   let world = null;     // the offline practice world (this browser's own; never the city's)
@@ -1527,9 +1642,236 @@ diffuseColor.rgb *= kbCloth;`);
   //: A food shop's line, lab and pantry, for its staff and its owner.
   let kitchenUI = null;
   const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
+
+  // ---- the person serving: walk up to them and they ask what you want (clerk.mjs) --------------
+  // In a shop, a café or a restaurant there is no buy button: whoever is at work there -- the host
+  // at a fine restaurant's stand, the cashier, the shop's clerk -- greets you as you come up to
+  // them, the way such a place does, and their line has a link: the menu, or the shop's wares,
+  // opened in the middle of the screen (shop-window.mjs).
+  let shopWin = null;
+  const clerk = { place: null, id: null, el: null, visits: 0, at: null };
+  const menuNumber = (x) => { const v = x / R.money(1); return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/, ""); };
+  async function buyHere(lines, meal) {
+    const place = clerk.place;
+    if (!place) return { ok: false, error: "walk up to the counter first" };
+    const r = await send("checkout", { place, cart: lines });
+    if (!r.ok) return r;
+    notify(`${meal ? "Ordered" : "Paid"} ${R.fmt(r.total)}${r.tax ? ` (${R.fmt(r.tax)} of it tax)` : ""}: ${r.lines.map((l) => `${l.qty} × ${R.items[l.item].name.toLowerCase()}`).join(", ")}.${meal ? " It's brought to you; it's in your inventory (I)." : " In your inventory (I)."}`);
+    syncSlots(true);
+    return r;
+  }
+  // Shopping in person (shop-floor.mjs, shopping.mjs): the shelves' products taken into a basket and
+  // paid for at a till; and the favours the city's people do you (favour-run.mjs).
+  const floor = shopFloor({ THREE, R, send, notify, getView: () => view, self: () => self(), kit, sync: (now) => syncSlots(now) });
+  const favours = favourRun({ send, notify, inCar: () => Boolean(car.active), onLift: (job) => { taxi.lift = job.name; notify(`${job.name.split(" ")[0]} will give you a lift: choose where to (Taxi), and it's their car that comes, no fare.`); openSide("ride"); } });
+  const gameHour = () => { const t = fleetAt(Date.now()); return ((t.gameMinute ?? t.minute) / 60) % 24; };
+  // A fitted interior's shelves and tills are drawn when it is (the hooks below), not when you go in:
+  // kept a while, and given to the floor when you are inside.
+  const fittedDrawn = [];
+  function fittedFloor() {
+    const place = ctx.insideFitted?.() && placeInside();
+    if (!place) { if (floor.active() && !shop.place) floor.close(); return; }
+    if (floor.active()) return;
+    floor.fitted(place);
+    for (let k = fittedDrawn.length - 1; k >= 0; k -= 1) {
+      const f = fittedDrawn[k];
+      if (!f.obj.parent) { fittedDrawn.splice(k, 1); continue; }
+      f.obj.updateWorldMatrix(true, false);
+      const e = f.obj.matrixWorld.elements;
+      if (Math.hypot(e[12] - place.x, e[14] - place.z) > 70) continue;
+      if (f.till) floor.till(f.obj, f.till); else floor.stocked(f.sku, f.stock, f.list, f.have, f.obj);
+    }
+  }
+  const shopWindowUI = () => (shopWin ||= shopWindow({ h, doc, fmt: (x) => R.fmt(x), price: menuNumber, order: (lines) => buyHere(lines, true), checkout: (lines) => buyHere(lines, false) }));
+  //: The shop you are in: its room (enterShop) or its fitted interior.
+  function placeInside() {
+    if (shop.place) return shop.place;
+    const id = ctx.insideFitted?.();
+    return id ? district.placeById?.get(id) || district.placeById?.get(Number(id)) || null : null;
+  }
+  // A dish's line on a menu where the menu has none: what it is made of ("beef patty, lettuce,
+  // tomato and pickles on a toasted bun, with fries").
+  function dishLine(rec) {
+    if (!rec?.build?.length) return null;
+    const I = R.kitchen.ingredients, nm = (c) => (I[c.ing]?.name || c.ing).toLowerCase();
+    const main = rec.build.filter((c) => !c.side && !["salt", "water", "ice"].includes(c.ing)), side = rec.build.filter((c) => c.side && c.ing !== "salt");
+    const names = [...new Set(main.map(nm))];
+    const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] || "";
+    // (Potatoes fried on the side are fries.)
+    const sides = [...new Set(side.map((c) => (c.ing === "potato" && /fry/.test(c.p) ? "fries" : nm(c))))];
+    return `${list.charAt(0).toUpperCase()}${list.slice(1)}${sides.length ? `, with ${sides.join(" and ")}` : ""}`;
+  }
+  function dishSection(id, rec) {
+    const it = R.items[id];
+    if (!rec) return it?.kind === "drink" ? "Drinks" : "Other";
+    if (rec.vessel === "cup" || rec.vessel === "glass") return /beer|wine/.test(id) ? "Beer and wine" : "Drinks";
+    const I = R.kitchen.ingredients, tags = rec.build.flatMap((c) => I[c.ing]?.tags || []);
+    if (tags.filter((t) => t === "dessert").length * 2 >= rec.build.length) return "Desserts";
+    return (R.items[id]?.price || 0) < R.money(8) ? "Sides" : "Mains";
+  }
+  //: What the link opens: the menu (a restaurant's, café's or bar's) or the shop's wares.
+  function windowSpec(place, line) {
+    const w = view, stores = w?.storesHere ? w.storesHere(place) : storesAt(R, place.keys);
+    const kk = w?.kitchenKind?.(place), own = kk ? R.stores.kinds[kk] : null;
+    const title = (w?.bizAt?.(place.id)?.name) || place.name && !/^\d/.test(place.name) && place.name || own?.name || stores[0]?.name || "The shop";
+    const priceOf = (id) => (w?.priceAt ? w.priceAt(place, id) : R.items[id].price);
+    let ids = [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    if (line.link.kind === "counter") ids = counterOnly(place);
+    if (line.link.kind === "menu") {
+      const k = w?.kitchens?.get?.(String(place.id)), own = new Map((k?.menu || []).map((d) => [d.id, d]));
+      const items = ids.map((id) => {
+        const d = own.get(id), rec = recipeOf(R, id, k?.menu || []);
+        return { id, name: R.items[id].name, description: d?.description || dishLine(rec), price: priceOf(id), section: d?.section || dishSection(id, rec), photo: d?.photo || R.items[id].photo || null };
+      });
+      return { kind: "menu", style: line.link.style, title, subtitle: k?.real ? "The restaurant's own menu" : place.name ? address(place.name) : null, items };
+    }
+    const [lon, lat] = ctx.toLonLat(place.x, place.z), chain = jurisdictionAt(R, lon, lat, district.county).chain;
+    const items = ids.map((id) => { const it = R.items[id]; return { id, name: it.name, info: effectText(it), price: priceOf(id), tax: itemTax(R, chain, it, priceOf(id), w?.laws), photo: it.photo || null }; });
+    const categories = stores.length > 1 ? stores.map((st) => ({ id: st.kind, name: st.name, items: st.items })) : [];
+    return { kind: "shop", title, subtitle: place.name ? address(place.name) : null, items, categories };
+  }
+  function hideClerk() { clerk.el?.remove(); clerk.el = null; clerk.id = null; }
+  //: What a walk-round shop sells that is on none of its shelves (no model to stand there): sold
+  //: from behind the counter.
+  function counterOnly(place) {
+    const stores = view?.storesHere ? view.storesHere(place) : storesAt(R, place.keys);
+    return [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel && !floor.has(id));
+  }
+  function showClerk(place, e) {
+    hideClerk();
+    const st = storesAt(R, place.keys)[0];
+    const kind = view?.kitchenKind?.(place) || st?.kind;
+    const style = view?.kitchenKind?.(place) ? restaurantService(R, kind, view?.bizAt?.(place.id), view?.kitchens?.get?.(String(place.id)))?.style : null;
+    const tt = fleetAt(Date.now());
+    // (A shop walked round -- its goods on its shelves, shop-floor.mjs -- is not bought from a list:
+    // its staff point to the baskets and the till, and link only what is kept behind the counter.)
+    const walked = floor.active() && floor.counterItems() > 0 && !view?.kitchenKind?.(place);
+    const behind = walked ? counterOnly(place).length > 0 : false;
+    const line = clerkLine({ storeKind: kind || st?.kind, serviceStyle: style, name: (view?.bizAt?.(place.id)?.name) || (place.name && !/^\d/.test(place.name) ? place.name : null), hour: (tt.gameMinute ?? tt.minute) / 60, staffName: e.person.name, visit: clerk.visits, place: place.id, floor: walked, counter: behind });
+    if (!String(e.person.id).startsWith("counter:")) talkTo({ id: e.person.id, name: e.person.name, title: e.person.title });
+    const parts = lineParts(line.text).map((x) => (typeof x === "string" ? x : h("a", { href: "#", textContent: x.link, onclick: (ev) => { ev.preventDefault(); shopWindowUI().open(windowSpec(place, line)); } })));
+    clerk.el = h("div", { id: "city-clerk", className: "glass", role: "dialog", "aria-label": `${e.person.name}, the ${line.who}` },
+      h("b", { textContent: `${e.person.name.split(" ")[0]}, the ${line.who}` }), h("p", {}, ...parts),
+      h("button", { textContent: "×", title: "Not now", onclick: () => { clerk.dismissed = e.id; hideClerk(); } }));
+    doc.body.append(clerk.el);
+    clerk.id = e.id; clerk.at = { x: e.x, z: e.z };
+  }
+  //: Whether someone serving is in front of you (half a second at a time): they greet you once as
+  //: you come up, and the line goes as you walk off.
+  function clerkCheck() {
+    fittedFloor();
+    const place = placeInside();
+    if (!place || !storesAt(R, place.keys).length || isMyWorkplace(place) || view?.bizAt?.(place.id)?.owner === self()?.account) { hideClerk(); clerk.place = null; return; }
+    if (clerk.place?.id !== place.id) { clerk.place = place; clerk.visits += 1; clerk.dismissed = null; hideClerk(); }
+    const here = me();
+    if (clerk.el && clerk.at && Math.hypot(here.x - clerk.at.x, here.z - clerk.at.z) > 4) { hideClerk(); clerk.dismissed = null; }
+    if (clerk.el) return;
+    const e = clerkNear(visible.people, place.id, here.x, here.z, 2.6);
+    if (e) { if (clerk.dismissed !== e.id) showClerk(place, e); return; }
+    // Nobody of the shop's own drawn there (none of the district's people works it, or not on
+    // this shift): whoever is behind its counter greets you at the till, the host's stand or the
+    // counter, so a shop is never one you cannot buy from.
+    const at = counterPoint();
+    if (at && Math.hypot(here.x - at.x, here.z - at.z) < 2.4 && clerk.dismissed !== `counter:${place.id}` && !clerkNear(visible.people, place.id, at.x, at.z, 8)) {
+      const name = `${FIRST_NAMES[hash32(String(place.id), "counter") % FIRST_NAMES.length]} ${"ABCDEFGHJKLMNPRSTW"[hash32(String(place.id), "initial") % 18]}.`;
+      showClerk(place, { id: `counter:${place.id}`, x: at.x, z: at.z, person: { id: `counter:${place.id}`, name, title: "Staff" } });
+    }
+  }
+  const FIRST_NAMES = ["Maya", "Luis", "Priya", "Sam", "Ana", "Kenji", "Rosa", "Omar", "Jess", "Theo", "Nina", "Marco", "Lena", "Ravi", "Chloe", "Diego"];
+  //: Where a customer is served in the shop you are in: in front of a restaurant's host stand or
+  //: counter, a shop's till, a plain room's counter. Null in a fitted interior.
+  function counterPoint() {
+    const F = shop.frame;
+    if (!F) return null;
+    const plan = F.restaurant || F.store;
+    if (plan) {
+      const lane = plan.fixtures?.find((x) => x.role === "checkout");
+      if (lane) { const p = lanePoints(lane).shopper; return F.at(p.z, p.x); }
+      const f = plan.fixtures?.find((x) => x.role === "host") || plan.fixtures?.find((x) => x.role === "counter" || x.role === "till" || x.role === "bar");
+      if (f) return F.at(Math.max(0.4, f.z - f.d / 2 - 0.45), f.x);
+    }
+    return F.at(Math.max(0.4, F.L.counter - 0.5), F.L.width * 0.5);
+  }
+
+  // ---- a chair: click it to sit down; walk to get up -------------------------------------------------
+  const seated = { on: false, x: 0, z: 0, floor: null };
+  const SEAT_DROP_M = 0.45;
+  //: The seat nearest the click's ray (within a hand's width of it, not across the room): the
+  //: restaurant's chairs and booths (restaurant-scene.mjs ``seats``), or a fitted interior's
+  //: chairs, stools, sofas, booths and banquettes (inferred-interiors/renderer.mjs ``furnishing:``).
+  const SEAT_ROLES = /^(dining_chair|office_chair|bar_stool|stool|chair|armchair|sofa|booth|banquette|bench|seat)$/;
+  const seatPt = new THREE.Vector3();
+  function seatClicked(ray) {
+    const cands = [];
+    const room = shop.room;
+    room?.updateMatrixWorld(true);
+    room?.traverse((o) => { for (const st of o.userData?.seats || []) { seatPt.set(st.x, st.y, st.z); o.localToWorld(seatPt); const q = new THREE.Vector3(st.x, st.y, st.z - 1); o.localToWorld(q); cands.push({ x: seatPt.x, y: seatPt.y, z: seatPt.z, yaw: Math.atan2(-(q.x - seatPt.x), -(q.z - seatPt.z)), floor: shop.frame?.y }); } });
+    if (!room && ctx.insideFitted?.()) {
+      const here = me();
+      ctx.root?.traverse?.((o) => {
+        const sf = o.userData?.surface;
+        if (typeof sf !== "string" || !sf.startsWith("furnishing:") || !SEAT_ROLES.test(sf.slice(11))) return;
+        o.getWorldPosition(seatPt);
+        if (Math.hypot(seatPt.x - here.x, seatPt.z - here.z) > 14) return;
+        // The seat faces its front (+z of the piece: its back is at -z), the way a sitter looks.
+        const q = new THREE.Vector3(0, 0, 1); o.localToWorld(q);
+        const h0 = o.userData.role === "bar_stool" ? 0.72 : 0.46;
+        cands.push({ x: seatPt.x, y: seatPt.y + h0, z: seatPt.z, yaw: Math.atan2(-(q.x - seatPt.x), -(q.z - seatPt.z)), floor: seatPt.y });
+      });
+    }
+    let best = null, bd = Infinity;
+    for (const c of cands) {
+      seatPt.set(c.x, c.y, c.z);
+      const along = seatPt.clone().sub(ray.ray.origin).dot(ray.ray.direction);
+      if (along < 0 || along > 9 || ray.ray.distanceSqToPoint(seatPt) > 0.45 * 0.45) continue;
+      if (along < bd) { bd = along; best = c; }
+    }
+    return best;
+  }
+  // (Up again where you stood to sit: a seat is inside its table's bounds, which the walk keeps out of.)
+  const MOVE_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD"]);
+  const onSeatKey = (e) => { if (seated.on && MOVE_KEYS.has(e.code)) standUp(); };
+  function sitAt(c) {
+    const floor = Number.isFinite(c.floor) ? c.floor : me().y - ctx.standY;
+    if (!seated.on) seated.from = { x: me().x, z: me().z, y: me().y - ctx.standY };
+    seated.on = true; seated.x = c.x; seated.z = c.z; seated.floor = floor; seated.wasFloor = shop.frame ? shop.frame.y : null;
+    doc.addEventListener("keydown", onSeatKey, true);
+    ctx.firstPerson?.(true);
+    ctx.placeAvatar(c.x, floor, c.z, c.yaw);
+    // The eyes at a sitter's height: the floor the eye is set from, lowered by the seat's drop.
+    ctx.setFloor?.(floor - SEAT_DROP_M);
+    ctx.setPitch?.(-0.12);
+    ctx.animateWalk?.(0);
+    notify("Sitting down. Walk to get up.");
+  }
+  function standUp() {
+    if (!seated.on) return;
+    seated.on = false;
+    doc.removeEventListener("keydown", onSeatKey, true);
+    ctx.setFloor?.(seated.wasFloor);
+    const back = seated.from;
+    if (back) ctx.placeAvatar(back.x, shop.frame ? shop.frame.y : back.y, back.z);
+    ctx.setPitch?.(-0.06);
+  }
+  //: Up as soon as you walk (or are moved) off the seat.
+  function stepSeat() { if (seated.on && Math.hypot(me().x - seated.x, me().z - seated.z) > 0.12) standUp(); }
   //: Money: the bank's desks, your credit, the online lender, a business's books, talking (finance-panels.mjs).
   let financeUI = null;
-  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who) }));
+  const finance = () => (financeUI ||= financePanels({ R, h, act, notify, send, self, getView: () => view, placeArg, address, openSide, drawSide, getSide: () => side, talk, onTalk: (who) => talkTo(who), askFavour: (who, kind, o) => askFavour(who, kind, o) }));
+  //: Asking someone you are talking with for a hand (npc-favours.mjs): what they are on their way
+  //: to, from their day, and the world weighs it; a yes is begun here (favour-run.mjs).
+  async function askFavour(who, kind, { offer = 0 } = {}) {
+    const e = (visible.people || []).find((x) => x.id === who.id || x.person?.id === who.id), person = e?.person, tt = fleetAt(Date.now());
+    let on = { kind: "idle", spare: 60 };
+    try { const plan = person && district.city?.planOf?.(person, tt); if (plan) on = onTheirWay(plan, tt.minute); } catch { /* their day not to hand: free */ }
+    const r = await send("ask_favour", { npc: { id: who.id, name: who.name, age: person?.age, role: person?.role || person?.base?.role, wage: person?.wage }, kind, on, offer });
+    if (r.ok && r.verdict === "help" && r.favour) {
+      talking.until = 0;
+      favours.start(r.favour, e ? { x: e.x, z: e.z, yaw: e.yaw } : me(), { ...me(), yaw: ctx.getYaw() });
+      refresh();
+    }
+    return r;
+  }
   let profileUI = null;
   const profile = () => (profileUI ||= profilePanel({ R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide: () => side, drawSide,
     legacy: TABS, crossAt, editHome, redraw: () => refresh(), close: () => { if (panel) openPanel(); },
@@ -1572,15 +1914,20 @@ diffuseColor.rgb *= kbCloth;`);
   //: What others have done since: asked every few seconds (the answer is empty when nothing has).
   async function syncCity() {
     if (online.state !== "online" || online.syncing) return;
-    online.syncing = true; online.lastSync = performance.now();
+    online.syncing = true; online.lastSync = performance.now(); online.syncAt = 0;
     try {
       const r = await online.client.sync(online.version);
       if (r.ok) shown(r);
       if (r.ok && r.welcome_moved) notify(`${r.welcome_moved.name} has moved to a real restaurant: ${address(r.welcome_moved.place) || "its new address"}. Its till came with it; order its stock again.`);
-    } finally { online.syncing = false; }
+    } finally {
+      online.syncing = false;
+      // (Answered by an instance that had not yet seen the version heard of: asked again shortly.)
+      if (online.heard > online.version) online.syncAt = syncPlan({ heard: online.heard, have: online.version, lastAsked: online.lastSync, now: performance.now() }) ?? 0;
+    }
   }
   //: The practice world: this browser's own, under its own id.
   function practice(state, why) {
+    listenLive(null);
     online.state = state; online.why = why; online.retry = performance.now();
     myId = localId;
     if (!world) { world = loadSolo(); view = world; }
@@ -1605,6 +1952,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (online.state !== "connecting"||generation!==online.connectionGeneration) return;   // Explore again while it was asked
     if (!r.ok) { practice("practice", r.code === "not_configured" ? "the city's server is not set up yet" : r.error || "the city's server could not be reached"); return; }
     myId = r.pid; online.state = "online"; online.version = 0; online.since = performance.now(); grantsAsked = false;
+    listenLive(client.live);
     if (party.session) party.session.city.send({ t: "hello", pid: myId });
     await syncCity();
     ensureJoined();
@@ -1686,11 +2034,22 @@ diffuseColor.rgb *= kbCloth;`);
   //: The shop you are at the door of: within a few steps of its shopfront (rules.json
   //: stores.door_reach_m), measured from the front as the page draws it -- not from the
   //: building's middle, which had you "at" a shop from across the street.
+  //: Whether a place sells anything, kept per place: asked every frame of every place, storesAt
+  //: built a set and three lists for each (7-8 MB a second of garbage, measured 2026-11-20).
+  //: Asked again only when the place's keys change.
+  const sellsCache = new WeakMap();
+  const sells = (pl) => {
+    const c = sellsCache.get(pl);
+    if (c && c.keys === pl.keys && c.n === pl.keys.length) return c.sells;
+    const v = storesAt(R, pl.keys).length > 0;
+    sellsCache.set(pl, { keys: pl.keys, n: pl.keys.length, sells: v });
+    return v;
+  };
   function nearestShop() {
     const p = me(), reach = R.stores.door_reach_m ?? 3.5;
     let best = null, bestD = reach;
     for (const pl of district.places) {
-      if (!storesAt(R, pl.keys).length) continue;
+      if (!sells(pl)) continue;
       const I = pl.front || pl.inside;
       let d;
       if (I) {
@@ -1701,6 +2060,64 @@ diffuseColor.rgb *= kbCloth;`);
       if (d < bestD) { bestD = d; best = pl; }
     }
     return best ? { ...best, keys: [...best.keys], distance: bestD } : null;
+  }
+
+  // ---- your bicycle ----------------------------------------------------------------------------
+  //: Bought at a bike shop (rules.json "bicycle"): B to get on and off it (Enter gets off too); the
+  //: arrows pedal, brake and steer. Ridden, it is one of the bicycles (``mine``: drawn in full) and
+  //: you are its rider, the jointed figure or a character on it as any rider is.
+  const cycle = { active: false, entry: null, saidEdge: 0 };
+  const ownsBicycle = () => (self()?.inventory?.bicycle || 0) > 0;
+  function mountBicycle() {
+    if (!ctx.enabled() || cycle.active) return;
+    if (!ownsBicycle()) { notify("You have no bicycle: a bike shop sells them."); return; }
+    if (car.active || car.riding || transit.ride || shop.place || ctx.insideFitted?.()) { notify("Get on your bicycle out of doors, on foot."); return; }
+    const at = me(), p = self();
+    cycle.entry = { id: `bike:mine:${myId}`, x: at.x, z: at.z, yaw: ctx.getYaw(), v: 0, odo: 0, shade: 0.35, mine: true, resident: true,
+      person: { id: `you:${myId}`, age: p?.age ?? 30, pace: 1.35, height: 1.75 } };
+    cycle.active = true;
+    ctx.avatarVisible(false);
+    notify("On your bicycle: the arrows pedal, brake and steer; B or Enter to get off.");
+    refresh();
+  }
+  function dismountBicycle() {
+    if (!cycle.active) return;
+    cycle.active = false;
+    const b = cycle.entry, rx = Math.cos(b.yaw), rz = -Math.sin(b.yaw);
+    bikes = bikes.filter((x) => x !== b);
+    cycle.entry = null;
+    // (Off on the right, the bicycle wheeled along: it is in your things again.)
+    ctx.moveAvatarTo(b.x + rx * 0.6, b.z + rz * 0.6);
+    ctx.avatarVisible(true);
+    refresh();
+  }
+  const bicycleKey = () => (cycle.active ? dismountBicycle() : mountBicycle());
+  //: Each frame you ride: faster than walking, slower than a car; through what a walker can go
+  //: through (ctx.moveWalker), steered sharper slow than fast.
+  function pedal(dt, held) {
+    const b = cycle.entry;
+    if (!b) return false;
+    const up = held.has("ArrowUp"), down = held.has("ArrowDown"), left = held.has("ArrowLeft"), right = held.has("ArrowRight");
+    if (up) b.v += 1.7 * dt;
+    if (down) b.v -= (b.v > 0.3 ? 5 : 1) * dt;
+    if (!up && !down) b.v -= Math.min(b.v, 0.35 * dt);
+    const top = ctx.onRoad(b.x, b.z) ? 8 : 5;
+    b.v = Math.max(0, Math.min(top, b.v));
+    const steer = (left ? 1 : 0) - (right ? 1 : 0);
+    if (steer && b.v > 0.15) b.yaw += steer * dt * Math.min(2.4, 0.7 + 3 / (1 + b.v));
+    let dx = -Math.sin(b.yaw) * b.v * dt, dz = -Math.cos(b.yaw) * b.v * dt;
+    if (ctx.inArea && !ctx.inArea(b.x + dx * 4, b.z + dz * 4) && ctx.inArea(b.x, b.z)) {
+      b.v = 0; dx = 0; dz = 0;
+      if (performance.now() - cycle.saidEdge > 4000) { cycle.saidEdge = performance.now(); notify(BOUNDARY_MESSAGE); }
+    }
+    const x0 = b.x, z0 = b.z, want = Math.hypot(dx, dz);
+    const moved = ctx.moveWalker(dx, dz);
+    const p = me();
+    b.x = p.x; b.z = p.z;
+    if (want > 0.02 && moved < want * 0.3) b.v *= 0.2;   // into a wall, a kerb post, a car: stopped
+    b.odo += Math.hypot(b.x - x0, b.z - z0);
+    ctx.followYaw(b.yaw, dt);
+    return true;
   }
 
   // ---- driving ---------------------------------------------------------------------------------
@@ -1748,6 +2165,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: Each frame you drive: the arrows are the pedals and the wheel; the car keeps to what it can
   //: drive on, through the page's own walls and buildings (ctx.moveWalker).
   function drive(dt, held) {
+    if (cycle.active) return pedal(dt, held);
     if (!car.active) return false;
     const up = held.has("ArrowUp"), down = held.has("ArrowDown"), left = held.has("ArrowLeft"), right = held.has("ArrowRight");
     const accel = up ? 3.2 : 0, brake = down ? (car.speed > 0.3 ? 7.5 : 2.2) : 0;
@@ -2147,6 +2565,8 @@ diffuseColor.rgb *= kbCloth;`);
   async function pickUp() {
     const at = me(), pl = self();
     if (!pl || pose.kind || reach.t || car.active || transit.ride) return;
+    const shelf = floor.near(at, ctx.getYaw());
+    if (shelf) { await floor.take(shelf.item); refresh(); return; }
     const lift = liftKg(R, pl.vitals.strength), near = thingsNear(at.x, at.z, PICK_REACH_M);
     const t = near.find((x) => physOf(R, x.item).kg <= lift) || near[0];
     if (!t) { notify("Nothing within reach to pick up. Things on the ground have a yellow ring."); return; }
@@ -2254,7 +2674,7 @@ diffuseColor.rgb *= kbCloth;`);
       notify(`The ${v.route} leaves ${ctx.areaName?.() || "the city"} after this stop. ${BOUNDARY_MESSAGE}`);
       return;
     }
-    const r = await send("board", { kind: v.model, vehicle: v.id });
+    const r = await send("board", { kind: v.model, vehicle: v.id, ...(taxi.lift && v.id === taxi.id ? { lift: true } : {}) });
     if (!r.ok) { notify(r.error); return; }
     transit.ride = { kind: v.model, vehicle: v.id, seen: performance.now(), km: 0, x: v.x, z: v.z, route: String(v.id).startsWith("bus:") ? v.route : null, from: v.stop ?? null, stop: false };
     if (v.id === taxi.id) taxiToDestination();
@@ -2277,6 +2697,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (!ride) return;
     transit.ride = null;
     const r = await send("alight", { km: ride.km });
+    // A lift someone gave you (a favour): no fare, and they go on with their day.
+    if (r.ok && r.kind === "lift") { why = `${String(r.by || "They").split(" ")[0]} drops you off: no fare.`; taxi.lift = null; favours.finish(); }
     ctx.avatarVisible(true);
     const p = me(), yaw = v?.yaw ?? ride.yaw ?? 0;
     // Out onto the pavement: at the stop's pole where it is on the door side, else off the door
@@ -2574,19 +2996,12 @@ diffuseColor.rgb *= kbCloth;`);
       // Any other shop: fitted to its trade (store-room.mjs), its door where the building's is.
       const door=place.door && local(place.door.x,place.door.z);
       const doorX=door && Math.abs(door.u)<.6 && Math.abs(door.v)<W/2-.6 ? door.v : 0;
-      F.store=planStore({width:W,depth:D,doorX},place.shops?.[0] || "shop");
+      F.store=planStore({width:W,depth:D,doorX,name:view.bizAt?.(place.id)?.name || place.name || ""},place.shops?.[0] || "shop");
     }
     return F;
   }
   //: The checkout panel's face: what it is and what to do, at the panel's own shape (0.8 x 0.5 m).
-  function panelTexture() {
-    const c = doc.createElement("canvas"); c.width = 512; c.height = 320;
-    const g = c.getContext("2d"); g.fillStyle = "#1f6feb"; g.fillRect(0, 0, 512, 320);
-    g.fillStyle = "#ffffff"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "700 112px system-ui,sans-serif"; g.fillText("SHOP", 256, 128);
-    g.font = "500 40px system-ui,sans-serif"; g.fillText("click: wares, prices, checkout", 256, 236);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace || t.colorSpace; return t;
-  }
+
   function signTexture(text, bg = "#1d2a33", fg = "#f6f1e7") {
     const c = doc.createElement("canvas"); c.width = 512; c.height = 96;
     const g = c.getContext("2d"); g.fillStyle = bg; g.fillRect(0, 0, 512, 96);
@@ -2651,6 +3066,9 @@ diffuseColor.rgb *= kbCloth;`);
     // The room fitted to its trade (store-room.mjs): the till by the door, the walls and the floor
     // as such a shop has them, the stock room behind. (Before, a counter straight across.)
     if (F.store) g.add(storeFixtures(THREE, F.store, { seed: hash32(String(place.id), "store"), tint }));
+    // A supermarket's shelves stocked with what it sells, each product where its aisle is and
+    // faced the way a store faces it (shelf-stock.mjs), its strip lights over the aisles.
+    if (F.store?.shelves?.length) stockRoom(g, place, F.store);
     else {
       const counter = new THREE.Mesh(box(F.L.width * 2, 1.0, 0.62, 0.5), lambert({ color: tint }));
       counter.position.z = F.L.counter; counter.rotation.y = 0; g.add(counter);
@@ -2718,17 +3136,66 @@ diffuseColor.rgb *= kbCloth;`);
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(F.W - 0.4, 3.2), 0.6), new THREE.MeshBasicMaterial({ map: signTexture(stores[0]?.name || place.name || "Shop"), side: THREE.DoubleSide }));
     sign.position.set(0, 2.55, Math.min(F.D - 0.05, shelfZ + 0.18)); sign.rotation.y = Math.PI; g.add(sign);
     for (const lx0 of [-F.W / 4, F.W / 4]) { const lamp = new THREE.Mesh(box(0.9, 0.05, 0.25, 3.15, lx0), flat(0xfffbe8)); lamp.position.z = F.D / 2; g.add(lamp); }
-    // Beside the door, on a stretch of solid wall (not the window): the shop's checkout panel.
-    // Clicked, it opens the shop's wares, prices and the basket.
-    const side0 = Math.min(F.W / 2 - 0.5, 1.25);
-    const pier = new THREE.Mesh(box(0.9, 3.2, 0.14, 1.6), flat(0xd8d0c2)); pier.position.set(side0, 0, 0.07); g.add(pier);
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshBasicMaterial({ map: panelTexture(), side: THREE.FrontSide }));
-    panel.position.set(side0, 1.8, 0.152); panel.name = "city-shop-panel"; panel.userData.cityShopPanel = true; g.add(panel);
-    // Its frame (box y is the centre), just behind the panel's face, on the pier's.
-    const frame = new THREE.Mesh(box(0.88, 0.58, 0.01, 1.8), flat(0x24292e)); frame.position.set(side0, 0, 0.145); g.add(frame);
-    g.userData.panel = panel;
+    // (No checkout panel by the door any more: you buy from whoever serves at the till -- clerk.mjs.)
     return g;
   }
+  //: The products on a fitted room's shelves: each sold item with a model, as one instanced mesh
+  //: of its lowest tier (a few hundred triangles: thousands are faced), as many as fit its stretches
+  //: -- a player's business only what it has in stock. The models are the kit's, shared: they
+  //: are marked so leaving the shop does not dispose them.
+  let aisles = null;
+  function stockRoom(g, place, plan) {
+    if (!kit) return;
+    aisles ||= aisleMap(R);
+    const sells = storesAt(R, place.keys).flatMap((st) => st.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service && !R.items[id].parcel);
+    const sizeOf = (id) => itemSize(OBJ, R, id);
+    const placed = stockShelves(plan, sectionsFor(plan, sells, aisles.aisleOf, (id) => Boolean(sizeOf(id))), sizeOf, (id) => aisles.displayOf[id]);
+    const biz = view?.bizAt?.(place.id);
+    for (const [id, list] of placed) {
+      const have = biz ? Math.min(list.length, biz.stock?.[id] || 0) : list.length;
+      if (have <= 0) continue;
+      kit.instanced(id, have, "low").then((stock) => {
+        if (!stock || !g.parent) return;
+        for (let k = 0; k < have; k += 1) {
+          const q = list[k];
+          E.set(0, q.yaw, 0); Q.setFromEuler(E);
+          M.compose(V.set(q.x, q.y, q.z), Q, S3.set(1, 1, 1)); stock.set(k, M);
+        }
+        stock.count(have);
+        stock.group.userData.shared = true;
+        g.add(stock.group);
+        if (shop.room === g) floor.stocked(id, stock, list, have, g);
+      }).catch(() => {});
+    }
+    // Strip lights down each aisle and the hanging signs: drawn by storeFixtures (signs).
+  }
+  //: The same for a fitted store (Codex's retail engine, inferred-interiors/retail-fixtures.mjs):
+  //: each fixture's shelves, in its own frame, stocked from the grocery's range for the engine's
+  //: section -- each fixture starting at its own place in the list, so no two bins are alike.
+  const ENGINE_AISLES = { produce: ["produce"], dairy: ["dairy"], meat_and_deli: ["meat_seafood"], frozen: ["frozen"], drinks: ["drinks"], beverages: ["drinks"], bakery: ["bakery"], pantry: ["pantry", "condiments", "spices"], cereal_and_snacks: ["breakfast", "snacks"], household: ["household", "personal_care", "pets"], snacks: ["snacks", "checkout"], checkout: ["checkout"] };
+  if (kit) globalThis.kerbsideStockShelf = (parent, shelves, { section = "pantry", id = "" } = {}) => {
+    aisles ||= aisleMap(R);
+    // (What the shop being drawn sells, where it is one of the city's; a grocery's range otherwise.)
+    const at = parent.updateWorldMatrix && (parent.updateWorldMatrix(true, false), parent.matrixWorld.elements);
+    const owner = at && (district.places || []).find((pl) => pl.shops?.length && Math.hypot(pl.x - at[12], pl.z - at[14]) < 40 && storesAt(R, pl.keys).length);
+    const own = owner ? storesAt(R, owner.keys).flatMap((st) => st.items).filter((x) => R.items[x] && !R.items[x].service && !R.items[x].parcel) : [];
+    const range = own.length ? own : R.stores.kinds.grocery?.items || [], sizeOf = (x) => itemSize(OBJ, R, x);
+    let ids = range.filter((x) => (ENGINE_AISLES[section] || ["pantry"]).includes(aisles.aisleOf[x]) && sizeOf(x));
+    if (!ids.length) return false;
+    const turn = hash32(String(id), "stock") % ids.length;
+    ids = [...ids.slice(turn), ...ids.slice(0, turn)];
+    const placed = stockShelves({ shelves }, { [section]: ids }, sizeOf, (x) => aisles.displayOf[x], { cap: 360 });
+    for (const [sku, list] of placed) kit.instanced(sku, list.length, "low").then((stock) => {
+      if (!stock || !parent.parent) return;
+      list.forEach((q, k) => { E.set(0, q.yaw, 0); Q.setFromEuler(E); M.compose(V.set(q.x, q.y, q.z), Q, S3.set(1, 1, 1)); stock.set(k, M); });
+      stock.count(list.length); stock.group.userData.shared = true; parent.add(stock.group);
+      fittedDrawn.push({ sku, stock, list, have: list.length, obj: parent });
+      if (fittedDrawn.length > 4000) fittedDrawn.splice(0, fittedDrawn.length - 4000);
+      if (floor.active() && !shop.place) floor.stocked(sku, stock, list, list.length, parent);
+    }).catch(() => {});
+    return placed.size > 0;
+  };
+  globalThis.kerbsideTill = (obj, o) => { fittedDrawn.push({ obj, till: o }); if (floor.active() && !shop.place) floor.till(obj, o); };
   //: Into the shop beside you: through its door, into the room, the counter in front of you.
   //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
   //: shop's room, or its counter where it has none; false where no shop of the city's is there.
@@ -2747,10 +3214,11 @@ diffuseColor.rgb *= kbCloth;`);
     // A shop whose building has its interior fitted (the Interior Studio's, or the one inferred for
     // its trade and its space) is walked into as that interior; its staff, at work, get the room
     // their tasks are laid out in.
-    if (!asStaff && !isMyWorkplace(place) && ctx.enterFittedShop?.(place.id)) { notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. Buy from the action bar; walk out through the door to leave.`); refresh(); return true; }
+    if (!asStaff && !isMyWorkplace(place) && ctx.enterFittedShop?.(place.id)) { notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. Walk up to whoever is serving and they'll ask what you want; click a chair to sit. Walk out through the door to leave.`); refresh(); return true; }
     shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place) || view.bizAt(place.id)?.owner === self()?.account;
     if(F.restaurant) (district.placeById?.get(place.id) || place).diningFrame=F;
     shop.room = buildRoom(place, F); group.add(shop.room);
+    if (F.store && !shop.staff) floor.room(place, F, F.store, shop.room);
     ctx.setFloor?.(F.y);
     shop.was = Boolean(ctx.isFirstPerson?.());
     ctx.firstPerson?.(true);
@@ -2758,17 +3226,24 @@ diffuseColor.rgb *= kbCloth;`);
     const start = F.restaurant || F.store ? F.at(.6,(F.restaurant || F.store).doorX) : F.at(Math.max(0.9, Math.min(1.9, F.L.counter - 0.7)), 0);
     ctx.placeAvatar(start.x, F.y, start.z, Math.atan2(-F.I.nx, -F.I.nz));
     ctx.setPitch?.(-0.06);
-    if(F.restaurant) notify("Use the checkout at the counter. Walk back through the entrance to leave.");
-    else notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. To buy, click the blue SHOP panel beside the door (behind you)${shop.staff ? "; V for your task" : ""}. Enter at the door, or walking out, leaves.`);
+    if(F.restaurant) notify(shop.staff ? "Your shift: V for your task. Walk back through the entrance to leave." : "Walk up to the counter and you'll be asked what you'd like; click a chair to sit. Walk back through the entrance to leave.");
+    else notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. ${shop.staff ? "V for your task." : "Walk up to the till and you'll be asked what you're after."} Enter at the door, or walking out, leaves.`);
     refresh();
     return true;
   }
   function leaveShop(quiet = false) {
     if (!shop.place) return;
+    standUp(); hideClerk(); shopWin?.close();
+    floor.close();
     const F = shop.frame;
     delete (district.placeById?.get(shop.place.id) || shop.place).diningFrame;
     shop.room?.removeFromParent();
-    shop.room?.traverse((o) => { o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); } });
+    shop.room?.traverse((o) => {
+      // The kit's models are shared with every other shop and the street: only the shelf's own
+      // instance buffers go.
+      if (o.userData?.shared || o.parent?.userData?.shared) { if (o.isInstancedMesh) o.dispose?.(); return; }
+      o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); }
+    });
     shop.place = null; shop.room = null; shop.frame = null;
     ctx.setFloor?.(null);
     if (!shop.was) ctx.firstPerson?.(false);
@@ -2844,8 +3319,8 @@ diffuseColor.rgb *= kbCloth;`);
     }
     if(F.store){
       // Behind the till (its staff side), and the stock room (or the back of the floor).
-      const s=F.store, till=s.fixtures.find(f=>f.role==="till"||f.role==="bar");
-      const counter=till ? (till.side ? F.at(till.z,till.x+till.side*.75) : F.at(till.z+.7,till.x)) : F.at(1.5,0);
+      const s=F.store, till=s.fixtures.find(f=>f.role==="till"||f.role==="bar"), lane=s.fixtures.find(f=>f.role==="checkout");
+      const counter=lane ? (({cashier:c})=>F.at(c.z,c.x))(lanePoints(lane)) : till ? (till.side ? F.at(till.z,till.x+till.side*.75) : F.at(till.z+.7,till.x)) : F.at(1.5,0);
       const part=s.fixtures.find(f=>f.role==="partition");
       return {counter,back:part?F.at(Math.min(s.depth-.5,part.z+1.1),part.door):F.at(s.floorEnd-1.2,0),kerb:F.at(-1.4,s.doorX)};
     }
@@ -3755,6 +4230,7 @@ diffuseColor.rgb *= kbCloth;`);
   function actionsHere() {
     const p = self(), here = me(), out = [];
     if (!p) return [];
+    if (cycle.active) return [{ id: "bike", label: "Get off your bicycle", key: "B", run: dismountBicycle }];
     if (car.active) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (car.riding) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (transit.ride) {
@@ -3768,9 +4244,10 @@ diffuseColor.rgb *= kbCloth;`);
     if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
     const bay = shop.place || nearestPlace(undefined, R.jobs.workplace_reach_m, district.workshops || []);
     if (bay && isWorkshop(R, bay, view.bizAt(bay.id))) out.push({ id: "repair-bay", label: "Repair shop · service desk", key: "", run: () => workshop().open(bay) });
+    out.push(...favours.actions());
     if (shop.place) {
       if(shop.frame?.restaurant && shop.staff) out.push(...kitchen().actions(p,here));
-      out.push({ id: "shop", label: "Buy: the shop panel by the door", key: "", run: () => openStore(shop.place) });
+      out.push(...floor.actions(here, ctx.getYaw(), gameHour()));
       if (p.hands) out.push(...handActions(p));
       out.push({ id: "leave", label: "Leave by the door", key: "Enter", run: () => leaveShop() });
       return out;
@@ -3778,7 +4255,7 @@ diffuseColor.rgb *= kbCloth;`);
     // Inside a shop's fitted interior (enterShop): buying is from here, and the kitchen to its staff.
     const fittedId = ctx.insideFitted?.(), fitted = fittedId && (district.placeById?.get(fittedId) || district.placeById?.get(Number(fittedId)));
     if (fitted && storesAt(R, fitted.keys).length) {
-      out.push({ id: "shop", label: `Buy: ${storesAt(R, fitted.keys).map((s) => s.name).join(", ")}`, key: "", run: () => openStore(fitted) });
+      out.push(...floor.actions(here, ctx.getYaw(), gameHour()));
       if (view?.kitchenKind?.(fitted) && (isMyWorkplace(fitted) || view.bizAt(fitted.id)?.owner === self()?.account)) out.push(...kitchen().actions(p, here));
       return out;
     }
@@ -3793,6 +4270,7 @@ diffuseColor.rgb *= kbCloth;`);
     }
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
     if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "Enter", run: toggleCar });
+    if (ownsBicycle()) out.push({ id: "bike", label: "Ride your bicycle", key: "B", run: mountBicycle });
     // The bus on Enter, taxis on T: never the same key for both.
     const bus = nearestFare("bus");
     if (bus) out.push({ id: "bus", label: String(bus.id).startsWith("bus:") ? `Board the ${bus.route} to ${bus.nextName || "…"} ${R.fmt(R.transit.bus_fare)}${bus.leaves > 0 ? ` (leaves in ${Math.ceil(bus.leaves)} s)` : ""}` : `Board the bus ${R.fmt(R.transit.bus_fare)}`, key: "Enter", run: () => board(bus) });
@@ -3824,11 +4302,14 @@ diffuseColor.rgb *= kbCloth;`);
   function enterKey({ map = false } = {}) {
     if (map) { const door = myGarageHere(); return door ? (garageKey(door), true) : false; }
     if (!self()) return false;
+    if (cycle.active) { dismountBicycle(); return true; }
     if (car.active || car.riding) { toggleCar(); return true; }
     if (transit.ride) {
       if (transit.ride.route) requestStop(); else alight();
       return true;
     }
+    const till = floor.active() ? floor.actions(me(), ctx.getYaw(), gameHour()).find((a) => a.id === "pay") : null;
+    if (till) { till.run().then(() => refresh()); return true; }
     if (shop.place) {
       const at = shop.frame.local(me().x, me().z);
       if (at.u < 2.2) { leaveShop(); return true; }
@@ -3948,7 +4429,8 @@ diffuseColor.rgb *= kbCloth;`);
   //: A click in the game: the shop's checkout panel, a resident to talk to, another player. Never a swing.
   function click(ray) {
     if (!self()) return;
-    if (shop.room?.userData.panel && ray?.intersectObject(shop.room.userData.panel, false).length) { openStore(shop.place); return; }
+    // A chair, a stool or a booth in a shop or a restaurant: sit down on it.
+    if (ray && (shop.room || ctx.insideFitted?.())) { const seat = seatClicked(ray); if (seat) { sitAt(seat); return; } }
     // One of the city's people clicked while the messages are open: a conversation with them.
     if (ray && messages().isOpen() && talkToClicked(ray)) return;
     // Another player clicked: who they are in the messages, to add as a friend or write to.
@@ -4056,7 +4538,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: only tracked or drawn low, when it is next placed), and how many were drawn at each tier.
   let detailNow = null;
   const personTiers = new Map(), carTiers = new Map(), focusVelocity = velocityTracker();
-  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 }, figures: 0 };
+  const drawnTiers = { people: [0, 0, 0], cars: [0, 0, 0], tracked: { people: 0, cars: 0 }, figures: 0, clumps: null };
   //: Someone tracked only is placed again about once a second (each at its own moment, so the
   //: crowd's are spread over the frames): often enough to come into range on time at a walk, or
   //: in a car at the speed limit, before the low ring's edge (DETAIL_RINGS) is reached.
@@ -4108,7 +4590,7 @@ diffuseColor.rgb *= kbCloth;`);
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
-    if (online.state === "online" && performance.now() - online.lastSync > SYNC_MS) { syncCity().then(ensureJoined); }
+    if (online.state === "online" && syncDue(performance.now())) { syncCity().then(ensureJoined); }
 
     const dt = Math.min(0.25, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (car.riding) ride();
@@ -4160,8 +4642,9 @@ diffuseColor.rgb *= kbCloth;`);
       // nearest first, as many as are drawn.
       if (residentBikes.length > MAX_BIKES - bikes.length) residentBikes.sort((a, b) => ((a.x - focus.x) ** 2 + (a.z - focus.z) ** 2) - ((b.x - focus.x) ** 2 + (b.z - focus.z) ** 2));
       bikes = [...bikes.filter((b) => !b.resident), ...residentBikes.slice(0, Math.max(0, MAX_BIKES - bikes.length))];
+      if (cycle.active && cycle.entry) bikes.push(cycle.entry);   // (yours, ridden)
       lightSignals(t / 1000, now);
-      drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now);
+      drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now, focus);
       drawBikes();
       drawCars(wheels(), lastNight);
       drawThings(now);
@@ -4169,9 +4652,9 @@ diffuseColor.rgb *= kbCloth;`);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
     if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
-    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt);
+    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
     if (now - lastRefresh > 500) {
-      lastRefresh = now; syncHomeEditor(); drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages();
+      lastRefresh = now; syncHomeEditor(); drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages(); clerkCheck();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
       drawGoal(); checkSightseeing();
       if (district.places.length) listings();
@@ -4204,7 +4687,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: a day's through traffic in a 72-minute day is twenty times what the streets carry). At
   //: this the Marina has some 120 cars moving round you, half of them at any moment, at 3 m/s
   //: and more; with all of them, 640, one in five moving (measured on the real streets).
-  const THROUGH_DRIVEN = 0.14;
+  const THROUGH_DRIVEN = 0.1;
   const wetStyles = new Map();
   //: Raining now (environment-runtime.mjs): drivers near you slow down and leave more room, and
   //: nobody near you takes a break outside.
@@ -4305,8 +4788,29 @@ diffuseColor.rgb *= kbCloth;`);
   const CLEAR_M = 0.62;
   const strides = strideBodies();
   let stridesSwept = 0;
+  //: (The squares and the list of who is near, kept between frames and emptied, not made again:
+  //: a map and a list a square every frame were 15 MB a second of garbage, 2026-11-20.)
+  const apartCells = new Map(), apartNear = [];
+  //: Looking ahead (npc-steer.mjs swerveAhead): who stood within three metres of ``e`` last frame
+  //: (keepApart's squares, still as they were until it runs again); where a step aside may go.
+  const aheadNear = [], swerved = new Map();
+  let swerveFrom = null, favourWalk = null, favourDt = 0;
+  const swerveFree = (x, z) => !(ctx.roadAt?.(x, z) && !ctx.roadAt?.(swerveFrom.x, swerveFrom.z)) && !district.city?.footprintAt?.(x, z);
+  const holdFavoured = () => { if (favourWalk) district.city?.holdWalk(favourWalk.key, favourDt, true); };
+  function aheadOf(e) {
+    aheadNear.length = 0;
+    const cx = Math.floor(e.x), cz = Math.floor(e.z);
+    for (let ix = cx - 3; ix <= cx + 3; ix += 1) for (let iz = cz - 3; iz <= cz + 3; iz += 1) {
+      const list = apartCells.get((ix + 1048576) * 2097152 + iz + 1048576);
+      if (list) for (let k = 0; k < list.length; k += 1) if (list[k].id !== e.id) aheadNear.push(list[k]);
+    }
+    return aheadNear;
+  }
   function keepApart(people, you, dt) {
-    const cells = new Map(), near = [];
+    const cells = apartCells, near = apartNear;
+    for (const list of cells.values()) list.length = 0;
+    if (cells.size > 20000) cells.clear();
+    near.length = 0;
     for (const e of people) {
       if (e._ax) { e.x -= e._ax; e.z -= e._az; e._ax = e._az = 0; }
       if (e.down || e.indoors || e.through || e.ride) continue;
@@ -4361,11 +4865,92 @@ diffuseColor.rgb *= kbCloth;`);
     }
     if (aside.size > 4000) aside.clear();
   }
-  function glide(e, now, dt, top, snap) {
+  //: No more than CLUMP_MOST people within CLUMP_M of one another for longer than CLUMP_S, but a
+  //: household out together: past that, the rest (by their ids) let the group go -- one walking
+  //: slows to let it get ahead, one stood waiting stands back from it, a pace or two, and keeps
+  //: there till there is room. (Twenty and more stood at a corner pushing to stand apart, a wall
+  //: across the pavement, 2026-11-21.)
+  const CLUMP_M = 1.5, CLUMP_MOST = 6, CLUMP_S = 5, CLUMP_BACK_M = 2.5, CLUMP_SLOW = 0.6, CLUMP_KEEP_S = 20;
+  const clumpSince = new Map(), clumpBack = new Map(), clumpCells = new Map(), clumpNear = [];
+  const clumps = { over: 0, slowed: 0, stoodBack: 0, most: 0 };
+  function spreadClumps(people, c, now, dt) {
+    const cells = clumpCells, near = clumpNear;
+    for (const list of cells.values()) list.length = 0;
+    if (cells.size > 20000) cells.clear();
+    near.length = 0;
+    clumps.over = clumps.slowed = clumps.stoodBack = clumps.most = 0;
+    for (const e of people) {
+      if (e._bx) { e.x -= e._bx; e.z -= e._bz; e._bx = e._bz = 0; }
+      if (e.down || e.indoors || e.through || e.ride || e.lift) continue;
+      near.push(e);
+      const key = (Math.floor(e.x / CLUMP_M) + 1048576) * 2097152 + Math.floor(e.z / CLUMP_M) + 1048576;
+      let list = cells.get(key); if (!list) cells.set(key, list = []);
+      list.push(e);
+    }
+    const r2 = CLUMP_M * CLUMP_M;
+    for (const e of near) {
+      const hh = e.person?.hh, mine = hash32(e.id, "clump");
+      let n = 0, below = 0;
+      const cx = Math.floor(e.x / CLUMP_M), cz = Math.floor(e.z / CLUMP_M);
+      for (let ix = cx - 1; ix <= cx + 1; ix += 1) for (let iz = cz - 1; iz <= cz + 1; iz += 1) {
+        const list = cells.get((ix + 1048576) * 2097152 + iz + 1048576);
+        if (list) for (let oi = 0; oi < list.length; oi += 1) {
+          const o = list[oi];
+          if (o === e || (hh && o.person?.hh === hh)) continue;   // their own household: together
+          const dx = o.x - e.x, dz = o.z - e.z;
+          if (dx * dx + dz * dz > r2) continue;
+          n += 1;
+          if (hash32(o.id, "clump") < mine) below += 1;
+        }
+      }
+      clumps.most = Math.max(clumps.most, n + 1);
+      let since = clumpSince.get(e.id);
+      if (n + 1 > CLUMP_MOST) { if (since === undefined) clumpSince.set(e.id, since = now); }
+      else if (since !== undefined) { clumpSince.delete(e.id); since = undefined; }
+      const extra = since !== undefined && now - since > CLUMP_S * 1000 && below >= CLUMP_MOST;
+      if (extra) clumps.over += 1;
+      // A walker who is one too many slows and lets the group get ahead.
+      if (extra && e.moving && e.walk) { c.holdWalk(e.walk.key, Math.min(dt, 0.25) * CLUMP_SLOW, true); clumps.slowed += 1; }
+      // One stood (waiting, at the kerb or anywhere) stands back from it; low-tier entries are
+      // kept from frame to frame, so the step back is undone first, as keepApart's is.
+      // (Kept back a while once stood back, or the group is under the most again, they step
+      // in, it is over again, and they go back and forth.)
+      let b = clumpBack.get(e.id);
+      if (extra && !e.moving) { if (!b) clumpBack.set(e.id, b = { off: 0, until: 0 }); b.until = now + CLUMP_KEEP_S * 1000; }
+      if (!b) continue;
+      const want = !e.moving && now < b.until ? CLUMP_BACK_M : 0;
+      b.off += Math.sign(want - b.off) * Math.min(Math.abs(want - b.off), dt * 1.1);
+      if (b.off < 0.01 && want === 0) { clumpBack.delete(e.id); continue; }
+      const off = b.off;
+      const bx = Math.sin(e.yaw || 0) * off, bz = Math.cos(e.yaw || 0) * off;
+      // Not back into the road or a wall: as far as there is pavement.
+      let k = 1;
+      if ((ctx.roadAt?.(e.x + bx, e.z + bz) && !ctx.roadAt?.(e.x, e.z)) || c.footprintAt?.(e.x + bx, e.z + bz)) k = 0;
+      if (k) { e.x += bx; e.z += bz; e._bx = bx; e._bz = bz; clumps.stoodBack += 1; }
+    }
+    if (clumpSince.size > 4000) for (const [id, t] of clumpSince) if (now - t > 60_000) clumpSince.delete(id);
+    if (clumpBack.size > 4000) clumpBack.clear();
+  }
+  //: How far behind the place they are drawn a walker's true place may be and still be waited for (m).
+  const BACK_HOLD_M = 4;
+  function glide(e, now, dt, top, snap, face = false, noBack = false) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
-      const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * Math.max(dt, 1 / 120) + 0.02;
-      if (d > max && d < snap) { e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max; }
+      // (Allowed the time since it was last placed, not one frame's: those drawn low are placed
+      // only every few frames, and a frame's worth each time left them tens of metres behind where
+      // they were, catching up whichever way that lay -- walking backwards, 2026-11-21.)
+      const span = Math.max(dt, (now - g.t) / 1000, 1 / 120);
+      const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * span + 0.02;
+      // Never back the way they came: one whose place by their day is a little behind where
+      // they are drawn (they were carried on between looks, or held a moment at a kerb) stands
+      // where they are until their day has caught up with them. Nobody is pulled backwards.
+      if (noBack && e.moving && !e.gesture && d > 0.03 && d < BACK_HOLD_M && dx * -Math.sin(e.yaw) + dz * -Math.cos(e.yaw) < -0.02) {
+        e.x = g.x; e.z = g.z;
+      } else if (d > max && d < snap) {
+        e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max;
+        // Catching up, they face the way they go (``face``: those with no stride body to turn).
+        if (face && e.moving) e.yaw = Math.atan2(-dx, -dz);
+      }
     }
     if (g) { g.x = e.x; g.z = e.z; g.t = now; } else glided.set(e.id, { x: e.x, z: e.z, t: now });
   }
@@ -4388,15 +4973,26 @@ diffuseColor.rgb *= kbCloth;`);
   //: A car held by people on foot this long has the next gap; a walker who has waited this long goes.
   const CAR_TURN_S = 6, WALKER_PATIENCE_S = 18;
   const kerbTraffic = { at: -1, list: [] };
+  const crossingEnds = new WeakMap();
+  //: How far back from a crosswalk each walker waits (m, by their walk): a step short of it, or a
+  //: pace or few back, so those waiting stand one behind another and not all at the kerb's edge.
+  const KERB_BACK_M = [1.2, 0.5, 5];
+  const kerbBack = (walk) => KERB_BACK_M[0] + KERB_BACK_M[1] * (hash32(walk.key) % KERB_BACK_M[2]);
   function waitsAtKerb(walk, tsec) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
     const waited = district.city?.walkLags.get(walk.key)?.lag || 0;
+    const back = kerbBack(walk);
     for (const cr of list) {
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
-      if (before < -0.05 || before > 1.2) continue;   // on it already: on over
+      if (before < -0.05 || before > back) continue;   // on it already: on over
       if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
-      const a = alongRoute(walk.pave, cr.s0), b = alongRoute(walk.pave, cr.s1);
+      // (The crossing's two ends, kept on it: they were worked out again for every walker near a
+      // kerb every frame -- 10 MB a second of garbage, 2026-11-20.)
+      let ends = crossingEnds.get(cr);
+      if (!ends || ends.pave !== walk.pave || ends.s0 !== cr.s0 || ends.s1 !== cr.s1)
+        crossingEnds.set(cr, ends = { pave: walk.pave, s0: cr.s0, s1: cr.s1, a: alongRoute(walk.pave, cr.s0), b: alongRoute(walk.pave, cr.s1) });
+      const a = ends.a, b = ends.b;
       const len = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / len, uz = (b.z - a.z) / len, mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
       // (Every vehicle a walker at a kerb looks for, listed once a frame: the list was made
       // again for every crossing of every walker.)
@@ -4410,7 +5006,7 @@ diffuseColor.rgb *= kbCloth;`);
       }
       for (const v of kerbTraffic.list) {
         if (v.parked || Math.abs(v.x - mx) > 60 || Math.abs(v.z - mz) > 60) continue;
-        const [, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
+        const vl = (VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan)[2];   // (read by index: destructuring made an iterator a car a look)
         const sp = v.speed || 0;
         // (A car stood waiting for someone on foot is not waited for in turn: it had been -- the
         // walker at the kerb for the car, the car for the walker, and the street behind it.)
@@ -4452,7 +5048,19 @@ diffuseColor.rgb *= kbCloth;`);
       const id = e.p.id, was = personTiers.get(id);
       if (was && now < was.next) {
         if (was.tier === TRACKED) { trackedPeople += 1; continue; }
-        if (was.entry) { people.push(was.entry); continue; }
+        if (was.entry) {
+          // Between looks they go on the way they were going, at their pace: left where they
+          // were last put for a tenth of a second or two and then put on, they went along in
+          // jerks, and anything that set them back a step showed as a walk backwards.
+          const q = was.entry;
+          if (q.moving && !q.down) {
+            const v = q.speed || q.person?.pace || 1.3, step = Math.min(dt, 0.1) * v;
+            q.x -= Math.sin(q.yaw) * step; q.z -= Math.cos(q.yaw) * step;
+            const g = glided.get(id);
+            if (g) { g.x = q.x; g.z = q.z; g.t = now; }
+          }
+          people.push(q); continue;
+        }
       }
       const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
       const pos = c.personAt(e.p, tt, seg, focus);
@@ -4462,8 +5070,13 @@ diffuseColor.rgb *= kbCloth;`);
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
       const entry = { id, person: e.p, ...pos, detail: tier };
+      // In the shop room you are in: walked round its aisles to a till and out (shop-floor.mjs).
+      const walkedIn = Boolean(pos.indoors && shop.frame?.store && floor.walk(entry, you, dt, gameHour()));
+      // Doing you a favour (favour-run.mjs): where the favour has them, their day kept waiting.
+      favourWalk = pos.walk; favourDt = Math.min(dt, 0.25);
+      const favoured = !walkedIn && favours.drive(entry, pos, you, dt, holdFavoured);
       // Someone you are talking with stops where they are and faces you until you are done (or walk off).
-      const held = talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
+      const held = !favoured && talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
       if (held) {
         talking.at ||= { x: pos.x, z: pos.z };
         entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = false; entry.gesture = null; entry.activity = "talking with you";
@@ -4472,7 +5085,7 @@ diffuseColor.rgb *= kbCloth;`);
       } else if (talking.id === id && (now >= talking.until || Math.hypot(pos.x - you.x, pos.z - you.z) >= 14)) { talking.id = null; talking.at = null; }
       if (pos.through && Math.abs(pos.x - you.x) < 60 && Math.abs(pos.z - you.z) < 60 && !(nudged.get(entry.id) > now - 2500)) { nudged.set(entry.id, now); ctx.nudgeDoor?.(pos.x, pos.z); }
       // Stepping round you: a walker who would walk into you goes by a pace to the side.
-      if (pos.moving && !car.active && !held) {
+      if (pos.moving && !car.active && !held && !favoured && !walkedIn) {
         const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw), dx = you.x - pos.x, dz = you.z - pos.z;
         const ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
         let want = 0;
@@ -4480,10 +5093,18 @@ diffuseColor.rgb *= kbCloth;`);
         const was = dodge.get(entry.id) || 0, now2 = was + (want - was) * Math.min(1, dt * 4);
         if (Math.abs(now2) > 0.01) { dodge.set(entry.id, now2); entry.x += fz * now2; entry.z -= fx * now2; } else dodge.delete(entry.id);
       }
+      // Looking ahead (npc-steer.mjs): round someone standing in their way, the side chosen and the
+      // step begun before they get there, not when they bump.
+      if (pos.moving && !held && !favoured && !pos.indoors && !pos.through && !pos.down && tier !== LOW) {
+        swerveFrom = entry;
+        const want = swerveAhead(entry.x, entry.z, pos.yaw, aheadOf(entry), { free: swerveFree, look: 3.2 });
+        const was0 = swerved.get(id) || 0, s2 = was0 + (want - was0) * Math.min(1, dt * 3);
+        if (Math.abs(s2) > 0.01) { swerved.set(id, s2); entry.x += Math.cos(pos.yaw) * s2; entry.z -= Math.sin(pos.yaw) * s2; } else if (was0) swerved.delete(id);
+      }
       // Their own mind (temperament.mjs), near you only: clear of a car that is not stopping,
       // and what they make of a crash or a fight.
       let busy = false;
-      if (tier !== LOW && !pos.indoors && !pos.down && !held && !flings.has(id)) {
+      if (tier !== LOW && !pos.indoors && !pos.down && !held && !favoured && !flings.has(id)) {
         const mind = temperamentOf(e.p);
         let sc = scares.get(id);
         if (!sc || now > sc.until) {
@@ -4561,7 +5182,7 @@ diffuseColor.rgb *= kbCloth;`);
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else {
-        glide(entry, now, dt, 3.2, 60);
+        glide(entry, now, dt, 3.2, 60, tier === LOW, true);
         // (Nobody walks backwards: see strides below, once everyone has stepped apart.)
         // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
         if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
@@ -4570,7 +5191,21 @@ diffuseColor.rgb *= kbCloth;`);
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    // In line at a door: going the same way through it, one at a time (npc-steer.mjs).
+    let doorway = 0;
+    for (const e of people) if (e.through) doorway += 1;
+    if (doorway > 1) for (const id of doorHolds(people)) {
+      const e = people.find((x) => x.id === id);
+      if (!e) continue;
+      e.moving = false; e.activity = "waiting at the door";
+      if (e.walk) c.holdWalk(e.walk.key, Math.min(dt, 0.25), true);
+    }
     keepApart(people, you, dt);
+    spreadClumps(people, c, now, dt);
+    drawnTiers.clumps = clumps;
+    if (shop.frame?.store) floor.step({ x: you.x, z: you.z }, dt);
+    floor.frame({ x: you.x, z: you.z, yaw: ctx.getYaw() });
+    if (swerved.size > 4000) swerved.clear();
     // Nobody walks backwards or sideways (stride.mjs): each one near you is drawn on a body that
     // turns round -- on the spot when slow, round a wider turn the faster -- and steps only the way
     // it faces. (Not the low tier, placed now and then and kept from frame to frame.)
@@ -4585,6 +5220,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (reacting.size > 400) for (const [id, q] of reacting) if (now > q.until) reacting.delete(id);
     // The cars: parked where they stand; driving, on their leg.
     const sim = [], vehicles = [], legOf = new Map();
+    const parkedAt = (base, spot) => { Object.assign(base, spot); base.moving = false; base.parked = true; return base; };
     const limitAt = (model) => (cls) => {
       const law = cls === "residential" ? (view || world)?.laws?.speed_limit_kmh_residential : null;
       const top = (law ? law / 3.6 : SPEED_MS[cls || "residential"]) * (model === "bus" || model === "box_truck" ? 0.8 : 0.95);
@@ -4597,9 +5233,11 @@ diffuseColor.rgb *= kbCloth;`);
       if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
       const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
       if (h0?.out) continue;
+      // (``base`` is this frame's own record of the car, made here and drawn once: it is filled in,
+      // not copied, whichever way below it goes.)
       const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
-      if (h0?.stays) { vehicles.push({ ...base, x: h0.at.x, z: h0.at.z, yaw: h0.at.yaw || 0, moving: false, wrecked: true }); continue; }
-      if (s0.state !== "driving") { vehicles.push({ ...base, x: s0.x, z: s0.z, yaw: s0.yaw, moving: false, parked: true, lock: s0.lock || null }); continue; }
+      if (h0?.stays) { base.x = h0.at.x; base.z = h0.at.z; base.yaw = h0.at.yaw || 0; base.moving = false; base.wrecked = true; vehicles.push(base); continue; }
+      if (s0.state !== "driving") { base.x = s0.x; base.z = s0.z; base.yaw = s0.yaw; base.moving = false; base.parked = true; base.lock = s0.lock || null; vehicles.push(base); continue; }
       // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
@@ -4607,7 +5245,7 @@ diffuseColor.rgb *= kbCloth;`);
         const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tt);
         if (!round) {
           const pos = owner && c.personAt(owner, tt, undefined, focus);
-          if (pos && pos.mode === "drive") vehicles.push({ ...base, ...pos, moving: true });
+          if (pos && pos.mode === "drive") { Object.assign(base, pos).moving = true; vehicles.push(base); }
           continue;
         }
         leg = round; route = round.route; key = `${v.id}:${round.key}`;
@@ -4629,11 +5267,11 @@ diffuseColor.rgb *= kbCloth;`);
       } else {
         // At the end of its leg it is parked there, in the parking lane (and from the next pass,
         // at its spot).
-        if (lagged >= route.length - 0.5) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (lagged >= route.length - 0.5) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // Not off yet (its leg starts later than the scan saw it): parked where it starts.
-        if (lagged <= 0.05) { vehicles.push({ ...base, ...(route.startSpot || alongRoute(route, 0, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (lagged <= 0.05) { vehicles.push(parkedAt(base, route.startSpot || alongRoute(route, 0, PARK_LANE))); continue; }
         const pos = easeToSpots(route, lagged, alongRoute(route, lagged, v.bike ? BIKE_LANE : DRIVE_LANE));
-        vehicles.push({ ...base, ...pos, moving: true, speed: route.length / durS });
+        Object.assign(base, pos); base.moving = true; base.speed = route.length / durS; vehicles.push(base);
       }
     }
     // Driven by the rules: you and everyone near on foot are in the way to be braked for.
@@ -4657,10 +5295,11 @@ diffuseColor.rgb *= kbCloth;`);
         // day, or past what shut the street -- it is there at once, not slid across the map.)
         const { base } = legOf.get(r0.id), route = r0.route || legOf.get(r0.id).route;
         if (r0.jump) glided.delete(r0.id);
-        if (r0.arrived) { vehicles.push({ ...base, ...(route.endSpot || alongRoute(route, route.length, PARK_LANE)), moving: false, parked: true }); continue; }
+        if (r0.arrived) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // In its own lane (Drivers: the lane it chose, or on its way across to the next).
         const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
-        vehicles.push({ ...base, ...pos, moving: Math.abs(r0.v) > 0.2, speed: Math.abs(r0.v), braking: r0.braking, reversing: r0.reversing, reason: r0.reason, behind: r0.behind, held: r0.held || 0 });
+        Object.assign(base, pos); base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
+        vehicles.push(base);
       }
       for (const hit of step.hits) carHit(hit, people);
     }
@@ -4733,6 +5372,12 @@ diffuseColor.rgb *= kbCloth;`);
     if (q) flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
     const incident = world.npcCollision({ id: hit.id, vehicle: { id: v.id, plate: v.plate, driver: v.owner, driverName: driver?.name, x: hit.x, z: hit.z, yaw: hit.yaw }, target,
       speed: hit.speed, context: { ...hit.context, region: district.region, lonLat: ctx.toLonLat?.(hit.x, hit.z) } });
+    // A partial person in it pays their share out of their own balance (fleet.mjs billPartial):
+    // the one time their money moves.
+    for (const id of new Set([v.owner, other?.owner])) {
+      const bill = district.roster.billPartial?.(id, 380 + hit.speed * hit.speed * 9, "collision repair", fleetAt(Date.now()).day);
+      if (bill) incident.partial_bills = [...(incident.partial_bills || []), { id, ...bill }];
+    }
     console.warn("kerbside: NPC collision", incident);
     district.city.forget(v.owner); if (q) district.city.forget(q.id); if (other) district.city.forget(other.owner);
     if (Math.hypot(hit.x - me().x, hit.z - me().z) < 60) notify(`A car (${v.plate}) hit ${q?.person?.name || other?.plate || "someone"} at ${Math.round(hit.speed * MPH)} mph. Driver cited; repair and care bills recorded.`);
@@ -4840,7 +5485,7 @@ diffuseColor.rgb *= kbCloth;`);
   const KEYS = {
     g: () => pickUp(), i: () => openSide("bag"), v: () => taskKey(),
     u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
-    j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"),
+    j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"), b: () => bicycleKey(),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -5223,7 +5868,9 @@ diffuseColor.rgb *= kbCloth;`);
         return h("span", { className: "qty" }, h("button", { textContent: "−", title: "One fewer", disabled: !n, onclick: () => { cart[id] = Math.max(0, n - 1); drawSide(); } }),
           h("b", { textContent: String(n) }), h("button", { textContent: "+", title: "One more", disabled: n >= most, onclick: () => { cart[id] = Math.min(most, n + 1); drawSide(); } }));
       };
-      const rows = store0.items.filter((id) => !R.items[id].service).map((id) => {
+      // A shop you are walking round: its goods are on its shelves (shop-floor.mjs), not in a list.
+      const walkedHere = floor.active() && floor.counterItems() > 0 && String(placeInside()?.id) === String(place.id);
+      const rows = store0.items.filter((id) => !R.items[id].service && !walkedHere).map((id) => {
         const it = R.items[id], ph = physOf(R, id);
         const t1 = itemTax(R, chain, it, priceOf(id), w.laws);
         const info = `${effectText(it)}${it.service ? "" : ` · ${weightClass(R, ph.kg, p.vitals.strength)}`}`;
@@ -5243,6 +5890,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
       extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
+      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (G), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
           h("span", { className: "note", textContent: count ? `${count} in the basket · ${R.fmt(sub)} before tax` : "Choose how many with + and −." }),
@@ -5469,7 +6117,7 @@ diffuseColor.rgb *= kbCloth;`);
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
       ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing on the ground (yellow ring) you can lift: a step over to it and down for it"],
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
-      ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
+      ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"], ["B", "your bicycle (a bike shop sells them): get on; the arrows pedal, brake and steer; B or Enter to get off"],
       ["J", "the task board: courier work, flyers, dog walks, bus-stop counts, mystery shopping, the Presidio's trees, the Marina walk, neighbours' errands (the top three are in Tasks, at the top left)"],
       ["Top bar", "Inventory, the Task board, the Shop (everything, from anywhere, at twice the shop price; real estate at its price), Taxi (call one to where you stand) and these Controls; your money, health, stamina and strength at the top right (a click opens your wallet)"],
       ["H or ?", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["PageUp / PageDown", "the level above or below where you stand"]];
@@ -5748,14 +6396,16 @@ diffuseColor.rgb *= kbCloth;`);
   return {
     //: How the crowd and the traffic were drawn last frame: so many at each tier (full, moderate,
     //: low), so many only tracked, and the detail field's stretch ahead.
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, figureStats: figures.stats(),
+    //: The district's fleet (for the crowd checks from outside: the headless harness).
+    fleetNow: () => district.city,
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast,
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
@@ -5778,7 +6428,7 @@ diffuseColor.rgb *= kbCloth;`);
     },
     //: For checks from outside (tests in a browser): who is drawn near you, as placed this frame.
     peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, indoors: Boolean(e.indoors), dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
-      lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null,
+      lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null, counterPoint, seated: () => seated.on, clerkLine: () => clerk.el?.innerText || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };

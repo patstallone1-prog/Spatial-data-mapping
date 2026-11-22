@@ -120,7 +120,9 @@ export function createAvatarBuilder({ THREE, GLTFLoader, base = "/store/avatars"
     .catch((error) => { catalogue = null; throw error; }));
   const gltf = (path) => {
     if (!files.has(path)) {
-      const p = loader.loadAsync(`${root}/${path}`);
+      // (Its parser let go once loaded: kept with the file, it held the file's JSON, its buffers and
+      // its dependency cache for good -- 25 MB in City mode, 2026-11-20. Nothing reads it after.)
+      const p = loader.loadAsync(`${root}/${path}`).then((g) => { g.parser = null; return g; });
       p.catch(() => files.delete(path));
       files.set(path, p);
     }

@@ -178,6 +178,7 @@ desktop/out/
 .vercel/
 supabase/.temp/
 
-# Near-ring NPC figures: Epic content (MetaHuman, UE mannequin) built locally by
-# tools/build_npc_characters.mjs; not committed to this public repo (docs/51).
+# Near-ring people: MakeHuman builds (tools/avatars/build_crowd_people.py), published to the
+# store's crowd/ folder and read from there; a local copy for the harness is not committed (docs/55).
+/docs/city/models/crowd/
 /docs/city/models/npc/

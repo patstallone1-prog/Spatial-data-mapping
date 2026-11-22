@@ -1,0 +1,101 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Shop floor sheet</title>
+<!-- Shopping in person, by eye: a store room (store-room.mjs) stocked (shelf-stock.mjs), the world's
+     shelves (shopping.mjs) and the page's floor (shop-floor.mjs) -- you take a basket, take things
+     off the shelves (gone from them), pay at a lane; the other shoppers walk the aisles to a till
+     in line (npc-steer.mjs). ?kind=supermarket&w=22&d=20&shoppers=10&t=40 (seconds simulated)
+     &view=over|aisle|checkout. The title says what happened. -->
+<style>html,body{margin:0;height:100%;background:#222}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { objectKit } from "./objects.mjs";
+import { planStore, storeFixtures } from "./store-room.mjs";
+import { itemSize, sectionsFor, stockShelves } from "./shelf-stock.mjs";
+import { aisleMap } from "./aisles.mjs";
+import { loadRules } from "./core.mjs";
+import { CityWorld } from "./world.mjs";
+import { shopFloor } from "./shop-floor.mjs";
+const q = new URLSearchParams(location.search), num = (k, v) => +(q.get(k) ?? v);
+const O = await (await fetch("objects.json")).json(), R = loadRules(await (await fetch("rules.json")).json());
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const kit = objectKit(THREE, { loadModel: (u) => loader.loadAsync(u), asset: (p) => "../" + p }, O, R);
+const W = num("w", 22), D = num("d", 20), kind = q.get("kind") || "supermarket";
+const plan = planStore({ width: W, depth: D, doorX: num("door", 0), name: "Safeway" }, kind);
+const place = { id: "sheet:1", x: 0, z: 0, name: "Safeway", keys: ["use:retail", `shop:${kind === "supermarket" ? "grocery" : kind}`], area: W * D, lon: -122.4368, lat: 37.8003, county: "county:san-francisco" };
+const world = new CityWorld(R, { now: Date.UTC(2026, 10, 21, 19), seed: "sheet" });
+world.submit("me", "join", { name: "You", at: { x: 0, z: 0, lon: place.lon, lat: place.lat, county: place.county } });
+const F = { y: 0, I: { x: 0, z: 0, nx: 0, nz: 1 }, at: (u, v) => ({ x: v, z: u }), local: (x, z) => ({ u: z, v: x }) };
+const notes = [];
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2b2b2b);
+scene.add(new THREE.HemisphereLight(0xf4f6f8, 0x6b6157, 1.6));
+const sun = new THREE.DirectionalLight(0xfff6e8, 1.1); sun.position.set(3, 8, 2); scene.add(sun);
+const world3 = new THREE.Group(); scene.add(world3);
+const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(W, D).rotateX(-Math.PI / 2).translate(0, 0, D / 2), new THREE.MeshBasicMaterial({ color: 0xcfcabd })); world3.add(floorMesh);
+const room = storeFixtures(THREE, plan, { seed: 11, tint: 0xd9d4c6 }); world3.add(room);
+const floor = shopFloor({ THREE, R, send: async (c, a) => world.submit("me", c, a), notify: (t) => notes.push(t), getView: () => world, self: () => world.players.get("me"), kit });
+floor.room(place, F, plan, room);
+const { aisleOf, displayOf } = aisleMap(R);
+const sells = Object.values(R.stores.kinds).filter((s) => s.at?.some((a) => a === place.keys[1])).flatMap((s) => s.items).filter((id, i, all) => all.indexOf(id) === i && R.items[id] && !R.items[id].service);
+const sizeOf = (id) => itemSize(O, R, id);
+const placed = stockShelves(plan, sectionsFor(plan, sells, aisleOf, (id) => Boolean(sizeOf(id))), sizeOf, (id) => displayOf[id]);
+const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), V = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1);
+await Promise.all([...placed].map(async ([id, list]) => {
+  const stock = await kit.instanced(id, list.length, "low").catch(() => null);
+  if (!stock) return;
+  list.forEach((p, k) => { E.set(0, p.yaw, 0); Q.setFromEuler(E); stock.set(k, M.compose(V.set(p.x, p.y, p.z), Q, S)); });
+  stock.count(list.length); room.add(stock.group);
+  floor.stocked(id, stock, list, list.length, room);
+}));
+// You: a basket at the door, then three things off the first shelves you face, then the lane.
+const you = { x: plan.doorX, z: 1.0, yaw: Math.PI };
+await floor.actions(you, you.yaw, 19).find((a) => a.id === "basket")?.run();
+const st0 = floor.state();
+const taken = [];
+for (const [id, list] of placed) {
+  if (taken.length >= 3) break;
+  const p = list[0];
+  // Stand in front of it, facing it.
+  const sh = plan.shelves.find((s) => Math.hypot(s.x - p.x, s.z - p.z) < Math.max(s.len, 2));
+  if (!sh) continue;
+  const at = { x: p.x - Math.sin(sh.yaw) * (sh.deep / 2 + 0.5), z: p.z - Math.cos(sh.yaw) * (sh.deep / 2 + 0.5) }, face = sh.yaw + Math.PI;
+  const it = floor.near(at, face);
+  if (it) { const r = await floor.take(it.item); if (r.ok) taken.push(it.item.sku); }
+}
+const lane = plan.fixtures.find((f) => f.role === "checkout"), sco = plan.fixtures.find((f) => f.role === "self_checkout");
+let paid = null;
+if (lane) {
+  const shopper = { x: lane.x - lane.side * (lane.w / 2 + 0.45), z: lane.z - 0.34 * lane.len };
+  const act = floor.actions(shopper, 0, 19).find((a) => a.id === "pay");
+  paid = act ? await act.run() : null;
+  Object.assign(you, shopper, { yaw: 0 });
+}
+// The other shoppers, from the door; and two of the staff.
+const entries = Array.from({ length: num("shoppers", 10) }, (_, i) => ({ id: `npc:h${i}:0`, indoors: place.id, x: plan.doorX + ((i % 5) - 2) * 0.5, z: 0.8 + Math.floor(i / 5) * 0.5, person: { work: "elsewhere" } }))
+  .concat([0, 1].map((i) => ({ id: `npc:staff${i}:0`, indoors: place.id, x: 0, z: 3, person: { work: place.id } })));
+const T = num("t", 40);
+for (let k = 0; k < T * 30; k += 1) { for (const e of entries) floor.walk(e, you, 1 / 30, 19); floor.step(you, 1 / 30); floor.frame(you); }
+const body = new THREE.CapsuleGeometry(0.22, 1.1, 4, 8).translate(0, 0.78, 0);
+for (const e of entries) {
+  const staff = String(e.person.work) === place.id;
+  const m = new THREE.Mesh(body, new THREE.MeshLambertMaterial({ color: staff ? 0x1f7a4d : e.moving ? 0x3c6fd6 : 0xd65a3c }));
+  m.position.set(e.x, 0, e.z); world3.add(m);
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.3), m.material); nose.position.set(e.x - Math.sin(e.yaw) * 0.28, 1.45, e.z - Math.cos(e.yaw) * 0.28); world3.add(nose);
+}
+const me = new THREE.Mesh(body, new THREE.MeshLambertMaterial({ color: 0xffd23f })); me.position.set(you.x, 0, you.z); world3.add(me);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const views = { over: [0, 24, -4, 0, 0, D * 0.55], checkout: lane ? [lane.x - plan.checkoutSide * 1.2, 2.4, lane.z + 4, lane.x - plan.checkoutSide * 0.3, 0.9, lane.z - 0.8] : null };
+const v = q.get("cam") ? q.get("cam").split(",").map(Number) : views[q.get("view") || "over"] || views.over;
+const cam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 200);
+cam.position.set(v[0], v[1], v[2]); cam.lookAt(v[3], v[4], v[5]);
+await new Promise((r) => setTimeout(r, 300));
+renderer.render(scene, cam);
+const st = floor.state();
+window.__sheet = { st0, st, taken, paid: paid && { ok: paid.ok, total: paid.total, error: paid.error }, inventory: world.players.get("me").inventory, notes, labels: [...new Set(st.agents.map((a) => a.label))], onShelf: taken.map((id) => world.onShelf(place, id)) };
+document.title = `ready taken ${taken.length} paid ${paid?.ok ? R.fmt(paid.total) : "no"} lines ${st.tills.map((t) => t.line.length).join("/")}`;
+</script></body></html>

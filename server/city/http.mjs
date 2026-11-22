@@ -9,10 +9,14 @@
 //   KERBSIDE_SUPABASE_URL, KERBSIDE_SUPABASE_KEY   the project and its publishable key (the
 //                          defaults are the ones the pages already use; the tables are closed to
 //                          that key -- only the secret opens them).
+//   KERBSIDE_CITY_LIVE     "off" to stop telling the pages of each new version over the
+//                          project's Realtime (announce.mjs; on by default with the Supabase
+//                          store): they then ask every four seconds, as they did.
 import { readFileSync } from "node:fs";
 
 import { loadRules } from "../../docs/city/core.mjs";
-import { CityAuthority } from "./authority.mjs";
+import { liveInfo, realtimeAnnouncer } from "./announce.mjs";
+import { CityAuthority, WORLD_ID as WORLD } from "./authority.mjs";
 import { Canon } from "./canon.mjs";
 import { FileStore, MemoryStore, SupabaseStore } from "./storage.mjs";
 
@@ -36,7 +40,15 @@ let shared = null;
 //: The authority for this process (made once: a warm instance keeps its rules and its record).
 export function authority(env = process.env) {
   if (!env.KERBSIDE_CITY_SECRET) return null;
-  return (shared ||= new CityAuthority({ ...loadCity(), store: storeFrom(env), secret: env.KERBSIDE_CITY_SECRET, voices: Boolean(env.DEEPSEEK_API_KEY) }));
+  return (shared ||= new CityAuthority({ ...loadCity(), store: storeFrom(env), secret: env.KERBSIDE_CITY_SECRET, voices: Boolean(env.DEEPSEEK_API_KEY), ...liveFrom(env) }));
+}
+//: Where the pages hear of each new version, and how the server says it: on the Supabase
+//: project's Realtime when the world is kept there, unless KERBSIDE_CITY_LIVE is "off".
+export function liveFrom(env, worldId = undefined) {
+  const kind = env.KERBSIDE_CITY_STORE || "supabase";
+  if (kind !== "supabase" || env.KERBSIDE_CITY_LIVE === "off") return {};
+  const project = { url: env.KERBSIDE_SUPABASE_URL || SUPABASE.url, key: env.KERBSIDE_SUPABASE_KEY || SUPABASE.key };
+  return { announce: realtimeAnnouncer(project), liveInfo: liveInfo(project, worldId ?? WORLD) };
 }
 
 export const HEADERS = Object.freeze({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store",

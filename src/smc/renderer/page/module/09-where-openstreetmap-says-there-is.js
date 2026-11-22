@@ -1749,10 +1749,11 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, st
     if (inset > 0.2) {
       const walkCentre = offsetWay(stretch, lineAt(KERB_LIP_M + inset / 2));
       for (const run of pavementRunsOutsideCarriageway(walkCentre, inset)) {
-        const surface = inset <= NARROW_WALK_M ? "walk_narrow" : "walk";
+        // A kerbside walk is squares however narrow: one row of them at the least.
+        const surface = "walk";
         stampPaved(run, inset, y + thickness / 2);
         addMerged(`walk:${surface}:${(Math.round(thickness / 0.05) * 0.05).toFixed(2)}`,
-                  ribbon(run, inset, color, opacity, y, thickness, surface), surface);
+                  ribbon(side < 0 ? run.slice().reverse() : run, inset, color, opacity, y, thickness, surface), surface);
         laid += wayLength(run);
         const kerb = offsetWay(run, -side * (inset / 2 + KERB_LIP_M / 2));
         stampPaved(kerb, KERB_LIP_M, y + thickness / 2);
@@ -1905,7 +1906,7 @@ function addPropertyLinePavementUnderlay(renderPoints, side, inner, walk, color,
            offsetWay(stretch, side * (inner + width / 2)), width)) {
       stampParkPavement(run, width);
       addMerged("walk:property-underlay",
-                ribbon(run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
+                ribbon(side < 0 ? run.slice().reverse() : run, width, color, opacity, PROPERTY_LINE_PAVEMENT_Y,
                        PROPERTY_LINE_PAVEMENT_THICKNESS_M, "walk_underlay"),
                 "walk_underlay");
       laid += wayLength(run);
@@ -2317,16 +2318,16 @@ function addSidewalkCrossingReplacements(points, y) {
   return added;
 }
 
-// Four independently seeded slabs make the aggregate and broom marks change at each joint
-// instead of stamping one scored square across every sidewalk in the city.
+// Four independently seeded slabs make the aggregate change at each joint instead of stamping
+// one square across every sidewalk in the city -- the grain only: every slab is the one pour's
+// colour (a square a shade lighter than the next read as a patchwork, 2026-11-21).
 const SLAB_BLOCK = 4;
 function sidewalkSlab(variant, size, seed) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
   const grit = (n) => random(n + seed * 977);
-  const tone = 0.90 + grit(3) * 0.20;
-  const base = [0x69, 0x6d, 0x65].map((v) => Math.round(v * tone));
+  const base = [0x69, 0x6d, 0x65];
   ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
   ctx.fillRect(0, 0, size, size);
   for (let i = 0; i < size * size * 0.02; i += 1) {
@@ -2347,12 +2348,17 @@ function sidewalkSlab(variant, size, seed) {
   }
   // A curb is one long troweled pour, jointed every fifteen feet: no squares scored in it.
   if (variant === "curb") return canvas;
-  ctx.fillStyle = "rgba(58,60,56,0.20)";
-  ctx.fillRect(0, 0, size, 6); ctx.fillRect(0, 0, 6, size);
-  ctx.strokeStyle = "rgba(38,40,38,0.62)"; ctx.lineWidth = 3.0;
+  // The joint is a groove in the same concrete, not a line drawn on it: the slab's own colour
+  // in shadow down its two edges, with the far shoulder catching a little light.
   if (variant === "narrow") {
-    ctx.beginPath(); ctx.moveTo(1.5, 1.5); ctx.lineTo(size - 1.5, size - 1.5); ctx.stroke();
-  } else ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+    ctx.strokeStyle = "rgba(0,0,0,0.42)"; ctx.lineWidth = 2.0;
+    ctx.beginPath(); ctx.moveTo(1, 1); ctx.lineTo(size - 1, size - 1); ctx.stroke();
+    return canvas;
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.42)";
+  ctx.fillRect(0, 0, size, 2); ctx.fillRect(0, 0, 2, size);
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  ctx.fillRect(0, 2, size, 1); ctx.fillRect(2, 0, 1, size);
   return canvas;
 }
 function sidewalkTexture(variant = "square") {
@@ -2368,14 +2374,29 @@ function sidewalkTexture(variant = "square") {
   return texture;
 }
 
-//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), the
-//: curb its own troweled pour ("curb").
+//: The sidewalk's squares near you take the finisher's marks (NEAR_SURFACE "sidewalk"), a narrow
+//: walk the same at its own slab ("narrow-walk"), the curb its own troweled pour ("curb").
 const SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture(), "sidewalk");
-const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "concrete");
+const NARROW_SIDEWALK = NEAR_SURFACE.mark(sidewalkTexture("narrow"), "narrow-walk");
 const KERB_CONCRETE = NEAR_SURFACE.mark(sidewalkTexture("curb"), "curb");
-//: One scored square, in metres. Five feet is the usual San Francisco pour: the Marina's
-//: residential sidewalks, outside the downtown three-foot grid.
-const SLAB_M = 1.52;
+//: The walk is laid from the street: the curb's six-inch lip first (KERB_LIP_M, one strip with
+//: no joints in it, the walk's own concrete and finish), then squares over the rest from the
+//: property line. Along the walk a square is always three feet (SLAB_M). Across it the rows
+//: share the width out evenly: as many three-foot rows as fit, each stretched to fill (up to
+//: four and a half feet, WALK_ROW_MAX_M, one more row past that), so no thin part-square is
+//: left against either edge (walkRowM).
+const SLAB_M = 0.9144;
+const WALK_ROW_MAX_M = 1.3716;
+function walkRowM(width) {
+  const w = Number(width) || 0;
+  if (!(w > 0)) return SLAB_M;
+  let rows = Math.max(1, Math.floor(w / SLAB_M + 1e-6));
+  if (w / rows > WALK_ROW_MAX_M + 1e-6) rows += 1;
+  return w / rows;
+}
+//: A ribbon's v starts at its left edge, so a walk on the right of the street (side -1) is laid
+//: along its run backwards (addKerbsidePavement, the property-line underlay): on both sides the
+//: squares are counted from the property line out to the curb.
 const WALK_UV_M = SLAB_M * SLAB_BLOCK;
 const NARROW_SLAB_M = 2.75;
 const NARROW_WALK_M = 1.8;

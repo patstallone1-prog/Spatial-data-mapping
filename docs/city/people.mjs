@@ -46,11 +46,32 @@ export const WRONG_WAY_MAX_M = 40;
 export const MEDIAN_REACH_M = 45;
 export const JUNCTION_JOIN_M = 13, JUNCTION_SPAN_M = 34, JUNCTION_LINK_M = 4;
 
+//: A binary min-heap of (f, p, n) held in three parallel arrays: a push makes no tuple, a pop
+//: leaves the least in topF / topP / topN (the route searches push hundreds of thousands a second).
 class Heap {
-  constructor() { this.a = []; }
-  push(p, v) { const a = this.a; a.push([p, v]); let i = a.length - 1; while (i) { const j = (i - 1) >> 1; if (a[j][0] <= a[i][0]) break; [a[i], a[j]] = [a[j], a[i]]; i = j; } }
-  pop() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < a.length && a[l][0] < a[m][0]) m = l; if (r < a.length && a[r][0] < a[m][0]) m = r; if (m === i) break; [a[i], a[m]] = [a[m], a[i]]; i = m; } } return top; }
-  get size() { return this.a.length; }
+  constructor() { this.f = []; this.p = []; this.n = []; this.topF = 0; this.topP = 0; this.topN = 0; }
+  push(f, p, n) {
+    const F = this.f, P = this.p, N = this.n; let i = F.length;
+    F.push(f); P.push(p); N.push(n);
+    while (i) { const j = (i - 1) >> 1; if (F[j] <= f) break; F[i] = F[j]; P[i] = P[j]; N[i] = N[j]; i = j; }
+    F[i] = f; P[i] = p; N[i] = n;
+  }
+  pop() {
+    const F = this.f, P = this.p, N = this.n;
+    this.topF = F[0]; this.topP = P[0]; this.topN = N[0];
+    const f = F.pop(), p = P.pop(), n = N.pop(), len = F.length;
+    if (!len) return;
+    let i = 0;
+    for (;;) {
+      const l = 2 * i + 1, r = l + 1; let m = i, fm = f;
+      if (l < len && F[l] < fm) { m = l; fm = F[l]; }
+      if (r < len && F[r] < fm) m = r;
+      if (m === i) break;
+      F[i] = F[m]; P[i] = P[m]; N[i] = N[m]; i = m;
+    }
+    F[i] = f; P[i] = p; N[i] = n;
+  }
+  get size() { return this.f.length; }
 }
 
 //: A district's streets as a graph in page metres. ``ways`` are the region's own streets and
@@ -463,10 +484,10 @@ export class Streets {
     const keyOf = car ? (p, n) => (p + 1) * 4194304 + n : (p, n) => n;
     const k0 = keyOf(from ?? -1, a);
     const g = new Map([[k0, 0]]), came = new Map(), open = new Heap();
-    open.push(0, [from ?? -1, a]);
+    open.push(0, from ?? -1, a);
     let end = a === b ? k0 : null, visited = 0;
     while (open.size && end === null) {
-      const [f, [p, n]] = open.pop();
+      open.pop(); const f = open.topF, p = open.topP, n = open.topN;
       const key = keyOf(p, n), gn = g.get(key);
       if (n === b) { end = key; break; }
       if (++visited > (car ? 160000 : 40000)) break;
@@ -482,7 +503,7 @@ export class Streets {
         if (cost < (g.get(nk) ?? Infinity)) {
           g.set(nk, cost); came.set(nk, [key, e, n]);
           const m = this.nodes[e.to];
-          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, [n, e.to]);
+          open.push(cost + Math.hypot(m.x - goal.x, m.z - goal.z) / speed, n, e.to);
         }
       }
     }
@@ -542,11 +563,25 @@ export function LANE(half, cls = null, park = null) {
 //: for it, and it changes lanes at the block's start, never in the junction. Cars all drove in
 //: the kerb lane: on Lombard a car turned left across two lanes from the far right (2026-11-11).
 export const LANE_W = 3.2, TURN_LOOK_M = 90, TURN_MIN_DEG = 35;
+//: A one-way run shorter than this beside a two-way street keeps that street's lanes (lanePlan).
+export const ONEWAY_STUB_M = 45;
 export function lanePlan(route) {
   if (route.plan !== undefined) return route.plan;
   const { pts, s } = route;
   if (!route.lanes || pts.length < 3) return (route.plan = null);
-  const n = route.lanes.map((l, i) => (route.oneways[i] ? Math.max(1, l) : Math.max(1, Math.floor(l / 2))));
+  // A short one-way piece between two-way streets (a slip or a stub drawn through a junction) is
+  // driven as the street it joins: its lanes spread over its whole width put the second lane
+  // 5.6 m to the left for fifteen metres, in the way of what came the other way (Laguna at Bay,
+  // 2 of 8 crashes there in three minutes, 2026-11-21).
+  const ow = route.oneways.map(Boolean), last = ow.length - 1;
+  for (let i = 0; i <= last; i += 1) {
+    if (!ow[i]) continue;
+    let j = i; while (j < last && ow[j + 1]) j += 1;
+    if (s[j + 1] - s[i] < ONEWAY_STUB_M && ((i > 0 && !route.oneways[i - 1]) || (j < last && !route.oneways[j + 1]))) for (let k = i; k <= j; k += 1) ow[k] = false;
+    i = j;
+  }
+  route.owLanes = ow;
+  const n = route.lanes.map((l, i) => (ow[i] ? Math.max(1, l) : Math.max(1, Math.floor(l / 2))));
   // The turn at each vertex: -1 left, 1 right, 0 on.
   const turn = new Int8Array(pts.length), sin = Math.sin((TURN_MIN_DEG * Math.PI) / 180);
   for (let v = 1; v < pts.length - 1; v += 1) {
@@ -584,7 +619,7 @@ export function DRIVE_LANE(half, cls = null, park = null, i = 0, route = null) {
 //: to its left (Streets.twinOf: a street drawn as two one-way lines), when each keeps its own
 //: side of the gap between them, the two inner lanes 3.4 m apart as on a two-way street.
 export function leftOf(half, cls, park, i, route) {
-  if (!route.oneways?.[i]) return 1.7;
+  if (!(route.owLanes ? route.owLanes[i] : route.oneways?.[i])) return 1.7;
   const kerb = -LANE(half, cls, park), twin = route.twins?.[i];
   return twin === null || twin === undefined ? kerb : Math.max(kerb, 1.7 - twin / 2);
 }
@@ -652,28 +687,32 @@ export function BIKE_LANE(half, cls = null, park = null, i = 0, route = null) {
 //: the point moved ``side`` metres to the right of the way (a lane, a pavement). Off the centre
 //: line the corners are rounded: the offset turns with the way over a few metres either side of
 //: each bend, so a walker on the pavement or a car in its lane goes round, never across in a jump.
+// alongRoute's working points (one call at a time: the side functions never call it back).
+const ON_AT = { x: 0, z: 0, yaw: 0, ux: 0, uz: 0 }, ON_P0 = { x: 0, z: 0, yaw: 0, ux: 0, uz: 0 }, ON_P2 = { x: 0, z: 0, yaw: 0, ux: 0, uz: 0 };
+const routeSide = (route, side, i) => (typeof side === "function" ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i], i, route) : side);
+// Segment i of ``route`` (pts[i] to pts[i+1]) carried on past its ends, offset by ``off``, at dd: into ``out``.
+function routeOn(pts, s, i, off, dd, out) {
+  const pa = pts[i], pb = pts[i + 1], ax = pa[0], az = pa[1], bx = pb[0], bz = pb[1], len = s[i + 1] - s[i] || 1, t = (dd - s[i]) / len;
+  const dx = (bx - ax) / len, dz = (bz - az) / len;
+  // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
+  out.x = ax + (bx - ax) * t - dz * off; out.z = az + (bz - az) * t + dx * off; out.yaw = Math.atan2(-dx, -dz); out.ux = dx; out.uz = dz;
+  return out;
+}
 export function alongRoute(route, d, side = 0) {
-  const { pts, s } = route;
+  const pts = route.pts, s = route.s;
   if (pts.length === 1) return { x: pts[0][0], z: pts[0][1], yaw: 0, half: 0 };
   d = Math.max(0, Math.min(route.length, d));
   let lo = 0, hi = s.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m] <= d) lo = m; else hi = m; }
   const fn = typeof side === "function";
-  const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i], i, route) : side);
-  // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side, at dd.
-  const on = (i, off, dd = d) => {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (dd - s[i]) / len;
-    const dx = (bx - ax) / len, dz = (bz - az) / len;
-    // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
-    return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz), ux: dx, uz: dz };
-  };
-  const half = route.halves?.[lo] ?? 0, off = offOf(lo);
-  let at = on(lo, off);
+  const half = route.halves?.[lo] ?? 0, off = routeSide(route, side, lo);
+  const at = routeOn(pts, s, lo, off, d, ON_AT);
+  let x = at.x, z = at.z, yaw = at.yaw;
   if (off !== 0 || fn) {
     // The bend nearer d: at the segment's start (lo) or its end (hi), if that is a bend.
     const v = d - s[lo] < s[hi] - d ? lo : hi;
     if (v > 0 && v < s.length - 1) {
-      const a = v - 1, b = v, oa = offOf(a), ob = offOf(b);
+      const a = v - 1, b = v, oa = routeSide(route, side, a), ob = routeSide(route, side, b);
       const r = Math.min(Math.max(Math.abs(oa), Math.abs(ob)) + 1, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
       if (r > 0 && Math.abs(d - s[v]) < r) {
         // Round the corner on a curve from r before it in the way-in's lane to r after it in the
@@ -681,21 +720,21 @@ export function alongRoute(route, d, side = 0) {
         // across it. (Blending the two lanes' lines carried past the corner swung a car turning
         // right from a lane far from the middle out to the left first, into the junction's other
         // traffic: 2026-11-11.)
-        const P0 = on(a, oa, s[v] - r), P2 = on(b, ob, s[v] + r);
+        const P0 = routeOn(pts, s, a, oa, s[v] - r, ON_P0), P2 = routeOn(pts, s, b, ob, s[v] + r, ON_P2);
         const cr = P0.ux * P2.uz - P0.uz * P2.ux;
-        let C = { x: (P0.x + P2.x) / 2, z: (P0.z + P2.z) / 2 };
+        let cx = (P0.x + P2.x) / 2, cz = (P0.z + P2.z) / 2;
         if (Math.abs(cr) > 0.15) {
           const t = ((P2.x - P0.x) * P2.uz - (P2.z - P0.z) * P2.ux) / cr;
-          if (t > 0 && t < 2 * r + Math.max(Math.abs(oa), Math.abs(ob))) C = { x: P0.x + P0.ux * t, z: P0.z + P0.uz * t };
+          if (t > 0 && t < 2 * r + Math.max(Math.abs(oa), Math.abs(ob))) { cx = P0.x + P0.ux * t; cz = P0.z + P0.uz * t; }
         }
         const u = (d - (s[v] - r)) / (2 * r), m = 1 - u;
-        const x = m * m * P0.x + 2 * m * u * C.x + u * u * P2.x, z = m * m * P0.z + 2 * m * u * C.z + u * u * P2.z;
-        const tx = 2 * m * (C.x - P0.x) + 2 * u * (P2.x - C.x), tz = 2 * m * (C.z - P0.z) + 2 * u * (P2.z - C.z);
-        at = { x, z, yaw: Math.hypot(tx, tz) > 1e-9 ? Math.atan2(-tx, -tz) : P0.yaw };
+        x = m * m * P0.x + 2 * m * u * cx + u * u * P2.x; z = m * m * P0.z + 2 * m * u * cz + u * u * P2.z;
+        const tx = 2 * m * (cx - P0.x) + 2 * u * (P2.x - cx), tz = 2 * m * (cz - P0.z) + 2 * u * (P2.z - cz);
+        yaw = Math.hypot(tx, tz) > 1e-9 ? Math.atan2(-tx, -tz) : P0.yaw;
       }
     }
   }
-  return { x: at.x, z: at.z, yaw: at.yaw, half, cls: route.classes?.[lo] };
+  return { x, z, yaw, half, cls: route.classes?.[lo] };
 }
 
 // ---- on foot: the pavements and the crosswalks ------------------------------------------------------

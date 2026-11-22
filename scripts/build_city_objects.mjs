@@ -1,7 +1,9 @@
 // The living city's things -- what you buy, carry, drop, find and see on a shop's shelves -- from
 // the user's object lab (Kerbside-object-lab-2026-11-13: Kenney's food, furniture, survival,
-// retro-urban and industrial kits, Poly Haven scans and two Poly Pizza models, all CC0), made
-// small enough to fetch one at a time in the page.
+// retro-urban and industrial kits, Poly Haven scans and two Poly Pizza models, all CC0; and the
+// store products imported 2026-11-20 -- scans from Google Scanned Objects, YCB and Poly Haven and
+// Sketchfab models from Objaverse, CC-BY or CC0, see store-imports.json), made small enough to
+// fetch one at a time in the page.
 //
 //   node scripts/build_city_objects.mjs --lab ~/Documents/Kerbside-object-lab-2026-11-13 \
 //        --modules ~/Documents/Kerbside-object-lab-2026-11-13 --out docs/city/models/objects
@@ -18,8 +20,12 @@
 //     NEAR_MAX triangles, else LOD1) and ``far`` (LOD2, if it is fewer by a fifth), sharing one
 //     set of textures (each at most TEX px, WebP; Kenney's 512 px palette kept as it is);
 //   - turns the furniture kit's unlit materials into lit ones (the city is lit);
+//   - takes the lab's store imports (store-imports.json: the product's own model, recognisable on a
+//     shelf) over whatever the coverage bound to the same item, and sets loose produce out as a few
+//     pieces together (PRODUCE below);
 //   - writes docs/city/objects.json: each model's file, size and tiers, each item's model (or its
-//     composition), the label tint a ``label_required`` item gets, and the credits.
+//     composition), the label tint a ``label_required`` item gets, the credits and, for each CC-BY
+//     model, its attribution (title, author, source, licence) -- the licence asks for it.
 
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync, statSync, existsSync, rmSync, readdirSync } from "node:fs";
@@ -48,6 +54,7 @@ const lib = JSON.parse(readFileSync(join(LAB, "library.json"), "utf8"));
 const cov = JSON.parse(readFileSync(join(LAB, "inventory-coverage.json"), "utf8"));
 const world = JSON.parse(readFileSync(join(LAB, "world-coverage.json"), "utf8"));
 const assets = new Map(lib.assets.map((a) => [a.id, a]));
+const imports = existsSync(join(LAB, "store-imports.json")) ? JSON.parse(readFileSync(join(LAB, "store-imports.json"), "utf8")) : { items: {}, fixtures: {} };
 
 // ---- what each item is drawn as ------------------------------------------------------------------
 //
@@ -123,6 +130,53 @@ for (const x of [...cov.existing_items, ...cov.proposed_additions]) {
   items[x.id] = { status: x.status, asset: x.asset_id, name: x.name, ...(x.status === "label_required" && LABEL[x.id] ? { tint: LABEL[x.id] } : {}) };
   used.add(x.asset_id);
 }
+// ---- store imports --------------------------------------------------------------------------------
+//
+// The product itself, imported: it replaces the coverage's binding (a Kenney stand-in, a tinted
+// carton, a composition of stand-ins) for the same item. ``variants``: the other models of the same
+// item (another brand's bag of chips) a shelf may mix in. Loose produce is sold by the few: a
+// composition of the one scanned piece, set out as they would lie in a bag or a tray.
+const LOOSE = (asset, len, n) => ({ base: null, parts: ({
+  2: [[-0.5, 0], [0.5, 0]],
+  3: [[-0.55, -0.3], [0.55, -0.3], [0, 0.6]],
+  4: [[-0.52, -0.52], [0.52, -0.52], [-0.52, 0.52], [0.52, 0.52]],
+  6: [[-1.05, -0.5], [0, -0.5], [1.05, -0.5], [-1.05, 0.5], [0, 0.5], [1.05, 0.5]],
+})[n].map(([x, z], i) => ({ asset, len, x: x * len, z: z * len, yaw: i * 1.3 })) });
+const PRODUCE = {
+  apple: LOOSE("imp-apple", 0.08, 3), oranges: LOOSE("imp-oranges", 0.075, 3), lemons: LOOSE("imp-lemons", 0.07, 3),
+  limes: LOOSE("imp-limes", 0.055, 4), avocados: LOOSE("imp-avocados", 0.1, 2), onions: LOOSE("imp-onions", 0.08, 3),
+  potatoes: LOOSE("imp-potatoes", 0.1, 4), tomatoes: LOOSE("imp-tomatoes", 0.07, 3), pears: LOOSE("imp-pears", 0.1, 2),
+  strawberries: LOOSE("imp-strawberries", 0.035, 6), bell_peppers: LOOSE("imp-bell-peppers", 0.09, 2),
+  vegetables: { base: null, parts: [{ asset: "imp-vegetables", len: 0.16, x: -0.05 }, { asset: "imp-vegetables-2", len: 0.09, x: 0.06, z: -0.03 }, { asset: "imp-carrots", len: 0.2, x: 0.04, z: 0.06, yaw: 1.4 }, { asset: "imp-tomatoes", len: 0.07, x: -0.04, z: 0.07 }] },
+};
+for (const [sku, imp] of Object.entries(imports.items || {})) {
+  const ids = imp.assets.filter((a) => assets.has(a));
+  if (!ids.length) continue;
+  const recipe = PRODUCE[sku];
+  if (recipe) {
+    items[sku] = { status: "imported", recipe, name: imp.name, source_kind: imp.source_kind };
+    for (const p of recipe.parts) used.add(p.asset);
+    continue;
+  }
+  items[sku] = { status: "imported", asset: ids[0], name: imp.name, source_kind: imp.source_kind, ...(ids.length > 1 ? { variants: ids.slice(1) } : {}), ...(imp.paint ? { paint: imp.paint } : {}) };
+  for (const a of ids) used.add(a);
+}
+const fixtures = {};
+for (const [id, imp] of Object.entries(imports.fixtures || {})) {
+  const ids = imp.assets.filter((a) => assets.has(a));
+  if (!ids.length) continue;
+  fixtures[id] = { asset: ids[0], name: imp.name, source_kind: imp.source_kind };
+  for (const a of ids) used.add(a);
+}
+// What is drawn now: a model the imports took over from is no longer shipped for that item.
+used.clear();
+for (const b of [...Object.values(items), ...Object.values(fixtures)]) {
+  if (b.asset) used.add(b.asset);
+  for (const v of b.variants || []) used.add(v);
+  if (b.recipe?.base) used.add(b.recipe.base.asset);
+  for (const p of b.recipe?.parts || []) used.add(p.asset);
+}
+
 const worldOut = {};
 for (const w of world) {
   const list = w.candidate_assets.filter((a) => assets.has(a) && !/reference only/.test(w.method));
@@ -171,6 +225,20 @@ for (const id of [...used].sort()) {
     }
     scene.addChild(farNode);
   }
+  // A store product's lowest tier too ("low", a few hundred triangles): a fully stocked shelf
+  // draws hundreds of each (shelf-stock.mjs), seen from an aisle away.
+  const low = id.startsWith("imp-") ? lods.find((l) => l.level > (far || near).level && l.triangles <= 400 && l.triangles <= (far || near).triangles * 0.8) || null : null;
+  if (low) {
+    const other = await io.read(join(LAB, low.file));
+    const map = mergeDocuments(doc, other);
+    const lowNode = doc.createNode("low");
+    for (const s of other.getRoot().listScenes()) {
+      const mine = map.get(s);
+      for (const n of mine.listChildren()) { mine.removeChild(n); lowNode.addChild(n); }
+      mine.dispose();
+    }
+    scene.addChild(lowNode);
+  }
   // Lit, not unlit: the furniture kit's colours are flat swatches meant for an unlit look.
   for (const ext of root.listExtensionsUsed()) if (ext.extensionName === "KHR_materials_unlit") ext.dispose();
   for (const m of root.listMaterials()) if (m.getRoughnessFactor() === 1 && m.getMetallicFactor() === 1 && !m.getMetallicRoughnessTexture()) m.setMetallicFactor(0).setRoughnessFactor(0.8);
@@ -184,20 +252,22 @@ for (const id of [...used].sort()) {
   const nearNode = root.listNodes().find((n) => n.getName() === "near");
   const b = getBounds(nearNode);
   outAssets[id] = {
-    file, bytes, provider: a.provider, pack: a.pack || null, source: a.source, license: a.license,
+    file, bytes, provider: a.provider, pack: a.pack || null, source: a.source, license: a.license, ...(a.author ? { author: a.author, title: a.name } : {}),
     dims: [b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]].map((v) => +v.toFixed(4)),
-    tiers: [{ node: "near", triangles: near.triangles, lod: near.level }, ...(far ? [{ node: "far", triangles: far.triangles, lod: far.level }] : [])],
+    tiers: [{ node: "near", triangles: near.triangles, lod: near.level }, ...(far ? [{ node: "far", triangles: far.triangles, lod: far.level }] : []), ...(low ? [{ node: "low", triangles: low.triangles, lod: low.level }] : [])],
   };
   process.stdout.write(`${id} ${(bytes / 1024).toFixed(0)} KB ${outAssets[id].tiers.map((t) => t.triangles).join("/")}\n`);
 }
 
 const manifest = {
   schema: "kerbside.city_objects/1",
-  basis: "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). Models are CC0 (Kenney, Poly Haven, Poly Pizza); sizes are the lab's proposed representative dimensions, and an item is drawn at its catalogue length_m (rules.json items).",
+  basis: "scripts/build_city_objects.mjs from the user's object lab (Kerbside-object-lab-2026-11-13, OBJECTS-INTERACTIONS-AND-RESALE-PLAN.md section 2). The lab's own models are CC0 (Kenney, Poly Haven, Poly Pizza); the store imports (store-imports.json, docs/53-store-catalogue.md) are CC-BY 4.0 or CC0 and credited one by one under attributions. An item is drawn at its catalogue length_m (rules.json items).",
   lod: { near_px: 160, far_px: 48, cull_px: 5, hysteresis: 0.15, near_max_triangles: NEAR_MAX, texture_px: TEX },
-  credits: [...new Set(Object.values(outAssets).map((a) => `${a.provider}${a.pack ? ` (${a.pack})` : ""}, CC0-1.0`))].sort(),
+  credits: [...new Set(Object.values(outAssets).map((a) => `${a.provider}${a.pack ? ` (${a.pack})` : ""}, ${a.license}`))].sort(),
+  attributions: Object.entries(outAssets).filter(([, a]) => /^CC-BY/.test(a.license)).map(([id, a]) => ({ asset: id, title: a.title || id, author: a.author || a.provider, source: a.source, license: a.license })),
   assets: outAssets,
   items,
+  fixtures,
   world: worldOut,
 };
 writeFileSync(join(OUT, "..", "..", "objects.json"), `${JSON.stringify(manifest, null, 1)}\n`);

@@ -604,3 +604,47 @@ voices (npc-talk.mjs, server/npc, /api/npc); one dark-glass surface for every ci
 
 Left: the DeepSeek key and model id are the owner's to set; a banker's panel was checked with a
 rendered world, not by walking into a bank in the game; residents' sheets are sent by the page.
+
+## 2026-11-21: the store catalogue, grocery rooms, spices and stocked shelves
+
+Built (docs/53-store-catalogue.md): every buyable thing in one list (docs/city/catalogue.json) with
+each store item's aisle and display; 80 grocery staples and the kitchen's 29 spices on the shelves;
+120 store products drawn with real models imported from Objaverse, Poly Haven, Google Scanned
+Objects and YCB, cut to 2000/700/220 triangles with one colour policy (the spices one jar painted
+each spice's colour); supermarkets laid out as Codex's retail engine lays one out (grocery-room.mjs):
+lanes and self-checkout by the door, produce inside it, dairy, meat and drinks in cold banks on the
+walls, a frozen aisle, numbered gondola aisles by the catalogue's sections; every shelf stocked with
+the shop's own products at their size (shelf-stock.mjs), corner stores and Codex's fitted stores
+included. Shopping cart, basket and checkout counter are fixtures.
+
+Left: picking a product up into a cart and paying at a lane (the placements are known products at
+known spots; cmd_checkout takes a cart); 14 staples with no importable model (tortillas, rice,
+flour, ice cream pints, gum...); real brands on scanned packs to relabel before a commercial
+release; a credits screen for the CC-BY models. Seen by eye in store-sheet.html and
+fitted-sheet.html, not yet by walking into a Marina grocery in the running game.
+
+## 2026-11-21 (later): shopping in person, people who find their way, favours
+
+Built (docs/54-shopping-in-person-and-favours.md): stores are shopped by walking round them --
+the products drawn on the shelves are the shop's stock, G takes one into your hands (two), a
+basket or a cart from the door (the rules' own fixtures), and it is gone from the shelf for
+everyone; staffed lanes (open by the hour) and self-checkouts take payment through the world's
+checkout, so the ledger, the tax and a player business's stock move as before; what you cannot
+carry is bagged at the door; walking out with unpaid things puts them back (shopping.mjs,
+shop-floor.mjs). The clerk's catalogue link and the shop panel's list are gone from walk-round
+stores (only what has no shelf model is "behind the counter"); shops you cannot enter keep the
+panel. The other shoppers in your shop walk its aisles to a few shelves and wait in line at a till;
+its staff work the lanes or stock shelves from the back (npc-steer.mjs: walkable grid, A*,
+separation, look-ahead replanning, steps swapped or given up). On the street, walkers step round
+someone standing in their way before reaching them, and go through a door one at a time. Asking
+one of the city's people for a hand (carry, wait, step aside, come along, a lift, furniture) is
+weighed by the world -- the size of the ask, their temperament, what they are on their way to and
+the time they have, how well they know you, money offered, how often they have helped or been
+asked today; DeepSeek says the decision and may flag an ask it heard, never decides it. A favour
+granted is walked through, then they go back to their day; the time held is lost from it, and
+being late for work costs them pay or a word from the manager (npc-favours.mjs, favour-run.mjs).
+
+Tested: tests/city_shopping, city_shop_floor, city_npc_steer, city_npc_favours, city_npc_talk.
+Seen in a browser in shop-floor-sheet.html (basket, three items off the shelves, paid at lane 1,
+shoppers in the aisles and in line). Not yet walked in the running game: the page modules and
+the Marina regions are not in this worktree.

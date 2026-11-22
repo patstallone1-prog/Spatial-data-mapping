@@ -605,8 +605,12 @@ for (const way of DRAW_ORDER) {
   const surfaceY = isCrossing ? roadTop + 0.02
     : (isSidewalk || isPath) ? roadTop + KERB / 2 : roadTop / 2;
   const surfaceThickness = isCrossing ? 0.02 : (isSidewalk || isPath) ? KERB : roadTop;
+ // A mapped sidewalk is the street's own walk, drawn as the kerbside walk is ("walk": its
+ // concrete, its squares) however narrow it is mapped: as a narrow walk it lay over the kerbside
+ // walk in another shade, a brown band along the shops on Chestnut (2026-11-21). A footpath
+ // narrower than a walk is a narrow walk.
  const surfaceKind = isCrossing ? crossingMarkingKind(way)
-  : (isSidewalk || isPath) ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
+  : isSidewalk ? "walk" : isPath ? (widthMeters <= NARROW_WALK_M ? "walk_narrow" : "walk") : "road";
   if (isCrossing && !shouldDrawCrossing(surfacePoints, widthMeters, surfaceKind ? null : "unmarked")) continue;
     // Continental unless we positively know otherwise. San Francisco has been converting its
     // marked crossings to ladders for years, and the inventory is demonstrably incomplete --
@@ -622,7 +626,7 @@ for (const way of DRAW_ORDER) {
     const fitted = walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);
     addPavementRibbon(surfacePoints, fitted, color, opacity,
                       surfaceY, surfaceThickness,
-                      fitted <= NARROW_WALK_M ? "walk_narrow" : surfaceKind, true);
+                      fitted <= NARROW_WALK_M && !isSidewalk ? "walk_narrow" : surfaceKind, true);
   } else {
     // A crossing's paint is dense along its length -- a vertex every half metre -- because it
     // is settled onto the road as drawn afterwards (settleOnto), and it can only follow the

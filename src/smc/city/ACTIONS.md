@@ -79,7 +79,7 @@ The people and the traffic are out in both modes.
 | Arrows | Walk; at the wheel, accelerate, brake and steer | always |
 | Shift (hold) | Sprint, while stamina lasts | always ("Sprint", held) |
 | Space | Jump: the height comes from your legs' push (leg length, body weight, strength) against your weight plus what you carry (`handling.mjs` `jumpOf`) | — |
-| Click | Inside a shop, on its blue SHOP panel beside the door: the shop's wares. Anywhere else: swing (as X) | inside a shop ("Buy: the shop panel by the door") |
+| Click | Inside a shop or a restaurant, on a chair, stool or booth: sit down (walk to get up). The person serving greets you as you walk up; their link opens the menu or the shop's wares in the middle of the screen. Anywhere else: swing (as X) | inside a shop (walk up to the counter) |
 | Right click | Use what is in your hand (as U) | — |
 | 1 – 8 | Choose a slot on the bar of eight: what is in it is in your hand; an empty slot is an empty hand | the bar is always shown |
 | I | The inventory: a grid of 24 above the bar of 8. Click a thing, then another slot, to move it; its details say how it is held, its weight class, and whether it swings or throws | always ("Inventory" on the bar) |
@@ -90,6 +90,7 @@ The people and the traffic are out in both modes.
 | Enter | In and out, whichever is nearest: into your car beside it, and out of it (parking where you stop), or ride with a party member; onto the route bus standing at the stop (it waits for you 15 s at most), and aboard, ask for the next stop; into the shop in front of you, and inside, at the door, back out; your own garage door up and down (a home you own or rent, a building you own). Elsewhere, a building's door | beside your car ("Drive …"), driving ("Get out"), a bus at the stop ("Board the 30 … (leaves in N s)"), aboard ("Next stop"), a store ("Go in"), inside ("Leave by the door"), at your garage ("Open / Close your garage") |
 | T | Taxis only: into the taxi pulled up for you (it waits 90 s, then leaves) or a passing one; in one, out and pay; elsewhere, call a taxi to where you stand and choose where to | always ("Call a taxi" / "Get in your taxi (waits N s)" / "Hail the taxi") |
 | V | Do the task in front of you on a shift (the orange ring) | on shift, with a task |
+| B | Your bicycle (a bike shop sells one, ₡480): get on where you stand, out of doors and on foot; the arrows pedal, brake and steer (up to 8 m/s on the road, 5 off it); B or Enter to get off. It is wheeled, not carried: it adds nothing to what you carry | owning a bicycle ("Ride your bicycle"), riding ("Get off your bicycle") |
 | Z | Lie down at a bed (in your own home, sleep); again, get up. Only beside a bed | beside a bed, or lying down |
 | J | The task board: courier work, flyers on a street, a neighbour's dog to the park and back, rider counts at bus stops, a mystery shopper's calls, Presidio forestry, the Marina walk, neighbours' errands. With a task: its steps and Cancel. The next step is the first line of To do | always ("Tasks") |
 | O | The Shop: everything sold in the city, searchable, in categories, sorted by name or price, at twice the shop price; Real estate is a category at the market's price (not doubled) | always ("Shop", green) |

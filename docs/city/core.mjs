@@ -632,7 +632,8 @@ export function carryCapacity(R, strength, inventory = {}) {
 }
 export function carriedKg(R, inventory = {}) {
   let kg = 0;
-  for (const [id, n] of Object.entries(inventory)) kg += (R.items[id]?.kg || 0) * n;
+  // (A bicycle is wheeled beside you or ridden: not carried.)
+  for (const [id, n] of Object.entries(inventory)) if (!R.items[id]?.wheeled) kg += (R.items[id]?.kg || 0) * n;
   return Math.round(kg * 100) / 100;
 }
 
