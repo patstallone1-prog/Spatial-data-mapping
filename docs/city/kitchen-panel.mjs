@@ -845,7 +845,8 @@ export function kitchenPanel(api) {
     if(itemsOf(g).length!==1){walkTo(standAt(g),()=>chopTap(g));return;}
     const pos=st.scene.project(g.pos),r=st.canvas.getBoundingClientRect();
     const edge=st.scene.project(g.pos.clone().add(V(.09,0,0)));
-    const fraction=Math.max(.02,Math.min(.98,.5+(e.clientX-r.left-pos.x*r.width)/(2*Math.max(8,Math.abs(edge.x-pos.x)*r.width))));
+    // (Clicked on the food: the blade where you clicked on it; from elsewhere, the middle.)
+    const fraction=e?.target!==st.canvas?0.5:Math.max(.02,Math.min(.98,.5+(e.clientX-r.left-pos.x*r.width)/(2*Math.max(8,Math.abs(edge.x-pos.x)*r.width))));
     st.pop={kind:"cut",g,fraction};hud();
   }
   async function cutAtBoard(g,mode,fraction){
