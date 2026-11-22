@@ -13,7 +13,7 @@
 //
 // Modelled here (no files fetched): smooth lofted shapes to each breed's proportions, not scans
 // of real animals. THREE is passed in; nothing here touches the page.
-import { SPECIES } from "./animals.mjs";
+import { FLIGHT, SPECIES } from "./animals.mjs";
 
 export const ANIMAL_CAPS = { full: 24, mid: 120, low: 260, birds: 300, birdsLow: 320, rats: 24, leads: 60 };
 
@@ -294,11 +294,15 @@ export function animalFigures({ THREE, add }) {
       return;
     }
     // On the ground it stands a little up on its legs and pecks; in the air it banks into its turn.
-    const peck = b.air ? 0 : Math.max(0, Math.sin(clock * 3 + (b.k || 0) * 1.3)) * 0.5;
+    // (Perched, it sits up and looks about: no pecking at a lamp arm.)
+    const peck = b.air || b.perch ? 0 : Math.max(0, Math.sin(clock * 3 + (b.k || 0) * 1.3)) * 0.5;
     T.makeTranslation(b.x, b.y + (b.air ? 0 : 0.055 * s), b.z); R.makeRotationFromEuler(E.set(b.air ? -0.05 : 0.25 + peck, b.yaw, b.air ? 0.25 : 0, "YXZ")); S.makeScale(s, s, s);
     ROOT.multiplyMatrices(T, R); M.copy(ROOT).multiply(S);
     if (!put(birds.body, C1)) return;
-    const beat = b.air ? Math.sin(clock * (Sp.span > 1 ? 7 : 16) + (b.k || 0)) * (0.2 + 0.6 * (b.flap ?? 1)) : -1.35;
+    // Flapping, the beat as wide as the flap asks; gliding (flap near 0), the wings held out a
+    // little above level, still -- a gull's long glide, a pigeon's between bursts.
+    const f = b.flap ?? 1, hz = FLIGHT[b.species]?.hz ?? (Sp.span > 1 ? 3 : 8);
+    const beat = b.air ? (f > 0.08 ? Math.sin(clock * hz * Math.PI * 2 + (b.k || 0)) * (0.15 + 0.7 * f) : 0.12) : -1.35;
     for (const sx of [-1, 1]) { T.makeTranslation(sx * 0.03 * s, 0.02 * s, -0.01 * s); R.makeRotationFromEuler(E.set(0, b.air ? 0 : sx * 1.2, sx * beat, "YXZ")); S.makeScale(sx * ws, s, s * (b.air ? 1 : 0.8)); M.multiplyMatrices(ROOT, T).multiply(R).multiply(S); put(birds.wing, C2); }
     stats.birds += 1; stats.triangles += 60;
   }

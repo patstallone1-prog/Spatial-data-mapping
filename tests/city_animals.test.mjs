@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { loadRules } from "../docs/city/core.mjs";
 import { CityWorld } from "../docs/city/world.mjs";
-import { AMBIENT, ANIMAL_COMMANDS, MOVE, PET, SPECIES, ambientCell, animalTier, birdAt, hurtPet, impactHarm, newPet, petMood, ratAt, settlePet, stepPet, stoopCat, vetQuote, walkedDog } from "../docs/city/animals.mjs";
+import { AMBIENT, ANIMAL_COMMANDS, FLIGHT, MOVE, PET, SPECIES, ambientCell, animalTier, birdAt, flightIn, windXZ, hurtPet, impactHarm, newPet, petMood, ratAt, settlePet, stepPet, stoopCat, vetQuote, walkedDog } from "../docs/city/animals.mjs";
 
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
 const HOUR = 3_600_000;
@@ -209,4 +209,55 @@ test("the figures: three tiers, a pet's the finest; nothing drawn that is not fi
   assert.ok(view.includes('k: () => openSide("pets"), l: () => animals().leashKey(),'));
   assert.ok(view.includes("animals().frame(dt, now)") && view.includes("for (const o of animalsUI?.obstacles() || []) obstacles.push(o);"));
   assert.ok(view.includes("if (animals().draw(side, { close, status, w, p })) return;"));
+});
+
+test("flocks go over the district every game hour or so, each on a way of its own, mostly along the wind", () => {
+  const wind = { speed: 6, from: 290 }, inland = () => ({ water: null, shops: 1, park: false });
+  const GAME_HOUR_S = 180;   // (a 72-minute day)
+  const seen = new Set(), headings = new Set();
+  let hours = 0;
+  for (const hour of [7, 10, 13, 16]) {
+    hours += 3;
+    const flocks = [];
+    for (let i = -4; i <= 4; i += 1) for (let j = -4; j <= 4; j += 1) flocks.push(...ambientCell(i, j, hour, inland, AMBIENT, wind).filter((f) => f.pass));
+    for (const f of flocks) headings.add(Math.round(f.pass.heading * 10));
+    // Three game hours of the slot, a look a second: a flock seen within 150 m of the middle.
+    const at = {};
+    for (let t = 0; t < 3 * GAME_HOUR_S; t += 1) for (const f of flocks) {
+      birdAt(f, 0, t, AMBIENT, at, wind);
+      if (!at.hidden && Math.hypot(at.x, at.z) < 150) seen.add(`${hour}:${f.id}:${Math.floor((t + f.pass.phase) / f.pass.every)}`);
+    }
+  }
+  assert.ok(seen.size / hours >= 0.5, `${seen.size} flocks over in ${hours} game hours`);
+  assert.ok(headings.size >= 4, "ways of their own");
+  // Mostly along the wind (with it or into it).
+  const [wx, wz] = windXZ(wind), wa = Math.atan2(wz, wx);
+  let along = 0, all = 0;
+  for (let i = -10; i <= 10; i += 1) for (let j = -10; j <= 10; j += 1) for (const f of ambientCell(i, j, 12, inland, AMBIENT, wind).filter((g) => g.pass)) {
+    all += 1; if (Math.abs(Math.sin(f.pass.heading - wa)) < Math.sin(0.5)) along += 1;
+  }
+  assert.ok(all > 5 && along / all > 0.45, `${along} of ${all} along the wind`);
+});
+
+test("a bird faces into a crosswind, flaps into a headwind and glides with one behind; perched it faces the wind", () => {
+  // Going east (+x) at its air speed with the wind blowing south (+z): its head is turned north
+  // of east (the figure's head is -z: yaw atan2(-x, -z) points it the way (x, z)).
+  const east = flightIn("gull", FLIGHT.gull.air, 0, 0, 5);
+  const facing = [-Math.sin(east.yaw), -Math.cos(east.yaw)];
+  assert.ok(facing[0] > 0.5 && facing[1] < -0.2, `crabbed: ${facing}`);
+  const into = flightIn("pigeon", 10, 0, -6, 0, 0, 0.5, 0), behind = flightIn("pigeon", 10, 0, 6, 0, 0, 0.5, 0);
+  assert.ok(into.flap > behind.flap + 0.3, `${into.flap} into, ${behind.flap} behind`);
+  assert.ok(flightIn("gull", 11, 0, 0, 0, -1, 0.5, 0).flap < 0.2, "a gull coming down glides");
+  // Sat on a lamp arm: head toward where the wind comes from.
+  const wind = { speed: 5, from: 270 };   // from the west: the head points west (-x)
+  const perched = birdAt({ species: "pigeon", perch: true, x: 0, z: 0, n: 3, seed: 400 }, 1, 2, AMBIENT, {}, wind);
+  assert.ok(perched.perch && !perched.air);
+  assert.ok(-Math.sin(perched.yaw) < -0.8, `faces west: ${perched.yaw}`);
+  // Flocks for the perches by day, none by night.
+  let perches = 0;
+  for (let i = 0; i < 30; i += 1) for (let j = 0; j < 30; j += 1) {
+    perches += ambientCell(i, j, 11, () => ({ shops: 1 })).filter((f) => f.perch).length;
+    assert.equal(ambientCell(i, j, 23, () => ({ shops: 1 })).filter((f) => f.perch || f.pass).length, 0);
+  }
+  assert.ok(perches > 150, `${perches} perched flocks in 900 cells`);
 });

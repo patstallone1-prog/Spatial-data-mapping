@@ -36,6 +36,23 @@
 - **Pigeons, sparrows, crows and gulls** from a seeded field of 48 m cells: more by cafés, gulls
   by the water. Ground birds peck about, and go up, round and down when you, a dog or a car
   come close. **Rats** by night near eating places, along a bit of kerb and back.
+- **Flocks going over.** By day, pigeons, gulls and crows cross the district on straight ways
+  of their own, 520 m long, 16-55 m up, each flock again every 4-10 minutes. Six in ten fly along
+  the wind (with it or into it), the rest any way; a new set of ways every three game hours.
+  Seen from the street that is about 1.7 flocks over an hour of game time inland and 2.3 by the
+  water, within 150 m (`ambientCell` `pass`, `birdAt` `passAt`).
+- **Birds up on the street lights.** Pigeons (by cafés most), a crow or two, and gulls by the
+  water sit on the arm over a lamp (up to four) or on a pole's top (one). Only on a street
+  light the map has: module 21 `streetPerchAdd` records each one, and module 30 `perches` hands
+  them, the attached region's too, to the city. A flock with no light in its cell is not drawn.
+  A sitting bird faces into the wind and looks about.
+- **Flying to the wind.** The wind is the sky's (`globalThis.kerbsideWind`). A flying bird faces
+  the way it goes through the air, so it crabs into a crosswind (`flightIn`). Its speed over the
+  ground is its air speed with the wind behind it, less the wind against it. It flaps harder
+  into a headwind and climbing, less with the wind behind, and glides coming down: wings held
+  out a little above level. Each kind flies its own way (`FLIGHT`): a gull mostly glides (3
+  beats a second when it flaps), a pigeon beats hard (7) and glides between bursts, a crow rows
+  steadily (4), a sparrow bounds (10).
 
 ## Detail by distance
 

@@ -1391,22 +1391,38 @@ if (new URLSearchParams(location.search).get("inspect") === "interiors") {
 let previous = performance.now();
 //: The arrows turn the walker round a curve whose radius grows with its speed: this many metres
 //: of radius for each metre a second -- tight at a stroll, wider at a run -- and held between
-//: WALK_TURN_RADIUS_MIN_M and WALK_TURN_RADIUS_MAX_M. Turned at one rate (1.8 radians a second)
-//: at every speed, the walk's own speed -- 5.4 m/s on foot, 9 m/s and more orbiting -- swept
-//: curves of 2 to 5 m: wide, and the wider the faster (2026-11-12).
-const WALK_TURN_RADIUS_S = 0.45;
-const WALK_TURN_RADIUS_MIN_M = 0.5;
-const WALK_TURN_RADIUS_MAX_M = 3.0;
-//: The fastest a walker's facing turns (radians a second). Where the curve at its speed would
-//: turn it faster, it slows on the curve instead: the radius holds, as a runner's does.
-const WALK_TURN_RATE_MAX = 2.2;
-//: Left or Right alone walks round the curve at WALK_SIDE_PACE of the walking pace, as a person
-//: turns -- never a spin on the spot, which looked like a turntable (2026-11-12).
+//: WALK_TURN_RADIUS_MIN_M and WALK_TURN_RADIUS_MAX_M. A sprinter still takes a few steps to come
+//: round, but fewer than it did (0.45 s of radius, up to 3 m, at most 2.2 rad/s: a sprint's turn
+//: was a wide sweep, 2026-11-22).
+const WALK_TURN_RADIUS_S = 0.3;
+const WALK_TURN_RADIUS_MIN_M = 0.4;
+const WALK_TURN_RADIUS_MAX_M = 2.0;
+//: The fastest a walker's facing turns on a curve (radians a second). Where the curve at its
+//: speed would turn it faster, it slows on the curve instead: the radius holds, as a runner's does.
+const WALK_TURN_RATE_MAX = 3.3;
+//: Left or Right alone walks round the curve at WALK_SIDE_PACE of the walking pace.
 const WALK_SIDE_PACE = 0.7;
-//: Down turns the walker round at this rate (radians a second): about two thirds of a second,
-//: two steps, at WALK_BACK_PACE of the pace -- a pivot, not a wide loop -- then walks back.
-const WALK_BACK_TURN_RATE = 5;
-const WALK_BACK_PACE = 0.3;
+//: Standing, or with less way on than WALK_STEP_TURN_BELOW (metres a second), Left or Right is a
+//: step turn: the feet step round where you stand -- a quarter turn is one step (a third of a
+//: second) -- carrying you on only WALK_STEP_TURN_PACE of the pace. Not a spin on a turntable:
+//: the legs step it (stepTurn), and not a loop round a curve either.
+const WALK_STEP_TURN_BELOW = 1.1;
+const WALK_STEP_TURN_RATE = 4.7;
+const WALK_STEP_TURN_PACE = 0.06;
+//: Down turns the walker round to face back, a pivot, then walks back. Slow, it is one step: half
+//: a turn at WALK_BACK_TURN_RATE_SLOW (0.4 s), on the spot. At a sprint it is two: planted, at
+//: WALK_BACK_TURN_RATE_SPRINT (0.75 s), the way on carrying it a little (WALK_BACK_PACE_SPRINT).
+//: Between, by the way on, from WALK_STEP_TURN_BELOW to WALK_BACK_SPRINT_M_S.
+const WALK_BACK_TURN_RATE_SLOW = 7.8;
+const WALK_BACK_TURN_RATE_SPRINT = 4.2;
+const WALK_BACK_PACE_SLOW = 0.04;
+const WALK_BACK_PACE_SPRINT = 0.32;
+const WALK_BACK_SPRINT_M_S = 4.5;
+//: How much way the walker has on (a share of the speed asked for): it builds while you walk
+//: (WALK_WAY_ON_S to come up to speed) and goes when you stop or step round (WALK_WAY_OFF_S).
+const WALK_WAY_ON_S = 0.55;
+const WALK_WAY_OFF_S = 0.25;
+let walkWayOn = 0;
 //: How quickly the view swings round behind a walker on the move (a share a second), and the
 //: fastest it swings (radians a second): it follows the turn, behind it, rather than wheeling
 //: round with the body. Seen from the walker's eyes it follows closer (the way ahead has to be
@@ -1415,7 +1431,7 @@ const WALK_VIEW_FOLLOW = 0.9;
 const WALK_VIEW_MAX_RATE = 1.4;
 const WALK_VIEW_FOLLOW_EYES = 6;
 const WALK_VIEW_MAX_RATE_EYES = 3;
-let walkTurnBack = null;
+let walkTurnBack = null, walkTurnBackRate = WALK_BACK_TURN_RATE_SLOW, walkTurnBackPace = WALK_BACK_PACE_SLOW;
 //: The curve a walker at ``speed`` (metres a second) turns on: { rate } in radians a second, and
 //: { pace }, the share of the speed it keeps on it (less than all only where WALK_TURN_RATE_MAX
 //: holds it back).
@@ -1439,14 +1455,23 @@ function walkSteer(dt, speed = 1.4) {
     const [dx, dz] = dirOf(a), rx = dz, rz = -dx, c = Math.cos(by), s = Math.sin(by);
     return Math.atan2(dx * c + rx * s, dz * c + rz * s);
   };
+  // The way on now (m/s): what the speed asked for is, as far as the walker has got up to it.
+  const wayOn = speed * walkWayOn;
   // Down: round to face back the way you came (the shorter way, or with the arrow held), then on.
   if (down && !up) {
-    if (walkTurnBack === null) walkTurnBack = h + Math.PI;
+    if (walkTurnBack === null) {
+      // One step slow, two at a sprint: the rate and the carry fixed for the turn by the way on
+      // when it began.
+      const k = Math.max(0, Math.min(1, (wayOn - WALK_STEP_TURN_BELOW) / (WALK_BACK_SPRINT_M_S - WALK_STEP_TURN_BELOW)));
+      walkTurnBack = h + Math.PI;
+      walkTurnBackRate = WALK_BACK_TURN_RATE_SLOW + (WALK_BACK_TURN_RATE_SPRINT - WALK_BACK_TURN_RATE_SLOW) * k;
+      walkTurnBackPace = WALK_BACK_PACE_SLOW + (WALK_BACK_PACE_SPRINT - WALK_BACK_PACE_SLOW) * k;
+    }
   } else walkTurnBack = null;
-  let walking = up, pace = 1;
+  let walking = up, pace = 1, stepTurn = false;
   if (walkTurnBack !== null) {
     let gap = Math.atan2(Math.sin(walkTurnBack - h), Math.cos(walkTurnBack - h));
-    const step = WALK_BACK_TURN_RATE * dt;
+    const step = walkTurnBackRate * dt;
     if (Math.abs(gap) <= step) { h = walkTurnBack; walking = true; }
     else {
       // Which way round: the arrow held, or the right.
@@ -1454,8 +1479,16 @@ function walkSteer(dt, speed = 1.4) {
       const towards = (a) => Math.abs(Math.atan2(Math.sin(walkTurnBack - a), Math.cos(walkTurnBack - a)));
       h = turn > 0 ? right : turn < 0 ? left : Math.abs(gap) > Math.PI - 1e-3 ? right : (towards(right) < towards(left) ? right : left);
       walking = true;
-      pace = WALK_BACK_PACE;
+      pace = walkTurnBackPace;
+      stepTurn = true;
     }
+  } else if (turn && wayOn < WALK_STEP_TURN_BELOW) {
+    // Standing or slow: a step turn where you stand (Up held too, you set off the new way once
+    // round, as the way on builds).
+    h = turnBy(h, turn * WALK_STEP_TURN_RATE * dt);
+    walking = true;
+    pace = up ? Math.max(WALK_STEP_TURN_PACE, walkWayOn) : WALK_STEP_TURN_PACE;
+    stepTurn = !up;
   } else if (turn) {
     // Up with Left or Right, or Left or Right alone (on round at WALK_SIDE_PACE): round the
     // curve the speed sets (walkTurn).
@@ -1464,6 +1497,10 @@ function walkSteer(dt, speed = 1.4) {
     walking = true;
     pace = share * curve.pace;
   }
+  // The way on builds walking ahead, and goes standing or stepping round.
+  const goal = walking && !stepTurn ? Math.min(1, pace) : 0;
+  walkWayOn += (goal - walkWayOn) * Math.min(1, dt / (goal > walkWayOn ? WALK_WAY_ON_S : WALK_WAY_OFF_S));
+  avatar.userData.stepTurn = stepTurn;
   avatar.rotation.y = h;
   if (!walking) {
     animateAvatar(0, new THREE.Vector3(), false);
@@ -1481,7 +1518,7 @@ function walkSteer(dt, speed = 1.4) {
     const most = ((eyes ? WALK_VIEW_MAX_RATE_EYES : WALK_VIEW_MAX_RATE) + 2.2 * urgent) * dt;
     state.yaw += Math.max(-most, Math.min(most, gap * Math.min(1, dt * ((eyes ? WALK_VIEW_FOLLOW_EYES : WALK_VIEW_FOLLOW) + 2.6 * urgent))));
   }
-  return { way: new THREE.Vector3(dx, 0, dz), pace };
+  return { way: new THREE.Vector3(dx, 0, dz), pace, stepTurn };
 }
 function animateAvatar(distance, direction, moving) {
   avatar.userData.lastMoving=moving;
@@ -1511,8 +1548,9 @@ function animateAvatar(distance, direction, moving) {
   // Afloat the stroke is the living city's (view.mjs afterPose) over the standing clip; wading
   // through the water is a walk.
   if (wet?.mode === "swim") setAvatarAction("Idle");
-  else setAvatarAction(moving ? ((climbing || pace < 0.7 || wet) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
-  if (avatarActiveAction) avatarActiveAction.timeScale = moving ? Math.max(0.5, Math.min(1.15, pace)) : 1;
+  // A step turn is stepped at a walk, quickly: a step a quarter turn.
+  else setAvatarAction(moving ? ((climbing || pace < 0.7 || wet || avatar.userData.stepTurn) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
+  if (avatarActiveAction) avatarActiveAction.timeScale = moving ? (avatar.userData.stepTurn ? 1.35 : Math.max(0.5, Math.min(1.15, pace))) : 1;
 }
 function updateAvatarMixer(dt) {
   if (avatarMixer) {
@@ -1784,7 +1822,8 @@ function stepAvatar(now) {
   if (window.kerbsideOpenFullRegionAt && window.kerbsideOpenFullRegionAt(lon, lat)) return;
   avatar.userData.lastMoving=moved>0;
   if (typeof livingCity !== "undefined") livingCity?.walked?.(moved, dt);
-  animateAvatar(moved, move, moved>0);
+  // (Stepping round where you stand is moving, though the feet carry you a hand's breadth.)
+  animateAvatar(moved, move, moved>0 || steered.stepTurn);
   updateAvatarMixer(dt);
   state.target.copy(avatar.position);
   placeCamera();
