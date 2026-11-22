@@ -111,3 +111,34 @@ test("a large place's people do not all take their break at its door, and a roun
   const src = (await import("node:fs")).readFileSync(new URL("../docs/city/fleet.mjs", import.meta.url), "utf8");
   assert.match(src, /if \(!drive && seg\.act\.kind !== "stroll"\) \{\s*\n\s*const ang = \(\(hash32\(p\.id, "beat"\)/);
 });
+
+test("a car keeps its time behind the one ahead, and stops for one that stops dead", () => {
+  const S = avenues(), D = new Drivers(S);
+  const route = S.route(at(S, 0, 240), at(S, 720, 240), "drive");
+  const mk = (id, d0, v) => ({ id, key: `${id}:1`, route, limit: 12, cruise: v, length: 4.6, width: 1.85, sched: (ts) => Math.min(route.length, d0 + ts * v), unsched: (d) => (d - d0) / v });
+  // Both in one lane, the follower close behind and as fast.
+  const lead = mk("lead", 60, 11), tail = mk("tail", 51, 11);
+  let hits = 0, gapAt = null, stopAt = null;
+  for (let t = 0; t < 26; t += 0.05) {
+    const res = D.step(0.05, t, [lead, tail], []);
+    hits += res.hits.length;
+    const a = D.stateOf("lead"), b = D.stateOf("tail");
+    if (a && b) { a.lane = a.from = 0; b.lane = b.from = 0; a.lt = b.lt = 1; }
+    if (a && b && a.v > 8 && b.v > 8 && t > 6 && gapAt === null && a.d < 300) gapAt = a.d - b.d - 4.6;
+    // The one ahead stops dead where it is.
+    if (t > 8 && a && stopAt === null && a.v > 8) { stopAt = t; lead.sched = () => a.d; lead.unsched = () => t; a.v = 0; a.hit = { id: "stood", who: null, until: t + 60 }; }
+  }
+  assert.equal(hits, 0, "it was not driven into");
+  assert.ok(gapAt === null || gapAt > 5, `it followed ${gapAt?.toFixed(1)} m off the bumper at speed`);
+});
+
+test("the drivers' rules for what is on their own way are there, and nothing pushes a car on into it", async () => {
+  const src = (await import("node:fs")).readFileSync(new URL("../docs/city/fleet.mjs", import.meta.url), "utf8");
+  for (const why of ["a car in its way", "letting one in", "pulling out", "giving way to oncoming"]) assert.ok(src.includes(`"${why}"`), why);
+  assert.match(src, /const SEEN_AHEAD = \/in its way\|letting one in\|in the lane\|coming across\//);
+  assert.match(src, /!HARD_HOLD\.test\(reason \|\| ""\) && !SEEN_AHEAD\.test\(reason \|\| ""\) && !tight/);
+  assert.equal((src.match(/if \(to !== null && landable\(c, st, to\)\) \{/g) || []).length, 4, "every putting-ahead looks behind where it lands");
+  const { ROUTE_LINK_M } = await import("../docs/city/people.mjs");
+  assert.ok(ROUTE_LINK_M >= 10);
+  assert.ok(TRAFFIC.follow_share > 0.5 && TRAFFIC.start_wait_s > 0);
+});

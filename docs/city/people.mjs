@@ -540,6 +540,19 @@ export class Streets {
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
       for (let i = 1; i < pts.length; i += 1) s.push(s[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+      if (car) {
+        // A link of a few metres between two streets (a connector drawn through a junction the
+        // junctions' own rule does not know) is driven as the street the car comes off: each has
+        // a width and a class of its own -- some none at all -- and a car's lane lay four or
+        // five metres to one side for a metre or two of it, into whoever was alongside (most of
+        // what was still hit on the real Marina, 2026-11-21).
+        for (let i = 0; i + 1 < pts.length; i += 1) {
+          if (s[i + 1] - s[i] >= ROUTE_LINK_M) continue;
+          const from = i > 0 ? i - 1 : s[i + 2] - s[i + 1] >= ROUTE_LINK_M ? i + 1 : -1;
+          if (from < 0) continue;
+          for (const arr of [halves, classes, parks, lanes]) arr[i] = arr[from];
+        }
+      }
       route = { pts, s, halves, classes, parks, ids, lanes, oneways, bikes, twins, length: s[s.length - 1], mode: mode === "drive_any" ? "drive" : mode };
     }
     if (!keep) return route;
@@ -565,6 +578,8 @@ export function LANE(half, cls = null, park = null) {
 export const LANE_W = 3.2, TURN_LOOK_M = 90, TURN_MIN_DEG = 35;
 //: A one-way run shorter than this beside a two-way street keeps that street's lanes (lanePlan).
 export const ONEWAY_STUB_M = 45;
+//: A stretch of a route shorter than this takes its width, class and lanes from the street before it.
+export const ROUTE_LINK_M = 14;
 export function lanePlan(route) {
   if (route.plan !== undefined) return route.plan;
   const { pts, s } = route;
