@@ -88,7 +88,7 @@ console.log(JSON.stringify({
     # Along the shed's wall 0.25 m off it, the camera keeps a hand's width clear of it to the side.
     assert out["besideShed"] is not None and out["besideShed"] <= 0.3 + 1e-9, out
     place = _extract("placeCamera", js)
-    assert "orbitBlockedAt(state.target, camera.position)" in place and "state.dist <= ORBIT_BLOCK_REACH_M" in place
+    assert "orbitBlockedAt(aim, camera.position)" in place and "magic ? magicAim(state.target) : state.target" in place and "state.dist <= ORBIT_BLOCK_REACH_M" in place
     assert "state.firstPerson || cameraPulledIn ? 0.12" in _extract("fitViewToAltitude", js)
     # A region drawn over the page answers for its own buildings.
     assert "buildingTopAt,\n  eligibleLanding," in js

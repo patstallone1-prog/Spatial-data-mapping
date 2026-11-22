@@ -2179,17 +2179,32 @@ function placeCamera() {
   }
   // The headset's follow view is always on the walker, wherever it was put down or walked to.
   if (META && typeof avatar !== "undefined") state.target.copy(avatar.position);
-  const x = Math.sin(state.yaw) * Math.cos(state.pitch) * state.dist;
-  const z = Math.cos(state.yaw) * Math.cos(state.pitch) * state.dist;
-  const y = Math.sin(state.pitch) * state.dist;
-  camera.position.copy(state.target).add(new THREE.Vector3(x, y, z));
+  // In City mode the view looks after itself (module 32): turned and raised a little to see past
+  // a building, a little ahead of you, further back at speed.
+  const magic = typeof magicCameraOn === "function" && magicCameraOn();
+  const aim = magic ? magicAim(state.target) : state.target;
+  const yawV = magic ? state.yaw + MAGIC.yawOff : state.yaw;
+  const pitchV = magic ? Math.min(MAGIC.maxPitch, state.pitch + MAGIC.pitchOff) : state.pitch;
+  const distV = magic ? state.dist * (1 + MAGIC.back) : state.dist;
+  const x = Math.sin(yawV) * Math.cos(pitchV) * distV;
+  const z = Math.cos(yawV) * Math.cos(pitchV) * distV;
+  const y = Math.sin(pitchV) * distV;
+  camera.position.copy(aim).add(new THREE.Vector3(x, y, z));
   // A building between what the view looks at and where the camera would stand stops the camera
   // short of it, as its wall would stop you: turning the view round a house shows its wall, never
   // the rooms behind it. The distance asked for is kept, so turning back out lets the view out.
   cameraPulledIn = false;
   // From further out (the overview, a city from the air) nothing is pulled in: a tower near what
   // the view looks at would otherwise drag the camera down to the street.
-  let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(state.target, camera.position) : null;
+  let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(aim, camera.position) : null;
+  // The magic camera is not shoved: where nothing it tried clears the building (or the view was
+  // turned there), it stands outside it -- seeing its side, never its rooms -- and you are drawn
+  // through it as an outline.
+  if (magic) {
+    if (blocked !== null) magicOutOfBuildings(aim, camera.position);
+    magicShowGhost(blocked !== null);
+    blocked = null;
+  } else if (typeof magicShowGhost === "function") magicShowGhost(false);
   // Over it first. Pulled straight in, a camera with a shop behind it was shoved from sixty
   // metres out to the shop's wall, under its awning, in the dark between the shopfront and the
   // pavement, away from the walker: "auto full zoomed while still at some distance". So the view
@@ -2224,7 +2239,7 @@ function placeCamera() {
     }
   }
   constrainWorldCamera();
-  camera.lookAt(state.target);
+  camera.lookAt(aim);
   if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));
   fitViewToAltitude();
 }
@@ -2389,6 +2404,7 @@ canvas.addEventListener("pointerdown", (e) => {
   dragging = true;
   last = [e.clientX, e.clientY];
   canvas.setPointerCapture(e.pointerId);
+  if (typeof magicCameraDragged === "function" && magicCameraOn()) magicCameraDragged();
 });
 canvas.addEventListener("pointermove", (e) => {
   if (!dragging || touches.size > 1) return;
@@ -2407,7 +2423,7 @@ canvas.addEventListener("pointermove", (e) => {
   last = [e.clientX, e.clientY];
   placeCamera();
 });
-canvas.addEventListener("pointerup", () => { dragging = false; });
+canvas.addEventListener("pointerup", () => { dragging = false; if (typeof MAGIC !== "undefined") MAGIC.draggedAt = performance.now(); });
 canvas.addEventListener("pointercancel", () => { dragging = false; held.clear(); });
 canvas.addEventListener("lostpointercapture", () => { dragging = false; });
 //: How far a wheel notch zooms (about a quarter of the distance for a notch of 100), and a

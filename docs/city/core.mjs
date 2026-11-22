@@ -607,15 +607,28 @@ export function applyUse(R, v, use, { workout = false, day = null } = {}) {
 }
 //: Effort since the last report: metres walked build a little strength (capped a day), seconds of
 //: sprinting cost stamina.
-export function applyExertion(R, v, { walked_m = 0, sprint_s = 0, day = null } = {}) {
-  const S = R.vitals;
+export function applyExertion(R, v, { walked_m = 0, sprint_s = 0, swim_s = 0, swim_sprint_s = 0, tread_s = 0, day = null } = {}) {
+  const S = R.vitals, W = S.stamina;
   const out = { ...v };
   if (day !== null && out.day !== day) { out.day = day; out.walked = 0; out.worked_out = 0; }
   const gain = Math.min(walked_m / 1000 * S.strength.walk_per_km, Math.max(0, S.strength.walk_daily_cap - (out.walked || 0)));
   out.walked = (out.walked || 0) + gain;
   out.strength = clampBar(R, out.strength + gain);
-  out.stamina = clampBar(R, out.stamina - sprint_s * S.stamina.sprint_per_second);
+  // In the water: a swim costs a little, a fast one a lot; treading water gets the wind back.
+  out.stamina = clampBar(R, out.stamina - sprint_s * W.sprint_per_second - swim_s * (W.swim_per_second || 0)
+    - swim_sprint_s * (W.swim_sprint_per_second || 0) + tread_s * (W.tread_recover_per_second || 0));
   return out;
+}
+//: How you move in the water with ``stamina`` (``treading``: already treading water, out of
+//: breath): {mode: "swim" | "sprint" | "tread", speed (m/s), treading}. Out of breath (under
+//: ``low``) you tread water, kicking to keep your head up, until stamina is back to
+//: ``swim_resume``; with Shift held, and stamina, you swim fast.
+export function swimMode(R, stamina, { moving = false, sprint = false, treading = false } = {}) {
+  const W = R.vitals.stamina;
+  const tread = treading ? stamina < W.swim_resume : stamina < W.low;
+  if (tread) return { mode: "tread", speed: moving ? W.tread_ms : 0, treading: true };
+  if (!moving) return { mode: "tread", speed: 0, treading: false };
+  return sprint ? { mode: "sprint", speed: W.swim_sprint_ms, treading: false } : { mode: "swim", speed: W.swim_ms, treading: false };
 }
 //: How the bars let you move: slowed when spent, and whether you may sprint.
 export function walkFactor(R, v, sprinting) {

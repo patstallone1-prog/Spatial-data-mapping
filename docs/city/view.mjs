@@ -19,7 +19,7 @@
 
 import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
-  transferTax, walkFactor, waterProperties,
+  swimMode, transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
 import { clockOf, fleetTime } from "./clock.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
@@ -34,6 +34,8 @@ import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf,
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
+import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
+import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
@@ -2105,59 +2107,122 @@ diffuseColor.rgb *= kbCloth;`);
     if (!s) return 1;
     return 1 + s.players().filter((p) => p.car?.riding === s.me.id).length;
   }
+  //: Getting in or out (car-entry.mjs): null, or {into, phase: "walk" | "pose", t, points, path
+  //: (the corners walked round to the driver's door), dims, then (what to do when it is over)}.
+  let entry = null;
   async function enterCar(vehicleId) {
+    if (entry) return;
     const w = view;
     const a = w.registry.assets.get(vehicleId);
     if (!a) return;
     const r = await send("drive", { vehicle: vehicleId });
     if (!r.ok) { notify(r.error); return; }
     const spec = R.vehicles.models[a.attrs.model];
-    car.active = true; car.vehicle = vehicleId; car.model = a.attrs.model; car.plate = a.attrs.plate;
-    car.x = a.attrs.x ?? me().x; car.z = a.attrs.z ?? me().z; car.yaw = a.attrs.yaw ?? ctx.getYaw(); car.speed = 0; car.km = 0; car.litres = 0;
-    car.top = spec.top_kmh / 3.6; car.spec = spec;
-    parked.get(vehicleId)?.removeFromParent(); parked.delete(vehicleId);
-    car.mesh = makeCar(a.attrs.model, spec.colour); group.add(car.mesh);
-    ctx.avatarVisible(false);
-    ctx.moveAvatarTo(car.x, car.z);
-    notify(`Driving your ${spec.name.toLowerCase()} (${car.plate}). Arrows steer; Enter to get out.`);
-    refresh();
+    const at = { x: a.attrs.x ?? me().x, z: a.attrs.z ?? me().z, yaw: a.attrs.yaw ?? ctx.getYaw() };
+    const dims = VEHICLE_DIMS[a.attrs.model] || VEHICLE_DIMS.sedan;
+    const points = carPoints(at, dims, 1);
+    // Round the car to the driver's door, not through it: from the other side, by its nearer end.
+    const here = me(), rel = { x: here.x - at.x, z: here.z - at.z };
+    const path = [];
+    if (rel.x * points.out.x + rel.z * points.out.z < dims[0] / 2) {
+      const ahead = rel.x * points.forward.x + rel.z * points.forward.z >= 0 ? 1 : -1, end = dims[2] / 2 + 0.7, side = dims[0] / 2 + 0.6;
+      const corner = (s) => ({ x: at.x + points.forward.x * end * ahead + points.out.x * side * s, z: at.z + points.forward.z * end * ahead + points.out.z * side * s });
+      if (rel.x * points.out.x + rel.z * points.out.z < 0) path.push(corner(-1));
+      path.push(corner(1));
+    }
+    path.push(points.door);
+    entry = { into: true, phase: "walk", t: 0, points, path, dims, then: () => {
+      car.active = true; car.vehicle = vehicleId; car.model = a.attrs.model; car.plate = a.attrs.plate;
+      car.x = at.x; car.z = at.z; car.yaw = at.yaw; car.speed = 0; car.km = 0; car.litres = 0;
+      car.top = spec.top_kmh / 3.6; car.spec = spec;
+      car.ctl = carState({ x: at.x, z: at.z, yaw: at.yaw, length: dims[2] });
+      // The car you walked up to is the one you drive: its body kept, not a new one swapped in.
+      car.mesh = parked.get(vehicleId) || makeCar(a.attrs.model, spec.colour);
+      parked.delete(vehicleId);
+      if (!car.mesh.parent) group.add(car.mesh);
+      ctx.avatarVisible(false);
+      ctx.moveAvatarTo(car.x, car.z);
+      notify(`Driving your ${spec.name.toLowerCase()} (${car.plate}). Up and Down are the pedals, Left and Right the wheel. A/D change lanes, S stops at the light, P parks. Enter to get out.`);
+      refresh();
+    } };
   }
   async function exitCar() {
-    if (!car.active) return;
+    if (!car.active || entry) return;
+    if (Math.abs(car.speed) > 1.2) { notify("Stop first (S, or hold Down): then Enter to get out."); return; }
     const metered = Boolean(nearestPlace((p) => p.shops.length > 0, 30)) && Boolean(ctx.onRoad(car.x, car.z));
     const r = await send("park", { metered, x: car.x, z: car.z, km: car.km, litres: car.litres });
     if (!r.ok) { notify(r.error); return; }
     const a = view.registry.assets.get(car.vehicle);
     if (a) { a.attrs.x = car.x; a.attrs.z = car.z; a.attrs.yaw = car.yaw; }
     flushLane();
-    car.mesh?.removeFromParent(); car.mesh = null;
-    car.active = false;
-    // Out on the kerb side.
-    const rx = Math.cos(car.yaw), rz = -Math.sin(car.yaw);
-    ctx.moveAvatarTo(car.x + rx * 1.8, car.z + rz * 1.8);
+    // The car stays where it stopped, as it was: it is your parked car now.
+    if (car.mesh) parked.set(car.vehicle, car.mesh);
+    car.mesh = null;
+    car.active = false; car.speed = 0;
+    const dims = VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan;
+    // Out of the driver's door; by the other side's where something stands at the driver's.
+    let points = carPoints(car, dims, 1);
+    if (walkerBlocked(points.door.x, points.door.z, 0.3)) points = carPoints(car, dims, -1);
     ctx.avatarVisible(true);
-    notify(metered ? "Parked at a meter: pay it in the City panel, or expect a ticket an hour after it runs out." : "Parked.");
-    refresh();
+    entry = { into: false, phase: "pose", t: 0, points, dims, then: () => {
+      notify(metered ? "Parked at a meter: pay it in the City panel, or expect a ticket an hour after it runs out." : "Parked.");
+      refresh();
+    } };
+    poseEntry(0);
   }
-  //: Each frame you drive: the arrows are the pedals and the wheel; the car keeps to what it can
-  //: drive on, through the page's own walls and buildings (ctx.moveWalker).
+  //: Where the body is ``dt`` on in getting in or out: walked to the door, then turned, sat and
+  //: swung in (or out, up and away) by entryPose.
+  function stepEntry(dt) {
+    if (!entry) return false;
+    if (entry.phase === "walk") {
+      const goal = entry.path[0], here = me();
+      const dx = goal.x - here.x, dz = goal.z - here.z, d = Math.hypot(dx, dz);
+      const step = Math.min(d, 1.5 * dt);
+      // (Too far to walk -- a car the books stood somewhere else -- or there already: on to it.)
+      if (d > 12) { entry.path = [entry.path[entry.path.length - 1]]; ctx.moveAvatarTo(entry.path[0].x, entry.path[0].z, true); return true; }
+      if (d < 0.05) {
+        entry.path.shift();
+        if (!entry.path.length) { entry.phase = "pose"; entry.t = 0; }
+        return true;
+      }
+      ctx.moveAvatarTo(here.x + dx / d * step, here.z + dz / d * step, true);
+      ctx.faceTo?.(goal.x, goal.z);
+      ctx.animateWalk?.(step, dx, dz);
+      return true;
+    }
+    entry.t += dt;
+    poseEntry(entry.t);
+    return true;
+  }
+  function poseEntry(t) {
+    const e = entry, P = entryPose(t, e.into), at = entrySpot(e.points, P);
+    e.pose = P;
+    ctx.moveAvatarTo(at.x, at.z, true);
+    // The legs walk the step away; otherwise the body stands (and the bones are bent by afterPose).
+    ctx.animateWalk?.(P.stepping ? 0.025 : 0, P.stepping ? e.points.out.x : 0, P.stepping ? e.points.out.z : 0);
+    ctx.avatar.rotation.y = at.yaw;
+    ctx.avatar.position.y -= P.drop;
+    if (P.done) { entry = null; e.then?.(); }
+  }
+  //: Each frame you drive: the arrows are the pedals and the wheel (car-control.mjs: a pedal goes
+  //: down the longer it is held, the wheel turns while an arrow is held and comes back by itself,
+  //: the curve as wide as the speed needs); the car keeps to what it can drive on, through the
+  //: page's own walls and buildings (ctx.moveWalker).
   function drive(dt, held) {
     if (cycle.active) return pedal(dt, held);
     if (!car.active) return false;
-    const up = held.has("ArrowUp"), down = held.has("ArrowDown"), left = held.has("ArrowLeft"), right = held.has("ArrowRight");
-    const accel = up ? 3.2 : 0, brake = down ? (car.speed > 0.3 ? 7.5 : 2.2) : 0;
-    if (up) car.speed += accel * dt;
-    if (down) car.speed -= brake * dt;
-    if (!up && !down) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), 0.9 * dt);
+    const ctl = car.ctl || (car.ctl = carState({ x: car.x, z: car.z, yaw: car.yaw, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2] }));
+    ctl.x = car.x; ctl.z = car.z;
     const onRoad = ctx.onRoad(car.x, car.z);
-    const cap = onRoad ? car.top : 4;
-    car.speed = Math.max(-5, Math.min(cap, car.speed));
-    const steer = (left ? 1 : 0) - (right ? 1 : 0);
-    if (steer && Math.abs(car.speed) > 0.2) car.yaw += steer * dt * Math.min(1.6, 0.35 + Math.abs(car.speed) / 9) * Math.sign(car.speed);
-    let dx = -Math.sin(car.yaw) * car.speed * dt, dz = -Math.cos(car.yaw) * car.speed * dt;
+    const input = { up: held.has("ArrowUp"), down: held.has("ArrowDown"), left: held.has("ArrowLeft"), right: held.has("ArrowRight") };
+    const step = stepCar(ctl, input, dt, { top: onRoad ? car.top : 4 });
+    car.yaw = ctl.yaw; car.speed = ctl.v;
+    let dx = step.dx, dz = step.dz;
+    if (step.event === "parked") notify("Parked. Enter to get out.");
+    else if (step.event === "stopped") notify(car.light && car.light.light !== "green" && car.light.toLine < 12 ? "Stopped at the line. Up when it is green." : "Stopped.");
     // City mode's area ends here: the car stops at its edge (not a crash).
     if (ctx.inArea && !ctx.inArea(car.x + dx * 4, car.z + dz * 4) && ctx.inArea(car.x, car.z)) {
-      car.speed = 0; dx = 0; dz = 0;
+      ctl.v = 0; ctl.throttle = 0; ctl.park = null; ctl.lane = null; car.speed = 0; dx = 0; dz = 0;
       if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(BOUNDARY_MESSAGE); }
     }
     const before = { x: car.x, z: car.z };
@@ -2176,17 +2241,101 @@ diffuseColor.rgb *= kbCloth;`);
         strikeKey(0.5 * kg * impact * impact);
         send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(Date.now()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
-      car.speed *= 0.2;
+      ctl.v *= 0.2; ctl.throttle *= 0.3; car.speed = ctl.v;
+      if (ctl.park || ctl.lane) { ctl.park = null; ctl.lane = null; notify("Something is in the way: the wheel is yours."); }
     }
+    watchLights();
     hitInTraffic(before);
     const metres = Math.hypot(car.x - before.x, car.z - before.z);
     car.km += metres / 1000;
     const spec = car.spec;
     car.litres += spec.fuel === "electric" ? metres / 1000 * spec.kwh_per_100km / 100 / 1.6 : metres / 1000 * spec.l_per_100km / 100;
     if (car.mesh) { car.mesh.position.set(car.x, p.y - ctx.standY, car.z); car.mesh.rotation.y = car.yaw; }
+    // The view behind the car: in reverse it stays behind the car's nose's way, so backing up
+    // is seen as backing up.
     ctx.followYaw(car.yaw, dt);
     roadCharges(before, car, dt);
     return true;
+  }
+  //: The light at the next signalled junction ahead, a few times a second: {toLine (m to its
+  //: stop line), light} or null (car.light) -- for the HUD, and for S to stop at its line.
+  let lightsAt = 0;
+  function watchLights() {
+    const s = district.streets, now = performance.now();
+    if (!s || now - lightsAt < 200) return;
+    lightsAt = now;
+    const ctl = car.ctl, fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw), bearing = Math.atan2(fx, fz), tsec = Date.now() / 1000;
+    const len = (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2], signals = [];
+    for (let i = 0; i < s.nodes.length; i += 1) {
+      const n = s.nodes[i];
+      if (Math.abs(n.x - car.x) > 80 || Math.abs(n.z - car.z) > 80 || junctionAt(s, i) !== "signal") continue;
+      const line = district.drivers?.stopLine ? district.drivers.stopLine(i, { length: len }) : TRAFFIC.stop_line_m + len / 2;
+      signals.push({ x: n.x, z: n.z, line, light: signalAt(s, i, bearing, tsec) });
+    }
+    car.light = lightAhead(ctl, signals);
+    // Stopping for a light that has turned: the line it stops at moves with the car's own travel.
+    if (ctl.stopping && ctl.stopping.lineIn !== null && car.light && car.light.light !== "green") { ctl.stopping.lineIn = car.light.toLine; ctl.stopping.travelled = 0; }
+  }
+  //: The driving helpers' keys: A or D over a lane, S a stop (at the light's line ahead, if it
+  //: is red or amber), P parking (in the stall or kerb space you are by, or pulled up here).
+  function driveKey(key) {
+    const ctl = car.ctl;
+    if (!car.active || !ctl) return false;
+    if (key === "a" || key === "d") {
+      const dir = key === "a" ? 1 : -1, why = startLaneChange(ctl, dir);
+      if (why) { notify(why); return true; }
+      const hit = lanes?.at(car.x, car.z, car.yaw);
+      notify(hit && hit.seg.lanes <= 1 ? `Over to the ${dir > 0 ? "left" : "right"}: there is one lane this way, so watch for the kerb and oncoming cars.` : `Over a lane to the ${dir > 0 ? "left" : "right"}.`);
+      return true;
+    }
+    if (key === "s") {
+      const L = car.light && car.light.light !== "green" ? car.light : null;
+      startStop(ctl, L ? L.toLine : null);
+      notify(L ? `Braking for the ${L.light} light: stopping at its line, ${Math.max(0, Math.round(L.toLine))} m on.` : "Braking to a stop.");
+      return true;
+    }
+    if (key === "p") {
+      const spot = parkSpot();
+      if (spot) {
+        startPark(ctl, parkPath({ x: car.x, z: car.z, yaw: car.yaw }, spot));
+        notify(`Parking ${spot.kind === "stall" ? "in the stall" : "at the kerb"} ${spot.d < 3 ? "here" : `${Math.round(spot.d)} m on`}${ctl.park.path.reverse ? ", backing in" : ""}. An arrow takes the wheel back.`);
+      } else if (Math.abs(ctl.v) > 0.3) { startStop(ctl, null); notify("No free space near: pulling up here. Enter to get out when stopped."); }
+      else { ctl.parked = true; notify("Parked here. Enter to get out."); }
+      return true;
+    }
+    return false;
+  }
+  //: A free place to park near the car: a car park's stall (nosed in) within 28 m, or a stretch
+  //: of kerb on the right ahead where a car may stand (no driveway, no red or blue paint) with
+  //: nobody in it. {x, z, yaw, d, kind} or null.
+  function parkSpot() {
+    const [w, , l] = VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan;
+    const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw), rx = Math.cos(car.yaw), rz = -Math.sin(car.yaw);
+    const others = [];
+    for (const v of drawnCars) { const [vw, , vl] = VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan; others.push([v.x, v.z, v.yaw, vl / 2, vw / 2]); }
+    for (const [, m] of [...parked, ...peerCars]) if (m.parent) { const [vw, , vl] = VEHICLE_DIMS[m.userData.model] || VEHICLE_DIMS.sedan; others.push([m.position.x, m.position.z, m.rotation.y, vl / 2, vw / 2]); }
+    const taken = (x, z, yaw) => others.some(([ox, oz, oy, hl, hw]) => Math.hypot(ox - x, oz - z) < l + hl && boxesOverlap(x, z, yaw, l / 2 + 0.25, w / 2 + 0.15, ox, oz, oy, hl, hw));
+    const out = [];
+    for (const q of ctx.parkingStalls?.() || []) {
+      const dx = q.x - car.x, dz = q.z - car.z, d = Math.hypot(dx, dz), along = dx * fx + dz * fz;
+      if (d > 28 || along < -8 || taken(q.x, q.z, q.yaw)) continue;
+      out.push({ x: q.x, z: q.z, yaw: q.yaw, d: d + (along < 0 ? 6 : 0), kind: "stall" });
+    }
+    if (ctx.kerbAt && ctx.onRoad(car.x, car.z)) {
+      for (const ahead of [4, 8, 12, 16, 21, 26]) {
+        const k = ctx.kerbAt(car.x + fx * ahead + rx * 3, car.z + fz * ahead + rz * 3, fx, fz, 7);
+        if (!k || k.nx * rx + k.nz * rz < 0.3) continue;   // the kerb on the right, out of the road
+        let ax = k.ax, az = k.az;
+        if (ax * fx + az * fz < 0) { ax = -ax; az = -az; }
+        if (ctx.kerbParking?.(k.x, k.z, ax, az, l / 2, null)) continue;
+        const x = k.x - k.nx * (w / 2 + 0.3), z = k.z - k.nz * (w / 2 + 0.3), yaw = Math.atan2(-ax, -az);
+        if (taken(x, z, yaw)) continue;
+        out.push({ x, z, yaw, d: ahead, kind: "kerb" });
+        break;
+      }
+    }
+    out.sort((a, b) => a.d - b.d);
+    return out[0] || null;
   }
   //: Your car against the city's: its cars and its people are solid. A hit is a crash -- the
   //: other car dented or wrecked where it stands, someone on foot thrown and hurt -- by speed.
@@ -2375,7 +2524,7 @@ diffuseColor.rgb *= kbCloth;`);
   }
 
   // ---- your body: the bars, walking and sprinting ------------------------------------------------
-  const body = { walked: 0, sprint: 0, since: performance.now(), sprintHeld: false, sprinting: false, faintSeen: 0, reporting: false };
+  const body = { walked: 0, sprint: 0, swim: 0, swimSprint: 0, tread: 0, since: performance.now(), sprintHeld: false, sprinting: false, faintSeen: 0, reporting: false };
   const self = () => view?.players.get(myId) || null;
   //: Everyone in the city's one world is in the city's one room, so players see each other walk
   //: and drive without sharing a code first. A party of your own (the home screen's Multiplayer)
@@ -2415,7 +2564,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: The walk as the page made it: counted at a walker's pace however far the zoomed-out view
   //: carries the walker, and reported to the books every few seconds.
   function walked(metres, dt) {
-    if (!self() || !(metres > 0)) return;
+    if (!self() || !(metres > 0) || inWater()) return;   // (a swim is counted by swim)
     body.walked += Math.min(metres, dt * 2.6 * (body.sprinting ? R.vitals.stamina.sprint_factor : 1));
     if (body.sprinting) body.sprint += dt;
   }
@@ -2423,10 +2572,37 @@ diffuseColor.rgb *= kbCloth;`);
     const seconds = (performance.now() - body.since) / 1000;
     if (body.reporting || seconds < 4 || !self()) return;
     body.since = performance.now();
-    if (body.walked < 0.5 && body.sprint <= 0) return;
-    const args = { walked_m: Math.round(body.walked * 10) / 10, sprint_s: Math.round(body.sprint * 10) / 10, seconds: Math.min(60, seconds) };
-    body.walked = 0; body.sprint = 0; body.reporting = true;
+    if (body.walked < 0.5 && body.sprint <= 0 && body.swim + body.swimSprint + body.tread <= 0) return;
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const args = { walked_m: r1(body.walked), sprint_s: r1(body.sprint), seconds: Math.min(60, seconds) };
+    if (body.swim + body.swimSprint + body.tread > 0) Object.assign(args, { swim_s: r1(body.swim), swim_sprint_s: r1(body.swimSprint), tread_s: r1(body.tread) });
+    body.walked = 0; body.sprint = 0; body.swim = 0; body.swimSprint = 0; body.tread = 0; body.reporting = true;
     send("exert", args).finally(() => { body.reporting = false; });
+  }
+  //: In the water, afloat (the page's module 33 asks each frame): how you move by your stamina
+  //: (core.mjs swimMode) -- a swim, fast with Shift while it lasts, treading water when you are
+  //: out of breath until it is back -- counted here as you go and told to the books with the walk
+  //: (exert). The stroke's phase runs on for the arms and legs (afterPose). One object, reused.
+  const swimming = { seen: -1e9, stamina: 0, treading: false, phase: 0, out: { mode: "tread", speed: 0, phase: 0, treading: false, stamina: 0 } };
+  const inWater = () => performance.now() - swimming.seen < 400;
+  function swim(dt, moving) {
+    const p = self(), now = performance.now(), W = R.vitals.stamina;
+    if (now - swimming.seen > 1500) {
+      swimming.stamina = p?.vitals?.stamina ?? R.vitals.max; swimming.treading = false;
+      notify("Swimming. Shift swims fast while your stamina lasts; out of breath, you tread water until it comes back.");
+    }
+    swimming.seen = now;
+    const m = swimMode(R, swimming.stamina, { moving, sprint: body.sprintHeld, treading: swimming.treading });
+    if (m.treading && !swimming.treading) notify("Out of breath: treading water until your stamina is back.");
+    else if (!m.treading && swimming.treading) notify("Your wind is back: swimming on.");
+    swimming.treading = m.treading;
+    const rate = m.mode === "sprint" ? -W.swim_sprint_per_second : m.mode === "swim" ? -W.swim_per_second : W.tread_recover_per_second;
+    swimming.stamina = Math.max(0, Math.min(R.vitals.max, swimming.stamina + rate * dt));
+    if (m.mode === "sprint") body.swimSprint += dt; else if (m.mode === "swim") body.swim += dt; else body.tread += dt;
+    swimming.phase += dt * (m.mode === "sprint" ? 7.2 : m.mode === "swim" ? 4.2 : 3.4);
+    const o = swimming.out;
+    o.mode = m.mode; o.speed = m.speed; o.phase = swimming.phase; o.treading = m.treading; o.stamina = swimming.stamina;
+    return o;
   }
   //: Out cold (the books say so): your car left where it stopped, and you wake where you were taken.
   function checkFainted() {
@@ -3508,6 +3684,40 @@ diffuseColor.rgb *= kbCloth;`);
     const B = rigBones(), p = self();
     const hold = p?.hands && !heldHidden ? physOf(R, p.hands).hold : null;
     const fwd = (b, a) => turn(b, -1, 0, 0, a);
+    // Getting into a car or out of it (car-entry.mjs): sat down -- the hips bent, the knees bent
+    // back so the shins hang -- the back over as the body goes in, the hands to the wheel.
+    if (entry?.pose) {
+      const P = entry.pose, seated = P.drop / 0.45;
+      if (B.rThigh && B.lThigh) { fwd(B.rThigh, P.thigh); fwd(B.lThigh, P.thigh); fwd(B.rShin, P.shin); fwd(B.lShin, P.shin); }
+      fwd(B.spine, -P.lean);
+      fwd(B.rUpper, 0.55 * seated); fwd(B.lUpper, 0.55 * seated); fwd(B.rFore, 0.6 * seated); fwd(B.lFore, 0.6 * seated);
+      return;
+    }
+    // Afloat (swim, and the page's module 33, which lays the body down to swim): a front crawl --
+    // each arm in turn back over the water and forward past the head, then pulled down under the
+    // body to the hip, the legs fluttering -- or, treading water upright, the arms sculling out to
+    // the sides and the legs pedalling.
+    const sw = ctx.avatar.userData.swim;
+    if (sw) {
+      const ph = sw.phase, TAU = Math.PI * 2, legs = Boolean(B.rThigh && B.lThigh && B.rShin && B.lShin);
+      if (sw.mode === "swim" || sw.mode === "sprint") {
+        fwd(B.rUpper, -(ph % TAU)); fwd(B.lUpper, -((ph + Math.PI) % TAU));
+        fwd(B.rFore, 0.2 + 0.45 * Math.max(0, Math.sin(ph))); fwd(B.lFore, 0.2 + 0.45 * Math.max(0, -Math.sin(ph)));
+        if (legs) {
+          const k = Math.sin(ph * 2.2) * (sw.mode === "sprint" ? 0.34 : 0.24);
+          fwd(B.rThigh, k); fwd(B.lThigh, -k); fwd(B.rShin, -0.2 - 0.25 * Math.max(0, k)); fwd(B.lShin, -0.2 - 0.25 * Math.max(0, -k));
+        }
+      } else {
+        const sc = Math.sin(ph);
+        turn(B.rUpper, 0, 0, 1, -1.0); turn(B.lUpper, 0, 0, 1, 1.0);
+        fwd(B.rUpper, 0.35 + 0.3 * sc); fwd(B.lUpper, 0.35 - 0.3 * sc); fwd(B.rFore, 0.55); fwd(B.lFore, 0.55);
+        if (legs) {
+          fwd(B.rThigh, 0.65 + 0.35 * sc); fwd(B.lThigh, 0.65 - 0.35 * sc);
+          fwd(B.rShin, -1.0 - 0.35 * Math.cos(ph)); fwd(B.lShin, -1.0 + 0.35 * Math.cos(ph));
+        }
+      }
+      return;
+    }
     const t = pose.kind ? Math.min(1, (performance.now() - pose.t0) / pose.dur) : 0;
     if (pose.kind === "pickup" || pose.kind === "strain") {
       // A squat to the ground in front of the feet: the thighs forward and the shins back (the
@@ -5446,6 +5656,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (e.key === " " && e.target instanceof HTMLButtonElement) return;   // Space on a focused button presses it
     // On the map the walker jumps too (Space); the game's other keys are City mode's.
     if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
+    // At the wheel, A D S P are the driving helpers' (driveKey).
+    if (car.active && e.key.length === 1 && driveKey(e.key.toLowerCase())) { e.preventDefault(); return; }
     const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
     if (!run) return;
     e.preventDefault();
@@ -5455,7 +5667,7 @@ diffuseColor.rgb *= kbCloth;`);
   addEventListener("blur", () => { body.sprintHeld = false; });
 
   async function toggleCar() {
-    if (!ctx.enabled()) return;
+    if (!ctx.enabled() || entry) return;
     if (shop.place) return;
     if (car.active) return exitCar();
     if (car.riding) { car.riding = null; ctx.avatarVisible(true); notify("Out of the car."); refresh(); return; }
@@ -5589,6 +5801,9 @@ diffuseColor.rgb *= kbCloth;`);
     if (car.active) {
       const limit = speedLimitAt(car.x, car.z) * MPH, mph = Math.abs(car.speed) * MPH;
       bits.push(`<span class="${mph > limit + 5 ? "warn" : ""}">${Math.round(mph)} mph · limit ${Math.round(limit)}</span>`);
+      const ctl = car.ctl;
+      if (ctl) bits.push(ctl.park ? "parking" : ctl.lane ? `changing lane ${ctl.lane.dir > 0 ? "left" : "right"}` : ctl.stopping ? "braking to stop" : ctl.gear < 0 ? "R" : ctl.parked && Math.abs(ctl.v) < 0.1 ? "P" : "D");
+      if (car.light && car.light.light !== "green" && car.light.toLine < 60) bits.push(`<span class="warn">${car.light.light} light in ${Math.max(0, Math.round(car.light.toLine))} m · S stops at the line</span>`);
       if (car.lane) bits.push(car.lane.managed ? `<span class="${car.lane.active && occupants() < car.lane.minimum && car.lane.kind === "hov" ? "warn" : ""}">${car.lane.kind === "express" ? "Express lane" : "Carpool lane"} ${car.lane.minimum}+ ${car.lane.active ? "" : "(open to all now)"} · ${occupants()} aboard</span>` : `lane ${car.lane.lane + 1} of ${car.lane.of}`);
     }
     if (car.riding) bits.push("riding");
@@ -6357,7 +6572,7 @@ diffuseColor.rgb *= kbCloth;`);
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active || cycle.active; }, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,

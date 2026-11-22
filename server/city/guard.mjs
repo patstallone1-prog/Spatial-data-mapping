@@ -31,6 +31,7 @@ const CLAMPS = {
   qty: [1, 99, true], witnesses: [0, 40, true], km: [0, 300, false], litres: [0, 120, false], seconds: [0, 60, false],
   sprint_s: [0, 60, false], walked_m: [0, 600, false], occupants: [1, 8, true], hours: [0, 72, false], speed: [0, 90, false],
   over_mph: [0, 200, false], mph: [0, 250, false], used_years: [0, 40, true],
+  swim_s: [0, 60, false], swim_sprint_s: [0, 60, false], tread_s: [0, 60, false],
 };
 
 //: A command's arguments as plain, finite, bounded data (a copy). Throws Refused.
@@ -62,6 +63,8 @@ export function sanitize(args, command) {
   // What was walked is not more than the time allows.
   if (typeof out.walked_m === "number") out.walked_m = Math.min(out.walked_m, (out.seconds ?? 5) * 10);
   if (typeof out.sprint_s === "number") out.sprint_s = Math.min(out.sprint_s, out.seconds ?? 5);
+  // (And so with time in the water.)
+  for (const k of ["swim_s", "swim_sprint_s", "tread_s"]) if (typeof out[k] === "number") out[k] = Math.min(out[k], out.seconds ?? 5);
   return out;
 }
 
