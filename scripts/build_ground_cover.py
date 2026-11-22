@@ -74,7 +74,7 @@ CITY_SOURCES: dict[str, dict[str, dict]] = {
         "parks": {"id": "3nje-yn2u", "geom": "the_geom", "name": "map_park_n"},
         "parcels": {"id": "acdm-wktn", "geom": "shape", "name": "mapblklot", "where": "active=true"},
         "trees": {"id": "tkzw-k3nq", "lat": "latitude", "lon": "longitude",
-                  "species": "qspecies", "dbh": "dbh"},
+                  "species": "species", "dbh": "mapdbh"},
     },
     "oakland": {
         "host": "data.oaklandca.gov",
@@ -326,8 +326,8 @@ def fetch_city(kind: str, city: str, bbox: dict, progress) -> list[dict]:
                 continue
         else:
             lon, lat = row.get(spec["lon"]), row.get(spec["lat"])
-        out.append({"lon": lon, "lat": lat, "species": row.get(spec.get("species") or ""),
-                    "dbh": row.get(spec.get("dbh") or "")})
+        out.append({"lon": lon, "lat": lat, "species": row.get(spec.get("species") or "") or row.get("qspecies"),
+                    "dbh": row.get(spec.get("dbh") or "") or row.get("dbh")})
     return out
 
 

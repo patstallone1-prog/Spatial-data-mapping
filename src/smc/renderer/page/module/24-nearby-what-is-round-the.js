@@ -45,6 +45,9 @@ const portalMaterial = new THREE.MeshBasicMaterial({ colorWrite: false, side: TH
 const doorGroup = new THREE.Group();
 doorGroup.name = "doors";
 root.add(doorGroup);
+const entryGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x899a99, metalness: .28,
+  roughness: .22, transparent: true, opacity: .55, side: THREE.DoubleSide });
+const entryFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x414646, roughness: .5 });
 const doorsShown = new Set();
 function showDoor(door) {
   if (door.mesh) return;
@@ -114,10 +117,17 @@ function showDoor(door) {
   const leafDepth = door.stoopPlan ? door.stoopPlan.depth : -DOOR_STANDOFF_M;
   hinge.position.set(hx + door.nx * leafDepth, leafGround, hz + door.nz * leafDepth);
   hinge.rotation.y = Math.atan2(-door.uz, door.ux);
-  const leaf = new THREE.Mesh(new THREE.BoxGeometry(door.width, DOOR_HEIGHT_M, 0.05), doorMaterial);
+  const leaf = new THREE.Mesh(new THREE.PlaneGeometry(door.width, DOOR_HEIGHT_M), entryGlassMaterial);
   leaf.position.set(door.width / 2, DOOR_HEIGHT_M / 2, 0);
   leaf.castShadow = true;
   leaf.renderOrder = INTERIOR_ORDER;
+  if (!door.entry.way._hasDesignedFront && !door.photoEntry) {
+    for (const [x,y,w,h] of [[-door.width/2,0,.045,DOOR_HEIGHT_M],[door.width/2,0,.045,DOOR_HEIGHT_M],
+      [0,DOOR_HEIGHT_M/2,door.width,.045],[0,-DOOR_HEIGHT_M/2,door.width,.09],[door.width*.36,-.1,.025,.28]]) {
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(w,h,.045), entryFrameMaterial);
+      trim.position.set(x,y,.02); leaf.add(trim);
+    }
+  } else leaf.visible = false;
   hinge.add(leaf);
   const portalBottom = door.stoopPlan ? street : ground;
   const portalHeight = ground + DOOR_HEIGHT_M - portalBottom;
@@ -675,7 +685,7 @@ function hideDoor(door) {
     door.recessWalls = null;
   }
   doorGroup.remove(door.mesh, door.opening, door.portal);
-  door.leaf.geometry.dispose();
+  door.leaf.traverse(o => o.geometry?.dispose());
   door.opening.geometry.dispose();
   door.portal.geometry.dispose();
   door.mesh = null;

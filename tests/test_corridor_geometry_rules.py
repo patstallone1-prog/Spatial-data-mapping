@@ -915,29 +915,13 @@ def test_no_roof_is_drawn_green() -> None:
     assert "read.green >= ROOF_UNDER_TREES" in _extract("roofFinishFor", js)
 
 
-def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:
-    """Five kinds, and the one San Francisco actually has most of is not an awning at all.
-
-    A `board` is a painted or cut-letter sign fixed flat to the wall above the glass. It is the
-    commonest thing on a shopfront here by a wide margin, and a set of awning types that leaves
-    it out gets the street wrong however good the canvas looks.
-    """
+def test_mapped_shops_use_the_city_signage_renderer():
     js = _page_js()
-    for kind in ("board", "straight", "dome", "shed", "retractable"):
-        assert f'"{kind}"' in js, kind
-    for builder in ("buildBoard", "buildSloped", "buildDome", "buildShed"):
-        assert f"function {builder}(" in js, builder
-    # Every trade's mix has to be a distribution, and board has to lead in most of them.
-    table = js[js.index("const AWNING_MIX = {"):js.index("};", js.index("const AWNING_MIX = {"))]
-    rows = re.findall(r"(\w+):\s*\{([^}]*)\}", table)
-    assert len(rows) >= 12, len(rows)
-    leads = 0
-    for trade, body in rows:
-        shares = {k: float(v) for k, v in re.findall(r"(\w+):\s*([0-9.]+)", body)}
-        assert abs(sum(shares.values()) - 1.0) < 1e-6, (trade, shares)
-        if max(shares, key=shares.get) == "board":
-            leads += 1
-    assert leads > len(rows) * 0.7, f"the flat board leads in only {leads} of {len(rows)} trades"
+    assert "function addShopSeating(" in js
+    assert "function addShopfronts(" not in js
+    city = (ROOT / "docs/city/view.mjs").read_text()
+    assert "buildSignage(THREE, tradeSignage(" in city
+    assert "pl.designedFront || !name" in city
 
 
 def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
@@ -1706,8 +1690,8 @@ def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
     pit = js[js.index("// ---- tree pits ----"):js.index("// Trees, one instanced mesh per")]
     assert "random(" not in pit, "the pit is still being turned by a die roll"
     # And the whole pit is tested against the roadway, not only the tree in the middle of it.
-    assert "for (const [cx, cz] of corners)" in pit
-    assert "insideBikeLane(cx, cz" in pit
+    assert "corners.some(([x,z])" in pit
+    assert "insideBikeLane(x,z" in pit
 
 
 #: A stand-in for THREE.Color that behaves the way the page's does.

@@ -147,10 +147,10 @@ function treeVariant(kind) {
     : (kind === "broad" ? 0xe0ffd0 : kind === "columnar" ? 0xd0f0c0 : 0xffffff));
   // A cluster of leaf cards in an ellipsoid round c.
   const cluster = (c, rx, ry, cards, size, droop = 0) => {
-    for (let i = 0; i < cards; i += 1) {
+    for (let i = 0; i < Math.ceil(cards * 0.65); i += 1) {
       const a = rnd() * Math.PI * 2, e = (rnd() - 0.5) * Math.PI, r = Math.cbrt(rnd());
       leaves.push(leafCard(V(c.x + Math.cos(a) * Math.cos(e) * rx * r, c.y + Math.sin(e) * ry * r,
-        c.z + Math.sin(a) * Math.cos(e) * rx * r), size, rnd, tint, droop));
+        c.z + Math.sin(a) * Math.cos(e) * rx * r), size * 1.15, rnd, tint, droop));
     }
   };
   if (kind === "palm") {

@@ -1245,7 +1245,10 @@ function buildingMesh(feature) {
     // No shopfront, no bay windows, no balconies. A garden workshop has a door and a roof, and
     // the detail passes are what made these read as houses in the first place.
   } else {
-    if(exteriorPlan) { const exteriorGroup=new THREE.Group();group.add(exteriorGroup);STORE_EXTERIOR_RUNTIME.renderer.mount(exteriorGroup,exteriorPlan,exteriorOrigin);storeExteriorDrawn.set(feature,exteriorGroup); }
+    feature._hasDesignedFront = Boolean(exteriorPlan || feature.exteriorEdit);
+    if(exteriorPlan) { const exteriorGroup=new THREE.Group();group.add(exteriorGroup);const mounted=STORE_EXTERIOR_RUNTIME.renderer.mount(exteriorGroup,exteriorPlan,exteriorOrigin);
+      feature._showMappedSign=visible=>{const signs=mounted?.getObjectByName("mapped-store-signs"); if(signs) signs.visible=visible;};
+      storeExteriorDrawn.set(feature,exteriorGroup); }
     addGroundFacadeDetail(group, feature, seed, height, tint);
     addSouthFacadeDetail(group, feature, seed, height);
     photoDetailParts(group, feature);
@@ -1253,7 +1256,7 @@ function buildingMesh(feature) {
     // Plant and solar want a flat roof the size of the outline, which a building in parts or
     // with a courtyard does not have.
     if (!shaped) addRoofFurniture(group, feature, seed, height, areaM2, wallColour.getHex());
-    addShopfronts(feature, seed, height, tint);
+    addShopSeating(feature, seed, height);
     addBuildingNamePlaque(group, feature, seed, height, tint);
   }
   BUILDING_LIFT_M = 0;

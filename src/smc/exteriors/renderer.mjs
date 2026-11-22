@@ -211,7 +211,8 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
   };
   const mount = (target, plan, origin = {x: 0, y: 0, z: 0}) => {
     if (!plan.validation?.passed) return null;
-    const group = new THREE.Group(), batch = new Batch(THREE);
+    const group = new THREE.Group(), walls = new Batch(THREE), signs = new Batch(THREE);
+    let batch = walls;
     group.position.set(origin.x, origin.y, origin.z);
     for (const f of plan.facades) {
       const matrix = faceMatrix(THREE, f), p = f.palette;
@@ -329,6 +330,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           for (const [a, b] of solidIntervals(f, y)) box((a + b) / 2, y, 0.012, b - a, 0.006, 0.012, material(p.base, 0.9));
         }
       }
+      batch = signs;
       for (const sign of f.signs) {
         const u = sign.u + sign.w / 2, v = sign.v + sign.h / 2;
         const panel = ['fascia', 'lightbox', 'neon', 'plaque', 'blade'].includes(sign.kind);
@@ -387,8 +389,13 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           plane(u,v,sign.canopy?sign.canopy.depth_m+.024:panel?.185:.085,w,h,m);
         }
       }
+      batch = walls;
     }
-    batch.finish(group, plan.evidence);
+    walls.finish(group, plan.evidence);
+    const signGroup = new THREE.Group();
+    signGroup.name = "mapped-store-signs";
+    signs.finish(signGroup, plan.evidence);
+    group.add(signGroup);
     group.userData = {inferredExterior: plan.id, sources: plan.references, missingAssets: [...missingAssets]};
     target.add(group); return group;
   };

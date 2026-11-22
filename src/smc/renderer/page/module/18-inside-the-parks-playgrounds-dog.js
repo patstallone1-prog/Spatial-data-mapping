@@ -623,6 +623,20 @@ for (const feature of PARK_STRUCTURES) {
   const mesh=parkFacilityMesh(feature);if(mesh)groups.mapped3d.add(mesh);
 }
 
+const treePlotCorners = new Map();
+const sfSurvey = (async () => {
+  const b = DATA.bbox;
+  if (!b) return null;
+  const box = BUILD_WINDOW?.box || [b.west,b.south,b.east,b.north];
+  if (box[0] > -122.34 || box[2] < -122.53 || box[1] > 37.84 || box[3] < 37.70) return null;
+  const api = await import(sharedAsset("sf-tree-placement.mjs"));
+  const trees = await api.surveyedTrees(box, async path => {
+    const response = await fetch(sharedAsset("sf-tree-survey/"+path));
+    if (!response.ok) throw Error("Tree survey HTTP "+response.status);
+    return response.json();
+  });
+  return {trees, api};
+})().catch(e => { console.warn("Tree survey unavailable",e); return null; });
 const groundReady = (async () => {
   let ground;
   try {
@@ -832,47 +846,88 @@ const groundReady = (async () => {
   // a planted median, a refuge -- and is drawn as one (addTreeIslands); one in a junction's box
   // is a corner tree recorded in the wrong place, and is left out rather than drawn in the road.
   const islandTrees = [];
-  // A tree does not stand in the asphalt. One recorded a little way into the roadway (up to the
-  // depth past which it is a median's tree and gets an island) is a kerb tree a metre off --
-  // the record's point, or the road drawn a little wide: 97 in the Marina stood in the kerb
-  // lane with no pit, 59 of them along Lombard (2026-11-21). Each is stood back on the pavement
-  // beside it: straight out from the roadway's middle, to half a metre past the kerb.
-  let treesStoodBack = 0;
-  if (ground.trees) ground.trees = ground.trees.map((tree) => {
-    const [tx, ty] = xy(tree.p[0], tree.p[1]);
-    if (!insideCarriageway(tx, -ty, 0) || insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return tree;
-    const seg = nearestCarriagewaySegment(tx, -ty);
-    if (!seg) return tree;
-    const ex = seg[2] - seg[0], ez = seg[3] - seg[1], L2 = ex * ex + ez * ez || 1;
-    const k = Math.max(0, Math.min(1, ((tx - seg[0]) * ex + (-ty - seg[1]) * ez) / L2));
-    let ox = tx - (seg[0] + ex * k), oz = -ty - (seg[1] + ez * k);
-    const o = Math.hypot(ox, oz);
-    if (o < 0.05) return tree;
-    ox /= o; oz /= o;
-    for (let step = 0.2; step <= 3.2; step += 0.2) {
-      const nx = tx + ox * step, nz = -ty + oz * step;
-      if (insideCarriageway(nx, nz, -0.5)) continue;
-      treesStoodBack += 1;
-      return { ...tree, p: [nx / metersPerLon + midLon, -nz / metersPerLat + midLat, ...tree.p.slice(2)], stood_back_m: +step.toFixed(1) };
+  const survey = await sfSurvey;
+  if (survey) {
+    const retained = (ground.trees || []).filter(t=>t.src?.startsWith("lidar_canopy"));
+    const occupied = new Map();
+    const key=(x,z)=>Math.floor(x/4)+":"+Math.floor(z/4);
+    for (const t of survey.trees) {
+      const [x,y]=xy(...t.p), k=key(x,-y);
+      if (!occupied.has(k)) occupied.set(k,[]);
+      occupied.get(k).push([x,-y]);
     }
-    return tree;
-  });
-  treeIslandStats.stood_back = treesStoodBack;
+    ground.trees = [...survey.trees.filter(t=>!BUILD_WINDOW || BUILD_WINDOW.inside(...t.p)), ...retained.filter(t=>{
+      const [x,y]=xy(...t.p);
+      for(let dx=-4;dx<=4;dx+=4) for(let dz=-4;dz<=4;dz+=4)
+        if(occupied.get(key(x+dx,-y+dz))?.some(([a,b])=>Math.hypot(x-a,-y-b)<=4)) return false;
+      return true;
+    })];
+  }
   const notThere = stackedTreesToDrop(ground.trees || [], (tree) => {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const seg = nearestCarriagewaySegment(tx, -ty);
     return seg ? Math.sqrt(distanceToSegmentSquared(tx, -ty, seg[0], seg[1], seg[2], seg[3])) : Infinity;
   });
   treeIslandStats.address_points = notThere.size;
+  const trunkGrid = new Map(), trunkCell=(x,z)=>Math.floor(x/5)+":"+Math.floor(z/5);
+  for (const t of ground.trees || []) {
+    if (notThere.has(t)) continue;
+    const [x,y]=xy(...t.p), key=trunkCell(x,-y);
+    if (!trunkGrid.has(key)) trunkGrid.set(key,[]);
+    trunkGrid.get(key).push(t);
+  }
+  function treeCrowding(x,z,tree) {
+    for(let dx=-5;dx<=5;dx+=5) for(let dz=-5;dz<=5;dz+=5)
+      for(const t of trunkGrid.get(trunkCell(x+dx,z+dz)) || []) {
+        const [a,b]=xy(...t.p);
+        if(t!==tree && Math.hypot(x-a,z+b)<4.572) return true;
+      }
+    return false;
+  }
+  function treeCrossingNear(x,z) {
+    const cx=Math.floor(x/CROSSING_DEDUPE_CELL_M), cz=Math.floor(z/CROSSING_DEDUPE_CELL_M);
+    for(let dx=-5;dx<=5;dx++) for(let dz=-5;dz<=5;dz++)
+      for(const p of crossingDrawGrid.get(`${cx+dx}:${cz+dz}`) || []) {
+        const a=x-p.x,b=z-p.z,c=Math.cos(p.bearing),s=Math.sin(p.bearing);
+        if(Math.abs(a*c+b*s)<p.length/2+3.048 && Math.abs(b*c-a*s)<(p.width || 3.7)/2+3.048) return true;
+      }
+    return false;
+  }
   const trees = (ground.trees || []).filter((tree) => {
     if (notThere.has(tree)) return false;
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
-    if (inDriveway(tx, -ty)) return false;
-    // Not in the water: a tree the lidar or a record puts on a lake or the bay is a mast, a
-    // reflection or a point a few metres off the shore it stands on.
-    if (overWaterAt(tx, -ty)) { treeIslandStats.water = (treeIslandStats.water || 0) + 1; return false; }
-    if (!insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return true;
-    if (insideJunctionBox(tx, -ty) || junctionSquares.some((q) => Math.hypot(q.kx - tx, q.kz + ty) < q.reach + 2)) {
+    if (overWaterAt(tx, -ty)) return false;
+    const tz=-ty;
+    if (tree.curb && survey) {
+      const [cx,cy]=xy(...tree.curb);
+      const seg=nearestCarriagewaySegment(cx,-cy);
+      if (seg) {
+        const dx=seg[2]-seg[0], dz=seg[3]-seg[1];
+        const u=Math.max(0,Math.min(1,((cx-seg[0])*dx+(-cy-seg[1])*dz)/(dx*dx+dz*dz || 1)));
+        const out=[cx-seg[0]-u*dx,-cy-seg[1]-u*dz];
+        const plot=survey.api.sidewalkPlot(tree,[cx,-cy,tree.curb[2]],out,
+          (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
+            && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z));
+        if (plot) {
+          const [x,z]=plot.center;
+          const junction=junctionSquares.some(q=>Math.hypot(q.kx-x,q.kz-z)<q.reach+7.62);
+          const driveway=DRIVEWAY_ZONES.some(d=>x>=d.minX-1.524 && x<=d.maxX+1.524 && z>=d.minZ-1.524 && z<=d.maxZ+1.524
+            && (pointInRing(x,z,d.ring) || d.ring.some((a,i)=>{const b=d.ring[(i+1)%d.ring.length];return distanceToSegmentSquared(x,z,...a,...b)<1.524**2;})));
+          const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
+            const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(kind==="stop"?7.62:.9144);
+          }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
+          if (!obstructed && !junction && !driveway && !insideJunctionBox(x,z) && !overWaterAt(x,z) &&
+            !treeCrowding(x,z,tree) && !treeCrossingNear(x,z)) {
+            tree.p=[x/metersPerLon+midLon,-z/metersPerLat+midLat];
+            treePlotCorners.set(tree,plot.corners);
+            return true;
+          }
+        }
+      }
+    }
+    if (buildingAt(tx,tz) || inDriveway(tx,tz) || insideBikeLane(tx,tz,.1)) return false;
+    if (!insideCarriageway(tx,tz,0)) return true;
+    if (!tree.island || insideJunctionBox(tx, tz)) {
       treeIslandStats.junction += 1;
       return false;
     }
@@ -886,33 +941,21 @@ const groundReady = (async () => {
     const top = pavementTopAt(tx, tz);
     if (top === undefined) continue;
     if (insideCarriageway(tx, tz, 0.2)) continue;
-    const side = Math.max(1.22, Math.min(1.9, 1.05 + (tree.d || 6) * 0.035));
-    const half = side / 2;
-    // Square to the kerb, not to a die roll. A pit is a square left out of the paving and the
-    // paving is laid to the street, so the pit's edges are the flags' edges; turning each one a
-    // few degrees at random -- which is what this did -- made every one of them read as a brown
-    // square dropped on the pavement rather than as an opening cut into it.
-    const bearing = pavementBearingAt(tx, tz);
-    if (bearing === undefined) continue;
-    const cos = Math.cos(bearing);
-    const sin = Math.sin(bearing);
-    const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(
-      ([dx, dz]) => [tx + dx * cos - dz * sin, tz + dx * sin + dz * cos]);
-    // The whole pit has to be off the roadway, not just the tree in the middle of it. A pit is
-    // up to 1.9 m across, so a tree standing a hand's breadth inside the kerb passed the centre
-    // test and still cut most of a metre of brown out of the bike lane beside it.
-    let onRoad = false;
-    for (const [cx, cz] of corners) {
-      if (insideCarriageway(cx, cz, 0.0) || insideBikeLane(cx, cz, 0.15)) { onRoad = true; break; }
+    let corners = treePlotCorners.get(tree);
+    if (!corners) {
+      // The SF survey distinguishes pots, yards and medians from sidewalk openings.
+      if (survey || tree.src) continue;
+      const bearing = pavementBearingAt(tx, tz);
+      if (bearing === undefined) continue;
+      const c=Math.cos(bearing),s=Math.sin(bearing),half=.4572;
+      corners=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([u,v])=>[tx+u*c-v*s,tz+u*s+v*c]);
+      if(corners.some(([x,z])=>pavementSurfaceAt(x,z)===null || insideCarriageway(x,z,0) || insideBikeLane(x,z,.15))) continue;
+      treePlotCorners.set(tree,corners);
     }
-    if (onRoad) continue;
-    // Nor is a pit cut into the hill over a tunnel mouth: the tree up there stands on the
-    // hill, and the pit would be drawn on the roadway in the bore beneath it.
     const base = pits.positions.length / 3;
-    for (let c = 0; c < 4; c += 1) {
-      const [dx, dz] = [[-half, -half], [half, -half], [half, half], [-half, half]][c];
-      pits.positions.push(corners[c][0], top + PIT_LIFT_M, corners[c][1]);
-      pits.uvs.push((dx + half) / side, (dz + half) / side);
+    for (const [i,[x,z]] of corners.entries()) {
+      pits.positions.push(x, top + PIT_LIFT_M, z);
+      pits.uvs.push(i===1 || i===2 ? 1 : 0,i>=2 ? 1 : 0);
     }
     pits.indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
     pitCount += 1;
@@ -974,23 +1017,51 @@ const groundReady = (async () => {
     let prototypeRadius=0,prototypeHeight=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
       prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
       prototypeHeight=Math.max(prototypeHeight,b.max.y);}
-    const scales=list.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
+    // Profiled trees have their own crown near the walker. The shared bark and foliage
+    // materials carry through to a cheaper species silhouette at street-view distance.
+    const measured = !HEADSET && survey ? list.filter(t=>t.profile) : [];
+    if (measured.length) {
+      const leaves=proto.children[1].geometry.getAttribute("position").array;
+      const envelope=survey.api.crownEnvelope(leaves);
+      for (const t of measured) {
+        const [x,y]=xy(...t.p), z=-y, base=groundLiftAt(x,z);
+        const lod=new THREE.LOD();
+        lod.position.set(x,base,z);
+        const near=new THREE.Group(), middle=new THREE.Group();
+        for(const part of proto.children) {
+          const geometry=part.geometry.clone();
+          survey.api.shapeCrown(geometry.attributes.position.array,envelope,t.profile,t.d*.0254/.156);
+          geometry.computeVertexNormals(); geometry.computeBoundingSphere();
+          const material=part.userData.surveyMaterial || (part.userData.surveyMaterial=part.material.clone());
+          const close=new THREE.Mesh(geometry,material), far=new THREE.Mesh(part.geometry,material);
+          const [across,up]=treeScale(t,kind,prototypeHeight,prototypeRadius);
+          far.scale.set(across,up,across);
+          for(const mesh of [close,far]) mesh.userData={surface:"survey_tree", liftedOntoGround:true,
+            treeId:t.id,basis:"USGS 3DEP crown envelope, modeled branches"};
+          near.add(close); middle.add(far);
+        }
+        lod.addLevel(near,0); lod.addLevel(middle,90,.12); lod.addLevel(new THREE.Group(),1200,.08);
+        groups.ground.add(lod);
+      }
+    }
+    const instances = measured.length ? list.filter(t=>!t.profile) : list;
+    const scales=instances.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
     // Off the headset a tree that meets a house is one more instance of its kind, cut at the
     // wall as it is drawn (treeWallMask); only whether it meets one is asked here.
-    const clipping=list.map((tree,i)=>{if(!vegetationLibrary)return null;
+    const clipping=instances.map((tree,i)=>{if(!vegetationLibrary)return null;
       const [x,y]=xy(...tree.p);
       if(wallMask){const hit=treeWallTouches(x,-y,scales[i][0]*prototypeRadius);if(hit)treeClipStats.clipped++;return null;}
       const prisms=treeBuildingPrisms(x,-y,scales[i][0]*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
     for (const part of proto.children) {
       if (wallMask) cutTreeAtWalls(part, wallMask);
-      const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
+      const mesh = new THREE.InstancedMesh(part.geometry, part.material, instances.length-clipping.filter(Boolean).length);
       if (wallMask) mesh.customDepthMaterial = part.userData.treeDepth;
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
       // Each tree's own basis, by instance: a lidar crown is measured, an inventory point mapped.
       mesh.userData.instanceBasis = [];
       let instance=0;const clipped=[];
-      for (let i = 0; i < list.length; i += 1) {
-        const tree = list[i];
+      for (let i = 0; i < instances.length; i += 1) {
+        const tree = instances[i];
         const [x, y] = xy(tree.p[0], tree.p[1]);
         // Measured height and crown where the lidar gave them; else from the trunk.
         const [across, up] = scales[i];

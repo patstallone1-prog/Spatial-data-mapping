@@ -374,6 +374,7 @@ function inferredBalconies(fit, length) {
     colour: /^#[0-9a-f]{6}$/i.test(c.colour || "") ? c.colour : INFERRED_BALCONY_COLOUR }));
 }
 
+const treeFireEscapes = [];
 function photoDetailParts(group, feature) {
   const fit = frontageFitFor(feature);
   if (!fit?.a || !fit?.b) return;
@@ -397,6 +398,7 @@ function photoDetailParts(group, feature) {
     const colour = Number.parseInt(detail.colour.slice(1),16);
     const roughness = detail.material === "metal" ? .48 : .82;
     const center = detail.u+detail.w/2, depth=detail.depth_m;
+    if (detail.kind === "fire_escape") treeFireEscapes.push([at(detail.u,depth),at(detail.u+detail.w,depth)]);
     const part = (u,y,n,w,h,d) => {
       const p=at(u,n);
       const mesh=makeBox(p[0],y+BUILDING_LIFT_M,p[1],w,h,d,colour,roughness);
@@ -601,29 +603,6 @@ const TRADE_TYPE = {
   shop:        { font: '600 32px "Helvetica Neue", Arial, sans-serif', caps: true, track: 2 },
 };
 
-//: Which awning each trade puts up, as a share. `board` is the flat sign fixed against the wall
-//: with no canvas at all, and it is the most common thing on a San Francisco shopfront by a wide
-//: margin -- the others are the ones people picture. Estimates, per the note above.
-const AWNING_MIX = {
-  restaurant:  { board: 0.42, straight: 0.24, dome: 0.12, shed: 0.14, retractable: 0.08 },
-  pizza:       { board: 0.40, straight: 0.22, dome: 0.20, shed: 0.10, retractable: 0.08 },
-  cafe:        { board: 0.36, straight: 0.26, dome: 0.14, shed: 0.10, retractable: 0.14 },
-  bakery:      { board: 0.40, straight: 0.24, dome: 0.16, shed: 0.10, retractable: 0.10 },
-  bar:         { board: 0.62, straight: 0.14, dome: 0.08, shed: 0.12, retractable: 0.04 },
-  grocery:     { board: 0.50, straight: 0.20, dome: 0.14, shed: 0.12, retractable: 0.04 },
-  convenience: { board: 0.46, straight: 0.16, dome: 0.24, shed: 0.10, retractable: 0.04 },
-  clothing:    { board: 0.66, straight: 0.10, dome: 0.06, shed: 0.14, retractable: 0.04 },
-  books:       { board: 0.70, straight: 0.10, dome: 0.06, shed: 0.10, retractable: 0.04 },
-  salon:       { board: 0.48, straight: 0.16, dome: 0.22, shed: 0.08, retractable: 0.06 },
-  pharmacy:    { board: 0.74, straight: 0.10, dome: 0.06, shed: 0.08, retractable: 0.02 },
-  bank:        { board: 0.88, straight: 0.04, dome: 0.02, shed: 0.06, retractable: 0.00 },
-  laundry:     { board: 0.66, straight: 0.12, dome: 0.10, shed: 0.10, retractable: 0.02 },
-  hardware:    { board: 0.72, straight: 0.10, dome: 0.06, shed: 0.10, retractable: 0.02 },
-  florist:     { board: 0.42, straight: 0.20, dome: 0.22, shed: 0.08, retractable: 0.08 },
-  hotel:       { board: 0.52, straight: 0.12, dome: 0.10, shed: 0.24, retractable: 0.02 },
-  shop:        { board: 0.60, straight: 0.14, dome: 0.10, shed: 0.12, retractable: 0.04 },
-};
-
 //: The name is drawn once into a shared canvas and every sign takes a rectangle of it, so that
 //: two thousand seven hundred signs are a handful of textures rather than two thousand seven
 //: hundred. 2048 is the largest size that is safe everywhere.
@@ -772,16 +751,6 @@ function awningColour(tint) {
   return colour;
 }
 
-function pickAwning(trade, seed) {
-  const mix = AWNING_MIX[trade] || AWNING_MIX.shop;
-  let roll = random(seed * 1.7 + 97.3);
-  for (const kind of ["board", "straight", "dome", "shed", "retractable"]) {
-    roll -= mix[kind] || 0;
-    if (roll <= 0) return kind;
-  }
-  return "board";
-}
-
 //: The awning parts, collected like everything else: one mesh per kind for the whole city, with
 //: the store's colour on the vertices.
 const AWNING_MATERIALS = {};
@@ -868,216 +837,6 @@ function shopFrame(wall, centreAlong) {
   return (along, out, up) => [cx + ax * along + ox * out, up, cz + az * along + oz * out];
 }
 
-//: The underside of an awning is not one flat tone. It is darkest where it meets the wall and
-//: lifts towards the front edge, where the sky gets under it -- which is the whole difference
-//: between an awning and a box.
-function underTones(colour) {
-  const deep = colour.clone().multiplyScalar(0.30);
-  const lip = colour.clone().multiplyScalar(0.62);
-  return { deep, lip };
-}
-
-function buildBoard(sink, at, width, colour, slot, atlas) {
-  // A sign board on the wall: a shallow box, its face carrying the name.
-  const top = 4.35;
-  const tall = Math.min(1.05, Math.max(0.62, width * 0.13));
-  const bottom = top - tall;
-  const out = 0.14;
-  const half = width / 2;
-  const face = colour.clone().multiplyScalar(0.94);
-  const edge = colour.clone().multiplyScalar(0.66);
-  // Face.
-  awningQuad(sink, [at(-half, out, bottom), at(half, out, bottom),
-                    at(half, out, top), at(-half, out, top)], [face]);
-  // The four returns to the wall, so it reads as a board with depth rather than a decal.
-  awningQuad(sink, [at(-half, 0, top), at(half, 0, top),
-                    at(half, out, top), at(-half, out, top)], [edge]);
-  awningQuad(sink, [at(-half, out, bottom), at(half, out, bottom),
-                    at(half, 0, bottom), at(-half, 0, bottom)],
-             [edge.clone().multiplyScalar(0.7)]);
-  for (const side of [-1, 1]) {
-    awningQuad(sink, [at(side * half, 0, bottom), at(side * half, out, bottom),
-                      at(side * half, out, top), at(side * half, 0, top)], [edge]);
-  }
-  const inset = 0.05;
-  const signH = Math.min(tall - 0.20, 0.62);
-  const signW = Math.min(width - 0.3, signH * slot.aspect);
-  const mid = (top + bottom) / 2;
-  addSignFace(atlas, [
-    at(-signW / 2, out + inset, mid - signH / 2), at(signW / 2, out + inset, mid - signH / 2),
-    at(signW / 2, out + inset, mid + signH / 2), at(-signW / 2, out + inset, mid + signH / 2),
-  ], slot);
-}
-
-function buildSloped(sink, at, width, colour, slot, atlas, scalloped) {
-  // The classic canvas awning: a sheet from the wall out and down, with a valance hanging from
-  // its front edge. The name goes on the valance, which is where it goes in life.
-  const wallTop = 4.25;
-  const frontTop = 3.35;
-  const reach = Math.min(1.75, Math.max(1.05, width * 0.16));
-  const valance = 0.42;
-  const half = width / 2;
-  const { deep, lip } = underTones(colour);
-  const sheet = colour.clone();
-
-  awningQuad(sink, [at(-half, 0, wallTop), at(half, 0, wallTop),
-                    at(half, reach, frontTop), at(-half, reach, frontTop)], [sheet]);
-  // Underside, shaded from the wall outward.
-  awningQuad(sink, [at(-half, reach, frontTop - 0.012), at(half, reach, frontTop - 0.012),
-                    at(half, 0, wallTop - 0.012), at(-half, 0, wallTop - 0.012)],
-             [lip, lip, deep, deep]);
-  // The two triangular cheeks.
-  for (const side of [-1, 1]) {
-    awningQuad(sink, [at(side * half, 0, wallTop), at(side * half, reach, frontTop),
-                      at(side * half, reach, frontTop - valance), at(side * half, 0, wallTop)],
-               [colour.clone().multiplyScalar(0.80)]);
-  }
-  if (!scalloped) {
-    awningQuad(sink, [at(-half, reach, frontTop - valance), at(half, reach, frontTop - valance),
-                      at(half, reach, frontTop), at(-half, reach, frontTop)], [sheet]);
-  } else {
-    // A scalloped skirt, cut as geometry rather than faked with a texture: each bay is a
-    // half-round, and the round is what says "retractable" at a glance.
-    const bays = Math.max(3, Math.round(width / 0.55));
-    const bayW = width / bays;
-    for (let i = 0; i < bays; i += 1) {
-      const left = -half + i * bayW;
-      const steps = 5;
-      for (let k = 0; k < steps; k += 1) {
-        const t0 = k / steps;
-        const t1 = (k + 1) / steps;
-        const x0 = left + bayW * t0;
-        const x1 = left + bayW * t1;
-        const d0 = valance * Math.sin(Math.PI * t0) * 0.85 + valance * 0.15;
-        const d1 = valance * Math.sin(Math.PI * t1) * 0.85 + valance * 0.15;
-        awningQuad(sink, [at(x0, reach, frontTop - d0), at(x1, reach, frontTop - d1),
-                          at(x1, reach, frontTop), at(x0, reach, frontTop)], [sheet]);
-      }
-    }
-  }
-  const signH = Math.min(valance - 0.14, 0.30);
-  const signW = Math.min(width - 0.24, signH * slot.aspect);
-  const mid = frontTop - valance * 0.52;
-  addSignFace(atlas, [
-    at(-signW / 2, reach + 0.03, mid - signH / 2), at(signW / 2, reach + 0.03, mid - signH / 2),
-    at(signW / 2, reach + 0.03, mid + signH / 2), at(-signW / 2, reach + 0.03, mid + signH / 2),
-  ], slot);
-}
-
-function buildDome(sink, at, width, colour, slot, atlas) {
-  // A quarter-round dome over the door, and the name curved round it -- which comes free from
-  // laying the sign on the same arc as the canvas rather than on a flat plane in front of it.
-  const top = 4.15;
-  const radius = Math.min(1.30, Math.max(0.85, width * 0.16));
-  const half = Math.min(width, 3.4) / 2;
-  const { deep, lip } = underTones(colour);
-  const sheet = colour.clone();
-  const steps = 9;
-  const arc = [];
-  for (let i = 0; i <= steps; i += 1) {
-    const t = (i / steps) * (Math.PI / 2);
-    arc.push([Math.sin(t) * radius, top - (1 - Math.cos(t)) * radius]);
-  }
-  for (let i = 1; i < arc.length; i += 1) {
-    const [o0, u0] = arc[i - 1];
-    const [o1, u1] = arc[i];
-    awningQuad(sink, [at(-half, o0, u0), at(half, o0, u0), at(half, o1, u1), at(-half, o1, u1)],
-               [sheet]);
-    const shade = i / (arc.length - 1);
-    const tone = deep.clone().lerp(lip, shade);
-    awningQuad(sink, [at(half, o0 - 0.012, u0), at(-half, o0 - 0.012, u0),
-                      at(-half, o1 - 0.012, u1), at(half, o1 - 0.012, u1)], [tone]);
-  }
-  // The two round cheeks, as fans.
-  for (const side of [-1, 1]) {
-    for (let i = 1; i < arc.length; i += 1) {
-      const base = sink.positions.length / 3;
-      const p = [at(side * half, 0, top), at(side * half, arc[i - 1][0], arc[i - 1][1]),
-                 at(side * half, arc[i][0], arc[i][1])];
-      const tone = colour.clone().multiplyScalar(0.78);
-      for (const point of p) {
-        sink.positions.push(point[0], point[1], point[2]);
-        sink.colours.push(tone.r, tone.g, tone.b);
-        sink.uvs.push(0, 0);
-      }
-      sink.indices.push(base, base + 1, base + 2);
-    }
-  }
-  // The name, following the arc across its lower half where a dome awning carries it.
-  const signSteps = 6;
-  const from = Math.floor(steps * 0.45);
-  const to = Math.min(steps, from + signSteps);
-  const signH = Math.min(width - 0.3, 2.9);
-  const halfSign = Math.min(half - 0.12, (signH / 2));
-  const sink2 = signSink(atlas);
-  for (let i = from; i < to; i += 1) {
-    const t0 = (i - from) / (to - from);
-    const t1 = (i + 1 - from) / (to - from);
-    const [o0, u0] = arc[i];
-    const [o1, u1] = arc[i + 1];
-    const base = sink2.positions.length / 3;
-    const pts = [at(-halfSign, o1 + 0.02, u1), at(halfSign, o1 + 0.02, u1),
-                 at(halfSign, o0 + 0.02, u0), at(-halfSign, o0 + 0.02, u0)];
-    const v0 = slot.v0 + (slot.v1 - slot.v0) * (1 - t1);
-    const v1 = slot.v0 + (slot.v1 - slot.v0) * (1 - t0);
-    const uv = [[slot.u0, v0], [slot.u1, v0], [slot.u1, v1], [slot.u0, v1]];
-    for (let k = 0; k < 4; k += 1) {
-      sink2.positions.push(pts[k][0], pts[k][1], pts[k][2]);
-      sink2.uvs.push(uv[k][0], uv[k][1]);
-      sink2.colours.push(1, 1, 1);
-    }
-    sink2.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-  }
-}
-
-function buildShed(sink, at, width, colour, slot, atlas) {
-  // A fixed canopy: flat on top, a deep fascia at the front carrying the name, closed at the
-  // sides. The one that reads as joinery rather than as canvas.
-  const top = 4.30;
-  const reach = Math.min(1.55, Math.max(1.0, width * 0.15));
-  const fascia = 0.58;
-  const half = width / 2;
-  const { deep, lip } = underTones(colour);
-  const sheet = colour.clone();
-  const face = colour.clone().multiplyScalar(0.97);
-
-  awningQuad(sink, [at(-half, 0, top), at(half, 0, top),
-                    at(half, reach, top), at(-half, reach, top)], [sheet]);
-  awningQuad(sink, [at(-half, reach, top), at(half, reach, top),
-                    at(half, reach, top - fascia), at(-half, reach, top - fascia)], [face]);
-  awningQuad(sink, [at(-half, reach, top - fascia - 0.012), at(half, reach, top - fascia - 0.012),
-                    at(half, 0, top - fascia - 0.012), at(-half, 0, top - fascia - 0.012)],
-             [lip, lip, deep, deep]);
-  for (const side of [-1, 1]) {
-    awningQuad(sink, [at(side * half, 0, top), at(side * half, reach, top),
-                      at(side * half, reach, top - fascia), at(side * half, 0, top - fascia)],
-               [colour.clone().multiplyScalar(0.80)]);
-  }
-  const signH = Math.min(fascia - 0.16, 0.40);
-  const signW = Math.min(width - 0.26, signH * slot.aspect);
-  const mid = top - fascia * 0.5;
-  addSignFace(atlas, [
-    at(-signW / 2, reach + 0.03, mid - signH / 2), at(signW / 2, reach + 0.03, mid - signH / 2),
-    at(signW / 2, reach + 0.03, mid + signH / 2), at(-signW / 2, reach + 0.03, mid + signH / 2),
-  ], slot);
-}
-
-//: The lowest building a shop's sign goes on; below SIGN_FULL_HEIGHT_M every sign and awning
-//: is taken down by the difference, so a one-storey corner shop has its board under its eaves.
-const SHOP_SIGN_MIN_HEIGHT_M = 3.4;
-const SIGN_FULL_HEIGHT_M = 4.6;
-//: Of each trade's shops, the share that also hang a sign out from the wall over the pavement,
-//: read by people walking along it (a blade); and the share whose name is cut letters fixed to
-//: the wall itself rather than a board. Estimates, like AWNING_MIX.
-const BLADE_SHARE = {
-  restaurant: 0.32, pizza: 0.3, cafe: 0.4, bakery: 0.36, bar: 0.55, grocery: 0.2, convenience: 0.25,
-  clothing: 0.3, books: 0.45, salon: 0.38, pharmacy: 0.3, bank: 0.12, laundry: 0.3, hardware: 0.3,
-  florist: 0.35, hotel: 0.5, shop: 0.28,
-};
-const LETTERS_SHARE = {
-  bank: 0.55, pharmacy: 0.45, clothing: 0.45, hotel: 0.4, office: 0.6, books: 0.25, salon: 0.25,
-  restaurant: 0.2, cafe: 0.18, shop: 0.3,
-};
 //: Trades that put tables out under umbrellas where the pavement has room, and how often.
 const SIDEWALK_SEATING = { cafe: 0.6, restaurant: 0.45, pizza: 0.4, bakery: 0.45, bar: 0.3 };
 //: Room a table needs: its umbrella's reach from the wall, and the pavement left beyond it.
@@ -1085,120 +844,27 @@ const SEATING_OUT_M = 1.35;
 const SEATING_CLEAR_M = 2.6;
 const UMBRELLA_COLOURS = [0xf1ede2, 0x2f5d43, 0x9b2a24, 0x23364f, 0xd9a441, 0x3b3b3b];
 
-function addShopfronts(feature, seed, height, tint) {
+function addShopSeating(feature, seed, height) {
   if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   const shops = feature.shops;
   if (!shops || !shops.length || feature.exteriorEdit) return;
-  // Only where a shopfront can be: a ground floor with room above the glass for a sign. A
-  // one-storey shop lower than a sign's usual height takes it lower (SIGN_FULL_HEIGHT_M).
-  if (height < SHOP_SIGN_MIN_HEIGHT_M) return;
+  if (height < 3.4) return;
   const wall = storefrontWall(feature);
   if (!wall || wall.span < STOREFRONT_MIN_WALL_M) return;
-  const drop = Math.min(0, height - SIGN_FULL_HEIGHT_M);
 
   // Several businesses share a street wall by dividing it, which is what a block of shops is:
   // the same bays the storefronts are drawn in, so each sign is over its own front.
-  const colour = awningColour(tint);
   const bays = shopBays(feature, wall);
-  for (let i = 0; i < bays.length; i += 1) {
-    const shop = bays[i].shop;
-    if (!shop || !shop.n) continue;
-    const share = bays[i].share;
-    const centre = bays[i].centre;
+  for (const [i, { shop, share, centre }] of bays.entries()) {
+    if (!shop) continue;
     const width = Math.min(share * 0.82, 7.5);
-    if (width < 2.2) continue;
-    const frame = shopFrame(wall, centre);
-    const at = (along, out, up) => frame(along, out, up + drop);
     const trade = shop.t || "shop";
+    const frame = shopFrame(wall, centre);
     const roll = (k) => random(seed + i * 31.7 + k);
-    let kind = pickAwning(trade, seed + i * 31.7);
-    // Cut letters on the wall stand in for a board: a bank's name in brass, a boutique's.
-    if (kind === "board" && roll(5.3) < (LETTERS_SHARE[trade] || 0)) kind = "letters";
-    const sink = awningSink(kind === "letters" ? "board" : kind);
-    if (kind === "letters") {
-      const slot = signSlot(shop.n, trade, inkFor(new THREE.Color(tint)));
-      buildLetters(at, width, slot, slot.atlas);
-    } else {
-      const slot = signSlot(shop.n, trade, inkFor(colour));
-      if (kind === "board") buildBoard(sink, at, width, colour, slot, slot.atlas);
-      else if (kind === "dome") buildDome(sink, at, width, colour, slot, slot.atlas);
-      else if (kind === "shed") buildShed(sink, at, width, colour, slot, slot.atlas);
-      else buildSloped(sink, at, width, colour, slot, slot.atlas, kind === "retractable");
-    }
-    // A sign out over the pavement as well, at one end of the front: a tall one up the storeys
-    // above for a bar, a hotel or a theatre where there are storeys to hang it on.
-    if (roll(9.1) < (BLADE_SHARE[trade] || 0.25)) {
-      const side = roll(2.2) < 0.5 ? -1 : 1;
-      const tall = ["bar", "hotel", "restaurant"].includes(trade) && height >= 7.5 && roll(4.4) < 0.5;
-      const bladeColour = roll(6.6) < 0.5 ? colour.clone().multiplyScalar(0.55) : new THREE.Color(0xf2efe6);
-      const slot = signSlot(shop.n, trade, inkFor(bladeColour));
-      buildBlade(awningSink("blade"), frame, wall, side * (width / 2 - 0.25), bladeColour, slot, slot.atlas,
-        tall ? { bottom: 4.7, top: Math.min(height - 0.4, 8.2), reach: 0.62, vertical: true }
-          : { bottom: 2.75 + drop, top: 3.45 + drop, reach: 0.95, vertical: false });
-    }
     if (roll(12.7) < (SIDEWALK_SEATING[trade] || 0)) addSidewalkSeating(frame, width, seed + i * 7.9);
   }
 }
 
-//: A name in letters fixed straight to the wall over the glass: no board, the wall's own colour
-//: behind it, and the letters a few centimetres proud of it.
-function buildLetters(at, width, slot, atlas) {
-  const signH = Math.min(0.62, Math.max(0.36, width * 0.08));
-  const signW = Math.min(width - 0.4, signH * slot.aspect);
-  const mid = 3.95;
-  addSignFace(atlas, [
-    at(-signW / 2, 0.07, mid - signH / 2), at(signW / 2, 0.07, mid - signH / 2),
-    at(signW / 2, 0.07, mid + signH / 2), at(-signW / 2, 0.07, mid + signH / 2),
-  ], slot);
-}
-
-//: A blade: a panel standing out from the wall on a bracket, its name on both faces so it reads
-//: walking either way along the pavement. ``frame`` is the front's shopFrame (along, out, up);
-//: ``along`` where on the front it hangs. A tall one's name runs up it.
-function buildBlade(sink, frame, wall, along, colour, slot, atlas, { bottom, top, reach, vertical }) {
-  const thick = 0.07, gap = 0.12;
-  const o0 = gap, o1 = gap + reach;
-  const edge = colour.clone().multiplyScalar(0.7);
-  const bracket = new THREE.Color(0x2a2a2a);
-  // The bracket from the wall over the panel's top, and the panel itself: a box.
-  awningQuad(sink, [frame(along - 0.02, 0, top + 0.04), frame(along + 0.02, 0, top + 0.04),
-                    frame(along + 0.02, o1 + 0.05, top + 0.04), frame(along - 0.02, o1 + 0.05, top + 0.04)], [bracket]);
-  for (const s of [-1, 1]) {
-    awningQuad(sink, [frame(along + s * thick / 2, o0, bottom), frame(along + s * thick / 2, o1, bottom),
-                      frame(along + s * thick / 2, o1, top), frame(along + s * thick / 2, o0, top)], [colour]);
-  }
-  awningQuad(sink, [frame(along - thick / 2, o1, bottom), frame(along + thick / 2, o1, bottom),
-                    frame(along + thick / 2, o1, top), frame(along - thick / 2, o1, top)], [edge]);
-  awningQuad(sink, [frame(along - thick / 2, o0, bottom), frame(along + thick / 2, o0, bottom),
-                    frame(along + thick / 2, o1, bottom), frame(along - thick / 2, o1, bottom)], [edge]);
-  // Which way "out" runs for someone reading each face: the face towards +along is read by a
-  // person looking back along the wall, whose right hand is (az, -ax) in plan.
-  const ax = Math.cos(wall.yaw), az = -Math.sin(wall.yaw);
-  const rightIsOut = az * wall.nx - ax * wall.nz > 0;
-  const pad = 0.08, w = reach - 2 * pad, h = top - bottom - 2 * pad;
-  for (const s of [-1, 1]) {
-    const a = along + s * (thick / 2 + 0.006);
-    // Reading left to right runs from the wall out on one face and from the end in on the other.
-    const outwards = (s > 0) === rightIsOut;
-    const near = outwards ? o0 + pad : o1 - pad, far = outwards ? o1 - pad : o0 + pad;
-    if (!vertical) {
-      const signH = Math.min(h, w / slot.aspect), mid = (bottom + top) / 2;
-      const signW = signH * slot.aspect, c = (near + far) / 2, dir = Math.sign(far - near);
-      addSignFace(atlas, [frame(a, c - dir * signW / 2, mid - signH / 2), frame(a, c + dir * signW / 2, mid - signH / 2),
-                          frame(a, c + dir * signW / 2, mid + signH / 2), frame(a, c - dir * signW / 2, mid + signH / 2)], slot);
-    } else {
-      // Turned a quarter: the name reads up the blade, its foot towards the reader's right.
-      const len = Math.min(h, w * slot.aspect), across = len / slot.aspect, mid = (bottom + top) / 2;
-      const c = (near + far) / 2, dir = Math.sign(far - near);
-      const footSide = c + dir * across / 2, headSide = c - dir * across / 2;
-      addSignFace(atlas, [frame(a, footSide, mid - len / 2), frame(a, footSide, mid + len / 2),
-                          frame(a, headSide, mid + len / 2), frame(a, headSide, mid - len / 2)], slot);
-    }
-  }
-}
-
-//: Tables out on the pavement under umbrellas, in front of the window, where there is room for
-//: them and for people to pass: never on the road, never against the next building.
 const SEATING_SINK = newSink();
 function addSidewalkSeating(frame, width, seed) {
   const sets = Math.max(1, Math.min(3, Math.floor((width - 0.6) / 2.3)));
@@ -1257,7 +923,7 @@ function buildingNameTrade(feature) {
 function addBuildingNamePlaque(group, feature, seed, height, tint) {
   if(typeof storeExteriorFor==="function" && storeExteriorFor(feature))return;
   const name = feature.name;
-  if (!name || height < 4.8) return;
+  if (!name || height < 4.8 || hasStorefront(feature) || feature.exteriorEdit) return;
   const clean = cleanName(name);
   if (!clean) return;
   const shops = feature.shops || [];
