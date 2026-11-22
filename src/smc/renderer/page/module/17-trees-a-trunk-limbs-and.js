@@ -126,7 +126,11 @@ const TREE_UNIT_M = 5;
 
 //: The one kind of street tree the headset draws (see the instancing in the ground build).
 const HEADSET_TREE_KIND = "street";
-function treeVariant(kind) {
+//: ``detail``: "far" (the default) is the kind as every tree of it is instanced -- its bark, its
+//: big limbs and its leaf cards, two in three of them a little larger, so the crown reads the
+//: same with a third fewer polygons; "near" is every card, for the trees round you (treeNear).
+function treeVariant(kind, detail = "far") {
+  const cardShare = detail === "near" ? 1 : 0.65, cardSize = detail === "near" ? 1 : 1.15;
   let s = 1 + kind.length * 101;
   const rnd = () => { s += 1; return random(s * 2654435761 % 1000003); };
   const bark = [], leaves = [];
@@ -147,12 +151,18 @@ function treeVariant(kind) {
     : (kind === "broad" ? 0xe0ffd0 : kind === "columnar" ? 0xd0f0c0 : 0xffffff));
   // A cluster of leaf cards in an ellipsoid round c.
   const cluster = (c, rx, ry, cards, size, droop = 0) => {
+    // Every card's draws are taken whether it is kept or not, so the near and far kinds have
+    // the same limbs and the same cards where they share them.
+    const keep = Math.ceil(cards * cardShare);
     for (let i = 0; i < cards; i += 1) {
       const a = rnd() * Math.PI * 2, e = (rnd() - 0.5) * Math.PI, r = Math.cbrt(rnd());
-      leaves.push(leafCard(V(c.x + Math.cos(a) * Math.cos(e) * rx * r, c.y + Math.sin(e) * ry * r,
-        c.z + Math.sin(a) * Math.cos(e) * rx * r), size, rnd, tint, droop));
+      const at = V(c.x + Math.cos(a) * Math.cos(e) * rx * r, c.y + Math.sin(e) * ry * r,
+        c.z + Math.sin(a) * Math.cos(e) * rx * r);
+      const card = leafCard(at, size * cardSize, rnd, tint, droop);
+      if (i < keep) leaves.push(card); else card.dispose();
     }
   };
+
   if (kind === "palm") {
     // A tall slender trunk, a little bent, and fronds arching out and down from the top.
     const top = V(0.05, 1.05, 0.02);
@@ -256,6 +266,262 @@ function treeScale(tree, kind, protoHeight, protoRadius) {
   const up = Math.min(60, tree.h) / protoHeight;
   const across = tree.crown_m > 0 && protoRadius > 0 ? (tree.crown_m / 2) / protoRadius : up;
   return [Math.max(up * 0.45, Math.min(up * 1.6, across)), up];
+}
+
+// ---- a tree's opening, one of the walk's own squares ----
+//
+// The city cuts a sidewalk tree's opening out of the walk's squares: the opening is the
+// square (three feet along the walk, or as many squares as its recorded length), its ends on
+// the walk's own joints. The streets say where their joints are (module 19 marks them laid,
+// streetSurfacesLaid); each opening is slid along the walk, at most half a square, to the
+// squares it covers, and stretched to fill them, and its tree with it.
+var streetSurfacesLaid = null, markStreetSurfacesLaid = null;
+//: Squares a metre along a walk (three feet a square).
+var WALK_SQUARES_PER_M = 1 / 0.9144;
+streetSurfacesLaid = new Promise((resolve) => { markStreetSurfacesLaid = resolve; });
+//: The walks' triangles round ``points`` ([x, z]), for walkSquareAt: null when none is drawn.
+function walkSquareIndex(points, reach = 3) {
+  const CELL = 4, wanted = new Set(), bins = new Map();
+  for (const [x, z] of points) wanted.add(`${Math.floor(x / CELL)}:${Math.floor(z / CELL)}`);
+  if (!wanted.size) return null;
+  const unit = new THREE.Vector3(1, 1, 1);
+  groups.streets.traverse((o) => {
+    if (!o.isMesh || !["walk", "walk_narrow"].includes(o.userData.surface)) return;
+    if (o.position.lengthSq() || o.quaternion.w !== 1 || !o.scale.equals(unit)) return;
+    const pos = o.geometry.getAttribute("position"), uv = o.geometry.getAttribute("uv"), idx = o.geometry.index;
+    if (!pos || !uv) return;
+    const squares = o.userData.surface === "walk" ? SLAB_BLOCK : NARROW_SLAB_M * WALK_SQUARES_PER_M;
+    const n = idx ? idx.count : pos.count;
+    for (let k = 0; k < n; k += 3) {
+      const a = idx ? idx.getX(k) : k, b = idx ? idx.getX(k + 1) : k + 1, c = idx ? idx.getX(k + 2) : k + 2;
+      const x0 = Math.min(pos.getX(a), pos.getX(b), pos.getX(c)), x1 = Math.max(pos.getX(a), pos.getX(b), pos.getX(c));
+      const z0 = Math.min(pos.getZ(a), pos.getZ(b), pos.getZ(c)), z1 = Math.max(pos.getZ(a), pos.getZ(b), pos.getZ(c));
+      if (x1 - x0 > 400 || z1 - z0 > 400) continue;
+      for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i += 1)
+        for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j += 1) {
+          const key = `${i}:${j}`;
+          if (!wanted.has(key)) continue;
+          let list = bins.get(key);
+          if (!list) bins.set(key, list = []);
+          list.push([pos.getX(a), pos.getZ(a), uv.getX(a) * squares, pos.getX(b), pos.getZ(b), uv.getX(b) * squares,
+            pos.getX(c), pos.getZ(c), uv.getX(c) * squares]);
+        }
+    }
+  });
+  return { CELL, bins };
+}
+//: The walk's squares at (x, z): how many squares along it is there (s, from the walk's start)
+//: and which way and how fast s grows ([gx, gz], per metre); null off the walk.
+function walkSquareAt(index, x, z) {
+  for (const t of index?.bins.get(`${Math.floor(x / index.CELL)}:${Math.floor(z / index.CELL)}`) || []) {
+    const [ax, az, as, bx, bz, bs, cx, cz, cs] = t;
+    const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+    if (Math.abs(d) < 1e-9) continue;
+    const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d, l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d, l3 = 1 - l1 - l2;
+    if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue;
+    // s = s_c + gx (x - cx) + gz (z - cz) over the triangle.
+    const e1x = ax - cx, e1z = az - cz, e2x = bx - cx, e2z = bz - cz, ds1 = as - cs, ds2 = bs - cs;
+    const det = e1x * e2z - e2x * e1z;
+    if (Math.abs(det) < 1e-9) continue;
+    const gx = (ds1 * e2z - ds2 * e1z) / det, gz = (e1x * ds2 - e2x * ds1) / det;
+    return { s: l1 * as + l2 * bs + l3 * cs, g: [gx, gz] };
+  }
+  return null;
+}
+//: An opening ({center, corners}: corners 0-1 along the curb) put on the walk's squares: slid
+//: along the walk to them and stretched to fill them. The same opening where the walk's squares
+//: cannot be read there (or run across the curb rather than along it).
+function walkSquarePlot(index, plot) {
+  const [x, z] = plot.center, at = walkSquareAt(index, x, z);
+  if (!at) return plot;
+  const [p0, p1, p2, p3] = plot.corners;
+  const ax = p1[0] - p0[0], az = p1[1] - p0[1], length = Math.hypot(ax, az);
+  const g2 = at.g[0] * at.g[0] + at.g[1] * at.g[1];
+  if (!(length > 0.1) || !(g2 > 0)) return plot;
+  // A metre along the walk is so many squares: three feet a square, or it is not this walk's.
+  const perM = Math.sqrt(g2);
+  if (Math.abs(perM * SLAB_M - 1) > 0.25 && Math.abs(perM * NARROW_SLAB_M - 1) > 0.25) return plot;
+  const ux = ax / length, uz = az / length;
+  if (Math.abs((at.g[0] * ux + at.g[1] * uz) / perM) < 0.9) return plot;
+  // As many whole squares as the opening reaches into (a hair over one is still one): a 4 ft
+  // opening is two squares, not cut back to one.
+  const square = 1 / perM, count = Math.max(1, Math.ceil(length / square - 0.15));
+  // The centre on a joint (an even count of squares) or the middle of one (odd).
+  const goal = count % 2 ? Math.floor(at.s) + 0.5 : Math.round(at.s);
+  const shiftS = goal - at.s;
+  const sx = at.g[0] * shiftS / g2, sz = at.g[1] * shiftS / g2;
+  if (Math.hypot(sx, sz) > square * 0.5 + 0.01) return plot;
+  const stretch = count * square / length;
+  const center = [x + sx, z + sz];
+  const corners = plot.corners.map(([px, pz]) => {
+    const dx = px - x, dz = pz - z, along = dx * ux + dz * uz;
+    return [center[0] + dx + along * (stretch - 1) * ux, center[1] + dz + along * (stretch - 1) * uz];
+  });
+  return { center, corners, squares: count };
+}
+
+// ---- the trees round you, in full ----
+//
+// Two tiers of every tree. Far, it is an instance of its kind (treeVariant "far"): the kind's
+// bark, its big limbs and two in three of its leaf cards, at the tree's measured height and
+// spread -- one mesh a kind for the whole city. Near (TREE_NEAR_M round where you are), it is
+// drawn on its own in place of its instance: every leaf card of the kind, and where the 2023
+// USGS lidar measured the tree, its crown shaped to the measured one (sf-tree-placement.mjs
+// shapeCrown: in eight wedges round the trunk, the crown's reach, its lowest branches and its
+// top). The two share their materials, so a near tree is cut at a wall (cutTreeAtWalls: it
+// is drawn in the ground's own frame) and moves in the wind as the far one does.
+var TREE_NEAR_M = 70, TREE_NEAR_MAX = 60, TREE_NEAR_BUILDS = 3, TREE_NEAR_KEEP = 140, TREE_NEAR_EVERY_MS = 200;
+//: Seen from further up than this the near tier is let go: the far one is what shows.
+var TREE_NEAR_MAX_VIEW_M = 400;
+//: Each tree as it was instanced ({x, z, kind, tree, across, up, yaw}), and each kind's far
+//: prototype, collected as the ground is built (module 18); then the index (treeNearIndex).
+var treeNearSpec = [], treeNearProtos = new Map(), treeNear = null;
+function treeNearKey(x, z) { return `${Math.round(x * 4)}:${Math.round(z * 4)}`; }
+//: Where each tree's instances are, once the ground is tiled and stood on the hill: every
+//: instance of a kind's parts, by where it stands.
+function treeNearIndex(spec, survey) {
+  const instances = new Map(), rel = new Map(), m = new THREE.Matrix4();
+  groups.ground.updateMatrixWorld(true);
+  const inverse = groups.ground.matrixWorld.clone().invert();
+  groups.ground.traverse((o) => {
+    if (!o.isInstancedMesh || !String(o.userData.surface || "").startsWith("tree:")) return;
+    const frame = o.matrixWorld.clone().premultiply(inverse);
+    rel.set(o, frame);
+    for (let i = 0; i < o.count; i += 1) {
+      o.getMatrixAt(i, m);
+      m.premultiply(frame);
+      const key = treeNearKey(m.elements[12], m.elements[14]);
+      let list = instances.get(key);
+      if (!list) instances.set(key, list = []);
+      list.push(o, i);
+    }
+  });
+  const CELL = 32, grid = new Map();
+  for (const t of spec) {
+    t.key = treeNearKey(t.x, t.z);
+    if (!instances.has(t.key)) continue;
+    const cell = `${Math.floor(t.x / CELL)}:${Math.floor(t.z / CELL)}`;
+    let list = grid.get(cell);
+    if (!list) grid.set(cell, list = []);
+    list.push(t);
+  }
+  treeNearSpec = [];
+  return { CELL, grid, instances, rel, survey, protos: new Map(), envelopes: new Map(),
+    shown: new Map(), keys: new Set(), cache: new Map(), at: -1e9, built: 0 };
+}
+var TREE_NEAR_ZERO = null, TREE_NEAR_UP = null;
+//: One tree in full, in the ground's frame: a group of its parts, or null.
+function treeNearBuild(t) {
+  const T = treeNear, far = treeNearProtos.get(t.kind), at = T.instances.get(t.key);
+  if (!far || !at) return null;
+  let near = T.protos.get(t.kind);
+  if (!near) T.protos.set(t.kind, near = treeVariant(t.kind, "near"));
+  if (!TREE_NEAR_UP) TREE_NEAR_UP = new THREE.Vector3(0, 1, 0);
+  // Where its instance stands on the hill.
+  const m = new THREE.Matrix4();
+  at[0].getMatrixAt(at[1], m);
+  m.premultiply(T.rel.get(at[0]));
+  const ground = m.elements[13] - far.children[0].position.y * t.up;
+  const api = T.survey?.api, profile = Boolean(t.tree.profile && api?.shapeCrown);
+  if (profile && !T.envelopes.has(t.kind))
+    T.envelopes.set(t.kind, api.crownEnvelope(near.children[1].geometry.getAttribute("position").array));
+  const place = new THREE.Matrix4().compose(new THREE.Vector3(t.x, ground, t.z),
+    new THREE.Quaternion().setFromAxisAngle(TREE_NEAR_UP, t.yaw),
+    profile ? new THREE.Vector3(1, 1, 1) : new THREE.Vector3(t.across, t.up, t.across));
+  const group = new THREE.Group();
+  group.userData.treeNear = t.tree.id || t.key;
+  near.children.forEach((part, n) => {
+    const farPart = far.children[n];
+    if (!farPart) return;
+    const geometry = part.geometry.clone();
+    const position = geometry.getAttribute("position");
+    // Metres from its foot: its measured crown, the trunk at its measured girth.
+    if (profile) api.shapeCrown(position.array, T.envelopes.get(t.kind), t.tree.profile,
+      Math.max(0.5, (t.tree.d || 12) * 0.0254 / 0.156));
+    if (part.position.y) geometry.translate(0, part.position.y, 0);
+    geometry.applyMatrix4(place);
+    if (n === 1 && vegetationLibrary?.foliageNormals) vegetationLibrary.foliageNormals(position.array, geometry.getAttribute("normal").array);
+    geometry.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geometry, farPart.material);
+    if (farPart.userData.treeDepth) mesh.customDepthMaterial = farPart.userData.treeDepth;
+    for (let k = 0; k < at.length; k += 2) if (at[k].material === farPart.material) {
+      mesh.castShadow = at[k].castShadow; mesh.receiveShadow = at[k].receiveShadow; break; }
+    mesh.userData = { surface: "tree_near", liftedOntoGround: true, treeId: t.tree.id || null,
+      basis: profile ? "measured crown (USGS 3DEP 2023 lidar), modeled branches" : "mapped (city tree inventory)" };
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  });
+  group.matrixAutoUpdate = false;
+  T.built += 1;
+  return group;
+}
+function treeNearDispose(group) {
+  group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+}
+//: Each frame (it looks again every TREE_NEAR_EVERY_MS): the trees round ``focus`` drawn in
+//: full, a few more each time, and those left behind given back to their instances.
+function treeNearStep(focus, now, viewHeight = 0) {
+  const T = typeof treeNear === "undefined" ? null : treeNear;
+  if (!T || !focus || now - T.at < TREE_NEAR_EVERY_MS) return;
+  T.at = now;
+  if (!TREE_NEAR_ZERO) TREE_NEAR_ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+  const wanted = [];
+  if (viewHeight < TREE_NEAR_MAX_VIEW_M) {
+    const r = TREE_NEAR_M, c = T.CELL;
+    for (let i = Math.floor((focus.x - r) / c); i <= Math.floor((focus.x + r) / c); i += 1)
+      for (let j = Math.floor((focus.z - r) / c); j <= Math.floor((focus.z + r) / c); j += 1)
+        for (const t of T.grid.get(`${i}:${j}`) || []) {
+          const d = Math.hypot(t.x - focus.x, t.z - focus.z);
+          if (d < r) wanted.push([d, t]);
+        }
+    wanted.sort((a, b) => a[0] - b[0]);
+    if (wanted.length > TREE_NEAR_MAX) wanted.length = TREE_NEAR_MAX;
+  }
+  const want = new Set(wanted.map((w) => w[1]));
+  const touched = new Set();
+  for (const [t, saved] of T.shown) {
+    if (want.has(t)) continue;
+    saved.group.removeFromParent();
+    for (const [mesh, i, matrix] of saved.hidden) { mesh.setMatrixAt(i, matrix); touched.add(mesh); }
+    T.shown.delete(t); T.keys.delete(t.key);
+  }
+  let builds = 0;
+  for (const [, t] of wanted) {
+    if (T.shown.has(t) || T.keys.has(t.key)) continue;
+    let group = T.cache.get(t);
+    if (group) T.cache.delete(t);
+    else {
+      if (builds >= TREE_NEAR_BUILDS) continue;
+      builds += 1;
+      try { group = treeNearBuild(t); } catch (error) { console.warn("kerbside: a near tree could not be drawn", error); group = null; }
+      if (!group) {
+        // Not tried again: it stays its instance.
+        const list = T.grid.get(`${Math.floor(t.x / T.CELL)}:${Math.floor(t.z / T.CELL)}`);
+        if (list) list.splice(list.indexOf(t), 1);
+        continue;
+      }
+    }
+    T.cache.set(t, group);
+    groups.ground.add(group);
+    group.updateMatrixWorld(true);
+    const hidden = [], at = T.instances.get(t.key);
+    for (let k = 0; k < at.length; k += 2) {
+      const matrix = new THREE.Matrix4();
+      at[k].getMatrixAt(at[k + 1], matrix);
+      hidden.push([at[k], at[k + 1], matrix]);
+      at[k].setMatrixAt(at[k + 1], TREE_NEAR_ZERO);
+      touched.add(at[k]);
+    }
+    T.shown.set(t, { group, hidden }); T.keys.add(t.key);
+  }
+  for (const mesh of touched) mesh.instanceMatrix.needsUpdate = true;
+  // Those drawn and walked away from are kept a while, for coming back; then let go.
+  if (T.cache.size > TREE_NEAR_KEEP) for (const [t, group] of T.cache) {
+    if (T.cache.size <= TREE_NEAR_KEEP) break;
+    if (T.shown.has(t)) continue;
+    treeNearDispose(group); T.cache.delete(t);
+  }
+  window.kerbsideTreeNear = { shown: T.shown.size, kept: T.cache.size, built: T.built };
 }
 
 // ---- trees cut where they meet a house ----

@@ -308,12 +308,27 @@ for (const [name, label] of [["kerbs", "Standing the measured kerbs on the groun
   }
 }
 await settleOntoPavement();
-// The tree pits come down with the ground cover, before these streets or after them: set into the
-// pavement once both are (PIT_SETTLE_RULE).
-groundReady.then((ok) => ok === false ? 0 : settleOnto(PIT_SETTLE_RULE)).then((n) => {
-  window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { treePits: n });
-}).catch((error) => console.warn("kerbside: tree pits not set into the pavement", error));
+// Pits set into the pavement once both are down (PIT_SETTLE_RULE); openings cut on these walks.
 await runStepsSliced(cellFineSurfacesSteps(groups.streets));
+markStreetSurfacesLaid?.();
+groundReady.then(async ok => {
+  if (ok === false || !vegetationLibrary || !treePlotCorners.size) return;
+  const n=await settleOnto(PIT_SETTLE_RULE);
+  const api=await import(sharedAsset("sf-tree-placement.mjs"));
+  const grid=api.plotIndex(treePlotCorners.values()), walks=[];
+  groups.streets.traverse(o=>{
+    if (o.isMesh && ["walk","walk_narrow","walk_underlay"].includes(o.userData.surface)) walks.push(o);
+  });
+  const unitTreeScale=new THREE.Vector3(1,1,1);
+  for (const mesh of walks) {
+    // Ground ribbons are built in region coordinates. Translate plots into a placed
+    // mesh's frame only when its geometry actually uses one.
+    if (!mesh.position.lengthSq() && mesh.quaternion.w===1 && mesh.scale.equals(unitTreeScale))
+      api.cutPavement(THREE,mesh.geometry,grid,vegetationLibrary.clipOutsidePrisms);
+    await maybeYield("Cutting tree plots into the pavement");
+  }
+  window.kerbsideReady = Object.assign(window.kerbsideReady || {}, { treePits:n });
+}).catch(error=>console.warn("kerbside: tree plot settlement",error));
 clipDetailWorld();
 groundReady.then(()=>clipDetailWorld());
 // The lowered houses' floors cut through whatever else is laid on the hill (INDOOR_CUT_SURFACES).

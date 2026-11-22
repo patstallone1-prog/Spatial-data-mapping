@@ -2,13 +2,14 @@
 //: In City mode the view looks after itself as you go, on foot or at the wheel. It comes round
 //: behind you as you turn -- quickly when you have turned right round, so that you are not left
 //: walking toward it (walkSteer) -- it looks a little ahead of you, the further the faster you go,
-//: and it stands a little further back at speed in the car. Coming up to a building that would be
-//: between it and you, it moves to see past it: round a little to one side or up a little, the
-//: smallest change that clears it, and back again once there is room. Where nothing clears it (or
-//: you have turned the view there yourself) it goes on round, through: it is never inside a
-//: building -- it stands outside its far wall, so what is seen is that building's side, never its
-//: rooms -- and you are drawn through the wall as an outline, so the view is never lost.
-//: Dragging the view is yours: it is left where you put it until you walk on.
+//: and it stands a little further back at speed in the car. Buildings push it, softly, never
+//: stop it: near a wall it leans away (round a little to the open side); coming up to a building
+//: that would be between it and you, it slides round to one side or up a little, the smallest
+//: change that clears it, and back again once there is room. Where nothing clears it (or you
+//: have turned the view there yourself) it zooms in, eased, to stand on your side of that
+//: building -- closer to you than it is, never in it -- starting a moment before the building
+//: comes between, and easing back out when it has passed. Dragging the view is yours: it is
+//: left where you put it until you walk on.
 var MAGIC = {
   on: true,
   // The offsets it has taken from the view asked for (rad), and those it is easing toward.
@@ -24,6 +25,16 @@ var MAGIC = {
   yawRate: 1.3, pitchRate: 0.5, maxPitch: 1.25,
   // Ahead: so many seconds of the way at the speed, up to so far.
   leadS: 0.3, leadMax: 5,
+  // The soft push off a wall beside the camera (rad, eased), and how far it feels one (m).
+  push: 0, pushGoal: 0, pushReach: 3, pushMax: 0.3,
+  // Zoomed in short of a building: how far out it stands now (m; null at the distance asked),
+  // when that was last eased, and the building a moment ahead on your way (m from you, or
+  // null) and until when that is worth knowing.
+  near: null, nearAt: 0, ahead: null, aheadUntil: 0, aheadS: 0.35,
+  // How quickly it zooms in, and back out (s, the time constant of the ease).
+  inS: 0.14, outS: 0.75,
+  // Which way you are going (m/s).
+  vx: 0, vz: 0,
 };
 //: The offsets tried for a clear line, the smallest change first.
 var MAGIC_TRIES = (() => {
@@ -49,20 +60,25 @@ var magicProbe = null;
 //: Whether the camera, turned ``dy`` and raised ``dp`` from the view asked for, sees ``aim``.
 function magicClear(aim, dy, dp) {
   if (!magicProbe) magicProbe = new THREE.Vector3();
-  const yaw = state.yaw + dy, pitch = Math.min(MAGIC.maxPitch, state.pitch + dp), d = state.dist * (1 + MAGIC.back);
-  magicProbe.set(aim.x + Math.sin(yaw) * Math.cos(pitch) * d, aim.y + Math.sin(pitch) * d, aim.z + Math.cos(yaw) * Math.cos(pitch) * d);
-  return orbitBlockedAt(aim, magicProbe) === null;
+  return orbitBlockedAt(aim, magicCameraAt(aim, dy, dp, magicProbe)) === null;
 }
 //: Each frame, before the view is placed: how fast you are going, how far ahead to look, and --
 //: every so often while you move -- the smallest turn or rise that clears what is in the way.
 function magicCameraStep(dt) {
   // (The page draws frames while its module is still being read: until this part has run, nothing.)
   if (typeof MAGIC === "undefined" || !MAGIC) return;
-  if (!magicCameraOn()) { MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0; MAGIC.lead = 0; MAGIC.back = 0; return; }
+  if (!magicCameraOn()) {
+    MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0; MAGIC.lead = 0; MAGIC.back = 0;
+    MAGIC.push = MAGIC.pushGoal = 0; MAGIC.near = null; MAGIC.ahead = null;
+    return;
+  }
   const t = state.target;
   if (MAGIC.lastX !== null && dt > 0) {
     const v = Math.hypot(t.x - MAGIC.lastX, t.z - MAGIC.lastZ) / dt;
     MAGIC.speed += (Math.min(v, 40) - MAGIC.speed) * Math.min(1, dt * 3);
+    const k = Math.min(1, dt * 3), cap = v > 40 ? 40 / v : 1;
+    MAGIC.vx += ((t.x - MAGIC.lastX) / dt * cap - MAGIC.vx) * k;
+    MAGIC.vz += ((t.z - MAGIC.lastZ) / dt * cap - MAGIC.vz) * k;
   }
   MAGIC.lastX = t.x; MAGIC.lastZ = t.z;
   const moving = MAGIC.speed > 0.3, driving = typeof livingCity !== "undefined" && Boolean(livingCity?.driving);
@@ -88,12 +104,73 @@ function magicCameraStep(dt) {
       }
       if (best) { MAGIC.goalYaw = best[0]; MAGIC.goalPitch = best[1]; }
     }
+    // A wall beside where it stands leans it away; a building a moment ahead on your way is
+    // zoomed in short of before it comes between.
+    MAGIC.pushGoal = magicWallLean(aim);
+    const s = MAGIC.aheadS, ahead = { x: aim.x + MAGIC.vx * s, y: aim.y, z: aim.z + MAGIC.vz * s };
+    MAGIC.ahead = orbitBlockedAt(ahead, magicCameraAt(ahead, MAGIC.goalYaw, MAGIC.goalPitch, magicProbe));
+    MAGIC.aheadUntil = now + MAGIC.checkEveryMs * 2.5;
+  } else if (!moving) {
+    MAGIC.pushGoal = 0;
   }
   const ease = (v, goal, rate) => (goal > v ? Math.min(goal, v + rate * dt) : Math.max(goal, v - rate * dt));
   if (!dragging) {
-    MAGIC.yawOff = ease(MAGIC.yawOff, MAGIC.goalYaw, MAGIC.yawRate);
+    // The lean is eased in slowly, so a passing wall bends the view rather than knocks it.
+    MAGIC.push = ease(MAGIC.push, held ? 0 : MAGIC.pushGoal, MAGIC.yawRate * 0.35);
+    MAGIC.yawOff = ease(MAGIC.yawOff, MAGIC.goalYaw + MAGIC.push, MAGIC.yawRate);
     MAGIC.pitchOff = ease(MAGIC.pitchOff, MAGIC.goalPitch, MAGIC.pitchRate);
   }
+}
+//: Where the camera stands turned ``dy`` and raised ``dp`` from the view asked for, round ``aim``.
+function magicCameraAt(aim, dy, dp, out) {
+  const yaw = state.yaw + dy, pitch = Math.min(MAGIC.maxPitch, state.pitch + dp), d = state.dist * (1 + MAGIC.back);
+  return out.set(aim.x + Math.sin(yaw) * Math.cos(pitch) * d, aim.y + Math.sin(pitch) * d, aim.z + Math.cos(yaw) * Math.cos(pitch) * d);
+}
+//: How far to lean the view round (rad) off the walls beside where the camera stands: each wall
+//: within pushReach to one side pushes it toward the other, harder the nearer; walls both sides
+//: (a street between two rows of houses) cancel out.
+var magicLeanProbe = null;
+function magicWallLean(aim) {
+  if (!magicLeanProbe) magicLeanProbe = new THREE.Vector3();
+  const at = magicCameraAt(aim, MAGIC.goalYaw, MAGIC.goalPitch, magicLeanProbe);
+  const yaw = state.yaw + MAGIC.goalYaw;
+  // The way a larger yaw moves the camera, along the ground.
+  const sx = Math.cos(yaw), sz = -Math.sin(yaw);
+  const home = orbitBuildingTop(aim.x, aim.z)?.way || null;
+  const wallAt = (x, z) => { const hit = orbitBuildingTop(x, z); return Boolean(hit && hit.way !== home && at.y < hit.top); };
+  let lean = 0;
+  for (const d of [0.75, 1.5, 2.25, MAGIC.pushReach]) {
+    const w = 1 - (d - 0.75) / MAGIC.pushReach;
+    if (wallAt(at.x + sx * d, at.z + sz * d)) lean -= w;
+    if (wallAt(at.x - sx * d, at.z - sz * d)) lean += w;
+  }
+  return Math.max(-MAGIC.pushMax, Math.min(MAGIC.pushMax, lean * 0.09));
+}
+//: How far out the camera stands this frame (m), given ``wall`` -- how far out it could stand
+//: before a building, or null -- and ``full``, the distance asked for. In short of a building,
+//: eased: quickly in (inS) and slowly back out (outS), from the moment a building is a moment
+//: ahead on your way. Null at the distance asked for, with nothing in the way.
+function magicPullIn(wall, full) {
+  const now = performance.now(), dt = Math.min(0.1, Math.max(0, (now - (MAGIC.nearAt || now)) / 1000));
+  MAGIC.nearAt = now;
+  let goal = full;
+  if (wall !== null) goal = Math.min(goal, wall);
+  if (MAGIC.ahead !== null && now < MAGIC.aheadUntil) goal = Math.min(goal, MAGIC.ahead);
+  goal = Math.max(0.3, goal);
+  if (MAGIC.near === null) {
+    if (goal >= full - 0.01) return null;
+    MAGIC.near = full;
+  }
+  // Zoomed in by hand past where it stood: there.
+  MAGIC.near = Math.min(MAGIC.near, full);
+  const tau = goal < MAGIC.near ? MAGIC.inS : MAGIC.outS;
+  MAGIC.near += (goal - MAGIC.near) * (1 - Math.exp(-dt / tau));
+  // Never past the wall's face, whatever the ease (wall is already ORBIT_WALL_GAP_M short of
+  // it): the rooms behind it are not seen. A building cutting in at once (a turn round a
+  // corner) is the one time this, not the ease, sets where it stands.
+  if (wall !== null && MAGIC.near > wall + 0.35) MAGIC.near = wall + 0.35;
+  if (goal >= full - 0.01 && MAGIC.near >= full - 0.03) { MAGIC.near = null; return null; }
+  return MAGIC.near;
 }
 //: The view dragged: what the camera had turned by itself becomes the view asked for (so it
 //: does not jump), and it is left there.
@@ -104,24 +181,8 @@ function magicCameraDragged() {
   MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0;
   MAGIC.draggedAt = performance.now();
 }
-//: The camera at ``position`` looking at ``aim`` with a building in between: never inside it.
-//: Inside a building it is taken on out through the far side, so that building's own wall is what
-//: it sees -- or, where that is far, back in toward ``aim``, out of it on the near side.
-function magicOutOfBuildings(aim, position) {
-  const home = orbitBuildingTop(aim.x, aim.z)?.way || null;
-  const inside = (x, y, z) => { const hit = orbitBuildingTop(x, z); return Boolean(hit && hit.way !== home && y < hit.top); };
-  if (!inside(position.x, position.y, position.z)) return;
-  const dx = position.x - aim.x, dy = position.y - aim.y, dz = position.z - aim.z, len = Math.hypot(dx, dy, dz) || 1;
-  const ux = dx / len, uy = dy / len, uz = dz / len;
-  for (let s = 0.4; s <= 30; s += 0.4) {
-    if (!inside(position.x + ux * s, position.y + uy * s, position.z + uz * s)) { position.set(position.x + ux * (s + 0.4), position.y + uy * (s + 0.4), position.z + uz * (s + 0.4)); return; }
-  }
-  for (let s = 0.4; s < len; s += 0.4) {
-    if (!inside(position.x - ux * s, position.y - uy * s, position.z - uz * s)) { position.set(position.x - ux * (s + 0.4), position.y - uy * (s + 0.4), position.z - uz * (s + 0.4)); return; }
-  }
-}
-//: You (on foot, or your car) drawn through what stands between you and the view: an outline,
-//: over everything, while something does.
+//: You (on foot, or your car) drawn through what stands between you and the view, as an outline
+//: over everything, for the moment the zoom has not yet come in past it.
 var magicGhostMaterial = null;
 function magicGhostsOf(root) {
   if (!root) return null;

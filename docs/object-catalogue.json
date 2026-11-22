@@ -240,7 +240,7 @@
       "structure:mast": "structure.mast", "structure:antenna": "structure.mast",
       "nature_vegetation": "vegetation.wild_plant", "nature_tree_middle": "vegetation.tree_far", "nature_canopy_proxy": "vegetation.tree_far",
       "nature_wild_grass": "vegetation.grass", "grass_strands": "vegetation.grass", "deadwood:stick": "vegetation.stick",
-      "nature_tree": "vegetation.tree", "nature_foliage": "vegetation.foliage", "scanned_interior": "view.marker",
+      "nature_tree": "vegetation.tree", "tree_near": "vegetation.tree", "nature_foliage": "vegetation.foliage", "scanned_interior": "view.marker",
       "nature_log": "vegetation.log", "nature_stump": "vegetation.stump", "nature_rock": "geology.rock",
       "park:bench": "furniture.bench", "park:fitness": "furniture.play_equipment", "park:garden": "furniture.raised_bed",
       "park:skatepark": "furniture.skate_feature", "park:dog_area": "barrier.fence_chainlink",

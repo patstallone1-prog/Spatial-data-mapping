@@ -93,7 +93,9 @@ export const NO_POCKETS = new Set(["skirt", "running_shorts", "leggings", "dress
 //: Phone cases (sRGB), by how common.
 const PHONE_CASES = ["#1b1b1e", "#1b1b1e", "#1b1b1e", "#2a2d33", "#e8e6e1", "#3b4f7a", "#7a3b4f", "#c9b48a", "#4f6b4a"];
 //: The ways of walking (bake): each person keeps one.
-export const WALKS = ["Walk", "WalkBrisk", "WalkEasy", "WalkSway"];
+//: The ways of walking. WalkPockets is with the hands in the front pockets (only for someone
+//: whose legs have pockets: NO_POCKETS).
+export const WALKS = ["Walk", "WalkBrisk", "WalkEasy", "WalkSway", "WalkPockets"];
 //: The clips played once rather than round and round (work's reach to a counter).
 const ONCE = /:reach$/;
 //: A kitchen counter's top above the floor (metres): kitchen-3d.mjs's COUNTER_Y.
@@ -182,7 +184,9 @@ export function crowdLook(id, look, slots, { height = 1.75, build = 1, female = 
   // A phone, in a pocket if they have one (else left at home); the way they walk.
   const pocket = !NO_POCKETS.has(look?.legs) && age >= 12;
   const phone = pocket ? pickOf(r, PHONE_CASES) : null;
-  const walk = WALKS[Math.floor(r() * WALKS.length) % WALKS.length], pace = 0.92 + r() * 0.16;
+  let walk = WALKS[Math.floor(r() * WALKS.length) % WALKS.length];
+  const pace = 0.92 + r() * 0.16;
+  if (walk === "WalkPockets" && !pocket) walk = "Walk";
   return { sex, parts, weight, muscle, old, height: height / modelHeight, width: 1 + (build - mean) * 0.25, phone, walk, pace };
 }
 
@@ -297,20 +301,82 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       if (idle0.size) for (const [b, [qt, at0]] of stand) { dq.multiplyQuaternions(idle0.get(b), b.quaternion); b.quaternion.multiplyQuaternions(qt, dq); if (b === B.hips) b.position.copy(at0); }
       update();
     };
-    // ---- the ways of walking: the walk's swing of the arms, of the hips, the lean and the head
-    const STYLE = { Walk: {}, WalkBrisk: { arms: 1.35, lean: 0.07 }, WalkEasy: { arms: 0.55, hips: 0.8, lean: -0.03, slouch: 0.12 }, WalkSway: { arms: 0.9, hips: 1.8, roll: 0.05 } };
-    const ARMS = ["leftshoulder", "leftarm", "leftforearm", "rightshoulder", "rightarm", "rightforearm"].map((k) => B[k]).filter(Boolean);
+    // ---- the ways of walking: the swing of the arms, of the hips, the lean and the head
+    // ``arms``: how wide the arms swing (1 the everyday walk's); ``pockets``: the hands in the
+    // front pockets instead.
+    const STYLE = { Walk: {}, WalkBrisk: { arms: 1.35, lean: 0.07 }, WalkEasy: { arms: 0.6, hips: 0.8, lean: -0.03, slouch: 0.12 },
+      WalkSway: { arms: 0.9, hips: 1.8, roll: 0.05 }, WalkPockets: { pockets: true, hips: 0.9, lean: 0.03, slouch: 0.1 } };
+    const ARMS = ["leftshoulder", "leftarm", "leftforearm", "lefthand", "rightshoulder", "rightarm", "rightforearm", "righthand"].map((k) => B[k]).filter(Boolean);
     const HIPS = ["hips", "spine", "spine1"].map((k) => B[k]).filter(Boolean);
     const scaleFromStand = (bones, k) => { for (const b of bones) { const s0 = stand.get(b)?.[0]; if (!s0) continue; const d = s0.clone().invert().multiply(b.quaternion); b.quaternion.copy(s0).multiply(Q4().slerp(d, k)); } };
+    // The arms are not the file's (a soldier's march, the arms swung stiff from the shoulder
+    // with the elbows locked): each is a pendulum on the stride. It swings against its own side's
+    // leg, a little after it (the arm is carried by the step, so it lags), a little further back
+    // than forward (at the shoulder; the bent elbow carries the hand forward), and in toward the
+    // body as it comes forward; the elbow is always a little bent and
+    // bends further on the forward swing, later again (it follows through); the chest turns a
+    // little with the arms, against the hips. The stride's start (the left foot furthest
+    // ahead) and the body's left are read from the walk itself.
+    let strideT0 = 0, leftX = 1;
+    if (src.Walk && B.leftfoot && B.rightfoot) {
+      let most = -Infinity;
+      for (let f = 0; f < 60; f += 1) {
+        const t = (f / 60) * src.Walk.duration;
+        sample("Walk", t); update();
+        const ahead = pos(B.leftfoot).z - pos(B.rightfoot).z;
+        if (ahead > most) { most = ahead; strideT0 = t; }
+      }
+      if (B.leftarm && B.hips) leftX = Math.sign(pos(B.leftarm).x - pos(B.hips).x) || 1;
+    }
+    const SWING = { arm: 0.27, forward: -0.06, lag: 0.38, out: 0.13, bend: 0.22, bendMore: 0.34, bendLag: 0.75, chest: 0.045, wrist: 0.12 };
+    const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
+    const rotY = (a) => Q4().setFromAxisAngle(Y, a);
+    function swingArms(t, k) {
+      const phi = (2 * Math.PI * (t - strideT0)) / src.Walk.duration;
+      for (const b of ARMS) { const s0 = stand.get(b)?.[0]; if (s0) b.quaternion.copy(s0); }
+      update();
+      // (The right arm is forward with the left foot: at the stride's start, a little after.)
+      const swingOf = (side) => Math.cos(phi - SWING.lag - (side === "left" ? Math.PI : 0));
+      const chest = B.spine2 || B.spine1;
+      if (chest) turnWorld(chest, rotY(SWING.chest * k * leftX * swingOf("right")));
+      for (const side of ["left", "right"]) {
+        const up = B[`${side}arm`], fore = B[`${side}forearm`], hand = B[`${side}hand`];
+        if (!up || !fore || !hand) continue;
+        const out = side === "left" ? leftX : -leftX, c = swingOf(side);
+        const th = SWING.arm * k * c + SWING.forward * k, ahead = Math.max(0, c);
+        // The upper arm: down, swung forward by th, a little out from the hip, in as it comes forward.
+        const d = new THREE.Vector3(out * SWING.out * (1 - 0.7 * ahead), -Math.cos(th), Math.sin(th)).normalize();
+        aim(up, pos(fore), pos(up).add(d));
+        // The forearm, bent forward off it, the hand toward the body's middle.
+        const late = Math.cos(phi - SWING.bendLag - (side === "left" ? Math.PI : 0));
+        const bend = SWING.bend + SWING.bendMore * Math.min(1.3, k) * (0.5 + 0.5 * late);
+        const across = Z.clone().sub(d.clone().multiplyScalar(d.dot(Z))).normalize();
+        const f = d.clone().multiplyScalar(Math.cos(bend)).add(across.multiplyScalar(Math.sin(bend)));
+        f.x -= out * 0.1 * Math.sin(bend);
+        aim(fore, pos(hand), pos(fore).add(f.normalize()));
+        // The wrist trails the swing.
+        turnWorld(hand, Q4().setFromAxisAngle(new THREE.Vector3(1, 0, 0), SWING.wrist * k * Math.sin(phi - SWING.lag - (side === "left" ? Math.PI : 0))));
+      }
+    }
+    //: Both hands in the front pockets (the walk's hips carrying them), the elbows out and back.
+    function pocketHands() {
+      for (const b of ARMS) { const s0 = stand.get(b)?.[0]; if (s0) b.quaternion.copy(s0); }
+      update();
+      const hips = pos(B.hips);
+      for (const side of ["left", "right"]) {
+        const out = side === "left" ? leftX : -leftX;
+        ik(B[`${side}arm`], B[`${side}forearm`], B[`${side}hand`], hips.clone().add(new THREE.Vector3(out * 0.16, -0.05, 0.06)), new THREE.Vector3(out, -0.2, -0.7));
+      }
+    }
     const poseWalk = (style, t) => {
       sample("Walk", t);
       const st = STYLE[style] || {};
-      if (st.arms && st.arms !== 1) scaleFromStand(ARMS, st.arms);
       if (st.hips && st.hips !== 1) scaleFromStand(HIPS, st.hips);
       update();
       if (st.lean && B.spine1) turnWorld(B.spine1, rotX(st.lean));
       if (st.slouch && B.neck) turnWorld(B.neck, rotX(st.slouch));
       if (st.roll && B.spine) turnWorld(B.spine, rotZ(st.roll * Math.sin((t / src.Walk.duration) * Math.PI * 2)));
+      if (stand.size) { if (st.pockets && B.hips) pocketHands(); else swingArms(t, st.arms ?? 1); }
     };
     const poseRun = (t) => { sample("Run", t); update(); };
     // ---- the phone: held at the ear, up ahead to film, in front to read; and in the pocket

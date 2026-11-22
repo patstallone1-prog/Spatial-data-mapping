@@ -902,6 +902,15 @@ function storeExteriorFor(feature) {
     for(const collection of STORE_EXTERIOR_RUNTIME.collections) {
       if((plan=STORE_EXTERIOR_RUNTIME.bound(feature,collection)))break;
     }
+    if (plan) {
+      const shops=[...(feature.shops || []),...(feature.tenant_names || [])].filter(s=>s.n?.trim());
+      const address=feature.address?.formatted;
+      plan={...plan,facades:plan.facades.map(face=>{
+        const match=shops.find(s=>s.t===face.category) || (shops.length===1 ? shops[0] : null);
+        if (!match || face.brand || (face.name && face.name!==address && !/^\d+\s/.test(face.name))) return face;
+        return {...face,name:match.n,signs:face.signs.map(s=>s.source_record || s.asset ? s : {...s,text:match.n})};
+      })};
+    }
     storeExteriorBound.set(feature,plan);
   }
   return storeExteriorBound.get(feature);

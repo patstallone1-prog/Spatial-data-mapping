@@ -591,7 +591,7 @@ function* buildParkAreasSteps(areas) {
     }
   }
   for (const [finish, rings] of surfaces) {
-    const geom = ringGeometry(rings, PLAYGROUND_Y);
+    const geom = ringGeometry(rings, PLAYGROUND_Y, true, null, finish === "skate");
     if (!geom) continue;
     // As a mapped plaza is: the coarse terrain backdrop bridges above fine ground on a steep
     // cell, so the surface is drawn over that backdrop, not depth-fought against it.
@@ -623,6 +623,26 @@ for (const feature of PARK_STRUCTURES) {
   const mesh=parkFacilityMesh(feature);if(mesh)groups.mapped3d.add(mesh);
 }
 
+const treePlotCorners = new Map();
+//: Public Works / Better Streets: how far a tree's opening stands from what the survey records
+//: near it (tools/build_sf_tree_survey.py CLEARANCE_M) -- 25 ft from a stop sign, 5 ft from a
+//: hydrant, 3 ft from a parking sign or a meter.
+const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
+//: How many openings were put on the walk's squares, and how many were left where the survey has them.
+const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0 };
+const sfSurvey = (async () => {
+  const b = DATA.bbox;
+  if (!b) return null;
+  const box = BUILD_WINDOW?.box || [b.west,b.south,b.east,b.north];
+  if (box[0] > -122.34 || box[2] < -122.53 || box[1] > 37.84 || box[3] < 37.70) return null;
+  const api = await import(sharedAsset("sf-tree-placement.mjs"));
+  const trees = await api.surveyedTrees(box, async path => {
+    const response = await fetch(sharedAsset("sf-tree-survey/"+path));
+    if (!response.ok) throw Error("Tree survey HTTP "+response.status);
+    return response.json();
+  });
+  return {trees, api};
+})().catch(e => { console.warn("Tree survey unavailable",e); return null; });
 const groundReady = (async () => {
   let ground;
   try {
@@ -729,7 +749,7 @@ const groundReady = (async () => {
     }
   }
 
-  const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y);
+  const frontWalkGeom = ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y, true, null, true);
   if (frontWalkGeom) {
     addGround(new THREE.Mesh(frontWalkGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xffffff, roughness: 0.96, metalness: 0.0,
@@ -741,7 +761,7 @@ const groundReady = (async () => {
   // yard, a plaza -- paved, in the same concrete as the footways, so that downtown is not a
   // meadow between the towers (scripts/build_ground_cover.py decides which lots).
   for (const y of ground.plazas || []) { const k = seenAs("plazas", y); if (k === "grass") seenGrass.push(y.p); else if (k === "asphalt") seenAsphalt.push(y.p); }
-  const plazaGeom = ringGeometry((ground.plazas || []).filter((y) => !["grass", "asphalt"].includes(seenAs("plazas", y))).map((y) => y.p), PLAZA_Y);
+  const plazaGeom = ringGeometry((ground.plazas || []).filter((y) => !["grass", "asphalt"].includes(seenAs("plazas", y))).map((y) => y.p), PLAZA_Y, true, null, true);
   if (plazaGeom) {
     const plazaMesh = new THREE.Mesh(plazaGeom, new THREE.MeshStandardMaterial({
       map: SIDEWALK, color: 0xc4c1b8, roughness: 0.96, metalness: 0.0,
@@ -758,7 +778,7 @@ const groundReady = (async () => {
   const neutralService = (ground.service_yards || []).filter((y) => serviceAs(y) === "paving");
   const serviceRings = (ground.service_yards || []).filter((y) => serviceAs(y) === "asphalt");
   for (const y of ground.service_yards || []) if (serviceAs(y) === "grass") seenGrass.push(y.p);
-  const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y);
+  const neutralServiceGeom = ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y, true, null, true);
   if (neutralServiceGeom) {
     // An unbuilt parcel is not evidence of lawn. Keep it as a restrained hardscape
     // fallback until city land-use or imagery resolves it.
@@ -805,7 +825,7 @@ const groundReady = (async () => {
     // terrain is a coarse backdrop that bridges above the finer ground in places, and depth
     // tested against it whole patches of the fill vanished -- a fifth of a square kilometre in
     // Oakland. Before the yards and plazas, so a mapped surface always paints over a fill.
-    const geom = ringGeometry(inferredOf(k).map((item) => item.p), INFERRED_Y, false);
+    const geom = ringGeometry(inferredOf(k).map((item) => item.p), INFERRED_Y, false, null, k === "paving" || k === "service");
     if (geom) {
       const mesh = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
         ...material, metalness: 0.0, side: THREE.DoubleSide, depthTest: false })), `inferred:${k}`);
@@ -832,47 +852,128 @@ const groundReady = (async () => {
   // a planted median, a refuge -- and is drawn as one (addTreeIslands); one in a junction's box
   // is a corner tree recorded in the wrong place, and is left out rather than drawn in the road.
   const islandTrees = [];
-  // A tree does not stand in the asphalt. One recorded a little way into the roadway (up to the
-  // depth past which it is a median's tree and gets an island) is a kerb tree a metre off --
-  // the record's point, or the road drawn a little wide: 97 in the Marina stood in the kerb
-  // lane with no pit, 59 of them along Lombard (2026-11-21). Each is stood back on the pavement
-  // beside it: straight out from the roadway's middle, to half a metre past the kerb.
-  let treesStoodBack = 0;
-  if (ground.trees) ground.trees = ground.trees.map((tree) => {
-    const [tx, ty] = xy(tree.p[0], tree.p[1]);
-    if (!insideCarriageway(tx, -ty, 0) || insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return tree;
-    const seg = nearestCarriagewaySegment(tx, -ty);
-    if (!seg) return tree;
-    const ex = seg[2] - seg[0], ez = seg[3] - seg[1], L2 = ex * ex + ez * ez || 1;
-    const k = Math.max(0, Math.min(1, ((tx - seg[0]) * ex + (-ty - seg[1]) * ez) / L2));
-    let ox = tx - (seg[0] + ex * k), oz = -ty - (seg[1] + ez * k);
-    const o = Math.hypot(ox, oz);
-    if (o < 0.05) return tree;
-    ox /= o; oz /= o;
-    for (let step = 0.2; step <= 3.2; step += 0.2) {
-      const nx = tx + ox * step, nz = -ty + oz * step;
-      if (insideCarriageway(nx, nz, -0.5)) continue;
-      treesStoodBack += 1;
-      return { ...tree, p: [nx / metersPerLon + midLon, -nz / metersPerLat + midLat, ...tree.p.slice(2)], stood_back_m: +step.toFixed(1) };
+  const survey = await sfSurvey;
+  if (survey) {
+    // The survey is the city's: it stands in for the inventory's trees inside San Francisco
+    // (south of 37.708 is Daly City, whose own trees stay); the lidar's canopy trees (yards,
+    // parks) stay where no surveyed tree is within 4 m of them.
+    const retained = (ground.trees || []).filter(t=>t.src?.startsWith("lidar_canopy") || t.p[1] < 37.7081);
+    const occupied = new Map();
+    const key=(x,z)=>Math.floor(x/4)+":"+Math.floor(z/4);
+    for (const t of survey.trees) {
+      const [x,y]=xy(...t.p), k=key(x,-y);
+      if (!occupied.has(k)) occupied.set(k,[]);
+      occupied.get(k).push([x,-y]);
     }
-    return tree;
-  });
-  treeIslandStats.stood_back = treesStoodBack;
+    ground.trees = [...survey.trees.filter(t=>!BUILD_WINDOW || BUILD_WINDOW.inside(...t.p)), ...retained.filter(t=>{
+      const [x,y]=xy(...t.p);
+      for(let dx=-4;dx<=4;dx+=4) for(let dz=-4;dz<=4;dz+=4)
+        if(occupied.get(key(x+dx,-y+dz))?.some(([a,b])=>Math.hypot(x-a,-y-b)<=4)) return false;
+      return true;
+    })];
+  }
   const notThere = stackedTreesToDrop(ground.trees || [], (tree) => {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const seg = nearestCarriagewaySegment(tx, -ty);
     return seg ? Math.sqrt(distanceToSegmentSquared(tx, -ty, seg[0], seg[1], seg[2], seg[3])) : Infinity;
   });
   treeIslandStats.address_points = notThere.size;
+  const trunkGrid = new Map(), trunkCell=(x,z)=>Math.floor(x/5)+":"+Math.floor(z/5);
+  for (const t of ground.trees || []) {
+    if (notThere.has(t)) continue;
+    const [x,y]=xy(...t.p), key=trunkCell(x,-y);
+    if (!trunkGrid.has(key)) trunkGrid.set(key,[]);
+    trunkGrid.get(key).push(t);
+  }
+  function treeCrowding(x,z,tree) {
+    for(let dx=-5;dx<=5;dx+=5) for(let dz=-5;dz<=5;dz+=5)
+      for(const t of trunkGrid.get(trunkCell(x+dx,z+dz)) || []) {
+        const [a,b]=xy(...t.p);
+        if(t!==tree && Math.hypot(x-a,z+b)<4.572) return true;
+      }
+    return false;
+  }
+  function treeCrossingNear(x,z) {
+    const cx=Math.floor(x/CROSSING_DEDUPE_CELL_M), cz=Math.floor(z/CROSSING_DEDUPE_CELL_M);
+    for(let dx=-5;dx<=5;dx++) for(let dz=-5;dz<=5;dz++)
+      for(const p of crossingDrawGrid.get(`${cx+dx}:${cz+dz}`) || []) {
+        const a=x-p.x,b=z-p.z,c=Math.cos(p.bearing),s=Math.sin(p.bearing);
+        if(Math.abs(a*c+b*s)<p.length/2+3.048 && Math.abs(b*c-a*s)<(p.width || 3.7)/2+3.048) return true;
+      }
+    return false;
+  }
+  // The openings are cut on the walk's squares, so the walks are waited for (module 19 lays
+  // them; not for ever: a minute, then the openings stand where the survey puts them).
+  let walkSquares = null;
+  if (survey && (ground.trees || []).some(t=>t.curb)) {
+    const laid = await Promise.race([streetSurfacesLaid.then(()=>true), new Promise(r=>setTimeout(()=>r(false),60000))]);
+    if (laid) try { walkSquares = walkSquareIndex((ground.trees || []).filter(t=>t.curb).map(t=>{const [a,b]=xy(...t.curb);return [a,-b];})); }
+      catch (error) { console.warn("kerbside: the walk's squares could not be read; openings stand as surveyed", error); }
+  }
+  const walkable = (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
+    && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z);
   const trees = (ground.trees || []).filter((tree) => {
     if (notThere.has(tree)) return false;
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
-    if (inDriveway(tx, -ty)) return false;
-    // Not in the water: a tree the lidar or a record puts on a lake or the bay is a mast, a
-    // reflection or a point a few metres off the shore it stands on.
-    if (overWaterAt(tx, -ty)) { treeIslandStats.water = (treeIslandStats.water || 0) + 1; return false; }
-    if (!insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return true;
-    if (insideJunctionBox(tx, -ty) || junctionSquares.some((q) => Math.hypot(q.kx - tx, q.kz + ty) < q.reach + 2)) {
+    if (overWaterAt(tx, -ty)) return false;
+    const tz=-ty;
+    if (tree.curb && survey) {
+      const [cx,cy]=xy(...tree.curb);
+      const seg=nearestCarriagewaySegment(cx,-cy);
+      if (seg) {
+        const dx=seg[2]-seg[0], dz=seg[3]-seg[1];
+        const u=Math.max(0,Math.min(1,((cx-seg[0])*dx+(-cy-seg[1])*dz)/(dx*dx+dz*dz || 1)));
+        const out=[cx-seg[0]-u*dx,-cy-seg[1]-u*dz];
+        let plot=survey.api.sidewalkPlot(tree,[cx,-cy,tree.curb[2]],out,walkable);
+        if (plot && walkSquares) {
+          // Slid and stretched onto the walk's own squares, where it is still all walk there.
+          const squared = walkSquarePlot(walkSquares, plot);
+          if (squared !== plot && squared.corners.every(([x,z])=>walkable(x,z))) { plot = squared; treeSquareStats.squared += 1; }
+          else treeSquareStats.unsquared += 1;
+        }
+        if (plot) {
+          // The Public Works distances, asked of an opening.
+          const breaksRule = (p) => {
+            const [x,z]=p.center;
+            const junction=junctionSquares.some(q=>Math.hypot(q.kx-x,q.kz-z)<q.reach+7.62);
+            const driveway=DRIVEWAY_ZONES.some(d=>x>=d.minX-1.524 && x<=d.maxX+1.524 && z>=d.minZ-1.524 && z<=d.maxZ+1.524
+              && (pointInRing(x,z,d.ring) || d.ring.some((a,i)=>{const b=d.ring[(i+1)%d.ring.length];return distanceToSegmentSquared(x,z,...a,...b)<1.524**2;})));
+            const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
+              const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(TREE_OBSTACLE_CLEARANCE_M[kind] ?? .9144);
+            }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
+            return obstructed || junction || driveway || treeCrowding(x,z,tree) || treeCrossingNear(x,z);
+          };
+          // Where no tree could ever stand: in the junction's box, in the water, across a drive.
+          const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);
+          // The opening slid along the walk a whole square or two, to where the distances hold;
+          // the tree goes with it (the survey's own fix is a metre or two either way).
+          const [c0,c1]=plot.corners, run=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]) || 1;
+          const ax=(c1[0]-c0[0])/run, az=(c1[1]-c0[1])/run;
+          const slid = (d) => d === 0 ? plot : { ...plot, center:[plot.center[0]+ax*d,plot.center[1]+az*d],
+            corners:plot.corners.map(([px,pz])=>[px+ax*d,pz+az*d]) };
+          let placed = null;
+          if (!impossible(plot.center)) {
+            for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M]) {
+              const p = slid(d);
+              if (d && !p.corners.every(([px,pz])=>walkable(px,pz))) continue;
+              if (!impossible(p.center) && !breaksRule(p)) { placed = p; if (d) treeSquareStats.slid += 1; break; }
+            }
+            // A surveyed tree is there whatever the rules say: where no slide clears them, its
+            // opening is cut where it stands, a real one, not the tree in bare concrete.
+            if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }
+          }
+          if (placed) {
+            const [x,z]=placed.center;
+            tree.p=[x/metersPerLon+midLon,-z/metersPerLat+midLat];
+            treePlotCorners.set(tree,placed.corners);
+            return true;
+          }
+        }
+      }
+    }
+    if (buildingAt(tx,tz) || inDriveway(tx,tz) || insideBikeLane(tx,tz,.1)) return false;
+    if (!insideCarriageway(tx,tz,0)) return true;
+    if (!tree.island || insideJunctionBox(tx, tz)) {
       treeIslandStats.junction += 1;
       return false;
     }
@@ -886,33 +987,31 @@ const groundReady = (async () => {
     const top = pavementTopAt(tx, tz);
     if (top === undefined) continue;
     if (insideCarriageway(tx, tz, 0.2)) continue;
-    const side = Math.max(1.22, Math.min(1.9, 1.05 + (tree.d || 6) * 0.035));
-    const half = side / 2;
-    // Square to the kerb, not to a die roll. A pit is a square left out of the paving and the
-    // paving is laid to the street, so the pit's edges are the flags' edges; turning each one a
-    // few degrees at random -- which is what this did -- made every one of them read as a brown
-    // square dropped on the pavement rather than as an opening cut into it.
-    const bearing = pavementBearingAt(tx, tz);
-    if (bearing === undefined) continue;
-    const cos = Math.cos(bearing);
-    const sin = Math.sin(bearing);
-    const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(
-      ([dx, dz]) => [tx + dx * cos - dz * sin, tz + dx * sin + dz * cos]);
-    // The whole pit has to be off the roadway, not just the tree in the middle of it. A pit is
-    // up to 1.9 m across, so a tree standing a hand's breadth inside the kerb passed the centre
-    // test and still cut most of a metre of brown out of the bike lane beside it.
-    let onRoad = false;
-    for (const [cx, cz] of corners) {
-      if (insideCarriageway(cx, cz, 0.0) || insideBikeLane(cx, cz, 0.15)) { onRoad = true; break; }
+    let corners = treePlotCorners.get(tree);
+    if (!corners) {
+      // The lidar's canopy trees are the yards' and the parks': grass under them, no opening.
+      if (tree.src?.startsWith("lidar_canopy")) continue;
+      // Any other tree standing in paving -- a surveyed tree with no curb-side opening of its
+      // own (a property-side cutout, a tree the survey placed on the walk), or the inventory's --
+      // has an opening: one of the walk's own squares, three feet, square to the walk. On grass
+      // (a park, a lawn, a yard: no paving under it) it has none.
+      const bearing = pavementBearingAt(tx, tz);
+      if (bearing === undefined) { if (survey) treeSquareStats.onGrass += 1; continue; }
+      const c=Math.cos(bearing),s=Math.sin(bearing),half=.4572;
+      const square=[[-half,-half],[half,-half],[half,half],[-half,half]].map(([u,v])=>[tx+u*c-v*s,tz+u*s+v*c]);
+      const open = (q) => q.every(([x,z])=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0) && !insideBikeLane(x,z,.15));
+      if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }
+      let plot = { center:[tx,tz], corners:square };
+      if (walkSquares) { const squared = walkSquarePlot(walkSquares, plot); if (squared !== plot && open(squared.corners)) plot = squared; }
+      corners = plot.corners;
+      if (plot.center[0] !== tx || plot.center[1] !== tz) tree.p=[plot.center[0]/metersPerLon+midLon,-plot.center[1]/metersPerLat+midLat];
+      treePlotCorners.set(tree,corners);
+      treeSquareStats.squareOpening += 1;
     }
-    if (onRoad) continue;
-    // Nor is a pit cut into the hill over a tunnel mouth: the tree up there stands on the
-    // hill, and the pit would be drawn on the roadway in the bore beneath it.
     const base = pits.positions.length / 3;
-    for (let c = 0; c < 4; c += 1) {
-      const [dx, dz] = [[-half, -half], [half, -half], [half, half], [-half, half]][c];
-      pits.positions.push(corners[c][0], top + PIT_LIFT_M, corners[c][1]);
-      pits.uvs.push((dx + half) / side, (dz + half) / side);
+    for (const [i,[x,z]] of corners.entries()) {
+      pits.positions.push(x, top + PIT_LIFT_M, z);
+      pits.uvs.push(i===1 || i===2 ? 1 : 0,i>=2 ? 1 : 0);
     }
     pits.indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
     pitCount += 1;
@@ -974,23 +1073,28 @@ const groundReady = (async () => {
     let prototypeRadius=0,prototypeHeight=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
       prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
       prototypeHeight=Math.max(prototypeHeight,b.max.y);}
-    const scales=list.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
+    // Every tree of the kind is an instance of it here (the far tier): its bark, big limbs and
+    // leaf cards, at its measured height and spread. Round you the near tier (treeNear) draws
+    // it in full, its crown shaped to the lidar's, in place of the instance.
+    if (!HEADSET) treeNearProtos.set(kind, proto);
+    const instances = list;
+    const scales=instances.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
     // Off the headset a tree that meets a house is one more instance of its kind, cut at the
     // wall as it is drawn (treeWallMask); only whether it meets one is asked here.
-    const clipping=list.map((tree,i)=>{if(!vegetationLibrary)return null;
+    const clipping=instances.map((tree,i)=>{if(!vegetationLibrary)return null;
       const [x,y]=xy(...tree.p);
       if(wallMask){const hit=treeWallTouches(x,-y,scales[i][0]*prototypeRadius);if(hit)treeClipStats.clipped++;return null;}
       const prisms=treeBuildingPrisms(x,-y,scales[i][0]*prototypeRadius);if(prisms.length)treeClipStats.clipped++;return prisms.length?prisms:null;});
     for (const part of proto.children) {
       if (wallMask) cutTreeAtWalls(part, wallMask);
-      const mesh = new THREE.InstancedMesh(part.geometry, part.material, list.length-clipping.filter(Boolean).length);
+      const mesh = new THREE.InstancedMesh(part.geometry, part.material, instances.length-clipping.filter(Boolean).length);
       if (wallMask) mesh.customDepthMaterial = part.userData.treeDepth;
       mesh.userData.surface = `tree:${kind}`;   // named for the tile exporter and the audit
       // Each tree's own basis, by instance: a lidar crown is measured, an inventory point mapped.
       mesh.userData.instanceBasis = [];
       let instance=0;const clipped=[];
-      for (let i = 0; i < list.length; i += 1) {
-        const tree = list[i];
+      for (let i = 0; i < instances.length; i += 1) {
+        const tree = instances[i];
         const [x, y] = xy(tree.p[0], tree.p[1]);
         // Measured height and crown where the lidar gave them; else from the trunk.
         const [across, up] = scales[i];
@@ -999,7 +1103,8 @@ const groundReady = (async () => {
         // At zero here: liftOntoGround(groups.ground) puts every instance on the hill once.
         // Adding the ground here as well stood every tree twice as high as the hill it was on.
         dummy.position.y = part.position.y * up;
-        dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
+        // (A tree with a measured crown faces north, as the crown it is shaped to does.)
+        dummy.rotation.set(0, tree.profile ? 0 : random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
         if(clipping[i]){
           dummy.position.y+=groundLiftAt(x,-y);dummy.updateMatrix();
@@ -1012,6 +1117,7 @@ const groundReady = (async () => {
           // in one go held the page for two to four seconds of every window built.
           await maybeYield("Planting the trees");
         }else{mesh.setMatrixAt(instance++, dummy.matrix);
+          if(part===proto.children[0]&&!HEADSET)treeNearSpec.push({x,z:-y,kind,tree,across,up,yaw:dummy.rotation.y});
           mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
       mesh.instanceMatrix.needsUpdate = true;
@@ -1022,6 +1128,7 @@ const groundReady = (async () => {
   }
   if (wallMask) wallMask.top = null;
   window.kerbsideTreeClearance=treeClipStats;
+  window.kerbsideTreeSquares=treeSquareStats;
   understoreyReady=()=>buildParkUnderstorey(trees);
 
   buildCourts(ground);
@@ -1029,6 +1136,11 @@ const groundReady = (async () => {
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
+  // The near tier: which instance each tree is, now that they stand where they will be drawn.
+  if (!HEADSET && treeNearSpec.length) {
+    try { treeNear = treeNearIndex(treeNearSpec, survey); }
+    catch (error) { console.warn("kerbside: the near trees are not drawn (the far ones are)", error); treeNear = null; }
+  }
   // The walker stands on these as they are now drawn (walkCoverTopAt).
   registerWalkCover(groups.ground);
   if(grassStrands&&grassLibrary){const meshes=[];

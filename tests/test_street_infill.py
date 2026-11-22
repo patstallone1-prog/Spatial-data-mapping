@@ -184,11 +184,12 @@ def test_every_street_side_goes_to_the_frontage_fill() -> None:
     assert "const FRONTAGE_BRIDGE_M = 30;" in js
 
 
-def test_a_tree_in_the_roadway_stands_on_an_island_and_one_in_a_junction_is_left_out() -> None:
+def test_a_road_tree_requires_a_surveyed_island_outside_a_junction() -> None:
     js = _page_js()
     start = js.index("const islandTrees = [];")
     block = js[start:js.index("addTreeIslands(islandTrees);", start)]
-    assert "if (!insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return true;" in block
+    assert "if (!insideCarriageway(tx,tz,0)) return true;" in block
+    assert "if (!tree.island || insideJunctionBox(tx, tz))" in block
     junction = block.index("treeIslandStats.junction += 1;")
     assert "return false;" in block[junction:junction + 60]
     assert "islandTrees.push({ x: tx, z: -ty, tree });\n    return true;" in block

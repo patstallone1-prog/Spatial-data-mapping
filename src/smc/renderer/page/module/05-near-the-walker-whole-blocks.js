@@ -369,6 +369,9 @@ function surfaceScale(surface, width) {
   if (surface === "kerb") return [WALK_UV_M, WALK_UV_M];
   if (surface === "walk_underlay") return [WALK_UV_M, WALK_UV_M];
   if (surface === "walk_narrow") return [NARROW_SLAB_M, width];
+  // A concrete footway (the sidewalk's map: pedestrianTexture) is scored in the walk's own
+  // three-foot squares; at four metres a repeat they were metre squares beside the walk's.
+  if (surface && surface.startsWith("path:") && pedestrianTexture(surface.slice(5)) === SIDEWALK) return [WALK_UV_M, WALK_UV_M];
   if (surface === "bike") return [5.5, BIKE_LANE_M];
   if (surface === "road") return [8.0, 8.0];
   if (surface === "divider_block") return [DIVIDER_TILE_M, DIVIDER_TILE_M];

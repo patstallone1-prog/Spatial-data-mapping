@@ -297,6 +297,10 @@ export async function startCity(ctx) {
           area = Math.abs(area) / 2;
         }
         buildings.push({ id: String(way.osm_id), x, z, archetype: way.archetype, shops: way.shops || [], name: way.name || way.address?.formatted || null,
+          showMappedSign: way._showMappedSign, designedFront: way._hasDesignedFront, address: way.address?.formatted,
+          tenants: (way.shops || []).map(s => ({ ...s, n: s.n?.trim() ||
+            way.tenant_names?.find(t => t.t === s.t)?.n })).filter(s => s.n),
+
           floors: Math.max(1, Math.round((way.height_m || 6) / R.real_estate.storey_m)), area, lon: way.centroid[0], lat: way.centroid[1],
           tag: way.tags?.building || null, ring: Array.isArray(pts) && pts.length > 2 ? pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)) : null });
         continue;
@@ -339,7 +343,7 @@ export async function startCity(ctx) {
       // the middle of the wall facing the street.
       b.door = doorFor(b.id, node !== null && node !== undefined ? streets.nodes[node] : null) || (b.inside ? { x: b.inside.x, z: b.inside.z, nx: b.inside.nx, nz: b.inside.nz, from: "front" } : null);
     }
-    const places = fresh.map((b) => { const pl = placeFromBuilding(b, streets, R); if (pl) { pl.front = b.inside || null; pl.ring = b.ring || null; pl.county = data.county; } return pl; }).filter(Boolean);
+    const places = fresh.map((b) => { const pl = placeFromBuilding(b, streets, R); if (pl) { pl.showMappedSign = b.showMappedSign; pl.tenants = b.tenants; pl.designedFront = b.designedFront; pl.address = b.address; pl.front = b.inside || null; pl.ring = b.ring || null; pl.county = data.county; } return pl; }).filter(Boolean);
     // The parks' courts (sf-corridor-parks.json court_layout): places to play, not buildings.
     for (const [i, c] of (data.courts || []).entries()) {
       if (!Array.isArray(c.c) || !(c.l > 0) || !(c.w > 0)) continue;
@@ -412,6 +416,7 @@ export async function startCity(ctx) {
   function dropStoreSign(id) {
     const have = storeSigns.get(id);
     if (!have) return;
+    have.showMappedSign?.(true);
     have.group.removeFromParent();
     have.group.traverse((o) => { o.geometry?.dispose?.(); o.material?.map?.dispose?.(); o.material?.dispose?.(); });
     storeSigns.delete(id);
@@ -438,7 +443,8 @@ export async function startCity(ctx) {
           g.rotation.y = Math.atan2(-door.nx, -door.nz);
           g.userData.business = id;
           group.add(g);
-          storeSigns.set(id, { key, group: g });
+          pl.showMappedSign?.(false);
+          storeSigns.set(id, { key, group: g, showMappedSign: pl.showMappedSign });
         } catch (error) { console.warn("kerbside: a shop's sign could not be drawn", id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
       }
     }
@@ -451,30 +457,40 @@ export async function startCity(ctx) {
         && Math.abs(pl.x - you.x) < TRADE_SIGN_M && Math.abs(pl.z - you.z) < TRADE_SIGN_M)
         .sort((a, b) => Math.hypot(a.x - you.x, a.z - you.z) - Math.hypot(b.x - you.x, b.z - you.z)).slice(0, TRADE_SIGN_MAX);
       for (const pl of near) {
-        const id = `trade:${pl.id}`, door = pl.door;
-        seen.add(id);
-        const kind = view?.kitchenKind?.(pl) || pl.shops[0];
-        const style = view?.kitchenKind?.(pl) ? restaurantService(R, kind, view.bizAt(pl.id), view.kitchens?.get(String(pl.id)))?.style : null;
-        const name = view?.bizAt?.(pl.id)?.name || pl.name || R.stores?.kinds?.[kind]?.name || "Shop";
-        const key = `${kind}|${style}|${name}|${Math.round(door.x * 10)}:${Math.round(door.z * 10)}`;
-        if (storeSigns.get(id)?.key === key) continue;
-        dropStoreSign(id);
-        try {
-          const frontage = Math.max(3, Math.min(7, Math.sqrt(pl.area || 60) * 0.6));
-          const g = buildSignage(THREE, tradeSignage(kind, pl.id, { style, tagline: R.stores?.kinds?.[kind]?.name && R.stores.kinds[kind].name !== name ? R.stores.kinds[kind].name : "" }), { name, frontage });
-          const display = windowDisplayOf(kind, style);
-          if (display && frontage >= 3.6) {
-            const w = Math.min(1.8, frontage / 2 - 0.9), side = hash32(String(pl.id)) % 2 ? 1 : -1;
-            const d = buildWindowDisplay(THREE, display, { width: w, seed: hash32(String(pl.id), "window") });
-            d.position.set(side * (0.75 + w / 2), 0, 0.02);
-            g.add(d);
-          }
-          g.position.set(door.x - door.nx * 0.05, groundAt(door.x - door.nx * 0.6, door.z - door.nz * 0.6), door.z - door.nz * 0.05);
-          g.rotation.y = Math.atan2(-door.nx, -door.nz);
-          g.userData.place = pl.id;
-          group.add(g);
-          storeSigns.set(id, { key, group: g });
-        } catch (error) { console.warn("kerbside: a shop's front could not be drawn", pl.id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
+        const maxBays = Math.max(1, Math.floor((pl.front?.half || 2.5) * 2 / 3));
+        const tenants = pl.tenants?.length ? pl.tenants.slice(0, maxBays) : [null];
+        for (const [bay, tenant] of tenants.entries()) {
+          const id = `trade:${pl.id}:${bay}`, door = pl.door;
+          seen.add(id);
+          const kind = tenant?.t || view?.kitchenKind?.(pl) || pl.shops[0];
+          const style = view?.kitchenKind?.(pl) ? restaurantService(R, kind, view.bizAt(pl.id), view.kitchens?.get(String(pl.id)))?.style : null;
+          const name = view?.bizAt?.(pl.id)?.name || tenant?.n || pl.name || pl.address || "";
+          const key = `${kind}|${style}|${name}|${Math.round(door.x * 10)}:${Math.round(door.z * 10)}`;
+          if (storeSigns.get(id)?.key === key) continue;
+          dropStoreSign(id);
+          try {
+            const frontage = Math.max(3, Math.min(7, Math.min(Math.sqrt(pl.area || 60) * 0.6, (pl.front?.half || 3.5) * 2 / tenants.length)));
+            // A designed front (the exterior engine's) carries its own sign, awning and window
+            // display, with the business's name merged on: nothing more is drawn over it.
+            if (pl.designedFront) { storeSigns.set(id, { key, group: new THREE.Group() }); continue; }
+            const g = !name ? new THREE.Group() : buildSignage(THREE, tradeSignage(kind, pl.id, { style, tagline: R.stores?.kinds?.[kind]?.name && R.stores.kinds[kind].name !== name ? R.stores.kinds[kind].name : "" }), { name, frontage });
+            const display = windowDisplayOf(kind, style);
+            if (display && frontage >= 3.6) {
+              const w = Math.min(1.8, frontage / 2 - 0.9), side = hash32(String(pl.id)) % 2 ? 1 : -1;
+              const d = buildWindowDisplay(THREE, display, { width: w, seed: hash32(String(pl.id), "window") });
+              d.position.set(side * (0.75 + w / 2), 0, 0.02);
+              g.add(d);
+            }
+            const offset = tenants.length === 1 || !pl.front ? 0 : ((bay + 0.5) / tenants.length - 0.5) * pl.front.half * 2;
+            const anchor = tenants.length > 1 && pl.front ? pl.front : door;
+            const x = anchor.x - anchor.nz * offset, z = anchor.z + anchor.nx * offset;
+            g.position.set(x - anchor.nx * .05, groundAt(x - anchor.nx * .6, z - anchor.nz * .6), z - anchor.nz * .05);
+            g.rotation.y = Math.atan2(-anchor.nx, -anchor.nz);
+            g.userData.place = pl.id;
+            group.add(g);
+            storeSigns.set(id, { key, group: g });
+          } catch (error) { console.warn("kerbside: a shop's front could not be drawn", pl.id, error); storeSigns.set(id, { key, group: new THREE.Group() }); }
+        }
       }
     }
     for (const id of [...storeSigns.keys()]) if (!seen.has(id)) dropStoreSign(id);

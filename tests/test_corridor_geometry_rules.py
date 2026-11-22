@@ -717,7 +717,47 @@ def test_ground_cover_is_clipped_off_the_carriageway() -> None:
     assert "insideCarriageway" in body, "the clip does not consult the carriageway"
     # And it is on by default, because the caller that forgets is the one that puts a garden in
     # the road.
-    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true, excludeAt = null\)", js)
+    assert re.search(r"function ringGeometry\(rings, y, clipToRoad = true, excludeAt = null, slabs = false\)", js)
+
+
+def test_every_concrete_pour_is_scored_in_the_walks_three_foot_squares() -> None:
+    """The lot paving drawn under the walk was scored in two-metre squares, square to the map.
+
+    Where it showed between the walk and a house front (or under the walk's edge) it read as an
+    older, larger pavement under the walk's own three-foot squares. Every ground ring drawn with
+    the sidewalk's map is scored in WALK_UV_M (three feet a square), square to its frontage.
+    """
+    js = _page_js()
+    body = _extract("ringGeometry", js)
+    assert "(x * fu + yy * fv) / WALK_UV_M" in body
+    assert "uvs.push(...uvAt(" in body and "/ 8, pos.getY(i) / 8" not in body
+    for caller in [
+        "ringGeometry((ground.front_walks || []).map((y) => y.p), FRONT_WALK_Y, true, null, true)",
+        ".map((y) => y.p), PLAZA_Y, true, null, true)",
+        "ringGeometry(neutralService.map((y) => y.p), SERVICE_YARD_Y, true, null, true)",
+        'INFERRED_Y, false, null, k === "paving" || k === "service")',
+        'ringGeometry(rings, PLAYGROUND_Y, true, null, finish === "skate")',
+    ]:
+        assert caller in js, caller
+    # The islands and the concrete footways too.
+    assert "quad(island, ring, top, WALK_UV_M)" in js
+    assert 'pedestrianTexture(surface.slice(5)) === SIDEWALK) return [WALK_UV_M, WALK_UV_M]' in js
+
+
+def test_a_surveyed_tree_has_a_real_opening_unless_it_stands_on_grass() -> None:
+    """A tree the city surveyed is there whatever the placement rules say.
+
+    Its opening is slid along the walk a square or two to where the Public Works distances hold;
+    where none does it is cut where the tree stands. A tree with no curb-side opening of its own
+    has one of the walk's squares if it stands in paving, and none on grass (a park, a yard).
+    """
+    js = _page_js()
+    assert "for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M])" in js
+    assert "if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }" in js
+    assert "const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);" in js
+    assert 'if (tree.src?.startsWith("lidar_canopy")) continue;' in js
+    assert "if (survey || tree.src) continue;" not in js
+    assert "if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }" in js
 
 
 def test_lane_markings_are_painted_with_a_width() -> None:
@@ -915,29 +955,43 @@ def test_no_roof_is_drawn_green() -> None:
     assert "read.green >= ROOF_UNDER_TREES" in _extract("roofFinishFor", js)
 
 
-def test_every_awning_kind_exists_and_the_flat_board_is_the_common_one() -> None:
-    """Five kinds, and the one San Francisco actually has most of is not an awning at all.
-
-    A `board` is a painted or cut-letter sign fixed flat to the wall above the glass. It is the
-    commonest thing on a shopfront here by a wide margin, and a set of awning types that leaves
-    it out gets the street wrong however good the canvas looks.
-    """
+def test_mapped_shops_use_the_city_signage_renderer():
     js = _page_js()
-    for kind in ("board", "straight", "dome", "shed", "retractable"):
-        assert f'"{kind}"' in js, kind
-    for builder in ("buildBoard", "buildSloped", "buildDome", "buildShed"):
-        assert f"function {builder}(" in js, builder
-    # Every trade's mix has to be a distribution, and board has to lead in most of them.
-    table = js[js.index("const AWNING_MIX = {"):js.index("};", js.index("const AWNING_MIX = {"))]
-    rows = re.findall(r"(\w+):\s*\{([^}]*)\}", table)
-    assert len(rows) >= 12, len(rows)
-    leads = 0
-    for trade, body in rows:
-        shares = {k: float(v) for k, v in re.findall(r"(\w+):\s*([0-9.]+)", body)}
-        assert abs(sum(shares.values()) - 1.0) < 1e-6, (trade, shares)
-        if max(shares, key=shares.get) == "board":
-            leads += 1
-    assert leads > len(rows) * 0.7, f"the flat board leads in only {leads} of {len(rows)} trades"
+    assert "function addShopSeating(" in js
+    assert "function addShopfronts(" not in js
+    city = (ROOT / "docs/city/view.mjs").read_text()
+    assert "buildSignage(THREE, tradeSignage(" in city
+    # A designed front carries its own sign and window display: the city draws nothing over it.
+    assert "if (pl.designedFront) { storeSigns.set(id, { key, group: new THREE.Group() }); continue; }" in city
+    assert "const g = !name ? new THREE.Group() : buildSignage(" in city
+
+
+def test_every_street_tree_is_instanced_far_and_drawn_in_full_near():
+    js = _page_js()
+    # One prototype a kind for the far tier; every card for the near one, from the same draws.
+    assert 'function treeVariant(kind, detail = "far")' in js
+    assert 'const cardShare = detail === "near" ? 1 : 0.65' in js
+    assert "if (i < keep) leaves.push(card); else card.dispose();" in js
+    # No per-tree LOD objects: the measured trees are instances too, faced north as measured.
+    assert "new THREE.LOD();\n        lod.position.set(x,base,z);" not in js
+    assert "tree.profile ? 0 : random(i * 7 + kind.length)" in js
+    near = _extract("treeNearBuild", js)
+    assert "api.shapeCrown(position.array" in near
+    # Near trees share the far kind's materials: cut at walls and swayed the same.
+    assert "new THREE.Mesh(geometry, farPart.material)" in near
+    assert "mesh.customDepthMaterial = farPart.userData.treeDepth" in near
+    step = _extract("treeNearStep", js)
+    assert "TREE_NEAR_ZERO" in step and "mesh.setMatrixAt(i, matrix)" in step
+    assert "treeNearStep(at, performance.now()" in js  # an attached region's too
+
+
+def test_a_tree_opening_is_one_of_the_walks_own_squares():
+    js = _page_js()
+    plot = _extract("walkSquarePlot", js)
+    assert "count % 2 ? Math.floor(at.s) + 0.5 : Math.round(at.s)" in plot
+    assert "square * 0.5 + 0.01" in plot
+    assert "markStreetSurfacesLaid?.();" in js
+    assert "walkSquarePlot(walkSquares, plot)" in js
 
 
 def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
@@ -1706,8 +1760,8 @@ def test_a_tree_pit_is_square_to_the_pavement_it_is_cut_into() -> None:
     pit = js[js.index("// ---- tree pits ----"):js.index("// Trees, one instanced mesh per")]
     assert "random(" not in pit, "the pit is still being turned by a die roll"
     # And the whole pit is tested against the roadway, not only the tree in the middle of it.
-    assert "for (const [cx, cz] of corners)" in pit
-    assert "insideBikeLane(cx, cz" in pit
+    assert "q.every(([x,z])=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)" in pit
+    assert "insideBikeLane(x,z" in pit
 
 
 #: A stand-in for THREE.Color that behaves the way the page's does.

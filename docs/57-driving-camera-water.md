@@ -85,13 +85,19 @@ In City mode the view looks after itself:
   walking toward the camera.
 - **It looks ahead.** It aims a little ahead of you: 0.3 s of your way, up to 5 m.
 - **It pulls back at speed.** In the car it stands up to 30% further back as you speed up.
-- **It sees past buildings.** Coming up to a building that would be between it and you, it tries
-  the smallest change that clears it: round to one side up to 1 rad, or up 0.3 rad. It keeps to
-  the side it already went round by, and comes back once there is room.
-- **It never ends up inside a building.** Where nothing clears the building, or you dragged the
-  view there yourself, the camera keeps going round rather than being shoved in toward you or up
-  overhead. It stands outside the building's far wall, so you see that building's side and never
-  its rooms. You are drawn through the wall as a light-blue outline: your figure, or your car.
+- **Buildings push it, never stop it.**
+  - **Leaning off a wall.** A wall within 3 m to one side of the camera leans the view round, a
+    little, to the open side (up to 0.3 rad, eased in slowly). Walls on both sides cancel out.
+  - **Sliding past.** Coming up to a building that would be between it and you, it tries the
+    smallest change that clears it: round to one side up to 1 rad, or up 0.3 rad. It keeps to the
+    side it already went round by, and comes back once there is room.
+  - **Zooming in short of it.** Where nothing clears the building, or you dragged the view there
+    yourself, the camera zooms in to stand on your side of the building, closer to you than the
+    building is (`magicPullIn`). The zoom is eased: in with a 0.14 s time constant, back out with
+    0.75 s. It starts a moment (0.35 s of your way) before the building comes between, so walking
+    past a corner the view comes in smoothly rather than jumping. It never stands past the
+    building's face, so you never see its rooms. For the moment the zoom has not caught up you are
+    drawn through the wall as a light-blue outline.
 - **Dragging is yours.** A drag takes over: what the camera had turned by itself becomes the view
   you asked for, so it does not jump, and it is left alone for about two seconds after.
 
