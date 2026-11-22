@@ -12,6 +12,8 @@
 <script type="module">
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { BIKE, bikeParts, crankTurn, pedalAt } from "./vehicles.mjs";
 import { npcFigures } from "./npc-figures.mjs";
 import { dressFor, looksOf } from "./wardrobe.mjs";
 import { temperamentOf } from "./temperament.mjs";
@@ -22,7 +24,7 @@ scene.add(new THREE.HemisphereLight(0xeef2f6, 0x5d5448, 1.5));
 const sun = new THREE.DirectionalLight(0xfff4e6, 1.6); sun.position.set(4, 9, 6); scene.add(sun);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x8c8a85 })); scene.add(ground);
 const group = new THREE.Group(); scene.add(group);
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const figures = npcFigures(THREE, { loadModel: (u) => loader.loadAsync(u), asset: (p) => "../" + p, parent: group });
 // People as the city makes them (view.mjs bodyFor): a sex, a height and a build, skin and hair,
 // what they wear.
@@ -40,30 +42,63 @@ const people = Array.from({ length: N }, (_, i) => {
   const look = { top: o.topColour, bottom: o.bottoms, shoes: o.shoes, hair: body.hair, skin: body.skin, garment: o.top, legs: o.legs, cut: o.hair, bald: body.bald, heritage: body.heritage, age: person.age };
   const row = Math.floor(i / COLS), col = i % COLS;
   const moving = rnd(i, 11) < WALK, running = moving && q.get("run") && rnd(i, 12) < 0.3;
-  return { id: person.id, x: (col - (COLS - 1) / 2) * GAP, y: 0, z: -row * GAP * 1.3, yaw: q.get("yaw") ? (+q.get("yaw") * Math.PI) / 180 : 0, height, build, female: female === true,
-    moving, speed: running ? 3.6 : moving ? person.pace : 0, look, person };
+  // ?clip=phone|film|walk_text|mix (the city's clips: the phone at the ear, filming, reading),
+  // ?talk=1 (the mouth), ?ride=1 (on bicycles, ?crank=<radians> or turning as they go).
+  const CLIPS = ["phone", "film", "walk_text", null];
+  const clip = q.get("clip") === "mix" ? CLIPS[i % CLIPS.length] : q.get("clip") || null;
+  const ride = !!q.get("ride");
+  return { id: person.id, x: (col - (COLS - 1) / 2) * GAP * (ride ? 1.6 : 1), y: 0, z: -row * GAP * 1.3 * (ride ? 1.7 : 1), yaw: q.get("yaw") ? (+q.get("yaw") * Math.PI) / 180 : 0, height, build, female: female === true,
+    moving: ride || moving, speed: ride ? 4.5 : running ? 3.6 : moving ? person.pace : 0, look, person, clip, talking: !!q.get("talk"), ride, crank: +(q.get("crank") || 0), odo: 0 };
 });
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 const rows = Math.ceil(N / COLS), W = COLS * GAP, D = rows * GAP * 1.3;
 // (A person's yaw 0 faces -z: "front" looks at them from -z.)
+const W0 = num("who", 0);
 const views = { front: [0, 1.6, -D - 4 - W * 0.4, 0, 0.9, -D / 2], back: [0, 1.7, 4 + W * 0.5, 0, 0.9, -D / 2], side: [W / 2 + 4, 1.5, -D / 2, 0, 0.9, -D / 2], over: [0, 9 + D, 6, 0, 0, -D / 2],
-  close: [people[0].x, 1.6, people[0].z - 2.2, people[0].x, 1.0, people[0].z], row: [0, 1.5, -6.5, 0, 0.95, 0] };
+  close: [people[W0].x, 1.6, people[W0].z - 2.2, people[W0].x, 1.0, people[W0].z], face: [people[W0].x - 0.25, 1.55, people[W0].z - 0.75, people[W0].x, 1.5, people[W0].z],
+  side1: [people[W0].x - 2.2, 1.3, people[W0].z, people[W0].x, 1.0, people[W0].z], row: [0, 1.5, -6.5, 0, 0.95, 0] };
 const v = q.get("cam") ? q.get("cam").split(",").map(Number) : views[q.get("view") || "front"] || views.front;
 const cam = new THREE.PerspectiveCamera(q.get("view") === "close" ? 35 : 45, innerWidth / innerHeight, 0.05, 300);
 cam.position.set(v[0], v[1], v[2]); cam.lookAt(v[3], v[4], v[5]);
 figures.start();
+// The bicycles under the riders: the model as a whole, its crank and pedals turned to the rider's.
+const bikes = [];
+if (q.get("ride")) {
+  const g = await loader.loadAsync("../" + BIKE.file);
+  // (The city's own parts, each about its pivot in the bicycle's frame.)
+  const pieces = bikeParts(THREE, g), paint = new THREE.MeshStandardMaterial({ color: 0xc8551b, roughness: 0.5 }), dark = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 });
+  for (const p of people) {
+    const b = new THREE.Group(); b.position.set(p.x, 0, p.z); b.rotation.y = p.yaw; scene.add(b);
+    const parts = {};
+    for (const k of BIKE.parts) if (pieces[k]) { parts[k] = new THREE.Mesh(pieces[k].geometry, k === "frame" ? paint : dark); b.add(parts[k]); }
+    bikes.push({ b, parts, p });
+  }
+}
+const turn = (dt) => {
+  for (const { parts, p } of bikes) {
+    if (!q.get("crank")) { p.odo += p.speed * dt; p.crank = crankTurn(p.odo); }
+    // (Each part is about its own pivot, as view.mjs drawBikes places them.)
+    if (parts.crank) { parts.crank.position.fromArray(BIKE.pivots.crankset); parts.crank.rotation.set(p.crank, 0, 0); }
+    if (parts.wheel_front) { parts.wheel_front.position.fromArray(BIKE.pivots.front_axle); parts.wheel_front.rotation.set(-p.odo / BIKE.wheel_radius, 0, 0); }
+    if (parts.wheel_rear) { parts.wheel_rear.position.fromArray(BIKE.pivots.rear_axle); parts.wheel_rear.rotation.set(-p.odo / BIKE.wheel_radius, 0, 0); }
+    if (parts.frame) parts.frame.position.set(0, 0, 0);
+    for (const side of ["left", "right"]) { const o = parts[`pedal_${side}`]; if (o) o.position.fromArray(pedalAt(side, p.crank)); }
+  }
+};
 const t0 = performance.now();
 while (!figures.ready && !figures.failed && performance.now() - t0 < 30000) await new Promise((r) => setTimeout(r, 50));
 // T seconds of their clips, at 30 frames a second, then drawn.
 let now = 1000;
 const steps = Math.max(1, Math.round(T * 30));
-for (let k = 0; k < steps; k += 1) { now += 1000 / 30; figures.draw(people, now, 1 / 30); }
+for (let k = 0; k < steps; k += 1) { now += 1000 / 30; turn(1 / 30); figures.draw(people, now, 1 / 30); }
 renderer.render(scene, cam);
 const st = figures.stats();
 const info = renderer.info;
-window.__crowd = { stats: st, render: { calls: info.render.calls, triangles: info.render.triangles, programs: info.programs?.length }, people: people.map((p) => ({ id: p.id, female: p.female, age: p.person.age, garment: p.look.garment, legs: p.look.legs, cut: p.look.cut })) };
+window.__crowd = { figures, state: people.map((p) => figures.stateOf(p.id)), stats: st, render: { calls: info.render.calls, triangles: info.render.triangles, programs: info.programs?.length }, people: people.map((p) => ({ id: p.id, female: p.female, age: p.person.age, garment: p.look.garment, legs: p.look.legs, cut: p.look.cut })) };
+// (For checks by hand: step the clips on, ``k`` frames at 30 a second, and draw.)
+window.__sheet = { step: (k = 1) => { for (let i = 0; i < k; i += 1) { now += 1000 / 30; turn(1 / 30); figures.draw(people, now, 1 / 30); } renderer.render(scene, cam); return people.map((p) => figures.stateOf(p.id)); } };
 document.title = figures.failed ? "failed" : `ready drawn ${st.live} draws ${st.draws} tris ${st.triangles} programs ${info.programs?.length} bake ${st.bakeMs}ms`;
 // ?bench=1: frames timed, each waited out on the graphics card (a pixel read back): the CPU's
 // filling of the instances, and the whole frame.
@@ -87,5 +122,5 @@ if (q.get("bench")) {
   document.title += ` bench ${JSON.stringify(window.__crowd.bench)}`;
 }
 // ?live=1: keep playing (for looking at it by hand).
-if (q.get("live")) { const tick = () => { now += 1000 / 60; figures.draw(people, now, 1 / 60); renderer.render(scene, cam); requestAnimationFrame(tick); }; tick(); }
+if (q.get("live")) { const tick = () => { now += 1000 / 60; turn(1 / 60); figures.draw(people, now, 1 / 60); renderer.render(scene, cam); requestAnimationFrame(tick); }; tick(); }
 </script></body></html>

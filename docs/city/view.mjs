@@ -812,9 +812,12 @@ diffuseColor.rgb *= kbCloth;`);
   // one instanced draw skinned on the graphics card. Until they load -- or where they are not
   // published -- the near ring is drawn as it was.
   const figures = npcFigures(THREE, { loadModel: ctx.loadModel || (() => Promise.reject(new Error("no loader"))), asset: ctx.asset, store: ctx.npcStore || null, parent: group });
-  //: Who can be drawn as a character: walking, standing or running -- not riding, fallen, at a
-  //: sport or on the telephone (the jointed figure has those poses; the clips do not).
-  const figureFits = (p) => !p.ride && !p.down && !p.gesture && !p.fall;
+  //: Who can be drawn as a character: walking, standing or running, on the telephone or filming,
+  //: on a bicycle -- not fallen, at a sport, sat down or riding in something (the jointed figure has
+  //: those poses; the characters' clips do not).
+  const figureFits = (p) => !p.down && !p.fall && (!p.ride || (p.ride === "bike" && p.bike)) && (!p.gesture || p.gesture.kind === "phone" || p.gesture.kind === "film");
+  //: Out running: a runner's stroll (people.mjs), or running from something.
+  const RUNNING = /running|for a run/;
   // Loaded with the city, not when the first person comes near: nobody waits for the files.
   figures.start?.();
   let figuresLast = 0;
@@ -1038,8 +1041,16 @@ diffuseColor.rgb *= kbCloth;`);
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
       const { body, look } = lookOf(p);
-      return { id: p.id, x: p.x, y: y + (p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
-        moving: Boolean(p.moving), speed: p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace), look };
+      // What they are doing, for the phone and the mouth: the city's clip (clips.mjs) -- filming
+      // held up to film, walking or not -- and talking (to you, to each other, on the phone).
+      const clip = p.gesture?.kind === "film" ? "film" : clipFor(p, hash32(p.id));
+      const talking = clip === "talk" || clip === "phone" || clip === "walk_phone";
+      // (A cyclist sat on the bicycle as it is drawn: on the ground under it, its crank turned as
+      // its wheels have gone.)
+      const bike = p.ride === "bike" ? p.bike : null;
+      return { id: p.id, x: p.x, y: y + (bike ? 0 : p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
+        moving: Boolean(p.moving), speed: p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace), look,
+        clip, talking, ride: Boolean(bike), crank: bike ? crankTurn(bike.odo || 0) : 0 };
     }), now, dtFig, ready, want);
     if (asFigures) {
       // The rest step down a ring: the jointed figures for those in the full ring not drawn as
@@ -1062,7 +1073,7 @@ diffuseColor.rgb *= kbCloth;`);
         let st = blends.get(p.id);
         if (!st) blends.set(p.id, st = makeBlend());
         const dtc = st.lastNow ? Math.min(0.1, (now - st.lastNow) / 1000) : 0; st.lastNow = now;
-        BLEND_OPTS.speed = p.moving ? (p.speed ?? (/running/.test(p.activity || "") ? 3.6 : p.person.pace)) : 0; BLEND_OPTS.height = body.height; BLEND_OPTS.seed = seed;
+        BLEND_OPTS.speed = p.moving ? (p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace)) : 0; BLEND_OPTS.height = body.height; BLEND_OPTS.seed = seed;
         stepBlend(st, clip, dtc, POSE, BLEND_OPTS);
       }
       const bob = clip ? 0 : p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
@@ -2028,6 +2039,64 @@ diffuseColor.rgb *= kbCloth;`);
     return best ? { ...best, keys: [...best.keys], distance: bestD } : null;
   }
 
+  // ---- your bicycle ----------------------------------------------------------------------------
+  //: Bought at a bike shop (rules.json "bicycle"): B to get on and off it (Enter gets off too); the
+  //: arrows pedal, brake and steer. Ridden, it is one of the bicycles (``mine``: drawn in full) and
+  //: you are its rider, the jointed figure or a character on it as any rider is.
+  const cycle = { active: false, entry: null, saidEdge: 0 };
+  const ownsBicycle = () => (self()?.inventory?.bicycle || 0) > 0;
+  function mountBicycle() {
+    if (!ctx.enabled() || cycle.active) return;
+    if (!ownsBicycle()) { notify("You have no bicycle: a bike shop sells them."); return; }
+    if (car.active || car.riding || transit.ride || shop.place || ctx.insideFitted?.()) { notify("Get on your bicycle out of doors, on foot."); return; }
+    const at = me(), p = self();
+    cycle.entry = { id: `bike:mine:${myId}`, x: at.x, z: at.z, yaw: ctx.getYaw(), v: 0, odo: 0, shade: 0.35, mine: true, resident: true,
+      person: { id: `you:${myId}`, age: p?.age ?? 30, pace: 1.35, height: 1.75 } };
+    cycle.active = true;
+    ctx.avatarVisible(false);
+    notify("On your bicycle: the arrows pedal, brake and steer; B or Enter to get off.");
+    refresh();
+  }
+  function dismountBicycle() {
+    if (!cycle.active) return;
+    cycle.active = false;
+    const b = cycle.entry, rx = Math.cos(b.yaw), rz = -Math.sin(b.yaw);
+    bikes = bikes.filter((x) => x !== b);
+    cycle.entry = null;
+    // (Off on the right, the bicycle wheeled along: it is in your things again.)
+    ctx.moveAvatarTo(b.x + rx * 0.6, b.z + rz * 0.6);
+    ctx.avatarVisible(true);
+    refresh();
+  }
+  const bicycleKey = () => (cycle.active ? dismountBicycle() : mountBicycle());
+  //: Each frame you ride: faster than walking, slower than a car; through what a walker can go
+  //: through (ctx.moveWalker), steered sharper slow than fast.
+  function pedal(dt, held) {
+    const b = cycle.entry;
+    if (!b) return false;
+    const up = held.has("ArrowUp"), down = held.has("ArrowDown"), left = held.has("ArrowLeft"), right = held.has("ArrowRight");
+    if (up) b.v += 1.7 * dt;
+    if (down) b.v -= (b.v > 0.3 ? 5 : 1) * dt;
+    if (!up && !down) b.v -= Math.min(b.v, 0.35 * dt);
+    const top = ctx.onRoad(b.x, b.z) ? 8 : 5;
+    b.v = Math.max(0, Math.min(top, b.v));
+    const steer = (left ? 1 : 0) - (right ? 1 : 0);
+    if (steer && b.v > 0.15) b.yaw += steer * dt * Math.min(2.4, 0.7 + 3 / (1 + b.v));
+    let dx = -Math.sin(b.yaw) * b.v * dt, dz = -Math.cos(b.yaw) * b.v * dt;
+    if (ctx.inArea && !ctx.inArea(b.x + dx * 4, b.z + dz * 4) && ctx.inArea(b.x, b.z)) {
+      b.v = 0; dx = 0; dz = 0;
+      if (performance.now() - cycle.saidEdge > 4000) { cycle.saidEdge = performance.now(); notify(BOUNDARY_MESSAGE); }
+    }
+    const x0 = b.x, z0 = b.z, want = Math.hypot(dx, dz);
+    const moved = ctx.moveWalker(dx, dz);
+    const p = me();
+    b.x = p.x; b.z = p.z;
+    if (want > 0.02 && moved < want * 0.3) b.v *= 0.2;   // into a wall, a kerb post, a car: stopped
+    b.odo += Math.hypot(b.x - x0, b.z - z0);
+    ctx.followYaw(b.yaw, dt);
+    return true;
+  }
+
   // ---- driving ---------------------------------------------------------------------------------
   const car = { active: false, vehicle: null, model: null, mesh: null, x: 0, z: 0, yaw: 0, speed: 0, km: 0, litres: 0, riding: null,
     lane: null, laneKm: 0, laneSeg: null, limit: SPEED_MS.residential, lastCam: new Map(), lastToll: new Map(), plate: "" };
@@ -2073,6 +2142,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: Each frame you drive: the arrows are the pedals and the wheel; the car keeps to what it can
   //: drive on, through the page's own walls and buildings (ctx.moveWalker).
   function drive(dt, held) {
+    if (cycle.active) return pedal(dt, held);
     if (!car.active) return false;
     const up = held.has("ArrowUp"), down = held.has("ArrowDown"), left = held.has("ArrowLeft"), right = held.has("ArrowRight");
     const accel = up ? 3.2 : 0, brake = down ? (car.speed > 0.3 ? 7.5 : 2.2) : 0;
@@ -4137,6 +4207,7 @@ diffuseColor.rgb *= kbCloth;`);
   function actionsHere() {
     const p = self(), here = me(), out = [];
     if (!p) return [];
+    if (cycle.active) return [{ id: "bike", label: "Get off your bicycle", key: "B", run: dismountBicycle }];
     if (car.active) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (car.riding) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (transit.ride) {
@@ -4176,6 +4247,7 @@ diffuseColor.rgb *= kbCloth;`);
     }
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
     if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "Enter", run: toggleCar });
+    if (ownsBicycle()) out.push({ id: "bike", label: "Ride your bicycle", key: "B", run: mountBicycle });
     // The bus on Enter, taxis on T: never the same key for both.
     const bus = nearestFare("bus");
     if (bus) out.push({ id: "bus", label: String(bus.id).startsWith("bus:") ? `Board the ${bus.route} to ${bus.nextName || "…"} ${R.fmt(R.transit.bus_fare)}${bus.leaves > 0 ? ` (leaves in ${Math.ceil(bus.leaves)} s)` : ""}` : `Board the bus ${R.fmt(R.transit.bus_fare)}`, key: "Enter", run: () => board(bus) });
@@ -4207,6 +4279,7 @@ diffuseColor.rgb *= kbCloth;`);
   function enterKey({ map = false } = {}) {
     if (map) { const door = myGarageHere(); return door ? (garageKey(door), true) : false; }
     if (!self()) return false;
+    if (cycle.active) { dismountBicycle(); return true; }
     if (car.active || car.riding) { toggleCar(); return true; }
     if (transit.ride) {
       if (transit.ride.route) requestStop(); else alight();
@@ -4546,6 +4619,7 @@ diffuseColor.rgb *= kbCloth;`);
       // nearest first, as many as are drawn.
       if (residentBikes.length > MAX_BIKES - bikes.length) residentBikes.sort((a, b) => ((a.x - focus.x) ** 2 + (a.z - focus.z) ** 2) - ((b.x - focus.x) ** 2 + (b.z - focus.z) ** 2));
       bikes = [...bikes.filter((b) => !b.resident), ...residentBikes.slice(0, Math.max(0, MAX_BIKES - bikes.length))];
+      if (cycle.active && cycle.entry) bikes.push(cycle.entry);   // (yours, ridden)
       lightSignals(t / 1000, now);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now, focus);
       drawBikes();
@@ -4834,11 +4908,19 @@ diffuseColor.rgb *= kbCloth;`);
     if (clumpSince.size > 4000) for (const [id, t] of clumpSince) if (now - t > 60_000) clumpSince.delete(id);
     if (clumpBack.size > 4000) clumpBack.clear();
   }
-  function glide(e, now, dt, top, snap) {
+  function glide(e, now, dt, top, snap, face = false) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
-      const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * Math.max(dt, 1 / 120) + 0.02;
-      if (d > max && d < snap) { e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max; }
+      // (Allowed the time since it was last placed, not one frame's: those drawn low are placed
+      // only every few frames, and a frame's worth each time left them tens of metres behind where
+      // they were, catching up whichever way that lay -- walking backwards, 2026-11-21.)
+      const span = Math.max(dt, (now - g.t) / 1000, 1 / 120);
+      const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * span + 0.02;
+      if (d > max && d < snap) {
+        e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max;
+        // Catching up, they face the way they go (``face``: those with no stride body to turn).
+        if (face && e.moving) e.yaw = Math.atan2(-dx, -dz);
+      }
     }
     if (g) { g.x = e.x; g.z = e.z; g.t = now; } else glided.set(e.id, { x: e.x, z: e.z, t: now });
   }
@@ -5058,7 +5140,7 @@ diffuseColor.rgb *= kbCloth;`);
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else {
-        glide(entry, now, dt, 3.2, 60);
+        glide(entry, now, dt, 3.2, 60, tier === LOW);
         // (Nobody walks backwards: see strides below, once everyone has stepped apart.)
         // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
         if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
@@ -5355,7 +5437,7 @@ diffuseColor.rgb *= kbCloth;`);
   const KEYS = {
     g: () => pickUp(), i: () => openSide("bag"), v: () => taskKey(),
     u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
-    j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"),
+    j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"), b: () => bicycleKey(),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -5987,7 +6069,7 @@ diffuseColor.rgb *= kbCloth;`);
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
       ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing on the ground (yellow ring) you can lift: a step over to it and down for it"],
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
-      ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
+      ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"], ["B", "your bicycle (a bike shop sells them): get on; the arrows pedal, brake and steer; B or Enter to get off"],
       ["J", "the task board: courier work, flyers, dog walks, bus-stop counts, mystery shopping, the Presidio's trees, the Marina walk, neighbours' errands (the top three are in Tasks, at the top left)"],
       ["Top bar", "Inventory, the Task board, the Shop (everything, from anywhere, at twice the shop price; real estate at its price), Taxi (call one to where you stand) and these Controls; your money, health, stamina and strength at the top right (a click opens your wallet)"],
       ["H or ?", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["PageUp / PageDown", "the level above or below where you stand"]];
@@ -6275,7 +6357,7 @@ diffuseColor.rgb *= kbCloth;`);
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,

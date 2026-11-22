@@ -143,6 +143,22 @@ function apart(r, top, list) {
   return all.reduce((best, c) => (Math.abs(luminance(c) - lt) > Math.abs(luminance(best) - lt) ? c : best), all[0]);
 }
 
+//: Whether ``person`` is one who runs (dressed for it by dressFor, and out for a run when they
+//: go for a stroll): adults under 60 not in work clothes or a suit, RUNNER_SHARE of them, more of
+//: the quick walkers. ``r`` is dressFor's own stream (its first draw is this one).
+function runnerDraw(person, r) {
+  const age = person?.age ?? 35, role = person?.role;
+  const work = role && WORK_DRESS[role], desk = SUIT_TITLE.test(person?.title || "") || DESK_ROLE[role];
+  return !work && !desk && age >= 16 && age < 60 && r() < RUNNER_SHARE * ((person?.pace ?? 1.3) > 1.42 ? 1.8 : 0.7);
+}
+const runners = new Map();
+export function isRunner(person) {
+  const id = person?.id;
+  let v = runners.get(id);
+  if (v === undefined) { v = runnerDraw(person, stream(id, "dress")); if (runners.size > 20000) runners.clear(); runners.set(id, v); }
+  return v;
+}
+
 //: What ``person`` ({id, age, role, title, uniform, pace}) wears. ``body`` {female, bald} and
 //: ``temperament`` (temperament.mjs) shape it. The result keeps the fields the figures read
 //: (bottom: trousers|shorts|skirt, bottoms, sleeves, shoes, hair) and adds the garments
@@ -153,7 +169,7 @@ export function dressFor(person, body, temperament, shares = { skirt_female: 0.3
   const bold = Math.min(1, boldness(temperament) + (age < 30 ? 0.15 : age > 60 ? -0.2 : 0));
   const role = person?.role, work = role && WORK_DRESS[role] ? WORK_DRESS[role] : null;
   const desk = SUIT_TITLE.test(person?.title || "") ? "formal" : DESK_ROLE[role];
-  const runner = !work && !desk && age >= 16 && age < 60 && r() < RUNNER_SHARE * ((person?.pace ?? 1.3) > 1.42 ? 1.8 : 0.7);
+  const runner = runnerDraw(person, r);
   let top, legs;
   if (work) [top, legs] = work;
   else if (desk) { top = weighted(r, DESK[desk].tops); legs = weighted(r, DESK[desk].bottoms); }

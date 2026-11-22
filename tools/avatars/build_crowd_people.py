@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -293,6 +294,169 @@ def plain_material(obj, keep_texture: bool, folder: Path, name: str):
     return file
 
 
+# ---- the face, the mouth and the caps ----------------------------------------------------------
+
+#: The head's triangles: the face is where the eye goes, so it is drawn finer than the body (the
+#: body proxy's own head is a few hundred).
+HEAD_TRIS = 3800
+
+
+def group_center(obj, name: str):
+    g = obj.vertex_groups[name]
+    w = obj.matrix_world
+    pts = [w @ v.co for v in obj.data.vertices if any(e.group == g.index and e.weight > 0.5 for e in v.groups)]
+    return sum(pts, mathutils.Vector()) / len(pts)
+
+
+def face_marks(base) -> dict:
+    """Where the face is on the base mesh (Blender's world: z up, -y forward): the lips, the
+    chin, the jaw's hinge (MakeHuman's own jaw joint) and the eyes."""
+    return {
+        "lips": group_center(base, "lips"),
+        "chin": group_center(base, "joint-jaw"),
+        "pivot": group_center(base, "joint-mouth"),
+        "eye": (group_center(base, "helper-l-eye") + group_center(base, "helper-r-eye")) / 2,
+    }
+
+
+def make_head(base, marks):
+    """The base mesh's own head and neck -- its skin only, no helpers -- cut a little below the
+    chin, as a part of its own over the proxy's (whose head the part's _cover bit hides)."""
+    head = base.copy()
+    head.data = base.data.copy()
+    head.name = "head__basemesh"
+    bpy.context.collection.objects.link(head)
+    if head.data.shape_keys:
+        head.shape_key_clear()
+    for m in list(head.modifiers):
+        if m.type != "ARMATURE":
+            head.modifiers.remove(m)
+    cut = marks["chin"].z - 0.045
+    skin = head.vertex_groups["body"].index
+    w = head.matrix_world
+    keep = {
+        v.index
+        for v in head.data.vertices
+        if (w @ v.co).z > cut and any(e.group == skin and e.weight > 0.5 for e in v.groups)
+    }
+    bm = bmesh.new()
+    bm.from_mesh(head.data)
+    drop = [f for f in bm.faces if not all(v.index in keep for v in f.verts)]
+    bmesh.ops.delete(bm, geom=drop, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(head.data)
+    bm.free()
+    for g in [g for g in head.vertex_groups if not g.name.startswith("mixamorig")]:
+        head.vertex_groups.remove(g)
+    return head, cut
+
+
+def put_jaw(head, marks):
+    """``_jaw``: how much of each point the jaw carries when the mouth opens (the lower lip, the
+    chin and the jaw in front of its hinge; not the neck)."""
+    lips_z, piv, chin_z = marks["lips"].z, marks["pivot"], marks["chin"].z
+    w = head.matrix_world
+    vals = []
+    for v in head.data.vertices:
+        p = w @ v.co
+        below = min(1.0, max(0.0, (lips_z - 0.002 - p.z) / 0.006))
+        ahead = min(1.0, max(0.0, (piv.y + 0.03 - p.y) / 0.03))
+        not_neck = min(1.0, max(0.0, (p.z - (chin_z - 0.035)) / 0.02))
+        vals.append(below * ahead * not_neck)
+    head.data.attributes.new("_jaw", "FLOAT", "POINT").data.foreach_set("value", vals)
+
+
+def bound_to_head(obj, rig):
+    """A mesh made here, carried by the head bone (all of it, weight 1)."""
+    bpy.context.collection.objects.link(obj)
+    obj.parent = rig
+    obj.matrix_parent_inverse = rig.matrix_world.inverted()
+    g = obj.vertex_groups.new(name="mixamorig:Head")
+    g.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
+    mod = obj.modifiers.new("Armature", "ARMATURE")
+    mod.object = rig
+    for poly in obj.data.polygons:
+        poly.use_smooth = True
+    return obj
+
+
+def make_mouth(rig, marks):
+    """The inside of the mouth, seen when it opens: a card just behind the lips (coloured dark by
+    the page, not black)."""
+    lips = marks["lips"]
+    cx, cy, cz = lips.x, lips.y + 0.018, lips.z - 0.006
+    w, h = 0.026, 0.016
+    mesh = bpy.data.meshes.new("mouth__back")
+    mesh.from_pydata([(cx - w, cy, cz - h), (cx + w, cy, cz - h), (cx + w, cy, cz + h * 0.6), (cx - w, cy, cz + h * 0.6)], [], [(0, 1, 2, 3)])
+    obj = bound_to_head(bpy.data.objects.new("mouth__back", mesh), rig)
+    obj.data.attributes.new("_shade", "FLOAT", "POINT").data.foreach_set("value", [1.0] * 4)
+    return obj
+
+
+def make_cap(rig, base, marks, kind: str):
+    """A cap fitted to the head above the brow: a ``baseball_cap`` (a crown and a peak) or a
+    ``beanie`` (a rounder crown down over the ears, its turned-up band darker)."""
+    w = base.matrix_world
+    skin = base.vertex_groups["body"].index
+    brow = marks["eye"].z + 0.03
+    pts = [w @ v.co for v in base.data.vertices
+           if any(e.group == skin and e.weight > 0.5 for e in v.groups) and (w @ v.co).z > brow - 0.005]
+    xs, ys, zs = [p.x for p in pts], [p.y for p in pts], [p.z for p in pts]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    rx, ry, top = (max(xs) - min(xs)) / 2 + 0.012, (max(ys) - min(ys)) / 2 + 0.014, max(zs) + 0.012
+    front, drop = (brow - 0.012, 0.045) if kind == "beanie" else (brow + 0.002, 0.03)
+    seg, rings = 20, 6
+    bm = bmesh.new()
+    grid = []
+    for k in range(rings):
+        phi = k / rings * math.pi / 2
+        row = []
+        for j in range(seg):
+            th = 2 * math.pi * j / seg
+            z0 = front - drop * max(0.0, math.sin(th))
+            row.append(bm.verts.new((cx + rx * math.cos(phi) * math.cos(th), cy + ry * math.cos(phi) * math.sin(th), z0 + (top - z0) * math.sin(phi))))
+        grid.append(row)
+    pole = bm.verts.new((cx, cy, top))
+    for k in range(rings - 1):
+        for j in range(seg):
+            bm.faces.new((grid[k][j], grid[k][(j + 1) % seg], grid[k + 1][(j + 1) % seg], grid[k + 1][j]))
+    for j in range(seg):
+        bm.faces.new((grid[-1][j], grid[-1][(j + 1) % seg], pole))
+    band = set(grid[0]) if kind == "beanie" else set()
+    under, up = set(), []
+    if kind == "baseball_cap":
+        # The peak: a thin slab out over the brow, over the front of the base ring.
+        js = [j for j in range(seg) if math.sin(2 * math.pi * j / seg) < -0.3]
+        js.sort(key=lambda j: math.cos(2 * math.pi * j / seg))
+        up, down = [], []
+        for j in js:
+            th = 2 * math.pi * j / seg
+            inner = grid[0][j].co
+            reach = 0.075 * (-math.sin(th)) ** 2
+            out = (cx + (rx + 0.02) * math.cos(th), cy + (ry + reach) * math.sin(th), inner.z - 0.012)
+            up.append((bm.verts.new((inner.x, inner.y, inner.z)), bm.verts.new(out)))
+            down.append((bm.verts.new((inner.x, inner.y, inner.z - 0.005)), bm.verts.new((out[0], out[1], out[2] - 0.005))))
+        for i in range(len(js) - 1):
+            # (Wound so the top faces up, the underside down and the edge forward.)
+            bm.faces.new((up[i][1], up[i + 1][1], up[i + 1][0], up[i][0]))
+            bm.faces.new((down[i][0], down[i + 1][0], down[i + 1][1], down[i][1]))
+            bm.faces.new((down[i][1], down[i + 1][1], up[i + 1][1], up[i][1]))
+        under = {v for pair in down for v in pair}
+    peak = {v for pair in up for v in pair} | under if kind == "baseball_cap" else set()
+    bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if not (set(f.verts) & peak)])
+    mesh = bpy.data.meshes.new(f"hat__{kind}")
+    bm.to_mesh(mesh)
+    shade = []
+    index = {v.index: v for v in bm.verts}
+    for i in range(len(mesh.vertices)):
+        v = index[i]
+        shade.append(0.78 if v in band else 0.7 if v in under else 1.0)
+    bm.free()
+    obj = bound_to_head(bpy.data.objects.new(f"hat__{kind}", mesh), rig)
+    obj.data.attributes.new("_shade", "FLOAT", "POINT").data.foreach_set("value", shade)
+    return obj
+
+
 # ---- one sex --------------------------------------------------------------------------------
 
 
@@ -331,7 +495,7 @@ def build(sex: str, soldier: Path, out: Path) -> dict:
         parts[obj.name] = {"slot": slot, "asset": asset, "budget": budget, "keep": keep, "obj": obj}
         print(f"{sex}: {obj.name} ({len(obj.data.polygons)} faces)", flush=True)
     objects = [body, *[p["obj"] for p in parts.values()]]
-    morphs = record(base, objects)
+    morphs = record(base, [*objects, base])
     TargetService.bake_targets(base)
     HumanService.refit(base)
     # The skin each part covers: the body proxy's delete groups (MPFB carries each part's onto it).
@@ -362,6 +526,34 @@ def build(sex: str, soldier: Path, out: Path) -> dict:
     bits, folder = {}, out / sex
     final = [body]
     put_morphs(body, {m: morphs[m][body.name] for m in MORPHS})
+    # The face: the base mesh's own head, finer than the proxy's, its jaw free to open; the inside
+    # of the mouth behind it; and the caps, fitted to the head.
+    base_rest = av.rest_coords(base)
+    base_deltas = {m: morphs[m][base.name] for m in MORPHS}
+    marks = face_marks(base)
+    head, head_cut = make_head(base, marks)
+    tris = decimate(head, HEAD_TRIS)
+    put_morphs(head, nearest_deltas(head, base_rest, base_deltas))
+    put_jaw(head, marks)
+    plain_material(head, False, folder, head.name)
+    bits[head.name] = len(bits)
+    covers[head.name] = {i for i, c in enumerate(av.rest_coords(body)) if c.z > head_cut + 0.02}
+    head["kb"] = json.dumps({"slot": "head", "asset": "basemesh", "bit": bits[head.name]})
+    final.append(head)
+    out_parts.append({"id": head.name, "slot": "head", "asset": "basemesh", "tris": tris, "bit": bits[head.name], "texture": None})
+    print(f"  {head.name}: {tris} triangles", flush=True)
+    for made, slot, asset in [(make_mouth(rig, marks), "mouth", "back"),
+                              (make_cap(rig, base, marks, "baseball_cap"), "hat", "baseball_cap"),
+                              (make_cap(rig, base, marks, "beanie"), "hat", "beanie")]:
+        put_morphs(made, nearest_deltas(made, base_rest, base_deltas))
+        plain_material(made, False, folder, made.name)
+        made["kb"] = json.dumps({"slot": slot, "asset": asset, "bit": None})
+        final.append(made)
+        n = sum(len(p.vertices) - 2 for p in made.data.polygons)
+        out_parts.append({"id": made.name, "slot": slot, "asset": asset, "tris": n, "bit": None, "texture": None})
+        print(f"  {made.name}: {n} triangles", flush=True)
+    # (glTF's frame: y up, z forward.)
+    jaw_pivot = [round(marks["pivot"].x, 4), round(marks["pivot"].z, 4), round(-marks["pivot"].y, 4)]
     for name, p in parts.items():
         obj, src = p["obj"], rest[name]
         deltas = {m: morphs[m][name] for m in MORPHS}
@@ -400,9 +592,9 @@ def build(sex: str, soldier: Path, out: Path) -> dict:
     cover = [0] * len(body.data.vertices)
     body_rest = av.rest_coords(body)
     for name, verts in covers.items():
-        asset = parts[name]["asset"]
+        asset = parts[name]["asset"] if name in parts else None
         for i in verts:
-            if parts[name]["slot"] == "outfit":
+            if name in parts and parts[name]["slot"] == "outfit":
                 piece = f"top__{asset}" if body_rest[i].z >= waist else f"bottom__{asset}"
             else:
                 piece = name
@@ -466,6 +658,7 @@ def build(sex: str, soldier: Path, out: Path) -> dict:
         "parts": out_parts,
         "bits": len(bits),
         "body_triangles": sum(len(p.vertices) - 2 for p in body.data.polygons),
+        "jaw_pivot": jaw_pivot,
     }
 
 

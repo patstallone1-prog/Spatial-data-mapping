@@ -21,6 +21,7 @@ import {
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
+import { isRunner } from "./wardrobe.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
 import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
@@ -1934,7 +1935,9 @@ export class City {
     const r0 = this.roamOf(p, seg, place, t, leg);
     if (!r0) return null;
     const { drive } = r0, route = drive ? r0.route : r0.pave;
-    const speed = drive ? (seg.act.outdoor === "sweep" ? 2.2 : 8) : p.pace * (seg.act.kind === "stroll" ? 0.8 : 1);
+    // (A runner -- dressed for it, wardrobe.mjs -- goes for a run, not a walk: at a jog.)
+    const running = !drive && seg.act.kind === "stroll" && !p.visitor && isRunner(p);
+    const speed = drive ? (seg.act.outdoor === "sweep" ? 2.2 : 8) : running ? p.pace * 2.1 : p.pace * (seg.act.kind === "stroll" ? 0.8 : 1);
     // Whole out-and-backs in the twelve minutes (or what is left of the stay), so each way ends
     // where the next begins, at the place: a walker never jumps from one round to the next.
     const span = Math.max(0.05, Math.min(12, seg.t1 - seg.t0 - leg * 12)) * 60, L = route.length;
@@ -1951,7 +1954,7 @@ export class City {
     const home = drive ? null : this.anchor(seg.place, null, { door: false });
     const pos = drive ? alongRoute(route, along, (half, cls, park, i) => k * KERB(half, cls, park, i, k > 0 ? route : null)) : this.walkEnds(route, along, 0, home, null, 3);
     if (!forward) pos.yaw += Math.PI;
-    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
+    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : running ? "out for a run" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
   }
   //: Where a car is at ``t``: on its way (and how far along), or standing where its last trip
   //: ended -- on the street, in a garage, or away beyond the district's streets.
