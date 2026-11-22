@@ -2272,9 +2272,15 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // Going round (after the steering behaviours of Godot's and GDQuest's toolkits: arrive, avoid):
   // what stands in the lane -- someone, a crashed car, your car -- for ``dodge_after_s`` is gone
   // round at ``dodge_speed``, ``dodge_clear_m`` clear of it, a metre sideways for every
+  // ``1 / dodge_rate`` forward (its wheels turned to that a little at a time, ``steer_per_m`` a
+  // metre: no car goes sideways from straight ahead), backing up first -- braked to a stand, a
+  // moment in between for the gear (``gear_s``), gathering way backwards (``back_accel``) and the
+  // same moment again before it goes forward. In your sight a car is put on past a knot only
+  // after ``seen_jump_x`` times the wait.
+  // (It had been a metre sideways a metre forward, backwards at once from any speed: 2026-11-22.)
   // ``1 / dodge_rate`` forward, backing up first (``back_speed``, at most ``back_max_m``) where
   // there is no room to swing out; over the middle line only with nothing coming for ``oncoming_s``.
-  dodge_after_s: 2, dodge_speed: 3, dodge_clear_m: 0.6, dodge_rate: 1, swing_room_m: 3, oncoming_s: 4, back_speed: 1.2, back_max_m: 4, person_still_s: 1.5, waiting_s: 3,
+  dodge_after_s: 2, dodge_speed: 3, dodge_clear_m: 0.6, dodge_rate: 0.6, steer_per_m: 0.4, swing_room_m: 3, oncoming_s: 4, back_speed: 1.2, back_accel: 0.9, gear_s: 0.7, seen_jump_x: 3, back_max_m: 4, person_still_s: 1.5, waiting_s: 3,
   // Looking ahead (after A/B Street: never into a block that cannot be left; and round a jam):
   // the block after the next junction stood full back to its start (``jam_cars`` a lane stopped,
   // the last within ``jam_tail_m`` of the way in), or with that many stood ``jam_stood_s`` (longer
@@ -2692,7 +2698,7 @@ export class Drivers {
       const J = this.junctionAhead(c, st);
       const dodging = st.dodgeTo !== 0 || Math.abs(st.dodge) > 0.02;
       // (Over as it goes forward: stood still it does not slide sideways into the next lane.)
-      if (st.lt < 1) st.lt = Math.min(1, st.lt + (dt / T.lane_change_s) * Math.max(0.25, Math.min(1, st.v / 2)));
+      if (st.lt < 1) st.lt = Math.min(1, st.lt + (dt / T.lane_change_s) * (st.v < 0.3 ? 0 : Math.min(1, st.v / 2)));
       else if (tsec >= st.nextLook && !(J && st.d > J.s - J.box - c.length / 2 - 6)) {
         st.nextLook = tsec + 1;
         if (!dodging && !c.bike) this.pickLane(c, st, lanesOn, blockers, people);
@@ -3146,9 +3152,9 @@ export class Drivers {
           // sideways for every 1 / dodge_rate forward) -- else back up for the room.
           const side = Math.abs((at.x - here.x) * -fz + (at.z - here.z) * fx);
           if (side < c.width / 2 + h.hw + 0.25) {
-            const room = ahead - c.length / 2 - h.hl - 0.3, travel = Math.abs(st.dodgeTo - st.dodge) / T.dodge_rate;
+            const room = ahead - c.length / 2 - h.hl - 0.3, travel = Math.abs(st.dodgeTo - st.dodge) / T.dodge_rate + Math.max(0, T.dodge_rate - Math.abs(st.steer || 0)) / T.steer_per_m;
             if (travel > room && passing) target = Math.min(target, Math.max(0, h.slow - 0.5));   // behind it till the swing is made
-            else if (travel > room) {
+            else if (travel - 0.4 > room) {   // (short by a hand's width is steered, not backed for again)
               target = 0; decel = T.emergency;
               if (st.v < 0.15 && !(st.backUp > 0)) {
                 // (No room behind either: the way round is given up for now, and looked for again.)
@@ -3203,7 +3209,7 @@ export class Drivers {
         const held = st.v < 0.3 && !lawHeld && (/you|someone in the road|going round/.test(reason || "") || (reason === "the car ahead" && st.byBlocker));
         if (held) st.stuckT = (st.stuckT || 0) + dt; else if (st.v > 1) st.stuckT = 0;
         const inside = J && st.d > J.s - J.box - c.length / 2 && st.d < J.end + c.length / 2;
-        if (st.stuckT > (inside ? T.box_jump_s : T.teleport_s) + 2) {
+        if (st.stuckT > (inside ? T.box_jump_s : T.teleport_s) * (c.unseen === false ? T.seen_jump_x : 1) + 2) {
           const h = hold || st.hold || { gap: danger ? Math.max(0, danger.gap) : 0, hl: 0.5 };
           const to = h.slow >= 0 ? null : this.jumpAhead(c, st, { deepest, bodies, people }, { gap: Math.max(0, h.gap ?? 0), hl: h.hl ?? 0.5 });
           if (to !== null && landable(c, st, to)) {
@@ -3237,21 +3243,36 @@ export class Drivers {
         }
       }
       // The sideways move that goes with this frame's move along (a metre for every 1 / dodge_rate).
-      const swing = (moved) => { const gap = st.dodgeTo - st.dodge, step = Math.abs(moved) * T.dodge_rate; return st.dodge + Math.max(-step, Math.min(step, gap)); };
+      // Steered into, not slid: how far over a metre takes it (``st.steer``) changes a little a metre.
+      const swing = (moved) => {
+        const gap = st.dodgeTo - st.dodge, m = Math.abs(moved), aim = Math.max(-T.dodge_rate, Math.min(T.dodge_rate, gap * 1.3)), turn = m * T.steer_per_m;
+        st.steer = (st.steer || 0) + Math.max(-turn, Math.min(turn, aim - (st.steer || 0)));
+        const step = st.steer * m;
+        return st.dodge + (gap > 0 ? Math.max(0, Math.min(step, gap)) : Math.min(0, Math.max(step, gap)));
+      };
       // Backing up: to get room to swing out, or out of a knot. Slowly, never into what is behind.
-      if (st.backUp > 0 && !danger) {
-        const d1 = Math.max(0, st.d - T.back_speed * dt), was = st.dodge;
-        st.dodge = swing(st.d - d1);
+      // (Braked to a stand first, then a moment for the gear, then gathering way: never backwards
+      // out of going forwards.)
+      if (st.backUp > 0 && !danger && st.v > 0.15) { target = 0; decel = Math.max(decel, T.brake); st.gearT = 0; st.rv = 0; }
+      else if (st.backUp > 0 && !danger && (st.gearT = (st.gearT || 0) + dt) < T.gear_s) {
+        st.v = 0; st.rv = 0; st.reason = "backing up";
+        out.push({ id: c.id, d: st.d, v: 0, reason: "backing up", braking: true, reversing: true, route: st.route });
+        continue;
+      } else if (st.backUp > 0 && !danger) {
+        st.rv = Math.min(T.back_speed, (st.rv || 0) + T.back_accel * dt);
+        const d1 = Math.max(0, st.d - st.rv * dt), was = st.dodge;
         const next = alongRoute(c.route, d1, st.side);
         next.body = bodies(next, c.length, c.width || 1.9);
         if (d1 < st.d && !blocking(c.id, here, next, c.length + 6, -1) && !blocking(c.id, here, next, c.length + 6, 1)) {
           st.backUp -= st.d - d1; st.d = d1; st.v = 0; st.reason = "backing up";
+          if (!(st.backUp > 0)) { st.rv = 0; st.gearT = 0; st.forwardAt = tsec + T.gear_s; }
           const p = { ...next, c }; unplace(c.id, here); pos.set(c.id, p); place(c.id, p);
-          out.push({ id: c.id, d: st.d, v: -T.back_speed, reason: "backing up", reversing: true, route: st.route });
+          out.push({ id: c.id, d: st.d, v: -st.rv, reason: "backing up", reversing: true, route: st.route });
           continue;
         }
-        st.dodge = was; st.backUp = 0; st.noBack = tsec + 1;
+        st.dodge = was; st.backUp = 0; st.noBack = tsec + 1; st.rv = 0; st.gearT = 0; st.forwardAt = tsec + T.gear_s;
       }
+      if (st.forwardAt > tsec && st.v < 0.15) target = 0;   // (into forward gear)
       if (st.v > target) st.v = Math.max(target, st.v - decel * dt);
       else st.v = Math.min(target, st.v + T.accel * dt);
       // How long it has stood (a jam is cars stood longer than a light holds them), and how long
@@ -3308,7 +3329,7 @@ export class Drivers {
           // Stood blocked so long (a knot nothing unties): put on beyond what blocks it, where
           // the road is free -- a jump, never a drive through it.
           // (Out of your sight, after a moment: nobody watches a knot nobody sees.)
-          if (st.blocked > (c.unseen ? T.shut_jump_s : T.teleport_s)) {
+          if (st.blocked > (c.unseen ? T.shut_jump_s : T.teleport_s * (c.unseen === false ? T.seen_jump_x : 1))) {
             const to = this.jumpAhead(c, st, { deepest, bodies, people });
             if (to !== null && landable(c, st, to)) {
               { const o = this.cars.get(who), why = `jumps_knot_${c.bike ? "bike" : "car"}_by_${String(who).startsWith("blocker") ? "blocker" : o?.bike ? "bike" : "car"}`; this.tally[why] = (this.tally[why] || 0) + 1;
@@ -3463,7 +3484,7 @@ export class Drivers {
     const order = Math.abs(right) + 0.3 < Math.abs(left) ? [right, left] : [left, right];
     for (const shift of order) {
       if (!free(shift)) continue;
-      const room = fwd - c.length / 2 - hold.hl - 0.4, travel = Math.abs(shift) / T.dodge_rate;
+      const room = fwd - c.length / 2 - hold.hl - 0.4, travel = Math.abs(shift) / T.dodge_rate + T.dodge_rate / T.steer_per_m;
       return { to: st.dodge + shift, back: Math.max(0, Math.min(T.back_max_m, travel - room)) };
     }
     return null;

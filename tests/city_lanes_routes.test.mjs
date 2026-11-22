@@ -111,7 +111,8 @@ test("a car stuck in a junction is driven out; an unavoidable rear-end impact st
   let t = dt;
   for (; t < 2; t += dt) D.step(dt, t, [car], [], stand);
   assert.ok(D.stateOf("box").d < sNode + 1, "held at first");
-  for (; t < 2 + TRAFFIC.box_clear_s + 6; t += dt) D.step(dt, t, [car], [], stand);
+  // (Braked, backed for the room and steered round: a manoeuvre, not a slide -- some 14 s.)
+  for (; t < 2 + TRAFFIC.box_clear_s + 12; t += dt) D.step(dt, t, [car], [], stand);
   assert.ok(D.stateOf("box").d > sNode + 10, `out of the junction: ${D.stateOf("box").d.toFixed(1)} vs ${sNode}`);
   // A stalled car (nothing holds it, it just is not going) with another bearing down on it.
   const r2 = S.route(S.nearest(0, 120, "drive"), S.nearest(600, 120, "drive"), "drive");

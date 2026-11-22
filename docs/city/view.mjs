@@ -36,7 +36,7 @@ import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harm
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
-import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker } from "./detail.mjs";
+import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, withinView } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
@@ -1023,6 +1023,9 @@ diffuseColor.rgb *= kbCloth;`);
     const body = bodyFor(p.person, bodies), o = body.outfit;
     return { body, look: body.look ||= { top: o.topColour, bottom: o.bottoms, shoes: o.shoes, hair: body.hair, skin: body.skin, garment: o.top, legs: o.legs, cut: o.hair, bald: body.bald, heritage: body.heritage, age: p.person?.age ?? 35 } };
   };
+  //: The form each person was last drawn in (0 a character, 1 jointed, 2 simple, 3 basic), and when.
+  const formWas = new Map(), FORM_OF = new Map(), FORM_MEMORY_MS = 450, lockStats = { changes: 0, changesNear: 0, held: 0, near: 0, nearLow: 0, nearSum: 0, nearLowSum: 0, heldLowSum: 0, carChanges: 0, carChangesNear: 0, carHeld: 0 };
+  let figuresWere = false;
   function drawPeople(list, now, focus = null) {
     if (now - blendSweep > 2500) { blendSweep = now; for (const [id, st] of blends) if (now - st.lastNow > 3000) blends.delete(id); }
     const seen = peopleInView(list);
@@ -1069,6 +1072,29 @@ diffuseColor.rgb *= kbCloth;`);
       ready = figReady;
       want = plan.want;
     }
+    // The reality lock (detail.mjs lockedForm): whoever was drawn a moment ago in one form keeps
+    // it while they are in the picture, unless they are far enough off for the change not to show.
+    const figsOn = !figures.failed && (near.length > 0 || figuresWere);
+    const forms = FORM_OF; forms.clear();
+    for (const q of full) forms.set(q, 1);
+    for (const q of mid) forms.set(q, figsOn ? 1 : 2);
+    for (const q of low) forms.set(q, figsOn ? 2 : 3);
+    const planned = new Set();
+    for (const q of near) if (q) { forms.set(q, 0); planned.add(q); }
+    let heldNow = 0;
+    for (const q of seen) {
+      const want = forms.get(q);
+      if (want === undefined) continue;
+      const rec = formWas.get(q.p.id), was = rec && now - rec.t < FORM_MEMORY_MS ? rec.f : undefined;
+      let f = lockedForm("people", want, was, true, Math.sqrt(q.d));
+      if (f === 0 && want !== 0 && !figHas(q.p.id)) f = want;   // (no character of them is ready to keep)
+      if (f === 3 && figsOn) f = 2;
+      if (f !== want) { heldNow += 1; forms.set(q, f); if (f > want && q.d < 46 * 46) lockStats.heldLowSum += 1; }
+    }
+    const asked = [];
+    for (const q of near) if (q && forms.get(q) === 0) asked.push(q);
+    for (const q of seen) if (forms.get(q) === 0 && !planned.has(q)) asked.push(q);
+    near.length = 0; for (const q of asked) near.push(q);
     const dtFig = figuresLast ? Math.min(0.1, (now - figuresLast) / 1000) : 0; figuresLast = now;
     const asFigures = figures.draw(near.map(({ p, y }) => {
       const { body, look } = lookOf(p);
@@ -1083,11 +1109,27 @@ diffuseColor.rgb *= kbCloth;`);
         moving: Boolean(p.moving), speed: p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace), look,
         clip, talking, ride: Boolean(bike), crank: bike ? crankTurn(bike.odo || 0) : 0 };
     }), now, dtFig, ready, want);
-    if (asFigures) {
-      // The rest step down a ring: the jointed figures for those in the full ring not drawn as
-      // characters (further off than a character shows), and so on out.
-      const drawn = new Set(near.slice(0, asFigures));
-      full = full.filter((q) => !drawn.has(q)).concat(mid.filter((q) => !drawn.has(q))); mid = low.filter((q) => !drawn.has(q)); low = [];
+    {
+      // Each in the form the lock left them: the characters drawn above; then the jointed figures,
+      // the simple shapes and the basic ones. (A character there was no room to draw is jointed.)
+      const drawn = new Set(near.slice(0, asFigures || 0));
+      full = []; mid = []; low = [];
+      let nearNow = 0, nearLow = 0;
+      for (const q of seen) {
+        let f = forms.get(q);
+        if (f === undefined) continue;
+        if (f === 0 && !drawn.has(q)) f = 1;
+        if (f === 1) full.push(q); else if (f === 2) mid.push(q); else if (f === 3) low.push(q);
+        // (Within 25 m in the picture, and how many of those no character though one would fit.)
+        if (q.d < 625) { nearNow += 1; if (f !== 0 && figureFits(q.p)) nearLow += 1; }
+        // What was seen to change, for checking (kerbsideCity().detail().lock).
+        const rec = formWas.get(q.p.id);
+        if (rec && now - rec.t < FORM_MEMORY_MS && rec.f !== f) { lockStats.changes += 1; if (q.d < 46 * 46) lockStats.changesNear += 1; }
+        if (rec) { rec.f = f; rec.t = now; } else formWas.set(q.p.id, { f, t: now });
+      }
+      figuresWere = Boolean(asFigures);
+      lockStats.held = heldNow; lockStats.near = nearNow; lockStats.nearLow = nearLow; lockStats.nearSum += nearNow; lockStats.nearLowSum += nearLow;
+      if (formWas.size > 4000) for (const [id, r] of formWas) if (now - r.t > 3000) formWas.delete(id);
     }
     drawPeopleSimpler(mid, low, now);
     peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
@@ -1419,11 +1461,22 @@ diffuseColor.rgb *= kbCloth;`);
   //: pulled back). Your own car and your party's are drawn apart (makeCar), in full always.
   //: Whether a place is out of your sight: far off, or outside the frame (as last drawn). A car
   //: far behind its day is put back on it only there (fleet.mjs Drivers: hopeless_s).
+  //: Whether a car at (x, z) is out of your sight and not about to be in it: beyond 220 m, or
+  //: more than a quarter-turn outside the picture (a step turn is a quarter turn). Only such a car
+  //: is ever put somewhere it did not drive to.
+  const EYE = { x: 0, z: 0, fx: 0, fz: -1, half: 40, ok: false }, EYE_V = new THREE.Vector3();
+  function eyeNow() {
+    const cam = ctx.camera?.();
+    if (!cam) { EYE.ok = false; return EYE; }
+    cam.getWorldPosition(EYE_V); EYE.x = EYE_V.x; EYE.z = EYE_V.z;
+    cam.getWorldDirection(EYE_V); const m = Math.hypot(EYE_V.x, EYE_V.z) || 1; EYE.fx = EYE_V.x / m; EYE.fz = EYE_V.z / m;
+    EYE.half = (Math.atan(Math.tan(((cam.fov || 50) * Math.PI) / 360) * (cam.aspect || 1.6)) * 180) / Math.PI; EYE.ok = true;
+    return EYE;
+  }
   function unseenAt(x, z) {
-    if (!ctx.camera?.()) return false;
-    if ((x - VIEW_AT.x) ** 2 + (z - VIEW_AT.z) ** 2 > 150 * 150) return true;
-    CAR_SPHERE.center.set(x, groundAt(x, z) + 1, z); CAR_SPHERE.radius = 5;
-    return !CAR_FRUSTUM.intersectsSphere(CAR_SPHERE);
+    if (!EYE.ok) return false;
+    if ((x - EYE.x) ** 2 + (z - EYE.z) ** 2 > 220 * 220) return true;
+    return !withinView(EYE, EYE.fx, EYE.fz, x, z, EYE.half, LOCK.cars.margin_deg);
   }
   let standIn = false;
   function carsInView(list) {
@@ -5272,8 +5325,32 @@ diffuseColor.rgb *= kbCloth;`);
     }
     return false;
   }
+  //: How far a driven car's body is turned off its route's heading (radians), from the ground it
+  //: has really covered since it last stood ``BODY_TURN.span_m`` back: at most ``most`` either way,
+  //: eased at ``rate`` a second, kept while it stands (wheels do not straighten a parked car).
+  const BODY_TURN = { span_m: 0.5, most: 0.55, rate: 1.4 }, bodyTurns = new Map();
+  function bodyTurn(id, pos, reversing, jumped, dt, now) {
+    let b = bodyTurns.get(id);
+    if (!b || jumped || now - b.t > 1500) { b = { x: pos.x, z: pos.z, off: 0, aim: 0, t: now }; bodyTurns.set(id, b); return 0; }
+    b.t = now;
+    const dx = pos.x - b.x, dz = pos.z - b.z, m = Math.hypot(dx, dz);
+    if (m > 6) { b.x = pos.x; b.z = pos.z; b.aim = 0; }
+    else if (m >= BODY_TURN.span_m) {
+      const s = reversing ? -1 : 1;
+      let a = Math.atan2(-dx * s, -dz * s) - pos.yaw;
+      a = ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      // (Round a corner the route's own heading leads the chord by half the turn: no more is added.)
+      b.aim = Math.abs(a) > 1.2 ? 0 : Math.max(-BODY_TURN.most, Math.min(BODY_TURN.most, a));
+      b.x = pos.x; b.z = pos.z;
+    }
+    const step = BODY_TURN.rate * Math.min(0.1, dt || 0.016);
+    b.off += Math.max(-step, Math.min(step, b.aim - b.off));
+    if (bodyTurns.size > 3000) for (const [k, q] of bodyTurns) if (now - q.t > 3000) bodyTurns.delete(k);
+    return b.off;
+  }
   function frameCity(ms, dt, now, focus) {
     const c = district.city, D = district.drivers, tt = fleetAt(ms);
+    eyeNow();
     const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
     const people = [];
     const you = me();
@@ -5544,7 +5621,11 @@ diffuseColor.rgb *= kbCloth;`);
         if (r0.arrived) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // In its own lane (Drivers: the lane it chose, or on its way across to the next).
         const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
-        Object.assign(base, pos); base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
+        Object.assign(base, pos);
+        // Its body turned the way it is really going (a swing out, a lane change, backing): the
+        // route's heading alone had it slide sideways square to the street.
+        if (!base.vehicle?.bike) base.yaw = pos.yaw + bodyTurn(r0.id, pos, Boolean(r0.reversing), Boolean(r0.jump), dt, now);
+        base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
         vehicles.push(base);
       }
       for (const hit of step.hits) carHit(hit, people);
@@ -5577,13 +5658,22 @@ diffuseColor.rgb *= kbCloth;`);
     if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);
     for (const v of vehicles) { const j = jolts.get(v.id); if (j) { const age = (now - j.t0) / 1000; if (age > 1.2) jolts.delete(v.id); else v.jolt = Math.sin(age * 18) * Math.exp(-age * 3) * Math.min(0.12, j.speed * 0.01); } }
     // Each car's tier: the ones only tracked are kept track of, and not drawn (drawCars).
+    let carHeld = 0;
     for (const v of vehicles) {
-      const was = carTiers.get(v.id), tier = detailNow ? detailNow.tier("cars", v.x, v.z, was?.tier) : FULL;
+      const was = carTiers.get(v.id);
+      let want = detailNow ? detailNow.tier("cars", v.x, v.z, was?.tier) : FULL;
+      // The reality lock: in sight, or a quarter-turn from it, a car keeps the form it has unless
+      // it is too far off for the change to show; out of sight it is brought up early.
+      const dist = Math.hypot(v.x - EYE.x, v.z - EYE.z), inSight = EYE.ok && dist < 420 && withinView(EYE, EYE.fx, EYE.fz, v.x, v.z, EYE.half, LOCK.cars.margin_deg);
+      if (EYE.ok && !inSight && want > FULL) { const early = dist / LOCK.cars.ahead; for (let i = 0; i < want; i += 1) if (early < DETAIL_RINGS.cars[i]) { want = i; break; } }
+      const tier = was && now - was.seen < 600 ? lockedForm("cars", want, was.tier, inSight, dist) : want;
+      if (tier !== want) carHeld += 1;
+      if (was && inSight && was.tier !== tier && now - was.seen < 600) { lockStats.carChanges += 1; if (dist < LOCK.cars.swap_m[Math.min(tier, was.tier)]) lockStats.carChangesNear += 1; }
       v.detail = tier;
       carTiers.set(v.id, { tier, next: tier === TRACKED ? nextAt(v.id, now, TRACK_EVERY_MS) : 0, seen: now });
       if (tier === TRACKED) trackedCars += 1;
     }
-    drawnTiers.tracked.cars = trackedCars;
+    drawnTiers.tracked.cars = trackedCars; lockStats.carHeld = carHeld;
     if (carTiers.size > 20000) for (const [id, q] of carTiers) if (now - q.seen > 5000) carTiers.delete(id);
     drawnCars = vehicles;
     return { time: tt, people, vehicles };
@@ -6652,7 +6742,7 @@ diffuseColor.rgb *= kbCloth;`);
     //: low), so many only tracked, and the detail field's stretch ahead.
     //: The district's fleet (for the crowd checks from outside: the headless harness).
     fleetNow: () => district.city,
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast,
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast, lock: { ...lockStats },
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
