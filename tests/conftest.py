@@ -25,10 +25,19 @@ def _pages_current() -> bool:
     import hashlib
 
     try:
-        recorded = json.loads(release.read_text(encoding="utf-8")).get("renderer_sha256")
+        manifest = json.loads(release.read_text(encoding="utf-8"))
     except ValueError:
         return False
-    return recorded == hashlib.sha256(app_template().encode()).hexdigest()
+    if manifest.get("renderer_sha256") != hashlib.sha256(app_template().encode()).hexdigest():
+        return False
+    # The release also records the runtime assets the pages load (docs/city/*, the vendored
+    # codec, ...): one edited since the pages were written makes the release stale, and every
+    # checksum test against it fails, though the renderer itself has not changed.
+    for name, digest in manifest.get("runtime_assets_sha256", {}).items():
+        path = DOCS / name
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            return False
+    return True
 
 
 def pytest_configure(config) -> None:
