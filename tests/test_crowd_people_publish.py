@@ -13,11 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 #: The scripts under test, by path (so the CI's test selection sees them).
-SCRIPTS = {"publish_crowd_people": "tools/avatars/publish_crowd_people.py", "build_crowd_people": "tools/avatars/build_crowd_people.py"}
+SCRIPTS = {"publish_crowd_people": ROOT / "tools/avatars/publish_crowd_people.py", "build_crowd_people": ROOT / "tools/avatars/build_crowd_people.py"}
 
 
 def load(name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / SCRIPTS[name])
+    spec = importlib.util.spec_from_file_location(name, SCRIPTS[name])
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
