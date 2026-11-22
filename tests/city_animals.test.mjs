@@ -183,3 +183,30 @@ test("the neighbourhood's dogs and cats are the same every day; the birds' field
   assert.ok(far < 10);
   assert.ok(AMBIENT.birds_most <= 400 && AMBIENT.rats_most <= 40);
 });
+
+test("the figures: three tiers, a pet's the finest; nothing drawn that is not finite; the page wires them in", async () => {
+  const THREE = await import("../docs/vendor/three-0.160.0/three.module.min.js");
+  const { animalFigures, ANIMAL_CAPS } = await import("../docs/city/animal-figures.mjs");
+  const added = [], F = animalFigures({ THREE, add: (m) => added.push(m) });
+  assert.ok(F.triangles.full > 5000, `a pet near you is ${F.triangles.full} triangles`);
+  assert.ok(F.triangles.mid < F.triangles.full / 4 && F.triangles.low < F.triangles.mid / 2);
+  F.begin(1);
+  let k = 0;
+  for (const species of ["dog", "cat", "rabbit"]) for (const breed of Object.keys(SPECIES[species].breeds)) for (const state of ["idle", "walk", "run", "sit", "limp", "dead", "alert", "flee"]) for (const tier of [0, 1, 2]) { F.quadruped({ x: k, y: 0, z: 0, yaw: k * 0.3, species, breed, tier, state, gait: k, v: /walk|run|limp|flee/.test(state) ? 2 : 0, seed: k }); k += 1; }
+  for (const species of ["pigeon", "gull", "sparrow", "crow"]) for (const air of [true, false]) F.bird({ x: 1, y: 2, z: 3, yaw: 1, species, air, flap: 0.7, tier: SPECIES[species].top, k: 3 });
+  F.rat({ x: 0, y: 0, z: 0, yaw: 2 }); F.lead(0, 1, 0, 1, 0.3, 0.4);
+  F.end();
+  const st = F.stats();
+  assert.equal(st.full, ANIMAL_CAPS.full, "no more in full than there is room for");
+  for (const m of added) { assert.ok(m.count <= m.instanceMatrix.count); for (let i = 0; i < m.count * 16; i += 1) assert.ok(Number.isFinite(m.instanceMatrix.array[i]), m.name); }
+  // A dog stood: its feet at the ground, its head above its back.
+  const box = new THREE.Box3(), v = new THREE.Vector3(), mm = new THREE.Matrix4();
+  F.begin(0); F.quadruped({ x: 0, y: 0, z: 0, yaw: 0, species: "dog", breed: "retriever", tier: 0, state: "alert", gait: 0, v: 0 }); F.end();
+  for (const m of added) for (let i = 0; i < m.count; i += 1) { m.getMatrixAt(i, mm); const p = m.geometry.attributes.position; for (let q = 0; q < p.count; q += 1) { v.fromBufferAttribute(p, q).applyMatrix4(mm); box.expandByPoint(v); } }
+  assert.ok(Math.abs(box.min.y) < 0.06, `feet at ${box.min.y.toFixed(2)}`);
+  assert.ok(box.max.y > SPECIES.dog.breeds.retriever.shoulder + 0.1 && box.max.y < 1.0);
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.ok(view.includes('k: () => openSide("pets"), l: () => animals().leashKey(),'));
+  assert.ok(view.includes("animals().frame(dt, now)") && view.includes("for (const o of animalsUI?.obstacles() || []) obstacles.push(o);"));
+  assert.ok(view.includes("if (animals().draw(side, { close, status, w, p })) return;"));
+});

@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Animals sheet</title>
+<!-- Every animal as animal-figures.mjs draws it, for checking by eye: each breed at the full tier
+     standing, then the states (walk, run, sit, limp, lying dead, alert), the three tiers side by
+     side, and the birds and the rat. ?turn=0 stops the turntable. -->
+<style>body{margin:0;background:#dfe5ea;overflow:hidden}#n{position:fixed;left:8px;top:6px;font:12px system-ui;color:#223}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js"}}</script>
+</head><body><div id="n"></div>
+<script type="module">
+import * as THREE from "three";
+import { SPECIES } from "./animals.mjs";
+import { animalFigures } from "./animal-figures.mjs";
+const q = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdfe5ea);
+scene.add(new THREE.HemisphereLight(0xeaf2fb, 0x74695c, 1.5));
+const sun = new THREE.DirectionalLight(0xfff3e0, 2.0); sun.position.set(3, 6, 4); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xb9b4a8, roughness: 1 })); scene.add(ground);
+const F = animalFigures({ THREE, add: (m) => scene.add(m) });
+const cam = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.05, 100);
+const view = q.get("view") || "all";
+const sets = { all: [4.2, 3.4, 7.6, 4.2, 0.2, 0.2], near: [1.2, 0.9, 2.4, 1.2, 0.35, -2.2], states: [3.2, 1.4, 4.2, 3.2, 0.3, -0.2], birds: [2.2, 1.4, 5.2, 2.2, 0.4, 3.2] };
+const [cx, cy, cz, tx, ty, tz] = sets[view] || sets.all;
+cam.position.set(cx, cy, cz); cam.lookAt(tx, ty, tz);
+const rows = [];
+let x = 0;
+for (const sp of ["dog", "cat", "rabbit"]) for (const breed of Object.keys(SPECIES[sp].breeds)) { rows.push({ x, z: -2.2, species: sp, breed, tier: 0, state: "idle" }); x += 0.9; }
+["walk", "run", "sit", "limp", "dead", "alert", "idle"].forEach((state, i) => rows.push({ x: i * 1.05, z: -0.2, species: "dog", breed: i % 2 ? "shepherd" : "retriever", tier: 0, state }));
+["walk", "sit", "dead", "idle"].forEach((state, i) => rows.push({ x: i * 0.8, z: 1.0, species: "cat", breed: ["tabby", "ginger", "tuxedo", "siamese"][i], tier: 0, state }));
+[0, 1, 2].forEach((tier, i) => { rows.push({ x: 4.2 + i * 0.9, z: 1.0, species: "dog", breed: "husky", tier, state: "walk" }); rows.push({ x: 4.2 + i * 0.9, z: 1.9, species: "cat", breed: "black", tier, state: "sit" }); });
+if (view === "one") { rows.length = 0; const sp = q.get("species") || "dog", st = (q.get("state") || "idle").split(","); st.forEach((state, i) => rows.push({ x: 0, z: i * 1.1, species: sp, breed: q.get("breed") || Object.keys(SPECIES[sp].breeds)[0], tier: +(q.get("tier") || 0), state })); const d = +(q.get("d") || 1.7), ang = +(q.get("ang") || 1.2); cam.position.set(Math.sin(ang) * d, 0.55, (st.length - 1) * 0.55 + Math.cos(ang) * d); cam.lookAt(0, 0.3, (st.length - 1) * 0.55); }
+const fixedYaw = q.get("yaw");
+const t0 = performance.now();
+function draw() {
+  const t = q.get("t") ? +q.get("t") : (performance.now() - t0) / 1000, turn = fixedYaw !== null ? +fixedYaw : q.get("turn") === "0" ? 0.6 : t * 0.5;
+  F.begin(t);
+  for (const r of rows) F.quadruped({ x: r.x, y: 0, z: r.z, yaw: turn + (r.state === "dead" ? 1 : 0), species: r.species, breed: r.breed, tier: r.tier, state: r.state, gait: q.get("gait") ? +q.get("gait") : t * 5, v: /walk|run|limp/.test(r.state) ? 2 : 0, seed: (r.x * 10) | 0 });
+  if (view !== "one") ["pigeon", "gull", "sparrow", "crow"].forEach((sp, i) => { F.bird({ x: i * 0.8, y: 0, z: 3.2, yaw: turn, species: sp, air: false, tier: SPECIES[sp].top, k: i }); F.bird({ x: i * 1.3, y: 1.0, z: 4.2, yaw: turn, species: sp, air: true, flap: 1, tier: SPECIES[sp].top, k: i }); F.bird({ x: 5 + i * 0.8, y: 0.8, z: 3.6, yaw: turn, species: sp, air: true, flap: 1, tier: 2, k: i }); });
+  if (view !== "one") { F.rat({ x: 3.6, y: 0, z: 3.2, yaw: turn }); F.lead(0, 0.9, -0.9, 0.6, 0.5, -0.5); }
+  F.end();
+  renderer.render(scene, cam);
+  document.getElementById("n").textContent = JSON.stringify(F.stats()) + " per animal: " + JSON.stringify(F.triangles);
+  requestAnimationFrame(draw);
+}
+draw();
+window.__animals = { F, rows };
+</script></body></html>
