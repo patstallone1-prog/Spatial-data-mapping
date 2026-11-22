@@ -23,12 +23,13 @@ import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
-import { ENTERPRISE_COMMANDS, installEnterprise } from "./enterprise.mjs";
+import { ENTERPRISE_COMMANDS, chargeClass, installEnterprise } from "./enterprise.mjs";
 import { MESSAGE_COMMANDS, installMessages } from "./messages.mjs";
 import { COMMERCE_COMMANDS, installCommerce } from "./commerce.mjs";
 import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
 import { ANIMAL_COMMANDS, installAnimals } from "./animals.mjs";
+import { installTrials } from "./trial.mjs";
 import { WORKSHOP_COMMANDS, installWorkshop } from "./workshop.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
 import { SHOPPING_COMMANDS, installShopping } from "./shopping.mjs";
@@ -1745,6 +1746,8 @@ function handsCheck(p) { if (p.hands && !(p.inventory[p.hands] > 0)) p.hands = n
 export const CITATIONS = ["speed_camera", "speeding", "hov_violation", "theft", "parking", "toll_evasion"];
 //: Messages last: they wrap the world's and the enterprise's methods that speak (messages.mjs).
 installMessages(CityWorld, CityError, { citations: CITATIONS });
+//: Trials by jury, held in the messages (trial.mjs): the verdict is the jurors', the sentence the judge's.
+installTrials(CityWorld, CityError, { chargeClass, applyOutcome: (w, p, c, outcome, absent) => w.decide(p, c, absent, outcome) });
 //: A moving violation's witness: a camera that had the car in view, or a patrol car near.
 function seenBy(w) { return Boolean(w && (w.kind === "camera" || w.kind === "police") && w.id); }
 function evidenceOf(w) { return w.kind === "police" ? "patrol officer" : "camera"; }

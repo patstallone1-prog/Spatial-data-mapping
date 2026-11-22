@@ -19,6 +19,7 @@ import { FIRST, LAST, rng } from "./people.mjs";
 import { cityTime } from "./core.mjs";
 import { neighbourhoodAt } from "./market.mjs";
 import { oddsLabel, verdictWeights } from "./enterprise.mjs";
+import { TRIAL_ACTS } from "./trial.mjs";
 import { sortMessage } from "./npc-talk.mjs";
 
 const DAY = 86_400_000, HOUR = 3_600_000, MIN = 60_000;
@@ -28,7 +29,7 @@ export const TABS = ["players", "npc", "system"];
 export const MESSAGE_COMMANDS = ["send_message", "read_thread", "create_group", "add_to_group", "leave_group", "rename_group",
   "add_friend", "unfriend", "answer", "apply_job", "ride_note", "serve_jury"];
 //: The world actions a message's choice may run, and nothing else.
-const CHOICE_ACTS = new Set(["vote", "pay_bill", "contest", "add_friend", "decline_friend", "interview", "lawyer_ask", "jury_confirm", "jury_defer", "ride_wait", "ack", "accept_buyer", "decline_buyer"]);
+const CHOICE_ACTS = new Set(["vote", "pay_bill", "contest", "add_friend", "decline_friend", "interview", "lawyer_ask", "jury_confirm", "jury_defer", "ride_wait", "ack", "accept_buyer", "decline_buyer", ...TRIAL_ACTS]);
 
 const fresh = () => ({ seq: 0, threads: new Map(), friends: {}, asked: {}, seen: {}, day: null, digestFrom: null, ride: {}, jurySince: {}, hood: {} });
 const pair = (a, b) => [a, b].sort().join("|");
@@ -459,22 +460,8 @@ export function installMessages(CityWorld, CityError, { citations = [] } = {}) {
   //: Jury duty: a summons for a hearing a few days on, now and then (a party member's hearing
   //: when there is one, a resident's otherwise), at most one a month; serve it at the court.
   W.juryStep = function (newDay) {
-    if (!newDay) return;
-    const J = this.R.business.law.jury, m = M(this);
-    for (const p of this.players.values()) {
-      if (this.now - (m.jurySince[p.id] || 0) < J.every_days * DAY || this.now - p.joined < J.after_days * DAY) continue;
-      const theirs = [...this.cases.values()].find((c) => c.pid !== p.id && c.court && !c.closed && c.court - this.now > DAY && !c.jurors?.length);
-      if (!theirs && rng("jury", p.id, this.time.day)() > J.daily_chance) continue;
-      const court = theirs ? theirs.court : this.courtTime(J.notice_days, `jury:${p.id}:${this.time.day}`);
-      const accused = theirs ? nameOf(this, theirs.pid) : nameFor(`jury:${p.id}:${this.time.day}`);
-      if (theirs) (theirs.jurors ||= []).push(p.id);
-      m.jurySince[p.id] = this.now;
-      const s = { id: this.id("jury"), at: court, accused, status: "summoned", deferred: false };
-      (p.jury ||= []).push(s);
-      this.post(notices(this, p.id), { from: "system", name: this.R.messages.notices.from.court, ui: { jury: s.id },
-        text: fill(this.R.messages.notices.jury, { accused, when: when(this, court), court: this.mailCourtName(), fee: this.R.fmt(J.fee_base) }),
-        choices: [{ id: "yes", label: "I will be there", act: { cmd: "jury_confirm", args: { summons: s.id } } }, { id: "defer", label: "Ask to defer a week", act: { cmd: "jury_defer", args: { summons: s.id } } }] });
-    }
+    // (Summonses are the court's now: to those in the city, open at once -- trial.mjs trialStep.)
+    this.trialStep(newDay);
     // Service missed: noted, once.
     for (const p of this.players.values()) for (const s of p.jury || []) {
       if (s.status === "served" || s.status === "missed" || this.now < s.at + this.R.business.law.attend_hours[1] * HOUR) continue;

@@ -311,12 +311,13 @@ export function installEnterprise(CityWorld, CityError) {
   W.knowTenants = function (names) { for (const n of names || []) { const k = nameKey(n); if (k.length > 2) this.tenantNames.add(k); } };
   W.enterpriseJSON = function () {
     return { biz: [...this.biz.values()], cases: [...this.cases.values()], openings: [...this.openings.values()], storefronts: [...this.storefronts.values()],
-      shops: [...this.shops.values()], booksSeq: this.booksSeq || 0 };
+      shops: [...this.shops.values()], booksSeq: this.booksSeq || 0, trials: [...(this.trials?.values() || [])], docket: this.docket || [] };
   };
   W.enterpriseLoad = function (o = {}) {
     this.enterpriseInit();
     for (const b of o.biz || []) this.biz.set(b.id, b);
     for (const c of o.cases || []) this.cases.set(c.id, c);
+    this.trials = new Map((o.trials || []).map((t) => [t.id, t])); this.docket = o.docket || [];
     for (const x of o.openings || []) this.openings.set(x.id, x);
     for (const s of o.storefronts || []) this.storefronts.set(s.place.id, s);
     for (const s of o.shops || []) this.shops.set(s.id, s);
@@ -1007,7 +1008,7 @@ export function installEnterprise(CityWorld, CityError) {
     if (!bill || bill.case || !p) return null;
     if (p.probation && this.now < p.probation.until && bill.issued === this.now) { bill.owed += bill.amount; bill.amount *= 2; bill.penalties = bill.penalties.map((x) => x * 2); bill.memo = `${bill.memo} (doubled: on probation)`; }
     const c = { id: this.id("case"), pid: p.id, bill: bill.id, charge: bill.kind, class: chargeClass(this.R, bill.kind), memo: bill.memo,
-      evidence: evidenceScore(this.R, bill.evidence), priors: this.priorsOf(p), opened: this.now, court: null, lawyer: null, verdict: null, closed: null };
+      evidence: evidenceScore(this.R, bill.evidence), sources: [...(bill.evidence || [])].map(String).slice(0, 6), priors: this.priorsOf(p), opened: this.now, court: null, lawyer: null, verdict: null, closed: null };
     bill.case = c.id;
     this.cases.set(c.id, c);
     return c;
@@ -1076,18 +1077,25 @@ export function installEnterprise(CityWorld, CityError) {
     if (this.now > c.court + to * HOUR) fail("the hearing has been held");
     if (court && (court.keys || []).includes("use:civic")) { if (!this.near(p, court, L.courthouse.reach_m)) fail(`go to the court first: ${court.name || "the civic building"}`); }
     else if (p.lon !== undefined && p.lat !== undefined && metres({ lon: p.lon, lat: p.lat }, L.courthouse) > L.courthouse.reach_m) fail(`go to the courthouse first: ${L.courthouse.address}`);
-    return this.decide(p, c, false);
+    // Tried by a jury of those in the city (trial.mjs): you are present; the verdict comes when
+    // they have given it, or when the case closes.
+    c.present = true;
+    if (!c.trial) { c.court = Math.min(c.court, this.now); this.trialStep(false); }
+    return { pending: true, trial: c.trial || null, case: c, closes: this.trials?.get(c.trial)?.closes ?? null };
   };
-  //: The verdict: a weighted chance (plan 3.4), and what it means for the fine, the record and you.
-  W.decide = function (p, c, absent) {
+  //: The verdict and what it means for the fine, the record and you. ``outcome``: the sentence a
+  //: trial passed (trial.mjs: the jury's vote, or the judge on the evidence). Without one -- the
+  //: old way, kept for a world with no trials -- a weighted chance (plan 3.4).
+  W.decide = function (p, c, absent, outcome = null) {
     const R = this.R, L = R.business.law;
     let skill = c.lawyer ? c.lawyer.skill : L.self_skill;
     if (absent) skill *= L.absent_share;
     const ws = verdictWeights(R, { skill, evidence: c.evidence, priors: this.priorsOf(p), criminal: c.class === "criminal" });
-    const id = pickW(rng("verdict", this.seed, c.id), Object.entries(ws));
+    let id = outcome || pickW(rng("verdict", this.seed, c.id), Object.entries(ws));
+    if (id === "jail" && c.class !== "criminal") id = "record";
     const o = L.outcomes.find((x) => x.id === id);
     const bill = this.billing.bills.get(c.bill);
-    c.verdict = { outcome: id, name: o.name, absent, at: this.now };
+    c.verdict = { outcome: id, name: o.name, absent, at: this.now, by: outcome ? "trial" : "chance" };
     const line = (outcome, extra = {}) => { (p.record ||= []).push({ charge: c.charge, class: c.class, outcome, at: this.now, case: c.id, ...extra }); };
     if (id === "dismissed" || id === "acquitted") { if (bill) this.billing.dismiss(bill.id, this.now, o.name.toLowerCase()); }
     else if (id === "reduced") {
@@ -1159,7 +1167,7 @@ export function installEnterprise(CityWorld, CityError) {
         if (p && bill.status === "paid" && c.class === "criminal") (p.record ||= []).push({ charge: c.charge, class: c.class, outcome: "paid", at: this.now, case: c.id });
         continue;
       }
-      if (c.court && this.now > c.court + L.attend_hours[1] * HOUR) { const p = this.players.get(c.pid); if (p) this.decide(p, c, true); }
+      // (Its hearing come, it is tried: trial.mjs trialStep opens the trial and the judge rules.)
     }
   };
   //: Some roles check the record (a theft or battery within two years).
