@@ -14,7 +14,15 @@ export function emptyMarinaHouse(snapshot){
  let fit=null;
  // Search close to the boundary first, preserving the middle for the user's future rooms.
  const candidates=[];for(let x=Math.min(...xs)+.25;x<Math.max(...xs);x+=.5)for(let z=Math.min(...zs)+.25;z<Math.max(...zs);z+=.5)candidates.push([x,z]);candidates.sort((a,b)=>Math.min(a[0]-Math.min(...xs),Math.max(...xs)-a[0],a[1]-Math.min(...zs),Math.max(...zs)-a[1])-Math.min(b[0]-Math.min(...xs),Math.max(...xs)-b[0],b[1]-Math.min(...zs),Math.max(...zs)-b[1]));
- for(const [x,z]of candidates){for(const a of angles){const reserved=box(x,z,a,L,W);let outside;try{outside=clipping.difference(box(x,z,a,L+.2,W+.2).coordinates,shape.coordinates).reduce((n,p)=>n+area({type:'Polygon',coordinates:p}),0);}catch{continue;}if(outside>1e-6)continue;if(entrances.some(o=>{const p=o.segment.coordinates[0],q=o.segment.coordinates[1],mx=(p[0]+q[0])/2,mz=(p[1]+q[1])/2;return clipping.intersection(reserved.coordinates,box(mx,mz,Math.atan2(q[1]-p[1],q[0]-p[0]),o.width_m+1,2).coordinates).length;}))continue;fit={x,z,a};break;}if(fit)break;}
+ // A place whose corner is plainly outside the walls is not tried with the polygon library: that
+ // was nearly every place, 0.16-0.26 s a house inside one frame as you walked up to it
+ // (measured in Kerbside.app, 2026-11-22). Only a place with all four corners inside is
+ // measured exactly, as before, so the answer is the same.
+ const inRing=(px,pz)=>{let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a[1]>pz)!==(b[1]>pz)&&px<(b[0]-a[0])*(pz-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;};
+ const offRing=(px,pz)=>{let best=Infinity;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[j],b=ring[i],dx=b[0]-a[0],dz=b[1]-a[1],L2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((px-a[0])*dx+(pz-a[1])*dz)/L2));best=Math.min(best,Math.hypot(px-a[0]-dx*t,pz-a[1]-dz*t));}return best;};
+ // (Its corners, and points along each side: a side can cross a notch in the wall with both its ends inside.)
+ const plainlyOut=shapeBox=>{const c=shapeBox.coordinates[0];for(let i=0;i<4;i++){const p=c[i],q=c[i+1];for(let k=0;k<8;k++){const px=p[0]+(q[0]-p[0])*k/8,pz=p[1]+(q[1]-p[1])*k/8;if(!inRing(px,pz)&&offRing(px,pz)>.005)return true;}}return false;};
+ for(const [x,z]of candidates){for(const a of angles){const reserved=box(x,z,a,L,W);if(plainlyOut(box(x,z,a,L+.2,W+.2)))continue;let outside;try{outside=clipping.difference(box(x,z,a,L+.2,W+.2).coordinates,shape.coordinates).reduce((n,p)=>n+area({type:'Polygon',coordinates:p}),0);}catch{continue;}if(outside>1e-6)continue;if(entrances.some(o=>{const p=o.segment.coordinates[0],q=o.segment.coordinates[1],mx=(p[0]+q[0])/2,mz=(p[1]+q[1])/2;return clipping.intersection(reserved.coordinates,box(mx,mz,Math.atan2(q[1]-p[1],q[0]-p[0]),o.width_m+1,2).coordinates).length;}))continue;fit={x,z,a};break;}if(fit)break;}
  if(!fit)throw Error('This footprint needs a verified stair position before its upper floors can be edited.');
  const {x,z,a}=fit,u=[Math.cos(a),Math.sin(a)],v=[-u[1],u[0]],at=(s,t)=>[x+s*u[0]+t*v[0],z+s*u[1]+t*v[1]].map(n=>Math.round(n*1e6)/1e6),part=(s0,s1,t0,t1)=>polygon([[s0,t0],[s1,t0],[s1,t1],[s0,t1]].map(([s,t])=>at(s,t))),start=-L/2+landing,far=start+half*tread;
  for(let i=0;i<h.storeys.length-1;i++){

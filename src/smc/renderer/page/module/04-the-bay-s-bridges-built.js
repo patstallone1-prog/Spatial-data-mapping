@@ -1043,7 +1043,12 @@ function pumpNatureTileHeights() {
     if (!natureHeightSteps) { const o = natureHeightQueue.shift(); natureHeightQueued.delete(o); natureHeightSteps = restandNatureMeshSteps(o); }
     if (natureHeightSteps.next().done) natureHeightSteps = null;
   }
-  if (natureHeightSteps || natureHeightQueue.length) nextTask().then(pumpNatureTileHeights); else natureHeightPumping = false;
+  // (One slice a frame: slices run back to back, each short, still kept a frame from being drawn
+  // for 0.7 s as you went in -- measured in Kerbside.app, 2026-11-22.)
+  if (natureHeightSteps || natureHeightQueue.length) {
+    if (typeof document !== "undefined" && !document.hidden && typeof requestAnimationFrame === "function") requestAnimationFrame(() => nextTask().then(pumpNatureTileHeights));
+    else nextTask().then(pumpNatureTileHeights);
+  } else natureHeightPumping = false;
 }
 function restandNatureMesh(o) { for (const _ of restandNatureMeshSteps(o)); }
 function* restandNatureMeshSteps(o) {
@@ -1058,7 +1063,10 @@ function* restandNatureMeshSteps(o) {
       }
       const p=o.geometry?.getAttribute("position");if(!p)return;
       if(o.userData.natureBuildings) {
+        let done=0;
         for(const b of o.userData.natureBuildings) {
+          // (A town's houses in one mesh: stood a few dozen at a time, like the ground under them.)
+          if(((done+=1)&31)===31)yield;
           const next=Math.min(...b.ring.map(q=>tileGroundAt(q[0],q[1]))),delta=next-b.base;
           if(Math.abs(delta)<.0001)continue;
           for(let i=b.first;i<b.end;i++)p.setY(i,p.getY(i)+delta);b.base=next;
@@ -1069,8 +1077,32 @@ function* restandNatureMeshSteps(o) {
           if((i&2047)===2047)yield;
           next[i]=tileGroundAt(p.getX(i),p.getZ(i));
         }
-        for(let i=0;i<p.count;i++){p.setY(i,p.getY(i)+next[i]-base[i]);base[i]=next[i];}
-        o.geometry.computeVertexNormals();
+        yield;
+        let moved=0;
+        for(let i=0;i<p.count;i++){const d=next[i]-base[i];if(Math.abs(d)>moved)moved=Math.abs(d);p.setY(i,p.getY(i)+d);base[i]=next[i];}
+        p.needsUpdate=true;
+        // Its bounds grown by how far it moved, not measured again; its normals worked out a few
+        // thousand triangles at a time and set together. Both done whole -- three.js's own
+        // computeVertexNormals and computeBoundingSphere on a mesh of a couple of hundred
+        // thousand points -- were 0.2-0.4 s in one go in the first second after going in
+        // (measured in Kerbside.app, 2026-11-22).
+        const sphere=o.geometry.boundingSphere,index=o.geometry.index,normal=o.geometry.getAttribute("normal");
+        if(sphere)sphere.radius+=moved;else o.geometry.computeBoundingSphere();
+        if(index?.array&&p.array&&normal&&normal!==p&&typeof normal.setXYZ==="function"&&normal.count===p.count){
+          const I=index.array,P=p.array,st=p.itemSize,acc=new Float32Array(p.count*3);
+          for(let t=0;t+2<I.length;t+=3){
+            if(((t/3)&8191)===8191)yield;
+            const a=I[t]*st,b=I[t+1]*st,c=I[t+2]*st;
+            const ux=P[b]-P[a],uy=P[b+1]-P[a+1],uz=P[b+2]-P[a+2],vx=P[c]-P[a],vy=P[c+1]-P[a+1],vz=P[c+2]-P[a+2];
+            const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+            for(const k of [I[t]*3,I[t+1]*3,I[t+2]*3]){acc[k]+=nx;acc[k+1]+=ny;acc[k+2]+=nz;}
+          }
+          yield;
+          for(let i=0;i<p.count;i++){const k=i*3,l=Math.hypot(acc[k],acc[k+1],acc[k+2])||1;normal.setXYZ(i,acc[k]/l,acc[k+1]/l,acc[k+2]/l);}
+          normal.needsUpdate=true;
+        }else o.geometry.computeVertexNormals();
+        yield;
+        return;
       }else return;
       p.needsUpdate=true;o.geometry.computeBoundingSphere();
     }

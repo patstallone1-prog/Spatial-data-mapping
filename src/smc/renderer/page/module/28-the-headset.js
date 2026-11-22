@@ -1138,7 +1138,29 @@ function worldLoadWaiting() {
     if (!life) waiting.push("the city's people and traffic");
     else if (!life.ready) waiting.push(life.waiting);
   }
+  // Last, behind the screen still: everything drawn once (warmDraw), so the first steps and the
+  // first turn of the head are not where each shader is first used.
+  if (!waiting.length && !META && warmDrawn < 2) {
+    if (!warmDrawn) { warmDrawn = 1; requestAnimationFrame(() => { try { warmDraw(); } catch (error) { console.warn("kerbside: the warm-up draw failed", error); } warmDrawn = 2; }); }
+    waiting.push("the first view");
+  }
   return waiting;
+}
+//: The whole scene drawn once, nothing left out for being behind you or far off. A shader
+//: compiled ahead of time (compileAsync) is still made ready for the graphics card the first
+//: time something is drawn with it, and that waited for the first frame it came into view:
+//: stalls of 0.4-0.8 s in the first seconds after going in (measured in Kerbside.app,
+//: 2026-11-22). Drawn to the page's own picture -- the card readies a shader for the kind of
+//: picture it is drawn to, so a small off-screen one did not count -- through a window of a few
+//: pixels, behind the loading screen: nobody sees it.
+var warmDrawn = 0;
+function warmDraw() {
+  const culled = [], t0 = performance.now(), before = renderer.info.programs?.length || 0;
+  scene.traverse((o) => { if ((o.isMesh || o.isLine || o.isPoints) && o.frustumCulled) { culled.push(o); o.frustumCulled = false; } });
+  const target = renderer.getRenderTarget(), scissorTest = renderer.getScissorTest(), scissor = renderer.getScissor(new THREE.Vector4());
+  try { renderer.setRenderTarget(null); renderer.setScissorTest(true); renderer.setScissor(0, 0, 4, 4); renderer.render(scene, camera); }
+  finally { renderer.setScissor(scissor); renderer.setScissorTest(scissorTest); renderer.setRenderTarget(target); for (const o of culled) o.frustumCulled = true; }
+  window.kerbsideWarmDraw = { ms: Math.round(performance.now() - t0), objects: culled.length, programs: [before, renderer.info.programs?.length || 0] };
 }
 //: A load that has stopped moving is let through: the same things waited for, none of them any
 //: further on, for this long (a build that failed and is not coming). Never a screen that loads
