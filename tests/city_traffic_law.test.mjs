@@ -97,3 +97,17 @@ test("a short one-way piece of a two-way street keeps that street's lanes; a one
   assert.deepEqual(lanePlan(street).n, [2, 2, 2]);
   assert.ok(leftOf(8, "arterial", false, 1, street) < 0, "its left lane is by the left kerb");
 });
+
+test("a large place's people do not all take their break at its door, and a round on foot has a patch of its own", async () => {
+  const { City, BREAK_OUTSIDE_OF, BREAK_OUTSIDE_MOST, BEAT_M } = await import("../docs/city/fleet.mjs");
+  const people = new Map();
+  for (let i = 0; i < 400; i += 1) people.set(`d${i}`, { id: `d${i}`, work: "depot" });
+  for (let i = 0; i < 10; i += 1) people.set(`s${i}`, { id: `s${i}`, work: "shop" });
+  const city = { roster: { people } }, out = (work) => [...people.values()].filter((p) => p.work === work && City.prototype.breakOutside.call(city, p, { day: 3 })).length;
+  assert.ok(out("depot") <= BREAK_OUTSIDE_MOST * 2, `${out("depot")} of the depot's 400 outside`);
+  assert.ok(out("depot") >= 1);
+  assert.ok(out("shop") <= Math.ceil(10 / BREAK_OUTSIDE_OF) + 3);
+  assert.ok(BEAT_M[0] >= 100 && BEAT_M[1] > BEAT_M[0]);
+  const src = (await import("node:fs")).readFileSync(new URL("../docs/city/fleet.mjs", import.meta.url), "utf8");
+  assert.match(src, /if \(!drive && seg\.act\.kind !== "stroll"\) \{\s*\n\s*const ang = \(\(hash32\(p\.id, "beat"\)/);
+});

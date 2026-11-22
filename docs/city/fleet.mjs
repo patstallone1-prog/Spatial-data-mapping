@@ -103,6 +103,12 @@ export const DOOR_STEP_M = 1.6;
 export const WALK_LAG_MAX_S = 90, WALK_CATCH_UP = 0.3;
 //: One in this many takes a break out of doors.
 export const BREAK_OUTSIDE_OF = 5;
+//: ... and of a large place's people no more than this many in a day: a fifth of a depot's
+//: hundred and sixty stood thirty-two at one doorway at lunchtime (measured 2026-11-21).
+export const BREAK_OUTSIDE_MOST = 7;
+//: Someone whose work is a round on foot (letters, a beat) keeps to a patch of their own this far
+//: from the place they work from (m): all started from its door, ten and more on one corner.
+export const BEAT_M = [140, 420];
 //: Up to this speed one of the city's drivers stops dead for one of its walkers (about 15 mph).
 export const NPC_STOP_DEAD_MS = 7;
 //: The longest a frame's slice of the district scan may run (ms).
@@ -1745,7 +1751,7 @@ export class City {
     // theirs inside. (Everyone out at once stood twenty and more at one doorway: 468 of the 525
     // people in tight groups in the Marina, 2026-11-17.)
     // (Those who stay in are in the back, not seen: stood on the shop floor they were the same crowd, indoors.)
-    if (a.kind === "break" && a.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF !== 0) return null;
+    if (a.kind === "break" && a.outside && !this.breakOutside(p, t)) return null;
     if (a.kind === "break" && a.outside) {
       // Out of the door for a break: on the pavement in front of it, a step or so out (door and
       // front point in) -- not out at the kerb among the parked cars -- and along the front, not
@@ -1965,22 +1971,42 @@ export class City {
     return leg;
   }
   //: The way of one twelve-minute round (cached).
+  //: Whether ``p`` takes today's break out of doors: one in BREAK_OUTSIDE_OF, fewer of a large
+  //: place's people (BREAK_OUTSIDE_MOST of them at most).
+  breakOutside(p, t) {
+    const people = this.roster.people;
+    if (!this._staff || this._staff.n !== people.size) {
+      const by = new Map();
+      for (const q of people.values()) if (q.work) by.set(q.work, (by.get(q.work) || 0) + 1);
+      this._staff = { n: people.size, by };
+    }
+    const of = Math.max(BREAK_OUTSIDE_OF, Math.ceil((this._staff.by.get(p.work) || 0) / BREAK_OUTSIDE_MOST));
+    return hash32(p.id, t.day, "break-out") % of === 0;
+  }
   roamOf(p, seg, place, t, leg) {
     const key = `${p.id}:${t.day}:${Math.round(seg.t0)}:${leg}`;
     let r0 = this.roams.get(key);
     if (r0 === undefined) {
       const r = rng(p.id, t.day, seg.act.kind, leg), drive = seg.drive, mode = drive ? "drive" : "walk";
-      const from = drive ? this.streets.nearest(place.x, place.z, "kerb", 200) : place.node;
+      // A round at work on foot is walked on the worker's own patch (the same every day), not
+      // out from the door and back with everyone else who works from it.
+      let base = place, beat = null;
+      if (!drive && seg.act.kind !== "stroll") {
+        const ang = ((hash32(p.id, "beat") % 3600) / 3600) * Math.PI * 2, far = BEAT_M[0] + ((hash32(p.id, "beat-far") % 1000) / 1000) * (BEAT_M[1] - BEAT_M[0]);
+        const node = this.streets.nearest(place.x + Math.cos(ang) * far, place.z + Math.sin(ang) * far, "walk", 160);
+        if (node !== null && node !== undefined) { const N = this.streets.nodes[node]; beat = { x: N.x, z: N.z }; base = { x: N.x, z: N.z, node }; }
+      }
+      const from = drive ? this.streets.nearest(place.x, place.z, "kerb", 200) : base.node;
       let to = null;
       for (let k = 0; k < 6 && to === null; k += 1) {
         const ang = r() * Math.PI * 2, dist = (drive ? 500 : 180) * (0.4 + r());
-        to = this.streets.nearest(place.x + Math.cos(ang) * dist, place.z + Math.sin(ang) * dist, drive ? "kerb" : "walk", 120);
+        to = this.streets.nearest(base.x + Math.cos(ang) * dist, base.z + Math.sin(ang) * dist, drive ? "kerb" : "walk", 120);
         if (drive && to !== null && this.netOf(to) !== this.netOf(from)) to = null;
       }
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = this.paveFor(p, route, { from: this.anchor(seg.place, null, { door: false }) });
+      if (r0 && !drive) { r0.home = beat || this.anchor(seg.place, null, { door: false }); r0.pave = this.paveFor(p, route, { from: r0.home }); }
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }
@@ -2018,7 +2044,7 @@ export class City {
     // turn, not in one step.
     // (A walker keeps to the same pavement: the offset is to the right of the way, not of travel.)
     const turn = Math.min(1, Math.min(along, far - along) / 10), k = drive ? (forward ? 1 : -1) * turn : 1;
-    const home = drive ? null : this.anchor(seg.place, null, { door: false });
+    const home = drive ? null : r0.home || this.anchor(seg.place, null, { door: false });
     const pos = drive ? alongRoute(route, along, (half, cls, park, i) => k * KERB(half, cls, park, i, k > 0 ? route : null)) : this.walkEnds(route, along, 0, home, null, 3);
     if (!forward) pos.yaw += Math.PI;
     return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : running ? "out for a run" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
@@ -2120,7 +2146,7 @@ export class City {
         continue;
       }
       // (Nobody takes their break out in the rain: view.mjs sets ``wet``.)
-      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
+      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && this.breakOutside(p, t) && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);
