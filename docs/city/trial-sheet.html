@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Trial sheet</title>
+<!-- A sample case as trial.mjs makes it: what is said, and every exhibit as its picture.
+     ?seed=7  ?charge=theft|battery|vandalism|trespass|unsafe_driving|red_light  ?guilty=1|0 -->
+<style>body{font:14px/1.45 system-ui;margin:16px;background:#eef1f4;color:#16202a}.say{background:#fff;border-radius:10px;padding:8px 12px;margin:6px 0;max-width:720px}.say b{display:block;font-size:12px;color:#5c6770}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.grid div{background:#fff;border-radius:10px;padding:8px}.grid svg{width:100%;height:auto;border-radius:6px}.grid p{margin:6px 0 0;font-size:12px}</style></head><body>
+<script type="module">
+import { caseFile, exhibitSvg } from "./trial.mjs";
+const q = new URLSearchParams(location.search), R = await (await fetch("rules.json")).json();
+const f = caseFile(R, { id: "sheet", charge: q.get("charge") || "theft", cls: "criminal", accused: "Sam Vale", at: Date.now(), sources: ["camera", "witness", "patrol officer"], priors: 1,
+  defence: { kind: "lawyer", name: "Lee Park", firm: "Park & Cho", skill: 0.8 }, guilty: q.get("guilty") === null ? null : q.get("guilty") === "1", seed: q.get("seed") || "7" });
+for (const s of f.script) { const d = document.createElement("div"); d.className = "say"; d.innerHTML = `<b></b><span></span>`; d.firstChild.textContent = s.name + (s.exhibits?.length ? `  [${s.exhibits.join(", ")}]` : ""); d.lastChild.textContent = s.text; document.body.append(d); }
+const g = document.createElement("div"); g.className = "grid";
+for (const e of f.exhibits) { const d = document.createElement("div"); d.innerHTML = exhibitSvg(e); const p = document.createElement("p"); p.textContent = `${e.title} (${e.side}, weight ${e.weight}): ${e.text}`; d.append(p); g.append(d); }
+document.body.append(g);
+const n = document.createElement("p"); n.textContent = `guilty: ${f.guilty}  score: ${f.score}  questions: ${f.questions.map((x) => x.label).join(" | ")}`; document.body.append(n);
+</script></body></html>

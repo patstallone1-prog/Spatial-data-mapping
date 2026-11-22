@@ -126,6 +126,8 @@ export function enterprisePanels(api) {
   function attend(c) {
     send("attend_court", { case: c.id, court: courtPlace() }).then((r) => {
       if (!r.ok) { notify(r.error); return; }
+      // (Tried by a jury of those in the city: the verdict comes to your Notices when they have given it.)
+      if (r.pending) { notify("You are present. The jury is being called: the verdict will come to your Notices when they have given it, or when the case closes."); todoReset(); openCases(); return; }
       notify(`The verdict: ${r.verdict.name}.`);
       todoReset();
       if (r.released) openSide("released"); else openCases();

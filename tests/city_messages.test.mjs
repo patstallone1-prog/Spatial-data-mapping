@@ -144,6 +144,8 @@ test("the lawyer writes as the case goes: taken on, two updates, the day before,
   const ch = R.business.law.courthouse;
   const v = w.submit("ana", "attend_court", { case: c.id, at: { x: 0, z: 0, lon: ch.lon, lat: ch.lat } });
   assert.equal(v.ok, true, v.error);
+  runTo(w, w.trials.get(v.trial).closes + HOUR);
+  assert.ok(c.verdict, "the judge has ruled");
   t = thread(w, "ana", (x) => x.kind === "lawyer");
   assert.equal(t.data.rapport, 1, "a case together");
   assert.ok(lastText(t).length > 10);
@@ -228,28 +230,37 @@ test("a choice runs only the actions choices may run", () => {
   assert.equal(r.ok, false); assert.match(r.error, /can not be done from a message/);
 });
 
-test("jury duty: a summons now and then, deferred once, served at the court for the juror's fee", () => {
+test("jury duty: called only while in the city, to a case open at once; the vote is the verdict and the sentence is real", () => {
   const w = world();
-  const p = w.players.get("ana");
-  const bill = w.fine(w.players.get("ben"), "speeding", "Fast", ["camera"]);
+  const p = w.players.get("ana"), ben = w.players.get("ben");
+  const bill = w.fine(ben, "speeding", "Fast", ["camera"]);
   const c = w.cases.get(bill.case);
-  c.court = w.courtTime(5, c.id);
-  runTo(w, w.now + 3 * DAY);
+  c.court = w.now + HOUR;
+  // Ana is about (she does something); Cy has not been seen for a long while.
+  w.players.get("cy").seen = w.now - 30 * DAY;
+  for (let i = 0; i < 4; i += 1) { w.step(w.now + HOUR / 2); w.submit("ana", "read_thread", { thread: "sys:hall" }); }
   const notes = thread(w, "ana", (t) => t.kind === "notices");
   const summons = notes.msgs.find((x) => /^Jury summons/.test(x.text));
-  assert.ok(summons, "summoned to Ben's hearing");
-  assert.match(summons.text, /Ben Ito/);
-  assert.equal(answer(w, "ana", notes, "Ask to defer a week").ok, true);
-  const s = p.jury[0];
-  assert.ok(s.at > c.court, "a week later");
-  w.now = s.at + HOUR;
-  const ch = R.business.law.courthouse;
-  assert.equal(w.submit("ana", "serve_jury", { summons: s.id, at: at(cafe) }).ok, false, "at the court");
+  assert.ok(summons, "summoned to Ben's case");
+  assert.match(summons.text, /Ben Ito/); assert.match(summons.text, /open to you from this moment/);
+  assert.equal(thread(w, "cy", (t) => t.kind === "notices")?.msgs.some((x) => /^Jury summons/.test(x.text)) || false, false, "nobody away is called");
+  assert.equal(thread(w, "ben", (t) => t.kind === "notices")?.msgs.some((x) => /^Jury summons/.test(x.text)) || false, false, "nor the accused");
+  const go = answer(w, "ana", notes, "Go to the case");
+  assert.equal(go.ok, true, go.error);
+  const tr = thread(w, "ana", (t) => t.kind === "trial");
+  assert.equal(go.result.thread, tr.id);
+  assert.ok(tr.msgs.some((x) => x.tag === "Prosecution" && x.ui?.exhibits?.length), "the People's exhibits are linked");
+  assert.ok(tr.msgs.some((x) => x.tag === "Defence") && tr.msgs.some((x) => x.tag === "Accused") && tr.msgs.some((x) => x.tag === "Judge"));
+  const q = tr.msgs.find((x) => x.choices?.some((ch) => ch.act.cmd === "trial_ask"));
+  assert.equal(answer(w, "ana", tr, q.choices[0].label).ok, true);
   const before = w.ledger.balance(p.account);
-  const r = w.submit("ana", "serve_jury", { summons: s.id, at: { x: 0, z: 0, lon: ch.lon, lat: ch.lat } });
-  assert.equal(r.ok, true, r.error);
+  assert.equal(answer(w, "ana", thread(w, "ana", (t) => t.kind === "trial"), "Not guilty").ok, true);
   assert.equal(w.ledger.balance(p.account) - before, R.business.law.jury.fee_base);
-  assert.equal(w.submit("ana", "serve_jury", { summons: s.id, at: { x: 0, z: 0, lon: ch.lon, lat: ch.lat } }).ok, false, "once");
+  // The only juror called has spoken: the judge affirms it, and Ben's fine is gone.
+  assert.equal(c.verdict.outcome, "acquitted"); assert.equal(c.verdict.by, "trial");
+  assert.notEqual(bill.status, "open");
+  assert.match(lastText(thread(w, "ana", (t) => t.kind === "trial")), /court affirms it/);
+  assert.ok(thread(w, "ben", (t) => t.kind === "notices").msgs.some((x) => /^Your case/.test(x.text)));
   w.ledger.check();
 });
 

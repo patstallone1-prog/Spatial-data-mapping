@@ -32,12 +32,13 @@ threads rather than new systems.
 
 ## Jury duty
 
-- A summons comes at most once a month, a few days ahead. It is for:
-  - a party member's hearing when there is one;
-  - otherwise, a resident's hearing.
-- You can confirm it, or defer it once (by a week).
-- You serve at the court in court hours, from a button in the message. You are paid the California juror fee of $15.
-- Missing it is noted. For now, nothing more happens.
+Rebuilt 2026-11-22: see [58 · Trials by jury](58-trials.md).
+
+- A summons goes only to someone in the city now, and the case is open at once, for six real hours.
+- At most one in fourteen real days (it had been thirty game days: a day and a half).
+- "Go to the case" opens the trial as a conversation: the judge, the prosecutor, witnesses, the
+  defence and the accused, with each exhibit a link that opens as a picture. You ask what you
+  wish, then vote. The judge affirms the verdict and passes sentence. Jurors are paid $15.
 
 ## Adding a new kind of message
 

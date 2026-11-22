@@ -898,7 +898,7 @@
       "lose_job_days": 7,
       "record_years": 2,
       "expunge": {"fee_base": 600},
-      "jury": {"basis": "California pays jurors $15 a day (Code Civ. Proc. 215); a summons at most once a month, a few days ahead; served at the court in its hours", "fee_base": 15, "every_days": 30, "after_days": 2, "daily_chance": 0.05, "notice_days": 4},
+      "jury": {"basis": "California pays jurors $15 a day (Code Civ. Proc. 215). A summons goes only to someone in the city now (something done in the last online_real_minutes), is open at once and for open_real_hours real hours, and comes at most once in every_real_days REAL days (it had been 30 game days, a day and a half of real time). every_days and notice_days are the old appointment's and are no longer read", "fee_base": 15, "every_real_days": 14, "after_days": 2, "daily_chance": 0.05, "open_real_hours": 6, "online_real_minutes": 20, "jurors_most": 5, "npc_charges": ["theft", "battery", "vandalism", "trespass", "unsafe_driving", "red_light"], "every_days": 30, "notice_days": 4},
       "record_checks": {"roles": ["pharmacist", "security_guard", "teller", "teacher"], "charges": ["theft", "battery"]},
       "priors_price_share": 0.25,
       "odds": [0.5, 0.25]

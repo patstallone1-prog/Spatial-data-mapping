@@ -78,6 +78,11 @@ export function viewFor(world, pid, copy = null) {
   E.biz = (E.biz || []).map((b) => (mine.has(b.account) ? b : { ...b, books: [], weeks: [], tx: [], incoming: [], loan: null, bought: undefined, licences: {},
     today: { day: b.today?.day }, staff: (b.staff || []).filter((s) => s.pid === pid) }));
   E.cases = (E.cases || []).filter((c) => c.pid === pid);
+  // A trial: its jurors' and the accused's to see -- never what the court alone knows (how much
+  // each exhibit weighs, whether it happened), nor another juror's vote.
+  E.trials = (E.trials || []).filter((t) => t.pid === pid || t.jurors?.[pid]).map((t) => ({ ...t,
+    file: { ...t.file, guilty: undefined, score: undefined, exhibits: (t.file?.exhibits || []).map(({ weight, ...e }) => e) },
+    jurors: t.jurors?.[pid] ? { [pid]: t.jurors[pid] } : Object.fromEntries(Object.keys(t.jurors || {}).map((k, i) => [`juror:${i + 1}`, { summoned: t.jurors[k].summoned, voted: Boolean(t.jurors[k].vote) }])) }));
   // A resident's shop's books: for those who have dealt with it (and not who else has).
   E.shops = (E.shops || []).filter((x) => x.watchers?.[pid]).map((x) => ({ ...x, watchers: { [pid]: x.watchers[pid] } }));
   E.storefronts = (E.storefronts || []).map((s) => (s.pid === pid ? s : { place: s.place, holder: s.holder, pid: s.pid, since: s.since }));

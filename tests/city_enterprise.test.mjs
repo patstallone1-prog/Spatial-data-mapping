@@ -283,8 +283,13 @@ test("hiring a lawyer: the retainer to the firm, a court date, the verdict at th
   assert.equal(w.submit("ana", "attend_court", { case: c.id, at: at(lawOffice) }).ok, false, "at the courthouse");
   const v = w.submit("ana", "attend_court", { case: c.id, at: { x: 0, z: 0, lon: ch.lon, lat: ch.lat } });
   assert.equal(v.ok, true, v.error);
-  assert.ok(R.business.law.outcomes.some((o) => o.id === v.verdict.outcome));
-  assert.notEqual(v.verdict.outcome, "jail", "not for a traffic case");
+  // Tried, not drawn by lot (trial.mjs): present, the case open for a jury; with nobody to sit the
+  // judge rules on the evidence when it closes.
+  assert.ok(v.pending && v.trial && c.present && !c.verdict);
+  runTo(w, w.trials.get(v.trial).closes + HOUR);
+  assert.ok(R.business.law.outcomes.some((o) => o.id === c.verdict.outcome));
+  assert.equal(c.verdict.by, "trial"); assert.equal(c.verdict.absent, false);
+  assert.notEqual(c.verdict.outcome, "jail", "not for a traffic case");
   assert.ok(c.closed);
 });
 
@@ -332,8 +337,11 @@ test("a fine left unpaid past its late penalty becomes a summons, and is heard w
   assert.equal(c.court, null);
   runTo(w, w.now + 22 * DAY);
   assert.ok(bill.collections && c.court && c.summons, "a summons");
-  runTo(w, c.court + 4 * HOUR);
+  runTo(w, c.court + HOUR);
+  assert.ok(c.trial && !c.verdict, "its hearing come, it is tried");
+  runTo(w, w.trials.get(c.trial).closes + HOUR);
   assert.ok(c.verdict && c.verdict.absent, "heard in absentia");
+  assert.equal(c.verdict.by, "trial");
   assert.ok(c.closed);
 });
 
