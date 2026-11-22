@@ -1,9 +1,11 @@
 // Cut positions in the original ingredient's footprint. Successive cuts refine
 // the same footprint so a wedge can be sliced again after it leaves the board.
+//: How many pieces each cut makes: halved, sliced, diced, minced to small bits.
+export const CUT_COUNTS = { split: 2, slice: 6, dice: 16, mince: 25 };
 export function cutPieces(mode, fraction, bounds = [0, 1, 0, 1]) {
   const [x0, x1, z0, z1] = bounds,
-    nx = mode === "split" ? 2 : mode === "slice" ? 6 : 4,
-    nz = mode === "dice" ? 4 : 1;
+    nx = mode === "split" ? 2 : mode === "slice" ? 6 : mode === "mince" ? 5 : 4,
+    nz = mode === "dice" ? 4 : mode === "mince" ? 5 : 1;
   const edge = (i) => (mode === "split" ? [0, fraction, 1][i] : i / nx);
   const pieces = [];
   for (let z = 0; z < nz; z++)

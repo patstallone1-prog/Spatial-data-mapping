@@ -1,4 +1,4 @@
-import {cutPieces} from "./kitchen-cuts.mjs";
+import { cutPieces, CUT_COUNTS } from "./kitchen-cuts.mjs";
 // The restaurant game: a food shop's kitchen, worked by the people on its staff (docs/47-kitchen-game.md).
 //
 // Order tickets come in from the front. The cook takes what each dish needs from the pantry,
@@ -946,8 +946,8 @@ export function installKitchen(CityWorld, CityError) {
     if (!j) fail("This batch is no longer on the station.");
     if(action==="cut" && j.proc==="chop"){
       const {mode,fraction}=cut || {};
-      if(j.inputs.length!==1 || !["split","slice","dice"].includes(mode) || !Number.isFinite(fraction) || fraction<.02 || fraction>.98)fail("Choose one ingredient and a cut position.");
-      const source=j.inputs[0], count=mode==="dice"?16:mode==="slice"?6:2;
+      if(j.inputs.length!==1 || !Object.hasOwn(CUT_COUNTS,mode) || !Number.isFinite(fraction) || fraction<.02 || fraction>.98)fail("Choose one ingredient and a cut position.");
+      const source=j.inputs[0], count=CUT_COUNTS[mode];
       const pieces=cutPieces(mode,fraction,source.bounds).map(({bounds,share})=>({...source,p:[...chain(source.p),"chop"].join(">"),ratios:[...source.ratios,1],cut:mode,bounds,qty:source.qty*share}));
       if(Object.keys(board.lots).length+count>256)fail("Use some of the cut pieces first.");
       delete board.jobs[job];

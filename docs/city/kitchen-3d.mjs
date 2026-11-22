@@ -542,18 +542,32 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin); hand.position.y = -0.43; pivot.add(hand);
     chef.add(pivot); return pivot;
   });
-  const standIn=[...chef.children];
-  let skinnedPose,reachTime=-1e4;
-  kitchenChef(THREE,kit,chef).then(pose=>{skinnedPose=pose;for(const o of standIn)o.visible=false;}).catch(e=>console.warn("Kitchen chef model unavailable",e.message));
+  const standIn = [...chef.children];
+  // The cook's body (kitchen-chef.mjs): the city's near-ring people with the kitchen's clips. Until
+  // it is ready (or if it cannot load), the stand-in above is drawn.
+  let cook = null, reachTime = -1e4, reachKey = 0;
+  kitchenChef(THREE, kit, chef, scene, title).then((c) => { cook = c; for (const o of standIn) o.visible = false; }).catch((e) => console.warn("kerbside: the kitchen's cook body is not available", e?.message || e));
   const holdAt = new THREE.Group(); holdAt.position.set(0, 1.12, 0.3); chef.add(holdAt);
   chef.position.set(0, 0, 0);
   scene.add(chef);
   let walkPhase = 0, chopT = 0;
-  //: The cook's pose: walking (speed m/s), holding something, chopping.
-  function pose(dt, { speed = 0, holding = false, chopping = false }) {
-    const reach=Math.max(0,1-Math.abs((performance.now()-reachTime)/260-1));
-    holdAt.position.set(0,1.06-.1*reach,.29+.13*reach);
-    if(skinnedPose){skinnedPose(dt,speed,holding,chopping,reach);return;}
+  const handL = new THREE.Vector3(), handR = new THREE.Vector3();
+  //: The cook's pose: walking (speed m/s), holding something, chopping, stirring, pouring; a reach
+  //: down to the counter for a while after reach() (to pick up or put down). What is held goes
+  //: where the hands are.
+  function pose(dt, { speed = 0, holding = false, chopping = false, stirring = false, pouring = false }) {
+    if (cook) {
+      const work = performance.now() - reachTime < 800 ? "reach" : chopping ? "chop" : pouring ? "pour" : holding ? "carry" : stirring ? "stir" : null;
+      cook.pose(dt, { speed: work === "reach" ? 0 : speed, work, key: reachKey });
+      const hands = cook.hands();
+      if (hands) {
+        holdAt.position.set(hands.mid[0], hands.mid[1] + 0.03, hands.mid[2]);
+        chef.localToWorld(handL.fromArray(hands.left)); chef.localToWorld(handR.fromArray(hands.right));
+      }
+      return;
+    }
+    const reach = Math.max(0, 1 - Math.abs((performance.now() - reachTime) / 260 - 1));
+    holdAt.position.set(0, 1.06 - 0.1 * reach, 0.29 + 0.13 * reach);
     walkPhase += dt * speed * 9;
     const swing = Math.sin(walkPhase) * Math.min(1, speed / 1.5) * 0.6;
     legs[0].rotation.x = swing; legs[1].rotation.x = -swing;
@@ -607,7 +621,7 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
   }
   function project(v) { const p = v.clone().project(camera); return { x: (p.x + 1) / 2, y: (1 - p.y) / 2, behind: p.z > 1 }; }
   return {
-    THREE, scene, camera, CAM, renderer, chef, holdAt,jug,dockJug,contents,stream,vessels,reach:()=>{reachTime=performance.now();}, layout, storage, bins, setBins, passSlots, PASS, WORK, walk, style: S, COUNTER_Y,
+    THREE, scene, camera, CAM, renderer, chef, holdAt,jug,dockJug,contents,stream,vessels,reach: () => { reachTime = performance.now(); reachKey += 1; }, hands: () => (cook ? { left: handL, right: handR } : null), cookStats: () => cook?.stats(), layout, storage, bins, setBins, passSlots, PASS, WORK, walk, style: S, COUNTER_Y,
     itemObject, tint, kenney, pose, emit, stepPuffs, frame, resize, pick, project, lit,
     render: () => renderer.render(scene, camera),
     dispose: () => { renderer.dispose(); scene.traverse((o) => { o.geometry?.dispose?.(); }); },
