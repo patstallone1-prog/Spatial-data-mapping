@@ -135,10 +135,22 @@ test("commuters drive through once a day, seen, from one side of the district to
   const city = new City(R, roster, streets, { seed: "commute", timeAt: (ms) => fleetTime(clock, ms) });
   city.through = 0.14;
   const t = city.timeAt(msAt(8));
-  let driven = 0;
+  let driven = 0, worked = 0;
   for (const p of roster.commuters.values()) {
     assert.ok(p.commuter && p.visitor && roster.visitorOf(p.id) === p);
     const plan = city.planOf(p, t);
+    assert.ok(p.partial && p.balance >= 800 && Array.isArray(p.bills), "a row in a table: a balance and no more");
+    if (p.pattern === "works") {
+      // In for the morning, the car at the kerb all day, out in the evening: to the same door every day.
+      if (!plan.segs.length) continue;   // (no kerb free at their door that day)
+      worked += 1;
+      assert.deepEqual(plan.segs.map((s) => s.mode || s.kind), ["drive", "walk", "stay", "walk", "drive"], p.id);
+      const stay = plan.segs[2];
+      assert.equal(stay.act.label, "At work");
+      assert.ok(stay.t1 - stay.t0 > 0 && plan.segs.every((s) => s.unseen === false), "seen, as every commuter is");
+      assert.equal(city.planOf(p, city.timeAt(msAt(8) + 86_400_000)).segs[2]?.place ?? stay.place, stay.place, "the same workplace the next day");
+      continue;
+    }
     assert.ok(plan.segs.length <= 1, `${p.id}: ${plan.segs.length} trips`);
     for (const s of plan.segs) {
       driven += 1;
@@ -149,7 +161,23 @@ test("commuters drive through once a day, seen, from one side of the district to
     // Their car is theirs, and found by its owner.
     assert.equal(city.vehicleAt(roster.vehicles.get(p.car), t) !== null, true);
   }
-  assert.ok(driven >= 60, `${driven} of 80 drove through`);
+  const through = [...roster.commuters.values()].filter((p) => p.pattern === "through").length;
+  assert.ok(through >= 20 && through <= 60, `${through} of 80 drive through; the rest work here`);
+  assert.ok(driven >= through * 0.75, `${driven} of ${through} drove through`);
+  assert.ok(worked >= (80 - through) * 0.6, `${worked} of ${80 - through} found a kerb at their work`);
+});
+
+test("a partial person's money moves only when something makes it: a crash is billed to them", () => {
+  const roster = new Roster(R, { seed: "bills" });
+  roster.commutersUpTo(3);
+  const p = roster.commuters.get("commuter:0"), had = p.balance;
+  assert.deepEqual(roster.billPartial(p.id, 350, "collision repair", 12), { paid: 350, owed: 0, balance: had - 350 });
+  assert.equal(p.bills.length, 1);
+  const big = roster.billPartial(p.id, 10_000_000, "hospital");
+  assert.equal(big.balance, 0);
+  assert.equal(big.paid + big.owed, 10_000_000);
+  assert.equal(roster.billPartial("npc:someone", 100, "x"), null, "only a partial person");
+  assert.equal(roster.billPartial(p.id, 0, "nothing"), null);
 });
 
 test("a visitor's trip is seen or not whole: the drive, the walk from the kerb and the shops alike", () => {

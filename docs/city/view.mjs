@@ -942,6 +942,18 @@ diffuseColor.rgb *= kbCloth;`);
   };
   const wheel = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12).rotateZ(Math.PI / 2).translate(0, 0.33, 0);
   const lightGeo = new THREE.BoxGeometry(0.22, 0.12, 0.02);
+  // Somebody is driving: in every car near you that is not parked, a driver from the waist up
+  // behind the glass -- shoulders and a head, in their own clothes' colour. That is all a
+  // driver is from the street, and for the partial people (the commuters: fleet.mjs
+  // commutersUpTo) it is all there is of them. Two instanced meshes for the whole street.
+  const DRIVER_SKIN = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0x8d5524, 0x5c3a21, 0xf5d7bd];
+  const DRIVER_CLOTH = [0x2f4858, 0x33658a, 0x86bbd8, 0x758e4f, 0xf6ae2d, 0xb23a48, 0x4a4e69, 0x9a8c98, 0xe9e4d8, 0x2b2d42];
+  const driverBody = instanced(new THREE.BoxGeometry(0.44, 0.5, 0.26).translate(0, 0.25, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-drivers");
+  const driverHead = instanced(new THREE.SphereGeometry(0.11, 10, 8).translate(0, 0.66, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-driver-heads");
+  const DRIVER_M = new THREE.Matrix4(), DRIVER_C = new THREE.Color();
+  //: Where the driver sits in a car ``w`` wide, ``h`` high and ``l`` long: on the left, a little
+  //: ahead of the middle (a bus's or a truck's, right at the front), their hips at seat height.
+  const driverSeat = (model, w, h, l) => ({ side: w * 0.23, ahead: model === "bus" || model === "box_truck" || model === "delivery_van" ? l * 0.36 : l * 0.06, up: Math.max(0.42, h * 0.36) });
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
   const tailLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f }), MAX_CARS * 2);
   for (const l of [headLights, tailLights]) { l.count = 0; l.frustumCulled = false; l.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(l); }
@@ -1456,6 +1468,7 @@ diffuseColor.rgb *= kbCloth;`);
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
     carShade.count = 0; carShade.instanceMatrix.needsUpdate = true;
     drawnTiers.cars = [full.length, mid.length, low.length];
+    let drivers = 0;
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
@@ -1466,6 +1479,14 @@ diffuseColor.rgb *= kbCloth;`);
       E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
       M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
       if (tier !== LOW) shadeAt(carShade, MAX_CARS, v.x, y, v.z, v.yaw, w + 0.7, l + 0.6);
+      if (tier !== LOW && !standIn && !v.parked && !v.wrecked && !v.bike && v.model !== "bike" && v.mine !== true && drivers < MAX_CARS) {
+        const seat = driverSeat(v.model, w, hgt, l), fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), who = hash32(v.vehicle?.owner || v.id);
+        // (Left of the way it faces: the kerb, and the doors a bus opens, are on its right.)
+        DRIVER_M.makeRotationY(v.yaw).setPosition(v.x + fx * seat.ahead + fz * seat.side, y + seat.up, v.z + fz * seat.ahead - fx * seat.side);
+        driverBody.setMatrixAt(drivers, DRIVER_M); driverBody.setColorAt(drivers, DRIVER_C.setHex(DRIVER_CLOTH[who % DRIVER_CLOTH.length]));
+        driverHead.setMatrixAt(drivers, DRIVER_M); driverHead.setColorAt(drivers, DRIVER_C.setHex(DRIVER_SKIN[(who >>> 5) % DRIVER_SKIN.length]));
+        drivers += 1;
+      }
       if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       // The route and where it is going, over the windscreen (on the fleet's bus; just off the
       // code-built one's nose; the low tier's box has none).
@@ -1498,6 +1519,8 @@ diffuseColor.rgb *= kbCloth;`);
     }
     for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
+    for (const mesh of [driverBody, driverHead]) { mesh.count = drivers; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+    drawnTiers.drivers = drivers;
     lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
@@ -4664,7 +4687,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: a day's through traffic in a 72-minute day is twenty times what the streets carry). At
   //: this the Marina has some 120 cars moving round you, half of them at any moment, at 3 m/s
   //: and more; with all of them, 640, one in five moving (measured on the real streets).
-  const THROUGH_DRIVEN = 0.14;
+  const THROUGH_DRIVEN = 0.1;
   const wetStyles = new Map();
   //: Raining now (environment-runtime.mjs): drivers near you slow down and leave more room, and
   //: nobody near you takes a break outside.
@@ -4908,7 +4931,9 @@ diffuseColor.rgb *= kbCloth;`);
     if (clumpSince.size > 4000) for (const [id, t] of clumpSince) if (now - t > 60_000) clumpSince.delete(id);
     if (clumpBack.size > 4000) clumpBack.clear();
   }
-  function glide(e, now, dt, top, snap, face = false) {
+  //: How far behind the place they are drawn a walker's true place may be and still be waited for (m).
+  const BACK_HOLD_M = 4;
+  function glide(e, now, dt, top, snap, face = false, noBack = false) {
     const g = glided.get(e.id);
     if (g && now - g.t < 600) {
       // (Allowed the time since it was last placed, not one frame's: those drawn low are placed
@@ -4916,7 +4941,12 @@ diffuseColor.rgb *= kbCloth;`);
       // they were, catching up whichever way that lay -- walking backwards, 2026-11-21.)
       const span = Math.max(dt, (now - g.t) / 1000, 1 / 120);
       const dx = e.x - g.x, dz = e.z - g.z, d = Math.hypot(dx, dz), max = top * span + 0.02;
-      if (d > max && d < snap) {
+      // Never back the way they came: one whose place by their day is a little behind where
+      // they are drawn (they were carried on between looks, or held a moment at a kerb) stands
+      // where they are until their day has caught up with them. Nobody is pulled backwards.
+      if (noBack && e.moving && !e.gesture && d > 0.03 && d < BACK_HOLD_M && dx * -Math.sin(e.yaw) + dz * -Math.cos(e.yaw) < -0.02) {
+        e.x = g.x; e.z = g.z;
+      } else if (d > max && d < snap) {
         e.x = g.x + (dx / d) * max; e.z = g.z + (dz / d) * max;
         // Catching up, they face the way they go (``face``: those with no stride body to turn).
         if (face && e.moving) e.yaw = Math.atan2(-dx, -dz);
@@ -5018,7 +5048,19 @@ diffuseColor.rgb *= kbCloth;`);
       const id = e.p.id, was = personTiers.get(id);
       if (was && now < was.next) {
         if (was.tier === TRACKED) { trackedPeople += 1; continue; }
-        if (was.entry) { people.push(was.entry); continue; }
+        if (was.entry) {
+          // Between looks they go on the way they were going, at their pace: left where they
+          // were last put for a tenth of a second or two and then put on, they went along in
+          // jerks, and anything that set them back a step showed as a walk backwards.
+          const q = was.entry;
+          if (q.moving && !q.down) {
+            const v = q.speed || q.person?.pace || 1.3, step = Math.min(dt, 0.1) * v;
+            q.x -= Math.sin(q.yaw) * step; q.z -= Math.cos(q.yaw) * step;
+            const g = glided.get(id);
+            if (g) { g.x = q.x; g.z = q.z; g.t = now; }
+          }
+          people.push(q); continue;
+        }
       }
       const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
       const pos = c.personAt(e.p, tt, seg, focus);
@@ -5140,7 +5182,7 @@ diffuseColor.rgb *= kbCloth;`);
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) { entry.fall = 1; entry.down = true; }
       else {
-        glide(entry, now, dt, 3.2, 60, tier === LOW);
+        glide(entry, now, dt, 3.2, 60, tier === LOW, true);
         // (Nobody walks backwards: see strides below, once everyone has stepped apart.)
         // (A glide or a step round you is a straight line: kept out of the walls as the way is.)
         if (!entry.indoors && !entry.through && c.keepOutside(entry, "view")) { const g = glided.get(entry.id); if (g) { g.x = entry.x; g.z = entry.z; } }
@@ -5330,6 +5372,12 @@ diffuseColor.rgb *= kbCloth;`);
     if (q) flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
     const incident = world.npcCollision({ id: hit.id, vehicle: { id: v.id, plate: v.plate, driver: v.owner, driverName: driver?.name, x: hit.x, z: hit.z, yaw: hit.yaw }, target,
       speed: hit.speed, context: { ...hit.context, region: district.region, lonLat: ctx.toLonLat?.(hit.x, hit.z) } });
+    // A partial person in it pays their share out of their own balance (fleet.mjs billPartial):
+    // the one time their money moves.
+    for (const id of new Set([v.owner, other?.owner])) {
+      const bill = district.roster.billPartial?.(id, 380 + hit.speed * hit.speed * 9, "collision repair", fleetAt(Date.now()).day);
+      if (bill) incident.partial_bills = [...(incident.partial_bills || []), { id, ...bill }];
+    }
     console.warn("kerbside: NPC collision", incident);
     district.city.forget(v.owner); if (q) district.city.forget(q.id); if (other) district.city.forget(other.owner);
     if (Math.hypot(hit.x - me().x, hit.z - me().z) < 60) notify(`A car (${v.plate}) hit ${q?.person?.name || other?.plate || "someone"} at ${Math.round(hit.speed * MPH)} mph. Driver cited; repair and care bills recorded.`);

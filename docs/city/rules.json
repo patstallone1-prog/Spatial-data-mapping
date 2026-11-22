@@ -244,13 +244,13 @@
   },
   "density": {
     "basis": "how busy the streets are beyond the residents' own days: passers-by to a 150 m square of streets at the busiest hour, and a multiplier on them and on through traffic -- by default, and in the hotspots (the busiest wins). The Marina is the test district: Chestnut and Union Streets, the Marina Green and the Palace of Fine Arts. Nobody is made up where you look (docs/city/fleet.mjs): the residents are each home's, and the through traffic is a fleet of visitors' cars -- so many to a place of the district by how busy it is, each coming through 4 to 9 times a day from the edge of the streets (a through trip, or about half the time a stop: parked near a shop and an hour or so on foot about the shops) -- sized so the Marina's streets carry the traffic of a busy neighbourhood street (approx.: a busy neighbourhood shopping street carries several thousand to fifteen thousand vehicles a day).",
-    "walkers_per_cell": 12, "visitors_per_place": 1.8, "visitors_max": 12000, "visitor_trips": [4, 9], "visitor_visit_share": 0.45,
+    "walkers_per_cell": 12, "visitors_per_place": 1.8, "visitors_max": 12000, "visitor_trips": [4, 9], "visitor_visit_share": 0.55, "calls_share": 0.6, "calls_seen": 5,
     "walk_radius_m": 260,
     "walks_basis": "the game's day is 72 minutes and a walk takes as long as it really does, so a day's walking done in it is some twenty times what is out on the pavements at once: only this share of the residents' walks is seen (the rest are out of sight, as most of the through traffic is: through_driven), and none that would have someone out more than walk_early_max game minutes before the thing they are going to (leaving at 3 a.m. for an 8 o'clock start). Calibrated on the real Marina (tests/city_density.test.mjs) so that the busiest block at its busiest hour has about forty people out and a busy street eight to ten a block (the user's count, 2026-11-20).",
     "walks_seen": 0.28, "narrow_walk_keep": 0.45, "walk_early_max": 150, "resident_outgoing_max": 1.25,
     "trim": {"basis": "the redundant are not made: a flatmate, or a partner in a home with no children, in one of the big trades whose members share one story and voice (npc-stories.mjs), with no part the district needs (no counter, round, vehicle or school)", "share": 0.5,
       "roles": ["office_worker", "software_engineer", "remote_worker", "civil_servant", "warehouse_worker", "unemployed", "student"]},
-    "commuters": {"basis": "people who live outside the district and work outside it, seen only as they drive through, once a game day, on the through routes; sized so the rush hours carry about what Lombard and Marina Boulevard do (Caltrans: approx. 50,000 a day on Lombard) seen at real speed in the 72-minute day", "count": 2400, "corridor_share": 0.8},
+    "commuters": {"basis": "people who live outside the district and work outside it, seen only as they drive through, once a game day, on the through routes; sized so the rush hours carry about what Lombard and Marina Boulevard do (Caltrans: approx. 50,000 a day on Lombard) seen at real speed in the 72-minute day", "count": 2000, "corridor_share": 0.55, "works_share": 0.5},
     "default": {"walkers": 1, "traffic": 1},
     "hotspots": [
       {"name": "Marina", "bbox": [37.7965, -122.4480, 37.8080, -122.4260], "walkers": 3.2, "traffic": 2.4},
@@ -259,10 +259,10 @@
   },
   "traffic": {
     "basis": "where and when the through traffic goes. Drivers keep to the main streets: a way's cost is its time at the limit times its class's preference, cheaper still on a named corridor (by its weight). Through trips start and end at the edge of the streets, a gate on a corridor that much likelier than a side street's, and a share of them run the length of one corridor end to end. Lombard Street is US 101 through the Marina (Caltrans counts approx. 50,000 vehicles a day between Richardson Avenue and Van Ness, about twelve times a typical residential street's); Marina Boulevard, Divisadero, Fillmore, Chestnut and Bay carry approx. 8,000 to 20,000. By the hour: two rush hours (7-9 and 4-7) at the full count, the middle of the day at about 60%, the night at under a fifth; commuters keep to the rush hours, deliveries to the working day, ride-hail to the evening too. At a signal on a main street the main street has the longer green (approx. 60% of the cycle), as SFMTA times Lombard's.",
-    "maneuvers": {"basis": "what a turn costs a driver choosing a way, in seconds (after Valhalla's auto costing: a turn with the traffic is cheap, a turn across it dear, back the way it came dearest), so routes keep to right turns where they can", "straight_s": 0, "right_s": 3, "left_s": 14, "uturn_s": 60}, "class_preference": {"freeway": 0.6, "arterial": 0.75, "residential": 1.35, "shared": 2.2, "service": 4.0},
+    "maneuvers": {"basis": "what a turn costs a driver choosing a way, in seconds (after Valhalla's auto costing: a turn with the traffic is cheap, a turn across it dear, back the way it came dearest), so routes keep to right turns where they can", "straight_s": 0, "right_s": 3, "left_s": 14, "uturn_s": 60}, "class_preference": {"freeway": 0.6, "arterial": 0.8, "residential": 1.15, "shared": 2.2, "service": 4.0},
     "corridors": [
-      {"name": "Lombard Street", "weight": 12},
-      {"name": "Richardson Avenue", "weight": 10},
+      {"name": "Lombard Street", "weight": 7},
+      {"name": "Richardson Avenue", "weight": 6},
       {"name": "Van Ness Avenue", "weight": 7},
       {"name": "Marina Boulevard", "weight": 4},
       {"name": "Divisadero Street", "weight": 4},
@@ -300,7 +300,7 @@
     "sport_chance": 0.14,
     "sport_minutes": [40, 90],
     "walk_speed_ms": [1.15, 1.5],
-    "drive_share": 0.32, "task_keep": 0.5,
+    "drive_share": 0.4, "task_keep": 0.5,
     "visible_radius_m": 450
   },
   "repair": {"basis": "what breaks (a window, a door, a shopfront) stays broken for half a day, is boarded over with plywood planks, and is back as it was within three days (approx. a glazier's or carpenter's turnaround for a city repair); not yet triggered by anything that breaks", "boarded_after_hours": 12, "restored_within_days": 3, "restored_from_share": 0.55, "planks_s": 3.2},
