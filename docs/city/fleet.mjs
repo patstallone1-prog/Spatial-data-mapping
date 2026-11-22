@@ -21,6 +21,7 @@ import {
   JUNCTION_SPAN_M,
 } from "./people.mjs";
 import { householdsFor } from "./households.mjs";
+import { isRunner } from "./wardrobe.mjs";
 import { booksOf, careerOf, weekdayOfDay } from "./npc-economy.mjs";
 import { TASKS, dayPlan, milestonesOf, routineType } from "./routines.mjs";
 import { homePrices, neighbourhoodAt, unitsOf } from "./market.mjs";
@@ -102,6 +103,12 @@ export const DOOR_STEP_M = 1.6;
 export const WALK_LAG_MAX_S = 90, WALK_CATCH_UP = 0.3;
 //: One in this many takes a break out of doors.
 export const BREAK_OUTSIDE_OF = 5;
+//: ... and of a large place's people no more than this many in a day: a fifth of a depot's
+//: hundred and sixty stood thirty-two at one doorway at lunchtime (measured 2026-11-21).
+export const BREAK_OUTSIDE_MOST = 7;
+//: Someone whose work is a round on foot (letters, a beat) keeps to a patch of their own this far
+//: from the place they work from (m): all started from its door, ten and more on one corner.
+export const BEAT_M = [140, 420];
 //: Up to this speed one of the city's drivers stops dead for one of its walkers (about 15 mph).
 export const NPC_STOP_DEAD_MS = 7;
 //: The longest a frame's slice of the district scan may run (ms).
@@ -318,17 +325,37 @@ export class Roster {
   //: Those who live and work outside the district and drive through it once a game day, on
   //: their way to work or home (rules.json density.commuters): traffic without anyone to keep
   //: track of the rest of the day.
+  //:
+  //: These are partial people: a row in a table and no more -- a name, a car, a bank balance, and
+  //: one of two days. Most drive **through** (in at one edge, out at another). The rest **work
+  //: here** (``works_share``): in at the morning rush to the same place every day, the car left
+  //: at its kerb till the evening, and out again -- which is what fills a district's parking by
+  //: day. None has a home here, a story, a routine or anything to say; from the street each is a
+  //: driver seen from the waist up through a windscreen. Their money moves only when something
+  //: makes it: a crash they are in is billed to them (``billPartial``), and that is all.
   commutersUpTo(n) {
-    const K = VISITOR_KINDS.find((x) => x.kind === "commuter");
+    const K = VISITOR_KINDS.find((x) => x.kind === "commuter"), works = this.R.density?.commuters?.works_share ?? 0;
     for (let k = this.commuters.size; k < n; k += 1) {
       const id = `commuter:${k}`, r = rng(this.seed, id);
       this.commuters.set(id, { id, name: `${pick(r, FIRST)} ${pick(r, LAST)}`, role: "visitor", kind: "commuter", title: K.title, uniform: pick(r, CLOTHES),
-        pace: 1.1 + r() * 0.4, height: 1.56 + r() * 0.34, visitor: true, commuter: true, car: `veh:${id}` });
+        pace: 1.1 + r() * 0.4, height: 1.56 + r() * 0.34, visitor: true, commuter: true, partial: true, car: `veh:${id}`,
+        pattern: hash32(this.seed, id, "pattern") % 1000 < works * 1000 ? "works" : "through", balance: 800 + (hash32(this.seed, id, "balance") % 24000), bills: [] });
       this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model: mixPick(r, K.models), shade: r(), plate: plateOf(id), visitor: true, kind: "commuter" });
     }
   }
   //: A visitor or a commuter by id.
   visitorOf(id) { return this.visitors.get(id) || this.commuters.get(id); }
+  //: A partial person made to pay (a crash they were in): taken from their balance, as far as it
+  //: goes, and written against them. {paid, owed, balance} -- or null if ``id`` is not one.
+  billPartial(id, amount, why, when = null) {
+    const p = this.commuters.get(id);
+    if (!p || !(amount > 0)) return null;
+    const paid = Math.min(p.balance, Math.round(amount)), owed = Math.round(amount) - paid;
+    p.balance -= paid;
+    p.bills.push({ why, amount: Math.round(amount), paid, owed, when });
+    if (p.bills.length > 12) p.bills.shift();
+    return { paid, owed, balance: p.balance };
+  }
   //: What to keep on this device: who works where.
   toJSON() { return { work: this.saved.work, npcGroups: this.saved.npcGroups }; }
 }
@@ -558,7 +585,22 @@ export class City {
   }
   //: A gate drawn by its weight; or, for a corridor trip, the two ends of one corridor.
   pickGate(r, gates) {
-    const w = gates.map((g) => this.gateInfo(g).weight), total = w.reduce((a, b) => a + b, 0);
+    // A street's end is one way in however many of its points lie at the edge: where a street
+    // runs along the district's edge (Lombard's last blocks, Marina Boulevard) every point of it
+    // was a gate at the street's full weight, and that end sent out ten times its traffic --
+    // Lombard two to one eastbound (measured 2026-11-21). Each gate's weight is shared among
+    // the gates of the same street within 150 m of it.
+    this._gateShare ??= new Map();
+    const shareOf = (g) => {
+      let s = this._gateShare.get(g);
+      if (s === undefined) {
+        const name = this.gateInfo(g).name, N = this.streets.nodes[g];
+        const near = name ? this.gateways.filter((o) => this.gateInfo(o).name === name && Math.hypot(this.streets.nodes[o].x - N.x, this.streets.nodes[o].z - N.z) < 150).length : 1;
+        s = 1 / Math.max(1, near); this._gateShare.set(g, s);
+      }
+      return s;
+    };
+    const w = gates.map((g) => this.gateInfo(g).weight * shareOf(g)), total = w.reduce((a, b) => a + b, 0);
     let x = r() * total;
     for (let i = 0; i < gates.length; i += 1) { x -= w[i]; if (x <= 0) return gates[i]; }
     return gates[gates.length - 1];
@@ -574,12 +616,20 @@ export class City {
     const N = (g) => this.streets.nodes[g];
     // (In by an end traffic comes in at, out by one it leaves at: the farthest such two.)
     this.gateways;
-    let best = null;
+    // One way along it or the other, at the toss of a coin: the farthest pair each way (east to
+    // west, and west to east; on a street that runs the other way, north and south). Taken as
+    // simply the farthest pair, whichever end's gates lay a few metres further out won every
+    // time, and Lombard ran two to one eastbound (measured on the real Marina, 2026-11-21).
+    const ways = [null, null];
     for (const a of c.gates) for (const b of c.gates) {
       if (a === b || !this._gateIn.has(a) || !this._gateOut.has(b)) continue;
-      const d = Math.hypot(N(a).x - N(b).x, N(a).z - N(b).z) * (0.75 + 0.5 * r());
-      if (!best || d > best.d) best = { a, b, d };
+      const dx = N(b).x - N(a).x, dz = N(b).z - N(a).z, d = Math.hypot(dx, dz) * (0.75 + 0.5 * r());
+      const k = (Math.abs(dx) >= Math.abs(dz) ? dx : dz) >= 0 ? 0 : 1;
+      if (!ways[k] || d > ways[k].d) ways[k] = { a, b, d };
     }
+    const far = Math.max(ways[0]?.d || 0, ways[1]?.d || 0);
+    const open = ways.filter((w) => w && w.d >= far * 0.6);
+    const best = open.length ? open[Math.floor(r() * open.length) % open.length] : null;
     return best ? [best.a, best.b] : null;
   }
   //: The network of streets a node is on (-1: none).
@@ -1288,7 +1338,12 @@ export class City {
       places = this.roster.list.filter((pl) => (pl.shops?.length || pl.use === "office" || pl.use === "restaurant")
         && pl.x >= box[0] && pl.x <= box[2] && pl.z >= box[1] && pl.z <= box[3] && this.netOf(this.streets.nearest(pl.x, pl.z, "kerb", 200)) === net[0]);
       this._netPlaces.set(net[0], places);
+      // And the homes a caller might be going to: a friend's, a parcel's, a plumber's job.
+      this._netHomes ??= new Map();
+      this._netHomes.set(net[0], this.roster.list.filter((pl) => pl.use === "residential" && !pl.court
+        && pl.x >= box[0] && pl.x <= box[2] && pl.z >= box[1] && pl.z <= box[3] && this.netOf(this.streets.nearest(pl.x, pl.z, "kerb", 200)) === net[0]));
     }
+    const homes = this._netHomes?.get(net[0]) || [];
     // When they drive: commuters in the rush hours, deliveries in the working day, ride-hail
     // into the evening, the rest as through traffic does (rules.json traffic.by_hour).
     const H = this.R.traffic?.by_hour || {};
@@ -1316,7 +1371,23 @@ export class City {
     const [lo, hi] = K.trips || this.R.density?.visitor_trips || [3, 6];
     const n = lo + Math.floor(r() * (hi - lo + 1));
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
-    for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
+    // A stop is at a shop, or -- as often as ``calls_share`` -- at somebody's home: the car is
+    // driven to that street, parked at its kerb and its driver goes in. That is what puts a car
+    // on a residential block and in its parking: with every stop a shop's, the through traffic
+    // kept to the corridors and two blocks in five saw no car in three minutes at five o'clock.
+    const callsShare = K.stop ? 0 : this.R.density?.calls_share ?? 0;
+    // One who works here: in for the morning, the car at the kerb all day, out in the evening
+    // -- to the same door every day (drawn from who they are, not from the day).
+    const works = p.commuter && p.pattern === "works" && (places.length || homes.length);
+    if (works) {
+      const w = rng(this.seed, p.id, "workplace"), at = (6.6 + w() * 2.6) * 60 + (r() - 0.5) * 20, leave = (15.8 + w() * 3) * 60 + (r() - 0.5) * 20;
+      const pool = places.length && (w() < 0.7 || !homes.length) ? places : homes, [g1, g2] = ends();
+      trips.push({ at, visit: pick(w, pool).id, call: true, work: true, g1, g2: g1, dwell: leave - at, brief: false });
+    }
+    for (let k = 0; k < (works ? 0 : n); k += 1) {
+      const [g1, g2] = ends(), stops = r() < stopShare, call = stops && homes.length && r() < callsShare;
+      trips.push({ at: hourPick() * 60 + r() * 60, visit: call ? pick(r, homes).id : stops && places.length ? pick(r, places).id : null, call, g1, g2, dwell: call ? 20 + r() * 70 : d0 + r() * (d1 - d0), brief: Boolean(K.stop) });
+    }
     // Some existing visiting motorists book an indoor appointment on their own street network.
     const service = rng(this.seed, p.id, t.day, "auto service");
     if (!K.stop && trips.length && service() < 1 / 18) {
@@ -1336,7 +1407,9 @@ export class City {
     for (const [k, trip] of trips.entries()) {
       const depart = Math.max(trip.at, clock + 5);
       if (depart > F(1430)) break;
-      const from = segs.length, seen = p.commuter || !(this.through < 1) || hash32(p.id, t.day, "trip", k) % 1000 < this.through * 1000;
+      // (A call at a home is seen more often than a way through: ``calls_seen`` times as often.)
+      const share = this.through * (trip.call ? this.R.density?.calls_seen ?? 1 : 1);
+      const from = segs.length, seen = p.commuter || !(this.through < 1) || hash32(p.id, t.day, "trip", k) % 1000 < share * 1000;
       const mark = () => { for (let i = from; i < segs.length; i += 1) segs[i].unseen = !seen; };
       const A = node(trip.g1);
       if (trip.visit && trip.brief) {
@@ -1358,8 +1431,9 @@ export class City {
         const w = tripMinutes(Math.hypot(spot.x - P.x, spot.z - P.z), p.pace) + 0.5;
         segs.push({ kind: "go", mode: "walk", t0: depart + d1, t1: depart + d1 + w, fromXZ: [spot.x, spot.z], to: trip.visit, visitor: true });
         const start = depart + d1 + w;
-        segs.push({ kind: trip.service ? "stay" : "roam", t0: start, t1: start + trip.dwell, place: trip.visit,
-          act: trip.service ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: "At the auto service counter" } : { kind: "stroll", start }, visitor: true });
+        segs.push({ kind: trip.service || trip.call ? "stay" : "roam", t0: start, t1: start + trip.dwell, place: trip.visit,
+          act: trip.service ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: "At the auto service counter" }
+            : trip.call ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: trip.work ? "At work" : "Calling at a home" } : { kind: "stroll", start }, visitor: true });
         const back = depart + d1 + w + trip.dwell;
         segs.push({ kind: "go", mode: "walk", t0: back, t1: back + w, from: trip.visit, toXZ: [spot.x, spot.z], visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS);
@@ -1677,7 +1751,7 @@ export class City {
     // theirs inside. (Everyone out at once stood twenty and more at one doorway: 468 of the 525
     // people in tight groups in the Marina, 2026-11-17.)
     // (Those who stay in are in the back, not seen: stood on the shop floor they were the same crowd, indoors.)
-    if (a.kind === "break" && a.outside && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF !== 0) return null;
+    if (a.kind === "break" && a.outside && !this.breakOutside(p, t)) return null;
     if (a.kind === "break" && a.outside) {
       // Out of the door for a break: on the pavement in front of it, a step or so out (door and
       // front point in) -- not out at the kerb among the parked cars -- and along the front, not
@@ -1897,22 +1971,42 @@ export class City {
     return leg;
   }
   //: The way of one twelve-minute round (cached).
+  //: Whether ``p`` takes today's break out of doors: one in BREAK_OUTSIDE_OF, fewer of a large
+  //: place's people (BREAK_OUTSIDE_MOST of them at most).
+  breakOutside(p, t) {
+    const people = this.roster.people;
+    if (!this._staff || this._staff.n !== people.size) {
+      const by = new Map();
+      for (const q of people.values()) if (q.work) by.set(q.work, (by.get(q.work) || 0) + 1);
+      this._staff = { n: people.size, by };
+    }
+    const of = Math.max(BREAK_OUTSIDE_OF, Math.ceil((this._staff.by.get(p.work) || 0) / BREAK_OUTSIDE_MOST));
+    return hash32(p.id, t.day, "break-out") % of === 0;
+  }
   roamOf(p, seg, place, t, leg) {
     const key = `${p.id}:${t.day}:${Math.round(seg.t0)}:${leg}`;
     let r0 = this.roams.get(key);
     if (r0 === undefined) {
       const r = rng(p.id, t.day, seg.act.kind, leg), drive = seg.drive, mode = drive ? "drive" : "walk";
-      const from = drive ? this.streets.nearest(place.x, place.z, "kerb", 200) : place.node;
+      // A round at work on foot is walked on the worker's own patch (the same every day), not
+      // out from the door and back with everyone else who works from it.
+      let base = place, beat = null;
+      if (!drive && seg.act.kind !== "stroll") {
+        const ang = ((hash32(p.id, "beat") % 3600) / 3600) * Math.PI * 2, far = BEAT_M[0] + ((hash32(p.id, "beat-far") % 1000) / 1000) * (BEAT_M[1] - BEAT_M[0]);
+        const node = this.streets.nearest(place.x + Math.cos(ang) * far, place.z + Math.sin(ang) * far, "walk", 160);
+        if (node !== null && node !== undefined) { const N = this.streets.nodes[node]; beat = { x: N.x, z: N.z }; base = { x: N.x, z: N.z, node }; }
+      }
+      const from = drive ? this.streets.nearest(place.x, place.z, "kerb", 200) : base.node;
       let to = null;
       for (let k = 0; k < 6 && to === null; k += 1) {
         const ang = r() * Math.PI * 2, dist = (drive ? 500 : 180) * (0.4 + r());
-        to = this.streets.nearest(place.x + Math.cos(ang) * dist, place.z + Math.sin(ang) * dist, drive ? "kerb" : "walk", 120);
+        to = this.streets.nearest(base.x + Math.cos(ang) * dist, base.z + Math.sin(ang) * dist, drive ? "kerb" : "walk", 120);
         if (drive && to !== null && this.netOf(to) !== this.netOf(from)) to = null;
       }
       const route = this.streets.route(from, to, mode);
       r0 = route && route.length >= 5 ? { route, drive } : null;
       // On foot: out and back on the pavement, over at the crosswalks.
-      if (r0 && !drive) r0.pave = this.paveFor(p, route, { from: this.anchor(seg.place, null, { door: false }) });
+      if (r0 && !drive) { r0.home = beat || this.anchor(seg.place, null, { door: false }); r0.pave = this.paveFor(p, route, { from: r0.home }); }
       if (this.roams.size > 8000) this.roams.delete(this.roams.keys().next().value);
       this.roams.set(key, r0);
     }
@@ -1934,7 +2028,9 @@ export class City {
     const r0 = this.roamOf(p, seg, place, t, leg);
     if (!r0) return null;
     const { drive } = r0, route = drive ? r0.route : r0.pave;
-    const speed = drive ? (seg.act.outdoor === "sweep" ? 2.2 : 8) : p.pace * (seg.act.kind === "stroll" ? 0.8 : 1);
+    // (A runner -- dressed for it, wardrobe.mjs -- goes for a run, not a walk: at a jog.)
+    const running = !drive && seg.act.kind === "stroll" && !p.visitor && isRunner(p);
+    const speed = drive ? (seg.act.outdoor === "sweep" ? 2.2 : 8) : running ? p.pace * 2.1 : p.pace * (seg.act.kind === "stroll" ? 0.8 : 1);
     // Whole out-and-backs in the twelve minutes (or what is left of the stay), so each way ends
     // where the next begins, at the place: a walker never jumps from one round to the next.
     const span = Math.max(0.05, Math.min(12, seg.t1 - seg.t0 - leg * 12)) * 60, L = route.length;
@@ -1948,10 +2044,10 @@ export class City {
     // turn, not in one step.
     // (A walker keeps to the same pavement: the offset is to the right of the way, not of travel.)
     const turn = Math.min(1, Math.min(along, far - along) / 10), k = drive ? (forward ? 1 : -1) * turn : 1;
-    const home = drive ? null : this.anchor(seg.place, null, { door: false });
+    const home = drive ? null : r0.home || this.anchor(seg.place, null, { door: false });
     const pos = drive ? alongRoute(route, along, (half, cls, park, i) => k * KERB(half, cls, park, i, k > 0 ? route : null)) : this.walkEnds(route, along, 0, home, null, 3);
     if (!forward) pos.yaw += Math.PI;
-    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
+    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : running ? "out for a run" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
   }
   //: Where a car is at ``t``: on its way (and how far along), or standing where its last trip
   //: ended -- on the street, in a garage, or away beyond the district's streets.
@@ -2050,7 +2146,7 @@ export class City {
         continue;
       }
       // (Nobody takes their break out in the rain: view.mjs sets ``wet``.)
-      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && hash32(p.id, t.day, "break-out") % BREAK_OUTSIDE_OF === 0 && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
+      if ((seg.act.kind === "break" && seg.act.outside && !this.wet && this.breakOutside(p, t) && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
       const v = S.V[S.j], s = this.vehicleAt(v, t);
@@ -2149,7 +2245,7 @@ export class City {
 // what is in its way: ``step`` says so, at what speed. How far behind its day a car falls by all
 // that (``delay``) it keeps when it goes out of sight, so it does not jump.
 
-export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6, gap_m: 2.5, headway_s: 1.2, look_m: 45,
+export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6, gap_m: 2.5, headway_s: 1.2, look_m: 45, left_gap_s: 4.5, left_wait_s: 14,
   stop_line_m: 5, stop_sign_s: 1.4, signal_cycle_s: 42, green_s: 18, amber_s: 3, person_half_m: 0.35,
   // No queue stands for good: a car held behind another for ``stuck_queue_s`` with no light or
   // stop sign holding it creeps on. A car at the end of its leg pulls in and is parked at once.
@@ -2435,7 +2531,32 @@ export class Drivers {
         for (const o of blockers) ahead(o.x, o.z, o.length || 4.5, o.v || 0, o.yaw);
         // (And for anyone on foot in front of it.)
         for (const q of people) { const dx = q.x - p.x, dz = q.z - p.z, fwd = dx * efx + dz * efz; if (fwd > 0 && fwd < T.look_m && Math.abs(dx * efz - dz * efx) < 2.2 && fwd - c.length / 2 - 1.5 < room) { room = fwd - c.length / 2 - 1.5; lead = 0; } }
+        // (And along its way as it bends: straight ahead misses whatever stands round the corner
+        // or in the junction it is about to turn through -- 3 of 13 crashes, 2026-11-21.)
+        for (let far = 4; far <= T.look_m && far - c.length / 2 - T.gap_m < room && st.d + far < c.route.length; far += 3) {
+          const q = alongRoute(c.route, st.d + far, st.side);
+          near(q.x, q.z, 3, (oid) => {
+            if (oid === c.id) return;
+            const o = pos.get(oid) || null, ost = this.cars.get(oid);
+            if (!o || Math.hypot(o.x - q.x, o.z - q.z) > 2.6) return;
+            const gap = far - (c.length + o.c.length) / 2 - T.gap_m;
+            if (gap < room) { room = gap; lead = Math.cos(o.yaw - q.yaw) > 0.4 && !ost?.hit ? Math.max(0, ost?.v || 0) : 0; }
+          });
+        }
         if (room < Infinity) st.v = Math.min(st.v, lead + Math.sqrt(2 * T.brake * 0.8 * Math.max(0, room)));
+        // And short of a light that is not green, or a stop sign: it came in a few metres from a
+        // red at its cruising speed and went through it, braking (16 of 637 lights passed in three
+        // minutes of a weekday evening, measured 2026-11-21).
+        if (c.route.ids) for (const P of this.passages(c.route)) {
+          const far = P.s0 - st.d;
+          if (far < -1) continue;
+          const node = c.route.ids[P.i0], toLine = far - this.stopLine(node, c);
+          if (toLine > st.v * st.v / (2 * T.brake * 0.8)) break;
+          if (toLine < -0.5) continue;
+          const [ax, az] = c.route.pts[P.i0 - 1], [bx, bz] = c.route.pts[P.i0];
+          if (P.kind === "stop" || signalAt(this.streets, node, Math.atan2(bx - ax, bz - az), tsec, T) !== "green") st.v = Math.min(st.v, Math.sqrt(2 * T.brake * 0.8 * Math.max(0, toLine)));
+          break;
+        }
         st.fresh = false;
       }
       pos.set(c.id, p);
@@ -2525,8 +2646,11 @@ export class Drivers {
       for (const P of this.passages(c.route)) {
         const ahead = P.s0 - st.d;
         if (ahead < -1) continue;
-        if (ahead > T.look_m) break;
-        const node = ids[P.i0], toLine = ahead - this.stopLine(node, c);
+        // (Seen from as far off as it takes to stop at its line: the line of a wide street's
+        // junction is well short of its middle, and at 30 mph ``look_m`` was too late for it.)
+        const node = ids[P.i0], back = this.stopLine(node, c);
+        if (ahead > Math.max(T.look_m, back + st.v * st.v / (2 * T.brake) + st.v * 1.5 + 6)) break;
+        const toLine = ahead - back;
         if (P.kind === "stop") {
           if (st.stopped.has(P.key)) continue;
           if (toLine < 0.8 && st.v < 0.4) { if (!st.waitUntil) st.waitUntil = tsec + T.stop_sign_s; if (tsec >= st.waitUntil) { st.stopped.add(P.key); st.waitUntil = 0; continue; } }
@@ -2603,8 +2727,45 @@ export class Drivers {
                 break;
               }
             }
+            // A left turn waits at its line for a gap in what comes the other way and then turns
+            // straight into its lane: first come, first through let it cut across a car coming on
+            // at speed, which braked for it or did not (the rule of the road; asked 2026-11-21).
+            // Not for ever: held ``left_wait_s`` with no gap, it takes its turn as any other.
+            const myTurn = turnOf(claim.inU, claim.outU), leftish = myTurn === "L" || myTurn === "U";
+            if (!leftish) st.gapSince = 0;
+            const patient = leftish && (!st.gapSince || tsec - st.gapSince < T.left_wait_s);
+            let oncoming = false;
+            if (patient) {
+              near(J.mid[0], J.mid[1], T.left_gap_s * 14 + J.reach, (oid) => {
+                if (oncoming || oid === c.id) return;
+                const o = pos.get(oid), ost = this.cars.get(oid);
+                if (!o || !ost || ost.hit || arrived(o.c, ost) || ost.v < 1.5) return;
+                // Coming the other way, still short of the junction's middle, in the street this one leaves.
+                const fx = -Math.sin(o.yaw), fz = -Math.cos(o.yaw);
+                if (fx * claim.inU[0] + fz * claim.inU[1] > -0.8) return;
+                const rx = o.x - J.mid[0], rz = o.z - J.mid[1], off = rx * claim.inU[0] + rz * claim.inU[1];
+                if (off < -2 || Math.abs(rx * claim.inU[1] - rz * claim.inU[0]) > 14) return;
+                // (One turning left itself passes in front; one about to turn off slows and is seen again.)
+                const theirs = box.get(oid);
+                if (theirs && turnOf(theirs.inU, theirs.outU) === "L") return;
+                if (off / ost.v < T.left_gap_s) oncoming = true;
+              });
+              if (oncoming) {
+                if (!st.gapSince) st.gapSince = tsec;
+                const v = Math.sqrt(2 * T.brake * Math.max(0, toLine));
+                if (v < target) { target = v; reason = "giving way to oncoming"; }
+              }
+            }
             for (const o of box.values()) {
-              if (o.id === c.id || !(o.entered || o.at < claim.at || (o.at === claim.at && o.id < c.id))) continue;
+              if (oncoming) break;
+              const first = o.entered || o.at < claim.at || (o.at === claim.at && o.id < c.id);
+              // (Across a left turn that is still waiting for its gap, one coming straight on goes.)
+              const oTurn = turnOf(o.inU, o.outU), opposite = o.inU[0] * claim.inU[0] + o.inU[1] * claim.inU[1] < -0.85;
+              // (Only for one that is moving: two stood facing each other, each waiting for the
+              // other, never left -- then it is first come, first through as before.)
+              const oMoving = (this.cars.get(o.id)?.v || 0) >= 1.5;
+              if (o.id === c.id || (!first && !(patient && opposite && oMoving && oTurn !== "L" && oTurn !== "U"))) continue;
+              if (!o.entered && !leftish && opposite && st.v >= 1.5 && (oTurn === "L" || oTurn === "U") && /^giving way/.test(this.cars.get(o.id)?.reason || "")) continue;
               // (One still in the queue behind another has no turn yet: giving way to it, while
               // the car it waits behind gives way to this one, was a ring nobody left: 2026-11-13.)
               if (!o.entered && this.cars.get(o.id)?.reason === "the car ahead") continue;

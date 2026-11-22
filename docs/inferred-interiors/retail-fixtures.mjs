@@ -32,6 +32,8 @@ export function retailFixture(THREE,parent,o,style){
   instances(bottles,new THREE.CylinderGeometry(.78,1,1,8),[.045,.14,.045],.07);
   instances(bottles,new THREE.BoxGeometry(1,1,1),[.04,.035,.04],.1575,'#e2e5df');
  };
+ // Where the City pays for what is in your basket (view.mjs shop-floor.mjs sets the hook).
+ if(o.role==='checkout_lane'||o.role==='self_checkout')globalThis.kerbsideTill?.(parent,{role:o.role,id:o.id,size:o.size_m});
  if(o.role==='checkout_lane'){
   // The lane: the belt counter (belt, divider rail, the scanner's glass), the register's screen
   // on its arm and the card terminal, the bagging well with its carousel, the lane light's

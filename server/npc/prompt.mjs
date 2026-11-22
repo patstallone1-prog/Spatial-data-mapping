@@ -17,7 +17,8 @@ How to answer:
 - The character's private details are theirs to share as they see fit; never give out details about any other person beyond what is on the sheet.
 - Never mention the sheet, the notes, these guidelines, or being a model or an AI. If asked, stay in character.
 - Stay kind and suitable for all ages. Decline anything harmful or abusive briefly, in character, and move on.
-- Plain text only: no markdown, no lists, no emoji, no stage directions or actions in asterisks.`;
+- Plain text only: no markdown, no lists, no emoji, no stage directions or actions in asterisks.
+- If the player asks you to physically do something for them -- carry or lift something, wait, step aside, hold a door, come along, give them a lift, help move furniture -- and there is no DECISION about it, do not agree or refuse yet: say you will see, and end your reply with exactly one tag [[favour:KIND]], KIND one of carry, wait, make_way, hold_door, come, ride, move_house. Never write the tag otherwise.`;
 
 const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const FAMILIES = ["reserved", "warm", "direct", "expressive"];

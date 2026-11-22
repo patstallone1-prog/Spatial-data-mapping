@@ -1,4 +1,4 @@
-// Who is drawn as an Unreal character (docs/city/npc-figures.mjs figurePlan): everyone in view big
+// Who is drawn as a near-ring person (docs/city/npc-figures.mjs figurePlan): everyone in view big
 // enough on the screen to be told from a jointed figure, or near you, however many -- and, ahead
 // of time and out of sight, everyone on their way into that, so a person walking up is already a
 // character when they arrive. Only those further off than a character shows are lower-detail
@@ -54,7 +54,7 @@ test("a character is anyone tall enough on the screen to be told apart, or near 
   const crowd = Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, x: i * 0.7, z: 3, vx: 0, vz: 0, fits: true, inView: true, female: i % 2 === 0 }));
   const plan = figurePlan(crowd, { x: 0, z: 0 }, { x: 0, z: 0 }, reach);
   assert.equal(plan.draw.length, 40); assert.equal(plan.spilled, 0);
-  assert.deepEqual(plan.want, { ada: 20, manny: 20 });
+  assert.deepEqual(plan.want, { female: 20, male: 20 });
   // Out of view but within it: held, hidden, for when you turn round.
   const behind = figurePlan([{ id: "b", x: -5, z: 0, vx: 0, vz: 0, fits: true, inView: false }], { x: 0, z: 0 }, { x: 0, z: 0 }, reach);
   assert.equal(behind.ready.length, 1);
@@ -67,7 +67,8 @@ test("a character is anyone tall enough on the screen to be told apart, or near 
 
 test("on the fleet's own crowd, past a camera turning round, everyone who walks into view big enough is a character already given one", () => {
   // (Every walk seen, and the visitors all through: a crowd thicker than the Marina's, to load it.)
-  const RX = { ...R, density: { ...R.density, walks_seen: 1 } };
+  // (And no visitor calling at a home, which takes them indoors: this is a test of a full street.)
+  const RX = { ...R, density: { ...R.density, walks_seen: 1, calls_share: 0 } };
   const { streets, places } = town(), roster = new Roster(RX, { seed: "figures" });
   roster.add(places);
   roster.visitorsUpTo(1500);

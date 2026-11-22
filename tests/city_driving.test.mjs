@@ -99,7 +99,8 @@ test("only a share of the through traffic is driven in sight, the same trips eve
   // (Decided a trip at a time when it is planned -- the drive, the walk from the kerb and the hour
   // about the shops together: visitorPlan's ``unseen`` -- and by the leg for a plan without it.)
   assert.match(fleet, /if \(leg\.unseen \|\| \(leg\.unseen === undefined && v\.visitor && this\.through < 1 && hash32\(v\.id, Math\.round\(leg\.t0\)\) % 1000 >= this\.through \* 1000\)\) continue;/);
-  assert.match(fleet, /seen = p\.commuter \|\| !\(this\.through < 1\) \|\| hash32\(p\.id, t\.day, "trip", k\) % 1000 < this\.through \* 1000/);
+  assert.match(fleet, /seen = p\.commuter \|\| !\(this\.through < 1\) \|\| hash32\(p\.id, t\.day, "trip", k\) % 1000 < share \* 1000/);
+  assert.match(fleet, /const share = this\.through \* \(trip\.call \? this\.R\.density\?\.calls_seen \?\? 1 : 1\)/, "a call at a home is seen more often");
   assert.match(view, /district\.city\.through = R\.density\?\.through_driven \?\? THROUGH_DRIVEN/);
   const share = Number(/const THROUGH_DRIVEN = ([\d.]+);/.exec(view)[1]);
   assert.ok(share > 0.05 && share <= 0.3, `a share that leaves the streets moving: ${share}`);
