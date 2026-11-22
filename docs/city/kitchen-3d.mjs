@@ -1,3 +1,4 @@
+import { kitchenChef } from "./kitchen-chef.mjs";
 // The kitchen as a place (docs/city/kitchen-panel.mjs plays it; docs/city/kitchen.mjs keeps the rules).
 //
 // A generic back-of-house room, dressed by the kind of restaurant: a fast-food line in stainless
@@ -366,6 +367,7 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
   async function device(id, x, z, w, back) {
     const g = new THREE.Group(); g.position.set(x, 0, z);
     const facing = back ? 1 : -1;   // back-counter devices face the room (+z)
+    const rings=[]; let knife;
     let slots = [], topY = COUNTER_Y, label = id;
     const onTop = (o) => { o.position.y += COUNTER_Y; g.add(o); return o; };
     const glowMat = (color) => std("#222", { emissive: color, emissiveIntensity: 0 });
@@ -399,10 +401,16 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
       if (id === "stove") {
         for (let i = 0; i < 4; i += 1) {
           const sx = (i % 2 ? 1 : -1) * w / 4.2, sz = i < 2 ? 0.1 : -0.1;
-          const ring = cyl(0.07, 0.07, 0.01, glowMat(0xff3b1f), 16); ring.position.set(sx, COUNTER_Y + 0.005, sz); g.add(ring);
+          const ring=new THREE.Mesh(new THREE.TorusGeometry(Math.min(w*.2,.09),.008,8,36),glowMat(0xff4318));
+          ring.rotation.x=-Math.PI/2;ring.position.set(sx,COUNTER_Y+.014,sz);g.add(ring);rings.push(ring);
           const pot = await kenney(i % 2 ? "pot" : "frying-pan", i % 2 ? 0.2 : 0.24);
-          if (pot) { pot.position.set(sx, COUNTER_Y + 0.01, sz); g.add(pot); }
-          slots.push(new THREE.Vector3(sx, COUNTER_Y + (i % 2 ? 0.05 : 0.03), sz));
+          if (pot && i!==0) { pot.position.set(sx, COUNTER_Y + 0.01, sz); g.add(pot); }
+          if(i===0){
+            const pan=new THREE.Mesh(new THREE.CylinderGeometry(.078,.067,.07,32,1,true),steel);
+            pan.material=steel.clone();pan.material.side=THREE.DoubleSide;pan.position.set(sx,COUNTER_Y+.053,sz);g.add(pan);
+            const handle=box(.027,.025,.14,darkSteel);handle.position.set(sx,COUNTER_Y+.067,sz+.13);g.add(handle);
+          }
+          slots.push(new THREE.Vector3(sx, COUNTER_Y + (i===0?.065:i % 2 ? .05 : .03), sz));
         }
       } else {
         glow = new THREE.PointLight(0xff7a2a, 0, 0.9); glow.position.set(0, 0.45, 0.25); g.add(glow);
@@ -441,9 +449,10 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
       for (let i = 0; i < 2; i += 1) slots.push(new THREE.Vector3(-w / 4 + (w / 2) * i, COUNTER_Y + 0.02, 0.12));
     } else {
       const F = { microwave: ["kitchenMicrowave", 0.48], blender: ["kitchenBlender", 0.22], espresso: ["kitchenCoffeeMachine", 0.42], toaster: ["toaster", 0.3] }[id];
-      if (F) { const o = await furniture(F[0], { w: F[1] }); if (o) onTop(o); }
+      if (id==="blender"){const base=box(.16,.085,.16,darkSteel);base.position.y=COUNTER_Y+.042;g.add(base);}
+      if (F && id!=="blender") { const o = await furniture(F[0], { w: F[1] }); if (o) onTop(o); }
       if (id === "kettle") { const o = await kenney("pot", 0.22); if (o) onTop(o); }
-      if (id === "board") { const o = await kenney("cutting-board", 0.42); if (o) { o.rotation.y = Math.PI / 2; onTop(o); } const kn = await kenney("cooking-knife-chopping", 0.2); if (kn) { kn.position.set(0.17, COUNTER_Y + 0.03, 0.12); kn.rotation.y = 0.4; g.add(kn); } }
+      if (id === "board") { const o = await kenney("cutting-board", 0.42); if (o) { o.rotation.y = Math.PI / 2; onTop(o); } const kn = await kenney("cooking-knife-chopping", 0.2); if (kn) { knife=kn;kn.position.set(0.17, COUNTER_Y + 0.03, 0.12); kn.rotation.y = 0.4; g.add(kn); } }
       if (id === "bowl") { const o = await kenney("bowl", 0.3); if (o) onTop(o); }
       const at = { microwave: [0.0, 0.03], blender: [0, 0.2], espresso: [0, 0.03], toaster: [0, 0.1], kettle: [0, 0.12], board: [0, 0.03], bowl: [0, 0.04] }[id] || [0, 0.02];
       const n = id === "bowl" ? 1 : id === "espresso" || id === "toaster" || id === "kettle" ? 2 : 1;
@@ -451,9 +460,16 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
     }
     if (!back) g.rotation.y = 0;
     scene.add(g);
+    const card=document.createElement("canvas");card.width=256;card.height=56;
+    const ctx=card.getContext("2d");ctx.fillStyle="#263336";ctx.fillRect(0,0,256,56);
+    ctx.fillStyle="#fff8df";ctx.font="bold 30px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(({pizza_oven:"Pizza oven",board:"Cutting board",bowl:"Mixing bowl",cooler:"Cooling rack"})[id] || id[0].toUpperCase()+id.slice(1),128,28,244);
+    const placard=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(card)}));
+    placard.position.set(0,COUNTER_Y+(back?.49:.13),back?-.19:-.13);
+    placard.scale.set(Math.min(.5,w),Math.min(.5,w)*56/256,1);g.add(placard);
     hit(g, { type: "station", id });
     const world = slots.map((s) => s.clone().add(new THREE.Vector3(x, 0, z)));
-    return { id, group: g, x, z, w, slots: world, glow, approach: new THREE.Vector3(x, 0, back ? walk.z0 : walk.z1), facing };
+    return { id, group: g, x, z, w, slots: world, glow,rings,knife, approach: new THREE.Vector3(x, 0, back ? walk.z0 : walk.z1), facing };
   }
 
   // ---- storage behind: the fridge, the freezer, the dry shelves ----------------------------------------
@@ -494,6 +510,22 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
   if (S.lamps === "panel") for (let i = 0; i < 2; i += 1) { const p = box(1.2, 0.03, 0.4, new THREE.MeshBasicMaterial({ color: 0xffffff })); p.position.set(-1 + i * 2, 2.9, 0.2); scene.add(p); }
   if (S.plants) for (const [px, pz] of [[-ROOM_X + 0.4, FRONT_Z + 0.2], [ROOM_X - 0.35, FRONT_Z - 0.1]]) { const pl = await furniture("pottedPlant", { h: 0.9 }); if (pl) { pl.position.set(px, 0, pz); scene.add(pl); } }
 
+  const jug=new THREE.Group();
+  const carafe=new THREE.Mesh(new THREE.CylinderGeometry(.082,.056,.16,24,1,true),new THREE.MeshPhysicalMaterial({color:0xa4d3de,transparent:true,opacity:.55,side:THREE.DoubleSide}));
+  jug.add(carafe);const handle=new THREE.Mesh(new THREE.TorusGeometry(.047,.009,8,24),darkSteel);handle.position.x=.08;jug.add(handle);
+  const contents=cyl(.069,.053,.095,std("#d5a863"));contents.visible=false;contents.position.y=-.024;jug.add(contents);
+  const stream=cyl(.012,.016,.12,std("#d5a863"));stream.visible=false;scene.add(stream);
+  function dockJug(){
+    if(!layout.blender){jug.visible=false;return;}
+    layout.blender.group.add(jug);jug.visible=true;jug.rotation.set(0,0,0);jug.position.set(0,COUNTER_Y+.165,0);
+  }
+  dockJug();hit(jug,{type:"station",id:"blender"});
+  const vessels=[];
+  for(let i=0;i<2;i++){
+    const bowl=await kenney("bowl",.2);
+    const pos=new THREE.Vector3(WORK.x0+.17+i*.31,COUNTER_Y,WORK.z1-.04);vessels.push(pos);
+    if(bowl){bowl.position.copy(pos);hit(bowl,{type:"vessel",index:i});scene.add(bowl);}
+  }
   // ---- the cook ---------------------------------------------------------------------------------------
   const chef = new THREE.Group();
   const jacket = std("#f6f6f2", { roughness: 0.8 }), apronMat = std(S.apron, { roughness: 0.8 }), skin = std("#d9a882"), trousers = std("#2a2d33");
@@ -510,12 +542,18 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin); hand.position.y = -0.43; pivot.add(hand);
     chef.add(pivot); return pivot;
   });
+  const standIn=[...chef.children];
+  let skinnedPose,reachTime=-1e4;
+  kitchenChef(THREE,kit,chef).then(pose=>{skinnedPose=pose;for(const o of standIn)o.visible=false;}).catch(e=>console.warn("Kitchen chef model unavailable",e.message));
   const holdAt = new THREE.Group(); holdAt.position.set(0, 1.12, 0.3); chef.add(holdAt);
   chef.position.set(0, 0, 0);
   scene.add(chef);
   let walkPhase = 0, chopT = 0;
   //: The cook's pose: walking (speed m/s), holding something, chopping.
   function pose(dt, { speed = 0, holding = false, chopping = false }) {
+    const reach=Math.max(0,1-Math.abs((performance.now()-reachTime)/260-1));
+    holdAt.position.set(0,1.06-.1*reach,.29+.13*reach);
+    if(skinnedPose){skinnedPose(dt,speed,holding,chopping,reach);return;}
     walkPhase += dt * speed * 9;
     const swing = Math.sin(walkPhase) * Math.min(1, speed / 1.5) * 0.6;
     legs[0].rotation.x = swing; legs[1].rotation.x = -swing;
@@ -569,7 +607,7 @@ export async function createKitchenScene(THREE, { canvas, kind, stations, kit, t
   }
   function project(v) { const p = v.clone().project(camera); return { x: (p.x + 1) / 2, y: (1 - p.y) / 2, behind: p.z > 1 }; }
   return {
-    THREE, scene, camera, CAM, renderer, chef, holdAt, layout, storage, bins, setBins, passSlots, PASS, WORK, walk, style: S, COUNTER_Y,
+    THREE, scene, camera, CAM, renderer, chef, holdAt,jug,dockJug,contents,stream,vessels,reach:()=>{reachTime=performance.now();}, layout, storage, bins, setBins, passSlots, PASS, WORK, walk, style: S, COUNTER_Y,
     itemObject, tint, kenney, pose, emit, stepPuffs, frame, resize, pick, project, lit,
     render: () => renderer.render(scene, camera),
     dispose: () => { renderer.dispose(); scene.traverse((o) => { o.geometry?.dispose?.(); }); },

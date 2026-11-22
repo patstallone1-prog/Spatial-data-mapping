@@ -1618,7 +1618,7 @@ diffuseColor.rgb *= kbCloth;`);
     visitors: place => visitingCars(visible.people, district.city, fleetAt(Date.now()), place, !world), placeArg }));
   //: A food shop's line, lab and pantry, for its staff and its owner.
   let kitchenUI = null;
-  const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset }));
+  const kitchen = () => (kitchenUI ||= kitchenPanel({ R, h, send, notify, self, getView: () => view, placeArg, district, me, clock: CLOCK, address, doc, THREE, loadModel: ctx.loadModel, asset: ctx.asset, npcStore: ctx.npcStore }));
 
   // ---- the person serving: walk up to them and they ask what you want (clerk.mjs) --------------
   // In a shop, a café or a restaurant there is no buy button: whoever is at work there -- the host

@@ -347,3 +347,15 @@ test("dough shapes conserve volume and change bake time, and measured portions s
   assert.deepEqual(sanitize({build:plates[0]},"lab_test").build,plates[0]);
   assert.equal(sanitize({qty:1.2},"buy").qty,1);
 });
+
+test("preheating and speed changes integrate the previous setting before applying the new one", async()=>{
+  const {appliance,dial}=await import("../docs/city/kitchen-appliances.mjs");
+  const cold=dial("oven",null,0,"medium");
+  assert.equal(cold.value,21);
+  const warm=appliance("oven",cold,30000);
+  assert.ok(warm.value>150 && warm.value<180 && warm.dose<30);
+  const hot=dial("oven",cold,30000,"high");assert.equal(hot.dose,warm.dose);
+  assert.ok(appliance("oven",hot,60000).value>200);
+  const slow=dial("blender",null,0,"low"), fast=dial("blender",slow,10000,"high");
+  assert.ok(Math.abs(appliance("blender",fast,20000).dose-21.3)<1e-9);
+});

@@ -1,3 +1,4 @@
+import {cutPieces} from "./kitchen-cuts.mjs";
 // The restaurant game: a food shop's kitchen, worked by the people on its staff (docs/47-kitchen-game.md).
 //
 // Order tickets come in from the front. The cook takes what each dish needs from the pantry,
@@ -25,6 +26,7 @@
 // Installed on CityWorld's prototype (installKitchen, from world.mjs); tests in
 // tests/city_kitchen.test.mjs.
 
+import { appliance, dial, levels } from "./kitchen-appliances.mjs";
 import { workableDough, validShape, doughDimensions } from "./dough.mjs";
 import { cityTime, itemTax, storesAt } from "./core.mjs";
 import { estimateWeek, groupOf, hoursFor, isOpen, itemsFor, priceDemand, unitCost } from "./enterprise.mjs";
@@ -828,7 +830,7 @@ export function installKitchen(CityWorld, CityError) {
     const owner = role === "owner";
     return {
       id: k.id, kind: k.kind, name: k.name, role, owner_name: b ? (this.players.get(b.owner_pid)?.name || "the owner") : k.owner_name, cooks: k.cooks,
-      serverPrep: Boolean(this.authoritativeJobs), board: k.boards?.[p.id], stations: kitchenStations(R, k), pantry: k.pantry, ordered: k.ordered, incoming: owner ? k.incoming : k.incoming.map((x) => ({ at: x.at })),
+      appliances:k.appliances || {}, applianceNow:this.clock.real(this.now), serverPrep: Boolean(this.authoritativeJobs), board: k.boards?.[p.id], stations: kitchenStations(R, k), pantry: k.pantry, ordered: k.ordered, incoming: owner ? k.incoming : k.incoming.map((x) => ({ at: x.at })),
       menu: this.kitchenMenu(k), house_menu: k.menu, held: k.held[p.id] || {}, tickets: L?.tickets || [], covering: Boolean(L?.covering), busy: this.kitchenBusy(k),
       rating: ratingOf(R, rec), record: rec || null, tests: k.tests.filter((x) => owner || x.pid === p.id).slice(-12),
       proposals: k.proposals.filter((x) => owner || x.pid === p.id).slice(-12),
@@ -898,10 +900,16 @@ export function installKitchen(CityWorld, CityError) {
       return { ...part, lot };
     });
   }
-  W.cmd_kitchen_prepare = function (pid, { place, parts, station, proc, job, action, shape }) {
+  W.cmd_kitchen_prepare = function (pid, { place, parts, station, proc, job, action, shape, level, cut }) {
     const { k } = kitchenFor(this, this.player(pid), place),
       board = boardFor(k, pid);
     const now = this.clock.real(this.now);
+    const settings=k.appliances ||= {};
+    if(action==="dial"){
+      if(!levels.includes(level) || !stationsFor(this.R,k.kind).some(s=>s.id===station && station!=="board"))fail("Unknown appliance setting.");
+      settings[station]=dial(station,settings[station],now,level);
+      return {setting:settings[station],now};
+    }
     if (action === "start" || action === "shape") {
       if (Object.keys(board.lots).length + Object.keys(board.jobs).length >= 256)
         fail("Clear some space on your board.");
@@ -929,11 +937,22 @@ export function installKitchen(CityWorld, CityError) {
       if (inputs.some((c) => chain(c.p).length >= 128)) fail("Too many preparation steps.");
       const id = this.id("prep"),
         secs = batchSeconds(this.R, inputs, proc);
-      board.jobs[id] = { station, proc, inputs, at: now, secs, taps: 0 };
-      return { job: id, secs };
+      if(station!=="board" && !settings[station])settings[station]=dial(station,null,now,"medium");
+      const startDose=appliance(station,settings[station],now).dose;
+      board.jobs[id] = { station, proc, inputs, at: now, secs, taps: 0,startDose };
+      return { job: id, secs, startDose, setting:settings[station],now };
     }
     const j = Object.hasOwn(board.jobs, job) && board.jobs[job];
     if (!j) fail("This batch is no longer on the station.");
+    if(action==="cut" && j.proc==="chop"){
+      const {mode,fraction}=cut || {};
+      if(j.inputs.length!==1 || !["split","slice","dice"].includes(mode) || !Number.isFinite(fraction) || fraction<.02 || fraction>.98)fail("Choose one ingredient and a cut position.");
+      const source=j.inputs[0], count=mode==="dice"?16:mode==="slice"?6:2;
+      const pieces=cutPieces(mode,fraction,source.bounds).map(({bounds,share})=>({...source,p:[...chain(source.p),"chop"].join(">"),ratios:[...source.ratios,1],cut:mode,bounds,qty:source.qty*share}));
+      if(Object.keys(board.lots).length+count>256)fail("Use some of the cut pieces first.");
+      delete board.jobs[job];
+      return {parts:storeLots(this,board,pieces)};
+    }
     if (action === "tap" && j.proc === "chop") {
       if (now - (j.lastTap ?? 0) < 100) fail("Finish the previous cut.");
       j.lastTap = now;
@@ -942,7 +961,7 @@ export function installKitchen(CityWorld, CityError) {
     }
 
     if (action !== "finish") fail("Unknown station action.");
-    const ratio = j.proc === "chop" ? 1 : Math.min(10, Math.max(0, (now - j.at) / 1000 / j.secs));
+    const ratio = j.proc === "chop" ? 1 : Math.min(10, Math.max(0, (j.startDose==null?(now-j.at)/1000:appliance(j.station,settings[j.station],now).dose-j.startDose) / j.secs));
     if (
       (["chill", "cool"].includes(j.proc) && ratio < 1) ||
       (j.proc === "chop" && j.taps < this.R.kitchen.processes.chop.taps)

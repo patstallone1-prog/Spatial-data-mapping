@@ -47,25 +47,25 @@ test("a player authorizes their own parked car, a mechanic fits a fender, and th
   assert.equal(viewFor(w, "other").workOrders.length, 0);
   assert.equal(viewFor(w, "tech").workOrders.length, 1);
   assert.equal(action(w, v, "check", { site: "wing", check: "inspect" }, "other").ok, false);
-  assert.equal(action(w, v, "check", { site: "load", check: "inspect" }).ok, false);
+  assert.match(ok(action(w,v,"check",{site:"load",check:"inspect"})).message,/looks fine/);
   ok(action(w,v,"ask"));
   ok(action(w, v, "check", { site: "wing", check: "inspect" }));
   assert.equal(action(w, v, "check", { site: "wing", check: "inspect", revision: 0 }).ok, false);
-  assert.equal(action(w, v, "diagnose", { part: "ground" }).ok, false);
+  assert.match(ok(action(w,v,"diagnose",{part:"ground"})).message,/Provisional/);
   ok(action(w, v, "diagnose", { part: "fender" }));
-  assert.equal(action(w, v, "fit", { site: "wing", part: "fender", orientation: "reversed" }).ok, false);
+  assert.equal(ok(action(w,v,"fit",{site:"wing",part:"fender",orientation:"reversed"})).order.seated,false);
   const bins = w.workshopStock.get(place.id), before=bins.fender;
   ok(action(w,v,"issue",{part:"fender"}));
   assert.equal(bins.fender,before-1);
   assert.equal(action(w,v,"issue",{part:"fender"}).ok,false);
   ok(action(w, v, "fit", { site: "wing", part: "fender", orientation: REPAIRS.fender.orientation }));
-  assert.equal(action(w, v, "attach", { site: "rail", tool: "Trim clip pliers" }).ok, false);
-  assert.equal(action(w, v, "verify").ok, false);
+  assert.match(ok(action(w,v,"attach",{site:"rail",tool:"Trim clip pliers"})).message,/Tool trial/);
+  assert.equal(ok(action(w,v,"verify")).order.verified,false);
   for (const site of REPAIRS.fender.mounts)
     ok(action(w, v, "attach", { site, tool: MOUNTS[site], circuit: CIRCUITS[site] }));
   ok(action(w, v, "verify"));
   const { order } = ok(action(w, v, "release"));
-  assert.equal(totalBill(order), R.money(208));
+  assert.equal(totalBill(order), R.money(213));
   const bill = w.billing.bills.get(order.bill);
   assert.equal(bill.amount, totalBill(order));
   assert.equal(bill.payer, "player:driver");
@@ -119,7 +119,7 @@ for (const fault of ["ground", "relay"])
     assert.equal(w.workOrders.get(v).id, reopened.id);
     assert.equal(totalBill(reopened), 0);
     const first = spec.mounts[0];
-    assert.equal(action(w, v, "attach", { site: first, tool: MOUNTS[first], circuit: "wrong feed" }).ok, false);
+    assert.match(ok(action(w,v,"attach",{site:first,tool:MOUNTS[first],circuit:"wrong feed"})).message,/Circuit test/);
     for (const site of spec.mounts)
       ok(action(w, v, "attach", { site, tool: MOUNTS[site], circuit: CIRCUITS[site] }));
     ok(action(w, v, "verify"));

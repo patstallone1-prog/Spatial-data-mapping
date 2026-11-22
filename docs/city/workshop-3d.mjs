@@ -16,7 +16,7 @@ export function serviceGeometry(model) {
   };
 }
 
-export function workshopScene(T, host, order, colour, makeCar, onSelect) {
+export function workshopScene(T, host, order, colour, makeCar, onSelect, onHover = () => {}) {
   const renderer = new T.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
   renderer.localClippingEnabled = true;
@@ -89,6 +89,83 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
       0,
     );
     box(root, w * 0.19, h * 0.12, l * 0.22, 0.21, 0.11, 0.42, steel);
+  }
+  // Brake pipes, clipped wiring looms, spring coils and a lateral anti-roll bar.
+  function bentTube(points, radius, material) {
+    const curve = new T.CatmullRomCurve3(points.map((v) => new T.Vector3(...v)));
+    return mesh(
+      root,
+      new T.TubeGeometry(curve, Math.max(32, points.length * 3), radius, 10, false),
+      material,
+      0,
+      0,
+      0,
+    );
+  }
+  for (const side of [-1, 1]) {
+    const x = w * 0.29 * side;
+    for (let n = 0; n < 3; n++) {
+      const xc = x + side * 0.023 * n;
+      bentTube(
+        [
+          [xc, 0.19, -l * 0.37],
+          [xc - side * 0.07, 0.15, -l * 0.24],
+          [xc, 0.14, -l * 0.12],
+          [xc, 0.14, l * 0.24],
+          [xc + side * 0.09, 0.19, l * 0.34],
+        ],
+        n === 2 ? 0.014 : 0.007,
+        n === 2 ? rubber : steel,
+      );
+    }
+    for (const z of [-0.23, 0, 0.22]) box(root, x, 0.13, z * l, 0.16, 0.022, 0.032, steel);
+    for (const z of [-l * 0.3, l * 0.29]) {
+      const coil = Array.from({ length: 90 }, (_, i) => [
+        side * w * 0.405 + 0.052 * Math.cos(i * 0.42),
+        0.17 + i * 0.0028,
+        z + 0.052 * Math.sin(i * 0.42),
+      ]);
+      bentTube(coil, 0.008, steel);
+    }
+  }
+  bentTube(
+    [
+      [-w * 0.39, 0.18, -l * 0.29],
+      [-w * 0.32, 0.14, -l * 0.23],
+      [0, 0.14, -l * 0.23],
+      [w * 0.32, 0.14, -l * 0.23],
+      [w * 0.39, 0.18, -l * 0.29],
+    ],
+    0.019,
+    steel,
+  );
+  // Half-shafts and the ribbed CV boots meet the inboard face of each front hub.
+  const axleY = h * 0.18,
+    frontZ = -l * 0.3;
+  for (const side of [-1, 1]) {
+    const shaftLength = w * 0.36;
+    mesh(
+      root,
+      new T.CylinderGeometry(0.019, 0.019, shaftLength, 24).rotateZ(Math.PI / 2),
+      steel,
+      side * w * 0.22,
+      axleY,
+      frontZ,
+    );
+    const profile = Array.from(
+      { length: 25 },
+      (_, i) => new T.Vector2(0.034 + 0.012 * (1 + Math.cos((i * Math.PI) / 2)), (i - 12) * 0.006),
+    );
+    mesh(root, new T.LatheGeometry(profile, 40).rotateZ(Math.PI / 2), rubber, side * w * 0.36, axleY, frontZ);
+    for (const offset of [-0.066, 0.066])
+      mesh(
+        root,
+        new T.TorusGeometry(0.041, 0.004, 8, 36).rotateY(Math.PI / 2),
+        steel,
+        side * w * 0.36 + offset,
+        axleY,
+        frontZ,
+      );
   }
   const loc = serviceGeometry(order.model),
     point = (id) => new T.Vector3(...loc[id]);
@@ -248,12 +325,23 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect) {
     canvas.setPointerCapture(e.pointerId);
   };
   canvas.onpointermove = (e) => {
-    if (!drag) return;
+    if (!drag) {
+      const r = canvas.getBoundingClientRect(),
+        ray = new T.Raycaster();
+      const x = e.clientX - r.left,
+        y = e.clientY - r.top;
+      ray.setFromCamera({ x: (2 * x) / r.width - 1, y: 1 - (2 * y) / r.height }, camera);
+      const id = ray.intersectObjects(targets, false)[0]?.object.userData.site;
+      onHover(id, x, y);
+      canvas.style.cursor = id ? "pointer" : "grab";
+      return;
+    }
     angle -= (e.clientX - drag.x) * 0.008;
     pitch = Math.min(1.44, Math.max(-1.38, pitch + (e.clientY - drag.y) * 0.006));
     drag.x = e.clientX;
     drag.y = e.clientY;
   };
+  canvas.onpointerleave = () => onHover(null);
   canvas.onpointercancel = () => {
     drag = null;
   };

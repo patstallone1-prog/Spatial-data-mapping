@@ -13,7 +13,7 @@ const STYLE = `
 #city-bay .row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #476067;padding:10px 0}
 #city-bay .work{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,350px);min-height:0}
 #city-bay .scene{position:relative;min-height:0;overflow:hidden}#city-bay .view-controls{position:absolute;left:12px;bottom:12px;background:#172930dd;border-radius:6px;padding:5px}
-#city-bay aside{overflow:auto;padding:15px;background:#1d3138}#city-bay .controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:7px 0}#city-bay select{max-width:100%}
+#city-bay .bay-context{position:absolute;left:12px;top:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px;background:#172930eb}#city-bay .point-label{position:absolute;pointer-events:none;transform:translate(10px,8px);background:#132629;color:white;padding:4px 8px;border-radius:3px}#city-bay aside{overflow:auto;padding:15px;background:#1d3138}#city-bay .controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:7px 0}#city-bay select{max-width:100%}
 #city-bay p{margin:6px 0}#city-bay small{color:#c3d1d0}#city-bay output{display:block;color:#ffe09b;min-height:1.4em}
 @media(max-width:700px){#city-bay .work{grid-template-columns:1fr;grid-template-rows:minmax(160px,42%) 1fr}#city-bay header{padding:7px}}
 `;
@@ -100,6 +100,13 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
     busy = true;
     const gen = generation;
     try {
+      const delay = (order?.readyAt || 0) - Date.now();
+      if (cmd === "workshop_action" && args.action !== "withdraw" && delay > 0) {
+        const feedback = sidebar?.querySelector("output");
+        if (feedback) feedback.textContent = "Finishing the current operation…";
+        await new Promise(resolve => setTimeout(resolve, Math.min(delay + 40, 2500)));
+        if (gen !== generation || !root) return;
+      }
       const r = await send(cmd, { place, ...args });
       if (gen !== generation || !root) return;
       if (!r.ok) {
@@ -211,18 +218,39 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
     order = o;
     currentSite = null;
     const host = h("div", { className: "scene" });
+    const context = h("div", { className: "bay-context" });
+    const hover = h("span", { className: "point-label" });
     sidebar = h("aside", {});
     root.replaceChildren(header(), h("div", { className: "work" }, host, sidebar));
     const colour = o.npc ? paintOf(o.model, o.shade ?? 0.5) : R.vehicles.models[o.model]?.colour || "#8d9ca1";
-    scene = workshopScene(THREE, host, o, colour, makeCar, (id) => {
-      currentSite = id;
-      controls();
-    });
+    scene = workshopScene(
+      THREE,
+      host,
+      o,
+      colour,
+      makeCar,
+      (id) => {
+        currentSite = id;
+        controls();
+      },
+      (id, x, y) => {
+        hover.hidden = !id;
+        if (id) {
+          hover.textContent = SITES[id];
+          hover.style.left = x + "px";
+          hover.style.top = y + "px";
+        }
+      },
+    );
+    host.append(context, hover);
+    hover.hidden = true;
     host.append(
       h(
         "div",
         { className: "view-controls" },
-        btn("Whole vehicle", () => scene.overview()),
+        btn("Walk around", () => scene.overview()),
+        btn("Engine bay", () => scene.select("socket", true)),
+        btn("Left wheel arch", () => scene.select("arch", true)),
         btn("Look underneath", () => scene.underbody()),
         h("small", { textContent: "  Drag to orbit · scroll to zoom" }),
       ),
@@ -255,6 +283,8 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
             : "Customer collected vehicle before completion",
       }),
     );
+    const actions = root.querySelector(".bay-context");
+    actions.replaceChildren();
     if (o.active && staff()) {
       const points = select("Inspection point", [["", "Choose a point"], ...Object.entries(SITES)]);
       points.value = currentSite || "";
@@ -273,8 +303,18 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
               act("restock", { part: id }),
             ),
           );
-      if (o.partsRequired && !o.interview) sidebar.append(btn("Ask what happened", () => act("ask")));
-      else if (!o.diagnosed) {
+      if (!o.interview) actions.append(btn("Ask what happened", () => act("ask")));
+      if (!o.seated) {
+        const found = Object.entries(CHECKS).find(([, v]) => v.site === currentSite);
+        const [check, test] = found || ["inspect", CHECKS.inspect];
+        actions.append(
+          h("b", { textContent: currentSite ? SITES[currentSite] : "Choose a marker on the vehicle" }),
+          btn(found ? test.label : "Inspect this area", () =>
+            act("check", { site: currentSite || test.site, check }),
+          ),
+        );
+      }
+      if (!o.diagnosed) {
         const tools = select(
           "Diagnostic tool",
           Object.entries(CHECKS).map(([id, t]) => [id, t.label + " · " + R.fmt(R.money(t.cost))]),
@@ -283,14 +323,26 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
           "Suspected fault",
           Object.entries(REPAIRS).map(([id, t]) => [id, t.part]),
         );
+        const likelihood = note("");
+        const advise = () => {
+          likelihood.textContent =
+            currentSite && currentSite !== CHECKS[tools.value].site
+              ? "Low likelihood of a useful reading at this point. You can still run the test."
+              : "Take a reading or continue with a provisional diagnosis.";
+        };
+        tools.onchange = advise;
+        advise();
         sidebar.append(
+          likelihood,
           group(
             tools,
-            btn("Take reading", () => act("check", { check: tools.value })),
+            btn("Take reading", () =>
+              act("check", { site: currentSite || CHECKS[tools.value].site, check: tools.value }),
+            ),
           ),
           group(
             parts,
-            btn("Record diagnosis", () => act("diagnose", { part: parts.value })),
+            btn("Continue to parts", () => act("diagnose", { part: parts.value })),
           ),
         );
       } else if (!o.seated) {
@@ -298,8 +350,17 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
           "Replacement part",
           Object.entries(REPAIRS).map(([id, t]) => [id, t.part + " · " + R.fmt(R.money(t.price))]),
         );
+        parts.value = o.issued || o.suspected || o.fault;
         if (o.partsRequired && !o.issued) {
-          sidebar.append(
+          const evidence = note("");
+          const describePart = () => {
+            const test = REPAIRS[parts.value].test, reading = o.checks[test];
+            evidence.textContent = reading === CHECKS[test].failed ? "The recorded reading supports this part."
+              : reading ? "This area tested normal. Drawing this part may waste stock."
+              : "No confirming reading yet. You can still draw this part.";
+          };
+          parts.onchange = describePart; describePart();
+          sidebar.append(evidence,
             h("h3", { textContent: "2 · Get parts" }),
             parts,
             note(
@@ -314,6 +375,18 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
             "Part orientation",
             ["Select orientation", "wheel opening down", "bare contact inward", "keyway forward", "reversed"].map(
               (x) => [x, x],
+            ),
+          );
+          parts.value = o.issued || parts.value;
+          facing.value = REPAIRS[parts.value].orientation;
+          if (!currentSite) {
+            currentSite = spec.seat;
+            points.value = currentSite;
+          }
+          actions.append(
+            btn("Focus part seat", () => scene.select(spec.seat, true)),
+            btn("Fit " + spec.part, () =>
+              act("fit", { site: spec.seat, part: parts.value, orientation: facing.value }),
             ),
           );
           sidebar.append(
@@ -338,6 +411,16 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
           ["", "Choose a lead"],
           ...Object.values(CIRCUITS).map((name) => [name, name]),
         ]);
+        const next = spec.mounts.find((id) => !o.mounts.includes(id));
+        if (next) actions.append(btn("Locate " + SITES[next], () => scene.select(next, true)));
+        if (spec.mounts.includes(currentSite) && !o.mounts.includes(currentSite)) {
+          tool.value = MOUNTS[currentSite];
+          lead.value = CIRCUITS[currentSite] || "";
+          actions.append(
+            btn("Secure " + SITES[currentSite], () => act("attach", { tool: tool.value, circuit: lead.value })),
+          );
+        }
+        if (!next) actions.append(btn("Test repair", () => act("verify")));
         sidebar.append(
           note(
             spec.mounts
@@ -355,6 +438,7 @@ export function workshopPanel({ R, h, doc, THREE, send, notify, self, getView, m
       } else sidebar.append(btn("Release vehicle and issue invoice", () => act("release"), true));
     }
     if (o.bonus) sidebar.append(note("Employee bonus · " + R.fmt(o.bonus)));
+    for (const entry of (o.reports || []).slice(-3)) sidebar.append(note(entry));
     for (const reading of Object.values(o.checks)) sidebar.append(note(reading));
     sidebar.append(
       h("output", { "aria-live": "polite", textContent: message }),

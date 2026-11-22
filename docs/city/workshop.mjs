@@ -288,8 +288,14 @@ export function installWorkshop(World, CityError) {
     const need = (id) => {
       if (!(stock[id] > 0)) fail("That bin is empty. Order replacement stock.");
     };
+    const report = (message) => {
+      (o.reports ||= []).push(message);
+      if (o.reports.length > 16) o.reports.shift();
+      o.revision++;
+      return { order: o, message };
+    };
     if (action === "ask") {
-      if (o.interview) fail("The customer statement is already on the order.");
+      if (o.interview) return report(o.concern || spec.complaint);
       o.interview = true;
       o.startedAt = this.now;
       message = o.concern || spec.complaint;
@@ -316,22 +322,31 @@ export function installWorkshop(World, CityError) {
       else o.mistakes++;
       message = o.issued ? "Part drawn from the bin." : "Incorrect replacement drawn. Material charged.";
     } else if (action === "check") {
-      if (o.partsRequired && !o.interview) fail("Ask the customer about the symptoms first.");
-      const tool = Object.hasOwn(CHECKS, check) && CHECKS[check];
-      if (!tool || site !== tool.site || o.seated) fail("Select the appropriate test point first.");
-      if (Object.hasOwn(o.checks, check)) fail("This reading is already on the work order.");
-      message = spec.test === check ? tool.failed : tool.normal;
-      cost([tool.label, tool.cost]);
-      o.checks[check] = message;
+      const test = Object.hasOwn(CHECKS, check) && CHECKS[check];
+      if (!test || !Object.hasOwn(SITES, site)) fail("Choose a marked area and test.");
+      const key = site === test.site ? check : check + ":" + site;
+      if (!Object.hasOwn(o.checks, key)) {
+        cost([test.label, test.cost]);
+        o.checks[key] =
+          site !== test.site
+            ? SITES[site] + " looks fine. Try " + SITES[test.site] + " for this test."
+            : spec.test === check
+              ? test.failed
+              : test.normal;
+      }
+      message = o.checks[key];
     } else if (action === "diagnose") {
-      if (!o.checks[spec.test] || part !== o.fault || o.diagnosed)
-        fail("The readings do not support that repair. Inspect the affected circuit or panel.");
-      cost(["Fault diagnosis", 10]);
+      if (!Object.hasOwn(REPAIRS, part)) fail("Choose a repair to investigate.");
+      if (!o.diagnosed) cost(["Fault diagnosis", 10]);
       o.diagnosed = true;
-      message = "Diagnosis recorded.";
+      o.suspected = part;
+      message =
+        part !== o.fault || !o.checks[spec.test]
+          ? "Provisional diagnosis. You can draw parts or keep testing."
+          : "Diagnosis supported by the reading. Draw the replacement.";
     } else if (action === "fit") {
       if (!o.diagnosed || o.seated || part !== o.fault || site !== spec.seat || orientation !== spec.orientation)
-        fail("Check part, location and orientation before seating it.");
+        return report("Trial fit: the replacement does not seat here in that orientation. Check the fitting card.");
       if (o.partsRequired && o.issued !== o.fault) fail("Draw the replacement from its bin first.");
       if (!o.issued) {
         need(o.fault);
@@ -344,10 +359,11 @@ export function installWorkshop(World, CityError) {
     } else if (action === "attach") {
       const i = spec.mounts.indexOf(site);
       if (!o.seated || i < 0 || o.mounts.includes(site))
-        fail("Select an unsecured mounting point on the fitted part.");
-      if (tool !== MOUNTS[site]) fail("That tool cannot secure this attachment.");
+        return report("Inspection: no unsecured connection for this part at that point.");
+      if (tool !== MOUNTS[site])
+        return report("Tool trial: it does not engage this fastener. Try " + MOUNTS[site] + ".");
       if (CIRCUITS[site] && circuit !== CIRCUITS[site])
-        fail("Trace the lead on the circuit card before connecting it.");
+        return report("Circuit test: this lead does not complete the connection. Follow the circuit card.");
       need("mount:" + site);
       cost([SITES[site] + " · hardware", spec.materials[i]], [SITES[site] + " · fitting labor", 6]);
       stock["mount:" + site]--;
@@ -355,7 +371,17 @@ export function installWorkshop(World, CityError) {
       message = SITES[site] + " secured.";
     } else if (action === "verify") {
       if (!o.seated || o.mounts.length !== spec.mounts.length || o.verified)
-        fail("Complete every attachment before the functional check.");
+        return report(
+          o.verified
+            ? "Inspection already passed."
+            : "Inspection incomplete: " +
+                (!o.seated
+                  ? "replacement not seated"
+                  : spec.mounts
+                      .filter((id) => !o.mounts.includes(id))
+                      .map((id) => SITES[id])
+                      .join(", ") + " still unsecured"),
+        );
       cost(["Functional check and release inspection", 12]);
       o.verified = true;
       o.inspector = pid;

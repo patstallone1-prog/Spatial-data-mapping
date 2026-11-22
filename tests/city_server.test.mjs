@@ -444,7 +444,7 @@ test("city kitchen reserves stock and uses its own timer and preparation history
   const finish = () => cmd("kitchen_prepare", { action: "finish", job: started.job, ratio: 1 });
   assert.equal((await finish()).ok, false);
   assert.equal((await cmd("lab_test", { build: parts })).ok, false);
-  c.clock.t += Math.ceil(started.secs * 1000) + 100;
+  c.clock.t += Math.ceil(started.secs * 1000) + 5200;
   const finished = await finish();
   assert.ok(finished.ok, finished.error);
   const build = [{ ...finished.parts[0], p: "bake", q: 0, ratios: [10] }];
@@ -453,4 +453,15 @@ test("city kitchen reserves stock and uses its own timer and preparation history
   assert.equal(tasted.test.build[0].p, "chill");
   assert.equal(tasted.test.quality, 1);
   assert.equal((await cmd("lab_test", { build })).ok, false);
+  assert.ok((await cmd("kitchen_take",{items:{[ing]:1}})).ok);
+  const knife=await cmd("kitchen_prepare",{action:"start",station:"board",proc:"chop",parts});
+  const split=await cmd("kitchen_prepare",{action:"cut",job:knife.job,cut:{mode:"split",fraction:.37}});
+  assert.deepEqual(split.parts.map(x=>x.qty),[.37,.63]);
+  const again=await cmd("kitchen_prepare",{action:"start",station:"board",proc:"chop",parts:[split.parts[1]]});
+  const dice=await cmd("kitchen_prepare",{action:"cut",job:again.job,cut:{mode:"dice",fraction:.5}});
+  assert.equal(dice.parts.length,16);
+  assert.ok(Math.abs(dice.parts.reduce((m,x)=>m+x.qty,0)-.63)<1e-9);
+  assert.equal((await cmd("lab_test",{build:[split.parts[1]]})).ok,false);
+  assert.ok((await cmd("lab_test",{build:[split.parts[0],...dice.parts]})).ok);
+
 });
