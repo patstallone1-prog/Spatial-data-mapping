@@ -174,9 +174,10 @@ export function stepPet(a, pet, w, dt, M = MOVE, P = PET) {
   // Where it means to be.
   let tx = a.x, tz = a.z, want = 0, state = "idle";
   if (pet.mode === "follow" && w.owner && !w.owner.inCar) {
-    const o = w.owner, side = P.heel_m * (hash32(pet.id, "side") % 2 ? 1 : -1) * (0.7 + 0.5 * (S.breeds[pet.breed]?.shoulder || 0.3));
+    // (Each of your pets has a place of its own: one to each side, the next pair a step behind.)
+    const o = w.owner, slot = a.slot ?? hash32(pet.id, "side") % 2, side = P.heel_m * (slot % 2 ? 1 : -1) * (0.7 + 0.5 * (S.breeds[pet.breed]?.shoulder || 0.3)), back = 0.5 + Math.floor(slot / 2) * 0.9;
     const fx = -Math.sin(o.yaw), fz = -Math.cos(o.yaw);
-    tx = o.x - fx * 0.5 + -fz * side; tz = o.z - fz * 0.5 + fx * side;
+    tx = o.x - fx * back + -fz * side; tz = o.z - fz * back + fx * side;
     const d = Math.hypot(tx - a.x, tz - a.z);
     if (d > M.lost_m) { a.x = tx; a.z = tz; a.v = 0; a.state = "idle"; ev.push("arrived"); return ev; }
     want = d < 0.35 ? 0 : d > M.catch_up_m ? top : Math.min(top, Math.max(stroll, (o.v || 0) * 1.05 + (d - 0.8) * 1.2));

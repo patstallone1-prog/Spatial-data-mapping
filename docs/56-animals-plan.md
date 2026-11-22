@@ -1,6 +1,6 @@
 # 56 · Animals in the living city: a plan
 
-Status: plan only. Nothing here is built yet. The aim is to settle how animals live in the city,
+Status: partly built (2026-11-22): pets, the walked dogs, stoop cats, birds and rats are in; see [57](57-animals.md). The aim was to settle how animals live in the city,
 how much each one costs to run, and how they meet the player, before any code is written.
 
 The city already has the pieces animals would use:

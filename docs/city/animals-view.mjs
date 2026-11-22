@@ -93,6 +93,7 @@ export function animalsView(env) {
     wasInCar = inCar;
     W.owner.x = inCar ? car.x : you.x; W.owner.z = inCar ? car.z : you.z; W.owner.yaw = yaw; W.owner.v = inCar ? Math.abs(car.speed) : Math.min(8, vme); W.owner.inCar = inCar; W.owner.boarding = inCar && Math.abs(car.speed) < 2.5;
     W.blocked = (x, z) => blocked(x, z, 0.22); W.onRoad = onRoad;
+    let slot = 0;
     for (const pet of pets) {
       if (pet.mode === "home") continue;
       let a = actors.get(pet.id);
@@ -103,6 +104,7 @@ export function animalsView(env) {
         a.x = car.x; a.z = car.z; a.v = 0;
         continue;
       }
+      a.slot = slot; slot += 1;
       W.tether = pet.mode === "tied" || pet.mode === "stay" ? pet.at || a : null;
       W.dangers = dangersNear(a.x, a.z);
       for (const ev of stepPet(a, pet, W, Math.min(dt, 0.1))) {
