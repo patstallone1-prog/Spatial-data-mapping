@@ -563,11 +563,25 @@ export function LANE(half, cls = null, park = null) {
 //: for it, and it changes lanes at the block's start, never in the junction. Cars all drove in
 //: the kerb lane: on Lombard a car turned left across two lanes from the far right (2026-11-11).
 export const LANE_W = 3.2, TURN_LOOK_M = 90, TURN_MIN_DEG = 35;
+//: A one-way run shorter than this beside a two-way street keeps that street's lanes (lanePlan).
+export const ONEWAY_STUB_M = 45;
 export function lanePlan(route) {
   if (route.plan !== undefined) return route.plan;
   const { pts, s } = route;
   if (!route.lanes || pts.length < 3) return (route.plan = null);
-  const n = route.lanes.map((l, i) => (route.oneways[i] ? Math.max(1, l) : Math.max(1, Math.floor(l / 2))));
+  // A short one-way piece between two-way streets (a slip or a stub drawn through a junction) is
+  // driven as the street it joins: its lanes spread over its whole width put the second lane
+  // 5.6 m to the left for fifteen metres, in the way of what came the other way (Laguna at Bay,
+  // 2 of 8 crashes there in three minutes, 2026-11-21).
+  const ow = route.oneways.map(Boolean), last = ow.length - 1;
+  for (let i = 0; i <= last; i += 1) {
+    if (!ow[i]) continue;
+    let j = i; while (j < last && ow[j + 1]) j += 1;
+    if (s[j + 1] - s[i] < ONEWAY_STUB_M && ((i > 0 && !route.oneways[i - 1]) || (j < last && !route.oneways[j + 1]))) for (let k = i; k <= j; k += 1) ow[k] = false;
+    i = j;
+  }
+  route.owLanes = ow;
+  const n = route.lanes.map((l, i) => (ow[i] ? Math.max(1, l) : Math.max(1, Math.floor(l / 2))));
   // The turn at each vertex: -1 left, 1 right, 0 on.
   const turn = new Int8Array(pts.length), sin = Math.sin((TURN_MIN_DEG * Math.PI) / 180);
   for (let v = 1; v < pts.length - 1; v += 1) {
@@ -605,7 +619,7 @@ export function DRIVE_LANE(half, cls = null, park = null, i = 0, route = null) {
 //: to its left (Streets.twinOf: a street drawn as two one-way lines), when each keeps its own
 //: side of the gap between them, the two inner lanes 3.4 m apart as on a two-way street.
 export function leftOf(half, cls, park, i, route) {
-  if (!route.oneways?.[i]) return 1.7;
+  if (!(route.owLanes ? route.owLanes[i] : route.oneways?.[i])) return 1.7;
   const kerb = -LANE(half, cls, park), twin = route.twins?.[i];
   return twin === null || twin === undefined ? kerb : Math.max(kerb, 1.7 - twin / 2);
 }

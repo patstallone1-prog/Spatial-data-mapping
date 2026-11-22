@@ -2219,7 +2219,7 @@ export class City {
 // what is in its way: ``step`` says so, at what speed. How far behind its day a car falls by all
 // that (``delay``) it keeps when it goes out of sight, so it does not jump.
 
-export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6, gap_m: 2.5, headway_s: 1.2, look_m: 45,
+export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6, gap_m: 2.5, headway_s: 1.2, look_m: 45, left_gap_s: 4.5, left_wait_s: 14,
   stop_line_m: 5, stop_sign_s: 1.4, signal_cycle_s: 42, green_s: 18, amber_s: 3, person_half_m: 0.35,
   // No queue stands for good: a car held behind another for ``stuck_queue_s`` with no light or
   // stop sign holding it creeps on. A car at the end of its leg pulls in and is parked at once.
@@ -2505,7 +2505,32 @@ export class Drivers {
         for (const o of blockers) ahead(o.x, o.z, o.length || 4.5, o.v || 0, o.yaw);
         // (And for anyone on foot in front of it.)
         for (const q of people) { const dx = q.x - p.x, dz = q.z - p.z, fwd = dx * efx + dz * efz; if (fwd > 0 && fwd < T.look_m && Math.abs(dx * efz - dz * efx) < 2.2 && fwd - c.length / 2 - 1.5 < room) { room = fwd - c.length / 2 - 1.5; lead = 0; } }
+        // (And along its way as it bends: straight ahead misses whatever stands round the corner
+        // or in the junction it is about to turn through -- 3 of 13 crashes, 2026-11-21.)
+        for (let far = 4; far <= T.look_m && far - c.length / 2 - T.gap_m < room && st.d + far < c.route.length; far += 3) {
+          const q = alongRoute(c.route, st.d + far, st.side);
+          near(q.x, q.z, 3, (oid) => {
+            if (oid === c.id) return;
+            const o = pos.get(oid) || null, ost = this.cars.get(oid);
+            if (!o || Math.hypot(o.x - q.x, o.z - q.z) > 2.6) return;
+            const gap = far - (c.length + o.c.length) / 2 - T.gap_m;
+            if (gap < room) { room = gap; lead = Math.cos(o.yaw - q.yaw) > 0.4 && !ost?.hit ? Math.max(0, ost?.v || 0) : 0; }
+          });
+        }
         if (room < Infinity) st.v = Math.min(st.v, lead + Math.sqrt(2 * T.brake * 0.8 * Math.max(0, room)));
+        // And short of a light that is not green, or a stop sign: it came in a few metres from a
+        // red at its cruising speed and went through it, braking (16 of 637 lights passed in three
+        // minutes of a weekday evening, measured 2026-11-21).
+        if (c.route.ids) for (const P of this.passages(c.route)) {
+          const far = P.s0 - st.d;
+          if (far < -1) continue;
+          const node = c.route.ids[P.i0], toLine = far - this.stopLine(node, c);
+          if (toLine > st.v * st.v / (2 * T.brake * 0.8)) break;
+          if (toLine < -0.5) continue;
+          const [ax, az] = c.route.pts[P.i0 - 1], [bx, bz] = c.route.pts[P.i0];
+          if (P.kind === "stop" || signalAt(this.streets, node, Math.atan2(bx - ax, bz - az), tsec, T) !== "green") st.v = Math.min(st.v, Math.sqrt(2 * T.brake * 0.8 * Math.max(0, toLine)));
+          break;
+        }
         st.fresh = false;
       }
       pos.set(c.id, p);
@@ -2595,8 +2620,11 @@ export class Drivers {
       for (const P of this.passages(c.route)) {
         const ahead = P.s0 - st.d;
         if (ahead < -1) continue;
-        if (ahead > T.look_m) break;
-        const node = ids[P.i0], toLine = ahead - this.stopLine(node, c);
+        // (Seen from as far off as it takes to stop at its line: the line of a wide street's
+        // junction is well short of its middle, and at 30 mph ``look_m`` was too late for it.)
+        const node = ids[P.i0], back = this.stopLine(node, c);
+        if (ahead > Math.max(T.look_m, back + st.v * st.v / (2 * T.brake) + st.v * 1.5 + 6)) break;
+        const toLine = ahead - back;
         if (P.kind === "stop") {
           if (st.stopped.has(P.key)) continue;
           if (toLine < 0.8 && st.v < 0.4) { if (!st.waitUntil) st.waitUntil = tsec + T.stop_sign_s; if (tsec >= st.waitUntil) { st.stopped.add(P.key); st.waitUntil = 0; continue; } }
@@ -2673,8 +2701,45 @@ export class Drivers {
                 break;
               }
             }
+            // A left turn waits at its line for a gap in what comes the other way and then turns
+            // straight into its lane: first come, first through let it cut across a car coming on
+            // at speed, which braked for it or did not (the rule of the road; asked 2026-11-21).
+            // Not for ever: held ``left_wait_s`` with no gap, it takes its turn as any other.
+            const myTurn = turnOf(claim.inU, claim.outU), leftish = myTurn === "L" || myTurn === "U";
+            if (!leftish) st.gapSince = 0;
+            const patient = leftish && (!st.gapSince || tsec - st.gapSince < T.left_wait_s);
+            let oncoming = false;
+            if (patient) {
+              near(J.mid[0], J.mid[1], T.left_gap_s * 14 + J.reach, (oid) => {
+                if (oncoming || oid === c.id) return;
+                const o = pos.get(oid), ost = this.cars.get(oid);
+                if (!o || !ost || ost.hit || arrived(o.c, ost) || ost.v < 1.5) return;
+                // Coming the other way, still short of the junction's middle, in the street this one leaves.
+                const fx = -Math.sin(o.yaw), fz = -Math.cos(o.yaw);
+                if (fx * claim.inU[0] + fz * claim.inU[1] > -0.8) return;
+                const rx = o.x - J.mid[0], rz = o.z - J.mid[1], off = rx * claim.inU[0] + rz * claim.inU[1];
+                if (off < -2 || Math.abs(rx * claim.inU[1] - rz * claim.inU[0]) > 14) return;
+                // (One turning left itself passes in front; one about to turn off slows and is seen again.)
+                const theirs = box.get(oid);
+                if (theirs && turnOf(theirs.inU, theirs.outU) === "L") return;
+                if (off / ost.v < T.left_gap_s) oncoming = true;
+              });
+              if (oncoming) {
+                if (!st.gapSince) st.gapSince = tsec;
+                const v = Math.sqrt(2 * T.brake * Math.max(0, toLine));
+                if (v < target) { target = v; reason = "giving way to oncoming"; }
+              }
+            }
             for (const o of box.values()) {
-              if (o.id === c.id || !(o.entered || o.at < claim.at || (o.at === claim.at && o.id < c.id))) continue;
+              if (oncoming) break;
+              const first = o.entered || o.at < claim.at || (o.at === claim.at && o.id < c.id);
+              // (Across a left turn that is still waiting for its gap, one coming straight on goes.)
+              const oTurn = turnOf(o.inU, o.outU), opposite = o.inU[0] * claim.inU[0] + o.inU[1] * claim.inU[1] < -0.85;
+              // (Only for one that is moving: two stood facing each other, each waiting for the
+              // other, never left -- then it is first come, first through as before.)
+              const oMoving = (this.cars.get(o.id)?.v || 0) >= 1.5;
+              if (o.id === c.id || (!first && !(patient && opposite && oMoving && oTurn !== "L" && oTurn !== "U"))) continue;
+              if (!o.entered && !leftish && opposite && st.v >= 1.5 && (oTurn === "L" || oTurn === "U") && /^giving way/.test(this.cars.get(o.id)?.reason || "")) continue;
               // (One still in the queue behind another has no turn yet: giving way to it, while
               // the car it waits behind gives way to this one, was a ring nobody left: 2026-11-13.)
               if (!o.entered && this.cars.get(o.id)?.reason === "the car ahead") continue;
