@@ -15,6 +15,7 @@ import { SITE_INFO, TOOLS, workshopPanel } from "../docs/city/workshop-panel.mjs
 import { kitchenPanel } from "../docs/city/kitchen-panel.mjs";
 import { MOUNTS, SITES } from "../docs/city/workshop.mjs";
 import { FLEET_FOR } from "../docs/city/vehicles.mjs";
+import { readFileSync } from "node:fs";
 
 test("every cut makes its pieces, and they add up to the whole", () => {
   assert.deepEqual(CUT_COUNTS, { split: 2, slice: 6, dice: 16, mince: 25 });
@@ -67,4 +68,15 @@ test("the underside is built in detail, for an engine car and an electric one", 
     assert.equal(Boolean(g.getObjectByName("fuel-tank")), model !== "compact_ev");
     for (const x of owned) x.dispose();
   }
+});
+
+test("the practice launcher opens either game with its own panel and a job to work", () => {
+  const src = readFileSync(new URL("../docs/minigames/play.mjs", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../docs/minigames/index.html", import.meta.url), "utf8");
+  assert.match(src, /import \{ kitchenPanel \} from "\.\.\/city\/kitchen-panel\.mjs"/);
+  assert.match(src, /import \{ workshopPanel \} from "\.\.\/city\/workshop-panel\.mjs"/);
+  assert.match(src, /\["mechanic", "kitchen"\]\.includes\(game\)/);
+  assert.match(src, /take_job/);
+  assert.match(src, /role: mechanic \? "mechanic" : "cook"/);
+  for (const g of ["kitchen", "mechanic"]) assert.ok(page.includes(`?game=${g}`), `index links ${g}`);
 });
