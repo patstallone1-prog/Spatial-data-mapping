@@ -907,7 +907,8 @@ const groundReady = (async () => {
   let walkSquares = null;
   if (survey && (ground.trees || []).some(t=>t.curb)) {
     const laid = await Promise.race([streetSurfacesLaid.then(()=>true), new Promise(r=>setTimeout(()=>r(false),60000))]);
-    if (laid) walkSquares = walkSquareIndex((ground.trees || []).filter(t=>t.curb).map(t=>{const [a,b]=xy(...t.curb);return [a,-b];}));
+    if (laid) try { walkSquares = walkSquareIndex((ground.trees || []).filter(t=>t.curb).map(t=>{const [a,b]=xy(...t.curb);return [a,-b];})); }
+      catch (error) { console.warn("kerbside: the walk's squares could not be read; openings stand as surveyed", error); }
   }
   const walkable = (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
     && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z);
@@ -1103,7 +1104,10 @@ const groundReady = (async () => {
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   // The near tier: which instance each tree is, now that they stand where they will be drawn.
-  if (!HEADSET && treeNearSpec.length) treeNear = treeNearIndex(treeNearSpec, survey);
+  if (!HEADSET && treeNearSpec.length) {
+    try { treeNear = treeNearIndex(treeNearSpec, survey); }
+    catch (error) { console.warn("kerbside: the near trees are not drawn (the far ones are)", error); treeNear = null; }
+  }
   // The walker stands on these as they are now drawn (walkCoverTopAt).
   registerWalkCover(groups.ground);
   if(grassStrands&&grassLibrary){const meshes=[];
