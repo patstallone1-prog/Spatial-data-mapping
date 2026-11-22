@@ -1475,8 +1475,11 @@ function walkSteer(dt, speed = 1.4) {
   if (state.firstPerson || !dragging) {
     const eyes = state.firstPerson;
     const gap = Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw));
-    const most = (eyes ? WALK_VIEW_MAX_RATE_EYES : WALK_VIEW_MAX_RATE) * dt;
-    state.yaw += Math.max(-most, Math.min(most, gap * Math.min(1, dt * (eyes ? WALK_VIEW_FOLLOW_EYES : WALK_VIEW_FOLLOW))));
+    // The magic camera (module 32) comes round faster the further you have turned from it: turned
+    // right round, it swings behind you in a second or so, so you are not walking toward it.
+    const urgent = !eyes && typeof magicCameraOn === "function" && magicCameraOn() ? Math.min(1, Math.max(0, (Math.abs(gap) - 0.6) / 1.6)) : 0;
+    const most = ((eyes ? WALK_VIEW_MAX_RATE_EYES : WALK_VIEW_MAX_RATE) + 2.2 * urgent) * dt;
+    state.yaw += Math.max(-most, Math.min(most, gap * Math.min(1, dt * ((eyes ? WALK_VIEW_FOLLOW_EYES : WALK_VIEW_FOLLOW) + 2.6 * urgent))));
   }
   return { way: new THREE.Vector3(dx, 0, dz), pace };
 }
@@ -1490,8 +1493,12 @@ function animateAvatar(distance, direction, moving) {
   const swing = moving ? Math.sin(avatar.userData.walkPhase) : 0;
   // Keep the contact plane on the sampled surface.  Limbs and the imported walk
   // clip carry the gait; lifting the whole rig made both feet hover each step.
-  // (In the air: the city's jump, avatar.userData.lift.)
-  avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(avatar.position.x, avatar.position.z) + (avatar.userData.lift || 0);
+  // (In the air: the city's jump, avatar.userData.lift.) In the water (module 33) the feet are
+  // on the bottom, or the walker is afloat.
+  const groundY = walkerGroundAt(avatar.position.x, avatar.position.z);
+  const wet = typeof walkerWaterAt === "function" ? walkerWaterAt(avatar.position.x, avatar.position.z, groundY) : null;
+  avatar.userData.water = wet;
+  avatar.position.y = AVATAR_STAND_Y + (wet ? wet.feet : groundY) + (wet?.mode === "swim" ? 0 : (avatar.userData.lift || 0));
   const climbing=moving&&avatar.userData.onStairs;
   avatar.userData.leftLeg.rotation.x = swing * (climbing?.85:.58);
   avatar.userData.rightLeg.rotation.x = -swing * (climbing?.85:.58);
@@ -1501,7 +1508,10 @@ function animateAvatar(distance, direction, moving) {
   avatar.userData.rightArm.rotation.z = -0.10;
   // Up a hill or a flight of steps the walker walks, and its stride slows with the pace.
   const pace = moving ? (avatar.userData.pace ?? 1) : 1;
-  setAvatarAction(moving ? ((climbing || pace < 0.7) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
+  // Afloat the stroke is the living city's (view.mjs afterPose) over the standing clip; wading
+  // through the water is a walk.
+  if (wet?.mode === "swim") setAvatarAction("Idle");
+  else setAvatarAction(moving ? ((climbing || pace < 0.7 || wet) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
   if (avatarActiveAction) avatarActiveAction.timeScale = moving ? Math.max(0.5, Math.min(1.15, pace)) : 1;
 }
 function updateAvatarMixer(dt) {
@@ -1510,6 +1520,8 @@ function updateAvatarMixer(dt) {
     const model=avatar.getObjectByName("imported-realistic-demo-character");
     if(model)model.rotation.x=avatar.userData.lastMoving
       ? Math.max(-.12,Math.min(.12,-(avatar.userData.grade||0)*.18)) : 0;
+    // In the water: laid down to swim, upright to tread water (module 33).
+    if (typeof swimBodyPose === "function") swimBodyPose(model, dt);
   }
   // Over the clip: how the city's walker holds, lifts, swings and throws (view.mjs).
   avatar.userData.afterPose?.(dt);
@@ -1716,8 +1728,11 @@ function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
   if (state.explore) { exploreStep(dt); return; }
+  if (typeof magicCameraStep === "function") magicCameraStep(dt);
   // At the wheel the arrows are the pedals and the wheel (docs/city/view.mjs); riding in a party
   // member's car, the walker goes where that car goes.
+  // Getting into the car or out of it: the city walks the walker to the door and sits it down.
+  if (typeof livingCity !== "undefined" && livingCity?.entering) { livingCity.stepEntry(dt); updateAvatarMixer(dt); return; }
   if (typeof livingCity !== "undefined" && livingCity?.driving) { livingCity.drive(dt, held); updateAvatarMixer(dt); return; }
   if (typeof livingCity !== "undefined" && livingCity?.riding) { updateAvatarMixer(dt); return; }
   // Inside a shop (its room is the city's own): the walk is kept to the room.
@@ -1753,7 +1768,12 @@ function stepAvatar(now) {
   avatar.userData.grade=pace.grade;
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
   // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
-  const surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace*steered.pace;
+  let surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace*steered.pace;
+  // In the water (module 33): wading slows with the depth; afloat it is the stroke's speed (the
+  // living city's stamina sets it: a swim, a sprint, or treading water).
+  const wet = avatar.userData.water;
+  if (wet?.mode === "wade") surfaceSpeed *= Math.max(0.35, 1 - 0.55 * Math.min(1, wet.depth / WATER_WADE.swimDepth));
+  else if (wet?.mode === "swim") surfaceSpeed = (avatar.userData.swim?.speed ?? 0.9) * steered.pace;
   move.multiplyScalar(surfaceSpeed * dt);
   GPS_LEASH.on = false;   // walking yourself: the walker is yours until R or Reset view
   requestInteriors();

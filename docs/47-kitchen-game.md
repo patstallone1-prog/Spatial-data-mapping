@@ -121,8 +121,23 @@ An accepted dish becomes one of the city's items. From then on:
 
 - **Saving**: kitchens are saved in the world's JSON as `kitchens`.
 - **Privacy**: the server's per-player view (`server/city/views.mjs`) shows a cook only their own tickets, board, tests and record. The owner sees everything.
-- **Trust**: the cooking itself happens in the page. The world validates quantities and available techniques and measures service delay on the world clock. It takes the page’s word on station doneness.
+- In the shared city, starting a station reserves its ingredients. The city records the station, elapsed time, cuts, and resulting portions. Serving or tasting consumes those portions once. Reopening the kitchen restores the cook’s ingredients and active batches. Offline practice has separate books.
 
 ## Shaping dough
 
 Set raw dough on the work counter, select it, and choose **Shape dough**. Choose a ball, flat circle, triangle, or rectangle. Set the width and width-to-length ratio. The preview shows the resulting thickness for the portion’s weight. A thick piece takes longer in the oven. Baking and chilling preserve its form, and a house recipe records the dimensions. Weigh out individual portions before shaping them.
+
+## Fewer clicks (2026-11-21)
+
+- **The cook** is one of the city's near-ring people (the MakeHuman crowd, `kitchen-chef.mjs`), with the kitchen's own baked clips: carrying in both hands, reaching down to the counter to pick up or put down, chopping with the knife in the right hand, stirring a pan that is cooking, pouring the blender's jug. What the cook holds is placed where the hands are in the frame being drawn.
+- **Quick takes.** Clicking a bin walks over and takes what the open ticket's dish needs of it (else what you took last time, else one). Shift-click asks how much; hovering a bin and pressing 1–9 takes that many. Each recipe line on the right has **Fetch**.
+- **Drag to do.** Drag from a bin or a dish to a station, the board, a bowl, the counter, the pass or the bin: the cook fetches it and takes it there in one go.
+- **The bar along the bottom** lists, while you hold something, one chip a station (the ticket's next step for it first and named), the counter, the pass, put back and bin.
+- **Appliances** have dials (the dock on the left, foldable): off, low, medium, high. Each warms from cold toward its setting (`kitchen-appliances.mjs`), and cooking counts the heat it has had, so a cold pan cooks slowly. A tag over each appliance shows its state (cold, preheating, ready, cooling); clicking the tag turns it up. Food put on something off turns it on to medium and says so. Stove rings glow with their heat.
+- **The blender** keeps what it made in its jug: clicking it lifts the jug, and it is poured into the only empty bowl at once, or into the bowl (or over the dish) you choose.
+- **The board** halves where the blade is, slices, dices or minces (25 small bits); either half, and any piece, can go back on the board to be cut again.
+- **Practice** without the city: `docs/minigames/?game=kitchen` (and `?game=mechanic` for the repair bay).
+
+## The repair bay (2026-11-21)
+
+The bay (`workshop-panel.mjs`) shows the repair's steps along the top (talk, inspect, diagnose, parts, fit, secure, test, release), ticked as they are done; a job card with what the customer said and the next thing to do; tools and parts as tiles dragged (or clicked, then a point clicked) onto numbered pins on the car. A pin says on hover what the point is, what fastens it and how likely the tool in hand is to help there. Nothing is refused for being out of order: a step unlikely to help says so and is done anyway (an unrelated inspection reads that the area looks fine; a part drawn before a diagnosis makes it provisional; a second draw is a billed spare; a car can be released unchecked, the fault kept). Only the customer's authorized estimate stops a charge. The camera has views (whole car, front, left wing, engine bay, underneath, rear); underneath raises the lift on its swing arms, and the underside is built in detail (`workshop-underbody.mjs`). Each kind is drawn as the fleet's full-detail model nearest it.

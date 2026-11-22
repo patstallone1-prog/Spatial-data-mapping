@@ -94,6 +94,10 @@ export const NO_POCKETS = new Set(["skirt", "running_shorts", "leggings", "dress
 const PHONE_CASES = ["#1b1b1e", "#1b1b1e", "#1b1b1e", "#2a2d33", "#e8e6e1", "#3b4f7a", "#7a3b4f", "#c9b48a", "#4f6b4a"];
 //: The ways of walking (bake): each person keeps one.
 export const WALKS = ["Walk", "WalkBrisk", "WalkEasy", "WalkSway"];
+//: The clips played once rather than round and round (work's reach to a counter).
+const ONCE = /:reach$/;
+//: A kitchen counter's top above the floor (metres): kitchen-3d.mjs's COUNTER_Y.
+export const COUNTER_TOP = 0.92;
 
 // ---- who wears what ---------------------------------------------------------------------------
 
@@ -187,7 +191,10 @@ export function crowdLook(id, look, slots, { height = 1.75, build = 1, female = 
 //: ``store`` is the public store's npc/ folder (as the page names it): the crowd is beside it in
 //: crowd/, whose current.json names the build. Without one, the files come from ``base`` beside
 //: the page (a local build; the folder is not in the public repo).
-export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/crowd/", store = null, capacity = NEAR_FIGURES_MAX }) {
+//: ``work``: also bake the kitchen's clips (WORK_CLIPS: carrying, reaching to a counter, chopping,
+//: stirring, pouring) and where the hands are in every frame (handsOf), for a cook whose hands hold
+//: what they carry; ``only``: load just that body ("male" or "female").
+export function npcFigures(THREE, { loadModel, asset, parent, base = "city/models/crowd/", store = null, capacity = NEAR_FIGURES_MAX, work = false, only = null }) {
   const S = { ready: false, failed: false, loading: null, retryAt: 0, bodies: {}, manifest: null, drawn: new Set(), drawnPrev: new Set(), anim: new Map(), looks: new Map(),
     warm: 0, bakeMs: 0, frames: 0, last: { people: 0, draws: 0, triangles: 0 } };
   let from = null;
@@ -376,6 +383,30 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       { name: "Run", frames: n(runD), duration: runD, pose: (t) => poseRun(t) },
       { name: "Cycle", frames: 24, duration: 1, fixed: true, pose: (t, f) => poseCycle(f, 24) },
     ];
+    // ---- at work (a kitchen): the hands to a counter, carrying, chopping, stirring, pouring. The
+    // targets are in metres in the model's frame (facing +z, the floor at 0); a counter's top is
+    // COUNTER_TOP. The spine bends to reach; the hands' places are recorded for every frame below.
+    if (work && B.leftarm && B.rightarm) {
+      const W3 = (x, y, z) => new THREE.Vector3(x, y, z), hips0 = (() => { putStand(); return pos(B.hips).y; })();
+      const arms = (Lt, Rt, bend = 0) => {
+        const dy = pos(B.hips).y - hips0;
+        if (bend && B.spine1) turnWorld(B.spine1, rotX(bend));
+        ik(B.leftarm, B.leftforearm, B.lefthand, Lt.clone().add(W3(0, dy, 0)), W3(0.8, -1, -0.4));
+        ik(B.rightarm, B.rightforearm, B.righthand, Rt.clone().add(W3(0, dy, 0)), W3(-0.8, -1, -0.4));
+      };
+      const T = COUNTER_TOP;
+      const carryL = W3(0.13, T + 0.1, 0.3), carryR = W3(-0.13, T + 0.1, 0.3);
+      const reachL = W3(0.12, T + 0.06, 0.47), reachR = W3(-0.12, T + 0.06, 0.47);
+      jobs.push(
+        { name: "Idle:carry", frames: n(idleD), duration: idleD, pose: (t) => { poseIdle(t); arms(carryL, carryR); } },
+        { name: "Walk:carry", frames: n(walkD), duration: walkD, pose: (t) => { poseWalk("Walk", t); arms(carryL, carryR); } },
+        // (Played once: down to the counter and back up, the bottom of it half-way.)
+        { name: "Idle:reach", frames: n(0.8), duration: 0.8, pose: (t, f, N) => { poseIdle(0); const u = Math.sin((Math.PI * f) / (N - 1)); arms(carryL.clone().lerp(reachL, u), carryR.clone().lerp(reachR, u), 0.3 * u); } },
+        { name: "Idle:chop", frames: n(0.5), duration: 0.5, pose: (t) => { poseIdle(0); const u = (1 - Math.cos((t / 0.5) * Math.PI * 2)) / 2; arms(W3(0.14, T + 0.05, 0.45), W3(-0.05, T + 0.05 + 0.1 * u, 0.44), 0.14); } },
+        { name: "Idle:stir", frames: n(1.2), duration: 1.2, pose: (t) => { poseIdle(t); const a = (t / 1.2) * Math.PI * 2; arms(W3(0.21, T + 0.07, 0.36), W3(-0.03 + 0.05 * Math.cos(a), T + 0.12, 0.45 + 0.05 * Math.sin(a)), 0.1); } },
+        { name: "Idle:pour", frames: n(1), duration: 1, pose: (t) => { poseIdle(t); const u = Math.sin((t / 1) * Math.PI * 2) * 0.015; arms(W3(0.09, T + 0.24 + u, 0.42), W3(-0.09, T + 0.26 + u, 0.4), 0.08); } },
+      );
+    }
     for (const kind of Object.keys(PH)) {
       jobs.push({ name: `Idle:${kind}`, frames: n(idleD), duration: idleD, pose: (t) => { poseIdle(t); phone(kind, 1); } });
       jobs.push({ name: `Walk:${kind}`, frames: n(walkD), duration: walkD, pose: (t) => { poseWalk("Walk", t); phone(kind, 1); } });
@@ -384,6 +415,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     }
     const rows = jobs.reduce((a, j) => a + j.frames, 0);
     const data = new Float32Array(width * rows * 4);
+    // (At work: each row's hands -- the left's and the right's grip, in the model's frame.)
+    const hands = work ? new Float32Array(rows * 6) : null;
+    const gripL = B.lefthandmiddle1 || B.lefthand, gripR = B.righthandmiddle1 || B.righthand, gp = V3();
     root.position.set(0, 0, 0); update();
     skeleton.pose(); update();
     const rest = pos(B.hips || skeleton.bones[0]), at = V3(), M = new THREE.Matrix4();
@@ -401,6 +435,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
           root.position.set(rest.x - at.x, 0, rest.z - at.z);
         }
         update();
+        if (hands && gripL && gripR) { pos(gripL, gp).toArray(hands, row * 6); pos(gripR, gp).toArray(hands, row * 6 + 3); }
         for (let b = 0; b < nb; b += 1) {
           M.multiplyMatrices(skeleton.bones[b].matrixWorld, skeleton.boneInverses[b]);
           const e = M.elements, o = (row * width + b * 3) * 4;
@@ -413,7 +448,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const texture = new THREE.DataTexture(data, width, Math.max(1, row), THREE.RGBAFormat, THREE.FloatType);
     texture.magFilter = texture.minFilter = THREE.NearestFilter; texture.generateMipmaps = false; texture.needsUpdate = true;
     S.bakeMs += performance.now() - t0;
-    return { texture, table };
+    return { texture, table, hands };
   }
   //: The skeleton's bones by their Mixamo names, lower case, the rig's prefix off ("hips",
   //: "rightforearm", ...).
@@ -593,7 +628,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const skeleton = bodyMesh.skeleton;
     const boneAt = new Map(skeleton.bones.map((b, i) => [b.name, i]));
     const hand = handFrame(skeleton);
-    const { texture, table } = bake(gltf, skeleton, hand);
+    const { texture, table, hands } = bake(gltf, skeleton, hand);
     const [young, old] = await Promise.all(spec.skins.map((f) => tex(f)));
     const skinMean = meanOf(young);
     const parts = [];
@@ -648,7 +683,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     // is measured in Blender before the export's own scale, and is not the file's.
     const box = new THREE.Box3().setFromBufferAttribute(bodyMesh.geometry.attributes.position).applyMatrix4(bodyMesh.matrixWorld);
     const height = box.max.y - box.min.y > 0.5 ? box.max.y - box.min.y : spec.height_m || 1.75;
-    return { sex, parts, phone, table, height, slots: slotsOf(spec.parts), skinMean };
+    return { sex, parts, phone, table, hands, height, slots: slotsOf(spec.parts), skinMean };
   }
 
   async function load() {
@@ -658,7 +693,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     S.manifest = await r.json();
     // (The phone from beside the page, not the store: it is one of the page's own models.)
     const phoneFile = await loadModel(asset(PHONE_FILE)).catch((e) => { console.warn("kerbside: the crowd's phone did not load", e?.message || e); return null; });
-    for (const [sex, spec] of Object.entries(S.manifest.bodies)) S.bodies[sex] = await loadBody(sex, spec, phoneFile);
+    for (const [sex, spec] of Object.entries(S.manifest.bodies)) if (!only || sex === only) S.bodies[sex] = await loadBody(sex, spec, phoneFile);
     S.ready = true;
   }
   const start = () => {
@@ -717,7 +752,16 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     if (wantPhone !== a.phone) { a.phone = wantPhone; a.pull = wantPhone ? 0 : 1; }
     let want;
     const gait = v < 0.2 ? "Idle" : "Walk";
-    if (q.ride) want = "Cycle";
+    // At work: the clip asked for (carrying walks as it carries), started again for each new ask.
+    if (q.work) {
+      want = q.work === "carry" ? `${gait}:carry` : `Idle:${q.work}`;
+      if (table[want]) {
+        if (want === a.clip && q.workKey !== a.workKey && ONCE.test(want)) { a.prev = a.clip; a.pt = a.t; a.t = 0; a.fade = 0; }
+        a.workKey = q.workKey;
+      } else want = null;
+    }
+    if (want) { /* at work */ }
+    else if (q.ride) want = "Cycle";
     else if (running) want = "Run";
     else if (a.phone && a.pull < 1) want = `${gait}:pull-${a.phone}`;
     else if (a.phone) want = `${gait}:${a.phone}`;
@@ -728,7 +772,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       // (A walk from a walk keeps its step: the same place in the stride.)
       const keep = walking(want) && walking(a.clip) && want !== "Run" && a.clip !== "Run";
       a.prev = a.clip; a.pt = a.t; a.clip = want; a.fade = 0;
-      a.t = want.includes(":pull-") ? 0 : keep ? (a.t / (table[a.prev]?.duration || 1)) * table[want].duration : a.t;
+      a.t = want.includes(":pull-") || ONCE.test(want) ? 0 : keep ? (a.t / (table[a.prev]?.duration || 1)) * table[want].duration : a.t;
     }
     const stride = WALK_MS * (pick.height || 1) * (pick.pace || 1);
     const rate = (c) => (c.startsWith("Walk") ? Math.max(0.45, v / stride) : c === "Run" ? Math.max(0.6, v / (RUN_MS * (pick.height || 1))) : 1);
@@ -782,11 +826,12 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       if (n >= capacity) break;
       const L = lookFor(q), body = L.body, pick = L.pick;
       const a = animate(q, L, dt, now);
-      const once = a.clip.includes(":pull-");
+      const once = a.clip.includes(":pull-") || ONCE.test(a.clip);
       const f = a.clip === "Cycle" && body.table.Cycle ? cycleFrame(body.table, q.crank || 0, FA) : frameOf(body.table, a.clip, a.t, FA, once);
       // (Fading from the last clip: this clip's frame, and the last's in the fade's share.)
       let fb = f.b, fw = f.w;
-      if (a.prev) { const g = a.prev === "Cycle" ? cycleFrame(body.table, q.crank || 0, FB) : frameOf(body.table, a.prev, a.pt, FB, a.prev.includes(":pull-")); fb = g.a; fw = 1 - a.fade; }
+      if (a.prev) { const g = a.prev === "Cycle" ? cycleFrame(body.table, q.crank || 0, FB) : frameOf(body.table, a.prev, a.pt, FB, a.prev.includes(":pull-") || ONCE.test(a.prev)); fb = g.a; fw = 1 - a.fade; }
+      a.fa = f.a; a.fb = fb; a.fw = fw; a.scale = q.ride ? 1 : pick.height; a.body = body;
       const yaw = (q.yaw || 0) + FACING_OFFSET;
       // (On a bicycle, as tall as the model: the saddle, bars and pedals are where the bake put them.)
       const height = q.ride ? 1 : pick.height;
@@ -835,6 +880,17 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     has: (id) => S.drawn.has(id) || S.drawnPrev.has(id),
     get ready() { return S.ready; }, get failed() { return S.failed; },
     //: Where someone is in their clips (for checks: the clip, the phone and how far out).
+    //: Where ``id``'s hands are as last drawn, in their own frame (metres, facing +z, the floor at
+    //: 0): {left, right, mid} (only with ``work``).
+    handsOf(id) {
+      const a = S.anim.get(id), H = a?.body?.hands;
+      if (!H || a.fa == null) return null;
+      const k = a.fw, s = a.scale || 1, at = (i) => (H[a.fa * 6 + i] * (1 - k) + H[a.fb * 6 + i] * k) * s;
+      const left = [at(0), at(1), at(2)], right = [at(3), at(4), at(5)];
+      return { left, right, mid: [(left[0] + right[0]) / 2, (left[1] + right[1]) / 2, (left[2] + right[2]) / 2] };
+    },
+    //: The clip ``id`` is in, and how far through (0 to 1).
+    clipOf(id) { const a = S.anim.get(id); const c = a && a.body?.table[a.clip]; return a ? { clip: a.clip, u: c ? Math.min(1, a.t / c.duration) : 0 } : null; },
     stateOf: (id) => { const a = S.anim.get(id); return a ? { clip: a.clip, phone: a.phone, pull: +a.pull.toFixed(2), mouth: +a.mouth.toFixed(2) } : null; },
     stats: () => ({ ready: S.ready, heights: Object.fromEntries(Object.entries(S.bodies).map(([k, b]) => [k, +b.height.toFixed(3)])), failed: S.failed, capacity, live: S.last.people, draws: S.last.draws, triangles: S.last.triangles, bakeMs: Math.round(S.bakeMs), looks: S.looks.size,
       clips: Object.keys(Object.values(S.bodies)[0]?.table || {}), phone: Object.values(S.bodies).map((b) => b.phone?.triangles || 0),

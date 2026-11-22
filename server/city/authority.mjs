@@ -91,6 +91,7 @@ export class CityAuthority {
     if (!doc || doc.version !== version) doc = version ? await this.store.load(this.worldId) : null;
     this.cache = doc;
     const world = doc ? CityWorld.fromJSON(this.R, structuredClone(doc.state.world)) : new CityWorld(this.R, { now: this.gameNow(), seed: this.worldId });
+    world.authoritativeJobs = true;
     world.knowTenants?.(this.canon.tenants);
     world.voices = Boolean(this.voices);
     world.step(this.gameNow());
@@ -132,6 +133,7 @@ export class CityAuthority {
       // (An action may have committed while the record was read: its newer record is not put back.)
       if (doc && (!this.cache || doc.version >= this.cache.version)) this.cache = doc;
       const world = doc ? CityWorld.fromJSON(this.R, structuredClone(doc.state.world)) : new CityWorld(this.R, { now: this.gameNow(), seed: this.worldId });
+      world.authoritativeJobs = true;
       world.knowTenants?.(this.canon.tenants);
       world.voices = Boolean(this.voices);
       L = this.live = { version: doc?.version ?? 0, world, srv: doc ? structuredClone(doc.state.server) : freshServer(), text: null, at: 0, views: new Map() };
@@ -198,7 +200,7 @@ export class CityAuthority {
       try {
         rate(srv, pid, real);
         const here = position(this.canon, srv, pid, clean.at, real);
-        const canonical = INTERIOR_COMMANDS.has(command)?prepareInterior(world,this.canon,srv,pid,command,{...clean,at:here}):this.canon.canonical(command, { ...clean, at: here }, { week: Math.floor(world.time.day / 7) });
+        const canonical = INTERIOR_COMMANDS.has(command)?prepareInterior(world,this.canon,srv,pid,command,{...clean,at:here}):this.canon.canonical(command, { ...clean, at: here }, { week: Math.floor(world.time.day / 7), time:world.time });
         result = world.submit(pid, command, eligible(world, this.canon, srv, pid, command, canonical, here));
         clean = { ...clean, at: here };
       } catch (error) {

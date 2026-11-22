@@ -1,3 +1,4 @@
+import { cutModel, cutPieces, CUT_COUNTS } from "./kitchen-cuts.mjs";
 // The kitchen, played: an animated back-of-house you walk around in (docs/city/kitchen-3d.mjs
 // builds it; docs/city/kitchen.mjs keeps the rules and the world's side).
 //
@@ -18,10 +19,12 @@
 // view.mjs calls this through a few hooks: actions (the action bar), todo, and open.
 
 import { batchSeconds, chain, cookedPart, displayAmount, doneness, donenessWord, ingCost, needs, recipeOf, recognizeDish, scorePlate, targetOf, waitTipShare, wholeUnits } from "./kitchen.mjs";
+import { appliance, dial, levels, applianceLabel } from "./kitchen-appliances.mjs";
 import { DOUGH_FORMS, doughDimensions, doughMesh, workableDough } from "./dough.mjs";
 import { createKitchenScene } from "./kitchen-3d.mjs";
 import { cookingSteps } from "./menu-dish.mjs";
 
+const STIRRED = ["saute", "wok", "boil"];
 const HEAT = ["grill", "fry", "boil", "saute", "bake", "micro", "toast", "steam", "wok", "brew", "pour"];
 const SNAP_M = 0.14;   // dropped within this of a product, it is centred onto it
 const STYLE = `
@@ -75,7 +78,25 @@ const STYLE = `
 #city-kitchen .loading{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;color:#a9b6c4}
 #city-kitchen-tip{position:fixed;z-index:31;right:16px;bottom:120px;width:280px;padding:10px;border-radius:12px;background:rgba(17,24,39,.9);color:#f1f5f9;border:1px solid rgba(255,255,255,.14);font:13px system-ui,sans-serif}
 #city-kitchen-tip button{font:inherit;margin:3px 3px 0 0;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.09);color:inherit;border-radius:7px;padding:4px 8px;cursor:pointer}
-@media (max-width:900px){ #city-kitchen .side{top:auto;bottom:70px;width:auto;left:10px;max-height:34%} #city-kitchen .rail{right:10px} }`;
+#city-kitchen .drag{position:absolute;z-index:6;pointer-events:none;transform:translate(14px,14px);padding:5px 10px;border-radius:8px;background:rgba(17,24,39,.92);border:1px solid #f1c46b;color:#fff;font-weight:600;white-space:nowrap}
+#city-kitchen .dock{position:absolute;left:10px;top:196px;width:236px;display:flex;flex-direction:column;gap:6px;max-height:calc(100% - 270px);overflow:auto;scrollbar-width:thin}
+#city-kitchen .dial{padding:5px 8px}
+#city-kitchen .dock .fold{align-self:flex-start;padding:3px 9px;font-size:12px}
+#city-kitchen .dial .head{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+#city-kitchen .dial .head b{font-size:12.5px}#city-kitchen .dial .read{font-size:11.5px;color:#cfd8e3;font-variant-numeric:tabular-nums}
+#city-kitchen .dial .gauge{height:3px;border-radius:2px;background:rgba(255,255,255,.12);margin:4px 0;position:relative;overflow:hidden}
+#city-kitchen .dial .gauge i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#3d7bd9,#e0a526,#d9472b)}
+#city-kitchen .dial .gauge s{position:absolute;top:-1px;bottom:-1px;width:2px;background:#fff;text-decoration:none}
+#city-kitchen .seg{display:flex;gap:3px}#city-kitchen .seg button{flex:1;padding:2px 0;font-size:11.5px}
+#city-kitchen .seg button[aria-pressed=true]{background:#2f6fe4;border-color:#2f6fe4;color:#fff}
+#city-kitchen .temps{position:absolute;inset:0;pointer-events:none}
+#city-kitchen .temp{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;padding:2px 7px;border-radius:999px;background:rgba(17,24,39,.85);border:1px solid rgba(255,255,255,.18);font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#city-kitchen .temp i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+#city-kitchen .cook{pointer-events:auto;cursor:pointer}
+#city-kitchen .hint .chip{padding:4px 9px}
+#city-kitchen .hint .chip.primary{box-shadow:0 0 0 2px rgba(47,111,228,.35)}
+#city-kitchen .recipe li button{margin-left:6px;padding:0 6px;font-size:11px}
+@media (max-width:900px){ #city-kitchen .dock{top:auto;bottom:120px;width:200px;max-height:30%}  #city-kitchen .side{top:auto;bottom:70px;width:auto;left:10px;max-height:34%} #city-kitchen .rail{right:10px} }`;
 
 export function kitchenPanel(api) {
   const { R, h, send, notify, self, getView, placeArg, district, me, clock, doc = document, THREE, loadModel, asset } = api;
@@ -142,10 +163,12 @@ export function kitchenPanel(api) {
     const k = e.key.toLowerCase();
     if (e.type === "keyup") { keys.delete(k); return; }
     if (k === "escape") { e.preventDefault(); if (st.pop) { st.pop = null; hud(); } else close(); return; }
-    if (st.pop) return;
+    if (st.pop || st.pouring) return;
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); keys.add(k); st.walk = null; return; }
     if (e.repeat) return;
     if (k === "b" && !held()) { e.preventDefault(); openPantry(); return; }
+    // Over a bin, a number takes that many (pieces, or portions of what is weighed).
+    if (/^[1-9]$/.test(k) && st.hoverBin && !held()) { e.preventDefault(); const ing = st.hoverBin; walkTo(frontOf(st.scene.bins.find((b) => b.ing === ing)?.x ?? st.scene.chef.position.x), () => takeQty(ing, Math.min(+k, st.k.pantry[ing] || 0))); return; }
     if (k === "e" || k === " ") { e.preventDefault(); keyUse(); return; }
     if (k === "delete" || k === "backspace" || k === "q") { e.preventDefault(); keyBin(); }
   }
@@ -155,11 +178,11 @@ export function kitchenPanel(api) {
     const place = placeArg(pl);
     const r = await send("kitchen_open", { place });
     if (!r.ok) { notify(r.error); return; }
-    if (!st || st.place.id !== place.id) {
+    if (!st || st.place.id !== place.id || r.kitchen.serverPrep) {
       st?.scene?.dispose();
       st = { place, tab: "line", items: new Map(), groups: new Map(), held: null, sel: null, ticket: null, extras: new Set(), lab: { name: "" }, results: [], passOrder: [], walk: null, pop: null, canvas: h("canvas", { tabIndex: 0 }) };
     }
-    st.k = r.kitchen;
+    st.k = r.kitchen; st.applianceOffset=st.k.applianceNow-Date.now();
     el = h("section", { id: "city-kitchen", "aria-label": "Kitchen" }, st.canvas);
     doc.body.append(el);
     addEventListener("keydown", onKey, true); addEventListener("keyup", onKey, true); addEventListener("resize", resize);
@@ -167,7 +190,7 @@ export function kitchenPanel(api) {
       const loading = h("div", { className: "loading", textContent: "Setting up the kitchen…" });
       el.append(loading);
       const menu = st.k.menu.slice(0, 8).map((d) => ({ name: R.items[d]?.name || d, price: fmt(st.k.prices[d] || 0) }));
-      st.scene = await createKitchenScene(THREE, { canvas: st.canvas, kind: st.k.kind, stations: st.k.stations.map((s) => s.id), kit: { loadModel, asset }, title: st.k.name, menu });
+      st.scene = await createKitchenScene(THREE, { canvas: st.canvas, kind: st.k.kind, stations: st.k.stations.map((s) => s.id), kit: { loadModel, asset,npcStore:api.npcStore }, title: st.k.name, menu });
       await st.scene.setBins(binList(), R);
       st.bowl = await st.scene.kenney("bowl-broth", 0.19);
       st.plates = await st.scene.kenney("plate", 0.24);
@@ -175,9 +198,11 @@ export function kitchenPanel(api) {
       st.scene.chef.position.set(0, 0, st.scene.walk.z1);
       st.scene.chef.rotation.y = Math.PI;
       st.canvas.addEventListener("pointerdown", onPointer);
-      st.canvas.addEventListener("pointermove", onHover);
+      st.canvas.addEventListener("pointermove", (e) => { onHover(e); onDrag(e); });
+      st.canvas.addEventListener("pointerup", onRelease);
       st.canvas.addEventListener("pointerleave", () => { st.hover = null; });
       st.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+      if(st.k.serverPrep) await restoreBoard();
       loading.remove();
     }
     if (!el) return;
@@ -202,7 +227,7 @@ export function kitchenPanel(api) {
     const r = await send("kitchen_state", { place: st.place });
     if (!r.ok) { notify(r.error); if (/clock in|staff only|go to/.test(r.error)) close(); return; }
     const before = st.k.tickets.map((t) => t.id).join();
-    st.k = r.kitchen;
+    st.k = r.kitchen; st.applianceOffset=st.k.applianceNow-Date.now();
     if (st.ticket && !ticketOf(st.ticket)) { st.ticket = null; notify("A customer gave up waiting and left."); }
     if (!st.pop && before !== st.k.tickets.map((t) => t.id).join()) hud(); else hudTop();
   }
@@ -236,13 +261,61 @@ export function kitchenPanel(api) {
     st.items.set(it.uid, it);
     return it;
   }
+  async function restoreBoard() {
+    const W = st.scene.WORK;
+    let index = 0;
+    const counter = () =>
+      V(
+        W.x0 + 0.12 + ((index++ % 7) * (W.x1 - W.x0 - 0.24)) / 6,
+        st.scene.COUNTER_Y,
+        W.z0 + 0.08 + (Math.floor(index / 7) % 3) * 0.08,
+      );
+    async function item(c) {
+      const it = await newItem(c.ing, c.qty);
+      Object.assign(it, {
+        lot: c.lot,cut:c.cut,bounds:c.bounds,
+        chain: chain(c.p),
+        q: c.q ?? 1,
+        ratios: c.ratios || [],
+        ratio: c.ratio ?? 1,
+        batch: c.batch,
+        shape: c.shape,
+      });
+      await relook(it);
+      return it;
+    }
+    const groups = new Map();
+    for (const [lot, c] of Object.entries(st.k.board?.lots || {})) {
+      const key = c.batch || lot;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(await item({ ...c, lot }));
+    }
+    for (const list of groups.values()) newGroup(list, "work", counter());
+    for (const [ing, qty] of Object.entries(st.k.held || {}))
+      if (qty > 0) newGroup([await newItem(ing, qty)], "work", counter());
+    for (const [job, j] of Object.entries(st.k.board?.jobs || {})) {
+      const slot = onStation(j.station).length,
+        lay = st.scene.layout[j.station];
+      const g = newGroup(await Promise.all(j.inputs.map(item)), "station", lay.slots[slot] || lay.slots[0]);
+      g.station = { id: j.station, slot };
+      g.cook = {
+        job,startDose:j.startDose,
+        proc: j.proc,
+        secs: j.secs,
+        start: performance.now() - (Date.now() - j.at),
+        taps: j.taps,
+        need: P.chop.taps,
+      };
+    }
+  }
   function mark(it) {
     it.obj.traverse((m) => { if (m.isMesh) m.userData.item = it.uid; });
     it.h = new THREE.Box3().setFromObject(it.obj).getSize(V(0, 0, 0)).y;
   }
   async function relook(it) {
     const old = it.obj;
-    it.obj = await st.scene.itemObject(it.ing, ING[it.ing]?.role, it);
+    it.obj = await st.scene.itemObject(it.ing, ING[it.ing]?.role, it.bounds?{...it,chain:it.chain.filter(p=>p!=="chop")}:it);
+    if(it.bounds)it.obj=cutModel(THREE,it.obj,it.bounds);
     mark(it);
     old.parent?.remove(old);
   }
@@ -257,9 +330,12 @@ export function kitchenPanel(api) {
   //: Stacks a product's items where it is: each on the one below, centred; a burger gets its lid.
   function layout(g) {
     const node = g.node;
+    const previous=node.parent && node.getWorldPosition(V(0,0,0));
+    const oldParent=node.parent;
     for (const m of node.children) if (m.userData.shaped) { m.geometry.dispose(); m.material.dispose(); }
     node.clear();
     let y = 0;
+    if(g.station?.id==="blender" && g.cook){st.scene.contents.visible=true;g.height=.1;return;}
     if (g.at === "pass" && st.plates) { node.add(st.plates.clone(true)); y = 0.014; }
     const list = itemsOf(g);
     const shown = new Set();
@@ -278,10 +354,17 @@ export function kitchenPanel(api) {
         shown.add(it.batch);
         const bowl = st.bowl.clone(true);
         bowl.traverse(m => { if (m.isMesh) m.userData.item = it.uid; });
-        bowl.position.y = y; node.add(bowl); y += 0.08;
+        bowl.position.y = y; node.add(bowl);
+        if(it.chain.includes("blend")){
+          const liquid=st.scene.contents.clone();liquid.visible=true;liquid.scale.set(.91,.15,.91);
+          liquid.position.y=y+.044;liquid.userData.item=it.uid;node.add(liquid);
+        }
+        y += 0.08;
         return;
       }
-      it.obj.position.set(0, y, 0);
+      // (Diced or minced: the bits spread in a little heap, not stacked.)
+      const grid = it.cut === "dice" ? 4 : it.cut === "mince" ? 5 : 0, gap = it.cut === "mince" ? 0.017 : 0.025;
+      it.obj.position.set(grid ? ((i % grid) - (grid - 1) / 2) * gap : 0, grid ? 0 : y, grid ? ((Math.floor(i / grid) % grid) - (grid - 1) / 2) * gap : 0);
       it.obj.rotation.y = i * 0.5;
       node.add(it.obj);
       y += Math.max(0.004, it.h * (list.length > 1 ? 0.8 : 1));
@@ -289,6 +372,11 @@ export function kitchenPanel(api) {
     if (list[0]?.ing === "bun" && list.length > 1 && st.bunTop) { const top = st.bunTop.clone(true); top.position.y = y - 0.004; node.add(top); y += 0.03; }
     if (g.at === "held") { st.scene.holdAt.add(node); node.position.set(0, 0, 0); }
     else { st.scene.scene.add(node); node.position.copy(g.pos); }
+    if(previous && oldParent!==node.parent){
+      const end=node.position.clone();
+      g.motion={from:node.parent.worldToLocal(previous),end,at:performance.now()};
+      node.position.copy(g.motion.from);
+    }
     g.height = y;
     highlight();
   }
@@ -312,9 +400,12 @@ export function kitchenPanel(api) {
   }
   const held = () => (st.held ? st.groups.get(st.held) : null);
   function hold(g) {
+    st.scene.reach();
     st.passOrder = st.passOrder.filter((x) => x !== g.gid);
     g.at = "held"; g.station = null; g.cook = null; st.held = g.gid; st.sel = null;
     layout(g); hud();
+    // (A drag from a bin or a dish to somewhere: once it is in hand, on to where it was dropped.)
+    if (st.afterHold) { const next = st.afterHold; st.afterHold = null; setTimeout(next, 150); }
   }
   const untouched = (g) => g && g.items.length === 1 && !st.items.get(g.items[0]).shape && !st.items.get(g.items[0]).chain.length;
 
@@ -322,6 +413,7 @@ export function kitchenPanel(api) {
   //: Walk to stand at ``at`` (kept on the floor between the counters), then do ``then``.
   function walkTo(at, then = null) {
     const W = st.scene.walk;
+    if(st.pourMotion)return;
     st.walk = { target: V(Math.max(W.x0, Math.min(W.x1, at.x)), 0, Math.max(W.z0, Math.min(W.z1, at.z))), then };
   }
   const frontOf = (x) => V(x, 0, st.scene.walk.z1);
@@ -356,13 +448,23 @@ export function kitchenPanel(api) {
         speed = v;
       }
     }
-    S3.pose(dt, { speed, holding: Boolean(st.held), chopping: (st.chopping || 0) > performance.now() });
+    // (Stood idle at a pan that is cooking, the cook stirs it.)
+    const stirring = !speed && !st.held && [...st.groups.values()].some((g) => g.at === "station" && g.cook?.start && STIRRED.includes(g.cook.proc) && Math.abs(g.pos.x - chef.position.x) < 0.5 && Math.abs(g.pos.z - chef.position.z) < 1);
+    S3.pose(dt, { speed, holding: Boolean(st.held || st.pouring), chopping: (st.chopping || 0) > performance.now(), stirring, pouring: Boolean(st.pourMotion) });
     // Cooking: colours move with the time on the heat; steam and sizzle rise.
     const now = performance.now();
+    // The knife: in the cook's right hand while chopping, back on the board after.
+    const knife = S3.layout.board?.knife, hands = S3.hands();
+    if (knife) {
+      knife.userData.rest ||= knife.position.clone();
+      if ((st.chopping || 0) > now && hands) { knife.position.copy(knife.parent.worldToLocal(hands.right.clone())); knife.rotation.z = -0.25; }
+      else if ((st.chopping || 0) > now) { const swing = Math.max(0, Math.min(1, (st.chopping - now) / 450)); knife.position.copy(knife.userData.rest); knife.position.y += Math.abs(Math.sin(swing * Math.PI * 2)) * 0.08; knife.rotation.z = 0.45 * Math.sin(swing * Math.PI * 4); }
+      else { knife.position.copy(knife.userData.rest); knife.rotation.z = 0; }
+    }
     for (const g of st.groups.values()) {
       const c = g.cook;
       if (!c?.start) continue;
-      const ratio = (now - c.start) / 1000 / Math.max(0.5, c.secs);
+      const ratio = cookRatio(g);
       if (HEAT.includes(c.proc) && now - (c.tinted || 0) > 120) {
         c.tinted = now;
         for (const it of itemsOf(g)) S3.tint(it.obj, it.ing, { chain: [...it.chain, c.proc], ratio });
@@ -371,6 +473,30 @@ export function kitchenPanel(api) {
         const at = V(g.pos.x, g.pos.y + (g.height || 0.03), g.pos.z);
         if (["boil", "steam", "brew"].includes(c.proc)) S3.emit(at, "steam");
         else if (["grill", "fry", "wok", "saute", "toast", "bake"].includes(c.proc)) S3.emit(at, ratio > 1.65 ? "steam" : "sizzle");
+      }
+    }
+    for(const [id,lay] of Object.entries(S3.layout)){
+      const a=appliance(id,st.k.appliances?.[id],machineNow());
+      for(const ring of lay.rings||[])ring.material.emissiveIntensity=Math.max(0,(a.value-21)/90);
+    }
+    for(const g of st.groups.values())if(g.motion){
+      const m=g.motion,t=Math.min(1,(now-m.at)/400),smooth=t*t*(3-2*t);
+      g.node.position.lerpVectors(m.from,m.end,smooth);g.node.position.y+=Math.sin(Math.PI*t)*.055;
+      if(t===1)g.motion=null;
+    }
+    if(st.pourMotion){
+      const {g,start,target}=st.pourMotion,t=Math.min(1,(now-start)/850),jug=S3.jug;
+      S3.scene.attach(jug);
+      // (In the cook's hands, over the bowl; tipped as it pours.)
+      if (hands) jug.position.copy(hands.left).lerp(hands.right, 0.5).add(V(0, 0.04, 0));
+      else jug.position.copy(target).add(V(.09,.16+.035*Math.sin(t*Math.PI),0));
+      jug.rotation.z=Math.sin(t*Math.PI)*1.45;
+      S3.stream.visible=t>.2 && t<.8;S3.stream.position.copy(target).add(V(0,.065,0));
+      if(t===1){
+        S3.dockJug();S3.contents.visible=false;S3.stream.visible=false;g.at="work";g.station=null;g.pos=target.clone();g.node.visible=true;
+        const existing=[...st.groups.values()].find(other=>other!==g && other.at==="work" && other.pos.distanceTo(target)<.025);
+        if(existing){existing.items.push(...g.items);g.node.removeFromParent();st.groups.delete(g.gid);layout(existing);}else layout(g);
+        st.pourMotion=null;st.pouring=null;hud();
       }
     }
     S3.stepPuffs(dt);
@@ -387,13 +513,15 @@ export function kitchenPanel(api) {
     if (!st?.scene) return;
     const hit = st.scene.pick(...ndc(e), itemMeshes());
     st.hover = hit ? { x: e.clientX, y: e.clientY, text: describe(hit) } : null;
+    st.hoverBin = hit?.object.userData.hit?.type === "bin" ? hit.object.userData.hit.ing : null;
     st.canvas.style.cursor = hit && hit.object.userData.hit?.type !== "floor" ? "pointer" : "default";
   }
   function describe(hit) {
     const u = hit.object.userData.item;
     if (u) { const it = st.items.get(u), g = groupOf(u); if (it?.batch && g) return `${productName(g)} · ${stateWord(it)}`; return g ? `${g.items.length > 1 ? `${productName(g)}: ` : ""}${iname(it.ing)} (${stateWord(it)})` : ""; }
     const d = hit.object.userData.hit;
-    if (d.type === "bin") return `${iname(d.ing)} · ${displayAmount(R, d.ing, st.k.pantry[d.ing] || 0)} available`;
+    if (d.type === "vessel") return "Preparation bowl "+(d.index+1);
+    if (d.type === "bin") return `${iname(d.ing)} · ${displayAmount(R, d.ing, st.k.pantry[d.ing] || 0)} available · click to take ${displayAmount(R, d.ing, quickQty(d.ing))}, Shift-click for more, or keys 1–9`;
     if (d.type === "station") { const s = stationSpec(d.id); return `${s?.name || d.id}: ${s?.does.map((p) => P[p].name.toLowerCase()).join(", ")}`; }
     if (d.type === "store") return `${{ fridge: "Fridge", freezer: "Freezer", dry: "Dry-goods shelves" }[d.kept]}: click to choose`;
     if (d.type === "pass") return "The pass: plates go out from here";
@@ -415,19 +543,78 @@ export function kitchenPanel(api) {
     if (list.length === 1) return `${iname(list[0].ing)} · ${displayAmount(R, list[0].ing, list[0].qty)}`;
     return recognizeDish(R, plateOf(g), st.k.house_menu)?.name || `${list.length} ingredients`;
   }
+  //: A press on the kitchen: a click when let go where it was pressed; a drag to somewhere else is
+  //: "take this there" -- from a bin (the amount the ticket wants) or a dish, to a station, the
+  //: board, the counter, the pass or the bin -- done in one go.
   function onPointer(e) {
     if (e.button !== 0 || !st?.scene || st.fetching || st.sending) return;
     st.pop = null;
     const hit = st.scene.pick(...ndc(e), itemMeshes());
+    st.press = { x: e.clientX, y: e.clientY, hit, e, moved: false };
+    try { st.canvas.setPointerCapture(e.pointerId); } catch {}
+  }
+  function onDrag(e) {
+    const p = st?.press;
+    if (!p || (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 9)) return;
+    const from = p.hit && (p.hit.object.userData.item || p.hit.object.userData.hit?.type === "bin") ? p.hit : null;
+    if (!from) return;
+    p.moved = true;
+    let ghost = el.querySelector(".drag");
+    if (!ghost) { ghost = h("div", { className: "drag" }); el.append(ghost); }
+    const dest = st.scene.pick(...ndc(e), itemMeshes());
+    ghost.textContent = `${shortName(from)} → ${dest ? shortName(dest) : "…"}`;
+    ghost.style.left = `${e.clientX}px`; ghost.style.top = `${e.clientY}px`;
+  }
+  function onRelease(e) {
+    const p = st?.press;
+    if (!p) return;
+    st.press = null;
+    el?.querySelector(".drag")?.remove();
+    if (!p.moved) { act(p.hit, p.e); return; }
+    dragDo(p.hit, st.scene.pick(...ndc(e), itemMeshes()), e);
+  }
+  //: A thing in the kitchen in a word or two (for the drag's label).
+  function shortName(hit) {
+    const u = hit.object.userData.item;
+    if (u) { const g = groupOf(u); return g ? productName(g) : "food"; }
+    const d = hit.object.userData.hit;
+    return d.type === "bin" ? iname(d.ing) : d.type === "station" ? stationSpec(d.id)?.name || d.id : d.type === "vessel" ? `bowl ${d.index + 1}` : d.type === "work" ? "the counter" : d.type === "pass" ? "the pass" : d.type === "trash" ? "the bin" : d.type === "store" ? "the store" : "there";
+  }
+  function dragDo(src, dest, e) {
+    if (!src || !dest) return;
+    const u = src.object.userData.item, d = src.object.userData.hit;
+    if (held()) { act(dest, e); return; }
+    const then = () => act(dest, e);
+    if (u) {
+      const g = groupOf(u);
+      if (!g) return;
+      // (Off the board or out of the blender, a drag is what a click on it would be.)
+      if (g.at === "station" && (g.cook?.proc === "chop" || g.cook?.proc === "blend" || (g.cook && !g.cook.start))) { act(src, st.press?.e || e); return; }
+      st.sel = { gid: g.gid, uid: null };
+      st.afterHold = then;
+      walkTo(standAt(g), () => pickSelected());
+      return;
+    }
+    if (d?.type === "bin") { st.afterHold = then; clickSource(d.ing, frontOf(st.scene.bins.find((b) => b.ing === d.ing)?.x ?? src.point.x)); }
+  }
+  function act(hit, e) {
+    st.afterHold = null;
     if (!hit) { hud(); return; }
+    if(st.pouring){
+      const dest=hit.object.userData.hit, u = hit.object.userData.item, g = u && groupOf(u);
+      if(dest?.type==="vessel" || dest?.type==="station" && dest.id==="bowl")return pourInto(dest);
+      if (g && (g.at === "work" || g.at === "pass")) return pourInto({ type: "onto", group: g });
+      notify("Pour it into a bowl on the front counter, or onto a dish (click it).");return;
+    }
     const u = hit.object.userData.item;
     if (u) { clickItem(u, e); return; }
     const d = hit.object.userData.hit, p = hit.point;
     if (d.type === "floor") { walkTo(p); hud(); return; }
-    if (d.type === "bin") { clickSource(d.ing, frontOf(st.scene.bins.find((b) => b.ing === d.ing)?.x ?? p.x)); return; }
+    if (d.type === "bin") { clickSource(d.ing, frontOf(st.scene.bins.find((b) => b.ing === d.ing)?.x ?? p.x), e.shiftKey); return; }
     if (d.type === "store") { clickStore(d.kept, e); return; }
     if (d.type === "trash") { if (held()) walkTo(st.scene.storage.trash.approach, () => binHeld()); return; }
     if (d.type === "work") { if (held()) walkTo(frontOf(p.x), () => putDown(p)); else walkTo(frontOf(p.x)); return; }
+    if (d.type === "vessel") { const at = st.scene.vessels[d.index]; if (held()) walkTo(frontOf(at.x), () => putDown(at.clone())); else walkTo(frontOf(at.x)); return; }
     if (d.type === "pass") { walkTo(frontOf(st.scene.PASS.x1 - 0.25), held() ? () => toPass() : null); return; }
     if (d.type === "station") clickStation(d.id, e);
   }
@@ -444,7 +631,9 @@ export function kitchenPanel(api) {
     }
     if (g.at === "station") {
       // On the board and not chopped yet: a click is a chop. Anything else on a station comes off in one click.
-      if (g.cook?.proc === "chop") walkTo(standAt(g), () => chopTap(g));
+      if(g.cook && stationSpec(g.station.id)?.batch && !g.cook.start){walkTo(standAt(g),()=>startBatch(g));return;}
+      if (g.cook?.proc === "chop") boardCut(g,e);
+      else if(g.cook?.proc==="blend" && g.cook.start)walkTo(standAt(g),()=>carryJug(g));
       else walkTo(standAt(g), () => { st.sel = { gid: g.gid, uid: null }; pickSelected(); });
       return;
     }
@@ -459,6 +648,7 @@ export function kitchenPanel(api) {
     const s = st.sel, g = s && st.groups.get(s.gid);
     if (!g) return;
     if (held()) { notify("Your hands are full: put that down first."); return; }
+    if(g.cook?.proc==="blend" && g.cook.start){await carryJug(g);return;}
     if (g.cook && !await finishCook(g)) return;
     if (s.uid && g.items.length > 1) {
       // One thing out of a product: the rest settles down.
@@ -470,14 +660,31 @@ export function kitchenPanel(api) {
       hold(newGroup(taken, "held", V(0, 0, 0)));
     } else hold(g);
   }
-  function clickSource(ing, at) {
+  //: A bin clicked: walk over and take what the ticket's dish wants of it (or what you took last
+  //: time, or one); Shift asks how much.
+  function clickSource(ing, at, ask = false) {
     const hg = held();
     if (hg) {
       if (untouched(hg) && st.items.get(hg.items[0]).ing === ing) walkTo(at, () => putBack());
       else notify("Your hands are full: put that down first.");
       return;
     }
-    walkTo(at, () => chooseQuantity(ing));
+    walkTo(at, () => (ask ? chooseQuantity(ing) : takeQty(ing, quickQty(ing))));
+  }
+  //: How much of ``ing`` a quick take is, in the bin's own unit (pieces, or the recipe's share).
+  function quickQty(ing) {
+    const spec = ING[ing], t = ticketOf(st.ticket);
+    let qty = null;
+    if (t) for (const line of t.lines) { const c = targetOf(R, line, k().house_menu)?.build.find((c) => c.ing === ing); if (c) { qty = c.qty; break; } }
+    qty ??= st.lastQty?.[ing] ?? (spec?.measure === "g" ? 1 : 1);
+    if (wholeUnits(spec)) qty = Math.max(1, Math.round(qty));
+    return Math.min(qty, st.k.pantry[ing] || 0);
+  }
+  function takeQty(ing, qty) {
+    if (!(qty > 0)) { notify(`No ${iname(ing).toLowerCase()} left.`); return; }
+    const said = displayAmount(R, ing, qty);
+    if (!st.toldQuick) { st.toldQuick = true; notify(`Took ${iname(ing).toLowerCase()} (${said}). Shift-click a bin to choose how much, or hover it and press 1–9.`); }
+    take(ing, ING[ing].measure === "g" ? qty * ING[ing].grams : qty);
   }
   function openPantry() {
     const list = Object.keys(ING).filter(i => st.k.pantry[i] > 0).sort((a, b) => iname(a).localeCompare(iname(b)));
@@ -506,8 +713,11 @@ export function kitchenPanel(api) {
     try {
       const qty = ING[ing].measure === "g" ? amount / ING[ing].grams : amount;
       const r = await run("kitchen_take", { items: { [ing]: qty } });
-      if (!r) return;
-      hold(newGroup([await newItem(ing, qty)], "held", V(0, 0, 0)));
+      if (!r) { st.afterHold = null; return; }
+      (st.lastQty ||= {})[ing] = qty;
+      const origin=st.scene.holdAt.getWorldPosition(V(0,0,0));
+      origin.y=st.scene.COUNTER_Y;origin.z+=Math.cos(st.scene.chef.rotation.y)*.18;
+      hold(newGroup([await newItem(ing, qty)], "work",origin));
     } finally { st.fetching = false; }
   }
   async function putBack() {
@@ -520,6 +730,7 @@ export function kitchenPanel(api) {
   }
   //: Putting down on the counter: centred onto a product near where you clicked, or a new one there.
   function putDown(p) {
+    st.scene.reach();
     const g = held();
     if (!g) return;
     const W = st.scene.WORK;
@@ -551,6 +762,7 @@ export function kitchenPanel(api) {
     if (!g) return;
     const free = st.scene.passSlots.findIndex((_, i) => !st.passOrder.some((id) => st.groups.get(id)?.slot === i));
     if (free < 0) { notify("The pass is full: serve or take a plate off."); return; }
+    st.scene.reach();
     g.at = "pass"; g.slot = free; g.pos = st.scene.passSlots[free].clone(); st.held = null;
     st.passOrder.push(g.gid);
     layout(g); hud();
@@ -562,9 +774,13 @@ export function kitchenPanel(api) {
     for (const it of itemsOf(g)) items[it.ing] = (items[it.ing] || 0) + it.qty;
     const why = itemsOf(g).map((i) => i.last).find((x) => x && x !== "just right") || "binned";
     const name = productName(g);
-    const r = await run("kitchen_bin", { items, why });
+    const r = await run("kitchen_bin", { items, parts:portions(g), why });
     if (!r) return;
-    drop(g);
+    const end=st.scene.storage.trash.approach.clone();end.y=.5;
+    const fading=g.node;st.scene.scene.attach(fading);const begin=fading.position.clone(),t0=performance.now();
+    st.scene.reach();drop(g);st.scene.scene.add(fading);
+    function discard(now){const t=Math.min(1,(now-t0)/350);fading.position.lerpVectors(begin,end,t);fading.rotation.z=t*.55;fading.scale.setScalar(1-.75*t);if(t<1)requestAnimationFrame(discard);else fading.removeFromParent();}
+    requestAnimationFrame(discard);
     notify(`Binned: ${name.toLowerCase()} (${fmt(r.cost)}, logged as waste).`);
     hud();
   }
@@ -598,11 +814,68 @@ export function kitchenPanel(api) {
   const stationSpec = (id) => st.k.stations.find((s) => s.id === id);
   const onStation = (id) => [...st.groups.values()].filter((g) => g.at === "station" && g.station?.id === id);
   const stationStand = (id) => { const lay = st.scene.layout[id]; return lay.facing > 0 ? backOf(lay.x) : frontOf(lay.x); };
+  const machineNow=()=>Date.now()+(st.applianceOffset||0);
+  function cookRatio(g){
+    const c=g.cook,setting=st.k.appliances?.[g.station.id];
+    return c.startDose==null?(performance.now()-c.start)/1000/c.secs:Math.max(0,appliance(g.station.id,setting,machineNow()).dose-c.startDose)/c.secs;
+  }
+  async function adjust(id,level){
+    const r=await run("kitchen_prepare",{action:"dial",station:id,level});
+    if(r){(st.k.appliances ||= {})[id]=r.setting;st.applianceOffset=r.now-Date.now();hud();}
+  }
+  //: The blender's jug lifted off its base (what was blended stays in it: it is poured, not picked
+  //: up). With one empty bowl on the counter it goes straight there; else you choose a bowl, or a
+  //: dish to pour it over.
+  async function carryJug(g){
+    if(!await finishCook(g))return;
+    g.at="jug";st.pouring=g;g.node.visible=false;
+    st.scene.jug.visible=true;st.scene.holdAt.add(st.scene.jug);st.scene.jug.position.set(0,0,0);
+    st.scene.jug.rotation.set(0,0,0);hud();
+    const empty = st.scene.vessels.map((at, index) => ({ at, index })).filter(({ at }) => ![...st.groups.values()].some((o) => o.at === "work" && Math.hypot(o.pos.x - at.x, o.pos.z - at.z) < 0.06));
+    if (empty.length === 1) { notify(`Pouring into bowl ${empty[0].index + 1}, the empty one.`); pourInto({ type: "vessel", index: empty[0].index }); }
+  }
+  function pourInto(dest){
+    if(st.pourMotion)return;
+    const g=st.pouring, target=dest.type==="vessel"?st.scene.vessels[dest.index]:dest.type==="onto"?dest.group.pos.clone():st.scene.layout.bowl.slots[0];
+    walkTo(frontOf(target.x),()=>{
+      st.pourMotion={g,target,start:performance.now()};
+    });
+  }
+  function boardCut(g,e){
+    if(itemsOf(g).length!==1){walkTo(standAt(g),()=>chopTap(g));return;}
+    const pos=st.scene.project(g.pos),r=st.canvas.getBoundingClientRect();
+    const edge=st.scene.project(g.pos.clone().add(V(.09,0,0)));
+    // (Clicked on the food: the blade where you clicked on it; from elsewhere, the middle.)
+    const fraction=e?.target!==st.canvas?0.5:Math.max(.02,Math.min(.98,.5+(e.clientX-r.left-pos.x*r.width)/(2*Math.max(8,Math.abs(edge.x-pos.x)*r.width))));
+    st.pop={kind:"cut",g,fraction};hud();
+  }
+  async function cutAtBoard(g,mode,fraction){
+    const source=itemsOf(g)[0],count=CUT_COUNTS[mode];
+    const answer=st.k.serverPrep ? await run("kitchen_prepare",{action:"cut",job:g.cook.job,cut:{mode,fraction}}) : {};
+    if(!answer)return;
+    st.chopping=performance.now()+450;
+    const pieces=[],regions=cutPieces(mode,fraction,source.bounds);
+    for(let i=0;i<count;i++){
+      const {share,bounds}=regions[i];
+      const it=await newItem(source.ing,source.qty*share);
+      Object.assign(it,{chain:[...source.chain,"chop"],ratios:[...source.ratios,1],q:source.q,ratio:source.ratio,lot:answer.parts?.[i].lot,cut:mode,bounds});
+      await relook(it);
+      pieces.push(it);
+    }
+    drop(g);
+    const W=st.scene.WORK,base=V(W.x1-.35,st.scene.COUNTER_Y,W.z1-.1);
+    if(mode==="dice"||mode==="mince")newGroup(pieces,"work",base);
+    else pieces.forEach((it,i)=>newGroup([it],"work",base.clone().add(V(-i*.13,0,0))));
+    st.pop=null;hud();
+  }
   function clickStation(id, e) {
+    st.controlsStation=id;
     const lay = st.scene.layout[id], spec = stationSpec(id);
     if (!lay || !spec) return;
     const g = held();
     if (g) {
+      const sug = suggestProc(g, spec);
+      if (sug) { walkTo(stationStand(id), () => placeOn(id, sug)); return; }
       if (spec.does.length > 1 && !spec.batch) { st.pop = { kind: "proc", id, x: e.clientX, y: e.clientY }; hud(); return; }
       walkTo(stationStand(id), () => placeOn(id, spec.does[0]));
       return;
@@ -610,12 +883,39 @@ export function kitchenPanel(api) {
     const here = onStation(id);
     const waiting = here.find((x) => x.cook && !x.cook.start && x.cook.proc !== "chop");
     if (spec.batch && waiting) { walkTo(stationStand(id), () => startBatch(waiting)); return; }
-    if (here.length && id === "board") { const c = here.find((x) => x.cook?.proc === "chop"); if (c) { walkTo(stationStand(id), () => chopTap(c)); return; } }
+    if (here.length && id === "board") { const c = here.find((x) => x.cook?.proc === "chop"); if (c) { boardCut(c,e);return; } }
+    if(id==="blender" && here[0]?.cook?.start){walkTo(stationStand(id),()=>carryJug(here[0]));return;}
     const cooking = here.find((x) => x.cook?.start) || here[0];
     if (cooking) { st.sel = { gid: cooking.gid, uid: null }; walkTo(stationStand(id), () => pickSelected()); return; }
+    hud();
     notify(`${spec.name}: bring something to ${spec.does.map((p) => P[p].name.toLowerCase()).join(" or ")}.`);
   }
-  function placeOn(id, proc) {
+  const portions = g => itemsOf(g).map(it=>({ing:it.ing,qty:it.qty,lot:it.lot}));
+  //: What the open ticket's dish does next to what is in ``g``, if ``spec`` (a station) does it.
+  function suggestProc(g, spec) {
+    const t = ticketOf(st.ticket);
+    if (!t) return null;
+    for (const it of itemsOf(g)) for (const line of t.lines) for (const c of targetOf(R, line, k().house_menu)?.build || []) {
+      if (c.ing !== it.ing) continue;
+      const next = chain(c.p)[it.chain.length];
+      if (next && spec.does.includes(next)) return next;
+    }
+    return null;
+  }
+  async function beginPrep(g,station,proc) {
+    let prep={};
+    if(st.k.serverPrep){
+      prep=await run("kitchen_prepare",{action:"start",station,proc,parts:portions(g)});
+      if(!prep)return null;
+      if(prep.setting)(st.k.appliances ||= {})[station]=prep.setting;
+      st.applianceOffset=prep.now-Date.now();
+    }else if(station!=="board"){
+      if(!st.k.appliances?.[station])await adjust(station,"medium");
+      prep.startDose=appliance(station,st.k.appliances?.[station],machineNow()).dose;
+    }
+    return prep;
+  }
+  async function placeOn(id, proc) {
     const g = held(), lay = st.scene.layout[id], spec = stationSpec(id);
     if (!g) return;
     const here = onStation(id);
@@ -626,20 +926,40 @@ export function kitchenPanel(api) {
     const slots = Math.min(spec.slots, lay.slots.length);
     const free = [...Array(slots).keys()].find((i) => !here.some((x) => x.station.slot === i));
     if (free === undefined) { notify(`The ${spec.name.toLowerCase()} is full.`); return; }
+    const prep = (!spec.batch || proc==="chop") ? await beginPrep(g,id,proc) : {};
+    if (!prep) return;
+    st.scene.reach();
+    coldWarning(id);
     g.at = "station"; g.station = { id, slot: free }; g.pos = lay.slots[free].clone(); st.held = null;
     if (proc === "chop") g.cook = { proc, taps: 0, need: P.chop.taps };
     else if (spec.batch) g.cook = { proc, start: 0 };
-    else g.cook = { proc, start: performance.now(), secs: batchSeconds(R, itemsOf(g), proc) };
+    else g.cook = { proc, start: performance.now(), secs: prep.secs ?? batchSeconds(R, itemsOf(g), proc) };
+    g.cook.job=prep.job;g.cook.startDose=prep.startDose;
     layout(g); hud();
   }
-  function startBatch(g) {
+  //: Food put on (or started in) something cold: it is said, and it cooks slowly till it is hot.
+  function coldWarning(id) {
+    const a = appliance(id, st.k.appliances?.[id], machineNow()), name = stationSpec(id)?.name.toLowerCase() || id;
+    if (!a.thermal) return;
+    if (a.level === "off") { adjust(id, "medium"); notify(`The ${name} was off: turned on to medium. It warms up from ${Math.round(a.value)}°C, so it cooks slowly at first.`); }
+    else if (Math.abs(a.value - a.target) > 25) notify(`The ${name} is still ${a.value < a.target ? "heating" : "cooling"} (${Math.round(a.value)}°C of ${Math.round(a.target)}°C): it cooks ${a.value < a.target ? "slowly" : "fast"} until it settles.`);
+  }
+  async function startBatch(g) {
+    coldWarning(g.station.id);
+    const prep=await beginPrep(g,g.station.id,g.cook.proc);
+    if(!prep)return;
+    g.cook.job=prep.job;g.cook.startDose=prep.startDose;
     g.cook.start = performance.now();
-    g.cook.secs = batchSeconds(R, itemsOf(g), g.cook.proc);
+    g.cook.secs = prep.secs ?? batchSeconds(R, itemsOf(g), g.cook.proc);
     hud();
   }
   async function chopTap(g) {
     if (g.cook?.proc !== "chop") return;
-    g.cook.taps += 1;
+    if(st.k.serverPrep){
+      const r=await run("kitchen_prepare",{action:"tap",job:g.cook.job});
+      if(!r)return;
+      g.cook.taps=r.taps;
+    } else g.cook.taps += 1;
     st.chopping = performance.now() + 220;
     st.scene.emit(V(g.pos.x, g.pos.y + 0.03, g.pos.z), "sizzle");
     if (g.cook.taps >= g.cook.need) { await finishCook(g); notify(`Chopped: ${productName(g).toLowerCase()}.`); }
@@ -649,11 +969,17 @@ export function kitchenPanel(api) {
   async function finishCook(g) {
     const c = g.cook;
     if (!c) return;
-    if (c.proc === "chop" && c.taps < c.need) { g.cook = null; return true; }   // taken off the board unchopped
+    if (c.proc === "chop" && c.taps < c.need) { if(st.k.serverPrep){ notify("Finish chopping before picking up.");return false;} g.cook = null; return true; }   // taken off the board unchopped
     if (c.proc !== "chop" && !c.start) { g.cook = null; return true; }          // a batch never started
-    const ratio = c.start ? (performance.now() - c.start) / 1000 / Math.max(0.5, c.secs) : 1;
+    let ratio = c.start ? cookRatio(g) : 1;
     if ((c.proc === "cool" || c.proc === "chill") && ratio < 1) {
       notify(`Still ${c.proc === "cool" ? "cooling" : "chilling"}.`); return false;
+    }
+    if(st.k.serverPrep){
+      const r=await run("kitchen_prepare",{action:"finish",job:c.job});
+      if(!r)return false;
+      itemsOf(g).forEach((it,i)=>it.lot=r.parts[i].lot);
+      ratio=r.ratio;
     }
     g.cook = null;
     const q = doneness(R, ratio, c.proc);
@@ -679,8 +1005,8 @@ export function kitchenPanel(api) {
     const out = [];
     for (const it of itemsOf(g)) {
       const p = it.chain.join(">") || "-", lastC = out.at(-1);
-      if (lastC && lastC.ing === it.ing && lastC.p === p && lastC.shape === it.shape && lastC.ratios.every((r, i) => r === it.ratios[i])) lastC.qty += it.qty;
-      else out.push({ ing: it.ing, qty: it.qty, p, q: it.q, ...(it.shape ? {shape: it.shape} : {}), ratios: [...it.ratios], ratio: it.ratio });
+      if (lastC && lastC.lot === it.lot && lastC.ing === it.ing && lastC.p === p && lastC.shape === it.shape && lastC.ratios.every((r, i) => r === it.ratios[i])) lastC.qty += it.qty;
+      else out.push({ ...(it.lot ? {lot:it.lot} : {}), ing: it.ing, qty: it.qty, p, q: it.q, ...(it.shape ? {shape: it.shape} : {}), ratios: [...it.ratios], ratio: it.ratio });
     }
     return out;
   }
@@ -786,6 +1112,7 @@ export function kitchenPanel(api) {
         parts.push(h("div", { className: "rail hud" }, ...(msg ? [h("div", { className: "glass note", style: "padding:8px 10px", textContent: msg })] : kk.tickets.map(ticketCard))));
       }
       parts.push(h("div", { className: "side glass hud" }, ...(st.tab === "lab" ? labSide() : lineSide())));
+      parts.push(dock());
       parts.push(hintBar());
     }
     if (st.pop) parts.push(popup());
@@ -815,7 +1142,10 @@ export function kitchenPanel(api) {
       const plate = g ? plateOf(g) : [];
       const have = new Set(plate.map((c) => `${c.ing}|${c.p}`));
       out.push(h("h4", { textContent: `${i + 1}. ${R.items[line.dish]?.name || line.dish}${g ? " — on the pass" : ""}` }));
-      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "", textContent: `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.shape ? ` · ${DOUGH_FORMS[c.shape.form]}, ${c.shape.span} × ${Number((c.shape.span / c.shape.aspect).toFixed(1))} cm` : ""}${c.side ? " (side)" : ""}` }))),
+      if (target) out.push(h("div", { className: "recipe" }, h("ol", {}, ...target.build.map((c) => h("li", { className: have.has(`${c.ing}|${c.p}`) ? "done" : "" },
+          `${iname(c.ing)} · ${displayAmount(R, c.ing, c.qty)}${chain(c.p).length ? ` — ${chain(c.p).map((p) => P[p].verb).join(", then ")}` : ""}${c.shape ? ` · ${DOUGH_FORMS[c.shape.form]}, ${c.shape.span} × ${Number((c.shape.span / c.shape.aspect).toFixed(1))} cm` : ""}${c.side ? " (side)" : ""}`,
+          // (One click: the cook goes for it, in the recipe's amount.)
+          (st.k.pantry[c.ing] || 0) > 0 && !held() ? h("button", { textContent: "Fetch", title: `Take ${displayAmount(R, c.ing, c.qty)} ${iname(c.ing).toLowerCase()}`, onclick: () => fetchFor(c) }) : null))),
         target.ordered ? h("div", { className: "note", textContent: "Build it in this order, bottom first." }) : null,
         // Clicking a ticket opens its step-by-step: what to start first so it all comes out together.
         h("details", { className: "steps", open: st.steps !== false, ontoggle: (e) => { st.steps = e.target.open; } },
@@ -835,6 +1165,14 @@ export function kitchenPanel(api) {
     for (const x of st.results.slice(0, 1)) out.push(resultCard(x));
     return out;
   }
+  //: Fetch a recipe line's ingredient in its amount, from its bin (or where it is kept).
+  function fetchFor(c) {
+    if (held()) { notify("Your hands are full: put that down first."); return; }
+    const bin = st.scene.bins.find((b) => b.ing === c.ing);
+    const at = bin ? frontOf(bin.x) : st.scene.storage[ING[c.ing].kept]?.approach || frontOf(st.scene.chef.position.x);
+    const qty = Math.min(wholeUnits(ING[c.ing]) ? Math.max(1, Math.round(c.qty)) : c.qty, st.k.pantry[c.ing] || 0);
+    walkTo(at, () => takeQty(c.ing, qty));
+  }
   function labSide() {
     const g = passGroups()[0];
     const family = g && recognizeDish(R, plateOf(g), k().house_menu);
@@ -849,29 +1187,89 @@ export function kitchenPanel(api) {
     if (menu.length) out.push(h("h4", { textContent: "The house's own dishes" }), ...menu.map((d) => h("div", { className: "note", textContent: `${d.name} · ${fmt(d.price)} · by ${d.by_name} · ${d.sold || 0} sold` })));
     return out;
   }
+  //: The bar along the bottom: what you hold, and one click for each place it can go (the recipe's
+  //: next step first); what you have selected and what can be done with it; or how to start.
   function hintBar() {
     const g = held(), s = st.sel && st.groups.get(st.sel.gid);
     const bits = [];
+    const chip = (label, fn, primary = false, title = "") => h("button", { className: `chip${primary ? " primary" : ""}`, textContent: label, title, onclick: fn });
+    if (st.pouring) {
+      return h("div", { className: "hint glass hud" }, h("b", { textContent: "Pour the blend:" }),
+        ...st.scene.vessels.map((_, index) => chip(`Into bowl ${index + 1}`, () => pourInto({ type: "vessel", index }), index === 0)),
+        h("span", { className: "note", textContent: "or click a dish on the counter to pour it over" }));
+    }
     if (g) {
-      bits.push(h("span", { textContent: `Holding: ${productName(g)}${g.items.length === 1 ? ` (${stateWord(st.items.get(g.items[0]))})` : ` (${g.items.length} things)`}. Click the counter to put it down, food to stack it on, a station to cook it, the pass to plate it.` }));
-      if (untouched(g)) bits.push(h("button", { textContent: "Put back", onclick: () => { const it = st.items.get(g.items[0]); const bin = st.scene.bins.find((b) => b.ing === it.ing); walkTo(bin ? frontOf(bin.x) : st.scene.storage[ING[it.ing].kept].approach, () => putBack()); } }));
-      bits.push(h("button", { textContent: "Bin it (Q)", onclick: keyBin }));
+      bits.push(h("b", { textContent: `Holding ${productName(g)}${g.items.length === 1 ? ` (${stateWord(st.items.get(g.items[0]))})` : ""}:` }));
+      // One chip a station (the ticket's next step for this first, and named): a station that does
+      // more than one thing asks which, unless the ticket says.
+      const list = st.k.stations.map((spec) => ({ spec, sug: suggestProc(g, spec) })).sort((a, b) => Number(Boolean(b.sug)) - Number(Boolean(a.sug)));
+      for (const { spec, sug } of list) bits.push(chip(sug ? `${spec.name}: ${P[sug].name.toLowerCase()}` : spec.name, (e) => (sug ? walkTo(stationStand(spec.id), () => placeOn(spec.id, sug)) : clickStation(spec.id, e)), Boolean(sug), sug ? "The ticket's next step for this" : spec.does.map((x) => P[x].name).join(", ")));
+      bits.push(chip("Counter", () => { const at = freeSpot(); walkTo(frontOf(at.x), () => putDown(at)); }));
+      bits.push(chip("Pass", () => walkTo(frontOf(st.scene.PASS.x1 - 0.25), () => toPass())));
+      if (untouched(g)) bits.push(chip("Put back", () => { const it = st.items.get(g.items[0]); const bin = st.scene.bins.find((b) => b.ing === it.ing); walkTo(bin ? frontOf(bin.x) : st.scene.storage[ING[it.ing].kept].approach, () => putBack()); }));
+      bits.push(chip("Bin (Q)", keyBin));
     } else if (s) {
       const batch = itemsOf(s)[0].batch;
       const homogeneous = batch && itemsOf(s).every(i => i.batch === batch);
       const it = st.sel.uid ? st.items.get(st.sel.uid) : null;
-      bits.push(h("span", { textContent: homogeneous ? `Selected: ${productName(s)}. Pick up the batch or weigh out a portion.` : it && s.items.length > 1 ? `Selected: the ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()} (${stateWord(it)}). Click it again to take it out.` : `Selected: ${productName(s)}${it ? ` (${stateWord(it)})` : ` (${s.items.length} things)`}. ${s.items.length > 1 && !it ? "Click again to choose one thing in it." : "Click again to pick it up."}` }));
-      bits.push(h("button", { className: "primary", textContent: "Pick up (E)", onclick: () => pickSelectedThen(() => {}) }), h("button", { textContent: "Bin", onclick: keyBin }));
-      if (s.at === "work" && workableDough(itemsOf(s))) bits.push(h("button", { textContent: "Shape dough", onclick: () => {
-        walkTo(standAt(s), () => { st.pop = { kind: "shape", group: s }; hud(); });
-      } }));
+      bits.push(h("b", { textContent: homogeneous ? `${productName(s)}:` : it && s.items.length > 1 ? `The ${iname(it.ing).toLowerCase()} in the ${productName(s).toLowerCase()}:` : `${productName(s)}:` }));
+      bits.push(chip("Pick up (E)", () => pickSelectedThen(() => {}), true));
+      if (s.at !== "station" && itemsOf(s).length === 1 && st.scene.layout.board) bits.push(chip("Cut on the board", () => pickSelectedThen(() => walkTo(stationStand("board"), () => placeOn("board", "chop")))));
+      if (s.at === "work" && workableDough(itemsOf(s))) bits.push(chip("Shape dough", () => walkTo(standAt(s), () => { st.pop = { kind: "shape", group: s }; hud(); })));
       const portion = portionControl(s); if (portion) bits.push(portion);
-    } else bits.push(h("span", { className: "note", textContent: "Click a labeled bin or walk up and press E to enter a quantity. The fridge, freezer and shelves hold more ingredients." }));
-    if (!g) bits.push(h("button", { textContent: "Pantry (B)", onclick: openPantry }));
+      bits.push(chip("Bin", keyBin));
+      if (s.items.length > 1 && !homogeneous) bits.push(h("span", { className: "note", textContent: "Click it again to choose one thing in it." }));
+    } else bits.push(h("span", { className: "note", textContent: "Click a bin to take what the ticket needs (Shift-click: how much · hover + 1–9) · drag from a bin or a dish straight onto a station · or press Fetch in the recipe." }));
+    if (!g) bits.push(chip("Pantry (B)", openPantry));
     return h("div", { className: "hint glass hud" }, ...bits);
+  }
+  //: A free place on the counter near the cook (for "Counter" from the bar).
+  function freeSpot() {
+    const W = st.scene.WORK, x0 = st.scene.chef.position.x, z = (W.z0 + W.z1) / 2;
+    for (let i = 0; i < 24; i += 1) {
+      const x = Math.max(W.x0 + 0.08, Math.min(W.x1 - 0.08, x0 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 0.16));
+      if (![...st.groups.values()].some((o) => o.at === "work" && Math.hypot(o.pos.x - x, o.pos.z - z) < SNAP_M + 0.03)) return V(x, st.scene.COUNTER_Y, z);
+    }
+    return V(x0, st.scene.COUNTER_Y, z);
+  }
+  //: The appliances' dials: each one's heat (or speed), warming to where it is set: off, low,
+  //: medium, high.
+  const dialled = () => st.k.stations.filter((x) => x.id !== "board" && (appliance(x.id, null, 0).thermal || x.id === "blender"));
+  function dock() {
+    const list = dialled();
+    if (!list.length) return null;
+    const fold = h("button", { className: "fold glass", textContent: st.dockShut ? "Dials ▸" : "Dials ▾", title: "Show or hide the appliances' dials (the tags over each one stay)", onclick: () => { st.dockShut = !st.dockShut; hud(); } });
+    if (st.dockShut) return h("div", { className: "dock hud" }, fold);
+    return h("div", { className: "dock hud" }, fold, ...list.map((spec) => {
+      const level = st.k.appliances?.[spec.id]?.level || "off";
+      return h("div", { className: "dial glass", "data-dial": spec.id },
+        h("div", { className: "head" }, h("b", { textContent: spec.name }), h("span", { className: "read" })),
+        appliance(spec.id, null, 0).thermal ? h("div", { className: "gauge" }, h("i"), h("s")) : null,
+        h("div", { className: "seg", role: "group", "aria-label": `${spec.name} setting` }, ...levels.map((lv) => h("button", { textContent: lv === "medium" ? "Med" : lv[0].toUpperCase() + lv.slice(1), "aria-pressed": String(level === lv), onclick: () => adjust(spec.id, lv) }))));
+    }));
+  }
+  //: An appliance's state in words: cold, warming, ready, cooling.
+  function dialWords(id) {
+    const a = appliance(id, st.k.appliances?.[id], machineNow());
+    if (!a.thermal) return { text: a.level === "off" ? "Off" : `Speed ${a.level}`, colour: a.level === "off" ? "#7b8794" : "#5fc489", a };
+    const now = Math.round(a.value), to = Math.round(a.target);
+    if (a.level === "off") return { text: now > 35 ? `Off · cooling ${now}°C` : `Off · cold`, colour: now > 35 ? "#e0a526" : "#7b8794", a };
+    if (a.target - a.value > 8) return { text: `Preheating ${now}° → ${to}°C`, colour: "#e0a526", a };
+    if (a.value - a.target > 8) return { text: `Cooling ${now}° → ${to}°C`, colour: "#3d7bd9", a };
+    return { text: `Ready ${to}°C`, colour: "#5fc489", a };
   }
   function popup() {
     const p = st.pop;
+    if(p.kind==="cut"){
+      const slider=h("input",{type:"range",min:2,max:98,value:Math.round(p.fraction*100),"aria-label":"Cut position"});
+      const read=h("output",{textContent:slider.value+"%"});
+      const preview=()=>{read.textContent=slider.value+"%";const knife=st.scene.layout.board.knife;if(knife)knife.position.x=(+slider.value/100-.5)*.15;};
+      slider.oninput=preview;preview();
+      return h("div",{className:"pop list glass hud",style:"left:50%;top:50%"},h("b",{textContent:"Cutting board"}),h("label",{},"Blade position ",slider,read),
+        h("div", { className: "chips" }, ...[["split", "Halve here"], ["slice", "Slice (6)"], ["dice", "Dice (16)"], ["mince", "Mince (25)"]].map(([mode, textContent]) => h("button", { textContent, className: mode === "split" ? "primary" : "", onclick: () => { st.pop = null; walkTo(standAt(p.g), () => cutAtBoard(p.g, mode, +slider.value / 100)); hud(); } }))),
+        h("span", { className: "note", textContent: "Halve where the blade is, then take either piece; any piece can go back on the board to be cut again." }),
+        h("button", { textContent: "Take it off the board", onclick: () => { st.pop = null; st.sel = { gid: p.g.gid, uid: null }; walkTo(standAt(p.g), () => pickSelected()); hud(); } }));
+    }
     if (p.kind === "shape") {
       const g = p.group, mass = groupGrams(g), current = itemsOf(g)[0].shape;
       const form = h("select", { "aria-label": "Dough form" }, ...Object.entries(DOUGH_FORMS).map(([id,name]) => h("option", { value: id, textContent: name })));
@@ -887,7 +1285,11 @@ export function kitchenPanel(api) {
         if (apply.disabled) readout.textContent += " · adjust the footprint to fit this portion";
       }
       form.onchange = span.oninput = aspect.oninput = preview; preview();
-      apply.onclick = () => { const spec = shape(); for (const it of itemsOf(g)) it.shape = spec; st.pop = null; layout(g); hud(); };
+      apply.onclick = async () => { const spec = shape();
+        if(st.k.serverPrep){
+          const r=await run("kitchen_prepare",{action:"shape",shape:spec,parts:portions(g)});
+          if(!r)return;itemsOf(g).forEach((it,i)=>it.lot=r.parts[i].lot);
+        } for (const it of itemsOf(g)) it.shape = spec; st.pop = null; layout(g); hud(); };
       return h("div", { className: "pop list glass hud", style: "left:50%;top:50%" }, form, h("label", {}, "Width ", span), h("label", {}, "Width / length ", aspect), readout, apply,
         h("button", { textContent: "Cancel", onclick: () => { st.pop = null; hud(); } }));
     }
@@ -930,20 +1332,43 @@ export function kitchenPanel(api) {
   }
   //: Every frame: the bars over what is cooking, the tooltip, the tickets' patience.
   function overlay(now) {
+    // The dials' readings, and a tag over each appliance in the kitchen (click it to turn it up).
+    let temps = el.querySelector(".temps");
+    if (!temps) { temps = h("div", { className: "temps" }); el.append(temps); temps.onclick = (e) => { const id = e.target.closest("[data-at]")?.dataset.at; if (!id) return; const now = st.k.appliances?.[id]?.level || "off"; adjust(id, levels[(levels.indexOf(now) + 1) % levels.length]); }; }
+    const dials = st.tab === "line" || st.tab === "lab" ? dialled() : [];
+    while (temps.children.length < dials.length) temps.append(h("div", { className: "temp" }, h("i"), h("span")));
+    while (temps.children.length > dials.length) temps.lastChild.remove();
+    dials.forEach((spec, i) => {
+      const w = dialWords(spec.id), tag = temps.children[i], lay = st.scene.layout[spec.id];
+      tag.dataset.at = spec.id; tag.title = `${spec.name}: click to turn it up (off, low, medium, high)`;
+      tag.firstChild.style.background = w.colour; tag.lastChild.textContent = w.text;
+      if (lay) { const pp = st.scene.project(V(lay.x, st.scene.COUNTER_Y + 0.42, lay.z)); tag.style.left = `${pp.x * el.clientWidth}px`; tag.style.top = `${pp.y * el.clientHeight}px`; tag.style.display = pp.behind ? "none" : ""; }
+      const card = el.querySelector(`[data-dial="${spec.id}"]`);
+      if (card) {
+        card.querySelector(".read").textContent = w.text;
+        const gauge = card.querySelector(".gauge");
+        if (gauge && w.a.thermal) { const top = Math.max(250, w.a.target * 1.15); gauge.firstChild.style.width = `${Math.min(100, (w.a.value / top) * 100)}%`; gauge.lastChild.style.left = `${Math.min(100, (w.a.target / top) * 100)}%`; }
+      }
+    });
     let layer = el.querySelector(".cooks");
-    if (!layer) { layer = h("div", { className: "cooks" }); el.append(layer); }
+    if (!layer) {
+      layer = h("div", { className: "cooks" }); el.append(layer);
+      // (A bar over what is cooking is a handle on it: click it to take it off, or chop it.)
+      layer.onclick = (e) => { const g = st.groups.get(+e.target.closest("[data-gid]")?.dataset.gid); if (g?.items.length) clickItem(g.items[0], e); };
+    }
     const list = [...st.groups.values()].filter((g) => g.cook);
     while (layer.children.length < list.length) layer.append(h("div", { className: "cook" }, h("div", { className: "lbl" }), h("div", { className: "bar" }, h("div", { className: "ok" }), h("div", { className: "burn" }), h("div", { className: "at" }))));
     while (layer.children.length > list.length) layer.lastChild.remove();
     const D = K.doneness, span = D.burnt_above * 1.15, W = el.clientWidth, H = el.clientHeight;
     list.forEach((g, i) => {
       const node = layer.children[i], c = g.cook;
+      node.dataset.gid = g.gid;
       const p = st.scene.project(V(g.pos.x, g.pos.y + (g.height || 0.03) + 0.1, g.pos.z));
       node.style.left = `${p.x * W}px`; node.style.top = `${p.y * H}px`;
       const ok = node.querySelector(".ok"), burn = node.querySelector(".burn"), at = node.querySelector(".at"), lbl = node.querySelector(".lbl");
       if (c.proc === "chop") { lbl.textContent = `Chop ${c.taps}/${c.need}: click it`; ok.style.width = "0"; burn.style.width = "0"; at.style.left = `${(c.taps / c.need) * 100}%`; return; }
       if (!c.start) { lbl.textContent = `Click the ${stationSpec(g.station.id).name.toLowerCase()} to ${P[c.proc].name.toLowerCase()}`; ok.style.width = "0"; burn.style.width = "0"; at.style.left = "0"; return; }
-      const ratio = (now - c.start) / 1000 / Math.max(0.5, c.secs), heat = K.heat.includes(c.proc);
+      const ratio = cookRatio(g), heat = K.heat.includes(c.proc);
       lbl.textContent = heat ? (ratio < D.right[0] ? `${P[c.proc].name}…` : ratio <= D.right[1] ? "Ready: take it off!" : ratio < D.burnt_above ? "Overdone" : "Burnt") : ratio >= 1 ? "Done: take it" : `${P[c.proc].name}…`;
       ok.style.left = `${(heat ? D.right[0] : 1) / span * 100}%`; ok.style.width = `${(heat ? D.right[1] - D.right[0] : span - 1) / span * 100}%`;
       burn.style.width = heat ? `${(1 - D.burnt_above / span) * 100}%` : "0";
