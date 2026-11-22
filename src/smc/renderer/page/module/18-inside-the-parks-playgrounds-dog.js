@@ -832,6 +832,33 @@ const groundReady = (async () => {
   // a planted median, a refuge -- and is drawn as one (addTreeIslands); one in a junction's box
   // is a corner tree recorded in the wrong place, and is left out rather than drawn in the road.
   const islandTrees = [];
+  // A tree does not stand in the asphalt. One recorded a little way into the roadway (up to the
+  // depth past which it is a median's tree and gets an island) is a kerb tree a metre off --
+  // the record's point, or the road drawn a little wide: 97 in the Marina stood in the kerb
+  // lane with no pit, 59 of them along Lombard (2026-11-21). Each is stood back on the pavement
+  // beside it: straight out from the roadway's middle, to half a metre past the kerb.
+  let treesStoodBack = 0;
+  if (ground.trees) ground.trees = ground.trees.map((tree) => {
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    if (!insideCarriageway(tx, -ty, 0) || insideCarriageway(tx, -ty, TREE_ISLAND_DEPTH_M)) return tree;
+    const seg = nearestCarriagewaySegment(tx, -ty);
+    if (!seg) return tree;
+    const ex = seg[2] - seg[0], ez = seg[3] - seg[1], L2 = ex * ex + ez * ez || 1;
+    const k = Math.max(0, Math.min(1, ((tx - seg[0]) * ex + (-ty - seg[1]) * ez) / L2));
+    let ox = tx - (seg[0] + ex * k), oz = -ty - (seg[1] + ez * k);
+    const o = Math.hypot(ox, oz);
+    if (o < 0.05) return tree;
+    ox /= o; oz /= o;
+    for (let step = 0.2; step <= 3.2; step += 0.2) {
+      const nx = tx + ox * step, nz = -ty + oz * step;
+      if (insideCarriageway(nx, nz, -0.5)) continue;
+      treesStoodBack += 1;
+      return { ...tree, p: [nx / metersPerLon + midLon, -nz / metersPerLat + midLat, ...tree.p.slice(2)], stood_back_m: +step.toFixed(1) };
+    }
+    return tree;
+  });
+  treeIslandStats.stood_back = treesStoodBack;
+  const islandTrees = [];
   const notThere = stackedTreesToDrop(ground.trees || [], (tree) => {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const seg = nearestCarriagewaySegment(tx, -ty);

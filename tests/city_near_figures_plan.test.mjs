@@ -67,7 +67,8 @@ test("a character is anyone tall enough on the screen to be told apart, or near 
 
 test("on the fleet's own crowd, past a camera turning round, everyone who walks into view big enough is a character already given one", () => {
   // (Every walk seen, and the visitors all through: a crowd thicker than the Marina's, to load it.)
-  const RX = { ...R, density: { ...R.density, walks_seen: 1 } };
+  // (And no visitor calling at a home, which takes them indoors: this is a test of a full street.)
+  const RX = { ...R, density: { ...R.density, walks_seen: 1, calls_share: 0 } };
   const { streets, places } = town(), roster = new Roster(RX, { seed: "figures" });
   roster.add(places);
   roster.visitorsUpTo(1500);

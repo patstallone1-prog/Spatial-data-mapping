@@ -319,17 +319,37 @@ export class Roster {
   //: Those who live and work outside the district and drive through it once a game day, on
   //: their way to work or home (rules.json density.commuters): traffic without anyone to keep
   //: track of the rest of the day.
+  //:
+  //: These are partial people: a row in a table and no more -- a name, a car, a bank balance, and
+  //: one of two days. Most drive **through** (in at one edge, out at another). The rest **work
+  //: here** (``works_share``): in at the morning rush to the same place every day, the car left
+  //: at its kerb till the evening, and out again -- which is what fills a district's parking by
+  //: day. None has a home here, a story, a routine or anything to say; from the street each is a
+  //: driver seen from the waist up through a windscreen. Their money moves only when something
+  //: makes it: a crash they are in is billed to them (``billPartial``), and that is all.
   commutersUpTo(n) {
-    const K = VISITOR_KINDS.find((x) => x.kind === "commuter");
+    const K = VISITOR_KINDS.find((x) => x.kind === "commuter"), works = this.R.density?.commuters?.works_share ?? 0;
     for (let k = this.commuters.size; k < n; k += 1) {
       const id = `commuter:${k}`, r = rng(this.seed, id);
       this.commuters.set(id, { id, name: `${pick(r, FIRST)} ${pick(r, LAST)}`, role: "visitor", kind: "commuter", title: K.title, uniform: pick(r, CLOTHES),
-        pace: 1.1 + r() * 0.4, height: 1.56 + r() * 0.34, visitor: true, commuter: true, car: `veh:${id}` });
+        pace: 1.1 + r() * 0.4, height: 1.56 + r() * 0.34, visitor: true, commuter: true, partial: true, car: `veh:${id}`,
+        pattern: hash32(this.seed, id, "pattern") % 1000 < works * 1000 ? "works" : "through", balance: 800 + (hash32(this.seed, id, "balance") % 24000), bills: [] });
       this.vehicles.set(`veh:${id}`, { id: `veh:${id}`, owner: id, model: mixPick(r, K.models), shade: r(), plate: plateOf(id), visitor: true, kind: "commuter" });
     }
   }
   //: A visitor or a commuter by id.
   visitorOf(id) { return this.visitors.get(id) || this.commuters.get(id); }
+  //: A partial person made to pay (a crash they were in): taken from their balance, as far as it
+  //: goes, and written against them. {paid, owed, balance} -- or null if ``id`` is not one.
+  billPartial(id, amount, why, when = null) {
+    const p = this.commuters.get(id);
+    if (!p || !(amount > 0)) return null;
+    const paid = Math.min(p.balance, Math.round(amount)), owed = Math.round(amount) - paid;
+    p.balance -= paid;
+    p.bills.push({ why, amount: Math.round(amount), paid, owed, when });
+    if (p.bills.length > 12) p.bills.shift();
+    return { paid, owed, balance: p.balance };
+  }
   //: What to keep on this device: who works where.
   toJSON() { return { work: this.saved.work, npcGroups: this.saved.npcGroups }; }
 }
@@ -559,7 +579,22 @@ export class City {
   }
   //: A gate drawn by its weight; or, for a corridor trip, the two ends of one corridor.
   pickGate(r, gates) {
-    const w = gates.map((g) => this.gateInfo(g).weight), total = w.reduce((a, b) => a + b, 0);
+    // A street's end is one way in however many of its points lie at the edge: where a street
+    // runs along the district's edge (Lombard's last blocks, Marina Boulevard) every point of it
+    // was a gate at the street's full weight, and that end sent out ten times its traffic --
+    // Lombard two to one eastbound (measured 2026-11-21). Each gate's weight is shared among
+    // the gates of the same street within 150 m of it.
+    this._gateShare ??= new Map();
+    const shareOf = (g) => {
+      let s = this._gateShare.get(g);
+      if (s === undefined) {
+        const name = this.gateInfo(g).name, N = this.streets.nodes[g];
+        const near = name ? this.gateways.filter((o) => this.gateInfo(o).name === name && Math.hypot(this.streets.nodes[o].x - N.x, this.streets.nodes[o].z - N.z) < 150).length : 1;
+        s = 1 / Math.max(1, near); this._gateShare.set(g, s);
+      }
+      return s;
+    };
+    const w = gates.map((g) => this.gateInfo(g).weight * shareOf(g)), total = w.reduce((a, b) => a + b, 0);
     let x = r() * total;
     for (let i = 0; i < gates.length; i += 1) { x -= w[i]; if (x <= 0) return gates[i]; }
     return gates[gates.length - 1];
@@ -575,12 +610,20 @@ export class City {
     const N = (g) => this.streets.nodes[g];
     // (In by an end traffic comes in at, out by one it leaves at: the farthest such two.)
     this.gateways;
-    let best = null;
+    // One way along it or the other, at the toss of a coin: the farthest pair each way (east to
+    // west, and west to east; on a street that runs the other way, north and south). Taken as
+    // simply the farthest pair, whichever end's gates lay a few metres further out won every
+    // time, and Lombard ran two to one eastbound (measured on the real Marina, 2026-11-21).
+    const ways = [null, null];
     for (const a of c.gates) for (const b of c.gates) {
       if (a === b || !this._gateIn.has(a) || !this._gateOut.has(b)) continue;
-      const d = Math.hypot(N(a).x - N(b).x, N(a).z - N(b).z) * (0.75 + 0.5 * r());
-      if (!best || d > best.d) best = { a, b, d };
+      const dx = N(b).x - N(a).x, dz = N(b).z - N(a).z, d = Math.hypot(dx, dz) * (0.75 + 0.5 * r());
+      const k = (Math.abs(dx) >= Math.abs(dz) ? dx : dz) >= 0 ? 0 : 1;
+      if (!ways[k] || d > ways[k].d) ways[k] = { a, b, d };
     }
+    const far = Math.max(ways[0]?.d || 0, ways[1]?.d || 0);
+    const open = ways.filter((w) => w && w.d >= far * 0.6);
+    const best = open.length ? open[Math.floor(r() * open.length) % open.length] : null;
     return best ? [best.a, best.b] : null;
   }
   //: The network of streets a node is on (-1: none).
@@ -1289,7 +1332,12 @@ export class City {
       places = this.roster.list.filter((pl) => (pl.shops?.length || pl.use === "office" || pl.use === "restaurant")
         && pl.x >= box[0] && pl.x <= box[2] && pl.z >= box[1] && pl.z <= box[3] && this.netOf(this.streets.nearest(pl.x, pl.z, "kerb", 200)) === net[0]);
       this._netPlaces.set(net[0], places);
+      // And the homes a caller might be going to: a friend's, a parcel's, a plumber's job.
+      this._netHomes ??= new Map();
+      this._netHomes.set(net[0], this.roster.list.filter((pl) => pl.use === "residential" && !pl.court
+        && pl.x >= box[0] && pl.x <= box[2] && pl.z >= box[1] && pl.z <= box[3] && this.netOf(this.streets.nearest(pl.x, pl.z, "kerb", 200)) === net[0]));
     }
+    const homes = this._netHomes?.get(net[0]) || [];
     // When they drive: commuters in the rush hours, deliveries in the working day, ride-hail
     // into the evening, the rest as through traffic does (rules.json traffic.by_hour).
     const H = this.R.traffic?.by_hour || {};
@@ -1317,7 +1365,23 @@ export class City {
     const [lo, hi] = K.trips || this.R.density?.visitor_trips || [3, 6];
     const n = lo + Math.floor(r() * (hi - lo + 1));
     const [stopShare, d0, d1] = K.stop || [this.R.density?.visitor_visit_share ?? 0.3, 30, 140];
-    for (let k = 0; k < n; k += 1) { const [g1, g2] = ends(); trips.push({ at: hourPick() * 60 + r() * 60, visit: places.length && r() < stopShare ? pick(r, places).id : null, g1, g2, dwell: d0 + r() * (d1 - d0), brief: Boolean(K.stop) }); }
+    // A stop is at a shop, or -- as often as ``calls_share`` -- at somebody's home: the car is
+    // driven to that street, parked at its kerb and its driver goes in. That is what puts a car
+    // on a residential block and in its parking: with every stop a shop's, the through traffic
+    // kept to the corridors and two blocks in five saw no car in three minutes at five o'clock.
+    const callsShare = K.stop ? 0 : this.R.density?.calls_share ?? 0;
+    // One who works here: in for the morning, the car at the kerb all day, out in the evening
+    // -- to the same door every day (drawn from who they are, not from the day).
+    const works = p.commuter && p.pattern === "works" && (places.length || homes.length);
+    if (works) {
+      const w = rng(this.seed, p.id, "workplace"), at = (6.6 + w() * 2.6) * 60 + (r() - 0.5) * 20, leave = (15.8 + w() * 3) * 60 + (r() - 0.5) * 20;
+      const pool = places.length && (w() < 0.7 || !homes.length) ? places : homes, [g1, g2] = ends();
+      trips.push({ at, visit: pick(w, pool).id, call: true, work: true, g1, g2: g1, dwell: leave - at, brief: false });
+    }
+    for (let k = 0; k < (works ? 0 : n); k += 1) {
+      const [g1, g2] = ends(), stops = r() < stopShare, call = stops && homes.length && r() < callsShare;
+      trips.push({ at: hourPick() * 60 + r() * 60, visit: call ? pick(r, homes).id : stops && places.length ? pick(r, places).id : null, call, g1, g2, dwell: call ? 20 + r() * 70 : d0 + r() * (d1 - d0), brief: Boolean(K.stop) });
+    }
     // Some existing visiting motorists book an indoor appointment on their own street network.
     const service = rng(this.seed, p.id, t.day, "auto service");
     if (!K.stop && trips.length && service() < 1 / 18) {
@@ -1337,7 +1401,9 @@ export class City {
     for (const [k, trip] of trips.entries()) {
       const depart = Math.max(trip.at, clock + 5);
       if (depart > F(1430)) break;
-      const from = segs.length, seen = p.commuter || !(this.through < 1) || hash32(p.id, t.day, "trip", k) % 1000 < this.through * 1000;
+      // (A call at a home is seen more often than a way through: ``calls_seen`` times as often.)
+      const share = this.through * (trip.call ? this.R.density?.calls_seen ?? 1 : 1);
+      const from = segs.length, seen = p.commuter || !(this.through < 1) || hash32(p.id, t.day, "trip", k) % 1000 < share * 1000;
       const mark = () => { for (let i = from; i < segs.length; i += 1) segs[i].unseen = !seen; };
       const A = node(trip.g1);
       if (trip.visit && trip.brief) {
@@ -1359,8 +1425,9 @@ export class City {
         const w = tripMinutes(Math.hypot(spot.x - P.x, spot.z - P.z), p.pace) + 0.5;
         segs.push({ kind: "go", mode: "walk", t0: depart + d1, t1: depart + d1 + w, fromXZ: [spot.x, spot.z], to: trip.visit, visitor: true });
         const start = depart + d1 + w;
-        segs.push({ kind: trip.service ? "stay" : "roam", t0: start, t1: start + trip.dwell, place: trip.visit,
-          act: trip.service ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: "At the auto service counter" } : { kind: "stroll", start }, visitor: true });
+        segs.push({ kind: trip.service || trip.call ? "stay" : "roam", t0: start, t1: start + trip.dwell, place: trip.visit,
+          act: trip.service ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: "At the auto service counter" }
+            : trip.call ? { kind: "errand", start, end: start + trip.dwell, place: trip.visit, label: trip.work ? "At work" : "Calling at a home" } : { kind: "stroll", start }, visitor: true });
         const back = depart + d1 + w + trip.dwell;
         segs.push({ kind: "go", mode: "walk", t0: back, t1: back + w, from: trip.visit, toXZ: [spot.x, spot.z], visitor: true });
         const B = node(trip.g2), d2 = tripMinutes(Math.hypot(P.x - B.x, P.z - B.z), DRIVE_MS);
