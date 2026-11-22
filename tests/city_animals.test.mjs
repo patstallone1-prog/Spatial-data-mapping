@@ -18,7 +18,9 @@ test("a pet is seen close and in full; a bird or a rat never is", () => {
   assert.equal(animalTier("dog", 400), -1);
   assert.equal(animalTier("cat", 10), 0);
   for (const bird of ["pigeon", "gull", "crow"]) { assert.equal(animalTier(bird, 2), 1, bird); assert.ok(SPECIES[bird].top >= 1); }
-  assert.equal(animalTier("sparrow", 2), 2);
+  // A sparrow is its model only near you (it is 15 cm long); past 12 m, its far shape.
+  assert.equal(animalTier("sparrow", 2), 1);
+  assert.equal(animalTier("sparrow", 20), 2);
   assert.equal(animalTier("rat", 3), 2);
   assert.equal(animalTier("rat", 80), -1);
 });
@@ -260,4 +262,114 @@ test("a bird faces into a crosswind, flaps into a headwind and glides with one b
     assert.equal(ambientCell(i, j, 23, () => ({ shops: 1 })).filter((f) => f.perch || f.pass).length, 0);
   }
   assert.ok(perches > 150, `${perches} perched flocks in 900 cells`);
+});
+
+// ---- the imported birds (docs/city/models/birds, tools/blender/build_city_birds.py) ----------------
+//: The parts of a .glb the figures read (positions, colours, indices, each node's origin), into
+//: THREE objects -- the page's GLTFLoader gives the same, without a browser here.
+function parseBirdGlb(THREE, bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), jsonLength = dv.getUint32(12, true);
+  const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + jsonLength))), bin = 20 + jsonLength + 8;
+  const accessor = (i) => {
+    const a = json.accessors[i], view = json.bufferViews[a.bufferView], size = { SCALAR: 1, VEC3: 3, VEC4: 4 }[a.type];
+    const Kind = { 5126: Float32Array, 5123: Uint16Array, 5125: Uint32Array }[a.componentType];
+    const at = bytes.byteOffset + bin + (view.byteOffset || 0) + (a.byteOffset || 0);
+    return new THREE.BufferAttribute(new Kind(bytes.buffer.slice(at, at + a.count * size * Kind.BYTES_PER_ELEMENT)), size);
+  };
+  const scene = new THREE.Group();
+  for (const node of json.nodes) {
+    const p = json.meshes[node.mesh].primitives[0], g = new THREE.BufferGeometry();
+    g.setAttribute("position", accessor(p.attributes.POSITION)); g.setAttribute("color", accessor(p.attributes.COLOR_0)); g.setIndex(accessor(p.indices));
+    const mesh = new THREE.Mesh(g); mesh.name = node.name; if (node.translation) mesh.position.fromArray(node.translation);
+    scene.add(mesh);
+  }
+  return { scene, json };
+}
+const BIRDS_DIR = new URL("../docs/city/models/birds/", import.meta.url);
+
+test("the birds are imported models, credited, small, and built to each species' size", () => {
+  const manifest = JSON.parse(readFileSync(new URL("birds.json", BIRDS_DIR)));
+  const licence = readFileSync(new URL("License.txt", BIRDS_DIR), "utf8");
+  const build = readFileSync(new URL("../tools/blender/build_city_birds.py", import.meta.url), "utf8");
+  const credited = new Map(manifest.attributions.map((a) => [a.source_model, a]));
+  let total = 0;
+  for (const species of ["pigeon", "gull", "sparrow", "crow"]) {
+    const entry = manifest.species[species], bytes = readFileSync(new URL(entry.file, BIRDS_DIR));
+    total += bytes.length;
+    assert.equal(bytes.length, entry.bytes, `${species}: the manifest's size is the file's`);
+    // Both models it is made from are credited, by title, author and source, CC-BY 3.0.
+    for (const from of entry.from) {
+      const a = credited.get(from);
+      assert.ok(a && a.title && a.author && /^https:\/\/poly\.pizza\/m\//.test(a.source) && a.license === "CC-BY-3.0", `${species}: ${from} credited`);
+      assert.ok(licence.includes(a.source) && licence.includes(a.title), `${from} in License.txt`);
+    }
+    // Light enough for a flock: a near bird a few hundred triangles, a far one about a hundred.
+    const t = entry.triangles;
+    assert.ok(t.stand <= 500 && t.fly + t.fly_wing_l + t.fly_wing_r <= 600, `${species} near ${JSON.stringify(t)}`);
+    assert.ok(t.stand_low <= 100 && t.fly_low <= 130, `${species} far ${JSON.stringify(t)}`);
+    // Built to the size animals.mjs gives the species.
+    const m = build.match(new RegExp(`"${species}": dict\\(length=([\\d.]+), span=([\\d.]+)`));
+    assert.ok(m, `${species} in the build`);
+    assert.equal(+m[1], SPECIES[species].length); assert.equal(+m[2], SPECIES[species].span);
+  }
+  assert.ok(total < 300_000, `the birds are ${total} bytes`);
+});
+
+test("an imported bird stands on its feet facing its way, spreads its own span, and beats its wings", async () => {
+  const THREE = await import("../docs/vendor/three-0.160.0/three.module.min.js");
+  const { animalFigures, BIRD_PARTS, birdFile } = await import("../docs/city/animal-figures.mjs");
+  const loads = [], added = [];
+  const loadModel = async (url) => { loads.push(url); return parseBirdGlb(THREE, readFileSync(new URL(`../docs/${url}`, import.meta.url))); };
+  const F = animalFigures({ THREE, add: (m) => added.push(m), loadModel, asset: (p) => p });
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  const box = new THREE.Box3(), v = new THREE.Vector3(), mm = new THREE.Matrix4();
+  const drawn = (only = (m) => /^city-bird-pigeon-/.test(m.name)) => {
+    box.makeEmpty(); const pts = [];
+    for (const m of added.filter(only)) for (let i = 0; i < m.count; i += 1) { m.getMatrixAt(i, mm); const p = m.geometry.attributes.position; for (let q = 0; q < p.count; q += 1) { v.fromBufferAttribute(p, q).applyMatrix4(mm); box.expandByPoint(v); pts.push(v.clone()); } }
+    return pts;
+  };
+  // The first draw asks for the model and draws the modelled bird meanwhile.
+  F.begin(0); F.bird({ x: 0, y: 2, z: 0, yaw: 0, species: "pigeon", air: false, perch: true, tier: 1, k: 0 }); F.end();
+  assert.deepEqual(loads, [birdFile("pigeon")]);
+  assert.equal(F.stats().birds, 1);
+  await settle();
+  assert.equal(F.birdModels().pigeon, "loaded");
+  for (const p of BIRD_PARTS) assert.ok(added.some((m) => m.name === `city-bird-pigeon-${p}`), p);
+
+  // Perched on a lamp arm at y 2: its feet on it, its length the species', its head to -z.
+  F.begin(0); F.bird({ x: 0, y: 2, z: 0, yaw: 0, species: "pigeon", air: false, perch: true, tier: 1, k: 0 }); F.end();
+  let pts = drawn();
+  assert.ok(Math.abs(box.min.y - 2) < 0.005, `feet at ${box.min.y.toFixed(3)}`);
+  assert.ok(Math.abs(box.max.z - box.min.z - SPECIES.pigeon.length) < 0.03, `length ${(box.max.z - box.min.z).toFixed(3)}`);
+  const top = pts.filter((p) => p.y > box.max.y - 0.04), mid = (box.min.z + box.max.z) / 2;
+  assert.ok(top.reduce((a, p) => a + p.z, 0) / top.length < mid, "its head (its highest point) is forward, toward -z");
+  assert.equal(added.find((m) => m.name === "city-bird-body").count, 0, "the modelled bird is not drawn as well");
+  assert.ok(!added.find((m) => m.name === "city-bird-pigeon-fly").visible, "nor are the parts drawing nothing");
+
+  // Gliding: its wings out to the species' span, a little above level.
+  F.begin(0); F.bird({ x: 0, y: 30, z: 0, yaw: 0, species: "pigeon", air: true, flap: 0, tier: 1, k: 0 }); F.end();
+  drawn();
+  assert.ok(Math.abs(box.max.x - box.min.x - SPECIES.pigeon.span) < SPECIES.pigeon.span * 0.15, `span ${(box.max.x - box.min.x).toFixed(3)}`);
+  assert.ok(F.stats().triangles <= 600);
+  // Flapping: the right wing's tip up at the top of the beat, down at the bottom.
+  const tipY = (t) => { F.begin(t); F.bird({ x: 0, y: 30, z: 0, yaw: 0, species: "pigeon", air: true, flap: 1, tier: 1, k: 0 }); F.end(); drawn((m) => m.name === "city-bird-pigeon-fly_wing_r"); return box.max.y; };
+  const hz = FLIGHT.pigeon.hz;
+  assert.ok(tipY(1 / (4 * hz)) - tipY(3 / (4 * hz)) > SPECIES.pigeon.span * 0.3, "the wing sweeps up and down");
+  // Far off, one light shape.
+  F.begin(0); F.bird({ x: 0, y: 30, z: 0, yaw: 0, species: "pigeon", air: true, flap: 1, tier: 2, k: 0 }); F.end();
+  assert.equal(added.find((m) => m.name === "city-bird-pigeon-fly_low").count, 1);
+  assert.ok(F.stats().triangles <= 130);
+
+  // A model that does not come: the modelled bird, without asking again.
+  const G = animalFigures({ THREE, add: () => {}, loadModel: async () => { throw new Error("offline"); } });
+  const warn = console.warn; console.warn = () => {};
+  try {
+    G.begin(0); G.bird({ x: 0, y: 0, z: 0, yaw: 0, species: "gull", air: true, flap: 1, tier: 1, k: 0 }); G.end(); await settle();
+    G.begin(0); G.bird({ x: 0, y: 0, z: 0, yaw: 0, species: "gull", air: true, flap: 1, tier: 1, k: 0 }); G.end();
+  } finally { console.warn = warn; }
+  assert.equal(G.birdModels().gull, "failed");
+  assert.equal(G.meshes.find((m) => m.name === "city-bird-body").count, 1);
+  // The page hands the figures its loader.
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.ok(view.includes("animalsView({ R, THREE, add: (m) => group.add(m), loadModel: ctx.loadModel, asset: ctx.asset,"));
 });

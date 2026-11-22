@@ -53,7 +53,7 @@ export const SPECIES = {
   // Never drawn in full: a bird is a few pixels and stays away; a rat is a glimpse at the kerb.
   pigeon: { name: "Pigeon", kind: "bird", top: 1, rings: [0, 35, 150], span: 0.62, length: 0.32, ground: true, flock: [5, 18], coat: [0x7f8792, 0x4d5560] },
   gull: { name: "Gull", kind: "bird", top: 1, rings: [0, 45, 260], span: 1.35, length: 0.6, ground: false, flock: [1, 4], coat: [0xf1f2f1, 0x8a9198] },
-  sparrow: { name: "Sparrow", kind: "bird", top: 2, rings: [0, 0, 55], span: 0.22, length: 0.15, ground: true, flock: [3, 9], coat: [0x8a6a4a, 0x5a4634] },
+  sparrow: { name: "Sparrow", kind: "bird", top: 1, rings: [0, 12, 55], span: 0.22, length: 0.15, ground: true, flock: [3, 9], coat: [0x8a6a4a, 0x5a4634] },
   crow: { name: "Crow", kind: "bird", top: 1, rings: [0, 40, 200], span: 0.9, length: 0.45, ground: true, flock: [1, 3], coat: [0x15151a, 0x15151a] },
   rat: { name: "Rat", kind: "vermin", top: 2, rings: [0, 0, 45], length: 0.22, coat: [0x5a5048, 0x5a5048] },
 };

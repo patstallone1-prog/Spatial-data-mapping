@@ -17,7 +17,8 @@ export const ANIMALS_CSS = `
 
 export function animalsView(env) {
   const { R, THREE, add, h, act, send, notify, self, me, getYaw, car, groundAt, blocked, onRoad, vehicles, people, places, gameHour, wet, camera } = env;
-  const F = animalFigures({ THREE, add });
+  // (The birds' models come through the page's loader; without one, the modelled birds.)
+  const F = animalFigures({ THREE, add, loadModel: env.loadModel || null, asset: env.asset || ((path) => path) });
   const actors = new Map();          // pet id -> {x, z, yaw, v, state, gait, growl, ...}
   const flocks = new Map();          // ambient flock id -> flock (with ``up``: flushed at)
   let cellsAt = "", cellList = [], lastTick = 0, lastHurt = new Map(), lastSay = 0, boardAt = 0, leaveInCar = false, wasInCar = false, clock = 0, counts = { pets: 0, dogs: 0, cats: 0, birds: 0, rats: 0 };

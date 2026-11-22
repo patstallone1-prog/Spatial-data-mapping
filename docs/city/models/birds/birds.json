@@ -1,0 +1,151 @@
+{
+ "about": "The city's birds (docs/city/animal-figures.mjs), built by tools/blender/build_city_birds.py: textures baked to one colour a face, re-oriented and scaled to each species, wings cut at the shoulder and levelled, a far tier decimated. CC-BY 3.0: credited here, by title, author and source.",
+ "parts": [
+  "stand",
+  "stand_low",
+  "fly",
+  "fly_wing_l",
+  "fly_wing_r",
+  "fly_low"
+ ],
+ "species": {
+  "pigeon": {
+   "file": "pigeon.glb",
+   "bytes": 52432,
+   "from": [
+    "dove_stand",
+    "gull_fly"
+   ],
+   "changes": "Recoloured as a rock pigeon (slate head, green-purple neck, grey body, wing bars, dark tail band); its flight is the flying seagull's, wings broadened and recoloured.",
+   "triangles": {
+    "stand": 482,
+    "stand_low": 88,
+    "fly": 249,
+    "fly_wing_l": 36,
+    "fly_wing_r": 61,
+    "fly_low": 120
+   }
+  },
+  "gull": {
+   "file": "gull.glb",
+   "bytes": 40496,
+   "from": [
+    "gull_stand",
+    "gull_fly"
+   ],
+   "changes": "Recoloured as a western gull (dark slate mantle, black wing tips, pink legs).",
+   "triangles": {
+    "stand": 302,
+    "stand_low": 87,
+    "fly": 249,
+    "fly_wing_l": 36,
+    "fly_wing_r": 61,
+    "fly_low": 120
+   }
+  },
+  "crow": {
+   "file": "crow.glb",
+   "bytes": 57044,
+   "from": [
+    "crow_stand",
+    "raven_fly"
+   ],
+   "changes": "Scaled to an American crow; its flight is the flying raven's.",
+   "triangles": {
+    "stand": 476,
+    "stand_low": 86,
+    "fly": 319,
+    "fly_wing_l": 111,
+    "fly_wing_r": 99,
+    "fly_low": 120
+   }
+  },
+  "sparrow": {
+   "file": "sparrow.glb",
+   "bytes": 77968,
+   "from": [
+    "sparrow_stand",
+    "raven_fly"
+   ],
+   "changes": "Its flight is the flying raven's, recoloured brown and buff.",
+   "triangles": {
+    "stand": 424,
+    "stand_low": 88,
+    "fly": 319,
+    "fly_wing_l": 111,
+    "fly_wing_r": 99,
+    "fly_low": 120
+   }
+  }
+ },
+ "attributions": [
+  {
+   "source_model": "gull_stand",
+   "title": "Seagull",
+   "author": "Poly by Google",
+   "source": "https://poly.pizza/m/0WRzrtCIIRp",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "gull"
+   ]
+  },
+  {
+   "source_model": "gull_fly",
+   "title": "Flying seagull",
+   "author": "Poly by Google",
+   "source": "https://poly.pizza/m/6Tpj_vcWP3f",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "gull",
+    "pigeon"
+   ]
+  },
+  {
+   "source_model": "dove_stand",
+   "title": "Dove",
+   "author": "Poly by Google",
+   "source": "https://poly.pizza/m/2jmH3trzPFf",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "pigeon"
+   ]
+  },
+  {
+   "source_model": "crow_stand",
+   "title": "Crow",
+   "author": "Poly by Google",
+   "source": "https://poly.pizza/m/1MIvWQ5Q3R9",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "crow"
+   ]
+  },
+  {
+   "source_model": "raven_fly",
+   "title": "Flying Raven",
+   "author": "Google Data Arts Team",
+   "source": "https://poly.pizza/m/p4puYPVor6",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "crow",
+    "sparrow"
+   ]
+  },
+  {
+   "source_model": "sparrow_stand",
+   "title": "Sparrow",
+   "author": "Poly by Google",
+   "source": "https://poly.pizza/m/3rTjKefT184",
+   "license": "CC-BY-3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "used_for": [
+    "sparrow"
+   ]
+  }
+ ]
+}

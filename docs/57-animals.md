@@ -61,15 +61,44 @@
 | dog | to 30 m, about 9,700 triangles | to 75 m, 1,500 | to 190 m, 370 | 190 m |
 | cat | to 22 m | to 55 m | to 140 m | 140 m |
 | rabbit | to 18 m | to 45 m | to 110 m | 110 m |
-| pigeon, crow, gull | never | to 35-45 m, about 60 | to 150-260 m, 26 | |
-| sparrow, rat | never | never | to 45-55 m | |
+| pigeon, crow, gull | never | to 35-45 m, its model: 300-480 stood, 350-530 flying | to 150-260 m, its far model, about 100 | |
+| sparrow | never | to 12 m, its model | to 55 m, its far model | |
+| rat | never | never | to 45 m | |
 
 At most 24 animals are drawn in full, 120 at moderate, 260 at low; 300 birds; 24 rats.
 
+## The birds' models
+
+The pigeon, gull, crow and sparrow are imported models: low-poly birds from Poly by Google and
+the Google Data Arts Team, CC-BY 3.0, credited in `docs/city/models/birds/birds.json` and
+`License.txt`. They were made ready in Blender by `tools/blender/build_city_birds.py`:
+
+- **Colours.** Each model's texture is baked to one colour a face. The models are shaded smooth
+  across gentle folds and kept sharp at creases.
+- **Size and facing.** Each is turned to face -z and scaled to the species' own length and span
+  (`SPECIES`). A standing bird has its origin at its feet, so it stands on the ground or a lamp
+  arm.
+- **Recolouring.**
+  - The dove is a rock pigeon: a slate head, a neck that turns from green to purple with the
+    feathers' angle, a grey body with wing bars, and a dark band across the tail.
+  - The gull is a western gull, with a dark slate mantle and black wing tips.
+- **Flying.** The flying seagull flies for the gull, and for the pigeon (its wings broadened and
+  recoloured). The flying raven flies for the crow, and for the sparrow (recoloured brown and buff).
+- **Wings.** Each flying bird's wings are cut off at the shoulder and held level. In the page
+  each wing beats on its own hinge as the flight asks (`FLIGHT`): a gull's slow beat, a sparrow's
+  quick one. A gliding bird holds its wings a little above level.
+- **Far tier.** Each bird also has a far shape, decimated to about 90 triangles stood and 120
+  flying.
+
+The files are four, one a species: 40 to 78 KB each, 228 KB in all. A species' file is fetched the
+first time one is drawn, and the modelled bird stands in until it arrives, or if it does not
+(`birdModels()` says which). A species' parts with nothing drawn are left out of the frame.
+
 ## What it is not
 
-- The animals are **modelled here** from lofted shapes to each breed's proportions: jointed,
-  two-coloured, with a gait. They are not scans or licensed models and do not look photographic.
+- The dogs, cats and rabbits are **modelled here** from lofted shapes to each breed's
+  proportions: jointed, two-coloured, with a gait. They are not scans or licensed models and do
+  not look photographic. The birds are low-poly models, meant to be seen from a little way off.
 - Not built from the plan: fish, sharks and porpoises; coyotes; licences, the leash law and
   fines; neglect reports; pet insurance; other players seeing your pet; fetch; shelters.
 - A pet in the car is not drawn on the seat.
@@ -77,5 +106,7 @@ At most 24 animals are drawn in full, 120 at moderate, 260 at low; 300 birds; 24
 ## Files
 
 `docs/city/animals.mjs` (the species, the record, how a pet moves, the residents, the field, the
-world's commands), `animal-figures.mjs` (drawing), `animals-view.mjs` (the page), 
+world's commands), `animal-figures.mjs` (drawing), `animals-view.mjs` (the page),
+`models/birds/` (the birds' models and their credits; `tools/blender/build_city_birds.py` builds
+them), 
 `animals-sheet.html` (every animal, for looking at), `tests/city_animals.test.mjs`.

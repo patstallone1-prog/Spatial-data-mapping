@@ -1654,7 +1654,7 @@ diffuseColor.rgb *= kbCloth;`);
     openMessages: () => messages().open?.("npc"), syncSlots }));
   // Animals (animals-view.mjs): your pets, the neighbourhood's dogs and cats, the birds, the rats.
   let animalsUI = null, eatingPlaces = null;
-  const animals = () => (animalsUI ||= animalsView({ R, THREE, add: (m) => group.add(m), h, act, send, notify, self, me, getYaw: () => ctx.getYaw(), car, groundAt,
+  const animals = () => (animalsUI ||= animalsView({ R, THREE, add: (m) => group.add(m), loadModel: ctx.loadModel, asset: ctx.asset, h, act, send, notify, self, me, getYaw: () => ctx.getYaw(), car, groundAt,
     blocked: (x, z, r) => walkerBlocked(x, z, r), onRoad: (x, z) => Boolean(ctx.onRoad?.(x, z)), vehicles: () => visible.vehicles, people: () => visible.people, places: () => district.places,
     gameHour, wet: wetNow, camera: () => { const c = ctx.camera?.(); return c?.position ? { x: c.position.x, z: c.position.z } : me(); },
     waterAt: (x, z) => Boolean(ctx.waterAt?.(x, z)), placeArg, noteIncident, drawSide: () => drawSide(),
