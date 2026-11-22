@@ -1,4 +1,12 @@
-import { VEHICLE_DIMS, vehicleMaterials } from "./vehicles.mjs";
+import { VEHICLE_DIMS, vehicleMaterials, FLEET_FOR } from "./vehicles.mjs";
+import { buildUnderbody } from "./workshop-underbody.mjs";
+
+//: The model a car is drawn as on the lift: the fleet's full-detail model nearest its kind (the
+//: traffic's kit cars are low in detail; one car at a time can be the full one).
+export function bayModel(model) {
+  if (FLEET_FOR[model]) return model;
+  return { pickup: "suv", delivery_van: "suv", sedan: "economy", taxi: "economy", compact_ev: "economy" }[model] || model;
+}
 
 // All service points are in the vehicle's local frame. Kerbside vehicles face -Z.
 export function serviceGeometry(model) {
@@ -50,124 +58,43 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect, onHover
     return m;
   };
   const box = (parent, x, y, z, w, h, l, m) => mesh(parent, new T.BoxGeometry(w, h, l), m, x, y, z);
-  const lift = 0.72,
-    [w, h, l] = VEHICLE_DIMS[order.model] || VEHICLE_DIMS.sedan;
+  const shown = bayModel(order.model);
+  const LIFT_LOW = 0.72, LIFT_HIGH = 1.62;
+  let lift = LIFT_LOW, liftGoal = LIFT_LOW;
+  const [w, h, l] = VEHICLE_DIMS[shown] || VEHICLE_DIMS.sedan;
   box(scene, 0, -0.09, 0, 18, 0.18, 18, mat(0x516066));
   const grid = new T.GridHelper(18, 18, 0x667479, 0x59686d);
   scene.add(grid);
   owned.add(grid.geometry);
   owned.add(grid.material);
+  // The two-post lift: its arms and pads ride up with the car (raised to work underneath).
+  const carriage = new T.Group();
+  scene.add(carriage);
   for (const side of [-1, 1]) {
-    box(scene, side * w * 0.38, lift - 0.12, 0, 0.39, 0.22, l + 0.65, steel);
     box(scene, side * (w * 0.5 + 0.66), 1.48, 0.7, 0.22, 2.96, 0.32, blue);
     box(scene, side * (w * 0.5 + 0.66), 0.09, 0.7, 0.6, 0.18, 0.72, rubber);
-    box(scene, side * (w * 0.5 + 0.31), lift - 0.24, 0.7, 0.95, 0.18, 0.25, brass);
+    // The carriage on the post, and its two swing arms out to the jacking points under the sill
+    // (the underside left open to see, as a two-post lift leaves it).
+    const armY = Math.max(0.15, Math.min(0.26, h * 0.16)) - 0.075;
+    box(carriage, side * (w * 0.5 + 0.55), armY, 0.7, 0.2, 0.16, 0.3, steel);
+    for (const z of [-l * 0.3 + 0.42, l * 0.3 - 0.42]) {
+      const from = new T.Vector3(side * (w * 0.5 + 0.5), armY, 0.7), to = new T.Vector3(side * w * 0.44, armY, z);
+      const arm = box(carriage, 0, 0, 0, 0.1, 0.07, from.distanceTo(to), steel);
+      arm.position.copy(from).lerp(to, 0.5);
+      arm.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+      mesh(carriage, new T.CylinderGeometry(0.06, 0.06, 0.05, 20), rubber, to.x, armY + 0.055, to.z);
+      mesh(carriage, new T.CylinderGeometry(0.05, 0.05, 0.03, 16), brass, to.x, armY + 0.025, to.z);
+    }
   }
+  carriage.position.y = lift;
   const root = new T.Group();
   root.position.y = lift;
   scene.add(root);
-  const car = makeCar(order.model, colour, order.shade);
+  const car = makeCar(shown, colour, order.shade);
   root.add(car);
-  // Recessed floor pan, crossmembers and axle housings are visible from the lift pit.
-  box(root, 0, h * 0.17, 0, w * 0.66, 0.055, l * 0.62, rubber);
-  for (const z of [-l * 0.3, l * 0.29]) {
-    box(root, 0, h * 0.14, z, w * 0.8, 0.07, 0.12, steel);
-    for (const side of [-1, 1]) {
-      const arm = box(root, side * w * 0.32, h * 0.12, z + 0.09, 0.06, 0.055, w * 0.34, steel);
-      arm.rotation.y = side * 0.72;
-      mesh(root, new T.CylinderGeometry(0.052, 0.052, 0.035, 6), brass, side * w * 0.31, h * 0.094, z);
-    }
-  }
-  if (order.model === "compact_ev") box(root, 0, h * 0.125, 0.02, w * 0.68, 0.085, l * 0.4, steel);
-  else {
-    mesh(
-      root,
-      new T.CylinderGeometry(0.032, 0.032, l * 0.63, 12).rotateX(Math.PI / 2),
-      steel,
-      w * 0.19,
-      h * 0.11,
-      0,
-    );
-    box(root, w * 0.19, h * 0.12, l * 0.22, 0.21, 0.11, 0.42, steel);
-  }
-  // Brake pipes, clipped wiring looms, spring coils and a lateral anti-roll bar.
-  function bentTube(points, radius, material) {
-    const curve = new T.CatmullRomCurve3(points.map((v) => new T.Vector3(...v)));
-    return mesh(
-      root,
-      new T.TubeGeometry(curve, Math.max(32, points.length * 3), radius, 10, false),
-      material,
-      0,
-      0,
-      0,
-    );
-  }
-  for (const side of [-1, 1]) {
-    const x = w * 0.29 * side;
-    for (let n = 0; n < 3; n++) {
-      const xc = x + side * 0.023 * n;
-      bentTube(
-        [
-          [xc, 0.19, -l * 0.37],
-          [xc - side * 0.07, 0.15, -l * 0.24],
-          [xc, 0.14, -l * 0.12],
-          [xc, 0.14, l * 0.24],
-          [xc + side * 0.09, 0.19, l * 0.34],
-        ],
-        n === 2 ? 0.014 : 0.007,
-        n === 2 ? rubber : steel,
-      );
-    }
-    for (const z of [-0.23, 0, 0.22]) box(root, x, 0.13, z * l, 0.16, 0.022, 0.032, steel);
-    for (const z of [-l * 0.3, l * 0.29]) {
-      const coil = Array.from({ length: 90 }, (_, i) => [
-        side * w * 0.405 + 0.052 * Math.cos(i * 0.42),
-        0.17 + i * 0.0028,
-        z + 0.052 * Math.sin(i * 0.42),
-      ]);
-      bentTube(coil, 0.008, steel);
-    }
-  }
-  bentTube(
-    [
-      [-w * 0.39, 0.18, -l * 0.29],
-      [-w * 0.32, 0.14, -l * 0.23],
-      [0, 0.14, -l * 0.23],
-      [w * 0.32, 0.14, -l * 0.23],
-      [w * 0.39, 0.18, -l * 0.29],
-    ],
-    0.019,
-    steel,
-  );
-  // Half-shafts and the ribbed CV boots meet the inboard face of each front hub.
-  const axleY = h * 0.18,
-    frontZ = -l * 0.3;
-  for (const side of [-1, 1]) {
-    const shaftLength = w * 0.36;
-    mesh(
-      root,
-      new T.CylinderGeometry(0.019, 0.019, shaftLength, 24).rotateZ(Math.PI / 2),
-      steel,
-      side * w * 0.22,
-      axleY,
-      frontZ,
-    );
-    const profile = Array.from(
-      { length: 25 },
-      (_, i) => new T.Vector2(0.034 + 0.012 * (1 + Math.cos((i * Math.PI) / 2)), (i - 12) * 0.006),
-    );
-    mesh(root, new T.LatheGeometry(profile, 40).rotateZ(Math.PI / 2), rubber, side * w * 0.36, axleY, frontZ);
-    for (const offset of [-0.066, 0.066])
-      mesh(
-        root,
-        new T.TorusGeometry(0.041, 0.004, 8, 36).rotateY(Math.PI / 2),
-        steel,
-        side * w * 0.36 + offset,
-        axleY,
-        frontZ,
-      );
-  }
-  const loc = serviceGeometry(order.model),
+  // The underside, in detail: one car at a time is drawn here (workshop-underbody.mjs).
+  buildUnderbody(T, root, { dims: [w, h, l], model: shown, own: disposable });
+  const loc = serviceGeometry(shown),
     point = (id) => new T.Vector3(...loc[id]);
   const power = order.fault !== "fender",
     bay = new T.Group();
@@ -382,6 +309,14 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect, onHover
   function draw(now) {
     frame = requestAnimationFrame(draw);
     cutaway();
+    if (Math.abs(lift - liftGoal) > 1e-3) {
+      const was = lift;
+      lift += Math.sign(liftGoal - lift) * Math.min(Math.abs(liftGoal - lift), 0.012);
+      root.position.y = carriage.position.y = lift;
+      // (The cutaway's planes are in the world: they rise with the car.)
+      for (const p of planes) if (p.normal.y < -0.5) p.constant = lift + h * (power ? 0.42 : 0.32);
+      goal.y += lift - was; focus.y += lift - was;
+    }
     focus.lerp(goal, 0.09);
     camera.position.set(
       focus.x + Math.sin(angle) * Math.cos(pitch) * radius,
@@ -412,21 +347,36 @@ export function workshopScene(T, host, order, colour, makeCar, onSelect, onHover
   }
   update(order);
   draw(performance.now());
+  //: The ways to look at the car: [name, what it shows, the lift raised?, focus, angle, pitch, radius].
+  const VIEWS = {
+    overview: { lift: LIFT_LOW, at: [0, h * 0.5, -l * 0.13], angle: -0.72, pitch: 0.52, radius: l * 1.38 },
+    front: { lift: LIFT_LOW, at: [0, h * 0.5, -l * 0.3], angle: -0.12, pitch: 0.38, radius: l * 0.95 },
+    left: { lift: LIFT_LOW, at: [-w * 0.45, h * 0.45, -l * 0.28], angle: -1.45, pitch: 0.22, radius: 1.9 },
+    engine: { lift: LIFT_LOW, at: [0, h * 0.58, -l * 0.33], angle: -0.25, pitch: 1.05, radius: 1.7 },
+    under: { lift: LIFT_HIGH, at: [0, 0.25, -l * 0.05], angle: -0.55, pitch: -0.62, radius: l * 0.72 },
+    rear: { lift: LIFT_LOW, at: [0, h * 0.45, l * 0.25], angle: Math.PI - 0.5, pitch: 0.42, radius: l * 1.1 },
+  };
+  function view(name) {
+    const v = VIEWS[name] || VIEWS.overview;
+    liftGoal = v.lift;
+    goal.set(v.at[0], lift + v.at[1], v.at[2]);   // (the lift carries the goal with it as it rises)
+    angle = v.angle; pitch = v.pitch; radius = v.radius;
+  }
+  const scratch = new T.Vector3();
   return {
     select,
     update,
-    underbody() {
-      goal.set(0, lift + 0.18, 0);
-      pitch = -1.3;
-      radius = 0.88;
-      angle = -0.25;
+    view,
+    underbody() { view("under"); },
+    overview() { view("overview"); },
+    //: Where marker ``id`` is on the screen (pixels in the host), and whether it is in front of the camera.
+    project(id) {
+      if (!loc[id]) return null;
+      scratch.copy(point(id)).applyMatrix4(root.matrixWorld).project(camera);
+      return { x: (scratch.x + 1) / 2 * host.clientWidth, y: (1 - scratch.y) / 2 * host.clientHeight, front: scratch.z < 1 };
     },
-    overview() {
-      pitch = 0.52;
-      angle = -0.72;
-      goal.set(0, lift + h * 0.5, -l * 0.13);
-      radius = l * 1.38;
-    },
+    //: The part being fitted, seen arriving (for a drop on the car).
+    get shown() { return shown; },
     dispose() {
       cancelAnimationFrame(frame);
       observer.disconnect();

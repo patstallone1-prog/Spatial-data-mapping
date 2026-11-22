@@ -29,6 +29,19 @@ function action(w, vehicle, action, extra = {}, pid = "tech") {
   });
 }
 const ok = (r) => (assert.ok(r.ok, r.error), r);
+test("nothing is refused for being early: a part fitted with no diagnosis is drawn as it is fitted, and an unchecked car can be released", () => {
+  const w = setup(), v = "early-sedan";
+  w.registry.register(v, "vehicle", "player:driver", { ...at, model: "sedan", plate: "BAY402", condition: 60 }, w.now);
+  ok(w.submit("driver", "workshop_intake", { place, vehicle: v }));
+  const spec = REPAIRS.fender, bins = w.workshopStock.get(place.id), before = bins.fender;
+  const fitted = ok(action(w, v, "fit", { site: spec.seat, part: "fender", orientation: spec.orientation })).order;
+  assert.ok(fitted.seated && fitted.diagnosed);
+  assert.equal(bins.fender, before - 1);
+  const { order, message } = ok(action(w, v, "release"));
+  assert.match(message, /without a passing functional check/);
+  assert.equal(order.verified, false);
+  assert.ok(order.bill);
+});
 test("a player authorizes their own parked car, a mechanic fits a fender, and the shop can collect exactly one invoice", () => {
   const w = setup(),
     v = "private-sedan";
@@ -57,7 +70,6 @@ test("a player authorizes their own parked car, a mechanic fits a fender, and th
   const bins = w.workshopStock.get(place.id), before=bins.fender;
   ok(action(w,v,"issue",{part:"fender"}));
   assert.equal(bins.fender,before-1);
-  assert.equal(action(w,v,"issue",{part:"fender"}).ok,false);
   ok(action(w, v, "fit", { site: "wing", part: "fender", orientation: REPAIRS.fender.orientation }));
   assert.match(ok(action(w,v,"attach",{site:"rail",tool:"Trim clip pliers"})).message,/Tool trial/);
   assert.equal(ok(action(w,v,"verify")).order.verified,false);
@@ -110,6 +122,8 @@ for (const fault of ["ground", "relay"])
     ok(action(w, v, "check", { site: fault === "ground" ? "ground" : "load", check: spec.test }));
     ok(action(w, v, "diagnose", { part: fault }));
     ok(action(w,v,"issue",{part:fault}));
+    // (A second draw is not refused: it is billed as a spare.)
+    assert.match(ok(action(w,v,"issue",{part:fault})).message,/spare/);
     ok(action(w, v, "fit", { site: spec.seat, part: fault, orientation: spec.orientation }));
     const paid = totalBill(ok(action(w, v, "withdraw")).order);
     w = CityWorld.fromJSON(R, JSON.parse(JSON.stringify(w.toJSON())));
@@ -131,7 +145,7 @@ for (const fault of ["ground", "relay"])
     assert.equal(order.plate, vehicle.plate);
     assert.equal(
       paid + invoice.amount,
-      R.money(8 + 10 + spec.price + spec.materials.reduce((n, c) => n + c + 6, 0) + 12),
+      R.money(8 + 10 + 2 * spec.price + spec.materials.reduce((n, c) => n + c + 6, 0) + 12),
     );
     assert.equal(w.harm.get(v).serviceFault, undefined);
     assert.equal(w.harm.get(v).serviceBay, undefined);

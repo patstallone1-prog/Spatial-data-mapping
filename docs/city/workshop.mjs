@@ -313,14 +313,19 @@ export function installWorkshop(World, CityError) {
       stock[part] = BIN_START[part];
       message = "Delivery received.";
     } else if (action === "issue") {
-      if (!o.diagnosed || o.seated || o.issued || !Object.hasOwn(REPAIRS, part))
-        fail("Check the work order before drawing a part.");
+      // Nothing is refused here: drawing before a diagnosis writes a provisional one, and a part
+      // drawn twice goes on the bill as a spare. The message says how likely it is to be right.
+      if (!Object.hasOwn(REPAIRS, part)) fail("Choose a parts bin.");
       need(part);
-      cost([REPAIRS[part].part + (part === o.fault ? "" : " · wasted"), REPAIRS[part].price]);
+      const spare = part === o.fault && (o.issued === part || o.seated);
+      const warn = !o.diagnosed ? " No diagnosis was written: this one is provisional." : o.suspected && o.suspected !== part ? " It is not the part the diagnosis named." : "";
+      if (!o.diagnosed) { o.diagnosed = true; o.suspected = part; }
+      cost([REPAIRS[part].part + (part !== o.fault ? " · wasted" : spare ? " · spare" : ""), REPAIRS[part].price]);
       stock[part]--;
-      if (part === o.fault) o.issued = part;
+      if (part === o.fault && !spare) o.issued = part;
       else o.mistakes++;
-      message = o.issued ? "Part drawn from the bin." : "Incorrect replacement drawn. Material charged.";
+      message = (spare ? "A second " + REPAIRS[part].part.toLowerCase() + " drawn: one is already on the car or the bench, so it is billed as a spare."
+        : o.issued === part ? "Part drawn from the bin." : "Part drawn. It does not match this car's fault: it is charged as wasted material.") + warn;
     } else if (action === "check") {
       const test = Object.hasOwn(CHECKS, check) && CHECKS[check];
       if (!test || !Object.hasOwn(SITES, site)) fail("Choose a marked area and test.");
@@ -345,13 +350,16 @@ export function installWorkshop(World, CityError) {
           ? "Provisional diagnosis. You can draw parts or keep testing."
           : "Diagnosis supported by the reading. Draw the replacement.";
     } else if (action === "fit") {
-      if (!o.diagnosed || o.seated || part !== o.fault || site !== spec.seat || orientation !== spec.orientation)
+      if (o.seated) return report("The replacement is already seated. Secure its connections next.");
+      if (part !== o.fault || site !== spec.seat || orientation !== spec.orientation)
         return report("Trial fit: the replacement does not seat here in that orientation. Check the fitting card.");
-      if (o.partsRequired && o.issued !== o.fault) fail("Draw the replacement from its bin first.");
-      if (!o.issued) {
+      if (!o.diagnosed) { o.diagnosed = true; o.suspected = part; }
+      // (Not drawn yet: it is taken from the bin as it is fitted.)
+      if (o.issued !== o.fault) {
         need(o.fault);
         cost([spec.part, spec.price]);
         stock[o.fault]--;
+        o.issued = o.fault;
       }
       o.seated = true;
       o.fitter = pid;
@@ -390,7 +398,8 @@ export function installWorkshop(World, CityError) {
           ? "Panel secure. Wheel clearance passed."
           : "Power stable under load. Functional check passed.";
     } else if (action === "release" || action === "withdraw") {
-      if (action === "release" && !o.verified) fail("Pass the functional check before release.");
+      // (Released without a passing check: the car goes as it is, the work so far billed, and the
+      // fault kept with it for the next shop.)
       if (action === "withdraw" && p.account !== o.payer && !o.npc)
         fail("Only the customer can withdraw this vehicle.");
       if (o.verified) {
@@ -456,7 +465,7 @@ export function installWorkshop(World, CityError) {
           if (bill.status === "paid") this.payRepairBonus(bill);
         }
       }
-      message = "Vehicle released. Invoice " + this.R.fmt(amount);
+      message = (action === "release" && !o.verified ? "Released without a passing functional check: the fault may still be there. " : "Vehicle released. ") + "Invoice " + this.R.fmt(amount);
     } else fail("Unknown bay action.");
     const seconds = { ask: 1, check: 2, diagnose: 1, issue: 1, fit: 2, attach: 1, verify: 2 };
     if (this.authoritativeJobs) o.readyAt = now + (seconds[action] || 0) * 1000;
