@@ -114,39 +114,223 @@ def profile(points, ground):
                 profile=envelope, volume_m3=round(volume,1), src='usgs_3dep_2023')
 
 
-def add_profiles(trees, directory):
+EPT_SOURCE = 'https://s3-us-west-2.amazonaws.com/usgs-lidar-public/CA_SanFrancisco_1_B23'
+CROWN_CLASSES = (1, 3, 4, 5)
+
+
+def _mercator(trees):
     ll = np.radians([t['p'] for t in trees])
-    xy = R*np.column_stack((ll[:,0],np.log(np.tan(np.pi/4+ll[:,1]/2))))
-    scale = math.cos(math.radians(37.76))
+    return R*np.column_stack((ll[:, 0], np.log(np.tan(np.pi/4+ll[:, 1]/2))))
+
+
+def ept_nodes(ept, xy, reach):
+    """Every node of the EPT octree (any depth) with points within ``reach`` (mercator m) of a
+    tree: an EPT keeps a share of the points at each depth, so a crown at full density is the
+    union of every depth's nodes over it, not the one deepest node."""
+    meta = json.loads((ept/'ept.json').read_text())
+    b = meta['bounds']
+    hierarchy = {}
+    for f in (ept/'ept-hierarchy').glob('*.json'):
+        hierarchy.update(json.loads(f.read_text()))
     grid = cKDTree(xy)
-    for file in sorted(directory.glob('*.laz')):
-        if int(file.stem.split('-')[0]) < 7:
+    out = []
+    for key, count in hierarchy.items():
+        if count <= 0:
             continue
-        with laspy.open(file) as f:
-            low, high = f.header.mins[:2], f.header.maxs[:2]
-            ids = grid.query_ball_point((low+high)/2, np.linalg.norm(high-low)/2)
-            if not ids:
-                continue
-            cloud = f.read()
+        d, x, y, _ = map(int, key.split('-'))
+        size = (b[3]-b[0])/2**d
+        lo = np.array([b[0]+x*size, b[1]+y*size])
+        centre = lo+size/2
+        if grid.query_ball_point(centre, size/math.sqrt(2)+reach, return_length=True):
+            out.append(key)
+    return sorted(out, key=lambda k: int(k.split('-')[0]))
+
+
+def _node_file(ept, key, fetch, scratch):
+    local = ept/'ept-data'/f'{key}.laz'
+    if local.exists():
+        return local, False
+    if not fetch:
+        return None, False
+    import urllib.request
+    target = scratch/f'{key}.laz'
+    with urllib.request.urlopen(f'{EPT_SOURCE}/ept-data/{key}.laz', timeout=60) as r:
+        target.write_bytes(r.read())
+    return target, True
+
+
+def add_profiles(trees, ept, fetch=False, scratch=None, box=None):
+    """Crown profiles for ``trees`` from the 2023 USGS 3DEP EPT at ``ept`` (its ept.json and
+    ept-hierarchy, and the ept-data nodes on hand). With ``fetch``, a node not on hand is read
+    from the public bucket into ``scratch`` and deleted once its points are taken."""
+    pick = [i for i, t in enumerate(trees)
+            if box is None or (box[0] <= t['p'][0] <= box[2] and box[1] <= t['p'][1] <= box[3])]
+    if not pick:
+        return 0
+    xy_all = _mercator(trees)
+    xy = xy_all[pick]
+    scale = math.cos(math.radians(37.76))
+    grid_all = cKDTree(xy_all)
+    # How far round a tree its crown is looked for: half way to the next tree, at most 8 m.
+    spacing = grid_all.query(xy, k=2)[0][:, 1]*scale
+    reach = np.minimum(8, spacing/2)
+    crowns = [[] for _ in pick]
+    grounds = [[] for _ in pick]
+    keys = ept_nodes(ept, xy, 8/scale)
+    grid = cKDTree(xy)
+    taken = fetched = 0
+    for n, key in enumerate(keys):
+        try:
+            path, temporary = _node_file(ept, key, fetch, scratch)
+        except Exception as error:  # a node the bucket does not give is a gap, not a failure
+            print('skipped', key, error, file=sys.stderr)
+            continue
+        if path is None:
+            continue
+        try:
+            with laspy.open(path) as f:
+                cloud = f.read()
+        finally:
+            if temporary:
+                path.unlink()
+                fetched += 1
+        taken += 1
         xyz = cloud.xyz
         cls = np.asarray(cloud.classification)
-        near = cKDTree(xyz[:,:2])
+        lo, hi = xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)
+        ids = grid.query_ball_point((lo+hi)/2, np.linalg.norm(hi-lo)/2+8/scale)
+        if not ids:
+            continue
+        near = cKDTree(xyz[:, :2])
         for i in ids:
-            spacing = grid.query(xy[i],k=2)[0][1]*scale
-            reach = min(8,spacing/2)
-            if reach < 1.5 or np.min(np.minimum(xy[i]-low,high-xy[i]))*scale < reach:
+            idx = np.asarray(near.query_ball_point(xy[i], reach[i]/scale), dtype=int)
+            if not len(idx):
                 continue
-            idx = np.asarray(near.query_ball_point(xy[i],reach/scale),dtype=int)
-            g = idx[cls[idx]==2]
-            pts = idx[np.isin(cls[idx],[1,3,4,5])]
-            if len(g)<5 or len(pts)<70:
-                continue
-            result = profile(np.column_stack(((xyz[pts,:2]-xy[i])*scale,xyz[pts,2])),np.median(xyz[g,2]))
-            if result and max(s[0] for s in result['profile']) < reach-.1:
-                trees[i].update(result)
+            c = cls[idx]
+            g = idx[c == 2]
+            if len(g):
+                grounds[i].append(xyz[g, 2].astype(np.float32))
+            v = idx[np.isin(c, CROWN_CLASSES)]
+            if len(v):
+                crowns[i].append(np.column_stack(((xyz[v, :2]-xy[i])*scale, xyz[v, 2])).astype(np.float32))
+        if n % 100 == 0:
+            print(f'{n}/{len(keys)} nodes ({fetched} fetched)', file=sys.stderr)
+    made = 0
+    for i, k in enumerate(pick):
+        t = trees[k]
+        for field in ('h', 'crown_m', 'profile', 'volume_m3', 'src'):
+            if t.get('src') == 'usgs_3dep_2023':
+                t.pop(field, None)
+        if reach[i] < 1.5 or not grounds[i] or not crowns[i]:
+            continue
+        g = np.concatenate(grounds[i])
+        pts = np.concatenate(crowns[i])
+        if len(g) < 5 or len(pts) < 70:
+            continue
+        result = profile(pts.astype(np.float64), float(np.median(g)))
+        if result and max(s[0] for s in result['profile']) < reach[i]-.1:
+            t.update(result)
+            made += 1
+    print(f'{made} crowns from {taken} nodes ({fetched} fetched) for {len(pick)} trees', file=sys.stderr)
+    return made
+
+
+def reprofile(tiles, ept, box, fetch, scratch):
+    """The crowns of the survey's trees in ``box`` measured again, in place in ``tiles``."""
+    manifest = json.loads((tiles/'manifest.json').read_text())
+    keys = [k for k in manifest['tiles']
+            if box[0]-.01 <= int(k.split('_')[0])/100 <= box[2] and box[1]-.01 <= int(k.split('_')[1])/100 <= box[3]]
+    rows = {k: json.loads((tiles/f'{k}.json').read_text()) for k in keys}
+    trees = [t for k in keys for t in rows[k]]
+    add_profiles(trees, ept, fetch, scratch, box)
+    for k in keys:
+        (tiles/f'{k}.json').write_text(json.dumps(rows[k], separators=(',', ':'), ensure_ascii=False))
+    total = 0
+    for k in manifest['tiles']:
+        total += sum('profile' in t for t in json.loads((tiles/f'{k}.json').read_text()))
+    manifest['profiles'] = total
+    manifest['lidar_depths'] = 'all (EPT nodes unioned)'
+    (tiles/'manifest.json').write_text(json.dumps(manifest))
+    print(manifest['trees'], total)
+
+
+#: Public Works / Better Streets clearances from a tree opening (m): 25 ft from a stop sign,
+#: 5 ft from a hydrant, 3 ft from a parking sign or a meter.
+CLEARANCE_M = {'stop': 7.62, 'hydrant': 1.524, 'meter': .9144, 'sign': .9144}
+PARKING_SIGNS = {'parking', 'no_parking', 'loading'}
+
+
+def socrata_points(rows):
+    out = []
+    for row in rows:
+        point = row.get('shape', {}).get('coordinates') or [row.get('longitude'), row.get('latitude')]
+        if len(point) == 2 and all(p is not None for p in point):
+            out.append(list(map(float, point)))
+    return out
+
+
+def add_obstacles(trees, points, kind):
+    """Each curb-side tree's ``kind`` obstacles (stop signs, hydrants, signs, meters) near
+    enough its opening to matter; the renderer measures them from the opening it settles on."""
+    if not points:
+        return 0
+    obstacle = np.array(points)
+    index = cKDTree((obstacle-ORIGIN)*K)
+    clearance, n = CLEARANCE_M[kind], 0
+    for t in trees:
+        if 'curb' not in t:
+            continue
+        have = {(o[0], o[1], o[2]) for o in t.get('obstacles', [])}
+        pos = (np.array(t['curb'][:2])-ORIGIN)*K
+        for j in index.query_ball_point(pos, clearance+.4572+t['plot'][0]/2):
+            row = (*np.round(obstacle[j], 7).tolist(), kind)
+            if row not in have:
+                t.setdefault('obstacles', []).append(list(row)); have.add(row); n += 1
+    return n
+
+
+def obstacles(tiles, signs=None, hydrants=None):
+    """Parking signs (the SFMTA sign shop's, from the corridor's street furniture) and hydrants
+    added to the survey tiles' trees."""
+    manifest = json.loads((tiles/'manifest.json').read_text())
+    sign_points = []
+    if signs:
+        furniture = json.loads(signs.read_text())
+        sign_points = [s['p'] for s in furniture['geometry_based']['street_signs'] if s.get('sign_kind') in PARKING_SIGNS]
+    hydrant_points = json.loads(hydrants.read_text()) if hydrants else []
+    added = {'sign': 0, 'hydrant': 0}
+    for k in manifest['tiles']:
+        rows = json.loads((tiles/f'{k}.json').read_text())
+        added['sign'] += add_obstacles(rows, sign_points, 'sign')
+        added['hydrant'] += add_obstacles(rows, hydrant_points, 'hydrant')
+        (tiles/f'{k}.json').write_text(json.dumps(rows, separators=(',', ':'), ensure_ascii=False))
+    manifest['obstacles'] = sorted(set(manifest.get('obstacles', ['stop', 'meter'])) | {k for k, v in added.items() if v})
+    (tiles/'manifest.json').write_text(json.dumps(manifest))
+    print(added)
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == 'obstacles':
+        ap = argparse.ArgumentParser(description='Add parking signs and hydrants to the survey tiles.')
+        ap.add_argument('cmd')
+        ap.add_argument('tiles', type=Path)
+        ap.add_argument('--signs', type=Path, help='docs/sf-corridor-furniture.json (SFMTA signs)')
+        ap.add_argument('--hydrants', type=Path, help='JSON [[lon, lat], ...] (OSM emergency=fire_hydrant)')
+        args = ap.parse_args()
+        obstacles(args.tiles, args.signs, args.hydrants)
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == 'reprofile':
+        ap = argparse.ArgumentParser(description='Measure the survey tiles\' crowns again from every EPT depth.')
+        ap.add_argument('cmd')
+        ap.add_argument('tiles', type=Path)
+        ap.add_argument('ept', type=Path, help='CA_SanFrancisco_1_B23 directory (ept.json, ept-hierarchy, ept-data)')
+        ap.add_argument('--box', required=True, help='west,south,east,north')
+        ap.add_argument('--fetch', action='store_true', help='read nodes not on hand from the public USGS bucket')
+        ap.add_argument('--scratch', type=Path, default=Path('/tmp'))
+        args = ap.parse_args()
+        args.scratch.mkdir(parents=True, exist_ok=True)
+        reprofile(args.tiles, args.ept, [float(v) for v in args.box.split(',')], args.fetch, args.scratch)
+        return
     ap = argparse.ArgumentParser(description=__doc__)
     for arg in ('inventory','curbs','laz','output'):
         ap.add_argument(arg,type=Path)
@@ -171,21 +355,9 @@ def main():
     add_curbs(trees,json.loads(args.curbs.read_text()))
     # Store the conflicting records only. The renderer checks their distances to the
     # proposed plot center, which may differ slightly from the inventoried stem.
-    for source, clearance, kind in [(args.stops,7.62,'stop'),(args.meters,.9144,'meter')]:
-        obstacle=[]
-        for row in json.loads(source.read_text()):
-            point=row.get('shape',{}).get('coordinates') or [row.get('longitude'),row.get('latitude')]
-            if len(point)==2 and all(p is not None for p in point):
-                obstacle.append(list(map(float,point)))
-        obstacle=np.array(obstacle)
-        index=cKDTree((obstacle-ORIGIN)*K)
-        for t in trees:
-            if 'curb' not in t:
-                continue
-            pos=(np.array(t['curb'][:2])-ORIGIN)*K
-            for j in index.query_ball_point(pos,clearance+.4572+t['plot'][0]/2):
-                t.setdefault('obstacles',[]).append([*np.round(obstacle[j],7),kind])
-    add_profiles(trees,args.laz)
+    for source, kind in [(args.stops,'stop'),(args.meters,'meter')]:
+        add_obstacles(trees, socrata_points(json.loads(source.read_text())), kind)
+    add_profiles(trees, args.laz.parent if args.laz.name == 'ept-data' else args.laz)
     tiles=defaultdict(list)
     for t in trees:
         tiles[tuple(math.floor(c*100) for c in t['p'])].append(t)

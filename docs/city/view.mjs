@@ -470,7 +470,10 @@ export async function startCity(ctx) {
           dropStoreSign(id);
           try {
             const frontage = Math.max(3, Math.min(7, Math.min(Math.sqrt(pl.area || 60) * 0.6, (pl.front?.half || 3.5) * 2 / tenants.length)));
-            const g = pl.designedFront || !name ? new THREE.Group() : buildSignage(THREE, tradeSignage(kind, pl.id, { style, tagline: R.stores?.kinds?.[kind]?.name && R.stores.kinds[kind].name !== name ? R.stores.kinds[kind].name : "" }), { name, frontage });
+            // A designed front (the exterior engine's) carries its own sign, awning and window
+            // display, with the business's name merged on: nothing more is drawn over it.
+            if (pl.designedFront) { storeSigns.set(id, { key, group: new THREE.Group() }); continue; }
+            const g = !name ? new THREE.Group() : buildSignage(THREE, tradeSignage(kind, pl.id, { style, tagline: R.stores?.kinds?.[kind]?.name && R.stores.kinds[kind].name !== name ? R.stores.kinds[kind].name : "" }), { name, frontage });
             const display = windowDisplayOf(kind, style);
             if (display && frontage >= 3.6) {
               const w = Math.min(1.8, frontage / 2 - 0.9), side = hash32(String(pl.id)) % 2 ? 1 : -1;
@@ -478,8 +481,8 @@ export async function startCity(ctx) {
               d.position.set(side * (0.75 + w / 2), 0, 0.02);
               g.add(d);
             }
-            const offset = tenants.length === 1 ? 0 : ((bay + 0.5) / tenants.length - 0.5) * pl.front.half * 2;
-            const anchor = tenants.length > 1 ? pl.front : door;
+            const offset = tenants.length === 1 || !pl.front ? 0 : ((bay + 0.5) / tenants.length - 0.5) * pl.front.half * 2;
+            const anchor = tenants.length > 1 && pl.front ? pl.front : door;
             const x = anchor.x - anchor.nz * offset, z = anchor.z + anchor.nx * offset;
             g.position.set(x - anchor.nx * .05, groundAt(x - anchor.nx * .6, z - anchor.nz * .6), z - anchor.nz * .05);
             g.rotation.y = Math.atan2(-anchor.nx, -anchor.nz);

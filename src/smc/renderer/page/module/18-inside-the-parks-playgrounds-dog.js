@@ -624,6 +624,12 @@ for (const feature of PARK_STRUCTURES) {
 }
 
 const treePlotCorners = new Map();
+//: Public Works / Better Streets: how far a tree's opening stands from what the survey records
+//: near it (tools/build_sf_tree_survey.py CLEARANCE_M) -- 25 ft from a stop sign, 5 ft from a
+//: hydrant, 3 ft from a parking sign or a meter.
+const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
+//: How many openings were put on the walk's squares, and how many were left where the survey has them.
+const treeSquareStats = { squared: 0, unsquared: 0 };
 const sfSurvey = (async () => {
   const b = DATA.bbox;
   if (!b) return null;
@@ -848,7 +854,10 @@ const groundReady = (async () => {
   const islandTrees = [];
   const survey = await sfSurvey;
   if (survey) {
-    const retained = (ground.trees || []).filter(t=>t.src?.startsWith("lidar_canopy"));
+    // The survey is the city's: it stands in for the inventory's trees inside San Francisco
+    // (south of 37.708 is Daly City, whose own trees stay); the lidar's canopy trees (yards,
+    // parks) stay where no surveyed tree is within 4 m of them.
+    const retained = (ground.trees || []).filter(t=>t.src?.startsWith("lidar_canopy") || t.p[1] < 37.7081);
     const occupied = new Map();
     const key=(x,z)=>Math.floor(x/4)+":"+Math.floor(z/4);
     for (const t of survey.trees) {
@@ -893,6 +902,15 @@ const groundReady = (async () => {
       }
     return false;
   }
+  // The openings are cut on the walk's squares, so the walks are waited for (module 19 lays
+  // them; not for ever: a minute, then the openings stand where the survey puts them).
+  let walkSquares = null;
+  if (survey && (ground.trees || []).some(t=>t.curb)) {
+    const laid = await Promise.race([streetSurfacesLaid.then(()=>true), new Promise(r=>setTimeout(()=>r(false),60000))]);
+    if (laid) walkSquares = walkSquareIndex((ground.trees || []).filter(t=>t.curb).map(t=>{const [a,b]=xy(...t.curb);return [a,-b];}));
+  }
+  const walkable = (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
+    && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z);
   const trees = (ground.trees || []).filter((tree) => {
     if (notThere.has(tree)) return false;
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
@@ -905,16 +923,20 @@ const groundReady = (async () => {
         const dx=seg[2]-seg[0], dz=seg[3]-seg[1];
         const u=Math.max(0,Math.min(1,((cx-seg[0])*dx+(-cy-seg[1])*dz)/(dx*dx+dz*dz || 1)));
         const out=[cx-seg[0]-u*dx,-cy-seg[1]-u*dz];
-        const plot=survey.api.sidewalkPlot(tree,[cx,-cy,tree.curb[2]],out,
-          (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
-            && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z));
+        let plot=survey.api.sidewalkPlot(tree,[cx,-cy,tree.curb[2]],out,walkable);
+        if (plot && walkSquares) {
+          // Slid and stretched onto the walk's own squares, where it is still all walk there.
+          const squared = walkSquarePlot(walkSquares, plot);
+          if (squared !== plot && squared.corners.every(([x,z])=>walkable(x,z))) { plot = squared; treeSquareStats.squared += 1; }
+          else treeSquareStats.unsquared += 1;
+        }
         if (plot) {
           const [x,z]=plot.center;
           const junction=junctionSquares.some(q=>Math.hypot(q.kx-x,q.kz-z)<q.reach+7.62);
           const driveway=DRIVEWAY_ZONES.some(d=>x>=d.minX-1.524 && x<=d.maxX+1.524 && z>=d.minZ-1.524 && z<=d.maxZ+1.524
             && (pointInRing(x,z,d.ring) || d.ring.some((a,i)=>{const b=d.ring[(i+1)%d.ring.length];return distanceToSegmentSquared(x,z,...a,...b)<1.524**2;})));
           const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
-            const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(kind==="stop"?7.62:.9144);
+            const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(TREE_OBSTACLE_CLEARANCE_M[kind] ?? .9144);
           }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
           if (!obstructed && !junction && !driveway && !insideJunctionBox(x,z) && !overWaterAt(x,z) &&
             !treeCrowding(x,z,tree) && !treeCrossingNear(x,z)) {
@@ -1017,34 +1039,11 @@ const groundReady = (async () => {
     let prototypeRadius=0,prototypeHeight=0;for(const part of proto.children){part.geometry.computeBoundingBox();const b=part.geometry.boundingBox;
       prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
       prototypeHeight=Math.max(prototypeHeight,b.max.y);}
-    // Profiled trees have their own crown near the walker. The shared bark and foliage
-    // materials carry through to a cheaper species silhouette at street-view distance.
-    const measured = !HEADSET && survey ? list.filter(t=>t.profile) : [];
-    if (measured.length) {
-      const leaves=proto.children[1].geometry.getAttribute("position").array;
-      const envelope=survey.api.crownEnvelope(leaves);
-      for (const t of measured) {
-        const [x,y]=xy(...t.p), z=-y, base=groundLiftAt(x,z);
-        const lod=new THREE.LOD();
-        lod.position.set(x,base,z);
-        const near=new THREE.Group(), middle=new THREE.Group();
-        for(const part of proto.children) {
-          const geometry=part.geometry.clone();
-          survey.api.shapeCrown(geometry.attributes.position.array,envelope,t.profile,t.d*.0254/.156);
-          geometry.computeVertexNormals(); geometry.computeBoundingSphere();
-          const material=part.userData.surveyMaterial || (part.userData.surveyMaterial=part.material.clone());
-          const close=new THREE.Mesh(geometry,material), far=new THREE.Mesh(part.geometry,material);
-          const [across,up]=treeScale(t,kind,prototypeHeight,prototypeRadius);
-          far.scale.set(across,up,across);
-          for(const mesh of [close,far]) mesh.userData={surface:"survey_tree", liftedOntoGround:true,
-            treeId:t.id,basis:"USGS 3DEP crown envelope, modeled branches"};
-          near.add(close); middle.add(far);
-        }
-        lod.addLevel(near,0); lod.addLevel(middle,90,.12); lod.addLevel(new THREE.Group(),1200,.08);
-        groups.ground.add(lod);
-      }
-    }
-    const instances = measured.length ? list.filter(t=>!t.profile) : list;
+    // Every tree of the kind is an instance of it here (the far tier): its bark, big limbs and
+    // leaf cards, at its measured height and spread. Round you the near tier (treeNear) draws
+    // it in full, its crown shaped to the lidar's, in place of the instance.
+    if (!HEADSET) treeNearProtos.set(kind, proto);
+    const instances = list;
     const scales=instances.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
     // Off the headset a tree that meets a house is one more instance of its kind, cut at the
     // wall as it is drawn (treeWallMask); only whether it meets one is asked here.
@@ -1070,7 +1069,8 @@ const groundReady = (async () => {
         // At zero here: liftOntoGround(groups.ground) puts every instance on the hill once.
         // Adding the ground here as well stood every tree twice as high as the hill it was on.
         dummy.position.y = part.position.y * up;
-        dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
+        // (A tree with a measured crown faces north, as the crown it is shaped to does.)
+        dummy.rotation.set(0, tree.profile ? 0 : random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
         if(clipping[i]){
           dummy.position.y+=groundLiftAt(x,-y);dummy.updateMatrix();
@@ -1083,6 +1083,7 @@ const groundReady = (async () => {
           // in one go held the page for two to four seconds of every window built.
           await maybeYield("Planting the trees");
         }else{mesh.setMatrixAt(instance++, dummy.matrix);
+          if(part===proto.children[0]&&!HEADSET)treeNearSpec.push({x,z:-y,kind,tree,across,up,yaw:dummy.rotation.y});
           mesh.userData.instanceBasis.push(tree.src ? `measured (${tree.src.replace(/_/g, " ")})` : "mapped (city tree inventory)");}
       }
       mesh.instanceMatrix.needsUpdate = true;
@@ -1093,6 +1094,7 @@ const groundReady = (async () => {
   }
   if (wallMask) wallMask.top = null;
   window.kerbsideTreeClearance=treeClipStats;
+  window.kerbsideTreeSquares=treeSquareStats;
   understoreyReady=()=>buildParkUnderstorey(trees);
 
   buildCourts(ground);
@@ -1100,6 +1102,8 @@ const groundReady = (async () => {
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
+  // The near tier: which instance each tree is, now that they stand where they will be drawn.
+  if (!HEADSET && treeNearSpec.length) treeNear = treeNearIndex(treeNearSpec, survey);
   // The walker stands on these as they are now drawn (walkCoverTopAt).
   registerWalkCover(groups.ground);
   if(grassStrands&&grassLibrary){const meshes=[];

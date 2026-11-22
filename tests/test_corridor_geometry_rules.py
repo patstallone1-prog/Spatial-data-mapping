@@ -921,7 +921,37 @@ def test_mapped_shops_use_the_city_signage_renderer():
     assert "function addShopfronts(" not in js
     city = (ROOT / "docs/city/view.mjs").read_text()
     assert "buildSignage(THREE, tradeSignage(" in city
-    assert "pl.designedFront || !name" in city
+    # A designed front carries its own sign and window display: the city draws nothing over it.
+    assert "if (pl.designedFront) { storeSigns.set(id, { key, group: new THREE.Group() }); continue; }" in city
+    assert "const g = !name ? new THREE.Group() : buildSignage(" in city
+
+
+def test_every_street_tree_is_instanced_far_and_drawn_in_full_near():
+    js = _page_js()
+    # One prototype a kind for the far tier; every card for the near one, from the same draws.
+    assert 'function treeVariant(kind, detail = "far")' in js
+    assert 'const cardShare = detail === "near" ? 1 : 0.65' in js
+    assert "if (i < keep) leaves.push(card); else card.dispose();" in js
+    # No per-tree LOD objects: the measured trees are instances too, faced north as measured.
+    assert "new THREE.LOD();\n        lod.position.set(x,base,z);" not in js
+    assert "tree.profile ? 0 : random(i * 7 + kind.length)" in js
+    near = _extract("treeNearBuild", js)
+    assert "api.shapeCrown(position.array" in near
+    # Near trees share the far kind's materials: cut at walls and swayed the same.
+    assert "new THREE.Mesh(geometry, farPart.material)" in near
+    assert "mesh.customDepthMaterial = farPart.userData.treeDepth" in near
+    step = _extract("treeNearStep", js)
+    assert "TREE_NEAR_ZERO" in step and "mesh.setMatrixAt(i, matrix)" in step
+    assert "treeNearStep(at, performance.now()" in js  # an attached region's too
+
+
+def test_a_tree_opening_is_one_of_the_walks_own_squares():
+    js = _page_js()
+    plot = _extract("walkSquarePlot", js)
+    assert "count % 2 ? Math.floor(at.s) + 0.5 : Math.round(at.s)" in plot
+    assert "square * 0.5 + 0.01" in plot
+    assert "markStreetSurfacesLaid?.();" in js
+    assert "walkSquarePlot(walkSquares, plot)" in js
 
 
 def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
