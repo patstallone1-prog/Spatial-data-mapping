@@ -793,8 +793,26 @@ ${NEAR_SURFACE.scoredNormal(NEAR_SURFACE.kinds[kind].scored)}`);
 // and those that chain a hook (patchMaterial, the box clips) call it first. A material that sets
 // its own hook outright calls PROXY_LIGHT.patch itself. The same hook lays the near photographs
 // on a surface that is one of their kinds, and its program is kept apart from the plain one's.
+//: Plain light: a street's surfaces lit as matt ones (three.js's Lambert terms) inside the
+//: standard material's own program. The standard material works out a microfacet highlight for
+//: the sun, the sky and the indoor light at every pixel -- roughness, Fresnel, a visibility term
+//: -- and on asphalt, stucco and brick at street distances none of it shows; it was most of what
+//: a frame cost while the view turned (measured in Kerbside.app, 2026-11-22). Colour, maps, the
+//: stand-in's shadows and bounced light, emissive glow and every clip are as they were. Glass and
+//: metal (metalness over 0.3, or roughness under 0.35) keep their highlights.
+const PLAIN_LIGHT = globalThis.__kerbsidePlainLight ||= {
+  enabled: true,
+  on(material) { return this.enabled && material.isMeshStandardMaterial === true && !material.isMeshPhysicalMaterial && !(material.metalness > 0.3) && !(material.roughness < 0.35) && !material.envMap && material.userData?.keepHighlights !== true; },
+  patch(shader, material) {
+    if (!this.on(material) || !shader.fragmentShader.includes("#include <lights_physical_fragment>")) return;
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <lights_physical_pars_fragment>", "#include <lights_lambert_pars_fragment>")
+      .replace("#include <lights_physical_fragment>", "float specularStrength = 1.0;\n#include <lights_lambert_fragment>");
+  },
+};
 if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
   const hook = function (shader) {
+    globalThis.__kerbsidePlainLight?.patch(shader, this);
     globalThis.__kerbsideProxyLight.patch(shader);
     const N = globalThis.__kerbsideNearSurface, kind = N?.kindOf(this);
     if (kind) N.patch(shader, kind);
@@ -803,8 +821,8 @@ if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
   THREE.Material.prototype.onBeforeCompile = hook;
   const key = THREE.Material.prototype.customProgramCacheKey;
   THREE.Material.prototype.customProgramCacheKey = function () {
-    const kind = globalThis.__kerbsideNearSurface?.kindOf(this);
-    return kind ? `${key.call(this)}|near:${kind}` : key.call(this);
+    const kind = globalThis.__kerbsideNearSurface?.kindOf(this), plain = globalThis.__kerbsidePlainLight?.on(this) ? "|plain-light" : "";
+    return kind ? `${key.call(this)}|near:${kind}${plain}` : `${key.call(this)}${plain}`;
   };
 }
 let proxyLightController = null;

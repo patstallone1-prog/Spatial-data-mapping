@@ -17,7 +17,8 @@ export const ANIMALS_CSS = `
 
 export function animalsView(env) {
   const { R, THREE, add, h, act, send, notify, self, me, getYaw, car, groundAt, blocked, onRoad, vehicles, people, places, gameHour, wet, camera } = env;
-  const F = animalFigures({ THREE, add });
+  // (The birds' models come through the page's loader; without one, the modelled birds.)
+  const F = animalFigures({ THREE, add, loadModel: env.loadModel || null, asset: env.asset || ((path) => path) });
   const actors = new Map();          // pet id -> {x, z, yaw, v, state, gait, growl, ...}
   const flocks = new Map();          // ambient flock id -> flock (with ``up``: flushed at)
   let cellsAt = "", cellList = [], lastTick = 0, lastHurt = new Map(), lastSay = 0, boardAt = 0, leaveInCar = false, wasInCar = false, clock = 0, counts = { pets: 0, dogs: 0, cats: 0, birds: 0, rats: 0 };
@@ -157,19 +158,49 @@ export function animalsView(env) {
     if (key !== cellsAt) {
       cellsAt = key; cellList = [];
       const what = (x, z) => env.whatAt?.(x, z) || {};
+      const taken = new Set();
       for (let i = ci - AMBIENT.reach_cells; i <= ci + AMBIENT.reach_cells; i += 1) for (let j = cj - AMBIENT.reach_cells; j <= cj + AMBIENT.reach_cells; j += 1) {
-        for (const f of ambientCell(i, j, hour, what)) {
+        for (const f of ambientCell(i, j, hour, what, AMBIENT, globalThis.kerbsideWind)) {
+          if (f.perch) {
+            // Up on a street light's arm or a pole's top in the cell -- one the map has -- or not at all.
+            const near = (env.perches?.(f.x, f.z, AMBIENT.cell_m * 0.6) || []).filter((q) => !taken.has(q.key));
+            if (!near.length) continue;
+            const q = near[f.seed % near.length]; taken.add(q.key);
+            f.x = q.x; f.z = q.z; f.py = q.y; f.n = Math.min(f.n, q.room || 1);
+          } else if (!f.pass && SPECIES[f.species].ground !== false && (env.waterAt?.(f.x, f.z) || blocked(f.x, f.z, 0.5))) continue;
           // (Not on the water, nor inside a building, for those that stand on the ground.)
-          if (SPECIES[f.species].ground !== false && (env.waterAt?.(f.x, f.z) || blocked(f.x, f.z, 0.5))) continue;
           const was = flocks.get(f.id); if (was) f.up = was.up;
           cellList.push(f);
         }
       }
       flocks.clear(); for (const f of cellList) flocks.set(f.id, f);
     }
+    const wind = globalThis.kerbsideWind;
     for (const f of cellList) {
       const S = SPECIES[f.species], dist = Math.hypot(f.x - cam.x, f.z - cam.z), tier = animalTier(f.species, dist);
+      // A flock going over: each bird by where it is (its way runs right across the district).
+      if (f.pass) {
+        const y0 = groundAt(cam.x, cam.z);
+        for (let k = 0; k < f.n && counts.birds < AMBIENT.birds_most; k += 1) {
+          const b = birdAt(f, k, clock, AMBIENT, BIRD, wind);
+          if (b.hidden) continue;
+          const tk = animalTier(f.species, Math.max(0, Math.hypot(b.x - cam.x, b.z - cam.z) - b.y * 0.5));
+          if (tk < 0) continue;
+          F.bird({ x: b.x, y: y0 + b.y, z: b.z, yaw: b.yaw, species: f.species, flap: b.flap, air: true, tier: Math.max(1, tk), k });
+          counts.birds += 1;
+        }
+        continue;
+      }
       if (tier < 0) continue;
+      // Up on a perch: sat there, out of reach of you and the dogs below.
+      if (f.perch) {
+        for (let k = 0; k < f.n && counts.birds < AMBIENT.birds_most; k += 1) {
+          const b = birdAt(f, k, clock, AMBIENT, BIRD, wind);
+          F.bird({ x: b.x, y: f.py, z: b.z, yaw: b.yaw, species: f.species, flap: 0, air: false, perch: true, tier: Math.max(1, tier), k });
+          counts.birds += 1;
+        }
+        continue;
+      }
       // Flushed by you, by a dog, by a car going by: up, round and down again.
       if (S.kind === "bird" && S.ground && !(f.up !== undefined && clock - f.up < AMBIENT.air_s)) {
         for (const g of flee) if (Math.hypot(g.x - f.x, g.z - f.z) < AMBIENT.flush_m + (g.fast ? 3 : 0)) { f.up = clock; break; }
@@ -185,7 +216,7 @@ export function animalsView(env) {
       }
       const y0 = S.ground ? groundAt(f.x, f.z) : groundAt(f.x, f.z);
       for (let k = 0; k < f.n && counts.birds < AMBIENT.birds_most; k += 1) {
-        const b = birdAt(f, k, clock, AMBIENT, BIRD);
+        const b = birdAt(f, k, clock, AMBIENT, BIRD, wind);
         F.bird({ x: b.x, y: y0 + b.y, z: b.z, yaw: b.yaw, species: f.species, flap: b.flap, air: b.air, tier, k });
         counts.birds += 1;
       }

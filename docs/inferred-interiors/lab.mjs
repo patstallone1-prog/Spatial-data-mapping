@@ -35,7 +35,7 @@ function rebuild(reset=false){
  const touring=mode==='tour',level=touring?-1:Number($('floor').value),height=touring?7:(fullWalls?7:.9);
  // The context plane must not cap basement openings or lower garage floors.
  ground.visible=!touring&&(level>=0||current.storeys.every(f=>f.elevation_m>=-.03));
- built=buildInferredHouse(THREE,current,{loadAsset,assetBase:new URL('../interior-assets/',location.href),wallHeight:height,floor:level,explode:touring?0:(level<0?2.2:0),ceilings:touring});
+ built=buildInferredHouse(THREE,current,{roomLights:true,loadAsset,assetBase:new URL('../interior-assets/',location.href),wallHeight:height,floor:level,explode:touring?0:(level<0?2.2:0),ceilings:touring});
  if(level>=0)built.group.position.y=-current.storeys[level].elevation_m;
  scene.add(built.group);
  world=new TourWorld(current,built.doors);

@@ -1,5 +1,7 @@
-"""The arrows steer the walker as a person walks: round a curve as wide as its speed (never a spin
-on the spot), Down turning round in about two steps, and the view easing round behind."""
+"""The arrows steer the walker as a person walks. Standing or slow, Left or Right steps round
+where you stand (a quarter turn a step); on the move, round a curve as wide as the speed, a
+sprinter's tighter and quicker than it was; Down turns round in one step slow and two at a sprint.
+The view eases round behind."""
 
 from __future__ import annotations
 
@@ -14,77 +16,96 @@ from tests.test_corridor_geometry_rules import NODE, _extract, _page_js
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is not installed")
 
 
-def _walk(keys: list[str], seconds: float, speed: float = 1.4, eyes: bool = False) -> dict:
+def _walk(keys: list[str], seconds: float, speed: float = 1.4, eyes: bool = False,
+          before: list[tuple[list[str], float]] | None = None) -> dict:
+    """``keys`` held for ``seconds`` (measured), after the phases ``before`` (not measured)."""
     js = _page_js()
     consts = "\n".join(line for line in js.splitlines()
                        if line.startswith(("const WALK_TURN_", "const WALK_SIDE_", "const WALK_BACK_",
-                                           "const WALK_VIEW_", "let walkTurnBack")))
+                                           "const WALK_VIEW_", "const WALK_STEP_", "const WALK_WAY_",
+                                           "let walkTurnBack", "let walkWayOn")))
+    phases = [*(before or []), (keys, seconds)]
     script = consts + """
 class Vector3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; } }
 const THREE = { Vector3 };
-const held = new Set(__KEYS__);
-const avatar = { rotation: { y: 0 } };
+const held = new Set();
+const avatar = { rotation: { y: 0 }, userData: {} };
 const state = { firstPerson: __EYES__, yaw: Math.PI };
 const dragging = false;
 const animateAvatar = () => {};
-""".replace("__KEYS__", json.dumps(keys)).replace("__EYES__", json.dumps(eyes)) \
-        + _extract("walkTurn", js) + _extract("walkSteer", js) + """
-let x = 0, z = 0, path = 0, firstStep = null, viewRate = 0, lastYaw = state.yaw;
-const dt = 1 / 60, speed = __SPEED__;
-for (let t = 0; t < __SECONDS__; t += dt) {
-  const s = walkSteer(dt, speed);
-  if (!s) continue;
-  const d = s.pace * speed * dt;
-  x += s.way.x * d; z += s.way.z * d; path += d;
-  if (firstStep === null && Math.abs(Math.atan2(Math.sin(avatar.rotation.y - Math.PI), Math.cos(avatar.rotation.y - Math.PI))) < 1e-6) firstStep = t;
-  viewRate = Math.max(viewRate, Math.abs(state.yaw - lastYaw) / dt); lastYaw = state.yaw;
+""".replace("__EYES__", json.dumps(eyes)) + _extract("walkTurn", js) + _extract("walkSteer", js) + """
+const phases = __PHASES__, dt = 1 / 60, speed = __SPEED__;
+let x, z, path, firstStep, viewRate, lastYaw, start;
+for (const [i, [keys, seconds]] of phases.entries()) {
+  held.clear(); for (const k of keys) held.add(k);
+  const last = i === phases.length - 1;
+  if (last) { x = 0; z = 0; path = 0; firstStep = null; viewRate = 0; lastYaw = state.yaw; start = avatar.rotation.y; }
+  for (let t = 0; t < seconds; t += dt) {
+    const s = walkSteer(dt, speed);
+    if (!s || !last) continue;
+    const d = s.pace * speed * dt;
+    x += s.way.x * d; z += s.way.z * d; path += d;
+    const back = start + Math.PI;
+    if (firstStep === null && Math.abs(Math.atan2(Math.sin(avatar.rotation.y - back), Math.cos(avatar.rotation.y - back))) < 1e-6) firstStep = t;
+    viewRate = Math.max(viewRate, Math.abs(state.yaw - lastYaw) / dt); lastYaw = state.yaw;
+  }
 }
-console.log(JSON.stringify({ x, z, path, yaw: avatar.rotation.y, turnedAt: firstStep, view: state.yaw, viewRate }));
-""".replace("__SPEED__", str(speed)).replace("__SECONDS__", str(seconds))
+const turned = Math.atan2(Math.sin(avatar.rotation.y - start), Math.cos(avatar.rotation.y - start));
+console.log(JSON.stringify({ x, z, path, yaw: avatar.rotation.y, turned, turnedAt: firstStep, view: state.yaw, viewRate }));
+""".replace("__PHASES__", json.dumps(phases)).replace("__SPEED__", str(speed))
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
 
 
+UP_TO_SPEED = [(["ArrowUp"], 2.5)]
+
+
 def _radius(keys: list[str], speed: float) -> float:
-    """The curve's radius: the distance walked over the angle turned (under half a turn)."""
-    arc = _walk(keys, 0.5, speed)
-    return arc["path"] / abs(math.atan2(math.sin(arc["yaw"]), math.cos(arc["yaw"])))
+    """The curve's radius, on the move: the distance walked over the angle turned."""
+    arc = _walk(keys, 0.3, speed, before=UP_TO_SPEED)
+    return arc["path"] / abs(arc["turned"])
 
 
-def test_left_or_right_alone_walks_a_curve_not_a_spin_on_the_spot() -> None:
-    quarter = _walk(["ArrowRight"], 0.5)
-    assert quarter["path"] > 0.3, "turning moves the walker forward round the curve"
-    assert _radius(["ArrowRight"], 1.4) >= 0.5 - 1e-6
+def test_standing_left_or_right_is_a_step_turn_where_you_stand() -> None:
+    """A quarter turn is one step (a third of a second), the feet carrying you a hand's breadth --
+    not a loop round a curve, and stepped, not spun (stepTurn drives the walk clip)."""
+    quarter = _walk(["ArrowRight"], 0.34)
+    assert abs(quarter["turned"]) == pytest.approx(math.pi / 2, abs=0.12)
+    assert quarter["path"] < 0.05
+    # Up with a side from standing: round first, then off the new way.
+    off = _walk(["ArrowUp", "ArrowLeft"], 0.34)
+    assert abs(off["turned"]) > 1.3 and off["path"] < 0.35
 
 
-def test_the_turn_is_as_wide_as_the_speed_and_narrower_than_it_was() -> None:
-    """The walk's speeds: a stroll, the first-person walk (5.36 m/s) and the street-level orbit
-    (8.94 m/s). The radius grows with the speed; on average it is smaller than the curves the
-    one turn rate (1.8 rad/s) swept: 0.8, 3.0 and 5.0 m with Up, 1.2, 2.1 and 3.5 m without."""
+def test_on_the_move_the_turn_is_as_wide_as_the_speed_and_a_sprint_turns_quicker() -> None:
     speeds = [1.4, 3.0, 5.36, 8.94]
     up = [_radius(["ArrowUp", "ArrowLeft"], v) for v in speeds]
-    alone = [_radius(["ArrowLeft"], v) for v in speeds]
-    assert up == sorted(up) and alone == sorted(alone), "wider the faster"
-    assert up[2] == pytest.approx(0.45 * 5.36, rel=0.05), "in proportion, where it is not held"
-    old_up, old_alone = [v / 1.8 for v in (1.4, 5.36, 8.94)], [1.2, 0.7 * 5.36 / 1.8, 0.7 * 8.94 / 1.8]
-    assert sum(up[i] for i in (0, 2, 3)) < 0.8 * sum(old_up)
-    assert sum(alone[i] for i in (0, 2, 3)) < 0.8 * sum(old_alone)
-    assert max(up + alone) <= 3.0 + 1e-6
+    assert up == sorted(up), "wider the faster"
+    assert up[1] == pytest.approx(0.3 * 3.0, rel=0.08), "in proportion, where it is not held"
+    assert max(up) <= 2.0 + 1e-6
+    # A sprint's quarter turn: a few steps still, but quicker than the 0.71 s it took (2.2 rad/s).
+    sprint = _walk(["ArrowUp", "ArrowLeft"], 0.5, 6.0, before=UP_TO_SPEED)
+    assert abs(sprint["turned"]) > math.pi / 2 * 0.95
+    assert abs(sprint["turned"]) < math.pi * 0.6, "still a curve of a few steps, not a pivot"
 
 
-def test_down_turns_round_in_about_two_steps_on_the_spot() -> None:
-    back = _walk(["ArrowDown"], 1.5)
-    assert back["turnedAt"] is not None and 0.45 < back["turnedAt"] < 0.75
-    turning = _walk(["ArrowDown"], 0.4)
-    assert turning["path"] < 0.2, "a pivot, not a wide loop"
+def test_down_is_a_one_step_turn_slow_and_a_two_step_pivot_at_a_sprint() -> None:
+    standing = _walk(["ArrowDown"], 1.0)
+    assert standing["turnedAt"] is not None and standing["turnedAt"] < 0.45
+    stood = _walk(["ArrowDown"], 0.38)
+    assert stood["path"] < 0.05, "on the spot"
+    sprinting = _walk(["ArrowDown"], 1.5, 6.0, before=UP_TO_SPEED)
+    assert sprinting["turnedAt"] is not None and 0.6 < sprinting["turnedAt"] < 0.85
+    carried = _walk(["ArrowDown"], 0.7, 6.0, before=UP_TO_SPEED)
+    assert 0.3 < carried["path"] < 1.8, "the way on carries a sprinter a little through the pivot"
 
 
 def test_the_view_follows_the_turn_slower_than_the_body() -> None:
     """Seen from behind and from the walker's eyes, the view eases round after the turn and never
     swings faster than its most -- it wheeled round with the body, or a step behind it."""
     for eyes, most in ((False, 1.4), (True, 3.0)):
-        turn = _walk(["ArrowUp", "ArrowRight"], 0.4, 5.36, eyes)
+        turn = _walk(["ArrowUp", "ArrowRight"], 0.4, 5.36, eyes, before=UP_TO_SPEED)
         facing = turn["yaw"] + math.pi
         lag = abs(math.atan2(math.sin(facing - turn["view"]), math.cos(facing - turn["view"])))
         assert lag > 0.1, "the view comes round behind the body"
@@ -93,8 +114,8 @@ def test_the_view_follows_the_turn_slower_than_the_body() -> None:
         assert back["viewRate"] <= most + 1e-6
 
 
-def test_up_with_a_side_still_walks_the_full_pace_curve() -> None:
-    curve = _walk(["ArrowUp", "ArrowLeft"], 0.5)
+def test_up_with_a_side_on_the_move_walks_the_full_pace_curve() -> None:
+    curve = _walk(["ArrowUp", "ArrowLeft"], 0.5, before=UP_TO_SPEED)
     assert curve["path"] == pytest.approx(0.7, abs=0.05)
 
 

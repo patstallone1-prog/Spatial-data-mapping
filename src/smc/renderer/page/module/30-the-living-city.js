@@ -359,6 +359,17 @@ function setAppMode(mode) {
         state.target.copy(avatar.position); placeCamera();
       },
       waterAt: (x, z) => cityWaterAt(x, z),
+      // Where a bird can sit up off the street near (x, z): the street lights' arms and pole tops,
+      // this page's and the attached region's, {key, x, y, z, room} in this page's metres.
+      perches: (x, z, reach) => {
+        const out = hostWorldActive && typeof streetPerchesNear === "function" ? streetPerchesNear(x, z, reach) : [];
+        const g = guestUnder(x, z);
+        if (g?.ready && g.api.perchesNear) {
+          const [gx, gz] = hostToGuest(g, x, z);
+          for (const q of g.api.perchesNear(gx, gz, reach)) out.push({ key: `g:${q.key}`, x: g.ox + q.x * g.sx, y: q.y + (g.oy || 0), z: g.oz + q.z, room: q.room });
+        }
+        return out;
+      },
       // The traffic signals' heads drawn here and in the region attached, {x, z, yaw} in this
       // page's metres (yaw: the way the lenses face), lit by ``stateOf(head)``: "red", "amber",
       // "green" or null.

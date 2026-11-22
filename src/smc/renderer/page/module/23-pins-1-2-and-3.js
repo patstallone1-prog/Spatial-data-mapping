@@ -655,7 +655,10 @@ async function emptyMarinaBaseline(entry) {
   const openings=(entry.doors||[]).filter(d=>[d.cx,d.cz,d.ux,d.uz,d.width].every(Number.isFinite)).map(d=>({segment:[[d.cx-d.ux*d.width/2,d.cz-d.uz*d.width/2],[d.cx+d.ux*d.width/2,d.cz+d.uz*d.width/2]],entrance:true,rooms:[0,'outside'],type:'entrance',leaf_count:0}));
   if(!openings.length)throw Error("This home's source entrance must load before its empty shell can be edited.");
   const snapshot={id:String(entry.way.osm_id),origin,floorY,footprint:entry.local.map(p=>[...p]),windows,levels:Array.from({length:count},(_,level)=>({level,elevation:level*step,height:level===count-1?height-level*step:step,rooms:[],segments:[],objects:[],openings:level===0?openings:[]})),metadata:{source:'marina_legacy_reset',ownership_scope:count>1?'unknown_multi_unit':'single_fitted_plan'}};
-  const {emptyMarinaHouse}=await import(new URL('../interior-lab/empty-shell.mjs',interiorAssetBase()).href);const house=emptyMarinaHouse(snapshot);entry.emptyMarinaShell=true;entry.editorBaseline=structuredClone(house);return house;
+  const {emptyMarinaHouse}=await import(new URL('../interior-lab/empty-shell.mjs',interiorAssetBase()).href);
+  // (Worked out when the page has a moment, not in the frame that happened to ask.)
+  await new Promise(resolve=>(globalThis.requestIdleCallback?globalThis.requestIdleCallback(resolve,{timeout:500}):setTimeout(resolve,0)));
+  const house=emptyMarinaHouse(snapshot);entry.emptyMarinaShell=true;entry.editorBaseline=structuredClone(house);return house;
 }
 function interiorGuest(buildingId) {
   const g=typeof activeGuest!=="undefined"?activeGuest:null;
