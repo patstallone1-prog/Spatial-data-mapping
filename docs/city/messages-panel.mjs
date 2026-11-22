@@ -53,9 +53,16 @@ const CSS = `
 #city-msg input[type=text]{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(0,0,0,.25);color:inherit;font:inherit;padding:7px 9px}
 #city-msg label{display:flex;gap:6px;align-items:center;padding:3px 6px}
 #city-msg select{font:inherit;border-radius:8px;background:rgba(0,0,0,.25);color:inherit;border:1px solid rgba(255,255,255,.2);padding:4px}
+#city-msg .exhibits{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#city-msg button.exhibit{border:1px solid #1f6feb;color:#1f6feb;background:transparent;border-radius:6px;padding:3px 8px;font:inherit;cursor:pointer;text-decoration:underline}
+#city-exhibit{position:fixed;inset:0;z-index:80;background:rgba(8,12,18,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+#city-exhibit .card{background:#fff;color:#16202a;border-radius:12px;max-width:min(720px,100%);max-height:100%;overflow:auto;padding:14px;font:14px/1.45 system-ui,sans-serif}
+#city-exhibit h3{margin:0 0 2px;display:flex;gap:8px;font-size:15px}#city-exhibit h3 span{flex:1}#city-exhibit h3 button{border:0;background:none;font-size:20px;cursor:pointer;color:inherit}
+#city-exhibit .side{margin:0 0 8px;color:#5c6770;font-size:12px}#city-exhibit .pic svg{width:100%;height:auto;border-radius:8px;display:block}
 @media (max-width:560px){#city-msg{top:8px;bottom:8px}}
 `;
 
+import { exhibitSvg } from "./trial.mjs";
 const TAB_LABEL = { players: "Players", npc: "NPC", system: "System" };
 
 export function messagesPanel(api) {
@@ -70,6 +77,16 @@ export function messagesPanel(api) {
   doc.body.append(tabBtn, panel);
   const ui = { open: false, on: false, tab: "players", thread: null, person: null, group: false, draft: "", sig: "", lastId: null };
 
+  //: An exhibit opened on the page: its picture, what it is, and whose it is.
+  function showExhibit(x) {
+    doc.getElementById("city-exhibit")?.remove();
+    const close = () => veil.remove();
+    const veil = h("div", { id: "city-exhibit", role: "dialog", "aria-label": x.title, onclick: (e) => { if (e.target === veil) close(); } });
+    const pic = h("div", { className: "pic" }); pic.innerHTML = exhibitSvg(x);
+    veil.append(h("div", { className: "card" }, h("h3", {}, h("span", { textContent: x.title }), h("button", { textContent: "×", title: "Close", onclick: close })),
+      h("p", { className: "side", textContent: x.side === "people" ? "Put in by the prosecution" : "Put in by the defence" }), pic, h("p", { textContent: x.text })));
+    doc.body.append(veil);
+  }
   const box = () => { const w = getView(); return w?.inbox && w.players?.has(me()) ? w.inbox(me()) : null; };
   const nameOf = (pid) => getView()?.players.get(pid)?.name || "Someone";
   const ago = (t) => {
@@ -79,6 +96,8 @@ export function messagesPanel(api) {
   const run = async (cmd, args, ok = null) => {
     const r = await send(cmd, args);
     if (!r.ok) notify(r.error); else if (ok) notify(typeof ok === "function" ? ok(r) : ok);
+    // (A choice that opens a conversation -- going to a case you are summoned to -- goes there.)
+    if (r.ok && r.result?.thread) { ui.tab = "system"; ui.thread = r.result.thread; ui.person = null; }
     draw(true);
     return r;
   };
@@ -194,6 +213,8 @@ export function messagesPanel(api) {
         else if (m.expired) el.append(h("div", { className: "answered", textContent: "This has passed." }));
         else if (forMe.length) el.append(h("div", { className: "choices" }, ...forMe.map((c) => h("button", { textContent: c.label, onclick: () => run("answer", { thread: t.id, message: m.id, choice: c.id }) }))));
       }
+      // Exhibits: each a link that opens it on the page, as a picture.
+      if (m.ui?.exhibits?.length) el.append(h("div", { className: "exhibits" }, ...m.ui.exhibits.map((x) => h("button", { className: "exhibit", textContent: x.title, title: "Open this exhibit", onclick: () => showExhibit(x) }))));
       if (m.ui?.jury) {
         const s = (getView()?.players.get(mine)?.jury || []).find((x) => x.id === m.ui.jury);
         const now = getView()?.now ?? Date.now(), L = R.business.law;
