@@ -81,6 +81,7 @@ export class CityWorld {
     this.ledger.open("business:residents", "business");
     this.enterpriseInit();   // businesses, cases, openings, storefronts (enterprise.mjs)
     this.workOrders = new Map();
+    this.workshopStock = new Map();
     this.kitchenInit();      // restaurants' kitchens: pantries, tickets, the lab (kitchen.mjs)
   }
   get time() { return cityTime(this.now, this.R.clock.zone); }
@@ -499,12 +500,13 @@ export class CityWorld {
   // ---- the body ---------------------------------------------------------------------------------
   //: What you have done since the last report: metres walked and seconds sprinted (at most what
   //: the time allows); walking on gets you up from a rest.
-  cmd_exert(pid, { walked_m = 0, sprint_s = 0, seconds = 5 }) {
+  cmd_exert(pid, { walked_m = 0, sprint_s = 0, swim_s = 0, swim_sprint_s = 0, tread_s = 0, seconds = 5 }) {
     const p = this.player(pid);
     const span = Math.max(0, Math.min(60, Number(seconds) || 0));
     const walked = Math.max(0, Math.min(Number(walked_m) || 0, span * 3));
+    const within = (x) => Math.max(0, Math.min(Number(x) || 0, span));
     p.vitals = vitalsStep(this.R, p.vitals, this.now, this.vitalsContext(p));
-    p.vitals = applyExertion(this.R, p.vitals, { walked_m: walked, sprint_s: Math.max(0, Math.min(Number(sprint_s) || 0, span)), day: this.time.day });
+    p.vitals = applyExertion(this.R, p.vitals, { walked_m: walked, sprint_s: within(sprint_s), swim_s: within(swim_s), swim_sprint_s: within(swim_sprint_s), tread_s: within(tread_s), day: this.time.day });
     if (walked > 3 && p.resting) p.resting = false;
     return { vitals: p.vitals };
   }
@@ -859,6 +861,7 @@ export class CityWorld {
     const b = this.billing.bills.get(bill);
     if (!b || b.payer !== p.account) throw new CityError("not your bill");
     const paid = this.billing.pay(bill, p.account, this.now);
+    if (b.repairBonus) this.payRepairBonus(b);
     // A car impounded for tickets is released once they are paid.
     for (const v of this.registry.owned(p.account, "vehicle")) {
       if (v.custody === "impounded" && !this.billing.open(p.account).some((x) => x.kind === "parking" || x.kind === "tow")) this.registry.release(v.id, "authority:sfmta", this.now);
@@ -1675,7 +1678,7 @@ export class CityWorld {
     return { v: 1, seed: this.seed, now: this.now, seq: this.seq, ledger: this.ledger.toJSON(), billing: this.billing.toJSON(),
       registry: this.registry.toJSON(), players: [...this.players.values()], offers: [...this.offers.values()],
       measures: [...this.measures.values()], laws: this.laws, items: [...this.items.values()], found: [...this.found],
-      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], workOrders: [...this.workOrders], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
+      damage: [...this.damage.values()], market: { taken: [...this.market.taken] }, businessInteriors: [...this.businessInteriors], homeInteriors: [...this.homeInteriors], harm: [...this.harm.values()], workOrders: [...this.workOrders], workshopStock: [...this.workshopStock], enterprise: this.enterpriseJSON(), kitchens: this.kitchenJSON() };
   }
   static fromJSON(R, o) {
     const w = new CityWorld(R, { now: o.now, seed: o.seed });
@@ -1697,6 +1700,7 @@ export class CityWorld {
     w.enterpriseLoad(o.enterprise);
     w.kitchenLoad(o.kitchens);
     w.workOrders = new Map(o.workOrders || []);
+    w.workshopStock = new Map(o.workshopStock || []);
     for (const p of w.players.values()) {
       // Saved before bodies and bags: what was bought is carried.
       if (!p.vitals) p.vitals = newVitals(R, o.now);

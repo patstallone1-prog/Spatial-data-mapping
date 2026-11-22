@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kerbside · Minigames</title>
+  <style>
+    body {
+      margin: 0;
+      background: #17262b;
+      color: #fff;
+      font: 17px system-ui;
+    }
+    main {
+      max-width: 40rem;
+      margin: 12vh auto;
+      padding: 2rem;
+    }
+    a {
+      color: #ffd18b;
+      margin-right: 1rem;
+    }
+    #notice {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      z-index: 40;
+      background: #192e35;
+      color: white;
+      max-width: 85vw;
+      padding: 0.6rem 1rem;
+      border-radius: 0.5rem;
+      pointer-events: none;
+    }
+    #notice:empty {
+      display: none;
+    }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three-0.160.0/three.module.min.js" } }
+  </script>
+  <main>
+    <h1>Kerbside practice</h1>
+    <p>Start a fresh shift with a stocked kitchen or a car waiting for repair.</p>
+    <a href="?game=kitchen">Kitchen</a><a href="?game=mechanic">Mechanic</a>
+  </main>
+  <output id="notice" aria-live="polite"></output>
+  <script type="module" src="play.mjs"></script>
+</html>

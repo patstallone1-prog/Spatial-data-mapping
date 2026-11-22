@@ -1264,7 +1264,9 @@ function moveWalker(mx, mz) {
     if (!belowBuildings && (toX !== nextX || toZ !== nextZ) && walkerStepIntoBuilding(p.x, p.z, toX, toZ)) break;
     // Open water is not walked on: the shore, a pier, a deck or a bridge over it are. One already
     // on the water (dropped there) may walk off it.
-    if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)) break;
+    // In City mode, on foot, the walker goes in: wading, then swimming (module 33).
+    if (typeof walkerOnWater === "function" && walkerOnWater(toX, toZ, feet) && !walkerOnWater(p.x, p.z, feet)
+        && !(typeof walkerMayWade === "function" && walkerMayWade())) break;
     // City mode's area ends here (module 30): Explore goes on.
     if (typeof cityAreaHolds === "function" && !cityAreaHolds(toX, toZ) && cityAreaHolds(p.x, p.z)) {
       if (typeof setHint === "function") setHint("World boundary reached. To keep exploring, switch modes: open ☰ City and choose Explore.");
