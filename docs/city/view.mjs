@@ -42,6 +42,7 @@ import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
 import { THEME_CSS } from "./theme.mjs";
 import { PROFILE_CSS, profilePanel } from "./profile-panel.mjs";
+import { ANIMALS_CSS, animalsView } from "./animals-view.mjs";
 import { messagesPanel } from "./messages-panel.mjs";
 import { commercePanels } from "./commerce-panels.mjs";
 import { restaurantService, planRestaurant, canWalkRestaurant } from "./restaurant-room.mjs";
@@ -1635,6 +1636,20 @@ diffuseColor.rgb *= kbCloth;`);
   const commerce = () => (commerceUI ||= commercePanels({ R, h, notify, send, self, me, getView: () => view, placeArg, nearestPlace, openSide, drawSide, getSide: () => side,
     people: () => visible.people, peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId),
     openMessages: () => messages().open?.("npc"), syncSlots }));
+  // Animals (animals-view.mjs): your pets, the neighbourhood's dogs and cats, the birds, the rats.
+  let animalsUI = null, eatingPlaces = null;
+  const animals = () => (animalsUI ||= animalsView({ R, THREE, add: (m) => group.add(m), h, act, send, notify, self, me, getYaw: () => ctx.getYaw(), car, groundAt,
+    blocked: (x, z, r) => walkerBlocked(x, z, r), onRoad: (x, z) => Boolean(ctx.onRoad?.(x, z)), vehicles: () => visible.vehicles, people: () => visible.people, places: () => district.places,
+    gameHour, wet: wetNow, camera: () => { const c = ctx.camera?.(); return c?.position ? { x: c.position.x, z: c.position.z } : me(); },
+    waterAt: (x, z) => Boolean(ctx.waterAt?.(x, z)), placeArg, noteIncident, drawSide: () => drawSide(),
+    threats: () => incidents.filter((i) => i.kind === "fight" && performance.now() - i.t0 < 12000),
+    // What a cell of the birds' field is like: water near, eating places near.
+    whatAt: (x, z) => {
+      eatingPlaces ||= district.places.filter((p) => p.keys.has("shop:restaurant") || p.keys.has("shop:cafe") || p.keys.has("shop:bakery") || p.keys.has("shop:grocery"));
+      let shops = 0; for (const p of eatingPlaces) if (Math.abs(p.x - x) < 60 && Math.abs(p.z - z) < 60) shops += 1;
+      let water = null; for (const [dx, dz, d] of [[0, 0, 0], [90, 0, 90], [-90, 0, 90], [0, 90, 90], [0, -90, 90], [180, 0, 180], [-180, 0, 180], [0, 180, 180], [0, -180, 180]]) if (ctx.waterAt?.(x + dx, z + dz)) { water = d; break; }
+      return { shops, water, park: false };
+    } }));
   const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a),
     openKitchen: (place) => { const pl = (district.places || []).find((x) => String(x.id) === String(place.id)); if (pl) { closeSide(); kitchen().open(pl); } else notify("Go to the restaurant to open its kitchen."); } }));
@@ -4741,7 +4756,7 @@ diffuseColor.rgb *= kbCloth;`);
 
   // ---- the frame -------------------------------------------------------------------------------
   let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
-  let visible = { people: [], vehicles: [] }, frameFailed = false;
+  let visible = { people: [], vehicles: [] }, frameFailed = false, animalsFailed = false;
   const ALIVE_FOR_MS = 2500, ALIVE_GIVE_UP_MS = 30_000, aliveSeen = { started: 0, since: 0 };
   // ---- level of detail (detail.mjs) ----------------------------------------------------------------
   //: The field this frame (null before the first), what tier each person and car had (and, for one
@@ -4857,6 +4872,7 @@ diffuseColor.rgb *= kbCloth;`);
       drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now, focus);
       drawBikes();
       drawCars(wheels(), lastNight);
+      try { animals().frame(dt, now); } catch (error) { if (!animalsFailed) { animalsFailed = true; console.warn("kerbside: the animals skipped a frame", error); } }
       drawThings(now);
       drawDebris(dt);
     }
@@ -5488,6 +5504,8 @@ diffuseColor.rgb *= kbCloth;`);
     const obstacles = [];
     if (!car.active && !car.riding && !transit.ride && !shop.place) obstacles.push({ id: "me", x: you.x, z: you.z, player: true });
     for (const q of people) if (!q.indoors && !q.down && Math.abs(q.x - focus.x) < SIM_M && Math.abs(q.z - focus.z) < SIM_M) obstacles.push({ id: q.id, x: q.x, z: q.z });
+    // (Your pets out of doors: stopped for as someone in the road is.)
+    for (const o of animalsUI?.obstacles() || []) obstacles.push(o);
     // In the way of the city's cars, and solid to them: your car, the route buses, your cab.
     const blockers = car.active ? [{ x: car.x, z: car.z, yaw: car.yaw, v: car.speed, length: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2], width: (VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[0] }] : [];
     for (const b of [...routeBuses, ...(taxi.at ? [taxi.at] : []), ...(patrol.at ? [patrol.at] : [])]) {
@@ -5696,6 +5714,7 @@ diffuseColor.rgb *= kbCloth;`);
     g: () => pickUp(), i: () => openSide("bag"), v: () => taskKey(),
     u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
     j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"), b: () => bicycleKey(),
+    k: () => openSide("pets"), l: () => animals().leashKey(),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -5833,7 +5852,7 @@ diffuseColor.rgb *= kbCloth;`);
 #city.pop .bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(128,128,128,.2) var(--v))}
 #city.pop .bar b{text-align:right}
 @media (max-width:760px){.city-card{padding:7px 9px;font-size:11px}#city-profile .face{width:42px;height:42px}#city-profile .money{font-size:14px}#city-profile .bar{grid-template-columns:44px 1fr 20px}#city-top button{padding:5px 8px}}
-@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}${PROFILE_CSS}`;
+@media (prefers-color-scheme:dark){#city,#city-side{--cp:#1d2329;--ci:#e6edf3;--cm:#9aa6b1;--cb:#2a3138}}${THEME_CSS}${PROFILE_CSS}${ANIMALS_CSS}`;
   doc.head.append(Object.assign(doc.createElement("style"), { textContent: css }));
   const hudBox = Object.assign(doc.createElement("div"), { id: "city-hud", title: "The living city: open the City panel" });
   hudBox.onclick = () => openPanel();
@@ -6014,7 +6033,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
     el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", sell: "Selling", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
-      buy: "Buying a business", recruiter: "Recruiter", released: "Released" }[kind] || "Controls");
+      buy: "Buying a business", recruiter: "Recruiter", released: "Released", pets: "Pets" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -6039,6 +6058,7 @@ diffuseColor.rgb *= kbCloth;`);
     const c = w.carry(p);
     const status = h("p", { className: "note", textContent: `Balance ${R.fmt(w.ledger.balance(p.account))} · carrying ${c.kg} of ${c.capacity} kg · health ${Math.round(p.vitals.health)}, stamina ${Math.round(p.vitals.stamina)}, strength ${Math.round(p.vitals.strength)}` });
     const say = async (promise, text) => { const r = await promise; notify(r.ok ? text(r) : r.error); drawSide(); };
+    if (animals().draw(side, { close, status, w, p })) return;
     if (finance().draw(side, { close, status, w, p })) return;
     if (enterprise().draw(side, { close, status, w, p })) return;
     if (commerce().draw(side, { close, status, w, p })) return;   // selling: offers, listings, consignment (commerce-panels.mjs)   // law offices, recruiters, your business (enterprise-panels.mjs)
@@ -6330,6 +6350,7 @@ diffuseColor.rgb *= kbCloth;`);
     const keys = [["Arrows", "walk: Up goes the way you face, Left / Right turn you as you go (together, a curve; let go and you walk on straight), Down turns you round; at the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
+      ["K", "your pets: how each is, feed it, take one in, the vet when you are at one"], ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car. Drive off before one is in and it waits where it was"],
       ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing on the ground (yellow ring) you can lift: a step over to it and down for it"],
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
       ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"], ["B", "your bicycle (a bike shop sells them): get on; the arrows pedal, brake and steer; B or Enter to get off"],
@@ -6615,7 +6636,7 @@ diffuseColor.rgb *= kbCloth;`);
     fleetNow: () => district.city,
     detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast,
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
-    rules: R, tick, drive, noteIncident, sendPatrol, patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
+    rules: R, tick, drive, noteIncident, sendPatrol, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
