@@ -957,6 +957,29 @@ function insideCarriageway(x, z, slack = 0.4) {
   return false;
 }
 
+//: Whether a point is on a street's carriageway: insideCarriageway, less the driveways, lot
+//: entrances and parking aisles (SERVICE_ROAD_M). A pavement carries on across those -- the
+//: driveway is let down through it -- and is not cut and painted as a crosswalk: on Lombard
+//: Street every motel's entrance broke the walk into islands with asphalt and two white bars
+//: between them (2026-11-22).
+function insideStreetCarriageway(x, z, slack = 0.4) {
+  const cx = Math.floor(x / CARRIAGEWAY_CELL);
+  const cz = Math.floor(z / CARRIAGEWAY_CELL);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
+      if (!bucket) continue;
+      for (let i = 0; i < bucket.length; i += 1) {
+        const s = bucket[i];
+        if (s[6] && isUnmarkedService(s[6])) continue;
+        const limit = Math.max(0, s[4] - slack);
+        if (distanceToSegmentSquared(x, z, s[0], s[1], s[2], s[3]) < limit * limit) return true;
+      }
+    }
+  }
+  return false;
+}
+
 //: Whether a point is on the body of a carriageway other than the ways named -- for the
 //: corner pieces. A corner is built from its two legs' own kerbs, so those two ways cannot
 //: be the reason to refuse it: the stamped band is a segment's average width where the
@@ -993,10 +1016,12 @@ function onAnotherCarriageway(x, z, slack, exclude) {
 function pavementSurroundedByStreet(x, z, width) {
   const reach = Math.max(0.85, Math.min(2.4, width));
   let sides = 0;
-  if (insideCarriageway(x + reach, z, 0.0)) sides += 1;
-  if (insideCarriageway(x - reach, z, 0.0)) sides += 1;
-  if (insideCarriageway(x, z + reach, 0.0)) sides += 1;
-  if (insideCarriageway(x, z - reach, 0.0)) sides += 1;
+  // (Streets only: a lot's six-metre aisle meeting the street reached round a walk on three
+  // sides, and the walk was taken out at every motel entrance on Lombard Street.)
+  if (insideStreetCarriageway(x + reach, z, 0.0)) sides += 1;
+  if (insideStreetCarriageway(x - reach, z, 0.0)) sides += 1;
+  if (insideStreetCarriageway(x, z + reach, 0.0)) sides += 1;
+  if (insideStreetCarriageway(x, z - reach, 0.0)) sides += 1;
   return sides >= 3;
 }
 
@@ -1059,13 +1084,14 @@ function pavementRunsOutsideCarriageway(points, width, discardDetached = false) 
       // Genuinely over the road: the middle of the footway is on the carriageway, or both of
       // its edges are. One edge inside the kerb line is the normal condition of a pavement
       // that abuts a street, and is not a reason to delete it.
-      const innerEdge = insideCarriageway(x + nx * edge, z + nz * edge, 0.30);
-      const outerEdge = insideCarriageway(x - nx * edge, z - nz * edge, 0.30);
+      // (A street's: a driveway or a lot's aisle runs under the pavement, not through it.)
+      const innerEdge = insideStreetCarriageway(x + nx * edge, z + nz * edge, 0.30);
+      const outerEdge = insideStreetCarriageway(x - nx * edge, z - nz * edge, 0.30);
       // Junction hulls are deliberately generous asphalt backstops.  Their convex envelope
       // also encloses the curb-ramp end of some mapped footways (Broadway/Van Ness is one),
       // although those points are outside every carriageway.  Trust the mapped footway there;
       // keep the box exclusion for inferred kerbside paving and the property-line underlay.
-      const overlaps = insideCarriageway(x, z, 0.30)
+      const overlaps = insideStreetCarriageway(x, z, 0.30)
         || (!discardDetached && insideJunctionBox(x, z))
         || (innerEdge && outerEdge)
         || pavementSurroundedByStreet(x, z, width);
@@ -1278,6 +1304,9 @@ const frontageStats = { sides: 0, stations: 0, filled_m2: 0, bridged_m: 0, unsur
 const frontageSetbacks = [];
 const frontageSetbackStats = { stations: 0, paved: 0, paved_m2: 0, lawn: 0, open: 0, bare: 0 };
 const pavedSegmentGrid = new Map();
+//: The pavement as it stood when the streets were done, for cutting the footpaths off it
+//: (pathCutAt): a snapshot, so that the paths laid after it do not cut one another.
+let PATH_CUT_GRID = null;
 //: Walked surfaces laid at a kerb's height or on the road that the street builders must not
 //: take for footway (a bulb-out laid over the carriageway, a gravel path through a park): the
 //: frontage fill and the corner pieces read pavedSegmentGrid, the walker reads both

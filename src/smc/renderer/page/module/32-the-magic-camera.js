@@ -189,7 +189,10 @@ function magicGhostsOf(root) {
   const key = root.getObjectByName?.("imported-realistic-demo-character")?.uuid || `${root.children.length}:${root.children[0]?.uuid || ""}`;
   if (root.userData.magicGhostKey === key) return root.userData.magicGhosts;
   for (const g of root.userData.magicGhosts || []) g.removeFromParent();
-  if (!magicGhostMaterial) magicGhostMaterial = new THREE.MeshBasicMaterial({ color: 0x9fe3ff, transparent: true, opacity: 0.38, depthTest: false, depthWrite: false, fog: false });
+  // Only where you are hidden (drawn where something nearer is already there: GreaterDepth), and
+  // faint. Drawn over all of you, as it was, the whole walker went pale and see-through whenever
+  // a branch or a pole was in the way -- a ghost in the street and in the profile's portrait.
+  if (!magicGhostMaterial) magicGhostMaterial = new THREE.MeshBasicMaterial({ color: 0x6fb8d8, transparent: true, opacity: 0.26, depthTest: true, depthFunc: THREE.GreaterDepth, depthWrite: false, fog: false });
   const sources = [];
   root.traverse((o) => { if (o.isMesh && !o.userData.magicGhost && o.visible && o.geometry) sources.push(o); });
   const ghosts = [];

@@ -30,7 +30,7 @@ const wall = () => new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0
 function patched(material, kind = null) {
   const shader = standard();
   HOOKS.PLAIN_LIGHT.patch(shader, material);
-  HOOKS.PROXY_LIGHT.patch(shader);
+  HOOKS.PROXY_LIGHT.patch(shader, material);
   if (kind) HOOKS.NEAR_SURFACE.patch(shader, kind);
   return shader;
 }
@@ -63,6 +63,32 @@ test("a wall's patched program compiles: nothing is declared twice", () => {
     assert.match(flat, /float kbFSLit\(vec2 kbFSuv, float kbFSz\)/, "the fine shadows are read");
   }
   assert.equal(plain, kinds.length * Object.keys(SETS).length, "the plain light is what walls use: this test is of the program that is drawn");
+});
+
+test("each material's own roughness and mirrored share reach the glint, one uniform to a material", () => {
+  const a = wall(), b = wall();
+  const sa = patched(a), sb = patched(b);
+  assert.ok(sa.uniforms.kbSOpt && sa.uniforms.kbSOpt !== sb.uniforms.kbSOpt, "a material has its own figures");
+  assert.equal(sa.uniforms.kbSOpt, HOOKS.PROXY_LIGHT.opticsOf(a), "and they are the ones the catalogue's pass sets");
+  assert.deepEqual(sa.uniforms.kbSOpt.value.toArray(), [-1, 0.04], "until it is told, the drawn roughness and a non-metal's 4%");
+  const flat = flatten(sa.fragmentShader, THREE.ShaderChunk, BASE);
+  assert.match(flat, /kbSOpt\.x > 0\.0 \? kbSOpt\.x : roughnessFactor/);
+  assert.match(flat, /kbSF0 = kbSOpt\.y/);
+});
+
+test("car paint: a clear coat's glint and the sky mirrored, on the plain paint and the full one", () => {
+  const lambert = { uniforms: {}, vertexShader: THREE.ShaderLib.lambert.vertexShader, fragmentShader: THREE.ShaderLib.lambert.fragmentShader };
+  HOOKS.PROXY_LIGHT.patch(lambert);
+  const L = { ...BASE, KB_GLOSS: "0.2" }; delete L.STANDARD;
+  for (const stage of ["vertexShader", "fragmentShader"]) assert.deepEqual(redeclared(flatten(lambert[stage], THREE.ShaderChunk, L)), [], stage);
+  const flat = flatten(lambert.fragmentShader, THREE.ShaderChunk, L);
+  assert.match(flat, /float kbSR = KB_GLOSS/);
+  assert.match(flat, /hemisphereLights\[0\]\.skyColor \* \(mix\(0\.15, 1\.0, smoothstep\(-0\.1, 0\.3, kbSRw\.y\)\) \* kbSFv \* kbSky\)/, "the sky along a glancing panel");
+  const full = patched(new THREE.MeshStandardMaterial({ metalness: 0.45, roughness: 0.38 }));
+  const F = flatten(full.fragmentShader, THREE.ShaderChunk, { ...BASE, KB_GLOSS: "0.2" });
+  assert.deepEqual(redeclared(F), []);
+  assert.match(F, /float kbSR = KB_GLOSS/);
+  assert.ok(!F.includes("kbSRw"), "the full material mirrors the sky itself");
 });
 
 test("glass and metal keep their own program, and it compiles too", () => {
@@ -108,4 +134,14 @@ test("the page looks for refused shaders itself and falls back to the full light
   assert.match(WORLD, /import\(sharedAsset\("shader-check\.mjs"\)\)/);
   assert.match(WORLD, /PLAIN_LIGHT\.enabled = false;/);
   assert.match(WORLD, /window\.kerbsideShaderCheck = /);
+});
+
+test("the outline of you through a wall is drawn only where you are hidden, and never in your portrait", () => {
+  const magic = readFileSync(new URL("../src/smc/renderer/page/module/32-the-magic-camera.js", import.meta.url), "utf8");
+  const made = /magicGhostMaterial = new THREE\.MeshBasicMaterial\(\{([^}]*)\}\)/.exec(magic)?.[1] || "";
+  assert.match(made, /depthTest: true/); assert.match(made, /depthFunc: THREE\.GreaterDepth/);
+  assert.ok(Number(/opacity: ([\d.]+)/.exec(made)[1]) <= 0.3, "faint: a hint of where you are, not a pale body");
+  const city = readFileSync(new URL("../src/smc/renderer/page/module/30-the-living-city.js", import.meta.url), "utf8");
+  const shot = city.slice(city.indexOf("avatar.userData.magicGhosts"), city.indexOf("renderer.readRenderTargetPixels(portraitTarget"));
+  assert.ok(shot.indexOf("o.visible = false") < shot.indexOf("renderer.render(scene, portraitCamera)") && shot.indexOf("renderer.render(scene, portraitCamera)") < shot.indexOf("o.visible = true"));
 });

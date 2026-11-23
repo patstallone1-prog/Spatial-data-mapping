@@ -26,20 +26,37 @@ function weighted(r, table) {
 //: Asian 34%, Hispanic or Latino 15.6%, Black 5.1%, two or more and the rest (Pacific Islander,
 //: Native American, Middle Eastern, South Asian counted apart here) 6.3%.
 export const SF_HERITAGE = { white: 0.39, east_asian: 0.27, southeast_asian: 0.07, hispanic: 0.156, black: 0.051, south_asian: 0.025, mixed: 0.038 };
-//: Skin tones (sRGB) by heritage, lightest to darkest, each a spread a person is drawn from. None
-//: lighter than SKIN_LIGHTEST: nobody is drawn paper-white (a figure lit by the sun and the sky
-//: reads far paler than its colour, so the palest real skin is already near white on screen).
-export const SKIN_TONES = {
-  white: ["#e6b896", "#e0ad8a", "#d9a27e", "#d29a76", "#c98e6a", "#dcae90"],
-  east_asian: ["#e3b38e", "#ddaa84", "#d5a07a", "#cc9670", "#c48b66"],
-  southeast_asian: ["#c99467", "#bd875c", "#b07b52", "#a26f49"],
-  hispanic: ["#d6a07a", "#c99068", "#bc825a", "#ad744e", "#9c6845"],
-  black: ["#9a6644", "#865638", "#73472e", "#613b26", "#4e2f1f", "#3f261a"],
-  south_asian: ["#b98258", "#a8744e", "#976644", "#85593b"],
-  mixed: ["#d3a07c", "#c08b63", "#ab7752", "#966545", "#7f5439"],
+//: Skin (sRGB) by heritage. Each heritage has one anchor tone, and a person is drawn somewhere in
+//: a range about it: ``range`` is how far lighter and darker (the tone's light, times this), so
+//: no two people need be the same and nobody leaves their own heritage's range. The anchors'
+//: brightness is skin's own, measured (the share of light it throws back, 400-700 nm: about 0.35
+//: for light European and East Asian skin, 0.25 for medium, 0.08 for dark African skin), not a
+//: screen colour picked by eye: a figure in the sun is lit to several times its colour, and a
+//: tone chosen to look right as a swatch is chalk-white outdoors.
+export const SKIN_ANCHORS = {
+  white: { tone: "#c99473", range: [0.8, 1.15] },
+  east_asian: { tone: "#c4996b", range: [0.8, 1.12] },
+  southeast_asian: { tone: "#a97c52", range: [0.75, 1.2] },
+  hispanic: { tone: "#b58560", range: [0.7, 1.2] },
+  black: { tone: "#6b452e", range: [0.55, 1.5] },
+  south_asian: { tone: "#996a45", range: [0.7, 1.25] },
+  mixed: { tone: "#a87a55", range: [0.6, 1.3] },
 };
-//: The palest a skin is drawn: its relative luminance (0..1) never over this.
-export const SKIN_LIGHTEST = 0.56;
+//: The palest a skin is drawn: its relative luminance (0..1) never over this. A hard limit: the
+//: tones are held to it here, and the crowd's shader holds what it draws to it again.
+export const SKIN_LIGHTEST = 0.4;
+const toLinear = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+const toSrgb = (v) => Math.round(255 * Math.max(0, Math.min(1, v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055)));
+//: A person's skin: their heritage's anchor, ``t`` (0..1) of the way from the darkest of its
+//: range to the lightest, and ``warm`` (0..1) a little redder or yellower. Never over SKIN_LIGHTEST.
+export function skinTone(heritage, t = 0.5, warm = 0.5) {
+  const A = SKIN_ANCHORS[heritage] || SKIN_ANCHORS.mixed, n = parseInt(A.tone.slice(1), 16);
+  const k = A.range[0] + Math.max(0, Math.min(1, t)) * (A.range[1] - A.range[0]), w = (Math.max(0, Math.min(1, warm)) - 0.5) * 0.08;
+  let rgb = [toLinear((n >> 16) & 255) * k * (1 + w), toLinear((n >> 8) & 255) * k, toLinear(n & 255) * k * (1 - w)];
+  const y = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  if (y > SKIN_LIGHTEST) rgb = rgb.map((v) => v * SKIN_LIGHTEST / y);
+  return "#" + rgb.map((v) => toSrgb(v).toString(16).padStart(2, "0")).join("");
+}
 //: Hair (sRGB) by heritage: black and the browns everywhere; blond, light brown and red mostly
 //: among the white.
 const HAIR_TONES = {
@@ -63,7 +80,7 @@ export function luminance(hex) {
 export function looksOf(person, { grey = false } = {}) {
   const r = stream(person?.id, "looks");
   const heritage = weighted(r, SF_HERITAGE);
-  const skin = pick(r, SKIN_TONES[heritage]);
+  const skin = skinTone(heritage, r(), r());
   const hair = grey ? (r() < 0.5 ? "#8f8f8f" : "#d8d2c4") : pick(r, HAIR_TONES[weighted(r, HAIR_MIX[heritage])]);
   return { heritage, skin, hair };
 }

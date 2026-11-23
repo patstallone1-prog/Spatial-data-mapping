@@ -99,8 +99,11 @@ console.log(JSON.stringify({step,error,topError,triangles:sink.indices.length/3}
     js = _page_js()
     assert "liftedOntoGround=true" in _extract("buildFencesSteps", js)
     assert "liftedOntoGround:true" in _extract("emitFence", js)
-    assert "groundedFencePanel" in _extract("fenceSink", js)
-    assert "groundedFencePanel" in _extract("buildCourts", js)
+    # Laid through layFence: only the pieces no other fence or wall already carries, each a
+    # grounded panel.
+    assert "groundedFencePanel" in _extract("layFence", js)
+    assert "layFence" in _extract("fenceSink", js)
+    assert "layFence" in _extract("buildCourts", js)
 
 
 def test_dashed_tunnel_lines_have_exact_rectangular_ends_not_collapsed_triangles():

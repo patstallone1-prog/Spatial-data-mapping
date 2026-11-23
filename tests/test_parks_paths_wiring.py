@@ -292,17 +292,30 @@ console.log(JSON.stringify({out,tiny:tiny.length}));
     assert result["tiny"] == 0
 
 
+#: The one fence layer every fence is laid through (layFence): what is already there, the gates
+#: and the paths through it.
+FENCE_LAYER = ("noteFenceLine", "noteFenceGate", "fenceLinesNear", "fenceAlreadyThere", "inFenceGate",
+               "fencePaths", "pathThroughFence", "fencePieces", "layFence", "groundedFencePanel")
+
+
+def _fence_layer(js: str) -> str:
+    consts = []
+    for name in ("FENCE_GROUND_STEP_M", "FENCE_LINE_CELL_M", "FENCE_DOUBLE_M", "FENCE_PIECE_STEP_M",
+                 "FENCE_GATE_REACH_M", "fenceGateGrid", "fencePathGrid", "fenceLayStats"):
+        line = next(ln for ln in js.splitlines() if ln.startswith((f"const {name} ", f"let {name} ")))
+        consts.append(line)
+    return "\n".join(consts) + "\n" + "\n".join(_extract(name, js) for name in FENCE_LAYER)
+
+
 @pytest.mark.skipif(NODE is None, reason="node is not installed")
 def test_the_playground_fence_is_open_at_the_gate_and_closed_elsewhere():
     js = _page_js()
     script = """
 const PLAYGROUND_Y=0.034;
-const FENCE_GROUND_STEP_M=.75;
 function groundLiftAt(){return 0;}
 function xy(lon,lat){return [lon,lat];}
 function insideCarriageway(){return false;}
-function noteFenceLine(){}
-""" + _extract("groundedFencePanel", js) + _extract("fenceSink", js) + _extract("fenceArea", js) + """
+""" + _fence_layer(js) + _extract("parkAreaGates", js) + _extract("fenceSink", js) + _extract("fenceArea", js) + """
 const ring=[[0,0],[20,0],[20,10],[0,10],[0,0]];
 const sink=fenceSink();
 // A gate in the middle of the south side (z=0 edge in page frame: y=0 -> z=-0).
@@ -357,3 +370,61 @@ def test_published_spans_carry_no_pge_attributes_without_leave():
         for span in doc["spans"]:
             assert not {"phases", "kv", "f"} & set(span), path
             assert span["c"] >= 0.85 and span["seen"] >= 1
+
+
+def _fences(js_body: str, buildings: str = "function buildingAt(){return false;}",
+            paths: str = "const DATA={ways:[]};") -> dict:
+    js = _page_js()
+    return run_js("""
+function groundLiftAt(){return 0;}
+function xy(lon,lat){return [lon,lat];}
+""" + buildings + paths + _fence_layer(js) + js_body)
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_fence_along_a_fence_already_laid_is_not_laid_twice():
+    # Chestnut Street and Moscone, 2026-11-22: a property's chain-link, a park's and a playground's
+    # each laid on the one line, a hand to a metre apart -- three layers of fence. The second is
+    # laid only where nothing stands alongside; a fence that carries the line on past the first is.
+    result = _fences("""
+const sink={positions:[],uvs:[],indices:[]};
+const first=layFence(sink,0,0,20,0,0,1.8,.6);
+const beside=layFence(sink,0,0.6,20,0.6,0,1.2,1);          // 0.6 m off it: the same boundary
+const longer=layFence(sink,-10,1.0,30,1.0,0,1.2,1);        // a metre off, and ten metres longer each way
+const across=layFence(sink,10,-5,10,5,0,1.2,1);            // square across it: a different fence
+const len=(ps)=>ps.reduce((s,[a,b,c,d])=>s+Math.hypot(c-a,d-b),0);
+console.log(JSON.stringify({first:len(first),beside:len(beside),longer:len(longer),across:len(across),stats:fenceLayStats}));
+""")
+    assert result["first"] == pytest.approx(20, abs=0.3)
+    assert result["beside"] == 0
+    assert 19 < result["longer"] < 21, "only the ten metres each end past the first fence"
+    assert result["across"] > 9
+    assert result["stats"]["left_m"] > 39
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_a_fence_along_a_building_wall_is_not_laid():
+    result = _fences("""
+const sink={positions:[],uvs:[],indices:[]};
+const ps=layFence(sink,0,0,20,0,0,1.8,.6);
+console.log(JSON.stringify(ps.map(([a,,c])=>[a,c].map(v=>Math.round(v*4)/4))));
+""", buildings="function buildingAt(x,z){return x>5&&x<15&&z<-0.3&&z>-8;}")
+    # The wall from x 5 to 15 carries the line; the fence stops at it and carries on past it.
+    assert len(result) == 2
+    assert result[0][1] <= 5.25 and result[1][0] >= 14.75
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_every_gate_is_open_in_every_layer_and_a_path_goes_through_the_fence():
+    result = _fences("""
+noteFenceGate(9,0,11,0);
+const a=layFence({positions:[],uvs:[],indices:[]},0,0,20,0,0,1.8,.6);
+// A footpath crossing the fence line at x=30 (its own ways, from DATA; z is -lat).
+const b=layFence({positions:[],uvs:[],indices:[]},20,10,40,10,0,1.8,.6);
+const gaps=(ps)=>ps.slice(1).map((p,i)=>[ps[i][2],p[0]].map(v=>Math.round(v*4)/4));
+console.log(JSON.stringify({gate:gaps(a),path:gaps(b)}));
+""", paths="const DATA={ways:[{kind:'path',path_width_m:2,points:[[30,5],[30,-25]]}]};")
+    assert len(result["gate"]) == 1 and result["gate"][0][0] <= 9 and result["gate"][0][1] >= 11
+    # The path is two metres wide (to +-1.0) and a hand each side is left open.
+    assert len(result["path"]) == 1 and result["path"][0][0] <= 28.9 and result["path"][0][1] >= 31.1
+

@@ -780,11 +780,10 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const sex = q.female === true ? "female" : q.female === false ? "male" : null;
     const body = S.bodies[sex || (stream(String(q.id))() < 0.5 ? "female" : "male")] || Object.values(S.bodies)[0];
     const pick = crowdLook(q.id, q.look, { [body.sex]: body.slots }, { height: q.height, build: q.build ?? 1, female: body.sex === "female", modelHeight: body.height });
-    // The colours, linear, as each part takes them: the skin over the skin photograph's average
-    // (kept within bounds: never so far over it that a face is drawn white).
+    // The colours, linear, as each part takes them. (The skin's is the person's own tone: the
+    // shader takes only the photograph's light and dark about its average -- FRAGMENT_MAP.)
     const colours = pick.parts.map((p) => {
       tone.set(p.colour);
-      if (p.slot === "body" || p.slot === "head") return [tone.r / body.skinMean[0], tone.g / body.skinMean[1], tone.b / body.skinMean[2]].map((v) => Math.max(0.25, Math.min(3.5, v)));
       return [tone.r, tone.g, tone.b];
     });
     const phone = pick.phone ? tone.set(pick.phone).toArray() : null;
@@ -1029,6 +1028,7 @@ const VERTEX_POSITION = /* glsl */ `
 const FRAGMENT_HEAD = /* glsl */ `
 varying vec3 vKbColor; varying float vKbAux; varying float vKbOld; varying float vKbHide; varying float vKbCut;
 uniform sampler2D kbOldMap; uniform vec3 kbMean;
+#define KB_SKIN_LIGHTEST 0.44
 #ifdef KB_JAW
   varying float vKbInner;
 #endif
@@ -1037,12 +1037,15 @@ const FRAGMENT_MAP = /* glsl */ `
   #if defined(KB_SKIN)
     if (vKbHide > 0.5) discard;
     vec4 kbYoung = texture2D(map, vMapUv), kbOlder = texture2D(kbOldMap, vMapUv);
-    diffuseColor.rgb *= mix(kbYoung.rgb, kbOlder.rgb, vKbOld) * vKbColor;
-    // (Skin is never brighter than the palest skin is: no face is drawn chalk-white, whatever the
-    // tone and the photograph make of it.)
+    // The person's tone, with the photograph's light and dark about its own average (pores,
+    // lips, the shade under a brow) and no more: a tone is never multiplied up to white by a
+    // pale photograph, or by one that has not arrived (seen as chalk-white "ghost" walkers).
+    vec3 kbPhoto = mix(kbYoung.rgb, kbOlder.rgb, vKbOld) / max(kbMean, vec3(0.02));
+    float kbPhotoL = dot(kbPhoto, vec3(0.2126, 0.7152, 0.0722));
+    diffuseColor.rgb *= vKbColor * clamp(mix(vec3(kbPhotoL), kbPhoto, 0.6), 0.5, 1.3);
+    // (And a hard limit: no skin throws back more light than the palest skin does.)
     float kbLum = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-    diffuseColor.rgb *= min(1.0, 0.62 / max(kbLum, 1e-3));
-    diffuseColor.rgb = min(diffuseColor.rgb, vec3(0.92));
+    diffuseColor.rgb *= min(1.0, KB_SKIN_LIGHTEST / max(kbLum, 1e-3));
     #ifdef KB_JAW
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.075, 0.03, 0.035), vKbInner * 0.85);
     #endif

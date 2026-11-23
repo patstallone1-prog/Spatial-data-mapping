@@ -205,10 +205,14 @@ function cityPortrait(size = 96) {
   portraitCamera.position.set(portraitAt.x + Math.sin(yaw) * d, portraitAt.y + 0.04, portraitAt.z + Math.cos(yaw) * d);
   portraitCamera.lookAt(portraitAt);
   const before = renderer.getRenderTarget();
+  // (Your face as it is: not the outline the camera draws of you through a wall -- module 32.)
+  const outlines = (avatar.userData.magicGhosts || []).filter((o) => o.visible);
+  for (const o of outlines) o.visible = false;
   renderer.setRenderTarget(portraitTarget);
   renderer.clear();
   renderer.render(scene, portraitCamera);
   renderer.setRenderTarget(before);
+  for (const o of outlines) o.visible = true;
   const px = new Uint8Array(size * size * 4);
   renderer.readRenderTargetPixels(portraitTarget, 0, 0, size, size, px);
   const g = portraitCanvas.getContext("2d"), img = g.createImageData(size, size);

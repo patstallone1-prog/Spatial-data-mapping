@@ -400,8 +400,9 @@ const PEDESTRIAN_TEXTURES = new Map();
 function pedestrianTexture(material) {
   if (PEDESTRIAN_TEXTURES.has(material)) return PEDESTRIAN_TEXTURES.get(material);
   if (["concrete", "paved", "unknown"].includes(material)) return SIDEWALK;
-  if (material === "asphalt") return ROAD;
-  const colours = {sand:[188,171,133],earth:[132,111,83],dirt:[132,111,83],ground:[132,111,83],
+  // A park's asphalt path is its own weathered grey: on the road's texture, without the road's
+  // own treatment, it came out nearly black across the lawn (Moscone, 2026-11-22).
+  const colours = {asphalt:[96,98,99],sand:[188,171,133],earth:[132,111,83],dirt:[132,111,83],ground:[132,111,83],
     mud:[107,96,76],grass:[89,117,68],woodchips:[140,112,80],gravel:[151,146,132],
     fine_gravel:[162,151,127],compacted:[162,151,127],decomposed_granite:[174,151,115],
     stabilized_soil:[163,146,119],wood:[139,117,86],boardwalk:[139,117,86],
@@ -438,7 +439,9 @@ function pathHasOwnMaterial(way) {
 
 function renderPedestrianPath(way) {
   const runs = way.path_runs?.length ? way.path_runs : [{points:way.points,resolved:way.path_surface}];
-  for(const run of runs) {
+  // Off the streets and their walks (pathRunsOffStreets): a path ends at the pavement's edge.
+  for(const whole of runs) for(const points of pathRunsOffStreets(whole.points)) {
+    const run={...whole,points};
     if(!run.points || run.points.length<2)continue;
     const observed=run.resolved || {},material=observed.surface_material || "unknown";
     const width=way.path_width_m || 2.4;

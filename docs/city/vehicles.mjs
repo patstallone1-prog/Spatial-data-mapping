@@ -83,10 +83,14 @@ export function vehicleGroup(THREE, model, colour, { glassOpacity = 0.42 } = {})
 }
 //: The shared materials: the paint is per instance (instance colour over white vertices).
 const materialCache = new WeakMap();
+//: The clear coat's roughness, as the shader takes it (docs/reflectance.mjs CAR_PAINT.gloss).
+const GLOSS_PAINT = "0.2";
 export function vehicleMaterials(THREE) {
   if (!materialCache.has(THREE)) {
     materialCache.set(THREE, {
-      paint: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.45, roughness: 0.38, vertexColors: true }),
+      // (KB_GLOSS: a clear coat's glint of the sun over the paint, and the sky mirrored along a
+      // glancing panel -- module 02, PROXY_LIGHT.patch; the figures are docs/reflectance.mjs's.)
+      paint: Object.assign(new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.45, roughness: 0.38, vertexColors: true }), { defines: { STANDARD: "", KB_GLOSS: GLOSS_PAINT } }),
       glass: new THREE.MeshStandardMaterial({ color: 0x1d2a33, metalness: 0.6, roughness: 0.08, transparent: true, opacity: 0.42, depthWrite: false }),
       fixed: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.2, roughness: 0.7, vertexColors: true }),
     });
@@ -578,6 +582,9 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
   // (seen at noon, 2026-11-13), and the traffic's Lambert paint beside it has none.
   const painted = part.name === "body" || part.tint;
   const m = standard ? new THREE.MeshStandardMaterial({ ...opts, metalness: painted ? 0.35 : 0.1, roughness: painted ? 0.45 : 0.65, envMapIntensity: painted ? 0.35 : 1 }) : new THREE.MeshLambertMaterial(opts);
+  // A clear coat over the paint (KB_GLOSS, as vehicleMaterials): the traffic's plain paint had no
+  // highlight at all, and a car in the sun was as matt as the wall behind it.
+  if (painted) m.defines = { ...(m.defines || {}), KB_GLOSS: GLOSS_PAINT };
   if (!part.tint) return m;
   const atlas = part.name === "paint-atlas";
   const plain = "vec3 liveryAt(vec3 p, vec3 paint) { return paint; }";
@@ -597,7 +604,7 @@ export function fleetMaterial(THREE, part, { standard = false, livery = null } =
           "  diffuseColor.a = 1.0;", "}"].join("\n")
         : ["#include <color_fragment>", "diffuseColor.rgb = mix(diffuseColor.rgb, liveryAt(vBodyPos, vPaint) * 0.92, vPaintW);"].join("\n"));
   };
-  m.customProgramCacheKey = () => `fleet-paint-v3-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
+  m.customProgramCacheKey = () => `fleet-paint-v4-${atlas ? "atlas" : "body"}-${livery?.key || "plain"}-${standard ? "std" : "lam"}`;
   return m;
 }
 

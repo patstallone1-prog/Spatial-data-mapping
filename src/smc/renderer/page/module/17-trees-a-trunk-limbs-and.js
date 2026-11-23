@@ -947,6 +947,123 @@ function nearestFenceLine(x, z, reach) {
     }
   return best;
 }
+//: One boundary, one fence. Five builders lay fences -- the ground's mapped and inferred fences,
+//: the property lines, the courts' surrounds, the playgrounds', the gardens' -- and none knew of
+//: the others: the Marina had three kilometres of fence doubled a hand's breadth to a metre off
+//: another fence, or run along a house's wall (2026-11-22). A fence is laid only where no fence
+//: already stands alongside it within FENCE_DOUBLE_M and no building wall does; the one already
+//: there carries the line on, in its own material. And a way in is a way in through every layer:
+//: each gate is noted before any fence is laid (noteFenceGate), and no fence crosses one.
+const FENCE_DOUBLE_M = 1.5;
+//: How finely a fence is tested along its length, and the shortest piece worth laying (m).
+const FENCE_PIECE_STEP_M = 0.25, FENCE_PIECE_MIN_M = 0.4;
+//: How far either side of a gate's line the gate keeps a fence out (m).
+const FENCE_GATE_REACH_M = 1.0;
+const fenceGateGrid = new Map();
+function noteFenceGate(ax, az, bx, bz) {
+  const gate = [ax, az, bx, bz], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / (FENCE_LINE_CELL_M / 2)));
+  for (let k = 0; k <= n; k += 1) {
+    const key = Math.floor((ax + (bx - ax) * k / n) / FENCE_LINE_CELL_M) + ":" + Math.floor((az + (bz - az) * k / n) / FENCE_LINE_CELL_M);
+    if (!fenceGateGrid.has(key)) fenceGateGrid.set(key, []);
+    const bucket = fenceGateGrid.get(key); if (bucket.at(-1) !== gate) bucket.push(gate);
+  }
+}
+// Each line in the cells round (x, z), once.
+function* fenceLinesNear(grid, x, z) {
+  const cx = Math.floor(x / FENCE_LINE_CELL_M), cz = Math.floor(z / FENCE_LINE_CELL_M), seen = new Set();
+  for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1)
+    for (const line of grid.get(`${cx + dx}:${cz + dz}`) || []) if (!seen.has(line)) { seen.add(line); yield line; }
+}
+//: Whether a fence running (ux, uz) through (x, z) is the same boundary as one already laid --
+//: square off its middle, not past either end (the next panel of a run carries on from the last's
+//: end and is not beside it), within FENCE_DOUBLE_M and running the same way -- or a building's
+//: wall: the building there, or alongside on either hand.
+function fenceAlreadyThere(x, z, ux, uz) {
+  for (const [ax, az, bx, bz] of fenceLinesNear(fenceLineGrid, x, z)) {
+    const vx = bx - ax, vz = bz - az, L = Math.hypot(vx, vz);
+    if (!(L > 0) || Math.abs(ux * vx + uz * vz) / L < 0.9) continue;
+    const t = ((x - ax) * vx + (z - az) * vz) / L;
+    if (t <= 0.05 || t >= L - 0.05) continue;
+    if (Math.abs((x - ax) * vz - (z - az) * vx) / L < FENCE_DOUBLE_M) return true;
+  }
+  if (typeof buildingAt !== "function") return false;
+  if (buildingAt(x, z)) return true;
+  for (const d of [0.4, 0.8, 1.2, FENCE_DOUBLE_M]) if (buildingAt(x - uz * d, z + ux * d) || buildingAt(x + uz * d, z - ux * d)) return true;
+  return false;
+}
+//: Whether (x, z) is in the way of a noted gate: within FENCE_GATE_REACH_M of its line, between its posts.
+function inFenceGate(x, z) {
+  for (const [ax, az, bx, bz] of fenceLinesNear(fenceGateGrid, x, z)) {
+    const vx = bx - ax, vz = bz - az, L = Math.hypot(vx, vz);
+    if (!(L > 0)) continue;
+    const t = ((x - ax) * vx + (z - az) * vz) / L;
+    if (t > -0.05 && t < L + 0.05 && Math.abs((x - ax) * vz - (z - az) * vx) / L < FENCE_GATE_REACH_M) return true;
+  }
+  return false;
+}
+//: The footpaths, for the fences they cross: each mapped path a way through (pathThroughFence).
+let fencePathGrid = null;
+function fencePaths() {
+  if (fencePathGrid) return fencePathGrid;
+  fencePathGrid = new Map();
+  for (const way of (typeof DATA === "object" && DATA.ways) || []) {
+    if (way.kind !== "path" || !way.points || way.points.length < 2) continue;
+    const half = (way.path_width_m || 2.4) / 2;
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    for (let i = 1; i < pts.length; i += 1) {
+      const line = [pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], half];
+      const n = Math.max(1, Math.ceil(Math.hypot(line[2] - line[0], line[3] - line[1]) / (FENCE_LINE_CELL_M / 2)));
+      for (let k = 0; k <= n; k += 1) {
+        const key = Math.floor((line[0] + (line[2] - line[0]) * k / n) / FENCE_LINE_CELL_M) + ":" + Math.floor((line[1] + (line[3] - line[1]) * k / n) / FENCE_LINE_CELL_M);
+        if (!fencePathGrid.has(key)) fencePathGrid.set(key, []);
+        const bucket = fencePathGrid.get(key); if (bucket.at(-1) !== line) bucket.push(line);
+      }
+    }
+  }
+  return fencePathGrid;
+}
+//: Whether a footpath crosses a fence running (ux, uz) at (x, z): the path's width there, and a
+//: hand either side, is left open. A park path ran up to the chain-link round Moscone and stopped
+//: at it, with no way through (2026-11-22).
+function pathThroughFence(x, z, ux, uz) {
+  for (const [ax, az, bx, bz, half] of fenceLinesNear(fencePaths(), x, z)) {
+    const vx = bx - ax, vz = bz - az, L = Math.hypot(vx, vz);
+    if (!(L > 0) || Math.abs(ux * vx + uz * vz) / L > 0.75) continue;   // along the fence, not through it
+    const t = Math.max(0, Math.min(L, ((x - ax) * vx + (z - az) * vz) / L));
+    if (Math.hypot(x - ax - vx * t / L, z - az - vz * t / L) < half + 0.2) return true;
+  }
+  return false;
+}
+//: The pieces of a fence from (ax, az) to (bx, bz) still to be laid: [[ax, az, bx, bz], ...].
+function fencePieces(ax, az, bx, bz) {
+  const span = Math.hypot(bx - ax, bz - az);
+  if (!(span > 0)) return [];
+  const ux = (bx - ax) / span, uz = (bz - az) / span, n = Math.max(1, Math.round(span / FENCE_PIECE_STEP_M));
+  const pieces = [];
+  let from = null;
+  for (let k = 0; k <= n; k += 1) {
+    const t0 = span * k / n, t1 = span * (k + 1) / n, tm = (t0 + t1) / 2;
+    const free = k < n && !fenceAlreadyThere(ax + ux * tm, az + uz * tm, ux, uz) && !inFenceGate(ax + ux * tm, az + uz * tm)
+      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz);
+    if (free && from === null) from = t0;
+    if (!free && from !== null) {
+      if (t0 - from >= FENCE_PIECE_MIN_M) pieces.push([ax + ux * from, az + uz * from, ax + ux * t0, az + uz * t0]);
+      from = null;
+    }
+  }
+  return pieces;
+}
+//: Lays what is left of a fence (fencePieces) into `sink`, and says which pieces it laid.
+//: What layFence laid, and what it left to a fence, a wall or a gate already there (m).
+const fenceLayStats = { laid_m: 0, left_m: 0 };
+function layFence(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
+  const pieces = fencePieces(ax, az, bx, bz);
+  let laid = 0;
+  for (const [px, pz, qx, qz] of pieces) { groundedFencePanel(sink, px, pz, qx, qz, baseY, height, tileU, tileV); laid += Math.hypot(qx - px, qz - pz); }
+  fenceLayStats.laid_m += laid;
+  fenceLayStats.left_m += Math.max(0, Math.hypot(bx - ax, bz - az) - laid);
+  return pieces;
+}
 //: How far a trunk's middle stands off a fence at least (m): its own half-width and a hand.
 const TREE_FENCE_CLEAR_M = 0.6;
 //: Where a tree at (x, z) stands clear of every fence: moved square off the line it is on, to the
@@ -1028,7 +1145,7 @@ function* buildFencesSteps(ground) {
         }
       }
       if (crosses) continue;
-      groundedFencePanel({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile);
+      layFence({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile);
     }
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
@@ -1617,14 +1734,15 @@ function buildCourts(ground) {
     const runs = [...(pitch.fence_runs ? pitch.fence_runs.map(r=>[r.p,style.fence]) : [[pitch.p, style.fence]]), ...(pitch.dividers || []).map((d) => [d.p,
       Math.max(...d.s.map((s) => (COURT_STYLE[s] || COURT_STYLE[`${s}_half`] || style).fence || style.fence))])];
     for (const [ring, h] of runs) for (let i = 0; i < ring.length - 1; i += 1) {
-      const [ax, ay] = xy(ring[i][0], ring[i][1]);
-      const [bx, by] = xy(ring[i + 1][0], ring[i + 1][1]);
-      const az = -ay, bz = -by;
+      const [sx, sy] = xy(ring[i][0], ring[i][1]);
+      const [ex, ey] = xy(ring[i + 1][0], ring[i + 1][1]);
+      const sz = -sy, ez = -ey;
+      if (Math.hypot(ex - sx, ez - sz) < 0.4) continue;
+      if (insideCarriageway(sx, sz, -1.0) || insideCarriageway(ex, ez, -1.0)) continue;
+      // Only what no fence or wall already carries (layFence): a court beside another shares its fence.
+      for (const [ax, az, bx, bz] of layFence({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
+        sx,sz,ex,ez,COURT_Y,h,.6)) {
       const span = Math.hypot(bx - ax, bz - az);
-      if (span < 0.4) continue;
-      if (insideCarriageway(ax, az, -1.0) || insideCarriageway(bx, bz, -1.0)) continue;
-      groundedFencePanel({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
-        ax,az,bx,bz,COURT_Y,h,.6);
       for (const [x,z] of courtPostPoints(ax,az,bx,bz,h,HEADSET)) {
         if (HEADSET) fencePosts.push([x,z,h]);
         else {
@@ -1641,6 +1759,7 @@ function buildCourts(ground) {
             return new THREE.Vector3(x,groundLiftAt(x,z)+COURT_Y+h,z);};
           fenceRails.push([at(j),at(j+1)]);
         }
+      }
       }
     }
   }

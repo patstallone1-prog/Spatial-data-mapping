@@ -49,3 +49,34 @@ every 2.8 m, a top rail and a wire along the foot, all real geometry that casts.
 - Car paint has no gloss of its own beyond what its material already had.
 - The fabric of a chain-link fence casts no shadow (only its posts, rails and gate frames).
 - Roughness values were not re-surveyed material by material; the glint uses what each has.
+
+## Each material's own reflectance, car paint, and skin (2026-11-23)
+
+**Materials.** The sun's highlight used every surface's drawn roughness and one figure, 4%, for
+what any of them mirrors. Each material in `docs/object-catalogue.json` now has `optics`:
+`roughness` (0 a mirror, 1 chalk), `specular` (the share mirrored head on, from the refractive
+index, or the bare metal's) and `albedo` (the share of daylight scattered back; for reference
+only, the drawn colour is still the texture's). `docs/reflectance.mjs` reads a mesh's
+`userData.surface`, finds its material, and sets one uniform on the mesh's material (`kbSOpt`),
+so no shader is compiled again. `window.kerbsideReflectance()` says how many materials were
+given figures and of what. Published values for the material as it stands on a street, not
+measurements of these objects. A material whose shader hook calls `PROXY_LIGHT.patch(shader)`
+without itself keeps the drawn roughness and 4%.
+
+**Car paint.** Paint has a clear coat (`KB_GLOSS`, roughness 0.2, 5% head on): a tight glint of
+the sun, and on the traffic's plain paint the sky mirrored along a panel seen at a glancing
+angle. The full material (your own car) already mirrors the sky. Car glass is unchanged.
+
+**Skin.** Each heritage has one anchor tone and a range about it (`wardrobe.mjs` `SKIN_ANCHORS`,
+`skinTone`); a person is drawn somewhere in their heritage's range. The anchors' brightness is
+skin's measured reflectance, not a swatch picked by eye. No tone is over 0.40 relative
+luminance, and the crowd's shader holds what it draws to 0.44. The shader now takes the
+person's tone and only the photograph's light and dark about its average (within 0.5 to 1.3):
+before, the tone was divided by the photograph's average and multiplied back by the photograph,
+which went to white wherever the two did not cancel.
+
+**The pale see-through walker.** The "ghost" was the magic camera's outline of you (module 32):
+when something stood between you and the view it drew all of you again in pale blue, over
+everything, so the whole walker went pale and see-through, and the profile's portrait took it
+as your face. It is now drawn only where you are actually hidden (`GreaterDepth`), fainter, and
+is switched off while the portrait is taken.
