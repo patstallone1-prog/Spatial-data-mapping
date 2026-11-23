@@ -255,7 +255,7 @@ def test_a_kerb_is_only_drawn_where_the_page_has_pavement_to_meet_it() -> None:
                                    "side": {"value": 1.0, "grade": "inferred"}}}}
     js = _page_js()
     extra = "\n".join(_extract(name, js) for name in ("worldSupportedPieces",
-                                                      "worldPavedBeside", "curbReturnAt"))
+                                                      "worldPavedBeside", "curbReturnAt", "worldInsideWalk"))
     out = run_page({"objects": [record]}, extra + """
         // No corner squares in the harness: no kerb is a return into one.
         const junctionSquares = [];

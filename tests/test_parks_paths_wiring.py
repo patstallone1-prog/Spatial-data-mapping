@@ -301,6 +301,7 @@ const FENCE_GROUND_STEP_M=.75;
 function groundLiftAt(){return 0;}
 function xy(lon,lat){return [lon,lat];}
 function insideCarriageway(){return false;}
+function noteFenceLine(){}
 """ + _extract("groundedFencePanel", js) + _extract("fenceSink", js) + _extract("fenceArea", js) + """
 const ring=[[0,0],[20,0],[20,10],[0,10],[0,0]];
 const sink=fenceSink();
