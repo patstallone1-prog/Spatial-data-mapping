@@ -47,3 +47,32 @@ test("a drawn surface is given its material's figures once; what says nothing ke
   assert.equal(R.apply(root), 1, "what says what it is later is given then");
   assert.equal(R.stats().given, n + 1);
 });
+
+test("a drawn colour outside what its material scatters back is tinted into its range, once", async () => {
+  const { tintFor } = await import("../docs/reflectance.mjs");
+  const asphalt = DATA.materials.asphalt.optics, turf = DATA.materials.turf.optics;
+  // Visible light: a road and a lawn each send back about a tenth, concrete about a third.
+  assert.ok(asphalt.albedo_range[1] <= 0.15 && turf.albedo_range[1] <= 0.16 && DATA.materials.concrete.optics.albedo_range[0] >= 0.2);
+  for (const [id, m] of Object.entries(DATA.materials)) {
+    const o = m.optics; if (!o?.albedo_range) continue;
+    assert.ok(o.albedo_range[0] >= 0.02 && o.albedo_range[1] <= 0.85 && o.albedo >= o.albedo_range[0] && o.albedo <= o.albedo_range[1], id);
+  }
+  assert.equal(tintFor(0.1, asphalt.albedo_range), 1);
+  assert.ok(Math.abs(0.3 * tintFor(0.3, asphalt.albedo_range) - asphalt.albedo_range[1]) < 1e-9, "a pale road is brought down to the top of the range");
+  assert.ok(Math.abs(0.03 * tintFor(0.03, turf.albedo_range) - turf.albedo_range[0]) < 1e-9);
+  assert.equal(tintFor(0.9, asphalt.albedo_range), 0.25, "never by more than four times");
+  assert.equal(tintFor(0, asphalt.albedo_range), 1);
+
+  const tints = new Map(), light = new Map();
+  const R = createReflectance({ catalogue, set: () => {}, drawn: (m) => light.get(m), tint: (m, k) => tints.set(m, k) });
+  const mesh = (surface, y) => { const o = { isMesh: true, material: {}, userData: { surface }, children: [], parent: {} }; light.set(o.material, y); return o; };
+  const pale = mesh("road", 0.3), right = mesh("road", 0.09), unknown = mesh("road", null), late = mesh("road", undefined);
+  const all = [pale, right, unknown, late], root = { traverse: (f) => all.forEach(f) };
+  R.apply(root);
+  assert.ok(Math.abs(tints.get(pale.material) - 0.5) < 1e-9);
+  assert.ok(!tints.has(right.material) && !tints.has(unknown.material) && !tints.has(late.material));
+  assert.equal(R.stats().waiting, 1, "a surface whose picture has not arrived waits");
+  light.set(late.material, 0.6); R.apply(root); R.apply(root);
+  assert.equal(tints.get(late.material), 0.25);
+  assert.deepEqual([R.stats().tinted, R.stats().kept, R.stats().untold, R.stats().waiting], [2, 1, 1, 0]);
+});

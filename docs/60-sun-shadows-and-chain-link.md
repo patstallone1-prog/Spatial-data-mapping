@@ -80,3 +80,19 @@ when something stood between you and the view it drew all of you again in pale b
 everything, so the whole walker went pale and see-through, and the profile's portrait took it
 as your face. It is now drawn only where you are actually hidden (`GreaterDepth`), fainter, and
 is switched off while the portrait is taken.
+
+## What a surface scatters back (2026-11-23)
+
+**Albedo.** Each material's `optics` now has `albedo` and `albedo_range` for visible light
+(asphalt 0.05-0.15, grass 0.06-0.16, concrete 0.22-0.45; a painted material's range is paint's,
+black to white). `docs/reflectance.mjs` works out what each drawn material scatters back (its
+colour times its picture's average, as light) and multiplies the colour into the range where it
+is outside it (`tintFor`, never by more than four times). In the Marina 1,470 materials were
+tinted, 717 were already in range and 682 could not be told (a colour for each point or
+instance, or see-through). Roads were drawn at about 0.29 and are now about 0.15.
+`window.kerbsideReflectance().tints` lists what was changed. `material.userData.keepColour`
+leaves a material alone.
+
+**Scatter.** A plain-lit rough surface is no longer evenly matt: Oren and Nayar's rough diffuse
+(Fujii's form), by the surface's own roughness, so asphalt and stucco are brighter from the
+sun's side and do not go black at a glancing sun. Paint and glass stay evenly matt.
