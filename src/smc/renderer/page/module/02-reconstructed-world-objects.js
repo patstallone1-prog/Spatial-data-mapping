@@ -532,6 +532,13 @@ const PROXY_LIGHT = globalThis.__kerbsideProxyLight ||= {
   dynamic: new Set(),                                     // what moves: left out of the stand-in
   missed: 0,
 };
+// Fine shadows near you (docs/fine-shadows.mjs): the square about you as the sun sees it, what
+// stands still and what moves, and the matrix that takes a point of the world into them.
+PROXY_LIGHT.fineMap ||= { value: null };
+PROXY_LIGHT.fineMoving ||= { value: null };
+PROXY_LIGHT.fineMat ||= { value: new THREE.Matrix4() };
+PROXY_LIGHT.fineK ||= { value: new THREE.Vector4(0, 1 / 2048, 0.07, 0.0001) };   // strength, a texel, the look-up's step off the surface (m), the depth it is brought forward
+PROXY_LIGHT.fineDir ||= { value: new THREE.Vector3(0, 1, 0) };                    // towards the sun
 //: The lookup, put into a lit material's shader (``shader`` as onBeforeCompile is given it). A
 //: material with no lighting of its own (a sign, a lamp, the sky) is left as it is.
 PROXY_LIGHT.patch ||= function proxyLightPatch(shader) {
@@ -540,10 +547,11 @@ PROXY_LIGHT.patch ||= function proxyLightPatch(shader) {
   const begin = THREE.ShaderChunk.lights_fragment_begin, call = "getDirectionalLightInfo( directionalLight, directLight );";
   if (!begin.includes(call)) { if (!P.missed++) console.warn("kerbside: this three.js lights differently; no shadows"); return; }
   shader.uniforms.kbPLMap = P.map; shader.uniforms.kbPLBounce = P.bounce; shader.uniforms.kbPLBox = P.box; shader.uniforms.kbPLK = P.k; shader.uniforms.kbPLSun = P.sun; shader.uniforms.kbPLLampMap = P.lampMap; shader.uniforms.kbPLLamp = P.lamp;
+  shader.uniforms.kbFSMap = P.fineMap; shader.uniforms.kbFSMoving = P.fineMoving; shader.uniforms.kbFSMat = P.fineMat; shader.uniforms.kbFSK = P.fineK; shader.uniforms.kbFSDir = P.fineDir;
   shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;")
     .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbPLp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbPLp = instanceMatrix * kbPLp;\n#endif\nkbPLw = (modelMatrix * kbPLp).xyz; }");
   shader.fragmentShader = shader.fragmentShader
-    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun; uniform sampler2D kbPLLampMap; uniform vec4 kbPLLamp;")
+    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun; uniform sampler2D kbPLLampMap; uniform vec4 kbPLLamp;\nuniform sampler2D kbFSMap; uniform sampler2D kbFSMoving; uniform mat4 kbFSMat; uniform vec4 kbFSK; uniform vec3 kbFSDir;\nfloat kbFSLit(vec2 kbFSuv, float kbFSz) { return step(kbFSz, min(texture2D(kbFSMap, kbFSuv).r, texture2D(kbFSMoving, kbFSuv).r)); }")
     .replace("#include <lights_fragment_begin>", `float kbLit = 1.0, kbSky = 1.0; vec3 kbBnc = vec3(0.0);
 if (kbPLK.w > 0.0) {
   vec3 kbN = inverseTransformDirection(normal, viewMatrix);
@@ -559,6 +567,19 @@ if (kbPLK.w > 0.0) {
     kbLit = mix(1.0, smoothstep(-kbL.a, kbL.a, kbY - kbL.r + 0.3), kbEdge * kbPLK.x);
     float kbOpen = clamp((kbY - kbL.b) / 22.0, 0.0, 1.0);
     kbSky = mix(1.0, mix(kbL.g, 1.0, kbOpen), kbEdge * kbPLK.z);
+    // Near you the shadow is the fine one: is anything between this point and the sun, as the
+    // sun sees it? Four texels about the point, weighed by where it lies among them.
+    if (kbFSK.x > 0.0) {
+      vec4 kbFp = kbFSMat * vec4(kbPLw + kbN * (kbFSK.z * (1.0 - 0.7 * clamp(dot(kbN, kbFSDir), 0.0, 1.0))), 1.0);
+      vec2 kbFi = min(kbFp.xy, 1.0 - kbFp.xy);
+      float kbFe = smoothstep(0.0, 1.0, clamp(min(kbFi.x, kbFi.y) * 8.0, 0.0, 1.0)) * kbFSK.x * step(kbFp.z, 1.0) * step(0.0, kbFp.z);
+      if (kbFe > 0.0) {
+        float kbFz = kbFp.z - kbFSK.w;
+        vec2 kbFt = kbFp.xy / kbFSK.y - 0.5, kbFf = fract(kbFt), kbFb = (floor(kbFt) + 0.5) * kbFSK.y;
+        float kbFl = mix(mix(kbFSLit(kbFb, kbFz), kbFSLit(kbFb + vec2(kbFSK.y, 0.0), kbFz), kbFf.x), mix(kbFSLit(kbFb + vec2(0.0, kbFSK.y), kbFz), kbFSLit(kbFb + vec2(kbFSK.y), kbFz), kbFf.x), kbFf.y);
+        kbLit = mix(kbLit, mix(1.0, kbFl, min(1.0, kbPLK.x)), kbFe);
+      }
+    }
     vec4 kbB = texture2D(kbPLBounce, kbUv);
     kbBnc = kbB.rgb * kbPLSun * (kbEdge * (1.0 - kbOpen) * mix(1.0, 0.35, clamp(kbN.y, 0.0, 1.0)));
     // Under a tree the shadow is not whole: light comes through the leaves in patches.
@@ -571,6 +592,33 @@ if (kbPLK.w > 0.0) {
 ${begin.replace(call, `${call}\n directLight.color *= kbLit;`)}
 #if defined( RE_IndirectDiffuse )
 irradiance = irradiance * kbSky + kbBnc;
+#endif`)
+    // The sun's glint off a surface that is lit plainly (PLAIN_LIGHT: a matt wall, a road) or is
+    // gloss paint on a simple material (a car: KB_GLOSS, its roughness). One microfacet lobe for
+    // the one sun, at the surface's own roughness, with the 4% a non-metal mirrors head on and
+    // Fresnel's rise to all of it at a glancing angle: tarmac glares towards a low sun and a wall
+    // seen square on does not. In shadow there is none.
+    .replace("#include <lights_fragment_end>", `#include <lights_fragment_end>
+#if ( defined( KB_PLAIN ) || defined( KB_GLOSS ) ) && NUM_DIR_LIGHTS > 0
+{
+  #ifdef KB_GLOSS
+  float kbSR = KB_GLOSS, kbSF0 = 0.05;
+  #else
+  float kbSR = clamp(roughnessFactor, 0.08, 1.0), kbSF0 = 0.04;
+  #endif
+  vec3 kbSV = normalize(vViewPosition), kbSL = directionalLights[0].direction, kbSH = normalize(kbSL + kbSV);
+  float kbSNL = max(dot(normal, kbSL), 0.0), kbSNV = max(dot(normal, kbSV), 0.001), kbSNH = max(dot(normal, kbSH), 0.0), kbSVH = max(dot(kbSV, kbSH), 0.0);
+  float kbSA = kbSR * kbSR, kbSA2 = kbSA * kbSA, kbSDn = kbSNH * kbSNH * (kbSA2 - 1.0) + 1.0;
+  float kbSD = kbSA2 / (3.14159265 * kbSDn * kbSDn);
+  float kbSFr = kbSF0 + (1.0 - kbSF0) * pow(1.0 - kbSVH, 5.0);
+  float kbSK = kbSA * 0.5, kbSVis = 0.25 / ((kbSNL * (1.0 - kbSK) + kbSK) * (kbSNV * (1.0 - kbSK) + kbSK));
+  vec3 kbSpec = directionalLights[0].color * (kbLit * kbSNL * min(kbSD * kbSFr * kbSVis, 8.0));
+  #ifdef KB_PLAIN
+  reflectedLight.directSpecular += kbSpec;
+  #else
+  reflectedLight.directDiffuse += kbSpec;
+  #endif
+}
 #endif`)
     .replace("#include <lights_fragment_maps>", `#include <lights_fragment_maps>
 #if defined( RE_IndirectDiffuse ) && defined( USE_ENVMAP ) && defined( STANDARD ) && defined( ENVMAP_TYPE_CUBE_UV )
@@ -810,7 +858,8 @@ const PLAIN_LIGHT = globalThis.__kerbsidePlainLight ||= {
   on(material) { return this.enabled && material.isMeshStandardMaterial === true && !material.isMeshPhysicalMaterial && !(material.metalness > 0.3) && !(material.roughness < 0.35) && !material.envMap && material.userData?.keepHighlights !== true; },
   patch(shader, material) {
     if (!this.on(material) || !shader.fragmentShader.includes("#include <lights_physical_fragment>")) return;
-    shader.fragmentShader = shader.fragmentShader
+    // (KB_PLAIN: the sun's glint is put back for these, one lobe: PROXY_LIGHT.patch.)
+    shader.fragmentShader = ("#define KB_PLAIN\n" + shader.fragmentShader)
       // (Lambert's terms declare the view position again; the standard program already has: a
       // second declaration is a compile error on some drivers, and what used it was not drawn.)
       .replace("#include <lights_physical_pars_fragment>", /varying\s+vec3\s+vViewPosition\s*;/.test(shader.fragmentShader)
@@ -833,7 +882,7 @@ if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
     return kind ? `${key.call(this)}|near:${kind}${plain}` : `${key.call(this)}${plain}`;
   };
 }
-let proxyLightController = null;
+let proxyLightController = null, fineShadowController = null;
 // A shader the driver refuses is a surface that is not drawn, and nothing says so: in November
 // 2026 every plain-lit wall went that way and a house was its windows and a doorway in the air.
 // The page looks for itself (docs/shader-check.mjs), a little at a time and only at programs
@@ -859,6 +908,10 @@ if(!ATTACH) {
     proxyLightController=createProxyLight({THREE,renderer,scene,sun,ambient:amb,uniforms:PROXY_LIGHT,night:NIGHT});
     window.kerbsideProxyLight=()=>proxyLightController;
   }).catch((error)=>console.warn("kerbside: no shadows",error));
+  if(!META)import(sharedAsset("fine-shadows.mjs")).then(({createFineShadows})=>{
+    fineShadowController=createFineShadows({THREE,renderer,scene,sun,uniforms:PROXY_LIGHT});
+    window.kerbsideFineShadows=()=>fineShadowController;
+  }).catch((error)=>console.warn("kerbside: no fine shadows",error));
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
   environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon,night:NIGHT,asset:sharedAsset});
   // Made after the mode was first set, as often as not: the city's sky is on the game's clock.
