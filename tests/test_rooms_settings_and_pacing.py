@@ -137,7 +137,8 @@ def test_settings_pace_the_page_and_detail_comes_with_zoom() -> None:
     presets = js[js.index("const QUALITY_PRESETS = {"):js.index("const FPS_CHOICES")]
     for name in ("low:", "medium:", "high:", "max:"):
         assert name in presets
-    assert "const FPS_CHOICES = [15, 30, 45, 60, 0];" in js
+    assert "const FPS_CAP = 40;" in js and "const FPS_CHOICES = [15, 30, 40];" in js
+    assert "saved.fps === 0 || saved.fps > FPS_CAP" in js
     assert "window.kerbsideSettings = {" in js and 'const settingsButton = document.getElementById("settings-toggle");' in js
     animate = _extract("animate", js)
     assert "SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0" in animate and "IDLE_FRAME_MS" in animate

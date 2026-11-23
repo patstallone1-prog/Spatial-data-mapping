@@ -682,8 +682,11 @@ function buildHomeShell(entry) {
   homeShells.add(entry);
   setBatchedHomeVisible(id, false);
   setHomeDecalsVisible(id, false);
-  if (entry.interior) removeInterior(entry);
-  buildInterior(entry);
+  // Its rooms only if it had them, or you are in it or going in: a shell does not bring its
+  // rooms with it any more (module 24 interiorsOnStop builds the nearest few when you stop).
+  const hadRooms = Boolean(entry.interior);
+  if (hadRooms) removeInterior(entry);
+  if (hadRooms || (typeof interiorHeld === "function" && interiorHeld(entry))) buildInterior(entry);
   for (const d of entry.doors || []) if (d.leaf) d.leaf.renderOrder = 0;
 }
 

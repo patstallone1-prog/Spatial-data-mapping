@@ -2321,6 +2321,21 @@ diffuseColor.rgb *= kbCloth;`);
   //: down the longer it is held, the wheel turns while an arrow is held and comes back by itself,
   //: the curve as wide as the speed needs); the car keeps to what it can drive on, through the
   //: page's own walls and buildings (ctx.moveWalker).
+  //: Whether the car's body, moved (dx, dz), would be in something solid it is not in already:
+  //: its two leading corners and the middle of its leading end, and its two sides half way back,
+  //: each CAR_BODY.probe_m round. (CAR_BODY.spare_m: the room it wants each side.)
+  const CAR_BODY = { probe_m: 0.3, spare_m: 0.12 };
+  function carBodyBlocked(x, z, dx, dz) {
+    if (!ctx.solidAt) return false;
+    const [w, , l] = CAR_DIMS[car.model] || CAR_DIMS.sedan, hw = w / 2 + CAR_BODY.spare_m - CAR_BODY.probe_m, hl = l / 2 - CAR_BODY.probe_m;
+    const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw), rx = -fz, rz = fx;
+    const lead = dx * fx + dz * fz >= 0 ? 1 : -1;
+    for (const [a, b] of [[hl * lead, hw], [hl * lead, -hw], [hl * lead, 0], [hl * lead * 0.35, hw], [hl * lead * 0.35, -hw]]) {
+      const px = x + fx * a + rx * b, pz = z + fz * a + rz * b;
+      if (ctx.solidAt(px + dx, pz + dz, CAR_BODY.probe_m) && !ctx.solidAt(px, pz, CAR_BODY.probe_m)) return true;
+    }
+    return false;
+  }
   function drive(dt, held) {
     if (cycle.active) return pedal(dt, held);
     if (!car.active) return false;
@@ -2338,6 +2353,11 @@ diffuseColor.rgb *= kbCloth;`);
       ctl.v = 0; ctl.throttle = 0; ctl.park = null; ctl.lane = null; car.speed = 0; dx = 0; dz = 0;
       if (performance.now() - (car.edgeSaid || 0) > 4000) { car.edgeSaid = performance.now(); notify(BOUNDARY_MESSAGE); }
     }
+    // The car's own body: it is moved as the walker is (a third of a metre round), and so went
+    // through any gap a person fits -- a walk gate, the space between a fence's posts, a fence
+    // itself nose first. Its leading corners and its sides are asked for (carBodyBlocked): it
+    // goes only where the whole of its width does, so a gate must be wide enough for it.
+    if ((dx || dz) && carBodyBlocked(car.x, car.z, dx, dz)) { dx = 0; dz = 0; }
     const before = { x: car.x, z: car.z };
     const moved = ctx.moveWalker(dx, dz);
     const p = me();
@@ -4929,7 +4949,7 @@ diffuseColor.rgb *= kbCloth;`);
       // The detail field: round where you are, out ahead the way you are going (and along the
       // route, riding).
       const fv = focusVelocity.update(focus.x, focus.z, dt);
-      detailNow = detailField({ x: focus.x, z: focus.z }, { vx: fv.vx, vz: fv.vz, ahead: routeAheadNow() });
+      detailNow = detailField({ x: focus.x, z: focus.z }, { vx: fv.vx, vz: fv.vz, ahead: routeAheadNow(), look: EYE.ok ? [EYE.fx, EYE.fz] : null });
       // The city's frame never takes the page's with it: one car or person that cannot be placed
       // is left out of this frame (said once), and the world goes on being drawn.
       try { visible = frameCity(t, dt, now, focus); } catch (error) { if (!frameFailed) { frameFailed = true; console.warn("kerbside: the living city skipped a frame", error); } }

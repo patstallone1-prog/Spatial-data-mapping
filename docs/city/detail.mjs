@@ -15,6 +15,16 @@ export const FULL = 0, MODERATE = 1, LOW = 2, TRACKED = 3;
 //: ring half as far again, 2026-11-19: 55 m let you see figures change as they came near.)
 export const DETAIL_RINGS = { people: [82, 165, 280], cars: [100, 200, 360] };
 
+//: Past the moderate ring nobody and nothing on wheels is drawn at all (2026-11-23): the low
+//: tier's simple shapes -- hundreds of them, each placed and lit every frame -- were paid for at
+//: a distance where they were specks. They are kept track of as before (the low ring is still how
+//: far the traffic is looked for), and are drawn the moment they come inside the moderate ring.
+export const DETAIL_FAR_DRAWN = false;
+//: In the picture the rings reach further (``gain``): what the camera is looking at, within
+//: ``full_deg`` of the middle of its view and fading out to ``edge_deg``, is drawn in full and in
+//: its finer form half as far again, and is made ready that much sooner.
+export const DETAIL_CONE = { gain: 1.5, full_deg: 50, edge_deg: 75 };
+
 //: A thing comes up to a finer tier as soon as it is inside the ring, and goes back down only
 //: once it is this share past it: what comes towards you is ready in full before it is near, and
 //: one standing on a ring's edge -- or you, pacing on it -- does not flick between two forms.
@@ -38,7 +48,10 @@ export function stretchFor(speed) {
 //: The field round ``focus`` ({x, z}) moving at (vx, vz) m/s, with ``ahead`` the route about to be
 //: taken (points {x, z, s}, s the metres along it from here). ``eff(x, z)`` is how far a point is
 //: in the field's measure -- metres at a standstill, shorter ahead and along the route.
-export function detailField(focus, { vx = 0, vz = 0, ahead = null } = {}) {
+//: ``look``: the way the camera faces, on the ground ([x, z], a unit) -- the rings reach
+//: further in its view (DETAIL_CONE).
+export function detailField(focus, { vx = 0, vz = 0, ahead = null, look = null } = {}) {
+  const coneFull = Math.cos((DETAIL_CONE.full_deg * Math.PI) / 180), coneEdge = Math.cos((DETAIL_CONE.edge_deg * Math.PI) / 180);
   const speed = Math.hypot(vx, vz);
   const hx = speed > 0.3 ? vx / speed : 0, hz = speed > 0.3 ? vz / speed : 0;
   const stretch = stretchFor(speed), behind = speed > 0.3 ? 1 + (1 / DETAIL_BEHIND - 1) * Math.min(1, speed / 6) : 1;
@@ -52,6 +65,13 @@ export function detailField(focus, { vx = 0, vz = 0, ahead = null } = {}) {
       const along = dx * hx + dz * hz, across = dx * hz - dz * hx;
       e = Math.hypot(along > 0 ? along / stretch : along * behind, across);
     } else e = Math.hypot(dx, dz);
+    if (look) {
+      const d = Math.hypot(dx, dz);
+      if (d > 1) {
+        const c = (dx * look[0] + dz * look[1]) / d;
+        if (c > coneEdge) { const k = Math.min(1, (c - coneEdge) / (coneFull - coneEdge)); e /= 1 + (DETAIL_CONE.gain - 1) * k * k * (3 - 2 * k); }
+      }
+    }
     // Along the route: as near as its nearest point ahead, plus that point's way along it (taken
     // at the route's stretch) -- a corner two hundred metres on is drawn as one fifty away.
     if (pts) {
@@ -71,7 +91,7 @@ export function detailField(focus, { vx = 0, vz = 0, ahead = null } = {}) {
     for (let i = 0; i < rings.length; i += 1) {
       const r = rings[i];
       const bound = was === undefined || was > i ? r : r * (1 + DETAIL_HYSTERESIS);
-      if (e < bound) return i;
+      if (e < bound) return i === LOW && !DETAIL_FAR_DRAWN ? TRACKED : i;
     }
     return TRACKED;
   }
@@ -143,8 +163,8 @@ export function byTier(items, caps) {
 //: ``margin_deg``: how far outside the picture's edge still counts as in sight.
 //: ``ahead``: out of sight, the rings reach this much further.
 export const LOCK = {
-  people: { swap_m: [46, 120, 200, 240], margin_deg: 8, ahead: 1.3 },
-  cars: { swap_m: [75, 150, 260], margin_deg: 90, ahead: 1.3 },
+  people: { swap_m: [46, 120, 200, 240], margin_deg: 8, ahead: 1.5 },
+  cars: { swap_m: [75, 150, 260], margin_deg: 90, ahead: 1.5 },
 };
 
 //: The form a thing is drawn in: ``want`` (what the rings and the counts ask for), unless it is in

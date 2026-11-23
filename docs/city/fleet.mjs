@@ -139,7 +139,7 @@ export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 //: street or a driveway, walked over; a longer one is moved onto the pavement beside it -- the
 //: nearest kerb within ``kerb_reach_m``, ``out_m`` in from it, never an island (roadway again
 //: within ``island_m`` beyond), no step of it more than ``hop_m`` from the last.
-export const WALK_LEGAL = { step_m: 1, mouth_m: 16, kerb_m: 6, grow_m: 22, kerb_reach_m: 26, out_m: 0.9, island_m: 9, hop_m: 6, every: 2, search_m: 32 };
+export const WALK_LEGAL = { step_m: 1, mouth_m: 16, kerb_m: 6, grow_m: 22, kerb_reach_m: 26, out_m: 0.9, island_m: 9, hop_m: 6, every: 2, search_m: 32, spur_gap_m: 2.5, spur_share: 0.45 };
 //: How a street's drawn kerb is looked for (City.kerbOffset): at so many points along a stretch,
 //: out a step at a time to ``reach_m``; a pavement is ground with no roadway for ``clear_m``.
 export const KERB_SCAN = { points: 3, step_m: 0.5, reach_m: 42, clear_m: 9 };
@@ -1670,6 +1670,24 @@ export class City {
       const xs = crossings.filter((x) => x.s1 >= a - 1.5 && x.s0 <= b + 1.5).sort((p, q) => p.s0 - q.s0);
       if (!xs.length) {
         if (b - a > G.mouth_m && i > 0) piece(a - 0.6, b + 0.6, null, null, [X[i - 1], Z[i - 1]]);
+        else if (i > 0 && j < n && b - a >= G.step_m) {
+          // A short stretch of roadway no crossing covers. It was left as it was: walked with no
+          // look at the traffic, since only a crossing is waited at.
+          const ex = X[i - 1], ez = Z[i - 1], fx = X[j + 1], fz = Z[j + 1], gap = Math.hypot(fx - ex, fz - ez);
+          if (gap < Math.max(G.spur_gap_m, (b - a) * G.spur_share)) {
+            // Out into the road and back to the pavement it left (the walk's line doubling back
+            // through a staggered junction): cut out. They went part way into the road,
+            // stopped and came back.
+            fixes.push({ a: Math.max(0, a - G.step_m), b: Math.min(L, b + G.step_m), line: [[ex, ez], [fx, fz]], prev: null, next: null });
+            this.wallFixes ??= {}; this.wallFixes.spurs = (this.wallFixes.spurs || 0) + 1;
+          } else {
+            // Over the roadway from one side to the other where a path meets a street (no
+            // junction of streets, so no crossing was made): a crossing of its own, waited at
+            // for a gap in the traffic like any other. The crossed street's line is square to it.
+            crossings.push({ s0: Math.max(0, a - G.out_m), s1: Math.min(L, b + G.out_m), node: undefined, bearing: Math.atan2(-(fz - ez), fx - ex), signal: false, path: true });
+            this.wallFixes ??= {}; this.wallFixes.pathCrossings = (this.wallFixes.pathCrossings || 0) + 1;
+          }
+        }
       } else {
         let from = a - G.step_m, prev = null;
         for (const x of xs) {
@@ -1680,6 +1698,7 @@ export class City {
       }
       i = j;
     }
+    crossings.sort((p, q) => p.s0 - q.s0);
     if (!fixes.length) return { ...pave, crossings };
     let P = pts, SS = S;
     const pointAt = (d) => {

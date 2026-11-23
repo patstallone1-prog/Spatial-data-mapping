@@ -1136,7 +1136,7 @@ const BENCH_FRAME = 0x5c6266;      // painted cast iron
 //: (its landing and the walk up to it), or on an island or a refuge in the road -- pavement with
 //: the roadway close on both sides of it, where people cross and nobody sits. (A bench stood on
 //: the island at Chestnut and Filbert, 2026-11-23, in the middle of the legal way across.) A bus
-//: stop's own bench and shelter are placed by the stop and are not asked.
+//: stop's bench is asked too; its shelter is placed by the stop's own fit.
 const FURNITURE_ISLAND_REACH_M = 3.2, FURNITURE_CROSSING_CLEAR_M = 1.8;
 const furnitureGuardStats = { road: 0, junction: 0, driveway: 0, crossing: 0, island: 0 };
 function furnitureMisplaced(x, z) {
@@ -1450,7 +1450,10 @@ function addTransitStops(transit, creatives = {}) {
     }
     if (stop.physical === "bench" || (stop.physical === "shelter" && !shelterAt)) {
       const bx = anchor.x + nx * 0.6 - dx * 1.8, bz = anchor.z + nz * 0.6 - dz * 1.8;
-      if (!buildingAt(bx, bz) && !insideCarriageway(bx, bz, 0.1)) benches.push({ x: bx, y: anchor.y, z: bz, yaw });
+      // (Nor on an island or in the way of a crossing, bus stop or not: the bench at Chestnut
+      // Street's stop stood on the island people cross by. furnitureMisplaced.)
+      const why = buildingAt(bx, bz) || insideCarriageway(bx, bz, 0.1) ? "road" : furnitureMisplaced(bx, bz);
+      if (why) furnitureGuardStats[why] += 1; else benches.push({ x: bx, y: anchor.y, z: bz, yaw });
     }
     if (stop.painted) {
       // The zone, in the curb lane behind the stop: a box of white line and the words in it.

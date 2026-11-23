@@ -980,6 +980,8 @@ function noteFenceGate(ax, az, bx, bz) {
     const bucket = fenceGateGrid.get(key); if (bucket.at(-1) !== gate) bucket.push(gate);
   }
 }
+// (The car parks' gates, noted while this part was still to come: module 14.)
+if (typeof parkingGatesPending !== "undefined") { fenceGatesOpen = true; for (const g of parkingGatesPending.splice(0)) noteFenceGate(...g); }
 // Each line in the cells round (x, z), once.
 function* fenceLinesNear(grid, x, z) {
   const cx = Math.floor(x / FENCE_LINE_CELL_M), cz = Math.floor(z / FENCE_LINE_CELL_M), seen = new Set();
@@ -1046,8 +1048,28 @@ function pathThroughFence(x, z, ux, uz) {
   }
   return false;
 }
+//: Whether a yard fence at (x, z), running (ux, uz), would stand between a street and the front
+//: of a building: the building within FENCE_FRONT.wall_m of it on one side and the roadway
+//: within FENCE_FRONT.street_m on the other. A school's or a depot's chain link fences its open
+//: yard; where the building itself comes up to the street the building is the boundary, and the
+//: fence drawn on along its front stood a few steps before its doors (Marina Middle School on
+//: Chestnut Street, 2026-11-23).
+const FENCE_FRONT = { wall_m: 9, street_m: 10 };
+function fenceBeforeFront(x, z, ux, uz) {
+  if (typeof buildingAt !== "function" || typeof insideCarriageway !== "function") return false;
+  const nx = -uz, nz = ux;
+  for (const side of [1, -1]) {
+    let wall = false, street = false;
+    for (let d = 1.5; d <= FENCE_FRONT.wall_m && !wall; d += 1.5) wall = Boolean(buildingAt(x + nx * side * d, z + nz * side * d));
+    if (!wall) continue;
+    for (let d = 1; d <= FENCE_FRONT.street_m && !street; d += 1.5) street = insideCarriageway(x - nx * side * d, z - nz * side * d, 0);
+    if (street) return true;
+  }
+  return false;
+}
 //: The pieces of a fence from (ax, az) to (bx, bz) still to be laid: [[ax, az, bx, bz], ...].
-function fencePieces(ax, az, bx, bz) {
+//: ``yard``: a yard's fence (chain link), not laid before a building's front (fenceBeforeFront).
+function fencePieces(ax, az, bx, bz, yard = false) {
   const span = Math.hypot(bx - ax, bz - az);
   if (!(span > 0)) return [];
   const ux = (bx - ax) / span, uz = (bz - az) / span, n = Math.max(1, Math.round(span / FENCE_PIECE_STEP_M));
@@ -1056,7 +1078,7 @@ function fencePieces(ax, az, bx, bz) {
   for (let k = 0; k <= n; k += 1) {
     const t0 = span * k / n, t1 = span * (k + 1) / n, tm = (t0 + t1) / 2;
     const free = k < n && !fenceAlreadyThere(ax + ux * tm, az + uz * tm, ux, uz) && !inFenceGate(ax + ux * tm, az + uz * tm)
-      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz);
+      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz) && !(yard && fenceBeforeFront(ax + ux * tm, az + uz * tm, ux, uz));
     if (free && from === null) from = t0;
     if (!free && from !== null) {
       if (t0 - from >= FENCE_PIECE_MIN_M) pieces.push([ax + ux * from, az + uz * from, ax + ux * t0, az + uz * t0]);
@@ -1068,8 +1090,9 @@ function fencePieces(ax, az, bx, bz) {
 //: Lays what is left of a fence (fencePieces) into `sink`, and says which pieces it laid.
 //: What layFence laid, and what it left to a fence, a wall or a gate already there (m).
 const fenceLayStats = { laid_m: 0, left_m: 0 };
-function layFence(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
-  const pieces = fencePieces(ax, az, bx, bz);
+function layFence(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU, yard = false) {
+  const pieces = fencePieces(ax, az, bx, bz, yard);
+  if (yard) { const whole = Math.hypot(bx - ax, bz - az), kept = pieces.reduce((t, q) => t + Math.hypot(q[2] - q[0], q[3] - q[1]), 0); fenceLayStats.front_m = (fenceLayStats.front_m || 0) + Math.max(0, whole - kept); }
   let laid = 0;
   for (const [px, pz, qx, qz] of pieces) { groundedFencePanel(sink, px, pz, qx, qz, baseY, height, tileU, tileV); laid += Math.hypot(qx - px, qz - pz); }
   fenceLayStats.laid_m += laid;
@@ -1157,7 +1180,7 @@ function* buildFencesSteps(ground) {
         }
       }
       if (crosses) continue;
-      layFence({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile);
+      layFence({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
     }
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
