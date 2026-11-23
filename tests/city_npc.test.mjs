@@ -357,13 +357,27 @@ test("a bold runner is in bright running gear, a careful one in plain", async ()
 
 test("skin and hair from San Francisco's people, and nobody drawn paper-white", async () => {
   const { bodyFor } = await import("../docs/city/view.mjs");
-  const { SF_HERITAGE, SKIN_TONES, SKIN_LIGHTEST, luminance } = await import("../docs/city/wardrobe.mjs");
-  for (const list of Object.values(SKIN_TONES)) for (const c of list) assert.ok(luminance(c) <= SKIN_LIGHTEST, c);
-  const cache = new Map(), n = 30000, seen = {};
+  const { SF_HERITAGE, SKIN_ANCHORS, SKIN_LIGHTEST, skinTone, luminance } = await import("../docs/city/wardrobe.mjs");
+  // Every heritage has its own anchor, and its range stays under the hard limit and in its order.
+  assert.deepEqual(Object.keys(SKIN_ANCHORS).sort(), Object.keys(SF_HERITAGE).sort());
+  assert.equal(new Set(Object.values(SKIN_ANCHORS).map((a) => a.tone)).size, Object.keys(SKIN_ANCHORS).length);
+  assert.ok(SKIN_LIGHTEST <= 0.4);
+  const light = {};
+  for (const k of Object.keys(SKIN_ANCHORS)) {
+    const lo = luminance(skinTone(k, 0)), mid = luminance(skinTone(k, 0.5)), hi = luminance(skinTone(k, 1, 1));
+    assert.ok(lo < mid && mid < hi && hi <= SKIN_LIGHTEST + 0.01, `${k} ${lo} ${mid} ${hi}`);
+    light[k] = mid;
+  }
+  assert.ok(light.black < 0.12 && light.black < light.south_asian && light.south_asian < light.hispanic && light.hispanic < light.white);
+  assert.ok(luminance(skinTone("black", 1)) < luminance(skinTone("white", 0)), "the darkest white skin is lighter than the lightest black");
+  const cache = new Map(), n = 30000, seen = {}, tones = {};
   for (let i = 0; i < n; i += 1) {
     const b = bodyFor({ id: `person:${i}`, age: 30 }, cache);
     seen[b.heritage] = (seen[b.heritage] || 0) + 1;
-    assert.ok(SKIN_TONES[b.heritage].includes(b.skin));
+    const y = luminance(b.skin);
+    assert.ok(y <= SKIN_LIGHTEST + 0.01 && y >= luminance(skinTone(b.heritage, 0)) * 0.9 && y <= luminance(skinTone(b.heritage, 1, 1)) * 1.1, `${b.heritage} ${b.skin}`);
+    (tones[b.heritage] ||= new Set()).add(b.skin);
   }
+  for (const k of Object.keys(SF_HERITAGE)) assert.ok(tones[k].size > 20, `${k}: a range of tones, not a handful`);
   for (const [k, share] of Object.entries(SF_HERITAGE)) assert.ok(Math.abs(seen[k] / n - share) < 0.012, `${k} ${(seen[k] / n).toFixed(3)} vs ${share}`);
 });

@@ -965,7 +965,7 @@ diffuseColor.rgb *= kbCloth;`);
   // behind the glass -- shoulders and a head, in their own clothes' colour. That is all a
   // driver is from the street, and for the partial people (the commuters: fleet.mjs
   // commutersUpTo) it is all there is of them. Two instanced meshes for the whole street.
-  const DRIVER_SKIN = [0xf1c9a5, 0xe0ac7e, 0xc68642, 0x8d5524, 0x5c3a21, 0xf5d7bd];
+  const DRIVER_SKIN = [0xc99473, 0xc4996b, 0xb58560, 0xa97c52, 0x6b452e, 0x996a45];   // wardrobe.mjs SKIN_ANCHORS
   const DRIVER_CLOTH = [0x2f4858, 0x33658a, 0x86bbd8, 0x758e4f, 0xf6ae2d, 0xb23a48, 0x4a4e69, 0x9a8c98, 0xe9e4d8, 0x2b2d42];
   const driverBody = instanced(new THREE.BoxGeometry(0.44, 0.5, 0.26).translate(0, 0.25, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-drivers");
   const driverHead = instanced(new THREE.SphereGeometry(0.11, 10, 8).translate(0, 0.66, 0), lambert({ color: 0xffffff }), MAX_CARS, "city-driver-heads");

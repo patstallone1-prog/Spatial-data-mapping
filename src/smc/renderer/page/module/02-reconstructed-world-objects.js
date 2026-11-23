@@ -585,19 +585,30 @@ PROXY_LIGHT.fineMoving ||= { value: null };
 PROXY_LIGHT.fineMat ||= { value: new THREE.Matrix4() };
 PROXY_LIGHT.fineK ||= { value: new THREE.Vector4(0, 1 / 2048, 0.07, 0.0001) };   // strength, a texel, the look-up's step off the surface (m), the depth it is brought forward
 PROXY_LIGHT.fineDir ||= { value: new THREE.Vector3(0, 1, 0) };                    // towards the sun
+// How each material meets the sun (docs/reflectance.mjs): x its roughness (under 0: the drawn
+// material's own), y the share it mirrors head on. One uniform to a material, so the catalogue's
+// figures arrive without a program being compiled again.
+PROXY_LIGHT.optics ||= new WeakMap();
+PROXY_LIGHT.opticsPlain ||= { value: new THREE.Vector2(-1, 0.04) };
+PROXY_LIGHT.opticsOf ||= function opticsOf(material) {
+  if (!material) return PROXY_LIGHT.opticsPlain;
+  let u = PROXY_LIGHT.optics.get(material);
+  if (!u) PROXY_LIGHT.optics.set(material, u = { value: new THREE.Vector2(-1, 0.04) });
+  return u;
+};
 //: The lookup, put into a lit material's shader (``shader`` as onBeforeCompile is given it). A
 //: material with no lighting of its own (a sign, a lamp, the sky) is left as it is.
-PROXY_LIGHT.patch ||= function proxyLightPatch(shader) {
+PROXY_LIGHT.patch ||= function proxyLightPatch(shader, material) {
   const P = globalThis.__kerbsideProxyLight;
   if (!shader || shader.uniforms.kbPLMap || !shader.fragmentShader.includes("#include <lights_fragment_begin>") || !shader.vertexShader.includes("#include <project_vertex>")) return;
   const begin = THREE.ShaderChunk.lights_fragment_begin, call = "getDirectionalLightInfo( directionalLight, directLight );";
   if (!begin.includes(call)) { if (!P.missed++) console.warn("kerbside: this three.js lights differently; no shadows"); return; }
   shader.uniforms.kbPLMap = P.map; shader.uniforms.kbPLBounce = P.bounce; shader.uniforms.kbPLBox = P.box; shader.uniforms.kbPLK = P.k; shader.uniforms.kbPLSun = P.sun; shader.uniforms.kbPLLampMap = P.lampMap; shader.uniforms.kbPLLamp = P.lamp;
-  shader.uniforms.kbFSMap = P.fineMap; shader.uniforms.kbFSMoving = P.fineMoving; shader.uniforms.kbFSMat = P.fineMat; shader.uniforms.kbFSK = P.fineK; shader.uniforms.kbFSDir = P.fineDir;
+  shader.uniforms.kbFSMap = P.fineMap; shader.uniforms.kbFSMoving = P.fineMoving; shader.uniforms.kbFSMat = P.fineMat; shader.uniforms.kbFSK = P.fineK; shader.uniforms.kbFSDir = P.fineDir; shader.uniforms.kbSOpt = P.opticsOf(material);
   shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;")
     .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbPLp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbPLp = instanceMatrix * kbPLp;\n#endif\nkbPLw = (modelMatrix * kbPLp).xyz; }");
   shader.fragmentShader = shader.fragmentShader
-    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun; uniform sampler2D kbPLLampMap; uniform vec4 kbPLLamp;\nuniform sampler2D kbFSMap; uniform sampler2D kbFSMoving; uniform mat4 kbFSMat; uniform vec4 kbFSK; uniform vec3 kbFSDir;\nfloat kbFSLit(vec2 kbFSuv, float kbFSz) { return step(kbFSz, min(texture2D(kbFSMap, kbFSuv).r, texture2D(kbFSMoving, kbFSuv).r)); }")
+    .replace("#include <common>", "#include <common>\nvarying vec3 kbPLw;\nuniform sampler2D kbPLMap; uniform sampler2D kbPLBounce; uniform vec4 kbPLBox; uniform vec4 kbPLK; uniform vec3 kbPLSun; uniform sampler2D kbPLLampMap; uniform vec4 kbPLLamp;\nuniform sampler2D kbFSMap; uniform sampler2D kbFSMoving; uniform mat4 kbFSMat; uniform vec4 kbFSK; uniform vec3 kbFSDir; uniform vec2 kbSOpt;\nfloat kbFSLit(vec2 kbFSuv, float kbFSz) { return step(kbFSz, min(texture2D(kbFSMap, kbFSuv).r, texture2D(kbFSMoving, kbFSuv).r)); }")
     .replace("#include <lights_fragment_begin>", `float kbLit = 1.0, kbSky = 1.0; vec3 kbBnc = vec3(0.0);
 if (kbPLK.w > 0.0) {
   vec3 kbN = inverseTransformDirection(normal, viewMatrix);
@@ -650,7 +661,7 @@ irradiance = irradiance * kbSky + kbBnc;
   #ifdef KB_GLOSS
   float kbSR = KB_GLOSS, kbSF0 = 0.05;
   #else
-  float kbSR = clamp(roughnessFactor, 0.08, 1.0), kbSF0 = 0.04;
+  float kbSR = clamp(kbSOpt.x > 0.0 ? kbSOpt.x : roughnessFactor, 0.08, 1.0), kbSF0 = kbSOpt.y;
   #endif
   vec3 kbSV = normalize(vViewPosition), kbSL = directionalLights[0].direction, kbSH = normalize(kbSL + kbSV);
   float kbSNL = max(dot(normal, kbSL), 0.0), kbSNV = max(dot(normal, kbSV), 0.001), kbSNH = max(dot(normal, kbSH), 0.0), kbSVH = max(dot(kbSV, kbSH), 0.0);
@@ -663,6 +674,16 @@ irradiance = irradiance * kbSky + kbBnc;
   reflectedLight.directSpecular += kbSpec;
   #else
   reflectedLight.directDiffuse += kbSpec;
+  #endif
+  // Gloss paint mirrors the sky as well as the sun: little seen square on, most of it along a
+  // bonnet or a roof at a glancing angle, the open sky above and the dark street below. (Paint
+  // on the full material has the sky from its own reflection.)
+  #if defined( KB_GLOSS ) && !defined( STANDARD ) && NUM_HEMI_LIGHTS > 0
+  {
+    vec3 kbSRw = inverseTransformDirection(reflect(-kbSV, normal), viewMatrix);
+    float kbSFv = kbSF0 + (1.0 - kbSF0) * pow(1.0 - kbSNV, 5.0);
+    reflectedLight.directDiffuse += hemisphereLights[0].skyColor * (mix(0.15, 1.0, smoothstep(-0.1, 0.3, kbSRw.y)) * kbSFv * kbSky);
+  }
   #endif
 }
 #endif`)
@@ -916,7 +937,7 @@ const PLAIN_LIGHT = globalThis.__kerbsidePlainLight ||= {
 if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
   const hook = function (shader) {
     globalThis.__kerbsidePlainLight?.patch(shader, this);
-    globalThis.__kerbsideProxyLight.patch(shader);
+    globalThis.__kerbsideProxyLight.patch(shader, this);
     const N = globalThis.__kerbsideNearSurface, kind = N?.kindOf(this);
     if (kind) N.patch(shader, kind);
   };
@@ -958,6 +979,15 @@ if(!ATTACH) {
     fineShadowController=createFineShadows({THREE,renderer,scene,sun,uniforms:PROXY_LIGHT});
     window.kerbsideFineShadows=()=>fineShadowController;
   }).catch((error)=>console.warn("kerbside: no fine shadows",error));
+  // Each material's own roughness and mirrored share, from the object catalogue
+  // (docs/reflectance.mjs): given as streets arrive, a little at a time and only to what is new.
+  if(!META)Promise.all([import(sharedAsset("reflectance.mjs")),objectCatalogueReady]).then(([{createReflectance},ready])=>{
+    if(!ready)return;
+    const reflectance=createReflectance({catalogue:ready.catalogue,set:(m,roughness,specular)=>PROXY_LIGHT.opticsOf(m).value.set(roughness,specular)});
+    window.kerbsideReflectance=()=>({...reflectance.stats(),apply:()=>reflectance.apply(scene)});
+    reflectance.apply(scene);
+    setInterval(()=>(window.requestIdleCallback||setTimeout)(()=>reflectance.apply(scene)),6000);
+  }).catch((error)=>console.warn("kerbside: no per-material reflectance",error));
   import(sharedAsset("environment-runtime.mjs")).then(({createEnvironment})=>{
   environmentController=createEnvironment({THREE,scene,renderer,camera,sun,ambient:amb,lat:midLat,lon:midLon,night:NIGHT,asset:sharedAsset});
   // Made after the mode was first set, as often as not: the city's sky is on the game's clock.
