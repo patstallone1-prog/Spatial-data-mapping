@@ -188,7 +188,9 @@ def test_a_road_tree_requires_a_surveyed_island_outside_a_junction() -> None:
     js = _page_js()
     start = js.index("const islandTrees = [];")
     block = js[start:js.index("addTreeIslands(islandTrees);", start)]
-    assert "if (!insideCarriageway(tx,tz,0)) return true;" in block
+    assert "if (!insideCarriageway(tx,tz,0)) {" in block
+    # A trunk on the roadway's very edge is not a tree on the pavement: it is dropped.
+    assert "if (insideCarriageway(tx,tz,-TREE_ROAD_CLEAR_M)) { treeSquareStats.kerbEdge += 1; return false; }" in block
     assert "if (!tree.island || insideJunctionBox(tx, tz))" in block
     junction = block.index("treeIslandStats.junction += 1;")
     assert "return false;" in block[junction:junction + 60]
