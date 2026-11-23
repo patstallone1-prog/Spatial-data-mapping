@@ -239,7 +239,9 @@ process.stdout.write(JSON.stringify({kerbGap, inDeep, inBulb: [Math.min(...inBul
     assert r["inDeep"] == 0, "no pan out in the road where no drawn kerb is near"
     assert abs(r["width"] - 0.45) < 0.02 and r["sides"] == 2
     assert r["seenFrom"] is not None and r["seenFrom"] >= 19.5, "none where the photograph shows none"
-    assert r["colour"] == 0x66665F, "the kerb's weathered concrete, not a pale band"
+    # Weathered concrete between the asphalt and the walk: a flat olive band (0x66665f) read as a
+    # strip of paint down Lombard Street's median; the page also gives it a grained, jointed map.
+    assert r["colour"] == 0x8C8A83, "the kerb's weathered concrete, not a pale band"
 
 
 def test_the_page_asks_the_photograph_before_it_lays_a_pan():

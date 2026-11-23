@@ -50,8 +50,8 @@ export const PROXY = {
   march_steps: 112, march_even: 64, march_growth: 0.14,   // a texel a step for the first 64, then longer strides
   fade_per_s: 2.5,
   tiles: 3,                   // the stand-in is drawn a ninth a frame (tiles x tiles), so no frame pays for all of it
-  lamp_size: 512, lamp_reach_m: 15, lamp_peak: 0.55,   // a street lamp's pool: how far it reaches, how bright under it
-  lamp_colour: [1.0, 0.84, 0.62], lamp_strength: 1.5,  // warm white; against the night's own light
+  lamp_size: 512, lamp_reach_m: 17, lamp_peak: 0.7,    // a street lamp's pool: how far it reaches, how bright under it
+  lamp_colour: [1.0, 0.84, 0.62], lamp_strength: 2.4,  // warm white; against the night's own light (1.5 barely showed)
   dapple: 0.6,                // how much light comes through a tree's shadow, in patches
 };
 

@@ -155,7 +155,8 @@ def test_lane_offsets_outside_the_drawn_carriageway_are_not_painted():
 
 def test_recorded_walk_width_cannot_bypass_measured_curb_fit():
     js = _page_js()
-    assert "const fitted = walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);" in js
+    # Every piece laid is fitted (a footpath's runs off the streets, or the walk whole).
+    assert "const fitted = walkWidthAgainstMeasuredKerbs(piece, widthMeters);" in js
     assert "const fitted = way.walk_m ? widthMeters" not in js
 
 

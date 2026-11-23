@@ -15,7 +15,7 @@ export const SIZE = {
   gutter: 0.46, wetRun: 9.0, kerbReach: 3.5,
 };
 const COLOUR = {
-  iron: 0x2e2c29, slot: 0x080807, gutter: 0x66665f, apron: 0x7f7c75, wet: 0x262a2c,
+  iron: 0x2e2c29, slot: 0x080807, gutter: 0x8c8a83, apron: 0x7f7c75, wet: 0x262a2c,
   creek: 0x3f5a52, river: 0x3b5d6a, dry: 0x9c9077, bank: 0x5a4d3a,
   tank: 0xc4c2b2, tower: 0xb9c1bd, concrete: 0xb3b0a6, effluent: 0x56623f, clear: 0x4b6a72,
 };
@@ -102,6 +102,26 @@ function asColour(THREE, texture) {
   return texture;
 }
 
+function gutterTexture(THREE, doc) {
+  const c = canvas(doc, 192, 32, (g, w, h) => {
+    g.fillStyle = "#8c8a83"; g.fillRect(0, 0, w, h);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 1400; i += 1) {
+      const v = 120 + Math.floor(rnd() * 70);
+      g.fillStyle = `rgba(${v},${v - 2},${v - 8},0.35)`;
+      g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 1 + Math.floor(rnd() * 2), 1);
+    }
+    // The darker lip against the kerb, where grit lies, and the joint scored across the pan.
+    g.fillStyle = "rgba(70,68,62,0.35)"; g.fillRect(0, 0, w, 3);
+    g.fillStyle = "rgba(55,53,48,0.8)"; g.fillRect(0, 0, 2, h);
+  });
+  if (!c) return null;
+  const t = asColour(THREE, new THREE.CanvasTexture(c));
+  t.wrapS = THREE.RepeatWrapping;
+  return t;
+}
+
 function lidTexture(THREE, doc, word) {
   const c = canvas(doc, 128, 128, (g, w) => {
     const r = w / 2;
@@ -125,6 +145,21 @@ function lidTexture(THREE, doc, word) {
 export const GUTTER_LIFT_M = 0.03;
 //: How far a gutter sample may be moved to reach the kerb the page drew (m).
 export const GUTTER_SNAP_M = 1.2;
+//: How far past a kerb the roadway may come back for that kerb to be an island's (m): a median
+//: or a traffic island has no gutter pan of its own -- a pan laid along one was a flat olive strip
+//: down the middle of Lombard Street and over Richardson Avenue's centre lines (2026-11-22).
+export const ISLAND_REACH_M = 4;
+//: Is the kerb at (x, z), facing out of the road along (nx, nz), an island's: roadway again
+//: within ISLAND_REACH_M behind it?
+export function islandKerb(onRoad, x, z, nx, nz, reach = ISLAND_REACH_M) {
+  for (let d = 1; d <= reach + 1e-9; d += 0.75) if (onRoad(x + nx * d, z + nz * d, 0)) return true;
+  return false;
+}
+//: The pan's concrete, a tile JOINT_M long: a weathered grey with its grain and the scored joint
+//: across it, not one flat colour (a flat olive band read as paint, or a hole, beside the walk).
+export const GUTTER_JOINT_M = 3;
+//: How far the wet line leading to a drain may be from the kerb the page drew and still go on (m).
+export const WET_KERB_M = 0.6;
 
 //: Kerb segments ([ax, az, bx, bz, half]) as blocks: runs that go straight on, end to start,
 //: at one width -- a street between two corners, however many pieces its line is drawn in.
@@ -279,7 +314,7 @@ export function buildWaterworks(THREE, tiles, {
 
   // ---- gutters: a concrete pan along every kerb, falling to the kerb ---------------------------------------
   if (!headset) {
-    const pos = [], idx = [];
+    const pos = [], idx = [], uv = [];
     // A metre a vertex, half the terrain grid's step, and a hand's width over the ground. The
     // road under it is cut on the terrain grid and runs straight between its nodes; the pan,
     // sampled every two metres at a few millimetres over the ground, ran straight between points
@@ -338,9 +373,12 @@ export function buildWaterworks(THREE, tiles, {
             const facing = k && Number.isFinite(k.x) && Number.isFinite(k.nx) && k.nx * nx + k.nz * nz > 0.8
               && Math.hypot(k.x - ex, k.z - ez) <= GUTTER_SNAP_M;
             if (facing) snapped += 1;
-            samples.push(facing
+            const s = facing
               ? { ex: k.x, ez: k.z, nx: k.nx, nz: k.nz, onKerb: true, kerbed: inArea(k.x, k.z) }
-              : { ex, ez, nx, nz, onKerb: false, kerbed: inArea(ex, ez) && !onRoad(ex + nx * 0.45, ez + nz * 0.45, 0.3) && (!measured || onRoad(ex - nx * 0.6, ez - nz * 0.6, 0.3)) });
+              : { ex, ez, nx, nz, onKerb: false, kerbed: inArea(ex, ez) && !onRoad(ex + nx * 0.45, ez + nz * 0.45, 0.3) && (!measured || onRoad(ex - nx * 0.6, ez - nz * 0.6, 0.3)) };
+            // (A median's or an island's kerb: no pan.)
+            if (s.kerbed && measured && islandKerb(onRoad, s.ex, s.ez, s.nx, s.nz)) s.kerbed = false;
+            samples.push(s);
           }
         }
         // (A page that draws kerbs: only the samples on one carry the pan. One that gives none --
@@ -350,7 +388,7 @@ export function buildWaterworks(THREE, tiles, {
         // asphalt has none.
         for (const s of samples) if (s.kerbed && !gutterSeen(s.ex, s.ez)) s.kerbed = false;
         const keep = gutterRuns(samples.map((s) => s.kerbed));
-        let open = false;
+        let open = false, along = 0;
         for (let i = 0; i < samples.length; i += 1) {
           const s = samples[i];
           // (A break closed over samples that found no drawn kerb is still left open: they lie
@@ -360,8 +398,10 @@ export function buildWaterworks(THREE, tiles, {
           if (open && i && Math.hypot(s.ex - samples[i - 1].ex, s.ez - samples[i - 1].ez) < 0.05) continue;
           const y = level(s.ex, s.ez) + roadTop;
           const base = pos.length / 3;
+          along = open ? along + Math.hypot(s.ex - samples[i - 1].ex, s.ez - samples[i - 1].ez) : 0;
           pos.push(s.ex - s.nx * 0.01, y + GUTTER_LIFT_M, s.ez - s.nz * 0.01,
             s.ex - s.nx * SIZE.gutter, y + GUTTER_LIFT_M + 0.004, s.ez - s.nz * SIZE.gutter);
+          uv.push(along / GUTTER_JOINT_M, 0, along / GUTTER_JOINT_M, 1);
           if (open) idx.push(base - 2, base - 1, base, base - 1, base + 1, base);
           counts.gutters_m += open ? step : 0;
           open = true;
@@ -371,11 +411,14 @@ export function buildWaterworks(THREE, tiles, {
     if (idx.length) {
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
       g.setIndex(idx);
       g.computeVertexNormals();
       // Painted onto the road without writing depth, before the drains: a grate or a lid always
       // lies on the pan, never under it, whatever a few millimetres of interpolation say.
-      const mesh = new THREE.Mesh(g, std(COLOUR.gutter, { polygonOffset: true, polygonOffsetFactor: -1, depthWrite: false }));
+      const panMap = keep(gutterTexture(THREE, doc));
+      const mesh = new THREE.Mesh(g, std(panMap ? 0xffffff : COLOUR.gutter,
+        { map: panMap, polygonOffset: true, polygonOffsetFactor: -1, depthWrite: false }));
       mesh.renderOrder = 1;
       mesh.name = "waterworks-gutters";
       mesh.userData = { surface: "waterworks:gutter" };
@@ -438,13 +481,21 @@ export function buildWaterworks(THREE, tiles, {
       const ax = seat.kx - seat.nx * SIZE.apronAcross / 2, az = seat.kz - seat.nz * SIZE.apronAcross / 2;
       placed.apron.push(pose(ax, road + GUTTER_LIFT_M + 0.006, az, yaw, SIZE.apronAlong, 1, SIZE.apronAcross));
       // The gutter's wet line leading down to it from the side (or sides) it drains.
+      // It follows the kerb as drawn, and ends where the kerb turns away: laid straight on from
+      // a drain near a corner it ran out across the road, or over the walk round the curve, a
+      // glossy stripe that mirrored the sky blue (Marina Boulevard, Avila Street, 2026-11-22).
       for (const { side } of uphillSides(seat, level)) {
         for (let i = 0; i <= 6; i += 1) {
           const t = 0.5 + (SIZE.wetRun - 0.5) * (i / 6), w = 0.24 * (1 - i / 7) + 0.04;
-          const cx = seat.kx + seat.ax * t * side - seat.nx * 0.1, cz = seat.kz + seat.az * t * side - seat.nz * 0.1;
+          const lx = seat.kx + seat.ax * t * side, lz = seat.kz + seat.az * t * side;
+          const k = kerb(lx, lz, WET_KERB_M);
+          const along = k && Number.isFinite(k.x) && Number.isFinite(k.nx) && k.nx * seat.nx + k.nz * seat.nz > 0.8
+            && Math.hypot(k.x - lx, k.z - lz) <= WET_KERB_M;
+          if (!along) break;
+          const cx = k.x - k.nx * 0.1, cz = k.z - k.nz * 0.1;
           const y = level(cx, cz) + roadTop + GUTTER_LIFT_M + 0.008;   // on the pan, not under it
           const base = wetPos.length / 3;
-          wetPos.push(cx, y, cz, cx - seat.nx * w, y, cz - seat.nz * w);
+          wetPos.push(cx, y, cz, cx - k.nx * w, y, cz - k.nz * w);
           if (i) wetIdx.push(base - 2, base - 1, base, base - 1, base + 1, base);
         }
       }
@@ -498,7 +549,9 @@ export function buildWaterworks(THREE, tiles, {
     g.setAttribute("position", new THREE.Float32BufferAttribute(wetPos, 3));
     g.setIndex(wetIdx);
     g.computeVertexNormals();
-    const mesh = new THREE.Mesh(g, std(COLOUR.wet, { roughness: 0.3, transparent: true, opacity: 0.55,
+    // Damp concrete darkens; it does not shine: at a roughness of 0.3 the line mirrored the sky,
+    // a blue stripe along the kerb.
+    const mesh = new THREE.Mesh(g, std(COLOUR.wet, { roughness: 0.9, transparent: true, opacity: 0.45,
       depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }));
     mesh.renderOrder = 3;
     mesh.name = "waterworks-gutter-flow";

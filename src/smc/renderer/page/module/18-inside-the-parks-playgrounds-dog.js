@@ -333,10 +333,11 @@ function rubberTexture(hex) {
 }
 
 //: A fence round the outline, open where each gate is, with the gate leaf swung inward.
-function fenceArea(area, pts, height, kind, sink) {
+//: The ways into a fenced park area: its recorded gates, or with none, one in the middle of its
+//: longest side, recorded as a fallback.
+function parkAreaGates(area, pts) {
   const gates = (area.gates || []).map((g) => { const [x, y] = xy(g.p[0], g.p[1]); return { x, z: -y, w: g.width_m || 1.2 }; });
   if (!gates.length) {
-    // No path anywhere near: a gate in the middle of the longest side, recorded as a fallback.
     let best = null;
     for (let i = 0; i + 1 < pts.length; i += 1) {
       const span = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
@@ -344,6 +345,40 @@ function fenceArea(area, pts, height, kind, sink) {
     }
     if (best) gates.push({ x: best.x, z: best.z, w: 1.2, fallback: true });
   }
+  return gates;
+}
+//: Every fenced park area's gates, noted (noteFenceGate) before any fence is laid: a property's
+//: or a mapped fence along a playground's side keeps the playground's way in open.
+//: How high a walk gate's bar is over the ground at its underside (m): clear of a walker's head
+//: from a walk or a kerb half a metre up.
+const GATE_BAR_CLEAR_M = 2.55;
+//: The narrowest way in drawn (m, post to post): a walker is 0.6 m across, and a post 0.14.
+const GATE_MIN_W_M = 1.1;
+function noteParkAreaGates(areas) {
+  let noted = 0;
+  for (const area of areas || []) {
+    if (!(area.kind === "playground" || area.kind === "garden" || (area.kind === "dog_area" && area.fence))) continue;
+    const pts = pageRing(area.p);
+    if (pts.length < 4) continue;
+    for (const gate of parkAreaGates(area, pts)) {
+      let best = null;
+      for (let i = 0; i + 1 < pts.length; i += 1) {
+        const [ax, az] = pts[i], [bx, bz] = pts[i + 1], span = Math.hypot(bx - ax, bz - az);
+        if (span < 0.3) continue;
+        const ux = (bx - ax) / span, uz = (bz - az) / span, t = (gate.x - ax) * ux + (gate.z - az) * uz;
+        const off = Math.abs(-(gate.x - ax) * uz + (gate.z - az) * ux);
+        if (t > -0.3 && t < span + 0.3 && off < 0.6 && (!best || off < best.off)) best = { off, ax, az, ux, uz, t, span };
+      }
+      if (!best) continue;
+      const lo = Math.max(0, best.t - gate.w / 2), hi = Math.min(best.span, best.t + gate.w / 2);
+      noteFenceGate(best.ax + best.ux * lo, best.az + best.uz * lo, best.ax + best.ux * hi, best.az + best.uz * hi);
+      noted += 1;
+    }
+  }
+  return noted;
+}
+function fenceArea(area, pts, height, kind, sink) {
+  const gates = parkAreaGates(area, pts);
   let cx = 0, cz = 0;
   for (const [x, z] of pts) { cx += x; cz += z; }
   cx /= pts.length; cz /= pts.length;
@@ -373,9 +408,12 @@ function fenceArea(area, pts, height, kind, sink) {
         if (insideCarriageway(x0 + (x1 - x0) * f, z0 + (z1 - z0) * f, 0.15)) { crosses = true; break; }
       }
       if (crosses) continue;
-      sink.quad(x0, z0, x1, z1, height, hi - lo);
-      for (let d = 0; d <= hi - lo + 0.01; d += 2.4) sink.posts.push([x0 + ux * d, z0 + uz * d, height + 0.1, 0.045]);
-      sink.posts.push([x1, z1, height + 0.1, 0.045]);
+      // What no other fence or wall already carries (layFence), with its posts.
+      for (const [p0x, p0z, p1x, p1z] of sink.fence(x0, z0, x1, z1, height)) {
+        const piece = Math.hypot(p1x - p0x, p1z - p0z);
+        for (let d = 0; d <= piece + 0.01; d += 2.4) sink.posts.push([p0x + ux * d, p0z + uz * d, height + 0.1, 0.045]);
+        sink.posts.push([p1x, p1z, height + 0.1, 0.045]);
+      }
     }
     for (const [lo, hi, gate] of cuts) {
       // Gate posts either side; the leaf hinged on one and swung 70 degrees into the area.
@@ -395,6 +433,7 @@ function fenceSink() {
   sink.quad = (x0, z0, x1, z1, h, span) => {
     groundedFencePanel(sink,x0,z0,x1,z1,PLAYGROUND_Y,h,1,h);
   };
+  sink.fence = (x0, z0, x1, z1, h) => layFence(sink, x0, z0, x1, z1, PLAYGROUND_Y, h, 1, h);
   return sink;
 }
 function emitFence(sink, material, surface) {
@@ -689,6 +728,9 @@ async function buildPropertyFences() {
   const sinks = new Map(), frames = [];
   const sinkOf = (style) => { if (!sinks.has(style)) sinks.set(style, { positions: [], uvs: [], indices: [], posts: [] }); return sinks.get(style); };
   const toPage = (p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; };
+  // Every property's runs and ways in first, and every way in noted (noteFenceGate) before any
+  // panel is laid: a neighbour's fence along a shared line keeps this one's gate open.
+  const cut = [];
   let k = 0;
   for (const prop of data.properties) {
     if (((k += 1) & 7) === 0) await new Promise((r) => setTimeout(r));
@@ -700,25 +742,35 @@ async function buildPropertyFences() {
     for (const run of prop.runs || []) sets.push({ style: run.style, h: run.height_m, runs: api.fenceRuns([run.p.map(toPage)], { blocked: recordedBlocked }) });
     const runs = sets.flatMap((g) => g.runs.map((run) => ({ ...run, style: g.style, h: g.h })));
     if (!runs.length) continue;
-    const known = (prop.gates || []).map((g) => { const [x, z] = toPage(g.p); return { x, z, w: g.width_m, src: g.src }; });
+    // (A recorded way in is at least GATE_MIN_W_M across: a half-metre gate was drawn, and no
+    // walker fits through one.)
+    const known = (prop.gates || []).map((g) => { const [x, z] = toPage(g.p); return { x, z, w: g.width_m ? Math.max(GATE_MIN_W_M, g.width_m) : g.width_m, src: g.src }; });
     const gates = api.placeGates(runs, { known, score: gateScore, drive: prop.kind === "parking", rules: { max_between_m: data.rules.gate_max_between_m, min_apart_m: data.rules.gate_min_apart_m } });
     stats.properties += 1; stats.by_kind[prop.kind] = (stats.by_kind[prop.kind] || 0) + 1;
     runs.forEach((run, i) => {
       const { panels, openings } = api.cutGates(run, gates.filter((g) => g.run === i));
-      const sink = sinkOf(run.style), tile = run.style === "chain_link" ? 0.6 : run.style === "board" || run.style === "wall" || run.style === "hedge" ? 1.5 : 1;
-      for (const panel of panels) for (let j = 0; j + 1 < panel.length; j += 1) {
-        const [ax, az] = panel[j], [bx, bz] = panel[j + 1], span = Math.hypot(bx - ax, bz - az);
-        if (span < 0.2) continue;
-        groundedFencePanel(sink, ax, az, bx, bz, YARD_Y, run.h, tile, run.style === "chain_link" ? 0.4 : run.h);
+      for (const o of openings) noteFenceGate(o.a[0], o.a[1], o.b[0], o.b[1]);
+      cut.push({ run, panels, openings });
+    });
+  }
+  for (const { run, panels, openings } of cut) {
+    if (((k += 1) & 15) === 0) await new Promise((r) => setTimeout(r));
+    const sink = sinkOf(run.style), tile = run.style === "chain_link" ? 0.6 : run.style === "board" || run.style === "wall" || run.style === "hedge" ? 1.5 : 1;
+    for (const panel of panels) for (let j = 0; j + 1 < panel.length; j += 1) {
+      const [sx, sz] = panel[j], [ex, ez] = panel[j + 1];
+      if (Math.hypot(ex - sx, ez - sz) < 0.2) continue;
+      // Only what no other fence or wall already carries (layFence), with its posts.
+      for (const [ax, az, bx, bz] of layFence(sink, sx, sz, ex, ez, YARD_Y, run.h, tile, run.style === "chain_link" ? 0.4 : run.h)) {
+        const span = Math.hypot(bx - ax, bz - az);
         stats.fence_m += span;
         for (let d = 0; d < span; d += 2.8) sink.posts.push([ax + (bx - ax) * d / span, az + (bz - az) * d / span, run.h + 0.08]);
         sink.posts.push([bx, bz, run.h + 0.08]);
       }
-      for (const o of openings) {
-        frames.push({ ...o, h: run.h, drive: o.w > 3 });
-        stats.gates += 1; if (o.basis === "recorded") stats.gates_recorded += 1; else stats.gates_inferred += 1;
-      }
-    });
+    }
+    for (const o of openings) {
+      frames.push({ ...o, h: run.h, drive: o.w > 3 });
+      stats.gates += 1; if (o.basis === "recorded") stats.gates_recorded += 1; else stats.gates_inferred += 1;
+    }
   }
   const chainMap = chainlinkTexture(), barMap = playFenceTexture();
   const materialOf = (style) => style === "chain_link" ? new THREE.MeshStandardMaterial({ map: chainMap, alphaTest: 0.55, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.45, color: 0xc6ced2 })
@@ -745,11 +797,14 @@ async function buildPropertyFences() {
     }
   }
   // The ways in: a clear opening, a dark post each side and (a walk gate) a dark bar over it, so
-  // it reads as a doorway in the fence from down the street.
+  // it reads as a doorway in the fence from down the street. The bar stands GATE_BAR_CLEAR_M
+  // over the ground: at 2.1 m it was under a walker's head clearance (the object catalogue's
+  // 2.0 m over the feet) for anyone coming off a raised walk, and the open gate was a wall from
+  // that side -- a hole in the fence you could see through and not walk through (2026-11-22).
   if (frames.length) {
     const parts = [];
     for (const f of frames) {
-      const top = f.drive ? f.h + 0.25 : Math.max(2.25, f.h + 0.3), ux = (f.b[0] - f.a[0]) / (f.w || 1), uz = (f.b[1] - f.a[1]) / (f.w || 1), yaw = Math.atan2(-uz, ux);
+      const top = f.drive ? f.h + 0.25 : Math.max(GATE_BAR_CLEAR_M + 0.14, f.h + 0.3), ux = (f.b[0] - f.a[0]) / (f.w || 1), uz = (f.b[1] - f.a[1]) / (f.w || 1), yaw = Math.atan2(-uz, ux);
       const ya = groundLiftAt(f.a[0], f.a[1]) + YARD_Y, yb = groundLiftAt(f.b[0], f.b[1]) + YARD_Y;
       parts.push([f.a[0], ya + top / 2, f.a[1], 0.14, top, 0.14, yaw], [f.b[0], yb + top / 2, f.b[1], 0.14, top, 0.14, yaw]);
       if (!f.drive) parts.push([(f.a[0] + f.b[0]) / 2, Math.max(ya, yb) + top - 0.07, (f.a[1] + f.b[1]) / 2, f.w + 0.14, 0.14, 0.14, yaw]);
@@ -994,9 +1049,13 @@ const groundReady = (async () => {
     || (parkRing(x, z) && !excludeParkAt(x, z)) || plantedRing(x, z));
   for (const mesh of addFrontageSetbacks(lawnDrawnAt)) addGround(mesh, "walk");
   window.kerbsideFrontageSetbacks = frontageSetbackStats;
-  await runStepsSliced(buildFencesSteps(ground));
-  // The fences on property lines: schools, yards, the parks' surveyed ones, the closed car parks.
+  // The fences, one layer to a boundary (layFence): the park areas' ways in noted first, then the
+  // property lines -- schools, yards, the parks' surveyed ones, the closed car parks -- with their
+  // ways in, then the ground's mapped and inferred fences where neither already stands. The courts
+  // and the park areas' own fences come later, and carry on from whatever is there.
+  window.kerbsideFenceGates = noteParkAreaGates(PARK_EVIDENCE?.areas || []);
   window.kerbsidePropertyFences = await buildPropertyFences().catch((error) => { console.warn("kerbside: property fences", error); return null; });
+  await runStepsSliced(buildFencesSteps(ground));
 
   // ---- tree pits ----
   //
@@ -1356,6 +1415,7 @@ const groundReady = (async () => {
   buildCourts(ground);
   // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
+  window.kerbsideFenceLayers = fenceLayStats;
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
   // The near tier: which instance each tree is, now that they stand where they will be drawn.

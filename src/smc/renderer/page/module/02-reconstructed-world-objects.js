@@ -466,8 +466,12 @@ function patchMaterial(material, key, patch) {
   material.needsUpdate = true;
   return material;
 }
-//: Windows that light at night: a share of them (by a hash of where each is, a window or so a
-//: cell) glow warm through the glass -- the dark panes, not the frame -- and turn nearly opaque.
+//: Windows that light at night: a share of them (by a hash of where each is) glow warm through
+//: the glass -- the dark panes, not the frame -- and turn nearly opaque. A window is lit or dark
+//: whole: the hash is of its middle, found from its picture's own coordinates (each window, or
+//: each repeat of a window picture, is one unit square of them), not of the point being drawn.
+//: Hashed by the point, a window across the edge of a hash cell was lit on one side and dark on
+//: the other -- "part of it blocked" (2026-11-22).
 function nightWindows(material) {
   return patchMaterial(material, "kbNightWindows", (sh) => {
     sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbLit = NIGHT.lit; sh.uniforms.kbWarm = NIGHT.warm;
@@ -475,7 +479,19 @@ function nightWindows(material) {
       .replace("#include <project_vertex>", "#include <project_vertex>\nvec4 kbP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbP = instanceMatrix * kbP;\n#endif\nkbWP = (modelMatrix * kbP).xyz;");
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 kbWP;\nuniform float kbNight; uniform float kbLit; uniform vec3 kbWarm;")
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
-{ vec3 kbCell = floor(kbWP / vec3(1.7, 2.9, 1.7));
+{ vec3 kbMidW = kbWP;
+#ifdef USE_MAP
+  { vec2 kbU = vMapUv, kbDx = dFdx(kbU), kbDy = dFdy(kbU);
+    vec3 kbPx = dFdx(kbWP), kbPy = dFdy(kbWP);
+    float kbDet = kbDx.x * kbDy.y - kbDx.y * kbDy.x;
+    if (abs(kbDet) > 1e-14) {
+      // The face's change in the world per unit of u and of v, and from there the window's middle.
+      vec3 kbPu = (kbPx * kbDy.y - kbPy * kbDx.y) / kbDet, kbPv = (kbPy * kbDx.x - kbPx * kbDy.x) / kbDet;
+      vec2 kbMid = floor(kbU) + 0.5;
+      kbMidW = kbWP + kbPu * (kbMid.x - kbU.x) + kbPv * (kbMid.y - kbU.y);
+    } }
+#endif
+  vec3 kbCell = floor(kbMidW / vec3(1.1, 1.4, 1.1));
   float kbH = fract(sin(dot(kbCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
   float kbOn = kbNight * step(kbH, kbLit);
   float kbGlass = 1.0 - smoothstep(0.32, 0.6, dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)));
@@ -491,6 +507,36 @@ function nightLitFace(material, strength = 0.6) {
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kbNight; uniform float kbFace;")
       .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * kbNight * kbFace;");
   });
+}
+//: A lamp's lens or globe: its glow at night is ``strength`` times its own emissive colour, on top
+//: of the little it shows by day -- a street lamp is on after dark, not the same grey glint all day.
+function nightLamp(material, strength = 3.0) {
+  return patchMaterial(material, "kbNightLamp", (sh) => {
+    sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbLampGlow = { value: strength };
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kbNight; uniform float kbLampGlow;")
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += emissive * kbNight * kbLampGlow;");
+  });
+}
+//: The glow round each lamp at night, seen from down the street: a soft disc ``size`` metres
+//: across at every point of ``positions`` ([x, y, z, ...]), added to what is behind it, gone by day.
+function nightLampGlow(positions, size = 2.6, colour = 0xffd9a0) {
+  if (!positions.length) return null;
+  const canvas = document.createElement("canvas"); canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext("2d"), g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.18, "rgba(255,255,255,0.55)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  const material = new THREE.PointsMaterial({ map: new THREE.CanvasTexture(canvas), color: colour, size, sizeAttenuation: true,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  patchMaterial(material, "kbNightLampGlow", (sh) => {
+    sh.uniforms.kbNight = NIGHT.night;
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float kbNight;")
+      .replace("#include <opaque_fragment>", "diffuseColor.a *= kbNight;\n#include <opaque_fragment>");
+  });
+  const points = new THREE.Points(geometry, material);
+  points.frustumCulled = false;
+  return points;
 }
 //: A figure's rim at night: light along its edges as the camera sees them (a fresnel term), so a
 //: person stands out against a dark street.

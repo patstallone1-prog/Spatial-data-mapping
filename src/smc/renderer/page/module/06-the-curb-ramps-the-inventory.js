@@ -169,7 +169,9 @@ function sidewalkCrossingReplacementSpans(points, width) {
     for (let k = i === 1 ? 0 : 1; k <= steps; k += 1) {
       const point = lerpLonLat(a, b, k / steps);
       const [x, y] = xy(point[0], point[1]);
-      samples.push({ point, x, z: -y, onRoad: insideCarriageway(x, -y, 0.0) });
+      // (A street's carriageway: across a driveway the pavement carries on -- see
+      // insideStreetCarriageway.)
+      samples.push({ point, x, z: -y, onRoad: insideStreetCarriageway(x, -y, 0.0) });
     }
   }
   const spans = [];

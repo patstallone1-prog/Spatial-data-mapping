@@ -360,6 +360,9 @@ const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   return rank(a) - rank(b);
 });
 let builtWays = 0;
+//: The footpaths, laid once the streets, their walks and the frontage fill are down: each is cut
+//: where it meets that pavement (pathCutAt), which is not known until it is laid.
+const deferredPaths = [];
 for (const way of DRAW_ORDER) {
  // The budget is asked after every way, not every thirty-second: a run of thirty-two buildings
  // was a third of a second of a walking frame. Asking only reads the clock.
@@ -571,7 +574,7 @@ for (const way of DRAW_ORDER) {
   // in is laid in that material, run by run. Every other path keeps the pavement treatment --
   // kerb height, trimming at corners, crossing replacements -- exactly as before.
   if (isPath && pathHasOwnMaterial(way)) {
-    renderPedestrianPath(way);
+    deferredPaths.push({ lift: WAY_LIFT, draw: () => renderPedestrianPath(way) });
     continue;
   }
   const widthMeters = isCrossing ? (way.crossing_m || 3.7)
@@ -625,10 +628,20 @@ for (const way of DRAW_ORDER) {
     // of this mapped footway's position. Preserve that record, but fit *every*
     // placed ribbon to the measured carriageway; a valid width cannot justify
     // laying its inner edge over asphalt and hiding a crossing.
-    const fitted = walkWidthAgainstMeasuredKerbs(surfacePoints, widthMeters);
-    addPavementRibbon(surfacePoints, fitted, color, opacity,
-                      surfaceY, surfaceThickness,
-                      fitted <= NARROW_WALK_M && !isSidewalk ? "walk_narrow" : surfaceKind, true);
+    // A footpath off the streets and their walks only (pathRunsOffStreets), once they are laid:
+    // it ends at the pavement's edge, and the pavement carries on whole past it.
+    const lay = (pieces) => {
+      for (const piece of pieces) {
+        if (!piece || piece.length < 2) continue;
+        const fitted = walkWidthAgainstMeasuredKerbs(piece, widthMeters);
+        addPavementRibbon(piece, fitted, color, opacity,
+                          surfaceY, surfaceThickness,
+                          fitted <= NARROW_WALK_M && !isSidewalk ? "walk_narrow" : surfaceKind, true);
+      }
+    };
+    if (isPath) deferredPaths.push({ lift: WAY_LIFT,
+      draw: () => lay(pathRunsOffStreets(way.points).map((run) => trimWalkwayForCorners(densifyWay(run), widthMeters))) });
+    else lay([surfacePoints]);
   } else {
     // A crossing's paint is dense along its length -- a vertex every half metre -- because it
     // is settled onto the road as drawn afterwards (settleOnto), and it can only follow the
@@ -984,6 +997,15 @@ const cornersLaid = addPavementCorners();
 const squaresLaid = addJunctionSquares();
 if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const frontageFilled = await runStepsSliced(addFrontageFillSteps());
+// The footpaths, each cut off the pavement as it now stands (a snapshot: not off one another).
+PATH_CUT_GRID = new Map([...pavedSegmentGrid].map(([key, list]) => [key, list.slice()]));
+for (const path of deferredPaths) {
+  WAY_LIFT = path.lift;
+  path.draw();
+  if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();
+}
+WAY_LIFT = null; PATH_CUT_GRID = null;
+const pathsLaid = deferredPaths.splice(0).length;
 //: The tactile pads at the crossings' ends, laid now that every pavement and corner piece is
 //: down, each on top of the pavement it stands on. They used to be laid with the crossing at
 //: the crossing's own kerb height, and a kerb height is measured per way: where the street's
@@ -1064,10 +1086,10 @@ function streetSegmentGrid() {
   const grid = new Map(), CELL = 25;
   for (const w of DATA.ways || []) {
     if (w.kind !== "street" || !w.points || w.points.length < 2 || w.bridge || w.tunnel) continue;
-    const half = (w.road_m || (w.lanes || 2) * 3.3) / 2, walk = renderedWalkWidth(w);
+    const half = (w.road_m || (w.lanes || 2) * 3.3) / 2, walk = renderedWalkWidth(w), reach = Math.max(walk, w.walk_m || 0);
     const pts = w.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
     for (let i = 1; i < pts.length; i += 1) {
-      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], seg = { ax, az, bx, bz, half, walk };
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], seg = { ax, az, bx, bz, half, walk, reach };
       for (let gx = Math.floor((Math.min(ax, bx) - half) / CELL); gx <= Math.floor((Math.max(ax, bx) + half) / CELL); gx += 1)
         for (let gz = Math.floor((Math.min(az, bz) - half) / CELL); gz <= Math.floor((Math.max(az, bz) + half) / CELL); gz += 1) {
           const k = `${gx}:${gz}`; if (!grid.has(k)) grid.set(k, []); grid.get(k).push(seg);
@@ -1109,6 +1131,66 @@ function pathAlongKerbsideWalk(way, width = 2.4, share = 0.75) {
     }
   }
   return n > 0 && along >= n * share;
+}
+//: Whether (x, z) is on a street: its carriageway or the kerbside walk the street lays out to
+//: its surveyed reach, round the ends of its segments as well as along them.
+function onStreetOrItsWalk(x, z) {
+  for (const s of streetSegmentGrid().get(`${Math.floor(x / 25)}:${Math.floor(z / 25)}`) || []) {
+    const dx = s.bx - s.ax, dz = s.bz - s.az, L = dx * dx + dz * dz;
+    const t = L ? Math.max(0, Math.min(1, ((x - s.ax) * dx + (z - s.az) * dz) / L)) : 0;
+    if (Math.hypot(x - s.ax - dx * t, z - s.az - dz * t) < s.half + s.reach) return true;
+  }
+  return false;
+}
+//: Where a footpath stops: the roadway, the frontage paving, and once the streets are laid the
+//: pavement they laid (PATH_CUT_GRID), or before that the street's own reach.
+function pathCutAt(x, z) {
+  if (insideCarriageway(x, z, 0)) return true;
+  // The concrete between the walk and the property line is walk too (a park's frontage paving).
+  if (parkPavementAt(x, z)) return true;
+  return PATH_CUT_GRID ? pavementSurfaceAt(x, z, PATH_CUT_GRID) !== null : onStreetOrItsWalk(x, z);
+}
+//: A footpath's runs ([lon, lat] points) off the streets and their walks. A path that comes up to
+//: a pavement ends at its edge: the pavement carries on whole and the path leads off it. Laid on
+//: through, the path ran under the walk and showed through it as a dark tongue in the concrete
+//: (Moscone, 2026-11-22). Each run is cut where it meets the walk's edge, to a few centimetres.
+function pathRunsOffStreets(points, step = 0.5, shortest = 1.0) {
+  const pts = (points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const runs = [];
+  let run = [];
+  const close = () => {
+    let length = 0;
+    for (let i = 1; i < run.length; i += 1) length += Math.hypot(run[i][0] - run[i - 1][0], run[i][1] - run[i - 1][1]);
+    if (run.length >= 2 && length >= shortest) runs.push(run.map(([x, z]) => lonLatFromXZ(x, z)));
+    run = [];
+  };
+  // Where the street begins between a point off it (a) and one on it (b), to 2 cm.
+  const edge = (a, b) => {
+    let lo = a, hi = b;
+    for (let k = 0; k < 8; k += 1) {
+      const m = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2];
+      if (pathCutAt(m[0], m[1])) hi = m; else lo = m;
+    }
+    return lo;
+  };
+  // The path's own corners, with samples between them to find where it meets a street.
+  const samples = [];
+  for (let i = 0; i < pts.length; i += 1) {
+    if (!i) { samples.push(pts[0]); continue; }
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / step));
+    for (let k = 1; k <= n; k += 1) samples.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]);
+  }
+  let prev = null, prevOn = false;
+  for (const p of samples) {
+    const on = pathCutAt(p[0], p[1]);
+    if (prev && on !== prevOn) {
+      if (on) { run.push(edge(prev, p)); close(); } else run.push(edge(p, prev));
+    }
+    if (!on) run.push(p);
+    prev = p; prevOn = on;
+  }
+  close();
+  return runs;
 }
 //: Whether a short path (under 40 m) lies half or more on a street's carriageway.
 function pathMostlyOnRoad(way) {

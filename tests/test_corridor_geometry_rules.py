@@ -156,6 +156,7 @@ def test_avatar_sweep_stops_at_building_even_when_one_frame_crosses_it() -> None
 CARRIAGEWAY_FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCarriageway",
+    "insideStreetCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
     "lerpLonLat",
@@ -167,6 +168,9 @@ CARRIAGEWAY_FUNCTIONS = (
 
 #: A flat local frame, the same shape as the page's, with the origin at the test street.
 PREAMBLE = """
+// Driveways, lot entrances and parking aisles: a pavement carries on across them
+// (insideStreetCarriageway). The page's own set, for harnesses that do not extract it.
+function isUnmarkedService(way) { return Boolean(way && ["driveway", "drive-through", "parking_aisle", "access"].includes(way.service)); }
 const CARRIAGEWAY_CELL = 30;
 const carriagewayGrid = new Map();
 const OFFICIAL_CURB_CELL_M = 20.0;
@@ -221,6 +225,7 @@ def _run_crossing(js_body: str) -> dict:
     functions = (
         "distanceToSegmentSquared",
         "insideCarriageway",
+    "insideStreetCarriageway",
         "pavementSurroundedByStreet",
         "addCarriagewaySegment",
         "lerpLonLat",
@@ -375,7 +380,8 @@ def test_the_carriageway_guard_never_widens_the_road() -> None:
     """
     js = _page_js()
     body = _extract("pavementRunsOutsideCarriageway", js)
-    calls = re.findall(r"insideCarriageway\([^;]*?\)", body, flags=re.S)
+    # (The street's carriageway: insideStreetCarriageway, which a driveway does not cut.)
+    calls = re.findall(r"inside(?:Street)?Carriageway\([^;]*?\)", body, flags=re.S)
     assert calls, "the guard no longer asks about the carriageway at all"
     for call in calls:
         slack = call.rsplit(",", 1)[-1].strip(" )\n")
@@ -1032,6 +1038,7 @@ def test_the_sun_in_the_sky_is_the_sun_that_lights_the_city() -> None:
 BIKE_FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCarriageway",
+    "insideStreetCarriageway",
     "addCarriagewaySegment",
     "crosswiseCarriagewayAt",
     "bikeCrossingBreakAt",
@@ -2009,6 +2016,7 @@ def test_an_outbuilding_roof_is_dark_but_not_a_hole() -> None:
 PAVEMENT_FUNCTIONS = (
     "distanceToSegmentSquared",
     "insideCarriageway",
+    "insideStreetCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
     "lerpLonLat",
@@ -2229,7 +2237,7 @@ def test_curb_paint_is_snapped_to_the_kerb_the_model_drew() -> None:
 CORNER_FUNCTIONS = (
     *PAVEMENT_FUNCTIONS,
     "onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "renderedWalkWidth",
-    "isUnmarkedService", "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
+    "cornerLegsAt", "cornerNeighbour", "cornerFrame", "cornerCutFor",
     "reconcilePavementCorners", "indexPavementCorners", "cornerQuad", "junctionClusters",
     "junctionBoxHull", "pointInRing", "convexHull", "indexJunctionBox",
     "streetCarryOn", "legBulb", "legInner", "rayCurbIntersections",
