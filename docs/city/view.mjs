@@ -36,7 +36,7 @@ import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harm
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
-import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, withinView } from "./detail.mjs";
+import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, wheelStep, withinView } from "./detail.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
@@ -5255,6 +5255,30 @@ diffuseColor.rgb *= kbCloth;`);
     }
     if (g) { g.x = e.x; g.z = e.z; g.t = now; } else glided.set(e.id, { x: e.x, z: e.z, t: now });
   }
+  //: A car is drawn only where its wheels can take it (wheelStep): on from where it was drawn the
+  //: way it faces (back only while it reverses), and across by no more than a share of what it
+  //: moves along -- a wheel steers, it does not slide. Where its place by the traffic is a little
+  //: behind it, or to one side, it stands (or rolls on) and is met there; it is never drawn hopping
+  //: back, or square across, to it. Standing, it stays where it was drawn. Far off its place
+  //: (CAR_SNAP_M: a jump of the day, a street shut), it is there at once.
+  const CAR_SNAP_M = 14, CAR_STAND_M = 2.5;
+  function glideCar(v, now, dt) {
+    const g = glided.get(v.id);
+    if (!g || now - g.t > 600 || v.model === "bike") { glided.set(v.id, { x: v.x, z: v.z, t: now }); return; }
+    const span = Math.max(dt, (now - g.t) / 1000, 1 / 120), d = Math.hypot(v.x - g.x, v.z - g.z);
+    g.t = now;
+    if (d >= CAR_SNAP_M || (!v.moving && d >= CAR_STAND_M)) { g.x = v.x; g.z = v.z; return; }
+    // (A car come to its parking spot rolls the last of the way in, and is in it: never left
+    // standing short of it in the lane.)
+    if (v.parked && !v.moving) {
+      const to = d < 0.35 ? [v.x, v.z] : wheelStep(g.x, g.z, v.x, v.z, v.yaw, 2 * span, false);
+      if (Math.hypot(to[0] - g.x, to[1] - g.z) < 0.004) { g.x = v.x; g.z = v.z; return; }
+      v.x = g.x = to[0]; v.z = g.z = to[1];
+      return;
+    }
+    const to = v.moving ? wheelStep(g.x, g.z, v.x, v.z, v.yaw, (Math.max(4, v.speed || 0) * 1.6 + 2) * span + 0.02, Boolean(v.reversing)) : [g.x, g.z];
+    v.x = g.x = to[0]; v.z = g.z = to[1];
+  }
   //: The first and last few metres of a leg: out of its spot at the kerb into the lane, and
   //: back in to the kerb at the end (the lane's line is a metre or two out from it).
   const EASE_M = 7;
@@ -5269,6 +5293,8 @@ diffuseColor.rgb *= kbCloth;`);
   //: for the light where one controls it (the street they cross has its green or amber), and
   //: for any car on the crossing or that would be there within CROSS_GAP_S -- yours, a bus, a cab.
   const CROSS_GAP_S = 4;
+  //: A walker's pace over a crossing (m/s) and the time they want in hand past a car's line (s).
+  const WALK_OVER_MS = 1.35, CROSS_MARGIN_S = 2;
   //: How near your garage you drive before its door goes up (m).
   const GARAGE_REMOTE_M = 9;
   //: A car held by people on foot this long has the next gap; a walker who has waited this long goes.
@@ -5287,7 +5313,15 @@ diffuseColor.rgb *= kbCloth;`);
     for (const cr of list) {
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
       if (before < -0.05 || before > back) continue;   // on it already: on over
-      if (cr.signal && cr.node !== undefined && signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red") return true;
+      // The light: the street they cross must be held on red now, and still be when they are
+      // most of the way over -- they know how long the crossing takes them and do not set out
+      // on the last of a light, to be caught half way by the traffic starting (and seen there
+      // stopping, stepping about and turning back).
+      const over = Math.max(2, (cr.s1 - cr.s0) / WALK_OVER_MS);
+      if (cr.signal && cr.node !== undefined && (signalAt(district.streets, cr.node, cr.bearing, tsec) !== "red"
+        // (Where no red is long enough for the whole of a wide street, one who has waited two
+        // lights sets out at the start of the next, as people do.)
+        || (waited < WALKER_PATIENCE_S * 2 && (signalAt(district.streets, cr.node, cr.bearing, tsec + over * 0.5) !== "red" || signalAt(district.streets, cr.node, cr.bearing, tsec + over * 0.85) !== "red")))) return true;
       // (The crossing's two ends, kept on it: they were worked out again for every walker near a
       // kerb every frame -- 10 MB a second of garbage, 2026-11-20.)
       let ends = crossingEnds.get(cr);
@@ -5324,7 +5358,11 @@ diffuseColor.rgb *= kbCloth;`);
         const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), den = fx * uz - fz * ux;
         if (Math.abs(den) < 0.2) continue;
         const px = a.x - v.x, pz = a.z - v.z, t = (px * uz - pz * ux) / den, k = (px * fz - pz * fx) / den;
-        if (t > 0 && k > -2 && k < len + 2 && (t - vl / 2) / sp < CROSS_GAP_S) return true;
+        // (Safe to cross: it will not be at their line across until they are past where it runs
+        // -- the walk out to its lane, and a margin -- not a fixed few seconds whatever the
+        // street's width. One who has waited long takes the old short gap: drivers stop for them.)
+        const need = waited > WALKER_PATIENCE_S ? CROSS_GAP_S : Math.max(CROSS_GAP_S, Math.max(0, Math.min(len, walk.dir > 0 ? k : len - k)) / WALK_OVER_MS + CROSS_MARGIN_S);
+        if (t > 0 && k > -2 && k < len + 2 && (t - vl / 2) / sp < need) return true;
       }
     }
     return false;
@@ -5634,7 +5672,7 @@ diffuseColor.rgb *= kbCloth;`);
       }
       for (const hit of step.hits) carHit(hit, people);
     }
-    for (const v of vehicles) if (v.moving) glide(v, now, dt, Math.max(4, v.speed || 0) * 1.6 + 2, 120); else glided.delete(v.id);
+    for (const v of vehicles) glideCar(v, now, dt);
     lastTraffic = vehicles;
     // Inside a shop its room is where you are: no car is drawn through it. (A room is laid inward
     // from the shop's front; where a front lies nearer the street than the map's kerb, traffic on

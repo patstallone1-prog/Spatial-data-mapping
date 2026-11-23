@@ -713,6 +713,10 @@ function routeOn(pts, s, i, off, dd, out) {
   out.x = ax + (bx - ax) * t - dz * off; out.z = az + (bz - az) * t + dx * off; out.yaw = Math.atan2(-dx, -dz); out.ux = dx; out.uz = dz;
   return out;
 }
+//: The straight a vehicle needs either side of a corner to turn through it (m), for a lane-side
+//: function's ``lead``: a car's, and a bus's or a lorry's (longer than LONG_VEHICLE_M).
+export const TURN_LEAD = { car: 4.5, long: 6.5 }, LONG_VEHICLE_M = 7;
+export const turnLead = (length) => (length > LONG_VEHICLE_M ? TURN_LEAD.long : TURN_LEAD.car);
 export function alongRoute(route, d, side = 0) {
   const pts = route.pts, s = route.s;
   if (pts.length === 1) return { x: pts[0][0], z: pts[0][1], yaw: 0, half: 0 };
@@ -728,7 +732,24 @@ export function alongRoute(route, d, side = 0) {
     const v = d - s[lo] < s[hi] - d ? lo : hi;
     if (v > 0 && v < s.length - 1) {
       const a = v - 1, b = v, oa = routeSide(route, side, a), ob = routeSide(route, side, b);
-      const r = Math.min(Math.max(Math.abs(oa), Math.abs(ob)) + 1, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
+      let reach = Math.max(Math.abs(oa), Math.abs(ob)) + 1;
+      // A vehicle (``side.lead``: the length of straight it needs either side of a corner, by
+      // its size -- TURN_LEAD) begins its turn before the junction, not in the middle of it:
+      // the curve runs from that far back in its lane, gently at first and sharpest half way
+      // round. Without it a right turn from the kerb lane was a metre of curve at the lanes'
+      // corner: the car drove straight into the junction and pivoted there (a bus most of all).
+      const lead = fn ? side.lead || 0 : 0;
+      if (lead > 0) {
+        const ax = pts[v][0] - pts[v - 1][0], az = pts[v][1] - pts[v - 1][1], bx = pts[v + 1][0] - pts[v][0], bz = pts[v + 1][1] - pts[v][1];
+        const cross = ax * bz - az * bx, ang = Math.abs(Math.atan2(cross, ax * bx + az * bz));
+        if (ang > 0.35) {
+          const o = (oa + ob) / 2, k = Math.min(1, ang / 1.2);
+          // (Inside the turn the lanes' corner is nearer than the streets': the curve's legs
+          // are the reach less the lane's offset; outside it, the reach and the offset.)
+          reach = Math.max(reach, cross * o > 0 ? lead * k + Math.abs(o) : lead * 1.5 * k - Math.abs(o));
+        }
+      }
+      const r = Math.min(reach, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
       if (r > 0 && Math.abs(d - s[v]) < r) {
         // Round the corner on a curve from r before it in the way-in's lane to r after it in the
         // way-out's, bent towards where the two lanes' lines meet: inside the turn, never out

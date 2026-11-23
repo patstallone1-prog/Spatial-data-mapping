@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import subprocess
 import textwrap
@@ -259,15 +260,22 @@ def test_a_kerb_is_only_drawn_where_the_page_has_pavement_to_meet_it() -> None:
     out = run_page({"objects": [record]}, extra + """
         // No corner squares in the harness: no kerb is a return into one.
         const junctionSquares = [];
-        const WORLD_KERB_SUPPORT_M = [0.3, 0.8, 1.5];
+        const WORLD_KERB_SUPPORT_M = __SUPPORT__;
         const WORLD_KERB_MIN_PIECE_M = 1.5;
         const worldSweepStats = { drawn: 0, unsupported_m: 0, supported_m: 0 };
         // The page's pavement: to the kerb's left (north, page z < 0) and only for x < 10.
         function pavementTopAt(x, z) { return (x < 10 && z < 0 && z > -3) ? 0.2 : undefined; }
         const pieces = worldSupportedPieces(WORLD_OBJECTS.objects[0], 1);
-        console.log(JSON.stringify({ pieces: pieces.map((p) => p.path.map((q) => q[0])),
+        // And the same kerb with the walk's edge half a metre back from it: the two are apart,
+        // and the measured kerb is not drawn at all (the walk's own kerb face is its edge).
+        const whole = pavementTopAt;
+        pavementTopAt = (x, z) => whole(x, z + 0.5);
+        const apart = worldSupportedPieces(WORLD_OBJECTS.objects[0], 1);
+        console.log(JSON.stringify({ pieces: pieces.map((p) => p.path.map((q) => q[0])), apart: apart.length,
                                      stats: worldSweepStats }));
-    """)
+    """.replace("__SUPPORT__", re.search(r"const WORLD_KERB_SUPPORT_M = (\[[^\]]*\]);", js).group(1)))
+    assert out["apart"] == 0
+    support = [float(v) for v in re.search(r"const WORLD_KERB_SUPPORT_M = \[([^\]]*)\];", js).group(1).split(",")]
+    assert max(support) <= 0.3, "a measured kerb is drawn only on the walk's own edge"
     [piece] = out["pieces"]
     assert min(piece) == pytest.approx(0.0) and 9.0 <= max(piece) <= 10.0
-    assert out["stats"]["unsupported_m"] == pytest.approx(10.0, abs=1.0)

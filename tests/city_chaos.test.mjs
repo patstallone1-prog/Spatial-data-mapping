@@ -280,3 +280,62 @@ test("a car obeys its wheels: braked to a stand before it backs, a moment for th
   assert.match(FLEET, /\(st\.v < 0\.3 \? 0 : Math\.min\(1, st\.v \/ 2\)\)/);
   assert.ok(TRAFFIC.seen_jump_x >= 3);
 });
+
+test("a car is drawn only where its wheels take it: on the way it faces, never back or square across", async () => {
+  const { wheelStep, WHEEL_SLIP } = await import("../docs/city/detail.mjs");
+  // Facing -z (yaw 0), its place a metre behind and a metre to the right: it stands.
+  assert.deepEqual(wheelStep(0, 0, 1, 1, 0, 0.5), [0, 0]);
+  // Ahead and a little across: forward by no more than the step, across by a share of that.
+  const [x, z] = wheelStep(0, 0, 1, -3, 0, 0.5);
+  assert.ok(Math.abs(z + 0.5) < 1e-9 && Math.abs(x) <= 0.5 * WHEEL_SLIP + 1e-9 && x > 0);
+  // Backing, it goes back and not forward.
+  assert.ok(wheelStep(0, 0, 0, 2, 0, 0.5, true)[1] > 0);
+  assert.deepEqual(wheelStep(0, 0, 0, -2, 0, 0.5, true), [0, 0]);
+  // Followed step by step it arrives, without once moving against its heading.
+  let p = [0, 0];
+  for (let i = 0; i < 40; i += 1) { const q = wheelStep(p[0], p[1], 0.8, -6, 0, 0.3); assert.ok(q[1] <= p[1] + 1e-12); p = q; }
+  assert.ok(Math.hypot(p[0] - 0.8, p[1] + 6) < 0.05);
+});
+
+test("a vehicle begins its turn before the corner, a bus earlier than a car, and nobody on foot changes", async () => {
+  const { alongRoute, TURN_LEAD, turnLead } = await import("../docs/city/people.mjs");
+  // East along x, then a right turn south (+z), each street 5 m to its kerb.
+  const pts = [[0, 0], [60, 0], [60, 60]], route = { pts, s: [0, 60, 120], length: 120, halves: [5, 5], classes: ["residential", "residential"] };
+  const lane = (lead) => { const f = () => 3.2; if (lead) f.lead = lead; return f; };
+  const turnedBy = (side, d) => { const a = alongRoute(route, d, side); const straight = alongRoute(route, 20, side); return Math.abs(a.yaw - straight.yaw); };
+  // Five metres short of the corner the old curve had not begun; with a lead it has.
+  assert.ok(turnedBy(lane(0), 55) < 1e-6);
+  assert.ok(turnedBy(lane(TURN_LEAD.car), 55) > 0.02, "a car is already turning");
+  assert.ok(turnedBy(lane(TURN_LEAD.long), 53) > 0.02 && turnedBy(lane(TURN_LEAD.car), 52.2) < 1e-6, "a bus begins sooner");
+  assert.equal(turnLead(12), TURN_LEAD.long); assert.equal(turnLead(4.4), TURN_LEAD.car);
+  // Its heading turns smoothly: no step of the way round turns more than a share of the whole.
+  let last = alongRoute(route, 50, lane(TURN_LEAD.long)).yaw, most = 0;
+  for (let d = 50.25; d <= 72; d += 0.25) { const y = alongRoute(route, d, lane(TURN_LEAD.long)).yaw; let t = Math.abs(y - last); t = Math.min(t, Math.PI * 2 - t); most = Math.max(most, t); last = y; }
+  assert.ok(most < 0.12, `sharpest quarter metre ${most}`);
+  // It ends in its lane on the street it turned into, and stays inside the lanes' corner.
+  const out = alongRoute(route, 75, lane(TURN_LEAD.long));
+  assert.ok(Math.abs(out.x - (60 - 3.2)) < 1e-6);
+  for (let d = 45; d <= 75; d += 0.5) { const q = alongRoute(route, d, lane(TURN_LEAD.long)); assert.ok(q.z >= 3.2 - 1e-6 && q.x <= 60 - 3.2 + 1e-6, `inside its lanes at ${d}`); }
+  // A plain offset (someone on the pavement) is as it was.
+  assert.deepEqual(alongRoute(route, 57, 6.6), alongRoute(route, 57, Object.assign((h) => 6.6, {})) );
+});
+
+test("a bicycle with no rack leans on the wall beside the door, clear of the doorway and of driveways", async () => {
+  const { City, BIKE_LEAN } = await import("../docs/city/fleet.mjs");
+  // A door in a wall along x at z = 0, the building behind it (z > 0), n pointing in.
+  const D = { x: 0, z: 0, nx: 0, nz: 1 };
+  const city = Object.create(City.prototype);
+  city.guardWalls = true; city.footprintAt = (x, z) => z > 0 && Math.abs(x) < 20; city.kerbside = null;
+  for (let k = -3; k <= 3; k += 1) {
+    const p = city.bikeLean(D, k);
+    assert.ok(Math.abs(p.x) >= BIKE_LEAN.clear - 1e-9, `clear of the doorway (${k}): ${p.x}`);
+    assert.ok(Math.abs(p.z + BIKE_LEAN.off) < 1e-9, "a hand off the wall, outside it");
+    assert.ok(Math.abs(Math.abs(Math.sin(p.yaw)) - 1) < 1e-9, "its length along the wall");
+  }
+  // A driveway let down in front of one side: it goes to the other.
+  city.kerbside = { kerbAt: (x, z) => ({ x, z: -3, ax: 1, az: 0 }), kerbParking: (x) => (x > 0 ? "driveway" : null) };
+  assert.ok(city.bikeLean(D, 2).x < 0);
+  // Where the wall ends a metre from the door on one side, the other side is taken.
+  city.kerbside = null; city.footprintAt = (x, z) => z > 0 && x > -1 && x < 20;
+  assert.ok(city.bikeLean(D, -2).x > 0);
+});

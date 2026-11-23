@@ -1131,13 +1131,47 @@ const BENCH_LEG_M = 0.06;
 const BENCH_SLATS = 0xa5714a;      // weathered hardwood
 const BENCH_FRAME = 0x5c6266;      // painted cast iron
 
+//: Where a bench, a planter or any loose piece of street furniture must not stand, whatever a
+//: record says: in the road or a junction's box, across a driveway, in the way of a crossing
+//: (its landing and the walk up to it), or on an island or a refuge in the road -- pavement with
+//: the roadway close on both sides of it, where people cross and nobody sits. (A bench stood on
+//: the island at Chestnut and Filbert, 2026-11-23, in the middle of the legal way across.) A bus
+//: stop's own bench and shelter are placed by the stop and are not asked.
+const FURNITURE_ISLAND_REACH_M = 3.2, FURNITURE_CROSSING_CLEAR_M = 1.8;
+const furnitureGuardStats = { road: 0, junction: 0, driveway: 0, crossing: 0, island: 0 };
+function furnitureMisplaced(x, z) {
+  if (insideCarriageway(x, z, 0.1) || insideBikeLane(x, z, 0.1)) return "road";
+  if (insideJunctionBox(x, z)) return "junction";
+  if (inDriveway(x, z)) return "driveway";
+  const cx = Math.floor(x / CROSSING_DEDUPE_CELL_M), cz = Math.floor(z / CROSSING_DEDUPE_CELL_M);
+  for (let dx = -3; dx <= 3; dx += 1) for (let dz = -3; dz <= 3; dz += 1)
+    for (const p of crossingDrawGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+      const a = x - p.x, b = z - p.z, c = Math.cos(p.bearing), s = Math.sin(p.bearing);
+      if (Math.abs(a * c + b * s) < p.length / 2 + FURNITURE_CROSSING_CLEAR_M && Math.abs(b * c - a * s) < (p.width || 3.7) / 2 + FURNITURE_CROSSING_CLEAR_M) return "crossing";
+    }
+  // An island: the roadway within reach on two opposite sides, in any of eight directions.
+  for (let k = 0; k < 4; k += 1) {
+    const ux = Math.cos(k * Math.PI / 4), uz = Math.sin(k * Math.PI / 4);
+    let fore = false, aft = false;
+    for (let d = 0.8; d <= FURNITURE_ISLAND_REACH_M && !(fore && aft); d += 0.6) {
+      fore ||= insideCarriageway(x + ux * d, z + uz * d, 0);
+      aft ||= insideCarriageway(x - ux * d, z - uz * d, 0);
+    }
+    if (fore && aft) return "island";
+  }
+  return null;
+}
+window.kerbsideFurnitureGuard = () => ({ ...furnitureGuardStats });
+
 function addBenches(records) {
   // One geometry, one placement each: there are a few hundred to a region and they are
   // identical but for where they stand and which way they face.
   const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
     // A bench somebody has measured is drawn as measured (renderWorldMeshes); the catalogue
     // bench is only the fallback for the ones nobody has.
-    .filter((row) => row.anchor && !furnitureClaimedAt(row.anchor.x, row.anchor.z, "bench"));
+    .filter((row) => row.anchor && !furnitureClaimedAt(row.anchor.x, row.anchor.z, "bench"))
+    // And nowhere a bench could not be (furnitureMisplaced): left out, and counted.
+    .filter((row) => { const why = furnitureMisplaced(row.anchor.x, row.anchor.z); if (why) furnitureGuardStats[why] += 1; return !why; });
   if (!anchors.length) return 0;
   // One instanced mesh a part, sharing the same placement. The page has no geometry-merge
   // helper loaded and a bench is four boxes; four instanced draws for a few hundred benches
