@@ -1273,6 +1273,10 @@ const FRONTAGE_BELOW_M = 0.003;   // under the pavement it meets, so the two nev
 const FRONTAGE_BRIDGE_M = 30;
 const frontageStats = { sides: 0, stations: 0, filled_m2: 0, bridged_m: 0, unsurveyed: 0,
   skipped: { junction: 0, noPavement: 0, noRoom: 0 }, ways: {} };
+//: The street-side stations whose footway the survey's reach stopped short of a house front
+//: (addFrontageFillSteps), for the ground pass to pave on to it (addFrontageSetbacks).
+const frontageSetbacks = [];
+const frontageSetbackStats = { stations: 0, paved: 0, paved_m2: 0, lawn: 0, open: 0, bare: 0 };
 const pavedSegmentGrid = new Map();
 //: Walked surfaces laid at a kerb's height or on the road that the street builders must not
 //: take for footway (a bulb-out laid over the carriageway, a gravel path through a park): the

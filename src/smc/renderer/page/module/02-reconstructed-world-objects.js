@@ -702,7 +702,7 @@ if (kbNsF > 0.0) {
   // of the pixel it darkens, and the broom's streaks, a few millimetres apart, as their average --
   // not a line that flickers in and out between pixels (the ring reaches 200 m and more).
   float kbSwPx = max(length(fwidth(kbSwS) * kbSwMs), 1e-5);
-  float kbSwUp = step(0.6, abs(normalize(kbNsN).y));
+  float kbSwUp = step(0.6, abs(KB_NS_N.y));
   // The joints: every square's, all alike, on the walk's top. The lip, a driveway and the curb's
   // face have none (mode "lip").
   float kbSwJ = ${walk}.0 > 0.5 && kbSwUp > 0.5 ? min(kbSwD.x, kbSwD.y) : 9.0;
@@ -732,7 +732,7 @@ if (kbNsF > 0.0 && (kbSwBx != 0.0 || kbSwBz != 0.0)) {
   vec3 kbSwQ1 = dFdx(kbNsW), kbSwQ2 = dFdy(kbNsW);
   vec2 kbSwT1 = dFdx(vMapUv), kbSwT2 = dFdy(vMapUv);
   float kbSwDet = sign(kbSwT1.x * kbSwT2.y - kbSwT2.x * kbSwT1.y);
-  vec3 kbSwN = normalize(kbNsN);
+  vec3 kbSwN = KB_NS_N;
   vec3 kbSwTu = (kbSwQ1 * kbSwT2.y - kbSwQ2 * kbSwT1.y) * kbSwDet;
   vec3 kbSwTv = (kbSwQ2 * kbSwT1.x - kbSwQ1 * kbSwT2.x) * kbSwDet;
   kbSwTu = normalize(kbSwTu - kbSwN * dot(kbSwN, kbSwTu) + vec3(1e-6));
@@ -758,6 +758,11 @@ kbNsP = instanceMatrix * kbNsP; kbNsO = mat3(instanceMatrix) * kbNsO;
 kbNsW = (modelMatrix * kbNsP).xyz; kbNsN = normalize(mat3(modelMatrix) * kbNsO); }`);
   shader.fragmentShader = fs.replace("#include <common>", `#include <common>
 varying vec3 kbNsW; varying vec3 kbNsN;
+// The surface's normal on the side being seen. Most street ribbons are wound face-down and drawn
+// double-sided: three.js turns its own normal round for the back face, and this has to as well --
+// taken as stored, every road and pavement inside the photographs' ring was lit as if it faced
+// the ground, near-black at the walker's feet (Chestnut Street, 2026-11-22).
+#define KB_NS_N (normalize(kbNsN) * (gl_FrontFacing ? 1.0 : -1.0))
 uniform sampler2D kbNsMap; uniform sampler2D kbNsRelief; uniform vec4 kbNsTile; uniform vec3 kbNsMean; uniform vec3 kbNsNear;
 // The photograph's place on a surface: the ground by its x and z, a wall by its run and height.
 vec2 kbNsUv(vec3 w, vec3 n, out vec3 t, out vec3 b) {
@@ -772,7 +777,7 @@ vec3 kbNsT, kbNsB; vec2 kbNsAt = vec2(0.0);
 // (Sampled wherever the pictures are in, not only inside the ring: a branch that differs from one
 // pixel to the next would leave the texture's mip level undefined along the ring's edge.)
 if (kbNsNear.z * kbNsTile.z > 0.0) {
-  kbNsAt = kbNsUv(kbNsW, normalize(kbNsN), kbNsT, kbNsB) * kbNsTile.x;
+  kbNsAt = kbNsUv(kbNsW, KB_NS_N, kbNsT, kbNsB) * kbNsTile.x;
   // The one photograph, and a second look at it turned and larger, so its repeat does not show.
   vec3 kbNsC = texture2D(kbNsMap, kbNsAt).rgb;
   vec3 kbNsC2 = texture2D(kbNsMap, mat2(0.8, -0.6, 0.6, 0.8) * kbNsAt * 0.37 + 0.31).rgb;
@@ -783,7 +788,7 @@ ${NEAR_SURFACE.scoredColor(NEAR_SURFACE.kinds[kind].scored, NEAR_SURFACE.kinds[k
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 if (kbNsNear.z * kbNsTile.z > 0.0 && kbNsTile.y > 0.0) {
   vec3 kbNsR = texture2D(kbNsRelief, kbNsAt).xyz * 2.0 - 1.0;
-  vec3 kbNsWN = normalize(kbNsN);
+  vec3 kbNsWN = KB_NS_N;
   vec3 kbNsBent = normalize(kbNsT * kbNsR.x * kbNsTile.y + kbNsB * kbNsR.y * kbNsTile.y + kbNsWN * max(kbNsR.z, 0.2));
   normal = normalize(mix(normal, normalize((viewMatrix * vec4(kbNsBent, 0.0)).xyz), kbNsF));
 }

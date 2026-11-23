@@ -80,6 +80,7 @@ console.log(JSON.stringify((constrainWorldCamera(),camera.position.y)));
 def test_fences_sample_hills_at_most_every_75cm_without_a_second_lift():
     result = run("""
 const FENCE_GROUND_STEP_M=.75;
+function noteFenceLine(){}
 function groundLiftAt(x,z){return 4*Math.sin(x/2)+z*.3;}
 const sink={positions:[],uvs:[],indices:[]};
 groundedFencePanel(sink,0,0,20,0,.02,1.8,.6);

@@ -779,7 +779,7 @@ const TREE_ROAD_CLEAR_M = 0.3, TREE_HARD_OPENING_M = 1.22, TREE_HARD_OPENING_Y =
 //: hydrant, 3 ft from a parking sign or a meter.
 const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
 //: How many openings were put on the walk's squares, and how many were left where the survey has them.
-const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0, merged: 0, mergedFrom: 0, hardOpening: 0, kerbEdge: 0 };
+const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0, merged: 0, mergedFrom: 0, hardOpening: 0, kerbEdge: 0, offFence: 0, onFence: 0 };
 const sfSurvey = (async () => {
   const b = DATA.bbox;
   if (!b) return null;
@@ -983,6 +983,17 @@ const groundReady = (async () => {
     }
   }
 
+  // The setbacks behind the footways: paved on to the house fronts where nothing else is laid.
+  // A lawn counts where it is seen: its ring, less the hard ground carved out of it, and less
+  // the underlay, which is drawn over a yard (a Mallorca Way front yard was concrete to the eye
+  // and a lawn to the ring test, and was left with the ledge).
+  const lawnRing = ringCover(grassRings.map((item) => item.p));
+  const parkRing = ringCover((ground.parks || []).map((item) => item.p));
+  const plantedRing = ringCover(inferredOf("grass").map((item) => item.p).concat(seenGrass));
+  const lawnDrawnAt = (x, z) => !parkPavementAt(x, z) && ((lawnRing(x, z) && !excludeGrassAt(x, z))
+    || (parkRing(x, z) && !excludeParkAt(x, z)) || plantedRing(x, z));
+  for (const mesh of addFrontageSetbacks(lawnDrawnAt)) addGround(mesh, "walk");
+  window.kerbsideFrontageSetbacks = frontageSetbackStats;
   await runStepsSliced(buildFencesSteps(ground));
   // The fences on property lines: schools, yards, the parks' surveyed ones, the closed car parks.
   window.kerbsidePropertyFences = await buildPropertyFences().catch((error) => { console.warn("kerbside: property fences", error); return null; });
@@ -1171,6 +1182,18 @@ const groundReady = (async () => {
     treeSquareStats.hardOpening += 1;
     return true;
   };
+  // No tree on a fence's line: one there is moved square off it, to the side it stands on (a
+  // kerbside tree in its cut-out opening is at the kerb, far from any property's fence, and keeps
+  // its opening).
+  const treeRoom = (x, z) => !insideCarriageway(x, z, 0) && !buildingAt(x, z) && !overWaterAt(x, z);
+  for (const tree of trees) {
+    if (treePlotCorners.has(tree) || islandTrees.some((t) => t.tree === tree)) continue;
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    const moved = treeOffFence(tx, -ty, treeRoom);
+    if (!moved) { if (nearestFenceLine(tx, -ty, TREE_FENCE_CLEAR_M)) treeSquareStats.onFence += 1; continue; }
+    tree.p = [moved[0] / metersPerLon + midLon, -moved[1] / metersPerLat + midLat];
+    treeSquareStats.offFence += 1;
+  }
   for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const tz = -ty;
@@ -1378,6 +1401,18 @@ function worldPavedBeside(anchor, east, north, nx, ny) {
   }
   return false;
 }
+//: Whether a surveyed curb at (east, north) has pavement on its far side too (the way ``nx, ny``,
+//: away from the walk it edges): then it is inside a walk the page drew whole -- a planter's or a
+//: park's old edge the survey caught -- and drawn there it was a broken white line down the
+//: middle of the pavement (Chestnut Street along Moscone, 2026-11-22). A kerb has the roadway,
+//: or ground below it, on that side.
+function worldInsideWalk(anchor, east, north, nx, ny) {
+  for (const d of [0.5, 1.0]) {
+    const [x, z] = worldLocalToPage(anchor, east + nx * d, north + ny * d);
+    if (pavementTopAt(x, z) === undefined || insideCarriageway(x, z, 0)) return false;
+  }
+  return true;
+}
 //: The surveyed curbs' concrete: the curb's troweled pour (KERB_CONCRETE, its fifteen-foot joints
 //: near you), in the survey's shade.
 let SURVEYED_CURB_MATERIAL = null;
@@ -1506,7 +1541,8 @@ function worldSupportedPieces(record, side) {
     const j = Math.min(i, dense.length - 2);
     const de = dense[j + 1][0] - dense[j][0], dn = dense[j + 1][1] - dense[j][1];
     const len = Math.hypot(de, dn) || 1;
-    return worldPavedBeside(record.anchor, e, n, side * -dn / len, side * de / len);
+    return worldPavedBeside(record.anchor, e, n, side * -dn / len, side * de / len)
+      && !(record.type === "curb" && worldInsideWalk(record.anchor, e, n, side * dn / len, -side * de / len));
   });
   const pieces = [];
   let run = [], runBreaks = [];

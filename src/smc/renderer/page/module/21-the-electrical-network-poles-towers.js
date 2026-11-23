@@ -1501,6 +1501,7 @@ async function readImageryTruth() {
   return IMAGERY_TRUTH || null;
 }
 
+const BUS_PAD_COLOUR = 0x77786f;
 function addBusZonePaint(records, plan = null) {
   // The red box in the roadway at a bus zone.
   records = joinBusZones(records);
@@ -1631,7 +1632,10 @@ function addBusZonePaint(records, plan = null) {
   };
   emit(fill, 0x8c2f2a, "bus_zone:fill", 0.9);
   emit(border, 0xf2f5ef, "bus_zone:border", 0.82);
-  emit(pad, 0xa7a8a1, "bus_zone:pad", 0.95);
+  // A bus pad is old concrete in the kerb lane, a shade lighter than the asphalt and no lighter
+  // than the pavement beside it: at 0xa7a8a1 it was the palest thing in the street, a white strip
+  // where the photograph shows weathered grey (Chestnut at Fillmore, 2026-11-22).
+  emit(pad, BUS_PAD_COLOUR, "bus_zone:pad", 0.95);
   return zones;
 }
 
@@ -2059,6 +2063,27 @@ function kerbPostNear(x, z, r) {
   for (const p of kerbPostSpots) if (Math.abs(p.x - x) < r && Math.abs(p.z - z) < r && Math.hypot(p.x - x, p.z - z) < r) return true;
   return false;
 }
+//: Whether the aerial photograph shows a gutter pan along the kerb at (x, z): the imagery truth's
+//: verdict for the gutter run that passes within GUTTER_TRUTH_REACH_M of it. A pan is a pale band
+//: in the road; on 167 of the Marina's 311 runs the photograph has none -- the kerb meets the
+//: asphalt -- and a pale strip drawn there is a strip of street that is not there (Chestnut
+//: Street, 2026-11-22). Where no run was judged, or the photograph could not see it, the pan is
+//: drawn as before.
+const GUTTER_TRUTH_REACH_M = 1.5;
+function gutterInPhotograph(x, z) {
+  const rows = IMAGERY_TRUTH?.gutters;
+  if (!Array.isArray(rows)) return true;
+  let best = null, near = GUTTER_TRUTH_REACH_M;
+  for (const row of rows) {
+    const dx = row.x1 - row.x0, dz = row.z1 - row.z0, len2 = dx * dx + dz * dz;
+    if (!(len2 > 0)) continue;
+    const t = ((x - row.x0) * dx + (z - row.z0) * dz) / len2, len = Math.sqrt(len2);
+    if (t < -1 / len || t > 1 + 1 / len) continue;
+    const c = Math.min(1, Math.max(0, t)), d = Math.hypot(x - (row.x0 + dx * c), z - (row.z0 + dz * c));
+    if (d < near) { near = d; best = row; }
+  }
+  return best?.verdict !== "absent";
+}
 registerLazyLayer("waterworks", async () => {
   const index=await fetch(sharedAsset("waterworks.manifest.json"),{cache:"no-cache"})
     .then(r=>r.ok?r.json():null).catch(()=>null);
@@ -2071,6 +2096,7 @@ registerLazyLayer("waterworks", async () => {
     Promise.all(wanted.map(t=>fetch(sharedAsset(`${t.path}?v=${encodeURIComponent(t.sha256 || "")}`))
       .then(r=>r.ok?r.json():null).catch(()=>null))),
     import(sharedAsset(`waterworks-renderer.mjs?v=${encodeURIComponent(index.renderer_sha256 || "")}`)),
+    loadImageryTruth(),
   ]);
   // A window let go while its tiles were on their way has no ground left to stand them on.
   if (ATTACH && !groups.furniture.parent) return;
@@ -2091,7 +2117,8 @@ registerLazyLayer("waterworks", async () => {
     place:(lon,lat)=>{const [x,y]=xy(lon,lat);return {x,z:-y};},
     ground:(x,z)=>groundLiftAt(x,z), roadTop:ROAD_TOP_M, kerbH:renderedKerbHeight(null),
     kerb:(x,z,reach)=>nearestKerbAt(x,z,reach), onRoad:(x,z,slack=0.4)=>insideCarriageway(x,z,slack),
-    wet:(x,z)=>mappedWaterAt(x,z)===true, kerbSegments, inArea, headset:HEADSET, postNear:kerbPostNear});
+    wet:(x,z)=>mappedWaterAt(x,z)===true, kerbSegments, inArea, headset:HEADSET, postNear:kerbPostNear,
+    gutterSeen:gutterInPhotograph});
   groups.furniture.add(group);
   const w=group.userData.summary;
   console.info(`kerbside: waterworks: ${w.drains} drains, ${w.lids} lids, ${w.streams} stream runs, `

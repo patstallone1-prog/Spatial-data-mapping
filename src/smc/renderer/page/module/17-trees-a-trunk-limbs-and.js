@@ -918,9 +918,62 @@ function addGround(mesh, what) {
 }
 
 const FENCE_GROUND_STEP_M = .75;
+//: Every fence laid on the ground, by the cells of a 6 m grid it crosses: a tree is never stood
+//: on one (treeOffFence). A trunk on a fence's line had the fence running through it -- half the
+//: tree in the park, half on the pavement (Moscone, Chestnut Street, 2026-11-22).
+const FENCE_LINE_CELL_M = 6, fenceLineGrid = new Map();
+function noteFenceLine(ax, az, bx, bz) {
+  const line = [ax, az, bx, bz], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / (FENCE_LINE_CELL_M / 2)));
+  for (let k = 0; k <= n; k += 1) {
+    const key = Math.floor((ax + (bx - ax) * k / n) / FENCE_LINE_CELL_M) + ":" + Math.floor((az + (bz - az) * k / n) / FENCE_LINE_CELL_M);
+    if (!fenceLineGrid.has(key)) fenceLineGrid.set(key, []);
+    const bucket = fenceLineGrid.get(key); if (bucket.at(-1) !== line) bucket.push(line);
+  }
+}
+//: The fence line nearest (x, z) within ``reach``: {d, nx, nz} -- how far off it (m), and the
+//: unit way from the line to the point -- or null.
+function nearestFenceLine(x, z, reach) {
+  let best = null;
+  const cx = Math.floor(x / FENCE_LINE_CELL_M), cz = Math.floor(z / FENCE_LINE_CELL_M);
+  for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1)
+    for (const [ax, az, bx, bz] of fenceLineGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+      const ux = bx - ax, uz = bz - az, L2 = ux * ux + uz * uz;
+      if (!(L2 > 0)) continue;
+      const t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / L2));
+      const px = ax + ux * t, pz = az + uz * t, d = Math.hypot(x - px, z - pz);
+      if (d >= reach || (best && d >= best.d)) continue;
+      // Off the line's middle the way out is square to it, on the side the point is (exactly on
+      // it, the left of its run); off an end, straight away from the end.
+      const L = Math.sqrt(L2), side = (ux * (z - az) - uz * (x - ax)) >= 0 ? 1 : -1;
+      const [nx, nz] = d > 1e-3 && (t === 0 || t === 1) ? [(x - px) / d, (z - pz) / d] : [-uz / L * side, ux / L * side];
+      best = { d, nx, nz };
+    }
+  return best;
+}
+//: How far a trunk's middle stands off a fence at least (m): its own half-width and a hand.
+const TREE_FENCE_CLEAR_M = 0.6;
+//: Where a tree at (x, z) stands clear of every fence: moved square off the line it is on, to the
+//: side it already stands on, as far as it needs to be and no further -- or null where that spot
+//: is roadway or building (it stays where it was).
+function treeOffFence(x, z, okAt = () => true) {
+  let px = x, pz = z;
+  for (let i = 0; i < 3; i += 1) {
+    const f = nearestFenceLine(px, pz, TREE_FENCE_CLEAR_M);
+    if (!f) return i ? [px, pz] : null;
+    const push = TREE_FENCE_CLEAR_M - f.d + 0.02;
+    const qx = px + f.nx * push, qz = pz + f.nz * push;
+    if (okAt(qx, qz)) { px = qx; pz = qz; continue; }
+    // That side has no room: the other side of the line, as far again.
+    const rx = px - f.nx * (f.d + TREE_FENCE_CLEAR_M + 0.02), rz = pz - f.nz * (f.d + TREE_FENCE_CLEAR_M + 0.02);
+    if (!okAt(rx, rz)) return null;
+    px = rx; pz = rz;
+  }
+  return nearestFenceLine(px, pz, TREE_FENCE_CLEAR_M) ? null : [px, pz];
+}
 function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
   const span=Math.hypot(bx-ax,bz-az);
   if (!(span>0) || !Number.isFinite(span)) return;
+  noteFenceLine(ax, az, bx, bz);
   const count=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
   const base=sink.positions.length/3;
   for(let k=0;k<=count;k++) {

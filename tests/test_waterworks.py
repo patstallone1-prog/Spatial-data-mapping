@@ -203,3 +203,47 @@ process.stdout.write(JSON.stringify({low, lift: W.GUTTER_LIFT_M, vertices: xs.si
     assert r["vertices"] >= 40, "a vertex a metre along the kerb"
     source = RENDERER.read_text()
     assert "road + GUTTER_LIFT_M + 0.017" in source and "road + GUTTER_LIFT_M + 0.006" in source
+
+
+def test_the_gutter_pan_lies_against_the_kerb_as_drawn_and_only_where_the_photograph_shows_one():
+    # Chestnut Street, 2026-11-22: the pan was laid on the block's middle offset as the roadway
+    # test found it (with 0.3 m of slack), half a metre out from the kerb the page drew, with
+    # asphalt between them -- a second, pale kerb in the street -- and straight on across a bus
+    # stop where the kerb stepped out. It is put on the drawn kerb now, turning with it, and left
+    # out where the aerial photograph shows none.
+    r = _node("""
+const place = (lon, lat) => ({x: lon * 88000, z: -lat * 111000});
+// The drawn kerb: 6.6 m out, stepped out a metre between x = 15 and 25 (a bus bulb), and three
+// metres between 30 and 36 (further than a pan is ever moved to meet a kerb).
+const edge = (x) => (x >= 15 && x <= 25 ? 5.6 : x >= 30 && x <= 36 ? 3.6 : 6.6);
+const kerb = (x, z, reach) => { const s = z >= 0 ? 1 : -1;
+  return Math.abs(edge(x) - Math.abs(z)) <= reach ? {x, z: s * edge(x), nx: 0, nz: s, ax: 1, az: 0} : null; };
+// The roadway as the slack test sees it: 0.3 m short of the kerb.
+const onRoad = (x, z, slack = 0.4) => Math.abs(z) < edge(x) - slack;
+const build = (gutterSeen) => W.buildWaterworks(THREE, [{schema: "kerbside.waterworks/1"}], {place,
+  ground: () => 0, kerb, onRoad, document: null, kerbSegments: () => [[0, 0, 40, 0, 6]], gutterSeen});
+const panOf = (g) => g.children.find(c => c.name === "waterworks-gutters");
+const at = (pan) => { const p = pan.geometry.getAttribute("position"), out = [];
+  for (let i = 0; i < p.count; i += 2) out.push([p.getX(i), p.getZ(i), p.getZ(i + 1)]); return out; };
+const all = at(panOf(build()));
+const kerbGap = Math.max(...all.map(([x, outer]) => Math.abs(Math.abs(outer) - (edge(x) - 0.01))));
+const inBulb = all.filter(([x]) => x > 16 && x < 24).map(([, outer]) => Math.abs(outer));
+const inDeep = all.filter(([x]) => x > 31 && x < 35).length;
+const seen = panOf(build((x) => x >= 20));
+process.stdout.write(JSON.stringify({kerbGap, inDeep, inBulb: [Math.min(...inBulb), Math.max(...inBulb)],
+  width: Math.max(...all.map(([, o, i]) => Math.abs(o - i))), sides: new Set(all.map(([, o]) => Math.sign(o))).size, seenFrom: seen ? Math.min(...at(seen).map(([x]) => x)) : null,
+  colour: panOf(build()).material.color.getHex()}));
+""")
+    assert r["kerbGap"] < 0.02, "the pan's outer edge on the drawn kerb everywhere"
+    assert 5.5 < r["inBulb"][0] and r["inBulb"][1] < 5.6, "round the bulb, not straight across it"
+    assert r["inDeep"] == 0, "no pan out in the road where no drawn kerb is near"
+    assert abs(r["width"] - 0.45) < 0.02 and r["sides"] == 2
+    assert r["seenFrom"] is not None and r["seenFrom"] >= 19.5, "none where the photograph shows none"
+    assert r["colour"] == 0x66665F, "the kerb's weathered concrete, not a pale band"
+
+
+def test_the_page_asks_the_photograph_before_it_lays_a_pan():
+    page = renderer_source()
+    assert "gutterSeen:gutterInPhotograph" in page
+    assert 'return best?.verdict !== "absent";' in page
+    assert "loadImageryTruth(),\n  ]);" in page

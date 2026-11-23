@@ -366,6 +366,10 @@ function* addFrontageFillSteps() {
         return { kind: "bare", point };
       }
       const to = outTo(point, from);
+      // Stopped by the survey's reach rather than by a house front: the setback beyond, if any,
+      // is the ground pass's to pave (addFrontageSetbacks), once it knows where the lawns are.
+      if (to + FRONTAGE_PROBE_M > reach)
+        frontageSetbacks.push({ point, from: to, top: top - FRONTAGE_BELOW_M, ux: (b[0] - a[0]) / run, uz: (b[1] - a[1]) / run, color, opacity });
       if (to - from < FRONTAGE_MIN_M) { frontageStats.skipped.noRoom += 1; return { kind: "paved", top, edge: point(inner) }; }
       return { kind: "paved", top, edge: point(inner), fill: { from: from - 0.05, to, point, top: top - FRONTAGE_BELOW_M } };
     });
@@ -454,6 +458,90 @@ function* addFrontageFillSteps() {
   }
   frontageStats.filled_m2 = Math.round(frontageStats.filled_m2);
   return frontageStats;
+}
+
+//: The house set back a little behind the footway's surveyed width, with nothing laid between
+//: but the property-line underlay: 23 cm under the pavement and in the same concrete, so the
+//: pavement's back edge read as a kerb down the middle of the sidewalk (Mallorca Way, Greenwich,
+//: Chestnut by Fillmore, 2026-11-22). Where a house front stands within this of the footway's
+//: outer edge, and no lawn, park or planted lot lies between, the footway is carried on to it at
+//: its own height -- the paved entry and garage apron a Marina house has there.
+const FRONTAGE_SETBACK_M = 4;
+//: Whether (x, z) lies in any of `rings` ([lon, lat] outlines): a 16 m grid of their page-space
+//: outlines.
+function ringCover(rings) {
+  const grid = new Map();
+  for (const raw of rings) {
+    if (!raw || raw.length < 3) continue;
+    const local = raw.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const xs = local.map((p) => p[0]), zs = local.map((p) => p[1]);
+    for (let ix = Math.floor(Math.min(...xs) / 16); ix <= Math.floor(Math.max(...xs) / 16); ix += 1)
+      for (let iz = Math.floor(Math.min(...zs) / 16); iz <= Math.floor(Math.max(...zs) / 16); iz += 1) {
+        const key = `${ix}:${iz}`;
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(local);
+      }
+  }
+  return (x, z) => (grid.get(`${Math.floor(x / 16)}:${Math.floor(z / 16)}`) || []).some((ring) => pointInRing(x, z, ring));
+}
+//: Paves each recorded setback (frontageSetbacks) out to its house front. `coveredAt(x, z)` is
+//: true on a lawn, park or planted lot, which is never paved over. Returns the meshes, by
+//: material, for the ground group.
+function addFrontageSetbacks(coveredAt) {
+  const sinks = new Map();
+  for (const s of frontageSetbacks.splice(0)) {
+    frontageSetbackStats.stations += 1;
+    // From the footway's drawn outer edge, which can lie a little past the survey's reach.
+    let start = s.from;
+    while (start < s.from + FRONTAGE_SETBACK_M / 2 && pavementSurfaceAt(...s.point(start + FRONTAGE_PROBE_M)) !== null)
+      start += FRONTAGE_PROBE_M;
+    s.from = start;
+    // Only where the underlay is what shows behind the footway.
+    if (!parkPavementAt(...s.point(s.from + 2 * FRONTAGE_PROBE_M))) { frontageSetbackStats.bare += 1; continue; }
+    let d = s.from, front = false, lawn = false;
+    while (d + FRONTAGE_PROBE_M <= s.from + FRONTAGE_SETBACK_M) {
+      const [px, pz] = s.point(d + FRONTAGE_PROBE_M);
+      if (buildingAt(px, pz)) { front = true; break; }
+      if (coveredAt(px, pz)) { lawn = true; break; }
+      if (insideCarriageway(px, pz, 0) || insideJunctionBox(px, pz)) break;
+      if (d > s.from + 2 * FRONTAGE_PROBE_M && pavementSurfaceAt(px, pz) !== null) break;   // a footway beyond
+      d += FRONTAGE_PROBE_M;
+    }
+    if (!front) { frontageSetbackStats[lawn ? "lawn" : "open"] += 1; continue; }
+    if (d - s.from < FRONTAGE_MIN_M) continue;
+    const key = `${s.color}|${s.opacity}`;
+    if (!sinks.has(key)) sinks.set(key, { color: s.color, opacity: s.opacity, position: [], uv: [], index: [] });
+    const sink = sinks.get(key);
+    const [nearX, nearZ] = s.point(s.from - 0.05), [farX, farZ] = s.point(d);
+    const half = FRONTAGE_STEP_M * 0.6, { ux, uz } = s;
+    const ring = [[nearX - ux * half, nearZ - uz * half], [farX - ux * half, farZ - uz * half],
+                  [farX + ux * half, farZ + uz * half], [nearX + ux * half, nearZ + uz * half]];
+    const base = sink.position.length / 3;
+    for (const [x, z] of ring) {
+      sink.position.push(x, s.top, z);
+      sink.uv.push((x * ux + z * uz) / WALK_UV_M, (z * ux - x * uz) / WALK_UV_M);
+    }
+    const ex = ring[1][0] - ring[0][0], ez = ring[1][1] - ring[0][1];
+    const fx = ring[3][0] - ring[0][0], fz = ring[3][1] - ring[0][1];
+    if (ez * fx - ex * fz > 0) sink.index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    else sink.index.push(base, base + 2, base + 1, base, base + 3, base + 2);
+    stampPavedRing(ring, s.top + FRONTAGE_BELOW_M);
+    frontageSetbackStats.paved += 1;
+    frontageSetbackStats.paved_m2 += FRONTAGE_STEP_M * (d - s.from);
+  }
+  frontageSetbackStats.paved_m2 = Math.round(frontageSetbackStats.paved_m2);
+  const meshes = [];
+  for (const sink of sinks.values()) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(sink.position, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uv, 2));
+    geometry.setIndex(sink.index);
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, surfaceMaterial("walk", sink.color, sink.opacity));
+    mesh.userData.basis = "inferred";
+    meshes.push(mesh);
+  }
+  return meshes;
 }
 
 //: A street tree at least this far inside a carriageway's edge stands on an island nobody has
