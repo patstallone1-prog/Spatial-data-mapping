@@ -671,6 +671,16 @@ irradiance = irradiance * kbSky + kbBnc;
   float kbSK = kbSA * 0.5, kbSVis = 0.25 / ((kbSNL * (1.0 - kbSK) + kbSK) * (kbSNV * (1.0 - kbSK) + kbSK));
   vec3 kbSpec = directionalLights[0].color * (kbLit * kbSNL * min(kbSD * kbSFr * kbSVis, 8.0));
   #ifdef KB_PLAIN
+  // A rough surface is not evenly matt: its grain throws light back towards where it came from,
+  // so asphalt and stucco are brighter seen from the sun's side and duller against it, and do
+  // not darken to nothing at a glancing sun (Oren and Nayar's rough diffuse, in Fujii's form).
+  // By the surface's own roughness: paint and glass stay evenly matt.
+  {
+    float kbOS = clamp((kbSR - 0.5) * 2.0, 0.0, 1.0);
+    float kbOs = dot(kbSL, kbSV) - kbSNL * kbSNV, kbOt = kbOs > 0.0 ? max(kbSNL, kbSNV) : 1.0;
+    float kbOA = 1.0 / (1.0 + 0.2878 * kbOS);
+    reflectedLight.directDiffuse *= mix(1.0, kbOA + kbOS * kbOA * kbOs / max(kbOt, 0.05), step(0.02, dot(directionalLights[0].color, vec3(0.333))));
+  }
   reflectedLight.directSpecular += kbSpec;
   #else
   reflectedLight.directDiffuse += kbSpec;
@@ -983,7 +993,44 @@ if(!ATTACH) {
   // (docs/reflectance.mjs): given as streets arrive, a little at a time and only to what is new.
   if(!META)Promise.all([import(sharedAsset("reflectance.mjs")),objectCatalogueReady]).then(([{createReflectance},ready])=>{
     if(!ready)return;
-    const reflectance=createReflectance({catalogue:ready.catalogue,set:(m,roughness,specular)=>PROXY_LIGHT.opticsOf(m).value.set(roughness,specular)});
+    // What a drawn colour scatters back: the material's colour times its picture's average, as
+    // light (not screen values). Not told where each point or instance has a colour of its own,
+    // or the surface is see-through or lit by nothing.
+    const pictureMeans=new Map(),lin=(c)=>c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4;
+    let meanCanvas=null;
+    const pictureMean=(map)=>{
+      if(pictureMeans.has(map.uuid))return pictureMeans.get(map.uuid);
+      const image=map.image;
+      if(!image||!(image.width>0))return undefined;
+      let y=null;
+      try{
+        let px=null;
+        if(image.data&&image.data.length>=4&&(image.data instanceof Uint8Array||image.data instanceof Uint8ClampedArray))px=image.data;
+        else if(!image.data){
+          meanCanvas||=Object.assign(document.createElement("canvas"),{width:8,height:8});
+          const g=meanCanvas.getContext("2d",{willReadFrequently:true});
+          g.clearRect(0,0,8,8);g.drawImage(image,0,0,8,8);px=g.getImageData(0,0,8,8).data;
+        }
+        if(px){
+          const srgb=map.colorSpace===THREE.SRGBColorSpace,step=Math.max(4,Math.floor(px.length/4/256)*4);
+          let sum=0,n=0;
+          for(let i=0;i+3<px.length;i+=step){const r=px[i]/255,gg=px[i+1]/255,b=px[i+2]/255;sum+=srgb?0.2126*lin(r)+0.7152*lin(gg)+0.0722*lin(b):0.2126*r+0.7152*gg+0.0722*b;n+=1;}
+          y=n?sum/n:null;
+        }
+      }catch(error){y=null;}
+      pictureMeans.set(map.uuid,y);
+      return y;
+    };
+    const drawnAlbedo=(m,o)=>{
+      if(!(m.isMeshStandardMaterial||m.isMeshLambertMaterial||m.isMeshPhongMaterial)||!m.color)return null;
+      if(m.vertexColors||o.instanceColor||(m.transparent&&m.opacity<0.9)||m.userData?.keepColour)return null;
+      const c=0.2126*m.color.r+0.7152*m.color.g+0.0722*m.color.b;
+      if(!m.map)return c;
+      const p=pictureMean(m.map);
+      return p===undefined?undefined:p===null?null:c*p;
+    };
+    const reflectance=createReflectance({catalogue:ready.catalogue,set:(m,roughness,specular)=>PROXY_LIGHT.opticsOf(m).value.set(roughness,specular),
+      drawn:drawnAlbedo,tint:(m,k)=>{m.color.multiplyScalar(k);}});
     window.kerbsideReflectance=()=>({...reflectance.stats(),apply:()=>reflectance.apply(scene)});
     reflectance.apply(scene);
     setInterval(()=>(window.requestIdleCallback||setTimeout)(()=>reflectance.apply(scene)),6000);

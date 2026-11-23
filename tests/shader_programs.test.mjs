@@ -74,6 +74,10 @@ test("each material's own roughness and mirrored share reach the glint, one unif
   const flat = flatten(sa.fragmentShader, THREE.ShaderChunk, BASE);
   assert.match(flat, /kbSOpt\.x > 0\.0 \? kbSOpt\.x : roughnessFactor/);
   assert.match(flat, /kbSF0 = kbSOpt\.y/);
+  // And a rough surface scatters back towards the light (the matt light is not evenly matt).
+  assert.equal((flat.match(/reflectedLight\.directDiffuse \*= mix\(1\.0, kbOA \+ kbOS \* kbOA \* kbOs/g) || []).length, 1);
+  const metal = flatten(patched(new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.6 })).fragmentShader, THREE.ShaderChunk, BASE);
+  assert.ok(!metal.includes("kbOA"), "only what is lit plainly");
 });
 
 test("car paint: a clear coat's glint and the sky mirrored, on the plain paint and the full one", () => {
