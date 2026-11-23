@@ -829,6 +829,25 @@ if (!ATTACH && !THREE.Material.prototype.onBeforeCompile.kbProxyLight) {
   };
 }
 let proxyLightController = null;
+// A shader the driver refuses is a surface that is not drawn, and nothing says so: in November
+// 2026 every plain-lit wall went that way and a house was its windows and a doorway in the air.
+// The page looks for itself (docs/shader-check.mjs), a little at a time and only at programs
+// already drawn with; if the plain light is what was refused, the walls go back to the full one.
+if (!ATTACH) import(sharedAsset("shader-check.mjs")).then(({ failedPrograms }) => {
+  const seen = new WeakSet(), met = new WeakSet(), failed = [];
+  const look = (now = false) => {
+    const bad = failedPrograms(renderer, seen, now ? null : met);
+    if (!bad.length) return;
+    failed.push(...bad);
+    console.error("kerbside: shaders the driver refused; what uses them is not drawn", bad);
+    if (PLAIN_LIGHT.enabled && bad.some((b) => b.key.includes("|plain-light"))) {
+      PLAIN_LIGHT.enabled = false;
+      scene.traverse((o) => { for (const m of [].concat(o.material || [])) if (m && m.isMeshStandardMaterial) m.needsUpdate = true; });
+    }
+  };
+  window.kerbsideShaderCheck = () => { look(true); return { programs: renderer.info.programs.length, failed: failed.slice(), plainLight: PLAIN_LIGHT.enabled }; };
+  setInterval(() => (window.requestIdleCallback || setTimeout)(() => look()), 15000);
+}).catch((error) => console.warn("kerbside: no shader check", error));
 if(!ATTACH) {
   // Do not add a top-level suspension here: regional labels initialize later.
   if(!META)import(sharedAsset("proxy-light.mjs")).then(({createProxyLight})=>{
