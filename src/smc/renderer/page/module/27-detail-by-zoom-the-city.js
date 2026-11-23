@@ -269,6 +269,8 @@ function animate(now) {
   environmentController?.update(now,{indoors:Boolean(state.indoors)});
   // The shadows and the light off the street: looked at again when you have moved on or the sun has.
   proxyLightController?.update(now, state.firstPerson ? avatar.position : state.target, { dist: state.dist, indoors: Boolean(state.indoors) });
+  // And the fine ones near you, drawn from the sun's side (docs/fine-shadows.mjs).
+  fineShadowController?.update(now, state.firstPerson ? avatar.position : state.target, { indoors: Boolean(state.indoors), level: PROXY_LIGHT.k.value.w });
   if(frameCount%60===0 && environmentController){const clock=document.getElementById("world-clock");
     if(clock)clock.textContent=`Game time: ${environmentController.snapshot()?.localTime || ""} (a day in 72 minutes)`;
     // The walker's rim at night (and the other players'), once their models are in.

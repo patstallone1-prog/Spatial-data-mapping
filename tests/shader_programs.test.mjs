@@ -57,6 +57,10 @@ test("a wall's patched program compiles: nothing is declared twice", () => {
     assert.equal((flat.match(/\bvarying\s+vec3\s+vViewPosition\s*;/g) || []).length, 1, `one view position: ${kind}, ${name}`);
     assert.equal((flat.match(/\bvoid\s+RE_Direct_Lambert\s*\(/g) || []).length, 1, `the matt light's terms: ${kind}, ${name}`);
     assert.ok(!/RE_Direct_Physical|PhysicalMaterial\s+material/.test(flat), `no half of the highlight left: ${kind}, ${name}`);
+    // The sun's one glint is put back for a plain-lit surface, at its own roughness, and is cut by the shadow.
+    assert.equal((flat.match(/reflectedLight\.directSpecular \+= kbSpec;/g) || []).length, 1, `the sun's glint: ${kind}, ${name}`);
+    assert.match(flat, /kbLit \* kbSNL \* min\(kbSD \* kbSFr \* kbSVis, 8\.0\)/);
+    assert.match(flat, /float kbFSLit\(vec2 kbFSuv, float kbFSz\)/, "the fine shadows are read");
   }
   assert.equal(plain, kinds.length * Object.keys(SETS).length, "the plain light is what walls use: this test is of the program that is drawn");
 });

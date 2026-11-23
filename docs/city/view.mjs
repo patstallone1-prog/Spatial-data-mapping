@@ -1133,6 +1133,9 @@ diffuseColor.rgb *= kbCloth;`);
     }
     drawPeopleSimpler(mid, low, now);
     peopleShade.count = 0; peopleShade.instanceMatrix.needsUpdate = true;
+    // Where the sun draws each person's own outline (docs/fine-shadows.mjs) the round blob is only
+    // the dark where feet meet the ground; at night and far off it is the whole shadow, as before.
+    peopleShade.material.opacity = 0.5 - 0.36 * (globalThis.__kerbsideProxyLight?.fineK?.value.x || 0);
     if (asFigures) for (const { p, y } of near.slice(0, asFigures)) if (!p.indoors) shadeAt(peopleShade, SHADE_PEOPLE, p.x, y, p.z, p.yaw, 0.8, 0.8);
     let n = 0, r = 0, k = 0;
     for (const { p, y } of full) {
@@ -1539,6 +1542,7 @@ diffuseColor.rgb *= kbCloth;`);
     for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
     carShade.count = 0; carShade.instanceMatrix.needsUpdate = true;
+    carShade.material.opacity = 0.5 - 0.3 * (globalThis.__kerbsideProxyLight?.fineK?.value.x || 0);
     drawnTiers.cars = [full.length, mid.length, low.length];
     let drivers = 0;
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {

@@ -604,8 +604,7 @@ function* buildParkAreasSteps(areas) {
   const picketMaterial = new THREE.MeshStandardMaterial({ map: playFenceTexture(), alphaTest: 0.5, side: THREE.DoubleSide,
     color: 0x2f3a33, roughness: 0.55, metalness: 0.45 });
   emitFence(picket, picketMaterial, "park:playground_fence");
-  const chainMaterial = new THREE.MeshStandardMaterial({ map: chainlinkTexture(), alphaTest: 0.55, side: THREE.DoubleSide,
-    roughness: 0.55, metalness: 0.45, color: 0xc6ced2 });
+  const chainMaterial = chainlinkMaterial();
   chain.uvs.forEach((v, i) => { chain.uvs[i] = i % 2 ? v * 2.5 : v / 0.6; });
   emitFence(chain, chainMaterial, "park:garden_fence");
   stats.gates = picket.gates.length + chain.gates.length;
@@ -629,7 +628,7 @@ function insideBBoxPage(x, z) {
 // fence already is. The gates are the recorded ones, and inferred ones where people would come
 // in (docs/property-fences.mjs placeGates): each is a clear opening with a dark frame round it.
 const PROPERTY_FENCE_STYLE = {
-  chain_link: { surface: "fence:chainlink", post: 0x8d979c },
+  chain_link: { surface: "fence:chainlink", post: 0x1c1f21 },
   bars: { surface: "fence:picket", post: 0x22272a },
   rail: { surface: "fence:picket", post: 0x22272a },
   picket: { surface: "fence:picket", post: 0x2f3a33 },
@@ -713,6 +712,8 @@ async function buildPropertyFences() {
         stats.fence_m += span;
         for (let d = 0; d < span; d += 2.8) sink.posts.push([ax + (bx - ax) * d / span, az + (bz - az) * d / span, run.h + 0.08]);
         sink.posts.push([bx, bz, run.h + 0.08]);
+        // Chain link hangs from a top rail and is laced to a wire along the foot.
+        if (run.style === "chain_link") (sink.rails ||= []).push([ax, az, bx, bz, run.h, 0.042], [ax, az, bx, bz, 0.06, 0.012]);
       }
       for (const o of openings) {
         frames.push({ ...o, h: run.h, drive: o.w > 3 });
@@ -720,8 +721,8 @@ async function buildPropertyFences() {
       }
     });
   }
-  const chainMap = chainlinkTexture(), barMap = playFenceTexture();
-  const materialOf = (style) => style === "chain_link" ? new THREE.MeshStandardMaterial({ map: chainMap, alphaTest: 0.55, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.45, color: 0xc6ced2 })
+  const barMap = playFenceTexture();
+  const materialOf = (style) => style === "chain_link" ? chainlinkMaterial()
     : style === "board" ? fenceMaterial(FENCE_STYLE.board) : style === "wall" ? fenceMaterial(FENCE_STYLE.wall)
     : style === "hedge" ? new THREE.MeshStandardMaterial({ color: 0x2f4a2a, roughness: 1, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ map: barMap, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55, metalness: style === "split_rail" ? 0 : 0.45, color: PROPERTY_FENCE_STYLE[style]?.post ?? 0x22272a });
@@ -737,11 +738,24 @@ async function buildPropertyFences() {
     const mesh = addGround(new THREE.Mesh(geom, materialOf(style)), look.surface + "|property");
     mesh.userData.liftedOntoGround = true; mesh.userData.elevationBasis = "terrain_sampled_0.75m"; mesh.userData.basis = "property_fences";
     if (look.post !== null && sink.posts.length) {
-      const posts = new THREE.InstancedMesh(parkGeometry("cyl"), new THREE.MeshStandardMaterial({ color: look.post, roughness: 0.5, metalness: 0.5 }), sink.posts.length);
+      const posts = new THREE.InstancedMesh(parkGeometry("cyl"), new THREE.MeshStandardMaterial({ color: look.post, roughness: 0.5, metalness: style === "chain_link" ? 0.1 : 0.5 }), sink.posts.length);
       sink.posts.forEach(([x, z, h], i) => { dummy.position.set(x, groundLiftAt(x, z) + YARD_Y + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(0.06, h, 0.06); dummy.updateMatrix(); posts.setMatrixAt(i, dummy.matrix); });
       posts.instanceMatrix.needsUpdate = true;
       posts.userData = { surface: look.surface + "_post|property", liftedOntoGround: true };
       groups.ground.add(posts);
+    }
+    if (sink.rails?.length) {
+      const rails = new THREE.InstancedMesh(parkGeometry("cyl"), new THREE.MeshStandardMaterial({ color: look.post ?? 0x1c1f21, roughness: 0.5, metalness: 0.1 }), sink.rails.length);
+      const up = new THREE.Vector3(0, 1, 0), along = new THREE.Vector3();
+      sink.rails.forEach(([ax, az, bx, bz, h, d], i) => {
+        const ya = groundLiftAt(ax, az) + YARD_Y + h, yb = groundLiftAt(bx, bz) + YARD_Y + h;
+        along.set(bx - ax, yb - ya, bz - az); const len = along.length() || 1;
+        dummy.position.set((ax + bx) / 2, (ya + yb) / 2, (az + bz) / 2); dummy.quaternion.setFromUnitVectors(up, along.divideScalar(len)); dummy.scale.set(d, len, d); dummy.updateMatrix(); rails.setMatrixAt(i, dummy.matrix);
+      });
+      dummy.rotation.set(0, 0, 0);
+      rails.instanceMatrix.needsUpdate = true;
+      rails.userData = { surface: look.surface + "_rail|property", liftedOntoGround: true };
+      groups.ground.add(rails);
     }
   }
   // The ways in: a clear opening, a dark post each side and (a walk gate) a dark bar over it, so

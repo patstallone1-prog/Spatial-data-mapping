@@ -822,10 +822,7 @@ function wallTexture(colour) {
 function fenceMaterial(style) {
   const shared = { side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0 };
   if (style.kind === "chainlink") {
-    return new THREE.MeshStandardMaterial({
-      ...shared, map: chainlinkTexture(), color: style.colour,
-      alphaTest: 0.55, roughness: 0.55, metalness: 0.45,
-    });
+    return chainlinkMaterial();
   }
   if (style.kind === "picket") {
     return new THREE.MeshStandardMaterial({
@@ -1126,6 +1123,53 @@ function chainlinkTexture() {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.anisotropy = 8;
   return texture;
+}
+
+//: Chain link as it is made: wire woven into 2-inch diamonds, each wire hooked round the next
+//: (the knuckles), in black vinyl. The wires are worked out in the shader from where a point of
+//: the panel is in the world -- 50 mm apart, 4.8 mm thick with the coating -- and shaded round,
+//: so the sun glints along them. A wire is never drawn thinner than a pixel: seen along the fence
+//: the gaps close up and it reads as the dark screen a real one does, where a flat picture of
+//: wires on a sheet vanished edge-on. Too far off for wires, it is a veil as dense as the wire is.
+//: The fabric casts no fine shadow (it would be a solid sheet's); the posts and rails do.
+let CHAINLINK_MATERIAL = null;
+function chainlinkMaterial() {
+  if (CHAINLINK_MATERIAL) return CHAINLINK_MATERIAL;
+  const material = new THREE.MeshStandardMaterial({ color: 0x1b1e20, roughness: 0.42, metalness: 0, side: THREE.DoubleSide });
+  material.userData.noShadow = true; material.userData.wire = "chainlink";
+  const pageHook = THREE.Material.prototype.onBeforeCompile, pageKey = THREE.Material.prototype.customProgramCacheKey;
+  material.onBeforeCompile = function (shader, renderer) {
+    pageHook.call(this, shader, renderer);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbCLw; varying vec3 kbCLn;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nkbCLw = (modelMatrix * vec4(transformed, 1.0)).xyz; kbCLn = normalize(mat3(modelMatrix) * objectNormal);");
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 kbCLw; varying vec3 kbCLn;")
+      .replace("#include <map_fragment>", `#include <map_fragment>
+float kbCLo = 0.0; vec3 kbCLd = vec3(0.0, 1.0, 0.0);
+{
+  vec3 kbCN = normalize(kbCLn); vec2 kbCT = normalize(vec2(kbCN.z, -kbCN.x) + vec2(1e-5, 0.0));
+  float kbCS = dot(kbCLw.xz, kbCT), kbCY = kbCLw.y;
+  float kbCA = (kbCS + kbCY) * 14.142, kbCB = (kbCS - kbCY) * 14.142;      // in wire spacings: 0.7071 / 0.05 m
+  float kbCFa = fwidth(kbCA), kbCFb = fwidth(kbCB), kbCW = 0.048;            // half a 4.8 mm wire, in spacings
+  float kbCa = abs(fract(kbCA) - 0.5), kbCb = abs(fract(kbCB) - 0.5);
+  if (max(kbCFa, kbCFb) > 0.6) {
+    float kbCNv = abs(dot(kbCN, normalize(cameraPosition - kbCLw)));
+    if (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) > min(0.8, 4.0 * kbCW / max(kbCNv, 0.15))) discard;
+  } else {
+    float kbCKnot = (1.0 - smoothstep(0.0, 0.16, kbCa)) * (1.0 - smoothstep(0.0, 0.16, kbCb));
+    float kbCWa = max(kbCW, 0.6 * kbCFa) * (1.0 + 1.2 * kbCKnot), kbCWb = max(kbCW, 0.6 * kbCFb) * (1.0 + 1.2 * kbCKnot);
+    bool kbCOnA = kbCa < kbCWa, kbCOnB = kbCb < kbCWb;
+    if (!kbCOnA && !kbCOnB) discard;
+    vec3 kbCT3 = vec3(kbCT.x, 0.0, kbCT.y);
+    if (kbCOnA && (!kbCOnB || kbCa / kbCWa < kbCb / kbCWb)) { kbCLo = (fract(kbCA) - 0.5) / kbCWa; kbCLd = (kbCT3 + vec3(0.0, 1.0, 0.0)) * 0.7071; }
+    else { kbCLo = (fract(kbCB) - 0.5) / kbCWb; kbCLd = (kbCT3 - vec3(0.0, 1.0, 0.0)) * 0.7071; }
+    kbCLo = clamp(kbCLo, -1.0, 1.0) * 0.85;
+  }
+}`)
+      .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+normal = normalize(normal * sqrt(max(0.0, 1.0 - kbCLo * kbCLo)) + normalize((viewMatrix * vec4(kbCLd, 0.0)).xyz) * kbCLo);`);
+  };
+  material.customProgramCacheKey = function () { return `${pageKey.call(this)}|chainlink`; };
+  return (CHAINLINK_MATERIAL = material);
 }
 
 function netTexture() {
@@ -1618,20 +1662,15 @@ function buildCourts(ground) {
     geom.setAttribute("uv", new THREE.Float32BufferAttribute(fenceUvs, 2));
     geom.setIndex(fenceIndices);
     geom.computeVertexNormals();
-    const fence=new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
-      // Wire, not sheeting. The threshold is deliberately above what a minified mipmap of a
-      // diamond mesh averages out to, so the fence thins away with distance instead of
-      // resolving into the solid grey panel it first came out as.
-      map: chainlinkTexture(), alphaTest: 0.55, side: THREE.DoubleSide,
-      roughness: 0.55, metalness: 0.45, color: 0xc6ced2,
-    }));
+    // (Wire, not sheeting: chainlinkMaterial.)
+    const fence=new THREE.Mesh(geom, chainlinkMaterial());
     fence.userData={surface:"fence:court",liftedOntoGround:true,elevationBasis:"terrain_sampled_0.75m"};
     groups.ground.add(fence);
   }
   if (fencePosts.length) {
     const post = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.035, 0.04, 1, 5),
-      new THREE.MeshStandardMaterial({ color: 0x8d9498, roughness: 0.5, metalness: 0.55 }),
+      new THREE.MeshStandardMaterial({ color: 0x1c1f21, roughness: 0.45, metalness: 0.2 }),
       fencePosts.length);
     const dummy = new THREE.Object3D();
     fencePosts.forEach(([x, z, h], i) => {
