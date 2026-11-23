@@ -31,9 +31,12 @@ export const NIGHT_LOOK=Object.freeze({
 });
 //: The share of a city's windows lit at game hour ``h`` after dark: most through the evening,
 //: fewer towards midnight, a few in the small hours, some again before dawn.
+//: The share of windows lit, by the hour: three in four through the evening (it was a little over
+//: half, and a street at night read as mostly dark houses), half still after midnight, a quarter
+//: in the small hours, rising again as people wake.
 export function litShare(h){
-  if(h>=17&&h<22)return .55; if(h>=22)return .55-(h-22)*.1; if(h<1)return .35;
-  if(h<5)return .12; return .12+(h-5)*.12;
+  if(h>=17&&h<22)return .75; if(h>=22)return .75-(h-22)*.1; if(h<1)return .5;
+  if(h<5)return .25; return .25+(h-5)*.15;
 }
 //: B-V colour index to an RGB tint (hot blue-white to cool orange).
 function bvColour(bv){

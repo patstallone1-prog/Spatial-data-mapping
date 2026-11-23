@@ -1502,6 +1502,8 @@ async function readImageryTruth() {
 }
 
 const BUS_PAD_COLOUR = 0x77786f;
+//: Whether a photographed concrete bus pad is drawn in the kerb lane (it is not: see addBusZonePaint).
+const BUS_PADS_DRAWN = false;
 function addBusZonePaint(records, plan = null) {
   // The red box in the roadway at a bus zone.
   records = joinBusZones(records);
@@ -1587,12 +1589,14 @@ function addBusZonePaint(records, plan = null) {
         const [ax, az] = corner(0, near), [bx, bz] = corner(span, near);
         const [cx, cz] = corner(span, near + BUS_ZONE_WIDTH_M), [dx, dz] = corner(0, near + BUS_ZONE_WIDTH_M);
         zoneAt = [(ax + cx) / 2, (az + cz) / 2];
-        // Looked for in the photograph: red only where it is red. A concrete bus pad is laid as
-        // one; bare road is left bare, and the stop's own box and words are laid as at any stop.
+        // Looked for in the photograph: red only where it is red. Bare road is left bare, and so
+        // is a concrete bus pad (BUS_PADS_DRAWN): drawn as one, a flat grey band in the kerb lane,
+        // it read as a strip laid on the road by mistake (Chestnut at Fillmore, twice, 2026-11-22).
+        // The stop's own box and words are laid as at any stop.
         const seen = imageryVerdict("bus_zones", zoneAt[0], zoneAt[1]);
         if (seen && seen.verdict !== "red") {
           zones -= 1;
-          if (seen.verdict === "pad") quad(pad, ax, az, bx, bz, cx, cz, dx, dz, BUS_ZONE_Y);
+          if (seen.verdict === "pad" && BUS_PADS_DRAWN) quad(pad, ax, az, bx, bz, cx, cz, dx, dz, BUS_ZONE_Y);
           continue;
         }
         // The zone's rectangle of asphalt, claimed on the paint plan as paint already down: a
@@ -1808,12 +1812,17 @@ function addStreetLights(records,anchorFor=furnitureAnchor) {
     new THREE.MeshStandardMaterial({ color: 0x8b9192, roughness: 0.45, metalness: 0.5 }), heads, (h) => {
       dummy.position.copy(h.at); dummy.rotation.set(0, h.yaw, 0);
     });
+  // The lens and the globes: a faint glint by day, lit after dark (nightLamp), and a glow round
+  // each at night (nightLampGlow) so a lit street reads as lit from down the block.
   instanced(new THREE.BoxGeometry(0.26, 0.02, 0.5),
-    new THREE.MeshStandardMaterial({ color: 0xe9edf0, emissive: 0xfff4e2, emissiveIntensity: 0.45, roughness: 0.3 }),
+    nightLamp(new THREE.MeshStandardMaterial({ color: 0xe9edf0, emissive: 0xfff4e2, emissiveIntensity: 0.25, roughness: 0.3 }), 4.0),
     heads, (h) => { dummy.position.set(h.at.x, h.at.y - 0.085, h.at.z); dummy.rotation.set(0, h.yaw, 0); });
   instanced(new THREE.SphereGeometry(1, 14, 10),
-    new THREE.MeshStandardMaterial({ color: 0xf2ead6, emissive: 0xfff0cc, emissiveIntensity: 0.35, roughness: 0.25 }),
+    nightLamp(new THREE.MeshStandardMaterial({ color: 0xf2ead6, emissive: 0xfff0cc, emissiveIntensity: 0.2, roughness: 0.25 }), 3.0),
     globes, (g) => { dummy.position.copy(g.at); dummy.scale.set(g.sx, g.sy, g.sx); });
+  { const glow = nightLampGlow([...heads.map((h) => [h.at.x, h.at.y - 0.12, h.at.z]), ...globes.map((g) => [g.at.x, g.at.y, g.at.z])].flat());
+    if (glow) { glow.userData = { surface: "furniture:street_light_glow", source: "sfpuc_streetlights" }; groups.furniture.add(glow);
+      globalThis.__kerbsideProxyLight?.dynamic?.add(glow); } }   // (light, not a thing: kept out of the stand-in)
   instanced(new THREE.ConeGeometry(1, 0.6, 12), painted, caps, (cap) => {
     dummy.position.copy(cap.at); dummy.scale.set(cap.r, cap.r, cap.r);
   }, true);

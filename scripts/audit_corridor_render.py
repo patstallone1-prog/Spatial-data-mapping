@@ -45,6 +45,7 @@ FUNCTIONS = (
     "onewaySign",
     "distanceToSegmentSquared",
     "insideCarriageway",
+    "insideStreetCarriageway",
     "insideMeasuredCarriageway",
     "pavementSurroundedByStreet",
     "addCarriagewaySegment",
