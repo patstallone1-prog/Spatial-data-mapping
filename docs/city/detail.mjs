@@ -165,3 +165,15 @@ export function withinView(eye, fx, fz, x, z, halfDeg, marginDeg = 0) {
   const cos = (dx * fx + dz * fz) / d, limit = Math.min(179.5, halfDeg + marginDeg);
   return cos >= Math.cos((limit * Math.PI) / 180);
 }
+
+//: Where a wheeled thing drawn at (gx, gz) and facing ``yaw`` (0 faces -z) is drawn next, on its
+//: way to (x, z): at most ``max`` metres on the way it faces -- or back, only if ``reversing`` --
+//: and across by at most WHEEL_SLIP of that. What is left over waits for its next move forward.
+export const WHEEL_SLIP = 0.45;
+export function wheelStep(gx, gz, x, z, yaw, max, reversing = false) {
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw), dx = x - gx, dz = z - gz;
+  const along = dx * fx + dz * fz, across = dx * -fz + dz * fx;
+  const a = reversing ? Math.max(-max, Math.min(0, along)) : Math.max(0, Math.min(max, along));
+  const l = Math.max(-Math.abs(a) * WHEEL_SLIP, Math.min(Math.abs(a) * WHEEL_SLIP, across));
+  return [gx + fx * a - fz * l, gz + fz * a + fx * l];
+}

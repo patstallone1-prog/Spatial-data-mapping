@@ -848,7 +848,7 @@ const TREE_ROAD_CLEAR_M = 0.3, TREE_HARD_OPENING_M = 1.22, TREE_HARD_OPENING_Y =
 //: hydrant, 3 ft from a parking sign or a meter.
 const TREE_OBSTACLE_CLEARANCE_M = { stop: 7.62, hydrant: 1.524, meter: 0.9144, sign: 0.9144 };
 //: How many openings were put on the walk's squares, and how many were left where the survey has them.
-const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0, merged: 0, mergedFrom: 0, hardOpening: 0, kerbEdge: 0, offFence: 0, onFence: 0 };
+const treeSquareStats = { squared: 0, unsquared: 0, slid: 0, asSurveyed: 0, squareOpening: 0, onGrass: 0, merged: 0, mergedFrom: 0, hardOpening: 0, kerbEdge: 0, offFence: 0, onFence: 0, poleMoved: 0, poleDropped: 0 };
 const sfSurvey = (async () => {
   const b = DATA.bbox;
   if (!b) return null;
@@ -1157,11 +1157,55 @@ const groundReady = (async () => {
   }
   const walkable = (x,z)=>pavementSurfaceAt(x,z)!==null && !insideCarriageway(x,z,0)
     && !insideBikeLane(x,z,.15) && !buildingAt(x,z) && !inDriveway(x,z);
+  // Every pole a tree could be standing against: the city's lights, signs, meters and signals,
+  // where the furniture layer will stand them (furnitureAnchor). A tree and a pole were drawn in
+  // one spot -- the survey's tree and the city's light a hand apart, or carried together by the
+  // kerb each is set back from. The record is waited for a little; without it the trees stand as
+  // they did.
+  const poleGrid = new Map(), poleCell = (x, z) => Math.floor(x / 2) + ":" + Math.floor(z / 2);
+  if ((ground.trees || []).length) {
+    const record = await Promise.race([streetFurnitureOnce().catch(() => null), new Promise((r) => setTimeout(() => r(null), 20000))]);
+    const official = record?.geometry_based || {};
+    for (const list of [official.street_lights, official.street_signs, official.parking_meters, official.traffic_signals, official.small_cells]) {
+      for (const item of list || []) {
+        if (!item?.p) continue;
+        const [rx, ry] = xy(item.p[0], item.p[1]);
+        // (Only those with a tree anywhere near are worked out in full.)
+        let near = false;
+        for (let dx = -5; dx <= 5 && !near; dx += 5) for (let dz = -5; dz <= 5 && !near; dz += 5) near = trunkGrid.has(trunkCell(rx + dx, -ry + dz));
+        if (!near) continue;
+        let a = null;
+        try { a = furnitureAnchor(item); } catch (error) { a = null; }
+        const px = a ? a.x : rx, pz = a ? a.z : -ry, key = poleCell(px, pz);
+        if (!poleGrid.has(key)) poleGrid.set(key, []);
+        poleGrid.get(key).push([px, pz]);
+      }
+    }
+  }
+  const poleNear = (x, z, clear = TREE_POLE_CLEAR_M) => {
+    const cx = Math.floor(x / 2), cz = Math.floor(z / 2);
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1)
+      for (const q of poleGrid.get((cx + dx) + ":" + (cz + dz)) || []) if (Math.hypot(q[0] - x, q[1] - z) < clear) return q;
+    return null;
+  };
+  //: Where a tree with no opening of its own stands clear of the pole beside it: stepped straight
+  //: away from it, a little further each try, onto ground a tree can stand on. Null: nowhere.
+  const stepOffPole = (x, z, clear, okAt) => {
+    const q = poleNear(x, z, clear);
+    if (!q) return [x, z];
+    let ux = x - q[0], uz = z - q[1]; const d = Math.hypot(ux, uz);
+    if (d < 0.02) { ux = 1; uz = 0; } else { ux /= d; uz /= d; }
+    for (const [vx, vz] of [[ux, uz], [-uz, ux], [uz, -ux]]) for (const reach of [clear + 0.08, clear + 0.4, clear + 0.8]) {
+      const nx = q[0] + vx * reach, nz = q[1] + vz * reach;
+      if (okAt(nx, nz) && !poleNear(nx, nz, clear)) return [nx, nz];
+    }
+    return null;
+  };
   const trees = (ground.trees || []).filter((tree) => {
     if (notThere.has(tree)) return false;
-    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    let [tx, ty] = xy(tree.p[0], tree.p[1]);
     if (overWaterAt(tx, -ty)) return false;
-    const tz=-ty;
+    let tz=-ty;
     if (tree.curb && survey) {
       const [cx,cy]=xy(...tree.curb);
       const seg=nearestCarriagewaySegment(cx,-cy);
@@ -1186,7 +1230,7 @@ const groundReady = (async () => {
             const obstructed=tree.obstacles?.some(([lon,lat,kind])=>{
               const [a,b]=xy(lon,lat); return Math.hypot(a-x,b+z)<(TREE_OBSTACLE_CLEARANCE_M[kind] ?? .9144);
             }) || treeFireEscapes.some(([a,b])=>distanceToSegmentSquared(x,z,...a,...b)<3.048**2);
-            return obstructed || junction || driveway || treeCrowding(x,z,tree) || treeCrossingNear(x,z);
+            return obstructed || junction || driveway || treeCrowding(x,z,tree) || treeCrossingNear(x,z) || Boolean(poleNear(x,z));
           };
           // Where no tree could ever stand: in the junction's box, in the water, across a drive.
           const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);
@@ -1206,6 +1250,8 @@ const groundReady = (async () => {
             }
             // A surveyed tree is there whatever the rules say: where no slide clears them, its
             // opening is cut where it stands, a real one, not the tree in bare concrete.
+            // (But never with a pole in it: no slide cleared the pole, and the tree is left out.)
+            if (!placed && poleNear(plot.center[0], plot.center[1])) { treeSquareStats.poleDropped += 1; return false; }
             if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }
           }
           if (placed) {
@@ -1215,6 +1261,18 @@ const groundReady = (async () => {
             return true;
           }
         }
+      }
+    }
+    // A tree with no kerb-side opening, beside a pole: stepped off it, or left out.
+    {
+      const paved = pavementSurfaceAt(tx, tz) !== null, clear = paved ? TREE_POLE_CLEAR_M : TREE_POLE_CLEAR_SOFT_M;
+      if (poleNear(tx, tz, clear)) {
+        const to = stepOffPole(tx, tz, clear, (x, z) => !insideCarriageway(x, z, -TREE_ROAD_CLEAR_M) && !buildingAt(x, z) && !inDriveway(x, z) && !insideBikeLane(x, z, .1)
+          && !overWaterAt(x, z) && (pavementSurfaceAt(x, z) !== null) === paved && !nearestFenceLine(x, z, TREE_FENCE_CLEAR_M));
+        if (!to) { treeSquareStats.poleDropped += 1; return false; }
+        tx = to[0]; tz = to[1]; ty = -tz;
+        tree.p = [tx / metersPerLon + midLon, -tz / metersPerLat + midLat];
+        treeSquareStats.poleMoved += 1;
       }
     }
     if (buildingAt(tx,tz) || inDriveway(tx,tz) || insideBikeLane(tx,tz,.1)) return false;
@@ -1466,7 +1524,13 @@ const isBuilt = (key) => key.startsWith("part|") || key.startsWith("plane|")
 //: pavement are still laid from widths, and where the survey puts the kerb well out from the
 //: pavement edge those widths drew, the measured kerb would stand alone in the asphalt. Those
 //: stretches wait for the surfaces to be bounded by the kerbs themselves, and are counted.
-const WORLD_KERB_SUPPORT_M = [0.3, 0.8, 1.5];
+//: (A kerb is the edge of its walk, one thing: the walk stands its own kerb face along its whole
+//: edge, and a measured kerb is drawn only as that edge's finer drawing, where it lies on it --
+//: pavement within a hand of it on the footway side. It was drawn with the pavement up to a metre
+//: and a half away, and where the walk curved off to a corner or the two lines disagreed the
+//: measured kerb hung in the road by itself with the walk ending short of it: Chestnut and
+//: Filbert, 2026-11-23. Never again apart: off the walk's edge, only the walk's own kerb.)
+const WORLD_KERB_SUPPORT_M = [0.1, 0.25];
 const worldSweepStats = { drawn: 0, unsupported_m: 0, supported_m: 0 };
 function worldPavedBeside(anchor, east, north, nx, ny) {
   for (const d of WORLD_KERB_SUPPORT_M) {

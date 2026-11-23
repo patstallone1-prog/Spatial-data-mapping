@@ -279,6 +279,18 @@ var streetSurfacesLaid = null, markStreetSurfacesLaid = null;
 //: Squares a metre along a walk (three feet a square).
 var WALK_SQUARES_PER_M = 1 / 0.9144;
 streetSurfacesLaid = new Promise((resolve) => { markStreetSurfacesLaid = resolve; });
+//: The street furniture's record (lights, signs, meters, signals), fetched once for whoever
+//: asks first: the trees, which must stand clear of every pole (module 18), and the furniture
+//: layer that draws them (module 21).
+var streetFurnitureRecord = null;
+function streetFurnitureOnce() {
+  return streetFurnitureRecord ||= fetchWindowed(asset("sf-corridor-furniture.json"),
+    () => fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" }).then((r) => r.json())).then(windowLists);
+}
+//: A trunk this near a pole (m) has the pole in its opening (a three-foot square) or in its
+//: bark: the tree is slid along the walk or stepped away to clear it, or it is not drawn. On
+//: grass, with no opening to keep clear, a little less.
+var TREE_POLE_CLEAR_M = 0.75, TREE_POLE_CLEAR_SOFT_M = 0.6;
 //: The walks' triangles round ``points`` ([x, z]), for walkSquareAt: null when none is drawn.
 function walkSquareIndex(points, reach = 3) {
   const CELL = 4, wanted = new Set(), bins = new Map();

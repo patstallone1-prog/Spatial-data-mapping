@@ -1981,8 +1981,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
 registerLazyLayer("furniture", async () => {
   let furniture;
   try {
-    furniture = windowLists(await fetchWindowed(asset("sf-corridor-furniture.json"),
-      () => fetch(asset("sf-corridor-furniture.json"), { cache: "no-cache" }).then((r) => r.json())));
+    furniture = await streetFurnitureOnce();
   } catch (err) {
     console.warn("Could not load street furniture", err);
     return;

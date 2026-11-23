@@ -9,7 +9,7 @@
 // sees the same buses at the same stops without sending a byte (tests/city.test.mjs).
 
 import { cityTime } from "./core.mjs";
-import { LANE, alongRoute } from "./people.mjs";
+import { LANE, TURN_LEAD, alongRoute } from "./people.mjs";
 
 //: A bus keeps to its lane, clear of the cars parked at the kerb (people.mjs LANE) -- never the
 //: parking lane, except at a stop: there, where the street has a parking lane, it pulls in to
@@ -19,11 +19,24 @@ import { LANE, alongRoute } from "./people.mjs";
 export const BUS_KERB_M = 1.45;
 export function busSide(pull) {
   const w = Math.max(0, Math.min(1, pull)), e = w * w * (3 - 2 * w);
-  return (half, cls, park) => {
+  const side = (half, cls, park) => {
     const lane = LANE(half, cls, park), parked = park === true || (park === null && cls === "residential");
     const kerb = parked ? Math.max(lane, half - BUS_KERB_M) : lane;
     return lane + (kerb - lane) * e;
   };
+  // (A bus begins its turn well before the corner: people.mjs alongRoute, TURN_LEAD.)
+  side.lead = TURN_LEAD.long;
+  return side;
+}
+//: How far a bus takes to pull in to the kerb at a stop and out again (m): two and a bit of its
+//: own lengths, so it comes in at a shallow angle with its body along its path. Over eighteen
+//: metres, with its body held square to the street, it slid in sideways -- and where it was held
+//: half way it stood across the lane.
+export const BUS_PULL_M = 28;
+//: A bus's place ``d`` along a leg (after it, ``after``), ``pull`` (0..1) of the way in to the kerb.
+function busPlace(seg, d, pull) {
+  const rest = seg.leg.length - seg.from, side = busSide(pull);
+  return d < rest || !seg.after ? alongRoute(seg.leg, seg.from + d, side) : alongRoute(seg.after, d - rest, side);
 }
 
 //: The district's bus lines from ``stops`` ([{id, name, lon, lat, routes, modes}]) on ``streets``;
@@ -234,8 +247,18 @@ export function busesAt(lines, ms, lag = null) {
         // Along the leg from where it stood, past the next stop's corner to where it stands there.
         const d = seg.length * (phase - seg.t0) / (seg.t1 - seg.t0), rest = seg.leg.length - seg.from;
         // Out from the kerb as it leaves the stop, in to it as it comes up to the next.
-        const P = line.pull_m ?? 18, side = busSide(Math.max(1 - d / P, 1 - (seg.length - d) / P));
-        const pos = d < rest || !seg.after ? alongRoute(seg.leg, seg.from + d, side) : alongRoute(seg.after, d - rest, side);
+        // (Never over more than half the leg: between two stops close together it is at the kerb throughout.)
+        const P = Math.min(line.pull_m ?? BUS_PULL_M, Math.max(6, seg.length / 2)), pullAt = (q) => Math.max(1 - q / P, 1 - (seg.length - q) / P);
+        const pos = busPlace(seg, d, pullAt(d));
+        // Its body along the way it is really going -- in to the kerb and out from it at the
+        // angle of its path, never sideways: from where it is to where it will be a little on
+        // (or, at the leg's end, from a little back).
+        {
+          const step = Math.min(1.5, seg.length / 4), fore = d + step <= seg.length;
+          const q = busPlace(seg, fore ? d + step : Math.max(0, d - step), pullAt(fore ? d + step : Math.max(0, d - step)));
+          const dx = fore ? q.x - pos.x : pos.x - q.x, dz = fore ? q.z - pos.z : pos.z - q.z;
+          if (Math.hypot(dx, dz) > 0.05) { let a = Math.atan2(-dx, -dz) - pos.yaw; a = ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI; if (Math.abs(a) < 0.6) pos.yaw += a; }
+        }
         out.push({ id, route: line.route, sign: line.sign || null, model: "bus", x: pos.x, z: pos.z, yaw: pos.yaw, speed: seg.length / (seg.t1 - seg.t0), moving: true, dwelling: false,
           stop: null, next: seg.next, nextName: line.stops[seg.next].name, leaves: 0 });
       }

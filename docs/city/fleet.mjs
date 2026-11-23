@@ -15,7 +15,7 @@ import { arrivalsAt } from "./transit.mjs";
 import { STEADY_STYLE, timeToMeet } from "./temperament.mjs";
 import { VEHICLE_DIMS } from "./vehicles.mjs";
 import {
-  BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
+  BIKE_LANE, CLOTHES, COUNTER_ROLES, INDOOR_REACH_M, LONG_VEHICLE_M, SPEED_MS, TRAFFIC_BY_HOUR, alongRoute, turnLead, daySchedule, densityAt, distToSegment, hash32, indoorSpot, rng,
   shopCapacity, shopLanes,
   DRIVE_LANE, LANE, PAVE_M, chooseLane, laneCount, laneOffset, lanePlan, paveOffset, pavementRoute, shopSeen, turnAhead, workplacesByRole,
   JUNCTION_SPAN_M,
@@ -86,6 +86,9 @@ const VEHICLE_L = Object.fromEntries(Object.entries(VEHICLE_DIMS).map(([k, d]) =
 const RACK_CELL_M = 25;
 //: How far from the door a rider will lock up (m): about a minute's walk back.
 const BIKE_RACK_WALK_M = 60;
+//: A bicycle leant on a wall: how far its line is from the wall (m), and how far along the wall
+//: from a door's middle its own middle is at the least (half a doorway and half a bicycle).
+export const BIKE_LEAN = { off: 0.28, clear: 1.5 };
 export const kerbRunFor = (model) => (VEHICLE_L[model] || VEHICLE_L.sedan) + 2 * PARKING.gap_m;
 //: The old way's spots (legacySpot: no kerb drawn) are a fixed pitch along the street: the
 //: longest that parks at a kerb (the box truck), so whatever stands in one fits it.
@@ -524,6 +527,28 @@ export class City {
     held.push({ v: vehicle.id, win });
     return best;
   }
+  //: Where a bicycle leans by door ``D`` ({x, z, nx, nz}: n points in): against the wall the door
+  //: is in, BIKE_LEAN.off out from it, its length along the wall, BIKE_LEAN.clear or more to one
+  //: side of the doorway (``k``: which side and how far, by the bicycle) -- at the first such
+  //: place that has wall behind it, open pavement under it, and no driveway let down in front
+  //: of it (a garage's door). None: close beside the door on the wall, never in front of it.
+  bikeLean(D, k = 0) {
+    const ox = -D.nx, oz = -D.nz, ax = D.nz, az = -D.nx, yaw = Math.atan2(D.nz, -D.nx);
+    const at = (along) => ({ x: D.x + ox * BIKE_LEAN.off + ax * along, z: D.z + oz * BIKE_LEAN.off + az * along, yaw });
+    const sign = k < 0 ? -1 : 1, order = [];
+    for (let j = 0; j < 5; j += 1) order.push(sign * (BIKE_LEAN.clear + (Math.abs(k) % 3) * 0.3 + j * 0.9), -sign * (BIKE_LEAN.clear + j * 0.9));
+    for (const along of order) {
+      const p = at(along);
+      if (this.guardWalls !== false && this.footprintAt) {
+        if (this.footprintAt(p.x, p.z) || this.footprintAt(p.x + ax * 0.8, p.z + az * 0.8) || this.footprintAt(p.x - ax * 0.8, p.z - az * 0.8)) continue;   // in a wall, or round a corner into one
+        if (!this.footprintAt(p.x - ox * (BIKE_LEAN.off + 0.35), p.z - oz * (BIKE_LEAN.off + 0.35))) continue;   // nothing to lean on
+      }
+      const kerb = this.kerbside?.kerbAt?.(p.x, p.z);
+      if (kerb && this.kerbside.kerbParking && /driveway/.test(this.kerbside.kerbParking(kerb.x, kerb.z, kerb.ax, kerb.az, 1.0, "bike") || "")) continue;
+      return p;
+    }
+    return at(sign * BIKE_LEAN.clear);
+  }
   //: A place free at a rack near ``at`` for ``vehicle`` (claimed for it), or null.
   rackSlot(vehicle, at) {
     if (!this.racks?.length || !at) return null;
@@ -677,8 +702,19 @@ export class City {
         this.spots.set(key, spot);
         return spot;
       }
-      const at = D && D.nx !== undefined ? { x: D.x - D.nx * 0.9 + D.nz * (0.9 + k * 0.55), z: D.z - D.nz * 0.9 - D.nx * (0.9 + k * 0.55), yaw: Math.atan2(D.nz, -D.nx) } : { x: place.x + k * 0.5, z: place.z, yaw: 0 };
-      spot = { garage: false, gateway: false, rack: true, node: nodeId, x: at.x, z: at.z, yaw: at.yaw, door: { x: at.x, z: at.z }, place: placeId };
+      // At home it is taken indoors (not drawn while it is there: its rides begin and end at
+      // the door).
+      if (placeId === vehicle.home && D && D.nx !== undefined) {
+        const step = { x: D.x - D.nx * DOOR_STEP_M, z: D.z - D.nz * DOOR_STEP_M };
+        spot = { garage: false, gateway: false, rack: true, indoors: true, node: nodeId, x: step.x, z: step.z, yaw: Math.atan2(D.nz, -D.nx), door: step, place: placeId };
+        this.spots.set(key, spot);
+        return spot;
+      }
+      // With no rack in reach: leant against the building's wall beside the door -- along the
+      // wall, a hand off it, clear of the doorway and of any driveway or garage (bikeLean).
+      // It stood a step out in the pavement, as often as not in front of the door.
+      const at = D && D.nx !== undefined ? this.bikeLean(D, k) : { x: place.x + k * 0.5, z: place.z, yaw: 0 };
+      spot = { garage: false, gateway: false, rack: true, leaning: Boolean(D && D.nx !== undefined), node: nodeId, x: at.x, z: at.z, yaw: at.yaw, door: { x: at.x, z: at.z }, place: placeId };
       this.spots.set(key, spot);
       return spot;
     }
@@ -2089,6 +2125,7 @@ export class City {
     if (!spot) return { state: "away", hidden: true };
     if (spot.gateway) return { state: "away", hidden: true, last };
     if (spot.garage) return { state: "garage", hidden: true, spot };
+    if (spot.indoors) return { state: "indoors", hidden: true, spot };
     return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot, lock: spot.lock || null };
   }
   //: Where along its leg a car is at fraction ``f`` of it, in its lane.
@@ -2295,7 +2332,7 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // is put on beyond what blocks it -- never driven through it.
   late_s: 8, hopeless_s: 150, teleport_s: 28, box_jump_s: 10, teleport_reach_m: 60,
   // A cyclist ahead is passed at ``pass_over`` m/s more than they go, with room for the whole pass.
-  pass_over: 3.5, turn_speed: 4.5,
+  pass_over: 3.5, turn_speed: 4.5, turn_long: 0.7,
   // Two cars that have hit stand ``wreck_s`` (a bump) or ``wreck_hard_s`` (20 mph and over), then drive on.
   wreck_s: 30, wreck_hard_s: 120 };
 //: Which segment of ``route`` distance ``d`` is on.
@@ -2317,13 +2354,16 @@ const withCar = (p, c) => { p.c = c; return p; };
 //: A car's own side of the street (for alongRoute): the lane it is in, or on its way across to
 //: the next over (``lt`` 0..1), eased.
 export function laneSide(st) {
-  return (half, cls, park, i, route) => {
+  const side = (half, cls, park, i, route) => {
     // (``dodge``: swung out so far to go round what stands in the lane.)
     const b = laneOffset(half, cls, park, i, route, st.lane) + (st.dodge || 0);
     if (!(st.lt < 1)) return b;
     const a = laneOffset(half, cls, park, i, route, st.from) + (st.dodge || 0), u = Math.max(0, st.lt);
     return a + (b - a) * u * u * (3 - 2 * u);
   };
+  // (How early it begins a turn: people.mjs alongRoute, TURN_LEAD.)
+  side.lead = st.lead || 0;
+  return side;
 }
 //: The street a car is on, as its lanes see it (for the record of knots).
 function segInfo(route, st) {
@@ -2463,6 +2503,7 @@ export class Drivers {
         st.lane = st.from = plan ? Math.min(plan.k[i0] || 0, Math.max(0, (plan.n[i0] || 1) - 1)) : 0;
         st.lt = 1; st.nextLook = 0; st.dodge = 0;
         // (A bicycle keeps the bike lane, or the kerb's edge of a shared one.)
+        st.lead = c.bike ? 0 : turnLead(c.length || 4.5);
         st.side = c.bike ? (half, cls, park, i, route) => BIKE_LANE(half, cls, park, i, route) + st.dodge : laneSide(st);
         st.bike = Boolean(c.bike);
         st.dodgeTo = 0; st.hold = null; st.holdT = 0; st.backUp = 0;
@@ -2753,7 +2794,10 @@ export class Drivers {
       // A turn is taken slowly (``turn_speed``), braked down to on the way in: round a corner at
       // the street's speed a driver sees who is on the crossing too late to stop for them.
       if (J && turnOf(J.inU, J.outU) !== "S") {
-        const v = Math.sqrt(T.turn_speed * T.turn_speed + 2 * T.brake * Math.max(0, J.s - J.box - st.d));
+        // (A bus or a lorry slower still: it is braked down to its own turning speed by the
+        // junction's edge and takes the sharpest of the turn, half way round, at that.)
+        const slow = T.turn_speed * ((c.length || 4.5) > LONG_VEHICLE_M ? T.turn_long : 1);
+        const v = Math.sqrt(slow * slow + 2 * T.brake * Math.max(0, J.s - J.box - st.d));
         if (v < target) target = v;
       }
       // ... and so is any sharp bend of the way that is not a junction's (a hairpin through a
