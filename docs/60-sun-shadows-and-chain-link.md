@@ -74,3 +74,9 @@ luminance, and the crowd's shader holds what it draws to 0.44. The shader now ta
 person's tone and only the photograph's light and dark about its average (within 0.5 to 1.3):
 before, the tone was divided by the photograph's average and multiplied back by the photograph,
 which went to white wherever the two did not cancel.
+
+**The pale see-through walker.** The "ghost" was the magic camera's outline of you (module 32):
+when something stood between you and the view it drew all of you again in pale blue, over
+everything, so the whole walker went pale and see-through, and the profile's portrait took it
+as your face. It is now drawn only where you are actually hidden (`GreaterDepth`), fainter, and
+is switched off while the portrait is taken.

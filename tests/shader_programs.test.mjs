@@ -135,3 +135,13 @@ test("the page looks for refused shaders itself and falls back to the full light
   assert.match(WORLD, /PLAIN_LIGHT\.enabled = false;/);
   assert.match(WORLD, /window\.kerbsideShaderCheck = /);
 });
+
+test("the outline of you through a wall is drawn only where you are hidden, and never in your portrait", () => {
+  const magic = readFileSync(new URL("../src/smc/renderer/page/module/32-the-magic-camera.js", import.meta.url), "utf8");
+  const made = /magicGhostMaterial = new THREE\.MeshBasicMaterial\(\{([^}]*)\}\)/.exec(magic)?.[1] || "";
+  assert.match(made, /depthTest: true/); assert.match(made, /depthFunc: THREE\.GreaterDepth/);
+  assert.ok(Number(/opacity: ([\d.]+)/.exec(made)[1]) <= 0.3, "faint: a hint of where you are, not a pale body");
+  const city = readFileSync(new URL("../src/smc/renderer/page/module/30-the-living-city.js", import.meta.url), "utf8");
+  const shot = city.slice(city.indexOf("avatar.userData.magicGhosts"), city.indexOf("renderer.readRenderTargetPixels(portraitTarget"));
+  assert.ok(shot.indexOf("o.visible = false") < shot.indexOf("renderer.render(scene, portraitCamera)") && shot.indexOf("renderer.render(scene, portraitCamera)") < shot.indexOf("o.visible = true"));
+});
