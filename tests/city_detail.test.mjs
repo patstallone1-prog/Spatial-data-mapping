@@ -83,9 +83,10 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   assert.match(VIEW, /if \(f === 0 && !drawn\.has\(q\)\) f = 1;\s+if \(f === 1\) full\.push\(q\); else if \(f === 2\) mid\.push\(q\); else if \(f === 3\) low\.push\(q\);/);
   assert.match(VIEW, /midBody = mkTone\(midBodyGeo/);
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
-  // Cars: in view only, kit / code-built / a box.
+  // Cars: in view only, each its own body's npc file / its mid file / a box.
   assert.match(VIEW, /CAR_FRUSTUM\.intersectsSphere/);
-  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
+  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
+  assert.match(VIEW, /LEVELS\[hero \? "full" : tier === MODERATE \? "mid" : "npc"\]/);
   assert.match(VIEW, /lowCars\.setMatrixAt/);
   // Tracked only: not placed every frame, and not drawn; nor someone in a shop out of sight.
   assert.match(VIEW, /if \(was\.tier === TRACKED\) \{ trackedPeople \+= 1; continue; \}/);

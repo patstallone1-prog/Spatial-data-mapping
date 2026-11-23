@@ -1,0 +1,84 @@
+{
+  "about": "The bought-in cars of the living city (scripts/blender_city_cars.py, then scripts/build_city_cars.mjs). dims: the maker's width, height, length in metres. popularity: California new-vehicle registrations in 2024 (CNCDA, California Auto Outlook, Q4 2024, from Experian) of the model or, where the model is no longer sold, its successor.",
+  "budgets": {
+    "full": {"body": 30000, "trim": 14000, "metal": 10000, "tyre": 6000, "interior": 20000, "lamp": 3000, "glass": 5000},
+    "npc": {"body": 5000, "trim": 2600, "metal": 1600, "tyre": 1200, "interior": 1500, "lamp": 500, "glass": 900},
+    "mid": {"body": 1000, "trim": 260, "metal": 60, "tyre": 120, "lamp": 40, "glass": 160}
+  },
+  "islands_m": {"npc": 0.05, "mid": 0.16},
+  "common_parts": [
+    ["tyre", "tyre|\\btire|pneu|rubber"],
+    ["lamp", "head ?l(i|igh)?ght|tail ?l(i|igh)?ght|taillght|tailliht|brake ?light|brakelight|signal|reverse|high ?beam|running ?light|vehiclelights|\\bleds?\\b|faro|reflector|bulb|indicator|redglass|orangeglass|sbbr"],
+    ["glass", "glass|window|windshield|windscreen|vidro|lens|cover"],
+    ["interior", "interior|seat|leather|carpet|banco|dash|steer|belt|console|gear|pedal|floor|safety"],
+    ["metal", "chrome|\\brims?\\b|wheel|alloy|brake|rotor|caliper|brembo|exhaust|alumin|silver|metal|screw|bolt|badge|emblem|roda"]
+  ],
+  "cars": {
+    "civic": {
+      "title": "Honda Civic (10th generation, FK8)",
+      "kind": "sedan",
+      "dims": [1.877, 1.434, 4.557],
+      "source": {"site": "CGTrader", "url": "https://www.cgtrader.com/free-3d-models/car/sport-car/2018-honda-civic-type-r", "author": "CGTrader seller of model #3746622", "licence": "CGTrader Royalty Free License (no AI)", "file": "FK8.blend + Textures.zip"},
+      "popularity": {"registrations_2024": 53049, "segment": "small cars (best seller)", "counted_as": "Honda Civic"},
+      "front": "-y",
+      "drop_materials": "fk8\\.engine|interiorlights",
+      "parts": [
+        ["body", "\\|fk8\\.paint$"],
+        ["tyre", "\\|fk8\\.tire$"],
+        ["metal", "\\|fk8\\.(chrome|badge|brakedisc|brembo|red|redgloss|brown|gray)$"],
+        ["interior", "\\|fk8\\.interior$|needle|steer"],
+        ["glass", "\\|fk8\\.(windshield|headlightglass)$"],
+        ["lamp", "\\|fk8\\.(brakelight|reverselight|taillight|highbeam|headlight|signal\\.[lr]|runninglight)$"],
+        ["trim", "\\|fk8\\.(blackmatt|blackgloss|carbon|grille)$"]
+      ]
+    },
+    "sonata": {
+      "title": "Hyundai Sonata (seventh generation, LF)",
+      "kind": "sedan",
+      "dims": [1.865, 1.475, 4.855],
+      "source": {"site": "CGTrader", "url": "https://www.cgtrader.com/free-3d-models/car/luxury-car/hyundai-sonata-2016-2017-with-engine-and-bumpers-support", "author": "Alqhtani", "licence": "CGTrader Royalty Free License (no AI)", "file": "Hyundai Sonata 2016 - Obj.rar + texture.rar"},
+      "popularity": {"registrations_2024": 6108, "segment": "mid-size and large cars (5th)", "counted_as": "Hyundai Sonata"},
+      "front": "-y",
+      "rotate_deg": [-90, 0, 0],
+      "one_wheel": {"wheelbase_m": 2.805},
+      "parts": [
+        ["body", "\\|carpaint$"],
+        ["glass", "\\|(windowglass|clearglass|mirror)$"],
+        ["lamp", "\\|(redglass|orangeglass)$"],
+        ["metal", "\\|(chrome|chromedoor\\d|mattemetal)$"],
+        ["interior", "\\|(interior_\\w+|gear_nm|safety_beltnm)$"]
+      ]
+    },
+    "glk": {
+      "title": "Mercedes-Benz GLK 350 (X204, 2014)",
+      "kind": "suv",
+      "dims": [1.84, 1.689, 4.536],
+      "source": {"site": "CGTrader", "url": "https://www.cgtrader.com/free-3d-models/car/suv/mercedes-benz-glk-350-suv-2014", "author": "CGTrader seller of model #2861229", "licence": "CGTrader Royalty Free License (no AI)", "file": "glk.blend"},
+      "popularity": {"registrations_2024": 9527, "segment": "luxury compact SUVs", "counted_as": "Mercedes-Benz GLC-Class (the GLK's successor)"},
+      "front": "-y",
+      "drop_objects": "^(plane|cylinder|cylinder\\.001)$|^bg",
+      "parts": [
+        ["body", "\\|main_paint(\\.\\d+)?$"],
+        ["tyre", "^tire_"],
+        ["lamp", "\\|(glass_tinted_red|taillght red(\\.\\d+)?|tailliht white|taillight_clear_rough|led|headlight_reflector|headlight_plastic_light|headligh_bulb_housing_rim|headlight_bulb_housing)$"],
+        ["glass", "\\|(glass(\\.\\d+)?|glass_difused)$"],
+        ["interior", "^(seat_|interior|steering)"]
+      ]
+    },
+    "frontier": {
+      "title": "Nissan Frontier (D22 crew cab, 2004)",
+      "kind": "pickup",
+      "dims": [1.849, 1.745, 5.225],
+      "source": {"site": "CGTrader", "url": "https://www.cgtrader.com/free-3d-models/vehicle/truck/nissan-frontier-pickup-truck-2004", "author": "DigitalArt3d", "licence": "CGTrader Royalty Free License (no AI)", "file": "Nissan Frontier Pickup Truck 2004.glb"},
+      "popularity": {"registrations_2024": 5923, "segment": "compact and mid-size pickups (4th)", "counted_as": "Nissan Frontier"},
+      "front": "+y",
+      "parts": [
+        ["body", "prim"],
+        ["glass", "glasswindows|^glass|faro21"],
+        ["lamp", "vehiclelights|farosv2"],
+        ["interior", "leather|banco|carpete|default_material"],
+        ["metal", "rodagti|ffcccccc|aluminum polished"]
+      ]
+    }
+  }
+}

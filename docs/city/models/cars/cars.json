@@ -1,0 +1,258 @@
+{
+ "basis": "scripts/blender_city_cars.py then scripts/build_city_cars.mjs from scripts/city_cars.json; front -z, wheels on y = 0, metres; dims are the drawn model's width, height (to its roof or rails) and length, mirrors included",
+ "popularity_basis": "The bought-in cars of the living city (scripts/blender_city_cars.py, then scripts/build_city_cars.mjs). dims: the maker's width, height, length in metres. popularity: California new-vehicle registrations in 2024 (CNCDA, California Auto Outlook, Q4 2024, from Experian) of the model or, where the model is no longer sold, its successor.",
+ "cars": {
+  "civic": {
+   "title": "Honda Civic (10th generation, FK8)",
+   "kind": "sedan",
+   "maker_dims": [
+    1.877,
+    1.434,
+    4.557
+   ],
+   "source": {
+    "site": "CGTrader",
+    "url": "https://www.cgtrader.com/free-3d-models/car/sport-car/2018-honda-civic-type-r",
+    "author": "CGTrader seller of model #3746622",
+    "licence": "CGTrader Royalty Free License (no AI)",
+    "file": "FK8.blend + Textures.zip"
+   },
+   "popularity": {
+    "registrations_2024": 53049,
+    "segment": "small cars (best seller)",
+    "counted_as": "Honda Civic"
+   },
+   "lods": {
+    "full": {
+     "file": "civic-full.glb",
+     "bytes": 929544,
+     "triangles": 87994,
+     "parts": {
+      "glass": 4999,
+      "lamp": 3000,
+      "tyre": 6000,
+      "interior": 19998,
+      "metal": 10000,
+      "body": 29999,
+      "trim": 13998
+     }
+    },
+    "npc": {
+     "file": "civic-npc.glb",
+     "bytes": 135844,
+     "triangles": 14164,
+     "parts": {
+      "glass": 898,
+      "trim": 5328,
+      "tyre": 1376,
+      "metal": 1565,
+      "body": 4997
+     }
+    },
+    "mid": {
+     "file": "civic-mid.glb",
+     "bytes": 19492,
+     "triangles": 1429,
+     "parts": {
+      "glass": 160,
+      "trim": 277,
+      "body": 992
+     }
+    }
+   },
+   "dims": [
+    2.129,
+    1.476,
+    4.555
+   ]
+  },
+  "sonata": {
+   "title": "Hyundai Sonata (seventh generation, LF)",
+   "kind": "sedan",
+   "maker_dims": [
+    1.865,
+    1.475,
+    4.855
+   ],
+   "source": {
+    "site": "CGTrader",
+    "url": "https://www.cgtrader.com/free-3d-models/car/luxury-car/hyundai-sonata-2016-2017-with-engine-and-bumpers-support",
+    "author": "Alqhtani",
+    "licence": "CGTrader Royalty Free License (no AI)",
+    "file": "Hyundai Sonata 2016 - Obj.rar + texture.rar"
+   },
+   "popularity": {
+    "registrations_2024": 6108,
+    "segment": "mid-size and large cars (5th)",
+    "counted_as": "Hyundai Sonata"
+   },
+   "lods": {
+    "full": {
+     "file": "sonata-full.glb",
+     "bytes": 1043468,
+     "triangles": 81984,
+     "parts": {
+      "glass": 3019,
+      "lamp": 2561,
+      "interior": 19935,
+      "metal": 9951,
+      "body": 29984,
+      "trim": 16534
+     }
+    },
+    "npc": {
+     "file": "sonata-npc.glb",
+     "bytes": 113552,
+     "triangles": 13369,
+     "parts": {
+      "glass": 824,
+      "trim": 5903,
+      "metal": 1654,
+      "body": 4988
+     }
+    },
+    "mid": {
+     "file": "sonata-mid.glb",
+     "bytes": 17892,
+     "triangles": 1399,
+     "parts": {
+      "glass": 160,
+      "trim": 252,
+      "body": 987
+     }
+    }
+   },
+   "dims": [
+    2.107,
+    1.464,
+    4.855
+   ]
+  },
+  "glk": {
+   "title": "Mercedes-Benz GLK 350 (X204, 2014)",
+   "kind": "suv",
+   "maker_dims": [
+    1.84,
+    1.689,
+    4.536
+   ],
+   "source": {
+    "site": "CGTrader",
+    "url": "https://www.cgtrader.com/free-3d-models/car/suv/mercedes-benz-glk-350-suv-2014",
+    "author": "CGTrader seller of model #2861229",
+    "licence": "CGTrader Royalty Free License (no AI)",
+    "file": "glk.blend"
+   },
+   "popularity": {
+    "registrations_2024": 9527,
+    "segment": "luxury compact SUVs",
+    "counted_as": "Mercedes-Benz GLC-Class (the GLK's successor)"
+   },
+   "lods": {
+    "full": {
+     "file": "glk-full.glb",
+     "bytes": 1331496,
+     "triangles": 112538,
+     "parts": {
+      "glass": 4993,
+      "lamp": 6932,
+      "tyre": 13632,
+      "interior": 19977,
+      "metal": 23098,
+      "body": 29939,
+      "trim": 13967
+     }
+    },
+    "npc": {
+     "file": "glk-npc.glb",
+     "bytes": 89184,
+     "triangles": 11612,
+     "parts": {
+      "glass": 899,
+      "trim": 3803,
+      "tyre": 622,
+      "metal": 1305,
+      "body": 4983
+     }
+    },
+    "mid": {
+     "file": "glk-mid.glb",
+     "bytes": 17044,
+     "triangles": 1639,
+     "parts": {
+      "glass": 159,
+      "trim": 270,
+      "body": 1210
+     }
+    }
+   },
+   "dims": [
+    1.99,
+    1.672,
+    4.522
+   ]
+  },
+  "frontier": {
+   "title": "Nissan Frontier (D22 crew cab, 2004)",
+   "kind": "pickup",
+   "maker_dims": [
+    1.849,
+    1.745,
+    5.225
+   ],
+   "source": {
+    "site": "CGTrader",
+    "url": "https://www.cgtrader.com/free-3d-models/vehicle/truck/nissan-frontier-pickup-truck-2004",
+    "author": "DigitalArt3d",
+    "licence": "CGTrader Royalty Free License (no AI)",
+    "file": "Nissan Frontier Pickup Truck 2004.glb"
+   },
+   "popularity": {
+    "registrations_2024": 5923,
+    "segment": "compact and mid-size pickups (4th)",
+    "counted_as": "Nissan Frontier"
+   },
+   "lods": {
+    "full": {
+     "file": "frontier-full.glb",
+     "bytes": 1301352,
+     "triangles": 64377,
+     "parts": {
+      "glass": 5000,
+      "lamp": 3000,
+      "interior": 6000,
+      "metal": 7335,
+      "body": 29157,
+      "trim": 13885
+     }
+    },
+    "npc": {
+     "file": "frontier-npc.glb",
+     "bytes": 114132,
+     "triangles": 12901,
+     "parts": {
+      "glass": 886,
+      "trim": 5417,
+      "metal": 1599,
+      "body": 4999
+     }
+    },
+    "mid": {
+     "file": "frontier-mid.glb",
+     "bytes": 19552,
+     "triangles": 1498,
+     "parts": {
+      "glass": 159,
+      "trim": 346,
+      "body": 993
+     }
+    }
+   },
+   "dims": [
+    2.268,
+    2.07,
+    5.228
+   ]
+  }
+ }
+}
