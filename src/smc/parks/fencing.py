@@ -140,7 +140,7 @@ def polygon_xy(geometry: dict) -> Polygon | None:
     """The largest polygon of a GeoJSON geometry, in local metres (None if it has none)."""
     try:
         g = shape(geometry)
-    except Exception:  # noqa: BLE001 - a malformed record is skipped, not fatal
+    except Exception:  # a malformed record is skipped, not fatal
         return None
     parts = list(g.geoms) if isinstance(g, MultiPolygon) else [g] if isinstance(g, Polygon) else []
     best = None
