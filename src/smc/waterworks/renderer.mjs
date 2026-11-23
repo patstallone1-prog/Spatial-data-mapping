@@ -15,7 +15,7 @@ export const SIZE = {
   gutter: 0.46, wetRun: 9.0, kerbReach: 3.5,
 };
 const COLOUR = {
-  iron: 0x2e2c29, slot: 0x080807, gutter: 0x8e8b83, apron: 0x7f7c75, wet: 0x262a2c,
+  iron: 0x2e2c29, slot: 0x080807, gutter: 0x66665f, apron: 0x7f7c75, wet: 0x262a2c,
   creek: 0x3f5a52, river: 0x3b5d6a, dry: 0x9c9077, bank: 0x5a4d3a,
   tank: 0xc4c2b2, tower: 0xb9c1bd, concrete: 0xb3b0a6, effluent: 0x56623f, clear: 0x4b6a72,
 };
@@ -123,6 +123,8 @@ function lidTexture(THREE, doc, word) {
 //: How far over the road the gutter pan is laid: clear of where the road's chords and its own
 //: part on a hill (see the gutters, below).
 export const GUTTER_LIFT_M = 0.03;
+//: How far a gutter sample may be moved to reach the kerb the page drew (m).
+export const GUTTER_SNAP_M = 1.2;
 
 //: Kerb segments ([ax, az, bx, bz, half]) as blocks: runs that go straight on, end to start,
 //: at one width -- a street between two corners, however many pieces its line is drawn in.
@@ -183,7 +185,7 @@ export function gutterRuns(kerbed, { fill = 9, least = 5 } = {}) {
 export function buildWaterworks(THREE, tiles, {
   place, ground, roadTop = 0.06, kerbH = 0.126, kerb = () => null, onRoad = () => false, postNear = () => false,
   wet = () => false, kerbSegments = () => [], inArea = () => true, document: doc = globalThis.document,
-  headset = false,
+  headset = false, gutterSeen = () => true,
 } = {}) {
   const group = new THREE.Group();
   group.name = "waterworks";
@@ -315,7 +317,16 @@ export function buildWaterworks(THREE, tiles, {
         found.sort((a, b) => a - b);
         const out = found[Math.floor(found.length / 2)];
         // Where the kerb is there at all (not across a junction's mouth), a metre at a time.
+        // Each sample is then put on the kerb the page DREW (``kerb``: the nearest point of a
+        // drawn carriageway edge and the way out of the road there), not on the line the
+        // roadway test gave: that test is asked with 0.3 m of slack, and the block's middle
+        // offset is not the kerb where the kerb wanders, so the pan lay up to half a metre out
+        // in the road with a strip of asphalt between it and the kerb -- a second, pale kerb in
+        // the street (Chestnut Street, 2026-11-22) -- and where the kerb stepped out round a bus
+        // stop it ran straight on across the bus box. On the drawn kerb it turns with it; where
+        // no drawn kerb faces this side within reach, there is no pan.
         const samples = [];
+        let snapped = 0;
         for (const [ax, az, bx, bz, half] of block) {
           const len = Math.hypot(bx - ax, bz - az);
           if (len < 1 || half < 1.2) continue;
@@ -323,14 +334,28 @@ export function buildWaterworks(THREE, tiles, {
           const n = Math.max(1, Math.ceil(len / step));
           for (let i = 0; i <= n; i += 1) {
             const t = Math.min(len, i * step), ex = ax + ux * t + nx * out, ez = az + uz * t + nz * out;
-            samples.push({ ex, ez, nx, nz, kerbed: inArea(ex, ez) && !onRoad(ex + nx * 0.45, ez + nz * 0.45, 0.3) && (!measured || onRoad(ex - nx * 0.6, ez - nz * 0.6, 0.3)) });
+            const k = kerb(ex, ez, GUTTER_SNAP_M);
+            const facing = k && Number.isFinite(k.x) && Number.isFinite(k.nx) && k.nx * nx + k.nz * nz > 0.8
+              && Math.hypot(k.x - ex, k.z - ez) <= GUTTER_SNAP_M;
+            if (facing) snapped += 1;
+            samples.push(facing
+              ? { ex: k.x, ez: k.z, nx: k.nx, nz: k.nz, onKerb: true, kerbed: inArea(k.x, k.z) }
+              : { ex, ez, nx, nz, onKerb: false, kerbed: inArea(ex, ez) && !onRoad(ex + nx * 0.45, ez + nz * 0.45, 0.3) && (!measured || onRoad(ex - nx * 0.6, ez - nz * 0.6, 0.3)) });
           }
         }
+        // (A page that draws kerbs: only the samples on one carry the pan. One that gives none --
+        // a test, the headset's -- keeps the line as found.)
+        if (snapped) for (const s of samples) if (!s.onKerb) s.kerbed = false;
+        // And only where the photograph shows a pan (``gutterSeen``): a kerb that meets the
+        // asphalt has none.
+        for (const s of samples) if (s.kerbed && !gutterSeen(s.ex, s.ez)) s.kerbed = false;
         const keep = gutterRuns(samples.map((s) => s.kerbed));
         let open = false;
         for (let i = 0; i < samples.length; i += 1) {
           const s = samples[i];
-          if (!keep[i]) { open = false; continue; }
+          // (A break closed over samples that found no drawn kerb is still left open: they lie
+          // where the line was, not on a kerb, out in the road round a bulb.)
+          if (!keep[i] || (snapped && !s.onKerb)) { open = false; continue; }
           // (Two samples at one place, where one piece of the block ends and the next begins.)
           if (open && i && Math.hypot(s.ex - samples[i - 1].ex, s.ez - samples[i - 1].ez) < 0.05) continue;
           const y = level(s.ex, s.ez) + roadTop;

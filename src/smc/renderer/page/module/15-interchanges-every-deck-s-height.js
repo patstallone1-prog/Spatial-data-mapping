@@ -550,6 +550,8 @@ for (const way of DRAW_ORDER) {
   // A short path mapped over the carriageway is a crossing (its markings are the crossing's
   // own): drawn as a kerb-height slab it lay diagonally across Powell and Post.
   if (isPath && pathMostlyOnRoad(way)) continue;
+  // A footpath mapped along a street on the street's own walk: the walk is drawn already.
+  if (isPath && !pathHasOwnMaterial(way) && pathAlongKerbsideWalk(way)) continue;
   const isCrossing = way.kind === "crossing";
   // A few OpenStreetMap ways tagged as crossings run the length of a block -- a path across a
   // plaza, a mis-tagged footway. Painted as ladders they laid bars clear across the scene.
@@ -1062,10 +1064,10 @@ function streetSegmentGrid() {
   const grid = new Map(), CELL = 25;
   for (const w of DATA.ways || []) {
     if (w.kind !== "street" || !w.points || w.points.length < 2 || w.bridge || w.tunnel) continue;
-    const half = (w.road_m || (w.lanes || 2) * 3.3) / 2;
+    const half = (w.road_m || (w.lanes || 2) * 3.3) / 2, walk = renderedWalkWidth(w);
     const pts = w.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
     for (let i = 1; i < pts.length; i += 1) {
-      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], seg = { ax, az, bx, bz, half };
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], seg = { ax, az, bx, bz, half, walk };
       for (let gx = Math.floor((Math.min(ax, bx) - half) / CELL); gx <= Math.floor((Math.max(ax, bx) + half) / CELL); gx += 1)
         for (let gz = Math.floor((Math.min(az, bz) - half) / CELL); gz <= Math.floor((Math.max(az, bz) + half) / CELL); gz += 1) {
           const k = `${gx}:${gz}`; if (!grid.has(k)) grid.set(k, []); grid.get(k).push(seg);
@@ -1073,6 +1075,40 @@ function streetSegmentGrid() {
     }
   }
   return (streetSegmentGrid.grid = grid);
+}
+//: Whether a footpath runs along a street on that street's own kerbside walk: parallel to it,
+//: and for most of its length with half or more of its width over the walk the street lays from
+//: its kerb (``share`` of it). OpenStreetMap maps some pavements as plain footways
+//: (Chestnut Street along Moscone); drawn as well, the footway lay on the street's walk at its
+//: own kerb height, so a line of little kerb faces and a strip of another shade ran down the
+//: middle of the pavement -- "a strip of road down the middle of the sidewalk" (2026-11-22).
+//: The street's walk is that pavement already. (``share``: of the path's length; a parameter, not
+//: a module constant, because the streets are laid before this file's constants are set.)
+function pathAlongKerbsideWalk(way, width = 2.4, share = 0.75) {
+  const pts = (way.points || []).map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  if (pts.length < 2) return false;
+  const grid = streetSegmentGrid();
+  let along = 0, n = 0;
+  for (let i = 1; i < pts.length; i += 1) {
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i], len = Math.hypot(bx - ax, bz - az);
+    if (!(len > 0)) continue;
+    const ux = (bx - ax) / len, uz = (bz - az) / len, steps = Math.max(1, Math.ceil(len / 1.5));
+    for (let k = 0; k <= steps; k += 1) {
+      const x = ax + (bx - ax) * k / steps, z = az + (bz - az) * k / steps;
+      n += 1;
+      for (const s of grid.get(`${Math.floor(x / 25)}:${Math.floor(z / 25)}`) || []) {
+        const dx = s.bx - s.ax, dz = s.bz - s.az, L = Math.hypot(dx, dz);
+        if (!(L > 0) || Math.abs((dx * ux + dz * uz) / L) < 0.94) continue;
+        const t = ((x - s.ax) * dx + (z - s.az) * dz) / (L * L);
+        if (t < 0 || t > 1) continue;
+        // Out from the kerb (the street's half-width), the path's centre; its width over the walk.
+        const out = Math.abs((x - s.ax) * dz - (z - s.az) * dx) / L - s.half;
+        const over = Math.min(out + width / 2, s.walk) - Math.max(out - width / 2, 0);
+        if (over >= width / 2) { along += 1; break; }
+      }
+    }
+  }
+  return n > 0 && along >= n * share;
 }
 //: Whether a short path (under 40 m) lies half or more on a street's carriageway.
 function pathMostlyOnRoad(way) {

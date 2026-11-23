@@ -374,7 +374,10 @@ function avatarMoveSpeed() {
   return STREET_SPEED * Math.max(1, metresPerPixel / arrivalMetresPerPixel);
 }
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
-const AVATAR_HEIGHT = 2.1336;  // seven feet exactly, which is what the demo avatar is asked to be
+//: The walker's height: an everyday 1.75 m (5 ft 9 in), the height the City gives the player
+//: (view.mjs) and the middle of the people around them (1.56-1.90 m). It was seven feet, which
+//: stood the player a head above everyone on the pavement.
+const AVATAR_HEIGHT = 1.75;
 //: The walker is drawn at the size above: one, once the figure is measured as it stands
 //: (skinnedBounds) rather than by its unposed geometry, which had it ten metres tall.
 const AVATAR_SCALE = 1.0;
