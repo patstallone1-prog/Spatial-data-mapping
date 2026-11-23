@@ -128,3 +128,40 @@ export function byTier(items, caps) {
   }
   return out;
 }
+
+// ---- the reality lock -------------------------------------------------------------------------------
+// Someone you are looking at does not change into a different drawing of themselves, and a car
+// does not either -- nor a car one quarter-turn of your head from view (a step turn is a quarter
+// turn: what you would see the instant after). A change you can see is worse than a form that
+// stays as it is, so in sight a form is kept, finer or coarser, until it is far enough off that the
+// two forms cannot be told apart. What is out of sight is brought up to the finer form early
+// (``ahead``), so that turning to it shows it as it will stay.
+
+//: ``swap_m``: in sight, a change to the form of this index (0 the finest) is made only when the
+//: thing is at least this far off -- where the form it leaves and the one it takes look alike.
+//: People: 0 a character, 1 a jointed figure, 2 the simple shape, 3 the basic one.
+//: ``margin_deg``: how far outside the picture's edge still counts as in sight.
+//: ``ahead``: out of sight, the rings reach this much further.
+export const LOCK = {
+  people: { swap_m: [46, 120, 200, 240], margin_deg: 8, ahead: 1.3 },
+  cars: { swap_m: [75, 150, 260], margin_deg: 90, ahead: 1.3 },
+};
+
+//: The form a thing is drawn in: ``want`` (what the rings and the counts ask for), unless it is in
+//: sight and was ``was`` a moment ago -- then ``was``, until it is far enough off for the change
+//: not to show. ``dist``: metres from the eye. A thing not drawn a moment ago takes ``want``.
+export function lockedForm(kind, want, was, inSight, dist) {
+  if (was === undefined || was === null || want === was || !inSight) return want;
+  const L = LOCK[kind] || LOCK.people, finer = Math.min(want, was);
+  // (The pair of forms it is between: by the finer of the two.)
+  return dist >= (L.swap_m[finer] ?? Infinity) ? want : was;
+}
+
+//: Whether (x, z) is within ``half`` + ``margin`` degrees of the way the eye at ``eye`` ({x, z})
+//: faces (``fx``, ``fz`` a unit vector): in the picture's width, or that near its edge.
+export function withinView(eye, fx, fz, x, z, halfDeg, marginDeg = 0) {
+  const dx = x - eye.x, dz = z - eye.z, d = Math.hypot(dx, dz);
+  if (d < 1.5) return true;
+  const cos = (dx * fx + dz * fz) / d, limit = Math.min(179.5, halfDeg + marginDeg);
+  return cos >= Math.cos((limit * Math.PI) / 180);
+}

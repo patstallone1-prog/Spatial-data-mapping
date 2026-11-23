@@ -80,7 +80,7 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   // The nearest as Unreal characters; the rings step down a form each once they are drawn.
   assert.match(VIEW, /figures\.draw\(near\.map/);
   // (A character drawn is in no other list: the rings below it step up, without it.)
-  assert.match(VIEW, /full = full\.filter\(\(q\) => !drawn\.has\(q\)\)\.concat\(mid\.filter\(\(q\) => !drawn\.has\(q\)\)\); mid = low\.filter\(\(q\) => !drawn\.has\(q\)\); low = \[\];/);
+  assert.match(VIEW, /if \(f === 0 && !drawn\.has\(q\)\) f = 1;\s+if \(f === 1\) full\.push\(q\); else if \(f === 2\) mid\.push\(q\); else if \(f === 3\) low\.push\(q\);/);
   assert.match(VIEW, /midBody = mkTone\(midBodyGeo/);
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
   // Cars: in view only, kit / code-built / a box.
@@ -93,4 +93,36 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   assert.match(VIEW, /scanReach = trackReach\(focus\)/);
   // The ride's route stretches the field.
   assert.match(VIEW, /detailField\(\{ x: focus\.x, z: focus\.z \}, \{ vx: fv\.vx, vz: fv\.vz, ahead: routeAheadNow\(\) \}\)/);
+});
+
+test("the reality lock: in sight a form is kept unless the change is too far off to show; out of sight it is free", async () => {
+  const { LOCK, lockedForm, withinView } = await import("../docs/city/detail.mjs");
+  // Someone 20 m off in the picture, drawn jointed: no character swapped in before your eyes, and
+  // a character is not swapped out either.
+  assert.equal(lockedForm("people", 0, 1, true, 20), 1);
+  assert.equal(lockedForm("people", 1, 0, true, 20), 0);
+  // Far enough off (past LOCK.people.swap_m for the finer of the two), the change is made.
+  assert.equal(lockedForm("people", 0, 1, true, LOCK.people.swap_m[0] + 1), 0);
+  assert.equal(lockedForm("people", 2, 1, true, LOCK.people.swap_m[1] - 1), 1);
+  assert.equal(lockedForm("people", 2, 1, true, LOCK.people.swap_m[1] + 1), 2);
+  // Out of sight, or never drawn: whatever is wanted.
+  assert.equal(lockedForm("people", 0, 1, false, 5), 0);
+  assert.equal(lockedForm("people", 0, undefined, true, 5), 0);
+  // The swap distance is inside the ring it guards: someone walking up in view is changed before
+  // the lock holds, so only one who first shows up close is ever held at a lower form.
+  assert.ok(LOCK.people.swap_m[0] < 63 && LOCK.cars.swap_m[0] < 100 && LOCK.cars.swap_m[1] < 200);
+  // A car is locked a quarter turn (one step turn) beyond the picture as well.
+  assert.equal(LOCK.cars.margin_deg, 90);
+  const eye = { x: 0, z: 0 };
+  assert.equal(withinView(eye, 0, -1, 0, -50, 40), true);            // dead ahead
+  assert.equal(withinView(eye, 0, -1, 50, 0, 40), false);            // abeam: outside the picture
+  assert.equal(withinView(eye, 0, -1, 50, 0, 40, 90), true);         // ... but one turn from it
+  assert.equal(withinView(eye, 0, -1, 0, 50, 40, 90), false);        // behind: free to change
+  assert.equal(withinView(eye, 0, -1, 0.5, 0.5, 40), true);          // on top of you
+  assert.equal(lockedForm("cars", 0, 1, true, 40), 1);
+  assert.equal(lockedForm("cars", 0, 1, true, 90), 0);
+  // The view uses it for both, and puts a car somewhere only out of that sight.
+  assert.match(VIEW, /lockedForm\("people", want, was, true, Math\.sqrt\(q\.d\)\)/);
+  assert.match(VIEW, /lockedForm\("cars", want, was\.tier, inSight, dist\)/);
+  assert.match(VIEW, /return !withinView\(EYE, EYE\.fx, EYE\.fz, x, z, EYE\.half, LOCK\.cars\.margin_deg\);/);
 });

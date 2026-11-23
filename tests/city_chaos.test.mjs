@@ -10,6 +10,7 @@ import { loadRules } from "../docs/city/core.mjs";
 import { Drivers, TRAFFIC } from "../docs/city/fleet.mjs";
 import { LANE, Streets, alongRoute, laneCount, rng } from "../docs/city/people.mjs";
 
+const FLEET = readFileSync(new URL("../docs/city/fleet.mjs", import.meta.url), "utf8");
 const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
 const N = 6, STEP = 120;
 function town(lanes, road_m, highway, prefs = true) {
@@ -246,4 +247,36 @@ test("a corner is taken slowly: braked down to on the way in, so there is time t
   }
   assert.ok(arrived, "it got there");
   assert.ok(fastest > 0.5 && fastest <= TRAFFIC.turn_speed + 0.3, `through the corner at ${fastest.toFixed(1)} m/s`);
+});
+
+test("a car obeys its wheels: braked to a stand before it backs, a moment for the gear, and never sideways without going forward", () => {
+  const S = town(2, 12, "residential"), route = across(S), at = alongRoute(route, 300, kerbLane);
+  const c = car("a", route, 0), D = new Drivers(S), dt = 0.05;
+  const blockers = [{ x: at.x, z: at.z, yaw: at.yaw, v: 0, length: 4.6, width: 1.85 }];
+  let prev = null, backed = 0, worstSlide = 0, worstTurn = 0, lastForward = -1, firstBack = -1, backV = [], steerWas = 0;
+  for (let t = 0; t < 120; t += dt) {
+    const out = D.step(dt, t, [c], [], blockers).cars[0], st = D.stateOf("a");
+    if (!out || out.arrived) break;
+    const now = { d: st.d, side: st.dodge, v: out.v };
+    if (prev) {
+      const along = now.d - prev.d, across = Math.abs(now.side - prev.side);
+      // Sideways only as far as the way it points and the ground it covered allow.
+      if (across > 1e-9) worstSlide = Math.max(worstSlide, across / Math.max(1e-9, Math.abs(along)));
+      worstTurn = Math.max(worstTurn, Math.abs((st.steer || 0) - steerWas) / Math.max(1e-6, Math.abs(along)));
+      if (along > 1e-6) lastForward = t;
+      if (along < -1e-6) { backed += -along; if (firstBack < 0) { firstBack = t; assert.ok(prev.v <= 0.15, `backwards out of ${prev.v} m/s forward`); assert.ok(t - lastForward >= TRAFFIC.gear_s - dt, "a moment between forward and reverse"); } backV.push(-along / dt); }
+      else if (along > 1e-6 && backV.length && !backV.done) { backV.done = true; assert.ok(t - backV.t >= TRAFFIC.gear_s - dt, "a moment between reverse and forward"); }
+      if (along < -1e-6) backV.t = t;
+    }
+    steerWas = st.steer || 0; prev = now;
+  }
+  assert.ok(backed > 0.5, "it backed up for the room");
+  assert.ok(backV[0] < 0.2 && Math.max(...backV) <= TRAFFIC.back_speed + 1e-6, "way gathered backwards, not all at once");
+  assert.ok(worstSlide <= TRAFFIC.dodge_rate + 1e-6, `${worstSlide.toFixed(2)} m sideways a metre along`);
+  assert.ok(worstTurn <= TRAFFIC.steer_per_m + 1e-3, "its wheels turned a little a metre");
+  assert.equal(D.tally.jumps, 0);
+  assert.ok(D.stateOf("a").d > 320, "and it got round");
+  // Stood still it does not slide into the next lane; in your sight it waits longer to be put anywhere.
+  assert.match(FLEET, /\(st\.v < 0\.3 \? 0 : Math\.min\(1, st\.v \/ 2\)\)/);
+  assert.ok(TRAFFIC.seen_jump_x >= 3);
 });

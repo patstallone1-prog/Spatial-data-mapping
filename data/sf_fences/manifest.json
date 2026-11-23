@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "license": "PDDL (DataSF); ODbL (OpenStreetMap contributors)",
+  "sources": [
+    {
+      "name": "city_lands",
+      "dataset": "gtnh-hgvs",
+      "sha256": "550b9f1efb208ce400d3801579b252f8e6245a0bbf92b9885b39d3daeb80439e",
+      "rows": 1035,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    },
+    {
+      "name": "schools",
+      "dataset": "7e7j-59qk",
+      "sha256": "ab53dd1247d9af50ab2688b12131a09b3052d5b87eaa93b1ef134b4a2ff534c3",
+      "rows": 235,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    },
+    {
+      "name": "rpd_linear",
+      "dataset": "rny7-88gk",
+      "sha256": "d9a750593ddadd9faf07405f58e42da8dd1d4d80e19f5feb16462ebe55fe37f2",
+      "rows": 2212,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    },
+    {
+      "name": "land_use_institutional",
+      "dataset": "c5ge-t6pj",
+      "sha256": "0127643cc024851e4974778f9d35c3e9e8917e824a9f013b744c8905edd37390",
+      "rows": 1115,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    },
+    {
+      "name": "land_use_parking",
+      "dataset": "c5ge-t6pj",
+      "sha256": "16de7079ca3c45b6b703b57cce07a74577e7eafd7a679bc55a9a3f20aa8a0599",
+      "rows": 276,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    },
+    {
+      "name": "osm",
+      "dataset": "openstreetmap",
+      "sha256": "40d24f6a95ecb3b9295a63abb8f5e42c469e8d610fb8b1dc9be78bfe7b14af62",
+      "rows": 6546,
+      "retrieved_at": "2026-11-22T23:15:51Z"
+    }
+  ]
+}

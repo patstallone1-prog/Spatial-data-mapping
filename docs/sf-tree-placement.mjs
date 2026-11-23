@@ -114,3 +114,59 @@ export function cutPavement(THREE, geom, grid, clip) {
   geom.setIndex(kept);
   return true;
 }
+
+//: Records of one tree: the city's list (and the lidar's canopy trees beside it) has the same
+//: tree more than once a little apart -- re-surveyed, or listed by two sources -- and drawn as
+//: recorded that is a knot of trunks growing out of each other. Trunks do not stand this close
+//: (the city plants no nearer than 15 ft), so records within CLUMP_M of each other, joined in a
+//: chain no wider than CLUMP_SPAN_M, are one tree.
+export const CLUMP_M = 2.5, CLUMP_SPAN_M = 6;
+
+//: `trees` with each clump made one tree: the record with the thickest trunk, standing at the
+//: average of the clump's positions; its kerb point (`curb`: [lon, lat, bearing]) moved along the
+//: kerb to be abreast of it, so the opening is cut at the city's setback from the kerb there and
+//: the Public Works distances (a stop sign, a hydrant, a crossing, a driveway) are asked of the
+//: one place. `merged` is how many records it stands for; its neighbours' obstacles are kept.
+export function mergeClumps(trees, radius = CLUMP_M, span = CLUMP_SPAN_M) {
+  if (trees.length < 2) return trees.slice();
+  const lat0 = trees[0].p[1], kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 111320;
+  const at = trees.map((t) => [t.p[0] * kx, t.p[1] * ky]);
+  const cells = new Map(), cell = (x, y) => Math.floor(x / radius) + ":" + Math.floor(y / radius);
+  at.forEach(([x, y], i) => { const k = cell(x, y); if (!cells.has(k)) cells.set(k, []); cells.get(k).push(i); });
+  const owner = trees.map((_, i) => i), box = at.map(([x, y]) => [x, y, x, y]);
+  const root = (i) => (owner[i] === i ? i : (owner[i] = root(owner[i])));
+  for (let i = 0; i < trees.length; i += 1) {
+    const [x, y] = at[i], cx = Math.floor(x / radius), cy = Math.floor(y / radius);
+    for (let dx = -1; dx <= 1; dx += 1) for (let dy = -1; dy <= 1; dy += 1) for (const j of cells.get((cx + dx) + ":" + (cy + dy)) || []) {
+      if (j <= i || Math.hypot(at[j][0] - x, at[j][1] - y) > radius) continue;
+      const a = root(i), b = root(j);
+      if (a === b) continue;
+      const m = [Math.min(box[a][0], box[b][0]), Math.min(box[a][1], box[b][1]), Math.max(box[a][2], box[b][2]), Math.max(box[a][3], box[b][3])];
+      // (A row of saplings a pace apart is a row, not one tree: a chain is not let grow wide.)
+      if (Math.hypot(m[2] - m[0], m[3] - m[1]) > span) continue;
+      owner[b] = a; box[a] = m;
+    }
+  }
+  const clumps = new Map();
+  trees.forEach((t, i) => { const r = root(i); if (!clumps.has(r)) clumps.set(r, []); clumps.get(r).push(i); });
+  const out = [];
+  for (const members of clumps.values()) {
+    if (members.length === 1) { out.push(trees[members[0]]); continue; }
+    const mx = members.reduce((a, i) => a + at[i][0], 0) / members.length, my = members.reduce((a, i) => a + at[i][1], 0) / members.length;
+    // The thickest trunk is the tree; a surveyed record before a canopy guess of the same girth.
+    const keep = members.map((i) => trees[i]).reduce((a, b) => ((b.d || 0) > (a.d || 0) || ((b.d || 0) === (a.d || 0) && b.curb && !a.curb) ? b : a));
+    const one = { ...keep, p: [mx / kx, my / ky], merged: members.length };
+    const kerbed = members.map((i) => trees[i]).filter((t) => t.curb);
+    if (kerbed.length) {
+      const near = kerbed.reduce((a, b) => (Math.hypot(b.p[0] * kx - mx, b.p[1] * ky - my) < Math.hypot(a.p[0] * kx - mx, a.p[1] * ky - my) ? b : a));
+      const [clon, clat, bearing] = near.curb, ex = Math.cos(bearing), ny = Math.sin(bearing);
+      const along = (mx - clon * kx) * ex + (my - clat * ky) * ny;
+      one.curb = [(clon * kx + ex * along) / kx, (clat * ky + ny * along) / ky, bearing];
+      one.site = near.site; one.plot = near.plot;
+    }
+    const obstacles = members.flatMap((i) => trees[i].obstacles || []);
+    if (obstacles.length) one.obstacles = obstacles;
+    out.push(one);
+  }
+  return out;
+}

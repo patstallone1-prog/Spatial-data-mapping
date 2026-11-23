@@ -82,7 +82,9 @@ def test_matt_surfaces_are_lit_plainly_and_the_first_view_is_drawn_behind_the_lo
     modules = ROOT / "src/smc/renderer/page/module"
     world = (modules / "02-reconstructed-world-objects.js").read_text()
     assert "const PLAIN_LIGHT = globalThis.__kerbsidePlainLight ||= {" in world
-    assert '.replace("#include <lights_physical_pars_fragment>", "#include <lights_lambert_pars_fragment>")' in world
+    # (Lambert's terms with their second declaration of the view position taken out: declared
+    # twice the program did not compile, and what used it -- walls, trees -- was not drawn.)
+    assert 'THREE.ShaderChunk.lights_lambert_pars_fragment.replace(/varying\\s+vec3\\s+vViewPosition\\s*;/, "")' in world
     # Glass and metal keep their highlights; the cache key tells the two kinds of program apart.
     assert "!(material.metalness > 0.3) && !(material.roughness < 0.35) && !material.envMap" in world
     assert 'plain = globalThis.__kerbsidePlainLight?.on(this) ? "|plain-light" : ""' in world

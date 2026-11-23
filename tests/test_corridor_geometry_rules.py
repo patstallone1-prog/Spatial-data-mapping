@@ -752,12 +752,15 @@ def test_a_surveyed_tree_has_a_real_opening_unless_it_stands_on_grass() -> None:
     has one of the walk's squares if it stands in paving, and none on grass (a park, a yard).
     """
     js = _page_js()
-    assert "for (const d of [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M])" in js
+    # (A tree that several records were merged into may slide further: up to four squares.)
+    assert ": [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M])" in js
+    assert "for (const d of tree.merged ? [0, SLAB_M, -SLAB_M, 2*SLAB_M, -2*SLAB_M, 3*SLAB_M, -3*SLAB_M, 4*SLAB_M, -4*SLAB_M]" in js
     assert "if (!placed) { placed = plot; treeSquareStats.asSurveyed += 1; }" in js
     assert "const impossible = ([x,z]) => insideJunctionBox(x,z) || overWaterAt(x,z) || inDriveway(x,z);" in js
-    assert 'if (tree.src?.startsWith("lidar_canopy")) continue;' in js
+    # (A lidar tree is no longer passed over: on hard ground it needs an opening as any other does.)
+    assert 'if (tree.src?.startsWith("lidar_canopy")) continue;' not in js
     assert "if (survey || tree.src) continue;" not in js
-    assert "if (!open(square)) { if (survey) treeSquareStats.onGrass += 1; continue; }" in js
+    assert "if (!open(square)) { if (!hardOpening(tree, tx, tz) && survey) treeSquareStats.onGrass += 1; continue; }" in js
 
 
 def test_lane_markings_are_painted_with_a_width() -> None:
@@ -1004,7 +1007,8 @@ def test_a_tree_pit_needs_pavement_under_the_tree_not_near_it() -> None:
     assert "const PAVED_CELL = 1.5;" in js
     # And the pit sits on the pavement it is cut into, whatever that pavement's kerb height is.
     assert "const top = pavementTopAt(tx, tz);" in js
-    assert "if (top === undefined) continue;" in js
+    # No pavement square under it: an opening of its own if the ground there is hard, none on grass.
+    assert "if (top === undefined) { hardOpening(tree, tx, tz); continue; }" in js
     assert "top + PIT_LIFT_M" in js
 
 
