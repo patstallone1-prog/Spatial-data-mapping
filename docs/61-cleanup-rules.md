@@ -45,3 +45,47 @@ new data, guarded by a rule and a count.
 - Walkers crossing mid-block, and walkers leaving a crossing along an island: the cause was not
   found. Walk ends are drawn straight from a door or a stop to the pavement line, which can cut
   a corner of the road; the island case was not reproduced.
+
+## Second pass (2026-11-23, PR after #235)
+
+- **Walk routes.** `City.legalize` left any stretch of roadway under 16 m that no crossing
+  covered: a path over a street, or the walk's line doubling out into the road and back
+  through a staggered junction. Spurs are cut out; a path over a street is recorded as a
+  crossing, so it is waited at for a gap. Planned positions on the roadway and not on a
+  crossing, Marina: 9.4% -> 3.2% of 126,000 samples (1,157 spurs, about 13,000 path crossings).
+  What is left is mostly runs over 16 m that could not be moved onto a pavement.
+- **Frame rate.** `FPS_CAP` 40: the choices are 15, 30, 40; a saved 45, 60 or unlimited is 40.
+  Kept to the beat on a 60 Hz screen (two refreshes, then one).
+- **Camera.** `MAGIC_VIEWS`: 7 m behind and 0.36 rad down on foot, 13 m and 0.44 at the wheel,
+  taken up on entering the city and on getting in or out of a car; yours once you turn or zoom.
+- **Yard fences.** `fenceBeforeFront`: chain link is not laid between a street and a building's
+  front (Marina Middle School on Chestnut). **Car parks:** stall lines in metre lengths and
+  wheel stops in three, so they follow the ground; a 6.5 m gate noted at the entrance.
+- **Furniture.** A bus stop's bench is asked of `furnitureMisplaced` too.
+- **Walker.** `nudgeToOpening`: stopped at a wall with a door or a gate within 2.6 m ahead, the
+  walker is carried along the wall to it. **Car.** `carBodyBlocked`: the player's car is tested
+  at its corners and sides against solid things; it was moved as a 0.3 m walker.
+- **Rooms.** `interiorsOnStop`: no house has rooms until you stand still 0.6 s on foot; then the
+  three nearest within 26 m; walking on, those over 34 m off are taken down. Enter at a door
+  swings it open while its rooms are built and its file (asked for as you reach the door)
+  arrives; you go through at 1.15 rad. `kerbsideInteriorsOnStop()` has the counts and a log.
+- **Tiers.** Past the moderate ring no person or vehicle is drawn (`DETAIL_FAR_DRAWN`). In the
+  camera's view the rings reach half as far again (`DETAIL_CONE`), and what is out of sight is
+  made ready 1.5 rings out (`LOCK.ahead`).
+
+### Measured (headless Chrome, Metal, Marina, same fixed street-level camera)
+
+| | main before | this pass | this pass + car models (#236) |
+|---|---|---|---|
+| triangles a frame | 11.9 M | 12.0 M | 14.1 M |
+| draw calls a frame | 2,608 | 2,568 | 2,759 |
+| JS heap | 3,441 MB | 3,207 MB (1,894 in another run) | 2,730 MB |
+| processor, 30 s | 26.8 CPU-s | 26.1 CPU-s | 31.2 CPU-s |
+| frames drawn a second | 25.6 | 25.6 | 22.1 |
+
+The runs differ in the game's hour (13 to 204 people in view), and run-to-run heap varies by
+more than the difference: no saving is shown. The frame is the world's geometry: the Marina's
+ground is merged into pieces 400-1,600 m across (yards, roads, medians, terrain tiles), about
+12 M triangles drawn whichever way the camera faces. Far buildings are 0.12 M of that, so flat
+cards for them were not built. Cutting the ground into pieces small enough to cull is the work
+that would lower it; `MERGE_TILE_M` does not reach the attached region's ground.

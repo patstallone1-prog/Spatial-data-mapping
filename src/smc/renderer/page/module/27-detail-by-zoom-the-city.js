@@ -292,7 +292,10 @@ function animate(now) {
     && !preuploadJobs?.length);
   const interval = Math.max(SETTINGS.fps > 0 ? 1000 / SETTINGS.fps : 0, idle ? IDLE_FRAME_MS : 0);
   if (!xrFrame && interval && now - lastFrameDrawnAt < interval - 2) return;
-  lastFrameDrawnAt = now;
+  // (Counted on from the frame before, not from now: on a 60 Hz screen "not within 25 ms of the
+  // last" is every other refresh, thirty a second; kept to the beat it is two refreshes, then
+  // one -- forty.)
+  lastFrameDrawnAt = interval ? Math.max(lastFrameDrawnAt + interval, now - interval) : now;
   lastDrawnEye.copy(camera.matrixWorld);
   // The first frame drawn is the end of loading.
   const progress = document.getElementById("progress");
@@ -334,6 +337,11 @@ function animate(now) {
     updateFacadeStreaming(was.at, camera.position.y - focus.y);
   }
   if (activeGuest && activeGuest.ready) guestFrame(now);
+  // (The walker through a door of the attached region's that has now swung open: module 24.)
+  if (activeGuest && activeGuest.ready && activeGuest.api.takeDoorEntry) {
+    const at = activeGuest.api.takeDoorEntry(), g = activeGuest;
+    if (at) placeWalkerAtDoor({ x: g.ox + at.x * g.sx, z: g.oz + at.z, yaw: at.yaw * Math.sign(g.sx) });
+  }
   updateTileTree(now);
   if(natureWorld && (frameCount===1 || frameCount%20===0)) {
     natureWorld.hostBox.value.copy(hostWorldActive ? natureWorld.localBounds : new THREE.Vector4(1,1,0,0));

@@ -14,8 +14,17 @@ test("standing still, the rings are circles: full, moderate, low, then tracked o
   const [full, mid, low] = DETAIL_RINGS.people;
   assert.equal(f.tier("people", full - 1, 0), FULL);
   assert.equal(f.tier("people", 0, full + 1), MODERATE);
-  assert.equal(f.tier("people", -(mid + 1), 0), LOW);
+  // Past the moderate ring nothing is drawn: tracked only (DETAIL_FAR_DRAWN).
+  assert.equal(f.tier("people", -(mid + 1), 0), TRACKED);
   assert.equal(f.tier("people", 0, -(low + 1)), TRACKED);
+  assert.ok(LOW === 2);
+  // In the camera's view the rings reach half as far again; to its side and behind, as they were.
+  const seen = detailField({ x: 0, z: 0 }, { look: [0, -1] });
+  assert.equal(seen.tier("people", 0, -(full * 1.4)), FULL, "ahead of the camera");
+  assert.equal(seen.tier("people", 0, full * 1.1), MODERATE, "behind it");
+  assert.equal(seen.tier("people", full * 1.1, 0), MODERATE, "square to it");
+  assert.equal(seen.tier("people", 0, -(mid * 1.4)), MODERATE);
+  assert.equal(seen.tier("people", 0, -(mid * 1.6)), TRACKED);
   // The same distance either way round.
   assert.equal(f.tier("people", 0, full - 1), f.tier("people", -(full - 1), 0));
   // Cars carry further than people.
@@ -83,16 +92,17 @@ test("the view draws by tier, culls the traffic to the view, and tracks the area
   assert.match(VIEW, /if \(f === 0 && !drawn\.has\(q\)\) f = 1;\s+if \(f === 1\) full\.push\(q\); else if \(f === 2\) mid\.push\(q\); else if \(f === 3\) low\.push\(q\);/);
   assert.match(VIEW, /midBody = mkTone\(midBodyGeo/);
   assert.match(VIEW, /lowBody = mk\(lowBodyGeo/);
-  // Cars: in view only, kit / code-built / a box.
+  // Cars: in view only, each its own body's npc file / its mid file / a box.
   assert.match(VIEW, /CAR_FRUSTUM\.intersectsSphere/);
-  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
+  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
+  assert.match(VIEW, /LEVELS\[hero \? "full" : tier === MODERATE \? "mid" : "npc"\]/);
   assert.match(VIEW, /lowCars\.setMatrixAt/);
   // Tracked only: not placed every frame, and not drawn; nor someone in a shop out of sight.
   assert.match(VIEW, /if \(was\.tier === TRACKED\) \{ trackedPeople \+= 1; continue; \}/);
   assert.match(VIEW, /pos\.indoors && pos\.indoors !== shop\.place\?\.id/);
   assert.match(VIEW, /scanReach = trackReach\(focus\)/);
   // The ride's route stretches the field.
-  assert.match(VIEW, /detailField\(\{ x: focus\.x, z: focus\.z \}, \{ vx: fv\.vx, vz: fv\.vz, ahead: routeAheadNow\(\) \}\)/);
+  assert.match(VIEW, /detailField\(\{ x: focus\.x, z: focus\.z \}, \{ vx: fv\.vx, vz: fv\.vz, ahead: routeAheadNow\(\), look: EYE\.ok \? \[EYE\.fx, EYE\.fz\] : null \}\)/);
 });
 
 test("the reality lock: in sight a form is kept unless the change is too far off to show; out of sight it is free", async () => {

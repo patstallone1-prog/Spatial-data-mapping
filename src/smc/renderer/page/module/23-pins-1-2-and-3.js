@@ -776,7 +776,7 @@ function requestGeneratedInterior(entry) {
     import(new URL("kerbside-adapter.mjs", ref.base).href)
   ]);
   Promise.all([generatedInteriorModules,
-    hasSource ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
+    hasSource ? generatedInteriorSource(ref).then((source) => structuredClone(source)) : editorBaseline(String(entry.way.osm_id))
   ]).then(async ([[rendererModule, adapter], source]) => {
     if (hasSource && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
     const baseline = entry.editorBaseline || adapter.prepareGeneratedHouse(source);
@@ -1190,6 +1190,51 @@ function knockRoundObject(fromX, fromZ, toX, toZ, pts) {
 // sliding along whatever it meets.
 //: The walker's width against deadwood on the forest floor.
 const WALKER_DEADWOOD_RADIUS_M = 0.25;
+//: How near a door or a gate must be for a walker stopped at the wall beside it to be carried to
+//: it (m), and how squarely they must be walking at the wall (the cosine of the most they may be
+//: turned from the way to the opening: someone walking along a wall is not pulled into every door).
+//: A house's generated rooms as their file has them, fetched once and kept a short while: asked
+//: for when you come up to its door (module 24 updateDoors: a few hundred bytes of network, no
+//: rooms built), so that Enter there builds them from what has already arrived.
+const generatedInteriorSources = new Map();
+function generatedInteriorSource(ref) {
+  const url = new URL(ref.file, ref.fileBase || ref.base).href;
+  let held = generatedInteriorSources.get(url);
+  if (!held) {
+    held = fetch(url).then((r) => { if (!r.ok) throw new Error("house unavailable"); return r.json(); });
+    held.catch(() => generatedInteriorSources.delete(url));
+    generatedInteriorSources.set(url, held);
+    // (The few nearest only: the oldest asked for is let go.)
+    if (generatedInteriorSources.size > 12) generatedInteriorSources.delete(generatedInteriorSources.keys().next().value);
+  }
+  return held;
+}
+const WALKER_NUDGE = { reach_m: 2.6, ahead: 0.25, done_m: 0.2 };
+//: Where a walker at (x, z), stopped walking (ux, uz) into a wall, is carried this step: along
+//: the wall toward the nearest door or gate, ``step`` metres at most, if that way is clear. Null:
+//: no way in near, not walking toward it, or the step is not clear.
+function nudgeToOpening(x, z, ux, uz, step, objects) {
+  const guest = typeof guestUnder === "function" && activeGuest ? guestUnder(x, z) : null;
+  let o = null;
+  if (guest?.ready) {
+    if (!guest.api.openingNear) return null;
+    const q = guest.api.openingNear(...hostToGuest(guest, x, z), WALKER_NUDGE.reach_m);
+    if (q) o = [guest.ox + q[0] * guest.sx, guest.oz + q[1]];
+  } else if (typeof openingNear === "function") o = openingNear(x, z, WALKER_NUDGE.reach_m);
+  if (!o) return null;
+  const dx = o[0] - x, dz = o[1] - z, d = Math.hypot(dx, dz);
+  if (d < WALKER_NUDGE.done_m || (dx * ux + dz * uz) / d < WALKER_NUDGE.ahead) return null;
+  // Along the wall: what of the way to the opening is square to the way they are walking.
+  const side = dx * -uz + dz * ux, m = Math.min(step, Math.abs(side));
+  if (m < 0.01) return null;
+  const tx = x + -uz * Math.sign(side) * m, tz = z + ux * Math.sign(side) * m;
+  const blocked = guest?.ready && guest.api.walkerFootprintBlocked ? guest.api.walkerFootprintBlocked(...hostToGuest(guest, tx, tz)) : walkerFootprintBlocked(tx, tz);
+  if (blocked || walkerStepIntoBuilding(x, z, tx, tz)) return null;
+  if (objects && objects.blocked(tx, tz, WALKER_RADIUS_M) && !objects.blocked(x, z, WALKER_RADIUS_M)) return null;
+  const cars = typeof livingCity !== "undefined" ? livingCity?.walkerBlocked : null;
+  if (cars && cars(tx, tz, WALKER_RADIUS_M, x, z)) return null;
+  return [tx, tz];
+}
 function moveWalker(mx, mz) {
   const objects = typeof objectProximity !== "undefined" ? objectProximity : null;
   if (objects) {
@@ -1212,6 +1257,7 @@ function moveWalker(mx, mz) {
         segments.push([g.ox + ax * g.sx, g.oz + az, g.ox + bx * g.sx, g.oz + bz]);
     } else if (!g && typeof deckEdgeSegmentsNear === "function") segments.push(...deckEdgeSegmentsNear(cx, cz, feet));
   }
+  let walled = false;
   for (let i = 0; i < steps; i += 1) {
     const next = {x: p.x + mx / steps, z: p.z + mz / steps};
     const below=typeof occupiedTunnelAt === "function" ? occupiedTunnelAt(p.x,p.z,feet) : null;
@@ -1233,11 +1279,11 @@ function moveWalker(mx, mz) {
       const [ax, az] = hostToGuest(guest, p.x, p.z), [bx, bz] = hostToGuest(guest, nextX, nextZ);
       hit = guest.api.firstBuildingCollision(ax, az, bx, bz);
     } else hit = belowBuildings ? null : firstBuildingCollision(p.x, p.z, nextX, nextZ);
-    if (hit !== null && hit !== undefined) break;
+    if (hit !== null && hit !== undefined) { walled = true; break; }
     const blocked = !belowBuildings && (guest?.ready && guest.api.walkerFootprintBlocked
       ? guest.api.walkerFootprintBlocked(...hostToGuest(guest, nextX, nextZ))
       : walkerFootprintBlocked(nextX, nextZ));
-    if (blocked) break;
+    if (blocked) { walled = true; break; }
     // Fallen trunks, stumps and big rocks in a wood are climbed round, not walked through;
     // undergrowth is pushed through. A walker already standing in one may walk out of it.
     const wood = !belowBuildings && typeof natureWorld !== "undefined" && natureWorld?.deadwoodBlocked;
@@ -1249,7 +1295,7 @@ function moveWalker(mx, mz) {
     const struck = objects ? objects.blocked(toX, toZ, WALKER_RADIUS_M) : null;
     if (struck && !objects.blocked(p.x, p.z, WALKER_RADIUS_M)) {
       const slide = slidePastObjects(p.x, p.z, toX, toZ, belowBuildings, struck);
-      if (!slide) break;
+      if (!slide) { walled = true; break; }
       [toX, toZ] = slide;
     }
     // The living city's cars, parked or in traffic, and its buses: walked round, not through.
@@ -1278,6 +1324,13 @@ function moveWalker(mx, mz) {
     p.x = toX;
     p.z = toZ;
     if (typeof walkerGroundAt === "function") feet=walkerGroundAt(p.x,p.z,feet);
+  }
+  // Walked into a wall or a fence with a door or a gate a step or two along it: carried along
+  // the wall toward the way in, as far as this step would have gone, so that pressing on at the
+  // wall beside a doorway goes through the doorway (nudgeToOpening).
+  if (walled && distance > 1e-6 && typeof nudgeToOpening === "function") {
+    const to = nudgeToOpening(p.x, p.z, mx / distance, mz / distance, distance, objects);
+    if (to) { p.x = to[0]; p.z = to[1]; if (typeof walkerGroundAt === "function") feet = walkerGroundAt(p.x, p.z, feet); }
   }
   const moved = Math.hypot(p.x - avatar.position.x, p.z - avatar.position.z);
   avatar.position.x = p.x;

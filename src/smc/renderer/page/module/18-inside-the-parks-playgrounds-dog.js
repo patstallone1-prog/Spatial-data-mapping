@@ -759,7 +759,7 @@ async function buildPropertyFences() {
       const [sx, sz] = panel[j], [ex, ez] = panel[j + 1];
       if (Math.hypot(ex - sx, ez - sz) < 0.2) continue;
       // Only what no other fence or wall already carries (layFence), with its posts.
-      for (const [ax, az, bx, bz] of layFence(sink, sx, sz, ex, ez, YARD_Y, run.h, tile, run.style === "chain_link" ? 0.4 : run.h)) {
+      for (const [ax, az, bx, bz] of layFence(sink, sx, sz, ex, ez, YARD_Y, run.h, tile, run.style === "chain_link" ? 0.4 : run.h, run.style === "chain_link")) {
         const span = Math.hypot(bx - ax, bz - az);
         stats.fence_m += span;
         for (let d = 0; d < span; d += 2.8) sink.posts.push([ax + (bx - ax) * d / span, az + (bz - az) * d / span, run.h + 0.08]);

@@ -683,7 +683,7 @@ window.kerbsideGuestApi = {
   })() : (() => { const [x0, y0] = xy(DATA.bbox.west, DATA.bbox.south); const [x1, y1] = xy(DATA.bbox.east, DATA.bbox.north);
     return [x0, -y1, x1, -y0]; })(),
   walkerGroundAt, walkerGroundInfo, elevatedDecksAt, walkableStairRecessAt, tunnelSurfaceAt, tunnelMoveAllowed, tunnelWalkMeshes, approachPassageAt, groundLiftAt, wallSegmentsNear, terrainTiles, exteriorLanding, firstBuildingCollision,
-  walkerFootprintBlocked,
+  walkerFootprintBlocked, openingNear, takeDoorEntry, interiorsOnStopReport,
   // Its buildings' exterior edits, drawn in its own world (openExteriorEditor on the page).
   exteriorEditorContext, hasExteriorBuilding: (id) => buildingWayById.has(String(id)),
   deckEdgeSegmentsNear, deckLevels: () => DECK_LEVEL_REPORT,

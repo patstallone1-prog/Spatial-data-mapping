@@ -12,15 +12,20 @@ const QUALITY_PRESETS = {
   high: { label: "High", fineGround: true, pixelRatio: 1, detailScale: 1, lodScale: 1, budgetMs: 28, restMs: 10 },
   max: { label: "Max", fineGround: true, pixelRatio: 2, detailScale: 1.4, lodScale: 1.6, budgetMs: 60, restMs: 0 },
 };
-const FPS_CHOICES = [15, 30, 45, 60, 0];
+//: No more than forty frames a second are drawn, whatever the screen offers: past that the eye
+//: gains little here and the machine is kept busy and warm for it (2026-11-23). A saved or asked
+//: rate above it, or "unlimited", is forty. (The headset alone is driven at its own rate.)
+const FPS_CAP = 40;
+const FPS_CHOICES = [15, 30, 40];
 const SETTINGS_KEY = "kerbside:settings";
 //: The default: High, except where the device says it is small -- under 8 GB of memory (Chrome
 //: reports it), or a phone or tablet -- where the fine ground is more than it can hold: Medium.
 const SMALL_DEVICE = deviceIsSmall();
-const SETTINGS = { fps: 30, quality: SMALL_DEVICE ? "medium" : "high" };
+const SETTINGS = { fps: FPS_CAP, quality: SMALL_DEVICE ? "medium" : "high" };
 try {
   const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
   if (FPS_CHOICES.includes(saved.fps)) SETTINGS.fps = saved.fps;
+  else if (saved.fps === 0 || saved.fps > FPS_CAP) SETTINGS.fps = FPS_CAP;
   if (QUALITY_PRESETS[saved.quality]) SETTINGS.quality = saved.quality;
 } catch (error) { /* settings are a convenience; the defaults stand without storage */ }
 // And from the address, for this visit: ?quality=medium&fps=60.

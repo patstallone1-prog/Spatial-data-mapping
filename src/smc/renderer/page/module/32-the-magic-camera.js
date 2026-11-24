@@ -36,6 +36,10 @@ var MAGIC = {
   // Which way you are going (m/s).
   vx: 0, vz: 0,
 };
+//: The view given on foot and at the wheel: how far behind (m) and how high it looks down from
+//: (rad above level). On foot close enough to read a face and a door; in the car far enough back
+//: to see the junction coming.
+var MAGIC_VIEWS = { walk: { dist_m: 7, pitch: 0.36 }, drive: { dist_m: 13, pitch: 0.44 } };
 //: The offsets tried for a clear line, the smallest change first.
 var MAGIC_TRIES = (() => {
   const out = [];
@@ -83,6 +87,24 @@ function magicCameraStep(dt) {
   MAGIC.lastX = t.x; MAGIC.lastZ = t.z;
   const moving = MAGIC.speed > 0.3, driving = typeof livingCity !== "undefined" && Boolean(livingCity?.driving);
   const now = performance.now(), held = dragging || now - MAGIC.draggedAt < MAGIC.dragHoldMs;
+  // The view you are given: behind and above, nearer on foot and further back at the wheel
+  // (MAGIC_VIEWS). Taken up when the city is entered and each time you get in or out of a car,
+  // eased; yours to turn right round or zoom as before -- the moment you do, it is left to you.
+  {
+    const mode = driving ? "drive" : "walk";
+    if (MAGIC.mode !== mode) { MAGIC.mode = mode; MAGIC.preset = { ...MAGIC_VIEWS[mode], dist: null, pitch: null }; }
+    const P = MAGIC.preset;
+    if (P) {
+      if (held || (P.dist !== null && (Math.abs(state.dist - P.dist) > 0.02 || Math.abs(state.pitch - P.pitch) > 0.004))) MAGIC.preset = null;
+      else {
+        const want = MAGIC_VIEWS[mode], lo = typeof minOrbitDist === "function" ? minOrbitDist() : 2, k = Math.min(1, dt * 3.2);
+        const goal = Math.max(lo, want.dist_m);
+        state.dist += (goal - state.dist) * k; state.pitch += (want.pitch - state.pitch) * k;
+        P.dist = state.dist; P.pitch = state.pitch;
+        if (Math.abs(goal - state.dist) < 0.05 && Math.abs(want.pitch - state.pitch) < 0.01) MAGIC.preset = null;
+      }
+    }
+  }
   // Ahead the faster you go; further back in the car at speed.
   const leadGoal = moving ? Math.min(MAGIC.leadMax, MAGIC.speed * MAGIC.leadS) : 0;
   MAGIC.lead += (leadGoal - MAGIC.lead) * Math.min(1, dt * 1.5);

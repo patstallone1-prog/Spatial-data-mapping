@@ -713,6 +713,25 @@ function doorsNear(x, z, reach) {
   return found.sort((a, b) => a[0] - b[0]).map(([, door]) => door);
 }
 
+//: The nearest way in within ``reach`` of (x, z): a building's door (its middle) or a fence's
+//: gate (the point of its opening nearest), as [x, z, "door" | "gate"], or null. For the walker
+//: who has walked into the wall beside one (module 23 nudgeToOpening).
+function openingNear(x, z, reach) {
+  let best = null, bd = reach;
+  for (const door of doorsNear(x, z, reach)) { const d = Math.hypot(door.cx - x, door.cz - z); if (d < bd) { bd = d; best = [door.cx, door.cz, "door"]; } }
+  if (typeof fenceLinesNear === "function" && typeof fenceGateGrid !== "undefined") {
+    for (const [ax, az, bx, bz] of fenceLinesNear(fenceGateGrid, x, z)) {
+      const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz;
+      if (!(L2 > 0)) continue;
+      // (Kept a walker's width in from each post: the middle of a narrow gate, the near part of a wide one.)
+      const L = Math.sqrt(L2), inset = Math.min(L / 2, 0.45) / L, t = Math.max(inset, Math.min(1 - inset, ((x - ax) * vx + (z - az) * vz) / L2));
+      const gx = ax + vx * t, gz = az + vz * t, d = Math.hypot(gx - x, gz - z);
+      if (d < bd) { bd = d; best = [gx, gz, "gate"]; }
+    }
+  }
+  return best;
+}
+
 const doorHint = document.createElement("div");
 doorHint.id = "door-hint";
 doorHint.style.cssText = "position:fixed;left:50%;bottom:72px;transform:translateX(-50%);"
@@ -807,7 +826,11 @@ function enterThroughDoor(door) {
 // Enter at a door: outside, it opens and the walker is put just inside; inside the house it went
 // into, the walker steps back out and the door is closed behind. Returns where the walker goes,
 // in this world's metres, or null when it stays (no rooms here: the door only swings).
-function toggleDoor(door) {
+//: ``wait``: the walker's own Enter at the door (operateNearestDoor) -- they go through once it
+//: has swung open (enteringDoor). Other callers (the city taking you into a place it knows) are
+//: answered at once, as before.
+function toggleDoor(door, { wait = false } = {}) {
+  const note = typeof noteDoor === "function" ? noteDoor : () => {};   // (the door's log, where this runs in the page)
   if (door.atGrade) return null;           // a street door onto a stair: shown, not walked through
   const x = avatar.position.x, z = avatar.position.z;
   if (enteredEntry === door.entry && insideFootprint(door.entry, x, z)) {
@@ -817,11 +840,20 @@ function toggleDoor(door) {
   }
   const wasOpen = door.open;
   door.open = true; door.npcShut = null;
+  // The door swings open first, and the rooms are built while it does: the walker goes through
+  // when both are done (updateDoors, enteringDoor). Its rooms were there before you reached the
+  // door, and every other house's with them.
+  if (wait && typeof entryRoomsPossible === "function" && entryRoomsPossible(door.entry) && (!door.entry.interior || (door.angle ?? 0) < DOOR_ENTER_ANGLE)) {
+    if (!door.entry.interior) buildInterior(door.entry);
+    if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; note("enter: waiting for the door" + (door.entry.interior ? "" : " and the rooms")); return null; }
+  }
   const inside = enterThroughDoor(door);
   if (!inside) {
     door.open = !wasOpen;
+    note("enter: no way in (" + (door.entry.interior ? "no clear spot" : "no rooms") + ")");
     return null;
   }
+  note("enter: at once");
   enteredEntry = door.entry;
   return { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
 }
@@ -885,7 +917,7 @@ function operateNearestDoor() {
     door.open = !door.open; door.npcShut = null;
     return { said: door.open ? "Door opened: the shop's own rooms are not drawn yet" : "Door shut" };
   }
-  return { at: toggleDoor(door) };
+  return { at: toggleDoor(door, { wait: true }) };
 }
 //: The nearest door, gate or room door opened or shut, and the walker taken through a front door
 //: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
@@ -969,12 +1001,82 @@ function updateIndoorGroundCut(x, z) {
   indoorCut.floor.value = best.floorY;
 }
 
+//: Rooms are memory: a house's furnished rooms were built with its shell, for every house within
+//: seventy metres of the walk, and almost none of them was ever looked into. Now no house has
+//: rooms until you stop -- on foot, standing ``still_s`` -- and then only the ``most`` nearest
+//: within ``near_m``; walk on and those further than ``drop_m`` are taken down again. The house
+//: you go into has its rooms built as its door swings open (toggleDoor, enteringDoor), and the
+//: one you are in keeps them. From the street an unbuilt house is what it was: dark glass.
+const INTERIOR_ON_STOP = { still_s: 0.6, near_m: 26, most: 3, drop_m: 34, retry_ms: 5000 };
+const walkerStill = { x: NaN, z: NaN, since: 0 };
+const interiorStats = { built_on_stop: 0, dropped: 0, entered: 0 };
+//: The last few things that happened at doors (for kerbsideInteriorsOnStop().log): what, when (ms).
+const doorLog = [];
+function noteDoor(what) { doorLog.push([Math.round(performance.now()), what]); if (doorLog.length > 40) doorLog.shift(); }
+//: How far a door has swung before the walker goes through it (rad), and the door being gone
+//: through: {door, since} from Enter until it has opened and its rooms are there.
+const DOOR_ENTER_ANGLE = 1.15;
+let enteringDoor = null, doorEntryDone = null, enteredAt = -1e9;
+const DOOR_ENTER_GRACE_MS = 400;
+//: Where the walker now stands inside, once, after a door it went in at has opened (an attached
+//: region's, in its own metres): asked each frame by the page (module 27).
+function takeDoorEntry() { const at = doorEntryDone; doorEntryDone = null; return at; }
+//: Whether ``entry``'s rooms are wanted whatever the walker is doing: they are in it, or going in.
+function interiorHeld(entry) {
+  return entry === enteredEntry || entry === enteringDoor?.door.entry || Boolean(entry.capturingEditorBaseline)
+    || insideFootprint(entry, avatar.position.x, avatar.position.z);
+}
+function interiorsOnStop(x, z) {
+  const nowMs = performance.now();
+  if (!(Math.hypot(x - walkerStill.x, z - walkerStill.z) < 0.04)) { walkerStill.x = x; walkerStill.z = z; walkerStill.since = nowMs; }
+  const driving = typeof livingCity !== "undefined" && Boolean(livingCity?.driving);
+  const still = !driving && nowMs - walkerStill.since > INTERIOR_ON_STOP.still_s * 1000;
+  const off = (entry) => Math.hypot(Math.max(entry.minX - x, 0, x - entry.maxX), Math.max(entry.minZ - z, 0, z - entry.maxZ));
+  // Walking on: the rooms left behind are taken down.
+  if (!still) for (const entry of [...interiorsBuilt]) {
+    if (interiorHeld(entry) || off(entry) <= INTERIOR_ON_STOP.drop_m) continue;
+    removeInterior(entry); interiorStats.dropped += 1;
+  }
+  // Stopped: the nearest few houses' rooms, one a frame.
+  if (still && INTERIORS && typeof homeShells !== "undefined") {
+    let have = 0, best = null, bestD = INTERIOR_ON_STOP.near_m;
+    for (const entry of interiorsBuilt) if (off(entry) <= INTERIOR_ON_STOP.near_m) have += 1;
+    if (have < INTERIOR_ON_STOP.most) for (const entry of homeShells) {
+      if (entry.interior || nowMs - (entry.interiorAskedAt || -1e9) < INTERIOR_ON_STOP.retry_ms) continue;
+      const d = off(entry);
+      if (d < bestD && entryRoomsPossible(entry)) { bestD = d; best = entry; }
+    }
+    if (best) { best.interiorAskedAt = nowMs; buildInterior(best); interiorStats.built_on_stop += 1; }
+  }
+  return still;
+}
+function interiorsOnStopReport() { return { ...interiorStats, built: interiorsBuilt.size, still_ms: Math.round(performance.now() - walkerStill.since), entering: Boolean(enteringDoor), entered: enteredEntry?.way?.osm_id ?? null, log: doorLog.slice() }; }
+window.kerbsideInteriorsOnStop = interiorsOnStopReport;
+
 function updateDoors(dt) {
   // This page's own region let go for another: the doors are the attached region's (guestFrame).
   if (!hostWorldActive) return;
   const x = avatar.position.x, z = avatar.position.z;
   // Out of the house it went into (or its rooms gone), the walker is held outside again.
-  if (enteredEntry && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) enteredEntry = null;
+  // (Not in the moments after going through a door that had to open first: the walker is put
+  // inside by the page that holds them, a frame or two after this region says where.)
+  if (enteredEntry && performance.now() - enteredAt > DOOR_ENTER_GRACE_MS && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) { noteDoor(enteredEntry.interior ? "left: outside the footprint" : "left: rooms gone"); enteredEntry = null; }
+  // (After that check, not before it: gone through this frame, the walker is put inside after
+  // this function, and the check a line up would take the house back from them at once.)
+  // Going in at a door (toggleDoor): through it once it has swung open and its rooms are there.
+  if (enteringDoor) {
+    const { door, since } = enteringDoor;
+    if (door.entry.interior && (door.angle ?? 0) >= DOOR_ENTER_ANGLE) {
+      enteringDoor = null;
+      const inside = enterThroughDoor(door);
+      if (inside) {
+        enteredEntry = door.entry; enteredAt = performance.now(); interiorStats.entered += 1; noteDoor("enter: through the open door");
+        const at = { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
+        // (An attached region hands it to the page that holds the walker: takeDoorEntry.)
+        if (ATTACH) doorEntryDone = at; else placeWalkerAtDoor(at);
+      }
+    } else if (performance.now() - since > 8000 || Math.hypot(door.cx - x, door.cz - z) > DOOR_REACH_M * 2) { noteDoor("enter: given up"); enteringDoor = null; }
+  }
   for (const door of doorsNear(x, z, DOOR_DRAW_M)) showDoor(door);
   for (const door of [...doorsShown]) {
     if (Math.hypot(door.cx - x, door.cz - z) > DOOR_DRAW_M * 1.2 && !door.open) hideDoor(door);
@@ -996,6 +1098,14 @@ function updateDoors(dt) {
     if (door.recessWalls) door.recessWalls.visible = !door.entry.homeShell;
   }
   const door = nearestDoor();
+  // At a door whose rooms are a file: the file is asked for now (not the rooms).
+  if (door?.entry.generatedInteriorRef && !door.entry.interior && !door.entry.generatedInteriorFailed && !door.entry.emptyMarinaShell && typeof generatedInteriorSource === "function") {
+    generatedInteriorSource(door.entry.generatedInteriorRef).catch(() => {});
+    if (typeof generatedInteriorModules !== "undefined" && !generatedInteriorModules) {
+      const base = door.entry.generatedInteriorRef.base;
+      generatedInteriorModules = Promise.all([import(new URL("renderer.mjs", base).href), import(new URL("kerbside-adapter.mjs", base).href)]);
+    }
+  }
   const inPassage=occupiedTunnelAt(x,z,walkerFeetY()) || approachPassageAt(x,z,walkerFeetY());
   const inside = inPassage ? null : buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
@@ -1042,6 +1152,8 @@ function updateDoors(dt) {
     const cx = (entry.minX + entry.maxX) / 2, cz = (entry.minZ + entry.maxZ) / 2;
     if (Math.hypot(cx - x, cz - z) > INTERIOR_KEEP_M + Math.hypot(entry.maxX - entry.minX, entry.maxZ - entry.minZ) / 2) removeInterior(entry);
   }
+  // And only the nearest few are built at all, once you stand still (interiorsOnStop).
+  interiorsOnStop(x, z);
   // Built within INTERIOR_KEEP_M so a step inside is instant, but drawn only from a few metres
   // off: from the street the rooms are behind dark glass, and eight houses' rooms were a
   // quarter of every frame's draws.

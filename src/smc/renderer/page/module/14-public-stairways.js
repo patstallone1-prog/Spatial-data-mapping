@@ -556,6 +556,8 @@ function cityParkingStalls() {
   });
   return out;
 }
+//: Car parks' gates noted before the fences' part of the page (module 17) has run, and whether it has.
+var parkingGatesPending = [], fenceGatesOpen = false;
 function addParkingLot(way) {
   let ring = way.points.map((p) => { const [x, y] = xy(p[0], p[1]); return [x, -y]; });
   if (ring.length < 4) return null;
@@ -661,6 +663,8 @@ function addParkingLot(way) {
     }
     return hit;
   };
+  //: A lot's gate, for the fence round it: two cars' width and room between (m).
+  const PARKING_GATE_M = 6.5;
   const stripes = [];
   const stops = [];
   const accessible = [];
@@ -709,6 +713,14 @@ function addParkingLot(way) {
           entryU = du;
         }
       }
+    }
+    // The way in is a gate in any fence round the lot, wide enough for two cars to pass
+    // (PARKING_GATE_M): noted before fences are laid, so no fence is drawn across where the
+    // cars go in and out. (Cars drove in through the fence.)
+    if (layout.frontage) {
+      const [gx0, gz0] = at(entryU - PARKING_GATE_M / 2, 0), [gx1, gz1] = at(entryU + PARKING_GATE_M / 2, 0);
+      // (The lots are laid before the fences' own part of the page has run: kept until it has.)
+      if (fenceGatesOpen) noteFenceGate(gx0, gz0, gx1, gz1); else parkingGatesPending.push([gx0, gz0, gx1, gz1]);
     }
     const usable = (corners) => {
       for (const [x, z] of corners) {
@@ -799,7 +811,7 @@ function addParkingLot(way) {
   if (stops.length) {
     const parts = [];
     for (const [sx, sz] of stops) {
-      const box = new THREE.BoxGeometry(1.8, 0.12, 0.15);
+      const box = new THREE.BoxGeometry(1.8, 0.12, 0.15, 3, 1, 1);   // (in three lengths: it follows the ground under it)
       const yaw = layout ? Math.atan2(-layout.ez, layout.ex) : 0;
       box.rotateY(yaw);
       box.translate(sx, PARKING_Y + 0.06, sz);
@@ -815,7 +827,15 @@ function addParkingLot(way) {
   }
   way._parking = { ...(way._parking || {}), stalls, stripes: stripes.length, stops: stops.length, rejected, squared, fill: rectangle ? +rectangle.fill.toFixed(2) : null };
   if (stripes.length) {
-    const lines = new THREE.Mesh(lineGeometry(stripes, MARK_W), new THREE.MeshStandardMaterial({
+    // Each line in metre lengths: a five-metre line laid as one flat strip and stood on the
+    // ground only at its two ends cut through a yard that is not flat between them, and what
+    // showed of it was odd pale triangles (the yard at Marina Middle School, 2026-11-23).
+    const metres = [];
+    for (const [ax, az, bx, bz] of stripes) {
+      const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.0));
+      for (let k = 0; k < n; k += 1) metres.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n, ax + (bx - ax) * (k + 1) / n, az + (bz - az) * (k + 1) / n]);
+    }
+    const lines = new THREE.Mesh(lineGeometry(metres, MARK_W), new THREE.MeshStandardMaterial({
       color: 0xe9ebe6, roughness: 0.8, metalness: 0.0, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
     }));

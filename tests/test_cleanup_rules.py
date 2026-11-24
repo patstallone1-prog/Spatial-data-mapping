@@ -34,6 +34,5 @@ def test_no_loose_furniture_on_an_island_or_in_the_way_of_a_crossing() -> None:
         assert f'return "{why}"' in body
     benches = kerbs[kerbs.index("function addBenches"):kerbs.index("function addMuniShelters")]
     assert "furnitureMisplaced(row.anchor.x, row.anchor.z)" in benches
-    # A bus stop's own bench and shelter are the stop's: not asked.
-    shelters = kerbs[kerbs.index("function addMuniShelters"):]
-    assert "furnitureMisplaced" not in shelters[:4000]
+    # A bus stop's bench is asked too (it stood on a crossing island on Chestnut Street).
+    assert "furnitureMisplaced(bx, bz)" in kerbs

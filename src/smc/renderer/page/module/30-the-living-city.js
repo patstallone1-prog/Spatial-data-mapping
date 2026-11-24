@@ -334,6 +334,9 @@ function setAppMode(mode) {
       // Its box, [x0, z0, x1, z1]: the living city keeps track of everyone in it (detail.mjs).
       areaBox: () => (cityLock ? cityLock.box : null),
       moveWalker: (mx, mz) => moveWalker(mx, mz),
+      //: Whether something solid at body height (a fence, a pole, a trunk, a bench) is within
+      //: ``r`` of (x, z): for the car, whose body is wider than the walker it is moved as.
+      solidAt: (x, z, r) => Boolean(typeof objectProximity !== "undefined" && objectProximity && objectProximity.blocked(x, z, r)),
       // The walker's legs for a move the city made (walking over to pick a thing up, a shop's
       // floor): ``distance`` metres the way (dx, dz), at a walk -- 0 stands it still. Without
       // it a walker moved by the city glided along in its standing pose.
