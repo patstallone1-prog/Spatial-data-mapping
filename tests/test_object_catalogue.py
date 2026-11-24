@@ -181,3 +181,27 @@ def test_every_wall_class_has_a_cladding_and_every_building_a_wall() -> None:
     assert catalogue.cladding("stucco_render", cat)["texture"] == "smooth"
     assert cat["claddings"]["fixed_parts"]["window"] == "glass"
     assert cat["claddings"]["fixed_parts"]["garage_door"] == "lumber"
+
+
+def test_mechanics_section_is_consistent() -> None:
+    """Every material maps to a mechanics substance, and every implement and source resolves."""
+    data = catalogue.load()
+    assert catalogue.mechanics_problems(data) == []
+    mx = data["mechanics"]
+    assert len(mx["substances"]) >= 40
+    assert {"felling_axe", "chef_knife", "wooden_club"} <= set(mx["implements"])
+
+
+def test_mechanics_validation_names_what_is_wrong() -> None:
+    """A broken reference in the mechanics section is reported, not ignored."""
+    data = json.loads(json.dumps(catalogue.load()))
+    first = next(name for name in data["materials"] if name != "none")
+    data["materials"][first]["mechanics"] = "unobtainium"
+    data["mechanics"]["implements"]["chef_knife"]["substance"] = "adamant"
+    data["mechanics"]["substances"]["ice"]["sources"] = ["nowhere"]
+    problems = catalogue.mechanics_problems(data)
+    assert any("unobtainium" in p for p in problems)
+    assert any("adamant" in p for p in problems)
+    assert any("nowhere" in p for p in problems)
+    with pytest.raises(ValueError):
+        catalogue.validate(data)

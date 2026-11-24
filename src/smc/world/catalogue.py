@@ -99,8 +99,67 @@ def validate(catalogue: dict[str, Any]) -> None:
         for surface, archetype in surfaces.get(table, {}).items():
             if archetype not in archetypes:
                 problems.append(f"surface {table} {surface!r} names unknown archetype {archetype!r}")
+    problems += mechanics_problems(catalogue)
     if problems:
         raise ValueError("object catalogue: " + "; ".join(problems))
+
+
+#: What every solid substance in the mechanics section must state for the engine
+#: (docs/city/mechanics.mjs); a fluid needs only its family, density and sources.
+MECHANICS_REQUIRED = ("family", "density_kg_m3", "E_gpa", "nu", "surface", "sources")
+MECHANICS_FLUID = ("family", "density_kg_m3", "sources")
+#: What a contactor (a hand, a sole, a blade's face) states for friction.
+CONTACTOR_REQUIRED = ("adhesion", "hysteresis", "base", "moisture", "area_m2", "sources")
+
+
+def mechanics_problems(catalogue: dict[str, Any]) -> list[str]:
+    """Inconsistencies in the ``mechanics`` section: every material's substance exists, every
+    implement, contactor and strike kind names one that does, and every cited source is listed."""
+    problems: list[str] = []
+    mx = catalogue.get("mechanics")
+    if not isinstance(mx, dict):
+        return ["mechanics section missing"]
+    subs, sources = mx.get("substances", {}), mx.get("sources", {})
+    for name, m in catalogue.get("materials", {}).items():
+        key = m.get("mechanics", "missing")
+        if name == "none":
+            if key is not None:
+                problems.append("material none: mechanics must be null")
+        elif key not in subs:
+            problems.append(f"material {name}: unknown mechanics substance {key!r}")
+    for name, s in subs.items():
+        fluid = s.get("family") == "fluid"
+        for field in MECHANICS_FLUID if fluid else MECHANICS_REQUIRED:
+            if field not in s:
+                problems.append(f"substance {name}: missing {field}")
+        if not fluid and not s.get("E_gpa", 0) > 0:
+            problems.append(f"substance {name}: E_gpa must be positive")
+        if not fluid and not 0 <= s.get("nu", -1) < 0.5:
+            problems.append(f"substance {name}: nu must be in [0, 0.5)")
+        for src in s.get("sources", []):
+            if src not in sources:
+                problems.append(f"substance {name}: unlisted source {src!r}")
+    for table in ("implements", "contactors"):
+        for name, item in mx.get(table, {}).items():
+            if name == "about":
+                continue
+            if table == "implements" and item.get("substance") not in subs:
+                problems.append(f"implement {name}: unknown substance {item.get('substance')!r}")
+            if table == "contactors":
+                for field in CONTACTOR_REQUIRED:
+                    if field not in item:
+                        problems.append(f"contactor {name}: missing {field}")
+            for src in item.get("sources", []):
+                if src not in sources:
+                    problems.append(f"{table[:-1]} {name}: unlisted source {src!r}")
+    for kind, substance in mx.get("item_materials", {}).items():
+        if kind != "about" and substance not in subs:
+            problems.append(f"item material {kind}: unknown substance {substance!r}")
+    implements = mx.get("implements", {})
+    for kind, implement in mx.get("strike_kinds", {}).items():
+        if kind != "about" and implement not in implements:
+            problems.append(f"strike kind {kind}: unknown implement {implement!r}")
+    return problems
 
 
 @lru_cache(maxsize=4)
