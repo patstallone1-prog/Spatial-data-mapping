@@ -1,3 +1,4 @@
+import {CRASH} from '../docs/city/crash.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
@@ -31,7 +32,8 @@ test('a repeated impact and a saved/reloaded report cannot charge or injure anyo
  const restored=CityWorld.fromJSON(R,JSON.parse(JSON.stringify(w.toJSON())));
  const replay=restored.npcCollision(args);assert.equal(restored.billing.bills.size,count);assert.deepEqual(replay.context,args.context);assert.deepEqual(replay.at,{x:12,z:34,yaw:0});
  assert.ok(restored.billing.owed('npc:a')>0);assert.equal(restored.harm.get('npc:p').health,health);
- assert.equal(restored.harm.get('veh:a').tow_at,now+R.harm.vehicle.tow_after_min*60000);
+ // (It stands until the tow truck has it -- the page's scene -- or ten real minutes at the latest: crash.mjs.)
+ assert.equal(restored.harm.get('veh:a').tow_at,restored.clock.after(now,CRASH.stale_s*1000));assert.ok(restored.harm.get('veh:a').damage.scratch>0);
 });
 
 test('replaying an older impact after another crash cannot damage or bill again',()=>{

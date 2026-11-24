@@ -3786,11 +3786,13 @@ export function harmNow(h, ms) {
   if (!h) return null;
   if (h.kind === "vehicle") {
     if (h.serviceBay) return { out: true, state: "repair", condition: h.condition };
-    if (h.tow_at && ms < h.tow_at) return { stays: true, state: h.state, at: h.at, condition: h.condition, label: h.state };
+    if (h.tow_at && ms < h.tow_at && h.at) return { stays: true, state: h.state, at: h.at, condition: h.condition, label: h.state, damage: h.damage || null };
+    // Towed and made good: stood at the mechanic's until its owner next has it out (crash.mjs).
+    if (h.shop && ms < h.shop.until) return { stays: true, shop: true, state: "fine", at: h.shop, condition: 100, label: "at the mechanic's", damage: null };
     if (h.out_until && ms < h.out_until) return { out: true, state: "repair", condition: h.condition };
-    return h.condition < 100 ? { condition: h.condition, state: h.state } : null;
+    return h.condition < 100 || h.damage ? { condition: h.condition, state: h.state, damage: h.damage || null } : null;
   }
-  if (h.down_until && ms < h.down_until) return { down: true, at: h.at, label: h.injuries?.at(-1)?.type || "hurt" };
+  if (h.down_until && ms < h.down_until) return { down: true, at: h.at, carried: Boolean(h.carried), label: h.injuries?.at(-1)?.type || "hurt" };
   if (h.out_until && ms < h.out_until) return { out: true, state: ms < (h.hospital_until || 0) ? "hospital" : "recovering" };
   return null;
 }
