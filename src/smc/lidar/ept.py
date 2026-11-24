@@ -81,6 +81,10 @@ def _download(url: str, timeout_s: float) -> bytes:
         raise OSError("truncated EPT response is not valid reference evidence")
     return response.data
 
+#: Where a reader given no cache folder keeps its tiles: the checkout's build/, wherever the
+#: script was started from.
+DEFAULT_CACHE = Path(__file__).resolve().parents[3] / "build" / "lidar-cache"
+
 #: ASPRS classification codes. Only these two carry ground truth about a kerb: the classifier's
 #: "ground" is the road and footway surface, and unclassified holds what it declined to call
 #: ground -- which at a kerb face is often the kerb itself.
@@ -160,7 +164,7 @@ class EptReader:
         cache: bool = True,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/{dataset}"
-        self._cache = cache_dir or Path("build/lidar-cache") / dataset
+        self._cache = cache_dir or DEFAULT_CACHE / dataset
         self._timeout = timeout_s
         self.strict = strict
         #: False: tiles are fetched and handed back, never written (a pass that reads each once).

@@ -47,7 +47,8 @@ from smc.net import ordered_prefetch, use_certifi  # noqa: E402
 use_certifi()
 
 STEP_M = 2.0
-#: Fetched in tiles this wide; the reader caches them, so a re-run costs no download.
+#: Fetched in tiles this wide. Tiles are read straight from the service and never written to
+#: disk: kept, they came to a gigabyte or more a region and filled the internal disk (2026-10-18).
 TILE_M = 200.0
 MARGIN_M = 120.0
 FILL_REACH = 6
@@ -231,7 +232,9 @@ def main() -> int:
     dataset = None
     unavailable = 0
     for candidate in candidates:
-        reader = EptReader(candidate)
+        # One reader per collection keeps ept.json and the hierarchy pages in memory across tiles;
+        # the points are handed back and never cached on disk.
+        reader = EptReader(candidate, cache=False)
         print(f"region {region.name}, lidar collection {candidate}", flush=True)
         total[:] = 0
         count[:] = 0
