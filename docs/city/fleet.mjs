@@ -1819,7 +1819,7 @@ export class City {
   }
   placeOnFoot(p, t, seg = segAt(this.planOf(p, t).segs, t.minute), focus = null) {
     const h = this.harm(p.id, t.ms);
-    if (h?.down) return { x: h.at.x, z: h.at.z, yaw: h.at.yaw || 0, moving: false, mode: "walk", down: true, activity: h.label || "hurt" };
+    if (h?.down) return { x: h.at.x, z: h.at.z, yaw: h.at.yaw || 0, moving: false, mode: "walk", down: true, carried: Boolean(h.carried), activity: h.label || "hurt" };
     if (h?.out) return null;
     if (!seg) return null;
     const places = this.roster.places;

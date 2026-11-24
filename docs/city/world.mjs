@@ -1251,6 +1251,9 @@ export class CityWorld {
           memo: `Repair of ${vehicle.plate || "a car"} (${out.vehicle.state})`, at: this.now, due_days: 30, penalties: [Math.round(cost * 0.1)] }).amount;
       }
       if (p.vitals.health <= 0) this.faint(p, "a car crash");
+    } else if (kind === "hit_object") {
+      // Into a wall, a pole, a thing on the street: your own car's to bear.
+      out.mine = damageMine(speed);
     } else throw new CityError("no such collision");
     this.log("collision", { player: pid, kind, speed });
     return { ...out, vitals: p.vitals, injuries: p.injuries.slice(-3) };

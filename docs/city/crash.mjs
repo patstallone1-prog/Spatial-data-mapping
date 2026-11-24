@@ -32,7 +32,10 @@ export const CRASH = {
   shut_every_s: 2, shut_for_s: 8,
 };
 
-export const newDamage = () => ({ front: 0, rear: 0, left: 0, right: 0, bias: 0, at: 0, scratch: 0 });
+//: Each zone 0 (as new) to 1 (as far in as it goes); ``scratch``: how scraped it is, and
+//: ``scrapes``: where (front, rear, left, right).
+export const newDamage = () => ({ front: 0, rear: 0, left: 0, right: 0, bias: 0, at: 0, scratch: 0, scrapes: [0, 0, 0, 0] });
+const ZONES = ["front", "rear", "left", "right"];
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 //: Which part of a car a blow lands on: (lx, lz) is the point of contact in the car's own frame
@@ -50,8 +53,11 @@ export function impactZone(lx, lz, dims) {
 //: (CRASH), never less than it was. Each zone is 0 (as new) to 1 (as far in as it goes).
 export function impactOn(damage, { zone = "front", speed = 0, bias = 0, at = 0 } = {}) {
   const d = { ...newDamage(), ...(damage || {}) };
+  d.scrapes = [...(damage?.scrapes || [0, 0, 0, 0])];
   if (!(speed >= CRASH.scratch_ms)) return d;
-  d.scratch = clamp01(d.scratch + (speed < CRASH.dent_ms ? 0.3 : 0.45));
+  const z = Math.max(0, ZONES.indexOf(zone));
+  d.scrapes[z] = clamp01(d.scrapes[z] + (speed < CRASH.dent_ms ? 0.3 : 0.45));
+  d.scratch = Math.max(...d.scrapes);
   if (speed < CRASH.dent_ms) return d;
   const sev = speed < CRASH.crumple_ms
     ? 0.08 + 0.2 * (speed - CRASH.dent_ms) / (CRASH.crumple_ms - CRASH.dent_ms)
@@ -70,7 +76,7 @@ export function damageLevel(damage) {
   return worst >= 0.3 ? "crumpled" : worst >= 0.06 ? "dented" : damage.scratch > 0 ? "scratched" : "new";
 }
 //: The damage as one short string (the same damage, the same string): what a body made for it is kept by.
-export const damageKey = (d) => (d ? ["front", "rear", "left", "right", "bias", "at", "scratch"].map((k) => Math.round((d[k] || 0) * 20)).join(".") : "");
+export const damageKey = (d) => (d ? [...["front", "rear", "left", "right", "bias", "at"].map((k) => d[k] || 0), ...(d.scrapes || [0, 0, 0, 0])].map((x) => Math.round(x * 20)).join(".") : "");
 //: How much of its top speed a car with this damage still makes (a front pushed right in limps).
 export const damagePace = (d) => (d ? 1 - 0.55 * clamp01(((d.front || 0) - 0.3) / 0.7) - 0.15 * clamp01(d.rear || 0) : 1);
 
@@ -118,7 +124,7 @@ export function crumple(pos, dims, damage, out = null) {
       x += (lump(x0, y0, z0, 2) - 0.5) * rough * 1.4 + (grain(x0, y0, z0, 3) - 0.5) * rough * 0.5;
       y += (grain(x0, y0, z0, 4) - 0.5) * rough * 0.6;
       // (Nothing is pushed under the road.)
-      if (y < 0.02 && y0 >= 0.02) y = 0.02;
+      y = Math.max(y, Math.min(y0, 0.02));
     }
     for (const s of sides) {
       const face = clamp01((x0 * s.sign - (w / 2 - 0.45)) / 0.45);
@@ -155,10 +161,11 @@ export function scuff(pos, dims, damage) {
       const face = clamp01((x * sign - (w / 2 - 0.45)) / 0.45), zc = (damage.at || 0) * l * 0.32, r = l * 0.2 + level * l * 0.16;
       dark = Math.max(dark, face * clamp01(1 - Math.abs(z - zc) / r) * (0.3 + 0.6 * level));
     }
-    // Scrapes: long thin marks at bumper height along the flanks and round the corners.
-    const flank = clamp01((Math.abs(x) - (w / 2 - 0.3)) / 0.3), corner = clamp01((Math.abs(z) - (l / 2 - 0.5)) / 0.5);
+    // Scrapes: long thin marks at bumper height, on the end or the flank that was rubbed.
+    const S = damage.scrapes || [0, 0, 0, 0];
+    const where = Math.max(S[0] * clamp01((-z - (l / 2 - 0.9)) / 0.9), S[1] * clamp01((z - (l / 2 - 0.9)) / 0.9), S[2] * clamp01((-x - (w / 2 - 0.3)) / 0.3), S[3] * clamp01((x - (w / 2 - 0.3)) / 0.3));
     const band = clamp01(1 - Math.abs(y / h - 0.36) / 0.22), line = grain(0, Math.round(y * 30) / 30, 0, 7) > 0.55 ? 1 : 0.25;
-    const pale = (damage.scratch || 0) * Math.max(flank, corner) * band * line * (0.4 + 0.6 * lump(x, y, z, 8));
+    const pale = where * band * line * (0.4 + 0.6 * lump(x, y, z, 8));
     const a = Math.max(clamp01(dark * 0.8), clamp01(pale * 0.75));
     if (a > 0.02) any = true;
     // (Dark where it is pushed in; the grey of primer where it is only scraped.)
