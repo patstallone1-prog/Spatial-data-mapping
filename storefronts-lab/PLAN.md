@@ -214,7 +214,7 @@ Next steps for this stage:
   or deriving content from it, so even then it could only appear in human review sheets,
   never as a measurement source.
 
-## 6. Stage 4 — rectified, occluder-free facade images (to build)
+## 6. Stage 4 — rectified, occluder-free facade images (rectification built: `kerbfront rectify` / `stack`; occluder removal to build)
 
 For each storefront span, using the selected frames:
 
@@ -239,7 +239,7 @@ Output: an opening ledger in the docs/30 contract's `u`/`v` metres, with `measur
 and a per-opening `source_id` pointing at the frame ids. `openings_complete` is set only
 when the whole span was seen clearly in at least two frames.
 
-## 7. Stage 5 — attributes from the facade images (to build)
+## 7. Stage 5 — attributes from the facade images (read by a reviewer into `observations/` for five restaurants; automatic reading to build)
 
 Each attribute keeps its value, confidence and evidence (frame ids plus a crop), the same
 way stage 1 fields do.
@@ -306,7 +306,7 @@ way stage 1 fields do.
 * Chains still go through `smc.exteriors`' identity families. A measured sign always wins
   over a chain default, because a local franchise may differ from the brand guide.
 
-## 9. Stage 7 — verify against photos (to build)
+## 9. Stage 7 — verify against photos (built: studio compare/match views, `kerbfront stack`)
 
 * Render each program in the exteriors preview from the pose of a held-out frame: a good
   frame from a different sequence, never used in stages 4–5.

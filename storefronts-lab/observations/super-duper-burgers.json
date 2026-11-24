@@ -1,0 +1,1584 @@
+{
+ "model": "super-duper-burgers",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.8,
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "brick parapet top at 9.8 m on rectified Chestnut and Pierce walls; bay crests rise to ~10.2",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 6.0
+    },
+    {
+     "v": 6.0,
+     "h": 3.8
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "tall shop storey with a clerestory row (4.65-5.6 m), one residential storey above (windows 6.6-8.6 m)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.18,
+    "depth": 0.12,
+    "colour": "#8f4a33",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "plain brick coping, no projecting cornice",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.5,
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "flat roof behind a short parapet",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "red-orange brick front with cream canted bays",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "red-orange brick front with cream canted bays",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#d8d0bf",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "red-orange brick front with cream canted bays",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.texture_scale",
+   "value": 1.0,
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "red-orange brick front with cream canted bays",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.openings",
+   "value": [
+    {
+     "id": "w2:c0",
+     "kind": "window",
+     "u": 0.4,
+     "v": 4.65,
+     "w": 2.0,
+     "h": 0.95,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:c1",
+     "kind": "window",
+     "u": 2.8,
+     "v": 4.65,
+     "w": 2.3,
+     "h": 0.95,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:c2",
+     "kind": "window",
+     "u": 5.9,
+     "v": 4.65,
+     "w": 3.0,
+     "h": 0.95,
+     "shape": "rect",
+     "mullions": [
+      4,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:c3",
+     "kind": "window",
+     "u": 9.4,
+     "v": 4.65,
+     "w": 2.8,
+     "h": 0.95,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:c4",
+     "kind": "window",
+     "u": 12.75,
+     "v": 4.0,
+     "w": 4.5,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      4,
+      1
+     ],
+     "frame_colour": "#b9b6ae",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:corner",
+     "kind": "bay",
+     "u": -0.15,
+     "v": 6.6,
+     "w": 2.75,
+     "h": 2.0,
+     "v0": 5.85,
+     "v1": 9.35,
+     "projection": 0.62,
+     "front_share": 0.62,
+     "material": "stucco",
+     "colour": "#e4dac6",
+     "trim_colour": "#efe8d8",
+     "mullions": [
+      2,
+      1
+     ],
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8d8",
+      "crest_h": 0.75,
+      "crest_w": 0.75
+     }
+    },
+    {
+     "id": "w2:bay1",
+     "kind": "bay",
+     "u": 5.8,
+     "v": 6.6,
+     "w": 3.3,
+     "h": 2.0,
+     "v0": 5.85,
+     "v1": 9.35,
+     "projection": 0.62,
+     "front_share": 0.56,
+     "material": "stucco",
+     "colour": "#e4dac6",
+     "trim_colour": "#efe8d8",
+     "mullions": [
+      2,
+      1
+     ],
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8d8",
+      "crest_h": 0.75,
+      "crest_w": 0.75
+     }
+    },
+    {
+     "id": "w2:bay2",
+     "kind": "bay",
+     "u": 15.0,
+     "v": 6.6,
+     "w": 2.7,
+     "h": 2.0,
+     "v0": 5.85,
+     "v1": 9.35,
+     "projection": 0.62,
+     "front_share": 0.56,
+     "material": "stucco",
+     "colour": "#e4dac6",
+     "trim_colour": "#efe8d8",
+     "mullions": [
+      2,
+      1
+     ],
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8d8",
+      "crest_h": 0.75,
+      "crest_w": 0.75
+     }
+    },
+    {
+     "id": "w2:u0",
+     "kind": "window",
+     "u": 3.65,
+     "v": 7.25,
+     "w": 0.95,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:u1",
+     "kind": "window",
+     "u": 10.0,
+     "v": 6.95,
+     "w": 1.9,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:u2",
+     "kind": "window",
+     "u": 12.3,
+     "v": 6.95,
+     "w": 1.4,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w2:u3",
+     "kind": "window",
+     "u": 18.0,
+     "v": 6.95,
+     "w": 1.4,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "clerestory row 4.65-5.6 m over the shop; bays 5.75-9.1 and 14.7-17.6; flat windows 3.65, 10.0 (fire escape), 12.3; yellow-framed neighbour glazing 12.75-17.25",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.balconies",
+   "value": [
+    {
+     "u": 9.75,
+     "w": 2.35,
+     "v": 6.45,
+     "depth": 0.85,
+     "h": 1.0,
+     "colour": "#2b2b2a",
+     "ladder": 1.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "black fire-escape balcony in front of the 10.0 m window",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.2.belts",
+   "value": [
+    {
+     "v": 5.68,
+     "h": 0.1,
+     "colour": "#d8d0bf",
+     "depth": 0.05
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820"
+    ],
+    "how": "stone sill course over the clerestory",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west (other tenants, partly behind a street tree)",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west (other tenants, partly behind a street tree)",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.5.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west (other tenants, partly behind a street tree)",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.5.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.6.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west (other tenants, partly behind a street tree)",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.6.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820"
+    ],
+    "how": "brick continues west",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "corner chamfer",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "corner chamfer",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#d8d0bf",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "corner chamfer",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "w1:c0",
+     "kind": "window",
+     "u": 0.25,
+     "v": 4.65,
+     "w": 1.4,
+     "h": 0.95,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w1:u0",
+     "kind": "window",
+     "u": 0.35,
+     "v": 6.6,
+     "w": 1.2,
+     "h": 2.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "the corner bay wraps the chamfer: Chestnut -0.15..2.6, Pierce 5.0..7.04, cream panel on the chamfer itself",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [
+    {
+     "v0": 5.85,
+     "v1": 9.35,
+     "material": "stucco",
+     "colour": "#e4dac6"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "cream cladding on the chamfer between the two bay halves",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "brick to the ground on Pierce",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#a4573a",
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "brick to the ground on Pierce",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#d8d0bf",
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "brick to the ground on Pierce",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "w0:d0",
+     "kind": "door",
+     "u": 2.85,
+     "v": 0.25,
+     "w": 0.55,
+     "h": 1.9,
+     "colour": "#c7944f",
+     "glazed": false
+    },
+    {
+     "id": "w0:d1",
+     "kind": "door",
+     "u": 3.85,
+     "v": 0.25,
+     "w": 0.55,
+     "h": 1.9,
+     "colour": "#c7944f",
+     "glazed": false
+    },
+    {
+     "id": "w0:bench",
+     "kind": "door",
+     "u": 0.4,
+     "v": 0.05,
+     "w": 1.6,
+     "h": 0.75,
+     "colour": "#c7944f",
+     "glazed": false
+    },
+    {
+     "id": "w0:c0",
+     "kind": "window",
+     "u": 4.85,
+     "v": 4.6,
+     "w": 1.55,
+     "h": 0.85,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w0:u0",
+     "kind": "window",
+     "u": 1.35,
+     "v": 6.6,
+     "w": 1.0,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#33403a",
+     "depth": 0.16,
+     "sill": true
+    },
+    {
+     "id": "w0:corner",
+     "kind": "bay",
+     "u": 4.95,
+     "v": 6.6,
+     "w": 2.2,
+     "h": 2.0,
+     "v0": 5.85,
+     "v1": 9.35,
+     "projection": 0.62,
+     "front_share": 0.62,
+     "material": "stucco",
+     "colour": "#e4dac6",
+     "trim_colour": "#efe8d8",
+     "mullions": [
+      2,
+      1
+     ],
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8d8",
+      "crest_h": 0.75,
+      "crest_w": 0.75
+     }
+    },
+    {
+     "id": "w0:pg",
+     "kind": "window",
+     "u": 4.55,
+     "v": 0.9,
+     "w": 0.8,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#1e2321",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "two plywood-boarded openings and a slatted bench box on Pierce; clerestory 4.85-6.4; one upper window behind the fire escape",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 3.42,
+     "h": 0.2,
+     "colour": "#bdbab3",
+     "depth": 0.12
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "light grey ledge under the Pierce lettering",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [
+    {
+     "u": 1.05,
+     "w": 1.6,
+     "v": 6.4,
+     "depth": 0.7,
+     "h": 1.0,
+     "colour": "#2b2b2a",
+     "ladder": 1.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "fire escape on Pierce",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "business_id": "mb-d5422b00cfb3",
+     "name": "Super Duper Burgers",
+     "category": "fast_food",
+     "brand": null,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#cfccc4",
+      "accent": "#e8722c",
+      "frame": "#1e2321",
+      "base": "#2d302e",
+      "letter": "#ffffff",
+      "metal": "#a5aaa7",
+      "glass": "#41525a",
+      "roughness": 0.7
+     },
+     "door_style": null,
+     "signs": [],
+     "id": "sdb-chestnut",
+     "edge": 2,
+     "u0": 0.0,
+     "u1": 12.6,
+     "band_h": 4.45,
+     "openings": [
+      {
+       "id": "g0",
+       "kind": "window",
+       "u": 0.2,
+       "v": 0.3,
+       "w": 2.2,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "g1",
+       "kind": "window",
+       "u": 2.6,
+       "v": 0.3,
+       "w": 2.3,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "d0",
+       "kind": "door",
+       "u": 5.05,
+       "v": 0,
+       "w": 1.05,
+       "h": 2.4
+      },
+      {
+       "id": "g2",
+       "kind": "window",
+       "u": 6.25,
+       "v": 0.3,
+       "w": 2.6,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "g3",
+       "kind": "window",
+       "u": 9.0,
+       "v": 0.3,
+       "w": 3.4,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "a0",
+       "kind": "retractable",
+       "u0": 0.05,
+       "u1": 2.5,
+       "v": 3.55,
+       "depth_m": 1.3,
+       "drop_m": 0.45,
+       "valance_h": 0.14,
+       "colour": "#e8722c"
+      },
+      {
+       "id": "a1",
+       "kind": "retractable",
+       "u0": 2.6,
+       "u1": 7.45,
+       "v": 3.55,
+       "depth_m": 1.3,
+       "drop_m": 0.45,
+       "valance_h": 0.14,
+       "colour": "#e8722c"
+      },
+      {
+       "id": "a2",
+       "kind": "retractable",
+       "u0": 7.6,
+       "u1": 12.5,
+       "v": 3.55,
+       "depth_m": 1.3,
+       "drop_m": 0.45,
+       "valance_h": 0.14,
+       "colour": "#e8722c"
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "l0",
+       "kind": "letters",
+       "u": 0.15,
+       "v": 3.82,
+       "w": 12.4,
+       "h": 0.42,
+       "layers": [
+        {
+         "type": "text",
+         "text": "SUPER DUPER  BURGERS & FRIES  SHAKES & DIPPED CONES",
+         "x": 0.5,
+         "y": 0.55,
+         "size": 0.8,
+         "fill": "#fbfaf6",
+         "font": "\"Avenir Next\", \"Trebuchet MS\", sans-serif",
+         "weight": 500,
+         "maxw": 0.99
+        }
+       ]
+      }
+     ],
+     "lights": []
+    },
+    {
+     "business_id": "mb-d5422b00cfb3",
+     "name": "Super Duper Burgers",
+     "category": "fast_food",
+     "brand": null,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#cfccc4",
+      "accent": "#e8722c",
+      "frame": "#1e2321",
+      "base": "#2d302e",
+      "letter": "#ffffff",
+      "metal": "#a5aaa7",
+      "glass": "#41525a",
+      "roughness": 0.7
+     },
+     "door_style": null,
+     "signs": [],
+     "id": "sdb-corner",
+     "edge": 1,
+     "u0": 0.0,
+     "u1": 1.91,
+     "band_h": 4.45,
+     "openings": [
+      {
+       "id": "cd",
+       "kind": "door",
+       "u": 0.45,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.4
+      }
+     ],
+     "awnings": [
+      {
+       "id": "ac",
+       "kind": "retractable",
+       "u0": 0.02,
+       "u1": 1.89,
+       "v": 3.55,
+       "depth_m": 1.3,
+       "drop_m": 0.45,
+       "valance_h": 0.14,
+       "colour": "#e8722c"
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "sdb-badge",
+       "kind": "blade",
+       "u": 0.95,
+       "v": 3.5,
+       "w": 1.35,
+       "h": 0.85,
+       "offset": 0.15,
+       "thick": 0.12,
+       "bg": "#b22a2b",
+       "radius": 0.22,
+       "edge_colour": "#7c1d1e",
+       "layers": [
+        {
+         "type": "roundrect",
+         "x": 0.04,
+         "y": 0.06,
+         "w": 0.92,
+         "h": 0.88,
+         "r": 0.18,
+         "fill": "transparent",
+         "stroke": "#f1dfbd",
+         "line": 0.05
+        },
+        {
+         "type": "text",
+         "text": "SUPER",
+         "x": 0.5,
+         "y": 0.34,
+         "size": 0.34,
+         "fill": "#f1dfbd",
+         "font": "\"Cooper Black\", \"Rockwell\", Georgia, serif",
+         "weight": 800
+        },
+        {
+         "type": "text",
+         "text": "DUPER",
+         "x": 0.5,
+         "y": 0.68,
+         "size": 0.34,
+         "fill": "#f1dfbd",
+         "font": "\"Cooper Black\", \"Rockwell\", Georgia, serif",
+         "weight": 800
+        }
+       ]
+      }
+     ],
+     "lights": []
+    },
+    {
+     "business_id": "mb-d5422b00cfb3",
+     "name": "Super Duper Burgers",
+     "category": "fast_food",
+     "brand": null,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#cfccc4",
+      "accent": "#e8722c",
+      "frame": "#1e2321",
+      "base": "#2d302e",
+      "letter": "#ffffff",
+      "metal": "#a5aaa7",
+      "glass": "#41525a",
+      "roughness": 0.7
+     },
+     "door_style": null,
+     "signs": [],
+     "id": "sdb-pierce",
+     "edge": 0,
+     "u0": 5.45,
+     "u1": 6.55,
+     "band_h": 2.5,
+     "openings": [
+      {
+       "id": "pd",
+       "kind": "door",
+       "u": 5.5,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.4
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "lp",
+       "kind": "letters",
+       "u": 1.0,
+       "v": 3.85,
+       "w": 6.0,
+       "h": 0.42,
+       "layers": [
+        {
+         "type": "text",
+         "text": "BURGERS & FRIES  SHAKES & CONES",
+         "x": 0.5,
+         "y": 0.55,
+         "size": 0.8,
+         "fill": "#fbfaf6",
+         "font": "\"Avenir Next\", \"Trebuchet MS\", sans-serif",
+         "weight": 500,
+         "maxw": 0.99
+        }
+       ]
+      }
+     ],
+     "lights": []
+    },
+    {
+     "business_id": null,
+     "name": "neighbour shop (yellow frames)",
+     "category": "retail",
+     "brand": null,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#3a3d3b",
+      "accent": "#e8722c",
+      "frame": "#2a2d2b",
+      "base": "#e0b93a",
+      "letter": "#ffffff",
+      "metal": "#a5aaa7",
+      "glass": "#41525a",
+      "roughness": 0.7
+     },
+     "door_style": null,
+     "signs": [],
+     "id": "sdb-neighbour",
+     "edge": 2,
+     "u0": 12.7,
+     "u1": 17.4,
+     "band_h": 3.9,
+     "openings": [
+      {
+       "id": "n0",
+       "kind": "window",
+       "u": 12.85,
+       "v": 0.55,
+       "w": 2.0,
+       "h": 2.4,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "n1",
+       "kind": "door",
+       "u": 14.95,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.4
+      },
+      {
+       "id": "n2",
+       "kind": "window",
+       "u": 16.05,
+       "v": 0.55,
+       "w": 1.2,
+       "h": 2.4,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "na",
+       "kind": "flat_canopy",
+       "u0": 12.6,
+       "u1": 17.5,
+       "v": 3.3,
+       "depth_m": 0.45,
+       "drop_m": 0.0,
+       "valance_h": 0.28,
+       "colour": "#e0b93a"
+      }
+     ],
+     "extra_signs": [],
+     "lights": []
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "Super Duper wraps the corner: Chestnut 0-12.6 (three orange retractable awnings, white channel letters on a grey fascia 3.8-4.25 m), chamfer entrance with the red SUPER DUPER badge blade, Pierce door by the corner; boarded openings further south",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_sides",
+   "value": [
+    {
+     "edge": 2,
+     "name": "Chestnut Street",
+     "sidewalk_m": 3.66,
+     "kerb_m": 0.077,
+     "road_m": 13.53,
+     "parking_m": 2.4,
+     "u0": -8,
+     "u1": 40
+    },
+    {
+     "edge": 0,
+     "name": "Pierce Street",
+     "sidewalk_m": 4.57,
+     "kerb_m": 0.15,
+     "road_m": 11.71,
+     "parking_m": 2.4,
+     "u0": -20,
+     "u1": 11
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "app street records (curb geometry)",
+    "confidence": 0.7,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "sdb-parklet-pierce",
+     "kind": "parklet",
+     "edge": 0,
+     "u0": -0.6,
+     "u1": 7.6,
+     "depth_m": 2.0,
+     "deck_colour": "#8c8f8f",
+     "barrier": "planks",
+     "barrier_h": 1.05,
+     "barrier_colour": "#8e9396",
+     "benches": "street_side",
+     "bench_colour": "#b98d5a",
+     "tables": "two_top",
+     "table_shape": "square",
+     "colour": "#3b3b38",
+     "chair_colour": "#3b3b38",
+     "roof": "none",
+     "plants": false,
+     "posts": {
+      "h": 2.6,
+      "spacing": 2.7,
+      "colour": "#8e9396"
+     },
+     "string_lights": true,
+     "evidence": {
+      "kind": "observed",
+      "how": "2022 panorama: grey plank parklet in the Pierce parking lane with tall grey posts and string lights; registry FIXED COMMERCIAL PARKLET",
+      "frames": [
+       "1216219972621705"
+      ]
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "parklet on Pierce, not Chestnut (the Chestnut kerb holds the bus shelter)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "sdb-shelter",
+     "kind": "bus_shelter",
+     "edge": 2,
+     "u": 4.9,
+     "w": 2.5,
+     "len": 5.6,
+     "waves": 6,
+     "depth": 1.45,
+     "h": 2.75,
+     "roof_style": "wave",
+     "roof_colour": "#a8302a",
+     "frame_colour": "#7d8380"
+    },
+    {
+     "id": "sdb-cone",
+     "kind": "cone_statue",
+     "edge": 0,
+     "u": 6.7,
+     "w": 1.2,
+     "h": 2.7,
+     "cone_r": 0.3
+    },
+    {
+     "id": "sdb-pole",
+     "kind": "pole",
+     "edge": 2,
+     "u": 11.7,
+     "w": 3.35,
+     "h": 9.2,
+     "r": 0.12,
+     "colour": "#a4a39b"
+    },
+    {
+     "id": "sdb-meter",
+     "kind": "pole",
+     "edge": 0,
+     "u": 2.4,
+     "w": 4.3,
+     "h": 1.3,
+     "r": 0.04,
+     "colour": "#6e6e6a"
+    },
+    {
+     "id": "sdb-bins",
+     "kind": "box",
+     "edge": 0,
+     "u": 5.5,
+     "w": 1.2,
+     "len": 1.8,
+     "h": 1.1,
+     "depth": 0.7,
+     "colour": "#2f5a44"
+    },
+    {
+     "id": "sdb-tree",
+     "kind": "tree",
+     "edge": 2,
+     "u": 22.0,
+     "w": 3.0,
+     "r": 3.0,
+     "trunk_h": 2.8,
+     "colour": "#55703c"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "878605742782033",
+     "890611138332138",
+     "193528572832492",
+     "814897453148820",
+     "1216219972621705",
+     "926631754852481",
+     "819525058755053"
+    ],
+    "how": "Muni shelter with the red wave roof at the Chestnut kerb 1.6-7.0; giant ice-cream cone at the corner; grey light pole 11.7; green bins on Pierce; street tree west of 19 m",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "photos",
+   "value": [
+    {
+     "frame_id": "867239367786570",
+     "slot": "sign",
+     "captured_at": "2022-06-09T02:50:40+00:00",
+     "camera_type": "spherical",
+     "x": -2.427,
+     "y": 12.988,
+     "z": 2.0,
+     "heading": 257.76,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "878605742782033",
+     "slot": "elevation",
+     "captured_at": "2021-08-04T16:31:40+00:00",
+     "camera_type": "spherical",
+     "x": -4.477,
+     "y": 12.953,
+     "z": 2.0,
+     "heading": 255.47,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "890611138332138",
+     "slot": "oblique-left",
+     "captured_at": "2021-08-04T16:25:28+00:00",
+     "camera_type": "spherical",
+     "x": 7.521,
+     "y": 15.068,
+     "z": 2.0,
+     "heading": 256.78,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "4523709984325734",
+     "slot": "extra",
+     "captured_at": "2016-07-10T12:46:13+00:00",
+     "camera_type": "perspective",
+     "x": 13.525,
+     "y": 18.57,
+     "z": 2.0,
+     "heading": 235.57,
+     "hfov": 69.88,
+     "width": 3264,
+     "height": 2448,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "193528572832492",
+     "slot": "extra",
+     "captured_at": "2021-08-04T16:25:30+00:00",
+     "camera_type": "spherical",
+     "x": -6.293,
+     "y": 12.998,
+     "z": 2.0,
+     "heading": 255.74,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "814897453148820",
+     "slot": "extra",
+     "captured_at": "2022-06-09T02:50:40+00:00",
+     "camera_type": "spherical",
+     "x": -3.704,
+     "y": 12.761,
+     "z": 2.0,
+     "heading": 257.77,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "1216219972621705",
+     "slot": "wall0:sign",
+     "captured_at": "2022-06-08T18:46:13+00:00",
+     "camera_type": "spherical",
+     "x": 14.254,
+     "y": -3.066,
+     "z": 2.0,
+     "heading": 173.09,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "wall": 0,
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "926631754852481",
+     "slot": "wall0:elevation",
+     "captured_at": "2016-09-28T10:25:27+00:00",
+     "camera_type": "perspective",
+     "x": 16.511,
+     "y": 1.147,
+     "z": 2.0,
+     "heading": 258.72,
+     "hfov": 79.67,
+     "width": 1920,
+     "height": 1080,
+     "position_source": "sfm",
+     "wall": 0,
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "819525058755053",
+     "slot": "wall0:oblique-left",
+     "captured_at": "2021-08-04T16:47:16+00:00",
+     "camera_type": "spherical",
+     "x": 15.679,
+     "y": -10.843,
+     "z": 2.0,
+     "heading": 165.36,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "wall": 0,
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "1085812741037572",
+     "slot": "wall0:oblique-right",
+     "captured_at": "2026-10-05T14:27:36+00:00",
+     "camera_type": "perspective",
+     "x": 31.606,
+     "y": 18.99,
+     "z": 2.0,
+     "heading": 259.59,
+     "hfov": 79.47,
+     "width": 1920,
+     "height": 1080,
+     "position_source": "sfm",
+     "wall": 0,
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "Chestnut frames 0-5 plus Pierce frames 6-9 (more-photos --wall 0); alignment by anchoring the LiDAR corner",
+    "confidence": 0.9,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  }
+ ]
+}

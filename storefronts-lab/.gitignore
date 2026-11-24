@@ -7,3 +7,4 @@ __pycache__/
 
 # the repo root ignores every photos/ directory (raw captures); this one is source code
 !kerbfront/photos/
+models/.history/

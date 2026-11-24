@@ -24,7 +24,7 @@ from .config import AREAS, OUT, BBox, corridor_of
 from .geo import Frame, point_seg_dist
 from .merge import merge
 from .normalize import osm_address, parse_address, same_address, street_key
-from .sources import datasf, osm, overture
+from .sources import datasf, kerbside, osm, overture
 
 OSM_KINDS = osm.KINDS
 EXTERIOR_PERMIT = re.compile(r"\b(SIGN|SIGNS|SIGNAGE|AWNING|CANOPY|STOREFRONT|STORE FRONT|FACADE|"
@@ -302,6 +302,16 @@ def run(area: str = "marina-union") -> dict:
     for p in planning:
         plan_by[(p.get("block") or "") + (p.get("lot") or "")].append(p)
 
+    # the live app's own buildings (canonical shells, photo-backed openings, materials, roofs)
+    kb = kerbside.buildings(b)
+    provs["kerbside"] = kerbside.provenance()
+    kb_rows = []
+    for oid, r in kb.items():
+        g = Polygon([frame.xy(x, y) for x, y in r["points"]])
+        kb_rows.append((oid, g if g.is_valid else g.buffer(0)))
+    ktree = STRtree([g for _, g in kb_rows]) if kb_rows else None
+    services, provs["google_services"] = kerbside.restaurant_services()
+
     bfacts: dict[str, dict] = {}
     for bi, bd in enumerate(buildings):
         rec: dict = {"id": bd.id, "source": bd.source, "height_m": bd.height_m,
@@ -322,6 +332,19 @@ def run(area: str = "marina-union") -> dict:
                                    "num_floors": r.get("num_floors"), "class": r.get("class"),
                                    "facade_material": r.get("facade_material"),
                                    "roof_shape": r.get("roof_shape")}
+        if ktree is not None:
+            j, v = _best_match(bd.poly, ktree, [g for _, g in kb_rows])
+            if j is not None:
+                oid = kb_rows[j][0]
+                r = kb[oid]
+                rec["kerbside"] = {"osm_id": oid, "iou": round(v, 2), "height_m": r.get("height_m"),
+                                   "archetype": r.get("archetype"),
+                                   "wall_material": r.get("wall_material"),
+                                   "wall_colour": (r.get("wall_assigned") or {}).get("colour"),
+                                   "roof_colour": (r.get("roof") or {}).get("c"),
+                                   "photo_openings": sum(len(x) for x in ((r.get("openings") or {}).get("walls") or {}).values()),
+                                   "storefront_programs": len(r.get("storefront_programs") or []),
+                                   "tenants": [s.get("n") for s in (r.get("shops") or [])]}
         # parcel = the one holding most of the footprint
         best, bp = 0.0, None
         for j in ptree.query(bd.poly):
@@ -483,6 +506,10 @@ def run(area: str = "marina-union") -> dict:
             seats.append(("sidewalk", fl["sidewalk_tables"]["confidence"], "shared_spaces"))
         if (fl.get("parklet") or {}).get("value"):
             seats.append(("parklet", fl["parklet"]["confidence"], "parklet"))
+        lic = kerbside.licence_facts((fl.get("license_codes") or {}).get("value"))
+        biz["licence"] = lic
+        if lic.get("parklet"):
+            seats.append(("parklet", 0.85, "registry_licence"))
         osv = (fl.get("outdoor_seating") or {}).get("value")
         if osv in ("yes", "sidewalk", "parklet", "patio", "garden", "terrace", "veranda", "pavement"):
             seats.append(({"parklet": "parklet", "patio": "patio", "garden": "patio",
@@ -493,6 +520,20 @@ def run(area: str = "marina-union") -> dict:
                           "osm_says_no": osv == "no"}
 
     refine_storefronts(businesses, bfacts)
+    food_in = defaultdict(list)
+    for biz in businesses:
+        biz["business_type"] = kerbside.business_type(biz)
+        kos = (bfacts.get((biz.get("building") or {}).get("id"), {}).get("kerbside") or {}).get("osm_id")
+        if kos and biz["business_type"]["render"] == "restaurant":
+            food_in[kos].append(biz)
+    # the paid Google lookup matched one venue per app building: attach it where that building
+    # has exactly one restaurant storefront, otherwise it cannot be told whose it is
+    for kos, group in food_in.items():
+        sv = services.get(kos)
+        if sv and len(group) == 1:
+            group[0]["services"] = {k: sv.get(k) for k in (
+                "primaryType", "types", "dineIn", "takeout", "reservable", "servesDinner",
+                "servesBreakfast", "servesCocktails", "userRatingCount", "fetched_at")}
     for biz in businesses:
         if biz.get("face") and biz["storefront_likelihood"] >= 0.5:
             by_face[biz["face"]["id"]].append(biz)
@@ -531,6 +572,8 @@ def run(area: str = "marina-union") -> dict:
         "storefronts_by_corridor": dict(Counter(z.get("corridor") or "other" for z in store)),
         "storefronts_multi_source": sum(1 for z in store if len(z["sources"]) >= 2),
         "outdoor_seating": dict(Counter(k for z in store for k in (z.get("outdoor") or {}).get("kinds", []))),
+        "render_as": dict(Counter(z["business_type"]["render"] for z in store)),
+        "kerbside_buildings_matched": sum(1 for r in bfacts.values() if r.get("kerbside")),
         "buildings": len(buildings), "faces": len(all_faces),
         "street_faces": sum(1 for f in all_faces if f.role == "street"),
         "provenance": provs,

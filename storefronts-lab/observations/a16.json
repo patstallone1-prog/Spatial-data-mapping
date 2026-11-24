@@ -1,0 +1,679 @@
+{
+ "model": "a16",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.45,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "brick parapet top 7.3 m above a ~2.1 m camera on the 14.4 m line (LiDAR 8.9 m is the roof surface behind the parapet)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.0
+    },
+    {
+     "v": 3.0,
+     "h": 2.95
+    },
+    {
+     "v": 5.95,
+     "h": 3.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "shop storey to ~3.0 m, flats above",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.55,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "flat roof behind a brick parapet",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.08,
+    "colour": "#cdbfa8",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "thin stone coping",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "red brick front",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.colour",
+   "value": "#7c3a2b",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "red brick front",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.trim_colour",
+   "value": "#cdbfa8",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "red brick front",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.texture_scale",
+   "value": 1.0,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "red brick front",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.openings",
+   "value": [
+    {
+     "id": "a0",
+     "kind": "window",
+     "u": 0.7,
+     "v": 6.2,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#cfd0cb",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "a1",
+     "kind": "window",
+     "u": 1.9,
+     "v": 6.2,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#cfd0cb",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "a2",
+     "kind": "window",
+     "u": 4.45,
+     "v": 6.2,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#cfd0cb",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "a3",
+     "kind": "window",
+     "u": 5.7,
+     "v": 6.2,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#cfd0cb",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "r0",
+     "kind": "window",
+     "u": 0.78,
+     "v": 3.25,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#b9bcb8",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "r1",
+     "kind": "window",
+     "u": 1.93,
+     "v": 3.25,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#b9bcb8",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "r2",
+     "kind": "window",
+     "u": 4.44,
+     "v": 3.25,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#b9bcb8",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "r3",
+     "kind": "window",
+     "u": 5.62,
+     "v": 3.25,
+     "w": 0.95,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      3
+     ],
+     "frame_colour": "#f1efe9",
+     "pane_colour": "#b9bcb8",
+     "depth": 0.18,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "third floor: two pairs of round-arched windows (6.2-7.7 m); second floor: two pairs of double-hung windows (3.25-4.75 m); white frames; positions identical on the rectified wall and the perspective view (within 0.1 m)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.ornaments",
+   "value": [
+    {
+     "u": 3.55,
+     "v": 7.3,
+     "w": 0.42,
+     "h": 0.42,
+     "shape": "diamond",
+     "colour": "#cdbfa8",
+     "depth": 0.05
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "stone diamond between the arched pairs",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.12.belts",
+   "value": [
+    {
+     "v": 2.95,
+     "h": 0.14,
+     "colour": "#cdbfa8",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "stone course over the shop storey",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "a16-chestnut",
+     "business_id": "mb-9140aa42bab6",
+     "name": "A16",
+     "edge": 12,
+     "u0": 0.0,
+     "u1": 7.17,
+     "band_h": 2.95,
+     "category": "restaurant",
+     "brand": null,
+     "material": "brick",
+     "palette": {
+      "wall": "#6e3328",
+      "accent": "#2f6b4f",
+      "frame": "#2d2a26",
+      "base": "#3b2f2a",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#2e3637",
+      "roughness": 0.8
+     },
+     "door_style": null,
+     "signs": [],
+     "openings": [
+      {
+       "id": "s0",
+       "kind": "window",
+       "u": 0.25,
+       "v": 0.45,
+       "w": 2.2,
+       "h": 2.15,
+       "transom_fraction": 0.18,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sd",
+       "kind": "door",
+       "u": 2.6,
+       "v": 0,
+       "w": 0.95,
+       "h": 2.4
+      },
+      {
+       "id": "s1",
+       "kind": "window",
+       "u": 3.7,
+       "v": 0.45,
+       "w": 3.25,
+       "h": 2.15,
+       "transom_fraction": 0.18,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "a16-round",
+       "kind": "blade",
+       "u": 0.15,
+       "v": 2.97,
+       "w": 0.72,
+       "h": 0.72,
+       "offset": 0.3,
+       "thick": 0.08,
+       "edge_colour": "#2f6b4f",
+       "layers": [
+        {
+         "type": "circle",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.49,
+         "fill": "#2f6b4f"
+        },
+        {
+         "type": "ring",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.42,
+         "stroke": "#e9efe9",
+         "line": 0.03
+        },
+        {
+         "type": "text",
+         "text": "A16",
+         "x": 0.5,
+         "y": 0.53,
+         "size": 0.34,
+         "fill": "#f2f5f1",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "a16-board",
+       "kind": "board",
+       "u": 2.4,
+       "v": 3.08,
+       "w": 1.25,
+       "h": 0.55,
+       "board": "#2f6b4f",
+       "bg": "#2f6b4f",
+       "layers": [
+        {
+         "type": "text",
+         "text": "A 16",
+         "x": 0.5,
+         "y": 0.52,
+         "size": 0.62,
+         "fill": "#f2f5f1",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "lights": [
+      {
+       "kind": "string",
+       "u0": -1.0,
+       "u1": 7.3,
+       "v": 2.45,
+       "w": 3.0
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "dark shopfront behind the parklet, door lined up with the parklet entrance (2.6-3.5 m); round green A16 blade at the east edge, green A 16 board over the entrance",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_sides",
+   "value": [
+    {
+     "edge": 12,
+     "name": "Chestnut Street",
+     "sidewalk_m": 5.26,
+     "kerb_m": 0.077,
+     "road_m": 13.53,
+     "parking_m": 2.4,
+     "u0": -14,
+     "u1": 22
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "app street record",
+    "confidence": 0.7,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "a16-parklet",
+     "kind": "parklet",
+     "edge": 12,
+     "u0": -1.2,
+     "u1": 7.5,
+     "depth_m": 2.1,
+     "deck_colour": "#7f6a52",
+     "barrier": "planks",
+     "barrier_h": 1.15,
+     "barrier_colour": "#3d5a48",
+     "entrance": [
+      2.6,
+      3.5
+     ],
+     "rails": [
+      1.97
+     ],
+     "benches": "none",
+     "tables": "two_top",
+     "table_shape": "square",
+     "colour": "#2f2f2c",
+     "chair_colour": "#4a3a2c",
+     "roof": "corrugated",
+     "roof_colour": "#6d7275",
+     "roof_h": 2.75,
+     "roof_pitch": 0.1,
+     "post_colour": "#b08a5e",
+     "post_size": 0.11,
+     "post_us": [
+      -1.1,
+      0.74,
+      2.59,
+      3.54,
+      5.49,
+      7.39
+     ],
+     "glass_panels": true,
+     "wall_side_to_roof": true,
+     "plants": false,
+     "evidence": {
+      "kind": "observed",
+      "how": "enclosed parklet -1.2..7.5 m: green plank lower panels to 1.15 m, light timber posts at -1.1/0.74/2.59/3.54/5.49/7.39, rail at 1.97 m, clear panels, grey corrugated roof falling to the street (front edge 2.6 m); registry FIXED COMMERCIAL PARKLET",
+      "frames": [
+       "816644822761650",
+       "800216694189649"
+      ]
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "one large enclosed parklet in the parking lane",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "a16-tree",
+     "kind": "tree",
+     "edge": 12,
+     "u": -4.4,
+     "w": 4.6,
+     "r": 2.2,
+     "trunk_h": 2.6,
+     "colour": "#3f5e34"
+    },
+    {
+     "id": "a16-pole",
+     "kind": "pole",
+     "edge": 12,
+     "u": 9.5,
+     "w": 4.9,
+     "h": 9.5,
+     "r": 0.12,
+     "colour": "#c9c6be"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "street tree east of the parklet (u -4.4), light pole west of it (u 9.5); u along the wall runs west",
+    "confidence": 0.6,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "photos",
+   "value": [
+    {
+     "frame_id": "816644822761650",
+     "slot": "sign",
+     "captured_at": "2022-06-09T02:51:23+00:00",
+     "camera_type": "spherical",
+     "x": -2.871,
+     "y": 14.528,
+     "z": 2.0,
+     "heading": 258.96,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "800216694189649",
+     "slot": "elevation",
+     "captured_at": "2021-08-04T15:54:58+00:00",
+     "camera_type": "spherical",
+     "x": 1.466,
+     "y": 10.745,
+     "z": 2.0,
+     "heading": 75.63,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "1603238894875251",
+     "slot": "oblique-left",
+     "captured_at": "2026-10-05T14:28:36+00:00",
+     "camera_type": "perspective",
+     "x": 21.023,
+     "y": 18.646,
+     "z": 2.0,
+     "heading": 260.5,
+     "hfov": 79.62,
+     "width": 1920,
+     "height": 1080,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "756139575100208",
+     "slot": "oblique-right",
+     "captured_at": "2016-07-02T15:15:58+00:00",
+     "camera_type": "perspective",
+     "x": -21.76,
+     "y": 5.793,
+     "z": 2.0,
+     "heading": 81.95,
+     "hfov": 69.89,
+     "width": 3264,
+     "height": 2448,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "1612176860411450",
+     "slot": "extra",
+     "captured_at": "2026-10-05T14:28:42+00:00",
+     "camera_type": "perspective",
+     "x": -24.357,
+     "y": 11.069,
+     "z": 2.0,
+     "heading": 81.02,
+     "hfov": 91.65,
+     "width": 1920,
+     "height": 1080,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "954438091996497",
+     "slot": "extra",
+     "captured_at": "2018-07-16T01:21:26+00:00",
+     "camera_type": "perspective",
+     "x": -28.906,
+     "y": 6.786,
+     "z": 2.0,
+     "heading": 79.5,
+     "hfov": 54.3,
+     "width": 1920,
+     "height": 1080,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "frames 0-1 (2021-22 panoramas) carry the readings; 2-5 are aimed at other walls",
+    "confidence": 0.9,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  }
+ ]
+}
