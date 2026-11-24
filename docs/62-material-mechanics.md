@@ -19,17 +19,21 @@ few laws.
 
 | Part | What it holds |
 |---|---|
-| `substances` (56) | Wood species green and dry (Douglas fir, white pine, red and white oak, sycamore, white ash, decayed softwood), metals (mild, knife, axe and tool steel, aluminium, cast iron, chromed steel), glass (annealed, tempered), ceramics, stone, concrete, brick, stucco, ice, polymers, rubber, fabric, paper, board, plasterboard, tissue (skin, fat, muscle, cortical bone), apple, soils, leaf, water. Each has density, E, ν, yield/UTS/compressive strength, hardness, fracture toughness or energy, grain (for wood: across- and along-grain values), brittleness and a surface (smoothness, texture, surface energy), with its sources. |
+| `substances` (60) | Wood species green and dry (Douglas fir, white pine, red and white oak, sycamore, white ash, decayed softwood), metals (mild, knife, axe and tool steel, aluminium, cast iron, chromed steel), glass (annealed, tempered), ceramics, stone, concrete, brick, stucco, ice, polymers, rubber, fabric, paper, board, plasterboard, tissue (skin, fat, muscle, cortical bone), apple, soils, leaf, water, and four paint films (exterior latex, alkyd enamel, polyester powder coat, car clearcoat). Each has density, E, ν, yield/UTS/compressive strength, hardness, fracture toughness or energy, grain (for wood: across- and along-grain values), brittleness and a surface (smoothness, texture, surface energy), with its sources. |
 | `implements` (20) | Chef's, paring, butter and ceramic knives, machete, felling axe, hatchet, splitting maul, claw hammer, sledge, rubber mallet, wooden club, aluminium bat, crowbar, screwdriver, nail, window punch, ice axe, glass bottle, fist. Each gives its substance, mass, strike mass, grip limit and the geometry of its edge (radius, thickness profile back from the apex, contact length, the deepest the head can go), tip (radius, width and thickness profiles) and face (curvature and size). |
 | `contactors` (10) | What touches a surface to hold or slide: dry, chalked and sweaty skin, a glove, shoe rubber, climbing rubber, a boot, a leather sole, gecko-type pads, bare steel. Each gives adhesion, hysteresis, base friction, moisture and contact area. |
 | `item_materials`, `strike_kinds` | Which substance a city item of each material kind is, and which implement each existing tool kind in `rules.json` is. |
-| `sources` (26) | Every source cited, by key. |
+| `coatings` (5), `cladding_coats` | The coats things wear, each a layer of its own: exterior latex (90 µm, adhesion 1.5 MPa), alkyd enamel (110 µm, 3 MPa), powder coat (70 µm, 10 MPa), car paint (100 µm, 12 MPa), road marking (3 mm, 1.5 MPa); and which wall cladding classes are painted (render, concrete, wood siding, painted brick) and which show their own colour (brick, stone, tile, vinyl). |
+| `forms` (45) | The shape each archetype meets a blow or a push with (box, beam, post, panel, round, wall, ground), its section and span, its corner radius, its biggest face, its coat and, where it is one thing, its mass. See "Object on object". |
+| `sources` (44) | Every source cited, by key. |
 
 Every existing catalogue material names its substance in a new `mechanics` field (`green_wood` →
 `sycamore_green`, `lumber` → `douglas_fir_dry`, `glass` → `glass_annealed`, `none` → null). The
 Python loader checks the section (`smc.world.catalogue.mechanics_problems`): every material's
 substance exists, every implement names a substance, every contactor states its friction terms,
-every strike kind names an implement, and every cited source is listed.
+every strike kind names an implement, every coat names a substance and has a thickness and an
+adhesion, every cladding coat and form names a coat, archetype and shape that exist, and every
+cited source is listed.
 
 ### Sources
 
@@ -283,6 +287,147 @@ particular pair. The numbers are in `WORK`, and their sources are in the catalog
   the edge radius), the blade skates.
 * **Cutting.** Above it, the cut is force-limited: the engine's grip limit is set to the press. So
   shavings are thin along the grain, and the blade skates across the grain or with a dull edge.
+
+## Object on object (`docs/city/mechanics-collide.mjs`)
+
+A pushed crate, a dropped log, a trolley rolling into a car: two things meet, and each is marked by
+the other as far as the force can push the mark. `createCollisions(M, catalogue)` gives `stats`,
+`contact`, `push`, `impact` and `scrape`. Like the rest of the engine it holds no per-pair rules.
+
+### Every object is a stack of layers
+
+`stats(archetype, {cladding, coat, mass_kg, fixed, form})` builds the stack from the catalogue:
+the archetype's (or the wall cladding's) coat over its body. Each layer has its own hardness,
+yield, modulus, strength, failure strain, toughness (K and G_c; wood's along and across its grain),
+and the hardness a slider must beat to groove it (its grit's, for a gritty composite). A coat also
+has its thickness and its adhesion. A painted stucco wall is therefore 90 µm of latex film (soft:
+10 MPa, stretches to 150 %, held on at 1.5 MPa) over render (30 MPa, brittle, with sand grains of
+about 1100 HV). Brick has no coat. A car door is 100 µm of two-pack clear (250 MPa, cracks at 4 %)
+over 0.8 mm steel.
+
+As a whole, each object has the strength and stiffness of its shape (Roark):
+
+* **A beam on two supports**, struck mid-span: break at F = 4σZ/L, stiffness k = 48EI/L³.
+* **A post fixed at its foot**, struck at a height: F = σZ_p/L, k = 3EI/L³.
+* **Rounds and tubes** use their own Z and Z_p.
+* **Ductile and brittle.** A ductile post bends for good at the yield moment (σ_y Z_p), and folds
+  at the ultimate one. Wood and brittle solids break where they would bend.
+* **A plate held at its edges** has stiffness 16πD(1+ν)/((3+ν)a²). A ductile sheet is dished in at
+  its yield-line collapse load, 2π m_p = (π/2) σ_y t², whatever its outline: 251 N for a car door's
+  0.8 mm skin. A brittle plate breaks when the bending stress under the load reaches its strength
+  under a point (with any temper's compression): 1.35 kN for a 6 mm window.
+* **A board** whose strength is the board's, not its core's, says so in the form (`flexural_mpa`).
+  Paper-faced gypsum is 5 MPa by ASTM C1396.
+* **Fixed things** (a building's wall, the ground) are half-spaces at the scale of a contact. They
+  are not broken by a push.
+
+### The contact, layer by layer
+
+`contact(P, Q, F, {kind, sliding})` presses P's leading feature into Q with force F. The feature
+is a corner (a sphere of the corner's radius), an edge (a cylinder along its height) or a face
+(flat). Both sides take the same force, each at the depth its own stack gives.
+
+* **Plastic depth through the layers.** F = 2πR ∫p(z) dz for a corner, F = 2L ∫p dρ for an edge,
+  and area × p for a face, where p(z) is the flow pressure of whatever is giving at that depth.
+  In one material this is the hardness law, F = πa²H.
+* **A coat thinner than its contact is confined.** It bears Y(1 + 2a/(3√3 t)) (the slab
+  solution), so under a wide contact the layer under it gives first. A coat harder than the layer
+  under it is carried down on it, stretched, and not cut.
+* **Sliding.** A corner bears on its leading half (ASTM G171: H_s = 8P/(πw²)).
+* **The scratch ratio.** A layer is grooved only by a slider at least 1.2 times harder than it
+  (Tabor), or than its grit for a composite. So the groove stops at a layer the slider cannot
+  out-harden, and the rest of the load wears the slider instead. When neither out-hardens the
+  other, both wear as plastic solids.
+* **Spring-back.** The elastic part of the depth comes back, πa p/(2E*). What is left is the mark.
+  A coat cut to its floor while the contact was on it stays cut.
+* **Cracking.** A layer stretched with a dent or a groove reaches Tabor's strain 0.2 a/R. A coat
+  past its failure strain cracks.
+* **Flaking.** A cracked coat lifts off for π σ_f t / (2τ) either side (shear lag, Agrawal & Raj),
+  with τ its adhesion. Half the adhesion, twice the flake.
+* **Transfer.** The softer of two faces dragged on each other leaves a smear of itself on the
+  harder (adhesive wear, which goes on where nothing yields), unless the harder is grooved.
+
+Marks are reported per layer:
+
+* **The thing dragged over:** scuff, scratch, cut_through, gouge, chip, dent, crushed, stretched,
+  flaked, transfer.
+* **The thing that leads a slide:** worn, worn_through.
+
+### A push, a blow, a scrape
+
+* **`push(P, Q, {force_n, angle_deg})`.** The share of the push square to Q's face presses them
+  together; the share along it slides P along Q if it beats their static friction. Q moves only if
+  it is free and the push beats its grip on the ground. Otherwise P is stopped there.
+* **`impact(P, Q, {speed_mps})`.**
+  * The blow's energy is ½μv² with the reduced mass (all of P's against a fixed wall).
+  * It goes into the two objects' bending (F²/2k each) and the contact's plastic work, up to the
+    force at which the weaker breaks.
+  * Past that, what is left goes into breaking it. If that is more than its catalogue
+    `break_energy_j`, it is smashed.
+  * Momentum is kept.
+  * The rebound is what the springs stored, at most the materials' measured restitution.
+* **`scrape(P, Q, {normal_n, slide_m})`.**
+  * Each groove, along the slide.
+  * What is worn off: the groove's section times its length. A slider on bared grit is also worn
+    by Archard's law (K 10⁻²), and the softer of two smooth faces by adhesive wear (K 10⁻⁵).
+  * The drag: dynamic friction plus the ploughing of each groove.
+
+### Examples (engine output)
+
+| What | Result |
+|---|---|
+| Crate (30 kg, enamel over fir) pushed square on into painted stucco at 300 N | Nothing marked; the crate stops. |
+| The same at 40° off square (past friction, so it slides) | The wall's paint is cut through, 1.5 mm wide; the render under it is unmarked. The crate's enamel corner is worn through and its wood worn 0.64 mm down. |
+| The same corner, dragged at 10 N | A 36 µm scratch in the paint only; a smear of the wall's paint on the crate. |
+| Steel corner dragged at 3 kN along the same wall | Paint cut through; render still unmarked (steel is not 1.2 times as hard as the render's sand). |
+| Crate corner into the wall at 0.6 m/s | The latex is carried into a 2.5 mm chip in the render; the crate's enamel flakes 11 mm; it stops dead. The same speed square on marks nothing. |
+| Plastic crate dragged along a car | A smear of plastic on the paint, no scratch. |
+| Trolley wire end along a car at 100 N | A scratch in the clearcoat, short of the steel. |
+| Crate corner into a 6 mm window | Holds at 0.5 m/s, cracks at 1.5 m/s, smashed at 3 m/s (past its 60 J). |
+
+### Tests
+
+`tests/mechanics_collide.test.mjs` (16 tests). Each law is checked against the formula or figure
+it comes from:
+
+* Every archetype has its layer stats.
+* Coats are separate layers.
+* The scratch width obeys ASTM G171.
+* Tabor's strain and scratch ratio hold.
+* A scratch stays in the paint, and the render is grooved only by something harder than its grit
+  (corundum).
+* A flat face marks nothing.
+* Square on it stops, and at a slant past friction it slides.
+* The shear-lag flake doubles at half the adhesion.
+* Roark break forces (twice as deep, four times as strong) and the plate collapse load hold.
+* ½μv² and momentum hold.
+* The window cracks at its strength and is smashed past its durability.
+* Archard wear doubles with distance.
+* The city wiring is in place.
+
+### In the city
+
+While your hands are on something you push (`view.mjs` `stepPushing`):
+
+* **What it runs into.** Its front is checked against the buildings' footprints and the things in
+  the street (`pushBlocked`).
+* **The first touch** is a blow at the speed it was going (`meetObstacle` → `impact`).
+* **After that** it is pressed on with the push you keep up (0.6 of your push).
+  * Square on, it stops and you strain on the spot.
+  * At a slant past the two surfaces' friction, it slides along the wall, and every 25 cm of
+    scrape is drawn on the wall: the paint's own scratch, the render or wood bared under it, or a
+    smear.
+* **The words** say which layer took the mark.
+
+A building's walls are taken as painted render, unless the place names its cladding; the city's
+places carry none yet.
+
+Not yet:
+
+* What a pushed thing does to what it hits is not sent to the world: the marks are this device's,
+  and the struck thing's damage is not recorded.
+* A pushed thing does not shove another thing along.
+* Interior walls (rooms) are not checked.
 
 ## Constants
 

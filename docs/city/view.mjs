@@ -39,7 +39,8 @@ import { createEatPlay } from "./eat-play.mjs";
 import { TOOLS as TOOL_VERBS, affordances, hintChips, steady } from "./affordances.mjs";
 import { createMechanics } from "./mechanics.mjs";
 import { strikePreview, substanceOf } from "./strike-preview.mjs";
-import { createWork } from "./mechanics-work.mjs";
+import { WORK, createWork } from "./mechanics-work.mjs";
+import { createCollisions } from "./mechanics-collide.mjs";
 import { madeFrom } from "./plated.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
@@ -4352,6 +4353,9 @@ diffuseColor.rgb *= kbCloth;`);
   //: The engine's hand work (mechanics-work.mjs): made with the engine, on first need.
   let handWork = null;
   const hands = () => { const M = mechanics(); if (M && !handWork) handWork = createWork(M); return handWork; };
+  //: The engine's object-on-object laws (mechanics-collide.mjs): made with the engine, on first need.
+  let collisions = null;
+  const collide = () => { const M = mechanics(); if (M && collisions === null) { try { collisions = createCollisions(M, catalogue); } catch { collisions = false; } } return collisions || null; };
   //: What the ground underfoot is, for a spade: the page says road and pavement; open ground in
   //: the city is taken as a lawn, out in the landscape as loam.
   function underfoot() {
@@ -5306,7 +5310,7 @@ diffuseColor.rgb *= kbCloth;`);
     const t = thingClicked(ray);
     if (t) { fetchThing(t); return; }
     const o = objectClicked(ray);
-    if (o) pushUp({ o, x: o.x, z: o.z, kg: o.spec.push_kg || 0, name: o.spec.name, base: substanceOf(mechanics(), o.spec.material) });
+    if (o) pushUp({ o, arch: o.id, x: o.x, z: o.z, kg: o.spec.push_kg || 0, name: o.spec.name, base: substanceOf(mechanics(), o.spec.material) });
   }
 
   // ---- the mouse on things ----------------------------------------------------------------------
@@ -5418,7 +5422,7 @@ diffuseColor.rgb *= kbCloth;`);
     // Too heavy to lift: up to it, to push it along the ground (if it is the city's to move).
     if (ph.kg > lift && !t.courier) {
       if (t.found || t.debris) { notify(`${ph.name} (${ph.kg} kg) is too heavy for you to lift, and too heavy to shift.`); return; }
-      pushUp({ thing: t, x: t.x, z: t.z, kg: ph.kg, name: ph.name, base: substanceOf(mechanics(), ph.material) });
+      pushUp({ thing: t, material: ph.material, x: t.x, z: t.z, kg: ph.kg, name: ph.name, base: substanceOf(mechanics(), ph.material) });
       return;
     }
     goTo(t.x, t.z, PICK_AT_M, () => reachDown(t, { carry: !t.courier }));
@@ -5496,7 +5500,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: {on, o | thing, kg, name, r (mechanics-work.mjs push), gap} while your hands are on something
   //: too heavy to carry: Up walks it along ahead of you at the pace the engine gives (by your
   //: strength and grip against what it takes to slide or roll it); a click lets go.
-  const pushing = { on: false, o: null, thing: null, kg: 0, name: "", r: null, gap: 1, x: 0, z: 0, laid: 0, sent: 0, worked: 0 };
+  const pushing = { on: false, o: null, thing: null, kg: 0, name: "", r: null, gap: 1, x: 0, z: 0, laid: 0, sent: 0, worked: 0, S: null, touch: null, stuck: false, speed: 0, slid: 0, said: null };
   const arrowsHeld = new Set();
   function pushUp(target) {
     if (!target.kg) { notify(`The ${target.name.toLowerCase()} is fixed down: it will not move.`); return; }
@@ -5510,7 +5514,7 @@ diffuseColor.rgb *= kbCloth;`);
     const r = K.push({ name: target.name, mass_kg: target.kg, base: target.base || "douglas_fir_dry", ground: g, wet }, { strength: p.vitals?.strength ?? 50, ground: g, wet });
     const at = me();
     Object.assign(pushing, { on: true, o: target.o || null, thing: target.thing || null, kg: target.kg, name: target.name, r, x: target.x, z: target.z, laid: 0, sent: performance.now(), worked: performance.now(),
-      gap: Math.max(0.75, Math.min(1.6, Math.hypot(target.x - at.x, target.z - at.z))) });
+      gap: Math.max(0.75, Math.min(1.6, Math.hypot(target.x - at.x, target.z - at.z))), S: pushedStats(target), touch: null, stuck: false, speed: 0, slid: 0, said: null });
     notify(r.moves ? `Hands on the ${target.name.toLowerCase()}: Up pushes it along (${r.text}). Click to let go.` : `Hands on the ${target.name.toLowerCase()}: ${r.text}. Click to let go.`);
   }
   function stopPushing(msg = null) {
@@ -5533,6 +5537,14 @@ diffuseColor.rgb *= kbCloth;`);
     const v = Math.max(0.2, Math.min(1.1, pushing.r.speed_mps || 0.5)), aheadX = at.x + fx * (pushing.gap + 0.1), aheadZ = at.z + fz * (pushing.gap + 0.1);
     let nx = pushing.x + fx * v * dt, nz = pushing.z + fz * v * dt;
     nx += (aheadX - nx) * 0.12; nz += (aheadZ - nz) * 0.12;
+    // Into a wall or another thing: it is stopped there (or slides along a wall pushed at a slant),
+    // and the two mark each other as the collision laws say.
+    const hit = pushing.S ? pushBlocked(nx, nz, fx, fz) : null;
+    if (hit) {
+      const moved = meetObstacle(hit, fx, fz, v, dt);
+      if (!moved) return;
+      nx = moved.x; nz = moved.z;
+    } else { pushing.touch = null; pushing.stuck = false; pushing.speed = v; }
     const mx = nx - pushing.x, mz = nz - pushing.z;
     pushing.x = nx; pushing.z = nz;
     if (pushing.o) {
@@ -5548,8 +5560,133 @@ diffuseColor.rgb *= kbCloth;`);
     if (pushing.thing && now - pushing.sent > 400) { pushing.sent = now; send("move_item", { id: pushing.thing.id, to: { x: pushing.x, z: pushing.z } }); }
     if (now - pushing.worked > 2500) { pushing.worked = now; send("labour", { kind: "push" }); }
   }
-  //: How fast you walk while pushing: the engine's pace for it, or a strain on the spot.
-  const pushPace = () => (!pushing.on || !arrowsHeld.has("ArrowUp") ? 1 : pushing.r?.moves ? Math.max(0.15, Math.min(0.8, (pushing.r.speed_mps || 0.5) / 1.4)) : 0.05);
+  //: How fast you walk while pushing: the engine's pace for it, or a strain on the spot (it will
+  //: not move, or it is up against something).
+  const pushPace = () => (!pushing.on || !arrowsHeld.has("ArrowUp") ? 1 : pushing.r?.moves && !pushing.stuck ? Math.max(0.15, Math.min(0.8, (pushing.r.speed_mps || 0.5) / 1.4)) : 0.05);
+
+  // ---- what a pushed thing runs into (mechanics-collide.mjs) ---------------------------------------
+  //: A loose thing's shape when the catalogue has no form for it: a small box.
+  const THING_FORM = { shape: "box", section: { b_m: 0.4, h_m: 0.008 }, span_m: 0.4, edge_r_m: 0.005, face_m2: 0.16, height_m: 0.4 };
+  //: The cladding a building's walls are taken to be in when the place does not say: render (stucco)
+  //: is the commonest SF wall by far.
+  const DEFAULT_CLADDING = "stucco_render";
+  function pushedStats(target) {
+    const Cn = collide();
+    if (!Cn) return null;
+    try {
+      if (target.arch && catalogue?.mechanics?.forms?.[target.arch]) return Cn.stats(target.arch, { mass_kg: target.kg, fixed: false });
+      return Cn.stats({ name: target.name, material: target.material || target.spec?.material || "plastic", coat: null, form: THING_FORM }, { mass_kg: target.kg, fixed: false });
+    } catch { return null; }
+  }
+  //: How far a pushed thing reaches ahead of its centre (half its face's width).
+  const pushHalf = () => Math.max(0.2, Math.min(0.8, Math.sqrt(pushing.S?.face_m2 || 0.25) / 2));
+  //: The nearest wall of a ring to (x, z): the point on it, its outward normal and its tangent.
+  function wallFace(ring, x, z) {
+    let best = null;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length], ex = b[0] - a[0], ez = b[1] - a[1], L2 = ex * ex + ez * ez;
+      if (L2 < 1e-6) continue;
+      const u = Math.max(0, Math.min(1, ((x - a[0]) * ex + (z - a[1]) * ez) / L2)), qx = a[0] + ex * u, qz = a[1] + ez * u, d = Math.hypot(x - qx, z - qz);
+      if (!best || d < best.d) { const L = Math.sqrt(L2); best = { d, px: qx, pz: qz, tx: ex / L, tz: ez / L }; }
+    }
+    if (!best) return null;
+    // Outward: from the point inside toward the face; if the point is on it, across the edge.
+    let nx = best.px - x, nz = best.pz - z;
+    const n = Math.hypot(nx, nz);
+    if (n > 1e-6) { nx /= n; nz /= n; } else { nx = best.tz; nz = -best.tx; }
+    return { ...best, nx, nz };
+  }
+  //: What the pushed thing's front would be in at (x, z) going (fx, fz): a building's wall, or
+  //: another thing in the street.
+  function pushBlocked(x, z, fx, fz) {
+    const h = pushHalf(), ax = x + fx * h, az = z + fz * h;
+    const f = district.city?.footprintAt?.(ax, az);
+    if (f) {
+      const w = wallFace(f.ring, ax, az);
+      if (w) return { wall: true, key: `wall:${f.pl.id}`, pl: f.pl, ...w };
+    }
+    const prox = ctx.objects?.();
+    const near = prox?.instancesNear?.(ax, az, 1, (a) => Boolean(R.objects[archetypeId(a.archetype)]), 8) || [];
+    for (const t of near) {
+      if (pushing.o && t.o === pushing.o.o && t.i === pushing.o.i) continue;
+      const d = Math.hypot(t.x - ax, t.z - az);
+      if (d >= 0.45) continue;
+      const id = archetypeId(t.archetype);
+      return { wall: false, key: damageKey(id, t.x, t.z), t, id, px: t.x, pz: t.z, nx: -(t.x - x) / (Math.hypot(t.x - x, t.z - z) || 1), nz: -(t.z - z) / (Math.hypot(t.x - x, t.z - z) || 1), tx: 0, tz: 0 };
+    }
+    return null;
+  }
+  //: What it runs into, as the collision laws read it.
+  function obstacleStats(hit) {
+    const Cn = collide();
+    try {
+      if (hit.wall) return Cn.stats("building.exterior", { cladding: hit.pl?.cladding || DEFAULT_CLADDING });
+      return Cn.stats(hit.id, { fixed: true });
+    } catch { return null; }
+  }
+  //: The pushed thing meets ``hit``: the first touch is a blow at the speed it was going; after
+  //: that it is pressed on with the push you keep up. Square on it stops; at a slant past the two
+  //: surfaces' friction it slides along a wall, scraping it. Returns where it gets to, or null
+  //: (it stays where it is).
+  function meetObstacle(hit, fx, fz, v, dt) {
+    const Cn = collide(), P = pushing.S, Q = obstacleStats(hit);
+    if (!Cn || !P || !Q) { pushing.stuck = true; return null; }
+    const into = fx * -hit.nx + fz * -hit.nz;     // the push's share square into the face
+    const ang = (Math.acos(Math.max(-1, Math.min(1, Math.abs(into)))) * 180) / Math.PI;
+    const kind = P.shape === "round" ? "edge" : ang < 8 ? "face" : "edge";
+    const y = groundAt(pushing.x, pushing.z) + Math.min(1, (P.height_m || 0.4) * 0.6);
+    if (pushing.touch !== hit.key) {
+      pushing.touch = hit.key;
+      const r = Cn.impact(P, Q, { speed_mps: Math.max(0.1, pushing.speed || v), kind, mass_kg: pushing.kg || P.mass_kg || 10 });
+      drawMarks(hit, r.contact.struck, Q, y, null);
+      say(r.text);
+    }
+    pushing.speed = 0;
+    const r = Cn.push(P, Q, { force_n: (pushing.r?.push_n || 300) * WORK.sustained, angle_deg: ang, kind: kind === "face" ? "face" : "corner", length_m: 0.25 });
+    if (!hit.wall || !r.slides) {
+      if (!pushing.stuck) say(r.text);
+      pushing.stuck = true;
+      return null;
+    }
+    // Along the wall: the push's share along its face moves it; it stays off the face.
+    pushing.stuck = false;
+    const s = Math.sign(fx * hit.tx + fz * hit.tz) || 1, along = v * dt * Math.sin((ang * Math.PI) / 180);
+    pushing.slid += along;
+    if (pushing.slid >= 0.25) {
+      pushing.slid = 0;
+      drawMarks(hit, r.contact.struck, Q, y, { tx: hit.tx * s, tz: hit.tz * s });
+      say(r.text);
+    }
+    const back = Math.max(0, pushHalf() - Math.hypot(pushing.x - hit.px, pushing.z - hit.pz) + 0.02);
+    return { x: pushing.x + hit.tx * s * along + hit.nx * back, z: pushing.z + hit.tz * s * along + hit.nz * back };
+  }
+  //: Say a collision's result once (not again while it is the same).
+  function say(text) { if (text && text !== pushing.said) { pushing.said = text; notify(text); } }
+  //: The marks drawn on what was struck: a thin strip along the scrape, or a spot where it was
+  //: hit, coloured by what the mark shows -- the paint's own scratch, the render or wood bared
+  //: under it, a smear of what rubbed on it. (A scratch is drawn no narrower than 4 mm, to be seen.)
+  const MARK_COLOUR = { scratch: [0xf2efe8, 0.55], scuff: [0xf2efe8, 0.3], cut_through: [0xc8bba2, 0.95], crushed: [0x8f8676, 0.6], flaked: [0xc8bba2, 0.9], dent: [0x6d6658, 0.45], stretched: [0x6d6658, 0.35], chip: [0xb9ab92, 0.95], gouge: [0x5a4a36, 0.85], transfer: [0x3c3a36, 0.5] };
+  const SUBSTRATE_COLOUR = { stucco: 0xc8bba2, clay_brick: 0x9c5a44, concrete: 0xa9a59c, douglas_fir_dry: 0xb58a5a, mild_steel: 0x8b8f94, aluminium_6061: 0xb9bdc2, plasterboard: 0xe9e4da };
+  const marks = { group: null, list: [], MAX: 160 };
+  function drawMarks(hit, struck, Q, y, dir) {
+    // The mark that shows: the deepest layer marked (bared stuff under paint shows its own colour).
+    let show = null, at = -1;
+    struck.layers.forEach((m, i) => { if (m.kind !== "none" && i >= at) { show = m; at = i; } });
+    if (!show) return;
+    const top = struck.layers[0];
+    if (top.kind === "cut_through" || top.kind === "flaked") show = { ...top, bared: Q.layers[1]?.substance };
+    const [c0, op] = MARK_COLOUR[show.kind] || [0x777777, 0.5];
+    const colour = show.bared && SUBSTRATE_COLOUR[show.bared] != null ? SUBSTRATE_COLOUR[show.bared] : c0;
+    if (!marks.group) { marks.group = new THREE.Group(); marks.group.name = "collision-marks"; group.add(marks.group); }
+    const w = Math.max(0.004, show.flake_width_m || show.width_m || 0.004), len = dir ? 0.25 : Math.max(w, 0.01);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(dir ? len : w, w), new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: op, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const off = 0.012;
+    m.position.set(hit.px + hit.nx * off - (dir ? dir.tx * len * 0.5 : 0), y, hit.pz + hit.nz * off - (dir ? dir.tz * len * 0.5 : 0));
+    m.lookAt(m.position.x + hit.nx, y, m.position.z + hit.nz);
+    marks.group.add(m);
+    marks.list.push(m);
+    while (marks.list.length > marks.MAX) { const old = marks.list.shift(); marks.group.remove(old); old.geometry.dispose(); old.material.dispose(); }
+  }
 
   // ---- going where a task is: along the pavements, by itself ------------------------------------
   //: {pts, i, label, since, best} while the task card's "Go there" walks you: the streets' walking

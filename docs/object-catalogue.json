@@ -306,7 +306,18 @@
       "soil_cutting": "McKyes 1985, Soil Cutting and Tillage (Elsevier), ch. 2-4, and Reece 1964 (Proc. Instn Mech. Engrs 179): a blade's draft F = w (gamma d^2 N_gamma + c d N_c + c_a d N_ca); typical cohesion 0-5 kPa for sand and duff, 10-20 kPa for moist loam, friction angles 25-42 degrees, soil-metal friction about two thirds of the internal angle; Terzaghi bearing factors N_q = e^(pi tan phi) tan^2(45 + phi/2); root cohesion 5-20 kPa in turf (Wu 1979; Gray & Sotir 1996)",
       "push_strength": "Snook & Ciriello 1991 (Ergonomics 34:1197) and Chaffin, Andersson & Martin, Occupational Biomechanics: a standing adult's initial horizontal push about 300-500 N with good footing (sustained about 60% of it); a push is also capped by the shoes' friction on the ground times body weight; rolling resistance 0.010-0.015 for car tyres on asphalt (Gillespie, Fundamentals of Vehicle Dynamics), 0.02-0.04 for small hard casters",
       "balance": "Hof, Gazendam & Sinke 2005 (J. Biomech. 38:1): the extrapolated centre of mass x + v sqrt(l/g) must stay within the base of support; a single recovery step handles about 1-1.5 m/s (Hsiao & Robinovitch 1999), beyond which a pushed person falls",
-      "nail_driving": "Euler buckling of a fixed-pinned column P = pi^2 E I / (0.7 L)^2 and the plastic moment of a round section M_p = sigma_y d^3 / 6 (Gere & Timoshenko, Mechanics of Materials), for the exposed length of a nail; common nail heads and lengths from ASTM F1667 (16d: 3.3 mm shank, 7.1 mm head, 89 mm long)"
+      "nail_driving": "Euler buckling of a fixed-pinned column P = pi^2 E I / (0.7 L)^2 and the plastic moment of a round section M_p = sigma_y d^3 / 6 (Gere & Timoshenko, Mechanics of Materials), for the exposed length of a nail; common nail heads and lengths from ASTM F1667 (16d: 3.3 mm shank, 7.1 mm head, 89 mm long)",
+      "coating_films": "Wicks, Jones, Pappas & Wicks, Organic Coatings: Science and Technology, 4th ed. (Wiley 2017), ch. 4 (mechanical properties of films) and ch. 24-25 (architectural and automotive coatings): exterior acrylic latex films sit near or below their glass transition at room temperature (tensile 2-8 MPa, elongation 100-400 %, modulus 0.05-0.5 GPa); crosslinked alkyd and polyester enamels are glassy (modulus 1-4 GPa, tensile 20-50 MPa, elongation 2-10 %); free-film tensile figures by ASTM D2370",
+      "clearcoat_nanoindentation": "Automotive two-pack acrylic-urethane clearcoats by nanoindentation and scratch: modulus 3-5 GPa, hardness 0.15-0.3 GPa, cracking under a scratch tip at 3-5 % strain (Lin, Blackman & Matheson, Prog. Org. Coat. 40 (2000) 85-91; Jardret, Lucas, Oliver-Leblond & Oliver, J. Adhesion 2000)",
+      "coating_adhesion": "Pull-off adhesion by ASTM D4541 / ISO 4624: architectural latex over render and masonry 1-2 MPa (it parts in the render's own skin), alkyd over primed wood 2-4 MPa, polyester powder over pretreated steel and aluminium 8-15 MPa, an OEM car paint stack over its e-coat above 10 MPa; the pull-off figure is taken as the interface's shear strength too (shear adhesion runs at 1-2 times it)",
+      "coating_thickness": "Dry film thickness (ASTM D7091 gauges): two coats of exterior latex 75-100 um (about 40-50 um a coat), an alkyd primer and two gloss coats 100-120 um, a powder coat 60-80 um, an OEM car stack about 100 um (e-coat 20, primer 30, base 15, clear 40-50); hot thermoplastic road marking 3 mm",
+      "scratch_hardness": "Scratch hardness HSp = 8 P / (pi w^2), the load over the front half of the groove's circle (ASTM G171; Bowden & Tabor, The Friction and Lubrication of Solids, 1950): a sliding sphere bears only on its leading half, so its groove is the depth at which half its plastic contact carries the load",
+      "scratch_ratio": "One solid scratches another only if it is about 20 % harder than it (Tabor, 'Mohs's hardness scale: a physical interpretation', Proc. Phys. Soc. B 67 (1954) 249); for a gritty composite (render, concrete, brick) what must be out-hardened is its grit, not its binder",
+      "representative_strain": "Tabor's representative strain under a spherical indenter, e = 0.2 a / R (Tabor, The Hardness of Metals, 1951; Johnson, Contact Mechanics, 1985, s. 6.2): the strain a coat carried down with a dent is stretched to",
+      "confined_layer": "A thin plastic layer squeezed under a flat with sticking friction bears p = Y (1 + 2 a / (3 sqrt 3 t)), the slab solution for upsetting (Johnson & Mellor, Engineering Plasticity, 1973, ch. 11): a film thinner than its contact is held in by the faces either side and does not flow first",
+      "shear_lag": "A cracked brittle film on a substrate lifts off over the length its own stress can be carried by the interface: crack spacing lambda = pi sigma_f t / tau (Agrawal & Raj, Acta Metall. 37 (1989) 1265), so a flake runs half that either side of the crack",
+      "gypsum_board": "ASTM C1396: 1/2 in gypsum board must carry 107 lbf (476 N) at mid-span over 14 in on a 12 in wide sample (bearing edges parallel), a flexural stress of about 5 MPa for the paper-faced board -- three times its bare core's",
+      "beams": "Section strength and stiffness (Roark's Formulas for Stress and Strain, 8th ed., Tables 8.1 and 11.2): a beam on two supports loaded at mid-span F = 4 M / L, k = 48 E I / L^3; a post fixed at its foot and struck at a height F = M / L, k = 3 E I / L^3; elastic M = sigma Z (Z = b h^2 / 6, pi d^3 / 32, pi (D^4 - d^4) / (32 D)), fully plastic M = sigma_y Z_p (Z_p = b h^2 / 4, d^3 / 6, (D^3 - d^3) / 6); a plate under a central load sigma = 3 F / (2 pi t^2) ((1 + nu) ln(a / r0) + 1)"
     },
     "substances": {
       "douglas_fir_green": {
@@ -1388,11 +1399,592 @@
         },
         "sources": ["food"]
       },
+      "latex_paint": {
+        "name": "Exterior acrylic latex paint film, dry",
+        "family": "polymer",
+        "density_kg_m3": 1400,
+        "E_gpa": 0.25,
+        "nu": 0.45,
+        "yield_mpa": 3,
+        "uts_mpa": 5,
+        "hardness_mpa": 10,
+        "toughness_j_m2": 2000,
+        "failure_strain": 1.5,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "alkyd_enamel": {
+        "name": "Alkyd gloss enamel film (doors, trim, furniture, railings)",
+        "family": "polymer",
+        "density_kg_m3": 1300,
+        "E_gpa": 2,
+        "nu": 0.38,
+        "yield_mpa": 20,
+        "uts_mpa": 25,
+        "hardness_mpa": 80,
+        "toughness_j_m2": 300,
+        "failure_strain": 0.06,
+        "surface": {
+          "smoothness": 0.85,
+          "texture": 0.05,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "powder_coat": {
+        "name": "Polyester powder coat (poles, racks, cabinets, metal panels)",
+        "family": "polymer",
+        "density_kg_m3": 1500,
+        "E_gpa": 2.8,
+        "nu": 0.38,
+        "yield_mpa": 35,
+        "uts_mpa": 45,
+        "hardness_mpa": 180,
+        "toughness_j_m2": 500,
+        "failure_strain": 0.08,
+        "surface": {
+          "smoothness": 0.8,
+          "texture": 0.1,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "auto_clearcoat": {
+        "name": "Car paint: two-pack clearcoat over base, primer and e-coat",
+        "family": "polymer",
+        "density_kg_m3": 1150,
+        "E_gpa": 3.5,
+        "nu": 0.35,
+        "yield_mpa": 55,
+        "uts_mpa": 60,
+        "hardness_mpa": 250,
+        "toughness_j_m2": 400,
+        "failure_strain": 0.04,
+        "surface": {
+          "smoothness": 0.97,
+          "texture": 0,
+          "energy": 0.6
+        },
+        "sources": ["coating_films", "clearcoat_nanoindentation"]
+      },
       "water": {
         "name": "Water",
         "family": "fluid",
         "density_kg_m3": 1000,
         "sources": []
+      }
+    },
+    "coatings": {
+      "about": "A coat is a layer of its own over what it covers: its own substance (hardness, stiffness, failure strain), its own thickness, and what holds it on (adhesion, the interface's strength). A scratch in it stays in it until it is cut through; what is under is marked only by what out-hardens that too.",
+      "exterior_latex": {
+        "name": "Two coats of exterior acrylic latex",
+        "substance": "latex_paint",
+        "thickness_um": 90,
+        "adhesion_mpa": 1.5,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "alkyd_enamel": {
+        "name": "Alkyd primer and two gloss coats",
+        "substance": "alkyd_enamel",
+        "thickness_um": 110,
+        "adhesion_mpa": 3,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "powder_coat": {
+        "name": "Polyester powder coat",
+        "substance": "powder_coat",
+        "thickness_um": 70,
+        "adhesion_mpa": 10,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "car_paint": {
+        "name": "OEM car paint stack",
+        "substance": "auto_clearcoat",
+        "thickness_um": 100,
+        "adhesion_mpa": 12,
+        "sources": ["coating_thickness", "coating_adhesion", "clearcoat_nanoindentation"]
+      },
+      "road_marking": {
+        "name": "Hot thermoplastic road marking",
+        "substance": "thermoplastic_paint",
+        "thickness_um": 3000,
+        "adhesion_mpa": 1.5,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      }
+    },
+    "cladding_coats": {
+      "about": "The coat each wall cladding class (claddings.classes) wears: painted classes the paint the house's colour is in; brick, stone, tile and vinyl show their own colour and have none.",
+      "stucco_render": "exterior_latex",
+      "concrete": "exterior_latex",
+      "wood_siding": "exterior_latex",
+      "painted_brick": "exterior_latex",
+      "metal_panel": "powder_coat",
+      "vinyl_siding": null,
+      "brick": null,
+      "stone": null,
+      "ceramic_tile": null
+    },
+    "forms": {
+      "about": "The shape each archetype meets a blow or a push with: shape (box: panels round a frame; beam: on two supports; post: fixed at its foot; panel: a plate held at its edges; round: a log lying; wall and ground: fixed, a half-space at the scale of a contact), its section (b_m x h_m, or d_m and a tube's wall_m), its span_m, the radius of its corners and edges (edge_r_m), its biggest face (face_m2), its coat, its own mass (mass_kg) where it is one thing, and the bending strength of a made board where it is not its substance's (flexural_mpa). Archetypes not listed are fixed half-spaces of their material with no coat.",
+      "item.movable": {
+        "shape": "box",
+        "substance": "polypropylene",
+        "section": {
+          "b_m": 0.35,
+          "h_m": 0.004
+        },
+        "span_m": 0.35,
+        "edge_r_m": 0.006,
+        "face_m2": 0.12,
+        "height_m": 0.3,
+        "mass_kg": 5
+      },
+      "interior.furniture": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.45,
+          "h_m": 0.018
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.003,
+        "face_m2": 0.5,
+        "height_m": 0.8,
+        "coat": "alkyd_enamel",
+        "mass_kg": 30
+      },
+      "interior.appliance": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.4,
+          "h_m": 0.003
+        },
+        "span_m": 0.5,
+        "edge_r_m": 0.005,
+        "face_m2": 0.25,
+        "height_m": 0.5,
+        "mass_kg": 15
+      },
+      "vegetation.log": {
+        "shape": "round",
+        "section": {
+          "d_m": 0.35
+        },
+        "span_m": 3,
+        "edge_r_m": 0.175,
+        "face_m2": 0.1,
+        "height_m": 0.35,
+        "mass_kg": 120
+      },
+      "vegetation.stump": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.4
+        },
+        "span_m": 0.4,
+        "edge_r_m": 0.2,
+        "face_m2": 0.13
+      },
+      "vegetation.tree": {
+        "shape": "post",
+        "substance": "sycamore_green",
+        "section": {
+          "d_m": 0.3
+        },
+        "span_m": 1,
+        "edge_r_m": 0.15,
+        "face_m2": 0.3
+      },
+      "furniture.bench": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.09,
+          "h_m": 0.04
+        },
+        "span_m": 1.8,
+        "edge_r_m": 0.004,
+        "face_m2": 0.2,
+        "height_m": 0.45
+      },
+      "furniture.picnic_table": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.14,
+          "h_m": 0.04
+        },
+        "span_m": 1.8,
+        "edge_r_m": 0.004,
+        "face_m2": 0.3,
+        "height_m": 0.75
+      },
+      "furniture.raised_bed": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.25,
+          "h_m": 0.04
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.004,
+        "face_m2": 0.6
+      },
+      "furniture.street_cafe": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.002
+        },
+        "span_m": 0.7,
+        "edge_r_m": 0.03,
+        "face_m2": 0.4,
+        "coat": "powder_coat",
+        "mass_kg": 12
+      },
+      "furniture.sign_post": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.0027
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.03,
+        "face_m2": 0.15
+      },
+      "furniture.sign_plate": {
+        "shape": "panel",
+        "substance": "aluminium_6061",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.002
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.001,
+        "face_m2": 0.36
+      },
+      "furniture.street_light": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.2,
+          "wall_m": 0.005
+        },
+        "span_m": 1,
+        "edge_r_m": 0.1,
+        "face_m2": 0.6,
+        "coat": "powder_coat"
+      },
+      "furniture.traffic_signal": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.25,
+          "wall_m": 0.006
+        },
+        "span_m": 1,
+        "edge_r_m": 0.125,
+        "face_m2": 0.8,
+        "coat": "powder_coat"
+      },
+      "furniture.utility_pole": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.3
+        },
+        "span_m": 1,
+        "edge_r_m": 0.15,
+        "face_m2": 0.9
+      },
+      "furniture.trolley_pole": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.25,
+          "wall_m": 0.008
+        },
+        "span_m": 1,
+        "edge_r_m": 0.125,
+        "face_m2": 0.8,
+        "coat": "powder_coat"
+      },
+      "furniture.parking_meter": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.075,
+          "wall_m": 0.005
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.03,
+        "face_m2": 0.1,
+        "coat": "powder_coat"
+      },
+      "furniture.bike_rack": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.05,
+          "wall_m": 0.003
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.025,
+        "face_m2": 0.05,
+        "coat": "powder_coat"
+      },
+      "furniture.bollard": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.15,
+          "wall_m": 0.012
+        },
+        "span_m": 1,
+        "edge_r_m": 0.075,
+        "face_m2": 0.15,
+        "coat": "alkyd_enamel"
+      },
+      "furniture.cabinet": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.002
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 1.2,
+        "coat": "powder_coat"
+      },
+      "furniture.drinking_fountain": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.2,
+          "wall_m": 0.004
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.05,
+        "face_m2": 0.2,
+        "coat": "powder_coat"
+      },
+      "furniture.shelter": {
+        "shape": "panel",
+        "substance": "glass_tempered",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.01
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.002,
+        "face_m2": 2.4
+      },
+      "furniture.ad_panel": {
+        "shape": "panel",
+        "substance": "polycarbonate",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.004
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.005,
+        "face_m2": 2.2
+      },
+      "furniture.play_equipment": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.09,
+          "wall_m": 0.003
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.045,
+        "face_m2": 0.3,
+        "coat": "powder_coat"
+      },
+      "furniture.pole_equipment": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.3,
+          "h_m": 0.002
+        },
+        "span_m": 0.3,
+        "edge_r_m": 0.003,
+        "face_m2": 0.1,
+        "coat": "powder_coat"
+      },
+      "barrier.fence_board": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.14,
+          "h_m": 0.016
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.002,
+        "face_m2": 4,
+        "height_m": 1.8,
+        "coat": "exterior_latex"
+      },
+      "barrier.fence_picket": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.09,
+          "h_m": 0.019
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.002,
+        "face_m2": 2,
+        "height_m": 1.1,
+        "coat": "exterior_latex"
+      },
+      "barrier.fence_chainlink": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.0028
+        },
+        "span_m": 1.5,
+        "edge_r_m": 0.0015,
+        "face_m2": 4
+      },
+      "barrier.wall": {
+        "shape": "post",
+        "section": {
+          "b_m": 1,
+          "h_m": 0.2
+        },
+        "span_m": 1,
+        "edge_r_m": 0.005,
+        "face_m2": 2
+      },
+      "barrier.jersey": {
+        "shape": "post",
+        "section": {
+          "b_m": 3,
+          "h_m": 0.6
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.02,
+        "face_m2": 2.4,
+        "mass_kg": 1800
+      },
+      "barrier.railing": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.042,
+          "wall_m": 0.0035
+        },
+        "span_m": 1,
+        "edge_r_m": 0.021,
+        "face_m2": 0.1,
+        "coat": "alkyd_enamel"
+      },
+      "building.exterior": {
+        "shape": "wall",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "building.facade_detail": {
+        "shape": "wall",
+        "edge_r_m": 0.005,
+        "face_m2": 1,
+        "coat": "exterior_latex"
+      },
+      "building.door": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.9,
+          "h_m": 0.044
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.002,
+        "face_m2": 1.8,
+        "coat": "alkyd_enamel"
+      },
+      "building.window": {
+        "shape": "panel",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.006
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.001,
+        "face_m2": 1.4
+      },
+      "building.sign": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.003
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 0.6,
+        "coat": "powder_coat"
+      },
+      "interior.wall": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.406,
+          "h_m": 0.0127
+        },
+        "flexural_mpa": 5,
+        "span_m": 0.406,
+        "edge_r_m": 0.003,
+        "face_m2": 8,
+        "coat": "exterior_latex"
+      },
+      "vehicle.body": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.0008
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.015,
+        "face_m2": 1,
+        "coat": "car_paint"
+      },
+      "vehicle.car": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.0008
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.015,
+        "face_m2": 1.5,
+        "coat": "car_paint",
+        "mass_kg": 1400
+      },
+      "vehicle.glass": {
+        "shape": "panel",
+        "substance": "glass_tempered",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.004
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 0.5
+      },
+      "geology.rock": {
+        "shape": "wall",
+        "edge_r_m": 0.02,
+        "face_m2": 1
+      },
+      "ground.sidewalk": {
+        "shape": "ground",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "ground.kerb": {
+        "shape": "wall",
+        "edge_r_m": 0.01,
+        "face_m2": 0.5
+      },
+      "ground.road": {
+        "shape": "ground",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "ground.paint": {
+        "shape": "ground",
+        "substance": "asphalt",
+        "edge_r_m": 0.005,
+        "face_m2": 10,
+        "coat": "road_marking"
       }
     },
     "item_materials": {

@@ -72,7 +72,7 @@ on), **C** (thrust and shove: Shift + X, the point or the flat of the hand inste
 | Wood, with nails (a box or a loose nail) in your hand | Walk within reach; a nail is set on the wood where you clicked, point in, and the left hand holds it there. Choose the hammer and tap R to drive it; walk off and it drops. |
 | The ground, holding what a click picked up | Walk over, bend down and set it there (a large thing too: placed, not dropped). |
 | A thing on the ground (yellow ring) you can lift, or a courier's order at the shop door | Walk over and pick it up; it goes into your hand (it was G). |
-| A thing on the ground too heavy to lift, or something loose in the street (a log, a chair, a crate) | Walk up to it with your hands out: ↑ pushes it along ahead of you at the engine's pace (by your strength and grip, against its rolling or sliding resistance on that ground and slope). If it will not budge, you strain on the spot. Something fixed down says so. A click lets go. |
+| A thing on the ground too heavy to lift, or something loose in the street (a log, a chair, a crate) | Walk up to it with your hands out: ↑ pushes it along ahead of you at the engine's pace (by your strength and grip, against its rolling or sliding resistance on that ground and slope). If it will not budge, you strain on the spot. Something fixed down says so. Pushed into a wall or another thing, it is stopped there and the two mark each other by the collision laws (`mechanics-collide.mjs`, docs/62 "Object on object"). Square on, you strain against it. At a slant, it slides along the wall and scrapes it: the paint is scratched or cut through, and the render under it is marked only by something harder than its sand. A click lets go. |
 | A press held on the food or drink in your hand | A bite or a sip; held down, eating or drinking goes on to the end (as the right button held). |
 
 ### The Tasks list (top left)
@@ -325,6 +325,10 @@ deployed):**
   and a held press eats. The Tasks list opens a card per task with Go there. Pets moved to the
   profile. V, B, J, K, E, H and PageUp / PageDown were removed, then G, U and C (a click, a right
   click, Shift + X) -- see "Every control today".
+* **Third pass (same day).** A pushed thing is stopped by building walls and by things in the
+  street. The first touch is a blow, and after that a press, or a scrape along the wall at a slant
+  (`mechanics-collide.mjs`). Each object is a coat over a body, and each layer is marked by its own
+  laws.
 
 **Not built from the table above:**
 
@@ -335,4 +339,6 @@ deployed):**
 * Sharpen.
 * Look at a mark (S still names buildings and streets).
 * Push for doors and carts: Shift + X and a click push loose things and people only.
-* A pushed object passes through walls and other objects: only the walker is stopped by them.
+* What a pushed thing does to what it hits stays on this device: the marks are drawn here, and
+  the struck thing's damage is not sent to the world. A pushed thing does not shove another one
+  along, and room walls indoors do not stop it yet.
