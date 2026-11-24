@@ -17,6 +17,7 @@
 import { makeServer, makeVessel, mergeSimple, paintTexture, roundedSlab, tablewareMaterials, VESSELS, vesselFor } from "./tableware.mjs";
 import { areaOf, biteCircles, createMask, cutOff, fillMask, frontEdge, shapesOf, subtractCircles } from "./bites.mjs";
 import { createDrink, createDrinkMesh } from "./liquid.mjs";
+import { LOOK_OF, RAW_SURFACE, extraLook, lookState, tinted } from "./plated.mjs";
 
 // ---- randomness and noise (the same dish looks the same every time) ----------------------------------
 
@@ -73,7 +74,8 @@ function foodLook(THREE) {
     rice: () => T("rice", (g, w, h) => { g.fillStyle = "#e9e5d8"; g.fillRect(0, 0, w, h); for (let i = 0; i < 900; i += 1) { const x = Math.random() * w, y = Math.random() * h, a = Math.random() * 3.14; g.fillStyle = `rgba(255,255,250,${0.7 + Math.random() * 0.3})`; g.beginPath(); g.ellipse(x, y, 5, 2.2, a, 0, 7); g.fill(); g.strokeStyle = "rgba(170,160,140,.35)"; g.lineWidth = 0.6; g.stroke(); } }, 256, 256, [2, 2]),
     friedRice: () => T("friedRice", (g, w, h) => { g.fillStyle = "#c99a52"; g.fillRect(0, 0, w, h); for (let i = 0; i < 800; i += 1) { g.fillStyle = `rgba(${Math.random() < 0.8 ? "225,190,120" : "250,220,90"},.9)`; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 5, 2.2, Math.random() * 3, 0, 7); g.fill(); } speck(g, w, h, 120, "120,190,70", 0.9, 1, 4); speck(g, w, h, 120, "230,120,40", 0.9, 1, 4); }, 256, 256, [2, 2]),
     broth: () => T("broth", (g, w, h) => { g.fillStyle = "#e6cfa0"; g.fillRect(0, 0, w, h); for (let i = 0; i < 160; i += 1) { g.fillStyle = `rgba(255,200,80,${0.25 + Math.random() * 0.4})`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 6, 0, 7); g.fill(); } }),
-    pho: () => T("pho", (g, w, h) => { g.fillStyle = "#a96a2a"; g.fillRect(0, 0, w, h); for (let i = 0; i < 140; i += 1) { g.fillStyle = `rgba(255,190,90,${0.25 + Math.random() * 0.35})`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 1 + Math.random() * 5, 0, 7); g.fill(); } }),
+    // Pho's broth is clear: a light amber you see the noodles through, with small beads of fat.
+    pho: () => T("pho", (g, w, h) => { g.fillStyle = "#8a4c12"; g.fillRect(0, 0, w, h); for (let i = 0; i < 90; i += 1) { const r0 = 0.6 + Math.random() * 2.4; g.fillStyle = `rgba(255,214,120,${0.18 + Math.random() * 0.22})`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, r0, 0, 7); g.fill(); g.strokeStyle = "rgba(255,240,190,.35)"; g.lineWidth = 0.5; g.stroke(); } }),
     // Melted mozzarella over most of the tomato: pools of cheese running together, the sauce
     // showing between, golden-brown blisters and a few dark leopard spots, an orange oil sheen.
     pizza: () => T("pizza", (g, w, h) => { g.fillStyle = "#b5321c"; g.fillRect(0, 0, w, h); speck(g, w, h, 400, "120,20,10", 0.2, 0.4, 4);
@@ -135,7 +137,7 @@ function foodLook(THREE) {
         case "rice_noodles": return P({ color: 0xf2eee2, roughness: 0.3, clearcoat: 0.6, transparent: true, opacity: 0.92 });
         case "pasta": return P({ color: 0xf0d27c, roughness: 0.4, clearcoat: 0.3 });
         case "broth": return P({ map: t("broth"), roughness: 0.08, clearcoat: 1 });
-        case "pho_broth": return P({ map: t("pho"), roughness: 0.05, clearcoat: 1, transparent: true, opacity: 0.88 });
+        case "pho_broth": return P({ map: t("pho"), roughness: 0.03, clearcoat: 1, transparent: true, opacity: 0.66, depthWrite: false });
         case "soup": return P({ color: 0xd98a3c, roughness: 0.15, clearcoat: 0.8 });
         case "chowder": return P({ color: 0xefe5cf, roughness: 0.35, clearcoat: 0.4 });
         case "curry_green": return P({ color: 0x9aa63c, roughness: 0.15, clearcoat: 0.8 });
@@ -226,7 +228,7 @@ function foodLook(THREE) {
         case "burrito_cut": return S({ map: t("burritoCut"), roughness: 0.7 });
         case "falafel": return S({ map: t("falafel"), roughness: 0.85 });
         case "lamb": return P({ color: 0x8a4e2a, roughness: 0.55, clearcoat: 0.4, map: t("patty") });
-        case "pork": return P({ color: 0xc88a5a, roughness: 0.5, clearcoat: 0.4, map: t("patty") });
+        case "pork": return P({ color: 0xe8a878, roughness: 0.5, clearcoat: 0.4, map: t("roast") });   // carnitas and al pastor: golden-brown, crisp edges
         case "chicken_bits": return P({ color: 0xd8a868, roughness: 0.5, clearcoat: 0.4 });
         case "teriyaki_chicken": return P({ color: 0x8a4a1a, roughness: 0.15, clearcoat: 0.9, map: t("chicken") });
         case "wing": return P({ color: 0xc8401a, roughness: 0.15, clearcoat: 0.95, map: t("chicken") });
@@ -516,84 +518,150 @@ function noodleNest(THREE, L, material, r, h, strands = 26, seed = 5, thick = 0.
 
 //: A burger in its bun: the heel, the patty, cheese draped over it, lettuce, tomato, pickles, the
 //: sauce, the crown with its sesame seeds. Held in both hands, bitten from the front.
-function burger(THREE, L, seed) {
-  const R = 0.056;
-  const layers = [
-    { inside: disc(R), y0: 0, depth: 0.022, bevel: 0.006, dome: domeOf(R, 0.002), materials: ["bun_cut", "bun"], material: "bun" },
-    { inside: disc(R * 1.03), y0: 0.022, depth: 0.017, bevel: 0.004, materials: ["patty", "patty"] },
-    { inside: roundedSquare(0.045, 0.004), y0: 0.0385, depth: 0.0025, bevel: 0.0008, sag: (x, z) => -Math.max(0, Math.max(Math.abs(x), Math.abs(z)) - 0.04) * 0.9, materials: ["cheese", "cheese"] },
-    { inside: (x, z) => x * x + z * z <= (R * (1.08 + 0.06 * Math.sin(Math.atan2(z, x) * 7))) ** 2, y0: 0.041, depth: 0.004, bevel: 0.001, sag: (x, z) => noise3(x * 60, 1, z * 60, seed) * 0.003, materials: ["lettuce", "lettuce"] },
-    { inside: disc(R * 0.82), y0: 0.045, depth: 0.007, bevel: 0.001, materials: ["tomato_skin", "tomato"] },
-    { inside: disc(R * 0.97), y0: 0.052, depth: 0.033, bevel: 0.012, dome: domeOf(R, 0.012), materials: ["bun", "bun"] },
-  ];
-  // The crown's sesame seeds, on its dome.
-  const seeds = [];
-  const r = rng(seed);
-  for (let i = 0; i < 70; i += 1) {
-    const a = r() * 6.28, d = Math.sqrt(r()) * R * 0.82, x = Math.cos(a) * d, z = Math.sin(a) * d;
-    const s = new THREE.Mesh(new THREE.SphereGeometry(0.0018, 5, 3).scale(1, 0.45, 0.6), L.m("sesame"));
-    s.position.set(x, 0.052 + 0.033 + domeOf(R, 0.012)(x, z) * 0.9 - 0.004 * (d / R) ** 2, z); s.rotation.y = a;
-    seeds.push(s);
+//: A burger's parts, each a layer of the stack (or toppings laid at its height): what a part is
+//: drawn as, from the plate up.
+const SAUCE_KEY = { ketchup: "sauce_red", mayo: "sauce_white", mustard: "sauce_yellow", bbq_sauce: "sauce_brown", hot_sauce: "sauce_hot", tahini: "tahini", salsa: "salsa" };
+function stackLayer(ing, R, seed, k) {
+  switch (ing) {
+    case "heel": return { inside: disc(R), depth: 0.022, bevel: 0.006, dome: domeOf(R, 0.002), materials: ["bun_cut", "bun"] };
+    case "crown": return { inside: disc(R * 0.97), depth: 0.033, bevel: 0.012, dome: domeOf(R, 0.012), materials: ["bun", "bun"], crown: true };
+    case "beef_patty": return { inside: disc(R * 1.03), depth: 0.017, bevel: 0.004, materials: ["patty", "patty"] };
+    case "chicken": return { inside: (x, z) => x * x + z * z <= (R * (1.04 + 0.05 * Math.sin(Math.atan2(z, x) * 3 + k))) ** 2, depth: 0.016, bevel: 0.005, materials: ["chicken", "chicken"] };
+    case "cheese": return { inside: roundedSquare(0.045, 0.004), depth: 0.0025, bevel: 0.0008, sag: (x, z) => -Math.max(0, Math.max(Math.abs(x), Math.abs(z)) - 0.04) * 0.9, materials: ["cheese", "cheese"] };
+    case "lettuce": return { inside: (x, z) => x * x + z * z <= (R * (1.08 + 0.06 * Math.sin(Math.atan2(z, x) * 7))) ** 2, depth: 0.004, bevel: 0.001, sag: (x, z) => noise3(x * 60, 1, z * 60, seed) * 0.003, materials: ["lettuce", "lettuce"] };
+    case "tomato": return { inside: disc(R * 0.82), depth: 0.007, bevel: 0.001, materials: ["tomato_skin", "tomato"] };
+    case "onion": return { inside: (x, z) => { const d = Math.hypot(x, z); return d <= R * 0.78 && (d % 0.009) < 0.0055; }, depth: 0.003, bevel: 0.0006, materials: ["onion", "onion"] };
+    case "bacon": return { inside: (x, z) => Math.abs(x) <= R * 1.05 && Math.abs(z) <= R * 0.9 && ((z + 0.1) % 0.022) < 0.015, depth: 0.004, bevel: 0.0008, sag: (x) => Math.sin(x * 120 + k) * 0.0015, materials: ["bacon", "bacon"] };
+    case "egg": return { inside: (x, z) => x * x + z * z <= (R * (1.1 + 0.08 * Math.sin(Math.atan2(z, x) * 5 + k))) ** 2, depth: 0.003, bevel: 0.0008, materials: ["egg_white", "egg_white"], yolk: true };
+    default: return null;
   }
-  // Ketchup and the pickles between the tomato and the crown.
-  for (let i = 0; i < 4; i += 1) { const p = slice(THREE, L, "pickle", "pickle", 0.013, 0.003, 12); p.position.set(Math.cos(i * 1.6) * 0.022, 0.0535, Math.sin(i * 1.6) * 0.022); seeds.push(p); }
-  const ketchup = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.04, 0.002, 18), L.m("sauce_red")); ketchup.position.set(0, 0.0525, 0.004); seeds.push(ketchup);
+}
+//: A burger stacked the way it was built (``b``, the plate's order; the recipe's when null): each
+//: part a layer from the plate up, the bun's heel where the bun went on and its crown on top -- so
+//: a patty put down before the bun is under it, and what was left off is not there.
+function burger(THREE, L, seed, b = null) {
+  const R = 0.056;
+  const build = b || [{ ing: "bun" }, { ing: "beef_patty", qty: 1 }, { ing: "cheese" }, { ing: "lettuce" }, { ing: "tomato" }, { ing: "pickles" }, { ing: "ketchup" }];
+  const parts = [];
+  let bun = false;
+  for (const c of build.filter((x) => !x.side)) {
+    if (c.ing === "bun") { bun = true; parts.push("heel"); continue; }
+    const n = c.ing === "beef_patty" || c.ing === "chicken" || c.ing === "bacon" ? Math.max(1, Math.round(c.qty || 1)) : 1;
+    for (let i = 0; i < n; i += 1) parts.push(c.ing);
+  }
+  if (bun) parts.push("crown");
+  const layers = [], seeds = [], r = rng(seed);
+  let y = 0;
+  parts.forEach((ing, k) => {
+    // Toppings with no layer of their own: pickles and sauces, laid at the height they went on.
+    if (ing === "pickles") { for (let i = 0; i < 4; i += 1) { const p = slice(THREE, L, "pickle", "pickle", 0.013, 0.003, 12); p.position.set(Math.cos(i * 1.6) * 0.022, y + 0.0015, Math.sin(i * 1.6) * 0.022); seeds.push(p); } y += 0.002; return; }
+    if (SAUCE_KEY[ing]) { const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.04, 0.002, 18), L.m(SAUCE_KEY[ing])); sc.position.set(0, y + 0.001, 0.004); seeds.push(sc); y += 0.0012; return; }
+    const ly = stackLayer(ing, R, seed, k);
+    if (!ly) return;
+    layers.push({ ...ly, y0: y });
+    if (ly.crown) {
+      // The crown's sesame seeds, on its dome.
+      for (let i = 0; i < 70; i += 1) {
+        const a = r() * 6.28, d = Math.sqrt(r()) * R * 0.82, x = Math.cos(a) * d, z = Math.sin(a) * d;
+        const sm = new THREE.Mesh(new THREE.SphereGeometry(0.0018, 5, 3).scale(1, 0.45, 0.6), L.m("sesame"));
+        sm.position.set(x, y + 0.033 + domeOf(R, 0.012)(x, z) * 0.9 - 0.004 * (d / R) ** 2, z); sm.rotation.y = a;
+        seeds.push(sm);
+      }
+    }
+    if (ly.yolk) { const yk = new THREE.Mesh(new THREE.SphereGeometry(0.014, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.6, 1), L.m("yolk")); yk.position.set(0.004, y + ly.depth, -0.003); seeds.push(yk); }
+    y += ly.depth - 0.0005;
+  });
+  if (!layers.length) layers.push({ ...stackLayer("beef_patty", R, seed, 0), y0: 0 });
   return biteable(THREE, L, { half: 0.072, layers, toppings: seeds, name: "burger", hands: 2 });
 }
 //: A sandwich cut corner to corner: two triangles of bread with ham, cheese, lettuce and tomato.
-function sandwichHalf(THREE, L, sgn, seed) {
+function sandwichHalf(THREE, L, sgn, seed, b = null) {
   const tri = (x, z) => sgn * (x - z) >= -0.002 && Math.abs(x) <= 0.055 && Math.abs(z) <= 0.055;
   const breadCut = (x, z) => tri(x, z) && roundedSquare(0.055, 0.012)(x, z);
-  const layers = [
-    { inside: breadCut, y0: 0, depth: 0.013, bevel: 0.002, materials: ["bread", "crust"] },
-    { inside: (x, z) => breadCut(x * 0.97, z * 0.97), y0: 0.013, depth: 0.003, bevel: 0.0008, sag: (x, z) => noise3(x * 50, 0, z * 50, seed) * 0.0015, materials: ["lettuce", "lettuce"] },
-    { inside: (x, z) => breadCut(x * 1.02, z * 1.02), y0: 0.016, depth: 0.006, bevel: 0.0006, materials: ["cut_meat", "beef_raw"], cutMaterial: "beef_raw" },
-    { inside: (x, z) => breadCut(x * 1.04, z * 1.04), y0: 0.022, depth: 0.002, bevel: 0.0005, materials: ["cheese", "cheese"] },
-    { inside: (x, z) => breadCut(x * 1.2, z * 1.2), y0: 0.024, depth: 0.005, bevel: 0.0008, materials: ["tomato_skin", "tomato"] },
-    { inside: breadCut, y0: 0.029, depth: 0.013, bevel: 0.002, materials: ["crust", "bread"] },
-  ];
+  const scaled = (k) => (x, z) => breadCut(x * k, z * k);
+  // Stacked as built (``b``: the plate's order): a slice of bread wherever bread went on, the
+  // first one crumb up and the rest crust up; what was left out is not there.
+  const build = (b || [{ ing: "bread" }, { ing: "lettuce" }, { ing: "ham" }, { ing: "cheese" }, { ing: "tomato" }, { ing: "bread" }]).filter((c) => !c.side);
+  const LAYER = {
+    lettuce: { inside: scaled(0.97), depth: 0.003, bevel: 0.0008, sag: (x, z) => noise3(x * 50, 0, z * 50, seed) * 0.0015, materials: ["lettuce", "lettuce"] },
+    ham: { inside: scaled(1.02), depth: 0.006, bevel: 0.0006, materials: ["cut_meat", "beef_raw"], cutMaterial: "beef_raw" },
+    turkey: { inside: scaled(1.02), depth: 0.006, bevel: 0.0006, materials: ["chicken_meat", "chicken_meat"] },
+    bacon: { inside: (x, z) => scaled(1.0)(x, z) && ((x + z + 0.2) % 0.02) < 0.013, depth: 0.004, bevel: 0.0006, materials: ["bacon", "bacon"] },
+    cheese: { inside: scaled(1.04), depth: 0.002, bevel: 0.0005, materials: ["cheese", "cheese"] },
+    tomato: { inside: scaled(1.2), depth: 0.005, bevel: 0.0008, materials: ["tomato_skin", "tomato"] },
+    egg: { inside: scaled(1.0), depth: 0.004, bevel: 0.0008, materials: ["egg_white", "egg_white"] },
+    mustard: { inside: scaled(1.06), depth: 0.0008, bevel: 0.0002, materials: ["sauce_yellow", "sauce_yellow"] },
+    mayo: { inside: scaled(1.06), depth: 0.0008, bevel: 0.0002, materials: ["sauce_white", "sauce_white"] },
+  };
+  const layers = [];
+  let y = 0, slices = 0;
+  for (const c of build) {
+    if (c.ing === "bread") { layers.push({ inside: breadCut, y0: y, depth: 0.013, bevel: 0.002, materials: slices === 0 ? ["bread", "crust"] : ["crust", "bread"] }); slices += 1; y += 0.013; continue; }
+    const ly = LAYER[c.ing];
+    if (!ly) continue;
+    layers.push({ ...ly, y0: y }); y += ly.depth;
+  }
+  if (!layers.length) layers.push({ inside: breadCut, y0: 0, depth: 0.013, bevel: 0.002, materials: ["bread", "crust"] });
   // The ham is pink: the cut meat look reads as ham at this size.
   // Bitten at its point (where the diagonal cut meets the crust).
   const f = biteable(THREE, L, { half: 0.07, layers, name: "sandwich", front: [sgn * 0.7071, sgn * 0.7071] });
   return f;
 }
 //: A slice of pizza: the dough, tomato, mozzarella blistered brown, a basil leaf, the puffed rim.
-function pizzaSlice(THREE, L, seed, r = 0.15, wedge = Math.PI / 4) {
+function pizzaSlice(THREE, L, seed, r = 0.15, wedge = Math.PI / 4, b = null) {
   const inside = (x, z) => { const d = Math.hypot(x, z + r / 2); const a = Math.atan2(x, z + r / 2); return d <= r && Math.abs(a) <= wedge / 2; };
+  // What was put on (``b``, the plate): sauce and cheese as the top, sauce alone red, cheese alone
+  // white; neither, bare dough. Basil only if it went on.
+  const on = (id) => !b || b.some((c) => c.ing === id);
+  const sauce = on("tomato_sauce"), cheese = on("mozzarella") || on("cheese");
+  const top = sauce && cheese ? "pizza_top" : sauce ? "sauce_red" : cheese ? "mozzarella" : null;
   const layers = [
     { inside, y0: 0, depth: 0.004, bevel: 0.001, materials: ["pizza_crust", "pizza_crust"] },
-    { inside: (x, z) => inside(x, z) && Math.hypot(x, z + r / 2) < r - 0.018, y0: 0.004, depth: 0.003, bevel: 0.0008, materials: ["pizza_top", "pizza_top"] },
+    ...(top ? [{ inside: (x, z) => inside(x, z) && Math.hypot(x, z + r / 2) < r - 0.018, y0: 0.004, depth: 0.003, bevel: 0.0008, materials: [top, top] }] : []),
     { inside: (x, z) => inside(x, z) && Math.hypot(x, z + r / 2) >= r - 0.022, y0: 0.002, depth: 0.016, bevel: 0.006, materials: ["pizza_crust", "pizza_crust"] },
   ];
-  const leaf = new THREE.Mesh(leafGeometry(THREE, 0.018, 0.03, seed), L.m("herb")); leaf.position.set(0.003, 0.0075, -0.01);
+  const leaves = [];
+  if (on("basil")) { const leaf = new THREE.Mesh(leafGeometry(THREE, 0.018, 0.03, seed), L.m("herb")); leaf.position.set(0.003, 0.0075, -0.01); leaves.push(leaf); }
   // Bitten from the point (+z here: the slice's tip faces the mouth).
-  const f = biteable(THREE, L, { half: 0.09, layers, toppings: [leaf], name: "pizza-slice", front: [0, -1] });
+  const f = biteable(THREE, L, { half: 0.09, layers, toppings: leaves, name: "pizza-slice", front: [0, -1] });
   f.group.rotation.y = Math.PI;   // the tip toward +z, the sitter
   return f;
 }
 //: A taco: a corn tortilla folded round chopped pork, onion, cilantro and salsa, a lime wedge.
-function taco(THREE, L, seed) {
+function taco(THREE, L, seed, b = null) {
   const g = new THREE.Group(); g.name = "taco";
-  const R = 0.075;
-  // The tortilla folded up into a U along x: the flat disc bent round the x axis.
-  const tort = new THREE.CircleGeometry(R, 32);
-  tort.rotateX(-Math.PI / 2);
-  const P = tort.attributes.position;
-  for (let i = 0; i < P.count; i += 1) { const z = P.getZ(i), a = (z / R) * (Math.PI * 0.42); P.setXYZ(i, P.getX(i), R * 0.62 * (1 - Math.cos(a)), R * 0.62 * Math.sin(a)); }
-  tort.computeVertexNormals();
-  const shell = new THREE.Mesh(tort, L.m("tortilla")); shell.castShadow = true; g.add(shell);
-  const bits = scatter(THREE, L, "pork", 26, (r) => [(r() - 0.5) * R * 1.6, 0.012 + r() * 0.02, (r() - 0.5) * 0.025], (r) => { const b = new THREE.BoxGeometry(0.01 + r() * 0.006, 0.006, 0.008); return lumpy(b, 0.0012, 300, 2, 1); }, seed);
-  const onion = scatter(THREE, L, "onion", 30, (r) => [(r() - 0.5) * R * 1.5, 0.03 + r() * 0.006, (r() - 0.5) * 0.02], () => new THREE.BoxGeometry(0.004, 0.003, 0.004), seed + 1);
-  const cil = scatter(THREE, L, "herb", 16, (r) => [(r() - 0.5) * R * 1.5, 0.034, (r() - 0.5) * 0.02], (r) => leafGeometry(THREE, 0.006, 0.009, r() * 100, 0.5), seed + 2);
-  const salsa = scatter(THREE, L, "salsa", 12, (r) => [(r() - 0.5) * R * 1.4, 0.033, (r() - 0.5) * 0.018], () => new THREE.SphereGeometry(0.004, 6, 4), seed + 3);
-  g.add(bits, onion, cil, salsa);
+  const R = 0.075, has0 = (id) => !b || b.some((c) => c.ing === id);
+  // The tortilla folded into a U along x: its disc wrapped round a fold of radius R / amax, the
+  // edges brought up through 108 degrees each side, so it stands about 5 cm tall and opens about
+  // 7 cm at the top (a taco's shape), not a shallow dish.
+  const amax = Math.PI * 0.6, rf = R / amax;
+  const shellOn = has0("tortilla");
+  if (shellOn) {
+    const tort = new THREE.CircleGeometry(R, 40);
+    tort.rotateX(-Math.PI / 2);
+    const P = tort.attributes.position;
+    for (let i = 0; i < P.count; i += 1) { const z = P.getZ(i), a = (z / R) * amax; P.setXYZ(i, P.getX(i), rf * (1 - Math.cos(a)), rf * Math.sin(a)); }
+    tort.computeVertexNormals();
+    const shell = new THREE.Mesh(tort, L.m("tortilla")); shell.castShadow = true; g.add(shell);
+  }
+  // The filling inside the U: as wide at each height as the fold is there.
+  const halfAt = (y) => rf * Math.sin(Math.acos(Math.max(-1, Math.min(1, 1 - y / rf))));
+  const inU = (r, lo, hi, spread = 0.7) => { const y = lo + r() * (hi - lo), x = (r() - 0.5) * R * 1.6; return [x, shellOn ? y : y * 0.35, (r() - 0.5) * 2 * (shellOn ? halfAt(y) : 0.03) * spread]; };
+  const meat = ["pork", "chicken", "beef_slices", "steak", "shrimp", "fish_fillet", "lamb"].find((id) => !b ? id === "pork" : b.some((c) => c.ing === id));
+  const meatKey = { pork: "pork", chicken: "chicken_bits", beef_slices: "seared", steak: "seared", shrimp: "shrimp", fish_fillet: "batter", lamb: "lamb" }[meat];
+  if (meatKey) g.add(scatter(THREE, L, meatKey, 30, (r) => inU(r, 0.006, 0.026), (r) => lumpy(new THREE.BoxGeometry(0.01 + r() * 0.006, 0.007, 0.008), 0.0012, 300, 2, 1), seed));
+  if (has0("onion")) g.add(scatter(THREE, L, "onion", 30, (r) => inU(r, 0.026, 0.034), () => new THREE.BoxGeometry(0.004, 0.003, 0.004), seed + 1));
+  if (has0("cilantro")) g.add(scatter(THREE, L, "herb", 16, (r) => inU(r, 0.032, 0.036), (r) => leafGeometry(THREE, 0.006, 0.009, r() * 100, 0.5), seed + 2));
+  if (has0("salsa")) g.add(scatter(THREE, L, "salsa", 12, (r) => inU(r, 0.03, 0.036, 0.5), () => new THREE.SphereGeometry(0.004, 6, 4), seed + 3));
+  if (b?.some((c) => c.ing === "cheese")) g.add(scatter(THREE, L, "cheese", 24, (r) => inU(r, 0.033, 0.038), () => new THREE.BoxGeometry(0.008, 0.0015, 0.0015), seed + 4));
+  if (b?.some((c) => c.ing === "lettuce")) g.add(scatter(THREE, L, "lettuce", 20, (r) => inU(r, 0.03, 0.036), () => new THREE.BoxGeometry(0.009, 0.001, 0.002), seed + 5));
   g.rotation.y = -Math.PI / 2;   // its end (+x) toward the sitter (+z)
   // Bitten from its end: the taco shortens.
   const length0 = 2 * R;
   let eaten = 0;
   return {
     group: g, frame: () => g, kind: "bite", hands: 1, front: [1, 0], left: () => 1 - eaten / length0,
-    nextAt: () => ({ x: R - eaten, y: 0.03, z: 0 }),
+    nextAt: () => ({ x: R - eaten, y: 0.035, z: 0 }),
     bite() { eaten = Math.min(length0, eaten + 0.035); clip(THREE, g, R - eaten); return 0.035; },
     done: () => eaten >= length0 - 0.02,
   };
@@ -714,8 +782,10 @@ function cakeSlice(THREE, L, seed) {
 }
 
 //: A steak (or a chicken breast, a fish fillet): a seared slab, pink-grey inside where it is cut.
-function slab(THREE, L, { rx = 0.075, rz = 0.05, t = 0.026, seed = 1, top = "seared", cut = "cut_meat", name = "steak", wobble = 0.12 }) {
-  const inside = (x, z) => { const a = Math.atan2(z, x), w = 1 + wobble * Math.sin(a * 3 + seed) + wobble * 0.5 * Math.sin(a * 5 + seed * 2); return (x / (rx * w)) ** 2 + (z / (rz * w)) ** 2 <= 1; };
+function slab(THREE, L, { rx = 0.075, rz = 0.05, t = 0.026, seed = 1, top = "seared", cut = "cut_meat", name = "steak", wobble = 0.12, loaf = false }) {
+  // A slice of a loaf (toast) is square with a rounded crown, not a round cut of meat.
+  const inside = loaf ? (x, z) => roundedSquare(rx, rx * 0.22)(x, z * (rx / rz)) && (z < rz * 0.6 || Math.hypot(x, (z - rz * 0.6) * 1.6) <= rx * 1.02)
+    : (x, z) => { const a = Math.atan2(z, x), w = 1 + wobble * Math.sin(a * 3 + seed) + wobble * 0.5 * Math.sin(a * 5 + seed * 2); return (x / (rx * w)) ** 2 + (z / (rz * w)) ** 2 <= 1; };
   const layers = [{ inside, y0: 0, depth: t, bevel: t * 0.35, dome: (x, z) => t * 0.15 * Math.max(0, 1 - (x / rx) ** 2 - (z / rz) ** 2), materials: [top, top], cutMaterial: cut }];
   return biteable(THREE, L, { half: Math.max(rx, rz) * 1.3, layers, name, front: [0, 1] });
 }
@@ -763,10 +833,29 @@ const sprinkle = (THREE, L, material, n, r, y, size, seed) => scatter(THREE, L, 
 
 //: Every dish, built: { group (on the table at y = 0), food: [eaten parts, in the order eaten
 //: is natural], form, tool, drink? (createDrink, for a sip), vessel }.
-export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
-  const L = foodLook(THREE);
-  const rec = recipe || (R?.kitchen?.recipes?.[dish] ? { vessel: R.kitchen.recipes[dish].vessel, build: R.kitchen.recipes[dish].build.map((c) => ({ ing: c[0], qty: c[1], p: c[2] || "-" })) } : { vessel: "plate", build: [] });
-  const F = dishForm(dish, rec), sd = seed ?? [...String(dish)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+//: ``made`` (plated.mjs madeFrom): the plate as the cook made it -- drawn from what is on it, in
+//: the order it went on, each part as it was cooked (browned on to char, or raw), what is missing
+//: left out and what does not belong put on top; the dish's form is still the one ordered.
+export function makeDish(THREE, R, dish, { recipe = null, seed = null, made = null } = {}) {
+  const L0 = foodLook(THREE);
+  const asked = recipe || (R?.kitchen?.recipes?.[dish] ? { vessel: R.kitchen.recipes[dish].vessel, build: R.kitchen.recipes[dish].build.map((c) => ({ ing: c[0], qty: c[1], p: c[2] || "-", side: Boolean(c[3]) })) } : { vessel: "plate", build: [] });
+  const rec = made ? { vessel: made.target.vessel || asked.vessel, build: made.build } : asked;
+  const F = dishForm(dish, made ? made.target : asked), sd = seed ?? [...String(dish)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  // The looks, as made: each material of an ingredient that came out raw or overdone tinted to it
+  // (kept per state), any colour asked for by "#rrggbb", and a note of what was drawn.
+  const used = new Set(), tints = (L0.tints ||= new Map());
+  const L = { ...L0, m: (key) => {
+    used.add(key);
+    if (key[0] === "#") { if (!tints.has(key)) tints.set(key, new THREE.MeshPhysicalMaterial({ color: new THREE.Color(key), roughness: 0.45, clearcoat: 0.3 })); return tints.get(key); }
+    const st = lookState(made, key);
+    if (!st) return L0.m(key);
+    const k = `${key}|${st.ing}|${Math.round(st.burnt * 20)}|${Math.round(st.raw * 20)}`;
+    // Hardly cooked, it has none of the surface cooking gives it (a raw steak has no grill marks).
+    const base = st.raw >= 0.5 && RAW_SURFACE[key] ? (RAW_SURFACE[key] === "ham_raw" ? "cut_meat" : RAW_SURFACE[key]) : key;
+    if (!tints.has(k)) tints.set(k, tinted(THREE, L0.m(base), st, R));
+    return tints.get(k);
+  } };
+  const portion = (ing) => made?.portions?.[ing] ?? 1;
   const group = new THREE.Group(); group.name = `dish:${dish}`;
   const food = [];
   let vessel = null, drink = null, drinkMesh = null;
@@ -824,13 +913,13 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
     case "burger": {
       const top = F.server === "plate" ? plateTop() : 0;
       if (F.server !== "plate") { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26, 4, 4).rotateX(-Math.PI / 2), L.m("wrap_paper")); w.position.y = 0.001; group.add(w); }
-      const bg = burger(THREE, L, sd); on(bg.group, F.side ? -0.035 : 0, top, 0.01); food.push(bg);
-      if (F.side) { const fr = fries(THREE, L, 34, (r) => [0.06 + (r() - 0.5) * 0.06, top + 0.005 + r() * 0.02, (r() - 0.5) * 0.09, r() * 6.28, (r() - 0.5) * 0.3], sd); group.add(fr); const ks = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.006, 16), L.m("sauce_red")); ks.position.set(-0.03, top + 0.002, -0.08); group.add(ks); food.push(friesEaten(THREE, L, fr, 12)); }
+      const bg = burger(THREE, L, sd, made ? b : null); on(bg.group, F.side ? -0.035 : 0, top, 0.01); food.push(bg);
+      if (F.side && has(b, "potato")) { const fr = fries(THREE, L, Math.round(34 * Math.min(2, portion("potato"))), (r) => [0.06 + (r() - 0.5) * 0.06, top + 0.005 + r() * 0.02, (r() - 0.5) * 0.09, r() * 6.28, (r() - 0.5) * 0.3], sd); group.add(fr); const ks = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.006, 16), L.m("sauce_red")); ks.position.set(-0.03, top + 0.002, -0.08); group.add(ks); food.push(friesEaten(THREE, L, fr, 12)); }
       break;
     }
     case "sandwich": {
       const top = plateTop();
-      const a = sandwichHalf(THREE, L, 1, sd), c = sandwichHalf(THREE, L, -1, sd + 1);
+      const a = sandwichHalf(THREE, L, 1, sd, made ? b : null), c = sandwichHalf(THREE, L, -1, sd + 1, made ? b : null);
       on(a.group, 0.012, top, -0.01); on(c.group, -0.028, top, 0.022, 0.5); food.push(a, c);
       break;
     }
@@ -838,7 +927,7 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
     case "pizza": {
       const top = serve("pizza_board");
       for (let i = 0; i < 8; i += 1) {
-        const s = pizzaSlice(THREE, L, sd + i, 0.15, Math.PI / 4 - 0.01);
+        const s = pizzaSlice(THREE, L, sd + i, 0.15, Math.PI / 4 - 0.01, made ? b : null);
         const holder = new THREE.Group(); holder.add(s.group); s.group.position.set(0, 0, -0.075); holder.rotation.y = i * Math.PI / 4; holder.position.y = top; group.add(holder);
         // (Eaten slice by slice: each is turned to its eater as it is picked up.)
         food.push({ ...s, holder });
@@ -866,8 +955,8 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
     case "tacos": {
       const top = plateTop();
       const n = F.n || 3;
-      for (let i = 0; i < n; i += 1) { const t = taco(THREE, L, sd + i); on(t.group, (i - (n - 1) / 2) * 0.062, top, -0.01, 0); food.push(t); }
-      const lw = citrusWedge(THREE, L, "lime", 0.022); lw.position.set(0.09, top + 0.012, 0.06); group.add(lw);
+      for (let i = 0; i < n; i += 1) { const t = taco(THREE, L, sd + i, made ? b : null); on(t.group, (i - (n - 1) / 2) * 0.082, top, -0.01, 0); t.group.rotation.z = (i - (n - 1) / 2) * -0.05; food.push(t); }
+      if (has(b, "lime")) { const lw = citrusWedge(THREE, L, "lime", 0.022); lw.position.set(0.1, top + 0.012, 0.075); group.add(lw); }
       break;
     }
     case "bagel": { const top = plateTop(); const a = bagelHalf(THREE, L, sd), c = bagelHalf(THREE, L, sd + 1); on(a.group, -0.05, top, 0); on(c.group, 0.05, top, 0); food.push(a, c); break; }
@@ -1150,7 +1239,7 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
       if (has(b, "potato")) {
         const p = cooked(b, "potato");
         if (p.includes("fry")) { const fr = fries(THREE, L, 26, (r) => [0.06 + (r() - 0.5) * 0.06, top + 0.005 + r() * 0.02, -0.04 + (r() - 0.5) * 0.06, r() * 6.28, (r() - 0.5) * 0.3], sd); group.add(fr); sides.push(friesEaten(THREE, L, fr, 9)); }
-        else { const list = []; for (let i = 0; i < 6; i += 1) { const w = blob(THREE, L, "roast_potato", 0.016, 0.013, 0.014, sd + i, 0.3, 10); w.position.set(0.05 + (i % 3) * 0.022, top + 0.012, -0.05 + Math.floor(i / 3) * 0.022); group.add(w); list.push(w); } sides.push(pieces(group, list)); }
+        else { const list = [], bx = !mainF && has(b, "egg") ? 0.052 : 0.05, bz = !mainF && has(b, "egg") ? 0.072 : -0.05; for (let i = 0; i < Math.round(6 * Math.min(2, portion("potato"))); i += 1) { const w = blob(THREE, L, "roast_potato", 0.016, 0.013, 0.014, sd + i, 0.3, 10); w.position.set(bx + (i % 3) * 0.022, top + 0.012 + Math.floor(i / 6) * 0.012, bz + Math.floor(i / 3) % 2 * 0.022); group.add(w); list.push(w); } sides.push(pieces(group, list)); }
       }
       if (has(b, "broccoli")) {
         const list = [];
@@ -1158,10 +1247,17 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
         sides.push(pieces(group, list));
       }
       if (has(b, "rice")) { const rm = blob(THREE, L, "rice", 0.045, 0.025, 0.04, sd, 0.18, 18); rm.position.set(0.05, top + 0.018, -0.045); group.add(rm); sides.push(mound(THREE, L, rm, { forkful: () => blob(THREE, L, "rice", 0.012, 0.007, 0.012, sd + 5, 0.2) })); }
-      if (has(b, "egg")) { const list = []; for (let i = 0; i < count(b, "egg"); i += 1) { const e = sunnyEgg(THREE, L, sd + i); e.position.set(0.04 - i * 0.07, top, -0.03); group.add(e); list.push(e); } sides.push(pieces(group, list)); }
-      if (has(b, "bacon")) { const list = []; for (let i = 0; i < count(b, "bacon"); i += 1) { const g = new THREE.PlaneGeometry(0.03, 0.11, 2, 12); g.rotateX(-Math.PI / 2); const P = g.attributes.position; for (let k = 0; k < P.count; k += 1) P.setY(k, Math.sin(P.getZ(k) * 90) * 0.004); g.computeVertexNormals(); const m = new THREE.Mesh(g, L.m("bacon")); m.position.set(0.07 + i * 0.032, top + 0.006, 0.02); group.add(m); list.push(m); } sides.push(pieces(group, list)); }
-      if (has(b, "bread")) { const t = slab(THREE, L, { rx: 0.05, rz: 0.045, t: 0.013, seed: sd + 3, top: "toast", cut: "bread", name: "toast", wobble: 0.04 }); on(t.group, -0.06, top, -0.05, 0.4); sides.push(t); }
-      if (has(b, "butter") && !has(b, "maple_syrup")) { const bt = new THREE.Mesh(roundedSlab(THREE, 0.02, 0.016, 0.007, 0.003), L.m("butter")); bt.position.set(-0.02, top + (mainF ? 0.034 : 0.006), 0.03); group.add(bt); }
+      // With no main, the eggs are the plate's centre (a breakfast): to the front, side by side,
+      // the toast behind them leaning on the rim and the bacon beside -- nothing under anything.
+      const brk = !mainF && has(b, "egg");
+      if (has(b, "egg")) { const list = [], spots = brk ? [[-0.048, 0.028], [0.028, 0.048], [-0.01, -0.01]] : [[0.04, -0.03], [-0.03, -0.03], [0.0, -0.07]]; for (let i = 0; i < Math.min(3, count(b, "egg")); i += 1) { const e = sunnyEgg(THREE, L, sd + i); e.position.set(spots[i][0], top, spots[i][1]); group.add(e); list.push(e); } sides.push(pieces(group, list)); }
+      if (has(b, "bacon")) { const list = []; for (let i = 0; i < Math.min(4, count(b, "bacon")); i += 1) { const g = new THREE.PlaneGeometry(0.028, 0.1, 2, 12); g.rotateX(-Math.PI / 2); const P = g.attributes.position; for (let k = 0; k < P.count; k += 1) P.setY(k, Math.sin(P.getZ(k) * 90) * 0.004); g.computeVertexNormals(); const m = new THREE.Mesh(g, L.m("bacon")); m.position.set((brk ? 0.058 : 0.07) + i * (brk ? 0.026 : 0.032), top + 0.006, brk ? -0.045 + i * 0.008 : 0.02); m.rotation.y = brk ? 0.7 : 0; group.add(m); list.push(m); } sides.push(pieces(group, list)); }
+      if (has(b, "bread")) {
+        const t = slab(THREE, L, { rx: 0.048, rz: 0.05, t: 0.013, seed: sd + 3, top: "toast", cut: "bread", name: "toast", wobble: 0.04, loaf: true });
+        if (brk) on(t.group, -0.045, top, -0.062, 0.55); else on(t.group, -0.06, top, -0.05, 0.4);
+        sides.push(t);
+      }
+      if (has(b, "butter") && !has(b, "maple_syrup")) { const bt = new THREE.Mesh(roundedSlab(THREE, 0.02, 0.016, 0.007, 0.003), L.m("butter")); if (mainF) bt.position.set(-0.02, top + 0.034, 0.03); else if (has(b, "egg") && has(b, "bread")) { bt.position.set(-0.04, top + 0.02, -0.06); bt.rotation.y = 0.5; } else bt.position.set(-0.02, top + 0.006, 0.03); group.add(bt); }
       if (has(b, "teriyaki_sauce")) { const s = blob(THREE, L, "sauce_brown", 0.05, 0.003, 0.035, sd, 0.4, 16); s.position.set(-0.02, top + 0.024, 0.03); group.add(s); }
       if (has(b, "garlic")) group.add(sprinkle(THREE, L, "garlic", 10, 0.04, top + 0.03, 0.003, sd));
       if (has(b, "lemon")) { const w = citrusWedge(THREE, L, "lemon", 0.024); w.position.set(0.09, top + 0.015, 0.06); group.add(w); }
@@ -1170,10 +1266,39 @@ export function makeDish(THREE, R, dish, { recipe = null, seed = null } = {}) {
       break;
     }
   }
+  // What does not belong, where the cook put it: on top of the food, as what it is (a dollop of a
+  // sauce, chopped bits, leaves, a slab, a dusting) -- unless the dish's own drawing already drew it.
+  const extras = [];
+  if (made && F.form !== "drink") {
+    const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0);
+    group.updateMatrixWorld(true);
+    const targets = []; group.traverse((o) => { if (o.isMesh && !(vessel && isWithin(o, vessel))) targets.push(o); });
+    const topAt = (x, z) => { ray.set(new THREE.Vector3(x, 1, z), down); const h = ray.intersectObjects(targets, false)[0]; return h ? h.point.y : (vessel ? 0.02 : 0.01); };
+    let k = 0;
+    for (const ing of new Set(made.extra)) {
+      if ((LOOK_OF[ing] || []).some((key) => used.has(key))) continue;
+      const x = extraLook(R, ing), mk = `#${x.colour.toString(16).padStart(6, "0")}`, r0 = rng(sd + 31 * (k + 1));
+      const cx = ((k % 3) - 1) * 0.028, cz = 0.012 - Math.floor(k / 3) * 0.028, y = topAt(cx, cz);
+      let m;
+      if (x.shape === "dollop") m = blob(THREE, L, mk, 0.016, 0.005, 0.013, sd + k, 0.45, 12);
+      else if (x.shape === "bits") m = scatter(THREE, L, mk, 14, (r) => [(r() - 0.5) * 0.04, 0.002, (r() - 0.5) * 0.04], () => new THREE.BoxGeometry(0.006, 0.004, 0.006), sd + k);
+      else if (x.shape === "leaves") m = scatter(THREE, L, mk, 6, (r) => [(r() - 0.5) * 0.035, 0.002, (r() - 0.5) * 0.035, r() * 6, 0.2], (r) => leafGeometry(THREE, 0.012, 0.02, r() * 100, 0.4), sd + k);
+      else if (x.shape === "dust") m = scatter(THREE, L, mk, 40, (r) => [(r() - 0.5) * 0.05, 0.001, (r() - 0.5) * 0.05], () => new THREE.BoxGeometry(0.0016, 0.0008, 0.0016), sd + k);
+      else if (x.shape === "slab") m = blob(THREE, L, mk, 0.024, 0.007, 0.018, sd + k, 0.2, 12);
+      else m = blob(THREE, L, mk, 0.016, 0.011, 0.016, sd + k, 0.25, 10);
+      m.position.set(cx, y + (x.shape === "dollop" || x.shape === "slab" ? 0.003 : 0.001), cz);
+      m.rotation.y = r0() * 6.28;
+      m.name = `extra:${ing}`;
+      group.add(m); extras.push(ing);
+      k += 1;
+    }
+  }
   group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { group, food, form: F.form, tool: F.tool, drink, drinkMesh, vessel, plan: F };
+  return { group, food, form: F.form, tool: F.tool, drink, drinkMesh, vessel, plan: F, made, extras };
 }
 //: A fried egg, sunny side up: the white spread thin with a crisp lacy edge, the yolk domed.
+//: Whether ``o`` is ``root`` or inside it.
+function isWithin(o, root) { for (let p = o; p; p = p.parent) if (p === root) return true; return false; }
 function sunnyEgg(THREE, L, seed) {
   const g = new THREE.Group();
   const white = new THREE.CircleGeometry(0.042, 28); white.rotateX(-Math.PI / 2);

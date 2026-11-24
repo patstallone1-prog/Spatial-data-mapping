@@ -112,3 +112,54 @@ test("the world's strike modes: a thrust is less than a swing, a stroke of work 
   const ham = run("work", "hammer");
   assert.equal(ham.r.ok, false); assert.match(ham.r.error, /not a tool to work with/);
 });
+
+test("C pushes empty-handed: a chip for something loose, never for a person (a shove is always there)", () => {
+  assert.deepEqual(ids(at({ front: { thing: { name: "Log", material: "deadwood", wood: true, loose: true } } })).filter((x) => x === "push"), ["push"]);
+  assert.ok(!ids(at({ front: { thing: { name: "Maria", person: true } } })).includes("push"));
+  assert.ok(!ids(at({ front: { thing: { name: "Bench", material: "lumber", wood: true } } })).includes("push"));
+  assert.equal(affordances(at({ front: { thing: { name: "Log", loose: true } } })).find((a) => a.id === "push").label, "Push the log");
+});
+
+test("R by tool: a spade digs the ground underfoot, a knife carves wood, a hammer drives nails -- and why not", () => {
+  const spade = { name: "Garden spade", strike: "shovel" }, knife = { name: "Pocket knife", strike: "knife" };
+  const dig = (under) => affordances(at({ held: spade, under })).find((a) => a.id === "dig");
+  assert.equal(dig({ kind: "turf", name: "lawn", soil: true }).ok, true);
+  assert.equal(dig({ kind: "turf", name: "lawn", soil: true }).label, "Dig the lawn (hold)");
+  assert.equal(dig({ kind: "concrete", name: "pavement", soil: false }).reason, "A spade will not go into the pavement");
+  const bench = { name: "Bench", material: "lumber", wood: true }, post = { name: "Sign post", material: "steel", wood: false };
+  assert.equal(affordances(at({ held: knife, front: { thing: bench } })).find((a) => a.key === "r").id, "carve");
+  assert.match(affordances(at({ held: knife, front: { thing: post } })).find((a) => a.id === "carve").reason, /A knife carves wood/);
+  const ham = (nails, thing = bench) => affordances(at({ held: { name: "Hammer", strike: "hammer", nails }, front: { thing } })).find((a) => a.id === "hammer_in");
+  assert.equal(ham(30).ok, true);
+  assert.match(ham(0).reason, /No nails/);
+  assert.equal(ham(30, post).reason, "Nails go into wood");
+  // A knife thrusts (stabs); a spade jabs.
+  assert.ok(ids(at({ held: knife, front: { thing: bench } })).includes("thrust"));
+});
+
+test("view.mjs declares each function once (a second declaration silently replaces the first)", () => {
+  const src = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  const names = [...src.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\(/gm)].map((m) => m[1]);
+  const twice = names.filter((n, i) => names.indexOf(n) !== i);
+  assert.deepEqual(twice, []);
+});
+
+test("the world's hand work: a stroke costs stamina, a nail comes from the box, a shove that fells is battery", () => {
+  const w = new CityWorld(R, { seed: "labour", now: Date.UTC(2026, 9, 6, 19, 0) });
+  w.submit("me", "join", { name: "Tester", at: { x: 0, z: 0, lon: -122.4335, lat: 37.8006 } });
+  const p = w.players.get("me");
+  assert.match(w.submit("me", "labour", { kind: "dig" }).error, /needs a garden spade/);
+  p.inventory.shovel = 1; p.hands = "shovel";
+  const s0 = p.vitals.stamina, dug = w.submit("me", "labour", { kind: "dig" });
+  assert.ok(dug.ok && p.vitals.stamina < s0);
+  p.inventory.hammer = 1; p.hands = "hammer";
+  assert.match(w.submit("me", "labour", { kind: "hammer", start_nail: true }).error, /no nails/);
+  p.inventory.nails = 1;
+  const n = w.submit("me", "labour", { kind: "hammer", start_nail: true });
+  assert.ok(n.ok); assert.equal(n.nails, 49); assert.equal(p.inventory.nails || 0, 0);
+  assert.equal(w.submit("me", "labour", { kind: "hammer" }).nails, 49);
+  const stay = w.submit("me", "shove", { npc: { id: "npc:1", name: "Sam", x: 0.5, z: 0 }, falls: false, witnesses: 2 });
+  assert.ok(stay.ok); assert.equal(stay.fine, 0);
+  const fell = w.submit("me", "shove", { npc: { id: "npc:2", name: "Ann", x: 0.5, z: 0 }, falls: true, witnesses: 2 });
+  assert.ok(fell.ok); assert.ok(fell.fine > 0); assert.ok(fell.injury);
+});

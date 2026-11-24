@@ -6,7 +6,8 @@
 
 //: The engine's implement for each of the city's strike kinds (rules.json items' strike), and for
 //: a held thing with a point.
-export const IMPLEMENT = { fists: "fist", hammer: "claw_hammer", sledgehammer: "sledgehammer", crowbar: "crowbar", axe: "felling_axe", screwdriver: "screwdriver" };
+export const IMPLEMENT = { fists: "fist", hammer: "claw_hammer", sledgehammer: "sledgehammer", crowbar: "crowbar", axe: "felling_axe", screwdriver: "screwdriver",
+  shovel: "spade", knife: "pocket_knife" };
 //: A catalogue material word the engine has no pointer for: the substance it most likely is.
 const FALLBACK = { wood: "douglas_fir_dry", timber: "douglas_fir_dry", lumber: "douglas_fir_dry", tree: "red_oak_green", metal: "mild_steel", iron: "grey_cast_iron",
   stone: "granite", brick: "clay_brick", plastic: "polypropylene", rubber: "rubber_tread", fabric: "cotton_canvas" };
@@ -36,13 +37,14 @@ export function strikePreview(M, { tool, material, tree = false, mode = "thrust"
   if (!impl || !sub) return null;
   let t;
   try { t = M.tool(impl); } catch { return null; }
-  const feature = mode === "thrust" ? (t.tip ? "tip" : "face") : t.edge ? "edge" : t.tip ? "tip" : "face";
+  // Only what touches is measured: a thrust leads with the point, else the edge (a spade's jab), else the face.
+  const feature = mode === "thrust" ? (t.tip ? "tip" : t.edge ? "edge" : "face") : t.edge ? "edge" : t.tip ? "tip" : "face";
   let r;
   try { r = M.strike(t, bodyFor(M, sub, tree), { feature, energy_j, mode }); } catch { return null; }
   const mm = Math.round((r.depth_m || 0) * 1000 * 10) / 10;
   const kind = r.mark?.kind || "none";
   let text;
-  if (r.glanced) text = "it glances off";
+  if (r.glanced) text = r.on_rim ? "it lands on the rim and skids off" : "it glances off";
   else if (r.outcome === "through") text = "it goes right through";
   else if (r.outcome === "shatter") text = "it shatters";
   else if (kind === "none" || mm < 0.5) text = r.limit === "grip" ? "it will not bite: your grip gives first" : "it bounces off, hardly a mark";

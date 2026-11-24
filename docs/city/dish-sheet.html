@@ -2,7 +2,8 @@
 <html><head><meta charset="utf-8"><title>Dish sheet</title>
 <!-- Every dish the kitchens make (dish-models.mjs), laid out on a table to be looked at: ?dish=ramen
      for one close up (?yaw, ?pitch, ?d to move the camera), ?only=a,b,c for a few, ?cols=8. ?bites=3
-     takes that many bites (or forkfuls, sips) out of each first. -->
+     takes that many bites (or forkfuls, sips) out of each first. ?made=burnt|raw|missing|extra|order|mess
+     draws each as a cook made it that way (plated.mjs), beside the dish as ordered. -->
 <style>body{margin:0;background:#20242a;font:12px system-ui;overflow:hidden}#hud{position:fixed;left:8px;top:8px;color:#fff;background:#0008;padding:4px 8px;border-radius:6px}</style>
 <script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
 </head><body><div id="hud">loading…</div>
@@ -10,6 +11,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { makeDish } from "./dish-models.mjs";
+import { madeFrom } from "./plated.mjs";
 const q = new URLSearchParams(location.search), hud = document.getElementById("hud");
 const R = await (await fetch("./rules.json")).json();
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -31,9 +33,25 @@ Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near:
 const table = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ color: 0x6b4a2e, roughness: 0.55 })); table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table);
 const one = q.get("dish"), only = q.get("only")?.split(","), names = one ? [one] : only || [...Object.keys(R.kitchen.recipes), "cocktail"];
 const cols = +(q.get("cols") || Math.ceil(Math.sqrt(names.length * 1.4))), gap = 0.42;
-const dishes = [];
+const dishes = [], madeMode = q.get("made");
+//: A plate as a cook got it wrong in one way (or all of them: mess), from the recipe.
+function plateMade(id, mode) {
+  const rc = R.kitchen.recipes[id]; if (!rc) return null;
+  let plate = rc.build.map((c) => ({ ing: c[0], qty: c[1], p: c[2] || "-", ratios: (c[2] || "-").split(">").filter((x) => x !== "-").map(() => 1) }));
+  const heat = (k) => plate.forEach((c) => { c.ratios = c.p.split(">").map((x) => (R.kitchen.heat.includes(x) ? k : 1)); });
+  const mains = plate.filter((c) => !rc.build.find((b) => b[0] === c.ing)?.[3]);
+  if (mode === "burnt" || mode === "mess") heat(2.3);
+  if (mode === "raw") heat(0.35);
+  if (mode === "missing" || mode === "mess") plate = plate.filter((c) => c !== mains[1]);
+  if (mode === "extra" || mode === "mess") plate.push({ ing: "mustard", qty: 1, p: "-" }, { ing: "pickles", qty: 1, p: "-" }, { ing: "sugar", qty: 1, p: "-" });
+  if (mode === "order") { const side = plate.filter((c) => !mains.includes(c)); plate = [...mains.reverse(), ...side]; }
+  return madeFrom(R, id, plate);
+}
+const notes = [];
 names.forEach((id, i) => {
-  const d = makeDish(THREE, R, id);
+  const made = madeMode ? plateMade(id, madeMode) : null;
+  if (made && one) notes.push(...made.notes);
+  const d = makeDish(THREE, R, id, made ? { made } : {});
   const x = (i % cols - (cols - 1) / 2) * gap, z = (Math.floor(i / cols) - (Math.ceil(names.length / cols) - 1) / 2) * gap;
   d.group.position.set(one ? 0 : x, 0, one ? 0 : z); scene.add(d.group);
   if (!one) {
@@ -54,7 +72,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 if (one) { const yaw = +(q.get("yaw") || 0.5), pitch = +(q.get("pitch") || 0.75), dist = +(q.get("d") || 0.55); camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); controls.target.set(0, 0.04, 0); }
 else { const span = cols * gap; camera.position.set(0, span * 0.95, span * 0.62); controls.target.set(0, 0, 0.05); }
 controls.update();
-hud.textContent = `${names.length} dish${names.length > 1 ? "es" : ""}${bites ? ` · ${bites} bites each` : ""}`;
+hud.textContent = `${names.length} dish${names.length > 1 ? "es" : ""}${bites ? ` · ${bites} bites each` : ""}${madeMode ? ` · made: ${madeMode}${notes.length ? ` (${notes.join(", ")})` : ""}` : ""}`;
 addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 (function loop() { if (renderer.domElement.width !== Math.round(innerWidth * renderer.getPixelRatio())) { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix(); } renderer.render(scene, camera); requestAnimationFrame(loop); })();
 window.sheet = { THREE, scene, camera, controls, dishes, renderer };

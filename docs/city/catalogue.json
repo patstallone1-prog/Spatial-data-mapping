@@ -2,11 +2,11 @@
  "schema": "kerbside.city_catalogue/1",
  "basis": "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/53-store-catalogue.md).",
  "counts": {
-  "items": 350,
-  "goods": 330,
+  "items": 352,
+  "goods": 332,
   "services": 20,
-  "sold_somewhere": 336,
-  "drawn_with_model": 245,
+  "sold_somewhere": 338,
+  "drawn_with_model": 246,
   "imported": 143,
   "store_items_with_aisle": 165,
   "store_items_imported": 142,
@@ -1371,6 +1371,48 @@
     "license": "CC0-1.0",
     "drawn": true,
     "recognisable": true
+   }
+  },
+  {
+   "id": "shovel",
+   "name": "Garden spade",
+   "price": 35,
+   "kind": "taxable",
+   "service": false,
+   "sold_at": [
+    "hardware"
+   ],
+   "aisle": null,
+   "display": null,
+   "kg": 2,
+   "length_m": 1,
+   "model": {
+    "status": "generic_match",
+    "asset": "k-survival-tool-shovel",
+    "providers": [
+     "Kenney"
+    ],
+    "license": "CC0-1.0",
+    "drawn": true,
+    "recognisable": true
+   }
+  },
+  {
+   "id": "pocket_knife",
+   "name": "Pocket knife",
+   "price": 22,
+   "kind": "taxable",
+   "service": false,
+   "sold_at": [
+    "hardware"
+   ],
+   "aisle": null,
+   "display": null,
+   "kg": 0.09,
+   "length_m": 0.18,
+   "model": {
+    "status": "none",
+    "note": "not in the object manifest: the page draws it"
    }
   },
   {

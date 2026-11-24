@@ -59,7 +59,11 @@ export const ACCOUNT_GRANT_MAX = 5_000_000_00;
 //: How much of a swing's energy (and its stamina) a thrust and a stroke of work are.
 const STRIKE_MODES = { swing: { energy: 1, stamina: 1 }, thrust: { energy: 0.6, stamina: 0.7 }, work: { energy: 0.35, stamina: 0.4 } };
 //: The strike kinds that work (R): a saw saws, a crowbar pries, bolt cutters cut.
-const WORK_TOOLS = new Set(["saw", "crowbar", "bolt_cutters"]);
+const WORK_TOOLS = new Set(["saw", "crowbar", "bolt_cutters", "knife", "shovel"]);
+//: Work by hand that is not a blow (mechanics-work.mjs): the stamina a stroke costs, and what must
+//: be in the hand for it. A box of nails holds this many.
+const LABOUR = { dig: { stamina: 0.8, tool: "shovel" }, carve: { stamina: 0.15, tool: "pocket_knife" }, hammer: { stamina: 0.35, tool: "hammer" }, push: { stamina: 0.5, tool: null } };
+const NAILS_PER_BOX = 50;
 
 export class CityError extends Error {}
 
@@ -1080,6 +1084,45 @@ export class CityWorld {
   }
   //: A blow to someone: hurt by the energy of it; they hit back, run, or (a police officer)
   //: arrest you; seen, or reported by them, it is a battery.
+  //: A stroke of work by hand (``kind``: dig, carve, hammer, push), paid in stamina. Starting a
+  //: nail takes one from the box (a box holds NAILS_PER_BOX; a new box is opened when the last is
+  //: used).
+  cmd_labour(pid, { kind, start_nail = false } = {}) {
+    const p = this.player(pid), L = LABOUR[kind];
+    if (!L) throw new CityError("no such work");
+    if (L.tool && !(p.hands === L.tool && p.inventory[L.tool] > 0)) throw new CityError(`that needs a ${this.R.items[L.tool]?.name.toLowerCase() || L.tool} in your hand`);
+    p.loose ||= {};
+    if (start_nail) {
+      if (!(p.loose.nails > 0)) {
+        if (!(p.inventory.nails > 0)) throw new CityError("no nails: a box of nails is sold at the hardware store");
+        take(p.inventory, "nails", 1);
+        p.loose.nails = NAILS_PER_BOX;
+      }
+      p.loose.nails -= 1;
+    }
+    const tired = p.vitals.stamina < this.R.vitals.stamina.low;
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - L.stamina) };
+    return { kind, tired, nails: p.loose.nails ?? 0, vitals: p.vitals };
+  }
+  //: An open-handed shove (mechanics-work.mjs shove decides whether they stay up). Only one that
+  //: knocks someone down hurts them, and is battery when seen, reported, or done to an officer.
+  cmd_shove(pid, { npc, falls = false, witnesses = 0 } = {}) {
+    const p = this.player(pid);
+    if (!npc?.id) throw new CityError("nobody there");
+    if (p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - LABOUR.push.stamina) };
+    if (!falls) { this.log("shoved", { player: pid, npc: npc.id }); return { falls: false, fine: 0, vitals: p.vitals }; }
+    const h = this.harmed(npc.id, "person", npc.name || null);
+    if (h.down_until > this.now) throw new CityError("they are down already");
+    const injury = injuryFor(this.R, { joules: 20, seed: `${npc.id}:${this.now}:shove` });
+    this.hurtPerson(h, injury, npc, `knocked down by ${p.name}`);
+    let fine = 0;
+    if (witnesses > 0 || npc.role === "police") {
+      fine = this.fine(p, "battery", `Battery on ${npc.name || "a resident"}: a shove that knocked them down`, [npc.role === "police" ? "the officer" : `${witnesses} witness${witnesses > 1 ? "es" : ""}`], `shove:${npc.id}:${Math.floor(this.now / 60000)}`).amount;
+    }
+    this.log("shoved", { player: pid, npc: npc.id, falls: true, injury: injury.type });
+    return { falls: true, injury, fine, down: h.down_until > this.now, vitals: p.vitals };
+  }
   cmd_strike_person(pid, { npc, witnesses = 0, thrown = null }) {
     const p = this.player(pid);
     if (!npc?.id) throw new CityError("nobody there");
@@ -1729,7 +1772,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  "strike_person", "shove", "labour", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
   ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);

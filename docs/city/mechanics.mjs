@@ -71,6 +71,9 @@ export const CONSTANTS = Object.freeze({
   //: a cut rises about in proportion to the radius (McCarthy et al. 2007), so the next cut takes
   //: twice the push. Its radius is kept exactly either way.
   noticed_radius: 2,
+  //: The chamfer round a flat striking face's rim (m): a hammer's face is ground with about a
+  //: 1.5 mm bevel so that a canted blow lands on a rounded rim, not a corner.
+  face_rim_m: 1.5e-3,
 });
 
 // ---- substances ------------------------------------------------------------------------------
@@ -225,7 +228,10 @@ export function createMechanics(catalogue) {
   function tool(id) {
     const t = MX.implements[id];
     if (!t) throw new Error(`unknown implement ${id}`);
-    return JSON.parse(JSON.stringify({ id, ...t, edge_radius_m: t.edge?.radius_m ?? null, tip_radius_m: t.tip?.radius_m ?? null, damage: "none", blows: 0 }));
+    // Each feature keeps its own sharpness: a knife's point has its own short side edges, which a
+    // day of chopping with the main edge does not dull (and a stab does not dull the edge).
+    const side = t.tip ? t.tip.side_radius_m ?? (t.tip.sharp_sides ? t.edge?.radius_m ?? t.tip.radius_m : t.tip.radius_m) : null;
+    return JSON.parse(JSON.stringify({ id, ...t, edge_radius_m: t.edge?.radius_m ?? null, tip_radius_m: t.tip?.radius_m ?? null, tip_side_radius_m: side, damage: "none", blows: 0 }));
   }
 
   //: A struck body. ``spec``: { substance | layers: [{substance, thickness_m}], shape: "round" |
@@ -266,7 +272,10 @@ export function createMechanics(catalogue) {
     const th = tp.round ? w : (x) => Math.max(interp(tp.thickness, x), 1e-5);
     const tanB = Math.max(0.02, (interp(tp.thickness, 0.01) - interp(tp.thickness, 0)) / 0.02);
     const tipArea = tp.round ? Math.PI * rho * rho : w(0) * th(0);
-    return { feature, r: t.edge_radius_m ?? rho, rho, w, t: th, hmax: tp.width[tp.width.length - 1][0], tanB, tipArea,
+    // Only what touches counts: the point's apex (rho) and its own side edges -- never the main
+    // edge's state, which is elsewhere on the blade.
+    const side = t.tip_side_radius_m ?? tp.side_radius_m ?? (tp.sharp_sides ? t.edge?.radius_m ?? rho : rho);
+    return { feature, r: side, rho, w, t: th, hmax: tp.width[tp.width.length - 1][0], tanB, tipArea,
       sharpSides: tp.sharp_sides ?? 0, round: Boolean(tp.round), flankArea: (x) => integral(tp.width, x) };
   }
 
@@ -331,7 +340,10 @@ export function createMechanics(catalogue) {
     const C = CONSTANTS, Htool = tsub.H, toolSigma = tsub.brittle ? tsub.uts : tsub.yield, thick = thicknessOf(b);
     const force = resistance(tl, tsub, geo, b, o);
     const tipCap = (x, st) => {
-      if (geo.feature !== "tip" || !st.d) return Infinity;
+      // A point driven along its own axis by blows on its head (a nail) is held sideways by the
+      // hole behind it: it bends where it stands out of the work, not where it enters
+      // (mechanics-work.mjs drive), so the entry section's cap does not apply.
+      if (geo.feature !== "tip" || !st.d || o.guided) return Infinity;
       // A point the work cannot hold sideways bends at the section where it enters.
       const exposure = clamp(Math.log10(st.pc / Htool) + 2.3, 0, 1);
       const k = (C.lateral_share + C.oblique_lateral * Math.sin((o.angle ?? 0) * DEG)) * exposure;
@@ -433,7 +445,12 @@ export function createMechanics(catalogue) {
     r = Math.sqrt(r * r + v / cB);
     if (r > C.noticed_radius * rSharp && damage === "none") worse("dulled");
     if (pen.limit === "point") worse(tsub.brittle ? "broken" : "bent");
-    if (geo.feature === "edge") next.edge_radius_m = r; else next.tip_radius_m = r;
+    if (geo.feature === "edge") next.edge_radius_m = r;
+    else {
+      next.tip_radius_m = r;
+      // The point's side edges take the same grit as its flanks (they are what slides in).
+      if (geo.sharpSides > 0) next.tip_side_radius_m = Math.sqrt(geo.r * geo.r + v / cB);
+    }
     next.damage = worst(tl.damage, damage);
     return { tool: next, damage };
   }
@@ -613,7 +630,8 @@ export function createMechanics(catalogue) {
   //: Strike ``b`` with ``tl``. ``d``: { feature: "edge" | "tip" | "face", energy_j, angle_deg (from
   //: the surface normal), grain ("across" | "along" | "end"), tilt_deg (the cut's slant in a notch,
   //: + from above, - from below), spot (a name: blows at one spot add up), at_deg (where round a
-  //: round), slice (slice/push ratio of a drawn cut), mode ("thrust": pushed by the hand, so limited
+  //: round), slice (slice/push ratio of a drawn cut), guided (a point driven on its axis, held
+  //: sideways by its own hole: a nail), mode ("thrust": pushed by the hand, so limited
   //: by the grip; "swing": the head's momentum; tips default to thrust) }. Returns what happened, with the new body and
   //: the new tool (``tool.damage`` its worst so far, ``tool_damage`` this blow's); neither argument
   //: is changed.
@@ -629,8 +647,45 @@ export function createMechanics(catalogue) {
     const base = { feature, energy_j: d.energy_j, glanced: false, stuck: false, withdraw_n: 0 };
 
     if (feature === "face") {
-      const r = blunt(tl, tsub, nb, { energy: En, angle });
-      const mark = { ...r.mark, spot: d.spot ?? null, feature, severs: false };
+      // Only what touches is measured. A flat face canted past its crown lands on its rim -- a
+      // ring of the chamfer's radius round the face's edge, which presses like a body with the two
+      // radii's geometric mean (Hertz, two curvatures) -- so a canted hammer leaves a crescent,
+      // deeper and narrower than a square blow's round dent.
+      const tilt = Math.abs(d.face_tilt_deg ?? angle);
+      const face = tl.face;
+      const crown = face?.kind === "flat" ? Math.asin(clamp(face.diameter_m / 2 / face.radius_m, 0, 1)) / DEG : 90;
+      const onRim = Boolean(face) && face.kind === "flat" && tilt > crown;
+      const rimR = face?.rim_radius_m ?? C.face_rim_m;
+      const struck = onRim ? { ...tl, face: { kind: "sphere", radius_m: Math.sqrt(rimR * face.diameter_m / 2) } } : tl;
+      let r = blunt(struck, tsub, nb, { energy: En, angle });
+      // The rim sinks only until the face's far side comes down too (depth D tan(tilt - crown));
+      // the rest of the blow is borne by the whole face. The rim's work so far is taken as
+      // rising with the square of its depth (its force growing about linearly with it).
+      if (onRim) {
+        const flat = face.diameter_m * Math.tan((tilt - crown) * DEG);
+        if (r.depth_m > flat) {
+          const left = En * (1 - (flat / r.depth_m) ** 2);
+          const whole = blunt(tl, tsub, nb, { energy: left, angle });
+          const deeper = flat + whole.depth_m;
+          r = { ...whole, depth_m: deeper, outcome: whole.outcome === "bounce" ? "dent" : whole.outcome,
+            mark: { ...whole.mark, kind: whole.mark.kind === "none" ? "dent" : whole.mark.kind, depth_m: deeper, crescent_m: flat } };
+        } else r.mark = { ...r.mark, crescent_m: r.depth_m };
+      }
+      // A slanting blunt blow skids along unless friction and the dent's own wall (its depth over
+      // its contact radius: the slope the face must climb out of) take the sideways push.
+      let glanced = false;
+      if (angle > 0 && !substance(nb.layers[0].substance).fluid) {
+        const mu = friction(tsub.family === "metal" ? "steel" : tsub.id, nb.layers[0].substance).dynamic;
+        const wall = (r.mark?.depth_m || 0) / Math.max(r.contact_radius_m || 1e-6, 1e-6);
+        glanced = Math.tan(angle * DEG) > mu + wall;
+      }
+      if (glanced && (r.outcome === "bounce" || r.outcome === "dent")) {
+        r.outcome = "glance";
+        if (r.mark.kind === "none") r.mark = { ...r.mark, kind: "scuff" };
+        // The skid drags the patch into a streak along the blow.
+        r.mark.length_m = (r.mark.length_m || 0) + (r.mark.width_m || 0) * Math.tan(angle * DEG);
+      }
+      const mark = { ...r.mark, spot: d.spot ?? null, feature, severs: false, rim: onRim || undefined };
       if (mark.kind !== "none") nb.marks.push(mark);
       if (r.outcome === "shatter") { nb.shattered = true; nb.broken = true; }
       if (r.outcome === "through") nb.broken = nb.shape === "sheet" ? nb.broken : nb.broken;
@@ -639,7 +694,7 @@ export function createMechanics(catalogue) {
       ntool.damage = worst(tl.damage, r.toolDamage);
       const left = strengthLeft(nb);
       nb.broken = nb.broken || left < demandOf(nb);
-      return { ...base, outcome: r.outcome, depth_m: r.depth_m, mark, force_n: r.F, restitution: r.restitution, contact_radius_m: r.contact_radius_m,
+      return { ...base, glanced, on_rim: onRim, outcome: r.outcome, depth_m: r.depth_m, mark, force_n: r.F, restitution: r.restitution, contact_radius_m: r.contact_radius_m,
         bending_stress_pa: r.bending_stress_pa, body: nb, tool: ntool, tool_damage: r.toolDamage, strength_left: left, broken: nb.broken,
         layers_reached: [nb.layers[0].substance] };
     }
@@ -657,7 +712,7 @@ export function createMechanics(catalogue) {
     }
     // A thrust is pushed by the hand, which slips past its grip; a swung head carries its own load.
     const thrust = (d.mode ?? (feature === "tip" ? "thrust" : "swing")) === "thrust";
-    const pen = sink(tl, tsub, geo, nb, { energy: En, Fcap: thrust ? tl.grip_limit_n ?? Infinity : Infinity, start, cos: cosT, x0, grain, slice: d.slice ?? 0, angle });
+    const pen = sink(tl, tsub, geo, nb, { energy: En, Fcap: thrust ? tl.grip_limit_n ?? Infinity : Infinity, start, cos: cosT, x0, grain, slice: d.slice ?? 0, angle, guided: Boolean(d.guided) });
     // A slanting blow skids off unless its bite can take the sideways push (the slant's tangent).
     let glanced = false, along = pen.along;
     const sub = pen.sub;

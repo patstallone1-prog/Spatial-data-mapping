@@ -125,6 +125,30 @@ a clamped patch gives 0.75·p·(a/t)². Glass breaks when that stress passes its
 any temper. A ductile plate bends past its collapse load π·σ_y·t²/2. A tool with a shell (a
 bottle) is checked by the same patch formula, so a bottle breaks on concrete and not on turf.
 
+**Only the contact is measured.** A strike reads the sharpness of the feature that touches, and
+nothing else. A tip carries its own side radius (`tip_side_radius_m`), separate from the edge's
+`edge_radius_m`. So a knife blunted by chopping still stabs as before, and a point blunted on
+stone still slices as before. Wear goes to the feature that was used (`wearTool`). Tests: "a
+knife's point keeps its own sharpness", "and the reverse".
+
+**Rim and crown.** A real face is crowned, with a chamfered rim (`face_rim_m`, 1.5 mm). Within
+its crown angle, asin(D/2 / R), the crown meets the work as above. Tilted further, it lands on
+its rim. The rim acts as a sphere of radius √(rim·D/2), so the same energy makes a narrow,
+deeper crescent. It sinks only until the face rocks flat, at D·tan(tilt − crown); the energy left
+over goes to the whole face. The mark records `crescent_m`. A perfectly flat face (R infinite)
+has a crown of 0°, so any tilt lands on the rim. Option: `face_tilt_deg`. Test: "a hammer square
+to the work dents round; canted past its crown it lands on the rim".
+
+**Blunt glancing.** A blunt blow glances once tan(slant) > μ + depth / contact radius. Friction
+holds the face, and so does the wall of the dent it has already made. A glance has outcome
+`"glance"`, the mark is a scuff or a streak, and the result says `glanced` and `on_rim`. Test:
+"blunt blows glance once the slant passes friction and the dent's wall". An edge's glancing is
+the cutting law's (see "What still fails").
+
+**Guided points.** `strike(..., { guided: true })` skips the tip's bending cap. Use it for a point
+held straight by its hole, as a nail is by the wood it is already in. Its buckling is then checked
+by the nail law in "Work by hand".
+
 ### What happens to the tool
 
 * The apex flattens when the work is harder than the tool.
@@ -187,6 +211,79 @@ weak dead hang from two bars under a roof holds but is not climbable.
 Wet holds, sweat, chalk, ice temperature, sticky rubber, a pack's load, the wall's angle, a stem
 between two walls and gecko pads all come in through the same friction and statics.
 
+## Work by hand (`docs/city/mechanics-work.mjs`)
+
+`createWork(M)` adds the acts done with the hands to the strike engine. Each one is the engine's
+own contact law plus the one law that belongs to the act. None of them is a rule about a
+particular pair. The numbers are in `WORK`, and their sources are in the catalogue (`nail_driving`,
+`soil_cutting`, `push_strength`, `balance`). The tests are in `tests/mechanics_work.test.mjs`.
+
+### Hammering in a nail (`startNail`, `drive`)
+
+* **Energy adds up.** Each blow adds its energy to `work_j`. The nail's depth comes from the
+  total work against the wood's resistance over depth, not from each blow on its own, so it does
+  not re-cross the length already driven.
+* **The set tap.** The first blow on a fresh nail is a quarter blow (`set_tap` 0.25).
+* **The crown rolls.** Within the face's crown the contact rolls onto the head's centre, so the
+  blow drives straight. Only the slant past the crown pushes sideways, by
+  share = min(tan(past), μ).
+* **Sideways push.** The sideways force is min(2·gain·share, μN/k), where k = 3EI/L³ is the free
+  length's stiffness.
+* **Bending.** The nail yields when its deflection reaches M_y·L²/(3EI)·(1 − N/P_cr). Here
+  M_y = F_yb·π·d³/32, with F_yb = 620 MPa (NDS / ASTM F1575). It buckles at 0.85·P_cr, with
+  P_cr = π²EI/(0.7L)².
+* **A bent nail.** The bend adds up blow by blow. At 15° (`bent_deg`) the nail is bent over and
+  will not drive.
+* **Hammer rash.** A face that skids off the head dents the wood beside the nail.
+* **Holding.** A driven nail holds by the NDS withdrawal value, W = 1380·G^2.5·D lb/in over its
+  driven length.
+* **What it says.** The result gives how far the nail went, how far "N° off square" the blow was,
+  and whether the nail is bent or home.
+* **In the game.** The off-square angle of each blow is 1 + 6·wobble + 10·tiredness·wobble
+  degrees, plus 9 when the blow comes within 650 ms of the last. Wobble comes from strength,
+  tiredness from stamina.
+
+### Digging (`dig`)
+
+* **Going in.** The spade's edge is resisted by Terzaghi bearing over its edge area,
+  (c·N_c + γ·z·N_q). Roots add their toughness, w·R. Both faces add adhesion and K0 friction.
+* **The push.** A digger pushes the spade in by standing on it (their weight), or by stamping on
+  it (a 0.15 m drop of their mass).
+* **Levering out.** The spade levers the soil out against Rankine passive breakout (K_p, acting
+  at z/3). The handle's lever arm sets the force, 250 N at the grip.
+* **Ground that is not soil.** Paving, stone and the like are refused, with the strike engine's
+  own result on that surface.
+* **The soils.** Each soil in the catalogue carries cohesion, friction angle, adhesion and
+  soil-on-steel friction (sand also carries a wet cohesion). Sand and duff dig easiest, then
+  loam, then turf; paving not at all.
+
+### Pushing (`push`, `pushCapacity`)
+
+* **What you can push.** min(300–500 N by strength, μ(shoe, ground)·m·g); 0.6 of that can be kept
+  up.
+* **What it takes.** Rolling resistance by the wheels (car 0.012, bicycle 0.006, cart 0.03,
+  bin 0.04, dolly 0.02), or sliding friction, or braked friction. A slope adds its weight on
+  top.
+* So a car in neutral rolls, and braked, or on ice, it does not.
+
+### Shoving (`shove`)
+
+* **The law.** A shove of 0.15 s gives the person a velocity v. Their extrapolated centre of mass,
+  v·√(l/g), is compared with the margin to the edge of their feet: 0.1 m standing easy, 0.25 m
+  braced.
+* **The outcome.** Within the margin, they rock. Past it, one step can catch them up to 1.3 m/s,
+  and they stagger. Beyond that, they fall.
+* **Who falls.** Frail people and children have less margin. So a grown adult staggers, a child or
+  a frail person falls, and nobody braced falls.
+
+### Carving (`carve`)
+
+* **The press.** The press into the wood is the push times sin(rake).
+* **Skating.** Below the edge's cutting initiation force (`M.initiationForce`, which rises with
+  the edge radius), the blade skates.
+* **Cutting.** Above it, the cut is force-limited: the engine's grip limit is set to the press. So
+  shavings are thin along the grain, and the blade skates across the grain or with a dull edge.
+
 ## Constants
 
 The engine has a handful of named constants (`CONSTANTS` in mechanics.mjs, `CLIMBER` in
@@ -207,6 +304,7 @@ climbing.mjs). Each is a physical share or a reporting threshold, not a per-case
 | `wet_boundary` | 0.06 | Boundary friction left in a wet, undrained contact |
 | `crack_m` | 0.3 mm | A crack this long is reported as a crack, not a chip |
 | `noticed_radius` | 2 | An edge is dulled or rolled once its radius has doubled |
+| `face_rim_m` | 1.5 mm | The chamfer on a striking face's rim: what a canted face lands on |
 
 ## Examples (engine output)
 

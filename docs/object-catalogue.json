@@ -302,7 +302,11 @@
       "cutting": "Atkins 2009, The Science and Engineering of Cutting: cutting force per unit length = fracture toughness + bluntness + wedge (plastic) + friction terms; slicing lowers the push force by about 1/(1+xi^2)^0.5 for a slice/push ratio xi",
       "indentation": "Johnson 1985, Contact Mechanics: Hertz contact, yield at a mean pressure about 1.1 Y, fully plastic at the hardness (about 3 Y); Lawn, Evans & Marshall 1980 (J. Am. Ceram. Soc. 63:574): radial crack length c from K_IC = chi P / c^1.5, chi = 0.016 (E/H)^0.5",
       "plates": "Roark's Formulas for Stress and Strain (8th ed.), Table 11.2: circular plates under central load and the equivalent contact radius r' = (1.6 r^2 + t^2)^0.5 - 0.675 t; point impedance of a thin plate Z = 8 (D rho h)^0.5 (Cremer & Heckl, Structure-Borne Sound)",
-      "tool_geometry": "Tool geometry: chef's knives about 15-20 degrees a side at the edge on a flat grind 2-2.5 mm thick, tip radius 0.1-0.5 mm (forensic measurements: O'Callaghan et al. 1999); felling axe bits about 25-30 degrees at the edge and 20-25 mm thick 80-90 mm back; splitting mauls 35-45 degrees; swing energies from rules.json tools"
+      "tool_geometry": "Tool geometry: chef's knives about 15-20 degrees a side at the edge on a flat grind 2-2.5 mm thick, tip radius 0.1-0.5 mm (forensic measurements: O'Callaghan et al. 1999); felling axe bits about 25-30 degrees at the edge and 20-25 mm thick 80-90 mm back; splitting mauls 35-45 degrees; swing energies from rules.json tools",
+      "soil_cutting": "McKyes 1985, Soil Cutting and Tillage (Elsevier), ch. 2-4, and Reece 1964 (Proc. Instn Mech. Engrs 179): a blade's draft F = w (gamma d^2 N_gamma + c d N_c + c_a d N_ca); typical cohesion 0-5 kPa for sand and duff, 10-20 kPa for moist loam, friction angles 25-42 degrees, soil-metal friction about two thirds of the internal angle; Terzaghi bearing factors N_q = e^(pi tan phi) tan^2(45 + phi/2); root cohesion 5-20 kPa in turf (Wu 1979; Gray & Sotir 1996)",
+      "push_strength": "Snook & Ciriello 1991 (Ergonomics 34:1197) and Chaffin, Andersson & Martin, Occupational Biomechanics: a standing adult's initial horizontal push about 300-500 N with good footing (sustained about 60% of it); a push is also capped by the shoes' friction on the ground times body weight; rolling resistance 0.010-0.015 for car tyres on asphalt (Gillespie, Fundamentals of Vehicle Dynamics), 0.02-0.04 for small hard casters",
+      "balance": "Hof, Gazendam & Sinke 2005 (J. Biomech. 38:1): the extrapolated centre of mass x + v sqrt(l/g) must stay within the base of support; a single recovery step handles about 1-1.5 m/s (Hsiao & Robinovitch 1999), beyond which a pushed person falls",
+      "nail_driving": "Euler buckling of a fixed-pinned column P = pi^2 E I / (0.7 L)^2 and the plastic moment of a round section M_p = sigma_y d^3 / 6 (Gere & Timoshenko, Mechanics of Materials), for the exposed length of a nail; common nail heads and lengths from ASTM F1667 (16d: 3.3 mm shank, 7.1 mm head, 89 mm long)"
     },
     "substances": {
       "douglas_fir_green": {
@@ -1275,6 +1279,7 @@
       "soil_loam": {
         "name": "Moist loam soil",
         "family": "soil",
+        "soil": {"cohesion_kpa": 12, "friction_deg": 30, "adhesion_kpa": 5, "metal_friction_deg": 22},
         "density_kg_m3": 1600,
         "E_gpa": 0.02,
         "nu": 0.35,
@@ -1289,11 +1294,12 @@
           "texture": 0.5,
           "energy": 0.5
         },
-        "sources": ["soils"]
+        "sources": ["soils", "soil_cutting"]
       },
       "turf": {
         "name": "Grass turf over soil",
         "family": "soil",
+        "soil": {"cohesion_kpa": 22, "friction_deg": 28, "adhesion_kpa": 5, "metal_friction_deg": 20},
         "density_kg_m3": 1300,
         "E_gpa": 0.01,
         "nu": 0.35,
@@ -1308,11 +1314,12 @@
           "texture": 0.5,
           "energy": 0.5
         },
-        "sources": ["soils"]
+        "sources": ["soils", "soil_cutting"]
       },
       "forest_duff": {
         "name": "Leaf litter and duff",
         "family": "soil",
+        "soil": {"cohesion_kpa": 3, "friction_deg": 25, "adhesion_kpa": 1, "metal_friction_deg": 18},
         "density_kg_m3": 600,
         "E_gpa": 0.001,
         "nu": 0.3,
@@ -1325,11 +1332,12 @@
           "texture": 0.4,
           "energy": 0.4
         },
-        "sources": ["soils"]
+        "sources": ["soils", "soil_cutting"]
       },
       "sand": {
         "name": "Dry sand",
         "family": "soil",
+        "soil": {"cohesion_kpa": 0, "friction_deg": 34, "adhesion_kpa": 0, "metal_friction_deg": 24, "wet_cohesion_kpa": 4},
         "density_kg_m3": 1600,
         "E_gpa": 0.03,
         "nu": 0.3,
@@ -1343,11 +1351,12 @@
           "texture": 0.4,
           "energy": 0.3
         },
-        "sources": ["soils"]
+        "sources": ["soils", "soil_cutting"]
       },
       "gravel": {
         "name": "Gravel and compacted trail",
         "family": "soil",
+        "soil": {"cohesion_kpa": 5, "friction_deg": 42, "adhesion_kpa": 0, "metal_friction_deg": 28},
         "density_kg_m3": 1800,
         "E_gpa": 0.1,
         "nu": 0.3,
@@ -1361,7 +1370,7 @@
           "texture": 0.7,
           "energy": 0.6
         },
-        "sources": ["soils"]
+        "sources": ["soils", "soil_cutting"]
       },
       "leaf": {
         "name": "Leaves and soft green stems",
@@ -1794,6 +1803,8 @@
         "mass_kg": 0.01,
         "strike_mass_kg": 0.65,
         "grip_limit_n": 100000,
+        "length_m": 0.089,
+        "head_diameter_m": 0.0071,
         "tip": {
           "radius_m": 0.0002,
           "sharp_sides": 0,
@@ -1801,7 +1812,7 @@
           "width": [[0, 0], [0.004, 0.0033], [0.09, 0.0033]],
           "thickness": [[0, 0], [0.004, 0.0033], [0.09, 0.0033]]
         },
-        "sources": ["tool_geometry", "nds_withdrawal"]
+        "sources": ["tool_geometry", "nds_withdrawal", "nail_driving"]
       },
       "window_punch": {
         "name": "Spring window punch (carbide pin)",
@@ -1855,6 +1866,45 @@
         },
         "sources": ["tool_geometry", "glass"]
       },
+      "spade": {
+        "name": "Garden spade, 19 cm blade",
+        "substance": "tool_steel",
+        "mass_kg": 2.0,
+        "strike_mass_kg": 1.5,
+        "grip_limit_n": 1500,
+        "edge": {
+          "radius_m": 0.0004,
+          "max_depth_m": 0.29,
+          "contact_length_m": 0.19,
+          "profile": [[0, 0], [0.003, 0.0015], [0.01, 0.002], [0.29, 0.002]]
+        },
+        "blade": {"width_m": 0.19, "length_m": 0.29, "thickness_m": 0.002, "handle_m": 1.0},
+        "face": {
+          "kind": "flat",
+          "radius_m": 1.0,
+          "diameter_m": 0.15
+        },
+        "sources": ["tool_geometry", "soil_cutting"]
+      },
+      "pocket_knife": {
+        "name": "Folding pocket knife, 7.5 cm",
+        "substance": "knife_steel",
+        "mass_kg": 0.09,
+        "strike_mass_kg": 0.8,
+        "grip_limit_n": 900,
+        "edge": {
+          "radius_m": 6e-07,
+          "contact_length_m": 0.03,
+          "profile": [[0, 0], [0.0003, 0.0002], [0.015, 0.0018]]
+        },
+        "tip": {
+          "radius_m": 0.0003,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.012, 0.012], [0.075, 0.018]],
+          "thickness": [[0, 0.0001], [0.015, 0.0012], [0.075, 0.0025]]
+        },
+        "sources": ["tool_geometry", "blade_steels"]
+      },
       "fist": {
         "name": "A fist",
         "substance": "skin",
@@ -1876,7 +1926,9 @@
       "saw": "machete",
       "axe": "felling_axe",
       "bolt_cutters": "crowbar",
-      "blunt": "wooden_club"
+      "blunt": "wooden_club",
+      "shovel": "spade",
+      "knife": "pocket_knife"
     }
   }
 }

@@ -75,7 +75,9 @@ export function handsFor(form, tool, { seated = false } = {}) {
   return seated ? { R: u, L: form === "noodle_soup" ? "spoon" : null } : { R: u, L: "plate" };
 }
 
-export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async () => true, tableAhead = () => null, seated = () => false, firstPerson = () => false }) {
+//: ``madeOf(item)``: the plate as a cook made it (plated.mjs madeFrom, with a ``sig``), or null for
+//: the dish as the recipe has it.
+export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async () => true, tableAhead = () => null, seated = () => false, firstPerson = () => false, madeOf = () => null }) {
   const ik = createLimbIK(THREE);
   const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
   const Q = () => new THREE.Quaternion();
@@ -158,8 +160,11 @@ export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async
     if (!item) return;
     const it = R.items[item];
     if (!it || it.kind !== "prepared_food") return;
-    const dish = kept.get(item) || makeDish(THREE, R, item);
-    kept.set(item, dish);
+    let made = null;
+    try { made = madeOf(item); } catch { made = null; }
+    const key = made ? `${item}|${made.sig || ""}` : item;
+    const dish = kept.get(key) || makeDish(THREE, R, item, made ? { made } : {});
+    kept.set(key, dish);
     begin(item, dish);
   }
   function putAway() {
@@ -175,7 +180,7 @@ export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async
     if (root.parent !== scene) scene?.add(root);
     const sit = seated() && tableAhead();
     const hands = handsFor(dish.form, dish.tool, { seated: Boolean(sit) });
-    cur = { item, dish, sit, hands, tools: {}, loose: [], action: null, phase: 0, t: 0, next: null, part: null, carry: null, held: null, gulp: 0, chew: 0, bitten: 0 };
+    cur = { item, key: dish.made ? `${item}|${dish.made.sig || ""}` : item, dish, sit, hands, tools: {}, loose: [], action: null, phase: 0, t: 0, next: null, part: null, carry: null, held: null, gulp: 0, chew: 0, bitten: 0 };
     root.add(dish.group);
     for (const side of ["R", "L"]) {
       const k = hands[side];
@@ -241,7 +246,7 @@ export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async
   const finished = () => cur.dish.food.every((p) => p.done());
   async function done() {
     const item = cur.item;
-    kept.delete(item);
+    kept.delete(cur.key || item);
     putAway();
     holding = false; queued = 0;
     await finish(item);

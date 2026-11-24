@@ -8,9 +8,9 @@
 //
 // The state (view.mjs hintState builds it each few frames):
 //   { mode: "walk" | "drive" | "ride" | "swim" | "climb" | "perch" | "fork" | "air" | "seated" | "inside",
-//     held: { id, name, kind, strike, use, wear, food, drink, tip, edge, two_hands } | null,
-//     front: { thing: { name, material, wood, chainlink, person }, climb: { name, kind, ok, reason },
-//              jump: { action, name } } ,
+//     held: { id, name, kind, strike, use, wear, food, drink, tip, edge, two_hands, nails } | null,
+//     front: { thing: { name, material, wood, chainlink, person, loose }, climb: { name, kind, ok, reason },
+//              jump: { action, name } } , under: { kind, name, soil } | null (the ground underfoot),
 //     ground: { name } | null, prompt: { yes, no } | null, eating: { label } | null }
 
 //: A key as its cap shows it.
@@ -27,6 +27,9 @@ export const TOOLS = {
   hammer: { swing: "Hammer", work: null, thrust: null },
   crowbar: { swing: "Swing", work: "Pry", thrust: "Jab" },
   bolt_cutters: { swing: null, work: "Cut", thrust: null },
+  // Their R is their own control below (dig, carve, hammer in), not a blow of work.
+  shovel: { swing: "Swing", work: null, thrust: "Jab" },
+  knife: { swing: "Slash at", work: null, thrust: "Stab" },
 };
 
 //: Every control: { id, key, verb, when(s) → applies?, label(s), priority (higher first), ok(s) →
@@ -61,6 +64,18 @@ export const CONTROLS = [
       if (w === "Saw" && !t.wood) return `A saw cuts wood: ${the(t)} is ${lower(t.material)}`;
       if (w === "Cut" && !t.chainlink && t.material !== "steel") return "Bolt cutters cut wire and chain";
       return true; } },
+  // Empty-handed, C pushes. Its chip is only for something loose to push along: shoving a person
+  // is always there to do, so it is never hinted.
+  { id: "push", key: "c", verb: "Push", priority: 33, when: (s) => (s.mode === "walk" || s.mode === "inside") && !s.held && Boolean(s.front?.thing?.loose && !s.front.thing.person),
+    label: (s) => `Push ${the(s.front.thing)}`, ok: () => true },
+  // R with a spade, a knife or a hammer: digging, carving and driving nails (mechanics-work.mjs).
+  { id: "dig", key: "r", verb: "Dig", priority: 37, when: (s) => s.mode === "walk" && s.held?.strike === "shovel" && Boolean(s.under),
+    label: (s) => `Dig the ${lower(s.under.name)} (hold)`, ok: (s) => s.under.soil || `A spade will not go into the ${lower(s.under.name)}` },
+  { id: "carve", key: "r", verb: "Carve", priority: 36, when: (s) => (s.mode === "walk" || s.mode === "inside") && s.held?.strike === "knife" && Boolean(s.front?.thing && !s.front.thing.person),
+    label: (s) => `Carve ${the(s.front.thing)} (hold)`, ok: (s) => s.front.thing.wood || `A knife carves wood: ${the(s.front.thing)} is ${lower(s.front.thing.material)}` },
+  { id: "hammer_in", key: "r", verb: "Hammer in", priority: 36, when: (s) => (s.mode === "walk" || s.mode === "inside") && s.held?.strike === "hammer" && Boolean(s.front?.thing && !s.front.thing.person),
+    label: (s) => `Nail into ${the(s.front.thing)} (tap R, steadily)`,
+    ok: (s) => (!s.front.thing.wood ? "Nails go into wood" : (s.held.nails || 0) > 0 || "No nails: a box of nails at the hardware store") },
   { id: "throw", key: "q", verb: "Throw", priority: 20, when: (s) => s.mode === "walk" && Boolean(s.held && !s.held.food), label: (s) => `Throw the ${lower(s.held.name)}`, ok: () => true },
   { id: "pick_up", key: "g", verb: "Pick up", priority: 30, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.ground), label: (s) => `Pick up ${the(s.ground)}`, ok: () => true },
   // A question on screen.
