@@ -1033,6 +1033,58 @@ function cutCoverOffLots(mesh) {
   geom.computeBoundingBox(); geom.computeBoundingSphere();
   return cut;
 }
+//: A cover's triangles taken off whatever ``inside(x, z)`` says is not its ground, along the
+//: edge of it: a triangle wholly inside goes, one wholly outside stays, and one that straddles
+//: the edge is halved until each piece is one or the other or is under ``fine`` metres across
+//: (kept if its middle is outside). Off the roadway this way (recutGroundOffRoads): the paving
+//: was taken off a carriageway by dropping whole triangles, and along a street that curves the
+//: ones that straddled its edge were left as a row of pale teeth down both sides of the road
+//: (the service road off Chestnut Street, seen 2026-11-24).
+const ROAD_CUT_FINE_M = 0.3;
+function cutCoverBy(mesh, inside, fine) {
+  const geom = mesh.geometry, pos = geom.attributes.position, index = geom.getIndex();
+  const e = mesh.matrixWorld.elements, ox = e[12], oz = e[14];
+  const names = Object.keys(geom.attributes), added = names.map(() => []);
+  let next = pos.count, cut = 0;
+  const kept = [];
+  const point = (ids, w) => {
+    for (let k = 0; k < 3; k += 1) if (w[k] > 1 - 1e-9) return ids[k];
+    names.forEach((name, n) => {
+      const at = geom.attributes[name], size = at.itemSize;
+      for (let c = 0; c < size; c += 1) added[n].push(w[0] * at.getComponent(ids[0], c) + w[1] * at.getComponent(ids[1], c) + w[2] * at.getComponent(ids[2], c));
+    });
+    return next++;
+  };
+  for (let t = 0; t < index.count; t += 3) {
+    const ids = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+    const P = ids.map((i) => [pos.getX(i) + ox, pos.getZ(i) + oz]);
+    const at = (w) => [w[0] * P[0][0] + w[1] * P[1][0] + w[2] * P[2][0], w[0] * P[0][1] + w[1] * P[1][1] + w[2] * P[2][1]];
+    const whole = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], stack = [whole], pieces = [];
+    let changed = false;
+    while (stack.length) {
+      const q = stack.pop(), xy0 = q.map(at), inn = xy0.map(([x, z]) => (inside(x, z) ? 1 : 0)), n = inn[0] + inn[1] + inn[2];
+      const mx = (xy0[0][0] + xy0[1][0] + xy0[2][0]) / 3, mz = (xy0[0][1] + xy0[1][1] + xy0[2][1]) / 3, mid = inside(mx, mz);
+      const long = Math.max(Math.hypot(xy0[0][0] - xy0[1][0], xy0[0][1] - xy0[1][1]), Math.hypot(xy0[1][0] - xy0[2][0], xy0[1][1] - xy0[2][1]), Math.hypot(xy0[2][0] - xy0[0][0], xy0[2][1] - xy0[0][1]));
+      if (n === 0 && !mid) { pieces.push(q); continue; }
+      if ((n === 3 && mid) || long <= fine) { if (mid || n === 3) { changed = true; continue; } pieces.push(q); continue; }
+      changed = true;
+      const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], ab = m(q[0], q[1]), bc = m(q[1], q[2]), ca = m(q[2], q[0]);
+      stack.push([q[0], ab, ca], [ab, q[1], bc], [ca, bc, q[2]], [ab, bc, ca]);
+    }
+    if (!changed) { kept.push(ids[0], ids[1], ids[2]); continue; }
+    cut += 1;
+    for (const piece of pieces) kept.push(point(ids, piece[0]), point(ids, piece[1]), point(ids, piece[2]));
+  }
+  if (!cut) return 0;
+  if (next > pos.count) names.forEach((name, n) => {
+    const at = geom.attributes[name], array = new at.array.constructor(next * at.itemSize);
+    array.set(at.array.subarray(0, pos.count * at.itemSize)); array.set(added[n], pos.count * at.itemSize);
+    geom.setAttribute(name, new THREE.BufferAttribute(array, at.itemSize, at.normalized));
+  });
+  geom.setIndex(kept);
+  geom.computeBoundingBox(); geom.computeBoundingSphere();
+  return cut;
+}
 function recutGroundOffRoads() {
   let cut = 0;
   const meshes = [];
@@ -1044,16 +1096,8 @@ function recutGroundOffRoads() {
     mesh.updateMatrixWorld();
     const e = mesh.matrixWorld.elements, kept = [];
     const roads = ROAD_CUT_SURFACES.has(mesh.userData.surface), lotCut = lots && LOT_CUT_SURFACES.test(mesh.userData.surface || "");
-    const on = (i) => insideCarriageway(pos.getX(i) + e[12], pos.getZ(i) + e[14], 0);
-    if (roads) {
-      for (let t = 0; t < index.count; t += 3) {
-        const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
-        const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
-        if (insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
-        kept.push(a, b, c);
-      }
-      if (kept.length !== index.count) geom.setIndex(kept);
-    }
+    // Off the roadway along its edge (cutCoverBy), not a whole triangle at a time.
+    if (roads) cut += cutCoverBy(mesh, (x, z) => insideCarriageway(x, z, 0), ROAD_CUT_FINE_M);
     // Off the car parks, along their outlines exactly (cutCoverOffLots).
     if (lotCut) cut += cutCoverOffLots(mesh);
   }
@@ -1276,9 +1320,13 @@ function treeOffFence(x, z, okAt = () => true) {
   }
   return nearestFenceLine(px, pz, TREE_FENCE_CLEAR_M) ? null : [px, pz];
 }
+//: Every panel laid, for the closing of the fences' free ends (closeFenceEnds): where it runs,
+//: how it stands, and the mesh it is drawn in (whose material a closing panel takes).
+var fencePanelsLaid = [];
 function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
   const span=Math.hypot(bx-ax,bz-az);
   if (!(span>0) || !Number.isFinite(span)) return;
+  if (!sink.closing && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });
   noteFenceLine(ax, az, bx, bz);
   const count=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
   const base=sink.positions.length/3;
@@ -1296,6 +1344,102 @@ function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = 
   }
 }
 
+// ---- no fence with a way round its end ----------------------------------------------------------
+//
+// A fence encloses: each end of it meets a wall or another fence, or it is a gate. Laid from
+// records of single boundary lines, many had one end -- or both -- standing in the open: a
+// school yard's chain link along two sides of the yard and stopped, a garden's fence along its
+// front and nothing down its sides; walked round (the owner, 2026-11-24). Once every fence is
+// laid, each end that meets nothing is carried on to what would close it: straight on to the
+// first wall or fence in its way within FENCE_CLOSE.ahead_m, else square off its line, to
+// either hand, to the nearest within FENCE_CLOSE.aside_m. Never across a roadway, a pavement, a
+// mapped path, a noted gate or the way from a dropped kerb to its garage; and an end at a gate
+// or a path (where the fence was parted on purpose) is left as it is.
+const FENCE_CLOSE = { meet_m: 0.45, ahead_m: 25, aside_m: 10, back_m: 0.35, step_m: 0.25, least_m: 0.5 };
+const fenceCloseStats = { ends: 0, met: 0, gates: 0, closed: 0, closed_m: 0, open: 0 };
+function closeFenceEnds() {
+  const panels = fencePanelsLaid;
+  if (!panels.length || typeof buildingAt !== "function") return fenceCloseStats;
+  // Each panel's ends, and which of them meet another panel's end (the same fence carrying on).
+  const key = (x, z) => `${Math.round(x / 0.3)}:${Math.round(z / 0.3)}`;
+  const ends = new Map();
+  for (const q of panels) for (const [x, z] of [[q.ax, q.az], [q.bx, q.bz]]) {
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) { const k = `${Math.round(x / 0.3) + dx}:${Math.round(z / 0.3) + dz}`; ends.set(k, (ends.get(k) || 0) + (dx || dz ? 0.001 : 1)); }
+  }
+  // Whether (x, z) is on a fence other than ``own``, or in a building.
+  const fenceAt = (x, z, own, reach = 0.2) => {
+    for (const line of fenceLinesNear(fenceLineGrid, x, z)) {
+      const [ax, az, bx, bz] = line;
+      if (own && Math.abs(ax - own.ax) < 1e-6 && Math.abs(az - own.az) < 1e-6 && Math.abs(bx - own.bx) < 1e-6 && Math.abs(bz - own.bz) < 1e-6) continue;
+      const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz;
+      if (!(L2 > 0)) continue;
+      const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L2));
+      if (Math.hypot(x - ax - vx * t, z - az - vz * t) < reach) return true;
+    }
+    return false;
+  };
+  const publicWay = (x, z) => insideCarriageway(x, z, 0.1) || pavementTopAt(x, z) !== undefined
+    || (typeof inDriveway === "function" && inDriveway(x, z));
+  // Along a ray from an end: how far to the first wall or fence, or null where the way is not
+  // clear to one within ``reach``.
+  const reachTo = (x, z, ux, uz, reach, own) => {
+    for (let d = FENCE_CLOSE.step_m; d <= reach; d += FENCE_CLOSE.step_m) {
+      const px = x + ux * d, pz = z + uz * d;
+      if (buildingAt(px, pz)) return d - FENCE_CLOSE.step_m * 0.5;
+      if (d > 0.5 && fenceAt(px, pz, own)) return d;
+      if (publicWay(px, pz) || inFenceGate(px, pz) || pathThroughFence(px, pz, -uz, ux)) return null;
+    }
+    return null;
+  };
+  const added = new Map();   // sink -> { positions, uvs, indices }
+  for (const q of panels) {
+    const span = Math.hypot(q.bx - q.ax, q.bz - q.az), ux = (q.bx - q.ax) / span, uz = (q.bz - q.az) / span;
+    for (const [x, z, sx, sz] of [[q.ax, q.az, -ux, -uz], [q.bx, q.bz, ux, uz]]) {
+      // An end another panel's end is at carries on: not an end.
+      if ((ends.get(key(x, z)) || 0) >= 2) continue;
+      fenceCloseStats.ends += 1;
+      // Met already: a wall or another fence within a step of it.
+      let met = Boolean(buildingAt(x + sx * 0.3, z + sz * 0.3)) || fenceAt(x + sx * 0.15, z + sz * 0.15, q, FENCE_CLOSE.meet_m);
+      for (const [nx, nz] of [[-sz, sx], [sz, -sx]]) met ||= Boolean(buildingAt(x + nx * 0.35, z + nz * 0.35));
+      if (met) { fenceCloseStats.met += 1; continue; }
+      // Parted on purpose: a gate, or a path through.
+      if (inFenceGate(x + sx * 0.6, z + sz * 0.6) || pathThroughFence(x + sx * 0.6, z + sz * 0.6, sx, sz) || pathThroughFence(x + sx * 1.6, z + sz * 1.6, sx, sz)) { fenceCloseStats.gates += 1; continue; }
+      // Carried on: straight ahead first, then square to either hand (the nearer).
+      let best = null;
+      const ahead = reachTo(x, z, sx, sz, FENCE_CLOSE.ahead_m, q);
+      if (ahead !== null) best = { d: ahead, ux: sx, uz: sz };
+      // (To the side from a step back along the fence: an end that stops at a pavement's edge
+      // is closed along the line behind it, not along the pavement.)
+      else for (const [nx, nz] of [[-sz, sx], [sz, -sx]]) {
+        const bx = x - sx * FENCE_CLOSE.back_m, bz = z - sz * FENCE_CLOSE.back_m;
+        const d = reachTo(bx, bz, nx, nz, FENCE_CLOSE.aside_m, q);
+        if (d !== null && (!best || d < best.d)) best = { d, ux: nx, uz: nz, x: bx, z: bz };
+      }
+      if (!best || best.d < FENCE_CLOSE.least_m) { fenceCloseStats.open += best ? 0 : 1; if (best) fenceCloseStats.met += 1; continue; }
+      let sink = added.get(q.sink);
+      if (!sink) added.set(q.sink, sink = { positions: [], uvs: [], indices: [], closing: true, from: q });
+      const fx = best.x ?? x, fz = best.z ?? z;
+      groundedFencePanel(sink, fx, fz, fx + best.ux * best.d, fz + best.uz * best.d, q.baseY, q.height, q.tileU, q.tileV);
+      fenceCloseStats.closed += 1; fenceCloseStats.closed_m += best.d;
+    }
+  }
+  // Each closing panel in the material of the fence it closes.
+  for (const [from, sink] of added) {
+    const material = from.mesh?.material;
+    if (!material || !sink.indices.length) continue;
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+    geom.setIndex(sink.indices); geom.computeVertexNormals();
+    const mesh = new THREE.Mesh(geom, material);
+    mesh.userData = { ...from.mesh.userData, closes: true, liftedOntoGround: true };
+    mesh.renderOrder = from.mesh.renderOrder; mesh.castShadow = from.mesh.castShadow;
+    (from.mesh.parent || groups.ground).add(mesh);
+  }
+  fenceCloseStats.closed_m = Math.round(fenceCloseStats.closed_m);
+  fencePanelsLaid = [];
+  return fenceCloseStats;
+}
 function buildFences(ground) { return runSteps(buildFencesSteps(ground)); }
 //: A kind at a time, and 64 segments at a time inside one (each is tested along its run against
 //: the carriageway): a city's fences in one go were a fifth of a second.
@@ -1310,6 +1454,7 @@ function* buildFencesSteps(ground) {
     const positions = [];
     const uvs = [];
     const indices = [];
+    const fenceSink = { positions, uvs, indices };
     yield;
     for (let i = 0; i + 3 < flat.length; i += 4) {
       if ((i & 255) === 252) yield;
@@ -1337,7 +1482,7 @@ function* buildFencesSteps(ground) {
         }
       }
       if (crosses) continue;
-      layFence({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
+      layFence(fenceSink,ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
     }
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
@@ -1347,6 +1492,7 @@ function* buildFencesSteps(ground) {
     geom.computeVertexNormals();
     const fence=addGround(new THREE.Mesh(geom, fenceMaterial(style)), "fence:" + kind);
     fence.userData.liftedOntoGround=true;
+    fenceSink.mesh=fence;
     fence.userData.elevationBasis="terrain_sampled_0.75m";
   }
 }
@@ -1916,6 +2062,7 @@ function buildCourts(ground) {
   const fencePositions = [];
   const fenceUvs = [];
   const fenceIndices = [];
+  const courtFenceSink = { positions: fencePositions, uvs: fenceUvs, indices: fenceIndices };
   const fencePosts = [];
   const fenceRails = [], fenceJoints = new Map();
   for (const pitch of pitches) {
@@ -1932,7 +2079,7 @@ function buildCourts(ground) {
       if (Math.hypot(ex - sx, ez - sz) < 0.4) continue;
       if (insideCarriageway(sx, sz, -1.0) || insideCarriageway(ex, ez, -1.0)) continue;
       // Only what no fence or wall already carries (layFence): a court beside another shares its fence.
-      for (const [ax, az, bx, bz] of layFence({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
+      for (const [ax, az, bx, bz] of layFence(courtFenceSink,
         sx,sz,ex,ez,COURT_Y,h,.6)) {
       const span = Math.hypot(bx - ax, bz - az);
       for (const [x,z] of courtPostPoints(ax,az,bx,bz,h,HEADSET)) {
@@ -1977,6 +2124,7 @@ function buildCourts(ground) {
     const fence=new THREE.Mesh(geom, chainlinkMaterial());
     fence.userData={surface:"fence:court",liftedOntoGround:true,elevationBasis:"terrain_sampled_0.75m"};
     groups.ground.add(fence);
+    courtFenceSink.mesh=fence;
   }
   if (fencePosts.length) {
     const post = new THREE.InstancedMesh(

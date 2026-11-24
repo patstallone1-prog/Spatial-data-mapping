@@ -262,7 +262,12 @@ function renderedWalkWidth(way, fallback = 3.0) {
   return Math.max(MIN_RENDER_WALK_M, Math.min(raw, MAX_RENDER_WALK_M));
 }
 
-function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
+//: ``halfA``/``halfB``: the half-width at each end, where a street follows its kerb along the
+//: block (kerbProfileFrom) and the two differ. ``half`` is then their mean, for the many readers
+//: that ask one width of a piece; the ones that say where the roadway stops (insideCarriageway,
+//: nearestKerbAt) read the width at the point (carriagewayHalfAt), so what is cut, snapped or
+//: laid to the roadway's edge is on the edge that is drawn, not on steps beside it.
+function addCarriagewaySegment(ax, az, bx, bz, half, source = null, halfA = half, halfB = half) {
   // The bearing rides along with the segment. Asking whether a point is on a roadway is not the
   // same question as asking whether it is in a junction: a bike lane is inside its own
   // carriageway for its whole length, and what marks the crossroads is a carriageway lying
@@ -278,9 +283,18 @@ function addCarriagewaySegment(ax, az, bx, bz, half, source = null) {
       const key = ix * 1048576 + iz;
       let bucket = carriagewayGrid.get(key);
       if (!bucket) carriagewayGrid.set(key, bucket = []);
-      bucket.push([ax, az, bx, bz, half, bearing, source]);
+      bucket.push([ax, az, bx, bz, half, bearing, source, halfA, halfB]);
     }
   }
+}
+
+//: A carriageway piece's half-width beside (x, z): the one width, or between its two ends' where
+//: they differ.
+function carriagewayHalfAt(s, x, z) {
+  if (s[7] === s[8] || s[7] === undefined) return s[4];
+  const ex = s[2] - s[0], ez = s[3] - s[1], l2 = ex * ex + ez * ez;
+  const t = l2 > 1e-9 ? Math.max(0, Math.min(1, ((x - s[0]) * ex + (z - s[1]) * ez) / l2)) : 0;
+  return s[7] + (s[8] - s[7]) * t;
 }
 
 // ---- the street where the city's kerbs say it is ----
@@ -551,6 +565,9 @@ function recentreOnKerbEnvelope(way) {
     }
   }
   way._spans = spans;
+  // (Every station's own reading too -- how far along, and how wide between the kerbs there --
+  // for the kerb's line along the block: kerbProfileOf.)
+  way._stations = stations.map(([s, , w]) => [s, w]);
   way._node = [way.points[0].slice(), way.points[way.points.length - 1].slice()];
   way._shift = [offsets[0], offsets[offsets.length - 1]];
   way.points = offsets.some((o) => Math.abs(o) >= RECENTRE_MIN_SHIFT_M)
@@ -579,10 +596,209 @@ function recentreOnKerbEnvelope(way) {
   return true;
 }
 
+// ---- the kerb's own line along a block ----------------------------------------------------------
+//
+// A street is drawn at one width, and the kerb the city surveyed is not one line: it steps in
+// for a bulb, out for a bay, and narrows a little down a block. Drawn only at the one width, the
+// walk's edge stood up to half a metre off the kerb the city records (docs/63: the spread).
+// The city's kerb is read every KERB_LINE_RULES.station_m along each street (the stations the
+// recentring already takes) and the walk's edge follows it, in straight lengths jointed where
+// it changes -- and so do the roadway, its paint and where it may be driven, which all ask the
+// same question (halfWidthAt). Within limits, so that a street stays a street:
+//
+//   * Not at a corner. Within ``corner_m`` of either end of a street, and of any street that
+//     meets it along the way, the width is the street's one width, eased back to it over
+//     ``ease_m``: corners are built as they are now (module 01: one kerb, everywhere).
+//   * Subtle. Never more than ``most_m`` from the one width; a change of under ``dead_m`` is
+//     none; a change that lasts under ``least_run_m`` is none; and the edge turns no faster
+//     than one in ``1 / slope`` (a joint, then a straight taper).
+//   * Not where it waves. A kerb that goes out, comes in and goes out again within
+//     ``wave_within_m`` by ``wave_m`` or more is not a kerb doing that: it is the record
+//     catching something else (a driveway's wings, parked cars in the survey, two lines
+//     digitised against each other). That stretch keeps the one width, and is listed
+//     (``kerbsideKerbProfiles().waves``) to be looked at.
+//   * Consistent. A street whose stations cover less than ``least_cover`` of it between its
+//     corners, or disagree by more than ``most_range_m`` in all, keeps the one width.
+const KERB_LINE_RULES = { station_m: 4, corner_m: 12, ease_m: 16, most_m: 0.45, dead_m: 0.08, least_run_m: 12, slope: 1 / 20,
+  wave_m: 0.25, wave_within_m: 80, least_cover: 0.5, most_range_m: 1.6, vertex_m: 4, junction_m: 3.5 };
+const kerbProfileStats = { streets: 0, followed: 0, followed_m: 0, uniform_cover: 0, uniform_range: 0, waves: 0, wave_m: 0, widths_settled: 0 };
+const kerbWaves = [];
+//: A street's kerb profile from its stations: { s: [along...], d: [metres the half-width
+//: differs from the street's one half-width...] } on a grid of station_m, or null where it keeps
+//: the one width. ``junctions``: how far along it other streets meet it. Pure but for the stats.
+function kerbProfileFrom(stations, length, base, junctions, name = null) {
+  const K = KERB_LINE_RULES, step = K.station_m, n = Math.floor(length / step) + 1;
+  if (n < 6 || !stations || stations.length < 3) return null;
+  const raw = new Array(n).fill(NaN);
+  for (const [s, w] of stations) { const i = Math.round(s / step); if (i >= 0 && i < n && Number.isFinite(w)) raw[i] = w / 2 - base; }
+  // How far each point is from the nearest corner (an end, or a street that meets it).
+  const corner = (i) => { let d = Math.min(i * step, length - i * step); for (const j of junctions) d = Math.min(d, Math.abs(i * step - j)); return d; };
+  const open = raw.map((v, i) => corner(i) >= K.corner_m);
+  const have = raw.filter((v, i) => open[i] && Number.isFinite(v));
+  const wanted = open.filter(Boolean).length;
+  if (!wanted || have.length < K.least_cover * wanted) { kerbProfileStats.uniform_cover += 1; return null; }
+  const sorted = have.slice().sort((a, b) => a - b);
+  if (sorted[Math.floor(sorted.length * 0.95)] - sorted[Math.floor(sorted.length * 0.05)] > K.most_range_m) { kerbProfileStats.uniform_range += 1; return null; }
+  // A station with no reading takes the one before it (or after): then one odd reading in three
+  // is put aside (the middle of each three), and the line is the mean of each three.
+  const filled = raw.slice();
+  for (let i = 0; i < n; i += 1) if (!Number.isFinite(filled[i])) { let k = 1; while (k < n && !Number.isFinite(raw[i - k] ?? NaN) && !Number.isFinite(raw[i + k] ?? NaN)) k += 1; filled[i] = Number.isFinite(raw[i - k] ?? NaN) ? raw[i - k] : Number.isFinite(raw[i + k] ?? NaN) ? raw[i + k] : 0; }
+  const mid3 = filled.map((v, i) => [filled[Math.max(0, i - 1)], v, filled[Math.min(n - 1, i + 1)]].sort((a, b) => a - b)[1]);
+  // (A change shorter than least_run_m is a driveway's dip or a reading, not the kerb: put aside
+  // before the mean spreads it over its neighbours and makes it look long enough.)
+  for (let i = 0; i < n; i += 1) {
+    if (Math.abs(mid3[i]) < K.dead_m || (i > 0 && Math.abs(mid3[i - 1]) >= K.dead_m && Math.sign(mid3[i - 1]) === Math.sign(mid3[i]))) continue;
+    let j = i; while (j + 1 < n && Math.abs(mid3[j + 1]) >= K.dead_m && Math.sign(mid3[j + 1]) === Math.sign(mid3[i])) j += 1;
+    if ((j - i + 1) * step < K.least_run_m) for (let k = i; k <= j; k += 1) mid3[k] = 0;
+  }
+  const d = mid3.map((v, i) => (mid3[Math.max(0, i - 1)] + v + mid3[Math.min(n - 1, i + 1)]) / 3);
+  // Where it waves: the line's turning points (each a turn of wave_m at least from the one
+  // before), and any three of them one after another within wave_within_m -- out, in and out
+  // again, or in, out and in.
+  const turns = [];
+  let hi = -1, lo = -1, dir = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (!open[i]) continue;
+    if (hi < 0) { hi = lo = i; continue; }
+    if (dir >= 0 && d[i] > d[hi]) hi = i;
+    if (dir <= 0 && d[i] < d[lo]) lo = i;
+    if (dir >= 0 && d[hi] - d[i] >= K.wave_m) { turns.push(hi); dir = -1; lo = i; }
+    else if (dir <= 0 && d[i] - d[lo] >= K.wave_m) { turns.push(lo); dir = 1; hi = i; }
+  }
+  const flat = new Uint8Array(n);
+  for (let a = 0; a + 2 < turns.length; a += 1) {
+    if ((turns[a + 2] - turns[a]) * step > K.wave_within_m) continue;
+    for (let i = Math.max(0, turns[a] - 1); i <= Math.min(n - 1, turns[a + 2] + 1); i += 1) flat[i] = 1;
+  }
+  for (let i = 0; i < n; i += 1) {
+    if (!flat[i] || (i > 0 && flat[i - 1])) continue;
+    let j = i; while (j + 1 < n && flat[j + 1]) j += 1;
+    let lo = Infinity, hi = -Infinity; for (let k = i; k <= j; k += 1) { lo = Math.min(lo, d[k]); hi = Math.max(hi, d[k]); }
+    kerbProfileStats.waves += 1; kerbProfileStats.wave_m += (j - i) * step;
+    if (kerbWaves.length < 400) kerbWaves.push({ street: name, from_m: i * step, to_m: j * step, swing_m: +(hi - lo).toFixed(2), readings: d.slice(i, j + 1).map((v) => +v.toFixed(2)) });
+  }
+  // Within its limits: none at a corner (eased in), none where it waves, none too small, never
+  // far; a change too short to be the kerb's is none; and no turn sharper than the slope.
+  const ease = (i) => { const t = Math.max(0, Math.min(1, (corner(i) - K.corner_m) / K.ease_m)); return t * t * (3 - 2 * t); };
+  const out = d.map((v, i) => { const e = flat[i] ? 0 : v * ease(i); return Math.abs(e) < K.dead_m ? 0 : Math.max(-K.most_m, Math.min(K.most_m, e)); });
+  for (let i = 0; i < n; i += 1) {
+    if (out[i] === 0 || (i > 0 && out[i - 1] !== 0 && Math.sign(out[i - 1]) === Math.sign(out[i]))) continue;
+    let j = i; while (j + 1 < n && out[j + 1] !== 0 && Math.sign(out[j + 1]) === Math.sign(out[i])) j += 1;
+    if ((j - i + 1) * step < K.least_run_m) for (let k = i; k <= j; k += 1) out[k] = 0;
+  }
+  const most = K.slope * step;
+  for (let i = 1; i < n; i += 1) out[i] = Math.max(out[i - 1] - most, Math.min(out[i - 1] + most, out[i]));
+  for (let i = n - 2; i >= 0; i -= 1) out[i] = Math.max(out[i + 1] - most, Math.min(out[i + 1] + most, out[i]));
+  out[0] = out[n - 1] = 0;
+  for (let i = 0; i < n; i += 1) if (!open[i] && corner(i) < K.corner_m - step) out[i] = 0;
+  if (!out.some((v) => Math.abs(v) >= K.dead_m)) return null;
+  return { s: out.map((v, i) => i * step), d: out, step };
+}
+//: Each street's profile, once the streets are on their kerbs' middles (recentreStreetsOnOfficialKerbs):
+//: and a street that follows its kerb has a corner of its line every ``vertex_m``, so the walk
+//: and the roadway laid along it can turn where the kerb does.
+function settleKerbProfiles(ways) {
+  const streets = ways.filter((w) => w.kind === "street" && w.points && w.points.length >= 2);
+  // Every street's line by cell, a piece at a time: another street's line within junction_m of
+  // this one's meets it there. (Its corners alone were asked at first: two streets that cross
+  // between their corners, or whose shared corner was moved when each was put on its own
+  // kerbs' middle, did not meet, and the kerb read round that corner into the side street was
+  // taken for this street's own -- Retiro Way 5.6 m out for 24 m, Webster Street 2.5 m.)
+  const C = 12, grid = new Map(), page = new Map();
+  for (const way of streets) {
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    page.set(way, pts);
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1], b = pts[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]), seg = [a[0], a[1], b[0], b[1], way];
+      for (let k = 0, n = Math.max(1, Math.ceil(len / (C / 2))); k <= n; k += 1) {
+        const key = Math.floor((a[0] + (b[0] - a[0]) * k / n) / C) + ":" + Math.floor((a[1] + (b[1] - a[1]) * k / n) / C);
+        let list = grid.get(key);
+        if (!list) grid.set(key, list = []);
+        if (list[list.length - 1] !== seg) list.push(seg);
+      }
+    }
+  }
+  const meets = (way, x, z) => {
+    for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1)
+      for (const [ax, az, bx, bz, other] of grid.get((Math.floor(x / C) + di) + ":" + (Math.floor(z / C) + dj)) || []) {
+        if (other === way) continue;
+        const ux = bx - ax, uz = bz - az, l2 = ux * ux + uz * uz || 1, t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / l2));
+        if (Math.hypot(x - ax - ux * t, z - az - uz * t) < KERB_LINE_RULES.junction_m) return true;
+      }
+    return false;
+  };
+  for (const way of streets) {
+    if (!way._stations || way.busway || isDividedHalf(way) || isTunnelWay(way)) continue;
+    kerbProfileStats.streets += 1;
+    const pts = page.get(way), junctions = [];
+    let along = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1], b = pts[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]), ux = (b[0] - a[0]) / (len || 1), uz = (b[1] - a[1]) / (len || 1);
+      for (let t = 0; t <= len; t += 2)
+        if (meets(way, a[0] + ux * t, a[1] + uz * t) && !junctions.some((j) => Math.abs(j - (along + t)) < 6)) junctions.push(along + t);
+      along += len;
+    }
+    const where = (s) => { let run = 0; for (let i = 1; i < pts.length; i += 1) { const a = pts[i - 1], b = pts[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]); if (run + len >= s || i === pts.length - 1) { const t = Math.max(0, Math.min(1, (s - run) / (len || 1))); return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t)]; } run += len; } return null; };
+    settleStreetWidth(way, along, junctions);
+    const listed = kerbWaves.length;
+    const profile = kerbProfileFrom(way._stations, along, nominalRoadWidth(way) / 2, junctions, way.name || null);
+    for (let k = listed; k < kerbWaves.length; k += 1) kerbWaves[k].at = where((kerbWaves[k].from_m + kerbWaves[k].to_m) / 2);
+    if (!profile) continue;
+    way._kerbProfile = profile;
+    way.points = densifyWay(way.points, KERB_LINE_RULES.vertex_m);
+    kerbProfileStats.followed += 1;
+    kerbProfileStats.followed_m += profile.d.filter((v) => v !== 0).length * profile.step;
+  }
+  kerbProfileStats.wave_m = Math.round(kerbProfileStats.wave_m);
+  window.kerbsideKerbProfiles = () => ({ ...kerbProfileStats, limits: { ...KERB_LINE_RULES }, widths: streetWidthsSettled.slice(),
+    waves: kerbWaves.slice().sort((a, b) => b.swing_m - a.swing_m) });
+  return kerbProfileStats;
+}
+//: A street's one width is the middle of the city's kerb readings along it, away from its
+//: corners. It was the middle of the readings taken round each corner of its LINE -- and a line
+//: of two or three corners has them at its junctions, where the kerbs stand back -- or the
+//: width on the street's record, kept where it was within a metre and a half of that: Webster
+//: Street north of Lombard was drawn 13.45 m kerb to kerb where 54 readings along it have their
+//: middle at 11.72, each walk 0.87 m short of the city's kerb line for the whole block
+//: (2026-11-24). Where the readings agree among themselves (their middle half within
+//: ``agree_m``) and differ from the width by more than ``least_m`` and less than ``most``
+//: of it, the readings are the width; the old one is kept beside it. Returns whether it changed.
+const STREET_WIDTH_RULES = { least_m: 0.2, agree_m: 0.5, most: 0.3, least_readings: 6 };
+const streetWidthsSettled = [];
+function streetWidthFromStations(stations, length, junctions, width, rules = STREET_WIDTH_RULES, corner = KERB_LINE_RULES.corner_m) {
+  const open = (stations || []).filter(([s, w]) => Number.isFinite(w) && s >= corner && s <= length - corner && !junctions.some((j) => Math.abs(s - j) < corner)).map(([, w]) => w).sort((a, b) => a - b);
+  if (open.length < rules.least_readings) return null;
+  const middle = open[open.length >> 1], spread = open[Math.floor(open.length * 0.75)] - open[Math.floor(open.length * 0.25)];
+  if (spread > rules.agree_m || Math.abs(middle - width) <= rules.least_m || Math.abs(middle - width) > rules.most * width) return null;
+  return +middle.toFixed(3);
+}
+function settleStreetWidth(way, length, junctions) {
+  const before = nominalRoadWidth(way), width = streetWidthFromStations(way._stations, length, junctions, before);
+  if (width === null) return false;
+  // (A street already drawn as wide as any street is drawn stays as it is: Bay Street by the
+  // Marina Green reads wider than the 24 m limit either way, and nothing would change but its record.)
+  const kept = [way.road_m, way.road_source];
+  way.road_m = width;
+  if (Math.abs(nominalRoadWidth(way) - before) < 0.05) { way.road_m = kept[0]; return false; }
+  if (way.road_record_m === undefined) way.road_record_m = kept[0];
+  way.road_source = "official_curbs"; way.road_basis = "official_curb_stations";
+  kerbProfileStats.widths_settled = (kerbProfileStats.widths_settled || 0) + 1;
+  if (streetWidthsSettled.length < 200) streetWidthsSettled.push({ street: way.name || null, was_m: +before.toFixed(2), is_m: +nominalRoadWidth(way).toFixed(2) });
+  return true;
+}
+//: How far a street's half-width is from its one half-width at ``along`` (kerbProfileOf): 0
+//: where it keeps it.
+function kerbDeltaAt(way, along) {
+  const p = way && way._kerbProfile;
+  if (!p) return 0;
+  const f = along / p.step, i = Math.floor(f);
+  if (i < 0 || i >= p.d.length - 1) return 0;
+  return p.d[i] + (p.d[i + 1] - p.d[i]) * (f - i);
+}
 function halfWidthAt(way, along) {
-  // The uniform kerb draws every street at its own single width, so the carriageway does not
-  // widen and narrow along the block the way the survey read it. The envelope stays on the way.
-  if (KERB_RENDER_UNIFORM) return renderedRoadWidth(way) / 2;
+  // The uniform kerb draws every street at its own single width; the kerb's own line along the
+  // block is laid on that, within its limits (kerbProfileFrom).
+  if (KERB_RENDER_UNIFORM) return renderedRoadWidth(way) / 2 + kerbDeltaAt(way, along);
   const spans = way && way._spans;
   if (!spans || spans.length < 2) return renderedRoadWidth(way) / 2;
   if (along <= spans[0][0]) return spans[0][1] / 2;
@@ -624,7 +840,9 @@ function recentreStreetsOnOfficialKerbs(ways) {
     if (way.road_source !== before || way.road_record_m) widened += 1;
   }
   const inherited = inheritRecentring(ways);
-  return { moved, widened, inherited };
+  let profiles = null;
+  try { profiles = settleKerbProfiles(ways); } catch (error) { console.warn("kerbside: the kerbs' profiles were left at one width", error); }
+  return { moved, widened, inherited, profiles };
 }
 
 function inheritRecentring(ways) {
@@ -888,9 +1106,8 @@ for (const way of DATA.ways) {
     for (let i = 1; i < run.length; i += 1) {
       const [ax, ay] = xy(run[i - 1][0], run[i - 1][1]);
       const [bx, by] = xy(run[i][0], run[i][1]);
-      const segmentHalf = along
-        ? (halfWidthAt(way, along[i - 1]) + halfWidthAt(way, along[i])) / 2 : half;
-      addCarriagewaySegment(ax, -ay, bx, -by, segmentHalf, way);
+      const halfA = along ? halfWidthAt(way, along[i - 1]) : half, halfB = along ? halfWidthAt(way, along[i]) : half;
+      addCarriagewaySegment(ax, -ay, bx, -by, (halfA + halfB) / 2, way, halfA, halfB);
     }
   }
 }
@@ -928,9 +1145,10 @@ function insideMeasuredCarriageway(x, z, slack) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
-      for (const [ax, az, bx, bz, half, , source] of bucket) {
+      for (const seg of bucket) {
+        const [ax, az, bx, bz, , , source] = seg;
         if (!source || !MEASURED_ROAD_SOURCES.has(source.road_source)) continue;
-        const limit = Math.max(0, half - slack);
+        const limit = Math.max(0, (seg[7] === seg[8] ? seg[4] : carriagewayHalfAt(seg, x, z)) - slack);
         if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < limit * limit) return true;
       }
     }
@@ -949,7 +1167,7 @@ function insideCarriageway(x, z, slack = 0.4) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (let i = 0; i < bucket.length; i += 1) {
-        const s = bucket[i], limit = Math.max(0, s[4] - slack);
+        const s = bucket[i], limit = Math.max(0, (s[7] === s[8] ? s[4] : carriagewayHalfAt(s, x, z)) - slack);
         if (distanceToSegmentSquared(x, z, s[0], s[1], s[2], s[3]) < limit * limit) return true;
       }
     }
@@ -972,7 +1190,7 @@ function insideStreetCarriageway(x, z, slack = 0.4) {
       for (let i = 0; i < bucket.length; i += 1) {
         const s = bucket[i];
         if (s[6] && isUnmarkedService(s[6])) continue;
-        const limit = Math.max(0, s[4] - slack);
+        const limit = Math.max(0, (s[7] === s[8] ? s[4] : carriagewayHalfAt(s, x, z)) - slack);
         if (distanceToSegmentSquared(x, z, s[0], s[1], s[2], s[3]) < limit * limit) return true;
       }
     }
@@ -997,7 +1215,8 @@ function onAnotherCarriageway(x, z, slack, exclude) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
       for (let i = 0; i < bucket.length; i += 1) {
-        const seg = bucket[i], ax = seg[0], az = seg[1], bx = seg[2], bz = seg[3], half = seg[4], source = seg[6];
+        const seg = bucket[i], ax = seg[0], az = seg[1], bx = seg[2], bz = seg[3], source = seg[6];
+        const half = seg[7] === seg[8] ? seg[4] : carriagewayHalfAt(seg, x, z);
         if (source && exclude.includes(source)) continue;
         const ex = bx - ax, ez = bz - az;
         const l2 = ex * ex + ez * ez;

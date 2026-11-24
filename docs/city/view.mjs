@@ -378,7 +378,7 @@ export async function startCity(ctx) {
       }
       if (!Array.isArray(pts) || pts.length < 2) continue;
       if (way.kind === "street" && way.tunnel_kind !== "underground") {
-        ways.push({ kind: "street", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)), lanes: way.lanes || 2, name: way.name || null,
+        ways.push({ kind: "street", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)), lanes: way.lanes_fit || way.lanes || 2, name: way.name || null,
           oneway: way.osm_oneway === "yes" ? 1 : way.osm_oneway === "-1" ? -1 : 0, road_m: way.road_m, service: way.service, busway: way.busway, id: way.osm_id,
           parking_sides: way.parking_sides, bike: bikeSides(way) });
       } else if (["sidewalk", "path", "crossing", "footway"].includes(way.kind)) {

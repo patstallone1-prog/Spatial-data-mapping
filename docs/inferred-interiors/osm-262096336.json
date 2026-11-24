@@ -23,7 +23,7 @@
         3.3072456601117657,
         3.3072456601117657
       ],
-      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+      "canonical_rules_sha256": "09517c77bfaf9d886eeeb645b465c7312d466ca3c75762a15786c7b1f4d6a741",
       "measured": false,
       "confidence": 0.25,
       "freshness": null,
@@ -34,12 +34,13 @@
     "id": "osm-262096336",
     "windows": [
       {
-        "u": 1.1653818716386426,
+        "u": 1.8153818716386427,
         "v": 4.107245660111758,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:0:0",
         "edge": 0,
         "a": [
@@ -60,12 +61,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 4.946145614915928,
+        "u": 4.346145614915928,
         "v": 4.107245660111758,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:0:1",
         "edge": 0,
         "a": [
@@ -86,12 +88,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.1653818716386426,
+        "u": 1.8153818716386427,
         "v": 7.414491320223533,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:0:2",
         "edge": 0,
         "a": [
@@ -112,12 +115,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 4.946145614915928,
+        "u": 4.346145614915928,
         "v": 7.414491320223533,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:0:3",
         "edge": 0,
         "a": [
@@ -138,12 +142,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.6811990312687763,
+        "u": 1.8061990312687763,
         "v": 4.107245660111758,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:1:0",
         "edge": 1,
         "a": [
@@ -164,12 +169,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.6811990312687763,
+        "u": 1.8061990312687763,
         "v": 7.414491320223533,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:1:1",
         "edge": 1,
         "a": [
@@ -190,12 +196,67 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.5237502470109323,
+        "u": 0.8284522228886344,
         "v": 4.107245660111758,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-262096336:window:3:0",
+        "edge": 3,
+        "a": [
+          4.697210062191289,
+          -7.347120000433733
+        ],
+        "b": [
+          1.6712919692629384,
+          -7.781267999970396
+        ],
+        "normal": [
+          0.142022103483275,
+          -0.9898634866092323
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 0.8284522228886344,
+        "v": 7.414491320223533,
+        "w": 1.4,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-262096336:window:3:1",
+        "edge": 3,
+        "a": [
+          4.697210062191289,
+          -7.347120000433733
+        ],
+        "b": [
+          1.6712919692629384,
+          -7.781267999970396
+        ],
+        "normal": [
+          0.142022103483275,
+          -0.9898634866092323
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 1.6487502470109323,
+        "v": 4.107245660111758,
+        "w": 1.2,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:5:0",
         "edge": 5,
         "a": [
@@ -216,12 +277,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.5237502470109323,
+        "u": 1.6487502470109323,
         "v": 7.414491320223533,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262096336:window:5:1",
         "edge": 5,
         "a": [
@@ -243,6 +305,36 @@
       }
     ],
     "balconies": [],
+    "party_walls": [
+      {
+        "edge": 2,
+        "a": [
+          2.313419937209801,
+          9.206164000011427
+        ],
+        "b": [
+          4.697210062191289,
+          -7.347120000433733
+        ],
+        "u0": 0.24961260542422145,
+        "u1": 16.724044563422837,
+        "neighbour": "262096308"
+      },
+      {
+        "edge": 7,
+        "a": [
+          -3.1226771009578442,
+          -6.111468000231412
+        ],
+        "b": [
+          -5.849521894294639,
+          12.90198799969744
+        ],
+        "u0": 0.2494545209748153,
+        "u1": 18.958543594085963,
+        "neighbour": "262096305"
+      }
+    ],
     "entrance": [
       3.1842510157271136,
       -7.564194000202065
@@ -308,37 +400,7 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0,
-    "party_walls": [
-      {
-        "edge": 2,
-        "a": [
-          2.313419937209801,
-          9.206164000011427
-        ],
-        "b": [
-          4.697210062191289,
-          -7.347120000433733
-        ],
-        "u0": 0.24961260542422145,
-        "u1": 16.724044563422837,
-        "neighbour": "262096308"
-      },
-      {
-        "edge": 7,
-        "a": [
-          -3.1226771009578442,
-          -6.111468000231412
-        ],
-        "b": [
-          -5.849521894294639,
-          12.90198799969744
-        ],
-        "u0": 0.2494545209748153,
-        "u1": 18.958543594085963,
-        "neighbour": "262096305"
-      }
-    ]
+    "corroboration_count": 0
   },
   "style": {
     "id": "city",
@@ -4308,18 +4370,16 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "industrial_coffee_table",
-            "model": "industrial_coffee_table/industrial_coffee_table.gltf",
+            "id": "kenney-tablecoffee",
+            "model": "business-lowpoly/kenney-tablecoffee.glb",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/industrial_coffee_table",
-            "attribution": "Poly Haven",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
             "dimensions_m": [
-              0.778264,
-              0.638422,
-              0.757928
+              1.1,
+              0.3827556724671157,
+              0.665662049315831
             ],
-            "style": "contemporary",
-            "tier": "standard",
             "role": "coffee_table",
             "estimated_cost_usd": 260,
             "procedural": false
@@ -4570,13 +4630,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:sink_counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_sink",
+            "model": "business-lowpoly/kay-kitchencounter_sink.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.0587923537094766,
+              1.2
+            ],
             "role": "sink_counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#80939b",
@@ -4816,13 +4882,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_straight_decorated",
+            "model": "business-lowpoly/kay-kitchencounter_straight_decorated.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.1246887508958636,
+              1.2
+            ],
             "role": "counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#80939b",
@@ -4898,20 +4970,18 @@
             "surface_y_m": 0.91
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_single_countertop",
+            "model": "business-lowpoly/kay-stove_single_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06361701183421853,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -4984,20 +5054,18 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "painted_wooden_table",
-            "model": "painted_wooden_table/painted_wooden_table.gltf",
+            "id": "kenney-tablecrosscloth",
+            "model": "business-lowpoly/kenney-tablecrosscloth.glb",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/painted_wooden_table",
-            "attribution": "Poly Haven",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
             "dimensions_m": [
-              2.405604,
-              0.958637,
-              1.136984
+              1.4,
+              0.57078656286914,
+              0.7350169290278182
             ],
-            "style": "contemporary",
-            "tier": "economy",
             "role": "dining_table",
-            "estimated_cost_usd": 422,
+            "estimated_cost_usd": 650,
             "procedural": false
           },
           "materials": {
@@ -5664,18 +5732,16 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "industrial_coffee_table",
-            "model": "industrial_coffee_table/industrial_coffee_table.gltf",
+            "id": "kenney-tablecoffeeglass",
+            "model": "business-lowpoly/kenney-tablecoffeeglass.glb",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/industrial_coffee_table",
-            "attribution": "Poly Haven",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
             "dimensions_m": [
-              0.778264,
-              0.638422,
-              0.757928
+              1.1,
+              0.3827556724671157,
+              0.665662049315831
             ],
-            "style": "contemporary",
-            "tier": "standard",
             "role": "coffee_table",
             "estimated_cost_usd": 260,
             "procedural": false
@@ -9177,20 +9243,18 @@
             "surface_y_m": 3.8072456601117657
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_multi_countertop",
+            "model": "business-lowpoly/kay-stove_multi_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06185574583979392,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -9390,13 +9454,13 @@
           "id": "osm-262096336:L1:R2:item:0",
           "role": "bed",
           "position_m": [
-            0.3817808941212939,
+            0.819185779614523,
             3.3072456601117657,
-            12.55416787149399
+            12.616613174094567
           ],
           "size_m": [
-            0.95,
-            0.8,
+            1.5,
+            0.85,
             2
           ],
           "rotation_deg": -171.87517497493704,
@@ -9405,24 +9469,24 @@
             "coordinates": [
               [
                 [
-                  -0.22978147524741122,
-                  13.476998553890352
+                  -0.06461628146884746,
+                  13.500578058479002
                 ],
                 [
-                  0.05287887393024615,
-                  11.49707352323824
+                  0.2180440677088099,
+                  11.52065302782689
                 ],
                 [
-                  0.993343263489999,
-                  11.631337189097627
+                  1.7029878406978933,
+                  11.732648289710133
                 ],
                 [
-                  0.7106829143123417,
-                  13.611262219749738
+                  1.420327491520236,
+                  13.712573320362244
                 ],
                 [
-                  -0.22978147524741122,
-                  13.476998553890352
+                  -0.06461628146884746,
+                  13.500578058479002
                 ]
               ]
             ]
@@ -9460,32 +9524,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            0.5838830437833182,
-            11.138521474577729
+            1.0212879292765473,
+            11.200966777178307
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  0.057118779167910416,
-                  11.467374647778458
+                  0.22228397294647428,
+                  11.49095415236711
                 ],
                 [
-                  0.15604990138009045,
-                  10.77440088705022
+                  0.3212150951586543,
+                  10.79798039163887
                 ],
                 [
-                  1.0965142909398433,
-                  10.908664552909608
+                  1.8061588681477379,
+                  11.009975653522112
                 ],
                 [
-                  0.9975831687276633,
-                  11.601638313637846
+                  1.7072277459355578,
+                  11.702949414250352
                 ],
                 [
-                  0.057118779167910416,
-                  11.467374647778458
+                  0.22228397294647428,
+                  11.49095415236711
                 ]
               ]
             ]
@@ -9495,24 +9559,24 @@
             "coordinates": [
               [
                 [
-                  0.7453316023487535,
-                  13.616208775860349
+                  -0.7427406044671958,
+                  13.403766888885656
                 ],
                 [
-                  1.0279919515264109,
-                  11.636283745208237
+                  -0.4600802552895384,
+                  11.423841858233544
                 ],
                 [
-                  1.6714675864883473,
-                  11.728148358690975
+                  0.18339537967239788,
+                  11.515706471716282
                 ],
                 [
-                  1.38880723731069,
-                  13.708073389343086
+                  -0.09926496950525948,
+                  13.495631502368393
                 ],
                 [
-                  0.7453316023487535,
-                  13.616208775860349
+                  -0.7427406044671958,
+                  13.403766888885656
                 ]
               ]
             ]
@@ -9661,20 +9725,18 @@
             "surface_y_m": 3.8072456601117657
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_single_countertop",
+            "model": "business-lowpoly/kay-stove_single_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06361701183421853,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -10063,20 +10125,18 @@
             "surface_y_m": 3.8072456601117657
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_multi_countertop",
+            "model": "business-lowpoly/kay-stove_multi_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06185574583979392,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -13450,20 +13510,18 @@
             "surface_y_m": 7.114491320223531
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_multi_countertop",
+            "model": "business-lowpoly/kay-stove_multi_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06185574583979392,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -13934,20 +13992,18 @@
             "surface_y_m": 7.114491320223531
           },
           "asset": {
-            "id": "threshold_porcelain_teapot_white",
-            "model": "scanned/threshold_porcelain_teapot_white.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Threshold_Porcelain_Teapot_White",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-stove_single_countertop",
+            "model": "business-lowpoly/kay-stove_single_countertop.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.186667,
-              0.136228,
-              0.184256
+              0.4,
+              0.06361701183421853,
+              0.4
             ],
-            "style": "traditional",
-            "tier": "economy",
             "role": "counter_item",
-            "estimated_cost_usd": 16,
+            "estimated_cost_usd": 24,
             "procedural": false
           },
           "materials": {
@@ -14274,18 +14330,16 @@
             "surface_y_m": 6.614491320223531
           },
           "asset": {
-            "id": "industrial_coffee_table",
-            "model": "industrial_coffee_table/industrial_coffee_table.gltf",
+            "id": "kenney-tablecoffee",
+            "model": "business-lowpoly/kenney-tablecoffee.glb",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/industrial_coffee_table",
-            "attribution": "Poly Haven",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
             "dimensions_m": [
-              0.778264,
-              0.638422,
-              0.757928
+              1.1,
+              0.3827556724671157,
+              0.665662049315831
             ],
-            "style": "contemporary",
-            "tier": "standard",
             "role": "coffee_table",
             "estimated_cost_usd": 260,
             "procedural": false
@@ -14360,18 +14414,16 @@
             "surface_y_m": 7.014491320223532
           },
           "asset": {
-            "id": "footed_bowl_sand",
-            "model": "scanned/footed_bowl_sand.glb",
-            "license": "CC-BY-4.0",
-            "source": "https://app.gazebosim.org/GoogleResearch/fuel/models/Footed_Bowl_Sand",
-            "attribution": "Google Research, Google Scanned Objects (CC BY 4.0)",
+            "id": "kay-food_ingredient_steak_pieces",
+            "model": "business-lowpoly/kay-food_ingredient_steak_pieces.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
             "dimensions_m": [
-              0.161154,
-              0.108791,
-              0.161702
+              0.22000000000000003,
+              0.14782828854288596,
+              0.21176689904194715
             ],
-            "style": "contemporary",
-            "tier": "standard",
             "role": "table_item",
             "estimated_cost_usd": 30,
             "procedural": false
@@ -16101,7 +16153,7 @@
   ],
   "total_height_m": 9.921736980335297,
   "partition_score": 0.15516913203618424,
-  "estimated_furniture_cost_usd": 19974,
+  "estimated_furniture_cost_usd": 19850,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -16118,7 +16170,7 @@
       "objects": 54,
       "coverage_min": 0.999999996607931,
       "hallway_area_fraction_max": 0.11578689366309909,
-      "downloaded_assets_used": 29,
+      "downloaded_assets_used": 31,
       "connected_rooms": 24
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
@@ -16208,12 +16260,13 @@
       "id": "osm-262096336",
       "windows": [
         {
-          "u": 1.1653818716386426,
+          "u": 1.8153818716386427,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:0",
           "edge": 0,
           "a": [
@@ -16234,12 +16287,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.946145614915928,
+          "u": 4.346145614915928,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:1",
           "edge": 0,
           "a": [
@@ -16260,12 +16314,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.1653818716386426,
+          "u": 1.8153818716386427,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:2",
           "edge": 0,
           "a": [
@@ -16286,12 +16341,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.946145614915928,
+          "u": 4.346145614915928,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:3",
           "edge": 0,
           "a": [
@@ -16312,12 +16368,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6811990312687763,
+          "u": 1.8061990312687763,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:1:0",
           "edge": 1,
           "a": [
@@ -16338,12 +16395,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6811990312687763,
+          "u": 1.8061990312687763,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:1:1",
           "edge": 1,
           "a": [
@@ -16364,12 +16422,67 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5237502470109323,
+          "u": 0.8284522228886344,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096336:window:3:0",
+          "edge": 3,
+          "a": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "b": [
+            1.6712919692629384,
+            -7.781267999970396
+          ],
+          "normal": [
+            0.142022103483275,
+            -0.9898634866092323
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8284522228886344,
+          "v": 7.414491320223533,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096336:window:3:1",
+          "edge": 3,
+          "a": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "b": [
+            1.6712919692629384,
+            -7.781267999970396
+          ],
+          "normal": [
+            0.142022103483275,
+            -0.9898634866092323
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.6487502470109323,
+          "v": 4.107245660111758,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:5:0",
           "edge": 5,
           "a": [
@@ -16390,12 +16503,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5237502470109323,
+          "u": 1.6487502470109323,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:5:1",
           "edge": 5,
           "a": [
@@ -16417,6 +16531,36 @@
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 2,
+          "a": [
+            2.313419937209801,
+            9.206164000011427
+          ],
+          "b": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "u0": 0.24961260542422145,
+          "u1": 16.724044563422837,
+          "neighbour": "262096308"
+        },
+        {
+          "edge": 7,
+          "a": [
+            -3.1226771009578442,
+            -6.111468000231412
+          ],
+          "b": [
+            -5.849521894294639,
+            12.90198799969744
+          ],
+          "u0": 0.2494545209748153,
+          "u1": 18.958543594085963,
+          "neighbour": "262096305"
+        }
+      ],
       "entrance": [
         3.1842510157271136,
         -7.564194000202065
