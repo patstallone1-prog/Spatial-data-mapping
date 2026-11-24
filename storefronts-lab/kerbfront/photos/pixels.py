@@ -38,6 +38,8 @@ SIGNS = ("object--sign--store", "object--sign--advertisement", "object--banner")
 BUILDING = ("construction--structure--building",)
 SKY_ROAD = ("nature--sky", "construction--flat--road")
 SIGN_BAND = (2.4, 5.0)
+EDGE_MARGIN = 0.92
+MIN_FACE_PX = 100   # projected span width in the fetched image (matches stage 1)
 
 
 def group_of(value: str) -> str | None:
@@ -85,6 +87,19 @@ def face_window(frame: dict, face: Face, cam: tuple[float, float],
     return {"yaw": (min(y0, y1), max(y0, y1)), "full": (pitch(0.0), pitch(top)),
             "store": (pitch(STOREFRONT_BAND[0]), pitch(STOREFRONT_BAND[1])),
             "sign": (pitch(SIGN_BAND[0]), pitch(SIGN_BAND[1])), "dist": d}
+
+
+def in_frame_share(frame: dict, yaw: tuple[float, float], pitch: tuple[float, float]) -> float:
+    """Share of the face window inside the image (1.0 for panoramas)."""
+    if _spherical(frame):
+        return 1.0
+    W, H = frame.get("width") or 4000, frame.get("height") or 3000
+    # the outer 8% of each half-field is where uncorrected lens distortion is worst
+    half_h = EDGE_MARGIN * math.degrees(math.atan2(W / 2, _f_px(frame, W)))
+    half_v = EDGE_MARGIN * math.degrees(math.atan2(H / 2, _f_px(frame, W)))
+    wy = max(0.0, min(yaw[1], half_h) - max(yaw[0], -half_h)) / max(1e-6, yaw[1] - yaw[0])
+    wp = max(0.0, min(pitch[1], half_v) - max(pitch[0], -half_v)) / max(1e-6, pitch[1] - pitch[0])
+    return wy * wp
 
 
 def coverage(dets: list[dict], frame: dict, yaw: tuple[float, float],
@@ -153,7 +168,11 @@ def face_crop(img: np.ndarray, frame: dict, win: dict) -> np.ndarray:
     span = win["yaw"][1] - win["yaw"][0]
     pc = (win["full"][0] + win["full"][1]) / 2
     if _spherical(frame):
-        return equirect_view(img, yaw_c, pc, min(100.0, max(40.0, span + 12.0)))
+        hfov = min(100.0, max(40.0, span + 12.0))
+        # render at (at most) the source's own angular resolution: upsampling would make
+        # every distant panorama look "blurred" and sharpness would measure range, not shake
+        out_w = int(max(160, min(960, img.shape[1] * hfov / 360.0)))
+        return equirect_view(img, yaw_c, pc, hfov, out_w=out_w, out_h=int(out_w * 0.75))
     H, W = img.shape[:2]
     f = _f_px(frame, W)
     x0 = int(W / 2 + f * math.tan(math.radians(max(-80.0, win["yaw"][0] - 4))))
@@ -197,6 +216,10 @@ def assess_pixels(frame: dict, face: Face, cam: tuple[float, float], building_h:
     win = face_window(frame, face, cam, building_h)
     res: dict = {"frame_id": frame["id"], "face_id": face.id, "rejects": [], "metrics": {}}
     m = res["metrics"]
+    inside = in_frame_share(frame, win["yaw"], win["store"])
+    m["in_frame"] = inside
+    if inside < 0.7:
+        res["rejects"].append("face_cut_by_frame_edge")
     if dets:
         full = coverage(dets, frame, win["yaw"], win["full"])
         store = coverage(dets, frame, win["yaw"], win["store"])
@@ -216,6 +239,13 @@ def assess_pixels(frame: dict, face: Face, cam: tuple[float, float], building_h:
     if img_path is not None and Path(img_path).exists():
         img = cv2.imread(str(img_path))
         crop = face_crop(img, frame, win)
+        # how many source pixels the span really occupies: a 2 m shop seen obliquely from
+        # 20 m is a ~100 px sliver, too small to measure anything from
+        span = win["yaw"][1] - win["yaw"][0]
+        per_deg = img.shape[1] / 360.0 if _spherical(frame) else _f_px(frame, img.shape[1]) * math.pi / 180
+        m["face_px"] = span * per_deg
+        if m["face_px"] < MIN_FACE_PX:
+            res["rejects"].append("face_too_small")
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         lap = sharpness(gray)
         exp = exposure(gray)
@@ -235,8 +265,10 @@ def assess_pixels(frame: dict, face: Face, cam: tuple[float, float], building_h:
     else:
         s_sharp, exp = 0.6, {"score": 0.7}
         res.setdefault("flags", []).append("no_pixels")
+        if sign_s is None:
+            sign_s = 0.5   # neither segmentation nor pixels: no evidence either way
     m["sign_visibility"] = sign_s
-    base = (s_sharp ** 0.3) * (exp["score"] ** 0.3) * (1 - occl) * consistency
+    base = (s_sharp ** 0.3) * (exp["score"] ** 0.3) * (1 - occl) * consistency * min(1.0, inside / 0.8)
     res["score"] = 0.0 if res["rejects"] else round(base, 4)
     res["score_sign"] = 0.0 if res["rejects"] else round(base * (0.4 + 0.6 * sign_s), 4)
     return res

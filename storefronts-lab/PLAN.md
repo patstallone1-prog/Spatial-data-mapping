@@ -105,9 +105,11 @@ How the merge works (`merge.py`):
   one whose parcel address range matches. Then to a street face: preferring the face on the
   street named in its address. Then to a tenant span along that face.
 
-Result: 5,511 businesses, of which 884 are storefronts. 854 of those sit on a street face,
-and 74 have sidewalk seating or a parklet on record. All outputs go to `out/<area>/`, which
-is uncommitted and can be rebuilt from the cache.
+Result: 5,511 businesses, of which 851 are storefronts and 559 are confirmed by two or more
+sources. 833 storefronts are placed on a face: 824 on a street face and 9 on a setback face
+(rear-lot shops off Union Street courtyards, pier sheds). 75 have sidewalk tables or a
+parklet on record. All outputs go to `out/<area>/`, which is uncommitted and can be rebuilt
+from the cache.
 
 Gaps to close in this stage:
 
@@ -127,7 +129,10 @@ Gaps to close in this stage:
   footprint.
 * An edge is a **street face** when a ray along its normal meets a named OSM street
   centreline within 45 m, running within 30° of parallel.
-* Result: 43,427 edges, of which 15,559 are street faces.
+* An edge is a **recess** when rays along its normal re-enter its own footprint: the back of
+  an entry notch or light well. Without this rule, 1–2 m notch edges were taken as
+  frontages and every photo of them was "occluded" by the building itself.
+* Result: 43,427 edges, of which 13,992 are street faces.
 * A business's frontage is its tenant span of that face. Photo filters score against the
   span, not the whole building edge.
 
@@ -151,8 +156,10 @@ records its best-IoU OSM way and Overture building, so programs can be re-target
 * camera behind the face plane;
 * more than 40 m away, or less than 2 m;
 * incidence above 72°;
-* less than 35% of the span inside the lens's horizontal field of view;
+* less than 60% of the span inside the lens's horizontal field of view;
 * less than 40% of sight lines clear of other footprints (2D ray test);
+* the tenant span would be narrower than 100 px in the image stage 2 fetches. A 2 m shop
+  seen obliquely from 20 m is a sliver;
 * a fisheye lens. Its crops cannot be aimed until the solved lens model is used.
 
 ### Scores
@@ -176,7 +183,14 @@ Each frame gets two scores, combined as weighted geometric means:
   the pose or footprint is wrong for that frame and it is rejected as `misaligned`;
 * store-sign, advertisement and banner pixels in the sign band, 2.4–5 m above grade;
 * Laplacian sharpness and clipped highlights and shadows, measured on a perspective crop
-  aimed at the face (panoramas are re-projected).
+  aimed at the face. Panoramas are re-projected at no more than their own angular
+  resolution, so sharpness measures shake rather than range;
+* whether the face is cut off by the edge of a perspective frame (`face_cut_by_frame_edge`
+  when less than 70% of it is inside the central 92% of the frame), and its projected width
+  (`face_too_small`).
+
+The `sign` slot of a panorama is fetched at full resolution, because a 2048 px
+equirectangular thumbnail spends only about 6 px per degree on the facade.
 
 ### Shot list
 
@@ -334,7 +348,7 @@ Architecture evidence is invalidated only by structural permits.
   business at an otherwise empty address can still pass as a storefront. Stage 5's sign
   check is the backstop.
 * **Upstairs offices on Union Street.** Suites without a floor number are only lightly
-  penalised. The storefront count there (321) is probably high.
+  penalised. The storefront count there (309) is probably high.
 * **Pose error.** Frames with GPS-only positions (no SfM) can misplace a narrow span.
   The `misaligned` pixel check catches gross cases; stage 4's mask fit catches the rest.
 * **Licences.** Mapillary imagery is CC BY-SA 4.0 and OSM is ODbL. The lab commits no

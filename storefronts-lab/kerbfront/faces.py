@@ -4,7 +4,8 @@ A face is one simplified footprint edge, counter-clockwise, so its outward norma
 hand of the edge direction. An edge is *exposed* when points just outside it are not inside a
 neighbouring footprint (otherwise it is a party wall); an exposed edge is a *street face* when
 a ray along its normal meets a named street centreline within ``STREET_RANGE_M`` that runs
-roughly parallel to it. Photo filters score frames against these faces.
+roughly parallel to it, without first re-entering its own footprint (an edge whose ray does is a
+*recess*: the back of an entry notch or light well, seen only through the opening in front). Photo filters score frames against these faces.
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ class Face:
     length_m: float
     edge_bearing: float
     normal_bearing: float
-    role: str                    # street | open | party
+    role: str                    # street | recess | open | party
     street: str | None
     street_dist_m: float | None
     exposed: float
@@ -133,8 +134,21 @@ def faces_of(b: Building, neighbours: STRtree, neighbour_polys: list[Polygon],
         exposed = free / samples
         mx, my = p0[0] + tx * L / 2, p0[1] + ty * L / 2
         street, dist = None, None
+        inner = b.poly.buffer(-0.05)
+        recessed = False
         if exposed >= 0.5 and street_tree is not None:
             ray = LineString([(mx, my), (mx + nx * STREET_RANGE_M, my + ny * STREET_RANGE_M)])
+            # an edge in a notch (recessed entry, light well) faces the street but its own
+            # building stands in front of it: rays along its normal re-enter the footprint.
+            # Sampled along the edge so a bay window in front of a main facade's midpoint does
+            # not demote the whole facade.
+            blocked = 0
+            for k in range(5):
+                f = 0.1 + 0.8 * k / 4
+                sx, sy = p0[0] + tx * L * f, p0[1] + ty * L * f
+                r = LineString([(sx, sy), (sx + nx * STREET_RANGE_M, sy + ny * STREET_RANGE_M)])
+                blocked += r.intersection(inner).length > 0.3
+            recessed = blocked >= 4
             for j in street_tree.query(ray):
                 name, line = streets[j]
                 inter = ray.intersection(line)
@@ -150,7 +164,10 @@ def faces_of(b: Building, neighbours: STRtree, neighbour_polys: list[Polygon],
                 off = abs(((sb - eb + 90) % 180) - 90)
                 if off <= PARALLEL_DEG and (dist is None or d < dist):
                     street, dist = name, d
-        role = "street" if street else ("open" if exposed >= 0.5 else "party")
+        if recessed:
+            role = "recess"
+        else:
+            role = "street" if street else ("open" if exposed >= 0.5 else "party")
         faces.append(Face(f"{b.id}:{i}", b.id, i, p0, p1, L, bearing(tx, ty), bearing(nx, ny),
                           role, street, round(dist, 2) if dist is not None else None, exposed))
     return faces

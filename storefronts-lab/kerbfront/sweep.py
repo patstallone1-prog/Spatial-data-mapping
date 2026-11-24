@@ -15,6 +15,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 from shapely.geometry import Point, Polygon, shape
+from shapely.ops import nearest_points
 from shapely.strtree import STRtree
 from shapely import wkt as shapely_wkt
 
@@ -388,15 +389,46 @@ def run(area: str = "marina-union") -> dict:
             how = ("inside" if c[2] == 0 else f"nearest {c[2]:.1f} m") + ("+address" if c[4] else "")
         return buildings[c[3]], how
 
+    street_lines = defaultdict(list)
+    for name, line in streets:
+        street_lines[name].append(line)
+
+    def setback_face(bd, biz: dict):
+        """No edge fronts a street (a rear-lot shop, a pier shed): the exposed edge that
+        looks most directly at the addressed street within 120 m, flagged as a setback."""
+        a = biz.get("address")
+        lines = street_lines.get(a["street"]) if a else None
+        if not lines:
+            return None
+        best, score = None, 0.5
+        for f in faces_by_b[bd.id]:
+            if f.role != "open" or f.length_m < 2.5:
+                continue
+            mx, my = f.mid
+            near = min((ln for ln in lines), key=lambda ln: ln.distance(Point(mx, my)))
+            q = nearest_points(Point(mx, my), near)[1]
+            dx, dy = q.x - mx, q.y - my
+            d = (dx * dx + dy * dy) ** 0.5
+            if d == 0 or d > 120:
+                continue
+            nx, ny = f.normal
+            c = (dx * nx + dy * ny) / d
+            if c > score:
+                best, score = f, c
+        return best
+
     def face_for(bd, biz: dict):
         fs = [f for f in faces_by_b[bd.id] if f.role == "street"]
         if not fs:
-            return None
+            return setback_face(bd, biz)
         a = biz.get("address")
         pos = biz["position"]
         pt = frame.xy(pos["lon"], pos["lat"])
         named = [f for f in fs if a and f.street == a["street"]]
         pool = named or fs
+        # a short jog in the frontage (a pier, a bay return) is not where a shop's sign is
+        long = [f for f in pool if f.length_m >= 2.5]
+        pool = long or pool
         return min(pool, key=lambda f: point_seg_dist(pt, f.p0, f.p1)[0])
 
     by_face = defaultdict(list)
@@ -414,8 +446,10 @@ def run(area: str = "marina-union") -> dict:
         if f is not None:
             pos = biz["position"]
             _, u = point_seg_dist(frame.xy(pos["lon"], pos["lat"]), f.p0, f.p1)
-            biz["face"] = {"id": f.id, "street": f.street, "normal_bearing": round(f.normal_bearing, 1),
-                           "length_m": round(f.length_m, 2), "u_norm": round(u, 3)}
+            biz["face"] = {"id": f.id, "street": f.street or (biz.get("address") or {}).get("street"),
+                           "normal_bearing": round(f.normal_bearing, 1),
+                           "length_m": round(f.length_m, 2), "u_norm": round(u, 3),
+                           "setback": f.role != "street"}
         else:
             biz["face"] = None
         # permits/planning at this business's own address on the parcel

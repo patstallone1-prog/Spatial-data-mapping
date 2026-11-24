@@ -30,12 +30,13 @@ from ..geo import ang_diff, bearing
 MAX_RANGE_M = 40.0
 MIN_RANGE_M = 2.0
 MAX_INCIDENCE_DEG = 72.0
-MIN_IN_VIEW = 0.35
+MIN_IN_VIEW = 0.6               # a span half out of frame sits in the distorted edge
 MIN_VISIBLE = 0.4
 STOREFRONT_BAND = (0.0, 4.5)     # ground storey, where signs, awnings and doors live
 CAMERA_HEIGHT_M = 2.0            # car roof ~2.2, handheld ~1.6
 PPM_FLOOR, PPM_GOOD = 8.0, 80.0  # pixels per facade metre: shapes vs legible 0.3 m letters
 SIGN_PPM_MIN = 25.0
+MIN_SPAN_PX = 100.0              # the tenant span's projected width (~33 px/m on a 3 m shop)
 
 
 @dataclass
@@ -164,6 +165,12 @@ def assess(face: Face, frame: dict, cam: tuple[float, float], *, building_h: flo
              "crop_hfov": round(min(100.0, max(40.0, span + 12.0)), 1),
              "rel_to_heading": round(ang_diff(aim, heading), 2)}
 
+    # width the span will occupy in the image stage 2 fetches: a 2048 px thumbnail for
+    # perspective frames, the full-resolution original for panoramas
+    fetch_w = (frame.get("width") or 2048) if spherical else min(frame.get("width") or 2048, 2048)
+    m["span_px"] = px_per_radian(frame, fetch_w) * math.radians(span)
+    if m["span_px"] < MIN_SPAN_PX:
+        a.rejects.append("face_too_small")
     ppm = px_per_radian(frame) * math.cos(math.radians(min(inc, 89.0))) / max(r, 0.5)
     m["ppm"] = ppm
     if spherical:

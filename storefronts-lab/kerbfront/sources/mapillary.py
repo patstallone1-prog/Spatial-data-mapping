@@ -142,7 +142,8 @@ def frames_catalogue(b: BBox) -> tuple[list[dict], dict]:
                  "retrieved_at": "2026-09-06", "licence": "CC BY-SA 4.0"}
 
 
-def thumbnail(image_id: str, size: int = 2048) -> Path:
+def thumbnail(image_id: str, size: int | str = 2048) -> Path:
+    """A cached JPEG: size 256/1024/2048 or "original"."""
     tok = _token()
     meta = get_json("mapillary-meta", f"{API}/{image_id}",
                     {"access_token": tok, "fields": f"thumb_{size}_url,width,height"})

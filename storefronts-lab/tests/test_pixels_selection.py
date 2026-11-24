@@ -88,3 +88,24 @@ def test_selection_fills_slots_and_spreads_sequences():
     assert slots["elevation"] == "f5"          # f2 is the same drive-by as f1, penalized
     assert slots["oblique-left"] == "f3" and slots["oblique-right"] == "f4"
     assert [p["frame_id"] for p in picks][-1] == "f2"
+
+
+def test_a_face_clipped_by_the_frame_edge_is_rejected(block, a_front):
+    # perspective, 60 deg lens, looking 35 deg off the face: most of the span is outside
+    f = frame(heading=215, hfov=60, width=4000, height=3000)
+    res = assess_pixels(f, a_front, (5, 28), 9.0, None, None)
+    assert res["metrics"]["in_frame"] < 0.5 and "face_cut_by_frame_edge" in res["rejects"]
+    ok = assess_pixels(frame(heading=180, hfov=60), a_front, (5, 28), 9.0, None, None)
+    assert ok["metrics"]["in_frame"] > 0.9 and not ok["rejects"]
+
+
+def test_a_sliver_of_a_face_is_too_small(block, a_front, tmp_path):
+    img = np.full((1536, 2048, 3), 128, np.uint8)
+    img[::8] = 40                              # some texture so sharpness is not the reason
+    path = tmp_path / "f.jpg"
+    cv2.imwrite(str(path), img)
+    f = frame(heading=180, hfov=70, width=2048, height=1536)
+    near = assess_pixels(f, a_front, (5, 28), 9.0, path, None)      # 10 m face at 13 m
+    far = assess_pixels(f, a_front, (5, 300), 9.0, path, None)      # same face at 285 m
+    assert near["metrics"]["face_px"] > 900 and "face_too_small" not in near["rejects"]
+    assert far["metrics"]["face_px"] < 100 and "face_too_small" in far["rejects"]

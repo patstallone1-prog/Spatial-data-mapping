@@ -140,8 +140,11 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
         px = []
         for p in r["picks"][:per_business] + r.get("near_misses", [])[:1]:
             fid = p["frame_id"]
+            # the sign slot of a panorama needs the full-resolution original: a 2048 px
+            # equirectangular thumbnail spends only ~6 px per degree on the facade
+            want = "original" if p.get("slot") == "sign" and fmeta[fid].get("camera_type") == "spherical" else size
             try:
-                img = mapillary.thumbnail(fid, size)
+                img = mapillary.thumbnail(fid, want)
                 dets = mapillary.detections(fid)
             except Exception as e:  # noqa: BLE001 - a missing thumbnail is a per-frame outcome
                 px.append({"frame_id": fid, "error": str(e)[:200]})

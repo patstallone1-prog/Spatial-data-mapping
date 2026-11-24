@@ -107,3 +107,11 @@ def test_close_narrow_lens_misses_the_upper_floors(block, a_front):
 
 def test_fisheye_is_refused_until_its_lens_is_modelled(block, a_front):
     assert "fisheye_unsupported" in run(block, a_front, frame(camera_type="fisheye"), (5, 28)).rejects
+
+
+def test_a_narrow_span_far_away_is_a_sliver(block, a_front):
+    from dataclasses import replace
+    narrow = replace(a_front, p0=(5.0, 15.0), p1=(4.0, 15.0), length_m=1.0)   # a 1 m doorway
+    far = run(block, narrow, frame(heading=180, width=2048, height=1536), (5, 45))
+    near = run(block, narrow, frame(heading=180, width=2048, height=1536), (5, 19))
+    assert "face_too_small" in far.rejects and "face_too_small" not in near.rejects
