@@ -19,6 +19,8 @@ def main(argv: list[str] | None = None) -> None:
     x.add_argument("--area", default="marina-union")
     x.add_argument("--corridor")
     x.add_argument("--limit", type=int, default=40)
+    x.add_argument("--restaurants", action="store_true",
+                   help="only the restaurants the Qwen flow can take (no limit), all their picks")
     h = sub.add_parser("handoff", help="write smc.exteriors input programs for swept buildings")
     h.add_argument("--area", default="marina-union")
     h.add_argument("--corridor")
@@ -60,6 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     qr = sub.add_parser("qwen-run", help="read eligible restaurants' facades with Qwen (one worker, budget cap)")
     qr.add_argument("--budget", type=float, default=3.0, help="stop when OpenRouter spend reaches this (USD)")
     qr.add_argument("--limit", type=int, default=None, help="restaurants to try this run")
+    qr.add_argument("--shard", help="i/n: this worker takes every n-th restaurant from the i-th")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -72,7 +75,12 @@ def main(argv: list[str] | None = None) -> None:
         res = run_geometry(a.area, a.corridor, a.source)
     elif a.cmd == "pixels":
         from .photos.run import run_pixels
-        res = run_pixels(a.area, a.corridor, a.limit)
+        if a.restaurants:
+            from .auto.flow import candidates
+            res = run_pixels(a.area, a.corridor, 10_000, per_business=8,
+                             only=candidates(a.area, a.corridor))
+        else:
+            res = run_pixels(a.area, a.corridor, a.limit)
     elif a.cmd == "model":
         from .model import build, photos_for, write
         from .observe import apply_observations
@@ -111,7 +119,8 @@ def main(argv: list[str] | None = None) -> None:
                       "failed": [f"{c['check']} (wall {c['edge']})" for c in r["detail"] if not c["pass"]]}
     elif a.cmd == "qwen-run":
         from .auto.flow import run as qrun
-        res = qrun(a.budget, a.limit)
+        shard = tuple(int(x) for x in a.shard.split("/")) if a.shard else None
+        res = qrun(a.budget, a.limit, shard=shard)
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)

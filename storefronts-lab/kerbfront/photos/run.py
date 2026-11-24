@@ -122,7 +122,7 @@ def run_geometry(area: str = "marina-union", corridor: str | None = None,
 
 
 def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: int = 40,
-               per_business: int = 5, size: int = 2048) -> dict:
+               per_business: int = 5, size: int = 2048, only: set[str] | None = None) -> dict:
     out, biz, faces, frame, bfacts = _load(area)
     tag = corridor or "all"
     data = json.loads((out / f"photos_{tag}.json").read_text())
@@ -130,7 +130,7 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
     frames, _ = frames_for(area)
     fmeta = {f["id"]: f for f in frames}
     fxy = {f["id"]: frame.xy(f["lon"], f["lat"]) for f in frames}
-    rows = [r for r in data["results"] if r["picks"]]
+    rows = [r for r in data["results"] if r["picks"] and (only is None or r["business"] in only)]
     rows.sort(key=lambda r: -len(r["picks"]))
     done, verdicts = [], Counter()
     for r in rows[:limit]:

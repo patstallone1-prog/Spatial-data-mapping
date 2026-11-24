@@ -29,6 +29,8 @@ from ..config import LAB, OUT
 MODEL = "qwen/qwen4-max"
 URL = "https://openrouter.ai/api/v1/chat/completions"
 MAX_TOKENS = 900
+#: the one retry of an answer cut off by MAX_TOKENS
+RETRY_TOKENS = 1600
 PROMPT_VERSION = "qwen-wall/3"
 CACHE = OUT / "qwen" / "cache"
 LEDGER = OUT / "qwen" / "spend.jsonl"
@@ -171,8 +173,14 @@ def _call(body: dict, h: str, tag: str, budget: float, log, retry: bool = False)
             log(f"  qwen {tag}: {e}")
             return None
     usage = resp.get("usage") or {}
-    content = ((resp.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    choice = (resp.get("choices") or [{}])[0]
+    content = (choice.get("message") or {}).get("content") or ""
     parsed = _parse(content)
+    if parsed is None and not retry and choice.get("finish_reason") == "length" \
+            and spent() + float(usage.get("cost") or 0) < budget:
+        # a tall front with many windows outran the cap mid-object: once more with room
+        _ledger(tag, resp, usage, t0, False)
+        return _call({**body, "max_tokens": RETRY_TOKENS}, h, tag, budget, log, retry=True)
     if parsed is None and not retry and spent() + float(usage.get("cost") or 0) < budget:
         _ledger(tag, resp, usage, t0, False)
         body["messages"].append({"role": "assistant", "content": content[:400]})

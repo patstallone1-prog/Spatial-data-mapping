@@ -26,3 +26,13 @@ def test_mapillary_rows_prefer_the_sfm_solution():
     # focal 0.488 of 1920 px -> ~91 deg horizontal field of view
     assert 88 < f["hfov"] < 94
     assert hfov_deg("spherical", None, 5760, 2880) == 360.0
+
+
+def test_short_category_words_need_their_own_word():
+    from kerbfront.sources.kerbside import tag_for
+    # "pho" inside mobile_phone_store once made T-Mobile and Verizon Vietnamese restaurants
+    assert tag_for("mobile_phone_store", None, None) == "shop"
+    assert tag_for("pho_restaurant", None, None) == "vietnamese"
+    assert tag_for("carpet_store", None, None) == "shop"
+    assert tag_for("space_rental", None, None) == "shop"
+    assert tag_for("hair_salon", None, None) == "salon"

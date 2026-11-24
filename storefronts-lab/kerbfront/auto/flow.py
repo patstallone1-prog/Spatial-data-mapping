@@ -26,6 +26,7 @@ import traceback
 import numpy as np
 
 from ..config import LAB, OUT
+from ..sources.kerbside import business_type
 from . import qwen as Q
 from .read import Wall, hexc
 from .run import AUTO, AUTO_MODELS, WORK, elevations, observations
@@ -40,6 +41,16 @@ def _log(msg: str) -> None:
     print(line, flush=True)
     with LOG.open("a") as f:
         f.write(line + "\n")
+
+
+def candidates(area: str = "marina-union", corridor: str | None = None) -> set[str]:
+    """Restaurants the flow could take, before photos are known: the pixel stage checks only
+    these. ``corridor`` None is the businesses on no corridor (``photos_all``)."""
+    biz = json.loads((OUT / area / "businesses.json").read_text())
+    return {z["id"] for z in biz if business_type(z)["render"] == "restaurant" and z.get("face")
+            and z.get("building") and z["storefront_likelihood"] >= 0.5
+            and not ((z.get("address") or {}).get("upper_floor") or (z.get("address") or {}).get("suite"))
+            and z.get("corridor") == corridor}
 
 
 def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
@@ -60,7 +71,8 @@ def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
                 if p.stem in ("tacolicious", "super-duper-burgers", "balboa-cafe", "a16", "dragon-well")]
     biz = sorted(biz, key=lambda z: z["id"] not in reviewed)
     for z in biz:
-        if (z.get("business_type") or {}).get("render") != "restaurant":
+        # recomputed, not read from the sweep: the stored type predates the category fix
+        if business_type(z)["render"] != "restaurant":
             continue
         a = z.get("address") or {}
         if v(z, "operating_status") not in (None, "open"):
@@ -84,13 +96,19 @@ def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
     return keep, reasons
 
 
-def _state() -> dict:
-    return json.loads(STATE.read_text()) if STATE.exists() else {"done": {}, "skipped": {}}
+def _state_path(shard: tuple[int, int] | None):
+    return STATE if shard is None else STATE.with_name(f"state-{shard[0]}of{shard[1]}.json")
 
 
-def _save(st: dict) -> None:
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(st, indent=1))
+def _state(shard: tuple[int, int] | None = None) -> dict:
+    p = _state_path(shard)
+    return json.loads(p.read_text()) if p.exists() else {"done": {}, "skipped": {}}
+
+
+def _save(st: dict, shard: tuple[int, int] | None = None) -> None:
+    p = _state_path(shard)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(st, indent=1))
 
 
 # ---- the Qwen answer as the reader's findings --------------------------------------------
@@ -200,7 +218,11 @@ def to_model(base: dict, reads: dict[int, dict]) -> tuple[dict, list[dict]]:
                     src = next((s for s in reads.get(e, {}).get("signs", [])
                                 if abs(s["u"] - x["u"]) < 0.05 and abs(s["v"] - x["v"]) < 0.05), None)
                     if src and src.get("text"):
-                        x["layers"] = [{"type": "text", "text": src["text"], "x": 0.5, "y": 0.62, "size": 0.5,
+                        text = src["text"]
+                        # every frame predates this tenant: the lettering seen is the last one's
+                        if reads.get(e, {}).get("pre_tenancy") and sf.get("name") and not _same_name(text, sf["name"]):
+                            text, x["text_source"] = sf["name"], f"record: photos predate the tenant ({src['text']} seen)"
+                        x["layers"] = [{"type": "text", "text": text, "x": 0.5, "y": 0.62, "size": 0.5,
                                         "fill": "#f6f1e7" if _dark(x.get("bg")) else "#1f1f1f"}]
                 for a in sf.get("awnings", []) or []:
                     src = next((y for y in reads.get(e, {}).get("awnings", []) if abs(y["u0"] - a["u0"]) < 0.05), None)
@@ -228,6 +250,22 @@ def to_model(base: dict, reads: dict[int, dict]) -> tuple[dict, list[dict]]:
         obs.append({"path": "seating", "value": seats, "evidence": {"frames": sorted({f for r in reads.values() for f in r["frames"]})[:8],
                     "how": f"{Q.MODEL} reading of the registered elevation", "confidence": 0.5, "read_by": "kerbfront qwen"}})
     return base, obs
+
+
+def _same_name(a: str, b: str) -> bool:
+    import re
+    from difflib import SequenceMatcher
+    n = lambda t: re.sub(r"[^a-z0-9 ]", "", (t or "").lower()).strip()  # noqa: E731
+    x, y = n(a), n(b)
+    return bool(x and y) and (x in y or y in x or SequenceMatcher(None, x, y).ratio() >= 0.6)
+
+
+def _since(bid: str, area: str = "marina-union") -> str | None:
+    global _SINCE
+    if "_SINCE" not in globals():
+        _SINCE = {z["id"]: (z["fields"].get("location_start_date") or {}).get("value")
+                  for z in json.loads((OUT / area / "businesses.json").read_text())}
+    return _SINCE.get(bid)
 
 
 def _dark(h) -> bool:
@@ -285,6 +323,9 @@ def one(biz: dict, budget: float) -> dict:
         if q is None:
             continue
         reads[e] = findings(q, W, el["frames"], base["height_m"])
+        shot = [p.get("captured_at") for p in base["photos"] if p["frame_id"] in set(el["frames"])]
+        since = _since(biz["id"])
+        reads[e]["pre_tenancy"] = bool(since and shot and all(t and str(t)[:10] < since[:10] for t in shot))
     if not reads:
         return {"skip": "photos: no storefront wall registered well enough to send"}
     base, obs = to_model(base, reads)
@@ -297,10 +338,18 @@ def one(biz: dict, budget: float) -> dict:
     return {"model": mid, "walls": sorted(reads), "observations": len(obs), "cost": round(Q.spent() - spent0, 4)}
 
 
-def run(budget: float = 3.0, limit: int | None = None, area: str = "marina-union") -> dict:
+def run(budget: float = 3.0, limit: int | None = None, area: str = "marina-union",
+        shard: tuple[int, int] | None = None) -> dict:
+    """The queue, one business after another. ``shard`` (i, n) takes every n-th business from
+    the i-th, so n workers share the queue with no overlap, each with its own state file; the
+    spend ledger is shared, so the cap holds across them. A rerun whose inputs are unchanged is
+    answered from the cache and costs nothing."""
     todo, reasons = eligible(area)
-    st = _state()
-    _log(f"eligible {len(todo)} restaurant walls; filtered out {reasons}; spent so far ${Q.spent():.3f}, cap ${budget:.2f}")
+    if shard is not None:
+        todo = todo[shard[0]::shard[1]]
+    st = _state(shard)
+    tag = f"[{shard[0]}/{shard[1]}] " if shard else ""
+    _log(f"{tag}eligible {len(todo)} restaurant walls; filtered out {reasons}; spent so far ${Q.spent():.3f}, cap ${budget:.2f}")
     n = 0
     for biz in todo:
         if biz["id"] in st["done"] or biz["id"] in st["skipped"]:
@@ -320,10 +369,10 @@ def run(budget: float = 3.0, limit: int | None = None, area: str = "marina-union
         res["seconds"] = round(time.time() - t0)
         if "skip" in res:
             st["skipped"][biz["id"]] = {"name": biz["name"], **res}
-            _log(f"skip {biz['name']}: {res['skip']}")
+            _log(f"{tag}skip {biz['name']}: {res['skip']}")
         else:
             st["done"][biz["id"]] = {"name": biz["name"], **res}
-            _log(f"done {biz['name']} -> models/auto/{res['model']}.json walls {res['walls']} "
+            _log(f"{tag}done {biz['name']} -> models/auto/{res['model']}.json walls {res['walls']} "
                  f"${res['cost']:.4f} {res['seconds']} s (total ${Q.spent():.3f})")
-        _save(st)
+        _save(st, shard)
     return {"done": len(st["done"]), "skipped": len(st["skipped"]), "spent": round(Q.spent(), 4)}
