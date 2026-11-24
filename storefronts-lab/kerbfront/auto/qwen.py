@@ -58,6 +58,32 @@ KEYS = ("height: facade top incl. parapet; band_top: top of the ground-floor sho
         "[u0,u1,v top,colour,shed|retractable|dome|box|flat_canopy,is_fabric]; signs: "
         "[board|letters|blade|window_vinyl,u,v,w,h,background colour,text]; seating if visible: "
         "[sidewalk_strip|parklet|cafe_enclosure,u0,u1]; conf 0-1")
+#: the deep reading: the same answer plus how far each part stands out from (or into) the wall,
+#: read from a third, oblique photograph. Positional arrays keep the base fields' order first.
+DEEP_EXAMPLE = ('{"height":7.4,"band_top":3.6,"wall":["#c9b79a","stucco","#efe8dc"],'
+                '"windows":[[1.2,4.4,1.0,1.4,"rect",2,1,0.15,true],[3.0,4.4,1.0,1.4,"arched",1,1,0.15,true]],'
+                '"bays":[[4.6,2.2,4.1,6.9,0.6,"#e4dac6","stucco"]],'
+                '"balconies":[[1.0,1.6,6.4,0.7,"#2b2b2a"]],'
+                '"pilasters":[[0.2,6.3],0.45,3.6,7.0,"#d3cfc6",0.12],'
+                '"belts":[[3.55,0.15,"#d3cfc6",0.08]],"cornice":[0.3,0.25,"#d3cfc6"],"parapet_h":0.5,'
+                '"shops":[[0.0,6.5,"Example Cafe"]],"glass":[[0.3,2.6,0.4,2.8]],"doors":[[2.8,1.0]],'
+                '"recesses":[[2.6,3.9,1.2]],'
+                '"awnings":[[0.2,6.3,3.3,"#7a2a2a","shed",true,1.2]],'
+                '"signs":[["letters",1.0,3.6,4.0,0.4,"#1f1f1f","EXAMPLE CAFE"]],"seating":[["sidewalk_strip",0.5,6.0]],"conf":0.8}')
+DEEP_KEYS = (KEYS.replace("windows: upper floors only [u,v,w,h,rect|arched]",
+                          "windows: upper floors only [u,v,w,h,rect|arched,panes across,panes up,reveal depth m,has sill]")
+             .replace("pilasters: null or [[u centres],w,v0,v1,colour]", "pilasters: null or [[u centres],w,v0,v1,colour,depth m]")
+             .replace("belts: horizontal bands incl. cornice [v,h,colour]", "belts: horizontal bands below the top [v,h,colour,depth m]")
+             .replace("is_fabric]", "is_fabric,projection m]")
+             + "; bays: projecting (canted or square) bay windows [u,w,v0,v1,projection m,colour,material]; "
+               "balconies: [u,w,v floor,depth m,railing colour]; cornice: the top band [h,projection m,colour]; "
+               "parapet_h: wall above the roof line; recesses: ground-floor entries or shopfronts set back "
+               "[u0,u1,depth m]. Read depths from image 3; typical: reveal 0.1-0.25, bay 0.5-0.9, cornice 0.1-0.6")
+SYSTEM_DEEP = SYSTEM + (" Image 3 is the same front photographed at an angle: use it for depth -- how far bays, "
+                        "cornices, belts, sills, balconies and awnings stand out, and how deep entries are set in.")
+DEEP_VERSION = "qwen-wall-deep/1"
+#: a reading allowed to think: reasoning tokens count against the completion cap
+DEEP_MAX_TOKENS = 16000
 MATERIALS = "stucco|smooth_render|brick|painted_brick|wood_siding|shingle|stone|concrete|tile|metal_panel|glass"
 
 
@@ -116,7 +142,7 @@ def _jpeg(img: np.ndarray, q: int = 80) -> str:
     return base64.b64encode(buf.tobytes()).decode()
 
 
-def facts_text(L: float, lidar_h: float, tenants: list[dict], hints: list[dict]) -> str:
+def facts_text(L: float, lidar_h: float, tenants: list[dict], hints: list[dict], deep: bool = False) -> str:
     t = "; ".join(f"{x.get('name') or '?'} ({x.get('category') or '?'}) u {x['u0']:.1f}-{x['u1']:.1f}" for x in tenants)
     by: dict[str, list[str]] = {}
     for b in hints[:40]:
@@ -124,24 +150,28 @@ def facts_text(L: float, lidar_h: float, tenants: list[dict], hints: list[dict])
     h = "; ".join(f"{k}s near " + ", ".join(v) for k, v in by.items())
     return (f"Wall length L={L:.2f} m. LiDAR roof height {lidar_h:.1f} m (a parapet can be taller). "
             f"Tenants on record: {t or 'none'}. An automatic detector suggests (may be wrong or offset): "
-            f"{h or 'nothing'}. Materials: {MATERIALS}. Fields: {KEYS}. "
-            f"Reply with ONE JSON object with exactly these keys, like: {EXAMPLE}")
+            f"{h or 'nothing'}. Materials: {MATERIALS}. Fields: {DEEP_KEYS if deep else KEYS}. "
+            f"Reply with ONE JSON object with exactly these keys, like: {DEEP_EXAMPLE if deep else EXAMPLE}")
 
 
-def read_wall(elevation: np.ndarray, frame: np.ndarray, text: str, tag: str, budget: float, log=print) -> dict | None:
-    """One call (or the cached answer). Returns the parsed JSON, or None on refusal/garbage."""
+def read_wall(elevation: np.ndarray, frame: np.ndarray, text: str, tag: str, budget: float, log=print,
+              oblique: np.ndarray | None = None, effort: str | None = None) -> dict | None:
+    """One call (or the cached answer). Returns the parsed JSON, or None on refusal/garbage.
+    ``oblique`` (a third, angled photo) makes it the deep reading; ``effort`` lets the model reason."""
     imgs = [_jpeg(elevation), _jpeg(frame, 72)]
-    body = {"model": MODEL, "temperature": 0, "max_tokens": MAX_TOKENS,
+    intro = "Image 1: registered elevation with grid. Image 2: best single frame on the same grid (true colours, lettering). "
+    if oblique is not None:
+        imgs.append(_jpeg(oblique, 75))
+        intro += "Image 3: the same front at an angle, for depth. "
+    deep = oblique is not None or effort is not None
+    body = {"model": MODEL, "temperature": 0, "max_tokens": DEEP_MAX_TOKENS if effort else MAX_TOKENS,
             "response_format": {"type": "json_object"}, "usage": {"include": True},
-            # a reading, not a puzzle: qwen4-max otherwise spends the whole cap thinking
-            "reasoning": {"enabled": False},
-            "messages": [{"role": "system", "content": SYSTEM},
-                         {"role": "user", "content": [
-                             {"type": "text", "text": "Image 1: registered elevation with grid. Image 2: best single "
-                                                      "frame on the same grid (true colours, lettering). " + text},
-                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{imgs[0]}"}},
-                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{imgs[1]}"}}]}]}
-    h = hashlib.sha256((PROMPT_VERSION + json.dumps(body, sort_keys=True)).encode()).hexdigest()[:24]
+            # a reading, not a puzzle: without an effort qwen4-max would spend the whole cap thinking
+            "reasoning": {"effort": effort} if effort else {"enabled": False},
+            "messages": [{"role": "system", "content": SYSTEM_DEEP if oblique is not None else SYSTEM},
+                         {"role": "user", "content": [{"type": "text", "text": intro + text}] + [
+                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{i}"}} for i in imgs]}]}
+    h = hashlib.sha256(((DEEP_VERSION if deep else PROMPT_VERSION) + json.dumps(body, sort_keys=True)).encode()).hexdigest()[:24]
     CACHE.mkdir(parents=True, exist_ok=True)
     if (CACHE / f"{h}.json").exists():
         return json.loads((CACHE / f"{h}.json").read_text()).get("parsed")
@@ -180,7 +210,7 @@ def _call(body: dict, h: str, tag: str, budget: float, log, retry: bool = False)
             and spent() + float(usage.get("cost") or 0) < budget:
         # a tall front with many windows outran the cap mid-object: once more with room
         _ledger(tag, resp, usage, t0, False)
-        return _call({**body, "max_tokens": RETRY_TOKENS}, h, tag, budget, log, retry=True)
+        return _call({**body, "max_tokens": max(RETRY_TOKENS, int(body["max_tokens"] * 1.5))}, h, tag, budget, log, retry=True)
     if parsed is None and not retry and spent() + float(usage.get("cost") or 0) < budget:
         _ledger(tag, resp, usage, t0, False)
         body["messages"].append({"role": "assistant", "content": content[:400]})

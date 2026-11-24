@@ -63,6 +63,9 @@ def main(argv: list[str] | None = None) -> None:
     qr.add_argument("--budget", type=float, default=3.0, help="stop when OpenRouter spend reaches this (USD)")
     qr.add_argument("--limit", type=int, default=None, help="restaurants to try this run")
     qr.add_argument("--shard", help="i/n: this worker takes every n-th restaurant from the i-th")
+    qr.add_argument("--only", nargs="+", help="a test batch: these restaurants (names or ids), in order")
+    qr.add_argument("--deep", action="store_true", help="add an oblique photo and ask for depths (models/auto-deep)")
+    qr.add_argument("--effort", choices=("low", "medium", "high"), help="let the model reason at this effort")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -120,7 +123,7 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "qwen-run":
         from .auto.flow import run as qrun
         shard = tuple(int(x) for x in a.shard.split("/")) if a.shard else None
-        res = qrun(a.budget, a.limit, shard=shard)
+        res = qrun(a.budget, a.limit, shard=shard, ids=a.only, deep=a.deep, effort=a.effort)
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)
