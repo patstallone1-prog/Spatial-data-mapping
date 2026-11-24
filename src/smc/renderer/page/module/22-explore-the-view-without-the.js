@@ -690,12 +690,14 @@ let pressedAt = [0, 0];
 let cityPress = false;
 canvas.addEventListener("pointerdown", (e) => {
   pressedAt = [e.clientX, e.clientY];
+  // The right button held: what it uses goes on while it is down (eating to the end; it was U held).
+  if (e.button === 2 && cityGame() && typeof livingCity !== "undefined") { livingCity?.useDown?.(); return; }
   if (e.button !== 0 || !cityGame() || typeof livingCity === "undefined" || !livingCity?.pressDown) return;
   pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
   cityPress = Boolean(livingCity.pressDown(ray));
 });
-const endCityPress = () => { if (cityPress) { cityPress = false; livingCity?.pressUp?.(); return true; } return false; };
+const endCityPress = () => { if (typeof livingCity !== "undefined") livingCity?.useUp?.(); if (cityPress) { cityPress = false; livingCity?.pressUp?.(); return true; } return false; };
 canvas.addEventListener("pointercancel", endCityPress);
 addEventListener("blur", endCityPress);
 const tip = document.getElementById("tip");
@@ -1142,6 +1144,7 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
 }
 
 canvas.addEventListener("pointerup", (e) => {
+  if (e.button === 2 && typeof livingCity !== "undefined") livingCity?.useUp?.();
   if (endCityPress()) return;
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;

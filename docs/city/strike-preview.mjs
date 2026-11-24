@@ -1,4 +1,4 @@
-// What a thrust (C) or a stroke of work (R) does to the thing in front, in words, from the
+// What a thrust (Shift + X) or a stroke of work (R) does to the thing in front, in words, from the
 // mechanics engine (mechanics.mjs): how far the tip goes in, whether it sticks, glances or bends.
 // The books (world.mjs cmd_strike) decide the damage; this says what the blow looks like, so a
 // jab into a fence post reads differently from one on a steel bollard. Pure

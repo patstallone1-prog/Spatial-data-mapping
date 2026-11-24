@@ -205,16 +205,20 @@ test("by click: set down where clicked within reach, a nail set and let drop lie
   assert.ok(m.ok); assert.ok(Math.abs(m.x - 2.5) < 1e-9, `${m.x}`);
 });
 
-test("the keys that went: V, J, H, B, K, E and PageUp / PageDown are not bound; ? and / open the controls; a click does the rest", () => {
+test("the keys that went: V, J, H, B, K, E, G, U, C and PageUp / PageDown are not bound; ? and / open the controls; a click does the rest", () => {
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   const keys = view.slice(view.indexOf("  const KEYS = {"), view.indexOf("  };", view.indexOf("  const KEYS = {")));
-  for (const k of ["v", "j", "h", "b", "k", "e"]) assert.ok(!new RegExp(`[{\\s,]${k}: \\(\\) =>`).test(keys), `${k} is still bound`);
+  for (const k of ["v", "j", "h", "b", "k", "e", "g", "u", "c"]) assert.ok(!new RegExp(`[{\\s,]${k}: \\(\\) =>`).test(keys), `${k} is still bound`);
   assert.ok(keys.includes('"?": () => openSide("help"), "/": () => openSide("help")'));
   const page = readFileSync(new URL("../src/smc/renderer/page/module/22-explore-the-view-without-the.js", import.meta.url), "utf8");
   assert.ok(!page.includes('e.key !== "PageUp"') && page.includes('e.key === "ArrowUp" ? levels.find'));
   assert.ok(page.includes("livingCity.pressDown(ray)") && page.includes("livingCity?.pressUp?.()"));
   // What a click does, in the city's own click: staff, things, setting down, nails, pushing.
   for (const fn of ["function staffClicked(", "function thingClicked(", "function placeAt(", "function setNailAt(", "function pushUp(", "function pressDown(", "function startNav("]) assert.ok(view.includes(fn), fn);
+  // C's thrust and shove are Shift + X; U's use the right click (held: eat on); G's pick-up a click (shelves too).
+  assert.ok(keys.includes('"shift+x": () => thrustKey()') && view.includes("function useDown()") && view.includes("floor.pickAt(ray, me())"));
+  assert.ok(page.includes("livingCity?.useDown?.()") && page.includes("livingCity?.useUp?.()"));
+  for (const c of CONTROLS) assert.ok(!["g", "u", "c"].includes(c.key), c.id);
   // Shift tasks are R's, the bicycle Enter's.
   assert.ok(view.includes('key: "R", run: taskKey') && view.includes('label: "Ride your bicycle", key: "Enter"'));
 });

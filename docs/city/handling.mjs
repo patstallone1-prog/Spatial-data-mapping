@@ -62,7 +62,7 @@ export function swingOf(R, id, strength) {
   const S = R.handling.swing, ph = physOf(R, id), s = s01(strength);
   if (!id) return { ok: true, kind: "fists", joules: null };
   if (ph.tool) return { ok: true, kind: ph.tool, joules: null };
-  if (!ph.rigid) return { ok: false, reason: `The ${ph.name.toLowerCase()}: too soft to swing, it would do nothing. Q throws it; U uses it.` };
+  if (!ph.rigid) return { ok: false, reason: `The ${ph.name.toLowerCase()}: too soft to swing, it would do nothing. Q throws it; a right click uses it.` };
   if (ph.hold === "two_hands" || ph.unwieldy) return { ok: false, reason: `The ${ph.name.toLowerCase()}: it takes both arms to hold, so it does not swing. Q heaves it, or put it down.` };
   if (ph.length < S.min_length_m) return { ok: false, reason: `The ${ph.name.toLowerCase()}: too small to swing. Q throws it, or choose an empty slot to punch.` };
   const most = liftKg(R, strength) * S.max_lift_share;

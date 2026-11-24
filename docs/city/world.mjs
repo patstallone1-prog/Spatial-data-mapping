@@ -959,7 +959,7 @@ export class CityWorld {
   //: your hands -- or, at the wheel, the car's impact (``energy``, no more than the car moving at
   //: its top speed could carry). The thing breaks once the energy it has taken reaches its break
   //: energy. Breaking what is not yours, seen, is vandalism: a fine and the repair.
-  //: ``mode`` (affordances.mjs, docs/63): "swing" (X, the default); "thrust" (C) -- the point or
+  //: ``mode`` (affordances.mjs, docs/63): "swing" (X, the default); "thrust" (Shift + X) -- the point or
   //: the head driven straight in, less of a blow than a swing but no backswing; "work" (R, held) --
   //: one stroke of a saw, a pry or a cut: a little each stroke, and less tiring than a blow.
   cmd_strike(pid, { target, energy = null, witnesses = 0, mode = "swing" }) {

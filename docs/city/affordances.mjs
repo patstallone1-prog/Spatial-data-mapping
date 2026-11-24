@@ -18,7 +18,8 @@
 // whichever the climb would need), and on it, Space pushes off. There is no E.
 
 //: A key as its cap shows it.
-export const KEY_CAP = { " ": "Space", arrows: "↑↓←→", Enter: "Enter" };
+//: (No G, U or C: picking up is a click, using is a right click, thrust and shove are Shift + X.)
+export const KEY_CAP = { " ": "Space", arrows: "↑↓←→", Enter: "Enter", click: "Click", rclick: "Right click", "shift+x": "Shift+X" };
 export const capOf = (key) => KEY_CAP[key] || key.toUpperCase();
 
 const lower = (s) => String(s || "").toLowerCase();
@@ -49,9 +50,10 @@ export const CONTROLS = [
   { id: "jump_at", key: " ", verb: "Jump", priority: 55, when: (s) => s.mode === "walk" && Boolean(s.front?.jump && s.front.jump.action !== "none") && !(s.front.climb && s.front.climb.ok !== false && !["land_top", "vault"].includes(s.front.jump.action)),
     label: (s) => ({ land_top: `Jump onto ${the(s.front.jump)}`, vault: `Vault ${the(s.front.jump)}`, catch_top: `Jump up ${the(s.front.jump)}`, catch_holds: `Jump onto ${the(s.front.jump)}` }[s.front.jump.action] || "Jump"), ok: () => true },
   // Eating and drinking.
-  { id: "sip", key: "u", verb: "Sip", priority: 45, when: (s) => Boolean(s.held?.drink && s.eating), label: (s) => `Sip the ${lower(s.held.name)} (hold: drink it)`, ok: () => true },
-  { id: "bite", key: "u", verb: "Eat", priority: 45, when: (s) => Boolean(s.held?.food && !s.held.drink && s.eating), label: (s) => `${s.eating?.label || "A bite"} of the ${lower(s.held.name)} (hold: eat it)`, ok: () => true },
-  { id: "use", key: "u", verb: "Use", priority: 40, when: (s) => Boolean(s.held && !s.held.food && (s.held.use || s.held.wear)), label: (s) => (s.held.wear ? `Wear the ${lower(s.held.name)}` : `Use the ${lower(s.held.name)}`), ok: () => true },
+  // A click on the food or drink does the same; held, either goes on to the end.
+  { id: "sip", key: "rclick", verb: "Sip", priority: 45, when: (s) => Boolean(s.held?.drink && s.eating), label: (s) => `Sip the ${lower(s.held.name)} (hold: drink it)`, ok: () => true },
+  { id: "bite", key: "rclick", verb: "Eat", priority: 45, when: (s) => Boolean(s.held?.food && !s.held.drink && s.eating), label: (s) => `${s.eating?.label || "A bite"} of the ${lower(s.held.name)} (hold: eat it)`, ok: () => true },
+  { id: "use", key: "rclick", verb: "Use", priority: 40, when: (s) => Boolean(s.held && !s.held.food && (s.held.use || s.held.wear)), label: (s) => (s.held.wear ? `Wear the ${lower(s.held.name)}` : `Use the ${lower(s.held.name)}`), ok: () => true },
   // What is held, on what is in front.
   { id: "swing", key: "x", verb: "Swing", priority: 35, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.front?.thing),
     label: (s) => {
@@ -60,7 +62,7 @@ export const CONTROLS = [
       return `${v === "Chop" && !s.front.thing.wood ? "Swing at" : v || "Swing at"} ${the(s.front.thing)}`;
     },
     ok: (s) => (s.held?.two_hands && !s.held.strike ? "Both hands are full" : true) },
-  { id: "thrust", key: "c", verb: "Thrust", priority: 34, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.front?.thing && !s.front.thing.person) && Boolean(s.held && (TOOLS[s.held.strike]?.thrust || s.held.tip)),
+  { id: "thrust", key: "shift+x", verb: "Thrust", priority: 34, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.front?.thing && !s.front.thing.person) && Boolean(s.held && (TOOLS[s.held.strike]?.thrust || s.held.tip)),
     label: (s) => `${TOOLS[s.held.strike]?.thrust || "Stab"} ${the(s.front.thing)}`, ok: () => true },
   { id: "work", key: "r", verb: "Work", priority: 36, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.front?.thing && !s.front.thing.person) && Boolean(TOOLS[s.held?.strike]?.work),
     label: (s) => `${TOOLS[s.held.strike].work} ${the(s.front.thing)} (hold)`,
@@ -68,9 +70,9 @@ export const CONTROLS = [
       if (w === "Saw" && !t.wood) return `A saw cuts wood: ${the(t)} is ${lower(t.material)}`;
       if (w === "Cut" && !t.chainlink && t.material !== "steel") return "Bolt cutters cut wire and chain";
       return true; } },
-  // Empty-handed, C pushes. Its chip is only for something loose to push along: shoving a person
-  // is always there to do, so it is never hinted.
-  { id: "push", key: "c", verb: "Push", priority: 33, when: (s) => (s.mode === "walk" || s.mode === "inside") && !s.held && Boolean(s.front?.thing?.loose && !s.front.thing.person),
+  // Empty-handed, Shift + X pushes (the flat of the hand, not a punch). Its chip is only for something
+  // loose to push along: shoving a person is always there to do, so it is never hinted.
+  { id: "push", key: "shift+x", verb: "Push", priority: 33, when: (s) => (s.mode === "walk" || s.mode === "inside") && !s.held && Boolean(s.front?.thing?.loose && !s.front.thing.person),
     label: (s) => `Push ${the(s.front.thing)}`, ok: () => true },
   // R with a spade, a knife or a hammer: digging, carving and driving nails (mechanics-work.mjs).
   { id: "dig", key: "r", verb: "Dig", priority: 37, when: (s) => s.mode === "walk" && s.held?.strike === "shovel" && Boolean(s.under),
@@ -85,7 +87,7 @@ export const CONTROLS = [
   // On shift: the task at the orange ring.
   { id: "task", key: "r", verb: "Do the task", priority: 39, when: (s) => Boolean(s.task) && (s.mode === "walk" || s.mode === "inside"), label: (s) => s.task.label, ok: () => true },
   { id: "throw", key: "q", verb: "Throw", priority: 20, when: (s) => s.mode === "walk" && Boolean(s.held && !s.held.food), label: (s) => `Throw the ${lower(s.held.name)}`, ok: () => true },
-  { id: "pick_up", key: "g", verb: "Pick up", priority: 30, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.ground), label: (s) => `Pick up ${the(s.ground)}`, ok: () => true },
+  { id: "pick_up", key: "click", verb: "Pick up", priority: 30, when: (s) => (s.mode === "walk" || s.mode === "inside") && Boolean(s.ground), label: (s) => `Pick up ${the(s.ground)}`, ok: () => true },
   // A question on screen.
   { id: "yes", key: "y", verb: "Yes", priority: 90, when: (s) => Boolean(s.prompt), label: (s) => s.prompt.yes || "Yes", ok: () => true },
   { id: "no", key: "n", verb: "No", priority: 89, when: (s) => Boolean(s.prompt?.no), label: (s) => s.prompt.no || "No", ok: () => true },
@@ -93,7 +95,7 @@ export const CONTROLS = [
 
 //: The keys the city binds (view.mjs KEYS and the arrows), for the check that every control's key
 //: is one (tests).
-export const BOUND = [" ", "arrows", "u", "x", "c", "r", "q", "g", "y", "n"];
+export const BOUND = [" ", "arrows", "click", "rclick", "x", "shift+x", "r", "q", "y", "n"];
 
 //: What applies now: [{ id, key, cap, verb, label, priority, ok, reason }], highest priority first.
 export function affordances(s) {

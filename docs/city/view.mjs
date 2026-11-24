@@ -2803,7 +2803,7 @@ diffuseColor.rgb *= kbCloth;`);
   function thingsNear(x, z, reach) {
     const w = view, out = [];
     for (const f of foundToday()) if (!w?.found?.has(f.id) && Math.abs(f.x - x) < reach && Math.abs(f.z - z) < reach) out.push(f);
-    // A courier task's order, waiting outside the shop's door until you pick it up (G).
+    // A courier task's order, waiting outside the shop's door until you pick it up (a click on it).
     const dl = self()?.delivery;
     if (dl?.stage === "pickup") {
       // Outside its door (where its people come out), else on the corner of the street by it.
@@ -3733,7 +3733,7 @@ diffuseColor.rgb *= kbCloth;`);
   // things are gone until the city mends them; breaking what is not yours, seen, is vandalism.
   // ---- the body: holding, lifting, swinging, throwing, jumping ----------------------------------
   // How each thing is held (rules.json items' hold: in a hand, a tool by its handle, in both arms in
-  // front, or on the shoulder) and what the arms do on top of the walk: bend down and lift (G),
+  // front, or on the shoulder) and what the arms do on top of the walk: bend down and lift (a click),
   // strain at what is too heavy, swing (X), throw (Q), jump (Space). Poses are turns of the arm,
   // forearm and spine bones about the walker's own axes, over the walking clip (module 26 calls
   // afterPose after the clip each frame).
@@ -4132,7 +4132,7 @@ diffuseColor.rgb *= kbCloth;`);
   async function useSelected() {
     const p = self();
     if (!p || car.active) return;
-    if (!p.hands) { notify("Nothing in your hand: choose something on the bar (1-8), then U uses it."); return; }
+    if (!p.hands) { notify("Nothing in your hand: choose something on the bar (1-8), then a right click uses it."); return; }
     const it = R.items[p.hands] || {};
     if (!it.use && !it.wear) { notify(`Nothing to use a ${it.name?.toLowerCase() || "thing"} for here: X swings it, Q throws it.`); return; }
     // Food and drink: a mouthful at a time (eat-play.mjs), the city told at the last of it.
@@ -4180,7 +4180,7 @@ diffuseColor.rgb *= kbCloth;`);
           if (h.down) { flings.set(hit.id, { t0: performance.now(), x: hit.x, z: hit.z, dx: fx, dz: fz, speed: 2, throw: 0.6 }); district.city?.forget(hit.id); }
           notify(`The ${name} hits ${hit.person?.name || "someone"} (${r.energy} J): ${h.injury.type}. ${h.response === "hit back" ? `They come at you: -${h.hurt} health.` : h.response === "down" ? "They go down." : h.response === "arrest" ? "A police officer: you are arrested and cited." : "They run."}${h.fine ? ` Battery: a ${R.fmt(h.fine)} citation.` : ""}`);
           if (h.response === "hit back") knockBack(Math.sin(yaw), Math.cos(yaw), 1.5);
-        } else notify(r.lands === "spills" ? `The ${name} spills where it lands.` : r.lands === "breaks" ? `The ${name} breaks where it lands${r.landed ? `: ${R.items[r.landed].name.toLowerCase()} on the ground` : ""}.` : `Thrown ${Math.round(Math.hypot(end[0] - at.x, end[2] - at.z))} m at ${Math.round(r.speed)} m/s: it lies there (G picks it up).`);
+        } else notify(r.lands === "spills" ? `The ${name} spills where it lands.` : r.lands === "breaks" ? `The ${name} breaks where it lands${r.landed ? `: ${R.items[r.landed].name.toLowerCase()} on the ground` : ""}.` : `Thrown ${Math.round(Math.hypot(end[0] - at.x, end[2] - at.z))} m at ${Math.round(r.speed)} m/s: it lies there (a click picks it up).`);
         syncSlots(true);
       } });
     });
@@ -4202,7 +4202,7 @@ diffuseColor.rgb *= kbCloth;`);
     const swings = swingOf(R, p.hands, p.vitals.strength).ok;
     // A swing of what you hold has its button; a punch is X alone (no button for it).
     if (it && swings && (who || target)) out.push({ id: "strike", label: `Swing the ${name}: ${who ? who.person?.name || "them" : target.spec.name.toLowerCase()}`, key: "X", run: swingKey });
-    if (it && (it.use || it.wear)) out.push({ id: "use", label: it.wear ? (Object.values(p.worn || {}).includes(p.hands) ? `Take off the ${name}` : `Wear the ${name}`) : `${it.kind === "prepared_food" || it.use.stamina ? "Eat or drink" : "Use"}: ${name}`, key: "U", run: useSelected });
+    if (it && (it.use || it.wear)) out.push({ id: "use", label: it.wear ? (Object.values(p.worn || {}).includes(p.hands) ? `Take off the ${name}` : `Wear the ${name}`) : `${it.kind === "prepared_food" || it.use.stamina ? "Eat or drink" : "Use"}: ${name}`, key: "Right click", run: useSelected });
     if (it && !it.parcel && throwOf(R, p.hands, p.vitals.strength).ok) out.push({ id: "throw", label: `Throw the ${name}`, key: "Q", run: throwKey });
     return out;
   }
@@ -4268,7 +4268,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (r.broken) {
       if (t.nature) ctx.fellTree?.(t.nature); else hideBroken(t.key, t.o, t.i);
       if (r.task) { notify(r.task.done ? `${r.task.title}: done — ${R.fmt(r.task.pay)} paid.` : `Felled: ${r.task.felled} of ${r.task.need} dead trees.`); return; }
-      notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (G picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
+      notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (a click picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
     } else notify(`${verb ? `${verb}: ${tool.toLowerCase()} on` : `${tool} on`} the ${t.spec.name.toLowerCase()} (${t.spec.material})${how ? `: ${how}` : ""}. ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
   }
 
@@ -4385,7 +4385,7 @@ diffuseColor.rgb *= kbCloth;`);
       });
       return;
     }
-    if (!t) { notify("C with empty hands pushes what is in front: a person, or something loose (a log, a chair, a crate)."); return; }
+    if (!t) { notify("Shift + X with empty hands pushes what is in front: a person, or something loose (a log, a chair, a crate). To keep pushing something along, click it."); return; }
     ctx.faceTo?.(t.x, t.z);
     const kg = t.spec.push_kg;
     startAct("push", 0.6, 0.55, async () => {
@@ -4570,7 +4570,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!chip.ok) { notify(chip.text); return; }
     if (chip.key === "arrows") { notify("Hold the arrow keys (two together for a diagonal)."); return; }
     if (chip.key === "r") { toolWorkKey(true); keyHeld.r = true; setTimeout(() => { keyHeld.r = false; }, 3500); return; }
-    (chip.key === " " ? jumpKey : KEYS[chip.key])?.();
+    ({ " ": jumpKey, click: pickUp, rclick: useSelected }[chip.key] || KEYS[chip.key])?.();
   }
   function learnKey(key) {
     for (const { chip } of hintShown) if (chip.key === key) { hintCounts[chip.id] = (hintCounts[chip.id] || 0) + 1; countsDirty += 1; }
@@ -4750,7 +4750,7 @@ diffuseColor.rgb *= kbCloth;`);
       const km = (d(from, here) + d(to, from)) / 1000;
       out.push({ kind: "courier", title: `Courier: ${nameAt(placeName(from), from.x, from.z)} → ${nameAt(address(to.name) || "a home", to.x, to.z)}`, km, pay: C.pay_base + Math.round(C.pay_per_km * Math.min(4, km)),
         from: { id: from.id, name: nameAt(placeName(from), from.x, from.z), x: from.x, z: from.z }, to: { id: to.id, name: nameAt(address(to.name) || "a home", to.x, to.z), x: to.x, z: to.z },
-        steps: [`Go to ${nameAt(placeName(from), from.x, from.z)} and pick up the order at its door (G)`, `Take it to ${nameAt(address(to.name) || "the address", to.x, to.z)} and hand it over (Yes, at the door)`] });
+        steps: [`Go to ${nameAt(placeName(from), from.x, from.z)} and pick up the order at its door (click it)`, `Take it to ${nameAt(address(to.name) || "the address", to.x, to.z)} and hand it over (Yes, at the door)`] });
     }
     const F = T.forestry, [fx, fz] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]);
     out.push({ kind: "forestry", title: F.name, km: Math.hypot(fx - here.x, fz - here.z) / 1000, pay: F.pay,
@@ -4858,7 +4858,7 @@ diffuseColor.rgb *= kbCloth;`);
     const here = me();
     if (p.delivery) {
       const pick = p.delivery.stage === "pickup", at = pick ? p.delivery.from : p.delivery.to;
-      return { label: pick ? `Pick up the order at ${at.name || "the shop"} — G at its door` : `Deliver to ${at.name || "the address"} — Yes at the door`, x: at.x, z: at.z, colour: 0x35c46a };
+      return { label: pick ? `Pick up the order at ${at.name || "the shop"} — click it at its door` : `Deliver to ${at.name || "the address"} — Yes at the door`, x: at.x, z: at.z, colour: 0x35c46a };
     }
     const t = p.task;
     if (t?.kind === "forestry") {
@@ -4925,7 +4925,7 @@ diffuseColor.rgb *= kbCloth;`);
     const owed = view?.billing?.owed(p.account) || 0;
     if (owed) out.push({ label: `Pay what you owe: ${R.fmt(owed)}`, sub: "You & wallet", run: () => openPanel(true) });
     if (p.vitals.health < 40) out.push({ label: "You are hurt: rest (Z at a bed) or see a doctor", run: () => openSide("help") });
-    if (p.vitals.stamina < R.vitals.stamina.low) out.push({ label: "Tired: eat or drink something (U), or rest", run: () => openSide("bag") });
+    if (p.vitals.stamina < R.vitals.stamina.low) out.push({ label: "Tired: eat or drink something (a right click), or rest", run: () => openSide("bag") });
     for (const b of p.bookings || []) {
       const it = R.items[b.item], there = Math.hypot(me().x - b.place.x, me().z - b.place.z) < R.stores.reach_m;
       out.push({ label: there ? `Have your ${it.name.toLowerCase()} here` : `Your booking: ${it.name} at ${address(b.place.name) || "the place"}`, sub: "Booked in the Shop", x: b.place.x, z: b.place.z, run: () => (there ? useBooking(b) : openSide("online")) });
@@ -4954,7 +4954,7 @@ diffuseColor.rgb *= kbCloth;`);
     }
     const t = p.task, dl = p.delivery;
     if (!t && !dl) return null;
-    const steps = t?.steps || [dl.stage === "pickup" ? `Pick up the order at ${dl.from.name} (G at its door)` : `Deliver to ${dl.to.name || "the address"}`];
+    const steps = t?.steps || [dl.stage === "pickup" ? `Pick up the order at ${dl.from.name} (click it at its door)` : `Deliver to ${dl.to.name || "the address"}`];
     const ok = g && Number.isFinite(g.x);
     return { title: t?.title || "Delivery", pay: `${R.fmt(t?.pay ?? dl?.pay ?? 0)} on finishing`, lines: steps.map((st, i) => [st, stepDone(p, i)]), next: g?.label || null,
       x: ok ? g.x : undefined, z: ok ? g.z : undefined, d: ok ? Math.hypot(g.x - here.x, g.z - here.z) : null };
@@ -5111,7 +5111,7 @@ diffuseColor.rgb *= kbCloth;`);
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
-      out.push({ id: "pick", label: `${heavy ? "Too heavy" : "Pick up"}: ${R.items[thing.item]?.name.toLowerCase() || "it"} (${kg} kg)`, key: "G", run: pickUp });
+      out.push({ id: "pick", label: `${heavy ? "Too heavy" : "Pick up"}: ${R.items[thing.item]?.name.toLowerCase() || "it"} (${kg} kg)`, key: "Click", run: pickUp });
     }
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
     if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "Enter", run: toggleCar });
@@ -5300,6 +5300,9 @@ diffuseColor.rgb *= kbCloth;`);
     if (hand === "nails" || hand === "nail") { const o = objectClicked(ray); if (o && isWood(o)) { setNailAt(o); return; } }
     // What a click picked up, still in the hand: the next click sets it down there.
     if (carry.item && hand === carry.item) { placeAt(ray); return; }
+    // A product on a shop's shelf: a step to it, and it is taken (into your hands or basket).
+    const shelf = floor.active() ? floor.pickAt(ray, me()) : null;
+    if (shelf) { const it = shelf.item; goTo(it.x, it.z, floor.REACH_M * 0.8, () => floor.take(it).then(() => refresh())); return; }
     const t = thingClicked(ray);
     if (t) { fetchThing(t); return; }
     const o = objectClicked(ray);
@@ -6717,12 +6720,14 @@ diffuseColor.rgb *= kbCloth;`);
   // One job to a key (ACTIONS.md). Enter (in and out: car, bus, taxi, shop, garage, doors) is the
   // page's, asked first of enterKey. The shop and the taxi are the top bar's buttons.
   // (V's shift tasks are R's; B's bicycle and J's board are Enter's and the To do list's; K's pets
-  // are on your profile; E's climbing is Space's; H is ? or /; PageUp / PageDown are Shift + Up / Down.)
+  // are on your profile; E's climbing is Space's; H is ? or /; PageUp / PageDown are Shift + Up / Down.
+  // G's picking up is a click's; U's using is a right click's (and a click on the food); C's thrust
+  // and shove are Shift + X: the point or the flat of the hand instead of X's swing.)
   const KEYS = {
-    g: () => pickUp(), i: () => openSide("bag"),
-    u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
+    i: () => openSide("bag"),
+    x: () => swingKey(), "shift+x": () => thrustKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
     "?": () => openSide("help"), "/": () => openSide("help"), l: () => animals().leashKey(),
-    c: () => thrustKey(), r: () => toolWorkKey(true), y: () => answerKey(true), n: () => answerKey(false),
+    r: () => toolWorkKey(true), y: () => answerKey(true), n: () => answerKey(false),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -6733,7 +6738,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
     // At the wheel, A D S P are the driving helpers' (driveKey).
     if (car.active && e.key.length === 1 && driveKey(e.key.toLowerCase())) { e.preventDefault(); return; }
-    const k1 = e.key.length === 1 ? e.key.toLowerCase() : "";
+    const k0 = e.key.length === 1 ? e.key.toLowerCase() : "", k1 = e.shiftKey && KEYS[`shift+${k0}`] ? `shift+${k0}` : k0;
     if (e.key.startsWith("Arrow")) { arrowsHeld.add(e.key); learnKey("arrows"); return; }
     const run = KEYS[k1];
     if (!run) return;
@@ -6743,11 +6748,15 @@ diffuseColor.rgb *= kbCloth;`);
   });
   //: Keys held down now (U held eats on).
   const keyHeld = {};
-  addEventListener("keydown", (e) => { if ((e.key === "u" || e.key === "U") && !typing(e.target)) keyHeld.u = true; if ((e.key === "r" || e.key === "R") && !typing(e.target)) keyHeld.r = true; }, true);
+  addEventListener("keydown", (e) => { if ((e.key === "r" || e.key === "R") && !typing(e.target)) keyHeld.r = true; }, true);
+  //: The right button held (module 22: useDown / useUp): what a right click uses goes on while it is
+  //: down -- eating or drinking to the end (as U held did).
+  function useDown() { keyHeld.u = true; }
+  function useUp() { if (keyHeld.u) { keyHeld.u = false; eatPlay.press(false); } }
   addEventListener("keyup", (e) => {
     if (e.key === "Shift") body.sprintHeld = false;
     if (e.key.startsWith("Arrow")) arrowsHeld.delete(e.key);
-    if (e.key === "u" || e.key === "U") { keyHeld.u = false; eatPlay.press(false); }
+
     if (e.key === "r" || e.key === "R") { keyHeld.r = false; toolWorkKey(false); }
   });
   addEventListener("blur", () => { body.sprintHeld = false; keyHeld.u = false; keyHeld.r = false; arrowsHeld.clear(); eatPlay.press(false); pressUp(); toolWorkKey(false); });
@@ -7155,7 +7164,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
       extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
-      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (G), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
+      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (click it), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
           h("span", { className: "note", textContent: count ? `${count} in the basket · ${R.fmt(sub)} before tax` : "Choose how many with + and −." }),
@@ -7199,8 +7208,8 @@ diffuseColor.rgb *= kbCloth;`);
         else if (slotOf !== chosen) btns.push(h("button", { textContent: `Hold it (${slotOf + 1})`, onclick: () => { selectSlot(slotOf); drawSide(); } }));
         // Off the bar (and out of your hand) into the bag's first free place: nothing has to be held.
         if (slotOf >= 0 && slotOf < BAR) { const free = slots.findIndex((v, i) => i >= BAR && !v); if (free >= 0) btns.push(h("button", { textContent: slotOf === chosen ? "Put away in the bag" : "To the bag", onclick: () => { slots = swap(slots, slotOf, free); saveSlots(); syncSlots(); drawSide(); } })); }
-        if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (U)" : "Wear (U)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (U)`, onclick: () => useSelected() }));
-        if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. G picks it up.`).then(() => syncSlots(true)) }));
+        if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (right click)" : "Wear (right click)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (right click)`, onclick: () => useSelected() }));
+        if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. A click picks it up.`).then(() => syncSlots(true)) }));
         if (!it.parcel) for (const { peer, pid } of peers) btns.push(h("button", { textContent: `Give to ${peer.name}`, onclick: () => say(send("give_item", { to: pid, item: pickId }), (r) => `Gave ${r.to} the ${it.name.toLowerCase()}.`).then(() => syncSlots(true)) }));
         detail.push(h("div", {}, ...btns), ...commerce().bagExtra(pickId), ...commerce().packing(side));
       } else detail.push(h("p", { className: "note", textContent: "Empty hand: X punches. Shops sell food, medicine, tools and clothes (Enter at a shop, then the SHOP panel by the door); things on the ground with a yellow ring are picked up with G." }));
@@ -7263,7 +7272,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (t || p.delivery || p.errand) {
         const out = [title, status];
         if (t || p.delivery) {
-          const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name} (G at its door)` : `Deliver to ${p.delivery.to.name || "the address"}`];
+          const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name} (click it at its door)` : `Deliver to ${p.delivery.to.name || "the address"}`];
           const ticked = (i) => stepDone(p, i);
           const list = h("ol", { style: "margin:4px 0 8px 18px;padding:0" }, ...steps.map((st, i) => h("li", { textContent: `${st}${ticked(i) ? " ✓" : ""}`, style: ticked(i) ? "opacity:.6" : "" })));
           out.push(h("p", {}, h("b", { textContent: t?.title || "Delivery" }), ` — ${R.fmt(t?.pay ?? p.delivery?.pay ?? 0)} on finishing`), list,
@@ -7380,16 +7389,16 @@ diffuseColor.rgb *= kbCloth;`);
     const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve. Down turns you round. Climbing, they reach for the next hold (two together for a diagonal); on a top, they walk along it; out of a tree, Down climbs down. Pushing something, Up pushes it along. At the wheel, drive"],
       ["Shift (hold)", "sprint, while stamina lasts"], ["Shift + Up / Down", "standing still where there is a level above or below (a bridge's deck, a lower deck): up or down to it"],
       ["Space", "jump, as high as your legs push against your weight and load; running, on the way you are going. At a fence, a wall, a tree or a ladder: onto it, over it, or the first holds of a climb (then the arrows). Climbing or on a top: push off, or jump down"],
-      ["A click", "in a shop or a restaurant: on a chair, sit down (walk to get up); on someone who works there, they come over and ask what you need (a waiter's menu link lets you order). On the food or drink in your hand: a bite or a sip; held down, eat or drink on to the end. On a thing on the ground: walk over and pick it up, then click the ground to set it down there. Too heavy to lift, or something loose like a log or a chair: walk up to it, hands on it, and Up pushes it; click again to let go. With nails in your hand, on wood: a nail set there, held for the hammer; click again and it drops. With the messages open, on someone: talk. On another player: who they are. A click is never a blow"],
-      ["Right click", "use what is in your hand (as U). On a home of yours: its property menu. Shift + right click: the exterior editor"],
+      ["A click", "in a shop or a restaurant: on a chair, sit down (walk to get up); on a product on a shelf, take it (into your hands or basket); on someone who works there, they come over and ask what you need (a waiter's menu link lets you order). On the food or drink in your hand: a bite or a sip; held down, eat or drink on to the end. On a thing on the ground (a courier's order at the door too): walk over and pick it up, then click the ground to set it down there. Too heavy to lift, or something loose like a log or a chair: walk up to it, hands on it, and Up pushes it; click again to let go. With nails in your hand, on wood: a nail set there, held for the hammer; click again and it drops. With the messages open, on someone: talk. On another player: who they are. A click is never a blow"],
+      ["Right click", "use what is in your hand: eat, drink, take medicine, wear or take off. A right click is a bite or a sip; held down, eat or drink it all. On a home of yours: its property menu. Shift + right click: the exterior editor"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
-      ["U", "use what is in your hand: eat, drink, take medicine, wear or take off. A tap is a bite or a sip; held, eat or drink it all"], ["X", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
-      ["C", "drive in the point or head of what you hold: a crowbar jabs, a sledgehammer rams, a knife stabs, a spade jabs -- less than a swing, but straight in. Empty-handed, C pushes: shove a person (they rock, stagger or fall by their balance; a fall is battery if seen), or give something loose a shove (a log, a chair)"],
+      ["X", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
+      ["Shift + X", "the point or head of what you hold instead of a swing: a crowbar jabs, a sledgehammer rams, a knife stabs, a spade jabs -- less than a swing, but straight in. Empty-handed, the flat of the hand instead of a punch: shove a person (they rock, stagger or fall by their balance; a fall is battery if seen), or give something loose a shove (a log, a chair)"],
       ["R (hold)", "work at what is in front with a tool, a stroke at a time while held: a saw saws wood, a crowbar pries, bolt cutters cut chain and wire, a knife carves wood (your initials in a bench), a spade digs the ground underfoot (lawn, soil, sand; never pavement)"],
       ["R (tap)", "on shift: do the task at the orange ring. With a hammer and nails, at wood (or at a nail you set with a click): one blow on the nail each tap. Keep a steady second between blows: a rushed or tired blow lands off square and the nail bends"],
       ["Y / N", "answer the question at the top (clock in, hand over a parcel, an errand's shopping)"],
       ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car"],
-      ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing within reach (yellow ring), a shelf's product in a shop, or a courier's order at the door"],
+      ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"],
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, at the door, back out), a till (pay), your own garage door up or down, your bicycle (on it, and off it); elsewhere, a building's door"],
       ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
       ["Tasks (top left)", "click your task, delivery or errand: its card -- the steps, an arrow pointing the way and how far, Go there (walks you there along the pavements; an arrow key takes over), Close (back to the list) and Cancel (drops it). Your pets are on your profile, under Relationships › Family"],
@@ -7682,7 +7691,7 @@ diffuseColor.rgb *= kbCloth;`);
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt) || stepNav(dt), cancelAutoWalk: () => { reach.t = null; stopNav(); }, pressDown, pressUp, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt) || stepNav(dt), cancelAutoWalk: () => { reach.t = null; stopNav(); }, pressDown, pressUp, useDown, useUp, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,

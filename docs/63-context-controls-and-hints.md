@@ -30,18 +30,15 @@ buttons along the bottom.
 | **Shift + ↑ / ↓** | Standing still where there is another level above or below (a bridge's deck, a freeway's lower deck): up or down to it. This replaced PageUp / PageDown. Anywhere else, or while walking, Shift + ↑ is the usual sprint and Shift + ↓ the usual turn round. |
 | **Space** | Jump, as high as your legs push against your weight and load; running, the jump carries forward. At a low wall or fence: onto it or over it (a vault). At anything climbable that is higher (a chain-link fence, a tree, a ladder, a wall with holds): the first holds of a climb, by a jump if it needs one, and then the arrows climb. Climbing: push off. On a top: jump down. This replaced E. |
 | **Click** | See "The mouse" below. A click is never a blow. |
-| **Right click** | Use what is in your hand, as U. On a building with a home you own or rent, within 18 m: its property menu, to edit the interior (`ownedInteriorContext`). Shift + right click: the exterior editor. |
+| **Right click** | Use what is in your hand (it was U): with food, one bite (at a table the knife cuts and the fork carries; soup by the spoonful); with a drink, one sip; held down, eat or drink on to the end. With medicine: take it. With clothes: wear or take off. With anything else that has a use: use it. On a building with a home you own or rent, within 18 m: its property menu, to edit the interior (`ownedInteriorContext`). Shift + right click: the exterior editor. |
 | **1 – 8** | Choose a slot on the bar of eight. What is in it is in your hand; an empty slot is an empty hand. |
 | **I** | The inventory: a grid of 24 above the bar. Click a thing, then a slot, to move it. |
-| **U (tap)** | With food: one bite (at a table the knife cuts and the fork carries; soup by the spoonful). With a drink: one sip. With medicine: take it. With clothes: wear or take off. With anything else that has a use: use it. |
-| **U (hold)** | With food or drink: eat or drink on to the end. |
 | **X** | Swing what you hold at what is in front: a thing, a tree, a window, a person. Tools strike by their kind (axe, hatchet, sledgehammer, crowbar, hammer, spade, knife…). Any other rigid thing long and light enough strikes as a blunt blow by its mass and length. Empty-handed it is a punch, and the hand is hurt by what it hits. Glass breaks when it lands a blow. Soft things, two-handed loads and things too small or too heavy do not swing, and it says why. Striking a person is battery. |
-| **C** (holding a tool) | Thrust: drive the point or head straight in. A crowbar jabs, a sledgehammer rams, a knife stabs, a spade jabs. It does less than a swing (0.6 of the energy, 0.7 of the stamina). The notice gives the engine's result: how far the point went in, whether it stuck, bent or would not bite. |
-| **C** (empty hand) | One shove at a loose thing in front (a log, a chair, a crate): it moves a step if your push (300–500 N by strength, capped by your shoes' grip) beats its resistance on that ground and slope. Facing a person, it is a shove: they rock, stagger or fall by their balance. A fall that is seen is battery. To keep pushing something along, click it (below). |
+| **Shift + X** (holding a tool) | Thrust instead of a swing (it was C): drive the point or head straight in. A crowbar jabs, a sledgehammer rams, a knife stabs, a spade jabs. It does less than a swing (0.6 of the energy, 0.7 of the stamina). The notice gives the engine's result: how far the point went in, whether it stuck, bent or would not bite. (Sprinting with Shift held, X is a thrust too.) |
+| **Shift + X** (empty hand) | The flat of the hand instead of a punch (it was C). One shove at a loose thing in front (a log, a chair, a crate): it moves a step if your push (300–500 N by strength, capped by your shoes' grip) beats its resistance on that ground and slope. Facing a person, it is a shove: they rock, stagger or fall by their balance. A fall that is seen is battery. To keep pushing something along, click it (below). |
 | **R (hold)** | Work at what is in front, a stroke at a time while held. Saw: saws wood. Crowbar: pries. Bolt cutters: cut chain and wire. Pocket knife: carves wood (a press too light skates off; enough strokes cut your initials into a bench). Spade: digs the ground underfoot (lawn, soil, sand, gravel; never pavement), in by your weight and levered out against the soil. |
 | **R (tap)** | On shift: do the task at the orange ring (this replaced V; away from it, R says where it is). With a hammer: one blow on a nail per tap -- on the nail you set with a click, wherever you face, or else on a new nail from the box into the wood in front. A steady second between blows lands square; a rushed or tired blow lands off square, so the nail bends or the face skids (hammer rash). The nail stops when its head is home. A loose nail picked up is used before a box is opened, and a box of 50 opens when the loose nails run out. |
 | **Q** | Throw what you hold the way you face. Heavier goes slower, and something too heavy is no throw. Long things fly flatter; a two-handed load is a heave. Glass breaks to shards and drinks spill. A hit on a person is battery. |
-| **G** | Pick up the nearest thing within reach (yellow ring) that you can lift, without walking to it by a click. A courier's order at the shop door. In a shop: take the product off the shelf in front. |
 | **Enter** | In and out, whichever is nearest. Your car: get in; when driving, get out (parking where you stop); or ride with a party member. The taxi pulled up for you: get in; in it, get out early and pay. The bus at the stop: board (it waits up to 15 s); aboard, ask for the next stop. A shop's door: go in, or back out from inside. Your garage: door up or down. At a checkout: pay. Your bicycle: get on when nothing nearer is in reach, and get off (this replaced B). Elsewhere, a building's door. |
 | **Z** | At a bed: lie down (in your own home, sleep); again, get up. |
 | **L** | With a lead: tie up the pet beside you, or have it stay; again, it follows. At the wheel: leave them in the car. |
@@ -54,8 +51,10 @@ buttons along the bottom.
 **Removed** (their jobs went elsewhere): **V** (shift tasks: R), **B** (bicycle: Enter), **J** (the
 task board: the Task board button and the Tasks list, top left), **K** (pets: your profile,
 Relationships › Family), **E** (climbing: Space; letting go: Space pushes off, Down out of a tree),
-**H** (? or /), **PageUp / PageDown** (Shift + ↑ / ↓). **T** and **O** went in PR #226 (Taxi and
-Shop on the top bar). G, U and C keep keyboard uses beside the click, so they stay.
+**H** (? or /), **PageUp / PageDown** (Shift + ↑ / ↓), **G** (picking up: a click, on the ground, a
+shelf or a courier's order), **U** (using: a right click, or a click on the food; held, either eats
+on), **C** (thrust and shove: Shift + X, the point or the flat of the hand instead of X's swing).
+**T** and **O** went in PR #226 (Taxi and Shop on the top bar).
 
 ### The mouse
 
@@ -64,6 +63,7 @@ Shop on the top bar). G, U and C keep keyboard uses beside the click, so they st
 | What is clicked | What happens |
 |---|---|
 | A chair, stool or booth in a shop or restaurant | Sit down. Walk to get up. |
+| A product on a shop's shelf | A step to it, and it is taken into your hands or basket (it was G). |
 | Anything, while your hands are on something you push | Let go of it. |
 | Anything, while you hold a nail on the wood | Let go: the nail drops where it was, one nail on the ground. |
 | Someone who works where you are (indoors, at their workplace) | They stop, walk over to you and the messages open with them asking whether you need help. A waiter's, cashier's or barista's line carries the menu link and a clerk's the wares; ordering from it is the same as at the counter. |
@@ -71,9 +71,9 @@ Shop on the top bar). G, U and C keep keyboard uses beside the click, so they st
 | Another player | Who they are: add as a friend, or write to them. |
 | Wood, with nails (a box or a loose nail) in your hand | Walk within reach; a nail is set on the wood where you clicked, point in, and the left hand holds it there. Choose the hammer and tap R to drive it; walk off and it drops. |
 | The ground, holding what a click picked up | Walk over, bend down and set it there (a large thing too: placed, not dropped). |
-| A thing on the ground (yellow ring) you can lift | Walk over and pick it up; it goes into your hand. |
+| A thing on the ground (yellow ring) you can lift, or a courier's order at the shop door | Walk over and pick it up; it goes into your hand (it was G). |
 | A thing on the ground too heavy to lift, or something loose in the street (a log, a chair, a crate) | Walk up to it with your hands out: ↑ pushes it along ahead of you at the engine's pace (by your strength and grip, against its rolling or sliding resistance on that ground and slope). If it will not budge, you strain on the spot. Something fixed down says so. A click lets go. |
-| A press held on the food or drink in your hand | A bite or a sip; held down, eating or drinking goes on to the end (as U held). |
+| A press held on the food or drink in your hand | A bite or a sip; held down, eating or drinking goes on to the end (as the right button held). |
 
 ### The Tasks list (top left)
 
@@ -137,7 +137,8 @@ further. Space jumps and Enter opens your own garage. F, S and PageUp / PageDown
 mode.
 
 **Free in City mode:** M, W (W walks in the kitchen game and stands you up from a seat, so leave
-it alone), and now B, E, H, J, K, O, T and V.
+it alone), and now B, C, E, G, H, J, K, O, T, U and V. The keys left: the arrows, Shift, Space, 1–8,
+I, X (and Shift + X), Q, R, Z, L, Y / N, Enter, ? or /, F, S and Escape.
 
 ## The controls
 
@@ -148,7 +149,7 @@ in the engine:
 * **Thrust (C).** An impact along the tool's point.
 * **Work (R).** A steady force kept up over time: prying, sawing, carving, digging.
 
-U stays "use on yourself": eat, drink, wear.
+"Use on yourself" (eat, drink, wear) was U; it is the right click now.
 
 The label of each comes from what is held and what is in front. The key's meaning does not
 change.
@@ -161,19 +162,19 @@ change.
 | **Swing / club** | X | Holding anything rigid with no edge (club, bat, crowbar, bottle, a length of pipe); a thing, a window or a person in reach | A face strike. It dents, shatters, bruises or bounces by the engine. A bottle may break on the blow (its shell check). Striking a person is battery, as now. |
 | **Punch** | X | Empty hand | A fist face strike. The hand is hurt by what it hits (fist versus brick, from the tool-damage terms). |
 | **Charged swing** | hold X | Any swing | Holding X winds up to the full swing energy (0.6 s). A tap is a light blow, which wastes less stamina. The engine's energy scaling sets what more you get. |
-| **Stab** | C | Holding a knife, screwdriver, ice axe or anything pointed; something in reach | `strike` with the tip (grip-limited thrust). It sticks in wood (pull out with C again), pierces canvas and skin, cracks ice, and bends on steel. |
-| **Push / shove** | C | Empty hand; a person, door or loose thing in front | An open-hand push: a door swings, a cart rolls, a person staggers (a shove counts as battery only if they fall). |
+| **Stab** | Shift + X (was C) | Holding a knife, screwdriver, ice axe or anything pointed; something in reach | `strike` with the tip (grip-limited thrust). It sticks in wood (pull out with Shift + X again), pierces canvas and skin, cracks ice, and bends on steel. |
+| **Push / shove** | Shift + X (was C), or a click to keep pushing | Empty hand; a person, door or loose thing in front | An open-hand push: a door swings, a cart rolls, a person staggers (a shove counts as battery only if they fall). |
 | **Pry** | R (hold) | Holding a crowbar or screwdriver; a door, window, crate, drain cover or kerb stone in front | A steady force at the tool's tip against the gap. It opens when the force beats the latch or the friction. This is the engine's withdrawal and wedge terms, used slowly. |
 | **Saw** | R (hold) | Holding a saw; wood or a branch in front | Drawn slicing cuts. The depth builds over time, not per blow. |
 | **Carve / whittle** | R (hold) | Holding a knife plus a stick or branch in the other slot, or a carving block in front | Thin slicing cuts along the grain that shape the piece. Mostly a craft and repair action. |
 | **Dig** | R (hold) | Holding a shovel or trowel; soil, turf, sand or gravel underfoot | Cone-index soil resistance (`soils`), so turf is slow and sand quick. Can bury and dig up things. |
 | **Hammer in** | R (tap) | Holding a hammer, with nails in the bag; wood in front | Repeated face strikes on a nail's head (`nail` implement). It goes in until withdrawal grip and length match. |
-| **Sip / bite** | U (tap) | Holding a drink or food | One sip or bite: a share of it, with its effect scaled. The item is lighter and shows what is left. |
-| **Finish it** | U (hold) | Holding a drink or food | Drink or eat the rest (as U does today). |
+| **Sip / bite** | Right click, or a click on it (was U tap) | Holding a drink or food | One sip or bite: a share of it, with its effect scaled. The item is lighter and shows what is left. |
+| **Finish it** | Either held down (was U held) | Holding a drink or food | Drink or eat the rest. |
 | **Climb** | Space (was E) | Facing a wall, fence, tree, ladder, rock or pole within reach, where the climbing engine finds holds that hold (`climb().holds`) | You take the holds. Arrows move up, down and across, each step a release test (`releases`). A limb that cannot let go stays, and the chip says why. Stamina drains with `effort`. If `holds` turns false (rain, sweat, tiredness, a pack) you slip and fall, hurt by the height. Space pushes off. |
 | **Mantle / vault** | Space | Facing an edge between waist and chin height (a low wall, a fence top, a ledge) | Space still means "go up": a jump that ends on top. Hands press down (the climbing engine's press share), so strength and the edge's depth decide whether you make it. |
 | **Hang and drop** | Arrows down at the edge (not built) | At a ledge or roof edge | Lower yourself by the hands before dropping, so the fall is a body length less. |
-| **Chalk up** | U | Holding chalk (sold at sports shops) | Hands become `skin_chalked` for a few minutes, so slopers hold where sweaty hands slip. |
+| **Chalk up** | Right click | Holding chalk (sold at sports shops) | Hands become `skin_chalked` for a few minutes, so slopers hold where sweaty hands slip. |
 | **Sharpen** | inventory button | Holding a whetstone or steel, with a blade in the bag | Restores the blade's edge radius (`edge_radius_m`) toward its sharpened value, a stroke at a time. |
 | **Look at a mark** | S | Pointing at a struck thing | Says what the mark is ("a 16 mm V-shaped kerf; the trunk keeps 95% of its strength") and on a tool, its edge ("rolled", "dulled"). |
 | **Yes / No** | Y / N | A Yes / No question is up | Answers it without the mouse. |
@@ -237,7 +238,7 @@ least one affordance and every affordance's key is bound.
 ### The hint strip
 
 * A row of at most four key-cap chips, bottom centre, just above the bar of eight:
-  `[X] Chop the oak`, `[C] Stab`, `[E] Climb the fence`, `[U] Sip the coffee`. Each chip is
+  `[X] Chop the oak`, `[Shift+X] Stab`, `[Space] Climb the fence`, `[Right click] Sip the coffee`. Each chip is
   also a button, so it works on touch screens like the top bar's buttons.
 * Order: the thing in front first, then what is in hand, then the place, then the task. Actions
   always on the top bar (Inventory, Tasks, Shop, Controls) are not repeated.
@@ -295,7 +296,7 @@ least one affordance and every affordance's key is bound.
    body (marks, strength) and the tool keeps its edge. Chop, Split, Hack and Club become labels
    of X.
 3. **C (thrust) and R (work).** Stab and push; pry, saw, dig and hammer in.
-4. **U tap and hold.** Sip and bite against finish. Chalk.
+4. **Use, tap and hold** (built on U, now the right click). Sip and bite against finish. Chalk.
 5. **Climbing** (built on E, moved to Space). Holds from fences, trees, ladders and sills first; brick and rock later.
    Mantle on Space. Falls.
 6. **Y / N** for Yes / No questions, and the greyed-reason chips everywhere.
@@ -307,11 +308,11 @@ deployed):**
 
 * **1 done.** `docs/city/affordances.mjs` declares every particular control. The hint strip is on
   screen, and H lists the keys with a Hints setting. H is still written by hand, not generated.
-* **3 done.** C thrusts (crowbar jab, sledgehammer ram, knife stab, spade jab) and, empty-handed,
+* **3 done.** Shift + X (was C) thrusts (crowbar jab, sledgehammer ram, knife stab, spade jab) and, empty-handed,
   pushes and shoves (`mechanics-work.mjs` `push`, `shove`). R held saws, pries, cuts, carves (knife)
   and digs (spade); R tapped hammers in a nail (`drive`). The engine's words say what each blow does
   (`strike-preview.mjs`).
-* **4 done.** U taps a mouthful and held eats on (`eat-play.mjs`). The dish is drawn as the cook
+* **4 done.** A right click (was U) or a click on the food takes a mouthful, and held eats on (`eat-play.mjs`). The dish is drawn as the cook
   made it (`plated.mjs`).
 * **5 done.** Space climbs (`climb-play.mjs`): onto, over, up and off walls, or the first holds of a
   climb, then the arrows. E is gone.
@@ -322,7 +323,8 @@ deployed):**
 * **Second pass (same day).** The mouse does what keys did: a click picks things up and sets them
   down, sets a nail by hand, pushes what is too heavy to carry, calls staff over to chat and order,
   and a held press eats. The Tasks list opens a card per task with Go there. Pets moved to the
-  profile. V, B, J, K, E, H and PageUp / PageDown were removed (see "Every control today").
+  profile. V, B, J, K, E, H and PageUp / PageDown were removed, then G, U and C (a click, a right
+  click, Shift + X) -- see "Every control today".
 
 **Not built from the table above:**
 
@@ -332,5 +334,5 @@ deployed):**
 * Chalk.
 * Sharpen.
 * Look at a mark (S still names buildings and streets).
-* Push for doors and carts: C and a click push loose things and people only.
+* Push for doors and carts: Shift + X and a click push loose things and people only.
 * A pushed object passes through walls and other objects: only the walker is stopped by them.

@@ -523,7 +523,7 @@ export function createEatPlay({ THREE, ctx, R, notify = () => {}, finish = async
     hint() {
       if (!cur) return null;
       const f = cur.dish.form, t = cur.dish.tool;
-      return { key: "U", label: f === "drink" ? "Sip (hold: drink it all)" : t === "hand" ? "Take a bite (hold: eat it all)" : t === "spoon" ? "A spoonful (hold: eat it all)" : "A forkful (hold: eat it all)" };
+      return { key: "Right click", label: f === "drink" ? "Sip (hold: drink it all)" : t === "hand" ? "Take a bite (hold: eat it all)" : t === "spoon" ? "A spoonful (hold: eat it all)" : "A forkful (hold: eat it all)" };
     },
     putAway, VESSELS,
   };

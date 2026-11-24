@@ -100,6 +100,20 @@ export function shopFloor({ THREE, R, send, notify, getView, self, kit = null, s
     }
     return best ? { item: best, d: bd } : null;
   }
+  //: The product under the pointer (``ray``, a THREE.Raycaster): {item, d} (d: from ``here``), nearest
+  //: along the ray within a hand's width of it, or null.
+  function pickAt(ray, here) {
+    if (!S.place || !ray) return null;
+    let best = null, bd = Infinity;
+    for (const it of S.items) {
+      if (it.gone) continue;
+      V.set(it.x, it.y + 0.06, it.z);
+      const along = V.clone().sub(ray.ray.origin).dot(ray.ray.direction);
+      if (along < 0 || along > 30 || along >= bd || ray.ray.distanceSqToPoint(V) > 0.16 * 0.16) continue;
+      best = it; bd = along;
+    }
+    return best ? { item: best, d: Math.hypot(best.x - here.x, best.z - here.z) } : null;
+  }
   const tillNear = (here) => S.tills.find((t) => Math.hypot(t.at.x - here.x, t.at.z - here.z) < TILL_M) || null;
   //: Whether a staffed lane has its cashier now: the first lane always, the others through the
   //: busy hours (a supermarket opens lanes as the day fills).
@@ -126,7 +140,7 @@ export function shopFloor({ THREE, R, send, notify, getView, self, kit = null, s
     const r = await send("pay_lane", { place: S.place, lane: t.kind });
     if (!r.ok) { notify(r.error); return r; }
     const n = r.lines.reduce((a, l) => a + l.qty, 0);
-    notify(`${t.kind === "self" ? "Scanned and paid" : "Paid"} ${R.fmt(r.total)}${r.tax ? ` (${R.fmt(r.tax)} of it tax)` : ""} for ${n} ${n === 1 ? "thing" : "things"}: yours, in your inventory (I).${r.bags?.length ? ` ${r.bags.reduce((a, b) => a + b.qty, 0)} more than you can carry are bagged by the door: pick them up (G) or stow them in your car.` : ""}`);
+    notify(`${t.kind === "self" ? "Scanned and paid" : "Paid"} ${R.fmt(r.total)}${r.tax ? ` (${R.fmt(r.tax)} of it tax)` : ""} for ${n} ${n === 1 ? "thing" : "things"}: yours, in your inventory (I).${r.bags?.length ? ` ${r.bags.reduce((a, b) => a + b.qty, 0)} more than you can carry are bagged by the door: click them to pick them up, or stow them in your car.` : ""}`);
     sync(true);
     return r;
   }
@@ -145,7 +159,7 @@ export function shopFloor({ THREE, R, send, notify, getView, self, kit = null, s
     const it = near(here, yaw);
     if (it) {
       const spec = R.items[it.item.sku];
-      out.push({ id: "shelf", label: `Take: ${spec?.name || it.item.sku} ${R.fmt(priceOf(it.item.sku))}`, key: "G", run: () => take(it.item) });
+      out.push({ id: "shelf", label: `Take: ${spec?.name || it.item.sku} ${R.fmt(priceOf(it.item.sku))}`, key: "Click", run: () => take(it.item) });
     }
     const atDoor = S.F ? S.F.local(here.x, here.z).u < DOOR_M : false;
     if ((!t || t.carrier === "hands") && (atDoor || !S.F)) {
@@ -276,5 +290,5 @@ export function shopFloor({ THREE, R, send, notify, getView, self, kit = null, s
     else st.label = st.queue.kind === "self" ? "scanning their shopping" : "paying";
   }
 
-  return { room, fitted, stocked, till, near, actions, take, close, frame, walk, step, active: () => Boolean(S.place), counterItems: () => S.items.length, has: (sku) => S.items.some((x) => x.sku === sku), state: () => ({ place: S.place?.id || null, items: S.items.length, gone: S.items.filter((x) => x.gone).length, tills: S.tills.map((t) => ({ kind: t.kind, lane: t.lane, line: t.queue?.ids.slice() || [] })), agents: [...S.agents.values()].map((a) => ({ id: a.id, x: a.x, z: a.z, staff: a.staff, step: a.t?.i, label: a.t?.steps[a.t.i]?.label })) }) };
+  return { room, fitted, stocked, till, near, pickAt, REACH_M, actions, take, close, frame, walk, step, active: () => Boolean(S.place), counterItems: () => S.items.length, has: (sku) => S.items.some((x) => x.sku === sku), state: () => ({ place: S.place?.id || null, items: S.items.length, gone: S.items.filter((x) => x.gone).length, tills: S.tills.map((t) => ({ kind: t.kind, lane: t.lane, line: t.queue?.ids.slice() || [] })), agents: [...S.agents.values()].map((a) => ({ id: a.id, x: a.x, z: a.z, staff: a.staff, step: a.t?.i, label: a.t?.steps[a.t.i]?.label })) }) };
 }
