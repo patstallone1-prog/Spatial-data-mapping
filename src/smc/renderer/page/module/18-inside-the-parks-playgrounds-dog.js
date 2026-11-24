@@ -1769,7 +1769,7 @@ function worldSupportedPieces(record, side) {
 //
 // On a grid of half-metre cells over the paved ground (which cells have walk on them, and which
 // stand together).
-const STREET_SHAPES = { cell_m: 0.5, sliver_m2: 2.5, island_most_m2: 420, rectangle_fill: 0.8, hull_fill: 0.68, road_share: 0.7, round_m: 0.9, long_ratio: 5, long_fill: 0.9, cells_most: 40e6 };
+const STREET_SHAPES = { cell_m: 0.5, sliver_m2: 2.5, island_most_m2: 420, rectangle_fill: 0.8, hull_fill: 0.68, road_share: 0.7, round_m: 0.9, long_ratio: 5, long_fill: 0.9, cells_most: 160e6 };
 const streetShapeStats = { kerb_tris_cut: 0, slivers: 0, islands: 0, rectangles: 0, curves: 0, left: 0, squared_parts: 0, grid_deg: null };
 function settleStreetShapes() {
   if (typeof MERGED === "undefined" || HEADSET) return null;
@@ -1781,6 +1781,7 @@ function settleStreetShapes() {
     if (bucket.surface === "kerb") { if (!key.startsWith("reconstructed:") || key.startsWith("reconstructed:curb")) kerbs.push(bucket); }
     else if (["walk", "walk_narrow", "median", "transit_island"].includes(bucket.surface)) walks.push(bucket);
   }
+  streetShapeStats.buckets = [walks.length, kerbs.length];
   if (!walks.length) return null;
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
   for (const b of walks) for (const g of b.parts) {
@@ -1790,9 +1791,11 @@ function settleStreetShapes() {
   }
   x0 -= 2 * c; z0 -= 2 * c;
   const cols = Math.ceil((x1 - x0) / c) + 3, rows = Math.ceil((z1 - z0) / c) + 3;
+  streetShapeStats.grid = [cols, rows];
   if (!(cols > 0 && rows > 0) || cols * rows > S.cells_most) return null;
   const at = (x, z) => Math.floor((z - z0) / c) * cols + Math.floor((x - x0) / c);
-  const on = new Uint8Array(cols * rows), label = new Int32Array(cols * rows);
+  // (1: walk here. Then 2: looked at. Which piece a cell is of is kept only for the small pieces.)
+  const on = new Uint8Array(cols * rows), label = new Map();
   // Each top face of each walk, on the grid.
   const tops = (g, each) => {
     const pos = g.getAttribute("position"), index = g.getIndex(), n = index ? index.count : pos.count;
@@ -1819,31 +1822,42 @@ function settleStreetShapes() {
       on[at(ax, az)] = on[at(bx, bz)] = on[at(cx, cz)] = 1;
     });
   }
-  // Which cells stand together.
-  const comps = [null];
-  const stack = [];
+  // Which cells stand together: only the pieces small enough to be an island or a scrap are
+  // kept, cell by cell; a block's own pavement is told apart from them and no more.
+  const comps = [null], most = Math.ceil(S.island_most_m2 / (c * c));
   for (let start = 0; start < on.length; start += 1) {
-    if (!on[start] || label[start]) continue;
-    const id = comps.length, comp = { id, cells: 0, i0: Infinity, i1: -Infinity, j0: Infinity, j1: -Infinity };
-    comps.push(comp); label[start] = id; stack.push(start);
-    while (stack.length) {
-      const q = stack.pop(), qi = q % cols, qj = (q - qi) / cols;
-      comp.cells += 1; comp.i0 = Math.min(comp.i0, qi); comp.i1 = Math.max(comp.i1, qi); comp.j0 = Math.min(comp.j0, qj); comp.j1 = Math.max(comp.j1, qj);
+    if (on[start] !== 1) continue;
+    let cells = [start], head = 0, big = false;
+    on[start] = 2;
+    while (head < cells.length) {
+      const q = cells[head], qi = q % cols, qj = (q - qi) / cols;
+      head += 1;
       for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) {
         const ii = qi + di, jj = qj + dj;
         if (ii < 0 || jj < 0 || ii >= cols || jj >= rows) continue;
         const r = jj * cols + ii;
-        if (on[r] && !label[r]) { label[r] = id; stack.push(r); }
+        if (on[r] === 1) { on[r] = 2; cells.push(r); }
       }
+      if (!big && cells.length > most) big = true;
+      if (big && head > 8192) { cells = cells.slice(head); head = 0; }
     }
+    if (big) continue;
+    const id = comps.length;
+    comps.push({ id, cells: cells.length });
+    for (const q of cells) label.set(q, id);
   }
+  //: The small piece at or beside (x, z); -1 where the walk there is a block's own; 0 where there is none.
   const labelNear = (x, z) => {
     const i = Math.floor((x - x0) / c), j = Math.floor((z - z0) / c);
+    let walk = 0;
     for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) {
       const ii = i + di, jj = j + dj;
-      if (ii >= 0 && jj >= 0 && ii < cols && jj < rows && label[jj * cols + ii]) return label[jj * cols + ii];
+      if (ii < 0 || jj < 0 || ii >= cols || jj >= rows || !on[jj * cols + ii]) continue;
+      const l = label.get(jj * cols + ii);
+      if (l) return l;
+      walk = -1;
     }
-    return 0;
+    return walk;
   };
   // What each piece standing apart is: a scrap (taken out), an island (drawn again), or left.
   const gone = new Set(), redraw = new Map();
@@ -1859,7 +1873,7 @@ function settleStreetShapes() {
     const pos = g.getAttribute("position");
     tops(g, (t, i, j, k, ax, az, bx, bz, cx, cz, flat) => {
       if (!flat) return;
-      const isle = redraw.get(label[at((ax + bx + cx) / 3, (az + bz + cz) / 3)]);
+      const isle = redraw.get(label.get(at((ax + bx + cx) / 3, (az + bz + cz) / 3)));
       if (!isle) return;
       isle.pts.push([ax, az], [bx, bz], [cx, cz]);
       isle.top = Math.max(isle.top, pos.getY(i), pos.getY(j), pos.getY(k));
@@ -1906,13 +1920,13 @@ function settleStreetShapes() {
   };
   if (gone.size || redraw.size) for (const b of walks) for (const g of b.parts) {
     if (!g.getAttribute("position")) continue;
-    cut(g, (x, z) => { const l = labelNear(x, z); return gone.has(l) || redraw.has(l); });
+    cut(g, (x, z) => { const l = labelNear(x, z); return l > 0 && (gone.has(l) || redraw.has(l)); });
   }
   for (const b of kerbs) for (const g of b.parts) {
     if (!g.getAttribute("position")) continue;
     streetShapeStats.kerb_tris_cut += cut(g, (x, z) => {
       const l = labelNear(x, z);
-      if (l) return gone.has(l) || redraw.has(l);
+      if (l) return l > 0 && (gone.has(l) || redraw.has(l));
       // (No walk of the street's own beside it: a plaza's or a park's paving may be, off the grid.)
       for (const [dx, dz] of [[0, 0], [0.4, 0], [-0.4, 0], [0, 0.4], [0, -0.4]]) if (pavementTopAt(x + dx, z + dz) !== undefined) return false;
       return true;
@@ -2028,7 +2042,8 @@ function shapeRoundedOutline(ring, radius) {
 }
 if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const worldSweepsDrawn = emitWorldSweeps();
-try { settleStreetShapes(); } catch (error) { console.warn("kerbside: the street shapes were left as laid", error); }
+try { settleStreetShapes(); } catch (error) { streetShapeStats.error = String(error?.stack || error).slice(0, 400); console.warn("kerbside: the street shapes were left as laid", error); }
+window.kerbsideStreetShapes = () => ({ ...streetShapeStats });
 flushMerged(groups.streets, (key) => !isBuilt(key));
 flushMerged(groups.mapped3d, isBuilt);
 // A garage door is at the level of the driveway outside it, which is the street's ground there.
