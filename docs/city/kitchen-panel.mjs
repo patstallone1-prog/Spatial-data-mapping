@@ -1,3 +1,4 @@
+import { clockTime } from "./clock.mjs";
 import { cutModel, cutPieces, CUT_COUNTS } from "./kitchen-cuts.mjs";
 // The kitchen, played: an animated back-of-house you walk around in (docs/city/kitchen-3d.mjs
 // builds it; docs/city/kitchen.mjs keeps the rules and the world's side).
@@ -999,7 +1000,7 @@ export function kitchenPanel(api) {
 
   // ---- tickets, serving, the lab -----------------------------------------------------------------------
   const ticketOf = (id) => st.k.tickets.find((t) => t.id === id);
-  const realLeft = (t) => (clock.real(t.due) - Date.now()) / 1000;
+  const realLeft = (t) => (clock.real(t.due) - clockTime()) / 1000;
   //: A product as the plate the world scores: its items bottom first, like ones next to each other merged.
   function plateOf(g) {
     const out = [];

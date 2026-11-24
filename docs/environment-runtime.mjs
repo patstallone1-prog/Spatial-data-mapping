@@ -1,6 +1,6 @@
 import {WEATHER,solarState,previewTime} from './sky-clock.mjs';
 import {Sky} from './vendor/three-sky-r160.mjs';
-import {makeClock,CLOCK_SPEC} from './city/clock.mjs';
+import {makeClock,CLOCK_SPEC,clockTime} from './city/clock.mjs';
 import {createClouds} from './sky-clouds.mjs';
 
 // The sky, the sun and the weather, on the game's clock (city/clock.mjs: a day in 72 real
@@ -55,7 +55,7 @@ export function createEnvironment({THREE,scene,renderer,camera,sun,ambient,lat,l
   const gameClock=makeClock(CLOCK_SPEC);
   //: Which clock the sky reads: the game's (City mode: a 72-minute day) or the wall's (Explore).
   let clockMode='live';
-  const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date();
+  const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(clockTime(Date.now()))) : new Date();
   let environment=null,preset='sunny',override=null,observed=null,lastClock=-Infinity,lastCapture=-Infinity,capturedDay=-1,latest=null;
   // The clouds (sky-clouds.mjs): a few patterns through the game's day, at the far plane.
   const deck=createClouds(THREE),clouds=deck.mesh;scene.add(clouds);

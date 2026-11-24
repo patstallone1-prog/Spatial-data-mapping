@@ -139,7 +139,7 @@ export const tripMinutes = (metres, speed) => (metres * 1.32 / speed + 20) / 60;
 //: street or a driveway, walked over; a longer one is moved onto the pavement beside it -- the
 //: nearest kerb within ``kerb_reach_m``, ``out_m`` in from it, never an island (roadway again
 //: within ``island_m`` beyond), no step of it more than ``hop_m`` from the last.
-export const WALK_LEGAL = { step_m: 1, mouth_m: 16, kerb_m: 6, grow_m: 22, kerb_reach_m: 26, out_m: 0.9, island_m: 9, hop_m: 6, every: 2, search_m: 32, spur_gap_m: 2.5, spur_share: 0.45 };
+export const WALK_LEGAL = { step_m: 1, mouth_m: 16, kerb_m: 6, grow_m: 22, kerb_reach_m: 26, out_m: 0.9, island_m: 9, hop_m: 6, every: 2, search_m: 32, spur_gap_m: 2.5, spur_share: 0.45, same_line: 0.82 };
 //: How a street's drawn kerb is looked for (City.kerbOffset): at so many points along a stretch,
 //: out a step at a time to ``reach_m``; a pavement is ground with no roadway for ``clear_m``.
 export const KERB_SCAN = { points: 3, step_m: 0.5, reach_m: 42, clear_m: 9 };
@@ -1699,7 +1699,7 @@ export class City {
       i = j;
     }
     crossings.sort((p, q) => p.s0 - q.s0);
-    if (!fixes.length) return { ...pave, crossings };
+    if (!fixes.length) return City.prototype.joinDivided.call(this, { ...pave, crossings });
     let P = pts, SS = S;
     const pointAt = (d) => {
       let k = 0;
@@ -1724,9 +1724,49 @@ export class City {
       P = next; SS = [0];
       for (let k = 1; k < P.length; k += 1) SS.push(SS[k - 1] + far(P[k], P[k - 1]));
     }
-    if (P.length < 2) return { ...pave, crossings };
+    if (P.length < 2) return City.prototype.joinDivided.call(this, { ...pave, crossings });
     this.wallFixes ??= {}; this.wallFixes.offRoad = (this.wallFixes.offRoad || 0) + fixes.length;
-    return { ...pave, pts: P, s: SS, length: SS[SS.length - 1], halves: P.map(() => 0), classes: P.map(() => null), crossings };
+    return City.prototype.joinDivided.call(this, { ...pave, pts: P, s: SS, length: SS[SS.length - 1], halves: P.map(() => 0), classes: P.map(() => null), crossings });
+  }
+  //: A street with an island or a median in it is crossed in one go. The walk's crossings come
+  //: one to a carriageway there, a few steps of island between them: each was waited at on its
+  //: own, so a walker set out, reached the island and stood on it (or short of it, in the first
+  //: carriageway: the place to wait is a pace or few back from a crossing) until the second half
+  //: was clear -- seen stopping in the road, stepping about and going back. Two crossings one
+  //: after the other on the same line (the walk does not turn between them by more than
+  //: ``turn``) with no more than ``island_m`` between them are one crossing, from the first kerb
+  //: to the last: waited for once, on the pavement, for long enough to walk the whole of it.
+  //: (Two round a corner -- one street, a turn, the next street -- stay two.)
+  joinDivided(pave) {
+    const list = pave?.crossings;
+    if (!list || list.length < 2) return pave;
+    const G = WALK_LEGAL, P = pave.pts, S = pave.s;
+    const at = (d) => {
+      let k = 0;
+      while (k + 2 < P.length && S[k + 1] < d) k += 1;
+      const span = S[k + 1] - S[k] || 1, t = Math.max(0, Math.min(1, (d - S[k]) / span));
+      return [P[k][0] + (P[k + 1][0] - P[k][0]) * t, P[k][1] + (P[k + 1][1] - P[k][1]) * t];
+    };
+    const out = [];
+    let joined = 0;
+    for (const c of list) {
+      const last = out[out.length - 1];
+      if (last && c.s0 - last.s1 <= G.island_m && c.s0 >= last.s0) {
+        const a0 = at(last.s0), a1 = at(last.s1), b0 = at(c.s0), b1 = at(c.s1);
+        const ux = a1[0] - a0[0], uz = a1[1] - a0[1], vx = b1[0] - b0[0], vz = b1[1] - b0[1], m = Math.hypot(ux, uz) * Math.hypot(vx, vz);
+        if (m > 0 && (ux * vx + uz * vz) / m >= G.same_line) {
+          last.s1 = Math.max(last.s1, c.s1); last.divided = true;
+          // (Lit if either half is: the light looked at is the first half's, where they set out.)
+          if (!last.signal && c.signal) { last.signal = c.signal; last.node = c.node; last.bearing = c.bearing; }
+          joined += 1;
+          continue;
+        }
+      }
+      out.push(c);
+    }
+    if (!joined) return pave;
+    this.wallFixes ??= {}; this.wallFixes.dividedCrossings = (this.wallFixes.dividedCrossings || 0) + joined;
+    return { ...pave, crossings: out };
   }
   //: How far out from a street's line its pavement begins on one side, as the world is drawn
   //: (kerbside.onRoad): stepped out from the line at points along the stretch until the
@@ -2169,7 +2209,8 @@ export class City {
   scanMore(budget = 2500, whole = false) {
     const S = this._scan;
     if (!S) return null;
-    const { t, focus, reach, parkedReach, people, vehicles } = S;
+    // (``timeFor``: each one's own time while the game's clock is held -- view.mjs; else everyone's.)
+    const { t: t0, focus, reach, parkedReach, people, vehicles } = S, own = this.timeFor;
     const near = (x, z, extra = 0) => Math.abs(x - focus.x) < reach + extra && Math.abs(z - focus.z) < reach + extra;
     const P = this.roster.places;
     // So many a frame, and never past a few milliseconds: a person whose day is planned for the
@@ -2180,7 +2221,7 @@ export class City {
     const deadline = performance.now() + (budget === Infinity ? SCAN_FIRST_SLICE_MS : SCAN_SLICE_MS);
     const over = () => !whole && (n & 31) === 0 && n > 0 && performance.now() > deadline;
     for (; S.i < S.P.length && n < budget && !over(); S.i += 1, n += 1) {
-      const p = S.P[S.i];
+      const p = S.P[S.i], t = own ? own(p.id, t0) : t0;
       const plan = this.planOf(p, t), seg = segAt(plan.segs, t.minute);
       const h = this.harm(p.id, t.ms);
       if (h?.down) { if (near(h.at.x, h.at.z)) people.push({ p, seg: null }); continue; }
@@ -2190,8 +2231,8 @@ export class City {
       if (seg.unseen) continue;
       if (seg.kind === "go") {
         // A taxi on its way in or away while its fare walks, and the cab the fare is riding.
-        for (const L of seg.cabLegs || []) if (L.t0 <= t.minute && t.minute < L.t1) this.cabNear(vehicles, L, t, focus, reach);
-        if (seg.mode === "drive") { if (seg.cab) this.cabNear(vehicles, seg, t, focus, reach); continue; }
+        for (const L of seg.cabLegs || []) if (L.t0 <= t.minute && t.minute < L.t1) this.cabNear(vehicles, L, t, focus, reach, p.id);
+        if (seg.mode === "drive") { if (seg.cab) this.cabNear(vehicles, seg, t, focus, reach, p.id); continue; }
         if (seg.mode === "bus") continue;
         if (seg.mode === "wait") {
           if (!near(seg.at[0], seg.at[1])) continue;
@@ -2217,7 +2258,7 @@ export class City {
       if ((seg.act.kind === "break" && seg.act.outside && !this.wet && this.breakOutside(p, t) && near(pl.x, pl.z)) || (pl.inside && Math.hypot(pl.x - focus.x, pl.z - focus.z) < INDOOR_REACH_M)) people.push({ p, seg });
     }
     for (; S.j < S.V.length && n < budget && !over(); S.j += 1, n += 1) {
-      const v = S.V[S.j], s = this.vehicleAt(v, t);
+      const v = S.V[S.j], t = own ? own(v.owner, t0) : t0, s = this.vehicleAt(v, t);
       if (s?.state === "garage" && s.spot && near(s.spot.x, s.spot.z)) S.garaged.push({ v, s });
       if (!s || s.hidden) continue;
       if (s.state === "driving") {
@@ -2236,14 +2277,14 @@ export class City {
     for (const [id, list] of S.courts) list.sort((a, b) => hash32(a, id) - hash32(b, id) || (a < b ? -1 : 1));
     this.courtNow = S.courts;
     this._scan = null;
-    return { time: t, people, vehicles, garaged: S.garaged };
+    return { time: t0, people, vehicles, garaged: S.garaged };
   }
   //: A cab on ``leg`` listed with the traffic when its way passes near ``focus``.
-  cabNear(out, leg, t, focus, reach) {
+  cabNear(out, leg, t, focus, reach, who = undefined) {
     const P0 = this.endOf(leg.cab, leg.from), P1 = this.endOf(leg.cab, leg.to);
     if (!P0 || !P1 || distToSegment(focus.x, focus.z, P0.x, P0.z, P1.x, P1.z) > reach + 250) return;
     if (out.some((e) => e.v.id === leg.cab.id)) return;
-    out.push({ v: leg.cab, s: { state: "driving", leg, f: Math.min(1, (t.minute - leg.t0) / (leg.t1 - leg.t0)), moving: true, lag: 0 } });
+    out.push({ v: leg.cab, who, s: { state: "driving", leg, f: Math.min(1, (t.minute - leg.t0) / (leg.t1 - leg.t0)), moving: true, lag: 0 } });
   }
   //: Whether a car's garage door stands open at ``t`` (minutes either side of ``open_min``): the
   //: door goes up before it drives out and comes down after; up as it comes home, down once in.

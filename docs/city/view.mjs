@@ -21,7 +21,7 @@ import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   swimMode, transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
-import { clockOf, fleetTime } from "./clock.mjs";
+import { clockOf, fleetTime, clockTime, clockHeld, holdClock, releaseClock, clockHoldState, restoreClockHold, heldOffset } from "./clock.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
@@ -275,10 +275,79 @@ export async function startCity(ctx) {
   // the clock on the bar read; the fleet works in real minutes from the game day's start
   // (``fleetAt``), so people and cars move at real speed through a day planned by the game's hours.
   const CLOCK = clockOf(R);
-  const gameNow = (ms = Date.now()) => CLOCK.game(ms);
-  const fleetAt = (ms) => fleetTime(CLOCK, ms, R.clock.zone);
+  // (All of it read through clockTime: the practice game can hold its clock -- clock.mjs.)
+  const gameNow = (ms = Date.now()) => CLOCK.game(clockTime(ms));
+  const fleetAt = (ms) => fleetTime(CLOCK, clockTime(ms), R.clock.zone);
   //: Real minutes until game time ``gameMs`` (a deadline, as you live it).
-  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - Date.now()) / 60000;
+  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - clockTime()) / 60000;
+
+  // ---- time held (the practice game only) --------------------------------------------------------
+  //: While the clock is held the hour stands still and the street goes on: each resident (and
+  //: their car with them) lives a window of ``window_min`` real minutes from the held moment over
+  //: and over, on one of ``phases`` phases of it (by their id), so at any moment the people out
+  //: are spread over the whole window -- as many walking, driving, waiting and working as that
+  //: stretch of the day has, for as long as the clock is held. One whose window comes round
+  //: while they are in your sight goes on with their day until they are out of it (``turns_most``
+  //: times round at most): nobody you are looking at is taken off the street to start again.
+  const HOLD = { window_min: R.clock.hold_window_min ?? 6, phases: 48, turns_most: 6, seen_ms: 700 };
+  const SAVE_HOLD = "kerbside:city:clock-hold";
+  const holdTurns = new Map();   // someone in sight when their window came round: id -> the turn they are still on
+  const holdSeen = new Map();    // id -> when they were last in sight (performance.now())
+  const holdTimes = new Map();   // phase * 8 + turns behind -> { stamp, t } (the fleet's time there, made once a frame)
+  let holdStamp = 0, holdNow = 0, holdReal = 0;
+  //: The fleet's time for ``id`` (a resident, a visitor; a car's owner): everyone's, unless the
+  //: clock is held. ``base``: this frame's common time.
+  function timeFor(id, base) {
+    if (!clockHeld() || id === undefined || id === null) return base;
+    const k = hash32(id, "hold") % HOLD.phases, W = HOLD.window_min * 60000;
+    const { offset, turn } = heldOffset(holdReal, k, HOLD.phases, W);
+    let on = holdTurns.get(id);
+    if (on !== undefined && (on >= turn || turn - on > HOLD.turns_most || !(holdSeen.get(id) > holdNow - HOLD.seen_ms))) { holdTurns.delete(id); on = undefined; }
+    const behind = on === undefined ? 0 : turn - on, key = k * 8 + behind;
+    let e = holdTimes.get(key);
+    if (!e) holdTimes.set(key, e = { stamp: -1, t: null });
+    if (e.stamp !== holdStamp) { e.stamp = holdStamp; e.t = fleetTime(CLOCK, clockTime() + offset + behind * W, R.clock.zone); e.t.turn = turn; }
+    return e.t;
+  }
+  //: ``id`` is in your sight this frame: if their window comes round now they keep on (timeFor).
+  function holdInSight(id, now) {
+    if (!clockHeld()) return;
+    holdSeen.set(id, now);
+    if (!holdTurns.has(id)) { const { turn } = heldOffset(holdReal, hash32(id, "hold") % HOLD.phases, HOLD.phases, HOLD.window_min * 60000); holdTurns.set(id, turn); }
+  }
+  function holdFrame(realMs, now) {
+    holdStamp += 1; holdNow = now; holdReal = realMs;
+    if (!clockHeld()) { if (holdTurns.size) { holdTurns.clear(); holdSeen.clear(); holdTimes.clear(); } return; }
+    if (holdSeen.size > 6000) for (const [id, at] of holdSeen) if (at < now - 5000) { holdSeen.delete(id); holdTurns.delete(id); }
+  }
+  //: The clock stopped (``hour``: at that hour of the game's day, the next time it comes; else
+  //: now) or let go. Only in the practice game: the city online keeps one clock for everyone.
+  function holdTime(hour = null) {
+    if (!world) return { ok: false, error: "Time can only be held in the offline practice game: the city online keeps one clock for everyone." };
+    let at = null;
+    if (Number.isFinite(hour)) {
+      const g = gameNow(), ct = timeAt(g), want = ((hour % 24) + 24) % 24 * 60;
+      at = CLOCK.real(g + ((want - ct.minute + 1440) % 1440) * 60000);
+    }
+    holdClock(Date.now(), at);
+    store.set(SAVE_HOLD, clockHoldState());
+    resetStreet();
+    return { ok: true, held: true, label: timeAt(gameNow()).label };
+  }
+  function releaseTime() {
+    releaseClock(Date.now());
+    store.set(SAVE_HOLD, clockHoldState());
+    resetStreet();
+    return { ok: true, held: false, label: timeAt(gameNow()).label };
+  }
+  //: The street looked at afresh after the clock is moved: nobody is where they were.
+  function resetStreet() {
+    lastCrowd = -1e9; scanAt = { x: Infinity, z: Infinity };
+    glided.clear(); personTiers.clear(); carTiers.clear(); holdTurns.clear(); holdSeen.clear(); holdTimes.clear();
+    district.drivers?.cars.clear();
+    if (district.city) district.city.timeFor = clockHeld() ? timeFor : null;
+  }
+  const timeState = () => ({ held: clockHeld(), practice: Boolean(world), label: timeAt(gameNow()).label, hour: timeAt(gameNow()).minute / 60, window_min: HOLD.window_min, phases: HOLD.phases, carried: holdTurns.size });
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
@@ -361,7 +430,8 @@ export async function startCity(ctx) {
     district.workshops = district.places.filter(pl => isWorkshop(R, pl));
     district.people = [...roster.people.values()];
     district.placeById = roster.places;
-    const harm = (id, ms) => harmNow((world || view)?.harm?.get(id), ms);
+    // (The books keep the game's time: ``ms`` is the fleet's real one, so the game's is asked for.)
+    const harm = (id) => harmNow((world || view)?.harm?.get(id), gameNow());
     const delay = (v, leg, day) => (district.drivers?.delayOf(City.legKey(v, leg, day)) || 0) / 60;
     // The streets as wide as the world draws them (people.mjs Streets.calibrate): lanes, parked
     // cars and pavements all to the same kerbs.
@@ -371,6 +441,7 @@ export async function startCity(ctx) {
     }
     if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt: fleetAt, harm, delay });
     else district.city.setStreets(streets);
+    district.city.timeFor = clockHeld() ? timeFor : null;
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
     if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking, onRoad: ctx.roadAt || null, kerbNear: (x, z, reach) => ctx.kerbAt(x, z, null, null, reach) });
@@ -2025,7 +2096,11 @@ diffuseColor.rgb *= kbCloth;`);
     listenLive(null);
     online.state = state; online.why = why; online.retry = performance.now();
     myId = localId;
-    if (!world) { world = loadSolo(); view = world; }
+    if (!world) {
+      world = loadSolo(); view = world;
+      // (A clock held when the page was last left is still held: the same hour to test against.)
+      restoreClockHold(store.get(SAVE_HOLD)); if (district.city) district.city.timeFor = clockHeld() ? timeFor : null;
+    }
     refresh();
     ensureJoined();
   }
@@ -2036,6 +2111,8 @@ diffuseColor.rgb *= kbCloth;`);
     online.state = "connecting"; online.why = "";
     if (world) save();
     world = null; view = null;
+    // (The city's clock is its server's: nothing of a practice game's hold is carried into it.)
+    restoreClockHold(null); if (district.city) district.city.timeFor = null;
     const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
     if(lib?.onAccountChange&&!online.accountWatch){let identity=lib.account?.().accountId||null;online.accountWatch=lib.onAccountChange(profile=>{const next=profile.accountId||null;if(next!==identity){identity=next;if(wantOnline())connectCity();}});}
     if(generation!==online.connectionGeneration)return;
@@ -2375,7 +2452,7 @@ diffuseColor.rgb *= kbCloth;`);
         // What the car hit: the energy of the impact on it (a bench, a light, a bin).
         const kg = { car: 1500, truck: 2600, van: 2500, bus: 13000 }[car.spec.kind] || 1500;
         strikeKey(0.5 * kg * impact * impact);
-        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(Date.now()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
+        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(clockTime()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
       ctl.v *= 0.2; ctl.throttle *= 0.3; car.speed = ctl.v;
       if (ctl.park || ctl.lane) { ctl.park = null; ctl.lane = null; notify("Something is in the way: the wheel is yours."); }
@@ -2744,7 +2821,7 @@ diffuseColor.rgb *= kbCloth;`);
   function checkFainted() {
     const p = self();
     if (!p?.fainted || p.fainted.at <= body.faintSeen) return;
-    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(Date.now());
+    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(clockTime());
     body.faintSeen = p.fainted.at;
     if (first) return;   // an old faint, from before this page
     if (car.active) { car.mesh?.removeFromParent(); car.mesh = null; car.active = false; }
@@ -4721,7 +4798,7 @@ diffuseColor.rgb *= kbCloth;`);
       seen.add(v.id);
       const home = district.placeById?.get(v.home);
       if (!home || Math.abs(home.x - you.x) > 160 || Math.abs(home.z - you.z) > 160) return;
-      if (!c.garageOpen(v, tt)) return;
+      if (!c.garageOpen(v, timeFor(v.owner, tt))) return;
       ctx.garages.near(home.x, home.z, 30, v.home)?.open(2.5);
     };
     for (const e of scan.garaged || []) consider(e.v);
@@ -4912,6 +4989,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!warming) cityRoom();
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
+    if (!world && clockHeld()) restoreClockHold(null);
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
     if (online.state === "online" && syncDue(performance.now())) { syncCity().then(ensureJoined); }
 
@@ -5327,14 +5405,26 @@ diffuseColor.rgb *= kbCloth;`);
   //: How far back from a crosswalk each walker waits (m, by their walk): a step short of it, or a
   //: pace or few back, so those waiting stand one behind another and not all at the kerb's edge.
   const KERB_BACK_M = [1.2, 0.5, 5];
+  //: How far past a crossing a walker must be before they may stand and wait for the next (m).
+  const KERB_CLEAR_M = 0.8;
   const kerbBack = (walk) => KERB_BACK_M[0] + KERB_BACK_M[1] * (hash32(walk.key) % KERB_BACK_M[2]);
   function waitsAtKerb(walk, tsec) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
     const waited = district.city?.walkLags.get(walk.key)?.lag || 0;
-    const back = kerbBack(walk);
-    for (const cr of list) {
+    const back0 = kerbBack(walk);
+    // On a crossing already: on over, whatever comes next. (Nobody stops in a roadway to wait
+    // for the crossing after it: the place they would wait for that one was in this one.)
+    for (const cr of list) if (walk.d > cr.s0 + 0.05 && walk.d < cr.s1 - 0.05) return false;
+    for (let i = 0; i < list.length; i += 1) {
+      const cr = list[i];
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
+      // (No further back from it than the ground since the last crossing allows: a step clear
+      // of that one's roadway -- and where there is not a step between the two, no wait at all.)
+      const other = walk.dir > 0 ? list[i - 1] : list[i + 1];
+      const room = other ? (walk.dir > 0 ? cr.s0 - other.s1 : other.s0 - cr.s1) - KERB_CLEAR_M : Infinity;
+      if (room < 0.3) continue;
+      const back = Math.min(back0, room);
       if (before < -0.05 || before > back) continue;   // on it already: on over
       // The light: the street they cross must be held on red now, and still be when they are
       // most of the way over -- they know how long the crossing takes them and do not set out
@@ -5414,9 +5504,12 @@ diffuseColor.rgb *= kbCloth;`);
     return b.off;
   }
   function frameCity(ms, dt, now, focus) {
-    const c = district.city, D = district.drivers, tt = fleetAt(ms);
+    const c = district.city, D = district.drivers, tt = fleetAt(ms), gms = tt.gameMs;
     eyeNow();
-    const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
+    holdFrame(ms, now);
+    // (``tsec``: the real second, for the lights and the traffic's rules, which never stand still.
+    // Where each car is on its leg is by its owner's own time -- everyone's, unless the clock is held.)
+    const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), tsec = ms / 1000;
     const people = [];
     const you = me();
     let trackedPeople = 0;
@@ -5448,13 +5541,15 @@ diffuseColor.rgb *= kbCloth;`);
           people.push(q); continue;
         }
       }
-      const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
-      const pos = c.personAt(e.p, tt, seg, focus);
+      const tp = timeFor(id, tt);
+      const seg = e.seg && tp.minute < e.seg.t1 && tp.minute >= e.seg.t0 ? e.seg : undefined;
+      const pos = c.personAt(e.p, tp, seg, focus);
       if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) { personTiers.delete(id); continue; }
       // In a shop and not the one you are in: seen through its window from close by, or not at all.
       let tier = detailNow ? detailNow.tier("people", pos.x, pos.z, was?.tier) : FULL;
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
+      if (!unseenAt(pos.x, pos.z)) holdInSight(id, now);
       const entry = { id, person: e.p, ...pos, detail: tier };
       // In the shop room you are in: walked round its aisles to a till and out (shop-floor.mjs).
       const walkedIn = Boolean(pos.indoors && shop.frame?.store && floor.walk(entry, you, dt, gameHour()));
@@ -5617,7 +5712,8 @@ diffuseColor.rgb *= kbCloth;`);
       // Far off and not being driven by the rules: left until its next look (it is only tracked).
       const wasCar = carTiers.get(e.v.id);
       if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
-      const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
+      const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), gms), tv = timeFor(e.who ?? v.owner, tt);
+      const dayStart = tv.ms - tv.minute * 60000, shift = (tv.ms - ms) / 1000;
       if (h0?.out) continue;
       // (``base`` is this frame's own record of the car, made here and drawn once: it is filled in,
       // not copied, whichever way below it goes.)
@@ -5628,18 +5724,18 @@ diffuseColor.rgb *= kbCloth;`);
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
       if (s0.roam) {
-        const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tt);
+        const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tv);
         if (!round) {
-          const pos = owner && c.personAt(owner, tt, undefined, focus);
+          const pos = owner && c.personAt(owner, tv, undefined, focus);
           if (pos && pos.mode === "drive") { Object.assign(base, pos).moving = true; vehicles.push(base); }
           continue;
         }
         leg = round; route = round.route; key = `${v.id}:${round.key}`;
-      } else { route = c.legRoute(leg); key = City.legKey(v, leg, tt.day); }
+      } else { route = c.legRoute(leg); key = City.legKey(v, leg, tv.day); }
       if (!route || route.length < 1) continue;
       const startS = (dayStart + leg.t0 * 60000) / 1000, durS = Math.max(1, (leg.t1 - leg.t0) * 60);
-      const sched = (ts) => Math.max(0, Math.min(1, (ts - startS) / durS)) * route.length;
-      const unsched = (d) => startS + (d / route.length) * durS;
+      const sched = (ts) => Math.max(0, Math.min(1, (ts + shift - startS) / durS)) * route.length;
+      const unsched = (d) => startS + (d / route.length) * durS - shift;
       const [w, , l] = v.bike ? BIKE_DIMS : VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
       // Out of sight of the rules: where its day has it, as far behind as traffic left it.
       const lagged = sched(tsec - D.delayOf(key));
@@ -5647,6 +5743,7 @@ diffuseColor.rgb *= kbCloth;`);
       // (Driven by the rules near you, and on till it is well away: then by its day again, as
       // far behind as the traffic left it -- so the cars driven do not only ever grow in number.)
       const off = Math.hypot(probe.x - focus.x, probe.z - focus.z);
+      if (off < SIM_M && !unseenAt(probe.x, probe.z)) holdInSight(e.who ?? v.owner, now);
       if (off < SIM_M || (off < SIM_M * 1.8 && D.stateOf(v.id)?.key === key)) {
         sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), style: styleOf(v), cruise: Math.max(v.bike ? 3 : 4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z), bike: Boolean(v.bike) });
         legOf.set(v.id, { base, route });
@@ -6037,7 +6134,8 @@ diffuseColor.rgb *= kbCloth;`);
     const t = timeAt(gameNow());
     const [lon, lat] = ctx.toLonLat(me().x, me().z);
     const here = jurisdictionAt(R, lon, lat, district.county);
-    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, t.label, here.name];
+    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, clockHeld() ? `${t.label} (time held)` : t.label, here.name];
+    timeButton.hidden = !world; timeButton.classList.toggle("on", clockHeld());
     if (car.active) {
       const limit = speedLimitAt(car.x, car.z) * MPH, mph = Math.abs(car.speed) * MPH;
       bits.push(`<span class="${mph > limit + 5 ? "warn" : ""}">${Math.round(mph)} mph · limit ${Math.round(limit)}</span>`);
@@ -6082,8 +6180,9 @@ diffuseColor.rgb *= kbCloth;`);
   const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price", onclick: () => openSide("online") }, "Shop");
   const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory");
   const taxiButton = h("button", { title: "Call a taxi to where you stand (Enter gets in when it pulls up)", onclick: () => taxiKey() }, "Taxi");
+  const timeButton = h("button", { title: "Hold the clock at an hour, or let it run (the offline practice game)", onclick: () => openSide("time") }, "Time");
   // (The task board is the card at the bar's edge: one board, not a button to a second.)
-  alwaysActions.append(bagButton, onlineButton, taxiButton, helpButton);
+  alwaysActions.append(bagButton, onlineButton, taxiButton, timeButton, helpButton);
   actionBar.append(alwaysActions, dynamicActions);
   const tasksCard = h("section", { id: "city-tasks", className: "city-card" });
   tasksCard.setAttribute("aria-label", "Tasks");
@@ -6206,7 +6305,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
     el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", sell: "Selling", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
-      buy: "Buying a business", recruiter: "Recruiter", released: "Released", pets: "Pets" }[kind] || "Controls");
+      buy: "Buying a business", recruiter: "Recruiter", released: "Released", pets: "Pets", time: "Time" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -6519,6 +6618,20 @@ diffuseColor.rgb *= kbCloth;`);
       side.el.replaceChildren(...out);
       return;
     }
+    // The clock held (the practice game's own): the hour stood still, the street going on.
+    if (side.kind === "time") {
+      const st = timeState(), say = (r) => { if (r && !r.ok) notify(r.error); else if (r) notify(r.held ? `Time held at ${r.label}. The street goes on as it is at this hour.` : `Time runs on from ${r.label}.`); drawSide(); hud(); };
+      const at = (label, hour) => h("button", { textContent: label, title: hour === null ? "Stop the clock where it stands" : `Stop the clock at ${label}, the next time the game's day comes to it`, onclick: () => say(holdTime(hour)) });
+      side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Time" }), close),
+        h("p", { className: "note", textContent: !st.practice ? "The city online keeps one clock for everyone: time can only be held in the offline practice game."
+          : st.held ? `Held at ${st.label}. The sun, the shops' hours, pay and bills stand still. People and traffic go on: each lives the next ${st.window_min} minutes of this hour over and over, on their own turn of it, so the street stays as busy as this hour is.`
+            : `The clock is running: ${st.label}. Hold it to test against one hour for as long as you like.` }),
+        ...(st.practice ? [h("div", { className: "row" }, at("Hold now", null), ...(st.held ? [h("button", { className: "shop", textContent: "Let time run", onclick: () => say(releaseTime()) })] : [])),
+          h("h4", { textContent: "Hold at an hour" }),
+          h("div", { className: "row" }, at("06:00", 6), at("08:00", 8), at("12:00", 12), at("15:00", 15), at("17:30", 17.5), at("21:00", 21), at("02:00", 2)),
+          h("p", { className: "note", textContent: "A held clock stays held when you come back to the page." })] : []));
+      return;
+    }
     // The controls.
     const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve (tighter the slower; let go and you walk on straight). Down turns you round: one step slow, two at a sprint. At the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
@@ -6809,7 +6922,7 @@ diffuseColor.rgb *= kbCloth;`);
     fleetNow: () => district.city,
     detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast, lock: { ...lockStats },
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
-    rules: R, tick, drive, noteIncident, sendPatrol, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
+    rules: R, tick, drive, noteIncident, sendPatrol, time: { hold: holdTime, release: releaseTime, state: timeState }, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
