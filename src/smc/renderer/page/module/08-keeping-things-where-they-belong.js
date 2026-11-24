@@ -587,7 +587,7 @@ function recentreOnKerbEnvelope(way) {
 // A street is drawn at one width, and the kerb the city surveyed is not one line: it steps in
 // for a bulb, out for a bay, and narrows a little down a block. Drawn only at the one width, the
 // walk's edge stood up to half a metre off the kerb the city records (docs/63: the spread).
-// The city's kerb is read every KERB_PROFILE.station_m along each street (the stations the
+// The city's kerb is read every KERB_LINE_RULES.station_m along each street (the stations the
 // recentring already takes) and the walk's edge follows it, in straight lengths jointed where
 // it changes -- and so do the roadway, its paint and where it may be driven, which all ask the
 // same question (halfWidthAt). Within limits, so that a street stays a street:
@@ -605,7 +605,7 @@ function recentreOnKerbEnvelope(way) {
 //     (``kerbsideKerbProfiles().waves``) to be looked at.
 //   * Consistent. A street whose stations cover less than ``least_cover`` of it between its
 //     corners, or disagree by more than ``most_range_m`` in all, keeps the one width.
-const KERB_PROFILE = { station_m: 4, corner_m: 12, ease_m: 8, most_m: 0.45, dead_m: 0.08, least_run_m: 12, slope: 1 / 8,
+const KERB_LINE_RULES = { station_m: 4, corner_m: 12, ease_m: 8, most_m: 0.45, dead_m: 0.08, least_run_m: 12, slope: 1 / 8,
   wave_m: 0.25, wave_within_m: 80, least_cover: 0.5, most_range_m: 1.6, vertex_m: 6, junction_m: 3.5 };
 const kerbProfileStats = { streets: 0, followed: 0, followed_m: 0, uniform_cover: 0, uniform_range: 0, waves: 0, wave_m: 0 };
 const kerbWaves = [];
@@ -613,7 +613,7 @@ const kerbWaves = [];
 //: differs from the street's one half-width...] } on a grid of station_m, or null where it keeps
 //: the one width. ``junctions``: how far along it other streets meet it. Pure but for the stats.
 function kerbProfileFrom(stations, length, base, junctions, name = null) {
-  const K = KERB_PROFILE, step = K.station_m, n = Math.floor(length / step) + 1;
+  const K = KERB_LINE_RULES, step = K.station_m, n = Math.floor(length / step) + 1;
   if (n < 6 || !stations || stations.length < 3) return null;
   const raw = new Array(n).fill(NaN);
   for (const [s, w] of stations) { const i = Math.round(s / step); if (i >= 0 && i < n && Number.isFinite(w)) raw[i] = w / 2 - base; }
@@ -696,19 +696,19 @@ function settleKerbProfiles(ways) {
         const x = a[0] + ux * t, z = a[1] + uz * t;
         for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1)
           for (const [qx, qz, other] of grid.get((Math.floor(x / C) + di) + ":" + (Math.floor(z / C) + dj)) || [])
-            if (other !== way && Math.hypot(qx - x, qz - z) < KERB_PROFILE.junction_m && !junctions.some((j) => Math.abs(j - (along + t)) < 6)) junctions.push(along + t);
+            if (other !== way && Math.hypot(qx - x, qz - z) < KERB_LINE_RULES.junction_m && !junctions.some((j) => Math.abs(j - (along + t)) < 6)) junctions.push(along + t);
       }
       along += len;
     }
     const profile = kerbProfileFrom(way._stations, along, nominalRoadWidth(way) / 2, junctions, way.name || null);
     if (!profile) continue;
     way._kerbProfile = profile;
-    way.points = densifyWay(way.points, KERB_PROFILE.vertex_m);
+    way.points = densifyWay(way.points, KERB_LINE_RULES.vertex_m);
     kerbProfileStats.followed += 1;
     kerbProfileStats.followed_m += profile.d.filter((v) => v !== 0).length * profile.step;
   }
   kerbProfileStats.wave_m = Math.round(kerbProfileStats.wave_m);
-  window.kerbsideKerbProfiles = () => ({ ...kerbProfileStats, limits: { ...KERB_PROFILE }, waves: kerbWaves.slice().sort((a, b) => b.swing_m - a.swing_m) });
+  window.kerbsideKerbProfiles = () => ({ ...kerbProfileStats, limits: { ...KERB_LINE_RULES }, waves: kerbWaves.slice().sort((a, b) => b.swing_m - a.swing_m) });
   return kerbProfileStats;
 }
 //: How far a street's half-width is from its one half-width at ``along`` (kerbProfileOf): 0
