@@ -637,6 +637,7 @@ function guestTick({ eye, dist, firstPerson, at, dt }) {
   if(grassStrands&&grassSurfaceAt)grassStrands.update(at.x,at.z,camera.position.y-at.y);
   foliageMotion?.update(performance.now(),at);
   treeNearStep(at, performance.now(), camera.position.y - at.y);
+  leafLitterStep(at, performance.now(), camera.position.y - at.y);
   if (cullDetailByDistance(frameCount) || frameCount % DETAIL_REINDEX_FRAMES === 0) cullLabelsByDistance(frameCount);
   frameCount += 1;
   updateDoors(dt);

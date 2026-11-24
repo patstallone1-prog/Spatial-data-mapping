@@ -1760,7 +1760,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  "strike_person", "collision", "crash_cleared", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
   ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);

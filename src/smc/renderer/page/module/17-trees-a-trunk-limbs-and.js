@@ -472,6 +472,46 @@ function treeNearDispose(group) {
 }
 //: Each frame (it looks again every TREE_NEAR_EVERY_MS): the trees round ``focus`` drawn in
 //: full, a few more each time, and those left behind given back to their instances.
+// ---- the fallen leaves (docs/leaf-litter.mjs) ----------------------------------------------------
+//: Leaves on the ground round the walker, each a leaf: under the trees that are drawn in full
+//: near you (treeNear's index: the same trees, where they stand), on the ground the walker
+//: walks on, and solid to walls and fences -- a leaf is never inside a building, and a fence's
+//: mesh or pickets are too close for one to get through (it goes through a gate, which is a gap).
+var leafLitter = null, leafLitterAt = 0;
+const LEAF_FENCE_M = 0.09;
+function leafSolid(x, z) {
+  return Boolean(buildingAt(x, z)) || Boolean(nearestFenceLine(x, z, LEAF_FENCE_M));
+}
+function leafTrees(x, z, reach) {
+  const T = typeof treeNear === "undefined" ? null : treeNear, out = [];
+  if (!T) return out;
+  const c = T.CELL;
+  for (let i = Math.floor((x - reach) / c); i <= Math.floor((x + reach) / c); i += 1)
+    for (let j = Math.floor((z - reach) / c); j <= Math.floor((z + reach) / c); j += 1)
+      for (const t of T.grid.get(`${i}:${j}`) || []) {
+        if (Math.hypot(t.x - x, t.z - z) > reach) continue;
+        out.push({ x: t.x, z: t.z, key: t.key, kind: t.kind, crown: Math.max(1.2, Math.min(7, (t.across || 5) / 2)), seed: (Math.round(t.x * 4) * 73856093) ^ (Math.round(t.z * 4) * 19349663) });
+      }
+  return out;
+}
+//: Each frame the walker is on foot near the ground (not from high above: a leaf is not seen).
+function leafLitterStep(at, now, viewHeight = 0) {
+  if (typeof leafLibrary === "undefined" || !leafLibrary || typeof treeNear === "undefined" || !treeNear || !at) return;
+  if (viewHeight > 40) { if (leafLitter) leafLitter.mesh.visible = false; leafLitterAt = now; return; }
+  if (!leafLitter) {
+    let refY = at.y;
+    leafLitter = leafLibrary.createLeafLitter(THREE, { parent: groups.ground, trees: leafTrees, solid: leafSolid,
+      ground: (x, z) => { const g = walkerGroundAt(x, z, refY); return Number.isFinite(g) ? g : refY; },
+      wind: () => globalThis.kerbsideWind, windVector: foliageLibrary?.windVector || (() => [0.94, -0.34]) });
+    leafLitter.setRef = (y) => { refY = y; };
+    window.kerbsideLeaves = () => ({ ...leafLitter.stats });
+  }
+  leafLitter.mesh.visible = true;
+  leafLitter.setRef(at.y);
+  const dt = Math.min(0.1, Math.max(0, (now - (leafLitterAt || now)) / 1000));
+  leafLitterAt = now;
+  if (dt > 0) leafLitter.step(at, dt);
+}
 function treeNearStep(focus, now, viewHeight = 0) {
   const T = typeof treeNear === "undefined" ? null : treeNear;
   if (!T || !focus || now - T.at < TREE_NEAR_EVERY_MS) return;
@@ -675,7 +715,10 @@ function buildParkUnderstorey(trees) {
     // city park's deadwood is cleared.
     if (kind_of_tree(tree) === "palm" || !vegetationLibrary.litterScatter) continue;
     const fall = vegetationLibrary.litterScatter(tx, tz, crown, kind_of_tree(tree) === "conifer" ? "pine" : "oak", { seed: 17 });
-    for (const patch of fall.patches) {
+    // (The leaves themselves are leaves now, not patches of leaf texture: docs/leaf-litter.mjs,
+    // leafLitterStep -- round the walker, each one its own, under every tree drawn in full. The
+    // headset, which has none of that, keeps the patches.)
+    for (const patch of typeof leafLibrary !== "undefined" && leafLibrary ? [] : fall.patches) {
       const ground = grassSampleAt(patch.x, patch.y);
       if (!ground?.park) continue;
       const e = grassSurfaceAt(patch.x + 1, patch.y), n = grassSurfaceAt(patch.x, patch.y - 1);
