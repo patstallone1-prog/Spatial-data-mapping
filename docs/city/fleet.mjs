@@ -1577,8 +1577,21 @@ export class City {
     if (!k || !K.onRoad) return null;
     const qx = k.x + k.nx * G.out_m, qz = k.z + k.nz * G.out_m;
     if (K.onRoad(qx, qz)) return null;
-    for (let d = 3; d <= G.island_m; d += 3) if (K.onRoad(k.x + k.nx * (G.out_m + d), k.z + k.nz * (G.out_m + d))) return null;
-    return { x: qx, z: qz };
+    let island = false;
+    for (let d = 3; d <= G.island_m; d += 3) if (K.onRoad(k.x + k.nx * (G.out_m + d), k.z + k.nz * (G.out_m + d))) { island = true; break; }
+    if (!island) return { x: qx, z: qz };
+    // The nearest kerb is an island's or a median's: the pavement is the other way, over the lane
+    // the point is in -- the first ground out that way that is no roadway and has none beyond it.
+    // (A walk beside a median had no pavement found for it at all, and stayed in the road.)
+    for (let d = 1; d <= G.kerb_reach_m; d += 1) {
+      const px = x - k.nx * d, pz = z - k.nz * d;
+      if (K.onRoad(px, pz)) continue;
+      const ox = px - k.nx * G.out_m, oz = pz - k.nz * G.out_m;
+      if (K.onRoad(ox, oz)) continue;
+      for (let e = 3; e <= G.island_m; e += 3) if (K.onRoad(ox - k.nx * e, oz - k.nz * e)) return null;
+      return { x: ox, z: oz };
+    }
+    return null;
   }
   //: Somewhere to stand off the roadway near (x, z) -- a stop's pole, a place to wait: the point
   //: itself where it is no roadway; else the pavement by the nearest kerb; else (that kerb an
@@ -1656,11 +1669,16 @@ export class City {
         if (!flag[m]) continue;
         const q = this.pavementBy(X[m], Z[m]), last = line[line.length - 1];
         if (!q || (last && Math.hypot(q.x - last[0], q.z - last[1]) > G.hop_m)) continue;
-        if (!last && entry && Math.hypot(q.x - entry[0], q.z - entry[1]) > G.hop_m + 2) break;   // not the pavement it came off
+        // (Not the pavement it came off: looked for a little further on, then given up.)
+        if (!last && entry && Math.hypot(q.x - entry[0], q.z - entry[1]) > G.hop_m + 2 + (m - m0) * G.step_m * 0.5) { if (m - m0 > 8) break; continue; }
         line.push([q.x, q.z]);
       }
       if (line.length >= 2) fixes.push({ a: u, b: v, line, prev, next });
       else if ((prev || next) && v - u <= G.grow_m) grow();
+      // No pavement found to move it to, and no crossing to make it part of: it is waited at for
+      // a gap in the traffic like a crossing, and walked without stopping -- never set out on
+      // with a car coming, never stopped on half way (view.mjs waitsAtKerb).
+      else if (!prev && !next) { crossings.push({ s0: Math.max(0, u), s1: Math.min(L, v), node: undefined, bearing: 0, signal: false, path: true, along: true }); this.wallFixes ??= {}; this.wallFixes.roadWalks = (this.wallFixes.roadWalks || 0) + 1; }
     };
     for (let i = 0; i <= n; i += 1) {
       if (!flag[i]) continue;

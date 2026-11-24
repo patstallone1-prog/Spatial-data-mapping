@@ -68,7 +68,7 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
   // ---- the vehicles that come ------------------------------------------------------------------
   //: A way in for a response vehicle: from a few blocks off (``from``: [nearest, furthest] m) to
   //: the street by the scene. Null where the streets give none.
-  function wayIn(s, from, tag) {
+  function wayIn(s, from, tag, face = null) {
     const S = streets();
     if (!S) return null;
     const b = S.nearest(s.x, s.z, "drive", 140);
@@ -88,7 +88,10 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
         const route = S.route(a, end, "drive");
         if (!route || route.length < 120 || route.length > 1200) continue;
         const by = passes(route, s.x, s.z);
-        // (Nearest the scene first; of those as near, the shortest way.)
+        // Along the street the way the wreck faces (``face``), so it comes up behind it in its own
+        // lane -- from the other way it is across the road from it, in whatever queue is there.
+        // (Then nearest the scene; of those as near, the shortest way.)
+        by.d += face && by.ux * face[0] + by.uz * face[1] < 0.3 ? 40 : 0;
         if (!best || by.d < best.by.d - 3 || (by.d < best.by.d + 3 && route.length < best.route.length)) best = { route, by };
       }
     }
@@ -101,7 +104,8 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     let best = { d: Infinity, s: route.length };
     for (let i = 0; i + 1 < route.pts.length; i += 1) {
       const p = route.pts[i], q = route.pts[i + 1], hit = distTo(x, z, p[0], p[1], q[0], q[1]);
-      if (hit.d < best.d) best = { d: hit.d, s: route.s[i] + hit.t * (route.s[i + 1] - route.s[i]) };
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+      if (hit.d < best.d) best = { d: hit.d, s: route.s[i] + hit.t * (route.s[i + 1] - route.s[i]), ux: (q[0] - p[0]) / len, uz: (q[1] - p[1]) / len };
     }
     return best;
   }
@@ -120,23 +124,26 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     }
     return null;
   }
-  function responder(s, model, from, tag, now) {
-    const route = wayIn(s, from, tag);
+  function responder(s, model, from, tag, now, face = null) {
+    const route = wayIn(s, from, tag, face);
     if (!route) return null;
     return { id: `${tag}:${s.id}`, model, shade: 0.5, route, d: 0, v: SCENE.speed_ms * 0.6, phase: "coming", x: 0, z: 0, yaw: 0, at: 0, since: now, gear: null, moving: true, speed: 0, response: true };
   }
   //: A response vehicle driven along its way: at its speed, behind whatever is in its lane, and
   //: stopped ``short`` of the way's end when it is coming. True when it has got there.
   function drive(v, dt, top, short) {
-    const R0 = v.route, here = alongRoute(R0, v.d, DRIVE_LANE);
+    // (Held up behind a queue it pulls out over the middle line and goes by: ``shift``.)
+    const lane = (...a) => DRIVE_LANE(...a) - (v.shift || 0);
+    const R0 = v.route, here = alongRoute(R0, v.d, lane);
     // (Coming, it stops ``short`` of where its way passes the scene; leaving, it goes to the end.)
     const left = (short ? Math.min(R0.length, (R0.stopAt ?? R0.length) - short) : R0.length) - v.d;
     let want = Math.max(short ? 0 : 2, Math.min(top, left / 1.5));
-    // Stood behind the traffic a while (which may itself be stood for it): it goes on through,
-    // its lights going, as the traffic would make way for it.
+    // Stood behind the traffic a while (which may itself be stood for it): out round it, its
+    // lights going, and back in when it is by.
     v.stood = v.v < 0.5 && left > 4 ? (v.stood || 0) + dt : 0;
-    if (v.stood > 5) v.through = 6;
-    v.through = Math.max(0, (v.through || 0) - dt);
+    if (v.stood > 3) v.pass = 9;
+    v.pass = Math.max(0, (v.pass || 0) - dt);
+    v.shift = (v.shift || 0) + Math.max(-2 * dt, Math.min(2 * dt, (v.pass > 0 ? 3.1 : 0) - (v.shift || 0)));
     const fx = -Math.sin(here.yaw), fz = -Math.cos(here.yaw);
     for (const o of traffic()) {
       if (o.id === v.id || o.id === v.towing) continue;
@@ -144,11 +151,11 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
       if (Math.abs(dx) > 30 || Math.abs(dz) > 30) continue;
       const fwd = dx * fx + dz * fz, lat = Math.abs(dx * fz - dz * fx);
       // (Not behind the wrecks it has come for: it pulls up to them.)
-      if (fwd > 0 && fwd < 24 && lat < 1.7 && !o.wrecked && !o.response && !(v.through > 0)) want = Math.min(want, Math.max(0, (fwd - 7) / 1.5));
+      if (fwd > 0 && fwd < 24 && lat < 1.7 && !o.wrecked && !o.response) want = Math.min(want, Math.max(0, (fwd - 7) / 1.5));
     }
     v.v += Math.max(-8 * dt, Math.min(3 * dt, want - v.v));
     v.d = Math.min(R0.length, v.d + Math.max(0, v.v) * dt);
-    const p = alongRoute(R0, v.d, DRIVE_LANE);
+    const p = alongRoute(R0, v.d, lane);
     v.x = p.x; v.z = p.z; v.yaw = p.yaw; v.speed = Math.abs(v.v); v.moving = v.speed > 0.2; v.braking = want < v.v - 0.1;
     return left <= 0.6;
   }
@@ -275,14 +282,15 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
       const wrecks = [...s.wrecks.values()].filter((w) => !w.gone), hurt = [...s.casualties.values()].filter((c) => !c.loaded);
       if (!s.called && age > CRASH.call_s && (wrecks.length || hurt.length)) { s.called = true; if (s.near) notify(hurt.length ? "Someone has rung for an ambulance." : "Someone has rung for a tow truck."); }
       if (s.called) {
-        if (hurt.length && !s.ambulance) s.ambulance = responder(s, "ambulance", CRASH.ambulance_from_m, `amb${s.rounds = (s.rounds || 0) + 1}`, now) || { phase: "none", at: now };
+        const facing = (w) => (w ? [-Math.sin(w.yaw), -Math.cos(w.yaw)] : null);
+        if (hurt.length && !s.ambulance) s.ambulance = responder(s, "ambulance", CRASH.ambulance_from_m, `amb${s.rounds = (s.rounds || 0) + 1}`, now, facing(wrecks[0])) || { phase: "none", at: now };
         // (No way in for one: the hurt are taken as if it had come, after the time it would take.)
         if (s.ambulance?.phase === "none" && now - s.ambulance.at > 40_000) { clear({ people: hurt.map((c) => c.id) }); for (const c of hurt) c.loaded = true; s.ambulance = null; }
         // A truck a wreck: the first once the hurt are being seen to, the next a little after.
         const waiting = wrecks.filter((w) => !w.truck);
         const busy = s.ambulance && s.ambulance.phase === "coming";
         if (waiting.length && !busy && now - (s.lastTruck || 0) > 9000) {
-          const w = waiting[0], t = responder(s, "tow_truck", CRASH.tow_from_m, `tow${s.trucks.length}`, now);
+          const w = waiting[0], t = responder({ ...s, x: w.x, z: w.z }, "tow_truck", CRASH.tow_from_m, `tow${s.trucks.length}`, now, facing(w));
           s.lastTruck = now;
           if (t) { t.wreck = w.id; w.truck = t.id; s.trucks.push(t); }
           else if (age > 60) { w.gone = true; clear({ vehicles: [w.id], shop: mechanicNear(w) }); }

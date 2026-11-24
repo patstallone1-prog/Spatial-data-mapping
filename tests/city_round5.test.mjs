@@ -89,9 +89,14 @@ test('the mouth of a side street is walked over, and an island is never a paveme
   const mouth = { onRoad: (x, z) => Math.abs(x) < 5, kerbNear: () => null };
   const over = walkOf([[-40, 0], [40, 0]]);
   assert.deepEqual(legal(over, mouth).pts, over.pts);
-  // The nearest kerb is an island's (roadway again 4 m past it): no pavement there.
+  // The nearest kerb is an island's (roadway again 4 m past it): no pavement there. The
+  // pavement is the other way, over the lane: the far kerb's, never the island.
   const island = { onRoad: (x, z) => Math.abs(z) < 5 || (z > 7 && z < 20), kerbNear: (x, z) => ({ x, z: 5, nx: 0, nz: 1 }) };
-  assert.equal(City.prototype.pavementBy.call({ kerbside: island }, 0, 2), null);
+  const by = City.prototype.pavementBy.call({ kerbside: island }, 0, 2);
+  assert.ok(by && by.z < -5 && !island.onRoad(by.x, by.z), `beside a median the pavement found is ${JSON.stringify(by)}`);
+  // ... and none at all where the other side is an island too.
+  const two = { onRoad: (x, z) => Math.abs(z) < 5 || (z > 7 && z < 20) || (z < -7 && z > -20), kerbNear: island.kerbNear };
+  assert.equal(City.prototype.pavementBy.call({ kerbside: two }, 0, 2), null);
   assert.ok(City.prototype.pavementBy.call({ kerbside: strip }, 0, 2));
   assert.ok(WALK_LEGAL.mouth_m >= 10);
 });

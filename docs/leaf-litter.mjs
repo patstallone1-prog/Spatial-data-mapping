@@ -11,7 +11,7 @@
 //: Leaves a square metre under the crown (thinned by distance from the trunk), the most a tree
 //: has, how far out they lie (crown radii) and how many of them lie in heaps.
 export const LEAVES = {
-  per_m2: 5.5, per_tree: 230, spread: 1.7, heaped: 0.55, heap_leaves: [7, 26], heap_r_m: [0.16, 0.5],
+  per_m2: 9, per_tree: 320, spread: 1.7, heaped: 0.55, heap_leaves: [7, 26], heap_r_m: [0.16, 0.5],
   // A leaf: so long (m), so thick a layer when heaped, and what it weighs against the wind.
   size_m: [0.07, 0.13], layer_m: 0.012,
   // The wind at the ground is ``ground_share`` of the sky's; a leaf lying still is shifted when
@@ -185,7 +185,7 @@ export function createLeafLitter(THREE, { parent, trees, ground, solid, wind, wi
       const share = LEAF_FALL[t.kind] ?? LEAF_FALL.default;
       if (!(share > 0)) continue;
       const leaves = leavesUnder({ x: t.x, z: t.z, crown: t.crown, seed: t.seed, share, wind: [ux, uz] }).filter((q) => !solid(q.x, q.z));
-      for (const q of leaves) { q.y = ground(q.x, q.z); q.vx = q.vy = q.vz = 0; q.spin = 0; q.still = true; }
+      leaves.forEach((q, n) => { q.y = ground(q.x, q.z); q.vx = q.vy = q.vz = 0; q.spin = 0; q.still = true; q.j = (n * 2.399963 + (t.seed % 97)) % 6.2832; });
       held.set(t.key, { x: t.x, z: t.z, leaves });
     }
     for (const [key, t] of held) if (Math.hypot(t.x - x, t.z - z) > L.keep_m) { for (const q of t.leaves) moving.delete(q); held.delete(key); }
@@ -224,7 +224,10 @@ export function createLeafLitter(THREE, { parent, trees, ground, solid, wind, wi
       }
     }
     for (const q of moving) {
-      env.wind = gustAt(q.x, q.z, tsec, speed, ux, uz);
+      // Each leaf's own air: the gust where it is, turned and eased a little its own way (no two
+      // leaves take the same line downwind: a heap blown out is a scatter, not a file).
+      const g = gustAt(q.x, q.z, tsec, speed, ux, uz), a = Math.sin(tsec * 1.3 + q.j) * 0.75 + Math.sin(tsec * 0.37 + q.j * 2.1) * 0.35, k = 0.75 + 0.35 * Math.sin(tsec * 0.9 + q.j * 1.7);
+      env.wind[0] = (g[0] * Math.cos(a) - g[1] * Math.sin(a)) * k; env.wind[1] = (g[0] * Math.sin(a) + g[1] * Math.cos(a)) * k;
       const before = q.still;
       const live = stepLeaf(q, dt, env);
       if (q.i >= 0) { put(q.i, q); touched = true; }

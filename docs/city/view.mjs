@@ -5518,7 +5518,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: How far past a crossing a walker must be before they may stand and wait for the next (m).
   const KERB_CLEAR_M = 0.8;
   const kerbBack = (walk) => KERB_BACK_M[0] + KERB_BACK_M[1] * (hash32(walk.key) % KERB_BACK_M[2]);
-  function waitsAtKerb(walk, tsec) {
+  function waitsAtKerb(walk, tsec, pos = null) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
     const waited = district.city?.walkLags.get(walk.key)?.lag || 0;
@@ -5526,6 +5526,8 @@ diffuseColor.rgb *= kbCloth;`);
     // On a crossing already: on over, whatever comes next. (Nobody stops in a roadway to wait
     // for the crossing after it: the place they would wait for that one was in this one.)
     for (const cr of list) if (walk.d > cr.s0 + 0.05 && walk.d < cr.s1 - 0.05) return false;
+    // (Nor anywhere else in a roadway, however they came to be in one: they walk on out of it.)
+    if (pos && district.city?.kerbside?.onRoad?.(pos.x, pos.z)) return false;
     for (let i = 0; i < list.length; i += 1) {
       const cr = list[i];
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
@@ -5759,7 +5761,7 @@ diffuseColor.rgb *= kbCloth;`);
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
       if (pos.walk && pos.moving && !pos.down && !held && !busy) {
-        const hold = waitsAtKerb(pos.walk, tsec);
+        const hold = waitsAtKerb(pos.walk, tsec, pos);
         // (One placed only now and then is held for the time since it was last placed.)
         c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
         if (hold) { entry.moving = false; entry.activity = "waiting to cross"; }
