@@ -1355,7 +1355,7 @@ function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = 
 // either hand, to the nearest within FENCE_CLOSE.aside_m. Never across a roadway, a pavement, a
 // mapped path, a noted gate or the way from a dropped kerb to its garage; and an end at a gate
 // or a path (where the fence was parted on purpose) is left as it is.
-const FENCE_CLOSE = { meet_m: 0.45, ahead_m: 9, aside_m: 10, back_m: 0.35, step_m: 0.25, least_m: 0.5 };
+const FENCE_CLOSE = { meet_m: 0.45, ahead_m: 25, aside_m: 10, back_m: 0.35, step_m: 0.25, least_m: 0.5 };
 const fenceCloseStats = { ends: 0, met: 0, gates: 0, closed: 0, closed_m: 0, open: 0 };
 function closeFenceEnds() {
   const panels = fencePanelsLaid;

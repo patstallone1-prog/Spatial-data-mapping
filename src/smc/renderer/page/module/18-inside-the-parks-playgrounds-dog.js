@@ -1565,14 +1565,14 @@ function surveyedCurbMaterial() {
 //: One kerb, and it is the walk's own (the owner, 2026-11-24: "I do not want any more detached
 //: curbs ... forcing only one reality version to render"). The swept kerbs are the city's
 //: digitised kerb linework (SFMTA's), a second drawing of the kerb the walks already stand along
-//: their own edges; and the two are not on one line. Measured across the Marina
-//: (kerbSourceReport), the linework lies a median 0.20 m to the pavement side of the edge the
-//: walks are laid to, by every source of the street's width alike -- the two are measured from
-//: different points of the kerb (the walk's edge from kerb-to-kerb widths, face to face; the
-//: linework further back, about the kerb's own width) -- and three points in four are more than
-//: 0.3 m apart, since a walk is laid at one width a street and the linework follows every bay
-//: and bulb. Drawn as well as the walk's kerb, wherever the two parted the linework's kerb stood
-//: off by itself. So it is not drawn: WORLD_KERB_DRAWN. It is still read, and its distance from
+//: their own edges; and the two are not on one line. Measured where the Marina opens
+//: (kerbSourceReport: 3,199 points of 399 lines), the linework lies a median 0.10 m to the
+//: pavement side of the edge the walks are laid to -- the two are measured from different points
+//: of the kerb (the walk's edge from kerb-to-kerb widths, face to face; the linework a little
+//: further back) -- and half of it lies between 0.03 m inside that edge and 0.44 m outside it,
+//: 46% of the points more than 0.3 m off, since a walk is laid at one width a street and the
+//: linework follows every bay and bulb. Drawn as well as the walk's kerb, wherever the two
+//: parted the linework's kerb stood off by itself. So it is not drawn: WORLD_KERB_DRAWN. It is still read, and its distance from
 //: the drawn kerb reported, so the walks can be laid to it instead when the corner builder can
 //: take it (module 01: one kerb, everywhere).
 const WORLD_KERB_DRAWN = false;
@@ -1580,8 +1580,8 @@ const WORLD_KERB_DRAWN = false;
 //: linework's distance to the pavement side of the drawn kerb): ``kerbSourceReport()`` measures
 //: it on the page that is open, at up to ``samples`` points of the linework.
 const KERB_REFERENCE = { drawn: "the walk's own edge: half the street's kerb-to-kerb width out from its centreline (the kerb's face)",
-  linework: "the city's digitised kerb line (SFMTA curb linework): found about a kerb's width behind the face",
-  measured_median_m: 0.2, samples: 6000, reach_m: 3 };
+  linework: "the city's digitised kerb line (SFMTA curb linework): found a little behind the face",
+  measured_median_m: 0.1, samples: 6000, reach_m: 3 };
 function kerbSourceReport() {
   const offsets = [];
   const curbs = (WORLD_OBJECTS.objects || []).filter((r) => r.type === "curb" && r.sweep);
@@ -1779,7 +1779,9 @@ function settleStreetShapes() {
     if (isBuilt(key)) continue;
     // (A kerb: the walks' own lips. Not a rail or a fence swept by the same builder.)
     if (bucket.surface === "kerb") { if (!key.startsWith("reconstructed:") || key.startsWith("reconstructed:curb")) kerbs.push(bucket); }
-    else if (["walk", "walk_narrow", "median", "transit_island"].includes(bucket.surface)) walks.push(bucket);
+    // (The underlay too: under an island it fills the whole of the gap the roadway leaves, which
+    // the walks laid on it do not always reach the edges of.)
+    else if (["walk", "walk_narrow", "walk_underlay", "median", "transit_island"].includes(bucket.surface)) walks.push(bucket);
   }
   streetShapeStats.buckets = [walks.length, kerbs.length];
   if (!walks.length) return null;
@@ -1903,7 +1905,8 @@ function settleStreetShapes() {
       else if (!long && isle.area / hullArea >= S.hull_fill) { outline = shapeRoundedOutline(shapeThinnedOutline(hull, 0.35), S.round_m); streetShapeStats.curves += 1; }
     }
     if (!outline) { redraw.delete(id); streetShapeStats.left += 1; continue; }
-    shapes.push({ id, outline, top: isle.top });
+    // (As high as a kerb at least: one with only its underlay left was level with the road.)
+    shapes.push({ id, outline, top: Math.max(isle.top, ROAD_TOP_M + Math.min(KERB_FALLBACK, KERB_RENDER_MAX_M)) });
     streetShapeStats.islands += 1;
   }
   // Out of the pieces as laid: the scraps, the islands' old pieces, and every kerb with no walk
