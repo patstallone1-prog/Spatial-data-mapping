@@ -1,3 +1,4 @@
+import { damageLevel } from "./crash.mjs";
 import { hash32 } from "./people.mjs";
 import { plateOf, vehicleState, serviceBooking } from "./fleet.mjs";
 
@@ -212,11 +213,12 @@ export function installWorkshop(World, CityError) {
       (record.condition ?? 100) >= record.servicedCondition
     )
       fail("This vehicle was just serviced.");
-    if (!visitor && !record.serviceFault && (record.condition ?? 100) >= 100)
+    const bodywork = damageLevel(record.damage) !== "new";
+    if (!visitor && !record.serviceFault && !bodywork && (record.condition ?? 100) >= 100)
       fail("This car has no recorded damage or service fault.");
     const fault =
       record.serviceFault ||
-      ((record.condition ?? 100) < 75
+      ((record.condition ?? 100) < 75 || bodywork
         ? "fender"
         : ["ground", "relay", "fender"][hash32(vehicle, this.time.day) % 3]);
     const order = {
@@ -404,6 +406,9 @@ export function installWorkshop(World, CityError) {
         fail("Only the customer can withdraw this vehicle.");
       if (o.verified) {
         record.condition = Math.min(100, (record.condition ?? 100) + (o.fault === "fender" ? 22 : 10));
+        // A body repair makes the bodywork whole: the dents out, the crumpled end rebuilt, the
+        // scrapes painted (crash.mjs: what a crash left on it, kept until now).
+        if (o.fault === "fender" && record.damage) { record.damage = null; record.condition = Math.max(record.condition, this.R.harm.vehicle.fine_at); }
         record.state = vehicleState(this.R, record.condition);
         record.servicedCondition = record.condition;
         record.servicedAt = this.now;

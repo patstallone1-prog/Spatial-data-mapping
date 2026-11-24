@@ -142,7 +142,7 @@ def write_app_pages(docs: Path = DOCS, *, desktop_only: bool = True, template: s
             for path in [docs / "recoverable-geometry.mjs", docs / "recoverable-geometry-worker.mjs", docs / "world-streaming.mjs",
                          docs / "environment-runtime.mjs", docs / "proxy-light.mjs", docs / "sky-clock.mjs", docs / "sky-clouds.mjs", docs / "sky-history.mjs", docs / "municipal-context.manifest.json",
                          *sorted((docs / "municipal").glob("*.json")), docs / "nature-runtime.mjs",
-                         docs / "nature-ecology.mjs", docs / "vegetation-geometry.mjs", docs / "grass-strands.mjs", docs / "foliage-motion.mjs", docs / "street-paint.mjs", docs / "street-paint.json", docs / "imagery-truth.json", docs / "nature/ecology.json",
+                         docs / "nature-ecology.mjs", docs / "vegetation-geometry.mjs", docs / "grass-strands.mjs", docs / "foliage-motion.mjs", docs / "leaf-litter.mjs", docs / "street-paint.mjs", docs / "street-paint.json", docs / "imagery-truth.json", docs / "nature/ecology.json",
                          docs / "forest-floor.mjs", docs / "globe.mjs", docs / "teleport-map.mjs",
                          docs / "object-catalogue.mjs", docs / "object-catalogue.json", docs / "exterior-editor.mjs", docs / "multiplayer.mjs",
                          docs / "kerbside-account.mjs", docs / "home-lobby.mjs",

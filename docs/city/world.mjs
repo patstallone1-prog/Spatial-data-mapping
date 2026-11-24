@@ -21,6 +21,7 @@ import { clockOf } from "./clock.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
+import { CRASH, damageLevel, impactOn } from "./crash.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
 import { ENTERPRISE_COMMANDS, chargeClass, installEnterprise } from "./enterprise.mjs";
@@ -1045,7 +1046,10 @@ export class CityWorld {
     if (h.injuries.length > 12) h.injuries.shift();
     const serious = injury.hospital_h > 0 || h.health <= 0;
     if (serious || injury.severity >= 2) {
-      h.down_until = this.now + H.down_s * 1000; h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
+      // Down where they fell until the ambulance has them (clearCrash: the page's scene says
+      // when), or -- nobody there to see it come -- for ``down_s``; a few real minutes at most.
+      h.down_until = serious ? this.afterReal(CRASH.down_s * 1000) : this.now + H.down_s * 1000; h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
+      h.carried = serious;
       const hospital = (h.health <= 0 ? Math.max(48, injury.hospital_h) : injury.hospital_h) * 3_600_000;
       h.out_until = h.down_until + hospital + injury.recover_h * 3_600_000;
       h.hospital_until = h.down_until + hospital;
@@ -1054,19 +1058,53 @@ export class CityWorld {
     if (h.health <= 0) h.health = 30;
     this.note(h, `${cause}: ${injury.type}${injury.hospital_h ? `, taken to hospital` : ""}`);
   }
-  //: A car of the city's damaged: its condition down by the impact; broken or wrecked, it stays
-  //: where it stopped until towed, and is in the body shop a day.
-  damageVehicle(h, speed, at, cause) {
-    const V = this.R.harm.vehicle;
+  //: A car of the city's damaged: its condition down by the impact, and its body marked where
+  //: it was struck (``where``: crash.mjs impactZone -- scraped, dented, or that end pushed in).
+  //: Broken or wrecked, it stands where it stopped until it is towed (clearCrash: the page's
+  //: scene, when the truck has it or nobody is there to watch; ``tow_at`` at the latest).
+  damageVehicle(h, speed, at, cause, where = null) {
     const d = vehicleDamage(this.R, h.condition, speed);
     h.condition = d.condition; h.state = d.state;
-    if (d.state === "broken" || d.state === "wrecked") {
-      h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
-      h.tow_at = this.now + V.tow_after_min * 60_000;
-      h.out_until = h.tow_at + V.repair_hours * 3_600_000;
+    h.damage = impactOn(h.damage, { zone: "front", ...(where || {}), speed });
+    delete h.shop;
+    if (d.state === "broken" || d.state === "wrecked") this.standWrecked(h, at);
+    this.note(h, `${cause}: ${d.loss}% damage, ${d.state} (${damageLevel(h.damage)})`);
+    return { ...d, damage: h.damage };
+  }
+  standWrecked(h, at) {
+    h.at = { x: at.x, z: at.z, yaw: at.yaw || 0 };
+    h.tow_at = this.afterReal(CRASH.stale_s * 1000);
+    h.out_until = h.tow_at;
+  }
+  //: A crash cleared from the street: each of the city's cars in it as new again and stood at
+  //: the mechanic's (``shop``: where -- the nearest one's kerb -- until its owner next drives, a
+  //: day at most), each of the hurt off the road and in hospital. From the page's scene: when the
+  //: tow truck and the ambulance have done, or at once when nobody is near to see them come.
+  clearCrash({ vehicles = [], people = [], shop = null } = {}) {
+    const out = { vehicles: 0, people: 0 };
+    for (const id of vehicles) {
+      const h = this.harm.get(id);
+      if (!h || h.kind !== "vehicle" || h.serviceBay) continue;
+      h.condition = 100; h.state = "fine"; h.damage = null; h.tow_at = null; h.out_until = null; delete h.collision;
+      if (shop && Number.isFinite(shop.x) && Number.isFinite(shop.z)) h.shop = { x: shop.x, z: shop.z, yaw: shop.yaw || 0, name: shop.name || null, until: this.now + this.R.harm.vehicle.repair_hours * 3_600_000 };
+      else { delete h.shop; h.at = null; }
+      this.note(h, `towed${shop?.name ? ` to ${shop.name}` : ""}: as new`);
+      out.vehicles += 1;
     }
-    this.note(h, `${cause}: ${d.loss}% damage, ${d.state}`);
-    return d;
+    for (const id of people) {
+      const h = this.harm.get(id);
+      if (!h || h.kind !== "person" || !(h.down_until > this.now)) continue;
+      const left = Math.max(0, (h.out_until || 0) - h.down_until);
+      h.down_until = this.now; h.hospital_until = this.now + Math.max(0, (h.hospital_until || 0) - (h.out_until - left)); h.out_until = this.now + left; h.carried = false;
+      this.note(h, "taken to hospital by ambulance");
+      out.people += 1;
+    }
+    return out;
+  }
+  cmd_crash_cleared(pid, args = {}) {
+    this.player(pid);
+    const ids = (list) => (Array.isArray(list) ? list.filter((x) => typeof x === "string").slice(0, 12) : []);
+    return this.clearCrash({ vehicles: ids(args.vehicles), people: ids(args.people), shop: args.shop && typeof args.shop === "object" ? { x: +args.shop.x, z: +args.shop.z, yaw: +args.shop.yaw || 0, name: typeof args.shop.name === "string" ? args.shop.name.slice(0, 80) : null } : null });
   }
   //: A blow to someone: hurt by the energy of it; they hit back, run, or (a police officer)
   //: arrest you; seen, or reported by them, it is a battery.
@@ -1126,11 +1164,9 @@ export class CityWorld {
     const bills = [fine.id], damage = [];
     const repair = (car, impact, liable) => {
       const h = this.harmed(car.id, "vehicle", car.plate || null), before = h.condition;
-      const d = this.damageVehicle(h, impact, car, `collision ${id}`);
+      const d = this.damageVehicle(h, impact, car, `collision ${id}`, car.where || null);
       // A crashed car stays at the impact until towed, even if the bodywork is only dented.
-      h.at = { x: car.x, z: car.z, yaw: car.yaw || 0 };
-      h.tow_at = this.now + this.R.harm.vehicle.tow_after_min * 60_000;
-      h.out_until = h.tow_at + this.R.harm.vehicle.repair_hours * 3_600_000;
+      this.standWrecked(h, car);
       damage.push({ id: car.id, ...d });
       const cost = Math.round((before - d.condition) * this.R.harm.vehicle.repair_per_point);
       if (cost) bills.push(this.billing.issue({ payer: driver.account, payee: "business:dealership", kind: liable ? "liability" : "repair", amount: cost,
@@ -1155,28 +1191,28 @@ export class CityWorld {
   //: A collision on the street. ``kind``: "hit_by_car" (a car of the city's hit you), "hit_person"
   //: (your car hit someone), "hit_vehicle" (your car and one of the city's). ``speed``: the
   //: impact in m/s; ``other``: the speed of the other car, for who was at fault.
-  cmd_collision(pid, { kind, speed = 0, npc = null, vehicle = null, other = 0, at = {} }) {
+  cmd_collision(pid, { kind, speed = 0, npc = null, vehicle = null, other = 0, at = {}, where = null }) {
     const p = this.player(pid);
     speed = Math.max(0, Math.min(45, Number(speed) || 0));
     const place = { x: npc?.x ?? vehicle?.x ?? p.x, z: npc?.z ?? vehicle?.z ?? p.z, yaw: vehicle?.yaw ?? npc?.yaw ?? 0 };
     const out = { kind, speed };
     const mine = p.driving ? this.registry.get(p.driving.vehicle) : null;
+    // Your own car keeps what a crash does to it -- its condition, and its body marked where it
+    // was struck (``where.mine``) -- until you take it to a mechanic (workshop.mjs: a body repair
+    // makes it whole). It is never taken off to a body shop for you.
+    const zoneOf = (w) => (w && ["front", "rear", "left", "right"].includes(w.zone) ? { zone: w.zone, bias: Math.max(-1, Math.min(1, +w.bias || 0)), at: Math.max(-1, Math.min(1, +w.at || 0)) } : null);
     const damageMine = (v) => {
       if (!mine) return null;
       const d = vehicleDamage(this.R, mine.attrs.condition ?? 100, v);
       mine.attrs.condition = d.condition; mine.attrs.state = d.state;
-      if (d.state === "wrecked" && !(mine.attrs.in_shop_until > this.now)) {
-        mine.attrs.in_shop_until = this.now + this.R.harm.vehicle.repair_hours * 3_600_000;
-        this.billing.issue({ payer: p.account, payee: "business:dealership", kind: "repair", amount: Math.round((100 - d.condition) * this.R.harm.vehicle.repair_per_point),
-          memo: `Body shop: ${mine.attrs.plate}`, at: this.now, due_days: 14, penalties: [] });
-      }
-      return d;
+      mine.attrs.damage = impactOn(mine.attrs.damage, { zone: "front", ...(zoneOf(where?.mine) || {}), speed: v });
+      return { ...d, damage: mine.attrs.damage };
     };
     if (kind === "hit_by_car") {
       const injury = injuryFor(this.R, { speed, seed: `${pid}:${this.now}` });
       p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - Math.min(95, injury.health)) };
       p.injuries.push({ type: injury.type, severity: injury.severity, at: this.now, cause: `hit by a car at ${Math.round(speed * 2.237)} mph` });
-      if (vehicle?.id) { const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null); out.vehicle = this.damageVehicle(h, speed * 0.35, place, `hit ${p.name}`); }
+      if (vehicle?.id) { const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null); out.vehicle = this.damageVehicle(h, speed * 0.35, place, `hit ${p.name}`, { zone: "front" }); }
       out.injury = injury; out.paid_by = "the driver's insurer";
       if (p.vitals.health <= 0) out.bill = this.faint(p, "hit by a car").amount;
     } else if (kind === "hit_person") {
@@ -1190,7 +1226,9 @@ export class CityWorld {
     } else if (kind === "hit_vehicle") {
       if (!vehicle?.id) throw new CityError("no car hit");
       const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null);
-      out.vehicle = this.damageVehicle(h, speed, place, `hit by ${p.name}'s car`);
+      out.vehicle = this.damageVehicle(h, speed, place, `hit by ${p.name}'s car`, zoneOf(where?.other));
+      // (Struck: it stands where it is until it is cleared, whatever its condition.)
+      if (speed >= CRASH.dent_ms && !vehicle.parked) this.standWrecked(h, place);
       out.mine = damageMine(speed);
       const H = this.R.harm;
       const loss = Math.round(Math.max(0, speed - this.R.vitals.health.crash_over_ms) * H.driver_crash_health_per_ms);
@@ -1213,6 +1251,9 @@ export class CityWorld {
           memo: `Repair of ${vehicle.plate || "a car"} (${out.vehicle.state})`, at: this.now, due_days: 30, penalties: [Math.round(cost * 0.1)] }).amount;
       }
       if (p.vitals.health <= 0) this.faint(p, "a car crash");
+    } else if (kind === "hit_object") {
+      // Into a wall, a pole, a thing on the street: your own car's to bear.
+      out.mine = damageMine(speed);
     } else throw new CityError("no such collision");
     this.log("collision", { player: pid, kind, speed });
     return { ...out, vitals: p.vitals, injuries: p.injuries.slice(-3) };
@@ -1719,7 +1760,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  "strike_person", "collision", "crash_cleared", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
   ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);

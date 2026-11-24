@@ -827,9 +827,9 @@ function addParkingLot(way) {
   }
   way._parking = { ...(way._parking || {}), stalls, stripes: stripes.length, stops: stops.length, rejected, squared, fill: rectangle ? +rectangle.fill.toFixed(2) : null };
   if (stripes.length) {
-    // Each line in metre lengths: a five-metre line laid as one flat strip and stood on the
-    // ground only at its two ends cut through a yard that is not flat between them, and what
-    // showed of it was odd pale triangles (the yard at Marina Middle School, 2026-11-23).
+    // Each line in metre lengths, so it follows ground that is not flat between its two ends.
+    // (This was first thought to be the cause of the pale triangles in the yard at Marina
+    // Middle School: it was not. Those were holes in the yard's paving -- cutCoverOffLots.)
     const metres = [];
     for (const [ax, az, bx, bz] of stripes) {
       const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 1.0));

@@ -21,7 +21,9 @@ import {
   LaneIndex, carriedKg, carryCapacity, cityTime, fuelPrice, gantriesCrossed, itemTax, jurisdictionAt, loadRules, propertyTax, salesRate, storesAt,
   swimMode, transferTax, walkFactor, waterProperties,
 } from "./core.mjs";
-import { clockOf, fleetTime } from "./clock.mjs";
+import { crashScenes } from "./crash-scene.mjs";
+import { CRASH, crumple, scuff, damageKey, damageLevel, damagePace, impactOn, impactZone, personImpact, personPose } from "./crash.mjs";
+import { clockOf, fleetTime, clockTime, clockHeld, holdClock, releaseClock, clockHoldState, restoreClockHold, heldOffset } from "./clock.mjs";
 import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
@@ -275,10 +277,79 @@ export async function startCity(ctx) {
   // the clock on the bar read; the fleet works in real minutes from the game day's start
   // (``fleetAt``), so people and cars move at real speed through a day planned by the game's hours.
   const CLOCK = clockOf(R);
-  const gameNow = (ms = Date.now()) => CLOCK.game(ms);
-  const fleetAt = (ms) => fleetTime(CLOCK, ms, R.clock.zone);
+  // (All of it read through clockTime: the practice game can hold its clock -- clock.mjs.)
+  const gameNow = (ms = Date.now()) => CLOCK.game(clockTime(ms));
+  const fleetAt = (ms) => fleetTime(CLOCK, clockTime(ms), R.clock.zone);
   //: Real minutes until game time ``gameMs`` (a deadline, as you live it).
-  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - Date.now()) / 60000;
+  const realMinutesTo = (gameMs) => (CLOCK.real(gameMs) - clockTime()) / 60000;
+
+  // ---- time held (the practice game only) --------------------------------------------------------
+  //: While the clock is held the hour stands still and the street goes on: each resident (and
+  //: their car with them) lives a window of ``window_min`` real minutes from the held moment over
+  //: and over, on one of ``phases`` phases of it (by their id), so at any moment the people out
+  //: are spread over the whole window -- as many walking, driving, waiting and working as that
+  //: stretch of the day has, for as long as the clock is held. One whose window comes round
+  //: while they are in your sight goes on with their day until they are out of it (``turns_most``
+  //: times round at most): nobody you are looking at is taken off the street to start again.
+  const HOLD = { window_min: R.clock.hold_window_min ?? 6, phases: 48, turns_most: 6, seen_ms: 700 };
+  const SAVE_HOLD = "kerbside:city:clock-hold";
+  const holdTurns = new Map();   // someone in sight when their window came round: id -> the turn they are still on
+  const holdSeen = new Map();    // id -> when they were last in sight (performance.now())
+  const holdTimes = new Map();   // phase * 8 + turns behind -> { stamp, t } (the fleet's time there, made once a frame)
+  let holdStamp = 0, holdNow = 0, holdReal = 0;
+  //: The fleet's time for ``id`` (a resident, a visitor; a car's owner): everyone's, unless the
+  //: clock is held. ``base``: this frame's common time.
+  function timeFor(id, base) {
+    if (!clockHeld() || id === undefined || id === null) return base;
+    const k = hash32(id, "hold") % HOLD.phases, W = HOLD.window_min * 60000;
+    const { offset, turn } = heldOffset(holdReal, k, HOLD.phases, W);
+    let on = holdTurns.get(id);
+    if (on !== undefined && (on >= turn || turn - on > HOLD.turns_most || !(holdSeen.get(id) > holdNow - HOLD.seen_ms))) { holdTurns.delete(id); on = undefined; }
+    const behind = on === undefined ? 0 : turn - on, key = k * 8 + behind;
+    let e = holdTimes.get(key);
+    if (!e) holdTimes.set(key, e = { stamp: -1, t: null });
+    if (e.stamp !== holdStamp) { e.stamp = holdStamp; e.t = fleetTime(CLOCK, clockTime() + offset + behind * W, R.clock.zone); e.t.turn = turn; }
+    return e.t;
+  }
+  //: ``id`` is in your sight this frame: if their window comes round now they keep on (timeFor).
+  function holdInSight(id, now) {
+    if (!clockHeld()) return;
+    holdSeen.set(id, now);
+    if (!holdTurns.has(id)) { const { turn } = heldOffset(holdReal, hash32(id, "hold") % HOLD.phases, HOLD.phases, HOLD.window_min * 60000); holdTurns.set(id, turn); }
+  }
+  function holdFrame(realMs, now) {
+    holdStamp += 1; holdNow = now; holdReal = realMs;
+    if (!clockHeld()) { if (holdTurns.size) { holdTurns.clear(); holdSeen.clear(); holdTimes.clear(); } return; }
+    if (holdSeen.size > 6000) for (const [id, at] of holdSeen) if (at < now - 5000) { holdSeen.delete(id); holdTurns.delete(id); }
+  }
+  //: The clock stopped (``hour``: at that hour of the game's day, the next time it comes; else
+  //: now) or let go. Only in the practice game: the city online keeps one clock for everyone.
+  function holdTime(hour = null) {
+    if (!world) return { ok: false, error: "Time can only be held in the offline practice game: the city online keeps one clock for everyone." };
+    let at = null;
+    if (Number.isFinite(hour)) {
+      const g = gameNow(), ct = timeAt(g), want = ((hour % 24) + 24) % 24 * 60;
+      at = CLOCK.real(g + ((want - ct.minute + 1440) % 1440) * 60000);
+    }
+    holdClock(Date.now(), at);
+    store.set(SAVE_HOLD, clockHoldState());
+    resetStreet();
+    return { ok: true, held: true, label: timeAt(gameNow()).label };
+  }
+  function releaseTime() {
+    releaseClock(Date.now());
+    store.set(SAVE_HOLD, clockHoldState());
+    resetStreet();
+    return { ok: true, held: false, label: timeAt(gameNow()).label };
+  }
+  //: The street looked at afresh after the clock is moved: nobody is where they were.
+  function resetStreet() {
+    lastCrowd = -1e9; scanAt = { x: Infinity, z: Infinity };
+    glided.clear(); personTiers.clear(); carTiers.clear(); holdTurns.clear(); holdSeen.clear(); holdTimes.clear();
+    district.drivers?.cars.clear();
+    if (district.city) district.city.timeFor = clockHeld() ? timeFor : null;
+  }
+  const timeState = () => ({ held: clockHeld(), practice: Boolean(world), label: timeAt(gameNow()).label, hour: timeAt(gameNow()).minute / 60, window_min: HOLD.window_min, phases: HOLD.phases, carried: holdTurns.size });
 
   // ---- the district the walker is in -----------------------------------------------------------
   const district = { key: null, region: null, city: null, roster: null, drivers: null, places: [], streets: null, cameras: [], people: [], county: null };
@@ -361,7 +432,8 @@ export async function startCity(ctx) {
     district.workshops = district.places.filter(pl => isWorkshop(R, pl));
     district.people = [...roster.people.values()];
     district.placeById = roster.places;
-    const harm = (id, ms) => harmNow((world || view)?.harm?.get(id), ms);
+    // (The books keep the game's time: ``ms`` is the fleet's real one, so the game's is asked for.)
+    const harm = (id) => harmNow((world || view)?.harm?.get(id), gameNow());
     const delay = (v, leg, day) => (district.drivers?.delayOf(City.legKey(v, leg, day)) || 0) / 60;
     // The streets as wide as the world draws them (people.mjs Streets.calibrate): lanes, parked
     // cars and pavements all to the same kerbs.
@@ -371,6 +443,7 @@ export async function startCity(ctx) {
     }
     if (!district.city) district.city = new City(R, roster, streets, { seed: region, timeAt: fleetAt, harm, delay });
     else district.city.setStreets(streets);
+    district.city.timeFor = clockHeld() ? timeFor : null;
     district.city.setLines(district.lines || []);
     // Parking at the kerb as the world draws it: its driveways and its painted kerb.
     if (ctx.kerbAt) district.city.setKerbside({ kerbAt: (x, z, ax, az) => ctx.kerbAt(x, z, ax, az, 6), kerbParking: ctx.kerbParking, onRoad: ctx.roadAt || null, kerbNear: (x, z, reach) => ctx.kerbAt(x, z, null, null, reach) });
@@ -1545,17 +1618,23 @@ diffuseColor.rgb *= kbCloth;`);
     carShade.material.opacity = 0.5 - 0.3 * (globalThis.__kerbsideProxyLight?.fineK?.value.x || 0);
     drawnTiers.cars = [full.length, mid.length, low.length];
     let drivers = 0;
+    if (!standIn) drawNo += 1;
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
       const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier, v.id === transit.ride?.vehicle || v.mine === true);
       if (f && f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
-      // A wreck sits askew; a car in a crash rocks on its springs.
-      E.set(v.jolt || (v.wrecked ? 0.035 : 0), v.yaw + (v.wrecked ? 0.12 : 0), v.wrecked ? 0.05 : 0); Q.setFromEuler(E);
-      M.compose(V.set(v.x, y, v.z), Q, S3.set(1, 1, 1));
+      // A car in a crash rocks on its springs; a wreck sits a little down on one side; one on a
+      // tow truck's hook has its front lifted (crash-scene.mjs).
+      if (v.pitch) Q.setFromEuler(TOW_E.set(v.pitch, v.yaw, 0));
+      else { E.set(v.jolt || 0, v.yaw, v.wrecked ? 0.03 : 0); Q.setFromEuler(E); }
+      M.compose(V.set(v.x, y + (v.lift || 0), v.z), Q, S3.set(1, 1, 1));
+      // Marked by a crash (crash.mjs): its own body, pushed in where it was struck.
+      const bent = f && !standIn && v.damage && damageLevel(v.damage) !== "new" ? wreckBody(v.id, f) : null;
+      if (bent) { dentBody(bent.g, f.dims || [w, hgt, l], v.damage); bent.g.matrix.copy(M); bent.g.matrixWorldNeedsUpdate = true; bent.seen = drawNo; }
       if (tier !== LOW) shadeAt(carShade, MAX_CARS, v.x, y, v.z, v.yaw, w + 0.7, l + 0.6);
-      if (tier !== LOW && !standIn && !v.parked && !v.wrecked && !v.bike && v.model !== "bike" && v.mine !== true && drivers < MAX_CARS) {
+      if (tier !== LOW && !standIn && !v.parked && !v.wrecked && !v.response && !v.bike && v.model !== "bike" && v.mine !== true && drivers < MAX_CARS) {
         const seat = driverSeat(v.model, w, hgt, l), fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw), who = hash32(v.vehicle?.owner || v.id);
         // (Left of the way it faces: the kerb, and the doors a bus opens, are on its right.)
         DRIVER_M.makeRotationY(v.yaw).setPosition(v.x + fx * seat.ahead + fz * seat.side, y + seat.up, v.z + fz * seat.ahead - fx * seat.side);
@@ -1563,7 +1642,7 @@ diffuseColor.rgb *= kbCloth;`);
         driverHead.setMatrixAt(drivers, DRIVER_M); driverHead.setColorAt(drivers, DRIVER_C.setHex(DRIVER_SKIN[(who >>> 5) % DRIVER_SKIN.length]));
         drivers += 1;
       }
-      if (f) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
+      if (f && !bent) for (const part of f.parts) part.mesh.setMatrixAt(f.n, M);
       // The route and where it is going, over the windscreen (on the fleet's bus; just off the
       // code-built one's nose; the low tier's box has none).
       if (f && v.sign && f.n < f.cap) {
@@ -1574,17 +1653,19 @@ diffuseColor.rgb *= kbCloth;`);
       // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
       // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
       // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
-      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? "#1b2631" : paintOf(v.model, v.shade ?? 0.5);
+      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "tow_truck" ? "#e8b417" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? "#1b2631" : paintOf(v.model, v.shade ?? 0.5);
       C.set(paint);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
-      if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
+      if (bent) { for (const o of bent.g.children) if (o.userData.tint) { o.setColorAt(0, C); o.instanceColor.needsUpdate = true; } }
+      else if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
       if (night && f) {
         f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), f.dims || [w, hgt, l]);
         B.copy(M);
         for (const lamp of f.lamps) {
           M.multiplyMatrices(B, lamp.matrix);
-          if (lamp.head && heads < MAX_CARS * 2) headLights.setMatrixAt(heads++, M);
+          // (A front pushed in has no headlamps left to light.)
+          if (lamp.head && heads < MAX_CARS * 2 && !((v.damage?.front || 0) >= 0.3)) headLights.setMatrixAt(heads++, M);
           if (!lamp.head && tails < MAX_CARS * 2) tailLights.setMatrixAt(tails++, M);
         }
       }
@@ -1593,6 +1674,7 @@ diffuseColor.rgb *= kbCloth;`);
     for (const f of fleet.values()) for (const { mesh } of f.parts) {
       mesh.count = f.n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
+    if (!standIn) for (const [id, wb] of wreckBodies) if (wb.seen !== drawNo) dropWreck(id);
     for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
     for (const mesh of [driverBody, driverHead]) { mesh.count = drivers; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
@@ -1662,6 +1744,100 @@ diffuseColor.rgb *= kbCloth;`);
     }
     g.userData.full = true;
   }
+  // ---- a body a crash has marked (crash.mjs) ------------------------------------------------------
+  //: The marks on the paint: laid over the body, a hair proud of it, as much of them showing at
+  //: each corner as the damage says (the colour's fourth number).
+  const SCUFF_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const bentGeometries = new Map();   // a part's geometry + the damage -> { geo, marks, own, n (bodies using it) }
+  function bentOf(geometry, dims, damage, mark) {
+    const key = `${geometry.uuid}|${dims.join(",")}|${damageKey(damage)}|${mark ? 1 : 0}`;
+    let e = bentGeometries.get(key);
+    if (!e) {
+      const src = geometry.attributes.position;
+      const flat = src.array instanceof Float32Array && !src.isInterleavedBufferAttribute && src.array.length === src.count * 3 ? src.array : Float32Array.from({ length: src.count * 3 }, (_, i) => src.getComponent(Math.floor(i / 3), i % 3));
+      const moved = crumple(flat, dims, damage);
+      let geo = geometry;
+      if (moved !== flat) {
+        geo = new THREE.BufferGeometry();
+        for (const [name, at] of Object.entries(geometry.attributes)) if (name !== "position" && name !== "normal") geo.setAttribute(name, at);
+        geo.setAttribute("position", new THREE.BufferAttribute(moved, 3));
+        if (geometry.index) geo.setIndex(geometry.index);
+        for (const part of geometry.groups) geo.addGroup(part.start, part.count, part.materialIndex);
+        geo.computeVertexNormals(); geo.computeBoundingSphere();
+      }
+      let marks = null;
+      const rgba = mark ? scuff(flat, dims, damage) : null;
+      if (rgba) {
+        marks = new THREE.BufferGeometry();
+        marks.setAttribute("position", geo.attributes.position);
+        if (geo.attributes.normal) marks.setAttribute("normal", geo.attributes.normal);
+        marks.setAttribute("color", new THREE.BufferAttribute(rgba, 4));
+        if (geo.index) marks.setIndex(geo.index);
+      }
+      e = { geo, marks, own: geo !== geometry, n: 0 };
+      bentGeometries.set(key, e);
+    }
+    return { key, e };
+  }
+  function releaseBent(keys) {
+    for (const k of keys || []) {
+      const e = bentGeometries.get(k);
+      if (!e || --e.n > 0) continue;
+      if (e.own) e.geo.dispose();
+      e.marks?.dispose();
+      bentGeometries.delete(k);
+    }
+  }
+  //: ``g``'s parts (one car's meshes, in the car's own frame) drawn as ``damage`` leaves them:
+  //: each part's shape pushed in where it was struck, the marks laid over the paint. Whole again
+  //: when the damage is gone. Done once for each state the car is in, not every frame.
+  function dentBody(g, dims, damage) {
+    const key = damageLevel(damage) === "new" ? "" : damageKey(damage);
+    const parts = g.children.filter((o) => !o.userData.scuff).length;
+    if ((g.userData.dent || "") === key && g.userData.dentParts === parts) return;
+    for (const o of [...g.children]) {
+      if (o.userData.scuff) { o.removeFromParent(); continue; }
+      if (o.userData.whole) { o.geometry = o.userData.whole; delete o.userData.whole; }
+    }
+    releaseBent(g.userData.bent); g.userData.bent = [];
+    if (key) for (const o of [...g.children]) {
+      if (!o.isMesh || !o.geometry?.attributes?.position) continue;
+      const { key: k, e } = bentOf(o.geometry, dims, damage, !o.material?.transparent);
+      e.n += 1; g.userData.bent.push(k);
+      if (e.own) { o.userData.whole = o.geometry; o.geometry = e.geo; }
+      if (e.marks) { const m = new THREE.Mesh(e.marks, SCUFF_MAT); m.userData.scuff = true; m.renderOrder = 1; m.frustumCulled = false; m.name = "city-car-marks"; g.add(m); }
+    }
+    g.userData.dent = key; g.userData.dentParts = parts;
+  }
+  //: One of the traffic's cars that a crash has marked: drawn on its own (its body's parts, each
+  //: its own shape now), not as one of the many. Made when it is first drawn so, kept while it is.
+  const wreckBodies = new Map();   // car id -> { g, f (the fleet it is one of), seen (the draw it was last in) }
+  let drawNo = 0;
+  const IDENT = new THREE.Matrix4();
+  function wreckBody(id, f) {
+    let w = wreckBodies.get(id);
+    if (w && w.f !== f) { dropWreck(id); w = null; }
+    if (!w) {
+      const g = new THREE.Group(); g.matrixAutoUpdate = false; g.name = "city-wreck";
+      for (const part of f.parts) {
+        const mesh = new THREE.InstancedMesh(part.mesh.geometry, part.mesh.material, 1);
+        mesh.setMatrixAt(0, IDENT); mesh.castShadow = part.mesh.castShadow; mesh.frustumCulled = false; mesh.renderOrder = part.mesh.renderOrder;
+        mesh.userData.tint = Boolean(part.tint); mesh.userData.surface = part.mesh.userData.surface;
+        g.add(mesh);
+      }
+      group.add(g);
+      wreckBodies.set(id, w = { g, f, seen: 0 });
+    }
+    return w;
+  }
+  function dropWreck(id) {
+    const w = wreckBodies.get(id);
+    if (!w) return;
+    releaseBent(w.g.userData.bent);
+    for (const o of w.g.children) if (o.isInstancedMesh) o.dispose();
+    w.g.removeFromParent(); wreckBodies.delete(id);
+  }
+  const TOW_E = new THREE.Euler(0, 0, 0, "YXZ");
   const parked = new Map();     // vehicle id -> mesh (your cars where they stand)
   const peerCars = new Map();   // peer id -> mesh
 
@@ -2025,7 +2201,11 @@ diffuseColor.rgb *= kbCloth;`);
     listenLive(null);
     online.state = state; online.why = why; online.retry = performance.now();
     myId = localId;
-    if (!world) { world = loadSolo(); view = world; }
+    if (!world) {
+      world = loadSolo(); view = world;
+      // (A clock held when the page was last left is still held: the same hour to test against.)
+      restoreClockHold(store.get(SAVE_HOLD)); if (district.city) district.city.timeFor = clockHeld() ? timeFor : null;
+    }
     refresh();
     ensureJoined();
   }
@@ -2036,6 +2216,8 @@ diffuseColor.rgb *= kbCloth;`);
     online.state = "connecting"; online.why = "";
     if (world) save();
     world = null; view = null;
+    // (The city's clock is its server's: nothing of a practice game's hold is carried into it.)
+    restoreClockHold(null); if (district.city) district.city.timeFor = null;
     const lib = await Promise.resolve(ctx.account?.()).catch(() => null);
     if(lib?.onAccountChange&&!online.accountWatch){let identity=lib.account?.().accountId||null;online.accountWatch=lib.onAccountChange(profile=>{const next=profile.accountId||null;if(next!==identity){identity=next;if(wantOnline())connectCity();}});}
     if(generation!==online.connectionGeneration)return;
@@ -2250,7 +2432,7 @@ diffuseColor.rgb *= kbCloth;`);
     entry = { into: true, phase: "walk", t: 0, points, path, dims, then: () => {
       car.active = true; car.vehicle = vehicleId; car.model = a.attrs.model; car.plate = a.attrs.plate;
       car.x = at.x; car.z = at.z; car.yaw = at.yaw; car.speed = 0; car.km = 0; car.litres = 0;
-      car.top = spec.top_kmh / 3.6; car.spec = spec;
+      car.top = spec.top_kmh / 3.6 * damagePace(a.attrs.damage); car.spec = spec;
       car.ctl = carState({ x: at.x, z: at.z, yaw: at.yaw, length: dims[2] });
       // The car you walked up to is the one you drive: its body kept, not a new one swapped in.
       car.mesh = parked.get(vehicleId) || makeCar(a.attrs.model, spec.colour);
@@ -2372,10 +2554,11 @@ diffuseColor.rgb *= kbCloth;`);
       if (impact > H.crash_over_ms && performance.now() - (car.lastCrash || 0) > 1500) {
         car.lastCrash = performance.now();
         const amount = Math.round((impact - H.crash_over_ms) * H.crash_per_ms);
+        send("collision", { kind: "hit_object", speed: impact, where: { mine: { zone: car.speed >= 0 ? "front" : "rear", bias: 0, at: 0 } } }).then((r) => { if (r.ok) carMarks(); });
         // What the car hit: the energy of the impact on it (a bench, a light, a bin).
         const kg = { car: 1500, truck: 2600, van: 2500, bus: 13000 }[car.spec.kind] || 1500;
         strikeKey(0.5 * kg * impact * impact);
-        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(Date.now()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
+        send("hurt", { amount, cause: "crash" }).then((r) => r.ok && notify(r.fainted && gameNow() - r.fainted.at < 5000 * CLOCK.rate(clockTime()) ? "" : `Crashed at ${Math.round(impact * MPH)} mph: -${amount} health.`));
       }
       ctl.v *= 0.2; ctl.throttle *= 0.3; car.speed = ctl.v;
       if (ctl.park || ctl.lane) { ctl.park = null; ctl.lane = null; notify("Something is in the way: the wheel is yours."); }
@@ -2553,13 +2736,13 @@ diffuseColor.rgb *= kbCloth;`);
         lastTrafficHit = now;
         if (speed < 0.6) { ctx.moveAvatarTo(before.x, before.z, true); car.x = before.x; car.z = before.z; car.speed = 0; return; }
         const hitAt = { ...q };
-        flings.set(q.id, { t0: now, x: q.x, z: q.z, dx: fx, dz: fz, speed, throw: Math.min(9, 1 + speed * 0.5) });
+        struck(q, "me", fx * Math.sign(car.speed || 1), fz * Math.sign(car.speed || 1), speed, car.model);
         jolts.set("me", { t0: now, speed });
         debrisAt(car.x + fx * l / 2, car.z + fz * l / 2, car.yaw, speed * 0.6);
         noteIncident("crash", car.x + fx * l / 2, car.z + fz * l / 2, true);
         car.speed *= 0.55;
-        send("collision", { kind: "hit_person", speed, npc: { id: hitAt.id, name: hitAt.person?.name, x: hitAt.x + fx * Math.min(9, 1 + speed * 0.5), z: hitAt.z + fz * Math.min(9, 1 + speed * 0.5), yaw: car.yaw } })
-          .then((r) => { district.city?.forget(hitAt.id); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
+        send("collision", { kind: "hit_person", speed, where: { mine: zoneOn(car, q.x, q.z) }, npc: { id: hitAt.id, name: hitAt.person?.name, x: hitAt.x + fx * Math.min(9, 1 + speed * 0.5), z: hitAt.z + fz * Math.min(9, 1 + speed * 0.5), yaw: car.yaw } })
+          .then((r) => { district.city?.forget(hitAt.id); if (r.ok) carMarks(); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
         return;
       }
     }
@@ -2577,9 +2760,13 @@ diffuseColor.rgb *= kbCloth;`);
       debrisAt((car.x + v.x) / 2, (car.z + v.z) / 2, car.yaw, rel);
       noteIncident("crash", (car.x + v.x) / 2, (car.z + v.z) / 2, true);
       const owner = v.vehicle?.owner;
-      send("collision", { kind: "hit_vehicle", speed: rel, other, vehicle: { id: v.id, plate: v.plate, x: v.x, z: v.z, yaw: v.yaw, driver: v.parked ? null : owner, driverName: district.roster?.people.get(owner)?.name } })
+      // Where each was struck: about the middle of where the two bodies meet.
+      const mx = (car.x * vl + v.x * l) / (l + vl), mz = (car.z * vl + v.z * l) / (l + vl), where = { mine: zoneOn(car, mx, mz), other: zoneOn(v, mx, mz) };
+      dentCar(v.id, where.other, rel);
+      send("collision", { kind: "hit_vehicle", speed: rel, other, where, vehicle: { id: v.id, plate: v.plate, x: v.x, z: v.z, yaw: v.yaw, parked: Boolean(v.parked), driver: v.parked ? null : owner, driverName: district.roster?.people.get(owner)?.name } })
         .then((r) => {
           if (!r.ok) { notify(r.error); return; }
+          carMarks();
           if (owner) district.city?.forget(owner);
           notify(`Crash at ${Math.round(rel * MPH)} mph into ${v.plate || "a car"}: it is ${r.vehicle.state}${r.mine ? `, yours ${r.mine.state}` : ""}.${r.hurt ? ` -${r.hurt} health.` : ""}${r.bill ? ` Its repair is billed to you: ${R.fmt(r.bill)}.` : ""}`);
         });
@@ -2744,7 +2931,7 @@ diffuseColor.rgb *= kbCloth;`);
   function checkFainted() {
     const p = self();
     if (!p?.fainted || p.fainted.at <= body.faintSeen) return;
-    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(Date.now());
+    const first = body.faintSeen === 0 && gameNow() - p.fainted.at > 60_000 * CLOCK.rate(clockTime());
     body.faintSeen = p.fainted.at;
     if (first) return;   // an old faint, from before this page
     if (car.active) { car.mesh?.removeFromParent(); car.mesh = null; car.active = false; }
@@ -2910,7 +3097,7 @@ diffuseColor.rgb *= kbCloth;`);
   const taxi = { id: null, phase: null, route: null, d: 0, at: null, dest: null, n: 0 };
   //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
   //: (Yours and the route buses first, so a crowded street's cap never leaves them out.)
-  function wheels() { const out = taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; if (patrol.at) out.push(patrol.at); return out; }
+  function wheels() { const out = taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; if (patrol.at) out.push(patrol.at); for (const r of scenes.vehicles()) out.push(r); return out; }
   //: Where you stand from a vehicle: how far to its right (the door side, the kerb's) and along it.
   function besideOf(v, p) {
     const fx = -Math.sin(v.yaw || 0), fz = -Math.cos(v.yaw || 0), rx = -fz, rz = fx;
@@ -4721,7 +4908,7 @@ diffuseColor.rgb *= kbCloth;`);
       seen.add(v.id);
       const home = district.placeById?.get(v.home);
       if (!home || Math.abs(home.x - you.x) > 160 || Math.abs(home.z - you.z) > 160) return;
-      if (!c.garageOpen(v, tt)) return;
+      if (!c.garageOpen(v, timeFor(v.owner, tt))) return;
       ctx.garages.near(home.x, home.z, 30, v.home)?.open(2.5);
     };
     for (const e of scan.garaged || []) consider(e.v);
@@ -4912,6 +5099,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!warming) cityRoom();
     // The practice world keeps its own time; the city's is kept by its server, asked what is new.
     if (world && now - lastStep > 1000) { lastStep = now; world.step(gameNow(t)); }
+    if (!world && clockHeld()) restoreClockHold(null);
     if (world && now - lastSave > 10_000) { lastSave = now; save(); }
     if (online.state === "online" && syncDue(performance.now())) { syncCity().then(ensureJoined); }
 
@@ -4978,7 +5166,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
     stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
     if (now - lastRefresh > 500) {
-      lastRefresh = now; syncHomeEditor(); drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages(); clerkCheck();
+      lastRefresh = now; syncHomeEditor(); drawParked(); carMarks(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages(); clerkCheck();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
       drawGoal(); checkSightseeing();
       if (district.places.length) listings();
@@ -5327,14 +5515,28 @@ diffuseColor.rgb *= kbCloth;`);
   //: How far back from a crosswalk each walker waits (m, by their walk): a step short of it, or a
   //: pace or few back, so those waiting stand one behind another and not all at the kerb's edge.
   const KERB_BACK_M = [1.2, 0.5, 5];
+  //: How far past a crossing a walker must be before they may stand and wait for the next (m).
+  const KERB_CLEAR_M = 0.8;
   const kerbBack = (walk) => KERB_BACK_M[0] + KERB_BACK_M[1] * (hash32(walk.key) % KERB_BACK_M[2]);
-  function waitsAtKerb(walk, tsec) {
+  function waitsAtKerb(walk, tsec, pos = null) {
     const list = walk.pave?.crossings;
     if (!list?.length) return false;
     const waited = district.city?.walkLags.get(walk.key)?.lag || 0;
-    const back = kerbBack(walk);
-    for (const cr of list) {
+    const back0 = kerbBack(walk);
+    // On a crossing already: on over, whatever comes next. (Nobody stops in a roadway to wait
+    // for the crossing after it: the place they would wait for that one was in this one.)
+    for (const cr of list) if (walk.d > cr.s0 + 0.05 && walk.d < cr.s1 - 0.05) return false;
+    // (Nor anywhere else in a roadway, however they came to be in one: they walk on out of it.)
+    if (pos && district.city?.kerbside?.onRoad?.(pos.x, pos.z)) return false;
+    for (let i = 0; i < list.length; i += 1) {
+      const cr = list[i];
       const before = walk.dir > 0 ? cr.s0 - walk.d : walk.d - cr.s1;
+      // (No further back from it than the ground since the last crossing allows: a step clear
+      // of that one's roadway -- and where there is not a step between the two, no wait at all.)
+      const other = walk.dir > 0 ? list[i - 1] : list[i + 1];
+      const room = other ? (walk.dir > 0 ? cr.s0 - other.s1 : other.s0 - cr.s1) - KERB_CLEAR_M : Infinity;
+      if (room < 0.3) continue;
+      const back = Math.min(back0, room);
       if (before < -0.05 || before > back) continue;   // on it already: on over
       // The light: the street they cross must be held on red now, and still be when they are
       // most of the way over -- they know how long the crossing takes them and do not set out
@@ -5414,9 +5616,12 @@ diffuseColor.rgb *= kbCloth;`);
     return b.off;
   }
   function frameCity(ms, dt, now, focus) {
-    const c = district.city, D = district.drivers, tt = fleetAt(ms);
+    const c = district.city, D = district.drivers, tt = fleetAt(ms), gms = tt.gameMs;
     eyeNow();
-    const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), dayStart = ms - tt.minute * 60000, tsec = ms / 1000;
+    holdFrame(ms, now);
+    // (``tsec``: the real second, for the lights and the traffic's rules, which never stand still.
+    // Where each car is on its leg is by its owner's own time -- everyone's, unless the clock is held.)
+    const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), tsec = ms / 1000;
     const people = [];
     const you = me();
     let trackedPeople = 0;
@@ -5448,13 +5653,15 @@ diffuseColor.rgb *= kbCloth;`);
           people.push(q); continue;
         }
       }
-      const seg = e.seg && tt.minute < e.seg.t1 && tt.minute >= e.seg.t0 ? e.seg : undefined;
-      const pos = c.personAt(e.p, tt, seg, focus);
+      const tp = timeFor(id, tt);
+      const seg = e.seg && tp.minute < e.seg.t1 && tp.minute >= e.seg.t0 ? e.seg : undefined;
+      const pos = c.personAt(e.p, tp, seg, focus);
       if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) { personTiers.delete(id); continue; }
       // In a shop and not the one you are in: seen through its window from close by, or not at all.
       let tier = detailNow ? detailNow.tier("people", pos.x, pos.z, was?.tier) : FULL;
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
+      if (!unseenAt(pos.x, pos.z)) holdInSight(id, now);
       const entry = { id, person: e.p, ...pos, detail: tier };
       // In the shop room you are in: walked round its aisles to a till and out (shop-floor.mjs).
       const walkedIn = Boolean(pos.indoors && shop.frame?.store && floor.walk(entry, you, dt, gameHour()));
@@ -5554,19 +5761,42 @@ diffuseColor.rgb *= kbCloth;`);
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
       if (pos.walk && pos.moving && !pos.down && !held && !busy) {
-        const hold = waitsAtKerb(pos.walk, tsec);
+        const hold = waitsAtKerb(pos.walk, tsec, pos);
         // (One placed only now and then is held for the time since it was last placed.)
         c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
         if (hold) { entry.moving = false; entry.activity = "waiting to cross"; }
       }
       const f = flings.get(entry.id);
-      if (f) {
+      if (f?.kind) {
+        // Hit by a car (crash.mjs personPose): gone over where they fell, folded onto its bonnet
+        // and carried until it stands, or thrown on ahead.
+        const age = (now - f.t0) / 1000, pose = personPose(f.kind, age, f);
+        if (pose.carried) {
+          const at = f.by === "me" ? (car.active ? car : null) : lastTraffic.find((x) => x.id === f.by);
+          if (at) { const half = (VEHICLE_DIMS[at.model] || VEHICLE_DIMS.sedan)[2] / 2 - 0.55; f.dx = -Math.sin(at.yaw); f.dz = -Math.cos(at.yaw); f.x = at.x + f.dx * half; f.z = at.z + f.dz * half; }
+        }
+        entry.x = f.x + f.dx * pose.along; entry.z = f.z + f.dz * pose.along;
+        entry.lift = pose.lift; entry.fall = pose.fall; entry.down = true; entry.moving = false; entry.yaw = Math.atan2(-f.dx, -f.dz);
+        if (pose.done) { rests.set(id, { x: entry.x, z: entry.z, yaw: entry.yaw, t: now }); if (pos.down || age > 6) flings.delete(id); }
+      } else if (f) {
         const age = (now - f.t0) / 1000, k = Math.min(1, age / 0.7);
         entry.x = f.x + f.dx * f.throw * Math.sin(k * Math.PI / 2); entry.z = f.z + f.dz * f.throw * Math.sin(k * Math.PI / 2);
         entry.lift = Math.sin(k * Math.PI) * Math.min(1.2, f.speed * 0.12); entry.fall = k; entry.down = true; entry.moving = false;
         entry.yaw = Math.atan2(-f.dx, -f.dz);
         if (age > R.harm.down_s) flings.delete(entry.id);
-      } else if (pos.down) { entry.fall = 1; entry.down = true; }
+      } else if (pos.down) {
+        entry.fall = 1; entry.down = true;
+        const lying = rests.get(id);
+        if (lying) { entry.x = lying.x; entry.z = lying.z; entry.yaw = lying.yaw; }
+        // To be carried (the books: hurt badly enough for hospital): theirs is a scene, and an
+        // ambulance comes for them -- on its stretcher while its crew has them, then gone in.
+        if (pos.carried) {
+          scenes.casualty(entry, now);
+          const cp = scenes.casualtyPose(id);
+          if (cp?.hidden) continue;
+          if (cp) { entry.x = cp.x; entry.z = cp.z; entry.yaw = cp.yaw; entry.lift = cp.lift; }
+        }
+      }
       else {
         glide(entry, now, dt, 3.2, 60, tier === LOW, true);
         // (Nobody walks backwards: see strides below, once everyone has stepped apart.)
@@ -5617,29 +5847,41 @@ diffuseColor.rgb *= kbCloth;`);
       // Far off and not being driven by the rules: left until its next look (it is only tracked).
       const wasCar = carTiers.get(e.v.id);
       if (wasCar?.tier === TRACKED && now < wasCar.next && !D.stateOf(e.v.id)) { trackedCars += 1; continue; }
-      const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), ms);
+      const v = e.v, s0 = e.s, h0 = harmNow((world || view)?.harm?.get(v.id), gms), tv = timeFor(e.who ?? v.owner, tt);
+      const dayStart = tv.ms - tv.minute * 60000, shift = (tv.ms - ms) / 1000;
       if (h0?.out) continue;
       // (``base`` is this frame's own record of the car, made here and drawn once: it is filled in,
       // not copied, whichever way below it goes.)
-      const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate };
-      if (h0?.stays) { base.x = h0.at.x; base.z = h0.at.z; base.yaw = h0.at.yaw || 0; base.moving = false; base.wrecked = true; vehicles.push(base); continue; }
+      const base = { id: v.id, vehicle: v, model: v.model, shade: v.shade, condition: h0?.condition ?? 100, plate: v.plate, damage: h0?.damage || carDents.get(v.id)?.damage || null };
+      if (h0?.stays) {
+        base.x = h0.at.x; base.z = h0.at.z; base.yaw = h0.at.yaw || 0; base.moving = false;
+        // Stood at the mechanic's, made good (crash.mjs): parked there. Else a wreck where it
+        // stopped: its scene's, until the tow truck has it -- drawn up behind the truck, then gone.
+        if (h0.shop) { base.parked = true; base.damage = null; vehicles.push(base); continue; }
+        base.wrecked = true;
+        scenes.wreck(base, now);
+        const wp = scenes.wreckPose(v.id);
+        if (wp?.hidden) continue;
+        if (wp) { base.x = wp.x; base.z = wp.z; base.yaw = wp.yaw; base.pitch = wp.pitch; base.lift = wp.lift; base.towed = true; }
+        vehicles.push(base); continue;
+      }
       if (s0.state !== "driving") { base.x = s0.x; base.z = s0.z; base.yaw = s0.yaw; base.moving = false; base.parked = true; base.lock = s0.lock || null; vehicles.push(base); continue; }
       // A round at work (a patrol, a delivery round, a cab cruising) is a leg like any other:
       // driven by the rules near you, so it is never driven through what is in its way.
       let leg = s0.leg, route = null, key = null;
       if (s0.roam) {
-        const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tt);
+        const owner = c.roster.people.get(v.owner), round = owner && c.roamDrive(owner, s0.leg, tv);
         if (!round) {
-          const pos = owner && c.personAt(owner, tt, undefined, focus);
+          const pos = owner && c.personAt(owner, tv, undefined, focus);
           if (pos && pos.mode === "drive") { Object.assign(base, pos).moving = true; vehicles.push(base); }
           continue;
         }
         leg = round; route = round.route; key = `${v.id}:${round.key}`;
-      } else { route = c.legRoute(leg); key = City.legKey(v, leg, tt.day); }
+      } else { route = c.legRoute(leg); key = City.legKey(v, leg, tv.day); }
       if (!route || route.length < 1) continue;
       const startS = (dayStart + leg.t0 * 60000) / 1000, durS = Math.max(1, (leg.t1 - leg.t0) * 60);
-      const sched = (ts) => Math.max(0, Math.min(1, (ts - startS) / durS)) * route.length;
-      const unsched = (d) => startS + (d / route.length) * durS;
+      const sched = (ts) => Math.max(0, Math.min(1, (ts + shift - startS) / durS)) * route.length;
+      const unsched = (d) => startS + (d / route.length) * durS - shift;
       const [w, , l] = v.bike ? BIKE_DIMS : VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan;
       // Out of sight of the rules: where its day has it, as far behind as traffic left it.
       const lagged = sched(tsec - D.delayOf(key));
@@ -5647,6 +5889,7 @@ diffuseColor.rgb *= kbCloth;`);
       // (Driven by the rules near you, and on till it is well away: then by its day again, as
       // far behind as the traffic left it -- so the cars driven do not only ever grow in number.)
       const off = Math.hypot(probe.x - focus.x, probe.z - focus.z);
+      if (off < SIM_M && !unseenAt(probe.x, probe.z)) holdInSight(e.who ?? v.owner, now);
       if (off < SIM_M || (off < SIM_M * 1.8 && D.stateOf(v.id)?.key === key)) {
         sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), style: styleOf(v), cruise: Math.max(v.bike ? 3 : 4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z), bike: Boolean(v.bike) });
         legOf.set(v.id, { base, route });
@@ -5672,6 +5915,18 @@ diffuseColor.rgb *= kbCloth;`);
       if (Math.abs(b.x - focus.x) > SIM_M || Math.abs(b.z - focus.z) > SIM_M) continue;
       const [bw, , bl] = VEHICLE_DIMS[b.model || "bus"] || VEHICLE_DIMS.sedan;
       blockers.push({ x: b.x, z: b.z, yaw: b.yaw, v: b.dwelling ? 0 : b.speed || 0, length: bl, width: bw });
+    }
+    // A wreck stands in the lane, and what has come for it beside it: gone round (Drivers' dodge).
+    scenes.step(Math.min(dt, 0.1), now, tsec);
+    for (const w of vehicles) {
+      if (!w.wrecked || w.towed || Math.abs(w.x - focus.x) > SIM_M || Math.abs(w.z - focus.z) > SIM_M) continue;
+      const [bw, , bl] = VEHICLE_DIMS[w.model] || VEHICLE_DIMS.sedan;
+      blockers.push({ x: w.x, z: w.z, yaw: w.yaw, v: 0, length: bl, width: bw });
+    }
+    for (const b of scenes.vehicles()) {
+      if (Math.abs(b.x - focus.x) > SIM_M || Math.abs(b.z - focus.z) > SIM_M) continue;
+      const [bw, , bl] = VEHICLE_DIMS[b.model] || VEHICLE_DIMS.sedan;
+      blockers.push({ x: b.x, z: b.z, yaw: b.yaw, v: b.speed || 0, length: bl + (b.towing ? 5 : 0), width: bw });
     }
     // Cyclists are traffic too: a car behind one in a shared lane slows for it.
     // (The residents' own are driven by the rules with the cars, each seen by the other there.)
@@ -5720,6 +5975,9 @@ diffuseColor.rgb *= kbCloth;`);
       residentBikes.push({ id: b.id, resident: true, x: b.x, z: b.z, yaw: b.yaw, v: b.moving ? b.speed || 0 : 0, shade: b.shade, odo, person: owner || null, reason: b.reason, lock: b.moving ? null : b.lock || null });
     }
     if (bikeOdo.size > 5000) bikeOdo.clear();
+    // (A bump's marks last while the car is about: gone from sight a while, it is as new.)
+    if (carDents.size) { const about = new Set(); for (const w of vehicles) if (carDents.has(w.id)) { about.add(w.id); if (!unseenAt(w.x, w.z)) carDents.get(w.id).t = now; } for (const [id, dnt] of carDents) if (!about.has(id) || now - dnt.t > 45_000) carDents.delete(id); }
+    if (rests.size > 60) for (const [id, r0] of rests) if (now - r0.t > 900_000) rests.delete(id);
     if (glided.size > 6000) for (const [id, g] of glided) if (now - g.t > 2000) glided.delete(id);
     for (const v of vehicles) { const j = jolts.get(v.id); if (j) { const age = (now - j.t0) / 1000; if (age > 1.2) jolts.delete(v.id); else v.jolt = Math.sin(age * 18) * Math.exp(-age * 3) * Math.min(0.12, j.speed * 0.01); } }
     // Each car's tier: the ones only tracked are kept track of, and not drawn (drawCars).
@@ -5744,6 +6002,60 @@ diffuseColor.rgb *= kbCloth;`);
     return { time: tt, people, vehicles };
   }
   // ---- crashes --------------------------------------------------------------------------------------
+  //: What a crash leaves, and how it is cleared (crash.mjs, crash-scene.mjs). ``carDents``: one of
+  //: the city's cars marked by a bump the books never heard of (most are not: view carHit) --
+  //: marked while it is about, as new again once it has gone from sight. ``rests``: where the
+  //: blow left someone lying, which is where they are until the ambulance has them.
+  const carDents = new Map(), rests = new Map(), towedTo = new Map();
+  const dentCar = (id, where, speed) => { if (id) carDents.set(id, { damage: impactOn(carDents.get(id)?.damage, { ...where, speed }), t: performance.now() }); };
+  //: Where on ``v`` (a car: x, z, yaw, model) the point (x, z) is: crash.mjs impactZone.
+  const zoneOn = (v, x, z) => {
+    const fx = -Math.sin(v.yaw || 0), fz = -Math.cos(v.yaw || 0), dx = x - v.x, dz = z - v.z;
+    return impactZone(dx * -fz + dz * fx, -(dx * fx + dz * fz), VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan);
+  };
+  const scenes = crashScenes({ THREE, group, groundAt, streets: () => district.streets, traffic: () => lastTraffic, focus: () => (car.active ? car : me()), unseenAt, notify, dims: VEHICLE_DIMS,
+    // Cleared: the books are told (the hurt to hospital; each car as new, stood at the mechanic's),
+    // and those whose day it changes have it made again.
+    clear: ({ vehicles = [], people = [], shop = null }) => {
+      for (const id of vehicles) { carDents.delete(id); const owner = district.roster?.vehicles.get(id)?.owner; if (owner) district.city?.forget(owner); }
+      for (const id of people) { rests.delete(id); district.city?.forget(id); }
+      return send("crash_cleared", { vehicles, people, shop });
+    },
+    //: The kerb at the mechanic's nearest a wreck: where it stands when it has been towed.
+    mechanicNear: (w) => {
+      let best = null;
+      for (const pl of district.workshops || []) { const d = Math.hypot(pl.x - w.x, pl.z - w.z); if (!best || d < best.d) best = { d, pl }; }
+      if (!best) return null;
+      const v = district.roster?.vehicles.get(w.id);
+      let spot = null;
+      try { spot = v ? district.city?.spotOf(v, best.pl.id) : null; } catch { spot = null; }
+      // (No kerb found for it there: along the shop's front, each car towed in a car's length on
+      // from the last -- two wrecks from one crash were stood on the same spot.)
+      if (!spot || !Number.isFinite(spot.x) || spot.gateway || spot.garage || spot.indoors) {
+        const F = best.pl.front || best.pl.door, n = towedTo.get(best.pl.id) || 0, along = ((n % 6) - 2.5) * 5.6;
+        towedTo.set(best.pl.id, n + 1);
+        const bx = (best.pl.door?.x ?? best.pl.x) + (F && Number.isFinite(F.nz) ? -F.nz * along : along), bz = (best.pl.door?.z ?? best.pl.z) + (F && Number.isFinite(F.nx) ? F.nx * along : 0);
+        const at = district.city?.standOff?.(bx, bz) || [bx, bz];
+        spot = { x: at[0], z: at[1], yaw: F && Number.isFinite(F.nx) ? Math.atan2(F.nz, -F.nx) : 0 };
+      }
+      return { x: spot.x, z: spot.z, yaw: spot.yaw || 0, name: best.pl.name || "the mechanic's" };
+    },
+    //: The block a crash is on, known shut to the city's drivers until ``until`` (fleet.mjs
+    //: Drivers.jams: those who have not turned into it take another way; lookAhead).
+    shut: (x, z, until) => {
+      const S = district.streets, D = district.drivers, n = S?.nearest(x, z, "drive", 80);
+      if (!D || n === null || n === undefined) return;
+      let best = null;
+      for (const e of S.edges[n]) { const a = S.nodes[n], b = S.nodes[e.to], d = distToSegment(x, z, a.x, a.z, b.x, b.z); if (!best || d < best.d) best = { d, to: e.to }; }
+      if (!best) return;
+      D.jams.set(`${n}>${best.to}`, until); D.jams.set(`${best.to}>${n}`, until);
+      D.tally.shut = (D.tally.shut || 0) + 1;
+    } });
+  //: Someone hit by a car at ``speed``, the way it was going (dx, dz): gone over, folded onto its
+  //: bonnet and carried, or thrown (crash.mjs personImpact). ``by``: the car's id, or "me".
+  function struck(q, by, dx, dz, speed, model, stop = null) {
+    flings.set(q.id, { kind: personImpact(speed), t0: performance.now(), x: q.x, z: q.z, dx, dz, speed, by, car: VEHICLE_DIMS[model] || VEHICLE_DIMS.sedan, stop: stop ?? Math.max(1, speed * speed / (2 * 6.5)) });
+  }
   //: A car of the city's that could not stop: it hits you, or someone on foot.
   let lastCityCrash = -Infinity;
   async function carHit(hit, people) {
@@ -5751,6 +6063,16 @@ diffuseColor.rgb *= kbCloth;`);
     jolts.set(hit.car, { t0: performance.now(), speed: hit.speed });
     debrisAt(hit.x - Math.sin(hit.yaw) * 2, hit.z - Math.cos(hit.yaw) * 2, hit.yaw, hit.speed);
     const dx = -Math.sin(hit.yaw), dz = -Math.cos(hit.yaw);
+    // The marks it leaves (crash.mjs): the front of the one that hit -- a body gives less than a
+    // car does -- and, of a car hit, the part of it that was struck.
+    const hitWhere = { zone: "front", bias: 0, at: 0 };
+    let otherWhere = null;
+    dentCar(hit.car, hitWhere, hit.kind === "vehicle" ? hit.speed : hit.speed * 0.35);
+    if (hit.kind === "vehicle" && hit.target) {
+      const tv = district.roster?.vehicles.get(hit.who);
+      otherWhere = zoneOn({ ...hit.target, model: tv?.model }, hit.x + dx * 2.2, hit.z + dz * 2.2);
+      dentCar(hit.who, otherWhere, hit.speed);
+    }
     if (hit.player) {
       noteIncident("crash", hit.x, hit.z, false);
       knockBack(dx, dz, hit.speed);
@@ -5768,10 +6090,10 @@ diffuseColor.rgb *= kbCloth;`);
     const q = hit.kind !== "vehicle" && people.find((x) => x.id === hit.who), other = district.roster?.vehicles.get(hit.who);
     if (!world || !v || (!q && !other)) return;
     const driver = district.roster.people.get(v.owner), targetDriver = other && district.roster.people.get(other.owner);
-    const target = hit.kind === "vehicle" ? { ...hit.target, id: other.id, plate: other.plate, driver: other.owner, driverName: targetDriver?.name, kind: "vehicle" }
+    const target = hit.kind === "vehicle" ? { ...hit.target, id: other.id, plate: other.plate, driver: other.owner, driverName: targetDriver?.name, kind: "vehicle", where: otherWhere }
       : { id: q.id, name: q.person?.name, x: q.x, z: q.z, yaw: q.yaw, kind: "person" };
-    if (q) flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: hit.speed, throw: Math.min(9, 1 + hit.speed * 0.5) });
-    const incident = world.npcCollision({ id: hit.id, vehicle: { id: v.id, plate: v.plate, driver: v.owner, driverName: driver?.name, x: hit.x, z: hit.z, yaw: hit.yaw }, target,
+    if (q) struck(q, hit.car, dx, dz, hit.speed, v.model, 0.5);
+    const incident = world.npcCollision({ id: hit.id, vehicle: { id: v.id, plate: v.plate, driver: v.owner, driverName: driver?.name, x: hit.x, z: hit.z, yaw: hit.yaw, where: hitWhere }, target,
       speed: hit.speed, context: { ...hit.context, region: district.region, lonLat: ctx.toLonLat?.(hit.x, hit.z) } });
     // A partial person in it pays their share out of their own balance (fleet.mjs billPartial):
     // the one time their money moves.
@@ -5863,6 +6185,20 @@ diffuseColor.rgb *= kbCloth;`);
       }
     }
     if (Math.hypot(px, pz) > 0.01) ctx.moveAvatarTo(you.x + px, you.z + pz, true);
+  }
+  //: Your cars as their crashes have left them (crash.mjs): the one you drive and those parked,
+  //: each body's shape and marks from its own record; and the driven one no faster than its
+  //: damage lets it go. Kept so until a mechanic's body repair (workshop.mjs).
+  function carMarks() {
+    const w = view;
+    if (!w) return;
+    const one = (id, mesh) => {
+      const a = w.registry.get(id);
+      if (!a || !mesh || !mesh.children.length) return;
+      dentBody(mesh, mesh.userData.dims || VEHICLE_DIMS[a.attrs.model] || VEHICLE_DIMS.sedan, a.attrs.damage || null);
+    };
+    if (car.active && car.mesh) { one(car.vehicle, car.mesh); const a = w.registry.get(car.vehicle); if (a && car.spec) car.top = car.spec.top_kmh / 3.6 * damagePace(a.attrs.damage); }
+    for (const [id, mesh] of parked) one(id, mesh);
   }
   function drawParked() {
     const w = view;
@@ -6037,7 +6373,8 @@ diffuseColor.rgb *= kbCloth;`);
     const t = timeAt(gameNow());
     const [lon, lat] = ctx.toLonLat(me().x, me().z);
     const here = jurisdictionAt(R, lon, lat, district.county);
-    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, t.label, here.name];
+    const bits = [`<b>${p ? R.fmt(w.ledger.balance(p.account)) : "Arriving…"}</b>`, clockHeld() ? `${t.label} (time held)` : t.label, here.name];
+    timeButton.hidden = !world; timeButton.classList.toggle("on", clockHeld());
     if (car.active) {
       const limit = speedLimitAt(car.x, car.z) * MPH, mph = Math.abs(car.speed) * MPH;
       bits.push(`<span class="${mph > limit + 5 ? "warn" : ""}">${Math.round(mph)} mph · limit ${Math.round(limit)}</span>`);
@@ -6082,8 +6419,9 @@ diffuseColor.rgb *= kbCloth;`);
   const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price", onclick: () => openSide("online") }, "Shop");
   const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory");
   const taxiButton = h("button", { title: "Call a taxi to where you stand (Enter gets in when it pulls up)", onclick: () => taxiKey() }, "Taxi");
+  const timeButton = h("button", { title: "Hold the clock at an hour, or let it run (the offline practice game)", onclick: () => openSide("time") }, "Time");
   // (The task board is the card at the bar's edge: one board, not a button to a second.)
-  alwaysActions.append(bagButton, onlineButton, taxiButton, helpButton);
+  alwaysActions.append(bagButton, onlineButton, taxiButton, timeButton, helpButton);
   actionBar.append(alwaysActions, dynamicActions);
   const tasksCard = h("section", { id: "city-tasks", className: "city-card" });
   tasksCard.setAttribute("aria-label", "Tasks");
@@ -6206,7 +6544,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (panel) { panel.remove(); panel = null; }
     const el = h("section", { id: "city-side", className: "city-win" });
     el.setAttribute("aria-label", { store: "Shop", bag: "Inventory", sell: "Selling", ride: "Buses and taxis", tasks: "Task board", online: "Online store", business: "Your business",
-      buy: "Buying a business", recruiter: "Recruiter", released: "Released", pets: "Pets" }[kind] || "Controls");
+      buy: "Buying a business", recruiter: "Recruiter", released: "Released", pets: "Pets", time: "Time" }[kind] || "Controls");
     doc.body.append(el);
     side = { kind, el, place, store: 0 };
     drawSide();
@@ -6519,6 +6857,20 @@ diffuseColor.rgb *= kbCloth;`);
       side.el.replaceChildren(...out);
       return;
     }
+    // The clock held (the practice game's own): the hour stood still, the street going on.
+    if (side.kind === "time") {
+      const st = timeState(), say = (r) => { if (r && !r.ok) notify(r.error); else if (r) notify(r.held ? `Time held at ${r.label}. The street goes on as it is at this hour.` : `Time runs on from ${r.label}.`); drawSide(); hud(); };
+      const at = (label, hour) => h("button", { textContent: label, title: hour === null ? "Stop the clock where it stands" : `Stop the clock at ${label}, the next time the game's day comes to it`, onclick: () => say(holdTime(hour)) });
+      side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Time" }), close),
+        h("p", { className: "note", textContent: !st.practice ? "The city online keeps one clock for everyone: time can only be held in the offline practice game."
+          : st.held ? `Held at ${st.label}. The sun, the shops' hours, pay and bills stand still. People and traffic go on: each lives the next ${st.window_min} minutes of this hour over and over, on their own turn of it, so the street stays as busy as this hour is.`
+            : `The clock is running: ${st.label}. Hold it to test against one hour for as long as you like.` }),
+        ...(st.practice ? [h("div", { className: "row" }, at("Hold now", null), ...(st.held ? [h("button", { className: "shop", textContent: "Let time run", onclick: () => say(releaseTime()) })] : [])),
+          h("h4", { textContent: "Hold at an hour" }),
+          h("div", { className: "row" }, at("06:00", 6), at("08:00", 8), at("12:00", 12), at("15:00", 15), at("17:30", 17.5), at("21:00", 21), at("02:00", 2)),
+          h("p", { className: "note", textContent: "A held clock stays held when you come back to the page." })] : []));
+      return;
+    }
     // The controls.
     const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve (tighter the slower; let go and you walk on straight). Down turns you round: one step slow, two at a sprint. At the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
@@ -6809,7 +7161,7 @@ diffuseColor.rgb *= kbCloth;`);
     fleetNow: () => district.city,
     detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast, lock: { ...lockStats },
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
-    rules: R, tick, drive, noteIncident, sendPatrol, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
+    rules: R, tick, drive, noteIncident, sendPatrol, crashes: { scenes: () => scenes.report(), dents: () => [...carDents.keys()], bodies: () => wreckBodies.size, clear: () => scenes.clearAll() }, time: { hold: holdTime, release: releaseTime, state: timeState }, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;

@@ -472,6 +472,46 @@ function treeNearDispose(group) {
 }
 //: Each frame (it looks again every TREE_NEAR_EVERY_MS): the trees round ``focus`` drawn in
 //: full, a few more each time, and those left behind given back to their instances.
+// ---- the fallen leaves (docs/leaf-litter.mjs) ----------------------------------------------------
+//: Leaves on the ground round the walker, each a leaf: under the trees that are drawn in full
+//: near you (treeNear's index: the same trees, where they stand), on the ground the walker
+//: walks on, and solid to walls and fences -- a leaf is never inside a building, and a fence's
+//: mesh or pickets are too close for one to get through (it goes through a gate, which is a gap).
+var leafLitter = null, leafLitterAt = 0;
+const LEAF_FENCE_M = 0.09;
+function leafSolid(x, z) {
+  return Boolean(buildingAt(x, z)) || Boolean(nearestFenceLine(x, z, LEAF_FENCE_M));
+}
+function leafTrees(x, z, reach) {
+  const T = typeof treeNear === "undefined" ? null : treeNear, out = [];
+  if (!T) return out;
+  const c = T.CELL;
+  for (let i = Math.floor((x - reach) / c); i <= Math.floor((x + reach) / c); i += 1)
+    for (let j = Math.floor((z - reach) / c); j <= Math.floor((z + reach) / c); j += 1)
+      for (const t of T.grid.get(`${i}:${j}`) || []) {
+        if (Math.hypot(t.x - x, t.z - z) > reach) continue;
+        out.push({ x: t.x, z: t.z, key: t.key, kind: t.kind, crown: Math.max(1.6, Math.min(7, (t.across || 5) / 2)), seed: (Math.round(t.x * 4) * 73856093) ^ (Math.round(t.z * 4) * 19349663) });
+      }
+  return out;
+}
+//: Each frame the walker is on foot near the ground (not from high above: a leaf is not seen).
+function leafLitterStep(at, now, viewHeight = 0) {
+  if (typeof leafLibrary === "undefined" || !leafLibrary || typeof treeNear === "undefined" || !treeNear || !at) return;
+  if (viewHeight > 40) { if (leafLitter) leafLitter.mesh.visible = false; leafLitterAt = now; return; }
+  if (!leafLitter) {
+    let refY = at.y;
+    leafLitter = leafLibrary.createLeafLitter(THREE, { parent: groups.ground, trees: leafTrees, solid: leafSolid,
+      ground: (x, z) => { const g = walkerGroundAt(x, z, refY); return Number.isFinite(g) ? g : refY; },
+      wind: () => globalThis.kerbsideWind, windVector: foliageLibrary?.windVector || (() => [0.94, -0.34]) });
+    leafLitter.setRef = (y) => { refY = y; };
+    window.kerbsideLeaves = () => ({ ...leafLitter.stats });
+  }
+  leafLitter.mesh.visible = true;
+  leafLitter.setRef(at.y);
+  const dt = Math.min(0.1, Math.max(0, (now - (leafLitterAt || now)) / 1000));
+  leafLitterAt = now;
+  if (dt > 0) leafLitter.step(at, dt);
+}
 function treeNearStep(focus, now, viewHeight = 0) {
   const T = typeof treeNear === "undefined" ? null : treeNear;
   if (!T || !focus || now - T.at < TREE_NEAR_EVERY_MS) return;
@@ -675,7 +715,10 @@ function buildParkUnderstorey(trees) {
     // city park's deadwood is cleared.
     if (kind_of_tree(tree) === "palm" || !vegetationLibrary.litterScatter) continue;
     const fall = vegetationLibrary.litterScatter(tx, tz, crown, kind_of_tree(tree) === "conifer" ? "pine" : "oak", { seed: 17 });
-    for (const patch of fall.patches) {
+    // (The leaves themselves are leaves now, not patches of leaf texture: docs/leaf-litter.mjs,
+    // leafLitterStep -- round the walker, each one its own, under every tree drawn in full. The
+    // headset, which has none of that, keeps the patches.)
+    for (const patch of typeof leafLibrary !== "undefined" && leafLibrary ? [] : fall.patches) {
       const ground = grassSampleAt(patch.x, patch.y);
       if (!ground?.park) continue;
       const e = grassSurfaceAt(patch.x + 1, patch.y), n = grassSurfaceAt(patch.x, patch.y - 1);
@@ -878,6 +921,118 @@ function insideParkingRegion(x, z) {
   }
   return false;
 }
+//: A lot's outline as a clip: its corners in order with the inside on the left of every edge,
+//: and whether it is convex (a lot drawn as its rectangle always is).
+function lotClipOf(lot) {
+  if (lot.clip) return lot.clip;
+  const pts = lot.ring.slice(0, Math.hypot(lot.ring[0][0] - lot.ring.at(-1)[0], lot.ring[0][1] - lot.ring.at(-1)[1]) < 0.01 ? -1 : undefined);
+  let area = 0;
+  for (let i = 0; i < pts.length; i += 1) { const a = pts[i], b = pts[(i + 1) % pts.length]; area += a[0] * b[1] - b[0] * a[1]; }
+  const ring = area >= 0 ? pts : pts.slice().reverse();
+  let convex = ring.length >= 3;
+  for (let i = 0; i < ring.length && convex; i += 1) {
+    const a = ring[i], b = ring[(i + 1) % ring.length], c = ring[(i + 2) % ring.length];
+    if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) < -1e-6) convex = false;
+  }
+  return (lot.clip = { ring, convex });
+}
+//: What is left of a triangle outside a convex outline: convex pieces, each a list of points
+//: [x, z, wa, wb, wc] (w: the point's weights on the triangle's own three corners, so anything the
+//: corners carry can be worked out for it). ``null``: none of it is inside (the triangle as it is).
+//: The outline's inside is on the left of each edge; a piece on the right of any edge is outside
+//: the whole outline, and what is on the left of every edge is inside it and dropped.
+function triangleOutsideConvex(tri, ring) {
+  let inside = tri, touched = false;
+  const out = [];
+  for (let i = 0; i < ring.length && inside.length >= 3; i += 1) {
+    const [px, pz] = ring[i], [qx, qz] = ring[(i + 1) % ring.length];
+    const side = (v) => (qx - px) * (v[1] - pz) - (qz - pz) * (v[0] - px);
+    const left = [], right = [];
+    for (let k = 0; k < inside.length; k += 1) {
+      const a = inside[k], b = inside[(k + 1) % inside.length], sa = side(a), sb = side(b);
+      if (sa >= 0) left.push(a); if (sa < 0) right.push(a);
+      if ((sa > 0 && sb < 0) || (sa < 0 && sb > 0)) {
+        const t = sa / (sa - sb), m = [0, 1, 2, 3, 4].map((j) => a[j] + (b[j] - a[j]) * t);
+        left.push(m); right.push(m);
+      }
+    }
+    if (right.length >= 3) { out.push(right); touched = true; }
+    inside = left;
+  }
+  // (Nothing left on the inside: the outline never reached into it.)
+  const areaOf = (poly) => { let s = 0; for (let k = 0; k < poly.length; k += 1) { const a = poly[k], b = poly[(k + 1) % poly.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; };
+  if (inside.length < 3 || areaOf(inside) < 1e-4) return null;
+  return touched ? out.filter((poly) => areaOf(poly) > 1e-4) : [];
+}
+//: A cover's triangles taken off the car parks exactly: each triangle that reaches into a lot is
+//: cut along the lot's outline and only the part inside goes. (They were dropped whole when their
+//: middle and two corners were in a lot: where one straddled the outline, the part of it outside
+//: went too, and the bare ground showed through the hole -- the pale triangles along both sides
+//: of the lot in the yard of Marina Middle School, seen 2026-11-23 and traced to this.) A lot
+//: with a dent in its outline is cut by halving the triangles that straddle it, to LOT_CUT_FINE_M.
+const LOT_CUT_FINE_M = 0.5;
+function cutCoverOffLots(mesh) {
+  const geom = mesh.geometry, pos = geom.attributes.position, index = geom.getIndex();
+  const e = mesh.matrixWorld.elements, ox = e[12], oz = e[14];
+  const names = Object.keys(geom.attributes), added = names.map(() => []);
+  let next = pos.count, cut = 0;
+  const kept = [];
+  const point = (ids, w) => {
+    for (let k = 0; k < 3; k += 1) if (w[k] > 1 - 1e-9) return ids[k];
+    names.forEach((name, n) => {
+      const at = geom.attributes[name], size = at.itemSize;
+      for (let c = 0; c < size; c += 1) added[n].push(w[0] * at.getComponent(ids[0], c) + w[1] * at.getComponent(ids[1], c) + w[2] * at.getComponent(ids[2], c));
+    });
+    return next++;
+  };
+  for (let t = 0; t < index.count; t += 3) {
+    const ids = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+    const P = ids.map((i) => [pos.getX(i) + ox, pos.getZ(i) + oz]);
+    const x0 = Math.min(P[0][0], P[1][0], P[2][0]), x1 = Math.max(P[0][0], P[1][0], P[2][0]), z0 = Math.min(P[0][1], P[1][1], P[2][1]), z1 = Math.max(P[0][1], P[1][1], P[2][1]);
+    // The pieces of this triangle still to be kept, as weights on its corners.
+    let pieces = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]], changed = false;
+    for (const lot of PARKING_REGIONS) {
+      const b = lot.box;
+      if (x1 < b[0] || x0 > b[2] || z1 < b[1] || z0 > b[3] || !pieces.length) continue;
+      const clip = lotClipOf(lot), at = (w) => [w[0] * P[0][0] + w[1] * P[1][0] + w[2] * P[2][0], w[0] * P[0][1] + w[1] * P[1][1] + w[2] * P[2][1]];
+      const nextPieces = [];
+      for (const piece of pieces) {
+        if (clip.convex) {
+          const res = triangleOutsideConvex(piece.map((w) => [...at(w), ...w]), clip.ring);
+          if (res === null) { nextPieces.push(piece); continue; }
+          changed = true;
+          for (const poly of res) for (let k = 1; k + 1 < poly.length; k += 1) nextPieces.push([poly[0].slice(2), poly[k].slice(2), poly[k + 1].slice(2)]);
+          continue;
+        }
+        // (A dented outline: halved until a piece is all in, all out, or too small to matter.)
+        const stack = [piece];
+        while (stack.length) {
+          const q = stack.pop(), xy = q.map(at), inn = xy.map(([x, z]) => insideParkingRegion(x, z)), n = inn[0] + inn[1] + inn[2];
+          const mid = [(xy[0][0] + xy[1][0] + xy[2][0]) / 3, (xy[0][1] + xy[1][1] + xy[2][1]) / 3];
+          const long = Math.max(Math.hypot(xy[0][0] - xy[1][0], xy[0][1] - xy[1][1]), Math.hypot(xy[1][0] - xy[2][0], xy[1][1] - xy[2][1]), Math.hypot(xy[2][0] - xy[0][0], xy[2][1] - xy[0][1]));
+          if (n === 0 && (q !== piece || !insideParkingRegion(mid[0], mid[1]))) { nextPieces.push(q); continue; }
+          if (n === 3 || long <= LOT_CUT_FINE_M) { if (n === 3 || insideParkingRegion(mid[0], mid[1])) { changed = true; continue; } nextPieces.push(q); continue; }
+          changed = true;
+          const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], ab = m(q[0], q[1]), bc = m(q[1], q[2]), ca = m(q[2], q[0]);
+          stack.push([q[0], ab, ca], [ab, q[1], bc], [ca, bc, q[2]], [ab, bc, ca]);
+        }
+      }
+      pieces = nextPieces;
+    }
+    if (!changed) { kept.push(ids[0], ids[1], ids[2]); continue; }
+    cut += 1;
+    for (const piece of pieces) kept.push(point(ids, piece[0]), point(ids, piece[1]), point(ids, piece[2]));
+  }
+  if (!cut) return 0;
+  if (next > pos.count) names.forEach((name, n) => {
+    const at = geom.attributes[name], array = new at.array.constructor(next * at.itemSize);
+    array.set(at.array.subarray(0, pos.count * at.itemSize)); array.set(added[n], pos.count * at.itemSize);
+    geom.setAttribute(name, new THREE.BufferAttribute(array, at.itemSize, at.normalized));
+  });
+  geom.setIndex(kept);
+  geom.computeBoundingBox(); geom.computeBoundingSphere();
+  return cut;
+}
 function recutGroundOffRoads() {
   let cut = 0;
   const meshes = [];
@@ -890,15 +1045,17 @@ function recutGroundOffRoads() {
     const e = mesh.matrixWorld.elements, kept = [];
     const roads = ROAD_CUT_SURFACES.has(mesh.userData.surface), lotCut = lots && LOT_CUT_SURFACES.test(mesh.userData.surface || "");
     const on = (i) => insideCarriageway(pos.getX(i) + e[12], pos.getZ(i) + e[14], 0);
-    const inLot = (i) => insideParkingRegion(pos.getX(i) + e[12], pos.getZ(i) + e[14]);
-    for (let t = 0; t < index.count; t += 3) {
-      const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
-      const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
-      if (roads && insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
-      if (lotCut && insideParkingRegion(cx, cz) && inLot(a) + inLot(b) + inLot(c) >= 2) { cut += 1; continue; }
-      kept.push(a, b, c);
+    if (roads) {
+      for (let t = 0; t < index.count; t += 3) {
+        const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
+        const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
+        if (insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
+        kept.push(a, b, c);
+      }
+      if (kept.length !== index.count) geom.setIndex(kept);
     }
-    if (kept.length !== index.count) geom.setIndex(kept);
+    // Off the car parks, along their outlines exactly (cutCoverOffLots).
+    if (lotCut) cut += cutCoverOffLots(mesh);
   }
   if (cut && typeof requestFrame === "function") requestFrame();
   return cut;

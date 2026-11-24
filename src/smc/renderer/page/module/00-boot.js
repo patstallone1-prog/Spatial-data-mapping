@@ -398,6 +398,10 @@ var grassSampleAt = null;
 const foliageLibrary = await import(sharedAsset("foliage-motion.mjs?rev=__FOLIAGE_MOTION_HASH__"))
   .catch(error=>{console.warn("kerbside: foliage motion unavailable; plants stand still",error);return null;});
 const foliageMotion = foliageLibrary?.createFoliageMotion(THREE) || null;
+//: Fallen leaves as leaves (docs/leaf-litter.mjs): each one lying under its tree, shifted by the
+//: wind and by the walker's feet, stopped by walls and fences (module 17: leafLitterStep).
+const leafLibrary = HEADSET ? null : await import(sharedAsset("leaf-litter.mjs?rev=__LEAF_LITTER_HASH__"))
+  .catch(error=>{console.warn("kerbside: the fallen leaves are unavailable",error);return null;});
 //: Street paint reconciled before it is laid, and the city's record of it (docs/street-paint.mjs,
 //: docs/street-paint.json). Without the module each pass lays its own paint, as before.
 const paintLibrary = await import(sharedAsset("street-paint.mjs?rev=__STREET_PAINT_HASH__"))

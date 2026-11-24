@@ -88,6 +88,47 @@ export function makeClock(spec) {
   return { game, real, rate, after, phase, sun, cycle, dayReal, nightReal, epoch, lat, lon };
 }
 
+// ---- time held ---------------------------------------------------------------------------------
+//
+// The practice game can hold its clock (the owner, 2026-11-23: a way to test a change against the
+// same hour of the same day, as often as wanted). Everything that reads the game's time reads it
+// through ``clockTime``: the real time, less however long the clock has stood in all (``skew``),
+// or the moment it was stopped at while it is held. The sky, the books and the hours shops keep
+// stand still; the street does not -- people and traffic go on moving at real speed through a
+// short window of the held hour (``holdWindow``), each on their own phase of it, so that how many
+// are out, and doing what, stays what that hour has (``heldOffset``). One state for the page: the
+// sky (environment-runtime.mjs) and the city read the same hold. Never set where a server keeps
+// the clock (the city online is one clock for everyone).
+
+const HOLD = (globalThis.__kerbsideClockHold ||= { at: null, since: 0, skew: 0 });
+//: The time the game's clock is read at, at real time ``realMs``.
+export function clockTime(realMs = Date.now()) { return HOLD.at !== null ? HOLD.at : realMs - HOLD.skew; }
+export const clockHeld = () => HOLD.at !== null;
+//: The clock stopped: at this moment, or at ``at`` (a clock time, as clockTime gives).
+export function holdClock(realMs = Date.now(), at = null) {
+  HOLD.at = at ?? (HOLD.at !== null ? HOLD.at : realMs - HOLD.skew);
+  HOLD.since = realMs;
+  return HOLD.at;
+}
+//: ... and let go: it runs on from where it stood.
+export function releaseClock(realMs = Date.now()) {
+  if (HOLD.at === null) return;
+  HOLD.skew = realMs - HOLD.at; HOLD.at = null;
+}
+//: The hold as kept between visits ({at, skew} or null), and put back.
+export const clockHoldState = () => (HOLD.at !== null || HOLD.skew ? { at: HOLD.at, skew: HOLD.skew } : null);
+export function restoreClockHold(state, realMs = Date.now()) {
+  HOLD.at = Number.isFinite(state?.at) ? state.at : null; HOLD.skew = Number.isFinite(state?.skew) ? state.skew : 0; HOLD.since = realMs;
+}
+//: While the clock is held, how far into the held window (real ms, 0 to ``window``) phase ``k`` of
+//: ``of`` is at real time ``realMs``, and how many times it has been round (``turn``): each phase
+//: starts a different way through the window, so at any moment the phases are spread evenly over
+//: the whole of it -- what is out on the street is the window's average, and stays so.
+export function heldOffset(realMs, k, of, window) {
+  const run = Math.max(0, realMs - HOLD.since) + (k / of) * window, turn = Math.floor(run / window);
+  return { offset: run - turn * window, turn };
+}
+
 //: The clock the page's sky runs on before (and without) the city's rules: the same as rules.json
 //: ``clock`` (tests/city_clock.test.mjs holds them equal).
 export const CLOCK_SPEC = Object.freeze({ zone: "America/Los_Angeles", day_minutes: 48, night_minutes: 24, epoch: "2026-11-14T08:00:00Z", start: "2026-11-14", lat: 37.8, lon: -122.43 });
