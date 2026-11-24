@@ -685,7 +685,19 @@ const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let pressedAt = [0, 0];
-canvas.addEventListener("pointerdown", (e) => { pressedAt = [e.clientX, e.clientY]; });
+//: A press in the game that is the city's to hold (the food or drink in your hand: eaten while the
+//: button is down, docs/city/view.mjs pressDown); its release is then the city's, not a click.
+let cityPress = false;
+canvas.addEventListener("pointerdown", (e) => {
+  pressedAt = [e.clientX, e.clientY];
+  if (e.button !== 0 || !cityGame() || typeof livingCity === "undefined" || !livingCity?.pressDown) return;
+  pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(pointer, camera);
+  cityPress = Boolean(livingCity.pressDown(ray));
+});
+const endCityPress = () => { if (cityPress) { cityPress = false; livingCity?.pressUp?.(); return true; } return false; };
+canvas.addEventListener("pointercancel", endCityPress);
+addEventListener("blur", endCityPress);
 const tip = document.getElementById("tip");
 
 const wayIndex = new WeakMap(DATA.ways.map((way, index) => [way, index]));
@@ -1130,6 +1142,7 @@ function goToNow(landing, { travel = false, zoom = false } = {}) {
 }
 
 canvas.addEventListener("pointerup", (e) => {
+  if (endCityPress()) return;
   // A drag is an orbit, not a destination. Only a press that barely moved counts as a click.
   if (Number.isFinite(pressedAt[0]) && Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 5) return;
   if (e.button === 2) return;   // a right click (a trackpad's two-finger tap) does nothing
@@ -1138,7 +1151,8 @@ canvas.addEventListener("pointerup", (e) => {
   ray.setFromCamera(pointer, camera);
   // The searched place's pin: a click on it goes there (in City mode too, within its area).
   if (e.button === 0 && pinnedPlaceHit(ray)) return;
-  // In the game a click is the city's (a shop's checkout panel, else a swing); nobody is flown.
+  // In the game a click is the city's (a seat, someone to talk to, a thing to pick up, set down or
+  // push: docs/city/view.mjs click); nobody is flown.
   if (cityGame()) { if (e.button === 0 && typeof livingCity !== "undefined" && livingCity?.click) livingCity.click(ray); return; }
   if(e.button===0 && activateBillboard(ray))return;
   // A marker is a place across the bay, not a link to another page: clicking one flies you
@@ -1195,22 +1209,26 @@ function levelsAt(x, z) {
   out.sort((a, b) => a - b);
   return out.filter((y, i) => i === 0 || y - out[i - 1] > 1.5);
 }
-//: PageUp / PageDown: to the next level up or down where you stand -- onto the bridge over the
-//: street, down from the upper deck to the lower, back to the ground.
+//: Shift + Up / Shift + Down, standing still: to the next level up or down where you stand -- onto
+//: the bridge over the street, down from the upper deck to the lower, back to the ground. (They
+//: were PageUp / PageDown.) Where there is no other level, or while you walk, Shift + Up is the
+//: sprint it always was and Shift + Down the turn round. Listened for first (capture), so a level
+//: change is not also a step.
 addEventListener("keydown", (e) => {
-  if ((e.key !== "PageUp" && e.key !== "PageDown") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!e.shiftKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown") || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || state.explore) return;
-  if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding || livingCity?.inside)) return;
+  if (typeof livingCity !== "undefined" && (livingCity?.driving || livingCity?.riding || livingCity?.inside || livingCity?.climbing)) return;
+  if ([...held].some((k) => k !== e.key) || avatar.userData.lastMoving) return;
   const x = avatar.position.x, z = avatar.position.z, feet = walkerFeetY();
   const levels = levelsAt(x, z);
-  const next = e.key === "PageUp" ? levels.find((y) => y > feet + 1) : [...levels].reverse().find((y) => y < feet - 1);
-  e.preventDefault();
+  const next = e.key === "ArrowUp" ? levels.find((y) => y > feet + 1) : [...levels].reverse().find((y) => y < feet - 1);
   if (next === undefined) return;
+  e.preventDefault(); e.stopImmediatePropagation(); held.delete(e.key);
   avatar.position.y = AVATAR_STAND_Y + walkerGroundAt(x, z, next);
   state.target.copy(avatar.position);
   placeCamera();
   if (addrBox) { addrBox.textContent = `Level ${levels.indexOf(next) + 1} of ${levels.length} here (${Math.round(next)} m)`; addrBox.hidden = false; }
-});
+}, true);
 
 canvas.addEventListener("contextmenu", (e) => {
   // No teleport on a right click: on a trackpad a two-finger tap is a right click, and one

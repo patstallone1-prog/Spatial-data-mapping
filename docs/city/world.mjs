@@ -62,7 +62,11 @@ const STRIKE_MODES = { swing: { energy: 1, stamina: 1 }, thrust: { energy: 0.6, 
 const WORK_TOOLS = new Set(["saw", "crowbar", "bolt_cutters", "knife", "shovel"]);
 //: Work by hand that is not a blow (mechanics-work.mjs): the stamina a stroke costs, and what must
 //: be in the hand for it. A box of nails holds this many.
-const LABOUR = { dig: { stamina: 0.8, tool: "shovel" }, carve: { stamina: 0.15, tool: "pocket_knife" }, hammer: { stamina: 0.35, tool: "hammer" }, push: { stamina: 0.5, tool: null } };
+const LABOUR = { dig: { stamina: 0.8, tool: "shovel" }, carve: { stamina: 0.15, tool: "pocket_knife" }, hammer: { stamina: 0.35, tool: "hammer" }, push: { stamina: 0.5, tool: null },
+  //: Setting a nail on the wood by hand, point first, ready for the hammer (a click with nails in the hand).
+  set_nail: { stamina: 0.02, tool: null } };
+//: How far from where you stand you can set a thing down (m).
+const PLACE_REACH_M = 2.5;
 const NAILS_PER_BOX = 50;
 
 export class CityError extends Error {}
@@ -455,7 +459,8 @@ export class CityWorld {
     return { item, effect, vitals: p.vitals };
   }
   //: Putting something down where you stand, for anyone to pick up.
-  cmd_drop(pid, { item, qty = 1 }) {
+  //: Putting something down: at your feet, or (``spot``: {x, z}) set down where you clicked within reach.
+  cmd_drop(pid, { item, qty = 1, spot: to = null }) {
     const p = this.player(pid);
     const spec = this.R.items[item];
     qty = Math.max(1, qty | 0);
@@ -463,10 +468,11 @@ export class CityWorld {
     if (spec.parcel) throw new CityError("the parcel is someone's delivery: hand it over, or cancel the gig");
     take(p.inventory, item, qty);
     for (const slot of Object.keys(p.worn)) if (p.worn[slot] === item && !p.inventory[item]) p.worn[slot] = null;
-    const id = this.id("item");
-    this.items.set(id, { id, item, qty, x: p.x ?? 0, z: p.z ?? 0, by: pid, at: this.now });
+    handsCheck(p);
+    const id = this.id("item"), spot = this.placeSpot(p, to);
+    this.items.set(id, { id, item, qty, x: spot.x, z: spot.z, by: pid, at: this.now });
     if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
-    return { dropped: id };
+    return { dropped: id, spot };
   }
   //: Picking up what lies within reach: something dropped, or a thing found on the pavement
   //: (``found``: the district's own, seeded by its day; each is picked up once).
@@ -1092,6 +1098,9 @@ export class CityWorld {
     if (!L) throw new CityError("no such work");
     if (L.tool && !(p.hands === L.tool && p.inventory[L.tool] > 0)) throw new CityError(`that needs a ${this.R.items[L.tool]?.name.toLowerCase() || L.tool} in your hand`);
     p.loose ||= {};
+    if (kind === "set_nail") start_nail = true;
+    // A single nail picked up off the ground is used before a box is opened.
+    if (start_nail && p.inventory.nail > 0) { take(p.inventory, "nail", 1); handsCheck(p); start_nail = false; }
     if (start_nail) {
       if (!(p.loose.nails > 0)) {
         if (!(p.inventory.nails > 0)) throw new CityError("no nails: a box of nails is sold at the hardware store");
@@ -1102,7 +1111,33 @@ export class CityWorld {
     }
     const tired = p.vitals.stamina < this.R.vitals.stamina.low;
     p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - L.stamina) };
-    return { kind, tired, nails: p.loose.nails ?? 0, vitals: p.vitals };
+    return { kind, tired, nails: (p.loose.nails ?? 0) + (p.inventory.nail || 0), vitals: p.vitals };
+  }
+  //: A nail set on the wood and let go of before it was hammered: it drops where it was (``at``),
+  //: one nail lying on the ground (``spot``), picked up again like anything else.
+  cmd_drop_nail(pid, { spot: to = null } = {}) {
+    const p = this.player(pid);
+    const spot = this.placeSpot(p, to);
+    const id = this.id("item");
+    this.items.set(id, { id, item: "nail", qty: 1, x: spot.x, z: spot.z, by: pid, at: this.now });
+    if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
+    return { dropped: id, spot };
+  }
+  //: Where a thing set down goes: ``at`` if it is within reach of you, else at your feet.
+  placeSpot(p, at) {
+    if (at && Number.isFinite(at.x) && Number.isFinite(at.z) && (p.x === undefined || Math.hypot(at.x - p.x, at.z - p.z) <= PLACE_REACH_M)) return { x: +at.x, z: +at.z };
+    return { x: p.x ?? 0, z: p.z ?? 0 };
+  }
+  //: Something lying on the ground pushed along (a click on it, then the arrows): it is where
+  //: you pushed it, no further than a stride a step from where it was.
+  cmd_move_item(pid, { id, to } = {}) {
+    const p = this.player(pid), thing = this.items.get(id);
+    if (!thing) throw new CityError("nothing there to push");
+    if (!to || !Number.isFinite(to.x) || !Number.isFinite(to.z)) throw new CityError("push it where?");
+    if (p.x !== undefined && Math.hypot(thing.x - p.x, thing.z - p.z) > 4) throw new CityError("too far to reach");
+    const d = Math.hypot(to.x - thing.x, to.z - thing.z), k = d > 1.5 ? 1.5 / d : 1;
+    thing.x += (to.x - thing.x) * k; thing.z += (to.z - thing.z) * k;
+    return { id, x: thing.x, z: thing.z };
   }
   //: An open-handed shove (mechanics-work.mjs shove decides whether they stay up). Only one that
   //: knocks someone down hurts them, and is battery when seen, reported, or done to an officer.
@@ -1772,7 +1807,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "shove", "labour", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  "strike_person", "shove", "labour", "drop_nail", "move_item", "collision", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
   ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);

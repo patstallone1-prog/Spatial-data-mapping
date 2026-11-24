@@ -2,8 +2,8 @@
  "schema": "kerbside.city_catalogue/1",
  "basis": "scripts/build_store_catalogue.mjs from docs/city/rules.json and docs/city/objects.json: everything that can be bought in the living city. Aisles, displays and the staples list are the script's own (docs/53-store-catalogue.md).",
  "counts": {
-  "items": 352,
-  "goods": 332,
+  "items": 353,
+  "goods": 333,
   "services": 20,
   "sold_somewhere": 338,
   "drawn_with_model": 246,
@@ -1582,6 +1582,22 @@
     "tint": "#8b949c",
     "drawn": true,
     "recognisable": false
+   }
+  },
+  {
+   "id": "nail",
+   "name": "Nail",
+   "price": 1,
+   "kind": "taxable",
+   "service": false,
+   "sold_at": [],
+   "aisle": null,
+   "display": null,
+   "kg": 0.01,
+   "length_m": 0.089,
+   "model": {
+    "status": "none",
+    "note": "not in the object manifest: the page draws it"
    }
   },
   {

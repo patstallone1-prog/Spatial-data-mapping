@@ -4,8 +4,9 @@
 
 ## What you can do
 
-- **K** opens **Pets**: each pet's health and hunger, feeding it from what you carry, where it is
-  to be, the vet when you stand at one, and taking a new one in.
+- **Your profile, Relationships › Family** (it was K's Pets panel): each pet's health and hunger,
+  how lonely it is, feeding it from what you carry, where it is to be, the vet when you stand at
+  one, and taking a new one in.
 - **Take one in** at a pet shop or a vet's for the fee (dog 180, cat 120, rabbit 70), or through
   the same panel anywhere for a quarter more: brought to you. Four at most.
 - **Food**: dog food, cat food and treats are on the shelves of the Marina's pet shops, vets and

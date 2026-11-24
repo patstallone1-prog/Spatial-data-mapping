@@ -371,6 +371,7 @@
     "screwdriver":   {"name": "Screwdriver set", "price": 18, "kg": 0.4, "kind": "taxable", "tool": "build", "material_of": "plastic", "hold": "hand", "length_m": 0.3},
     "wrench":        {"name": "Adjustable wrench", "price": 18, "kg": 0.4, "kind": "taxable", "tool": "repair", "material_of": "steel", "hold": "tool", "length_m": 0.25},
     "nails":         {"name": "Box of nails", "price": 8, "kg": 0.5, "kind": "taxable", "material": true, "material_of": "steel", "hold": "hand", "length_m": 0.15},
+    "nail":          {"name": "Nail", "price": 1, "kg": 0.01, "kind": "taxable", "material": true, "material_of": "steel", "hold": "hand", "length_m": 0.089},
     "drill":         {"name": "Cordless drill", "price": 120, "kg": 1.8, "kind": "taxable", "tool": "build", "material_of": "plastic", "hold": "hand", "length_m": 0.3},
     "tape_measure":  {"name": "Tape measure", "price": 14, "kg": 0.3, "kind": "taxable", "tool": "measure", "material_of": "plastic", "hold": "hand", "length_m": 0.1},
     "paint":         {"name": "Can of paint", "price": 45, "kg": 4, "kind": "taxable", "material": true, "material_of": "steel", "hold": "hand", "length_m": 0.25},

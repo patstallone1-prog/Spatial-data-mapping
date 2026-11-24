@@ -1,5 +1,5 @@
-// Climbing and jumping in the city: the thing in front found and measured, a climb begun on it (E,
-// or a jump at it), the arrows climbing it, its top stood on or swung over, and every jump flying
+// Climbing and jumping in the city: the thing in front found and measured, a climb begun on it (Space
+// at it: the first holds, or a jump onto, over or up it), the arrows climbing it, its top stood on or swung over, and every jump flying
 // on the way you were going. The rules of it are climb-route.mjs and climb-motion.mjs (pure); this
 // is the page's side: rays into the world, the walker moved and bent (climb-pose.mjs).
 //
@@ -133,7 +133,7 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
     return true;
   }
 
-  //: E: climb what is in front; on it, let go.
+  //: (Was E: climb what is in front; on it, let go. Space does both now; kept for the page's hooks.)
   function climbKey() {
     if (flight) return false;
     if (climb || perch?.kind === "fork") { dropFrom(); return true; }
@@ -141,7 +141,7 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
     const m = measure();
     if (!m.spec) { notify(m.why); return true; }
     if (m.d > CLIMB_REACH_M) { notify(`Closer to the ${m.name.toLowerCase()} to climb it.`); return true; }
-    if (begin(m)) notify(`Climbing the ${m.name.toLowerCase()}: the arrows climb (two for a diagonal), Space jumps off, E lets go.`);
+    if (begin(m)) notify(`Climbing the ${m.name.toLowerCase()}: the arrows climb (two for a diagonal); Space pushes off.`);
     return true;
   }
 
@@ -181,7 +181,7 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
         notify("On top: Left and Right turn you, Up walks along it, Space jumps down.");
         return;
       }
-      if (ev.kind === "sat") { perch = { kind: "fork", F: climb.frame, m: climb.m, u: 0, out: -climb.m.spec.thickness_m / 2, y: climb.m.top, yaw: climb.frame.facingYaw(1), sitting: true }; climb = null; notify("Sat in the tree: Space jumps down, E climbs down."); return; }
+      if (ev.kind === "sat") { perch = { kind: "fork", F: climb.frame, m: climb.m, u: 0, out: -climb.m.spec.thickness_m / 2, y: climb.m.top, yaw: climb.frame.facingYaw(1), sitting: true }; climb = null; notify("Sat in the tree: Down climbs down, Space jumps."); return; }
       if (ev.kind === "off") { stepOff(); return; }
     }
     if (!climb) return;
@@ -205,7 +205,8 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
 
   function stepPerch(dt, held) {
     const P = perch, F = P.F, H = P.m.top;
-    if (P.kind === "fork") { placePerch(); return; }
+    // Sat in a tree's fork: Down climbs down (lets go from the branch); Space jumps.
+    if (P.kind === "fork") { if (held.has("ArrowDown")) { dropFrom(); return; } placePerch(); return; }
     const turn = (held.has("ArrowRight") ? -1 : 0) + (held.has("ArrowLeft") ? 1 : 0);
     if (held.has("ArrowDown") && !P.turning) { P.turning = Math.PI; }
     if (P.turning) { const s = Math.min(P.turning, 3.5 * dt); P.yaw += s; P.turning -= s; if (P.turning < 1e-3) P.turning = 0; }
@@ -270,7 +271,10 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
       if (m.spec) {
         const plan = jumpPlan(faceOf(m.spec), { jump_m: j.height, distance_m: m.d, running, body: bodyNow() || undefined });
         if (plan.action !== "none" && act(plan, m)) return true;
-      }
+        // Too high to jump onto or catch the top of, but within reach: the first holds taken from
+        // where you stand, and the arrows climb on (Space is the climb's key; there is no E).
+        if (m.d <= CLIMB_REACH_M && begin(m)) { notify(`On the ${m.name.toLowerCase()}: the arrows climb (two for a diagonal); Space pushes off.`); return true; }
+      } else if (m.why && m.d <= CLIMB_REACH_M) { notify(m.why); }
     }
     // A plain jump: up by the legs, on the way you were going.
     const at = me();
@@ -392,12 +396,12 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
 
   //: What the hints say here: [{ key, label }] for the climbing controls that apply.
   function hints() {
-    if (climb) return [{ key: "↑↓←→", label: "Climb" }, { key: "Space", label: "Jump off" }, { key: "E", label: "Let go" }];
-    if (perch?.kind === "fork") return [{ key: "Space", label: "Jump down" }, { key: "E", label: "Climb down" }];
+    if (climb) return [{ key: "↑↓←→", label: "Climb" }, { key: "Space", label: "Push off" }];
+    if (perch?.kind === "fork") return [{ key: "Space", label: "Jump down" }];
     if (perch) return [{ key: "↑", label: "Walk along the top" }, { key: "Space", label: "Jump down" }];
     if (flight) return [];
     const t = thingInFront();
-    return t ? [{ key: "E", label: `Climb the ${t.name.toLowerCase()}` }, { key: "Space", label: `Jump at the ${t.name.toLowerCase()}` }] : [];
+    return t ? [{ key: "Space", label: `Climb the ${t.name.toLowerCase()}` }] : [];
   }
 
   //: For the hint strip (affordances.mjs): what is in front to climb and what Space would do at

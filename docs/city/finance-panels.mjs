@@ -190,7 +190,10 @@ export function financePanels(api) {
   //: city's server, which may have a model for it (and a set line of its own when it has not).
   function talkBox(state, who, body = {}, redraw = drawSide) {
     state.log ||= [{ from: "npc", text: setLine("opening", who) }];
-    const log = h("div", { className: "log" }, ...state.log.map((m) => h("div", { className: m.from, textContent: m.text })));
+    // A line may carry a link (a waiter's menu): {parts: [string | {link, run}]}.
+    const line = (m) => (m.parts ? h("div", { className: m.from }, ...m.parts.map((x) => (typeof x === "string" ? x : h("a", { href: "#", textContent: x.link, onclick: (ev) => { ev.preventDefault(); x.run?.(); } }))))
+      : h("div", { className: m.from, textContent: m.text }));
+    const log = h("div", { className: "log" }, ...state.log.map(line));
     const input = h("input", { type: "text", maxLength: 400, placeholder: `Say something to ${String(who.name || "them").split(" ")[0]}…`, value: state.draft || "", oninput: (e) => { state.draft = e.target.value; } });
     // While the box is up they stand and face you (view.mjs talkTo); each line keeps them a while longer.
     if (who.role === "resident") api.onTalk?.(who);

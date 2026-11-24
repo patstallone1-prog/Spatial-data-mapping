@@ -208,7 +208,9 @@ test("the figures: three tiers, a pet's the finest; nothing drawn that is not fi
   assert.ok(Math.abs(box.min.y) < 0.06, `feet at ${box.min.y.toFixed(2)}`);
   assert.ok(box.max.y > SPECIES.dog.breeds.retriever.shoulder + 0.1 && box.max.y < 1.0);
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
-  assert.ok(view.includes('k: () => openSide("pets"), l: () => animals().leashKey(),'));
+  // (K is gone: the pets are under Family on the profile; L still ties up or calls back.)
+  assert.ok(view.includes('l: () => animals().leashKey(),') && !view.includes('k: () => openSide("pets")'));
+  assert.ok(view.includes("family: () =>") && view.includes("animals().draw(fake, { close: null, status: null, p })"));
   assert.ok(view.includes("animals().frame(dt, now)") && view.includes("for (const o of animalsUI?.obstacles() || []) obstacles.push(o);"));
   assert.ok(view.includes("if (animals().draw(side, { close, status, w, p })) return;"));
 });
@@ -372,4 +374,14 @@ test("an imported bird stands on its feet facing its way, spreads its own span, 
   // The page hands the figures its loader.
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   assert.ok(view.includes("animalsView({ R, THREE, add: (m) => group.add(m), loadModel: ctx.loadModel, asset: ctx.asset,"));
+});
+
+test("a pet left on its own grows lonely, a dog sooner than a cat; with you it is not", async () => {
+  const { petLonely } = await import("../docs/city/animals.mjs");
+  const H = 3_600_000, now = 10 * 24 * H;
+  assert.equal(petLonely({ species: "dog", mode: "follow", alone_since: now - 9 * H }, now), null);
+  assert.equal(petLonely({ species: "dog", mode: "stay", alone_since: now - 0.5 * H }, now).word, "content");
+  assert.equal(petLonely({ species: "dog", mode: "home", alone_since: now - 4 * H }, now).word, "lonely");
+  assert.equal(petLonely({ species: "cat", mode: "home", alone_since: now - 4 * H }, now).word, "missing you");
+  assert.equal(petLonely({ species: "dog", mode: "tied", alone_since: now - 9 * H }, now).word, "very lonely");
 });
