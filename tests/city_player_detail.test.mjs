@@ -31,11 +31,12 @@ test("the view gives what is yours the full tier and the full model", () => {
   assert.match(VIEW, /const detail = yours \? FULL :/);
   assert.match(VIEW, /out\.push\(\{ v, detail, d: yours \? -1 :/);
   // The ridden bus or cab takes the fleet's full file (hero), once loaded.
-  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier === MODERATE, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
-  assert.match(VIEW, /const model3d = coded \? null : \(hero && fleetModel\(kind, "full"\)\) \|\| fleetModel\(kind, "npc"\);/);
-  // Your car, your party's and your parked ones: the full model always (makeCar -> dressFull).
-  // (Without the fleet's file, the street's own imported variant: fitKit.)
-  assert.match(VIEW, /if \(FLEET_FOR\[model\]\) fleetReady\(model, "full"\)\.then\(parts => \{\n\s+if \(g\.userData\.bayDisposed\) return;\n\s+if \(parts\) dressFull\(g, model, parts, colour\); else fitKit\(\);/);
+  assert.match(VIEW, /fleetOf\(v\.model, v\.shade, tier, v\.id === transit\.ride\?\.vehicle \|\| v\.mine === true\)/);
+  assert.match(VIEW, /const LEVELS = \{ full: \["full", "npc", "mid"\], npc: \["npc", "mid"\], mid: \["mid"\] \};/);
+  // Your car, your party's and your parked ones: its body's full model always (makeCar ->
+  // dressFull); the kit's model where the body is the kit's (fitKit). Nothing code-built.
+  assert.match(VIEW, /if \(body\.source === "car" \|\| body\.source === "fleet"\) modelReady\(bodyFile\(body, "full"\)\)\.then\(\(parts\) => \{\n\s+if \(g\.userData\.bayDisposed\) return;\n\s+if \(parts\) dressFull\(g, model, parts, colour\); else fitKit\(\);/);
+  assert.ok(!/vehicleGroup|vehicleParts/.test(VIEW), "no code-built car");
   // A bicycle of yours: the full tier, its wheels and crank turning, and you on it in full.
   assert.match(VIEW, /const tier = b\.mine \? FULL : detailNow \? detailNow\.tier\("people", b\.x, b\.z\) : FULL;/);
   assert.match(VIEW, /\.\.\.\(b\.mine \? \{ detail: FULL \} : \{\}\)/);

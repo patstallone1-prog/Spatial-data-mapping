@@ -657,8 +657,6 @@ test("a shop's staff stand behind its counter", () => {
 
 // ---- street life, density, where you are, and the vehicles (2026-11-08) ------------------------
 import { densityAt } from "../docs/city/people.mjs";
-import * as THREE from "../docs/vendor/three-0.160.0/three.module.min.js";
-import { VEHICLE_DIMS, vehicleParts } from "../docs/city/vehicles.mjs";
 
 function gridStreets(n = 8, step = 100) {
   const ways = [];
@@ -712,16 +710,3 @@ test("where you are: the real outlines, a town in its county, San Francisco a ci
   assert.equal(jurisdictionAt(R, -122.52, 37.83).name, "San Francisco");
 });
 
-test("every kind of vehicle is built to its size, with glass and an inside", () => {
-  for (const [kind, [w, h, l]] of Object.entries(VEHICLE_DIMS)) {
-    const parts = vehicleParts(THREE, kind), box = new THREE.Box3();
-    for (const slot of ["paint", "glass", "fixed"]) {
-      assert.ok(parts[slot].getAttribute("position").count > 0, `${kind} ${slot}`);
-      parts[slot].computeBoundingBox(); box.union(parts[slot].boundingBox);
-      assert.ok(!parts[slot].getAttribute("position").array.some(Number.isNaN));
-    }
-    assert.ok(Math.abs(box.max.z - box.min.z - l) < 0.2, `${kind} length`);
-    assert.ok(Math.abs(box.max.y - h) < 0.25 && box.min.y >= -0.01, `${kind} height`);
-    assert.ok(box.max.x - box.min.x < w + 0.5, `${kind} width`);
-  }
-});

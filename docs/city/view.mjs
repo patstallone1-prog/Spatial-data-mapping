@@ -31,7 +31,7 @@ import { cityLive, syncPlan } from "./live.mjs";
 import { witnessOf } from "./enforcement.mjs";
 import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
 import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
-import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleGroup, vehicleLampAnchors, vehicleMaterials, vehicleParts, wheelTurn } from "./vehicles.mjs";
+import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
@@ -840,12 +840,12 @@ diffuseColor.rgb *= kbCloth;`);
   // Loaded with the city, not when the first person comes near: nobody waits for the files.
   figures.start?.();
   let figuresLast = 0;
-  // The traffic: each kind of vehicle its own three instanced parts (vehicles.mjs) -- paint,
-  // glass and the rest -- so a bus is a bus and a pickup has its bed, and the seats and the wheel
-  // show through the windows. They were one painted box and a pale cabin box for every kind.
-  const VMAT = vehicleMaterials(THREE), fleet = new Map();
-  // The traffic's bodies where the imported fleet has none: the Kenney Car Kit's (vehicles.mjs),
-  // loaded once; the code-built ones until they are.
+  // The traffic: every car an imported body (vehicles.mjs bodyOf: the bought-in cars by how many
+  // of each California buys, the rest the fleet pack's and the Kenney kit's), each body's parts
+  // instanced -- paint, glass and the rest -- so a bus is a bus and a pickup has its bed. The
+  // same body at every tier: its "npc" file near you, its "mid" one further off, a box beyond.
+  const fleet = new Map();
+  // The Kenney Car Kit's bodies (vehicles.mjs), loaded once.
   const kenney = new Map();   // kit model name -> {geometry, material} | null
   const kenneyLoads = new Map();
   let kenneyLoading = false;
@@ -861,30 +861,31 @@ diffuseColor.rgb *= kbCloth;`);
       }).catch((error) => { kenney.set(name, null); console.warn("kerbside: a car model did not load", name, error); }));
     }
   }
-  const kenneyOf = (model, shade) => {
-    return kenney.get(kenneyVariant(model, shade)) || null;
-  };
   loadKenney();
-  // The imported fleet (vehicles.mjs FLEET_FOR; docs/city/models/fleet): each kind it draws has
-  // two files, the traffic's ("npc", loaded with the page: a few dozen kilobytes each) and the
-  // full one -- inside and all -- for the one you drive or ride, loaded when it is first wanted.
-  const fleetModels = new Map();   // "kind:tier" -> parts (vehicles.mjs fleetParts) | null (failed) | "loading"
-  //: The parts of the fleet's model of ``kind`` at ``tier`` ("npc" or "full"), or null until it
-  //: has loaded (and asked for, the first time).
-  function fleetModel(kind, tier = "npc") {
-    const key = `${kind}:${tier}`, have = fleetModels.get(key);
+  // The bodies' files (vehicles.mjs bodyFile): the traffic's ("npc" and "mid", a few dozen
+  // kilobytes each, asked for when a car first wants them) and the full one -- inside and all --
+  // for the one you drive or ride.
+  const bodyModels = new Map();   // file -> parts (vehicles.mjs fleetParts) | null (failed) | "loading"
+  const bodyLoads = new Map();    // file -> the promise of its parts
+  //: The parts of the model in ``file``, or null until it has loaded (and asked for, the first time).
+  function modelAt(file) {
+    if (!file) return null;
+    const have = bodyModels.get(file);
     if (have !== undefined) return have === "loading" ? null : have;
-    const file = fleetFile(kind, tier);
-    if (!file || !ctx.loadModel) { fleetModels.set(key, null); return null; }
-    fleetModels.set(key, "loading");
-    fleetLoads.set(key, ctx.loadModel(ctx.asset(file)).then((gltf) => { const parts = fleetParts(THREE, gltf); fleetModels.set(key, parts); return parts; })
-      .catch((error) => { fleetModels.set(key, null); console.warn("kerbside: a vehicle model did not load", file, error); return null; }));
+    if (!ctx.loadModel) { bodyModels.set(file, null); return null; }
+    bodyModels.set(file, "loading");
+    bodyLoads.set(file, ctx.loadModel(ctx.asset(file)).then((gltf) => { const parts = fleetParts(THREE, gltf); bodyModels.set(file, parts); return parts; })
+      .catch((error) => { bodyModels.set(file, null); console.warn("kerbside: a vehicle model did not load", file, error); return null; }));
     return null;
   }
-  const fleetLoads = new Map();   // "kind:tier" -> the promise of its parts
-  //: The fleet's model of ``kind`` at ``tier`` when it has loaded (null: none, or it failed).
-  const fleetReady = (kind, tier) => { const now = fleetModel(kind, tier); return now ? Promise.resolve(now) : fleetLoads.get(`${kind}:${tier}`) || Promise.resolve(null); };
-  for (const kind of Object.keys(FLEET_FOR)) fleetModel(kind, "npc");
+  //: The parts in ``file`` once loaded (null: none, or it failed).
+  const modelReady = (file) => { const now = modelAt(file); return now ? Promise.resolve(now) : bodyLoads.get(file) || Promise.resolve(null); };
+  //: The fleet's model of ``kind`` at ``tier`` ("npc", "mid" or "full"): for looking at the fleet.
+  const fleetReady = (kind, tier) => modelReady(fleetFile(kind, tier));
+  // The traffic's files are asked for with the page (about a megabyte in all): a car comes into view
+  // as itself, not as a box until its file arrives.
+  for (const kind of Object.keys(FLEET_FOR)) for (const tier of ["npc", "mid"]) modelAt(fleetFile(kind, tier));
+  for (const id of Object.keys(CAR_MODELS)) for (const tier of ["npc", "mid"]) modelAt(bodyFile({ source: "car", id }, tier));
   //: One instanced mesh of ``geo`` with ``mat``, ``cap`` of them, for the traffic.
   const instanced = (geo, mat, cap, name) => {
     const m = new THREE.InstancedMesh(geo, mat, cap);
@@ -892,46 +893,45 @@ diffuseColor.rgb *= kbCloth;`);
     group.add(m);
     return m;
   };
-  //: A kind's body for the traffic, as instanced parts ({ parts: [{ mesh, tint }], cap, n }:
-  //: ``tint`` takes the car's colour). Finest first: the fleet's model when it has one for the kind
-  //: (``hero``: the full one -- the bus or the cab you ride in -- once loaded), else the Kenney
-  //: kit's; ``coded``: the code-built body (vehicles.mjs vehicleParts) whether or not those have
-  //: loaded -- the traffic's moderate tier (detail.mjs): the right shape for its kind, and a few
-  //: hundred triangles to the models' thousands.
-  const fleetOf = (model, shade = 0, coded = false, hero = false) => {
-    const kind = VEHICLE_DIMS[model] ? model : "sedan";
-    const model3d = coded ? null : (hero && fleetModel(kind, "full")) || fleetModel(kind, "npc");
-    if (model3d) {
-      const full = hero && model3d === fleetModels.get(`${kind}:full`), key = `fleet:${kind}:${full ? "full" : "npc"}`;
-      if (!fleet.has(key)) {
-        const cap = full ? 4 : kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
-        const parts = model3d.map((part) => {
-          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : null }), cap, `city-traffic-${kind}-${full ? "full" : "npc"}-${part.name}`);
-          mesh.castShadow = !part.glass; if (part.glass) mesh.renderOrder = 2;
-          return { mesh, tint: part.tint };
-        });
-        fleet.set(key, { parts, cap, n: 0, fleet: true });
-      }
-      return fleet.get(key);
-    }
-    const kit = coded ? null : kenneyOf(kind, shade);
-    if (kit) {
+  //: Which levels a body may be drawn at, finest first, for a car that wants ``tier``: a coarser
+  //: one stands in while the wanted file loads, never a finer one (the far traffic's cost stays
+  //: the far traffic's); null when none has loaded (the box is drawn).
+  const LEVELS = { full: ["full", "npc", "mid"], npc: ["npc", "mid"], mid: ["mid"] };
+  //: A car's body for the traffic, as instanced parts ({ parts: [{ mesh, tint }], cap, n }:
+  //: ``tint`` takes the car's colour): its body (vehicles.mjs bodyOf, by its number ``shade``)
+  //: at the level its ring wants (detail.mjs: FULL the npc file, MODERATE the mid one; ``hero``,
+  //: the bus or the cab you ride in, the full one); the kit's one model at every level.
+  const fleetOf = (model, shade = 0, tier = FULL, hero = false) => {
+    const body = bodyOf(model, shade), kind = body.kind;
+    if (body.source === "kit") {
+      const kit = kenney.get(body.id);
+      if (!kit) return null;
       const key = `kenney:${kit.name}`;
       if (!fleet.has(key)) {
         const cap = kind === "box_truck" ? 40 : MAX_CARS;
         const m = instanced(kit.geometry, kit.material, cap, `city-traffic-${kit.name}`);
-        m.castShadow = true;
-        fleet.set(key, { parts: [{ mesh: m, tint: true }], cap, n: 0, livery: kit.livery });
+        m.castShadow = true; m.userData.surface = "car:body";
+        fleet.set(key, { parts: [{ mesh: m, tint: true }], cap, n: 0, livery: kit.livery, dims: bodyDims(body) });
       }
       return fleet.get(key);
     }
-    if (!fleet.has(kind)) {
-      const parts = vehicleParts(THREE, kind), cap = kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
-      const paint = instanced(parts.paint, VMAT.paint, cap, `city-traffic-${kind}`), fixed = instanced(parts.fixed, VMAT.fixed, cap, `city-traffic-${kind}`), glass = instanced(parts.glass, VMAT.glass, cap, `city-traffic-${kind}`);
-      paint.castShadow = fixed.castShadow = true; glass.renderOrder = 2;
-      fleet.set(kind, { parts: [{ mesh: paint, tint: true }, { mesh: fixed, tint: false }, { mesh: glass, tint: false }], cap, n: 0 });
+    for (const level of LEVELS[hero ? "full" : tier === MODERATE ? "mid" : "npc"]) {
+      const file = bodyFile(body, level), parts = modelAt(file);
+      if (!parts) continue;
+      const full = level === "full", key = `body:${file}`;
+      if (!fleet.has(key)) {
+        const cap = full ? 4 : kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
+        const meshes = parts.map((part) => {
+          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : null }), cap, `city-traffic-${body.id}-${level}-${part.name}`);
+          mesh.castShadow = !part.glass; if (part.glass) mesh.renderOrder = 2;
+          mesh.userData.surface = carSurface(part.name);
+          return { mesh, tint: part.tint };
+        });
+        fleet.set(key, { parts: meshes, cap, n: 0, fleet: true, dims: bodyDims(body) });
+      }
+      return fleet.get(key);
     }
-    return fleet.get(kind);
+    return null;
   };
   // What moves casts no shadow from the stand-in the sun is traced through (proxy-light.mjs: it
   // is drawn now and then, not every frame). Under each car and each person near you, the dark
@@ -1548,7 +1548,7 @@ diffuseColor.rgb *= kbCloth;`);
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier === MODERATE, v.id === transit.ride?.vehicle || v.mine === true);
+      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier, v.id === transit.ride?.vehicle || v.mine === true);
       if (f && f.n >= f.cap) continue;
       const y = groundAt(v.x, v.z);
       // A wreck sits askew; a car in a crash rocks on its springs.
@@ -1580,7 +1580,7 @@ diffuseColor.rgb *= kbCloth;`);
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
       if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
       if (night && f) {
-        f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), [w, hgt, l]);
+        f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), f.dims || [w, hgt, l]);
         B.copy(M);
         for (const lamp of f.lamps) {
           M.multiplyMatrices(B, lamp.matrix);
@@ -1617,34 +1617,36 @@ diffuseColor.rgb *= kbCloth;`);
 
   // ---- your car and your party's ---------------------------------------------------------------
   //: Your car (and your party's, and yours where they are parked): always the finest there is,
-  //: whatever the traffic's rings say -- the fleet's full model, inside and all, for a kind it
-  //: draws (the code-built body, which has its seats and wheel, until that has loaded), else the
-  //: code-built one.
+  //: whatever the traffic's rings say -- its body's full file (vehicles.mjs bodyOf: a bought-in
+  //: car or the fleet's, inside and all), else the kit's model. Nothing is drawn until it has
+  //: loaded (a few hundred kilobytes; the traffic's copy of it is on the street already).
   function makeCar(model, colour, shade = 0) {
     const [w, h, l] = CAR_DIMS[model] || CAR_DIMS.sedan;
-    const g = vehicleGroup(THREE, model, colour);
-    g.userData = { model, dims: [w, h, l] };
+    const body = bodyOf(model, shade);
+    const g = new THREE.Group();
+    g.userData = { model, dims: [w, h, l], body: `${body.source}:${body.id}` };
     g.name = "city-car";
     const fitKit = async () => {
-      const variant = kenneyVariant(model, shade);
+      const variant = body.source === "kit" ? body.id : kenneyVariant(model, shade);
       await kenneyLoads.get(variant);
       const kit = kenney.get(variant);
       if (!kit || g.userData.bayDisposed) return;
       clearCarBody(g);
-      g.add(importedKitCar(THREE, kit, colour));
+      const mesh = importedKitCar(THREE, kit, colour);
+      mesh.userData.surface = "car:body";
+      g.add(mesh);
       g.userData.variant = variant;
     };
-    if (FLEET_FOR[model]) fleetReady(model, "full").then(parts => {
+    if (body.source === "car" || body.source === "fleet") modelReady(bodyFile(body, "full")).then((parts) => {
       if (g.userData.bayDisposed) return;
       if (parts) dressFull(g, model, parts, colour); else fitKit();
     });
     else fitKit();
     return g;
   }
-  //: ``g``'s code-built body swapped for the fleet's full model: one of each part (an instance of
-  //: one, so the paint takes the car's colour as the traffic's does).
+  //: ``g``'s body taken off (its materials are its own; the geometry is the shared model's).
   function clearCarBody(g) {
-    for (const o of [...g.children]) { o.removeFromParent(); if (o.material && o.material !== VMAT.fixed && o.material !== VMAT.glass) o.material.dispose(); }
+    for (const o of [...g.children]) { o.removeFromParent(); o.material?.dispose?.(); }
   }
   function dressFull(g, model, parts, colour) {
     clearCarBody(g);
@@ -1655,6 +1657,7 @@ diffuseColor.rgb *= kbCloth;`);
       mesh.castShadow = !part.glass; mesh.receiveShadow = true; mesh.frustumCulled = false;
       if (part.glass) mesh.renderOrder = 2;
       mesh.name = `city-car-${part.name}`;
+      mesh.userData.surface = carSurface(part.name);
       g.add(mesh);
     }
     g.userData.full = true;
@@ -6824,7 +6827,7 @@ diffuseColor.rgb *= kbCloth;`);
       // (The clock starts at the city's first frame, not at the first time this is asked.)
       const gaveUp = Boolean(aliveSeen.started) && now - aliveSeen.started > ALIVE_GIVE_UP_MS;
       if (!district.city) return { ready: gaveUp, waiting: "the city's streets" };
-      const loadingModels = [...fleetModels.values()].filter((m) => m === "loading").length;
+      const loadingModels = [...bodyModels.values()].filter((m) => m === "loading").length;
       if (loadingModels) { aliveSeen.since = 0; return { ready: gaveUp, waiting: `vehicles (${loadingModels})` }; }
       const moving = visible.people.some((e) => e.moving) || visible.vehicles.some((v) => v.moving || Math.abs(v.speed ?? v.v ?? 0) > 0.5);
       const out = visible.people.length + visible.vehicles.length;

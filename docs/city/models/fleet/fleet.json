@@ -25,6 +25,16 @@
      "body",
      "glass"
     ]
+   },
+   "mid": {
+    "file": "cuore-mid.glb",
+    "bytes": 18004,
+    "triangles": 1592,
+    "groups": [
+     "body",
+     "glass"
+    ],
+    "from": "cuore-npc.glb"
    }
   },
   "jeep": {
@@ -49,6 +59,15 @@
     "groups": [
      "paint-atlas"
     ]
+   },
+   "mid": {
+    "file": "jeep-mid.glb",
+    "bytes": 173780,
+    "triangles": 1599,
+    "groups": [
+     "paint-atlas"
+    ],
+    "from": "jeep-full.glb"
    }
   },
   "porsche": {
@@ -75,6 +94,16 @@
      "body",
      "glass"
     ]
+   },
+   "mid": {
+    "file": "porsche-mid.glb",
+    "bytes": 24552,
+    "triangles": 1745,
+    "groups": [
+     "body",
+     "glass"
+    ],
+    "from": "porsche-npc.glb"
    }
   },
   "truck": {
@@ -101,6 +130,16 @@
      "body",
      "glass"
     ]
+   },
+   "mid": {
+    "file": "truck-mid.glb",
+    "bytes": 18076,
+    "triangles": 1598,
+    "groups": [
+     "body",
+     "glass"
+    ],
+    "from": "truck-full.glb"
    }
   },
   "bus": {
@@ -135,6 +174,17 @@
      "paint-atlas",
      "glass"
     ]
+   },
+   "mid": {
+    "file": "bus-mid.glb",
+    "bytes": 437932,
+    "triangles": 9007,
+    "groups": [
+     "atlas-e6b5309a",
+     "paint-atlas",
+     "glass"
+    ],
+    "from": "bus-npc.glb"
    }
   }
  },

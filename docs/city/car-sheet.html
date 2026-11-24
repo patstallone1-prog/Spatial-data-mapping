@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Car sheet</title>
+<!-- Every body the traffic draws (vehicles.mjs bodyOf), by eye: the bought-in cars
+     (city/models/cars) and the fleet pack's (city/models/fleet), each at its three levels --
+     full (the one you drive), npc (the traffic near you), mid (100 to 200 m off) -- in a row,
+     painted as the street paints them, through the same parts and materials as view.mjs.
+     ?lod=full,npc,mid (the rows) &view=front|side|rear|over &paint=0.37 (a car number for the
+     paint) &cam=x,y,z,tx,ty,tz. window.__cars: what was drawn, triangles a row and a body. -->
+<style>html,body{margin:0;height:100%;background:#9aa4ad}canvas{display:block}#t{position:fixed;left:8px;top:6px;font:12px/1.3 system-ui;color:#111;white-space:pre}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body><div id="t"></div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { CAR_MODELS, FLEET_FOR, bodyDims, bodyFile, carSurface, fleetMaterial, fleetParts, paintOf } from "./vehicles.mjs";
+const q = new URLSearchParams(location.search);
+const LODS = (q.get("lod") || "full,npc,mid").split(","), VIEW = q.get("view") || "front", SHADE = +(q.get("paint") ?? 0.37);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9aa4ad);
+scene.add(new THREE.HemisphereLight(0xeef2f6, 0x5d5448, 1.4));
+const sun = new THREE.DirectionalLight(0xfff4e6, 1.8); sun.position.set(-6, 10, -8); scene.add(sun);
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x77736d })));
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const bodies = [...Object.keys(CAR_MODELS).map((id) => ({ source: "car", id, kind: CAR_MODELS[id].kind })),
+  ...Object.entries(FLEET_FOR).filter(([k]) => k !== "bus").map(([kind, id]) => ({ source: "fleet", id, kind }))];
+const out = { rows: {}, bodies: {} };
+let x = 0;
+const xs = bodies.map((b) => { const w = Math.max(bodyDims(b)[0], 2.3); x += w / 2 + 0.6; const at = x; x += w / 2 + 0.6; return at; });
+const mid = x / 2;
+await Promise.all(LODS.map((lod, row) => Promise.all(bodies.map(async (body, i) => {
+  const gltf = await loader.loadAsync("../" + bodyFile(body, lod));
+  const parts = fleetParts(THREE, gltf), g = new THREE.Group();
+  let tris = 0;
+  for (const part of parts) {
+    const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: lod === "full" }), 1);
+    mesh.setMatrixAt(0, new THREE.Matrix4());
+    if (part.tint) mesh.setColorAt(0, new THREE.Color(paintOf(body.kind, SHADE + i * 0.13)));
+    if (part.glass) mesh.renderOrder = 2;
+    mesh.userData.surface = carSurface(part.name);
+    g.add(mesh);
+    tris += part.geometry.index ? part.geometry.index.count / 3 : part.geometry.attributes.position.count / 3;
+  }
+  g.position.set(xs[i] - mid, 0, -row * 7);
+  scene.add(g);
+  out.bodies[`${body.id}-${lod}`] = { triangles: tris, parts: parts.map((p) => p.name) };
+  out.rows[lod] = (out.rows[lod] || 0) + tris;
+}))));
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 400);
+const depth = (LODS.length - 1) * 7;
+const cams = { front: [0, 6, -depth - 22, 0, 0.6, -depth / 2], rear: [0, 6, 22, 0, 0.6, -depth / 2], side: [x * 0.75, 4, -depth / 2, 0, 0.6, -depth / 2], over: [0, 30, 10, 0, 0, -depth / 2] };
+const c = (q.get("cam") || "").split(",").map(Number), [cx, cy, cz, tx, ty, tz] = c.length === 6 ? c : cams[VIEW];
+camera.position.set(cx, cy, cz); camera.lookAt(tx, ty, tz);
+const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+// (Drawn again whenever the window is sized: a page opened hidden has none yet.)
+const draw = () => { const w = innerWidth || 1280, h = innerHeight || 800; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.render(scene, camera); };
+addEventListener("resize", draw); draw();
+document.getElementById("t").textContent = `${bodies.map((b) => b.id).join("  ")}\n` + LODS.map((l) => `${l}: ${Math.round(out.rows[l])} triangles`).join("\n");
+window.__cars = out;
+</script></body></html>
