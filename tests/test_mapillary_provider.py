@@ -9,9 +9,15 @@ wrong unit, and a position taken from the wrong field.
 from __future__ import annotations
 
 import unittest
+import urllib.parse
 
-from smc.imagery.mapillary import MapillaryCredentialMissing, MapillaryProvider
-from smc.imagery.region import SF_CORRIDOR
+from smc.imagery.mapillary import (
+    MAX_TILE_DEG,
+    MapillaryCredentialMissing,
+    MapillaryProvider,
+    tiles,
+)
+from smc.imagery.region import SF_CORRIDOR, BBox
 from smc.imagery.schema import METADATA_VERSION, PROJECTION_PERSPECTIVE, PROJECTION_SPHERICAL
 
 IMAGE = {
@@ -121,6 +127,115 @@ class TestMapillaryCredential(unittest.TestCase):
         with self.assertRaises(MapillaryCredentialMissing) as caught:
             list(provider.iter_region_observations(SF_CORRIDOR))
         self.assertIn("MAPILLARY_TOKEN", str(caught.exception))
+
+
+class FakeGraph:
+    """Answers ``/images?bbox=`` from a fixed set of frames, like the API does for small boxes."""
+
+    def __init__(self, frames, page=1000, cursor_pages=False):
+        self.frames, self.page, self.cursor_pages, self.boxes = frames, page, cursor_pages, []
+
+    def get_json(self, url):
+        q = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+        if "after" in q:
+            start = int(q["after"])
+            west, south, east, north = map(float, q["bbox"].split(","))
+        else:
+            start = 0
+            west, south, east, north = map(float, q["bbox"].split(","))
+            self.boxes.append((west, south, east, north))
+        inside = [
+            f
+            for f in self.frames
+            if west <= f["geometry"]["coordinates"][0] <= east
+            and south <= f["geometry"]["coordinates"][1] <= north
+        ]
+        data = inside[start : start + self.page]
+        out = {"data": data}
+        if self.cursor_pages and start + self.page < len(inside):
+            out["paging"] = {"next": url.split("&after=")[0] + f"&after={start + self.page}"}
+        return out
+
+
+def frame(i, lon, lat):
+    return {
+        **IMAGE,
+        "id": str(i),
+        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+        "computed_geometry": {"type": "Point", "coordinates": [lon, lat]},
+    }
+
+
+class TestMapillarySearchDensity(unittest.TestCase):
+    BOX = BBox(37.8000, -122.4400, 37.8025, -122.4375)  # 0.0025 degrees a side
+
+    def test_tiles_cover_the_box_and_none_is_too_big(self) -> None:
+        cells = tiles(self.BOX)
+        self.assertEqual(len(cells), 16)
+        for c in cells:
+            self.assertLessEqual(c.north - c.south, MAX_TILE_DEG + 1e-12)
+            self.assertLessEqual(c.east - c.west, MAX_TILE_DEG + 1e-12)
+        self.assertAlmostEqual(
+            sum((c.north - c.south) * (c.east - c.west) for c in cells), 0.0025 * 0.0025
+        )
+        self.assertEqual(max(c.north for c in cells), self.BOX.north)
+        self.assertEqual(max(c.east for c in cells), self.BOX.east)
+
+    def test_a_region_is_never_asked_for_whole(self) -> None:
+        # The API answers a big box with a sample and no cursor, which reads as complete.
+        graph = FakeGraph([frame(1, -122.4390, 37.8010)])
+        provider = MapillaryProvider(graph, token="t")
+        list(provider.region_rows(self.BOX))
+        self.assertEqual(len(graph.boxes), 16)
+        for west, south, east, north in graph.boxes:
+            self.assertLessEqual(north - south, MAX_TILE_DEG + 1e-9)
+            self.assertLessEqual(east - west, MAX_TILE_DEG + 1e-9)
+
+    def test_a_full_page_without_a_cursor_is_split(self) -> None:
+        cell = tiles(self.BOX)[0]
+        pts = [
+            frame(
+                i,
+                cell.west + (i % 10 + 0.5) * (cell.east - cell.west) / 10,
+                cell.south + (i // 10 + 0.5) * (cell.north - cell.south) / 10,
+            )
+            for i in range(100)
+        ]
+        graph = FakeGraph(pts, page=40)
+        provider = MapillaryProvider(graph, token="t", page_limit=40)
+        got = {r["id"] for r in provider.region_rows(cell)}
+        self.assertEqual(got, {str(i) for i in range(100)})
+        self.assertGreater(len(graph.boxes), 1)
+
+    def test_a_cursor_is_followed_instead_of_splitting(self) -> None:
+        cell = tiles(self.BOX)[0]
+        pts = [frame(i, cell.west + 1e-5 * (i + 1), cell.south + 1e-5) for i in range(30)]
+        graph = FakeGraph(pts, page=10, cursor_pages=True)
+        provider = MapillaryProvider(graph, token="t", page_limit=10)
+        got = [r["id"] for r in provider.region_rows(cell)]
+        self.assertEqual(len(got), 30)
+        self.assertEqual(len(graph.boxes), 1)
+
+    def test_a_frame_on_a_tile_edge_is_returned_once(self) -> None:
+        edge = tiles(self.BOX)[0].east
+        graph = FakeGraph([frame(7, edge, 37.8001)])
+        provider = MapillaryProvider(graph, token="t")
+        self.assertEqual([r["id"] for r in provider.region_rows(self.BOX)], ["7"])
+
+    def test_finished_tiles_are_skipped_on_resume(self) -> None:
+        from smc.imagery.region import Region
+
+        region = Region("test", self.BOX, "test box")
+        graph = FakeGraph([frame(1, -122.4390, 37.8010)])
+        provider = MapillaryProvider(graph, token="t")
+        done = []
+        provider.on_box_done = done.append
+        list(provider.iter_region_observations(region))
+        self.assertEqual(len(done), 16)
+        again = MapillaryProvider(FakeGraph([]), token="t")
+        again.completed_boxes = set(done[:10])
+        list(again.iter_region_observations(region))
+        self.assertEqual(len(again._http.boxes), 6)
 
 
 if __name__ == "__main__":
