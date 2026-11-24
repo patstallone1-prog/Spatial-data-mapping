@@ -13,6 +13,13 @@ saw squarely: 13,567 of them in the corridor. This reads each of those pictures 
 * **colour** -- the median of the wall pixels that are neither glass (dark), sky or glare
   (bright and grey) nor the black fill of a wall the cameras did not see.
 
+Each wall is read whole and in six tiles (two across, three up). Two answers are not cladding
+and are read as such: **fabric** (a canvas awning, a shade sail, an umbrella) and **smeared** (a
+motion-blurred, stretched or dark photograph). A tile whose best answer is either is left out of
+the wall's cladding vote and its colour, and a wall with no tile left gives neither. Before this,
+an awning filling the lower wall had nowhere to go but the nearest class -- clapboard -- and its
+colour was taken for the wall's, so storefronts came out as wood siding in the awning's colour.
+
 Per building, the walls' readings are pooled (weighted by how much of each wall was seen and how
 well its views agreed). A building whose pooled reading is confident gets a class; a building
 with walls read gets a colour.
@@ -60,7 +67,19 @@ PROMPTS = {
     "ceramic_tile": ["a photo of a facade covered in ceramic tiles"],
     "metal_panel": ["a photo of a facade clad in metal panels"],
     "glass_curtain_wall": ["a photo of a glass curtain wall office facade"],
+    # not cladding: read so that they are not taken for it
+    "fabric": ["a photo of a striped canvas awning", "a photo of a fabric awning over a shopfront",
+               "a photo of a canvas shade sail", "a photo of a market umbrella"],
+    "smeared": ["a motion blurred photo", "a smeared, stretched, distorted photo", "a very dark photo"],
 }
+#: Answers that are not a cladding: a tile reading as one of these (as its best answer, at
+#: least this sure) says nothing about the wall. Every rectified wall is a little smeared, so
+#: that answer needs to be clear.
+REJECT = ("fabric", "smeared")
+REJECT_MIN = {"fabric": 0.35, "smeared": 0.6}
+CLADDING = [c for c in PROMPTS if c not in REJECT]
+#: Tiles across and up a wall picture.
+TILES = (2, 3)
 #: A building is given a class when its pooled probability is at least this, and at least
 #: MIN_MARGIN ahead of the next class.
 MIN_CONFIDENCE = 0.45
@@ -84,6 +103,88 @@ def wall_colour(image: Image.Image) -> tuple[list[int], float] | None:
         return None
     median = np.median(px[wall], axis=0)
     return [round(float(v)) for v in median], float(wall.sum() / max(1, seen.sum()))
+
+
+def tiles(width: int, height: int, cols: int = TILES[0], rows: int = TILES[1]) -> list[tuple[int, int, int, int]]:
+    """Boxes (x0, y0, x1, y1) of a cols x rows grid over a picture."""
+    xs = [round(width * i / cols) for i in range(cols + 1)]
+    ys = [round(height * j / rows) for j in range(rows + 1)]
+    return [(xs[i], ys[j], xs[i + 1], ys[j + 1]) for j in range(rows) for i in range(cols)]
+
+
+def _answer(p: dict[str, float]) -> str | None:
+    """The reject answer a reading gives (its best answer, sure enough), or None."""
+    top = max(p, key=p.get)
+    return top if top in REJECT and p[top] >= REJECT_MIN[top] else None
+
+
+def cladding_of(p: dict[str, float]) -> dict[str, float]:
+    """A reading renormalised over the cladding classes."""
+    total = sum(p.get(c, 0.0) for c in CLADDING) or 1.0
+    return {c: round(p.get(c, 0.0) / total, 4) for c in CLADDING}
+
+
+def wall_reading(whole: dict[str, float], tile_probs: list[dict[str, float]]) -> tuple[str | None, list[bool]]:
+    """Whether a wall says anything about its cladding, and which of its tiles to keep.
+
+    * The whole picture smeared or fabric: the wall says nothing (``"smeared"`` / ``"fabric"``).
+    * Otherwise tiles whose best answer is fabric are left out (an awning across the shop
+      band, a shade sail); every tile reads a little smeared on its own, so a tile's smeared
+      answer is not used. The caller reads the wall again with those tiles blanked."""
+    why = _answer(whole)
+    keep = [_answer(p) != "fabric" for p in tile_probs]
+    if why is None and not any(keep):
+        why = "fabric"
+    return why, keep
+
+
+def kept_colour(image: Image.Image, boxes: list[tuple[int, int, int, int]], keep: list[bool]) -> tuple[list[int], float] | None:
+    """The wall colour (``wall_colour``) over the kept tiles only."""
+    px = np.asarray(image.convert("RGB"), dtype=np.uint8).copy()
+    for box, k in zip(boxes, keep, strict=True):
+        if not k:
+            x0, y0, x1, y1 = box
+            px[y0:y1, x0:x1] = 0  # reads as unseen
+    return wall_colour(Image.fromarray(px))
+
+
+def pool(rows: list[dict]) -> dict[str, dict]:
+    """Per building: the walls' cladding probabilities, weighted, and the median colour. Walls
+    whose every tile was fabric or smeared add nothing (but are counted)."""
+    pooled: dict[str, dict] = defaultdict(lambda: {"w": 0.0, "probs": defaultdict(float), "colours": [], "walls": 0,
+                                                   "rejected": defaultdict(int)})
+    for row in rows:
+        if not row.get("building"):
+            continue
+        b = pooled[row["building"]]
+        b["walls"] += 1
+        probs = row["cladding"] if "cladding" in row else row.get("probs")
+        if probs is None:
+            b["rejected"][row.get("rejected") or "unread"] += 1
+            continue
+        w = max(0.05, row["weight"])
+        b["w"] += w
+        for c, x in probs.items():
+            if c not in REJECT:
+                b["probs"][c] += w * x
+        if row.get("colour"):
+            b["colours"].append(row["colour"])
+    buildings = {}
+    for osm_id, b in pooled.items():
+        record: dict = {"walls": b["walls"]}
+        if b["rejected"]:
+            record["walls_rejected"] = dict(b["rejected"])
+        if b["w"] > 0:
+            probs = sorted(((x / b["w"], c) for c, x in b["probs"].items()), reverse=True)
+            (top, cls), (second, _) = probs[0], probs[1]
+            record.update({"top": cls, "p": round(top, 3), "margin": round(top - second, 3)})
+            if top >= MIN_CONFIDENCE and top - second >= MIN_MARGIN:
+                record["class"] = cls
+        if b["colours"]:
+            median = np.median(np.array(b["colours"], dtype=np.float32), axis=0)
+            record["colour"] = "#{:02x}{:02x}{:02x}".format(*(round(float(v)) for v in median))
+        buildings[osm_id] = record
+    return buildings
 
 
 def building_edges(page: Path) -> dict[tuple[int, int], list[tuple]]:
@@ -125,12 +226,14 @@ def main() -> int:
     ap.add_argument("--region", default="sf-corridor")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--out", type=Path, default=None, help="output file (default: the region's official records)")
     args = ap.parse_args()
     paths = region_paths(args.region)
     facade_root = paths.site / "facades"
-    journal_path = ROOT / "build" / "facade-photo-materials" / f"{args.region}.jsonl"
+    # v2: tiles and the fabric / smeared answers (a v1 journal has neither, so is not reused)
+    journal_path = ROOT / "build" / "facade-photo-materials" / f"{args.region}.v2.jsonl"
     journal_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path = paths.official / "facade_photo_materials.json"
+    out_path = args.out or paths.official / "facade_photo_materials.json"
 
     done: dict[str, dict] = {}
     if journal_path.exists():
@@ -171,26 +274,58 @@ def main() -> int:
         with journal_path.open("a") as journal:
             for start in range(0, len(todo), args.batch):
                 rows = todo[start: start + args.batch]
-                images, keep = [], []
+                images, crops, keep = [], [], []
                 for key, wall in rows:
                     try:
                         image = Image.open(facade_root / key).convert("RGB")
                     except OSError:
                         continue
+                    boxes = tiles(*image.size)
+                    keep.append((key, wall, image, boxes))
                     images.append(image)
-                    keep.append((key, wall, image))
+                    crops.extend(image.crop(box) for box in boxes)
                 if not images:
                     continue
                 with torch.no_grad():
-                    pixels = processor(images=images, return_tensors="pt").to(device)
+                    pixels = processor(images=images + crops, return_tensors="pt").to(device)
                     v = model.visual_projection(model.vision_model(pixel_values=pixels["pixel_values"]).pooler_output)
                     v = v / v.norm(dim=-1, keepdim=True)
                     probs = (100.0 * v @ class_text.T).softmax(dim=-1).cpu().numpy()
-                for (key, wall, image), p in zip(keep, probs, strict=True):
-                    colour = wall_colour(image)
+                whole, per_tile = probs[: len(images)], probs[len(images):]
+                n_tiles = TILES[0] * TILES[1]
+                readings = []
+                for k, ((key, wall, image, boxes), p) in enumerate(zip(keep, whole, strict=True)):
+                    wp = {c: round(float(x), 4) for c, x in zip(classes, p, strict=True)}
+                    tile_probs = [{c: round(float(x), 4) for c, x in zip(classes, row, strict=True)}
+                                  for row in per_tile[k * n_tiles:(k + 1) * n_tiles]]
+                    why, kept = wall_reading(wp, tile_probs)
+                    readings.append([wp, tile_probs, why, kept, None])
+                # walls with fabric tiles: read again with those tiles blanked
+                again = [k for k, r in enumerate(readings) if r[2] is None and not all(r[3])]
+                if again:
+                    masked = []
+                    for k in again:
+                        px = np.asarray(keep[k][2], dtype=np.uint8).copy()
+                        for box, kk in zip(keep[k][3], readings[k][3], strict=True):
+                            if not kk:
+                                x0, y0, x1, y1 = box
+                                px[y0:y1, x0:x1] = 0
+                        masked.append(Image.fromarray(px))
+                    with torch.no_grad():
+                        pixels = processor(images=masked, return_tensors="pt").to(device)
+                        v = model.visual_projection(model.vision_model(pixel_values=pixels["pixel_values"]).pooler_output)
+                        v = v / v.norm(dim=-1, keepdim=True)
+                        mp = (100.0 * v @ class_text.T).softmax(dim=-1).cpu().numpy()
+                    for k, p in zip(again, mp, strict=True):
+                        readings[k][4] = {c: round(float(x), 4) for c, x in zip(classes, p, strict=True)}
+                for (key, wall, image, boxes), (wp, tile_probs, why, kept, masked_p) in zip(keep, readings, strict=True):
+                    cladding = None if why else cladding_of(masked_p or wp)
+                    colour = kept_colour(image, boxes, kept) if cladding is not None else None
                     row = {"texture": key, "building": match_building(index, wall["a"], wall["b"]),
                            "weight": round(float(wall.get("coverage", 1.0)) * float(wall.get("agreement", 0.75)), 3),
-                           "probs": {c: round(float(x), 4) for c, x in zip(classes, p, strict=True)},
+                           "probs": wp, "cladding": cladding, "rejected": why,
+                           "fabric_tiles": [i for i, kk in enumerate(kept) if not kk],
+                           "tiles": [[max(tp, key=tp.get), tp[max(tp, key=tp.get)]] for tp in tile_probs],
                            "colour": colour[0] if colour else None,
                            "wall_share": round(colour[1], 3) if colour else None}
                     journal.write(json.dumps(row) + "\n")
@@ -201,32 +336,9 @@ def main() -> int:
                     rate = n / max(1e-6, time.time() - started)
                     print(f"  {n}/{len(todo)} walls read ({rate:.1f}/s)", flush=True)
 
-    # Pool per building.
-    pooled: dict[str, dict] = defaultdict(lambda: {"w": 0.0, "probs": defaultdict(float), "colours": [], "walls": 0})
-    for row in done.values():
-        if not row.get("building"):
-            continue
-        b = pooled[row["building"]]
-        w = max(0.05, row["weight"])
-        b["w"] += w
-        b["walls"] += 1
-        for c, x in row["probs"].items():
-            b["probs"][c] += w * x
-        if row.get("colour"):
-            b["colours"].append(row["colour"])
-    buildings = {}
-    for osm_id, b in pooled.items():
-        probs = sorted(((x / b["w"], c) for c, x in b["probs"].items()), reverse=True)
-        (top, cls), (second, _) = probs[0], probs[1]
-        record = {"walls": b["walls"], "top": cls, "p": round(top, 3), "margin": round(top - second, 3)}
-        if top >= MIN_CONFIDENCE and top - second >= MIN_MARGIN:
-            record["class"] = cls
-        if b["colours"]:
-            median = np.median(np.array(b["colours"], dtype=np.float32), axis=0)
-            record["colour"] = "#{:02x}{:02x}{:02x}".format(*(round(float(v)) for v in median))
-        buildings[osm_id] = record
-    payload = {"schema": "kerbside.facade_photo_materials/1", "region": args.region,
-               "model": MODEL, "grade": "image_clip_zero_shot",
+    buildings = pool(list(done.values()))
+    payload = {"schema": "kerbside.facade_photo_materials/2", "region": args.region,
+               "model": MODEL, "grade": "image_clip_zero_shot", "tiles": list(TILES), "reject": list(REJECT),
                "min_confidence": MIN_CONFIDENCE, "min_margin": MIN_MARGIN,
                "walls_read": len(done), "walls_total": len(walls),
                "buildings": buildings}
@@ -234,8 +346,13 @@ def main() -> int:
     classes_given = defaultdict(int)
     for r in buildings.values():
         classes_given[r.get("class", "unclassified")] += 1
+    rejected = defaultdict(int)
+    for row in done.values():
+        if row.get("cladding") is None:
+            rejected[row.get("rejected") or "unread"] += 1
     print(f"{args.region}: {len(buildings)} buildings read; classes {dict(classes_given)}; "
-          f"{sum(1 for r in buildings.values() if r.get('colour'))} with a colour", flush=True)
+          f"{sum(1 for r in buildings.values() if r.get('colour'))} with a colour; "
+          f"walls with no cladding tile {dict(rejected)}", flush=True)
     return 0
 
 
