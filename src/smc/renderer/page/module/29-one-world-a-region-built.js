@@ -24,11 +24,15 @@ function structuresAt(x, z) {
   }
   return elevatedDecksAt(x, z);
 }
+//: (No list, no closure and no pair made: this is asked for every person, car and ground height
+//: the living city looks up, every frame -- and each made garbage that added up, 2026-11-20.)
 function guestUnder(x, z) {
   const g = activeGuest;
   if (!g || !g.ready) return null;
-  const [gx, gz] = hostToGuest(g, x, z);
-  return (g.boxes || [g.box]).some((b) => gx >= b[0] && gx <= b[2] && gz >= b[1] && gz <= b[3]) ? g : null;
+  const gx = (x - g.ox) / g.sx, gz = z - g.oz;
+  if (!g.boxes) { const b = g.box; return gx >= b[0] && gx <= b[2] && gz >= b[1] && gz <= b[3] ? g : null; }
+  for (let i = 0; i < g.boxes.length; i += 1) { const b = g.boxes[i]; if (gx >= b[0] && gx <= b[2] && gz >= b[1] && gz <= b[3]) return g; }
+  return null;
 }
 function regionAt(lon, lat) {
   let best = null, bestD = Infinity;

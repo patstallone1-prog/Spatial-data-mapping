@@ -290,27 +290,39 @@ export const WALL_CLEAR_M = 0.35;
 //: Whether (x, z) is inside ``ring`` ([[x, z], ...], either way round).
 export function inRing(ring, x, z) {
   let inside = false;
+  // (Read by index, not destructured: asked for everyone near a building every frame, the
+  // destructuring made iterators -- 91 MB a second of garbage in the Marina, 2026-11-20.)
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
-    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    const pi = ring[i], pj = ring[j], xi = pi[0], zi = pi[1], xj = pj[0], zj = pj[1];
     if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
 }
 //: The nearest point WALL_CLEAR_M outside ``ring`` from (x, z) inside it that ``ok(x, z)`` takes
 //: (in no other building), or the nearest outside point at all.
+//: (Kept in reused scratch arrays, nearest first by insertion: it is asked for everyone standing
+//: in a footprint every frame, and a list of three-number lists a wall each time was 12 MB a
+//: second of garbage in the Marina, measured 2026-11-20. Same answers.)
+let ringScratch = new Float64Array(3 * 64), ringOrder = new Int32Array(64);
 export function outOfRing(ring, x, z, ok = () => true) {
-  const cands = [];
+  if (ring.length > ringOrder.length) { ringScratch = new Float64Array(3 * ring.length); ringOrder = new Int32Array(ring.length); }
+  const C = ringScratch, O = ringOrder;
+  let n = 0;
   for (let i = 0; i < ring.length; i += 1) {
-    const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length], ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez;
+    const a = ring[i], b = ring[(i + 1) % ring.length], ax = a[0], az = a[1], ex = b[0] - ax, ez = b[1] - az, L2 = ex * ex + ez * ez;
     if (L2 < 1e-6) continue;
     const u = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)), qx = ax + ex * u, qz = az + ez * u, L = Math.sqrt(L2);
     let nx = ez / L, nz = -ex / L;
     if (inRing(ring, qx + nx * 0.05, qz + nz * 0.05)) { nx = -nx; nz = -nz; }
-    cands.push([Math.hypot(x - qx, z - qz), qx + nx * WALL_CLEAR_M, qz + nz * WALL_CLEAR_M]);
+    const d = Math.hypot(x - qx, z - qz), o = 3 * n;
+    C[o] = d; C[o + 1] = qx + nx * WALL_CLEAR_M; C[o + 2] = qz + nz * WALL_CLEAR_M;
+    // Stable insertion by distance (Array.prototype.sort is stable: ties keep wall order).
+    let j = n;
+    while (j > 0 && C[3 * O[j - 1]] > d) { O[j] = O[j - 1]; j -= 1; }
+    O[j] = n; n += 1;
   }
-  cands.sort((a, b) => a[0] - b[0]);
-  for (const c of cands) if (!inRing(ring, c[1], c[2]) && ok(c[1], c[2])) return [c[1], c[2]];
-  for (const c of cands) if (!inRing(ring, c[1], c[2])) return [c[1], c[2]];
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz) && ok(cx, cz)) return [cx, cz]; }
+  for (let k = 0; k < n; k += 1) { const o = 3 * O[k], cx = C[o + 1], cz = C[o + 2]; if (!inRing(ring, cx, cz)) return [cx, cz]; }
   return null;
 }
 
@@ -1292,9 +1304,11 @@ export class City {
       if (x1 - x0 > 600 || z1 - z0 > 600) continue;
       const f = { pl, ring, x0, z0, x1, z1 };
       for (let i = Math.floor(x0 / CELL); i <= Math.floor(x1 / CELL); i += 1) for (let j = Math.floor(z0 / CELL); j <= Math.floor(z1 / CELL); j += 1) {
-        const k = `${i},${j}`;
-        if (!grid.has(k)) grid.set(k, []);
-        grid.get(k).push(f);
+        // (A cell's key is a number: footprintAt is asked for everyone every frame, and a string
+        // made for each ask was garbage that added up.)
+        const k = (i + 1048576) * 2097152 + j + 1048576;
+        let at = grid.get(k); if (!at) grid.set(k, at = []);
+        at.push(f);
       }
     }
     this._footprints = { n: list.length, grid, CELL };
@@ -1483,7 +1497,7 @@ export class City {
   }
   //: The footprint (a place's) that (x, z) is inside, if any but ``except`` (a place id).
   footprintAt(x, z, except = null) {
-    const F = this.footprints(), cell = F.grid.get(`${Math.floor(x / F.CELL)},${Math.floor(z / F.CELL)}`);
+    const F = this.footprints(), cell = F.grid.get((Math.floor(x / F.CELL) + 1048576) * 2097152 + Math.floor(z / F.CELL) + 1048576);
     if (!cell) return null;
     for (const f of cell) {
       if (x < f.x0 || x > f.x1 || z < f.z0 || z > f.z1 || (except !== null && f.pl.id === except)) continue;
@@ -1496,7 +1510,7 @@ export class City {
   keepOutside(pos, why = "walk") {
     const f = this.footprintAt(pos.x, pos.z);
     if (!f) return false;
-    const best = outOfRing(f.ring, pos.x, pos.z, (x, z) => !this.footprintAt(x, z));
+    const best = outOfRing(f.ring, pos.x, pos.z, this._inNoFootprint ??= (x, z) => !this.footprintAt(x, z));
     if (!best) return false;
     pos.x = best[0]; pos.z = best[1];
     this.wallFixes[why] = (this.wallFixes[why] || 0) + 1;
@@ -2211,7 +2225,8 @@ export class Drivers {
     };
     const into = (A, B) => {
       let worst = -Infinity;
-      for (const a of A.at) for (const b of B.at) worst = Math.max(worst, A.r + B.r + 0.25 - Math.hypot(a[0] - b[0], a[1] - b[1]));
+      const AA = A.at, BB = B.at, rr = A.r + B.r + 0.25;
+      for (let i = 0; i < AA.length; i += 1) { const a = AA[i]; for (let j = 0; j < BB.length; j += 1) { const b = BB[j]; worst = Math.max(worst, rr - Math.hypot(a[0] - b[0], a[1] - b[1])); } }
       return worst;
     };
     const others = blockers.map((o, k) => ({ id: `blocker:${k}`, body: bodies(o, o.length || 4.5, o.width || 1.9) }));

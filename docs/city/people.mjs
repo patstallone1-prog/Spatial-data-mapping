@@ -662,7 +662,7 @@ export function alongRoute(route, d, side = 0) {
   const offOf = (i) => (fn ? side(route.halves?.[i] ?? 0, route.classes?.[i], route.parks?.[i], i, route) : side);
   // Segment i (from pts[i] to pts[i+1]) carried on past its ends, offset by its own side, at dd.
   const on = (i, off, dd = d) => {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = s[i + 1] - s[i] || 1, t = (dd - s[i]) / len;
+    const pa = pts[i], pb = pts[i + 1], ax = pa[0], az = pa[1], bx = pb[0], bz = pb[1], len = s[i + 1] - s[i] || 1, t = (dd - s[i]) / len;
     const dx = (bx - ax) / len, dz = (bz - az) / len;
     // Right of travel, with x to the right and z towards the viewer: (-dz, dx).
     return { x: ax + (bx - ax) * t - dz * off, z: az + (bz - az) * t + dx * off, yaw: Math.atan2(-dx, -dz), ux: dx, uz: dz };

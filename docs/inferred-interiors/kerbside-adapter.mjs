@@ -32,13 +32,19 @@ export function mountGeneratedInterior(THREE, house, entry, context, buildInferr
     const p=local(x,z),feet=(feetY()??floorY)-floorY;
     let surface=physics.surface(p[0],p[1],feet),onStair=false;
     if(surface!==null)surface+=floorY;
-    const onStep=ring=>pointInRing(p[0],p[1],ring)||ring.slice(1).some((b,i)=>{
-      const a=ring[i],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz)));
-      return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dz)<1e-5;
-    });
-    for(const s of [...house.stairs,...house.storeys.flatMap(f=>f.level_changes||[])])for(const step of s.steps)if(step.top_m<=feet+.22&&onStep(step.footprint.coordinates[0])) {
+    // (On a step's outline or inside it. Read by index: this is asked for everyone drawn near the
+    // house every frame, and a copy of every step's outline each time was garbage that added up.)
+    const onStep=ring=>{
+      if(pointInRing(p[0],p[1],ring))return true;
+      for(let i=0;i+1<ring.length;i++){const a=ring[i],b=ring[i+1],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz)));
+        if(Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dz)<1e-5)return true;}
+      return false;
+    };
+    // Every step of every stair and level change, listed once (the house does not change once mounted).
+    const steps=floorSurface.steps||=[...house.stairs,...house.storeys.flatMap(f=>f.level_changes||[])].flatMap(s=>s.steps);
+    for(let k=0;k<steps.length;k++){const step=steps[k];if(step.top_m<=feet+.22&&onStep(step.footprint.coordinates[0])) {
       const y=floorY+step.top_m;if(surface===null||y>=surface-1e-5){surface=y;onStair=true;}
-    }
+    }}
     floorSurface.stairs=onStair||(house.ramps||[]).some(r=>inPolygon(p[0],p[1],r.footprint));return surface;
   };
   floorSurface.stairs=false;floorSurface.priority=2;
