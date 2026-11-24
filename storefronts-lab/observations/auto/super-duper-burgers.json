@@ -1,0 +1,418 @@
+{
+ "model": "super-duper-burgers",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.3,
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 2",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 4.0
+    },
+    {
+     "v": 4.0,
+     "h": 5.3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.colour",
+   "value": "#c87f5a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.openings",
+   "value": [
+    {
+     "id": "w2:a0.9",
+     "kind": "window",
+     "u": 0.9,
+     "v": 6.45,
+     "w": 1.73,
+     "h": 2.15,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:a7.43",
+     "kind": "window",
+     "u": 7.43,
+     "v": 6.45,
+     "w": 1.81,
+     "h": 2.15,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:a10.51",
+     "kind": "window",
+     "u": 10.51,
+     "v": 6.45,
+     "w": 1.84,
+     "h": 2.15,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:a13.08",
+     "kind": "window",
+     "u": 13.08,
+     "v": 6.45,
+     "w": 1.84,
+     "h": 2.15,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:a15.7",
+     "kind": "window",
+     "u": 15.7,
+     "v": 6.45,
+     "w": 1.07,
+     "h": 2.15,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:a4.61",
+     "kind": "window",
+     "u": 4.61,
+     "v": 6.99,
+     "w": 0.88,
+     "h": 1.33,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.belts",
+   "value": [
+    {
+     "v": 4.0,
+     "h": 0.2,
+     "colour": "#e8e4d8",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#3a3a3a",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.3,
+    "depth": 0.1,
+    "colour": "#3a3a3a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "band at the facade top",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-super-duper-burgers",
+     "business_id": "mb-d5422b00cfb3",
+     "name": "Super Duper Burgers",
+     "edge": 2,
+     "u0": 0.0,
+     "u1": 14.5,
+     "band_h": 4.0,
+     "category": "fast_food",
+     "brand": null,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-super-duper-burgers:g0",
+       "kind": "window",
+       "u": 0.5,
+       "v": 0.3,
+       "w": 13.5,
+       "h": 2.5,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-super-duper-burgers:awn0",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 14.5,
+       "v": 3.2,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#e86a1a",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "867239367786570",
+       "814897453148820",
+       "878605742782033",
+       "193528572832492",
+       "890611138332138",
+       "4523709984325734"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-super-duper-burgers:sign0",
+       "kind": "letters",
+       "u": 1.0,
+       "v": 3.8,
+       "w": 12.0,
+       "h": 0.4,
+       "bg": "#ffffff",
+       "layers": [
+        {
+         "type": "text",
+         "text": "SUPER DUPER BURGERS & FRIES SHAKES & DIPPED CONES",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "193528572832492",
+     "4523709984325734",
+     "814897453148820",
+     "867239367786570",
+     "878605742782033",
+     "890611138332138"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#e8e4d8",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "qwen-parklet-2-0",
+     "kind": "parklet",
+     "edge": 2,
+     "u0": 4.0,
+     "u1": 10.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "193528572832492",
+     "4523709984325734",
+     "814897453148820",
+     "867239367786570",
+     "878605742782033",
+     "890611138332138"
+    ],
+    "how": "qwen/qwen4-max reading of the registered elevation",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

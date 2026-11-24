@@ -22,7 +22,7 @@
         3.3884455301552165,
         3.3884455301552165
       ],
-      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+      "canonical_rules_sha256": "09517c77bfaf9d886eeeb645b465c7312d466ca3c75762a15786c7b1f4d6a741",
       "measured": false,
       "confidence": 0.25,
       "freshness": null,
@@ -33,12 +33,13 @@
     "id": "osm-262727844",
     "windows": [
       {
-        "u": 1.2140567065369576,
+        "u": 1.9140567065369574,
         "v": 4.188445530155207,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262727844:window:1:0",
         "edge": 1,
         "a": [
@@ -59,12 +60,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 5.092170119610873,
+        "u": 4.6421701196108724,
         "v": 4.188445530155207,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262727844:window:1:1",
         "edge": 1,
         "a": [
@@ -85,12 +87,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.2168008159091608,
+        "u": 2.7846390600300786,
         "v": 4.188445530155207,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262727844:window:5:0",
         "edge": 5,
         "a": [
@@ -111,12 +114,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 5.1004024477274825,
+        "u": 0.5923195300150393,
         "v": 4.188445530155207,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262727844:window:5:1",
         "edge": 5,
         "a": [
@@ -137,12 +141,40 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.2951513621412496,
+        "u": 5.475921161833361,
         "v": 4.188445530155207,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-262727844:window:5:2",
+        "edge": 5,
+        "a": [
+          8.206923197767935,
+          4.753364000179943
+        ],
+        "b": [
+          9.499975406664674,
+          -2.9054519999414197
+        ],
+        "normal": [
+          0.9860455224568782,
+          0.16647590709391658
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 1.3201513621412497,
+        "v": 4.188445530155207,
+        "w": 1.4,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-262727844:window:6:0",
         "edge": 6,
         "a": [
@@ -256,6 +288,36 @@
         "corroboration_count": 0
       }
     ],
+    "party_walls": [
+      {
+        "edge": 0,
+        "a": [
+          5.515263500192134,
+          -3.573371999837036
+        ],
+        "b": [
+          -9.491179133662001,
+          -6.100336000101265
+        ],
+        "u0": 0.24947074727129315,
+        "u1": 15.217715583548882,
+        "neighbour": "262727843"
+      },
+      {
+        "edge": 3,
+        "a": [
+          -9.570345595686291,
+          1.758855999988782
+        ],
+        "b": [
+          6.614797690529485,
+          4.48619599943072
+        ],
+        "u0": 0.2486867466301131,
+        "u1": 16.16463853095735,
+        "neighbour": "262727846"
+      }
+    ],
     "entrance": [
       8.770384055471936,
       1.4159558099046308
@@ -314,37 +376,7 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0,
-    "party_walls": [
-      {
-        "edge": 0,
-        "a": [
-          5.515263500192134,
-          -3.573371999837036
-        ],
-        "b": [
-          -9.491179133662001,
-          -6.100336000101265
-        ],
-        "u0": 0.24947074727129315,
-        "u1": 15.217715583548882,
-        "neighbour": "262727843"
-      },
-      {
-        "edge": 3,
-        "a": [
-          -9.570345595686291,
-          1.758855999988782
-        ],
-        "b": [
-          6.614797690529485,
-          4.48619599943072
-        ],
-        "u0": 0.2486867466301131,
-        "u1": 16.16463853095735,
-        "neighbour": "262727846"
-      }
-    ]
+    "corroboration_count": 0
   },
   "style": {
     "id": "heritage",
@@ -4586,13 +4618,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:sink_counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_sink",
+            "model": "business-lowpoly/kay-kitchencounter_sink.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.0587923537094766,
+              1.2
+            ],
             "role": "sink_counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#b47b68",
@@ -4832,13 +4870,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_straight_decorated",
+            "model": "business-lowpoly/kay-kitchencounter_straight_decorated.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.1246887508958636,
+              1.2
+            ],
             "role": "counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#b47b68",
@@ -12438,7 +12482,7 @@
   ],
   "total_height_m": 6.776891060310433,
   "partition_score": 0.21702084511979972,
-  "estimated_furniture_cost_usd": 19782,
+  "estimated_furniture_cost_usd": 19382,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -12455,7 +12499,7 @@
       "objects": 45,
       "coverage_min": 0.9999999955798983,
       "hallway_area_fraction_max": 0.2302728963140124,
-      "downloaded_assets_used": 33,
+      "downloaded_assets_used": 35,
       "connected_rooms": 18
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
@@ -12595,12 +12639,13 @@
       "id": "osm-262727844",
       "windows": [
         {
-          "u": 1.2140567065369576,
+          "u": 1.9140567065369574,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:1:0",
           "edge": 1,
           "a": [
@@ -12621,12 +12666,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.092170119610873,
+          "u": 4.6421701196108724,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:1:1",
           "edge": 1,
           "a": [
@@ -12647,12 +12693,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2168008159091608,
+          "u": 2.7846390600300786,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:5:0",
           "edge": 5,
           "a": [
@@ -12673,12 +12720,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.1004024477274825,
+          "u": 0.5923195300150393,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:5:1",
           "edge": 5,
           "a": [
@@ -12699,12 +12747,40 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2951513621412496,
+          "u": 5.475921161833361,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262727844:window:5:2",
+          "edge": 5,
+          "a": [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          "b": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "normal": [
+            0.9860455224568782,
+            0.16647590709391658
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.3201513621412497,
+          "v": 4.188445530155207,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:6:0",
           "edge": 6,
           "a": [
@@ -12816,6 +12892,36 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        }
+      ],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            5.515263500192134,
+            -3.573371999837036
+          ],
+          "b": [
+            -9.491179133662001,
+            -6.100336000101265
+          ],
+          "u0": 0.24947074727129315,
+          "u1": 15.217715583548882,
+          "neighbour": "262727843"
+        },
+        {
+          "edge": 3,
+          "a": [
+            -9.570345595686291,
+            1.758855999988782
+          ],
+          "b": [
+            6.614797690529485,
+            4.48619599943072
+          ],
+          "u0": 0.2486867466301131,
+          "u1": 16.16463853095735,
+          "neighbour": "262727846"
         }
       ],
       "entrance": [

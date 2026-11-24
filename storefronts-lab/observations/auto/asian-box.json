@@ -1,0 +1,299 @@
+{
+ "model": "asian-box",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.4,
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 4",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 4.05
+    },
+    {
+     "v": 4.05,
+     "h": 2.35
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#8a929c",
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.belts",
+   "value": [
+    {
+     "v": 3.9,
+     "h": 0.15,
+     "colour": "#7d858f",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.4.trim_colour",
+   "value": "#b06a4a",
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.2,
+    "depth": 0.1,
+    "colour": "#b06a4a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "531800662175176",
+     "694036898684423",
+     "1482237085466153"
+    ],
+    "how": "band at the facade top",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-asian-box",
+     "business_id": "mb-e9675a55bed8",
+     "name": "Asian Box",
+     "edge": 4,
+     "u0": 0.9,
+     "u1": 5.5,
+     "band_h": 4.05,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-asian-box:g0",
+       "kind": "window",
+       "u": 1.0,
+       "v": 0.4,
+       "w": 4.0,
+       "h": 3.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-asian-box:awn0",
+       "kind": "retractable",
+       "u0": 0.9,
+       "u1": 5.1,
+       "v": 3.95,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#3a3f45",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "531800662175176",
+       "694036898684423",
+       "1482237085466153"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-asian-box:sign0",
+       "kind": "board",
+       "u": 2.6,
+       "v": 4.5,
+       "w": 1.1,
+       "h": 0.9,
+       "bg": "#e8e8e8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "ASIAN BOX",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      },
+      {
+       "id": "sf-asian-box:sign1",
+       "kind": "blade",
+       "u": 5.0,
+       "v": 2.7,
+       "w": 0.5,
+       "h": 0.9,
+       "bg": "#f0f0f0",
+       "layers": []
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1482237085466153",
+     "531800662175176",
+     "694036898684423"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "qwen-sidewalk_strip-4-0",
+     "kind": "sidewalk_strip",
+     "edge": 4,
+     "u0": 1.0,
+     "u1": 5.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1482237085466153",
+     "531800662175176",
+     "694036898684423"
+    ],
+    "how": "qwen/qwen4-max reading of the registered elevation",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

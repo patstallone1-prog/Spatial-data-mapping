@@ -1,0 +1,301 @@
+{
+ "model": "balboa-cafe",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 3.5,
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 3",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 2.7
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#F5F0E8",
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 2.7,
+     "h": 0.15,
+     "colour": "#8B4513",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#8B4513",
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.05,
+    "depth": 0.05,
+    "colour": "#F5F0E8",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "no band at the facade top",
+    "confidence": 0.4,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-balboa-cafe",
+     "business_id": "mb-6237b35b6b2c",
+     "name": "Balboa Cafe",
+     "edge": 3,
+     "u0": 0.0,
+     "u1": 7.51,
+     "band_h": 2.7,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#eee8dd",
+      "accent": "#264f43",
+      "frame": "#252c2b",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-balboa-cafe:g0",
+       "kind": "window",
+       "u": 0.7,
+       "v": 0.7,
+       "w": 0.6,
+       "h": 1.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-balboa-cafe:g1",
+       "kind": "window",
+       "u": 1.4,
+       "v": 0.7,
+       "w": 0.6,
+       "h": 1.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-balboa-cafe:g2",
+       "kind": "window",
+       "u": 2.4,
+       "v": 0.8,
+       "w": 0.6,
+       "h": 1.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-balboa-cafe:g3",
+       "kind": "window",
+       "u": 3.0,
+       "v": 0.7,
+       "w": 0.6,
+       "h": 1.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-balboa-cafe:door0",
+       "kind": "door",
+       "u": 4.0,
+       "v": 0,
+       "w": 0.8,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-balboa-cafe:awn0",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 7.5,
+       "v": 2.7,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#8B4513",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": false,
+       "material": "metal_panel"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "1148065895818318"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-balboa-cafe:sign0",
+       "kind": "board",
+       "u": 0.0,
+       "v": 3.0,
+       "w": 6.0,
+       "h": 0.9,
+       "bg": "#FFFFFF",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BALBOA CAFE OFF SALE LIQUORS",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      },
+      {
+       "id": "sf-balboa-cafe:sign1",
+       "kind": "letters",
+       "u": 6.2,
+       "v": 3.1,
+       "w": 2.8,
+       "h": 1.2,
+       "bg": "#222222",
+       "layers": []
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#8B4513",
+   "evidence": {
+    "frames": [
+     "1148065895818318"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

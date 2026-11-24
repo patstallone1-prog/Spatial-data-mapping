@@ -441,6 +441,9 @@ function kerbParking(x, z, ax, az, halfLen = 2.4, kind = null) {
   }
   return null;
 }
+//: How much nearer a piece's round end has to be than any straight edge to be the kerb (m).
+//: (A var: the kerb is asked for by modules that run before this line is reached.)
+var KERB_END_NEARER_M = 0.75;
 function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = null) {
   // The closest point on a carriageway edge, and the way out of the road from there.
   //
@@ -453,17 +456,29 @@ function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = 
   const cx = Math.floor(x / CARRIAGEWAY_CELL);
   const cz = Math.floor(z / CARRIAGEWAY_CELL);
   const span = Math.max(1, Math.ceil(reach / CARRIAGEWAY_CELL));
-  let best = null;
+  // A piece's edge is two straight lines and, as the roadway test has it, a round end past each
+  // of its ends. Beside a corner of the street's line -- and a street that follows its kerb has
+  // one every few metres -- a point a hand inside the kerb is nearer the next piece's round end
+  // than the straight edge it stands beside, and that round end lies inside the roadway there:
+  // the "kerb" it gave stood up to 0.2 m in from the kerb for a metre or two either side of
+  // every corner of the line, and a gutter laid on it went in and out along the block (Webster
+  // Street, 2026-11-24). So the straight edges are asked first (``best``), and a round end
+  // (``cap``) is the kerb only where it is clearly the nearer: the end of a street, the outside
+  // of a bend.
+  let best = null, cap = null;
   for (let dx = -span; dx <= span; dx += 1) {
     for (let dz = -span; dz <= span; dz += 1) {
       const bucket = carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz));
       if (!bucket) continue;
-      for (const [ax, az, bx, bz, half] of bucket) {
+      for (const [ax, az, bx, bz, mean, , , halfA, halfB] of bucket) {
         const ux = bx - ax;
         const uz = bz - az;
         const lengthSquared = ux * ux + uz * uz;
         if (lengthSquared < 1e-9) continue;
-        const t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / lengthSquared));
+        const raw = ((x - ax) * ux + (z - az) * uz) / lengthSquared;
+        const t = Math.max(0, Math.min(1, raw)), past = raw < 0 || raw > 1;
+        // (The width beside this point: a street that follows its kerb tapers along the piece.)
+        const half = halfA === halfB || halfA === undefined ? mean : halfA + (halfB - halfA) * t;
         const px = ax + ux * t;
         const pz = az + uz * t;
         const ox = x - px;
@@ -471,7 +486,7 @@ function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = 
         const away = Math.hypot(ox, oz);
         if (away < 1e-6) continue;                 // on the centreline: no side to be on
         const gap = Math.abs(away - half);
-        if (gap > reach || (best && gap >= best.gap)) continue;
+        if (gap > reach || (past ? cap && gap >= cap.gap : best && gap >= best.gap)) continue;
         const run = Math.sqrt(lengthSquared);
         // A kerb only describes this policy line if it runs the same way the line does. Without
         // that, consecutive samples near a corner snap alternately to the two streets meeting
@@ -490,17 +505,18 @@ function nearestKerbAt(x, z, reach = CURB_SNAP_REACH_M, alongX = null, alongZ = 
         // red zones and transit boxes out in the traffic lanes of Stockton Street. If the
         // candidate is still inside a roadway it is not a kerb, whatever it is nearest to.
         if (insideCarriageway(kerbX, kerbZ, 0.30)) continue;
-        best = {
+        const found = {
           gap,
           x: kerbX, z: kerbZ,                      // the kerb itself
           nx, nz,                                  // out of the road
           ax: ux / run, az: uz / run,              // along the street
           half,
         };
+        if (past) cap = found; else best = found;
       }
     }
   }
-  return best;
+  return best && cap ? (cap.gap < best.gap - (KERB_END_NEARER_M ?? 0.75) ? cap : best) : best || cap;
 }
 
 function kerbRunsFor(record, maxTurnDeg = null) {

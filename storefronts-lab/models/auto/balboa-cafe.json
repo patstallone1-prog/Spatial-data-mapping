@@ -1,0 +1,1279 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "balboa-cafe",
+ "title": "Balboa Cafe",
+ "business_id": "mb-6237b35b6b2c",
+ "area": "marina-union",
+ "address": {
+  "number": 3199,
+  "number_hi": null,
+  "street": "FILLMORE ST",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": "fillmore",
+ "business_type": {
+  "tag": "cafe",
+  "kinds": [
+   "cafe"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.43598008,
+  37.79881559
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0018222",
+ "app_building": "272547338",
+ "footprint": [
+  [
+   -0.576,
+   3.709
+  ],
+  [
+   -30.773,
+   -0.155
+  ],
+  [
+   -29.745,
+   -8.302
+  ],
+  [
+   0.576,
+   -3.709
+  ]
+ ],
+ "height_m": 3.5,
+ "floors": [
+  {
+   "v": 0.0,
+   "h": 2.7
+  }
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#565f78",
+  "parapet_h": 0.6,
+  "cornice": {
+   "h": 0.05,
+   "depth": 0.05,
+   "colour": "#F5F0E8",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 30.44,
+   "role": "street",
+   "street": "GREENWICH ST",
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 8.21,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 30.67,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 7.51,
+   "role": "street",
+   "street": "FILLMORE ST",
+   "material": "stucco",
+   "colour": "#F5F0E8",
+   "texture_scale": 1.0,
+   "trim_colour": "#8B4513",
+   "visible": true,
+   "belts": [
+    {
+     "v": 2.7,
+     "h": 0.15,
+     "colour": "#8B4513",
+     "depth": 0.06
+    }
+   ],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   },
+   "pilasters": [],
+   "friezes": []
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-balboa-cafe",
+   "business_id": "mb-6237b35b6b2c",
+   "name": "Balboa Cafe",
+   "edge": 3,
+   "u0": 0.0,
+   "u1": 7.51,
+   "band_h": 2.7,
+   "category": "restaurant",
+   "brand": null,
+   "material": "painted_wood",
+   "palette": {
+    "wall": "#eee8dd",
+    "accent": "#264f43",
+    "frame": "#252c2b",
+    "base": "#8b8277",
+    "letter": "#f6f1e7",
+    "metal": "#a5aaa7",
+    "glass": "#a7c2c8",
+    "roughness": 0.82
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "sf-balboa-cafe:g0",
+     "kind": "window",
+     "u": 0.7,
+     "v": 0.7,
+     "w": 0.6,
+     "h": 1.3,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "sf-balboa-cafe:g1",
+     "kind": "window",
+     "u": 1.4,
+     "v": 0.7,
+     "w": 0.6,
+     "h": 1.3,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "sf-balboa-cafe:g2",
+     "kind": "window",
+     "u": 2.4,
+     "v": 0.8,
+     "w": 0.6,
+     "h": 1.2,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "sf-balboa-cafe:g3",
+     "kind": "window",
+     "u": 3.0,
+     "v": 0.7,
+     "w": 0.6,
+     "h": 1.3,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "sf-balboa-cafe:door0",
+     "kind": "door",
+     "u": 4.0,
+     "v": 0,
+     "w": 0.8,
+     "h": 2.3,
+     "leaf_count": 1,
+     "operation": "hinged"
+    }
+   ],
+   "signs": [],
+   "awnings": [
+    {
+     "id": "sf-balboa-cafe:awn0",
+     "kind": "shed",
+     "u0": 0.0,
+     "u1": 7.5,
+     "v": 2.7,
+     "depth_m": 1.0,
+     "drop_m": 0.35,
+     "valance_h": 0.22,
+     "colour": "#8B4513",
+     "stripe": null,
+     "valance_text": null,
+     "sides": true,
+     "fabric": false,
+     "material": "metal_panel"
+    }
+   ],
+   "lights": [],
+   "evidence": {
+    "kind": "observed",
+    "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+    "frames": [
+     "1148065895818318"
+    ]
+   },
+   "extra_signs": [
+    {
+     "id": "sf-balboa-cafe:sign0",
+     "kind": "board",
+     "u": 0.0,
+     "v": 3.0,
+     "w": 6.0,
+     "h": 0.9,
+     "bg": "#FFFFFF",
+     "layers": [
+      {
+       "type": "text",
+       "text": "BALBOA CAFE OFF SALE LIQUORS",
+       "x": 0.5,
+       "y": 0.62,
+       "size": 0.5,
+       "fill": "#1f1f1f"
+      }
+     ]
+    },
+    {
+     "id": "sf-balboa-cafe:sign1",
+     "kind": "letters",
+     "u": 6.2,
+     "v": 3.1,
+     "w": 2.8,
+     "h": 1.2,
+     "bg": "#222222",
+     "layers": []
+    }
+   ]
+  }
+ ],
+ "seating": [
+  {
+   "id": "sf-balboa-cafe:sidewalk",
+   "kind": "sidewalk_strip",
+   "edge": 3,
+   "u0": 0.3,
+   "u1": 7.21,
+   "offset_m": 0.15,
+   "depth_m": 0.95,
+   "table": "two_top",
+   "spacing_m": 1.55,
+   "colour": "#2f2f2c",
+   "chair_colour": "#2f2f2c",
+   "umbrellas": false,
+   "barrier": "none",
+   "evidence": {
+    "kind": "record",
+    "source": "shared_spaces",
+    "confidence": 0.8,
+    "note": "SF sidewalk table permit: strip against the facade, 6 ft clear path kept"
+   }
+  },
+  {
+   "id": "sf-balboa-cafe:parklet",
+   "kind": "parklet",
+   "edge": 3,
+   "u0": -0.5,
+   "u1": 8.01,
+   "depth_m": 1.83,
+   "deck_colour": "#7a5c43",
+   "deck_h": 0.15,
+   "barrier": "planter_wall",
+   "barrier_h": 1.07,
+   "barrier_colour": "#4b3a2c",
+   "benches": "street_side",
+   "tables": "four_top",
+   "roof": "none",
+   "roof_colour": "#e9e4d8",
+   "plants": true,
+   "evidence": {
+    "kind": "record",
+    "source": "registry_licence+shared_spaces",
+    "confidence": 0.75,
+    "note": "registry licence FIXED COMMERCIAL PARKLET; placement in front of the storefront until a photo or permit says where"
+   }
+  }
+ ],
+ "street": {
+  "name": "Fillmore Street",
+  "osm_id": 85562546,
+  "sidewalk_m": 3.89,
+  "kerb_m": 0.15,
+  "road_m": 13.64,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 10.71,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 85562546 (curb_geometry)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0166288",
+   "footprint": [
+    [
+     -27.722,
+     -20.745
+    ],
+    [
+     -32.201,
+     -21.464
+    ],
+    [
+     -31.456,
+     -26.427
+    ],
+    [
+     -26.978,
+     -25.708
+    ]
+   ],
+   "height_m": 5.8,
+   "colour": "#464445",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0059131",
+   "footprint": [
+    [
+     25.389,
+     -29.44
+    ],
+    [
+     38.09,
+     -27.249
+    ],
+    [
+     36.463,
+     -17.704
+    ],
+    [
+     37.702,
+     -16.162
+    ],
+    [
+     23.681,
+     -18.303
+    ]
+   ],
+   "height_m": 4.52,
+   "colour": "#3b4654",
+   "roof_colour": "#9ea2a6"
+  },
+  {
+   "id": "201006.0060102",
+   "footprint": [
+    [
+     40.81,
+     29.832
+    ],
+    [
+     38.921,
+     39.782
+    ],
+    [
+     36.797,
+     39.441
+    ],
+    [
+     38.811,
+     40.521
+    ],
+    [
+     37.701,
+     49.705
+    ],
+    [
+     30.095,
+     48.454
+    ],
+    [
+     31.41,
+     40.955
+    ],
+    [
+     32.834,
+     41.184
+    ],
+    [
+     33.302,
+     28.632
+    ]
+   ],
+   "height_m": 10.74,
+   "colour": "#514a46",
+   "roof_colour": "#e4ece7"
+  },
+  {
+   "id": "201006.0086890",
+   "footprint": [
+    [
+     -38.787,
+     -16.585
+    ],
+    [
+     -38.292,
+     -19.8
+    ],
+    [
+     -31.272,
+     -18.677
+    ],
+    [
+     -32.74,
+     -4.089
+    ],
+    [
+     -41.67,
+     -5.658
+    ],
+    [
+     -39.871,
+     -16.776
+    ]
+   ],
+   "height_m": 9.53,
+   "colour": "#bdb8ae",
+   "roof_colour": "#5f6680"
+  },
+  {
+   "id": "201006.0140803",
+   "footprint": [
+    [
+     -28.243,
+     -37.285
+    ],
+    [
+     -28.753,
+     -34.234
+    ],
+    [
+     -26.594,
+     -33.849
+    ],
+    [
+     -27.638,
+     -27.606
+    ],
+    [
+     -37.936,
+     -29.375
+    ],
+    [
+     -36.444,
+     -38.667
+    ]
+   ],
+   "height_m": 6.83,
+   "colour": "#474646",
+   "roof_colour": "#9ba0aa"
+  },
+  {
+   "id": "201006.0124746",
+   "footprint": [
+    [
+     48.884,
+     -14.389
+    ],
+    [
+     39.304,
+     -15.91
+    ],
+    [
+     40.834,
+     -26.468
+    ],
+    [
+     50.385,
+     -24.968
+    ]
+   ],
+   "height_m": 8.12,
+   "colour": "#d6d0c4",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0011099",
+   "footprint": [
+    [
+     -36.444,
+     -38.667
+    ],
+    [
+     -38.452,
+     -25.928
+    ],
+    [
+     -41.804,
+     -26.434
+    ],
+    [
+     -42.665,
+     -21.296
+    ],
+    [
+     -45.134,
+     -21.742
+    ],
+    [
+     -45.405,
+     -19.633
+    ],
+    [
+     -39.57,
+     -18.638
+    ],
+    [
+     -42.07,
+     -3.187
+    ],
+    [
+     -51.113,
+     -4.528
+    ],
+    [
+     -51.121,
+     -13.19
+    ],
+    [
+     -49.062,
+     -17.959
+    ],
+    [
+     -50.303,
+     -18.231
+    ],
+    [
+     -46.714,
+     -41.402
+    ]
+   ],
+   "height_m": 7.13,
+   "colour": "#bdb8ae",
+   "roof_colour": "#d2cebf"
+  },
+  {
+   "id": "201006.0011913",
+   "footprint": [
+    [
+     13.185,
+     45.678
+    ],
+    [
+     16.051,
+     27.008
+    ],
+    [
+     33.119,
+     29.743
+    ],
+    [
+     30.095,
+     48.454
+    ]
+   ],
+   "height_m": 9.05,
+   "colour": "#4e4548",
+   "roof_colour": "#dbdfd7"
+  },
+  {
+   "id": "201006.0015901",
+   "footprint": [
+    [
+     8.291,
+     -44.05
+    ],
+    [
+     5.582,
+     -42.053
+    ],
+    [
+     -23.148,
+     -48.125
+    ],
+    [
+     -22.044,
+     -55.485
+    ],
+    [
+     8.17,
+     -51.171
+    ]
+   ],
+   "height_m": 8.5,
+   "colour": "#474542",
+   "roof_colour": "#b9bbb4"
+  },
+  {
+   "id": "201006.0017574",
+   "footprint": [
+    [
+     -24.273,
+     -38.036
+    ],
+    [
+     5.805,
+     -33.142
+    ],
+    [
+     4.173,
+     -25.112
+    ],
+    [
+     -24.976,
+     -30.19
+    ]
+   ],
+   "height_m": 11.52,
+   "colour": "#bdb8ae",
+   "roof_colour": "#cccac0"
+  },
+  {
+   "id": "201006.0020959",
+   "footprint": [
+    [
+     46.138,
+     2.739
+    ],
+    [
+     20.93,
+     -1.237
+    ],
+    [
+     22.144,
+     -8.362
+    ],
+    [
+     24.221,
+     -8.043
+    ],
+    [
+     24.405,
+     -9.183
+    ],
+    [
+     47.561,
+     -5.498
+    ]
+   ],
+   "height_m": 9.94,
+   "colour": "#bdb8ae",
+   "roof_colour": "#a7acb4"
+  },
+  {
+   "id": "201006.0021609",
+   "footprint": [
+    [
+     44.853,
+     10.18
+    ],
+    [
+     21.919,
+     7.707
+    ],
+    [
+     20.647,
+     8.72
+    ],
+    [
+     18.752,
+     5.639
+    ],
+    [
+     20.93,
+     -1.237
+    ],
+    [
+     46.138,
+     2.739
+    ]
+   ],
+   "height_m": 8.06,
+   "colour": "#bdb8ae",
+   "roof_colour": "#a7acb4"
+  },
+  {
+   "id": "201006.0074415",
+   "footprint": [
+    [
+     3.919,
+     -16.954
+    ],
+    [
+     2.018,
+     -11.018
+    ],
+    [
+     -18.121,
+     -14.175
+    ],
+    [
+     -17.543,
+     -17.715
+    ],
+    [
+     -11.573,
+     -16.731
+    ],
+    [
+     -11.923,
+     -20.644
+    ],
+    [
+     3.027,
+     -18.285
+    ]
+   ],
+   "height_m": 10.81,
+   "colour": "#bdb8ae",
+   "roof_colour": "#a6a6a1"
+  },
+  {
+   "id": "201006.0146117",
+   "footprint": [
+    [
+     -47.401,
+     30.065
+    ],
+    [
+     -45.436,
+     17.379
+    ],
+    [
+     -38.642,
+     18.528
+    ],
+    [
+     -40.721,
+     30.588
+    ]
+   ],
+   "height_m": 8.61,
+   "colour": "#d9d2c3",
+   "roof_colour": "#c3cac8"
+  },
+  {
+   "id": "201006.0152600",
+   "footprint": [
+    [
+     -40.996,
+     32.31
+    ],
+    [
+     -39.099,
+     21.741
+    ],
+    [
+     -31.888,
+     22.849
+    ],
+    [
+     -33.62,
+     32.841
+    ]
+   ],
+   "height_m": 10.21,
+   "colour": "#86847b",
+   "roof_colour": "#787b85"
+  },
+  {
+   "id": "201006.0023926",
+   "footprint": [
+    [
+     4.77,
+     -22.52
+    ],
+    [
+     3.027,
+     -18.285
+    ],
+    [
+     -24.204,
+     -22.59
+    ],
+    [
+     -23.111,
+     -29.886
+    ],
+    [
+     4.173,
+     -25.112
+    ]
+   ],
+   "height_m": 10.78,
+   "colour": "#bdb8ae",
+   "roof_colour": "#9094a2"
+  },
+  {
+   "id": "201006.0031769",
+   "footprint": [
+    [
+     4.69,
+     -7.341
+    ],
+    [
+     1.403,
+     -6.57
+    ],
+    [
+     0.964,
+     -3.625
+    ],
+    [
+     -21.033,
+     -7.165
+    ],
+    [
+     -20.517,
+     -10.504
+    ],
+    [
+     -17.248,
+     -11.006
+    ],
+    [
+     -22.465,
+     -11.888
+    ],
+    [
+     -21.973,
+     -14.826
+    ],
+    [
+     5.23,
+     -10.412
+    ]
+   ],
+   "height_m": 7.71,
+   "colour": "#6a6c6a",
+   "roof_colour": "#465479"
+  },
+  {
+   "id": "201006.0036524",
+   "footprint": [
+    [
+     22.319,
+     -9.561
+    ],
+    [
+     23.681,
+     -18.303
+    ],
+    [
+     42.668,
+     -15.376
+    ],
+    [
+     41.388,
+     -6.859
+    ]
+   ],
+   "height_m": 9.22,
+   "colour": "#d6d0c4",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0159612",
+   "footprint": [
+    [
+     42.668,
+     -15.376
+    ],
+    [
+     48.884,
+     -14.389
+    ],
+    [
+     47.476,
+     -6.087
+    ],
+    [
+     41.388,
+     -6.859
+    ]
+   ],
+   "height_m": 4.89,
+   "colour": "#d6d0c4",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0006662",
+   "footprint": [
+    [
+     -31.34,
+     19.689
+    ],
+    [
+     -3.323,
+     23.671
+    ],
+    [
+     -6.24,
+     42.503
+    ],
+    [
+     -17.422,
+     40.509
+    ],
+    [
+     -16.274,
+     32.983
+    ],
+    [
+     -19.334,
+     32.497
+    ],
+    [
+     -20.48,
+     40.015
+    ],
+    [
+     -34.416,
+     37.428
+    ]
+   ],
+   "height_m": 12.8,
+   "colour": "#bdb8ae",
+   "roof_colour": "#ebf2eb"
+  },
+  {
+   "id": "201006.0007823",
+   "footprint": [
+    [
+     -6.678,
+     42.431
+    ],
+    [
+     -9.614,
+     60.785
+    ],
+    [
+     -33.988,
+     56.841
+    ],
+    [
+     -31.074,
+     38.607
+    ]
+   ],
+   "height_m": 7.02,
+   "colour": "#7e8fa2",
+   "roof_colour": "#aeb4b7"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "1148065895818318",
+   "slot": "sign",
+   "captured_at": "2022-06-08T18:50:32+00:00",
+   "camera_type": "spherical",
+   "x": 7.01,
+   "y": 0.85,
+   "z": 2.0,
+   "heading": 168.73,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "198990452206884",
+   "slot": "elevation",
+   "captured_at": "2021-08-05T16:06:15+00:00",
+   "camera_type": "spherical",
+   "x": 6.732,
+   "y": 1.325,
+   "z": 2.0,
+   "heading": 174.42,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1723429985423390",
+   "slot": "oblique-left",
+   "captured_at": "2026-10-05T09:41:46+00:00",
+   "camera_type": "perspective",
+   "x": 8.529,
+   "y": -8.85,
+   "z": 2.0,
+   "heading": 351.46,
+   "hfov": 95.68,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "834876681083754",
+   "slot": "oblique-right",
+   "captured_at": "2022-12-02T20:58:47+00:00",
+   "camera_type": "perspective",
+   "x": 18.718,
+   "y": 15.054,
+   "z": 2.0,
+   "heading": 261.84,
+   "hfov": 84.68,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "615316979450781",
+   "slot": "extra",
+   "captured_at": "2021-08-05T15:38:07+00:00",
+   "camera_type": "spherical",
+   "x": 16.482,
+   "y": 20.231,
+   "z": 2.0,
+   "heading": 265.13,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "934283100683287",
+   "slot": "extra",
+   "captured_at": "2016-09-28T11:40:43+00:00",
+   "camera_type": "perspective",
+   "x": 10.379,
+   "y": 0.289,
+   "z": 2.0,
+   "heading": 260.42,
+   "hfov": 78.84,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": "1909",
+  "stories": 1,
+  "use": "Commercial Retail",
+  "class": "Commercial Stores",
+  "historic": {
+   "ceqacode": "C",
+   "ceqacodereason": "Historic Survey Result",
+   "yearbuilt": "1909",
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {
+   "open_air_assembly": true,
+   "dining_sqft": [
+    2000,
+    null
+   ],
+   "parklet": "commercial"
+  },
+  "services": {
+   "primaryType": "restaurant",
+   "types": [
+    "restaurant",
+    "bistro",
+    "bar",
+    "food",
+    "point_of_interest",
+    "establishment"
+   ],
+   "dineIn": true,
+   "takeout": true,
+   "reservable": true,
+   "servesDinner": true,
+   "servesBreakfast": true,
+   "servesCocktails": true,
+   "userRatingCount": 887,
+   "fetched_at": "2026-11-20T23:13:52.042330Z"
+  },
+  "outdoor": {
+   "kinds": [
+    "parklet",
+    "sidewalk"
+   ],
+   "confidence": 0.9,
+   "sources": [
+    "registry_licence",
+    "shared_spaces"
+   ],
+   "osm_says_no": false
+  },
+  "last_exterior_change": null,
+  "tenants_on_face": 1
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "e34da831890c6024eb8eede692544c810656f003",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "e34da831890c6024eb8eede692544c810656f003"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "facade top from the qwen of the registered elevation of wall 3",
+   "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "storeys from the shop band top and the rows of upper windows",
+   "confidence": 0.6,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.colour": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+   "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.material": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.openings": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "dark rectangles above the shop band, snapped to rows",
+   "confidence": 0.55,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "repeating vertical runs of a second colour",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.belts": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "rows of a second colour across the wall",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "friezes are read as belts",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "qwen/qwen4-max reading",
+   "confidence": 0.5,
+   "read_by": "kerbfront qwen"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "no band at the facade top",
+   "confidence": 0.4,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "1148065895818318"
+   ],
+   "how": "shop spans from glazing, awnings and signs on each wall",
+   "confidence": 0.55,
+   "read_by": "kerbfront auto (no reviewer)"
+  }
+ },
+ "observations_applied": 12
+}
