@@ -52,6 +52,11 @@ def main(argv: list[str] | None = None) -> None:
     sk.add_argument("--photos", type=int, nargs="*", default=[])
     sk.add_argument("--snap", help="name of a studio snap in out/snaps/")
     sk.add_argument("--u", type=float, nargs=2)
+    au = sub.add_parser("auto", help="read a model's walls from its photos with no reviewer (models/auto/)")
+    au.add_argument("model", nargs="+")
+    au.add_argument("--fresh", action="store_true", help="rebuild the registered elevations")
+    sc = sub.add_parser("score", help="automatic vs reviewed model, part by part (kerbfront.auto.score)")
+    sc.add_argument("model", nargs="+")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -91,6 +96,16 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "stack":
         from .photos.stack import stack
         res = stack(a.model, a.wall, a.photos, a.snap, urange=tuple(a.u) if a.u else None)
+    elif a.cmd == "auto":
+        from .auto.run import auto
+        res = {m: auto(m, reuse=not a.fresh) for m in a.model}
+    elif a.cmd == "score":
+        from .auto.score import score
+        res = {}
+        for m in a.model:
+            r = score(m)
+            res[m] = {"agreement": r["agreement"], "passed": r["passed"], "checks": r["checks"],
+                      "failed": [f"{c['check']} (wall {c['edge']})" for c in r["detail"] if not c["pass"]]}
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)

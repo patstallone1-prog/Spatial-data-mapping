@@ -1,0 +1,489 @@
+{
+ "model": "a16",
+ "read_by": "kerbfront auto (no reviewer)",
+ "seconds": 10,
+ "elevations": {
+  "12": {
+   "edge": 12,
+   "views": 6,
+   "used": 2,
+   "frames": [
+    "816644822761650",
+    "800216694189649"
+   ],
+   "reference": "816644822761650",
+   "anchor": {
+    "end0": [
+     -0.16,
+     78.6
+    ],
+    "end1": [
+     0.8,
+     48.7
+    ],
+    "scale": 1.0,
+    "shift_u": 0.16,
+    "shift_v": 0.0
+   },
+   "align": {
+    "816644822761650": {
+     "inliers": null,
+     "score": 1.0,
+     "via": null
+    },
+    "800216694189649": {
+     "inliers": 38,
+     "score": 0.19,
+     "via": "816644822761650"
+    },
+    "1612176860411450": {
+     "inliers": 0,
+     "score": 0.0,
+     "via": null
+    },
+    "1603238894875251": {
+     "inliers": 0,
+     "score": 0.0,
+     "via": null
+    },
+    "954438091996497": {
+     "inliers": 0,
+     "score": 0.0,
+     "via": null
+    },
+    "756139575100208": {
+     "inliers": 0,
+     "score": 0.0,
+     "via": null
+    }
+   },
+   "key": "6058c10641072b8e"
+  }
+ },
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.72,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "facade top from the sky line of the registered elevation of wall 12",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 2.66
+    },
+    {
+     "v": 2.66,
+     "h": 2.83
+    },
+    {
+     "v": 5.49,
+     "h": 4.23
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.colour",
+   "value": "#4e332b",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'probs': {'wood_siding': 0.571, 'painted_brick': 0.229, 'stucco': 0.061, 'brick': 0.054}, 'tiles': 1})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.openings",
+   "value": [
+    {
+     "id": "w12:a0.95",
+     "kind": "window",
+     "u": 0.95,
+     "v": 3.18,
+     "w": 1.05,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": "#403c37",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a2.17",
+     "kind": "window",
+     "u": 2.17,
+     "v": 3.18,
+     "w": 1.09,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": "#342f28",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a4.84",
+     "kind": "window",
+     "u": 4.84,
+     "v": 3.18,
+     "w": 1.08,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": "#372e2b",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a6.06",
+     "kind": "window",
+     "u": 6.06,
+     "v": 3.18,
+     "w": 1.11,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": "#2e2422",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a0.94",
+     "kind": "window",
+     "u": 0.94,
+     "v": 6.39,
+     "w": 1.07,
+     "h": 1.75,
+     "shape": "rect",
+     "frame_colour": "#3f2c28",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a2.2",
+     "kind": "window",
+     "u": 2.2,
+     "v": 6.39,
+     "w": 1.07,
+     "h": 1.75,
+     "shape": "rect",
+     "frame_colour": "#3b2923",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a4.82",
+     "kind": "window",
+     "u": 4.82,
+     "v": 6.39,
+     "w": 1.11,
+     "h": 1.75,
+     "shape": "rect",
+     "frame_colour": "#3a2723",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w12:a6.08",
+     "kind": "window",
+     "u": 6.08,
+     "v": 6.39,
+     "w": 1.11,
+     "h": 1.75,
+     "shape": "rect",
+     "frame_colour": "#2f211e",
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.belts",
+   "value": [
+    {
+     "v": 3.18,
+     "h": 0.4,
+     "colour": "#2f3628",
+     "depth": 0.06
+    },
+    {
+     "v": 2.38,
+     "h": 0.28,
+     "colour": "#130e0b",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.trim_colour",
+   "value": "#797b81",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.1,
+    "colour": "#797b81",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "band at the facade top",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-a16",
+     "business_id": "mb-9140aa42bab6",
+     "name": "A16",
+     "edge": 12,
+     "u0": 0.0,
+     "u1": 7.17,
+     "band_h": 2.66,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "kerbfront-201006.0016010:facade:0:door",
+       "component_kind": "door",
+       "operation": "hinged",
+       "leaf_count": 1,
+       "transom_fraction": null,
+       "privacy_fraction": null,
+       "shape": null,
+       "role": null,
+       "kind": "door",
+       "u": 4.22,
+       "v": 0,
+       "w": 1.05,
+       "h": 2.35
+      },
+      {
+       "id": "kerbfront-201006.0016010:facade:0:window:1",
+       "component_kind": "window",
+       "operation": null,
+       "leaf_count": null,
+       "transom_fraction": 0.23,
+       "privacy_fraction": 0,
+       "shape": null,
+       "role": null,
+       "kind": "window",
+       "u": 0.29,
+       "v": 0.8097701633574536,
+       "w": 1.6761063287338076,
+       "h": 1.9402298366425463
+      },
+      {
+       "id": "kerbfront-201006.0016010:facade:0:window:2",
+       "component_kind": "window",
+       "operation": null,
+       "leaf_count": null,
+       "transom_fraction": 0.23,
+       "privacy_fraction": 0,
+       "shape": null,
+       "role": null,
+       "kind": "window",
+       "u": 2.24,
+       "v": 0.8097701633574536,
+       "w": 1.6761063287338076,
+       "h": 1.9402298366425463
+      },
+      {
+       "id": "kerbfront-201006.0016010:facade:0:window:3",
+       "component_kind": "window",
+       "operation": null,
+       "leaf_count": null,
+       "transom_fraction": 0.23,
+       "privacy_fraction": 0,
+       "shape": null,
+       "role": null,
+       "kind": "window",
+       "u": 5.56,
+       "v": 0.8097701633574536,
+       "w": 1.3423521144782795,
+       "h": 1.9402298366425463
+      }
+     ],
+     "signs": [
+      {
+       "id": "kerbfront-201006.0016010:facade:0:identity",
+       "kind": "awning_valance",
+       "text": "A16",
+       "illumination": "none",
+       "ink": null,
+       "asset": null,
+       "icon": null,
+       "u": 2.45,
+       "v": 3.0999999999999996,
+       "w": 4.601000000000001,
+       "h": 0.55
+      }
+     ],
+     "awnings": [
+      {
+       "id": "sf-a16:awning",
+       "kind": "shed",
+       "u0": 2.39,
+       "u1": 7.11,
+       "v": 3.65,
+       "depth_m": 0.95,
+       "drop_m": 0.3,
+       "colour": "#324b62",
+       "stripe": null,
+       "valance_text": "A16",
+       "evidence": {
+        "kind": "inferred",
+        "source": "smc.exteriors canopy",
+        "confidence": 0.3
+       }
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "inferred",
+      "source": "smc.exteriors infer_exterior @ e34da8318",
+      "confidence": 0.3,
+      "span": "midpoints"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "800216694189649",
+     "816644822761650"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "800216694189649",
+     "816644822761650"
+    ],
+    "how": "parklets: seating/fence/plant labels on the parking-lane plane, not cars; sidewalk tables: chairs/tables on a plane 0.8 m out",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "800216694189649",
+     "816644822761650"
+    ],
+    "how": "tree labels on the kerb plane",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  }
+ ]
+}

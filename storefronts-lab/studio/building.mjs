@@ -365,7 +365,8 @@ export async function createBuilder(THREE, {assetBase = null} = {}) {
       const sel = {type: 'awning', storefront: sf.id, id: a.id};
       const W = a.u1 - a.u0, uc = (a.u0 + a.u1) / 2, D = a.depth_m ?? 0.9, drop = a.drop_m ?? 0.3;
       const val = a.valance_h ?? (a.kind === 'box' ? 0.35 : 0.22);
-      const cloth = a.stripe ? stripes(THREE, a.colour, a.stripe, a.stripe_w ?? 0.3) : fin.plain(a.colour || '#264f43', 0.9);
+      const cloth = a.stripe ? stripes(THREE, a.colour, a.stripe, a.stripe_w ?? 0.3)
+        : a.material && a.material !== 'canvas' ? fin.textured(a.material, a.colour || '#264f43', 0.6) : fin.textured('canvas', a.colour || '#264f43', 1);
       const at = faceMatrix(THREE, f);
       const top = a.v ?? sf.band_h - 0.3; // where the awning meets the wall
       let frontY = top - drop;
@@ -486,7 +487,7 @@ export async function createBuilder(THREE, {assetBase = null} = {}) {
     function umbrella(f, u, w, colour, sel) {
       const at = faceMatrix(THREE, f).multiply(new THREE.Matrix4().makeTranslation(u, 0, w));
       const pole = new THREE.CylinderGeometry(0.02, 0.02, 2.3, 8); pole.translate(0, 1.15, 0); add(pole, fin.plain('#ddd', 0.5), at, sel);
-      const can = new THREE.ConeGeometry(1.1, 0.45, 8, 1, true); can.translate(0, 2.25, 0); add(can, fin.plain(colour || '#efe9dc', 0.9), at, sel);
+      const can = new THREE.ConeGeometry(1.1, 0.45, 8, 1, true); can.translate(0, 2.25, 0); add(can, fin.textured('canvas', colour || '#efe9dc', 1), at, sel);
     }
 
     function drawSeating(s) {
@@ -564,7 +565,7 @@ export async function createBuilder(THREE, {assetBase = null} = {}) {
           for (const u of pus) {for (const w of (s.posts_both_sides === false ? [w1 - 0.1] : [w0 + 0.1, w1 - 0.1])) {const g = new THREE.BoxGeometry(ps, rh, ps); g.translate(u, rh / 2, w); add(g, post, at, sel);}}
           const beam = new THREE.BoxGeometry(L, 0.14, 0.1); beam.translate(uc, rh - 0.07, w1 - 0.1); add(beam, post, at, sel);
           const pitch = s.roof_pitch ?? 0.15, roofMat = s.roof === 'slats' ? fin.textured('wood_siding', s.roof_colour || '#7a5c43', 0.4)
-            : s.roof === 'corrugated' ? fin.textured('metal_panel', s.roof_colour || '#9aa0a2', 0.35) : fin.plain(s.roof_colour || '#e9e4d8', 0.9);
+            : s.roof === 'corrugated' ? fin.textured('metal_panel', s.roof_colour || '#9aa0a2', 0.35) : fin.textured('canvas', s.roof_colour || '#e9e4d8', 1);
           const g = new THREE.BoxGeometry(L + 0.2, 0.03, D + 0.35);
           if (s.roof === 'corrugated') {const uv = g.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, uv.getX(k) * (L + 0.2));}
           g.rotateX(pitch); g.translate(uc, rh + 0.1, (w0 + w1) / 2 - 0.05); add(g, roofMat, at, sel);

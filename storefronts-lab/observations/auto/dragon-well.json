@@ -1,0 +1,366 @@
+{
+ "model": "dragon-well",
+ "read_by": "kerbfront auto (no reviewer)",
+ "seconds": 22,
+ "elevations": {
+  "3": {
+   "edge": 3,
+   "views": 6,
+   "used": 4,
+   "frames": [
+    "656554992621313",
+    "801261194498468",
+    "495218682583259",
+    "844665136442121"
+   ],
+   "reference": "656554992621313",
+   "anchor": {
+    "end0": [
+     0.76,
+     21.0
+    ],
+    "end1": [
+     -1.28,
+     42.8
+    ],
+    "scale": 1.0,
+    "shift_u": 1.28,
+    "shift_v": 0.0
+   },
+   "align": {
+    "656554992621313": {
+     "inliers": null,
+     "score": 1.0,
+     "via": null
+    },
+    "801261194498468": {
+     "inliers": 40,
+     "score": 0.2,
+     "via": "656554992621313"
+    },
+    "495218682583259": {
+     "inliers": 76,
+     "score": 0.38,
+     "via": "656554992621313"
+    },
+    "574157410631216": {
+     "inliers": 19,
+     "score": 0.0,
+     "via": null
+    },
+    "348627583585845": {
+     "inliers": 0,
+     "score": 0.0,
+     "via": null
+    },
+    "844665136442121": {
+     "inliers": 29,
+     "score": 0.145,
+     "via": "801261194498468"
+    }
+   },
+   "key": "696965c9c3b8dd25"
+  }
+ },
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.52,
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "facade top from the sky line of the registered elevation of wall 3",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 2.96
+    },
+    {
+     "v": 2.96,
+     "h": 4.56
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#ada192",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:a6.02",
+     "kind": "window",
+     "u": 6.02,
+     "v": 3.26,
+     "w": 2.2,
+     "h": 1.12,
+     "shape": "rect",
+     "frame_colour": "#494942",
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#535666",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.08,
+    "depth": 0.1,
+    "colour": "#535666",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "band at the facade top",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-dragon-well",
+     "business_id": "mb-31c7748889b3",
+     "name": "Dragon Well",
+     "edge": 3,
+     "u0": 0.0,
+     "u1": 15.24,
+     "band_h": 2.96,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-dragon-well:g0",
+       "kind": "window",
+       "u": 0.0,
+       "v": 0.0,
+       "w": 15.24,
+       "h": 2.76,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:door0",
+       "kind": "door",
+       "u": 10.24,
+       "v": 0,
+       "w": 0.72,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      },
+      {
+       "id": "sf-dragon-well:door1",
+       "kind": "door",
+       "u": 12.56,
+       "v": 0,
+       "w": 1.2,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "656554992621313",
+       "801261194498468",
+       "495218682583259",
+       "844665136442121"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-dragon-well:sign0",
+       "kind": "board",
+       "u": 8.4,
+       "v": 2.84,
+       "w": 3.38,
+       "h": 0.64,
+       "bg": "#665b52",
+       "layers": []
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "656554992621313",
+     "801261194498468",
+     "844665136442121"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "656554992621313",
+     "801261194498468",
+     "844665136442121"
+    ],
+    "how": "parklets: seating/fence/plant labels on the parking-lane plane, not cars; sidewalk tables: chairs/tables on a plane 0.8 m out",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "auto-tree-3-0",
+     "kind": "tree",
+     "edge": 3,
+     "u": 3.02,
+     "w": 12.04,
+     "r": 6.02,
+     "trunk_h": 2.6,
+     "colour": "#566f3e"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "656554992621313",
+     "801261194498468",
+     "844665136442121"
+    ],
+    "how": "tree labels on the kerb plane",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  }
+ ]
+}

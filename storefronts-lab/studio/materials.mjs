@@ -17,6 +17,8 @@ export const FINISHES = {
   metal_panel: {label: 'Metal panel', tile: 1.2},
   painted_wood: {label: 'Painted wood panel', tile: 1.2},
   glass: {label: 'Glass curtain', tile: 1.5},
+  // awnings, umbrellas, shade sails: woven, matte, never a wall cladding read off a photo
+  canvas: {label: 'Canvas / fabric', tile: 0.5},
 };
 
 function rng(seed) {
@@ -110,6 +112,14 @@ function draw(kind, colour, px = 512) {
     for (let x = 0; x < px; x += pw) {g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x, 0, 2, px);}
     for (let y = 0; y < px; y += 0.6 * m) {g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, y, px, 2);}
     speckle(3000, 0.03);
+  } else if (kind === 'canvas') {
+    // a fine weave: alternating warp and weft threads, a little slub
+    const t = Math.max(2, Math.round(0.012 * m));
+    for (let y = 0; y < px; y += t) for (let x = 0; x < px; x += t) {
+      if (((x / t) + (y / t)) % 2) {g.fillStyle = 'rgba(0,0,0,0.07)'; g.fillRect(x, y, t, t);}
+    }
+    for (let i = 0; i < 160; i++) {g.fillStyle = `rgba(255,255,255,${0.03 + 0.04 * r()})`; g.fillRect(0, r() * px, px, 1);}
+    for (let i = 0; i < 160; i++) {g.fillStyle = `rgba(0,0,0,${0.03 + 0.03 * r()})`; g.fillRect(r() * px, 0, 1, px);}
   } else if (kind === 'glass') {
     const grd = g.createLinearGradient(0, 0, px, px);
     grd.addColorStop(0, shade(colour, 1.15)); grd.addColorStop(1, shade(colour, 0.7));
@@ -130,7 +140,7 @@ export function createFinishes(THREE) {
     const tex = new THREE.CanvasTexture(draw(FINISHES[kind] ? kind : 'stucco', colour));
     tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.anisotropy = 8; tex.repeat.set(1 / (spec.tile * scale), 1 / (spec.tile * scale));
-    const m = new THREE.MeshStandardMaterial({map: tex, roughness: kind === 'metal_panel' ? 0.45 : kind === 'glass' ? 0.15 : 0.88,
+    const m = new THREE.MeshStandardMaterial({map: tex, roughness: kind === 'metal_panel' ? 0.45 : kind === 'glass' ? 0.15 : kind === 'canvas' ? 0.95 : 0.88,
       metalness: kind === 'metal_panel' ? 0.35 : kind === 'glass' ? 0.4 : 0, side: THREE.DoubleSide, ...extra});
     m.userData.finish = kind; cache.set(k, m); return m;
   };
