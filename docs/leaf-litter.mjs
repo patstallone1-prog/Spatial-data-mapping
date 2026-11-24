@@ -18,7 +18,7 @@ export const LEAVES = {
   // the gust there passes its own ``lift_ms`` (more for one under others), slides and tumbles
   // with ``drag`` of the air's speed over it, and stops again when the gust falls under ``rest``
   // of that. A gust over ``hop_ms`` lifts it off the ground for a moment.
-  ground_share: 0.42, lift_ms: [1.3, 3.2], drag: 2.6, rest: 0.55, hop_ms: 3.4, friction: 3.2, buried: 0.5,
+  ground_share: 0.42, lift_ms: [1.9, 3.8], drag: 2.6, rest: 0.55, hop_ms: 3.4, friction: 3.2, buried: 0.5,
   // A foot within ``foot_m`` moving over ``foot_ms`` takes leaves with it: ``foot_carry`` of its
   // speed, and thrown outwards a little.
   foot_m: 0.42, foot_ms: 0.25, foot_carry: 0.75, foot_kick: 0.9,

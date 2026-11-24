@@ -490,7 +490,7 @@ function leafTrees(x, z, reach) {
     for (let j = Math.floor((z - reach) / c); j <= Math.floor((z + reach) / c); j += 1)
       for (const t of T.grid.get(`${i}:${j}`) || []) {
         if (Math.hypot(t.x - x, t.z - z) > reach) continue;
-        out.push({ x: t.x, z: t.z, key: t.key, kind: t.kind, crown: Math.max(1.2, Math.min(7, (t.across || 5) / 2)), seed: (Math.round(t.x * 4) * 73856093) ^ (Math.round(t.z * 4) * 19349663) });
+        out.push({ x: t.x, z: t.z, key: t.key, kind: t.kind, crown: Math.max(1.6, Math.min(7, (t.across || 5) / 2)), seed: (Math.round(t.x * 4) * 73856093) ^ (Math.round(t.z * 4) * 19349663) });
       }
   return out;
 }

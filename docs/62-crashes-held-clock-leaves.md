@@ -58,9 +58,11 @@ Only in the offline practice game: the city online keeps one clock for everyone.
   ambulance has them.
 
 Seen in the browser: a staged 17 m/s crash (a sedan's front pushed in, a hatchback's side dished),
-the ambulance pulling up behind it and leaving with both drivers. The tow truck was seen arriving;
-its first approach came from across the road and sat in a queue, which is why it now comes up
-behind the wreck in its own lane and pulls out round a queue.
+the ambulance pulling up behind it and leaving with both drivers, a tow truck at each wreck, and
+the street clear three minutes after the crash with both cars recorded as new at the mechanic's
+("towed to 76: as new"). A truck's first approach came from across the road and sat in a queue,
+which is why it now comes up behind the wreck in its own lane and pulls out round a queue. Not
+caught in a picture: the moment of hooking and lifting, and someone folded onto a bonnet.
 
 ## Leaves (`docs/leaf-litter.mjs`)
 
@@ -70,7 +72,7 @@ metre under the crown and thinning to nothing at 1.7 crown radii, 55% of them in
 (leaves lying on leaves), the rest singly. Palms drop none, conifers a few.
 
 - The wind at the ground comes in gusts, less than the sky's. A leaf lying still is shifted when a
-  gust passes its own mark (1.3 to 3.2 m/s; more for one with others on it), slides and tumbles,
+  gust passes its own mark (1.9 to 3.8 m/s; more for one with others on it), slides and tumbles,
   hops in a strong gust, and stops when the gust falls. Each has its own turn of the air, so a
   heap blown out is a scatter.
 - A foot going through takes the leaves within 0.42 m with it and kicks them up off the heap.

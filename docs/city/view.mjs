@@ -6006,7 +6006,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: the city's cars marked by a bump the books never heard of (most are not: view carHit) --
   //: marked while it is about, as new again once it has gone from sight. ``rests``: where the
   //: blow left someone lying, which is where they are until the ambulance has them.
-  const carDents = new Map(), rests = new Map();
+  const carDents = new Map(), rests = new Map(), towedTo = new Map();
   const dentCar = (id, where, speed) => { if (id) carDents.set(id, { damage: impactOn(carDents.get(id)?.damage, { ...where, speed }), t: performance.now() }); };
   //: Where on ``v`` (a car: x, z, yaw, model) the point (x, z) is: crash.mjs impactZone.
   const zoneOn = (v, x, z) => {
@@ -6029,7 +6029,15 @@ diffuseColor.rgb *= kbCloth;`);
       const v = district.roster?.vehicles.get(w.id);
       let spot = null;
       try { spot = v ? district.city?.spotOf(v, best.pl.id) : null; } catch { spot = null; }
-      if (!spot || !Number.isFinite(spot.x) || spot.gateway || spot.garage || spot.indoors) { const at = district.city?.standOff?.(best.pl.door?.x ?? best.pl.x, best.pl.door?.z ?? best.pl.z) || [best.pl.x, best.pl.z]; spot = { x: at[0], z: at[1], yaw: 0 }; }
+      // (No kerb found for it there: along the shop's front, each car towed in a car's length on
+      // from the last -- two wrecks from one crash were stood on the same spot.)
+      if (!spot || !Number.isFinite(spot.x) || spot.gateway || spot.garage || spot.indoors) {
+        const F = best.pl.front || best.pl.door, n = towedTo.get(best.pl.id) || 0, along = ((n % 6) - 2.5) * 5.6;
+        towedTo.set(best.pl.id, n + 1);
+        const bx = (best.pl.door?.x ?? best.pl.x) + (F && Number.isFinite(F.nz) ? -F.nz * along : along), bz = (best.pl.door?.z ?? best.pl.z) + (F && Number.isFinite(F.nx) ? F.nx * along : 0);
+        const at = district.city?.standOff?.(bx, bz) || [bx, bz];
+        spot = { x: at[0], z: at[1], yaw: F && Number.isFinite(F.nx) ? Math.atan2(F.nz, -F.nx) : 0 };
+      }
       return { x: spot.x, z: spot.z, yaw: spot.yaw || 0, name: best.pl.name || "the mechanic's" };
     },
     //: The block a crash is on, known shut to the city's drivers until ``until`` (fleet.mjs
