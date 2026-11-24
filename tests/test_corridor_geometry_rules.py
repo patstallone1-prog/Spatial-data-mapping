@@ -2501,13 +2501,15 @@ const CROSS_SECTION_KIND = { p: "parking", b: "bike", f: "buffer", x: "transit",
                              n: "turn", m: "median", h: "shoulder", l: "loading", u: "unresolved" };
 const CROSS_SECTION_LANE_MIN_M = 2.55;
 const CROSS_SECTION_LANE_MAX_M = 5.2;
+const PARKING_STALL_M = 2.4;
+const LANE_FIT_MIN_M = 2.9;
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 """
 
-LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "halfWidthAt",
-                  "crossSectionRowAt", "crossSectionBands", "crossSectionBandsNearMiddle",
+LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "kerbDeltaAt", "halfWidthAt",
+                  "crossSectionRowAt", "fitLaneBands", "crossSectionBands", "crossSectionBandsNearMiddle",
                   "crossSectionMarkKind", "travelSpanAt",
                   "travelSpan", "laneOffsets", "laneMarkingProfile", "laneMarkingPaints",
                   "bikeLaneOffset")
@@ -2648,7 +2650,10 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["moved"] == {"moved": 2, "widened": 2, "inherited": 0}, result  # the alley was already centred
+    # (The kerbs' profiles along the block are settled after this, and are not in this harness:
+    # tests/kerb_lines.test.mjs.)
+    moved = {key: value for key, value in result["moved"].items() if key != "profiles"}
+    assert moved == {"moved": 2, "widened": 2, "inherited": 0}, result  # the alley was already centred
     assert all(abs(y - 1.75) < 0.01 for y in result["grantY"]), result
     assert abs(result["grantRoad"] - 7.5) < 0.01 and result["grantSource"] == "official_curbs"
     assert abs(result["shift"] - 1.75) < 0.01

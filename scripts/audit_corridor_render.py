@@ -66,6 +66,12 @@ FUNCTIONS = (
     "dividedHalfWidth",
     "envelopeEdgesAt",
     "recentreOnKerbEnvelope",
+    "kerbProfileFrom",
+    "settleKerbProfiles",
+    "streetWidthFromStations",
+    "settleStreetWidth",
+    "kerbDeltaAt",
+    "carriagewayHalfAt",
     "halfWidthAt",
     "alongDistances",
     "officialKerbOffsetsAt",
@@ -205,6 +211,9 @@ const MIN_RENDER_ROAD_M = 2.8;
 const MAX_RENDER_ROAD_M = 24.0;
 const MAX_INFERRED_ROAD_M = 16.5;
 __SERVICE_ROAD_M__
+// The kerb followed along the block and the street's width from its readings, as the page has them.
+__KERB_LINE_CONSTS__
+const window = {};
 const UNMARKED_SERVICE = new Set(Object.keys(SERVICE_ROAD_M));
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
@@ -338,9 +347,8 @@ for (const way of DATA.ways) {
   for (let i = 1; i < way.points.length; i += 1) {
     const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]);
     const [bx, by] = xy(way.points[i][0], way.points[i][1]);
-    const segmentHalf = along
-      ? (halfWidthAt(way, along[i - 1]) + halfWidthAt(way, along[i])) / 2 : half;
-    addCarriagewaySegment(ax, -ay, bx, -by, segmentHalf, way);
+    const halfA = along ? halfWidthAt(way, along[i - 1]) : half, halfB = along ? halfWidthAt(way, along[i]) : half;
+    addCarriagewaySegment(ax, -ay, bx, -by, (halfA + halfB) / 2, way, halfA, halfB);
   }
 }
 
@@ -832,7 +840,14 @@ def main() -> int:
     service_table = re.search(r"const SERVICE_ROAD_M = \{[^;]+;", js)
     if service_table is None:
         raise AssertionError("renderer service-width table is missing")
+    kerb_consts = []
+    for name in ("KERB_LINE_RULES", "kerbProfileStats", "kerbWaves", "STREET_WIDTH_RULES", "streetWidthsSettled"):
+        found = re.search(rf"^const {name} = [^;]+;", js, re.M)
+        if found is None:
+            raise AssertionError(f"renderer constant {name} is missing")
+        kerb_consts.append(found.group(0))
     driver = DRIVER.replace("__SERVICE_ROAD_M__", service_table.group(0)).replace(
+        "__KERB_LINE_CONSTS__", "\n".join(kerb_consts)).replace(
         "__FUNCTIONS__", "\n".join(extract(name, js) for name in FUNCTIONS))
     # Over stdin, not -e: Linux caps a single argument at 128 KB (MAX_ARG_STRLEN) and the
     # extracted renderer outgrew it -- CI's "Argument list too long" while macOS ran fine.
