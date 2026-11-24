@@ -1,0 +1,9 @@
+# Raw API responses, thumbnails and run outputs are regenerable and licence-bound
+# (Mapillary CC-BY-SA, OSM ODbL); only code, tests, the plan and summary reports are committed.
+.cache/
+out/
+__pycache__/
+.pytest_cache/
+
+# the repo root ignores every photos/ directory (raw captures); this one is source code
+!kerbfront/photos/
