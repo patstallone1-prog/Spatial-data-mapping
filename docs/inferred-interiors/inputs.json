@@ -437,12 +437,13 @@
       "id": "osm-460228342",
       "windows": [
         {
-          "u": 1.1969136796336244,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 0.6000000000000001,
+          "v": 0.8000000000000007,
+          "w": 1.2938273592672491,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:0:0",
           "edge": 0,
           "a": [
@@ -463,12 +464,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.040741038900873,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 5.793827359267249,
+          "v": 0.8000000000000007,
+          "w": 1.2938273592672478,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:0:1",
           "edge": 0,
           "a": [
@@ -489,12 +491,94 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.732746135570178,
-          "v": 0.8000000000000007,
-          "w": 1.45,
+          "u": 3.1438273592672497,
+          "v": 3.7347855005209727,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:2",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6719136796336249,
+          "v": 3.7347855005209727,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:3",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 5.615741038900873,
+          "v": 3.7347855005209727,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:4",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.1702461355701779,
+          "v": 0.8000000000000007,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:0",
           "edge": 1,
           "a": [
@@ -515,12 +599,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.6482384067105342,
+          "u": 3.8107384067105334,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:1",
           "edge": 1,
           "a": [
@@ -541,12 +626,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.56373067785089,
+          "u": 6.451230677850889,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:2",
           "edge": 1,
           "a": [
@@ -567,12 +653,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.479222948991247,
+          "u": 9.091722948991245,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:3",
           "edge": 1,
           "a": [
@@ -593,12 +680,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.732746135570178,
+          "u": 2.0769948474269038,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:4",
           "edge": 1,
           "a": [
@@ -619,12 +707,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.6482384067105342,
+          "u": 5.130984542280712,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:5",
           "edge": 1,
           "a": [
@@ -645,12 +734,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.56373067785089,
+          "u": 8.184974237134519,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:6",
           "edge": 1,
           "a": [
@@ -671,38 +761,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.479222948991247,
-          "v": 3.7347855005209727,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-460228342:window:1:7",
-          "edge": 1,
-          "a": [
-            3.712027428388865,
-            5.721847999633098
-          ],
-          "b": [
-            5.717577791754138,
-            -5.766376000153457
-          ],
-          "normal": [
-            0.9851015653089941,
-            0.1719735619965157
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 1.2268634666090157,
+          "u": 1.0679089777393438,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:0",
           "edge": 2,
           "a": [
@@ -723,12 +788,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.130590399827048,
+          "u": 3.3037269332180323,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:1",
           "edge": 2,
           "a": [
@@ -749,12 +815,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2268634666090157,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 5.539544888696719,
+          "v": 0.8000000000000007,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:2",
           "edge": 2,
           "a": [
@@ -775,12 +842,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.130590399827048,
+          "u": 1.9268634666090159,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:3",
           "edge": 2,
           "a": [
@@ -799,9 +867,79 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "u": 4.680590399827048,
+          "v": 3.7347855005209727,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:2:4",
+          "edge": 2,
+          "a": [
+            5.717577791754138,
+            -5.766376000153457
+          ],
+          "b": [
+            -1.9967540903626286,
+            -6.968631999965567
+          ],
+          "normal": [
+            0.15398822975830326,
+            -0.9880726820917093
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6000000000000001,
+          "v": 0.8000000000000007,
+          "w": 0.9551279662760531,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:4:0",
+          "edge": 4,
+          "a": [
+            -3.536101957085066,
+            2.437908000014488
+          ],
+          "b": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "normal": [
+            -0.9865827147191935,
+            -0.16326220327224075
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 3,
+          "a": [
+            -1.9967540903626286,
+            -6.968631999965567
+          ],
+          "b": [
+            -3.536101957085066,
+            2.437908000014488
+          ],
+          "u0": 0,
+          "u1": 9.287260724274637,
+          "neighbour": "460228341"
+        }
+      ],
       "entrance": [
         -0.0879627344020264,
         5.142983999591735
@@ -932,12 +1070,13 @@
       "id": "osm-262096336",
       "windows": [
         {
-          "u": 1.1653818716386426,
+          "u": 1.8153818716386427,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:0",
           "edge": 0,
           "a": [
@@ -958,12 +1097,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.946145614915928,
+          "u": 4.346145614915928,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:1",
           "edge": 0,
           "a": [
@@ -984,12 +1124,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.1653818716386426,
+          "u": 1.8153818716386427,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:2",
           "edge": 0,
           "a": [
@@ -1010,12 +1151,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.946145614915928,
+          "u": 4.346145614915928,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:0:3",
           "edge": 0,
           "a": [
@@ -1036,12 +1178,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6811990312687763,
+          "u": 1.8061990312687763,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:1:0",
           "edge": 1,
           "a": [
@@ -1062,12 +1205,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6811990312687763,
+          "u": 1.8061990312687763,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:1:1",
           "edge": 1,
           "a": [
@@ -1088,12 +1232,67 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5237502470109323,
+          "u": 0.8284522228886344,
           "v": 4.107245660111758,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096336:window:3:0",
+          "edge": 3,
+          "a": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "b": [
+            1.6712919692629384,
+            -7.781267999970396
+          ],
+          "normal": [
+            0.142022103483275,
+            -0.9898634866092323
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8284522228886344,
+          "v": 7.414491320223533,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096336:window:3:1",
+          "edge": 3,
+          "a": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "b": [
+            1.6712919692629384,
+            -7.781267999970396
+          ],
+          "normal": [
+            0.142022103483275,
+            -0.9898634866092323
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.6487502470109323,
+          "v": 4.107245660111758,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:5:0",
           "edge": 5,
           "a": [
@@ -1114,12 +1313,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5237502470109323,
+          "u": 1.6487502470109323,
           "v": 7.414491320223533,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096336:window:5:1",
           "edge": 5,
           "a": [
@@ -1141,6 +1341,36 @@
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 2,
+          "a": [
+            2.313419937209801,
+            9.206164000011427
+          ],
+          "b": [
+            4.697210062191289,
+            -7.347120000433733
+          ],
+          "u0": 0.24961260542422145,
+          "u1": 16.724044563422837,
+          "neighbour": "262096308"
+        },
+        {
+          "edge": 7,
+          "a": [
+            -3.1226771009578442,
+            -6.111468000231412
+          ],
+          "b": [
+            -5.849521894294639,
+            12.90198799969744
+          ],
+          "u0": 0.2494545209748153,
+          "u1": 18.958543594085963,
+          "neighbour": "262096305"
+        }
+      ],
       "entrance": [
         3.1842510157271136,
         -7.564194000202065
@@ -1279,12 +1509,13 @@
       "id": "osm-262727844",
       "windows": [
         {
-          "u": 1.2140567065369576,
+          "u": 1.9140567065369574,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:1:0",
           "edge": 1,
           "a": [
@@ -1305,12 +1536,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.092170119610873,
+          "u": 4.6421701196108724,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:1:1",
           "edge": 1,
           "a": [
@@ -1331,12 +1563,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2168008159091608,
+          "u": 2.7846390600300786,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:5:0",
           "edge": 5,
           "a": [
@@ -1357,12 +1590,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.1004024477274825,
+          "u": 0.5923195300150393,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:5:1",
           "edge": 5,
           "a": [
@@ -1383,12 +1617,40 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2951513621412496,
+          "u": 5.475921161833361,
           "v": 4.188445530155207,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262727844:window:5:2",
+          "edge": 5,
+          "a": [
+            8.206923197767935,
+            4.753364000179943
+          ],
+          "b": [
+            9.499975406664674,
+            -2.9054519999414197
+          ],
+          "normal": [
+            0.9860455224568782,
+            0.16647590709391658
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.3201513621412497,
+          "v": 4.188445530155207,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727844:window:6:0",
           "edge": 6,
           "a": [
@@ -1500,6 +1762,36 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        }
+      ],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            5.515263500192134,
+            -3.573371999837036
+          ],
+          "b": [
+            -9.491179133662001,
+            -6.100336000101265
+          ],
+          "u0": 0.24947074727129315,
+          "u1": 15.217715583548882,
+          "neighbour": "262727843"
+        },
+        {
+          "edge": 3,
+          "a": [
+            -9.570345595686291,
+            1.758855999988782
+          ],
+          "b": [
+            6.614797690529485,
+            4.48619599943072
+          ],
+          "u0": 0.2486867466301131,
+          "u1": 16.16463853095735,
+          "neighbour": "262727846"
         }
       ],
       "entrance": [
@@ -1661,12 +1953,40 @@
       "id": "osm-407852081",
       "windows": [
         {
-          "u": 1.6631647803105927,
+          "u": 0.6254517797773261,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-407852081:window:0:0",
+          "edge": 0,
+          "a": [
+            1.3986074899291907,
+            6.768255999996882
+          ],
+          "b": [
+            1.05555282282387,
+            9.19503199988128
+          ],
+          "normal": [
+            0.990155647056697,
+            0.13997069193846876
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.6881647803105928,
+          "v": 3.5357666316141234,
+          "w": 1.4,
+          "h": 1.6357666316141226,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:1:0",
           "edge": 1,
           "a": [
@@ -1687,12 +2007,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.6807756038254053,
+          "u": 6.428878019127044,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:4:0",
           "edge": 4,
           "a": [
@@ -1713,12 +2034,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.492326811476216,
+          "u": 2.4144390095635218,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:4:1",
           "edge": 4,
           "a": [
@@ -1739,12 +2061,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.303878019127026,
+          "u": 10.443317028690549,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:4:2",
           "edge": 4,
           "a": [
@@ -1765,25 +2088,26 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.115429226777836,
+          "u": 0.7706461332027891,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
-          "id": "osm-407852081:window:4:3",
-          "edge": 4,
+          "designed": true,
+          "id": "osm-407852081:window:8:0",
+          "edge": 8,
           "a": [
-            -4.538877139392525,
-            6.100335999310289
+            1.0027751810577001,
+            -7.046556000085218
           ],
           "b": [
-            -2.2518460224408727,
-            -7.7701360006312825
+            3.7208237001416364,
+            -6.6903320006682065
           ],
           "normal": [
-            -0.9866775296282819,
-            -0.16268820647677834
+            0.1299474717754548,
+            -0.9915208795477618
           ],
           "confidence": 0.25,
           "measured": false,
@@ -1791,38 +2115,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 11.926980434428648,
+          "u": 2.4854947423941276,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
-          "id": "osm-407852081:window:4:4",
-          "edge": 4,
-          "a": [
-            -4.538877139392525,
-            6.100335999310289
-          ],
-          "b": [
-            -2.2518460224408727,
-            -7.7701360006312825
-          ],
-          "normal": [
-            -0.9866775296282819,
-            -0.16268820647677834
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 0.8677473711970639,
-          "v": 3.5357666316141234,
-          "w": 1.45,
-          "h": 1.6357666316141226,
-          "kind": "window",
-          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:9:0",
           "edge": 9,
           "a": [
@@ -1843,65 +2142,14 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.0532421135911925,
+          "u": 2.206205396011936,
           "v": 3.5357666316141234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.6357666316141226,
           "kind": "window",
           "grade": "procedural_not_measured",
-          "id": "osm-407852081:window:9:1",
-          "edge": 9,
-          "a": [
-            3.7208237001416364,
-            -6.6903320006682065
-          ],
-          "b": [
-            2.638882057059618,
-            -0.4118840000674595
-          ],
-          "normal": [
-            0.985474550788623,
-            0.1698231719994712
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 0.728102698005968,
-          "v": 3.5357666316141234,
-          "w": 1.45,
-          "h": 1.6357666316141226,
-          "kind": "window",
-          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-407852081:window:13:0",
-          "edge": 13,
-          "a": [
-            2.287031115701666,
-            1.0241439993126278
-          ],
-          "b": [
-            1.3986074899291907,
-            6.768255999996882
-          ],
-          "normal": [
-            0.9882494899649312,
-            0.1528494212748386
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 3.634308094017904,
-          "v": 3.5357666316141234,
-          "w": 1.45,
-          "h": 1.6357666316141226,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-407852081:window:13:1",
           "edge": 13,
           "a": [
             2.287031115701666,
@@ -1922,6 +2170,7 @@
         }
       ],
       "balconies": [],
+      "party_walls": [],
       "entrance": [
         -3.395361580916642,
         -0.8349000006605252
@@ -2285,12 +2534,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.0439845841810578,
+          "u": 1.1689845841810573,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:5:0",
           "edge": 5,
           "a": [
@@ -2311,12 +2561,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.0439845841810578,
+          "u": 1.1689845841810573,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:5:1",
           "edge": 5,
           "a": [
@@ -2337,12 +2588,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.0439845841810578,
+          "u": 1.1689845841810573,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:5:2",
           "edge": 5,
           "a": [
@@ -2363,12 +2615,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8476165279981084,
+          "u": 0.8726165279981357,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:9:0",
           "edge": 9,
           "a": [
@@ -2389,12 +2642,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8476165279981084,
+          "u": 0.8726165279981357,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:9:1",
           "edge": 9,
           "a": [
@@ -2415,12 +2669,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8476165279981084,
+          "u": 0.8726165279981357,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:9:2",
           "edge": 9,
           "a": [
@@ -2441,12 +2696,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 2.0932287231126634,
+          "u": 2.1182287231126633,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:10:0",
           "edge": 10,
           "a": [
@@ -2467,12 +2723,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 2.0932287231126634,
+          "u": 2.1182287231126633,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:10:1",
           "edge": 10,
           "a": [
@@ -2493,12 +2750,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 2.0932287231126634,
+          "u": 2.1182287231126633,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:10:2",
           "edge": 10,
           "a": [
@@ -2519,12 +2777,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9669186935898383,
+          "u": 1.0919186935898382,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:14:0",
           "edge": 14,
           "a": [
@@ -2545,12 +2804,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9669186935898383,
+          "u": 1.0919186935898382,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:14:1",
           "edge": 14,
           "a": [
@@ -2571,12 +2831,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9669186935898383,
+          "u": 1.0919186935898382,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:14:2",
           "edge": 14,
           "a": [
@@ -2597,12 +2858,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.7518045738476472,
+          "u": 2.3536091476952943,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:16:0",
           "edge": 16,
           "a": [
@@ -2623,12 +2885,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.7054137215429415,
-          "v": 3.8920090781812107,
-          "w": 1.45,
+          "u": 2.3536091476952943,
+          "v": 6.984018156362417,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:16:1",
           "edge": 16,
           "a": [
@@ -2649,12 +2912,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.7518045738476472,
-          "v": 6.984018156362417,
-          "w": 1.45,
+          "u": 2.3536091476952943,
+          "v": 10.07602723454363,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:16:2",
           "edge": 16,
           "a": [
@@ -2675,90 +2939,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.7054137215429415,
-          "v": 6.984018156362417,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-243591156:window:16:3",
-          "edge": 16,
-          "a": [
-            2.216660927930093,
-            -0.42301600019754915
-          ],
-          "b": [
-            1.2842559346440225,
-            5.4101519999454695
-          ],
-          "normal": [
-            0.9874644390058597,
-            0.1578416348712942
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 0.7518045738476472,
-          "v": 10.07602723454363,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-243591156:window:16:4",
-          "edge": 16,
-          "a": [
-            2.216660927930093,
-            -0.42301600019754915
-          ],
-          "b": [
-            1.2842559346440225,
-            5.4101519999454695
-          ],
-          "normal": [
-            0.9874644390058597,
-            0.1578416348712942
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 3.7054137215429415,
-          "v": 10.07602723454363,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-243591156:window:16:5",
-          "edge": 16,
-          "a": [
-            2.216660927930093,
-            -0.42301600019754915
-          ],
-          "b": [
-            1.2842559346440225,
-            5.4101519999454695
-          ],
-          "normal": [
-            0.9874644390058597,
-            0.1578416348712942
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 0.9442370814043978,
+          "u": 0.9692370814043978,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:18:0",
           "edge": 18,
           "a": [
@@ -2779,12 +2966,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9442370814043978,
+          "u": 0.9692370814043978,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:18:1",
           "edge": 18,
           "a": [
@@ -2805,12 +2993,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9442370814043978,
+          "u": 0.9692370814043978,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:18:2",
           "edge": 18,
           "a": [
@@ -2831,12 +3020,94 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4115246459836932,
+          "u": 0.872011816895169,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-243591156:window:20:0",
+          "edge": 20,
+          "a": [
+            0.2550919320782441,
+            8.638431999704608
+          ],
+          "b": [
+            -0.21990683881750783,
+            11.543883999646027
+          ],
+          "normal": [
+            0.9868983273754297,
+            0.16134339597138556
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.872011816895169,
+          "v": 6.984018156362417,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-243591156:window:20:1",
+          "edge": 20,
+          "a": [
+            0.2550919320782441,
+            8.638431999704608
+          ],
+          "b": [
+            -0.21990683881750783,
+            11.543883999646027
+          ],
+          "normal": [
+            0.9868983273754297,
+            0.16134339597138556
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.872011816895169,
+          "v": 10.07602723454363,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-243591156:window:20:2",
+          "edge": 20,
+          "a": [
+            0.2550919320782441,
+            8.638431999704608
+          ],
+          "b": [
+            -0.21990683881750783,
+            11.543883999646027
+          ],
+          "normal": [
+            0.9868983273754297,
+            0.16134339597138556
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5365246459836932,
+          "v": 3.8920090781812107,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:22:0",
           "edge": 22,
           "a": [
@@ -2857,12 +3128,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4115246459836932,
+          "u": 1.5365246459836932,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:22:1",
           "edge": 22,
           "a": [
@@ -2883,12 +3155,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4115246459836932,
+          "u": 1.5365246459836932,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:22:2",
           "edge": 22,
           "a": [
@@ -2909,12 +3182,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.3306914799099094,
+          "u": 2.0306914799099096,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:0",
           "edge": 23,
           "a": [
@@ -2935,12 +3209,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.442074439729729,
+          "u": 4.9920744397297305,
           "v": 3.8920090781812107,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:1",
           "edge": 23,
           "a": [
@@ -2961,12 +3236,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.3306914799099094,
+          "u": 2.0306914799099096,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:2",
           "edge": 23,
           "a": [
@@ -2987,12 +3263,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.442074439729729,
+          "u": 4.9920744397297305,
           "v": 6.984018156362417,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:3",
           "edge": 23,
           "a": [
@@ -3013,12 +3290,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.3306914799099094,
+          "u": 2.0306914799099096,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:4",
           "edge": 23,
           "a": [
@@ -3039,12 +3317,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.442074439729729,
+          "u": 4.9920744397297305,
           "v": 10.07602723454363,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-243591156:window:23:5",
           "edge": 23,
           "a": [
@@ -3066,6 +3345,36 @@
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            -7.846275984657325,
+            14.649711999556132
+          ],
+          "b": [
+            -6.21016910865535,
+            4.508459999690899
+          ],
+          "u0": 0.2445805306245466,
+          "u1": 10.272382286230958,
+          "neighbour": "243591157"
+        },
+        {
+          "edge": 4,
+          "a": [
+            -5.224986474853097,
+            -1.4248960000409738
+          ],
+          "b": [
+            -3.4393429490552307,
+            -12.478972000290867
+          ],
+          "u0": 0,
+          "u1": 10.948540607944969,
+          "neighbour": "243591157"
+        }
+      ],
       "entrance": [
         3.1886491522283222,
         -11.460394000252304
@@ -3274,12 +3583,13 @@
       "id": "osm-262727846",
       "windows": [
         {
-          "u": 1.1686858162893166,
+          "u": 1.8186858162893167,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:1:0",
           "edge": 1,
           "a": [
@@ -3300,12 +3610,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.95605744886795,
+          "u": 4.35605744886795,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:1:1",
           "edge": 1,
           "a": [
@@ -3326,12 +3637,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.1686858162893166,
+          "u": 1.8186858162893167,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:1:2",
           "edge": 1,
           "a": [
@@ -3352,12 +3664,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.95605744886795,
+          "u": 4.35605744886795,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:1:3",
           "edge": 1,
           "a": [
@@ -3378,12 +3691,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9519533894726492,
+          "u": 4.430860168417945,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:0",
           "edge": 3,
           "a": [
@@ -3404,12 +3718,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.305860168417948,
+          "u": 1.4154300842089724,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:1",
           "edge": 3,
           "a": [
@@ -3430,12 +3745,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.659766947363247,
+          "u": 7.4462902526269215,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:2",
           "edge": 3,
           "a": [
@@ -3456,12 +3772,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.9519533894726492,
+          "u": 4.430860168417945,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:3",
           "edge": 3,
           "a": [
@@ -3482,12 +3799,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.305860168417948,
+          "u": 1.4154300842089724,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:4",
           "edge": 3,
           "a": [
@@ -3508,12 +3826,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.659766947363247,
+          "u": 7.4462902526269215,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:3:5",
           "edge": 3,
           "a": [
@@ -3534,12 +3853,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6679495811399825,
+          "u": 1.904486324112742,
           "v": 3.2081050266406805,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:4:0",
           "edge": 4,
           "a": [
@@ -3560,12 +3880,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.6679495811399825,
+          "u": 1.904486324112742,
           "v": 5.616210053281364,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.3081050266406833,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262727846:window:4:1",
           "edge": 4,
           "a": [
@@ -3584,9 +3905,93 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "u": 0.7944234406560137,
+          "v": 3.2081050266406805,
+          "w": 1.2,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262727846:window:6:0",
+          "edge": 6,
+          "a": [
+            5.321745482882761,
+            -0.3784879996771906
+          ],
+          "b": [
+            5.787947979525796,
+            -3.128092000170284
+          ],
+          "normal": [
+            0.9859286355655095,
+            0.16716675976979697
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7944234406560137,
+          "v": 5.616210053281364,
+          "w": 1.2,
+          "h": 1.3081050266406833,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262727846:window:6:1",
+          "edge": 6,
+          "a": [
+            5.321745482882761,
+            -0.3784879996771906
+          ],
+          "b": [
+            5.787947979525796,
+            -3.128092000170284
+          ],
+          "normal": [
+            0.9859286355655095,
+            0.16716675976979697
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            5.787947979525796,
+            -3.128092000170284
+          ],
+          "b": [
+            -10.39719530668998,
+            -5.855431999612222
+          ],
+          "u0": 0,
+          "u1": 16.413325277587465,
+          "neighbour": "262727844"
+        },
+        {
+          "edge": 2,
+          "a": [
+            -11.655062421075911,
+            1.6141399998795691
+          ],
+          "b": [
+            -3.228232383240453,
+            3.039035999920543
+          ],
+          "u0": 0,
+          "u1": 8.546449151401927,
+          "neighbour": "262727811"
+        }
+      ],
       "entrance": [
         1.7328658846566611,
         3.8739360001855516
@@ -3760,12 +4165,13 @@
       "id": "osm-262096308",
       "windows": [
         {
-          "u": 0.8796475709843629,
+          "u": 0.9046475709843629,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:6:0",
           "edge": 6,
           "a": [
@@ -3786,12 +4192,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8796475709843629,
+          "u": 0.9046475709843629,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:6:1",
           "edge": 6,
           "a": [
@@ -3812,12 +4219,67 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.3230951102220367,
+          "u": 0.8312417449639014,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096308:window:8:0",
+          "edge": 8,
+          "a": [
+            1.2226820198752648,
+            4.285819999461978
+          ],
+          "b": [
+            1.6009217814912517,
+            1.2467839995414352
+          ],
+          "normal": [
+            0.9923436354565253,
+            0.12350752677034148
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.8312417449639014,
+          "v": 7.720634251499234,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096308:window:8:1",
+          "edge": 8,
+          "a": [
+            1.2226820198752648,
+            4.285819999461978
+          ],
+          "b": [
+            1.6009217814912517,
+            1.2467839995414352
+          ],
+          "normal": [
+            0.9923436354565253,
+            0.12350752677034148
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.3480951102220369,
+          "v": 4.260317125749609,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:9:0",
           "edge": 9,
           "a": [
@@ -3838,12 +4300,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.3230951102220367,
+          "u": 1.3480951102220369,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:9:1",
           "edge": 9,
           "a": [
@@ -3864,12 +4327,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8544500554253517,
+          "u": 1.6745417128544595,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:0",
           "edge": 10,
           "a": [
@@ -3890,12 +4354,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.013350166276055,
+          "u": 3.9236251385633785,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:1",
           "edge": 10,
           "a": [
@@ -3916,12 +4381,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.172250277126759,
+          "u": 6.172708564272298,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:2",
           "edge": 10,
           "a": [
@@ -3942,12 +4408,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 10.331150387977463,
+          "u": 8.421791989981218,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:3",
           "edge": 10,
           "a": [
@@ -3968,12 +4435,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 13.490050498828165,
+          "u": 10.670875415690139,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:4",
           "edge": 10,
           "a": [
@@ -3994,12 +4462,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8544500554253517,
-          "v": 7.720634251499234,
-          "w": 1.45,
+          "u": 12.919958841399056,
+          "v": 4.260317125749609,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:5",
           "edge": 10,
           "a": [
@@ -4020,12 +4489,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.013350166276055,
+          "u": 1.6745417128544595,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:6",
           "edge": 10,
           "a": [
@@ -4046,12 +4516,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.172250277126759,
+          "u": 3.9236251385633785,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:7",
           "edge": 10,
           "a": [
@@ -4072,12 +4543,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 10.331150387977463,
+          "u": 6.172708564272298,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:8",
           "edge": 10,
           "a": [
@@ -4098,12 +4570,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 13.490050498828165,
+          "u": 8.421791989981218,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:10:9",
           "edge": 10,
           "a": [
@@ -4124,12 +4597,67 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4299513985462404,
-          "v": 4.260317125749609,
-          "w": 1.45,
+          "u": 10.670875415690139,
+          "v": 7.720634251499234,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096308:window:10:10",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 12.919958841399056,
+          "v": 7.720634251499234,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262096308:window:10:11",
+          "edge": 10,
+          "a": [
+            5.6560038757354505,
+            1.8256479999782869
+          ],
+          "b": [
+            7.934238719684345,
+            -13.803680000743043
+          ],
+          "normal": [
+            0.9895424009790733,
+            0.14424228459287097
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.5549513985462404,
+          "v": 4.260317125749609,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:11:0",
           "edge": 11,
           "a": [
@@ -4150,12 +4678,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4299513985462404,
+          "u": 1.5549513985462404,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:11:1",
           "edge": 11,
           "a": [
@@ -4176,12 +4705,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.0632755420729252,
+          "u": 1.0882755420729249,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:12:0",
           "edge": 12,
           "a": [
@@ -4202,12 +4732,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.0632755420729252,
+          "u": 1.0882755420729249,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:12:1",
           "edge": 12,
           "a": [
@@ -4228,12 +4759,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 2.1059239442076216,
+          "u": 2.116847888415272,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:13:0",
           "edge": 13,
           "a": [
@@ -4254,12 +4786,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 2.1059239442076216,
+          "u": 2.116847888415272,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:13:1",
           "edge": 13,
           "a": [
@@ -4280,12 +4813,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4619527029035497,
+          "u": 1.5869527029035497,
           "v": 4.260317125749609,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:14:0",
           "edge": 14,
           "a": [
@@ -4306,12 +4840,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.4619527029035497,
+          "u": 1.5869527029035497,
           "v": 7.720634251499234,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262096308:window:14:1",
           "edge": 14,
           "a": [
@@ -4423,6 +4958,22 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        }
+      ],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            -4.037489548238682,
+            -7.491836000543003
+          ],
+          "b": [
+            -6.42127967322017,
+            9.061447999902157
+          ],
+          "u0": 0.24961260542422145,
+          "u1": 16.724044563422837,
+          "neighbour": "262096336"
         }
       ],
       "entrance": [
@@ -4606,12 +5157,13 @@
       "id": "osm-262419190",
       "windows": [
         {
-          "u": 0.6734936285193723,
+          "u": 1.9856170356492158,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:0",
           "edge": 1,
           "a": [
@@ -4632,12 +5184,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.4704808855581173,
+          "u": 4.856851106947646,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:1",
           "edge": 1,
           "a": [
@@ -4658,12 +5211,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.2674681425968615,
+          "u": 7.728085178246078,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:2",
           "edge": 1,
           "a": [
@@ -4684,12 +5238,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.064455399635607,
+          "u": 10.599319249544509,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:3",
           "edge": 1,
           "a": [
@@ -4710,12 +5265,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 11.86144265667435,
-          "v": 3.7471679729727185,
-          "w": 1.45,
+          "u": 1.9856170356492158,
+          "v": 6.69433594594544,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:4",
           "edge": 1,
           "a": [
@@ -4736,12 +5292,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.6734936285193723,
+          "u": 4.856851106947646,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:5",
           "edge": 1,
           "a": [
@@ -4762,12 +5319,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.4704808855581173,
+          "u": 7.728085178246078,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:6",
           "edge": 1,
           "a": [
@@ -4788,12 +5346,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.2674681425968615,
+          "u": 10.599319249544509,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:1:7",
           "edge": 1,
           "a": [
@@ -4814,64 +5373,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.064455399635607,
-          "v": 6.69433594594544,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-262419190:window:1:8",
-          "edge": 1,
-          "a": [
-            -9.429605218892902,
-            8.170887999777733
-          ],
-          "b": [
-            4.380544215343889,
-            10.37502399943321
-          ],
-          "normal": [
-            -0.15760786854560524,
-            0.9875017770984066
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 11.86144265667435,
-          "v": 6.69433594594544,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-262419190:window:1:9",
-          "edge": 1,
-          "a": [
-            -9.429605218892902,
-            8.170887999777733
-          ],
-          "b": [
-            4.380544215343889,
-            10.37502399943321
-          ],
-          "normal": [
-            -0.15760786854560524,
-            0.9875017770984066
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 0.8643329184492051,
+          "u": 1.8268329184492054,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:0",
           "edge": 2,
           "a": [
@@ -4892,12 +5400,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.042998755347615,
+          "u": 4.380498755347615,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:1",
           "edge": 2,
           "a": [
@@ -4918,12 +5427,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.221664592246026,
+          "u": 6.9341645922460255,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:2",
           "edge": 2,
           "a": [
@@ -4944,12 +5454,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 10.400330429144436,
+          "u": 9.487830429144436,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:3",
           "edge": 2,
           "a": [
@@ -4970,12 +5481,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.8643329184492051,
+          "u": 1.8268329184492054,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:4",
           "edge": 2,
           "a": [
@@ -4996,12 +5508,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 4.042998755347615,
+          "u": 4.380498755347615,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:5",
           "edge": 2,
           "a": [
@@ -5022,12 +5535,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 7.221664592246026,
+          "u": 6.9341645922460255,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:6",
           "edge": 2,
           "a": [
@@ -5048,12 +5562,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 10.400330429144436,
+          "u": 9.487830429144436,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:2:7",
           "edge": 2,
           "a": [
@@ -5074,12 +5589,67 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.7862109313895719,
+          "u": 0.7593096503946388,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262419190:window:5:0",
+          "edge": 5,
+          "a": [
+            5.0666535508044035,
+            -3.217148000420025
+          ],
+          "b": [
+            2.172679560416782,
+            -3.5956360000972154
+          ],
+          "normal": [
+            0.1296804963822574,
+            -0.9915558324461873
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7593096503946388,
+          "v": 6.69433594594544,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-262419190:window:5:1",
+          "edge": 5,
+          "a": [
+            5.0666535508044035,
+            -3.217148000420025
+          ],
+          "b": [
+            2.172679560416782,
+            -3.5956360000972154
+          ],
+          "normal": [
+            0.1296804963822574,
+            -0.9915558324461873
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.7936387209274086,
+          "v": 3.7471679729727185,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:0",
           "edge": 7,
           "a": [
@@ -5100,12 +5670,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.8086327941687155,
+          "u": 3.6636387209275596,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:1",
           "edge": 7,
           "a": [
@@ -5126,12 +5697,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.83105465694786,
+          "u": 6.565452154632496,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:2",
           "edge": 7,
           "a": [
@@ -5152,12 +5724,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.7862109313895719,
+          "u": 0.7936387209274086,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:3",
           "edge": 7,
           "a": [
@@ -5178,12 +5751,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.8086327941687155,
+          "u": 3.6636387209275596,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:4",
           "edge": 7,
           "a": [
@@ -5204,12 +5778,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.83105465694786,
+          "u": 6.565452154632496,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:7:5",
           "edge": 7,
           "a": [
@@ -5230,12 +5805,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5407146459129746,
+          "u": 1.5657146459129747,
           "v": 3.7471679729727185,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:8:0",
           "edge": 8,
           "a": [
@@ -5256,12 +5832,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.5407146459129746,
+          "u": 1.5657146459129747,
           "v": 6.69433594594544,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-262419190:window:8:1",
           "edge": 8,
           "a": [
@@ -5373,6 +5950,22 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        }
+      ],
+      "party_walls": [
+        {
+          "edge": 0,
+          "a": [
+            -8.145349284248823,
+            0.08905599945876475
+          ],
+          "b": [
+            -9.429605218892902,
+            8.170887999777733
+          ],
+          "u0": 0,
+          "u1": 8.183234188696314,
+          "neighbour": "262419185"
         }
       ],
       "entrance": [

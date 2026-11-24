@@ -63,7 +63,7 @@ test('paving is cut off the roadway along its edge, and a fence\'s free end is c
   // Never across a roadway, a pavement, a driveway, a gate or a path; a parted end is left.
   assert.ok(trees.includes('const publicWay = (x, z) => insideCarriageway(x, z, 0.1) || pavementTopAt(x, z) !== undefined'));
   assert.ok(trees.includes('if (publicWay(px, pz) || inFenceGate(px, pz) || pathThroughFence(px, pz, -uz, ux)) return null;'));
-  assert.ok(trees.includes('if (!sink.closing) fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });'));
+  assert.ok(trees.includes('if (!sink.closing && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });'));
 });
 
 test('one walking pace at every zoom, a quarter slower; a sprint as fast as it was', () => {

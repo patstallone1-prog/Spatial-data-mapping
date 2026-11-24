@@ -76,21 +76,23 @@ def _extract(name: str, js: str) -> str:
 
 
 def test_avatar_speed_tracks_orbit_pixel_scale_but_not_first_person_zoom() -> None:
+    """One walking pace at every zoom the City allows, a quarter slower than it was (the owner,
+    2026-11-24); past 90 m of zoom -- Explore's map view -- it still grows with the distance.
+    A sprint keeps the full speed."""
     js = _page_js()
     script = "\n".join([
-        "const STREET_SPEED=8.94, FIRST_PERSON_SPEED=5.36, ARRIVAL_DIST=45;",
+        "const STREET_SPEED=8.94, FIRST_PERSON_SPEED=5.36, WALK_PACE=0.75, WALK_CONSTANT_TO_M=90;",
         "const state={dist:45,firstPerson:false};",
-        "const renderer={domElement:{clientHeight:800}};",
-        "const camera={fov:50};",
         _extract("avatarMoveSpeed", js),
         "const speeds=[]; for (const dist of [20,45,90,180]) {state.dist=dist; speeds.push(avatarMoveSpeed());}",
+        "state.dist=45; speeds.push(avatarMoveSpeed(true));",
         "state.firstPerson=true; speeds.push(avatarMoveSpeed());",
         "console.log(JSON.stringify(speeds));",
     ])
     out = subprocess.run([NODE, "--input-type=module", "-e", script],
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout) == pytest.approx([8.94, 8.94, 17.88, 35.76, 5.36])
+    assert json.loads(out.stdout) == pytest.approx([6.705, 6.705, 6.705, 13.41, 8.94, 4.02])
 
 
 def test_facade_window_rows_end_at_roof_even_on_fractional_storeys() -> None:

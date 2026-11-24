@@ -1326,7 +1326,7 @@ var fencePanelsLaid = [];
 function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
   const span=Math.hypot(bx-ax,bz-az);
   if (!(span>0) || !Number.isFinite(span)) return;
-  if (!sink.closing) fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });
+  if (!sink.closing && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });
   noteFenceLine(ax, az, bx, bz);
   const count=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
   const base=sink.positions.length/3;

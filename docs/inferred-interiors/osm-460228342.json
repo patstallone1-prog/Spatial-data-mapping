@@ -22,7 +22,7 @@
         2.934785500520973,
         2.934785500520973
       ],
-      "canonical_rules_sha256": "4c27d615de2180ff48aa8434e0a840506666cd67642cf1937d6f1cfe46b7eeee",
+      "canonical_rules_sha256": "09517c77bfaf9d886eeeb645b465c7312d466ca3c75762a15786c7b1f4d6a741",
       "measured": false,
       "confidence": 0.25,
       "freshness": null,
@@ -33,12 +33,13 @@
     "id": "osm-460228342",
     "windows": [
       {
-        "u": 1.1969136796336244,
-        "v": 3.7347855005209727,
-        "w": 1.45,
+        "u": 0.6000000000000001,
+        "v": 0.8000000000000007,
+        "w": 1.2938273592672491,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:0:0",
         "edge": 0,
         "a": [
@@ -59,12 +60,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 5.040741038900873,
-        "v": 3.7347855005209727,
-        "w": 1.45,
+        "u": 5.793827359267249,
+        "v": 0.8000000000000007,
+        "w": 1.2938273592672478,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:0:1",
         "edge": 0,
         "a": [
@@ -85,12 +87,94 @@
         "corroboration_count": 0
       },
       {
-        "u": 0.732746135570178,
-        "v": 0.8000000000000007,
-        "w": 1.45,
+        "u": 3.1438273592672497,
+        "v": 3.7347855005209727,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-460228342:window:0:2",
+        "edge": 0,
+        "a": [
+          -3.8879528971929176,
+          4.564119999550371
+        ],
+        "b": [
+          3.712027428388865,
+          5.721847999633098
+        ],
+        "normal": [
+          -0.15059573335044707,
+          0.9885954304449527
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 0.6719136796336249,
+        "v": 3.7347855005209727,
+        "w": 1.4,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-460228342:window:0:3",
+        "edge": 0,
+        "a": [
+          -3.8879528971929176,
+          4.564119999550371
+        ],
+        "b": [
+          3.712027428388865,
+          5.721847999633098
+        ],
+        "normal": [
+          -0.15059573335044707,
+          0.9885954304449527
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 5.615741038900873,
+        "v": 3.7347855005209727,
+        "w": 1.4,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-460228342:window:0:4",
+        "edge": 0,
+        "a": [
+          -3.8879528971929176,
+          4.564119999550371
+        ],
+        "b": [
+          3.712027428388865,
+          5.721847999633098
+        ],
+        "normal": [
+          -0.15059573335044707,
+          0.9885954304449527
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 1.1702461355701779,
+        "v": 0.8000000000000007,
+        "w": 1.4,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:0",
         "edge": 1,
         "a": [
@@ -111,12 +195,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 3.6482384067105342,
+        "u": 3.8107384067105334,
         "v": 0.8000000000000007,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:1",
         "edge": 1,
         "a": [
@@ -137,12 +222,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 6.56373067785089,
+        "u": 6.451230677850889,
         "v": 0.8000000000000007,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:2",
         "edge": 1,
         "a": [
@@ -163,12 +249,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 9.479222948991247,
+        "u": 9.091722948991245,
         "v": 0.8000000000000007,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:3",
         "edge": 1,
         "a": [
@@ -189,12 +276,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 0.732746135570178,
+        "u": 2.0769948474269038,
         "v": 3.7347855005209727,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:4",
         "edge": 1,
         "a": [
@@ -215,12 +303,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 3.6482384067105342,
+        "u": 5.130984542280712,
         "v": 3.7347855005209727,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:5",
         "edge": 1,
         "a": [
@@ -241,12 +330,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 6.56373067785089,
+        "u": 8.184974237134519,
         "v": 3.7347855005209727,
-        "w": 1.45,
+        "w": 1.4,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:1:6",
         "edge": 1,
         "a": [
@@ -267,38 +357,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 9.479222948991247,
-        "v": 3.7347855005209727,
-        "w": 1.45,
-        "h": 1.65,
-        "kind": "window",
-        "grade": "procedural_not_measured",
-        "id": "osm-460228342:window:1:7",
-        "edge": 1,
-        "a": [
-          3.712027428388865,
-          5.721847999633098
-        ],
-        "b": [
-          5.717577791754138,
-          -5.766376000153457
-        ],
-        "normal": [
-          0.9851015653089941,
-          0.1719735619965157
-        ],
-        "confidence": 0.25,
-        "measured": false,
-        "freshness": null,
-        "corroboration_count": 0
-      },
-      {
-        "u": 1.2268634666090157,
+        "u": 1.0679089777393438,
         "v": 0.8000000000000007,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:2:0",
         "edge": 2,
         "a": [
@@ -319,12 +384,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 5.130590399827048,
+        "u": 3.3037269332180323,
         "v": 0.8000000000000007,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:2:1",
         "edge": 2,
         "a": [
@@ -345,12 +411,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 1.2268634666090157,
-        "v": 3.7347855005209727,
-        "w": 1.45,
+        "u": 5.539544888696719,
+        "v": 0.8000000000000007,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:2:2",
         "edge": 2,
         "a": [
@@ -371,12 +438,13 @@
         "corroboration_count": 0
       },
       {
-        "u": 5.130590399827048,
+        "u": 1.9268634666090159,
         "v": 3.7347855005209727,
-        "w": 1.45,
+        "w": 1.2,
         "h": 1.65,
         "kind": "window",
         "grade": "procedural_not_measured",
+        "designed": true,
         "id": "osm-460228342:window:2:3",
         "edge": 2,
         "a": [
@@ -395,9 +463,79 @@
         "measured": false,
         "freshness": null,
         "corroboration_count": 0
+      },
+      {
+        "u": 4.680590399827048,
+        "v": 3.7347855005209727,
+        "w": 1.2,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-460228342:window:2:4",
+        "edge": 2,
+        "a": [
+          5.717577791754138,
+          -5.766376000153457
+        ],
+        "b": [
+          -1.9967540903626286,
+          -6.968631999965567
+        ],
+        "normal": [
+          0.15398822975830326,
+          -0.9880726820917093
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
+      },
+      {
+        "u": 0.6000000000000001,
+        "v": 0.8000000000000007,
+        "w": 0.9551279662760531,
+        "h": 1.65,
+        "kind": "window",
+        "grade": "procedural_not_measured",
+        "designed": true,
+        "id": "osm-460228342:window:4:0",
+        "edge": 4,
+        "a": [
+          -3.536101957085066,
+          2.437908000014488
+        ],
+        "b": [
+          -3.8879528971929176,
+          4.564119999550371
+        ],
+        "normal": [
+          -0.9865827147191935,
+          -0.16326220327224075
+        ],
+        "confidence": 0.25,
+        "measured": false,
+        "freshness": null,
+        "corroboration_count": 0
       }
     ],
     "balconies": [],
+    "party_walls": [
+      {
+        "edge": 3,
+        "a": [
+          -1.9967540903626286,
+          -6.968631999965567
+        ],
+        "b": [
+          -3.536101957085066,
+          2.437908000014488
+        ],
+        "u0": 0,
+        "u1": 9.287260724274637,
+        "neighbour": "460228341"
+      }
+    ],
     "entrance": [
       -0.0879627344020264,
       5.142983999591735
@@ -448,23 +586,7 @@
     "measured": false,
     "confidence": 0.25,
     "freshness": null,
-    "corroboration_count": 0,
-    "party_walls": [
-      {
-        "edge": 3,
-        "a": [
-          -1.9967540903626286,
-          -6.968631999965567
-        ],
-        "b": [
-          -3.536101957085066,
-          2.437908000014488
-        ],
-        "u0": 0,
-        "u1": 9.287260724274637,
-        "neighbour": "460228341"
-      }
-    ]
+    "corroboration_count": 0
   },
   "style": {
     "id": "heritage",
@@ -4266,13 +4388,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:sink_counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_sink",
+            "model": "business-lowpoly/kay-kitchencounter_sink.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.0587923537094766,
+              1.2
+            ],
             "role": "sink_counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#b47b68",
@@ -4512,13 +4640,19 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "procedural:counter",
-            "design_id": null,
+            "id": "kay-kitchencounter_straight_decorated",
+            "model": "business-lowpoly/kay-kitchencounter_straight_decorated.glb",
+            "license": "CC0-1.0",
+            "source": "https://kaylousberg.itch.io/restaurant-bits",
+            "attribution": "Kay Lousberg / KayKit",
+            "dimensions_m": [
+              1.1753741376181903,
+              1.1246887508958636,
+              1.2
+            ],
             "role": "counter",
-            "procedural": true,
-            "license": "project",
-            "source": "Kerbside parametric fixture",
-            "estimated_cost_usd": 300
+            "estimated_cost_usd": 100,
+            "procedural": false
           },
           "materials": {
             "wall": "#b47b68",
@@ -4942,20 +5076,18 @@
             "surface_y_m": 0.0
           },
           "asset": {
-            "id": "painted_wooden_chair_02",
-            "model": "painted_wooden_chair_02/painted_wooden_chair_02.gltf",
+            "id": "kenney-chaircushion",
+            "model": "business-lowpoly/kenney-chaircushion.glb",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/painted_wooden_chair_02",
-            "attribution": "Poly Haven",
+            "source": "https://kenney.nl/assets/furniture-kit",
+            "attribution": "Kenney",
             "dimensions_m": [
-              0.639389,
-              1.263771,
-              0.662098
+              0.43478260728722484,
+              0.9999999999999999,
+              0.43478260728722484
             ],
-            "style": "contemporary",
-            "tier": "economy",
             "role": "dining_chair",
-            "estimated_cost_usd": 78,
+            "estimated_cost_usd": 120,
             "procedural": false
           },
           "materials": {
@@ -5151,9 +5283,9 @@
           "id": "osm-460228342:L0:R4:item:0",
           "role": "washing_machine",
           "position_m": [
-            4.722713942630992,
+            4.681485638918142,
             0.0,
-            -3.1785251126457568
+            -2.942360518210102
           ],
           "size_m": [
             0.62,
@@ -5166,24 +5298,24 @@
             "coordinates": [
               [
                 [
-                  4.97478362365786,
-                  -2.819831823181049
+                  4.93355531994501,
+                  -2.583667228745394
                 ],
                 [
-                  4.364020653166284,
-                  -2.9264554316188884
+                  4.322792349453434,
+                  -2.6902908371832335
                 ],
                 [
-                  4.470644261604123,
-                  -3.5372184021104647
+                  4.4294159578912735,
+                  -3.3010538076748097
                 ],
                 [
-                  5.0814072320956996,
-                  -3.430594793672625
+                  5.04017892838285,
+                  -3.19443019923697
                 ],
                 [
-                  4.97478362365786,
-                  -2.819831823181049
+                  4.93355531994501,
+                  -2.583667228745394
                 ]
               ]
             ]
@@ -5221,8 +5353,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            3.993738784302336,
-            -3.305785548523178
+            3.952510480589486,
+            -3.0696209540875232
           ],
           "confidence": 0.25,
           "measured": false,
@@ -8885,39 +9017,39 @@
           "id": "osm-460228342:L1:R2:item:3",
           "role": "dresser",
           "position_m": [
-            2.76872768743732,
+            4.581932144012994,
             2.934785500520973,
-            -2.886271235093769
+            -1.877834509828971
           ],
           "size_m": [
             0.9,
             0.85,
             0.45
           ],
-          "rotation_deg": -80.68723627918094,
+          "rotation_deg": 99.90258499041157,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  2.619513902883835,
-                  -3.366750419345518
+                  4.726191901682988,
+                  -1.3958447564970204
                 ],
                 [
-                  3.063582764106628,
-                  -3.2939297732876067
+                  4.28289619594943,
+                  -1.4732328516938054
                 ],
                 [
-                  2.9179414719908054,
-                  -2.4057920508420203
+                  4.437672386342999,
+                  -2.3598242631609216
                 ],
                 [
-                  2.4738726107680122,
-                  -2.4786126968999316
+                  4.880968092076557,
+                  -2.282436167964137
                 ],
                 [
-                  2.619513902883835,
-                  -3.366750419345518
+                  4.726191901682988,
+                  -1.3958447564970204
                 ]
               ]
             ]
@@ -8963,8 +9095,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            3.4150945854393857,
-            -2.7802767391650316
+            3.9366906167785922,
+            -1.9904771817265132
           ],
           "confidence": 0.25,
           "measured": false,
@@ -8975,13 +9107,13 @@
           "id": "osm-460228342:L1:R3:item:0",
           "role": "bed",
           "position_m": [
-            3.4550363770505186,
+            3.2731469108702855,
             2.934785500520973,
-            1.443710966830383
+            1.4138838153031938
           ],
           "size_m": [
-            1.5,
-            0.85,
+            0.95,
+            0.8,
             2
           ],
           "rotation_deg": 9.312764255362932,
@@ -8990,24 +9122,24 @@
             "coordinates": [
               [
                 [
-                  4.356974811735921,
-                  0.5782590270687079
+                  3.90370993077916,
+                  0.5039303670854292
                 ],
                 [
-                  4.033327477509814,
-                  2.551898407261638
+                  3.580062596553053,
+                  2.4775697472783595
                 ],
                 [
-                  2.553097942365116,
-                  2.309162906592058
+                  2.642583890961411,
+                  2.3238372635209585
                 ],
                 [
-                  2.8767452765912234,
-                  0.33552352639912764
+                  2.966231225187518,
+                  0.35019788332802815
                 ],
                 [
-                  4.356974811735921,
-                  0.5782590270687079
+                  3.90370993077916,
+                  0.5039303670854292
                 ]
               ]
             ]
@@ -9020,20 +9152,20 @@
             "surface_y_m": 2.934785500520973
           },
           "asset": {
-            "id": "GothicBed_01",
-            "model": "GothicBed_01/GothicBed_01.gltf",
+            "id": "old_bed_frame",
+            "model": "old_bed_frame/old_bed_frame.gltf",
             "license": "CC0-1.0",
-            "source": "https://polyhaven.com/a/GothicBed_01",
+            "source": "https://polyhaven.com/a/old_bed_frame",
             "attribution": "Poly Haven",
             "dimensions_m": [
-              1.493752,
-              1.53384,
-              2.04
+              0.904658,
+              1.201484,
+              2.001726
             ],
             "style": "traditional",
-            "tier": "premium",
+            "tier": "economy",
             "role": "bed",
-            "estimated_cost_usd": 2090,
+            "estimated_cost_usd": 715,
             "procedural": false
           },
           "materials": {
@@ -9053,32 +9185,32 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            3.223628533078852,
-            2.854863123668328
+            3.041739066898619,
+            2.825035972141139
           ],
           "reserved_clearance": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  4.028472767496423,
-                  2.581502997964532
+                  3.575207886539661,
+                  2.507174337981253
                 ],
                 [
-                  3.915196200517285,
-                  3.2722767810320574
+                  3.4619313195605237,
+                  3.197948121048779
                 ],
                 [
-                  2.434966665372587,
-                  3.0295412803624773
+                  2.524452613968882,
+                  3.044215637291378
                 ],
                 [
-                  2.5482432323517243,
-                  2.3387674972949517
+                  2.6377291809480194,
+                  2.353441854223852
                 ],
                 [
-                  4.028472767496423,
-                  2.581502997964532
+                  3.575207886539661,
+                  2.507174337981253
                 ]
               ]
             ]
@@ -9088,24 +9220,24 @@
             "coordinates": [
               [
                 [
-                  2.8422065874378473,
-                  0.3298596980501708
+                  2.931692536034142,
+                  0.3445340549790713
                 ],
                 [
-                  2.5185592532117402,
-                  2.3034990782431013
+                  2.608045201808035,
+                  2.3181734351720014
                 ],
                 [
-                  1.8771264546490376,
-                  2.1983136946196162
+                  1.9666124032453323,
+                  2.2129880515485167
                 ],
                 [
-                  2.2007737888751446,
-                  0.22467431442668606
+                  2.2902597374714393,
+                  0.23934867135558657
                 ],
                 [
-                  2.8422065874378473,
-                  0.3298596980501708
+                  2.931692536034142,
+                  0.3445340549790713
                 ]
               ]
             ]
@@ -9385,39 +9517,39 @@
           "id": "osm-460228342:L1:R0:reclaimed:0:item:0",
           "role": "closet_rail",
           "position_m": [
-            -3.182460413518128,
+            -2.567332154657503,
             2.934785500520973,
-            4.2619176700157295
+            1.9821725858461365
           ],
           "size_m": [
             0.8,
             1.65,
             0.36
           ],
-          "rotation_deg": -171.33854825416793,
+          "rotation_deg": 9.31276425536293,
           "footprint": {
             "type": "Polygon",
             "coordinates": [
               [
                 [
-                  -3.6050058176991895,
-                  4.379626554155642
+                  -2.1434760185385673,
+                  1.8692745084739941
                 ],
                 [
-                  -3.550791353693029,
-                  4.023732199195459
+                  -2.2017325386992668,
+                  2.2245295969087215
                 ],
                 [
-                  -2.7599150093370666,
-                  4.144208785875817
+                  -2.991188290776439,
+                  2.0950706632182787
                 ],
                 [
-                  -2.814129473343227,
-                  4.500103140836
+                  -2.9329317706157396,
+                  1.7398155747835513
                 ],
                 [
-                  -3.6050058176991895,
-                  4.379626554155642
+                  -2.1434760185385673,
+                  1.8692745084739941
                 ]
               ]
             ]
@@ -9455,8 +9587,8 @@
           },
           "grade": "inferred",
           "interaction_point_m": [
-            -3.0905970161743554,
-            3.6588744574443086
+            -2.666044591596466,
+            2.5841325968049804
           ],
           "confidence": 0.25,
           "measured": false,
@@ -10209,7 +10341,7 @@
   ],
   "total_height_m": 5.869571001041946,
   "partition_score": 0.23897518973979057,
-  "estimated_furniture_cost_usd": 15928,
+  "estimated_furniture_cost_usd": 14195,
   "opening_types": [
     "full_access",
     "partial_cabinet",
@@ -10226,7 +10358,7 @@
       "objects": 36,
       "coverage_min": 0.9999999965954549,
       "hallway_area_fraction_max": 0.18390783890224308,
-      "downloaded_assets_used": 25,
+      "downloaded_assets_used": 27,
       "connected_rooms": 15
     },
     "scope": "geometric/plausibility checks; not a building-code or as-built certification"
@@ -10437,12 +10569,13 @@
       "id": "osm-460228342",
       "windows": [
         {
-          "u": 1.1969136796336244,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 0.6000000000000001,
+          "v": 0.8000000000000007,
+          "w": 1.2938273592672491,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:0:0",
           "edge": 0,
           "a": [
@@ -10463,12 +10596,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.040741038900873,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 5.793827359267249,
+          "v": 0.8000000000000007,
+          "w": 1.2938273592672478,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:0:1",
           "edge": 0,
           "a": [
@@ -10489,12 +10623,94 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.732746135570178,
-          "v": 0.8000000000000007,
-          "w": 1.45,
+          "u": 3.1438273592672497,
+          "v": 3.7347855005209727,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:2",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6719136796336249,
+          "v": 3.7347855005209727,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:3",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 5.615741038900873,
+          "v": 3.7347855005209727,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:0:4",
+          "edge": 0,
+          "a": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "b": [
+            3.712027428388865,
+            5.721847999633098
+          ],
+          "normal": [
+            -0.15059573335044707,
+            0.9885954304449527
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 1.1702461355701779,
+          "v": 0.8000000000000007,
+          "w": 1.4,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:0",
           "edge": 1,
           "a": [
@@ -10515,12 +10731,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.6482384067105342,
+          "u": 3.8107384067105334,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:1",
           "edge": 1,
           "a": [
@@ -10541,12 +10758,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.56373067785089,
+          "u": 6.451230677850889,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:2",
           "edge": 1,
           "a": [
@@ -10567,12 +10785,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.479222948991247,
+          "u": 9.091722948991245,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:3",
           "edge": 1,
           "a": [
@@ -10593,12 +10812,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 0.732746135570178,
+          "u": 2.0769948474269038,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:4",
           "edge": 1,
           "a": [
@@ -10619,12 +10839,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 3.6482384067105342,
+          "u": 5.130984542280712,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:5",
           "edge": 1,
           "a": [
@@ -10645,12 +10866,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 6.56373067785089,
+          "u": 8.184974237134519,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.4,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:1:6",
           "edge": 1,
           "a": [
@@ -10671,38 +10893,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 9.479222948991247,
-          "v": 3.7347855005209727,
-          "w": 1.45,
-          "h": 1.65,
-          "kind": "window",
-          "grade": "procedural_not_measured",
-          "id": "osm-460228342:window:1:7",
-          "edge": 1,
-          "a": [
-            3.712027428388865,
-            5.721847999633098
-          ],
-          "b": [
-            5.717577791754138,
-            -5.766376000153457
-          ],
-          "normal": [
-            0.9851015653089941,
-            0.1719735619965157
-          ],
-          "confidence": 0.25,
-          "measured": false,
-          "freshness": null,
-          "corroboration_count": 0
-        },
-        {
-          "u": 1.2268634666090157,
+          "u": 1.0679089777393438,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:0",
           "edge": 2,
           "a": [
@@ -10723,12 +10920,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.130590399827048,
+          "u": 3.3037269332180323,
           "v": 0.8000000000000007,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:1",
           "edge": 2,
           "a": [
@@ -10749,12 +10947,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 1.2268634666090157,
-          "v": 3.7347855005209727,
-          "w": 1.45,
+          "u": 5.539544888696719,
+          "v": 0.8000000000000007,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:2",
           "edge": 2,
           "a": [
@@ -10775,12 +10974,13 @@
           "corroboration_count": 0
         },
         {
-          "u": 5.130590399827048,
+          "u": 1.9268634666090159,
           "v": 3.7347855005209727,
-          "w": 1.45,
+          "w": 1.2,
           "h": 1.65,
           "kind": "window",
           "grade": "procedural_not_measured",
+          "designed": true,
           "id": "osm-460228342:window:2:3",
           "edge": 2,
           "a": [
@@ -10799,9 +10999,79 @@
           "measured": false,
           "freshness": null,
           "corroboration_count": 0
+        },
+        {
+          "u": 4.680590399827048,
+          "v": 3.7347855005209727,
+          "w": 1.2,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:2:4",
+          "edge": 2,
+          "a": [
+            5.717577791754138,
+            -5.766376000153457
+          ],
+          "b": [
+            -1.9967540903626286,
+            -6.968631999965567
+          ],
+          "normal": [
+            0.15398822975830326,
+            -0.9880726820917093
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
+        },
+        {
+          "u": 0.6000000000000001,
+          "v": 0.8000000000000007,
+          "w": 0.9551279662760531,
+          "h": 1.65,
+          "kind": "window",
+          "grade": "procedural_not_measured",
+          "designed": true,
+          "id": "osm-460228342:window:4:0",
+          "edge": 4,
+          "a": [
+            -3.536101957085066,
+            2.437908000014488
+          ],
+          "b": [
+            -3.8879528971929176,
+            4.564119999550371
+          ],
+          "normal": [
+            -0.9865827147191935,
+            -0.16326220327224075
+          ],
+          "confidence": 0.25,
+          "measured": false,
+          "freshness": null,
+          "corroboration_count": 0
         }
       ],
       "balconies": [],
+      "party_walls": [
+        {
+          "edge": 3,
+          "a": [
+            -1.9967540903626286,
+            -6.968631999965567
+          ],
+          "b": [
+            -3.536101957085066,
+            2.437908000014488
+          ],
+          "u0": 0,
+          "u1": 9.287260724274637,
+          "neighbour": "460228341"
+        }
+      ],
       "entrance": [
         -0.0879627344020264,
         5.142983999591735

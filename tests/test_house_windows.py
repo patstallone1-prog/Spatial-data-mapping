@@ -7,6 +7,7 @@ built. Inside a house the view is first person; nothing lifts a roof off.
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 import subprocess
@@ -219,4 +220,4 @@ def test_windows_are_composed_round_the_garage_and_the_door_and_kept_clear_of_th
     # None overlaps another.
     for r in rows:
         row = sorted((o["u"], o["u"] + o["w"]) for o in upper if round(o["v"], 2) == r)
-        assert all(b[0] >= a[1] + 0.4 for a, b in zip(row, row[1:]))
+        assert all(b[0] >= a[1] + 0.4 for a, b in itertools.pairwise(row))
