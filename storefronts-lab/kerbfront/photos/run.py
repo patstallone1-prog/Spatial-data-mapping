@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import replace
 from pathlib import Path
@@ -25,7 +26,7 @@ from ..faces import Face, buildings_from_datasf
 from ..geo import Frame, unit
 from ..sources import datasf, mapillary
 from .geometry import MAX_RANGE_M, assess
-from .pixels import assess_pixels
+from .pixels import MIN_FACE_PX, assess_pixels
 from .selection import select
 
 
@@ -142,7 +143,9 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
             fid = p["frame_id"]
             # the sign slot of a panorama needs the full-resolution original: a 2048 px
             # equirectangular thumbnail spends only ~6 px per degree on the facade
-            want = "original" if p.get("slot") == "sign" and fmeta[fid].get("camera_type") == "spherical" else size
+            pano = fmeta[fid].get("camera_type") == "spherical"
+            small = p["metrics"].get("span_px_2048", 1e9) < 1.5 * MIN_FACE_PX
+            want = "original" if pano and (p.get("slot") == "sign" or small) else size
             try:
                 img = mapillary.thumbnail(fid, want)
                 dets = mapillary.detections(fid)
@@ -202,6 +205,7 @@ def sheet(r: dict, dest: Path, cell: tuple[int, int] = (480, 360)) -> None:
         y, xx = divmod(i, cols)
         board[40 + y * H:40 + (y + 1) * H, xx * W:(xx + 1) * W] = t
     title = f"{r.get('name')}  |  {(r.get('address') or {}).get('number', '')} {(r.get('address') or {}).get('street', '')}"
+    title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()  # Hershey fonts are ASCII
     cv2.putText(board, title[:90], (8, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (240, 240, 240), 2, cv2.LINE_AA)
     dest.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(dest), board, [cv2.IMWRITE_JPEG_QUALITY, 82])

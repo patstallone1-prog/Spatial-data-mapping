@@ -30,7 +30,8 @@ from ..geo import ang_diff, bearing
 MAX_RANGE_M = 40.0
 MIN_RANGE_M = 2.0
 MAX_INCIDENCE_DEG = 72.0
-MIN_IN_VIEW = 0.6               # a span half out of frame sits in the distorted edge
+MIN_IN_VIEW = 0.7               # a span partly out of frame sits in the distorted edge
+EDGE_MARGIN = 0.92              # outer 8% of each half-field: uncorrected lens distortion
 MIN_VISIBLE = 0.4
 STOREFRONT_BAND = (0.0, 4.5)     # ground storey, where signs, awnings and doors live
 CAMERA_HEIGHT_M = 2.0            # car roof ~2.2, handheld ~1.6
@@ -155,7 +156,8 @@ def assess(face: Face, frame: dict, cam: tuple[float, float], *, building_h: flo
     if spherical:
         in_view = 1.0
     else:
-        in_view = sum(abs(ang_diff(b, heading)) <= hfov / 2 - 2 for b in bearings) / len(bearings)
+        # same rule as stage 2: only the central EDGE_MARGIN of the field counts
+        in_view = sum(abs(ang_diff(b, heading)) <= EDGE_MARGIN * hfov / 2 for b in bearings) / len(bearings)
     m["in_view"] = in_view
     if in_view < MIN_IN_VIEW:
         a.rejects.append("face_out_of_frame")
@@ -167,8 +169,11 @@ def assess(face: Face, frame: dict, cam: tuple[float, float], *, building_h: flo
 
     # width the span will occupy in the image stage 2 fetches: a 2048 px thumbnail for
     # perspective frames, the full-resolution original for panoramas
+    # panoramas are fetched at full resolution when the thumbnail would leave the span too
+    # narrow (stage 2 does exactly this), perspective frames at 2048 px
     fetch_w = (frame.get("width") or 2048) if spherical else min(frame.get("width") or 2048, 2048)
     m["span_px"] = px_per_radian(frame, fetch_w) * math.radians(span)
+    m["span_px_2048"] = px_per_radian(frame, min(frame.get("width") or 2048, 2048)) * math.radians(span)
     if m["span_px"] < MIN_SPAN_PX:
         a.rejects.append("face_too_small")
     ppm = px_per_radian(frame) * math.cos(math.radians(min(inc, 89.0))) / max(r, 0.5)
@@ -183,6 +188,9 @@ def assess(face: Face, frame: dict, cam: tuple[float, float], *, building_h: flo
         top = max(building_h or 9.0, 4.5)
         cover_full = _overlap((lo, hi), (0.0, top)) / top
     m.update(cover_storefront=cover_store, cover_full=cover_full)
+    m["in_frame"] = in_view * min(1.0, cover_store / 0.9)
+    if not spherical and m["in_frame"] < MIN_IN_VIEW and "face_out_of_frame" not in a.rejects:
+        a.rejects.append("face_cut_by_frame_edge")
 
     visible = occlusion_free(cam, face, own, tree, polys or []) if (tree is not None or own is not None) else 1.0
     m["visible"] = visible

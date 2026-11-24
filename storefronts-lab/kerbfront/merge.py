@@ -42,6 +42,10 @@ PRIORS = {
 STOREFRONT_NAICS = ("44", "45", "722", "8121", "8123", "5221", "7139", "4539", "8129", "7211")
 
 
+#: Fields where the earliest value across a cluster is the truth (see ``fuse``).
+EARLIEST_FIELDS = {"location_start_date"}
+
+
 def prior(source: str, field: str) -> float:
     p = PRIORS.get(source, {"*": 0.5})
     return p.get(field, p["*"])
@@ -143,6 +147,15 @@ def fuse(field: str, cands: list[tuple]) -> dict | None:
             q *= 1 - w
         return 1 - q
 
+    if field in EARLIEST_FIELDS:
+        # one cluster = one name at one address; a later registration is an ownership or
+        # licence change, not a new shop, so occupancy runs from the earliest date
+        first = min(groups)
+        others = [cs for k, cs in groups.items() if k != first]
+        return {"value": groups[first][0][0], "confidence": round(noisy_or(groups[first]), 3),
+                "sources": [{"source": c[1], "id": c[2], "retrieved_at": c[3]} for c in groups[first]],
+                "conflicts": [{"value": cs[0][0], "sources": sorted({c[1] for c in cs}),
+                               "note": "later registration"} for cs in others]}
     scored = sorted(((noisy_or(cs), k, cs) for k, cs in groups.items()), key=lambda t: -t[0])
     best_s, _, best = scored[0]
     others = [cs for _, _, cs in scored[1:]]

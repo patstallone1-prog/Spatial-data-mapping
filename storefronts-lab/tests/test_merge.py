@@ -58,3 +58,10 @@ def test_one_occupant_per_shopfront_address():
     assert now["occupancy"]["role"] == "occupant"
     assert stale["occupancy"]["role"] == "previous_or_upstairs"
     assert stale["storefront_likelihood"] < 0.5
+
+
+def test_occupancy_runs_from_the_earliest_registration():
+    f = fuse("location_start_date", [("2025-10-09", "registry", "r2", None),
+                                     ("1998-05-15", "registry", "r1", None)])
+    assert f["value"] == "1998-05-15"
+    assert f["conflicts"][0]["value"] == "2025-10-09"
