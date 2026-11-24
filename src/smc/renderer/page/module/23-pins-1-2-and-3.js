@@ -776,7 +776,7 @@ function requestGeneratedInterior(entry) {
     import(new URL("kerbside-adapter.mjs", ref.base).href)
   ]);
   Promise.all([generatedInteriorModules,
-    hasSource ? fetch(new URL(ref.file, ref.fileBase || ref.base)).then(r => { if (!r.ok) throw new Error("house unavailable"); return r.json(); }) : editorBaseline(String(entry.way.osm_id))
+    hasSource ? generatedInteriorSource(ref).then((source) => structuredClone(source)) : editorBaseline(String(entry.way.osm_id))
   ]).then(async ([[rendererModule, adapter], source]) => {
     if (hasSource && (!source.validation?.passed || source.grade !== "inferred")) throw new Error("invalid generated hypothesis");
     const baseline = entry.editorBaseline || adapter.prepareGeneratedHouse(source);
@@ -1193,6 +1193,22 @@ const WALKER_DEADWOOD_RADIUS_M = 0.25;
 //: How near a door or a gate must be for a walker stopped at the wall beside it to be carried to
 //: it (m), and how squarely they must be walking at the wall (the cosine of the most they may be
 //: turned from the way to the opening: someone walking along a wall is not pulled into every door).
+//: A house's generated rooms as their file has them, fetched once and kept a short while: asked
+//: for when you come up to its door (module 24 updateDoors: a few hundred bytes of network, no
+//: rooms built), so that Enter there builds them from what has already arrived.
+const generatedInteriorSources = new Map();
+function generatedInteriorSource(ref) {
+  const url = new URL(ref.file, ref.fileBase || ref.base).href;
+  let held = generatedInteriorSources.get(url);
+  if (!held) {
+    held = fetch(url).then((r) => { if (!r.ok) throw new Error("house unavailable"); return r.json(); });
+    held.catch(() => generatedInteriorSources.delete(url));
+    generatedInteriorSources.set(url, held);
+    // (The few nearest only: the oldest asked for is let go.)
+    if (generatedInteriorSources.size > 12) generatedInteriorSources.delete(generatedInteriorSources.keys().next().value);
+  }
+  return held;
+}
 const WALKER_NUDGE = { reach_m: 2.6, ahead: 0.25, done_m: 0.2 };
 //: Where a walker at (x, z), stopped walking (ux, uz) into a wall, is carried this step: along
 //: the wall toward the nearest door or gate, ``step`` metres at most, if that way is clear. Null:

@@ -145,7 +145,9 @@ def test_the_page_reads_only_this_stores_house_files_and_keeps_the_sites_own() -
     # The site's own accepted interior stays, unless it is an older layout of the same shop.
     assert "if (entry.generatedInteriorRef && !(shop && shopLayout(entry.generatedInteriorRef))) continue;" in store
     assert "fileBase: store" in store and "if (shop && !shopLayoutFits(entry, ref)) continue;" in store
-    assert "ref.fileBase || ref.base" in _extract("requestGeneratedInterior", page)
+    # (The file is fetched by generatedInteriorSource, shared with the door's prefetch.)
+    assert "generatedInteriorSource(ref)" in _extract("requestGeneratedInterior", page)
+    assert "ref.fileBase || ref.base" in _extract("generatedInteriorSource", page)
 
 
 def test_a_shop_layout_goes_only_into_its_own_listed_shop() -> None:

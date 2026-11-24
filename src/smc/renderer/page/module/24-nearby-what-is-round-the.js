@@ -826,7 +826,10 @@ function enterThroughDoor(door) {
 // Enter at a door: outside, it opens and the walker is put just inside; inside the house it went
 // into, the walker steps back out and the door is closed behind. Returns where the walker goes,
 // in this world's metres, or null when it stays (no rooms here: the door only swings).
-function toggleDoor(door) {
+//: ``wait``: the walker's own Enter at the door (operateNearestDoor) -- they go through once it
+//: has swung open (enteringDoor). Other callers (the city taking you into a place it knows) are
+//: answered at once, as before.
+function toggleDoor(door, { wait = false } = {}) {
   if (door.atGrade) return null;           // a street door onto a stair: shown, not walked through
   const x = avatar.position.x, z = avatar.position.z;
   if (enteredEntry === door.entry && insideFootprint(door.entry, x, z)) {
@@ -839,7 +842,7 @@ function toggleDoor(door) {
   // The door swings open first, and the rooms are built while it does: the walker goes through
   // when both are done (updateDoors, enteringDoor). Its rooms were there before you reached the
   // door, and every other house's with them.
-  if (typeof entryRoomsPossible === "function" && entryRoomsPossible(door.entry) && (!door.entry.interior || (door.angle ?? 0) < DOOR_ENTER_ANGLE)) {
+  if (wait && typeof entryRoomsPossible === "function" && entryRoomsPossible(door.entry) && (!door.entry.interior || (door.angle ?? 0) < DOOR_ENTER_ANGLE)) {
     if (!door.entry.interior) buildInterior(door.entry);
     if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; return null; }
   }
@@ -911,7 +914,7 @@ function operateNearestDoor() {
     door.open = !door.open; door.npcShut = null;
     return { said: door.open ? "Door opened: the shop's own rooms are not drawn yet" : "Door shut" };
   }
-  return { at: toggleDoor(door) };
+  return { at: toggleDoor(door, { wait: true }) };
 }
 //: The nearest door, gate or room door opened or shut, and the walker taken through a front door
 //: (Enter; X in the headset). What happened, in a few words, or null where there is none near.
@@ -1046,6 +1049,10 @@ function updateDoors(dt) {
   // This page's own region let go for another: the doors are the attached region's (guestFrame).
   if (!hostWorldActive) return;
   const x = avatar.position.x, z = avatar.position.z;
+  // Out of the house it went into (or its rooms gone), the walker is held outside again.
+  if (enteredEntry && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) enteredEntry = null;
+  // (After that check, not before it: gone through this frame, the walker is put inside after
+  // this function, and the check a line up would take the house back from them at once.)
   // Going in at a door (toggleDoor): through it once it has swung open and its rooms are there.
   if (enteringDoor) {
     const { door, since } = enteringDoor;
@@ -1060,8 +1067,6 @@ function updateDoors(dt) {
       }
     } else if (performance.now() - since > 8000 || Math.hypot(door.cx - x, door.cz - z) > DOOR_REACH_M * 2) enteringDoor = null;
   }
-  // Out of the house it went into (or its rooms gone), the walker is held outside again.
-  if (enteredEntry && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) enteredEntry = null;
   for (const door of doorsNear(x, z, DOOR_DRAW_M)) showDoor(door);
   for (const door of [...doorsShown]) {
     if (Math.hypot(door.cx - x, door.cz - z) > DOOR_DRAW_M * 1.2 && !door.open) hideDoor(door);
@@ -1083,6 +1088,14 @@ function updateDoors(dt) {
     if (door.recessWalls) door.recessWalls.visible = !door.entry.homeShell;
   }
   const door = nearestDoor();
+  // At a door whose rooms are a file: the file is asked for now (not the rooms).
+  if (door?.entry.generatedInteriorRef && !door.entry.interior && !door.entry.generatedInteriorFailed && !door.entry.emptyMarinaShell && typeof generatedInteriorSource === "function") {
+    generatedInteriorSource(door.entry.generatedInteriorRef).catch(() => {});
+    if (typeof generatedInteriorModules !== "undefined" && !generatedInteriorModules) {
+      const base = door.entry.generatedInteriorRef.base;
+      generatedInteriorModules = Promise.all([import(new URL("renderer.mjs", base).href), import(new URL("kerbside-adapter.mjs", base).href)]);
+    }
+  }
   const inPassage=occupiedTunnelAt(x,z,walkerFeetY()) || approachPassageAt(x,z,walkerFeetY());
   const inside = inPassage ? null : buildingAt(x, z);
   const insideEntry = inside && footprintById.get(String(inside.osm_id));
