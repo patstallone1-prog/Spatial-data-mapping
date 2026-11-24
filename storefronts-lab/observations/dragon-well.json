@@ -1,0 +1,790 @@
+{
+ "model": "dragon-well",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.4,
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "false front of horizontal siding to 7.4 m (LiDAR 7.38)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.6
+    },
+    {
+     "v": 3.6,
+     "h": 3.8
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "shop storey; the upper front is a blank siding parapet with mezzanine windows only over two tenants",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.6,
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "tall false front hiding a low roof",
+    "confidence": 0.5,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.08,
+    "depth": 0.06,
+    "colour": "#8d8170",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "plain metal cap, no cornice",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "narrow horizontal siding (about 0.12 m boards), taupe in sun",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#b3a68f",
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "narrow horizontal siding (about 0.12 m boards), taupe in sun",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#d9d2c3",
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "narrow horizontal siding (about 0.12 m boards), taupe in sun",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.texture_scale",
+   "value": 0.55,
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "narrow horizontal siding (about 0.12 m boards), taupe in sun",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "mez-w",
+     "kind": "window",
+     "u": 5.9,
+     "v": 3.75,
+     "w": 2.2,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#f2f0ea",
+     "depth": 0.25,
+     "sill": false,
+     "surround": true
+    },
+    {
+     "id": "dw-box",
+     "kind": "bay",
+     "u": 8.3,
+     "v": 3.97,
+     "w": 3.6,
+     "h": 0.93,
+     "v0": 3.85,
+     "v1": 5.0,
+     "projection": 0.35,
+     "front_share": 0.94,
+     "material": "painted_wood",
+     "colour": "#55372a",
+     "trim_colour": "#4a2f24",
+     "mullions": [
+      3,
+      1
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "mezzanine window band (white surround) over the teal-awning shop 5.9-8.1; Dragon Well's projecting dark-brown box window with three lights 8.3-11.9, 3.85-5.0 m over the board (3.35-3.82 m)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.58,
+     "h": 0.08,
+     "colour": "#6f6252",
+     "depth": 0.08
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "soffit line where the siding front meets the shopfronts",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "west-shop",
+     "business_id": null,
+     "name": "west shop (under the street tree)",
+     "edge": 3,
+     "u0": 0.3,
+     "u1": 5.2,
+     "band_h": 3.55,
+     "category": "retail",
+     "brand": null,
+     "material": "stucco",
+     "palette": {
+      "wall": "#3a3633",
+      "accent": "#55372a",
+      "frame": "#2b2420",
+      "base": "#3a3633",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#2c3436",
+      "roughness": 0.8
+     },
+     "door_style": null,
+     "signs": [],
+     "openings": [
+      {
+       "id": "w0",
+       "kind": "window",
+       "u": 0.5,
+       "v": 0.45,
+       "w": 2.2,
+       "h": 2.4,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "w1",
+       "kind": "door",
+       "u": 2.9,
+       "v": 0,
+       "w": 0.95,
+       "h": 2.4
+      },
+      {
+       "id": "w2",
+       "kind": "window",
+       "u": 4.0,
+       "v": 0.45,
+       "w": 1.0,
+       "h": 2.4,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "lights": []
+    },
+    {
+     "id": "teal-shop",
+     "business_id": null,
+     "name": "teal-awning shop",
+     "edge": 3,
+     "u0": 5.3,
+     "u1": 8.2,
+     "band_h": 3.55,
+     "category": "retail",
+     "brand": null,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e9e6de",
+      "accent": "#55372a",
+      "frame": "#f2f0ea",
+      "base": "#cfd8d6",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#2c3436",
+      "roughness": 0.8
+     },
+     "door_style": null,
+     "signs": [],
+     "openings": [
+      {
+       "id": "t0",
+       "kind": "window",
+       "u": 5.45,
+       "v": 0.6,
+       "w": 1.5,
+       "h": 2.2,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "t1",
+       "kind": "door",
+       "u": 7.05,
+       "v": 0,
+       "w": 0.95,
+       "h": 2.4
+      }
+     ],
+     "awnings": [
+      {
+       "id": "teal",
+       "kind": "shed",
+       "u0": 5.2,
+       "u1": 8.2,
+       "v": 3.6,
+       "depth_m": 1.0,
+       "drop_m": 0.45,
+       "valance_h": 0.12,
+       "colour": "#2e9aa6"
+      }
+     ],
+     "extra_signs": [],
+     "lights": []
+    },
+    {
+     "id": "dragon-well",
+     "business_id": "mb-31c7748889b3",
+     "name": "Dragon Well",
+     "edge": 3,
+     "u0": 8.3,
+     "u1": 12.0,
+     "band_h": 3.3,
+     "category": "restaurant",
+     "brand": null,
+     "material": "stucco",
+     "palette": {
+      "wall": "#4a2f24",
+      "accent": "#55372a",
+      "frame": "#3a261d",
+      "base": "#ebe0c3",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#2c3436",
+      "roughness": 0.8
+     },
+     "door_style": null,
+     "signs": [],
+     "openings": [
+      {
+       "id": "d0",
+       "kind": "window",
+       "u": 8.5,
+       "v": 0.95,
+       "w": 2.1,
+       "h": 1.7,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "d1",
+       "kind": "door",
+       "u": 10.9,
+       "v": 0,
+       "w": 0.95,
+       "h": 2.4
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "dw-board",
+       "kind": "board",
+       "u": 8.5,
+       "v": 3.35,
+       "w": 3.2,
+       "h": 0.47,
+       "board": "#ebe0c3",
+       "bg": "#ebe0c3",
+       "layers": [
+        {
+         "type": "text",
+         "text": "DRAGON WELL",
+         "x": 0.5,
+         "y": 0.54,
+         "size": 0.62,
+         "fill": "#8b2a1f",
+         "font": "Optima, \"Gill Sans\", \"Trebuchet MS\", sans-serif",
+         "weight": 700,
+         "spacing": 0.06
+        }
+       ]
+      }
+     ],
+     "lights": []
+    },
+    {
+     "id": "marina-lounge",
+     "business_id": null,
+     "name": "Marina Lounge",
+     "edge": 3,
+     "u0": 12.05,
+     "u1": 14.6,
+     "band_h": 3.3,
+     "category": "bar",
+     "brand": null,
+     "material": "stucco",
+     "palette": {
+      "wall": "#24402f",
+      "accent": "#55372a",
+      "frame": "#1f3528",
+      "base": "#24402f",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#2c3436",
+      "roughness": 0.8
+     },
+     "door_style": null,
+     "signs": [],
+     "openings": [
+      {
+       "id": "m0",
+       "kind": "door",
+       "u": 12.3,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.4
+      },
+      {
+       "id": "m1",
+       "kind": "window",
+       "u": 13.45,
+       "v": 0.7,
+       "w": 1.0,
+       "h": 2.1,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "marina-neon",
+       "kind": "blade",
+       "u": 14.1,
+       "v": 3.95,
+       "w": 0.55,
+       "h": 3.3,
+       "offset": 0.2,
+       "thick": 0.14,
+       "bg": "#9b3226",
+       "edge_colour": "#7d271d",
+       "illumination": "neon",
+       "layers": [
+        {
+         "type": "text",
+         "text": "M",
+         "x": 0.5,
+         "y": 0.1,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "A",
+         "x": 0.5,
+         "y": 0.26,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "R",
+         "x": 0.5,
+         "y": 0.42000000000000004,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "I",
+         "x": 0.5,
+         "y": 0.58,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "N",
+         "x": 0.5,
+         "y": 0.74,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "A",
+         "x": 0.5,
+         "y": 0.9,
+         "size": 0.13,
+         "fill": "#f4e4c8",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "marina-board",
+       "kind": "board",
+       "u": 12.95,
+       "v": 2.88,
+       "w": 1.3,
+       "h": 0.34,
+       "board": "#24402f",
+       "bg": "#24402f",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Marina Lounge",
+         "x": 0.5,
+         "y": 0.52,
+         "size": 0.55,
+         "fill": "#e9dcb8",
+         "font": "Georgia, serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "lights": []
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "four shops under one siding front: dark west shop, teal-awning shop, Dragon Well (cream base, dark-brown frames, cream board with red DRAGON WELL letters), Marina Lounge (dark green, red vertical MARINA neon to 7.2 m)",
+    "confidence": 0.8,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_sides",
+   "value": [
+    {
+     "edge": 3,
+     "name": "Chestnut Street",
+     "sidewalk_m": 3.84,
+     "kerb_m": 0.077,
+     "road_m": 13.53,
+     "parking_m": 2.4,
+     "u0": -14,
+     "u1": 30
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "app street record",
+    "confidence": 0.7,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "dw-enclosure",
+     "kind": "parklet",
+     "zone": "sidewalk",
+     "offset_m": 0.1,
+     "edge": 3,
+     "u0": 0.3,
+     "u1": 13.5,
+     "depth_m": 2.0,
+     "deck_colour": "#8a7660",
+     "barrier": "low_wall",
+     "barrier_colour": "#ebe0c3",
+     "benches": "none",
+     "tables": "two_top",
+     "table_shape": "square",
+     "colour": "#2f2f2c",
+     "chair_colour": "#3a2f28",
+     "roof": "none",
+     "plants": false,
+     "barrier_h": 1.05,
+     "posts": {
+      "h": 2.6,
+      "colour": "#8e3a2c",
+      "size": 0.13,
+      "us": [
+       0.6,
+       3.4,
+       6.0,
+       8.6,
+       11.1,
+       13.4
+      ],
+      "beam": true,
+      "beam_h": 0.18
+     },
+     "evidence": {
+      "kind": "observed",
+      "how": "2021-22 frames: cream low walls (1.05 m) with dark-red posts and a red beam at 2.6 m, no roof; parallax puts its street face ~2.1 m off the facade (posts 2.5 m apart), so it stands on the sidewalk; the registry lists no seating for these licences, so it is photo-only",
+      "frames": [
+       "495218682583259",
+       "801261194498468",
+       "656554992621313"
+      ]
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "a sidewalk caf\u00e9 enclosure along the whole front (leaves ~1.7 m clear: below the 6 ft rule, a Shared Spaces-era structure)",
+    "confidence": 0.7,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "dw-tree",
+     "kind": "tree",
+     "edge": 3,
+     "u": 1.5,
+     "w": 3.3,
+     "r": 2.6,
+     "trunk_h": 3.0,
+     "colour": "#5d7a3a"
+    },
+    {
+     "id": "dw-bins",
+     "kind": "box",
+     "edge": 3,
+     "u": 15.6,
+     "w": 2.8,
+     "len": 1.4,
+     "h": 1.05,
+     "depth": 0.7,
+     "colour": "#2b2b2b"
+    },
+    {
+     "id": "dw-meter",
+     "kind": "pole",
+     "edge": 3,
+     "u": 14.9,
+     "w": 3.5,
+     "h": 1.3,
+     "r": 0.04,
+     "colour": "#6e6e6a"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "801261194498468",
+     "656554992621313"
+    ],
+    "how": "street tree at the west end, bins and a meter at the east end",
+    "confidence": 0.6,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  },
+  {
+   "path": "photos",
+   "value": [
+    {
+     "frame_id": "495218682583259",
+     "slot": "sign",
+     "captured_at": "2022-06-08T18:45:55+00:00",
+     "camera_type": "spherical",
+     "x": 5.81,
+     "y": -6.396,
+     "z": 2.0,
+     "heading": 262.07,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors",
+     "align": {
+      "dx": 1.333,
+      "dy": 0.211
+     }
+    },
+    {
+     "frame_id": "348627583585845",
+     "slot": "elevation",
+     "captured_at": "2021-08-04T16:35:56+00:00",
+     "camera_type": "spherical",
+     "x": 3.553,
+     "y": -8.412,
+     "z": 2.0,
+     "heading": 254.31,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "574157410631216",
+     "slot": "oblique-left",
+     "captured_at": "2021-08-04T16:46:50+00:00",
+     "camera_type": "spherical",
+     "x": 1.402,
+     "y": -7.181,
+     "z": 2.0,
+     "heading": 256.17,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "844665136442121",
+     "slot": "oblique-right",
+     "captured_at": "2021-08-04T16:25:04+00:00",
+     "camera_type": "spherical",
+     "x": 12.013,
+     "y": -5.586,
+     "z": 2.0,
+     "heading": 255.4,
+     "hfov": 360.0,
+     "width": 5760,
+     "height": 2880,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+    },
+    {
+     "frame_id": "801261194498468",
+     "slot": "extra",
+     "captured_at": "2022-06-09T02:50:21+00:00",
+     "camera_type": "spherical",
+     "x": 4.959,
+     "y": -6.621,
+     "z": 2.0,
+     "heading": 256.3,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors",
+     "align": {
+      "dx": 1.333,
+      "dy": 0.211
+     }
+    },
+    {
+     "frame_id": "656554992621313",
+     "slot": "extra",
+     "captured_at": "2022-06-09T02:51:16+00:00",
+     "camera_type": "spherical",
+     "x": 5.698,
+     "y": -8.512,
+     "z": 2.0,
+     "heading": 266.7,
+     "hfov": 360.0,
+     "width": 4096,
+     "height": 2048,
+     "position_source": "sfm",
+     "licence": "CC BY-SA 4.0 (c) Mapillary contributors",
+     "align": {
+      "dx": 1.333,
+      "dy": 0.211
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [],
+    "how": "frames 0, 4, 5 anchored on the east joint (du +1.35); 1-3 are aimed badly (heading drift) and unused",
+    "confidence": 0.9,
+    "read_by": "kerbfront rectify + reviewer (Claude), 2026-11-24"
+   }
+  }
+ ]
+}

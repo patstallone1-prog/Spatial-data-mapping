@@ -1,0 +1,314 @@
+{
+ "model": "dragon-well",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.4,
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 3",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 2.8
+    },
+    {
+     "v": 2.8,
+     "h": 4.6
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#C0B8A8",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "shingle",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:a6.02",
+     "kind": "window",
+     "u": 6.02,
+     "v": 3.28,
+     "w": 2.2,
+     "h": 1.11,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w3:a8.5",
+     "kind": "window",
+     "u": 8.5,
+     "v": 3.28,
+     "w": 3.4,
+     "h": 1.11,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 2.8,
+     "h": 0.2,
+     "colour": "#8B0000",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#8B0000",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.05,
+    "depth": 0.05,
+    "colour": "#C0B8A8",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "no band at the facade top",
+    "confidence": 0.4,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-dragon-well",
+     "business_id": "mb-31c7748889b3",
+     "name": "Dragon Well",
+     "edge": 3,
+     "u0": 6.0,
+     "u1": 15.2,
+     "band_h": 2.8,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-dragon-well:g0",
+       "kind": "window",
+       "u": 8.5,
+       "v": 0.3,
+       "w": 6.7,
+       "h": 2.4,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:door0",
+       "kind": "door",
+       "u": 9.0,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-dragon-well:awn0",
+       "kind": "shed",
+       "u0": 6.0,
+       "u1": 8.5,
+       "v": 2.8,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#00CED1",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "656554992621313",
+       "801261194498468",
+       "495218682583259",
+       "844665136442121"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-dragon-well:sign0",
+       "kind": "board",
+       "u": 8.5,
+       "v": 2.8,
+       "w": 3.4,
+       "h": 0.6,
+       "bg": "#FFFFFF",
+       "layers": [
+        {
+         "type": "text",
+         "text": "DRAGON WELL",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "656554992621313",
+     "801261194498468",
+     "844665136442121"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  }
+ ]
+}

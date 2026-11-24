@@ -1,0 +1,351 @@
+{
+ "model": "bonita-taqueria-y-rotisserie",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 5.0,
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 0",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 3.6
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#e8e4dc",
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 3.6,
+     "h": 0.15,
+     "colour": "#c8c4bc",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#c8c4bc",
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.05,
+    "depth": 0.05,
+    "colour": "#e8e4dc",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "no band at the facade top",
+    "confidence": 0.4,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-bonita-taqueria-y-rotisserie",
+     "business_id": "mb-3f9055144446",
+     "name": "Bonita Taqueria Y Rotisserie",
+     "edge": 0,
+     "u0": 4.2,
+     "u1": 7.4,
+     "band_h": 3.6,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-bonita-taqueria-y-rotisserie:g0",
+       "kind": "window",
+       "u": 4.3,
+       "v": 0.4,
+       "w": 3.0,
+       "h": 2.4,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-bonita-taqueria-y-rotisserie:door0",
+       "kind": "door",
+       "u": 5.8,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-bonita-taqueria-y-rotisserie:awn0",
+       "kind": "shed",
+       "u0": 4.2,
+       "u1": 7.4,
+       "v": 3.3,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#7cb342",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "491061233090049",
+       "2049431468600157",
+       "596519411332874",
+       "465910554665088",
+       "302831604885035",
+       "390175061981102"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-bonita-taqueria-y-rotisserie:sign0",
+       "kind": "board",
+       "u": 4.5,
+       "v": 3.8,
+       "w": 2.5,
+       "h": 0.6,
+       "bg": "#f5f0e8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BONITA",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2049431468600157",
+     "302831604885035",
+     "390175061981102",
+     "465910554665088",
+     "491061233090049",
+     "596519411332874"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#d0ccc4",
+   "evidence": {
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "qwen-sidewalk_strip-0-0",
+     "kind": "sidewalk_strip",
+     "edge": 0,
+     "u0": 4.2,
+     "u1": 7.4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2049431468600157",
+     "302831604885035",
+     "390175061981102",
+     "465910554665088",
+     "491061233090049",
+     "596519411332874"
+    ],
+    "how": "qwen/qwen4-max reading of the registered elevation",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}
