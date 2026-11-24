@@ -830,6 +830,7 @@ function enterThroughDoor(door) {
 //: has swung open (enteringDoor). Other callers (the city taking you into a place it knows) are
 //: answered at once, as before.
 function toggleDoor(door, { wait = false } = {}) {
+  const note = typeof noteDoor === "function" ? noteDoor : () => {};   // (the door's log, where this runs in the page)
   if (door.atGrade) return null;           // a street door onto a stair: shown, not walked through
   const x = avatar.position.x, z = avatar.position.z;
   if (enteredEntry === door.entry && insideFootprint(door.entry, x, z)) {
@@ -844,15 +845,15 @@ function toggleDoor(door, { wait = false } = {}) {
   // door, and every other house's with them.
   if (wait && typeof entryRoomsPossible === "function" && entryRoomsPossible(door.entry) && (!door.entry.interior || (door.angle ?? 0) < DOOR_ENTER_ANGLE)) {
     if (!door.entry.interior) buildInterior(door.entry);
-    if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; noteDoor("enter: waiting for the door" + (door.entry.interior ? "" : " and the rooms")); return null; }
+    if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; note("enter: waiting for the door" + (door.entry.interior ? "" : " and the rooms")); return null; }
   }
   const inside = enterThroughDoor(door);
   if (!inside) {
     door.open = !wasOpen;
-    noteDoor("enter: no way in (" + (door.entry.interior ? "no clear spot" : "no rooms") + ")");
+    note("enter: no way in (" + (door.entry.interior ? "no clear spot" : "no rooms") + ")");
     return null;
   }
-  noteDoor("enter: at once");
+  note("enter: at once");
   enteredEntry = door.entry;
   return { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
 }
