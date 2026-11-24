@@ -1,3 +1,7 @@
+// (Before anything is laid or painted along a street: the parking the city's meters say it has,
+// and the lanes that fit beside it -- module 06, settleParkingLanes.)
+try { await settleParkingLanes(); } catch (error) { console.warn("kerbside: the parking lanes were left as tagged", error); }
+
 // ---- where OpenStreetMap says there is no pavement ----
 //
 // 988 of this corridor's 4,219 street ways carry `sidewalk=no` or `sidewalk:both=no`, and the
