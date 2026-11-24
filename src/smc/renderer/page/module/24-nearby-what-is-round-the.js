@@ -844,13 +844,15 @@ function toggleDoor(door, { wait = false } = {}) {
   // door, and every other house's with them.
   if (wait && typeof entryRoomsPossible === "function" && entryRoomsPossible(door.entry) && (!door.entry.interior || (door.angle ?? 0) < DOOR_ENTER_ANGLE)) {
     if (!door.entry.interior) buildInterior(door.entry);
-    if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; return null; }
+    if (door.entry.interior || door.entry.generatedInteriorRef) { enteringDoor = { door, since: performance.now() }; noteDoor("enter: waiting for the door" + (door.entry.interior ? "" : " and the rooms")); return null; }
   }
   const inside = enterThroughDoor(door);
   if (!inside) {
     door.open = !wasOpen;
+    noteDoor("enter: no way in (" + (door.entry.interior ? "no clear spot" : "no rooms") + ")");
     return null;
   }
+  noteDoor("enter: at once");
   enteredEntry = door.entry;
   return { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
 }
@@ -1007,10 +1009,14 @@ function updateIndoorGroundCut(x, z) {
 const INTERIOR_ON_STOP = { still_s: 0.6, near_m: 26, most: 3, drop_m: 34, retry_ms: 5000 };
 const walkerStill = { x: NaN, z: NaN, since: 0 };
 const interiorStats = { built_on_stop: 0, dropped: 0, entered: 0 };
+//: The last few things that happened at doors (for kerbsideInteriorsOnStop().log): what, when (ms).
+const doorLog = [];
+function noteDoor(what) { doorLog.push([Math.round(performance.now()), what]); if (doorLog.length > 40) doorLog.shift(); }
 //: How far a door has swung before the walker goes through it (rad), and the door being gone
 //: through: {door, since} from Enter until it has opened and its rooms are there.
 const DOOR_ENTER_ANGLE = 1.15;
-let enteringDoor = null, doorEntryDone = null;
+let enteringDoor = null, doorEntryDone = null, enteredAt = -1e9;
+const DOOR_ENTER_GRACE_MS = 400;
 //: Where the walker now stands inside, once, after a door it went in at has opened (an attached
 //: region's, in its own metres): asked each frame by the page (module 27).
 function takeDoorEntry() { const at = doorEntryDone; doorEntryDone = null; return at; }
@@ -1043,14 +1049,17 @@ function interiorsOnStop(x, z) {
   }
   return still;
 }
-window.kerbsideInteriorsOnStop = () => ({ ...interiorStats, built: interiorsBuilt.size, still_ms: Math.round(performance.now() - walkerStill.since) });
+function interiorsOnStopReport() { return { ...interiorStats, built: interiorsBuilt.size, still_ms: Math.round(performance.now() - walkerStill.since), entering: Boolean(enteringDoor), entered: enteredEntry?.way?.osm_id ?? null, log: doorLog.slice() }; }
+window.kerbsideInteriorsOnStop = interiorsOnStopReport;
 
 function updateDoors(dt) {
   // This page's own region let go for another: the doors are the attached region's (guestFrame).
   if (!hostWorldActive) return;
   const x = avatar.position.x, z = avatar.position.z;
   // Out of the house it went into (or its rooms gone), the walker is held outside again.
-  if (enteredEntry && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) enteredEntry = null;
+  // (Not in the moments after going through a door that had to open first: the walker is put
+  // inside by the page that holds them, a frame or two after this region says where.)
+  if (enteredEntry && performance.now() - enteredAt > DOOR_ENTER_GRACE_MS && (!enteredEntry.interior || !insideFootprint(enteredEntry, x, z))) { noteDoor(enteredEntry.interior ? "left: outside the footprint" : "left: rooms gone"); enteredEntry = null; }
   // (After that check, not before it: gone through this frame, the walker is put inside after
   // this function, and the check a line up would take the house back from them at once.)
   // Going in at a door (toggleDoor): through it once it has swung open and its rooms are there.
@@ -1060,12 +1069,12 @@ function updateDoors(dt) {
       enteringDoor = null;
       const inside = enterThroughDoor(door);
       if (inside) {
-        enteredEntry = door.entry; interiorStats.entered += 1;
+        enteredEntry = door.entry; enteredAt = performance.now(); interiorStats.entered += 1; noteDoor("enter: through the open door");
         const at = { ...inside, yaw: Math.atan2(-door.nx, -door.nz) };
         // (An attached region hands it to the page that holds the walker: takeDoorEntry.)
         if (ATTACH) doorEntryDone = at; else placeWalkerAtDoor(at);
       }
-    } else if (performance.now() - since > 8000 || Math.hypot(door.cx - x, door.cz - z) > DOOR_REACH_M * 2) enteringDoor = null;
+    } else if (performance.now() - since > 8000 || Math.hypot(door.cx - x, door.cz - z) > DOOR_REACH_M * 2) { noteDoor("enter: given up"); enteringDoor = null; }
   }
   for (const door of doorsNear(x, z, DOOR_DRAW_M)) showDoor(door);
   for (const door of [...doorsShown]) {

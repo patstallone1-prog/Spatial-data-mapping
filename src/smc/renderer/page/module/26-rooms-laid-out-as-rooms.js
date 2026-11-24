@@ -1295,6 +1295,7 @@ function fittedInteriorSnapshot(entry) {
 function removeInterior(entry) {
   entry.customWindowShell?.restore();entry.customWindowShell=null;
   if (!entry.interior) return;
+  if (typeof noteDoor === "function" && typeof enteredEntry !== "undefined" && entry === enteredEntry) noteDoor("rooms taken down under the walker: " + String(new Error().stack).split("\n").slice(2, 5).map((l) => l.trim().split(" ")[1]).join(" < "));
   interiorGroup.remove(entry.interior.group);
   standingSurfaces.delete(entry.interior.floorSurface);
   entry.interior.group.traverse((o) => { if (o.geometry && !o.userData.sharedInteriorAsset) o.geometry.dispose(); });
