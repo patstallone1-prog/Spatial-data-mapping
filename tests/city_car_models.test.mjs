@@ -23,6 +23,12 @@ function glbJson(path) {
   return JSON.parse(b.toString("utf8", 20, 20 + b.readUInt32LE(12)));
 }
 
+test("the builds that made the cars are in the repository", () => {
+  // (Also what tells CI's test selection that a change to either build is this file's to check.)
+  assert.ok(existsSync(new URL("scripts/blender_city_cars.py", ROOT)), "the Blender pass");
+  assert.ok(existsSync(new URL("scripts/build_city_cars.mjs", ROOT)), "the build that packs them");
+});
+
 test("the page's record of each car is the build's", () => {
   assert.deepEqual(Object.keys(CAR_MODELS).sort(), Object.keys(record.cars).sort());
   assert.deepEqual(Object.keys(CAR_MODELS).sort(), Object.keys(config.cars).sort());
