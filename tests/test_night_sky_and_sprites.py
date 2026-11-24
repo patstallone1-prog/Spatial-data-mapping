@@ -38,7 +38,7 @@ def test_the_moon_stands_inside_the_cameras_far_plane() -> None:
 def test_the_sky_reads_the_games_clock_in_the_city_and_the_walls_in_explore() -> None:
     sky = (ROOT / "docs/environment-runtime.mjs").read_text()
     assert "let clockMode='live';" in sky
-    assert "const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date();" in sky
+    assert "const clockNow=()=>clockMode==='game' ? new Date(gameClock.game(clockTime(Date.now()))) : new Date();" in sky
     js = renderer_source()
     assert 'environmentController?.setClock?.(city ? "game" : "live");' in _function(js, "compassForMode")
     assert 'if (typeof compassForMode === "function") compassForMode(appMode);' in _function(js, "setAppMode")

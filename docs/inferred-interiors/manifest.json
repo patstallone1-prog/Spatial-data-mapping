@@ -1,6 +1,6 @@
 {
   "schema": "kerbside.inferred_house_batch/1",
-  "selection": "eight fixed stress shapes + eight OSM houses ordered by SHA256(id); no solver filtering",
+  "selection": "caller-supplied fixed cohort before inference; no solver filtering",
   "houses": [
     {
       "id": "stress-compact",
@@ -349,7 +349,7 @@
         "objects": 36,
         "coverage_min": 0.9999999965954549,
         "hallway_area_fraction_max": 0.18390783890224308,
-        "downloaded_assets_used": 25,
+        "downloaded_assets_used": 27,
         "connected_rooms": 15
       },
       "search": {
@@ -508,7 +508,7 @@
         "objects": 54,
         "coverage_min": 0.999999996607931,
         "hallway_area_fraction_max": 0.11578689366309909,
-        "downloaded_assets_used": 29,
+        "downloaded_assets_used": 31,
         "connected_rooms": 24
       },
       "search": {
@@ -531,7 +531,7 @@
         "objects": 45,
         "coverage_min": 0.9999999955798983,
         "hallway_area_fraction_max": 0.2302728963140124,
-        "downloaded_assets_used": 33,
+        "downloaded_assets_used": 35,
         "connected_rooms": 18
       },
       "search": {
@@ -611,7 +611,7 @@
         "objects": 36,
         "coverage_min": 0.9999999892811702,
         "hallway_area_fraction_max": 0.18901944529547027,
-        "downloaded_assets_used": 20,
+        "downloaded_assets_used": 22,
         "connected_rooms": 15
       },
       "search": {
@@ -645,7 +645,7 @@
         "objects": 63,
         "coverage_min": 1.0,
         "hallway_area_fraction_max": 0.09510028246091085,
-        "downloaded_assets_used": 35,
+        "downloaded_assets_used": 37,
         "connected_rooms": 27
       },
       "search": {
@@ -713,7 +713,7 @@
         "objects": 54,
         "coverage_min": 0.999999996407233,
         "hallway_area_fraction_max": 0.1442107252626653,
-        "downloaded_assets_used": 37,
+        "downloaded_assets_used": 39,
         "connected_rooms": 24
       },
       "search": {
@@ -736,7 +736,7 @@
         "objects": 54,
         "coverage_min": 0.9999999977076058,
         "hallway_area_fraction_max": 0.1414054208962923,
-        "downloaded_assets_used": 32,
+        "downloaded_assets_used": 34,
         "connected_rooms": 21
       },
       "search": {
@@ -811,7 +811,7 @@
         "objects": 63,
         "coverage_min": 0.9999999955644873,
         "hallway_area_fraction_max": 0.12141897777340593,
-        "downloaded_assets_used": 39,
+        "downloaded_assets_used": 41,
         "connected_rooms": 25
       },
       "search": {

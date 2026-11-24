@@ -127,6 +127,6 @@ test("the compass is a reading in the city (the game keeps its own time) and ope
   const living = readFileSync(new URL("../src/smc/renderer/page/module/30-the-living-city.js", import.meta.url), "utf8");
   assert.ok(living.includes('if (typeof compassForMode === "function") compassForMode(appMode);'));
   const sky = readFileSync(new URL("../docs/environment-runtime.mjs", import.meta.url), "utf8");
-  assert.ok(sky.includes("clockMode==='game' ? new Date(gameClock.game(Date.now())) : new Date()"));
+  assert.ok(sky.includes("clockMode==='game' ? new Date(gameClock.game(clockTime(Date.now()))) : new Date()"));
   assert.ok(!VIEW.includes('getElementById("sun-dial")'));
 });

@@ -71,6 +71,8 @@ RULES = [
         ["tests/test_home_lobby.py", "tests/test_tunnel_app_release.py"],
     ),
     (["docs/vendor/three-0.160.0/**"], ["tests/test_renderer_boot.py"]),
+    # the storefront lab is its own package with its own suite; one repo test runs it
+    (["storefronts-lab/**"], ["tests/test_storefronts_lab.py"]),
 ]
 #: Files a module reads by directory rather than by name: a change to one of them is a change to
 #: each module named here, and selects those modules' consumers. The page's shell and module

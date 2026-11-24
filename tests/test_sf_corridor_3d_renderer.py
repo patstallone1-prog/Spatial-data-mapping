@@ -37,8 +37,8 @@ def test_walker_scales_orbit_speed_and_clicks_move_without_dragging() -> None:
     source = _source()
     assert "const STREET_SPEED = 8.94;" in source
     assert "const FIRST_PERSON_SPEED = 5.36;" in source
-    assert "const scaled = avatarMoveSpeed();" in source
-    assert "if (state.firstPerson) return FIRST_PERSON_SPEED;" in source
+    assert "const scaled = avatarMoveSpeed(vitalsPace > 1);" in source
+    assert "if (state.firstPerson) return FIRST_PERSON_SPEED * pace;" in source
     assert "firstBuildingCollision(" in source
     # The walker keeps walking while the view is dragged round, and F is first person.
     assert "if (!held.size) {" in source and "if (!held.size || dragging)" not in source

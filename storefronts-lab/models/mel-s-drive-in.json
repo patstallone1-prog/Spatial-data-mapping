@@ -1,0 +1,1537 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "mel-s-drive-in",
+ "title": "Mel's Drive-in",
+ "business_id": "mb-e1dbc0a2694e",
+ "area": "marina-union",
+ "address": {
+  "number": 2165,
+  "number_hi": null,
+  "street": "LOMBARD ST",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": "lombard",
+ "business_type": {
+  "tag": "diner",
+  "kinds": [
+   "diner"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.43704514,
+  37.79958384
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0013207",
+ "app_building": "26135462",
+ "footprint": [
+  [
+   -3.408,
+   -0.54
+  ],
+  [
+   -3.544,
+   0.408
+  ],
+  [
+   -6.707,
+   -0.055
+  ],
+  [
+   -4.685,
+   -12.706
+  ],
+  [
+   -7.123,
+   -18.773
+  ],
+  [
+   -6.612,
+   -21.94
+  ],
+  [
+   -2.984,
+   -23.231
+  ],
+  [
+   -2.37,
+   -26.814
+  ],
+  [
+   -0.794,
+   -26.714
+  ],
+  [
+   -0.613,
+   -27.868
+  ],
+  [
+   7.654,
+   -26.556
+  ],
+  [
+   3.408,
+   0.541
+  ]
+ ],
+ "height_m": 4.83,
+ "floors": [
+  {
+   "v": 0.0,
+   "h": 4.33
+  }
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#aeb0ae",
+  "parapet_h": 0.6,
+  "cornice": {
+   "h": 0.35,
+   "depth": 0.25,
+   "colour": "#efeae0"
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 0.96,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 3.2,
+   "role": "street",
+   "street": "LOMBARD ST",
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 12.81,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w2:app0",
+     "kind": "window",
+     "u": 11.62,
+     "v": 3.0,
+     "w": 1.25,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "evidence": {
+      "kind": "app",
+      "source": "sf-corridor-home-openings (image_on_prior_geometry)",
+      "confidence": 0.82
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 6.54,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w4",
+   "edge": 4,
+   "length_m": 3.21,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w5",
+   "edge": 5,
+   "length_m": 3.85,
+   "role": "street",
+   "street": "MOULTON ST",
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w6",
+   "edge": 6,
+   "length_m": 3.64,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w7",
+   "edge": 7,
+   "length_m": 1.58,
+   "role": "street",
+   "street": "MOULTON ST",
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w8",
+   "edge": 8,
+   "length_m": 1.17,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w9",
+   "edge": 9,
+   "length_m": 8.37,
+   "role": "street",
+   "street": "MOULTON ST",
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w10",
+   "edge": 10,
+   "length_m": 27.43,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w11",
+   "edge": 11,
+   "length_m": 6.9,
+   "role": "street",
+   "street": "LOMBARD ST",
+   "material": "stucco",
+   "colour": "#5f5b5a",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-mel-s-drive-in",
+   "business_id": "mb-e1dbc0a2694e",
+   "name": "Mel's Drive-in",
+   "edge": 11,
+   "u0": 0.0,
+   "u1": 6.9,
+   "band_h": 4.33,
+   "category": "restaurant",
+   "brand": null,
+   "material": "painted_wood",
+   "palette": {
+    "wall": "#e5d6c3",
+    "accent": "#713c33",
+    "frame": "#34312d",
+    "base": "#8b8277",
+    "letter": "#f6f1e7",
+    "metal": "#a5aaa7",
+    "glass": "#a7c2c8",
+    "roughness": 0.82
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "kerbfront-201006.0013207:facade:0:door",
+     "component_kind": "door",
+     "operation": "hinged",
+     "leaf_count": 1,
+     "transom_fraction": null,
+     "privacy_fraction": null,
+     "shape": null,
+     "role": null,
+     "kind": "door",
+     "u": 4.04,
+     "v": 0,
+     "w": 1.05,
+     "h": 2.35
+    },
+    {
+     "id": "kerbfront-201006.0013207:facade:0:window:1",
+     "component_kind": "window",
+     "operation": null,
+     "leaf_count": null,
+     "transom_fraction": 0.23,
+     "privacy_fraction": 0,
+     "shape": null,
+     "role": null,
+     "kind": "window",
+     "u": 0.29,
+     "v": 0.8424676827977464,
+     "w": 1.5854514821151253,
+     "h": 1.9075323172022536
+    },
+    {
+     "id": "kerbfront-201006.0013207:facade:0:window:2",
+     "component_kind": "window",
+     "operation": null,
+     "leaf_count": null,
+     "transom_fraction": 0.23,
+     "privacy_fraction": 0,
+     "shape": null,
+     "role": null,
+     "kind": "window",
+     "u": 2.15,
+     "v": 0.8424676827977464,
+     "w": 1.5854514821151253,
+     "h": 1.9075323172022536
+    },
+    {
+     "id": "kerbfront-201006.0013207:facade:0:window:3",
+     "component_kind": "window",
+     "operation": null,
+     "leaf_count": null,
+     "transom_fraction": 0.23,
+     "privacy_fraction": 0,
+     "shape": null,
+     "role": null,
+     "kind": "window",
+     "u": 5.38,
+     "v": 0.8424676827977464,
+     "w": 1.2554844223855814,
+     "h": 1.9075323172022536
+    }
+   ],
+   "signs": [
+    {
+     "id": "kerbfront-201006.0013207:facade:0:identity",
+     "kind": "channel_letters",
+     "text": "Mel's Drive-in",
+     "illumination": "halo",
+     "ink": null,
+     "asset": null,
+     "icon": null,
+     "u": 2.36,
+     "v": 4.08,
+     "w": 4.4228000000000005,
+     "h": 0.55
+    }
+   ],
+   "awnings": [],
+   "lights": [],
+   "evidence": {
+    "kind": "inferred",
+    "source": "smc.exteriors infer_exterior @ e34da8318",
+    "confidence": 0.3,
+    "span": "midpoints"
+   }
+  }
+ ],
+ "seating": [],
+ "street": {
+  "name": "Lombard Street",
+  "osm_id": 85562583,
+  "sidewalk_m": 3.0,
+  "kerb_m": 0.15,
+  "road_m": 9.94,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 10.16,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 85562583 (row_minus_footways)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0141860",
+   "footprint": [
+    [
+     29.949,
+     -6.257
+    ],
+    [
+     28.154,
+     4.62
+    ],
+    [
+     20.028,
+     3.265
+    ],
+    [
+     21.801,
+     -7.616
+    ]
+   ],
+   "height_m": 7.57,
+   "colour": "#93887a",
+   "roof_colour": "#d9ded5"
+  },
+  {
+   "id": "201006.0126294",
+   "footprint": [
+    [
+     8.627,
+     -48.403
+    ],
+    [
+     8.786,
+     -49.422
+    ],
+    [
+     11.656,
+     -48.975
+    ],
+    [
+     9.531,
+     -36.71
+    ],
+    [
+     0.757,
+     -38.225
+    ],
+    [
+     3.023,
+     -49.36
+    ]
+   ],
+   "height_m": 6.48,
+   "colour": "#424241",
+   "roof_colour": "#9ba2a7"
+  },
+  {
+   "id": "201006.0128652",
+   "footprint": [
+    [
+     26.598,
+     -34.828
+    ],
+    [
+     20.779,
+     -35.704
+    ],
+    [
+     20.91,
+     -36.581
+    ],
+    [
+     17.998,
+     -37.024
+    ],
+    [
+     19.606,
+     -47.717
+    ],
+    [
+     27.832,
+     -46.467
+    ],
+    [
+     27.638,
+     -45.16
+    ],
+    [
+     28.215,
+     -44.986
+    ]
+   ],
+   "height_m": 5.85,
+   "colour": "#d9d2c3",
+   "roof_colour": "#a5a5a1"
+  },
+  {
+   "id": "201006.0131967",
+   "footprint": [
+    [
+     34.531,
+     -32.653
+    ],
+    [
+     26.416,
+     -33.511
+    ],
+    [
+     28.215,
+     -44.986
+    ],
+    [
+     29.358,
+     -45.716
+    ],
+    [
+     36.358,
+     -44.368
+    ]
+   ],
+   "height_m": 11.3,
+   "colour": "#bdb8ae",
+   "roof_colour": "#8e9398"
+  },
+  {
+   "id": "201006.0011128",
+   "footprint": [
+    [
+     -44.657,
+     -21.945
+    ],
+    [
+     -43.765,
+     -27.765
+    ],
+    [
+     -43.253,
+     -27.681
+    ],
+    [
+     -42.611,
+     -35.3
+    ],
+    [
+     -37.749,
+     -34.468
+    ],
+    [
+     -37.84,
+     -33.872
+    ],
+    [
+     -36.342,
+     -33.636
+    ],
+    [
+     -36.239,
+     -34.307
+    ],
+    [
+     -33.205,
+     -33.83
+    ],
+    [
+     -33.311,
+     -33.131
+    ],
+    [
+     -23.175,
+     -31.538
+    ],
+    [
+     -23.076,
+     -32.185
+    ],
+    [
+     -17.072,
+     -30.668
+    ],
+    [
+     -17.977,
+     -17.729
+    ]
+   ],
+   "height_m": 12.6,
+   "colour": "#56534e",
+   "roof_colour": "#818091"
+  },
+  {
+   "id": "201006.0019928",
+   "footprint": [
+    [
+     28.451,
+     4.541
+    ],
+    [
+     29.538,
+     -3.014
+    ],
+    [
+     33.072,
+     -2.494
+    ],
+    [
+     33.5,
+     -5.476
+    ],
+    [
+     29.967,
+     -5.998
+    ],
+    [
+     32.286,
+     -22.335
+    ],
+    [
+     41.22,
+     -21.034
+    ],
+    [
+     36.527,
+     5.608
+    ]
+   ],
+   "height_m": 11.77,
+   "colour": "#d9d2c3",
+   "roof_colour": "#dbe1d8"
+  },
+  {
+   "id": "201006.0146401",
+   "footprint": [
+    [
+     3.301,
+     -51.61
+    ],
+    [
+     0.757,
+     -38.225
+    ],
+    [
+     0.061,
+     -37.661
+    ],
+    [
+     -1.491,
+     -38.585
+    ],
+    [
+     -4.212,
+     -38.353
+    ],
+    [
+     -5.026,
+     -39.152
+    ],
+    [
+     -2.884,
+     -52.657
+    ]
+   ],
+   "height_m": 5.57,
+   "colour": "#565654",
+   "roof_colour": "#a0a6a8"
+  },
+  {
+   "id": "201006.0151243",
+   "footprint": [
+    [
+     18.057,
+     -47.978
+    ],
+    [
+     16.219,
+     -36.125
+    ],
+    [
+     9.603,
+     -37.156
+    ],
+    [
+     11.656,
+     -48.975
+    ]
+   ],
+   "height_m": 3.66,
+   "colour": "#d9d2c3",
+   "roof_colour": "#d5d8cd"
+  },
+  {
+   "id": "201006.0031548",
+   "footprint": [
+    [
+     50.366,
+     -2.327
+    ],
+    [
+     50.161,
+     -1.056
+    ],
+    [
+     51.218,
+     0.1
+    ],
+    [
+     49.857,
+     8.531
+    ],
+    [
+     49.027,
+     9.208
+    ],
+    [
+     43.088,
+     7.427
+    ],
+    [
+     44.569,
+     -1.751
+    ],
+    [
+     46.639,
+     -1.415
+    ],
+    [
+     46.75,
+     -2.104
+    ],
+    [
+     45.483,
+     -2.312
+    ],
+    [
+     45.628,
+     -3.207
+    ],
+    [
+     44.825,
+     -3.338
+    ],
+    [
+     46.029,
+     -10.763
+    ],
+    [
+     46.94,
+     -10.615
+    ],
+    [
+     48.37,
+     -19.696
+    ],
+    [
+     54.315,
+     -18.753
+    ],
+    [
+     51.578,
+     -2.13
+    ]
+   ],
+   "height_m": 10.13,
+   "colour": "#d9d2c3",
+   "roof_colour": "#e6efe8"
+  },
+  {
+   "id": "201006.0032789",
+   "footprint": [
+    [
+     47.353,
+     -19.887
+    ],
+    [
+     43.231,
+     6.542
+    ],
+    [
+     36.527,
+     5.608
+    ],
+    [
+     41.22,
+     -21.034
+    ]
+   ],
+   "height_m": 8.67,
+   "colour": "#444241",
+   "roof_colour": "#b4b9b4"
+  },
+  {
+   "id": "201006.0048998",
+   "footprint": [
+    [
+     12.396,
+     -13.307
+    ],
+    [
+     11.813,
+     -11.988
+    ],
+    [
+     11.321,
+     -6.166
+    ],
+    [
+     12.901,
+     -5.927
+    ],
+    [
+     11.87,
+     0.975
+    ],
+    [
+     10.045,
+     0.7
+    ],
+    [
+     9.863,
+     1.864
+    ],
+    [
+     5.149,
+     1.12
+    ],
+    [
+     5.326,
+     -0.013
+    ],
+    [
+     3.617,
+     -0.272
+    ],
+    [
+     6.569,
+     -19.301
+    ],
+    [
+     14.957,
+     -18.118
+    ],
+    [
+     14.19,
+     -13.053
+    ]
+   ],
+   "height_m": 9.47,
+   "colour": "#d9d2c3",
+   "roof_colour": "#cfd4d1"
+  },
+  {
+   "id": "201006.0040218",
+   "footprint": [
+    [
+     18.823,
+     4.038
+    ],
+    [
+     11.799,
+     2.254
+    ],
+    [
+     14.852,
+     -17.364
+    ],
+    [
+     19.385,
+     -16.735
+    ],
+    [
+     20.04,
+     -17.222
+    ],
+    [
+     22.942,
+     -16.107
+    ],
+    [
+     21.986,
+     -10.105
+    ],
+    [
+     20.874,
+     -10.285
+    ],
+    [
+     20.318,
+     -6.797
+    ],
+    [
+     21.623,
+     -6.525
+    ],
+    [
+     20.028,
+     3.265
+    ]
+   ],
+   "height_m": 9.9,
+   "colour": "#d9d2c3",
+   "roof_colour": "#dce2da"
+  },
+  {
+   "id": "201006.0157056",
+   "footprint": [
+    [
+     31.035,
+     -13.484
+    ],
+    [
+     23.768,
+     -14.67
+    ],
+    [
+     25.171,
+     -23.45
+    ],
+    [
+     32.286,
+     -22.335
+    ]
+   ],
+   "height_m": 8.1,
+   "colour": "#d9d2c3",
+   "roof_colour": "#778491"
+  },
+  {
+   "id": "201006.0161954",
+   "footprint": [
+    [
+     -5.001,
+     -39.309
+    ],
+    [
+     -11.433,
+     -40.34
+    ],
+    [
+     -10.422,
+     -46.724
+    ],
+    [
+     -3.986,
+     -45.692
+    ]
+   ],
+   "height_m": 3.4,
+   "colour": "#4c4c4a",
+   "roof_colour": "#888e90"
+  },
+  {
+   "id": "201006.0164105",
+   "footprint": [
+    [
+     -12.529,
+     -40.519
+    ],
+    [
+     -16.701,
+     -41.101
+    ],
+    [
+     -16.128,
+     -48.225
+    ],
+    [
+     -11.369,
+     -47.483
+    ]
+   ],
+   "height_m": 3.36,
+   "colour": "#62676f",
+   "roof_colour": "#7a7f87"
+  },
+  {
+   "id": "201006.0164432",
+   "footprint": [
+    [
+     9.831,
+     -19.19
+    ],
+    [
+     11.124,
+     -26.173
+    ],
+    [
+     16.399,
+     -25.34
+    ],
+    [
+     15.676,
+     -20.716
+    ],
+    [
+     12.916,
+     -21.152
+    ],
+    [
+     12.573,
+     -18.788
+    ]
+   ],
+   "height_m": 6.42,
+   "colour": "#d9d2c3",
+   "roof_colour": "#60667e"
+  },
+  {
+   "id": "201006.0003620",
+   "footprint": [
+    [
+     -23.541,
+     56.047
+    ],
+    [
+     -38.846,
+     53.487
+    ],
+    [
+     -38.033,
+     45.434
+    ],
+    [
+     -36.939,
+     44.717
+    ],
+    [
+     -37.786,
+     43.353
+    ],
+    [
+     -41.688,
+     42.738
+    ],
+    [
+     -42.349,
+     47.033
+    ],
+    [
+     -55.069,
+     45.3
+    ],
+    [
+     -55.824,
+     44.066
+    ],
+    [
+     -55.55,
+     42.187
+    ],
+    [
+     -54.511,
+     41.809
+    ],
+    [
+     -55.207,
+     40.35
+    ],
+    [
+     -54.895,
+     38.396
+    ],
+    [
+     -53.87,
+     38.057
+    ],
+    [
+     -54.598,
+     36.555
+    ],
+    [
+     -54.31,
+     34.747
+    ],
+    [
+     -53.284,
+     34.388
+    ],
+    [
+     -53.135,
+     33.46
+    ],
+    [
+     -54.045,
+     32.806
+    ],
+    [
+     -53.756,
+     30.995
+    ],
+    [
+     -52.662,
+     30.494
+    ],
+    [
+     -53.401,
+     29.058
+    ],
+    [
+     -53.106,
+     27.21
+    ],
+    [
+     -51.94,
+     26.02
+    ],
+    [
+     -52.827,
+     25.308
+    ],
+    [
+     -52.554,
+     23.513
+    ],
+    [
+     -51.362,
+     22.332
+    ],
+    [
+     -41.563,
+     23.874
+    ],
+    [
+     -40.676,
+     22.97
+    ],
+    [
+     -39.025,
+     23.229
+    ],
+    [
+     -38.515,
+     24.344
+    ],
+    [
+     -36.998,
+     23.634
+    ],
+    [
+     -33.828,
+     24.98
+    ],
+    [
+     -33.222,
+     24.262
+    ],
+    [
+     -31.369,
+     24.564
+    ],
+    [
+     -30.884,
+     25.504
+    ],
+    [
+     -29.434,
+     24.781
+    ],
+    [
+     -27.615,
+     25.073
+    ],
+    [
+     -27.164,
+     26.202
+    ],
+    [
+     -25.766,
+     25.412
+    ],
+    [
+     -22.556,
+     26.788
+    ],
+    [
+     -21.844,
+     26.093
+    ],
+    [
+     -19.975,
+     26.392
+    ],
+    [
+     -19.324,
+     27.387
+    ],
+    [
+     -20.74,
+     37.85
+    ],
+    [
+     -23.386,
+     37.433
+    ],
+    [
+     -24.236,
+     42.949
+    ],
+    [
+     -21.585,
+     43.367
+    ]
+   ],
+   "height_m": 12.46,
+   "colour": "#5d5856",
+   "roof_colour": "#cbcec8"
+  },
+  {
+   "id": "201006.0003971",
+   "footprint": [
+    [
+     -17.82,
+     26.825
+    ],
+    [
+     -16.16,
+     27.076
+    ],
+    [
+     -15.585,
+     28.346
+    ],
+    [
+     -14.062,
+     27.439
+    ],
+    [
+     -12.407,
+     27.691
+    ],
+    [
+     -11.202,
+     29.039
+    ],
+    [
+     -10.251,
+     28.006
+    ],
+    [
+     -8.591,
+     28.257
+    ],
+    [
+     -8.016,
+     29.527
+    ],
+    [
+     -6.537,
+     28.654
+    ],
+    [
+     -4.877,
+     28.906
+    ],
+    [
+     -3.704,
+     30.206
+    ],
+    [
+     -2.798,
+     29.221
+    ],
+    [
+     -1.138,
+     29.473
+    ],
+    [
+     -0.34,
+     30.729
+    ],
+    [
+     -2.202,
+     43.282
+    ],
+    [
+     -3.624,
+     43.056
+    ],
+    [
+     -6.252,
+     59.775
+    ],
+    [
+     -4.874,
+     59.984
+    ],
+    [
+     -6.913,
+     72.42
+    ],
+    [
+     -10.848,
+     71.792
+    ],
+    [
+     -10.51,
+     69.641
+    ],
+    [
+     -21.611,
+     67.862
+    ],
+    [
+     -21.935,
+     69.923
+    ],
+    [
+     -25.813,
+     69.304
+    ],
+    [
+     -19.372,
+     27.769
+    ]
+   ],
+   "height_m": 12.8,
+   "colour": "#615b53",
+   "roof_colour": "#a7a9a7"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "218651804188206",
+   "slot": "sign",
+   "captured_at": "2023-04-02T01:37:28+00:00",
+   "camera_type": "perspective",
+   "x": -2.201,
+   "y": 3.979,
+   "z": 2.0,
+   "heading": 131.08,
+   "hfov": 111.2,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "248623423768323",
+   "slot": "elevation",
+   "captured_at": "2021-08-05T16:31:03+00:00",
+   "camera_type": "spherical",
+   "x": -7.633,
+   "y": 17.478,
+   "z": 2.0,
+   "heading": 266.06,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "919943758563314",
+   "slot": "oblique-left",
+   "captured_at": "2021-08-05T16:05:27+00:00",
+   "camera_type": "spherical",
+   "x": 8.342,
+   "y": 9.279,
+   "z": 2.0,
+   "heading": 86.06,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "355650046059726",
+   "slot": "oblique-right",
+   "captured_at": "2021-08-05T15:30:01+00:00",
+   "camera_type": "spherical",
+   "x": -5.065,
+   "y": 7.431,
+   "z": 2.0,
+   "heading": 85.89,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "258991612429074",
+   "slot": "extra",
+   "captured_at": "2021-08-04T17:15:34+00:00",
+   "camera_type": "spherical",
+   "x": -2.976,
+   "y": 21.227,
+   "z": 2.0,
+   "heading": 256.58,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "790701418750835",
+   "slot": "extra",
+   "captured_at": "2023-04-02T00:34:11+00:00",
+   "camera_type": "perspective",
+   "x": -15.873,
+   "y": 10.143,
+   "z": 2.0,
+   "heading": 91.51,
+   "hfov": 90.45,
+   "width": 2704,
+   "height": 920,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": "1950",
+  "stories": 1,
+  "use": "Commercial Retail",
+  "class": "Commercial Stores",
+  "historic": {
+   "ceqacode": "C",
+   "ceqacodereason": "Historic Survey Result",
+   "yearbuilt": "1950",
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {
+   "dining_sqft": [
+    2000,
+    null
+   ]
+  },
+  "services": null,
+  "outdoor": {
+   "kinds": [],
+   "confidence": 0.0,
+   "sources": [],
+   "osm_says_no": false
+  },
+  "last_exterior_change": "2019-08-14",
+  "tenants_on_face": 1
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "e34da831890c6024eb8eede692544c810656f003",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "e34da831890c6024eb8eede692544c810656f003"
+ },
+ "edits": []
+}

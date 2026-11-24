@@ -364,14 +364,20 @@ const FIRST_PERSON_MAX_ZOOM = 2.0;
 // First-person remains a fixed 12 mph.
 //: Inside a house the walker goes at a walking pace, 3 mph.
 const INDOOR_SPEED = 1.341;
-function avatarMoveSpeed() {
+//: One walking pace at every zoom (the owner, 2026-11-24): the walk had gone faster the further
+//: out the view was drawn back, twice as fast at the City's furthest zoom as at its nearest.
+//: It is the same now wherever the camera is, and a quarter slower than it was (WALK_PACE of
+//: the street's speed); a sprint is as fast as it was (``sprinting``: the full speed, which the
+//: City's sprint factor then multiplies as before). Only past WALK_CONSTANT_TO_M -- further out
+//: than the City ever zooms: the map view of Explore, where the walker is crossing the map and
+//: not walking a street -- does the speed still grow with the distance.
+const WALK_PACE = 0.75;
+const WALK_CONSTANT_TO_M = 90;
+function avatarMoveSpeed(sprinting = false) {
   if (state.indoors) return INDOOR_SPEED;
-  if (state.firstPerson) return FIRST_PERSON_SPEED;
-  const height = Math.max(1, renderer.domElement.clientHeight);
-  const fov = camera.fov * Math.PI / 180;
-  const metresPerPixel = 2 * state.dist * Math.tan(fov / 2) / height;
-  const arrivalMetresPerPixel = 2 * ARRIVAL_DIST * Math.tan(fov / 2) / height;
-  return STREET_SPEED * Math.max(1, metresPerPixel / arrivalMetresPerPixel);
+  const pace = sprinting ? 1 : WALK_PACE;
+  if (state.firstPerson) return FIRST_PERSON_SPEED * pace;
+  return STREET_SPEED * pace * Math.max(1, state.dist / WALK_CONSTANT_TO_M);
 }
 const AVATAR_RADIUS = 0.9;     // 1.8 m across: a person, so everything else has a scale to read against
 //: The walker's height: an everyday 1.75 m (5 ft 9 in), the height the City gives the player

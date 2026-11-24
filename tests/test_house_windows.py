@@ -7,6 +7,7 @@ built. Inside a house the view is first person; nothing lifts a roof off.
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 import subprocess
@@ -43,10 +44,11 @@ const spec = { base: 0, height: 6.2, seed: 11 };
 def _run(body: str) -> dict:
     js = _page_js()
     consts = "\n".join(re.search(rf"const {n} = [^;]+;", js).group(0)
-                       for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M"))
+                       for n in ("WINDOW_GROUND_CLEAR_M", "FRONT_DOOR_PANEL_W_M", "WINDOW_CLEAR_OF"))
     script = PREAMBLE + consts + "\n" + "\n".join(
         _extract(n, js) for n in ("frontageFitFor", "frontageNormalFor", "frontageWindowsOnEdge",
-                                 "regularHomeWindows", "editedEdge", "homeWindowLayout")) + "\n" + body
+                                 "regularHomeWindows", "windowTooNear", "designedHomeWindows", "editedEdge",
+                                 "homeWindowLayout")) + "\n" + body
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
@@ -189,3 +191,33 @@ def test_the_gate_never_waits_on_a_failed_check_or_forever() -> None:
     assert failed.returncode == 0 and "waiting" not in failed.stdout and "is failure on #7" in failed.stdout
     never = _gate_with_github("n")
     assert never.returncode == 0 and "not deploying" in never.stdout
+
+
+def test_windows_are_composed_round_the_garage_and_the_door_and_kept_clear_of_them() -> None:
+    """A house with a garage and a door on its street wall: no window on or near either, one
+    over the middle of the garage on the storey above, and every upper storey alike."""
+    result = _run("""
+    // The street wall is edge 0 (z = 0, 10 m): a garage 2.6 m wide with its middle at u = 2.6.
+    entry.way.garages = [{ a: [0, 0], b: [10 / 100000, 0], t: 0.26, w: 2.6 }];
+    entry.doors = [{ edge: 0, t0: 0.62, t1: 0.72, width: 1.0 }];
+    const wall = homeWindowLayout(entry, { base: 0, height: 9.0, seed: 11 }).edges[0];
+    console.log(JSON.stringify({ windows: wall.windows, clear: WINDOW_CLEAR_OF }));
+    """)
+    windows, clear = result["windows"], result["clear"]
+    assert windows, "the wall has windows"
+    g0, g1, head = 2.6 - 1.3, 2.6 + 1.3, 2.7 + 0.2
+    for o in windows:
+        beside = o["u"] < g1 + clear["garage"]["side"] and o["u"] + o["w"] > g0 - clear["garage"]["side"]
+        assert not (beside and o["v"] < head + clear["garage"]["above"]), f"a window by the garage door: {o}"
+        assert 0.5 <= o["u"] and o["u"] + o["w"] <= 9.5
+    # Over the garage's middle, on the storeys above it.
+    upper = [o for o in windows if o["v"] > 3.5]
+    assert any(abs(o["u"] + o["w"] / 2 - 2.6) < 0.05 for o in upper), "a window over the garage"
+    rows = sorted({round(o["v"], 2) for o in upper})
+    assert len(rows) == 2
+    centres = [sorted(round(o["u"] + o["w"] / 2, 2) for o in upper if round(o["v"], 2) == r) for r in rows]
+    assert centres[0] == centres[1], "each storey above has its windows over the one below"
+    # None overlaps another.
+    for r in rows:
+        row = sorted((o["u"], o["u"] + o["w"]) for o in upper if round(o["v"], 2) == r)
+        assert all(b[0] >= a[1] + 0.4 for a, b in itertools.pairwise(row))

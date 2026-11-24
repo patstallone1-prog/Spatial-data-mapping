@@ -78,7 +78,7 @@ def tuned(html: str, detail: str) -> str:
                           ("EXTERIOR_EDITOR", "exterior-editor.mjs"), ("MULTIPLAYER", "multiplayer.mjs"),
                           ("KERBSIDE_ACCOUNT", "kerbside-account.mjs"), ("HOME_LOBBY", "home-lobby.mjs"),
                           ("AVATAR_BUILDER", "avatar-builder.mjs"),
-                          ("STREET_PAINT", "street-paint.mjs")):
+                          ("STREET_PAINT", "street-paint.mjs"), ("LEAF_LITTER", "leaf-litter.mjs")):
         html = html.replace(f"__{key}_HASH__", hashlib.sha256((ROOT / "docs" / filename).read_bytes()).hexdigest()[:16])
     # The living city is several modules and its rules: one revision for all of them (its
     # models, in a folder of their own, are fetched as they are).

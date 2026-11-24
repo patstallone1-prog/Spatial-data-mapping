@@ -1,0 +1,1658 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "bonita-taqueria-y-rotisserie",
+ "title": "Bonita Taqueria Y Rotisserie",
+ "business_id": "mb-3f9055144446",
+ "area": "marina-union",
+ "address": {
+  "number": 2257,
+  "number_hi": null,
+  "street": "CHESTNUT ST",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": "chestnut",
+ "business_type": {
+  "tag": "mexican",
+  "kinds": [
+   "mexican"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.44044624,
+  37.8001937
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0072256",
+ "app_building": "272632315",
+ "footprint": [
+  [
+   3.672,
+   0.577
+  ],
+  [
+   -3.672,
+   -0.577
+  ],
+  [
+   -0.884,
+   -18.519
+  ],
+  [
+   6.509,
+   -17.333
+  ]
+ ],
+ "height_m": 5.0,
+ "floors": [
+  {
+   "v": 0.0,
+   "h": 3.6
+  }
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#969ca4",
+  "parapet_h": 0.6,
+  "cornice": {
+   "h": 0.05,
+   "depth": 0.05,
+   "colour": "#e8e4dc",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 7.43,
+   "role": "street",
+   "street": "CHESTNUT ST",
+   "material": "stucco",
+   "colour": "#e8e4dc",
+   "texture_scale": 1.0,
+   "trim_colour": "#d0ccc4",
+   "visible": true,
+   "belts": [
+    {
+     "v": 3.6,
+     "h": 0.15,
+     "colour": "#c8c4bc",
+     "depth": 0.06
+    }
+   ],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   },
+   "pilasters": [],
+   "friezes": []
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 18.16,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 7.49,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 18.13,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-bonita-taqueria-y-rotisserie",
+   "business_id": "mb-3f9055144446",
+   "name": "Bonita Taqueria Y Rotisserie",
+   "edge": 0,
+   "u0": 4.2,
+   "u1": 7.4,
+   "band_h": 3.6,
+   "category": "restaurant",
+   "brand": null,
+   "material": "painted_wood",
+   "palette": {
+    "wall": "#e2dfd7",
+    "accent": "#324b62",
+    "frame": "#292f33",
+    "base": "#8b8277",
+    "letter": "#f6f1e7",
+    "metal": "#a5aaa7",
+    "glass": "#a7c2c8",
+    "roughness": 0.82
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "sf-bonita-taqueria-y-rotisserie:g0",
+     "kind": "window",
+     "u": 4.3,
+     "v": 0.4,
+     "w": 3.0,
+     "h": 2.4,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "sf-bonita-taqueria-y-rotisserie:door0",
+     "kind": "door",
+     "u": 5.8,
+     "v": 0,
+     "w": 1.0,
+     "h": 2.3,
+     "leaf_count": 1,
+     "operation": "hinged"
+    }
+   ],
+   "signs": [],
+   "awnings": [
+    {
+     "id": "sf-bonita-taqueria-y-rotisserie:awn0",
+     "kind": "shed",
+     "u0": 4.2,
+     "u1": 7.4,
+     "v": 3.3,
+     "depth_m": 1.0,
+     "drop_m": 0.35,
+     "valance_h": 0.22,
+     "colour": "#7cb342",
+     "stripe": null,
+     "valance_text": null,
+     "sides": true,
+     "fabric": true,
+     "material": "canvas"
+    }
+   ],
+   "lights": [],
+   "evidence": {
+    "kind": "observed",
+    "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+    "frames": [
+     "491061233090049",
+     "2049431468600157",
+     "596519411332874",
+     "465910554665088",
+     "302831604885035",
+     "390175061981102"
+    ]
+   },
+   "extra_signs": [
+    {
+     "id": "sf-bonita-taqueria-y-rotisserie:sign0",
+     "kind": "board",
+     "u": 4.5,
+     "v": 3.8,
+     "w": 2.5,
+     "h": 0.6,
+     "bg": "#f5f0e8",
+     "layers": [
+      {
+       "type": "text",
+       "text": "BONITA",
+       "x": 0.5,
+       "y": 0.62,
+       "size": 0.5,
+       "fill": "#1f1f1f"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "seating": [
+  {
+   "id": "qwen-sidewalk_strip-0-0",
+   "kind": "sidewalk_strip",
+   "edge": 0,
+   "u0": 4.2,
+   "u1": 7.4
+  }
+ ],
+ "street": {
+  "name": "Chestnut Street",
+  "osm_id": 254984058,
+  "sidewalk_m": 3.66,
+  "kerb_m": 0.077,
+  "road_m": 13.53,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 10.38,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 254984058 (curb_geometry)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0170429",
+   "footprint": [
+    [
+     -19.581,
+     -14.137
+    ],
+    [
+     -22.397,
+     -14.598
+    ],
+    [
+     -21.572,
+     -18.811
+    ],
+    [
+     -18.964,
+     -18.464
+    ]
+   ],
+   "height_m": 3.92,
+   "colour": "#d6d0c4",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0059495",
+   "footprint": [
+    [
+     -5.019,
+     50.715
+    ],
+    [
+     -22.532,
+     48.357
+    ],
+    [
+     -22.451,
+     47.136
+    ],
+    [
+     -25.461,
+     46.646
+    ],
+    [
+     -24.756,
+     42.261
+    ],
+    [
+     -21.745,
+     42.751
+    ],
+    [
+     -21.478,
+     41.086
+    ],
+    [
+     -3.773,
+     43.742
+    ]
+   ],
+   "height_m": 6.98,
+   "colour": "#4a4a4f",
+   "roof_colour": "#82879a"
+  },
+  {
+   "id": "201006.0085694",
+   "footprint": [
+    [
+     15.16,
+     -7.97
+    ],
+    [
+     14.71,
+     -14.752
+    ],
+    [
+     20.784,
+     -13.841
+    ],
+    [
+     19.451,
+     4.271
+    ],
+    [
+     11.909,
+     2.337
+    ],
+    [
+     13.647,
+     -8.233
+    ]
+   ],
+   "height_m": 12.09,
+   "colour": "#d9d2c3",
+   "roof_colour": "#999fa9"
+  },
+  {
+   "id": "201006.0140541",
+   "footprint": [
+    [
+     -32.705,
+     -4.77
+    ],
+    [
+     -31.815,
+     -11.188
+    ],
+    [
+     -20.413,
+     -11.07
+    ],
+    [
+     -21.481,
+     -2.074
+    ]
+   ],
+   "height_m": 10.25,
+   "colour": "#d9d2c3",
+   "roof_colour": "#ecf4ec"
+  },
+  {
+   "id": "201006.0011666",
+   "footprint": [
+    [
+     28.893,
+     4.596
+    ],
+    [
+     34.872,
+     -35.903
+    ],
+    [
+     42.953,
+     -34.409
+    ],
+    [
+     37.075,
+     5.981
+    ]
+   ],
+   "height_m": 3.96,
+   "colour": "#d9d2c3",
+   "roof_colour": "#babebf"
+  },
+  {
+   "id": "201006.0013461",
+   "footprint": [
+    [
+     17.205,
+     23.882
+    ],
+    [
+     37.228,
+     27.003
+    ],
+    [
+     34.796,
+     41.446
+    ],
+    [
+     14.948,
+     38.122
+    ]
+   ],
+   "height_m": 6.86,
+   "colour": "#4f4d4c",
+   "roof_colour": "#e9f0e9"
+  },
+  {
+   "id": "201006.0015071",
+   "footprint": [
+    [
+     71.141,
+     3.966
+    ],
+    [
+     70.95,
+     11.007
+    ],
+    [
+     69.36,
+     12.065
+    ],
+    [
+     50.177,
+     8.089
+    ],
+    [
+     47.358,
+     8.82
+    ],
+    [
+     43.485,
+     6.965
+    ],
+    [
+     40.629,
+     7.709
+    ],
+    [
+     37.075,
+     5.981
+    ],
+    [
+     37.96,
+     -1.622
+    ]
+   ],
+   "height_m": 9.28,
+   "colour": "#d9d2c3",
+   "roof_colour": "#a8adb0"
+  },
+  {
+   "id": "201006.0016781",
+   "footprint": [
+    [
+     -50.138,
+     -31.042
+    ],
+    [
+     -49.023,
+     -38.534
+    ],
+    [
+     -16.388,
+     -33.528
+    ],
+    [
+     -17.575,
+     -25.965
+    ]
+   ],
+   "height_m": 7.66,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c929e"
+  },
+  {
+   "id": "201006.0017395",
+   "footprint": [
+    [
+     42.412,
+     -8.326
+    ],
+    [
+     73.285,
+     -2.954
+    ],
+    [
+     72.263,
+     2.681
+    ],
+    [
+     70.7,
+     3.896
+    ],
+    [
+     41.295,
+     -1.122
+    ]
+   ],
+   "height_m": 11.07,
+   "colour": "#d9d2c3",
+   "roof_colour": "#b7bfbc"
+  },
+  {
+   "id": "201006.0017804",
+   "footprint": [
+    [
+     -51.569,
+     -23.898
+    ],
+    [
+     -50.497,
+     -30.878
+    ],
+    [
+     -17.575,
+     -25.965
+    ],
+    [
+     -18.964,
+     -18.464
+    ]
+   ],
+   "height_m": 4.42,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0019053",
+   "footprint": [
+    [
+     -14.717,
+     -47.059
+    ],
+    [
+     -15.731,
+     -41.461
+    ],
+    [
+     -48.666,
+     -46.395
+    ],
+    [
+     -47.506,
+     -53.836
+    ],
+    [
+     -27.971,
+     -50.825
+    ],
+    [
+     -28.4,
+     -48.074
+    ]
+   ],
+   "height_m": 7.36,
+   "colour": "#d9d2c3",
+   "roof_colour": "#dbe1dc"
+  },
+  {
+   "id": "201006.0021157",
+   "footprint": [
+    [
+     -16.388,
+     -33.528
+    ],
+    [
+     -34.052,
+     -36.438
+    ],
+    [
+     -33.407,
+     -40.076
+    ],
+    [
+     -35.269,
+     -40.366
+    ],
+    [
+     -35.87,
+     -36.473
+    ],
+    [
+     -50.466,
+     -39.757
+    ],
+    [
+     -48.636,
+     -46.227
+    ],
+    [
+     -34.439,
+     -43.789
+    ],
+    [
+     -32.768,
+     -42.482
+    ],
+    [
+     -33.112,
+     -40.261
+    ],
+    [
+     -30.429,
+     -39.791
+    ],
+    [
+     -20.085,
+     -38.988
+    ],
+    [
+     -19.736,
+     -41.995
+    ],
+    [
+     -15.22,
+     -41.392
+    ]
+   ],
+   "height_m": 7.53,
+   "colour": "#514737",
+   "roof_colour": "#8f96a0"
+  },
+  {
+   "id": "201006.0147265",
+   "footprint": [
+    [
+     39.204,
+     -9.069
+    ],
+    [
+     41.933,
+     -24.372
+    ],
+    [
+     46.781,
+     -23.6
+    ],
+    [
+     45.126,
+     -8.191
+    ]
+   ],
+   "height_m": 3.53,
+   "colour": "#bdb8ae",
+   "roof_colour": "#6d6f85"
+  },
+  {
+   "id": "201006.0149740",
+   "footprint": [
+    [
+     -8.332,
+     -30.492
+    ],
+    [
+     -7.022,
+     -38.652
+    ],
+    [
+     -2.501,
+     -37.93
+    ],
+    [
+     -1.917,
+     -42.576
+    ],
+    [
+     2.017,
+     -42.078
+    ],
+    [
+     -0.899,
+     -29.288
+    ]
+   ],
+   "height_m": 6.87,
+   "colour": "#d9d2c3",
+   "roof_colour": "#7a6c7f"
+  },
+  {
+   "id": "201006.0028516",
+   "footprint": [
+    [
+     -16.168,
+     -22.318
+    ],
+    [
+     -15.545,
+     -26.523
+    ],
+    [
+     -9.171,
+     -25.571
+    ],
+    [
+     -12.995,
+     -1.942
+    ],
+    [
+     -14.173,
+     -1.345
+    ],
+    [
+     -21.266,
+     -2.834
+    ],
+    [
+     -18.745,
+     -10.875
+    ],
+    [
+     -18.097,
+     -22.615
+    ]
+   ],
+   "height_m": 7.04,
+   "colour": "#d9d2c3",
+   "roof_colour": "#a4a5a2"
+  },
+  {
+   "id": "201006.0030145",
+   "footprint": [
+    [
+     2.531,
+     -41.937
+    ],
+    [
+     10.206,
+     -40.653
+    ],
+    [
+     6.509,
+     -17.333
+    ],
+    [
+     -0.884,
+     -18.519
+    ]
+   ],
+   "height_m": 3.54,
+   "colour": "#d9d2c3",
+   "roof_colour": "#969ca4"
+  },
+  {
+   "id": "201006.0031128",
+   "footprint": [
+    [
+     -2.166,
+     -24.672
+    ],
+    [
+     -5.535,
+     -0.718
+    ],
+    [
+     -12.995,
+     -1.942
+    ],
+    [
+     -9.171,
+     -25.571
+    ]
+   ],
+   "height_m": 4.2,
+   "colour": "#d9d2c3",
+   "roof_colour": "#959da9"
+  },
+  {
+   "id": "201006.0031262",
+   "footprint": [
+    [
+     -35.701,
+     -19.835
+    ],
+    [
+     -25.59,
+     -18.113
+    ],
+    [
+     -26.178,
+     -13.945
+    ],
+    [
+     -29.029,
+     -14.431
+    ],
+    [
+     -29.309,
+     -12.431
+    ],
+    [
+     -35.313,
+     -14.513
+    ],
+    [
+     -35.488,
+     -13.455
+    ],
+    [
+     -41.789,
+     -14.473
+    ],
+    [
+     -41.538,
+     -16.042
+    ],
+    [
+     -44.318,
+     -16.492
+    ],
+    [
+     -44.569,
+     -14.966
+    ],
+    [
+     -53.999,
+     -17.315
+    ],
+    [
+     -52.23,
+     -23.887
+    ],
+    [
+     -42.351,
+     -22.167
+    ],
+    [
+     -42.777,
+     -19.508
+    ],
+    [
+     -40.026,
+     -21.807
+    ],
+    [
+     -35.814,
+     -21.155
+    ]
+   ],
+   "height_m": 10.91,
+   "colour": "#bdb8ae",
+   "roof_colour": "#8f94a0"
+  },
+  {
+   "id": "201006.0048025",
+   "footprint": [
+    [
+     -3.551,
+     43.772
+    ],
+    [
+     -22.539,
+     40.925
+    ],
+    [
+     -22.307,
+     39.387
+    ],
+    [
+     -25.406,
+     38.915
+    ],
+    [
+     -24.712,
+     34.302
+    ],
+    [
+     -21.614,
+     34.773
+    ],
+    [
+     -21.388,
+     33.267
+    ],
+    [
+     -15.839,
+     34.108
+    ],
+    [
+     -16.09,
+     35.786
+    ],
+    [
+     -10.984,
+     36.56
+    ],
+    [
+     -10.734,
+     34.893
+    ],
+    [
+     -2.952,
+     36.148
+    ]
+   ],
+   "height_m": 9.11,
+   "colour": "#d9d2c3",
+   "roof_colour": "#c3c5bf"
+  },
+  {
+   "id": "201006.0052873",
+   "footprint": [
+    [
+     14.948,
+     38.122
+    ],
+    [
+     27.837,
+     41.793
+    ],
+    [
+     28.074,
+     40.398
+    ],
+    [
+     33.544,
+     41.251
+    ],
+    [
+     33.322,
+     42.591
+    ],
+    [
+     36.559,
+     43.146
+    ],
+    [
+     35.778,
+     47.749
+    ],
+    [
+     32.542,
+     47.196
+    ],
+    [
+     32.268,
+     48.811
+    ],
+    [
+     14.018,
+     45.695
+    ]
+   ],
+   "height_m": 9.14,
+   "colour": "#5d5f65",
+   "roof_colour": "#c3c7c0"
+  },
+  {
+   "id": "201006.0053114",
+   "footprint": [
+    [
+     29.604,
+     -1.991
+    ],
+    [
+     28.54,
+     5.555
+    ],
+    [
+     20.221,
+     4.371
+    ],
+    [
+     21.455,
+     -4.388
+    ],
+    [
+     24.089,
+     -4.014
+    ],
+    [
+     24.25,
+     -5.15
+    ],
+    [
+     21.425,
+     -5.553
+    ],
+    [
+     22.967,
+     -16.495
+    ],
+    [
+     27.47,
+     -15.854
+    ],
+    [
+     26.618,
+     -9.809
+    ],
+    [
+     30.452,
+     -8.75
+    ],
+    [
+     29.642,
+     -2.999
+    ],
+    [
+     27.905,
+     -2.233
+    ]
+   ],
+   "height_m": 7.26,
+   "colour": "#9a5a43",
+   "roof_colour": "#c7c7bd"
+  },
+  {
+   "id": "201006.0120490",
+   "footprint": [
+    [
+     -9.939,
+     -40.106
+    ],
+    [
+     -9.486,
+     -42.465
+    ],
+    [
+     -6.587,
+     -41.905
+    ],
+    [
+     -8.856,
+     -28.196
+    ],
+    [
+     -16.999,
+     -29.414
+    ],
+    [
+     -15.22,
+     -41.392
+    ]
+   ],
+   "height_m": 9.09,
+   "colour": "#d9d2c3",
+   "roof_colour": "#abaaa5"
+  },
+  {
+   "id": "201006.0033697",
+   "footprint": [
+    [
+     -35.566,
+     -4.489
+    ],
+    [
+     -54.237,
+     -7.481
+    ],
+    [
+     -55.34,
+     -9.369
+    ],
+    [
+     -54.301,
+     -15.001
+    ],
+    [
+     -53.117,
+     -16.073
+    ],
+    [
+     -33.348,
+     -12.97
+    ],
+    [
+     -33.474,
+     -5.338
+    ]
+   ],
+   "height_m": 9.99,
+   "colour": "#d9d2c3",
+   "roof_colour": "#5c6682"
+  },
+  {
+   "id": "201006.0161401",
+   "footprint": [
+    [
+     22.441,
+     -15.764
+    ],
+    [
+     15.367,
+     -16.97
+    ],
+    [
+     16.409,
+     -23.139
+    ],
+    [
+     23.483,
+     -21.931
+    ]
+   ],
+   "height_m": 6.12,
+   "colour": "#d9d2c3",
+   "roof_colour": "#949ea8"
+  },
+  {
+   "id": "201006.0004452",
+   "footprint": [
+    [
+     41.617,
+     -78.63
+    ],
+    [
+     34.993,
+     -36.868
+    ],
+    [
+     18.491,
+     -39.623
+    ],
+    [
+     24.868,
+     -80.883
+    ]
+   ],
+   "height_m": 9.33,
+   "colour": "#d9d2c3",
+   "roof_colour": "#c5caca"
+  },
+  {
+   "id": "201006.0005797",
+   "footprint": [
+    [
+     -5.011,
+     -86.068
+    ],
+    [
+     -4.825,
+     -87.55
+    ],
+    [
+     -3.411,
+     -87.374
+    ],
+    [
+     -3.598,
+     -85.858
+    ],
+    [
+     7.085,
+     -85.29
+    ],
+    [
+     8.729,
+     -84.027
+    ],
+    [
+     1.884,
+     -42.145
+    ],
+    [
+     -14.72,
+     -45.028
+    ],
+    [
+     -8.01,
+     -86.513
+    ]
+   ],
+   "height_m": 6.04,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0008423",
+   "footprint": [
+    [
+     -56.961,
+     11.556
+    ],
+    [
+     -29.99,
+     15.747
+    ],
+    [
+     -32.428,
+     31.571
+    ],
+    [
+     -44.488,
+     29.534
+    ],
+    [
+     -43.912,
+     25.779
+    ],
+    [
+     -46.769,
+     25.334
+    ],
+    [
+     -47.369,
+     29.247
+    ],
+    [
+     -59.396,
+     27.392
+    ]
+   ],
+   "height_m": 12.25,
+   "colour": "#656974",
+   "roof_colour": "#e8efea"
+  },
+  {
+   "id": "201006.0008877",
+   "footprint": [
+    [
+     -0.549,
+     21.155
+    ],
+    [
+     -2.947,
+     36.148
+    ],
+    [
+     -30.163,
+     31.801
+    ],
+    [
+     -27.596,
+     16.617
+    ]
+   ],
+   "height_m": 6.6,
+   "colour": "#d9d2c3",
+   "roof_colour": "#f4faf0"
+  },
+  {
+   "id": "201006.0010589",
+   "footprint": [
+    [
+     17.093,
+     -82.113
+    ],
+    [
+     10.41,
+     -40.664
+    ],
+    [
+     1.884,
+     -42.145
+    ],
+    [
+     8.652,
+     -83.505
+    ]
+   ],
+   "height_m": 4.79,
+   "colour": "#d9d2c3",
+   "roof_colour": "#a19ca5"
+  },
+  {
+   "id": "201006.0010912",
+   "footprint": [
+    [
+     3.64,
+     0.777
+    ],
+    [
+     10.17,
+     -40.442
+    ],
+    [
+     18.515,
+     -39.022
+    ],
+    [
+     11.937,
+     2.188
+    ]
+   ],
+   "height_m": 5.06,
+   "colour": "#555350",
+   "roof_colour": "#a9a59f"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "2049431468600157",
+   "slot": "sign",
+   "captured_at": "2022-06-09T02:50:52+00:00",
+   "camera_type": "spherical",
+   "x": -4.623,
+   "y": 11.151,
+   "z": 2.0,
+   "heading": 254.04,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "596519411332874",
+   "slot": "elevation",
+   "captured_at": "2021-08-04T16:25:40+00:00",
+   "camera_type": "spherical",
+   "x": -8.983,
+   "y": 11.971,
+   "z": 2.0,
+   "heading": 255.26,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "491061233090049",
+   "slot": "oblique-left",
+   "captured_at": "2022-06-09T02:55:51+00:00",
+   "camera_type": "spherical",
+   "x": 2.487,
+   "y": 15.049,
+   "z": 2.0,
+   "heading": 238.92,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "390175061981102",
+   "slot": "oblique-right",
+   "captured_at": "2015-02-16T01:13:26+00:00",
+   "camera_type": "perspective",
+   "x": -20.818,
+   "y": 7.022,
+   "z": 2.0,
+   "heading": 84.74,
+   "hfov": 60.15,
+   "width": 3264,
+   "height": 2448,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "465910554665088",
+   "slot": "extra",
+   "captured_at": "2016-09-28T10:32:43+00:00",
+   "camera_type": "perspective",
+   "x": -3.18,
+   "y": 12.881,
+   "z": 2.0,
+   "heading": 156.79,
+   "hfov": 79.24,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "302831604885035",
+   "slot": "extra",
+   "captured_at": "2016-09-28T10:32:40+00:00",
+   "camera_type": "perspective",
+   "x": 1.686,
+   "y": 16.446,
+   "z": 2.0,
+   "heading": 220.23,
+   "hfov": 78.29,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": "1912",
+  "stories": 1,
+  "use": "Commercial Retail",
+  "class": "Commercial Stores",
+  "historic": {
+   "ceqacode": "C",
+   "ceqacodereason": "Historic Resource Assessment, Historic Survey Result",
+   "yearbuilt": "1912",
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {
+   "dining_sqft": [
+    0,
+    1000
+   ]
+  },
+  "services": {
+   "primaryType": "mexican_restaurant",
+   "types": [
+    "mexican_restaurant",
+    "restaurant",
+    "food",
+    "point_of_interest",
+    "establishment"
+   ],
+   "dineIn": true,
+   "takeout": true,
+   "reservable": false,
+   "servesDinner": true,
+   "servesBreakfast": true,
+   "servesCocktails": true,
+   "userRatingCount": 680,
+   "fetched_at": "2026-11-20T23:13:42.657131Z"
+  },
+  "outdoor": {
+   "kinds": [
+    "sidewalk"
+   ],
+   "confidence": 0.9,
+   "sources": [
+    "shared_spaces"
+   ],
+   "osm_says_no": false
+  },
+  "last_exterior_change": "2022-05-10",
+  "tenants_on_face": 2
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "e34da831890c6024eb8eede692544c810656f003",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "e34da831890c6024eb8eede692544c810656f003"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "facade top from the qwen of the registered elevation of wall 0",
+   "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "storeys from the shop band top and the rows of upper windows",
+   "confidence": 0.6,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.colour": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+   "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.material": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.openings": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "dark rectangles above the shop band, snapped to rows",
+   "confidence": 0.55,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "repeating vertical runs of a second colour",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.belts": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "rows of a second colour across the wall",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.friezes": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "friezes are read as belts",
+   "confidence": 0.5,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.0.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "qwen/qwen4-max reading",
+   "confidence": 0.5,
+   "read_by": "kerbfront qwen"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "491061233090049",
+    "2049431468600157",
+    "596519411332874",
+    "465910554665088",
+    "302831604885035",
+    "390175061981102"
+   ],
+   "how": "no band at the facade top",
+   "confidence": 0.4,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "2049431468600157",
+    "302831604885035",
+    "390175061981102",
+    "465910554665088",
+    "491061233090049",
+    "596519411332874"
+   ],
+   "how": "shop spans from glazing, awnings and signs on each wall",
+   "confidence": 0.55,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "seating": {
+   "kind": "observed",
+   "frames": [
+    "2049431468600157",
+    "302831604885035",
+    "390175061981102",
+    "465910554665088",
+    "491061233090049",
+    "596519411332874"
+   ],
+   "how": "qwen/qwen4-max reading of the registered elevation",
+   "confidence": 0.5,
+   "read_by": "kerbfront qwen"
+  }
+ },
+ "observations_applied": 13
+}

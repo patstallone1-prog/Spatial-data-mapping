@@ -26,6 +26,8 @@ export const VEHICLE_DIMS = {
   economy: FLEET_DIMS.cuore, compact_ev: [1.77, 1.6, 4.15], sedan: [1.84, 1.45, 4.92], suv: FLEET_DIMS.jeep, pickup: [2.03, 1.96, 5.89],
   delivery_van: [2.06, 2.78, 5.98], box_truck: FLEET_DIMS.truck, taxi: [1.78, 1.43, 4.6], bus: FLEET_DIMS.bus, patrol: [1.94, 1.55, 5.15],
   sports: FLEET_DIMS.porsche,
+  // What comes to a crash (crash-scene.mjs): the kit's ambulance, and its pickup as a tow truck.
+  ambulance: [2.1, 2.45, 5.6], tow_truck: [2.03, 1.96, 5.89],
 };
 //: The fleet's file for a kind at a tier: "npc" (the traffic nearest you: the pack's LOD1, the
 //: Porsche cut to 15,000 triangles from its 200,000), "mid" (the traffic further off: about 1,600
@@ -129,7 +131,7 @@ export function vehicleMaterials(THREE) {
 export const KENNEY_FOR = {
   economy: ["hatchback-sports", "sedan"], compact_ev: ["sedan-sports", "hatchback-sports"], sedan: ["sedan", "sedan-sports"], suv: ["suv", "suv-luxury"], sports: ["sedan-sports"],
   pickup: ["truck"], delivery_van: ["delivery", "van"], box_truck: ["garbage-truck"], taxi: ["taxi"], patrol: ["police"],
-  ambulance: ["ambulance"], firetruck: ["firetruck"],
+  ambulance: ["ambulance"], firetruck: ["firetruck"], tow_truck: ["truck"],
 };
 export function kenneyVariant(model, shade = 0) {
   const variants = KENNEY_FOR[model];

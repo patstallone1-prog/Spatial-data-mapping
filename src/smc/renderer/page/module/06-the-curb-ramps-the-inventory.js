@@ -424,11 +424,126 @@ function crossSectionRowAt(way, along, half = null) {
 
 //: The bands at a station closed to the page's drawn width: [{kind, dir, left, right}] from
 //: the left kerb (+half) inward, or null where the station is unresolved or cannot close.
+// ---- the parking the city says is there, and the lanes that fit beside it ----------------------
+//
+// A street's lanes were shared out over whatever the map's tags left of its width: where the tags
+// have no parking on a side that the city meters (the map's parking tags cover fewer than half
+// the streets), the lanes were painted to the kerb, across the parked cars; and where the tagged
+// count of lanes cannot fit beside the parking, they were painted anyway, each narrower than a car
+// with its mirrors (Chestnut Street by Fillmore: four lanes of 2.6 m between two rows of meters,
+// on a street of one lane each way -- the owner, 2026-11-24).
+//
+// The city's own record settles both (settleParkingLanes, once, before any paint): a side with
+// its parking meters along it has a parking lane, PARKING_STALL_M wide; and the lanes are those
+// that fit in what is left at LANE_FIT_MIN_M or more -- a two-way street loses them a pair at a
+// time, one each way, so it is not left with two lanes one way and one the other.
+const PARKING_STALL_M = 2.4;
+const LANE_FIT_MIN_M = 2.9;
+//: A side has a parking lane when it has this many of the city's meters, and one at least to
+//: every so many metres of the street; a meter belongs to the street it stands within reach of.
+const PARKING_METERS = { least: 2, every_m: 45, reach_m: 14, cell_m: 30 };
+const parkingLaneStats = { meters: 0, placed: 0, sides_known: 0, sides_added: 0, ways_refitted: 0, ready: false };
+async function settleParkingLanes() {
+  if (parkingLaneStats.ready || typeof streetFurnitureOnce !== "function") return parkingLaneStats;
+  parkingLaneStats.ready = true;
+  const record = await streetFurnitureOnce().catch(() => null);
+  const meters = (record?.geometry_based?.parking_meters || []).filter((m) => m && Array.isArray(m.p));
+  parkingLaneStats.meters = meters.length;
+  const streets = (DATA.ways || []).filter((w) => w.kind === "street" && Array.isArray(w.points) && w.points.length >= 2 && w.tunnel_kind !== "underground");
+  // The streets' segments by cell, for the meter that stands beside one.
+  const C = PARKING_METERS.cell_m, grid = new Map();
+  for (const way of streets) {
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    way._parkLen = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1], b = pts[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      way._parkLen += len;
+      const seg = [a[0], a[1], b[0], b[1], way];
+      for (let k = 0, n = Math.max(1, Math.ceil(len / (C / 2))); k <= n; k += 1) {
+        const key = Math.floor((a[0] + (b[0] - a[0]) * k / n) / C) + ":" + Math.floor((a[1] + (b[1] - a[1]) * k / n) / C);
+        let list = grid.get(key);
+        if (!list) grid.set(key, list = []);
+        if (list[list.length - 1] !== seg) list.push(seg);
+      }
+    }
+  }
+  const counts = new Map();   // way -> [meters on its left, on its right]
+  for (const meter of meters) {
+    const [mx, my] = xy(meter.p[0], meter.p[1]), mz = -my;
+    let best = null;
+    for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1)
+      for (const seg of grid.get((Math.floor(mx / C) + di) + ":" + (Math.floor(mz / C) + dj)) || []) {
+        const [ax, az, bx, bz, way] = seg, ux = bx - ax, uz = bz - az, L2 = ux * ux + uz * uz;
+        if (!(L2 > 0)) continue;
+        const t = ((mx - ax) * ux + (mz - az) * uz) / L2;
+        if (t < -0.02 || t > 1.02) continue;   // beside the street, not beyond its end (round a corner it is the cross street's)
+        const px = ax + ux * t, pz = az + uz * t, d = Math.hypot(mx - px, mz - pz);
+        if (d > PARKING_METERS.reach_m || (best && d >= best.d)) continue;
+        // (Left of the way it runs: +1, as parking_sides counts them.)
+        best = { d, way, side: ux * (mz - az) - uz * (mx - ax) < 0 ? 1 : -1 };
+      }
+    if (!best) continue;
+    parkingLaneStats.placed += 1;
+    let c = counts.get(best.way);
+    if (!c) counts.set(best.way, c = [0, 0]);
+    c[best.side > 0 ? 0 : 1] += 1;
+  }
+  for (const way of streets) {
+    const tagged = Array.isArray(way.parking_sides) ? way.parking_sides : [];
+    const known = new Set(tagged), c = counts.get(way) || [0, 0];
+    for (const [side, n] of [[1, c[0]], [-1, c[1]]]) {
+      if (known.has(side) || n < PARKING_METERS.least || n < way._parkLen / PARKING_METERS.every_m) continue;
+      known.add(side); parkingLaneStats.sides_added += 1;
+      (way.parking_basis ||= {})[side] = `sfmta_parking_meters:${n}`;
+    }
+    delete way._parkLen;
+    parkingLaneStats.sides_known += known.size;
+    if (known.size !== tagged.length) { way.parking_sides_tagged = tagged.slice(); way.parking_sides = [...known].sort((p, q) => q - p); }
+    // The lanes that fit beside it, for the city's traffic (the paint fits its own: fitLaneBands).
+    const tags = Number(way.lanes) || 0;
+    if (tags > 1 && way._spans === undefined && typeof renderedRoadWidth === "function") {
+      const room = renderedRoadWidth(way) - known.size * PARKING_STALL_M, oneway = typeof onewaySign === "function" && onewaySign(way) !== 0;
+      let fit = tags;
+      while (fit > (oneway ? 1 : 2) && room / fit < LANE_FIT_MIN_M) fit -= oneway ? 1 : 2;
+      if (fit !== tags) { way.lanes_fit = Math.max(1, fit); parkingLaneStats.ways_refitted += 1; }
+    }
+  }
+  window.kerbsideParkingLanes = () => ({ ...parkingLaneStats });
+  return parkingLaneStats;
+}
+//: A station's bands made to agree with the parking known at the kerbs and to fit the street:
+//: a parking lane put in at a kerb the city meters where the bands have a lane of traffic
+//: against it; then lanes of traffic taken out until those left are LANE_FIT_MIN_M wide or
+//: there is one each way -- on a two-way street one from each direction at a time, the ones
+//: nearest the kerbs. Changes ``bands`` in place; returns it.
+function fitLaneBands(way, bands, half) {
+  const moving = (b) => b.kind === "travel" || b.kind === "turn";
+  const sides = Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const stall = () => ({ kind: "parking", width: PARKING_STALL_M, dir: 0, sub: "parallel", fitted: true });
+  if (sides.includes(1) && moving(bands[0])) bands.unshift(stall());
+  if (sides.includes(-1) && moving(bands[bands.length - 1])) bands.push(stall());
+  for (;;) {
+    const travel = bands.filter(moving);
+    const fixed = bands.reduce((sum, b) => sum + (moving(b) ? 0 : b.width), 0);
+    if (travel.length < 2 || (2 * half - fixed) / travel.length >= LANE_FIT_MIN_M) break;
+    const dirs = [...new Set(travel.map((b) => b.dir))].filter((d) => travel.filter((b) => b.dir === d && b.kind === "travel").length > 1);
+    if (!dirs.length) break;
+    // (The lane of each direction nearest its kerb: the first such band from the left for the
+    // direction that keeps left of the centre line as the bands run, the last for the other.)
+    for (const d of dirs) {
+      const idx = bands.map((b, i) => (b.kind === "travel" && b.dir === d ? i : -1)).filter((i) => i >= 0);
+      const mid = (bands.length - 1) / 2, outer = Math.abs(idx[0] - mid) >= Math.abs(idx[idx.length - 1] - mid) ? idx[0] : idx[idx.length - 1];
+      bands.splice(outer, 1);
+    }
+  }
+  return bands;
+}
 function crossSectionBands(way, along, half) {
   const row = crossSectionRowAt(way, along, half);
   if (!row || row[4] === "u") return null;
   const bands = row[5].map((b) => ({ kind: CROSS_SECTION_KIND[b[0]] || b[0], width: b[1], dir: b[4] || 0, sub: b[5] || "" }));
   if (bands.some((b) => b.kind === "unresolved")) return null;
+  fitLaneBands(way, bands, half);
   const travel = bands.filter((b) => b.kind === "travel" || b.kind === "turn");
   if (!travel.length) return null;
   const fixed = bands.filter((b) => !(b.kind === "travel" || b.kind === "turn")).reduce((sum, b) => sum + b.width, 0);

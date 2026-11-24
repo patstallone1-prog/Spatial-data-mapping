@@ -312,7 +312,7 @@ function animate(now) {
     grassStrands.update(focus.x,focus.z,camera.position.y-focus.y);}
   stepAvatar(now);
   // The trees round you in full (module 17). (An attached region's, from guestTick.)
-  if (!ATTACH) { const focus = state.firstPerson ? avatar.position : state.target; treeNearStep(focus, now, camera.position.y - focus.y); }
+  if (!ATTACH) { const focus = state.firstPerson ? avatar.position : state.target; treeNearStep(focus, now, camera.position.y - focus.y); leafLitterStep(avatar.position, now, camera.position.y - avatar.position.y); }
   if (multiplayer?.session?.tick(now)) lastMovedAt = now;
   if (typeof livingCity !== "undefined" && livingCity?.tick(now) && (livingCity.driving || state.dist < 600)) lastMovedAt = now;
   if (typeof livingCity !== "undefined" && livingCity && (livingCity.driving || livingCity.riding)) avatar.visible = false;
