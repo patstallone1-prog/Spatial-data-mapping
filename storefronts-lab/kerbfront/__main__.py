@@ -57,6 +57,9 @@ def main(argv: list[str] | None = None) -> None:
     au.add_argument("--fresh", action="store_true", help="rebuild the registered elevations")
     sc = sub.add_parser("score", help="automatic vs reviewed model, part by part (kerbfront.auto.score)")
     sc.add_argument("model", nargs="+")
+    qr = sub.add_parser("qwen-run", help="read eligible restaurants' facades with Qwen (one worker, budget cap)")
+    qr.add_argument("--budget", type=float, default=3.0, help="stop when OpenRouter spend reaches this (USD)")
+    qr.add_argument("--limit", type=int, default=None, help="restaurants to try this run")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -106,6 +109,9 @@ def main(argv: list[str] | None = None) -> None:
             r = score(m)
             res[m] = {"agreement": r["agreement"], "passed": r["passed"], "checks": r["checks"],
                       "failed": [f"{c['check']} (wall {c['edge']})" for c in r["detail"] if not c["pass"]]}
+    elif a.cmd == "qwen-run":
+        from .auto.flow import run as qrun
+        res = qrun(a.budget, a.limit)
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)

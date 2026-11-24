@@ -67,15 +67,15 @@
    -12.13
   ]
  ],
- "height_m": 10.14,
+ "height_m": 9.3,
  "floors": [
   {
    "v": 0.0,
-   "h": 3.65
+   "h": 4.0
   },
   {
-   "v": 3.65,
-   "h": 6.49
+   "v": 4.0,
+   "h": 5.3
   }
  ],
  "roof": {
@@ -83,9 +83,9 @@
   "colour": "#a8adb0",
   "parapet_h": 0.6,
   "cornice": {
-   "h": 0.05,
-   "depth": 0.05,
-   "colour": "#77533d",
+   "h": 0.3,
+   "depth": 0.1,
+   "colour": "#3a3a3a",
    "raise": 0
   },
   "evidence": {
@@ -102,44 +102,72 @@
    "role": "street",
    "street": "PIERCE ST",
    "material": "stucco",
-   "colour": "#c99f96",
+   "colour": "#d9d2c3",
    "texture_scale": 1.0,
    "trim_colour": "#efeae0",
    "visible": true,
    "belts": [],
    "openings": [
     {
-     "id": "w0:a0.03",
+     "id": "w0:f1:w0",
      "kind": "window",
-     "u": 0.03,
-     "v": 5.21,
-     "w": 0.82,
-     "h": 2.28,
+     "u": 0.62,
+     "v": 5.15,
+     "w": 1.1,
+     "h": 1.75,
      "shape": "rect",
-     "frame_colour": "#91736f",
-     "depth": 0.12,
-     "sill": true
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     },
     {
-     "id": "w0:a6.02",
+     "id": "w0:f1:w1",
      "kind": "window",
-     "u": 6.02,
-     "v": 5.21,
-     "w": 0.68,
-     "h": 2.28,
+     "u": 2.97,
+     "v": 5.15,
+     "w": 1.1,
+     "h": 1.75,
      "shape": "rect",
-     "frame_colour": "#dbd2cc",
-     "depth": 0.12,
-     "sill": true
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w2",
+     "kind": "window",
+     "u": 5.32,
+     "v": 5.15,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     }
    ],
    "evidence": {
     "kind": "app",
     "source": "sf-corridor-materials (untextured_photo_smooth_render)",
     "confidence": 0.5
-   },
-   "pilasters": [],
-   "friezes": []
+   }
   },
   {
    "id": "w1",
@@ -166,83 +194,29 @@
    "length_m": 19.59,
    "role": "street",
    "street": "CHESTNUT ST",
-   "material": "stucco",
-   "colour": "#77533d",
+   "material": "brick",
+   "colour": "#c87f5a",
    "texture_scale": 1.0,
-   "trim_colour": "#635e56",
+   "trim_colour": "#e8e4d8",
    "visible": true,
    "belts": [
     {
-     "v": 5.88,
-     "h": 0.44,
-     "colour": "#635e56",
-     "depth": 0.06
-    },
-    {
-     "v": 5.2,
-     "h": 0.48,
-     "colour": "#2f2015",
+     "v": 4.0,
+     "h": 0.2,
+     "colour": "#e8e4d8",
      "depth": 0.06
     }
    ],
    "openings": [
     {
-     "id": "w2:a7.38",
-     "kind": "window",
-     "u": 7.38,
-     "v": 3.95,
-     "w": 1.85,
-     "h": 1.03,
-     "shape": "rect",
-     "frame_colour": "#483a3b",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a0.06",
-     "kind": "window",
-     "u": 0.06,
-     "v": 6.38,
-     "w": 0.74,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#7b7f72",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
      "id": "w2:a0.9",
      "kind": "window",
      "u": 0.9,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.73,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#676764",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a2.8",
-     "kind": "window",
-     "u": 2.8,
-     "v": 6.38,
-     "w": 0.73,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#7c7568",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a6.7",
-     "kind": "window",
-     "u": 6.7,
-     "v": 6.38,
-     "w": 0.59,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#5e514f",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -250,11 +224,11 @@
      "id": "w2:a7.43",
      "kind": "window",
      "u": 7.43,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.81,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#656463",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -262,11 +236,11 @@
      "id": "w2:a10.51",
      "kind": "window",
      "u": 10.51,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.84,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#3e3130",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -274,11 +248,11 @@
      "id": "w2:a13.08",
      "kind": "window",
      "u": 13.08,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.84,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#504035",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -286,11 +260,11 @@
      "id": "w2:a15.7",
      "kind": "window",
      "u": 15.7,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.07,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#514f50",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -302,7 +276,7 @@
      "w": 0.88,
      "h": 1.33,
      "shape": "rect",
-     "frame_colour": "#493931",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     }
@@ -360,57 +334,54 @@
    "role": "street",
    "street": "CHESTNUT ST",
    "material": "stucco",
-   "colour": "#6e6f6e",
+   "colour": "#d9d2c3",
    "texture_scale": 1.0,
-   "trim_colour": "#484f4f",
+   "trim_colour": "#efeae0",
    "visible": true,
-   "belts": [
-    {
-     "v": 4.52,
-     "h": 0.2,
-     "colour": "#403d3b",
-     "depth": 0.06
-    },
-    {
-     "v": 2.44,
-     "h": 0.2,
-     "colour": "#424345",
-     "depth": 0.06
-    }
-   ],
+   "belts": [],
    "openings": [
     {
-     "id": "w4:a0.48",
+     "id": "w4:f1:w0",
      "kind": "window",
-     "u": 0.48,
-     "v": 3.14,
-     "w": 1.56,
-     "h": 1.32,
+     "u": 0.52,
+     "v": 5.15,
+     "w": 1.1,
+     "h": 1.75,
      "shape": "rect",
-     "frame_colour": "#5c5b58",
-     "depth": 0.12,
-     "sill": true
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     },
     {
-     "id": "w4:a2.2",
+     "id": "w4:f1:w1",
      "kind": "window",
-     "u": 2.2,
-     "v": 3.14,
-     "w": 1.4,
-     "h": 1.32,
+     "u": 2.67,
+     "v": 5.15,
+     "w": 1.1,
+     "h": 1.75,
      "shape": "rect",
-     "frame_colour": "#505150",
-     "depth": 0.12,
-     "sill": true
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     }
    ],
    "evidence": {
     "kind": "app",
     "source": "sf-corridor-materials (untextured_photo_smooth_render)",
     "confidence": 0.5
-   },
-   "pilasters": [],
-   "friezes": []
+   }
   },
   {
    "id": "w5",
@@ -457,32 +428,54 @@
    "role": "street",
    "street": "CHESTNUT ST",
    "material": "stucco",
-   "colour": "#595753",
+   "colour": "#d9d2c3",
    "texture_scale": 1.0,
-   "trim_colour": "#b3b8bc",
+   "trim_colour": "#efeae0",
    "visible": true,
-   "belts": [
+   "belts": [],
+   "openings": [
     {
-     "v": 7.56,
-     "h": 0.12,
-     "colour": "#a09e9d",
-     "depth": 0.06
+     "id": "w6:f1:w0",
+     "kind": "window",
+     "u": 0.44,
+     "v": 5.15,
+     "w": 1.09,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     },
     {
-     "v": 7.36,
-     "h": 0.08,
-     "colour": "#a59e9a",
-     "depth": 0.06
+     "id": "w6:f1:w1",
+     "kind": "window",
+     "u": 2.42,
+     "v": 5.15,
+     "w": 1.09,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
     }
    ],
-   "openings": [],
    "evidence": {
     "kind": "app",
     "source": "sf-corridor-materials (untextured_photo_smooth_render)",
     "confidence": 0.5
-   },
-   "pilasters": [],
-   "friezes": []
+   }
   },
   {
    "id": "w7",
@@ -530,8 +523,8 @@
    "name": "Super Duper Burgers",
    "edge": 2,
    "u0": 0.0,
-   "u1": 19.28,
-   "band_h": 3.65,
+   "u1": 14.5,
+   "band_h": 4.0,
    "category": "fast_food",
    "brand": null,
    "material": "metal_panel",
@@ -550,92 +543,12 @@
     {
      "id": "sf-super-duper-burgers:g0",
      "kind": "window",
-     "u": 0.04,
-     "v": 0.62,
-     "w": 0.36,
-     "h": 2.83,
+     "u": 0.5,
+     "v": 0.3,
+     "w": 13.5,
+     "h": 2.5,
      "transom_fraction": 0.0,
      "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g1",
-     "kind": "window",
-     "u": 1.04,
-     "v": 0.06,
-     "w": 4.44,
-     "h": 3.39,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g2",
-     "kind": "window",
-     "u": 6.52,
-     "v": 0.02,
-     "w": 0.52,
-     "h": 3.43,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g3",
-     "kind": "window",
-     "u": 8.72,
-     "v": 1.0,
-     "w": 0.64,
-     "h": 2.45,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g4",
-     "kind": "window",
-     "u": 9.8,
-     "v": 0.26,
-     "w": 6.08,
-     "h": 3.19,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g5",
-     "kind": "window",
-     "u": 16.08,
-     "v": 0.14,
-     "w": 0.76,
-     "h": 3.2,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:g6",
-     "kind": "window",
-     "u": 17.16,
-     "v": 0.02,
-     "w": 2.12,
-     "h": 3.43,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "sf-super-duper-burgers:door0",
-     "kind": "door",
-     "u": 13.0,
-     "v": 0,
-     "w": 0.72,
-     "h": 2.3,
-     "leaf_count": 1,
-     "operation": "hinged"
-    },
-    {
-     "id": "sf-super-duper-burgers:door1",
-     "kind": "door",
-     "u": 18.04,
-     "v": 0,
-     "w": 1.2,
-     "h": 2.3,
-     "leaf_count": 1,
-     "operation": "hinged"
     }
    ],
    "signs": [],
@@ -644,16 +557,17 @@
      "id": "sf-super-duper-burgers:awn0",
      "kind": "shed",
      "u0": 0.0,
-     "u1": 14.54,
-     "v": 4.3,
+     "u1": 14.5,
+     "v": 3.2,
      "depth_m": 1.0,
      "drop_m": 0.35,
      "valance_h": 0.22,
-     "colour": "#4c4042",
+     "colour": "#e86a1a",
      "stripe": null,
      "valance_text": null,
      "sides": true,
-     "fabric": true
+     "fabric": true,
+     "material": "canvas"
     }
    ],
    "lights": [],
@@ -672,171 +586,35 @@
    "extra_signs": [
     {
      "id": "sf-super-duper-burgers:sign0",
-     "kind": "board",
-     "u": -1.47,
-     "v": 3.15,
-     "w": 1.8,
-     "h": 1.11,
-     "bg": "#39231e",
-     "layers": []
-    },
-    {
-     "id": "sf-super-duper-burgers:sign1",
      "kind": "letters",
-     "u": 1.92,
-     "v": 3.68,
-     "w": 13.32,
-     "h": 1.32,
-     "bg": "#433f3a",
-     "layers": []
-    },
-    {
-     "id": "sf-super-duper-burgers:sign2",
-     "kind": "letters",
-     "u": 10.84,
-     "v": 3.64,
-     "w": 1.52,
-     "h": 0.2,
-     "bg": "#767075",
-     "layers": []
+     "u": 1.0,
+     "v": 3.8,
+     "w": 12.0,
+     "h": 0.4,
+     "bg": "#ffffff",
+     "layers": [
+      {
+       "type": "text",
+       "text": "SUPER DUPER BURGERS & FRIES SHAKES & DIPPED CONES",
+       "x": 0.5,
+       "y": 0.62,
+       "size": 0.5,
+       "fill": "#1f1f1f"
+      }
+     ]
     }
    ]
-  },
-  {
-   "id": "auto-shop-0-0",
-   "business_id": null,
-   "name": null,
-   "edge": 0,
-   "category": "shop",
-   "brand": null,
-   "material": "stucco",
-   "palette": {
-    "wall": "#c99f96",
-    "accent": "#2b2b2b",
-    "frame": "#1f1f1f",
-    "base": "#7a7a72",
-    "letter": "#f6f1e7",
-    "metal": "#a5aaa7",
-    "glass": "#53646a",
-    "roughness": 0.8
-   },
-   "door_style": null,
-   "signs": [],
-   "extra_signs": [
-    {
-     "id": "auto-shop-0-0:sign0",
-     "kind": "letters",
-     "u": -0.28,
-     "v": 1.8,
-     "w": 4.0,
-     "h": 1.0,
-     "bg": "#312f2c",
-     "layers": []
-    },
-    {
-     "id": "auto-shop-0-0:sign1",
-     "kind": "letters",
-     "u": 4.4,
-     "v": 1.8,
-     "w": 2.96,
-     "h": 0.72,
-     "bg": "#554440",
-     "layers": []
-    }
-   ],
-   "awnings": [],
-   "lights": [],
-   "u0": 0.0,
-   "u1": 7.04,
-   "band_h": 4.91,
-   "openings": [
-    {
-     "id": "auto-shop-0-0:g0",
-     "kind": "window",
-     "u": 0.0,
-     "v": 0.26,
-     "w": 1.08,
-     "h": 3.32,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "auto-shop-0-0:g1",
-     "kind": "window",
-     "u": 5.96,
-     "v": 0.02,
-     "w": 0.76,
-     "h": 2.68,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    },
-    {
-     "id": "auto-shop-0-0:door0",
-     "kind": "door",
-     "u": -0.38,
-     "v": 0,
-     "w": 1.5,
-     "h": 2.3,
-     "leaf_count": 1,
-     "operation": "hinged"
-    }
-   ],
-   "evidence": {
-    "kind": "observed",
-    "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
-    "frames": [
-     "1216219972621705"
-    ]
-   }
-  },
-  {
-   "id": "auto-shop-4-0",
-   "business_id": null,
-   "name": null,
-   "edge": 4,
-   "category": "shop",
-   "brand": null,
-   "material": "stucco",
-   "palette": {
-    "wall": "#6e6f6e",
-    "accent": "#2b2b2b",
-    "frame": "#1f1f1f",
-    "base": "#7a7a72",
-    "letter": "#f6f1e7",
-    "metal": "#a5aaa7",
-    "glass": "#53646a",
-    "roughness": 0.8
-   },
-   "door_style": null,
-   "signs": [],
-   "extra_signs": [],
-   "awnings": [],
-   "lights": [],
-   "u0": 1.12,
-   "u1": 2.84,
-   "band_h": 2.64,
-   "openings": [
-    {
-     "id": "auto-shop-4-0:g0",
-     "kind": "window",
-     "u": 1.12,
-     "v": 0.3,
-     "w": 1.72,
-     "h": 2.14,
-     "transom_fraction": 0.0,
-     "privacy_fraction": 0
-    }
-   ],
-   "evidence": {
-    "kind": "observed",
-    "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
-    "frames": [
-     "867239367786570"
-    ]
-   }
   }
  ],
- "seating": [],
+ "seating": [
+  {
+   "id": "qwen-parklet-2-0",
+   "kind": "parklet",
+   "edge": 2,
+   "u0": 4.0,
+   "u1": 10.0
+  }
+ ],
  "street": {
   "name": "Chestnut Street",
   "osm_id": 254984058,
@@ -1515,70 +1293,6 @@
    "height": 2048,
    "position_source": "sfm",
    "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
-  },
-  {
-   "frame_id": "1216219972621705",
-   "slot": "wall0:sign",
-   "captured_at": "2022-06-08T18:46:13+00:00",
-   "camera_type": "spherical",
-   "x": 14.254,
-   "y": -3.066,
-   "z": 2.0,
-   "heading": 173.09,
-   "hfov": 360.0,
-   "width": 4096,
-   "height": 2048,
-   "position_source": "sfm",
-   "wall": 0,
-   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
-  },
-  {
-   "frame_id": "926631754852481",
-   "slot": "wall0:elevation",
-   "captured_at": "2016-09-28T10:25:27+00:00",
-   "camera_type": "perspective",
-   "x": 16.511,
-   "y": 1.147,
-   "z": 2.0,
-   "heading": 258.72,
-   "hfov": 79.67,
-   "width": 1920,
-   "height": 1080,
-   "position_source": "sfm",
-   "wall": 0,
-   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
-  },
-  {
-   "frame_id": "819525058755053",
-   "slot": "wall0:oblique-left",
-   "captured_at": "2021-08-04T16:47:16+00:00",
-   "camera_type": "spherical",
-   "x": 15.679,
-   "y": -10.843,
-   "z": 2.0,
-   "heading": 165.36,
-   "hfov": 360.0,
-   "width": 5760,
-   "height": 2880,
-   "position_source": "sfm",
-   "wall": 0,
-   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
-  },
-  {
-   "frame_id": "1085812741037572",
-   "slot": "wall0:oblique-right",
-   "captured_at": "2026-10-05T14:27:36+00:00",
-   "camera_type": "perspective",
-   "x": 31.606,
-   "y": 18.99,
-   "z": 2.0,
-   "heading": 259.59,
-   "hfov": 79.47,
-   "width": 1920,
-   "height": 1080,
-   "position_source": "sfm",
-   "wall": 0,
-   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
   }
  ],
  "facts": {
@@ -1649,7 +1363,7 @@
     "890611138332138",
     "4523709984325734"
    ],
-   "how": "facade top from the sky line of the registered elevation of wall 2",
+   "how": "facade top from the qwen of the registered elevation of wall 2",
    "confidence": 0.7,
    "read_by": "kerbfront auto (no reviewer)"
   },
@@ -1667,60 +1381,6 @@
    "confidence": 0.6,
    "read_by": "kerbfront auto (no reviewer)"
   },
-  "walls.0.colour": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-   "confidence": 0.7,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.0.material": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "CLIP zero-shot on the upper wall ({'probs': {'stucco': 0.409, 'painted_brick': 0.228, 'brick': 0.177, 'wood_siding': 0.054}, 'tiles': 2})",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.0.openings": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "dark rectangles above the shop band, snapped to rows",
-   "confidence": 0.55,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.0.pilasters": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "repeating vertical runs of a second colour",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.0.belts": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "rows of a second colour across the wall",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.0.friezes": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705"
-   ],
-   "how": "friezes are read as belts",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
   "walls.2.colour": {
    "kind": "observed",
    "frames": [
@@ -1733,6 +1393,20 @@
    ],
    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
    "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.2.material": {
+   "kind": "observed",
+   "frames": [
+    "867239367786570",
+    "814897453148820",
+    "878605742782033",
+    "193528572832492",
+    "890611138332138",
+    "4523709984325734"
+   ],
+   "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+   "confidence": 0.5,
    "read_by": "kerbfront auto (no reviewer)"
   },
   "walls.2.openings": {
@@ -1801,9 +1475,9 @@
     "890611138332138",
     "4523709984325734"
    ],
-   "how": "colour of the cornice / belts / pilasters",
+   "how": "qwen/qwen4-max reading",
    "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
+   "read_by": "kerbfront qwen"
   },
   "roof.cornice": {
    "kind": "observed",
@@ -1815,122 +1489,13 @@
     "890611138332138",
     "4523709984325734"
    ],
-   "how": "no band at the facade top",
-   "confidence": 0.4,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.colour": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-   "confidence": 0.7,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.openings": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "dark rectangles above the shop band, snapped to rows",
-   "confidence": 0.55,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.pilasters": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "repeating vertical runs of a second colour",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.belts": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "rows of a second colour across the wall",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.friezes": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "friezes are read as belts",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.4.trim_colour": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "colour of the cornice / belts / pilasters",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.colour": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-   "confidence": 0.7,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.openings": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "dark rectangles above the shop band, snapped to rows",
-   "confidence": 0.55,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.pilasters": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "repeating vertical runs of a second colour",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.belts": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "rows of a second colour across the wall",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.friezes": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "friezes are read as belts",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "walls.6.trim_colour": {
-   "kind": "observed",
-   "frames": [
-    "867239367786570"
-   ],
-   "how": "colour of the cornice / belts / pilasters",
+   "how": "band at the facade top",
    "confidence": 0.5,
    "read_by": "kerbfront auto (no reviewer)"
   },
   "storefronts": {
    "kind": "observed",
    "frames": [
-    "1216219972621705",
     "193528572832492",
     "4523709984325734",
     "814897453148820",
@@ -1945,7 +1510,6 @@
   "seating": {
    "kind": "observed",
    "frames": [
-    "1216219972621705",
     "193528572832492",
     "4523709984325734",
     "814897453148820",
@@ -1953,37 +1517,10 @@
     "878605742782033",
     "890611138332138"
    ],
-   "how": "parklets: seating/fence/plant labels on the parking-lane plane, not cars; sidewalk tables: chairs/tables on a plane 0.8 m out",
+   "how": "qwen/qwen4-max reading of the registered elevation",
    "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "street_objects": {
-   "kind": "observed",
-   "frames": [
-    "1216219972621705",
-    "193528572832492",
-    "4523709984325734",
-    "814897453148820",
-    "867239367786570",
-    "878605742782033",
-    "890611138332138"
-   ],
-   "how": "tree labels on the kerb plane",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
+   "read_by": "kerbfront qwen"
   }
  },
- "street_objects": [
-  {
-   "id": "auto-tree-2-0",
-   "kind": "tree",
-   "edge": 2,
-   "u": 18.58,
-   "w": 8.04,
-   "r": 4.02,
-   "trunk_h": 2.6,
-   "colour": "#566f3e"
-  }
- ],
- "observations_applied": 30
+ "observations_applied": 13
 }

@@ -81,14 +81,20 @@ class Handler(SimpleHTTPRequestHandler):
         parts = url.path.strip("/").split("/")
         if parts[:2] == ["api", "models"]:
             if len(parts) == 2:
-                return self._json(json.loads((MODELS / "index.json").read_text()))
-            p = MODELS / f"{parts[2]}.json"
+                idx = json.loads((MODELS / "index.json").read_text())
+                # models read by kerbfront auto / qwen-run, listed after the reviewed ones
+                for p in sorted((MODELS / "auto").glob("*.json")):
+                    idx.append({"id": f"auto~{p.stem}", "title": f"{json.loads(p.read_text()).get('title')} (auto)"})
+                return self._json(idx)
+            mid = parts[2]
+            p = MODELS / "auto" / f"{mid[5:]}.json" if mid.startswith("auto~") else MODELS / f"{mid}.json"
             return self._json(json.loads(p.read_text())) if p.exists() else self._json({"error": "no model"}, 404)
         if parts[:2] == ["api", "photo"] and len(parts) == 3:
             fid = parts[2].removesuffix(".jpg")
             meta = None
             if q.get("model"):
-                m = json.loads((MODELS / f"{q['model']}.json").read_text())
+                mp = q["model"]
+                m = json.loads((MODELS / "auto" / f"{mp[5:]}.json" if mp.startswith("auto~") else MODELS / f"{mp}.json").read_text())
                 meta = next((p for p in m.get("photos", []) if p["frame_id"] == fid), None)
             try:
                 body = photo_view(fid, float(q["yaw"]) if "yaw" in q else None, float(q.get("pitch", 0)),
@@ -122,11 +128,13 @@ class Handler(SimpleHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
         if body.get("schema") != "kerbfront.building/1" or body.get("id") != parts[2]:
             return self._json({"error": "not a kerbfront.building/1 model with this id"}, 400)
-        dest = MODELS / f"{parts[2]}.json"
+        dest = MODELS / "auto" / f"{parts[2][5:]}.json" if parts[2].startswith("auto~") else MODELS / f"{parts[2]}.json"
+        if parts[2].startswith("auto~"):
+            body["id"] = parts[2][5:]
         if dest.exists():
             hist = MODELS / ".history"
             hist.mkdir(exist_ok=True)
-            shutil.copy2(dest, hist / f"{parts[2]}.{time.strftime('%Y%m%d-%H%M%S')}.json")
+            shutil.copy2(dest, hist / f"{parts[2].replace('~', '-')}.{time.strftime('%Y%m%d-%H%M%S')}.json")
         dest.write_text(json.dumps(body, indent=1))
         return self._json({"saved": str(dest.relative_to(LAB)), "edits": len(body.get("edits", []))})
 

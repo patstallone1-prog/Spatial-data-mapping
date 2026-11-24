@@ -47,15 +47,15 @@
    -1.193
   ]
  ],
- "height_m": 7.52,
+ "height_m": 7.4,
  "floors": [
   {
    "v": 0.0,
-   "h": 2.96
+   "h": 2.8
   },
   {
-   "v": 2.96,
-   "h": 4.56
+   "v": 2.8,
+   "h": 4.6
   }
  ],
  "roof": {
@@ -63,9 +63,9 @@
   "colour": "#e6ece4",
   "parapet_h": 0.6,
   "cornice": {
-   "h": 0.08,
-   "depth": 0.1,
-   "colour": "#535666",
+   "h": 0.05,
+   "depth": 0.05,
+   "colour": "#C0B8A8",
    "raise": 0
   },
   "evidence": {
@@ -138,22 +138,41 @@
    "length_m": 15.25,
    "role": "street",
    "street": "CHESTNUT ST",
-   "material": "stucco",
-   "colour": "#ada192",
+   "material": "shingle",
+   "colour": "#C0B8A8",
    "texture_scale": 1.0,
-   "trim_colour": "#535666",
+   "trim_colour": "#8B0000",
    "visible": true,
-   "belts": [],
+   "belts": [
+    {
+     "v": 2.8,
+     "h": 0.2,
+     "colour": "#8B0000",
+     "depth": 0.06
+    }
+   ],
    "openings": [
     {
      "id": "w3:a6.02",
      "kind": "window",
      "u": 6.02,
-     "v": 3.26,
+     "v": 3.28,
      "w": 2.2,
-     "h": 1.12,
+     "h": 1.11,
      "shape": "rect",
-     "frame_colour": "#494942",
+     "frame_colour": null,
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w3:a8.5",
+     "kind": "window",
+     "u": 8.5,
+     "v": 3.28,
+     "w": 3.4,
+     "h": 1.11,
+     "shape": "rect",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     }
@@ -173,9 +192,9 @@
    "business_id": "mb-31c7748889b3",
    "name": "Dragon Well",
    "edge": 3,
-   "u0": 0.0,
-   "u1": 15.24,
-   "band_h": 2.96,
+   "u0": 6.0,
+   "u1": 15.2,
+   "band_h": 2.8,
    "category": "restaurant",
    "brand": null,
    "material": "painted_wood",
@@ -194,36 +213,43 @@
     {
      "id": "sf-dragon-well:g0",
      "kind": "window",
-     "u": 0.0,
-     "v": 0.0,
-     "w": 15.24,
-     "h": 2.76,
+     "u": 8.5,
+     "v": 0.3,
+     "w": 6.7,
+     "h": 2.4,
      "transom_fraction": 0.0,
      "privacy_fraction": 0
     },
     {
      "id": "sf-dragon-well:door0",
      "kind": "door",
-     "u": 10.24,
+     "u": 9.0,
      "v": 0,
-     "w": 0.72,
-     "h": 2.3,
-     "leaf_count": 1,
-     "operation": "hinged"
-    },
-    {
-     "id": "sf-dragon-well:door1",
-     "kind": "door",
-     "u": 12.56,
-     "v": 0,
-     "w": 1.2,
+     "w": 1.0,
      "h": 2.3,
      "leaf_count": 1,
      "operation": "hinged"
     }
    ],
    "signs": [],
-   "awnings": [],
+   "awnings": [
+    {
+     "id": "sf-dragon-well:awn0",
+     "kind": "shed",
+     "u0": 6.0,
+     "u1": 8.5,
+     "v": 2.8,
+     "depth_m": 1.0,
+     "drop_m": 0.35,
+     "valance_h": 0.22,
+     "colour": "#00CED1",
+     "stripe": null,
+     "valance_text": null,
+     "sides": true,
+     "fabric": true,
+     "material": "canvas"
+    }
+   ],
    "lights": [],
    "evidence": {
     "kind": "observed",
@@ -239,12 +265,21 @@
     {
      "id": "sf-dragon-well:sign0",
      "kind": "board",
-     "u": 8.4,
-     "v": 2.84,
-     "w": 3.38,
-     "h": 0.64,
-     "bg": "#665b52",
-     "layers": []
+     "u": 8.5,
+     "v": 2.8,
+     "w": 3.4,
+     "h": 0.6,
+     "bg": "#FFFFFF",
+     "layers": [
+      {
+       "type": "text",
+       "text": "DRAGON WELL",
+       "x": 0.5,
+       "y": 0.62,
+       "size": 0.5,
+       "fill": "#1f1f1f"
+      }
+     ]
     }
    ]
   }
@@ -1044,7 +1079,7 @@
     "495218682583259",
     "844665136442121"
    ],
-   "how": "facade top from the sky line of the registered elevation of wall 3",
+   "how": "facade top from the qwen of the registered elevation of wall 3",
    "confidence": 0.7,
    "read_by": "kerbfront auto (no reviewer)"
   },
@@ -1070,6 +1105,18 @@
    ],
    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
    "confidence": 0.7,
+   "read_by": "kerbfront auto (no reviewer)"
+  },
+  "walls.3.material": {
+   "kind": "observed",
+   "frames": [
+    "656554992621313",
+    "801261194498468",
+    "495218682583259",
+    "844665136442121"
+   ],
+   "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+   "confidence": 0.5,
    "read_by": "kerbfront auto (no reviewer)"
   },
   "walls.3.openings": {
@@ -1140,8 +1187,8 @@
     "495218682583259",
     "844665136442121"
    ],
-   "how": "band at the facade top",
-   "confidence": 0.5,
+   "how": "no band at the facade top",
+   "confidence": 0.4,
    "read_by": "kerbfront auto (no reviewer)"
   },
   "storefronts": {
@@ -1155,43 +1202,7 @@
    "how": "shop spans from glazing, awnings and signs on each wall",
    "confidence": 0.55,
    "read_by": "kerbfront auto (no reviewer)"
-  },
-  "seating": {
-   "kind": "observed",
-   "frames": [
-    "495218682583259",
-    "656554992621313",
-    "801261194498468",
-    "844665136442121"
-   ],
-   "how": "parklets: seating/fence/plant labels on the parking-lane plane, not cars; sidewalk tables: chairs/tables on a plane 0.8 m out",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
-  },
-  "street_objects": {
-   "kind": "observed",
-   "frames": [
-    "495218682583259",
-    "656554992621313",
-    "801261194498468",
-    "844665136442121"
-   ],
-   "how": "tree labels on the kerb plane",
-   "confidence": 0.5,
-   "read_by": "kerbfront auto (no reviewer)"
   }
  },
- "street_objects": [
-  {
-   "id": "auto-tree-3-0",
-   "kind": "tree",
-   "edge": 3,
-   "u": 3.02,
-   "w": 12.04,
-   "r": 6.02,
-   "trunk_h": 2.6,
-   "colour": "#566f3e"
-  }
- ],
- "observations_applied": 12
+ "observations_applied": 11
 }

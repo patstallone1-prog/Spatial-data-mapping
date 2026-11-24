@@ -1,0 +1,343 @@
+{
+ "model": "blackwood",
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.5,
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 3",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 4.0
+    },
+    {
+     "v": 4.0,
+     "h": 3.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#E8E8E8",
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.0,
+     "h": 1.0,
+     "colour": "#1A1A1A",
+     "depth": 0.06
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#1A1A1A",
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.05,
+    "depth": 0.05,
+    "colour": "#E8E8E8",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "854284485612560",
+     "502960318454155"
+    ],
+    "how": "no band at the facade top",
+    "confidence": 0.4,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-blackwood",
+     "business_id": "mb-5f2542a569e5",
+     "name": "Blackwood",
+     "edge": 3,
+     "u0": 0.0,
+     "u1": 15.89,
+     "band_h": 4.0,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#d6ddd9",
+      "accent": "#3b5355",
+      "frame": "#263238",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-blackwood:g0",
+       "kind": "window",
+       "u": 0.0,
+       "v": 0.3,
+       "w": 4.0,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-blackwood:g1",
+       "kind": "window",
+       "u": 4.0,
+       "v": 0.3,
+       "w": 3.9,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-blackwood:g2",
+       "kind": "window",
+       "u": 7.9,
+       "v": 0.3,
+       "w": 7.99,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-blackwood:door0",
+       "kind": "door",
+       "u": 2.0,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      },
+      {
+       "id": "sf-blackwood:door1",
+       "kind": "door",
+       "u": 6.0,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      },
+      {
+       "id": "sf-blackwood:door2",
+       "kind": "door",
+       "u": 11.0,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-blackwood:awn0",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 15.89,
+       "v": 3.0,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#1A1A1A",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": false,
+       "material": "metal_panel"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "854284485612560",
+       "502960318454155"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-blackwood:sign0",
+       "kind": "board",
+       "u": 0.0,
+       "v": 3.0,
+       "w": 4.0,
+       "h": 1.0,
+       "bg": "#1A1A1A",
+       "layers": [
+        {
+         "type": "text",
+         "text": "SAMEDAYHEALTH",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      },
+      {
+       "id": "sf-blackwood:sign1",
+       "kind": "board",
+       "u": 7.9,
+       "v": 3.0,
+       "w": 7.99,
+       "h": 1.0,
+       "bg": "#1A1A1A",
+       "layers": [
+        {
+         "type": "text",
+         "text": "CITYOPTIX",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      },
+      {
+       "id": "sf-blackwood:sign2",
+       "kind": "window_vinyl",
+       "u": 4.0,
+       "v": 0.5,
+       "w": 3.9,
+       "h": 1.0,
+       "bg": "#222222",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BLACKWOOD",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "502960318454155",
+     "854284485612560"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  }
+ ]
+}

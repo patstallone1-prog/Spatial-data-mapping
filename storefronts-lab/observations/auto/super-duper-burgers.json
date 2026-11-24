@@ -1,246 +1,10 @@
 {
  "model": "super-duper-burgers",
- "read_by": "kerbfront auto (no reviewer)",
- "seconds": 46,
- "elevations": {
-  "0": {
-   "edge": 0,
-   "views": 6,
-   "used": 1,
-   "frames": [
-    "1216219972621705"
-   ],
-   "reference": "1216219972621705",
-   "anchor": {
-    "end0": [
-     -0.2,
-     88.4
-    ],
-    "end1": [
-     -0.76,
-     67.6
-    ],
-    "scale": 1.086,
-    "ground_v": 0.18,
-    "ground_cols": 65,
-    "shift_u": 0.22,
-    "shift_v": -0.18
-   },
-   "align": {
-    "1216219972621705": {
-     "inliers": null,
-     "score": 1.0,
-     "via": null
-    },
-    "819525058755053": {
-     "inliers": 19,
-     "score": 0.0,
-     "via": null
-    },
-    "890611138332138": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "1085812741037572": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "926631754852481": {
-     "inliers": 16,
-     "score": 0.0,
-     "via": null
-    },
-    "4523709984325734": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    }
-   },
-   "key": "ad6eef938bdf2347"
-  },
-  "2": {
-   "edge": 2,
-   "views": 6,
-   "used": 6,
-   "frames": [
-    "867239367786570",
-    "814897453148820",
-    "878605742782033",
-    "193528572832492",
-    "890611138332138",
-    "4523709984325734"
-   ],
-   "reference": "867239367786570",
-   "anchor": {
-    "end0": [
-     -0.76,
-     59.4
-    ],
-    "end1": [
-     -0.6,
-     9.1
-    ],
-    "scale": 1.0,
-    "ground_v": -0.32,
-    "ground_cols": 198,
-    "shift_u": 0.76,
-    "shift_v": 0.32
-   },
-   "align": {
-    "867239367786570": {
-     "inliers": null,
-     "score": 1.0,
-     "via": null
-    },
-    "814897453148820": {
-     "inliers": 326,
-     "score": 1.0,
-     "via": "867239367786570"
-    },
-    "878605742782033": {
-     "inliers": 135,
-     "score": 0.675,
-     "via": "814897453148820"
-    },
-    "193528572832492": {
-     "inliers": 185,
-     "score": 0.925,
-     "via": "878605742782033"
-    },
-    "890611138332138": {
-     "inliers": 30,
-     "score": 0.15,
-     "via": "193528572832492"
-    },
-    "4523709984325734": {
-     "inliers": 58,
-     "score": 0.29,
-     "via": "890611138332138"
-    }
-   },
-   "key": "5875c67aed185652"
-  },
-  "4": {
-   "edge": 4,
-   "views": 6,
-   "used": 1,
-   "frames": [
-    "867239367786570"
-   ],
-   "reference": "867239367786570",
-   "anchor": {
-    "end0": [
-     2.12,
-     19.9
-    ],
-    "end1": [
-     0.12,
-     8.1
-    ],
-    "scale": 1.0,
-    "ground_v": -0.02,
-    "ground_cols": 93,
-    "shift_u": -2.12,
-    "shift_v": 0.02
-   },
-   "align": {
-    "867239367786570": {
-     "inliers": null,
-     "score": 1.0,
-     "via": null
-    },
-    "814897453148820": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "878605742782033": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "193528572832492": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "890611138332138": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "4523709984325734": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    }
-   },
-   "key": "5875c67aed185652"
-  },
-  "6": {
-   "edge": 6,
-   "views": 6,
-   "used": 1,
-   "frames": [
-    "867239367786570"
-   ],
-   "reference": "867239367786570",
-   "anchor": {
-    "end0": [
-     1.32,
-     28.5
-    ],
-    "end1": [
-     -0.24,
-     23.8
-    ],
-    "scale": 1.0,
-    "ground_v": -0.06,
-    "ground_cols": 84,
-    "shift_u": -1.32,
-    "shift_v": 0.06
-   },
-   "align": {
-    "867239367786570": {
-     "inliers": null,
-     "score": 1.0,
-     "via": null
-    },
-    "814897453148820": {
-     "inliers": 19,
-     "score": 0.0,
-     "via": null
-    },
-    "878605742782033": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "193528572832492": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "890611138332138": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    },
-    "4523709984325734": {
-     "inliers": 0,
-     "score": 0.0,
-     "via": null
-    }
-   },
-   "key": "5875c67aed185652"
-  }
- },
+ "read_by": "kerbfront qwen (qwen/qwen4-max)",
  "observations": [
   {
    "path": "height_m",
-   "value": 10.14,
+   "value": 9.3,
    "evidence": {
     "frames": [
      "867239367786570",
@@ -250,7 +14,7 @@
      "890611138332138",
      "4523709984325734"
     ],
-    "how": "facade top from the sky line of the registered elevation of wall 2",
+    "how": "facade top from the qwen of the registered elevation of wall 2",
     "confidence": 0.7,
     "read_by": "kerbfront auto (no reviewer)"
    }
@@ -260,11 +24,11 @@
    "value": [
     {
      "v": 0.0,
-     "h": 3.65
+     "h": 4.0
     },
     {
-     "v": 3.65,
-     "h": 6.49
+     "v": 4.0,
+     "h": 5.3
     }
    ],
    "evidence": {
@@ -282,105 +46,8 @@
    }
   },
   {
-   "path": "walls.0.colour",
-   "value": "#c99f96",
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-    "confidence": 0.7,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.0.material",
-   "value": "stucco",
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "CLIP zero-shot on the upper wall ({'probs': {'stucco': 0.409, 'painted_brick': 0.228, 'brick': 0.177, 'wood_siding': 0.054}, 'tiles': 2})",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.0.openings",
-   "value": [
-    {
-     "id": "w0:a0.03",
-     "kind": "window",
-     "u": 0.03,
-     "v": 5.21,
-     "w": 0.82,
-     "h": 2.28,
-     "shape": "rect",
-     "frame_colour": "#91736f",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w0:a6.02",
-     "kind": "window",
-     "u": 6.02,
-     "v": 5.21,
-     "w": 0.68,
-     "h": 2.28,
-     "shape": "rect",
-     "frame_colour": "#dbd2cc",
-     "depth": 0.12,
-     "sill": true
-    }
-   ],
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "dark rectangles above the shop band, snapped to rows",
-    "confidence": 0.55,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.0.pilasters",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "repeating vertical runs of a second colour",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.0.belts",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "rows of a second colour across the wall",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.0.friezes",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "1216219972621705"
-    ],
-    "how": "friezes are read as belts",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
    "path": "walls.2.colour",
-   "value": "#77533d",
+   "value": "#c87f5a",
    "evidence": {
     "frames": [
      "867239367786570",
@@ -396,65 +63,34 @@
    }
   },
   {
+   "path": "walls.2.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "867239367786570",
+     "814897453148820",
+     "878605742782033",
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
    "path": "walls.2.openings",
    "value": [
-    {
-     "id": "w2:a7.38",
-     "kind": "window",
-     "u": 7.38,
-     "v": 3.95,
-     "w": 1.85,
-     "h": 1.03,
-     "shape": "rect",
-     "frame_colour": "#483a3b",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a0.06",
-     "kind": "window",
-     "u": 0.06,
-     "v": 6.38,
-     "w": 0.74,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#7b7f72",
-     "depth": 0.12,
-     "sill": true
-    },
     {
      "id": "w2:a0.9",
      "kind": "window",
      "u": 0.9,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.73,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#676764",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a2.8",
-     "kind": "window",
-     "u": 2.8,
-     "v": 6.38,
-     "w": 0.73,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#7c7568",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w2:a6.7",
-     "kind": "window",
-     "u": 6.7,
-     "v": 6.38,
-     "w": 0.59,
-     "h": 2.21,
-     "shape": "rect",
-     "frame_colour": "#5e514f",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -462,11 +98,11 @@
      "id": "w2:a7.43",
      "kind": "window",
      "u": 7.43,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.81,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#656463",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -474,11 +110,11 @@
      "id": "w2:a10.51",
      "kind": "window",
      "u": 10.51,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.84,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#3e3130",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -486,11 +122,11 @@
      "id": "w2:a13.08",
      "kind": "window",
      "u": 13.08,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.84,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#504035",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -498,11 +134,11 @@
      "id": "w2:a15.7",
      "kind": "window",
      "u": 15.7,
-     "v": 6.38,
+     "v": 6.45,
      "w": 1.07,
-     "h": 2.21,
+     "h": 2.15,
      "shape": "rect",
-     "frame_colour": "#514f50",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     },
@@ -514,7 +150,7 @@
      "w": 0.88,
      "h": 1.33,
      "shape": "rect",
-     "frame_colour": "#493931",
+     "frame_colour": null,
      "depth": 0.12,
      "sill": true
     }
@@ -554,15 +190,9 @@
    "path": "walls.2.belts",
    "value": [
     {
-     "v": 5.88,
-     "h": 0.44,
-     "colour": "#635e56",
-     "depth": 0.06
-    },
-    {
-     "v": 5.2,
-     "h": 0.48,
-     "colour": "#2f2015",
+     "v": 4.0,
+     "h": 0.2,
+     "colour": "#e8e4d8",
      "depth": 0.06
     }
    ],
@@ -599,7 +229,7 @@
   },
   {
    "path": "walls.2.trim_colour",
-   "value": "#635e56",
+   "value": "#3a3a3a",
    "evidence": {
     "frames": [
      "867239367786570",
@@ -617,9 +247,9 @@
   {
    "path": "roof.cornice",
    "value": {
-    "h": 0.05,
-    "depth": 0.05,
-    "colour": "#77533d",
+    "h": 0.3,
+    "depth": 0.1,
+    "colour": "#3a3a3a",
     "raise": 0
    },
    "evidence": {
@@ -631,202 +261,7 @@
      "890611138332138",
      "4523709984325734"
     ],
-    "how": "no band at the facade top",
-    "confidence": 0.4,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.colour",
-   "value": "#6e6f6e",
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-    "confidence": 0.7,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.openings",
-   "value": [
-    {
-     "id": "w4:a0.48",
-     "kind": "window",
-     "u": 0.48,
-     "v": 3.14,
-     "w": 1.56,
-     "h": 1.32,
-     "shape": "rect",
-     "frame_colour": "#5c5b58",
-     "depth": 0.12,
-     "sill": true
-    },
-    {
-     "id": "w4:a2.2",
-     "kind": "window",
-     "u": 2.2,
-     "v": 3.14,
-     "w": 1.4,
-     "h": 1.32,
-     "shape": "rect",
-     "frame_colour": "#505150",
-     "depth": 0.12,
-     "sill": true
-    }
-   ],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "dark rectangles above the shop band, snapped to rows",
-    "confidence": 0.55,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.pilasters",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "repeating vertical runs of a second colour",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.belts",
-   "value": [
-    {
-     "v": 4.52,
-     "h": 0.2,
-     "colour": "#403d3b",
-     "depth": 0.06
-    },
-    {
-     "v": 2.44,
-     "h": 0.2,
-     "colour": "#424345",
-     "depth": 0.06
-    }
-   ],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "rows of a second colour across the wall",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.friezes",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "friezes are read as belts",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.4.trim_colour",
-   "value": "#484f4f",
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "colour of the cornice / belts / pilasters",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.colour",
-   "value": "#595753",
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
-    "confidence": 0.7,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.openings",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "dark rectangles above the shop band, snapped to rows",
-    "confidence": 0.55,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.pilasters",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "repeating vertical runs of a second colour",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.belts",
-   "value": [
-    {
-     "v": 7.56,
-     "h": 0.12,
-     "colour": "#a09e9d",
-     "depth": 0.06
-    },
-    {
-     "v": 7.36,
-     "h": 0.08,
-     "colour": "#a59e9a",
-     "depth": 0.06
-    }
-   ],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "rows of a second colour across the wall",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.friezes",
-   "value": [],
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "friezes are read as belts",
-    "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
-   }
-  },
-  {
-   "path": "walls.6.trim_colour",
-   "value": "#b3b8bc",
-   "evidence": {
-    "frames": [
-     "867239367786570"
-    ],
-    "how": "colour of the cornice / belts / pilasters",
+    "how": "band at the facade top",
     "confidence": 0.5,
     "read_by": "kerbfront auto (no reviewer)"
    }
@@ -840,8 +275,8 @@
      "name": "Super Duper Burgers",
      "edge": 2,
      "u0": 0.0,
-     "u1": 19.28,
-     "band_h": 3.65,
+     "u1": 14.5,
+     "band_h": 4.0,
      "category": "fast_food",
      "brand": null,
      "material": "metal_panel",
@@ -860,92 +295,12 @@
       {
        "id": "sf-super-duper-burgers:g0",
        "kind": "window",
-       "u": 0.04,
-       "v": 0.62,
-       "w": 0.36,
-       "h": 2.83,
+       "u": 0.5,
+       "v": 0.3,
+       "w": 13.5,
+       "h": 2.5,
        "transom_fraction": 0.0,
        "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g1",
-       "kind": "window",
-       "u": 1.04,
-       "v": 0.06,
-       "w": 4.44,
-       "h": 3.39,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g2",
-       "kind": "window",
-       "u": 6.52,
-       "v": 0.02,
-       "w": 0.52,
-       "h": 3.43,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g3",
-       "kind": "window",
-       "u": 8.72,
-       "v": 1.0,
-       "w": 0.64,
-       "h": 2.45,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g4",
-       "kind": "window",
-       "u": 9.8,
-       "v": 0.26,
-       "w": 6.08,
-       "h": 3.19,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g5",
-       "kind": "window",
-       "u": 16.08,
-       "v": 0.14,
-       "w": 0.76,
-       "h": 3.2,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:g6",
-       "kind": "window",
-       "u": 17.16,
-       "v": 0.02,
-       "w": 2.12,
-       "h": 3.43,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "sf-super-duper-burgers:door0",
-       "kind": "door",
-       "u": 13.0,
-       "v": 0,
-       "w": 0.72,
-       "h": 2.3,
-       "leaf_count": 1,
-       "operation": "hinged"
-      },
-      {
-       "id": "sf-super-duper-burgers:door1",
-       "kind": "door",
-       "u": 18.04,
-       "v": 0,
-       "w": 1.2,
-       "h": 2.3,
-       "leaf_count": 1,
-       "operation": "hinged"
       }
      ],
      "signs": [],
@@ -954,16 +309,17 @@
        "id": "sf-super-duper-burgers:awn0",
        "kind": "shed",
        "u0": 0.0,
-       "u1": 14.54,
-       "v": 4.3,
+       "u1": 14.5,
+       "v": 3.2,
        "depth_m": 1.0,
        "drop_m": 0.35,
        "valance_h": 0.22,
-       "colour": "#4c4042",
+       "colour": "#e86a1a",
        "stripe": null,
        "valance_text": null,
        "sides": true,
-       "fabric": true
+       "fabric": true,
+       "material": "canvas"
       }
      ],
      "lights": [],
@@ -982,173 +338,28 @@
      "extra_signs": [
       {
        "id": "sf-super-duper-burgers:sign0",
-       "kind": "board",
-       "u": -1.47,
-       "v": 3.15,
-       "w": 1.8,
-       "h": 1.11,
-       "bg": "#39231e",
-       "layers": []
-      },
-      {
-       "id": "sf-super-duper-burgers:sign1",
        "kind": "letters",
-       "u": 1.92,
-       "v": 3.68,
-       "w": 13.32,
-       "h": 1.32,
-       "bg": "#433f3a",
-       "layers": []
-      },
-      {
-       "id": "sf-super-duper-burgers:sign2",
-       "kind": "letters",
-       "u": 10.84,
-       "v": 3.64,
-       "w": 1.52,
-       "h": 0.2,
-       "bg": "#767075",
-       "layers": []
+       "u": 1.0,
+       "v": 3.8,
+       "w": 12.0,
+       "h": 0.4,
+       "bg": "#ffffff",
+       "layers": [
+        {
+         "type": "text",
+         "text": "SUPER DUPER BURGERS & FRIES SHAKES & DIPPED CONES",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
       }
      ]
-    },
-    {
-     "id": "auto-shop-0-0",
-     "business_id": null,
-     "name": null,
-     "edge": 0,
-     "category": "shop",
-     "brand": null,
-     "material": "stucco",
-     "palette": {
-      "wall": "#c99f96",
-      "accent": "#2b2b2b",
-      "frame": "#1f1f1f",
-      "base": "#7a7a72",
-      "letter": "#f6f1e7",
-      "metal": "#a5aaa7",
-      "glass": "#53646a",
-      "roughness": 0.8
-     },
-     "door_style": null,
-     "signs": [],
-     "extra_signs": [
-      {
-       "id": "auto-shop-0-0:sign0",
-       "kind": "letters",
-       "u": -0.28,
-       "v": 1.8,
-       "w": 4.0,
-       "h": 1.0,
-       "bg": "#312f2c",
-       "layers": []
-      },
-      {
-       "id": "auto-shop-0-0:sign1",
-       "kind": "letters",
-       "u": 4.4,
-       "v": 1.8,
-       "w": 2.96,
-       "h": 0.72,
-       "bg": "#554440",
-       "layers": []
-      }
-     ],
-     "awnings": [],
-     "lights": [],
-     "u0": 0.0,
-     "u1": 7.04,
-     "band_h": 4.91,
-     "openings": [
-      {
-       "id": "auto-shop-0-0:g0",
-       "kind": "window",
-       "u": 0.0,
-       "v": 0.26,
-       "w": 1.08,
-       "h": 3.32,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "auto-shop-0-0:g1",
-       "kind": "window",
-       "u": 5.96,
-       "v": 0.02,
-       "w": 0.76,
-       "h": 2.68,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      },
-      {
-       "id": "auto-shop-0-0:door0",
-       "kind": "door",
-       "u": -0.38,
-       "v": 0,
-       "w": 1.5,
-       "h": 2.3,
-       "leaf_count": 1,
-       "operation": "hinged"
-      }
-     ],
-     "evidence": {
-      "kind": "observed",
-      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
-      "frames": [
-       "1216219972621705"
-      ]
-     }
-    },
-    {
-     "id": "auto-shop-4-0",
-     "business_id": null,
-     "name": null,
-     "edge": 4,
-     "category": "shop",
-     "brand": null,
-     "material": "stucco",
-     "palette": {
-      "wall": "#6e6f6e",
-      "accent": "#2b2b2b",
-      "frame": "#1f1f1f",
-      "base": "#7a7a72",
-      "letter": "#f6f1e7",
-      "metal": "#a5aaa7",
-      "glass": "#53646a",
-      "roughness": 0.8
-     },
-     "door_style": null,
-     "signs": [],
-     "extra_signs": [],
-     "awnings": [],
-     "lights": [],
-     "u0": 1.12,
-     "u1": 2.84,
-     "band_h": 2.64,
-     "openings": [
-      {
-       "id": "auto-shop-4-0:g0",
-       "kind": "window",
-       "u": 1.12,
-       "v": 0.3,
-       "w": 1.72,
-       "h": 2.14,
-       "transom_fraction": 0.0,
-       "privacy_fraction": 0
-      }
-     ],
-     "evidence": {
-      "kind": "observed",
-      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
-      "frames": [
-       "867239367786570"
-      ]
-     }
     }
    ],
    "evidence": {
     "frames": [
-     "1216219972621705",
      "193528572832492",
      "4523709984325734",
      "814897453148820",
@@ -1162,40 +373,35 @@
    }
   },
   {
-   "path": "seating",
-   "value": [],
+   "path": "walls.2.trim_colour",
+   "value": "#e8e4d8",
    "evidence": {
     "frames": [
-     "1216219972621705",
-     "193528572832492",
-     "4523709984325734",
-     "814897453148820",
      "867239367786570",
+     "814897453148820",
      "878605742782033",
-     "890611138332138"
+     "193528572832492",
+     "890611138332138",
+     "4523709984325734"
     ],
-    "how": "parklets: seating/fence/plant labels on the parking-lane plane, not cars; sidewalk tables: chairs/tables on a plane 0.8 m out",
+    "how": "qwen/qwen4-max reading",
     "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
+    "read_by": "kerbfront qwen"
    }
   },
   {
-   "path": "street_objects",
+   "path": "seating",
    "value": [
     {
-     "id": "auto-tree-2-0",
-     "kind": "tree",
+     "id": "qwen-parklet-2-0",
+     "kind": "parklet",
      "edge": 2,
-     "u": 18.58,
-     "w": 8.04,
-     "r": 4.02,
-     "trunk_h": 2.6,
-     "colour": "#566f3e"
+     "u0": 4.0,
+     "u1": 10.0
     }
    ],
    "evidence": {
     "frames": [
-     "1216219972621705",
      "193528572832492",
      "4523709984325734",
      "814897453148820",
@@ -1203,9 +409,9 @@
      "878605742782033",
      "890611138332138"
     ],
-    "how": "tree labels on the kerb plane",
+    "how": "qwen/qwen4-max reading of the registered elevation",
     "confidence": 0.5,
-    "read_by": "kerbfront auto (no reviewer)"
+    "read_by": "kerbfront qwen"
    }
   }
  ]

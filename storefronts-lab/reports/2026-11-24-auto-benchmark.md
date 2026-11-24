@@ -59,3 +59,57 @@ fixed separately, on branch `claude/facade-fabric-materials` (commit e999323f7, 
 CLIP now has fabric and smeared answers, works per tile, and leaves fabric pixels out of the
 colour. In the studio, awnings, umbrellas and fabric parklet roofs use a `canvas` finish, and
 the awning inspector has a Cover field.
+
+## Qwen flow (`kerbfront qwen-run`), same day
+
+Item 2 above is now built. The owner supplied an OpenRouter key, kept in `.env.local`, which is git-ignored. The model is `qwen/qwen4-max`, with reasoning off.
+
+**Filtering before any call.** A wall reaches Qwen only if it passes all of these:
+* the business renders as a restaurant;
+* it is open, or its status is unknown;
+* it has a storefront face (likelihood ≥ 0.5) on a building;
+* it is not on an upper floor or in a suite;
+* at least two Mapillary frames were picked for it;
+* the fused elevation covers at least 40% of the shop band;
+* the detector found something on the wall;
+* no other business on the queue already claims that wall.
+
+That leaves 140 walls. Filtered out:
+
+| reason | walls |
+|---|---|
+| no frames | 73 |
+| shared wall | 22 |
+| no storefront wall | 9 |
+| upper floor | 3 |
+
+**What one call carries.** Each wall gets one call:
+* two JPEGs, at most 1100 px wide: the registered elevation with a metric grid, and the best-lit frame;
+* the record facts and the detector boxes as short text;
+* a fixed example object.
+
+The answer is capped at 900 tokens. Answers are cached by the hash of the request, so a rerun costs nothing. A spend ledger (`out/qwen/spend.jsonl`) stops the run at `--budget`.
+
+**Cost.** The first 9 walls cost $0.046, about $0.002–0.0055 a wall and 11–35 s each. The whole queue should cost about $0.50.
+
+**Accuracy on the reviewed five's storefront walls:**
+
+| reader | checks matched |
+|---|---|
+| Qwen | 25/70 (36%) |
+| pipeline alone | 14/70 (20%) |
+| CV-only reader | 17% |
+
+| check | Qwen |
+|---|---|
+| height | 3/5 |
+| material | 4/5 |
+| glazing | 3/5 |
+| wall colour | 3/5 |
+| doors | 0/5 |
+| belts | 0/5 |
+| upper windows | 1/5 |
+
+Upper windows still fail because of the anchor offset.
+
+**Verdict:** better, but it does not match the reviewed readings yet.
