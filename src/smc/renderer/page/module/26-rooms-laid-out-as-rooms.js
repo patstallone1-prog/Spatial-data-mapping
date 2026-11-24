@@ -1776,6 +1776,10 @@ function stepAvatar(now) {
   if (typeof livingCity !== "undefined" && livingCity?.riding) { updateAvatarMixer(dt); return; }
   // Inside a shop (its room is the city's own): the walk is kept to the room.
   if (typeof livingCity !== "undefined" && livingCity?.inside) { livingCity.walkInside(dt, held); updateAvatarMixer(dt); return; }
+  // On a wall, a fence or its top (the arrows climb it), and in the air (a jump carries on by
+  // itself, a little steered): the city's climb has the body (docs/city/climb-play.mjs).
+  if (typeof livingCity !== "undefined" && livingCity?.climbing) { livingCity.stepClimb(dt, held); updateAvatarMixer(dt); return; }
+  if (typeof livingCity !== "undefined" && livingCity?.airborne) { livingCity.stepAir(dt, held); updateAvatarMixer(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
   // The city walking you somewhere (over to a thing G picks up) has the legs this frame; an

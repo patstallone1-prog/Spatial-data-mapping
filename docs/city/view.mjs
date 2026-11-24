@@ -34,6 +34,11 @@ import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf,
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
+import { createClimbPlay } from "./climb-play.mjs";
+import { createEatPlay } from "./eat-play.mjs";
+import { TOOLS as TOOL_VERBS, affordances, hintChips, steady } from "./affordances.mjs";
+import { createMechanics } from "./mechanics.mjs";
+import { strikePreview } from "./strike-preview.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, wheelStep, withinView } from "./detail.mjs";
@@ -2700,6 +2705,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: The walk as the page made it: counted at a walker's pace however far the zoomed-out view
   //: carries the walker, and reported to the books every few seconds.
   function walked(metres, dt) {
+    climbPlay.noteSpeed(metres, dt);   // a jump carries on at the pace you were going
     if (!self() || !(metres > 0) || inWater()) return;   // (a swim is counted by swim)
     body.walked += Math.min(metres, dt * 2.6 * (body.sprinting ? R.vitals.stamina.sprint_factor : 1));
     if (body.sprinting) body.sprint += dt;
@@ -3731,7 +3737,8 @@ diffuseColor.rgb *= kbCloth;`);
   let heldMesh = null, heldItem = null, heldHidden = false, lastStrike = 0;
   function drawHeld() {
     const item = self()?.hands || null;
-    if (heldMesh) heldMesh.visible = !heldHidden;
+    // (Food and drink are drawn by the eating, as they are held: eat-play.mjs.)
+    if (heldMesh) heldMesh.visible = !heldHidden && !eatPlay.active;
     // Swung from the shoulder or the side: carried there again once the swing is over.
     if (heldMesh?.userData.swungFromRest && pose.kind !== "swing") { heldMesh.removeFromParent(); heldItem = undefined; }
     if (item === heldItem && (!heldMesh || heldMesh.parent)) return;
@@ -3758,6 +3765,10 @@ diffuseColor.rgb *= kbCloth;`);
   }
   const air = { y: 0, v: 0, up: false };
   function stepBody(dt) {
+    // What is in the hand to eat or drink: held as it is held, eaten as U says.
+    const inHand = self()?.hands || null;
+    eatPlay.sync(inHand && R.items[inHand]?.kind === "prepared_food" && !car.active && !car.riding && !climbPlay.busy ? inHand : null);
+    eatPlay.step(dt);
     if (pose.kind) {
       const t = (performance.now() - pose.t0) / pose.dur;
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
@@ -3772,14 +3783,61 @@ diffuseColor.rgb *= kbCloth;`);
     const bend = pose.kind === "pickup" || pose.kind === "strain" ? Math.sin(Math.PI * t) : 0;
     ctx.avatar.userData.lift = air.y - 0.32 * bend;
   }
-  //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf).
+  //: What you carry (kg): nothing off the city (on the map, not joined).
+  const loadKg = (p = self()) => (!p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory));
+  //: Your legs' jump: {height, speed} against your weight and what you carry (handling.mjs jumpOf).
+  //: Not in the city: your legs at the start's strength, nothing carried.
+  const legsNow = () => { const p = self(); return jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, loadKg(p)); };
+  //: Climbing and jumping (climb-play.mjs): E climbs what is in front; Space jumps onto it, over it,
+  //: up it, off it, or on the way you were going.
+  const climbPlay = createClimbPlay({
+    THREE, ctx, notify: (t) => notify(t), legs: legsNow,
+    climber: () => { const p = self(); return { strength: p ? p.vitals.strength : R.vitals.start.strength, load_kg: loadKg(p), kg: 75 }; },
+  });
+  //: Eating and drinking (eat-play.mjs): what is in your hand held as it is held, U a mouthful
+  //: (held: all of it). The city is told it was used at the last bite.
+  const eatPlay = createEatPlay({
+    THREE, ctx, R, notify: (t) => notify(t),
+    seated: () => seated.on, firstPerson: () => Boolean(ctx.isFirstPerson?.()), tableAhead: () => tableAhead(),
+    finish: async (item) => {
+      const it = R.items[item] || {};
+      const r = await send("use", { item });
+      if (!r.ok) { notify(r.error); return false; }
+      notify(`Finished the ${(it.name || item).toLowerCase()}: ${Object.entries(r.effect || {}).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`).join(", ") || "done"}.`);
+      syncSlots(true);
+      return true;
+    },
+  });
+  //: Sat at a table: where its top is in front of you (a ray down onto it, 40 cm ahead), for a
+  //: plate to be put there. Null where there is no table (a sofa, a bench).
+  const tableRay = new THREE.Raycaster();
+  function tableAhead() {
+    if (!seated.on) return null;
+    const a = ctx.avatar, y = a.rotation.y, fx = Math.sin(y), fz = Math.cos(y), floor = seated.floor ?? (me().y - ctx.standY);
+    const from = new THREE.Vector3(me().x + fx * 0.4, floor + 1.3, me().z + fz * 0.4);
+    tableRay.set(from, new THREE.Vector3(0, -1, 0)); tableRay.far = 1.2;
+    const roots = [shop.room, ctx.root].filter(Boolean);
+    for (const r of roots) {
+      const hit = tableRay.intersectObject(r, true).find((h) => h.point.y > floor + 0.5 && h.point.y < floor + 1.15 && !h.object.name?.startsWith("dish:") && h.object.visible);
+      if (hit) return { point: hit.point.clone().add(new THREE.Vector3(0, 0.001, 0)), toward: new THREE.Vector3(-fx, 0, -fz) };
+    }
+    return null;
+  }
+  //: E: climb what is in front of you (a fence, a wall, a rock, a tree); on it, let go.
+  function climbKey() {
+    if (car.active || car.riding || transit.ride || shop.place || entry || self()?.resting) return;
+    climbPlay.climbKey();
+  }
+  //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf) --
+  //: at a wall or a fence in front, onto it, over it or up it; on one, off it; running, on the way
+  //: you were going.
   function jumpKey() {
     const p = self();
     if (air.up || car.active || car.riding || transit.ride || p?.resting) return;
-    // Not in the city (on the map, not joined): your legs at the start's strength, nothing carried.
-    const load = !p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory);
-    const j = jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, load);
-    if (j.height < 0.03) { notify(`Carrying ${load} kg, you can barely leave the ground.`); return; }
+    if (climbPlay.busy) { climbPlay.jumpKey(); return; }
+    const j = legsNow();
+    if (j.height < 0.03) { notify(`Carrying ${loadKg(p)} kg, you can barely leave the ground.`); return; }
+    if (climbPlay.jumpKey()) return;
     air.up = true; air.v = j.speed; air.y = 0.001;
   }
   // The bones the poses turn: the clip's (a Mixamo-named figure) or the drawn walker's limbs.
@@ -3817,6 +3875,10 @@ diffuseColor.rgb *= kbCloth;`);
   const ease = (t) => t * t * (3 - 2 * t);
   function afterPose() {
     if (!ctx.avatar.visible) return;
+    // On a wall, on its top, in the air: the climb's own pose (every limb to its hold).
+    if (climbPlay.pose()) return;
+    // Food or a drink in hand: held as it is held, raised to the mouth (eat-play.mjs).
+    if (eatPlay.pose()) return;
     const B = rigBones(), p = self();
     const hold = p?.hands && !heldHidden ? physOf(R, p.hands).hold : null;
     const fwd = (b, a) => turn(b, -1, 0, 0, a);
@@ -3885,6 +3947,29 @@ diffuseColor.rgb *= kbCloth;`);
       if (hold === "shoulder") fwd(B.lUpper, 0.3 + 2.0 * up);
       // Over into the blow (the back forward as the arm comes down).
       turn(B.spine, 0, 1, 0, 0.35 * (up - 0.5)); fwd(B.spine, -0.25 * (1 - up));
+      inHand();
+      return;
+    }
+    if (pose.kind === "thrust") {
+      // Drawn back to the hip with both hands on it, then driven straight out at the target's
+      // height, the back leaning into it.
+      const arm = pose.aim?.arm ?? Math.PI / 2;
+      const back = t < 0.45 ? ease(t / 0.45) : Math.max(0, 1 - ease((t - 0.45) / 0.2));
+      const out = t < 0.45 ? 0 : t < 0.7 ? ease((t - 0.45) / 0.25) : 1 - ease((t - 0.7) / 0.3);
+      const lvl = Math.max(0.6, Math.min(1.8, arm));
+      fwd(B.rUpper, 0.2 * (1 - back) + lvl * out); fwd(B.rFore, 1.4 * back + 0.1 * out);
+      fwd(B.lUpper, 0.35 + (lvl - 0.2) * out); fwd(B.lFore, 1.2 * back + 0.35 * out);
+      fwd(B.spine, 0.12 * back - 0.25 * out);
+      inHand();
+      return;
+    }
+    if (pose.kind === "work") {
+      // A stroke of work: a saw drawn back and pushed through (the arm level, to and fro), a pry
+      // leaned back on, bolt cutters squeezed shut.
+      const v = work.verb, k = Math.sin(Math.PI * t);
+      if (v === "Saw") { fwd(B.rUpper, 1.1 + 0.25 * Math.cos(2 * Math.PI * t)); fwd(B.rFore, 0.6 - 0.5 * Math.cos(2 * Math.PI * t)); fwd(B.lUpper, 0.6); fwd(B.lFore, 1.3); fwd(B.spine, -0.25); }
+      else if (v === "Pry") { fwd(B.rUpper, 1.0 - 0.3 * k); fwd(B.lUpper, 1.0 - 0.3 * k); fwd(B.rFore, 0.4); fwd(B.lFore, 0.4); fwd(B.spine, 0.2 * k - 0.15); }
+      else { fwd(B.rUpper, 1.1); fwd(B.lUpper, 1.1); fwd(B.rFore, 0.3 + 0.4 * k); fwd(B.lFore, 0.3 + 0.4 * k); turn(B.rUpper, 0, 0, 1, 0.25 * k); turn(B.lUpper, 0, 0, 1, -0.25 * k); }
       inHand();
       return;
     }
@@ -3971,6 +4056,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (!p.hands) { notify("Nothing in your hand: choose something on the bar (1-8), then U uses it."); return; }
     const it = R.items[p.hands] || {};
     if (!it.use && !it.wear) { notify(`Nothing to use a ${it.name?.toLowerCase() || "thing"} for here: X swings it, Q throws it.`); return; }
+    // Food and drink: a mouthful at a time (eat-play.mjs), the city told at the last of it.
+    if (it.kind === "prepared_food" && eatPlay.active) { eatPlay.press(true); if (!keyHeld.u) eatPlay.press(false); return; }
     const r = await send("use", { item: p.hands });
     if (!r.ok) { notify(r.error); return; }
     notify(it.wear ? (r.wearing ? `Wearing the ${it.name.toLowerCase()}.` : `Took off the ${it.name.toLowerCase()}.`) : `${it.name}: ${Object.entries(r.effect || {}).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`).join(", ") || "done"}.`);
@@ -4092,13 +4179,166 @@ diffuseColor.rgb *= kbCloth;`);
     if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
     const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
     if (!r.ok) { notify(r.error); return; }
-    const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p.hands]?.name || r.tool;
+    reportStrike(t, r);
+  }
+  //: What a blow did, in the notice: broken (and what is left of it), or how far along it is --
+  //: with ``how`` (strike-preview.mjs: the point goes in 4 mm and sticks) when there is one.
+  function reportStrike(t, r, how = null, verb = null) {
+    const p = self();
+    const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p?.hands]?.name || r.tool;
     if (r.broken) {
       if (t.nature) ctx.fellTree?.(t.nature); else hideBroken(t.key, t.o, t.i);
       if (r.task) { notify(r.task.done ? `${r.task.title}: done — ${R.fmt(r.task.pay)} paid.` : `Felled: ${r.task.felled} of ${r.task.need} dead trees.`); return; }
       notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (G picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
-    } else notify(`${tool} on the ${t.spec.name.toLowerCase()} (${t.spec.material}): ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
+    } else notify(`${verb ? `${verb}: ${tool.toLowerCase()} on` : `${tool} on`} the ${t.spec.name.toLowerCase()} (${t.spec.material})${how ? `: ${how}` : ""}. ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
   }
+
+  // ---- C (thrust), R (work), Y / N, and the hint strip (affordances.mjs, docs/63) ----------------
+  //: The engine, for what a thrust or a stroke looks like (made on first need from the catalogue).
+  let mech = null;
+  const mechanics = () => { if (!mech && catalogue?.mechanics) { try { mech = createMechanics(catalogue); } catch { mech = false; } } return mech || null; };
+  const isWood = (t) => Boolean(t?.nature) || /lumber|wood|deadwood|timber/.test(String(t?.spec?.material || ""));
+  //: What is in the hand, as affordances.mjs reads it.
+  function heldState() {
+    const p = self(), id = p?.hands;
+    const spec = id && (p.inventory?.[id] || 0) > 0 ? R.items[id] : null;
+    if (!spec) return null;
+    const ph = physOf(R, id);
+    return { id, name: spec.name, kind: spec.kind, strike: spec.strike || null, use: spec.use || null, wear: spec.wear || null,
+      food: spec.kind === "prepared_food" || Boolean(spec.food), drink: Boolean(spec.drink || eatPlay.what?.form === "drink"), two_hands: ph.hold === "two_hands" };
+  }
+  //: The thing in front for X, C and R, as affordances.mjs reads it (and the strike target itself).
+  function frontThing() {
+    const reach = R.tools.reach_m, who = personInReach(Math.min(reach, self()?.hands ? 1.6 : 1.1), -2), t = strikeTarget(reach);
+    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4))
+      return { thing: { name: who.person?.name || "them", person: true }, target: null };
+    if (!t) return null;
+    return { thing: { name: t.spec.name, material: t.spec.material, wood: isWood(t), chainlink: /chain/i.test(t.spec.name), person: false }, target: t };
+  }
+  //: What the page is doing now, for affordances(): built a few times a second.
+  function hintState() {
+    const p = self();
+    const mode = car.active ? "drive" : car.riding || transit.ride ? "ride" : inWater() ? "swim" : climbPlay.mode || (seated.on ? "seated" : shop.room ? "inside" : "walk");
+    const ft = mode === "walk" || mode === "inside" ? frontThing() : null;
+    const cf = mode === "walk" ? climbPlay.front() : null;
+    let ground = null;
+    if (p && (mode === "walk" || mode === "inside")) {
+      const shelf = floor.near(me(), ctx.getYaw());
+      const near = shelf ? null : thingsNear(me().x, me().z, PICK_REACH_M);
+      if (shelf) ground = { name: R.items[shelf.item]?.name || "it" };
+      else if (near?.length) ground = { name: R.items[near[0].item]?.name || "it" };
+    }
+    const q = promptShown ? promptsHere().find((x) => x.id === promptShown) : null;
+    const w = eatPlay.what;
+    return { mode, held: heldState(), ground, front: { thing: ft?.thing || null, climb: cf?.climb || null, jump: cf?.jump || null },
+      prompt: q ? { yes: q.label || "Yes", no: "No" } : null,
+      eating: eatPlay.active && w ? { label: w.tool === "hand" ? "A bite" : w.tool === "spoon" ? "A spoonful" : w.form === "drink" ? "A sip" : "A forkful" } : null };
+  }
+
+  //: C: drive in the head or the point of what you hold (a crowbar's jab, a sledgehammer's ram)
+  //: -- less of a blow than X's swing, but straight at it and no backswing.
+  function thrustKey() {
+    const p = self();
+    if (!p || pose.kind || car.active || car.riding || transit.ride || climbPlay.busy) return;
+    const s = hintState(), a = affordances(s).find((x) => x.id === "thrust");
+    if (!a) {
+      const held = s.held;
+      notify(!held ? "C drives a held tool's point or head in (a crowbar's jab, a sledgehammer's ram): empty-handed, X punches."
+        : !TOOL_VERBS[held.strike]?.thrust ? `The ${held.name.toLowerCase()} has no point or head to drive in: X swings it.`
+        : "Nothing within reach to drive it into.");
+      return;
+    }
+    const ft = frontThing(), t = ft?.target;
+    if (!t) return;
+    ctx.faceTo?.(t.x, t.z);
+    pose.aim = aimOf({ kind: "thing", t, d: Math.hypot(t.x - me().x, t.z - me().z) });
+    const verb = TOOL_VERBS[s.held.strike].thrust;
+    startAct("thrust", 0.42, 0.55, () => strikeWith(t, "thrust", verb));
+  }
+  //: One blow with ``mode`` (thrust | work) at ``t``, reported with what the engine says it does.
+  async function strikeWith(t, mode, verb, quiet = false) {
+    const at = me();
+    if (Math.hypot(t.x - at.x, t.z - at.z) > R.tools.reach_m + 0.6) { notify("It is out of reach now."); return null; }
+    const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy: null, witnesses: witnessesNear(t.x, t.z), mode });
+    if (!r.ok) { notify(r.error); return null; }
+    const M = mechanics();
+    const pv = M ? strikePreview(M, { tool: r.tool, material: t.spec.material, tree: Boolean(t.nature), mode, energy_j: r.joules }) : null;
+    if (!quiet || r.broken) reportStrike(t, r, pv?.text || null, verb);
+    return r;
+  }
+  //: R (held): work at what is in front with what you hold -- saw it, pry it, cut it -- a stroke at
+  //: a time while R is down (each a little: work builds, where a blow lands). Let go to stop.
+  const work = { on: false, t: null, verb: null, strokes: 0, busy: false };
+  function workKey(down) {
+    if (!down) { if (work.on && work.strokes) notify(`${work.verb}: stopped after ${work.strokes} stroke${work.strokes > 1 ? "s" : ""}.`); work.on = false; work.t = null; return; }
+    const p = self();
+    if (!p || car.active || car.riding || transit.ride || climbPlay.busy) return;
+    const s = hintState(), a = affordances(s).find((x) => x.id === "work");
+    if (!a) {
+      const held = s.held;
+      notify(!held ? "R (held) works with a tool: a saw saws wood, a crowbar pries, bolt cutters cut chain." : !TOOL_VERBS[held.strike]?.work ? `The ${held.name.toLowerCase()} is not a tool to work with: X swings it.` : "Nothing in front to work at.");
+      return;
+    }
+    if (!a.ok) { notify(a.reason); return; }
+    const t = frontThing()?.target;
+    if (!t) return;
+    ctx.faceTo?.(t.x, t.z);
+    Object.assign(work, { on: true, t, verb: TOOL_VERBS[s.held.strike].work, strokes: 0, busy: false });
+  }
+  //: Each frame while R is down: the next stroke once the last is done.
+  function stepWork() {
+    if (!work.on || pose.kind || work.busy) return;
+    if (!keyHeld.r || car.active || climbPlay.busy) { workKey(false); return; }
+    const t = work.t;
+    startAct("work", 0.7, 0.6, async () => {
+      work.busy = true;
+      const r = await strikeWith(t, "work", work.verb, work.strokes > 0 && work.strokes % 6 !== 0);
+      work.busy = false;
+      if (!r) { work.on = false; return; }
+      work.strokes += 1;
+      if (r.broken) work.on = false;
+    });
+  }
+  //: Y and N: answer the question on screen (the prompt's Yes and No buttons).
+  function answerKey(yes) {
+    const q = promptShown ? promptsHere().find((x) => x.id === promptShown) : null;
+    if (!q) return;
+    declined.add(q.id); promptShown = null; if (promptBox) promptBox.hidden = true;
+    if (yes) q.run();
+  }
+
+  //: The hint strip: what is particular to here (never walking or a plain jump), learned as used.
+  let hintBox = null, hintShown = [], lastHints = 0;
+  const hintCounts = store.get("kerbside:hint-counts") || {};
+  let hintSetting = store.get("kerbside:hints") || "full", countsDirty = 0;
+  const seenLabels = new Set();
+  function drawHints(now) {
+    if (!hintBox) return;
+    let chips = [];
+    try {
+      if (ctx.enabled() && ctx.cityMode?.() !== false && !side) chips = hintChips(affordances(hintState()), { counts: hintCounts, setting: hintSetting, seenKinds: seenLabels });
+    } catch (error) { console.warn("hints", error); chips = []; }
+    hintShown = steady(hintShown, chips, now / 1000);
+    for (const a of chips) seenLabels.add(a.text);
+    const sig = hintShown.map((x) => `${x.chip.id}:${x.chip.text}`).join("|");
+    if (sig === hintBox.dataset.sig) return;
+    hintBox.dataset.sig = sig;
+    hintBox.hidden = !hintShown.length;
+    hintBox.replaceChildren(...hintShown.map(({ chip }) => h("button", { className: chip.ok ? "" : "off", title: chip.text, onclick: () => pressHint(chip) },
+      h("kbd", { textContent: chip.cap }), h("span", { textContent: chip.text }))));
+  }
+  //: A chip clicked is its key pressed (touch screens); a key pressed while its chip shows is learned.
+  function pressHint(chip) {
+    if (!chip.ok) { notify(chip.text); return; }
+    if (chip.key === "arrows") { notify("Hold the arrow keys (two together for a diagonal)."); return; }
+    if (chip.key === "r") { workKey(true); keyHeld.r = true; setTimeout(() => { keyHeld.r = false; }, 3500); return; }
+    (chip.key === " " ? jumpKey : KEYS[chip.key])?.();
+  }
+  function learnKey(key) {
+    for (const { chip } of hintShown) if (chip.key === key) { hintCounts[chip.id] = (hintCounts[chip.id] || 0) + 1; countsDirty += 1; }
+    if (countsDirty) { countsDirty = 0; store.set("kerbside:hint-counts", hintCounts); }
+  }
+  function setHints(v) { hintSetting = v; store.set("kerbside:hints", v); if (hintBox) hintBox.dataset.sig = ""; }
   //: A blow to someone: they are hurt by it, and hit back, run, or (an officer) arrest you.
   async function strikePerson(q) {
     noteIncident("fight", q.x, q.z, true);
@@ -4976,7 +5216,8 @@ diffuseColor.rgb *= kbCloth;`);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
     if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
-    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
+    stepBody(dt); stepWork(); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
+    if (now - lastHints > 250) { lastHints = now; drawHints(now); }
     if (now - lastRefresh > 500) {
       lastRefresh = now; syncHomeEditor(); drawParked(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages(); clerkCheck();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
@@ -5885,9 +6126,10 @@ diffuseColor.rgb *= kbCloth;`);
   // page's, asked first of enterKey. The shop and the taxi are the top bar's buttons.
   const KEYS = {
     g: () => pickUp(), i: () => openSide("bag"), v: () => taskKey(),
-    u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
+    u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(), e: () => climbKey(),
     j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"), b: () => bicycleKey(),
     k: () => openSide("pets"), l: () => animals().leashKey(),
+    c: () => thrustKey(), r: () => workKey(true), y: () => answerKey(true), n: () => answerKey(false),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -5898,13 +6140,23 @@ diffuseColor.rgb *= kbCloth;`);
     if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
     // At the wheel, A D S P are the driving helpers' (driveKey).
     if (car.active && e.key.length === 1 && driveKey(e.key.toLowerCase())) { e.preventDefault(); return; }
-    const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
+    const k1 = e.key.length === 1 ? e.key.toLowerCase() : "";
+    if (e.key.startsWith("Arrow")) { learnKey("arrows"); return; }
+    const run = KEYS[k1];
     if (!run) return;
     e.preventDefault();
+    learnKey(k1);
     run();
   });
-  addEventListener("keyup", (e) => { if (e.key === "Shift") body.sprintHeld = false; });
-  addEventListener("blur", () => { body.sprintHeld = false; });
+  //: Keys held down now (U held eats on).
+  const keyHeld = {};
+  addEventListener("keydown", (e) => { if ((e.key === "u" || e.key === "U") && !typing(e.target)) keyHeld.u = true; if ((e.key === "r" || e.key === "R") && !typing(e.target)) keyHeld.r = true; }, true);
+  addEventListener("keyup", (e) => {
+    if (e.key === "Shift") body.sprintHeld = false;
+    if (e.key === "u" || e.key === "U") { keyHeld.u = false; eatPlay.press(false); }
+    if (e.key === "r" || e.key === "R") { keyHeld.r = false; workKey(false); }
+  });
+  addEventListener("blur", () => { body.sprintHeld = false; keyHeld.u = false; keyHeld.r = false; eatPlay.press(false); workKey(false); });
 
   async function toggleCar() {
     if (!ctx.enabled() || entry) return;
@@ -6010,7 +6262,11 @@ diffuseColor.rgb *= kbCloth;`);
 #city-profile .bar{display:grid;grid-template-columns:54px 1fr 24px;align-items:center;gap:6px;margin:3px 0}
 #city-profile .bar i{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(255,255,255,.14) var(--v))}
 #city-profile .bar b{text-align:right;font-weight:600}#city-profile .carry{opacity:.8;margin-top:4px;font-size:11px}#city-profile .gig{margin-top:3px;color:#7ee2a0;font-size:11px}
-#city-top[hidden],.city-card[hidden],#city-prompt[hidden]{display:none!important}
+#city-top[hidden],.city-card[hidden],#city-prompt[hidden],#city-hints[hidden]{display:none!important}
+#city-hints{position:fixed;left:50%;transform:translateX(-50%);bottom:104px;z-index:34;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:calc(100vw - 32px);pointer-events:none}
+#city-hints button{pointer-events:auto;display:flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:4px 11px 4px 5px;background:rgba(17,24,39,.78);color:#fff;font:12.5px/1.3 system-ui,sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+#city-hints button.off{color:#c9ced6;background:rgba(55,60,70,.7)}
+#city-hints kbd{min-width:20px;padding:2px 6px;border-radius:6px;background:#f3f4f6;color:#111;font:600 11.5px/1.2 system-ui,sans-serif;text-align:center}
 #city.pop{left:max(16px,5vw);right:max(16px,5vw);top:max(16px,5vh);bottom:max(16px,5vh);width:auto;max-height:none;z-index:70;padding:18px 22px;font-size:13px;box-shadow:0 0 0 100vmax rgba(8,12,18,.45),0 12px 40px rgba(0,0,0,.4)}
 #city.pop .me{display:flex;gap:16px;align-items:center;margin-bottom:12px}
 #city.pop .me .face{width:104px;height:104px;border-radius:50%;flex:none;background:#2a3542 center/cover no-repeat;border:3px solid rgba(128,128,128,.3)}
@@ -6095,7 +6351,10 @@ diffuseColor.rgb *= kbCloth;`);
   hotbar.setAttribute("role", "toolbar"); hotbar.setAttribute("aria-label", "Your bar: 1 to 8 choose what is in your hand");
   promptBox = Object.assign(doc.createElement("div"), { id: "city-prompt" });
   promptBox.hidden = true;
-  doc.body.append(tasksCard, actionBar, profileCard, hotbar, promptBox);
+  hintBox = Object.assign(doc.createElement("div"), { id: "city-hints" });
+  hintBox.setAttribute("aria-live", "polite"); hintBox.setAttribute("aria-label", "What you can do here");
+  hintBox.hidden = true;
+  doc.body.append(tasksCard, actionBar, profileCard, hotbar, promptBox, hintBox);
   let actionsKey = "", profileKey = "";
   const bar = (label, value, colour) => `<div class="bar"><span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b></div>`;
   //: Where the bar's parts go: the tasks card right of the Map button (right of the map's
@@ -6523,6 +6782,11 @@ diffuseColor.rgb *= kbCloth;`);
     const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve (tighter the slower; let go and you walk on straight). Down turns you round: one step slow, two at a sprint. At the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
       ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
+      ["C", "drive in the point or head of what you hold: a crowbar jabs, a sledgehammer rams -- less than a swing, but straight in"],
+      ["R (hold)", "work at what is in front with a tool, a stroke at a time while held: a saw saws wood, a crowbar pries, bolt cutters cut chain and wire"],
+      ["E", "climb the fence, wall, tree or ladder in front (the arrows reach for the next hold: two together for a diagonal); E again lets go. On a top, the arrows walk along it"],
+      ["Space", "jump: on the way you are going when running. At a wall: onto it, over it or up it; on a wall or a fence, off it"],
+      ["Y / N", "answer the question at the top (clock in, hand over a parcel, an errand's shopping)"],
       ["K", "your pets: how each is, feed it, take one in, the vet when you are at one"], ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car. Drive off before one is in and it waits where it was"],
       ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing on the ground (yellow ring) you can lift: a step over to it and down for it"],
       ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
@@ -6537,6 +6801,9 @@ diffuseColor.rgb *= kbCloth;`);
     side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Controls" }), close), h("table", {}, ...keys.map(([k, v]) => h("tr", {}, h("td", {}, h("kbd", { textContent: k })), h("td", { textContent: v })))),
       h("h4", { textContent: "The bars" }), ...bars.map(([k, v]) => h("p", { className: "note" }, h("b", { textContent: `${k}: ` }), v)),
       h("p", { className: "note", textContent: asked },),
+      h("h4", { textContent: "Hints" }),
+      h("p", { className: "note", textContent: "The strip over the bar shows what you can do just here: climbing, a tool on what is in front, a bite. Walking and plain jumps are never in it. Each hint shortens as you use it, and goes once learned." }),
+      h("div", { className: "tabs" }, ...[["full", "In full"], ["short", "Keys only"], ["off", "Off"]].map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(hintSetting === k), onclick: () => { setHints(k); drawSide(); } }))),
       h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins; Space jumps there too, and Enter opens your own garage." }));
   }
   //: You: a window over most of the screen, opened from your card at the top right -- your
@@ -6817,7 +7084,13 @@ diffuseColor.rgb *= kbCloth;`);
     get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
-    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
+    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,
+    //: On a wall or its top (the arrows climb: the page's walk stands down), and in the air (a jump
+    //: under way: it carries on by itself), each stepped by the page (module 26 stepAvatar).
+    get climbing() { return climbPlay.climbing; }, get airborne() { return climbPlay.airborne; }, climbPlay: () => climbPlay,
+    stepClimb: (dt, held) => climbPlay.stepClimb(dt, held), stepAir: (dt, held) => climbPlay.stepAir(dt, held),
+    //: What is being eaten or drunk now ({item, form, tool, action, phase, left}), for checks.
+    eating: () => eatPlay.what, eatPlay: () => eatPlay,
     //: Whether the city is up and running, for the loading screen: {ready, waiting}. Ready when
     //: the district is built, the first pass over it is done, no vehicle model is still loading,
     //: and people or traffic have been out and moving for ALIVE_FOR_MS. An hour with nobody out

@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Dish sheet</title>
+<!-- Every dish the kitchens make (dish-models.mjs), laid out on a table to be looked at: ?dish=ramen
+     for one close up (?yaw, ?pitch, ?d to move the camera), ?only=a,b,c for a few, ?cols=8. ?bites=3
+     takes that many bites (or forkfuls, sips) out of each first. -->
+<style>body{margin:0;background:#20242a;font:12px system-ui;overflow:hidden}#hud{position:fixed;left:8px;top:8px;color:#fff;background:#0008;padding:4px 8px;border-radius:6px}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body><div id="hud">loading…</div>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { makeDish } from "./dish-models.mjs";
+const q = new URLSearchParams(location.search), hud = document.getElementById("hud");
+const R = await (await fetch("./rules.json")).json();
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a2f36);
+// A room's light for the glazes and the glass to reflect: bright panels round a dim box.
+{
+  const env = new THREE.Scene(), box = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10), new THREE.MeshBasicMaterial({ color: 0x4a4a4a, side: THREE.BackSide }));
+  env.add(box);
+  for (const [x, y, z, w, h, c] of [[0, 2.9, 0, 6, 0.1, 0xffffff], [-4.9, 1.5, 0, 0.1, 2, 0xfff3e0], [4.9, 1.5, 1, 0.1, 2.5, 0xe8f0ff], [0, 1.5, -4.9, 3, 2, 0xffffff]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(w || 0.1, h, w ? 0.1 : 3), new THREE.MeshBasicMaterial({ color: c })); p.position.set(x, y, z); p.material.color.multiplyScalar(4); env.add(p); }
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.03).texture;
+}
+scene.add(new THREE.HemisphereLight(0xfff6ea, 0x3a3226, 0.5));
+const sun = new THREE.DirectionalLight(0xfff2e0, 2.2); sun.position.set(1.5, 3, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.01;
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 8 }); scene.add(sun);
+const table = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ color: 0x6b4a2e, roughness: 0.55 })); table.rotation.x = -Math.PI / 2; table.receiveShadow = true; scene.add(table);
+const one = q.get("dish"), only = q.get("only")?.split(","), names = one ? [one] : only || [...Object.keys(R.kitchen.recipes), "cocktail"];
+const cols = +(q.get("cols") || Math.ceil(Math.sqrt(names.length * 1.4))), gap = 0.42;
+const dishes = [];
+names.forEach((id, i) => {
+  const d = makeDish(THREE, R, id);
+  const x = (i % cols - (cols - 1) / 2) * gap, z = (Math.floor(i / cols) - (Math.ceil(names.length / cols) - 1) / 2) * gap;
+  d.group.position.set(one ? 0 : x, 0, one ? 0 : z); scene.add(d.group);
+  if (!one) {
+    const c = document.createElement("canvas"); c.width = 256; c.height = 48; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.font = "600 26px system-ui"; g.textAlign = "center"; g.fillText(id, 128, 34);
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.056), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true })); s.rotation.x = -Math.PI / 2; s.position.set(x, 0.002, z + 0.18); scene.add(s);
+  }
+  dishes.push({ id, d });
+});
+// Some eaten first, to see what a bite, a cut or a sip leaves.
+const bites = +(q.get("bites") || 0);
+for (const { d } of dishes) for (let k = 0; k < bites; k += 1) {
+  const f = d.food.find((p) => !p.done());
+  if (!f) break;
+  if (f.kind === "bite") f.bite(); else if (f.kind === "drink") { f.drink.v *= 0.7; f.mesh.update(f.drink); } else f.take?.();
+}
+const camera = new THREE.PerspectiveCamera(one ? 32 : 40, innerWidth / innerHeight, 0.01, 50);
+const controls = new OrbitControls(camera, renderer.domElement);
+if (one) { const yaw = +(q.get("yaw") || 0.5), pitch = +(q.get("pitch") || 0.75), dist = +(q.get("d") || 0.55); camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); controls.target.set(0, 0.04, 0); }
+else { const span = cols * gap; camera.position.set(0, span * 0.95, span * 0.62); controls.target.set(0, 0, 0.05); }
+controls.update();
+hud.textContent = `${names.length} dish${names.length > 1 ? "es" : ""}${bites ? ` · ${bites} bites each` : ""}`;
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+(function loop() { if (renderer.domElement.width !== Math.round(innerWidth * renderer.getPixelRatio())) { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix(); } renderer.render(scene, camera); requestAnimationFrame(loop); })();
+window.sheet = { THREE, scene, camera, controls, dishes, renderer };
+</script></body></html>

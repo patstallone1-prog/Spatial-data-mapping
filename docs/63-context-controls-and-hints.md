@@ -190,3 +190,13 @@ least one affordance and every affordance's key is bound.
 6. **Y / N** for Yes / No questions, and the greyed-reason chips everywhere.
 
 Each step ends with ACTIONS.md updated (the keys table and "Bar button shown when").
+
+**Where it stands (2026-11-24, branch claude/material-physics, not deployed):** 1 done --
+`docs/city/affordances.mjs` declares every particular control, the hint strip is on screen and H
+lists the keys with a Hints setting (H is still written by hand, not generated). 3 done for the
+tools the city has: C thrusts (crowbar jab, sledgehammer ram), R held works (saw, pry, cut), with
+`cmd_strike` `mode` and the engine's words for what the blow does (`strike-preview.mjs`); push,
+dig, carve and hammer-in are not built. 4 done: U taps a mouthful, held eats on (`eat-play.mjs`).
+5 done: E climbs (`climb-play.mjs`), Space onto, over, up and off walls. 6 done: Y / N and greyed
+chips. 2 is not done: the world's damage still comes from `rules.json`; the engine only describes
+the blow.

@@ -78,12 +78,16 @@ The people and the traffic are out in both modes.
 |---|---|---|
 | Arrows | Walk; at the wheel, accelerate, brake and steer | always |
 | Shift (hold) | Sprint, while stamina lasts | always ("Sprint", held) |
-| Space | Jump: the height comes from your legs' push (leg length, body weight, strength) against your weight plus what you carry (`handling.mjs` `jumpOf`) | — |
+| Space | Jump: the height comes from your legs' push (leg length, body weight, strength) against your weight plus what you carry (`handling.mjs` `jumpOf`). Running, the jump carries on the way you are going. At a wall or fence in front: onto its top if you can reach it, over it (a vault) if low, or up to catch its top or its holds. On a wall's top or climbing: off it, landing on whichever side you face (`climb-play.mjs`) | hint strip only at a wall ("Jump onto the wall") or on one ("Jump down") |
+| E | Climb the fence, wall, tree, ladder or pole in front: the arrows reach the next hold up, sideways, or (two together) diagonally, down the same in reverse; the route weighs each hold by how in line it is and the height gained, moves a limb at a time (two together, a double move or a skipped limb when best). At the top, stand up if it is wide enough, or (a thin fence top) mount it and swing over to the far side. E again lets go. On a top, the arrows walk along it (Left / Right turn, Down turns round) | hint strip: something climbable in front ("Climb the chain-link fence"), greyed with the reason when it cannot be climbed |
+| C | Thrust: drive in the point or head of what you hold, straight at what is in front -- a crowbar's jab, a sledgehammer's ram. Less than X's swing (0.6 of its energy, 0.7 of its stamina). The notice says what the engine (`mechanics.mjs`, `strike-preview.mjs`) has it do: how far the point goes in, whether it sticks or will not bite | hint strip: holding a crowbar or sledgehammer with a thing (not a person) in front |
+| R (hold) | Work at what is in front with a tool, a stroke at a time while held: a saw saws wood, a crowbar pries, bolt cutters cut chain and wire. Each stroke is 0.35 of a swing's energy at 0.4 of its stamina (`cmd_strike` `mode: "work"`) | hint strip: holding a saw, crowbar or bolt cutters with a thing in front (greyed with why: "A saw cuts wood") |
+| Y / N | Yes / No to the question at the top (clock in or out, hand over a parcel, an errand's shopping) | the question's own buttons |
 | Click | Inside a shop or a restaurant, on a chair, stool or booth: sit down (walk to get up). The person serving greets you as you walk up; their link opens the menu or the shop's wares in the middle of the screen. Anywhere else: swing (as X) | inside a shop (walk up to the counter) |
 | Right click | Use what is in your hand (as U) | — |
 | 1 – 8 | Choose a slot on the bar of eight: what is in it is in your hand; an empty slot is an empty hand | the bar is always shown |
 | I | The inventory: a grid of 24 above the bar of 8. Click a thing, then another slot, to move it; its details say how it is held, its weight class, and whether it swings or throws | always ("Inventory" on the bar) |
-| U | Use what is in your hand: eat, drink, take medicine, wear or take off | holding something usable |
+| U | Use what is in your hand: eat, drink, take medicine, wear or take off. Food and drink are eaten a mouthful at a time (`eat-play.mjs`): a glass raised and tipped to the lips (further the emptier it is) with the drink running over the rim into the mouth; a burger or a slice held to the mouth and bitten (the bite taken out of it), chewed, swallowed; at a table, the knife cuts and the fork carries; soups by the spoonful. Held, U eats on to the end | holding something usable; hint strip: "Sip the pint of beer (hold: drink it)" |
 | X | Swing what is in your hand at what is in front (a punch, empty-handed): a thing, a tree, a person. Tools by their kind; any other rigid thing long and light enough as a blunt blow by its mass and length; soft things, two-handed loads and things too small or too heavy for your strength do not swing (it says why). Glass breaks when it lands a blow. Striking a person is battery (a citation) | a breakable thing or a person within reach, and what you hold swings |
 | Q | Throw what is in your hand, the way you face: speed from your strength and its weight (heavier goes slower, too heavy is no throw), flatter for long things, a heave from the chest for two-handed loads. It flies, lands and lies where it lands; glass breaks to shards, drinks spill; a hit on a person is battery | holding something you can throw |
 | G | Pick up what lies at your feet (yellow ring), with a bend-and-lift; something too heavy for you is a strain and stays down. Also a courier task's order at the shop door | within 3 m of something ("Pick up" / "Too heavy") |
@@ -110,8 +114,14 @@ Gone: C (the car is Enter's now, with the bus: one key gets you in and out of an
 stay on T so the two cannot be confused). Gone from City mode: B (the shop counter: now Enter and the SHOP panel), Esc, K (errands: on
 the task board; hand-over is a Yes / No), D (deliveries: take one in the shop window or on the
 task board; pick up with G; hand over is a Yes / No), L (look), O as homes (now the online
-store, with Real estate in it), the old J (clock in: now a Yes / No), E, R, click-to-go and the
-pins.
+store, with Real estate in it), the old J (clock in: now a Yes / No), click-to-go and the
+pins. C, E, R, Y and N are back with new jobs (above; docs/63).
+
+**The hint strip** (`affordances.mjs`): over the bar, at most four chips, one a key, of what is
+particular to where you are and what you hold -- never walking or a plain jump, which you always
+can. Each is shown in full for its first five showings, then as its key and verb, and is gone once
+used twenty times (back for something new in front). Greyed chips say why not. A chip clicked is
+its key pressed (touch screens). Controls (H) › Hints: in full, keys only, or off.
 
 ## A shop
 

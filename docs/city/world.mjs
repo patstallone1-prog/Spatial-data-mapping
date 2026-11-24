@@ -56,6 +56,11 @@ const DAY = 86_400_000;
 //: The most one backend grant may put in a wallet (cents): the same ceiling a saved self brings in.
 export const ACCOUNT_GRANT_MAX = 5_000_000_00;
 
+//: How much of a swing's energy (and its stamina) a thrust and a stroke of work are.
+const STRIKE_MODES = { swing: { energy: 1, stamina: 1 }, thrust: { energy: 0.6, stamina: 0.7 }, work: { energy: 0.35, stamina: 0.4 } };
+//: The strike kinds that work (R): a saw saws, a crowbar pries, bolt cutters cut.
+const WORK_TOOLS = new Set(["saw", "crowbar", "bolt_cutters"]);
+
 export class CityError extends Error {}
 
 export class CityWorld {
@@ -944,7 +949,10 @@ export class CityWorld {
   //: your hands -- or, at the wheel, the car's impact (``energy``, no more than the car moving at
   //: its top speed could carry). The thing breaks once the energy it has taken reaches its break
   //: energy. Breaking what is not yours, seen, is vandalism: a fine and the repair.
-  cmd_strike(pid, { target, energy = null, witnesses = 0 }) {
+  //: ``mode`` (affordances.mjs, docs/63): "swing" (X, the default); "thrust" (C) -- the point or
+  //: the head driven straight in, less of a blow than a swing but no backswing; "work" (R, held) --
+  //: one stroke of a saw, a pry or a cut: a little each stroke, and less tiring than a blow.
+  cmd_strike(pid, { target, energy = null, witnesses = 0, mode = "swing" }) {
     const p = this.player(pid);
     let spec = this.R.objects?.[target?.archetype] || target?.spec;
     if (!target?.key || !spec?.break_j) throw new CityError("nothing there that breaks");
@@ -967,8 +975,10 @@ export class CityWorld {
       const blow = this.blowWith(p);
       tool = blow.kind;
       const tired = p.vitals.stamina < this.R.vitals.stamina.low ? 0.6 : 1;
-      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material, blow.joules) * tired;
-      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + (blow.joules ?? this.R.tools.kinds[tool].energy_j) / 400)) };
+      const M = STRIKE_MODES[mode] || STRIKE_MODES.swing;
+      if (mode === "work" && !WORK_TOOLS.has(tool)) throw new CityError("that is not a tool to work with");
+      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material, blow.joules) * tired * M.energy;
+      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + (blow.joules ?? this.R.tools.kinds[tool].energy_j) / 400) * M.stamina) };
       if (blow.breaks) this.shatter(p, p.hands);
     }
     const wear = strikeWear(this.R, joules, spec.break_j);

@@ -253,5 +253,57 @@ export function createClimbing(M, figures = CLIMBER) {
     return { holds: r.holds, effort: r.effort, limiting, climbable, releases, posture: r.posture, forces: r.forces, contacts: r.contacts, reason: r.reason };
   }
 
-  return { climb, capacity, balance, figures: F };
+  //: One contact of a limb at height ``v`` up the wall's face (the wall frame of ``stance``).
+  function contactAt(wall, climber, limb, hold, v) {
+    const strength = climber.strength ?? 20, th = (wall.angle_deg ?? 0) * DEG;
+    const u = [Math.sin(th), Math.cos(th)], n = [Math.cos(th), -Math.sin(th)];
+    const onFace = !hold || hold === "smear" || hold.kind === "none";
+    const who = limb === "hand" ? climber.hands ?? "skin" : climber.feet ?? "shoe_rubber";
+    const f = M.friction(who, (!onFace && hold.substance) || wall.substance, { wet: hold?.wet ?? wall.wet, temperature_c: wall.temperature_c, area_m2: M.contactor(who).area_m2 ?? 0 });
+    // A foot stands on a hold's top with its toe against the face: an incut hold's lip is a
+    // flat step to it, not a hook.
+    const a = onFace ? 0 : (limb === "foot" ? Math.max(0, hold.slope_deg ?? 0) : hold.slope_deg ?? 0) * DEG;
+    const normal = onFace ? n : [Math.sin(a), Math.cos(a)];
+    const out = onFace || hold.recessed ? 0 : (hold.depth_m ?? 0) / 2;
+    // Fingers wrapped round a jug (a wire, a rail, a branch) are kept on it by its shape: it slips
+    // only past about 45 degrees from its own face, whatever the skin's friction.
+    const mu = limb === "hand" && !onFace && hold.kind === "jug" ? Math.max(f.static, 1) : f.static;
+    return { at: [u[0] * v + n[0] * out, u[1] * v + n[1] * out], normal, mu, adhesion_n: f.adhesive_n, pull_n: 0.25 * f.adhesive_n,
+      capacity_n: capacity(limb, onFace ? null : hold, strength) };
+  }
+
+  //: How hard a stance is where the limbs are at given places: { holds, effort, limiting, hips_off_m }.
+  //: ``limbs``: [{ limb: "hand" | "foot", hold (a hold, "smear" or null for the face), u (along the
+  //: wall, m), v (up it, m) }]; ``hip``: { u, v } where the hips are. The body is taken side on (the
+  //: plane square to the wall, as ``climb`` takes it) at the best distance off the wall; a centre
+  //: of mass out beside every contact (a barn door) costs the strength that turning takes.
+  function stanceAt({ wall, climber = {}, limbs, hip }) {
+    const kg = (climber.kg ?? 75) + (climber.load_kg ?? 0);
+    if (!limbs.length) return { holds: false, effort: Infinity, limiting: "nothing to hold", hips_off_m: null };
+    const contacts = limbs.map((l) => contactAt(wall, climber, l.limb, l.hold, l.v));
+    const th = (wall.angle_deg ?? 0) * DEG, uu = [Math.sin(th), Math.cos(th)], n = [Math.cos(th), -Math.sin(th)];
+    const comV = hip.v + 0.1;
+    let top = null;
+    // With nothing under the feet the body hangs straight down from its hands.
+    const hanging = !limbs.some((l) => l.limb === "foot");
+    const offs = hanging ? [contacts.reduce((sum, c) => sum + c.at[0], 0) / contacts.length] : F.postures.off_m;
+    for (const off of offs) {
+      const com = hanging ? [off, uu[1] * comV] : [uu[0] * comV + n[0] * off, uu[1] * comV + n[1] * off];
+      const r = balance({ weight_n: kg * G, com, contacts });
+      if (!top || r.effort < top.effort) top = { ...r, off };
+    }
+    // Side to side: the body's weight outside the spread of its contacts swings it off the wall.
+    const us = limbs.map((l) => l.u), lo = Math.min(...us) - 0.12, hi = Math.max(...us) + 0.12;
+    const outside = hip.u < lo ? lo - hip.u : hip.u > hi ? hip.u - hi : 0;
+    const effort = top.effort * (1 + outside / 0.25);
+    let limiting = "friction";
+    if (top.forces.length) {
+      let worst = -1;
+      top.forces.forEach((f, i) => { const s = Math.hypot(f.normal_n, f.tangent_n) / contacts[i].capacity_n; if (s > worst) { worst = s; limiting = limbs[i].limb; } });
+    }
+    if (outside > 0.1) limiting = "balance";
+    return { holds: effort <= 1 + 1e-9, effort, limiting, hips_off_m: top.off };
+  }
+
+  return { climb, capacity, balance, stanceAt, figures: F };
 }
