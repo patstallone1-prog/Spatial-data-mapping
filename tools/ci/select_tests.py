@@ -73,6 +73,8 @@ RULES = [
     (["docs/vendor/three-0.160.0/**"], ["tests/test_renderer_boot.py"]),
     # the storefront lab is its own package with its own suite; one repo test runs it
     (["storefronts-lab/**"], ["tests/test_storefronts_lab.py"]),
+    # the mechanics holdout is run by hand (docs/62); a change to it runs the calibration suite
+    (["tests/mechanics_holdout.mjs"], ["tests/mechanics.test.mjs"]),
 ]
 #: Files a module reads by directory rather than by name: a change to one of them is a change to
 #: each module named here, and selects those modules' consumers. The page's shell and module
