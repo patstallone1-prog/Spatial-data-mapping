@@ -103,10 +103,11 @@ Vocabulary (only these values are drawn; anything else is dropped):
     trim_colour, cap {h, colour, crest_h, crest_w} when it has a hood or crest
 - pilasters: {u: [centres], w, v0, v1, depth, colour, groove_colour, top: flat|stepped, steps, step_h, flutes}
 - friezes (a band with a repeated motif): {v, h, colour, motif fan|chevron|diamond|dentil|quarter_round|wave,
-  motif_colour, spacing, depth}
-- belts (plain string courses, projecting): {v, h, colour, depth}; bands (flat painted stripes): {v, h, colour}
+  motif_colour, spacing, depth}  (motif fan|chevron|diamond|dentil|quarter_round)
+- belts (plain string courses, projecting): {v, h, colour, depth}
+- bands (a stretch of wall clad or painted differently, full width): {v0, v1, colour, material}
 - balconies: {u, w, v, depth, rail: bars|solid|glass, rail_h, colour}
-- ornaments: {kind: medallion|keystone|bracket|panel, u, v, w, h, colour}
+- ornaments (small pieces set on the wall): {shape: diamond|circle|rect, u, v, w, h, colour, depth}
 - roof: cornice {h, depth (projection), colour, raise}, parapet_h (height above the roof surface)
 - storefront: {name, u0, u1, band_h (top of the shop band), material, palette {wall, accent, frame, base,
   letter, metal, glass}, door_style, openings, awnings, extra_signs, signs, lights}
@@ -117,7 +118,7 @@ Vocabulary (only these values are drawn; anything else is dropped):
   * extra_signs: {kind letters|board|blade|window_vinyl, u, v, w, h, offset (blade: m off the wall), thick,
     bg, edge_colour, layers: [{type text, text, x, y (0-1 in the sign), size (share of sign height), fill,
     font, weight} | {type rect|disc|halfdisc, x, y, w, h, r, fill}]}
-  * lights: {kind string|gooseneck|downlight, u0, u1, v, w}
+  * lights: {kind string|gooseneck, u0, u1, v, w}
 - repeat: any wall opening, pilaster group, balcony, ornament or shop opening may carry
   "repeat": {"period": m, "count": n}; it is drawn n times, period metres apart along the wall
   (a pilaster group's whole u list shifts). Use it for every regular rhythm.
@@ -420,12 +421,14 @@ ENUMS = {
     ("opening", "shape"): {"rect", "arched", "segmental", "circle", "square"},
     ("opening", "glazing"): {"grid", "diamond"},
     ("pilaster", "top"): {"flat", "stepped"},
-    ("frieze", "motif"): {"fan", "chevron", "diamond", "dentil", "quarter_round", "wave"},
+    ("frieze", "motif"): {"fan", "chevron", "diamond", "dentil", "quarter_round"},
     ("awning", "kind"): {"shed", "retractable", "dome", "box", "flat_canopy"},
     ("sign", "kind"): {"letters", "board", "blade", "window_vinyl", "rooftop"},
     ("seat", "kind"): {"parklet", "sidewalk_strip", "patio"},
     ("seat", "barrier"): {"rail", "rope", "planks", "low_wall", None},
-    ("object", "kind"): {"tree", "planter", "heater", "a_frame", "pole", "bus_shelter", "string_lights"},
+    ("object", "kind"): {"tree", "planter", "heater", "a_frame", "pole", "bus_shelter"},
+    ("ornament", "shape"): {"diamond", "circle", "rect"},
+    ("light", "kind"): {"string", "gooseneck"},
 }
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -560,8 +563,23 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
         return None if b is None else _colours({**b, "depth": _num(b.get("depth"), 0.1, 2.5, 0.8)})
 
     def ornament(o):
+        # the studio draws diamond (default), circle or rect; a name without a shape becomes one
+        shape = _enum("ornament", "shape", o.get("shape")) or {
+            "medallion": "circle", "roundel": "circle", "keystone": "diamond", "diamond": "diamond"}.get(o.get("kind"), "rect")
         o = _span(o, L, H)
-        return None if o is None else _colours(o)
+        if o is None:
+            return None
+        return _colours({**o, "shape": shape, "depth": _num(o.get("depth"), 0.0, 0.4, 0.05)})
+
+    def stretch(b):
+        v0 = _num(b.get("v0", b.get("v")), -0.5, H + 2)
+        v1 = _num(b.get("v1", (b.get("v") or 0) + (b.get("h") or 0) if "v" in b else None), -0.5, H + 2)
+        if v0 is None or v1 is None or v1 - v0 < 0.05:
+            return None
+        out = {"v0": v0, "v1": v1, "colour": b.get("colour")}
+        if b.get("material") in MATERIALS:
+            out["material"] = b["material"]
+        return _colours(out)
 
     wa = ans.get("wall") or {}
     wall = {"material": wa.get("material") if wa.get("material") in MATERIALS else None,
@@ -570,7 +588,7 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
             "pilasters": keep("pilaster", wa.get("pilasters"), pilaster),
             "friezes": keep("frieze", wa.get("friezes"), lambda b: band(b, True)),
             "belts": keep("belt", wa.get("belts"), band),
-            "bands": keep("band", wa.get("bands"), band),
+            "bands": keep("band", wa.get("bands"), stretch),
             "balconies": keep("balcony", wa.get("balconies"), balcony),
             "ornaments": keep("ornament", wa.get("ornaments"), ornament)}
 
@@ -614,7 +632,8 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
                       "awnings": keep("awning", s.get("awnings"), awning),
                       "extra_signs": keep("sign", s.get("extra_signs"), sign),
                       "signs": keep("sign", s.get("signs"), sign),
-                      "lights": [x for x in (s.get("lights") or []) if isinstance(x, dict)]})
+                      "lights": [x for x in (s.get("lights") or []) if isinstance(x, dict)
+                                 and _enum("light", "kind", x.get("kind"))]})
 
     def seat(x):
         k = _enum("seat", "kind", x.get("kind"))
@@ -680,6 +699,11 @@ def to_observations(base: dict, e: int, r: dict, frames: list[str], how: str) ->
               "edge": e, "evidence": {"kind": "observed", **ev}}
         for k in ("openings", "awnings", "extra_signs", "signs"):
             sf[k] = [{**x, "id": x.get("id") or f"{sid}:{k[:3]}{i}"} for i, x in enumerate(sf.get(k) or [])]
+        if not any(sf[k] for k in ("openings", "awnings", "extra_signs", "signs")):
+            # nothing of a shop in the photographs (a record placed on the wrong building, or a
+            # shop gone): keep the record, draw the wall's own ground floor instead of a blank band
+            sf["visible"] = False
+            sf["note"] = "no shopfront seen in the photographs"
         new.append(sf)
     if not any(s.get("business_id") == base.get("business_id") for s in new):
         # the tenant asked about was not found on this wall: keep its record shop rather than lose it

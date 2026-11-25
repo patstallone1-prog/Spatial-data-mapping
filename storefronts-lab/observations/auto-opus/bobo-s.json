@@ -1,0 +1,356 @@
+{
+ "model": "bobo-s",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+ "notes": "The grid shows sky at u 0-3 because it projects the neighbour and the open gap onto the wall plane. Photo 2 shows the red stucco running the full 4.93 m, so parts are placed by the corners in photo 2 rather than by the grid. No lettering is visible on this wall, so no sign is modelled. A blue tarp over the roof deck probably accounts for the 8.8 m LiDAR height; the facade top is taken at the deck railing. The striped awning and glazed enclosure on the right belong to the next wall.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.6,
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.9
+    },
+    {
+     "v": 3.9,
+     "h": 2.4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.1,
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.colour",
+   "value": "#b54a3a",
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.trim_colour",
+   "value": "#1e1a18",
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.openings",
+   "value": [
+    {
+     "id": "w6:win",
+     "kind": "window",
+     "u": 1.6,
+     "v": 4.1,
+     "w": 3.25,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#1e1a18",
+     "pane_colour": "#3a3230",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.friezes",
+   "value": [
+    {
+     "v": 5.9,
+     "h": 0.3,
+     "colour": "#1e1a18",
+     "motif": "dentil",
+     "motif_colour": "#e0c24a",
+     "spacing": 0.18,
+     "depth": 0.06,
+     "id": "w6:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.balconies",
+   "value": [
+    {
+     "u": 0.3,
+     "w": 4.6,
+     "v": 6.2,
+     "depth": 0.3,
+     "rail": "bars",
+     "rail_h": 1.1,
+     "colour": "#1e1a18",
+     "h": 1.1,
+     "id": "w6:bal0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.ornaments",
+   "value": [
+    {
+     "kind": "panel",
+     "u": 0.75,
+     "v": 3.35,
+     "w": 0.65,
+     "h": 0.75,
+     "colour": "#b54a3a",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w6:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-bobo-s",
+     "business_id": "mb-e1da329c3c0f",
+     "category": "shop",
+     "brand": null,
+     "name": "Bobo\u2019s",
+     "u0": 0,
+     "u1": 4.93,
+     "band_h": 3.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#b54a3a",
+      "accent": "#1e1a18",
+      "frame": "#1e1a18",
+      "base": "#8e3a2e",
+      "letter": "#f2e6d8",
+      "metal": "#c9c7c2",
+      "glass": "#2c2826"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bobo:gate",
+       "kind": "door",
+       "u": 0.05,
+       "v": 0.0,
+       "w": 1.15,
+       "h": 2.8,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "bobo:entry",
+       "kind": "door",
+       "u": 1.3,
+       "v": 0.0,
+       "w": 3.4,
+       "h": 2.8,
+       "leaf_count": 2,
+       "operation": "roll_up",
+       "glazed": false
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "shed",
+       "u0": 1.3,
+       "u1": 4.93,
+       "v": 3.85,
+       "depth_m": 0.9,
+       "drop_m": 0.75,
+       "valance_h": 0.3,
+       "colour": "#c9736b",
+       "stripe": "#1c1616",
+       "valance_text": null,
+       "text_colour": "#f2e6d8",
+       "font": "Georgia, serif",
+       "sides": true,
+       "id": "sf-bobo-s:awn0"
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 6,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "4488367227861332",
+       "773829398565992"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4488367227861332",
+     "773829398565992"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

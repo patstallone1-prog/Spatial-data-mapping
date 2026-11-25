@@ -1,0 +1,481 @@
+{
+ "model": "bar-crenn",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "No signage is visible for Bar Crenn in the 2022 photo, so no sign is modelled. The shopfront is extended across the visible olive front, beyond the record's u 4.1-6.2. Height follows the grid (cornice top about 6.3 m), which conflicts with the 8.5 m LiDAR roof surface. The corner bay continues onto the Pixley wall. Cornice brackets are approximated as a dentil frieze. Positions are from photo 2 at about 0.0137 m per pixel.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.6,
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.1
+    },
+    {
+     "v": 3.1,
+     "h": 3.2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.45,
+    "depth": 0.45,
+    "colour": "#f2f0ea",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.3,
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#c9d8b8",
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.trim_colour",
+   "value": "#f2f0ea",
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.openings",
+   "value": [
+    {
+     "id": "w-up1",
+     "kind": "window",
+     "u": 1.45,
+     "v": 3.45,
+     "w": 0.72,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2f0ea",
+     "pane_colour": "#3c4448",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-up2",
+     "kind": "window",
+     "u": 3.4,
+     "v": 3.45,
+     "w": 0.72,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2f0ea",
+     "pane_colour": "#3c4448",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "bay-corner",
+     "kind": "bay",
+     "u": 5.1,
+     "w": 2.02,
+     "v0": 3.1,
+     "v1": 5.6,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#c9d8b8",
+     "trim_colour": "#f2f0ea",
+     "cap": {
+      "h": 0.25,
+      "colour": "#f2f0ea",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 3.85,
+     "h": 1.4999999999999996
+    },
+    {
+     "id": "d-flats",
+     "kind": "door",
+     "u": 0.8,
+     "v": 0.0,
+     "w": 0.65,
+     "h": 2.3,
+     "shape": "rect",
+     "colour": "#6b6b45",
+     "glazed": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.friezes",
+   "value": [
+    {
+     "v": 5.75,
+     "h": 0.4,
+     "colour": "#c9d8b8",
+     "motif": "dentil",
+     "motif_colour": "#f2f0ea",
+     "spacing": 0.45,
+     "depth": 0.12,
+     "id": "w4:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.belts",
+   "value": [
+    {
+     "v": 3.05,
+     "h": 0.15,
+     "colour": "#f2f0ea",
+     "depth": 0.08,
+     "id": "w4:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.ornaments",
+   "value": [
+    {
+     "kind": "panel",
+     "u": 1.3,
+     "v": 4.95,
+     "w": 1.0,
+     "h": 0.3,
+     "colour": "#7a9a7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn0"
+    },
+    {
+     "kind": "panel",
+     "u": 3.25,
+     "v": 4.95,
+     "w": 1.0,
+     "h": 0.3,
+     "colour": "#7a9a7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-bar-crenn",
+     "business_id": "mb-6981922d70b2",
+     "category": "bar",
+     "brand": null,
+     "name": "Bar Crenn",
+     "u0": 1.5,
+     "u1": 7.12,
+     "band_h": 3.0,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#6b6b45",
+      "accent": "#5a5a3a",
+      "frame": "#5a5a3a",
+      "base": "#6b6b45",
+      "letter": "#f2f0ea",
+      "metal": "#2a2a2a",
+      "glass": "#2f3638"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bc-gate",
+       "kind": "door",
+       "u": 1.6,
+       "v": 0.0,
+       "w": 0.95,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "bc-door",
+       "kind": "door",
+       "u": 2.6,
+       "v": 0.0,
+       "w": 0.75,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "bc-g0",
+       "kind": "window",
+       "u": 3.45,
+       "v": 0.6,
+       "w": 1.7,
+       "h": 2.2,
+       "transom_fraction": 0.3,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bc-g1",
+       "kind": "window",
+       "u": 5.25,
+       "v": 0.6,
+       "w": 1.75,
+       "h": 2.2,
+       "transom_fraction": 0.3,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 2.0,
+       "u1": 6.0,
+       "v": 3.2,
+       "w": 0.3
+      }
+     ],
+     "edge": 4,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1535641136845937",
+       "496254511738648",
+       "510846153270942",
+       "585867643300667"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1535641136845937",
+     "496254511738648",
+     "510846153270942",
+     "585867643300667"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

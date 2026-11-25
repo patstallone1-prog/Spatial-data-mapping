@@ -1,0 +1,1163 @@
+{
+ "model": "united-dumplings",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+ "notes": "Photos (latest 2022-06-09) show Cancha at u~18-22.5, not the record tenant United Dumplings (record u 16.1-22.7, start 2022-05-10). Used the record name with a plain sign on the black-fronted unit seen in the photos. Clerestory count (17, about 1.06 m period) taken from the whole-wall photo. Martinis sign letters and the Arlene's teal piers were moved to match the grid. The belts are drawn across the whole wall but may be truly only along the bar front. Lower bar openings are partly hidden by a van and planters. Pacific Catch is only partly visible.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.5,
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 7.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.1,
+    "colour": "#2a3532",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#2b3633",
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#1f2826",
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 0.15,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 1.21,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 2.27,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 3.33,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 4.39,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 5.45,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 6.51,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 7.57,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 8.63,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 9.69,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 10.75,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 11.81,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 12.87,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 13.93,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 14.99,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 16.05,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "clerestory",
+     "kind": "window",
+     "u": 17.11,
+     "v": 4.0,
+     "w": 0.85,
+     "h": 0.9,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1f2826",
+     "pane_colour": "#c9ccc8",
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [
+    {
+     "u": [
+      26.3,
+      29.8
+     ],
+     "w": 0.3,
+     "v0": 0.0,
+     "v1": 3.2,
+     "depth": 0.06,
+     "colour": "#3aa59a",
+     "groove_colour": "#2e8a80",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w0:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 3.75,
+     "h": 0.15,
+     "colour": "#1f2826",
+     "depth": 0.08,
+     "id": "w0:bel0"
+    },
+    {
+     "v": 5.1,
+     "h": 0.2,
+     "colour": "#1f2826",
+     "depth": 0.1,
+     "id": "w0:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w0-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Martinis Whiskey Provisions",
+     "u0": 0,
+     "u1": 18.0,
+     "band_h": 3.7,
+     "material": "stucco",
+     "palette": {
+      "wall": "#2b3633",
+      "accent": "#1f2826",
+      "frame": "#1f2826",
+      "base": "#3a3d3c",
+      "letter": "#d9cfb0",
+      "metal": "#8a8d8a",
+      "glass": "#3e4a4c"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "mw:g",
+       "kind": "window",
+       "u": 0.15,
+       "v": 0.9,
+       "w": 0.85,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.9
+      },
+      {
+       "id": "mw:g",
+       "kind": "window",
+       "u": 1.87,
+       "v": 0.9,
+       "w": 0.85,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.9
+      },
+      {
+       "id": "mw:g",
+       "kind": "window",
+       "u": 3.59,
+       "v": 0.9,
+       "w": 0.85,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.9
+      },
+      {
+       "id": "mw:g",
+       "kind": "window",
+       "u": 5.31,
+       "v": 0.9,
+       "w": 0.85,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.9
+      },
+      {
+       "id": "mw:g",
+       "kind": "window",
+       "u": 7.03,
+       "v": 0.9,
+       "w": 0.85,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.9
+      },
+      {
+       "id": "mw:door",
+       "kind": "door",
+       "u": 11.2,
+       "v": 0.0,
+       "w": 1.6,
+       "h": 2.4,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "mw:g2",
+       "kind": "window",
+       "u": 13.9,
+       "v": 0.5,
+       "w": 2.2,
+       "h": 2.6,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "mw-letters",
+       "kind": "letters",
+       "u": 1.8,
+       "v": 5.9,
+       "w": 11.8,
+       "h": 0.8,
+       "offset": 0.02,
+       "thick": 0.03,
+       "bg": "#2b3633",
+       "edge_colour": "#2b3633",
+       "layers": [
+        {
+         "type": "text",
+         "text": "MARTINIS \u2726 WHISKEY \u2726 PROVISIONS",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.8,
+         "fill": "#d9cfb0",
+         "font": "\"Gill Sans\", sans-serif",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "mw-menu",
+       "kind": "board",
+       "u": 9.8,
+       "v": 1.2,
+       "w": 0.8,
+       "h": 0.7,
+       "offset": 0.03,
+       "thick": 0.05,
+       "bg": "#b8834e",
+       "edge_colour": "#8a5a30",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 0.5,
+       "u1": 17.5,
+       "v": 3.5,
+       "w": 0.3
+      }
+     ],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1792322597817555",
+       "2381680275305992",
+       "496364894876103",
+       "512609890023300",
+       "5160963170671838"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-united-dumplings",
+     "business_id": "mb-9d4947edee0e",
+     "category": "restaurant",
+     "brand": null,
+     "name": "United Dumplings",
+     "u0": 18.0,
+     "u1": 22.5,
+     "band_h": 3.6,
+     "material": "smooth_render",
+     "palette": {
+      "wall": "#1a1a1a",
+      "accent": "#111111",
+      "frame": "#1a1a1a",
+      "base": "#2a2a2a",
+      "letter": "#f2efe8",
+      "metal": "#8a8a8a",
+      "glass": "#3a4244"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ud:g0",
+       "kind": "window",
+       "u": 18.3,
+       "v": 0.5,
+       "w": 2.4,
+       "h": 2.5,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ud:door",
+       "kind": "door",
+       "u": 20.9,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "ud-sign",
+       "kind": "board",
+       "u": 18.4,
+       "v": 4.6,
+       "w": 3.7,
+       "h": 1.0,
+       "offset": 0.03,
+       "thick": 0.05,
+       "bg": "#1a1a1a",
+       "edge_colour": "#1a1a1a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "United Dumplings",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.4,
+         "fill": "#f2efe8",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "string",
+       "u0": 18.1,
+       "u1": 22.4,
+       "v": 3.3,
+       "w": 0.4
+      }
+     ],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1792322597817555",
+       "2381680275305992",
+       "496364894876103",
+       "512609890023300",
+       "5160963170671838"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w0-2",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Arlene's Cleaners",
+     "u0": 22.5,
+     "u1": 30.0,
+     "band_h": 3.8,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6d8b8",
+      "accent": "#3aa59a",
+      "frame": "#8c8c88",
+      "base": "#8a4a38",
+      "letter": "#7a1a28",
+      "metal": "#a0a0a0",
+      "glass": "#4a5a60"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ar:door",
+       "kind": "door",
+       "u": 23.2,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "ar:g0",
+       "kind": "window",
+       "u": 24.4,
+       "v": 0.75,
+       "w": 2.6,
+       "h": 2.4,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ar:g1",
+       "kind": "window",
+       "u": 27.3,
+       "v": 0.3,
+       "w": 2.4,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "ar-fascia",
+       "kind": "board",
+       "u": 22.6,
+       "v": 3.3,
+       "w": 5.0,
+       "h": 0.5,
+       "offset": 0.05,
+       "thick": 0.08,
+       "bg": "#f4f1ea",
+       "edge_colour": "#d8d4cc",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Arlene's",
+         "x": 0.25,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#7a1a28",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        },
+        {
+         "type": "text",
+         "text": "CLEANERS",
+         "x": 0.7,
+         "y": 0.5,
+         "size": 0.55,
+         "fill": "#7a1a28",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "ar-green",
+       "kind": "board",
+       "u": 23.8,
+       "v": 4.6,
+       "w": 2.2,
+       "h": 1.7,
+       "offset": 0.03,
+       "thick": 0.04,
+       "bg": "#f6f6f4",
+       "edge_colour": "#c8c8c8",
+       "layers": [
+        {
+         "type": "halfdisc",
+         "x": 0.5,
+         "y": 0.42,
+         "r": 0.22,
+         "fill": "#3a9a3a"
+        },
+        {
+         "type": "rect",
+         "x": 0.05,
+         "y": 0.85,
+         "w": 0.9,
+         "h": 0.2,
+         "fill": "#2a3f8a"
+        },
+        {
+         "type": "text",
+         "text": "GREEN BUSINESS",
+         "x": 0.5,
+         "y": 0.8,
+         "size": 0.08,
+         "fill": "#2a3f8a",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "Nature's Best Cleaners",
+         "x": 0.5,
+         "y": 0.9,
+         "size": 0.07,
+         "fill": "#ffffff",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1792322597817555",
+       "2381680275305992",
+       "496364894876103",
+       "512609890023300",
+       "5160963170671838"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w0-3",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Pacific Catch",
+     "u0": 30.0,
+     "u1": 33.81,
+     "band_h": 3.6,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#7a4a32",
+      "accent": "#5a3424",
+      "frame": "#2a2a2a",
+      "base": "#4a3a30",
+      "letter": "#f4efe6",
+      "metal": "#9a9a9a",
+      "glass": "#3e4a4c"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "pc:g0",
+       "kind": "window",
+       "u": 30.4,
+       "v": 0.5,
+       "w": 3.0,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "pc-letters",
+       "kind": "letters",
+       "u": 30.6,
+       "v": 5.0,
+       "w": 3.0,
+       "h": 0.7,
+       "offset": 0.03,
+       "thick": 0.04,
+       "bg": "#7a4a32",
+       "edge_colour": "#7a4a32",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Pacific Catch",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#f4efe6",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1792322597817555",
+       "2381680275305992",
+       "496364894876103",
+       "512609890023300",
+       "5160963170671838"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "ud-sidewalk",
+     "kind": "sidewalk_strip",
+     "u0": 18.2,
+     "u1": 22.4,
+     "depth_m": 0.9,
+     "offset_m": 0.2,
+     "tables": "two_top",
+     "chair_colour": "#d8d0c0",
+     "plants": true,
+     "edge": 0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 13.2,
+     "w": 0.3,
+     "r": 0.12,
+     "trunk_h": 8.5,
+     "colour": "#e2ded6",
+     "edge": 0
+    },
+    {
+     "id": "planter-1",
+     "kind": "planter",
+     "u": 3.5,
+     "w": 1.4,
+     "colour": "#b8622e",
+     "edge": 0
+    },
+    {
+     "id": "planter-2",
+     "kind": "planter",
+     "u": 15.6,
+     "w": 1.0,
+     "colour": "#b8622e",
+     "edge": 0
+    },
+    {
+     "id": "heater-1",
+     "kind": "heater",
+     "u": 19.5,
+     "w": 0.5,
+     "edge": 0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1792322597817555",
+     "2381680275305992",
+     "496364894876103",
+     "512609890023300",
+     "5160963170671838"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

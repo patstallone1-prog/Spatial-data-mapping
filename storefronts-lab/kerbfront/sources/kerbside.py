@@ -67,7 +67,10 @@ def _file(key: str, ref: str = REF) -> dict:
     path = CACHE / "kerbside" / sha[:12] / Path(FILES[key]).name
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(_git("show", f"{sha}:{FILES[key]}"))
+        # atomic: parallel workers (opus-run shards) may fill the same cache at once
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_bytes(_git("show", f"{sha}:{FILES[key]}"))
+        os.replace(tmp, path)
     return json.loads(path.read_text())
 
 

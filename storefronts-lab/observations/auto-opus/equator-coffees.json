@@ -1,0 +1,316 @@
+{
+ "model": "equator-coffees",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+ "notes": "Spanish-revival stucco gate pier (u~0-2, to ~4.3 m) with a red tile cap. Lower stucco wall to the right with a terracotta tile coping that steps down from ~3.0 m at the pier to ~2.1 m near u 5.5. The coping is omitted because a level belt would misplace it. A hipped tile roof shows behind, and a plinth runs at ~0.45 m. Photo 2 shows a 'FORT MASON CENTER' arched sign, an NPS arrowhead emblem and a recessed doorway on the pier. These were not confirmed on this face in the grid, so they are omitted. No Equator Coffees storefront or seating is visible on this face.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 4.4,
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.22,
+    "depth": 0.25,
+    "colour": "#b5583a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.2,
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#e8dcbc",
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#b5583a",
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "w1:vent",
+     "kind": "window",
+     "u": 4.75,
+     "v": 2.05,
+     "w": 0.12,
+     "h": 0.12,
+     "shape": "circle",
+     "frame_colour": "#6b5a40",
+     "pane_colour": "#3a3228",
+     "depth": 0.15,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      1.0
+     ],
+     "w": 2.0,
+     "v0": 0.0,
+     "v1": 4.3,
+     "depth": 0.3,
+     "colour": "#e8dcbc",
+     "groove_colour": "#d8cba8",
+     "top": "flat",
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 0.45,
+     "h": 0.08,
+     "colour": "#f0e8d2",
+     "depth": 0.06,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-equator-coffees",
+     "business_id": "mb-45f85f698fc1",
+     "category": "cafe",
+     "brand": null,
+     "name": "Equator Coffees",
+     "u0": 0,
+     "u1": 6.37,
+     "band_h": 3.0,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e8dcbc",
+      "accent": "#b5583a",
+      "frame": "#3a3228",
+      "base": "#e8dcbc",
+      "letter": "#3a3228",
+      "metal": "#8a8a86",
+      "glass": "#55626a"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "176023694485052",
+       "518047807377510"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "confidence": 0.35,
+      "read_by": "claude-opus-5-5"
+     },
+     "visible": false,
+     "note": "no shopfront seen in the photographs"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

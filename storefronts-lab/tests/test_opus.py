@@ -105,3 +105,20 @@ def test_repeat_lays_a_module_out_exactly():
     win, pil = O.expand(parts, 27.4)[:3], O.expand(parts, 27.4)[3]
     assert [w["u"] for w in win] == [1.28, 4.58, 7.88] and all("repeat" not in w for w in win)
     assert pil["u"] == [1.59, 2.85, 4.89, 6.15]
+
+
+def test_ornaments_and_bands_take_the_shapes_the_studio_draws():
+    ans = {"wall": {"ornaments": [{"kind": "panel", "u": 1, "v": 3, "w": 3, "h": 0.4},
+                                  {"kind": "medallion", "u": 5, "v": 6, "w": 0.8, "h": 0.8}],
+                    "bands": [{"v": 5.0, "h": 1.5, "colour": "#aabbcc"}]}}
+    w = O.sanitize(ans, _base(), 1)["wall"]
+    assert [o["shape"] for o in w["ornaments"]] == ["rect", "circle"]
+    assert w["bands"] == [{"v0": 5.0, "v1": 6.5, "colour": "#aabbcc"}]
+
+
+def test_a_shop_with_nothing_seen_is_kept_but_not_drawn():
+    base = _base()
+    r = O.sanitize({"storefronts": [{"name": "Taco Place", "u0": 12, "u1": 20, "band_h": 0.6}]}, base, 1)
+    sf = next(row for row in O.to_observations(base, 1, r, [], "t") if row["path"] == "storefronts")["value"]
+    mine = next(s for s in sf if s["id"] == "sf-t")
+    assert mine["visible"] is False and mine["business_id"] == "mb-1"

@@ -1,0 +1,5396 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "round-table-pizza",
+ "title": "Round Table Pizza",
+ "business_id": "mb-78a02126c049",
+ "area": "marina-union",
+ "address": {
+  "number": 1503,
+  "number_hi": null,
+  "street": "NORTH POINT ST",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": null,
+ "business_type": {
+  "tag": "pizza",
+  "kinds": [
+   "pizza"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.43247385,
+  37.80403901
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0001131",
+ "app_building": "263282485",
+ "footprint": [
+  [
+   -28.967,
+   -42.631
+  ],
+  [
+   -27.243,
+   -42.409
+  ],
+  [
+   -28.5,
+   -43.744
+  ],
+  [
+   -27.528,
+   -51.589
+  ],
+  [
+   -25.762,
+   -51.437
+  ],
+  [
+   -27.203,
+   -52.789
+  ],
+  [
+   -25.524,
+   -64.108
+  ],
+  [
+   -23.838,
+   -63.89
+  ],
+  [
+   -25.204,
+   -65.234
+  ],
+  [
+   -23.863,
+   -74.797
+  ],
+  [
+   -22.085,
+   -75.646
+  ],
+  [
+   -23.547,
+   -75.886
+  ],
+  [
+   -22.869,
+   -80.741
+  ],
+  [
+   -21.478,
+   -80.547
+  ],
+  [
+   -20.078,
+   -85.116
+  ],
+  [
+   -17.021,
+   -83.583
+  ],
+  [
+   -5.522,
+   -82.803
+  ],
+  [
+   -5.404,
+   -78.585
+  ],
+  [
+   -4.086,
+   -78.396
+  ],
+  [
+   -4.458,
+   -75.786
+  ],
+  [
+   -5.774,
+   -76.01
+  ],
+  [
+   -6.699,
+   -62.245
+  ],
+  [
+   -8.631,
+   -61.334
+  ],
+  [
+   -6.911,
+   -61.072
+  ],
+  [
+   -8.694,
+   -49.837
+  ],
+  [
+   -10.591,
+   -48.886
+  ],
+  [
+   -8.946,
+   -48.63
+  ],
+  [
+   -10.14,
+   -40.78
+  ],
+  [
+   -11.863,
+   -41.002
+  ],
+  [
+   -10.35,
+   -39.633
+  ],
+  [
+   -12.068,
+   -28.282
+  ],
+  [
+   -13.822,
+   -28.581
+  ],
+  [
+   -14.627,
+   -23.378
+  ],
+  [
+   -16.625,
+   -23.738
+  ],
+  [
+   -16.984,
+   -21.846
+  ],
+  [
+   -9.099,
+   -20.579
+  ],
+  [
+   -8.273,
+   -18.707
+  ],
+  [
+   -8.156,
+   -20.325
+  ],
+  [
+   3.102,
+   -18.533
+  ],
+  [
+   3.84,
+   -16.784
+  ],
+  [
+   4.074,
+   -18.448
+  ],
+  [
+   11.957,
+   -17.089
+  ],
+  [
+   11.82,
+   -15.5
+  ],
+  [
+   13.204,
+   -16.953
+  ],
+  [
+   25.564,
+   -14.858
+  ],
+  [
+   20.841,
+   3.247
+  ],
+  [
+   15.631,
+   2.48
+  ],
+  [
+   14.788,
+   0.667
+  ],
+  [
+   14.41,
+   2.374
+  ],
+  [
+   6.747,
+   1.063
+  ],
+  [
+   7.005,
+   -0.628
+  ],
+  [
+   5.588,
+   0.878
+  ],
+  [
+   -5.588,
+   -0.878
+  ],
+  [
+   -5.49,
+   -2.668
+  ],
+  [
+   -6.737,
+   -1.175
+  ],
+  [
+   -14.514,
+   -2.468
+  ],
+  [
+   -14.295,
+   -4.05
+  ],
+  [
+   -15.625,
+   -2.634
+  ],
+  [
+   -29.031,
+   -4.691
+  ],
+  [
+   -26.867,
+   -17.19
+  ],
+  [
+   -32.102,
+   -18.168
+  ]
+ ],
+ "height_m": 12.9,
+ "floors": [
+  {
+   "v": 0,
+   "h": 3.6
+  },
+  {
+   "v": 3.6,
+   "h": 4.6
+  },
+  {
+   "v": 8.2,
+   "h": 4.7
+  }
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#777c8b",
+  "parapet_h": 0.9,
+  "cornice": {
+   "h": 0.15,
+   "depth": 0.1,
+   "colour": "#6b4630",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 1.74,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 1.83,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 7.9,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w2:f1:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w2",
+     "kind": "window",
+     "u": 6.04,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w2",
+     "kind": "window",
+     "u": 6.04,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 1.77,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w4",
+   "edge": 4,
+   "length_m": 1.98,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w5",
+   "edge": 5,
+   "length_m": 11.44,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w5:f1:w0",
+     "kind": "window",
+     "u": 0.88,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f1:w1",
+     "kind": "window",
+     "u": 3.74,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f1:w2",
+     "kind": "window",
+     "u": 6.6,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f1:w3",
+     "kind": "window",
+     "u": 9.46,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w0",
+     "kind": "window",
+     "u": 0.88,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w1",
+     "kind": "window",
+     "u": 3.74,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w2",
+     "kind": "window",
+     "u": 6.6,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w3",
+     "kind": "window",
+     "u": 9.46,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w6",
+   "edge": 6,
+   "length_m": 1.7,
+   "role": "recess",
+   "street": "BAY ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w7",
+   "edge": 7,
+   "length_m": 1.92,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w8",
+   "edge": 8,
+   "length_m": 9.66,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w8:f1:w0",
+     "kind": "window",
+     "u": 0.66,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f1:w1",
+     "kind": "window",
+     "u": 3.07,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f1:w2",
+     "kind": "window",
+     "u": 5.49,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f1:w3",
+     "kind": "window",
+     "u": 7.9,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w0",
+     "kind": "window",
+     "u": 0.66,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w1",
+     "kind": "window",
+     "u": 3.07,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w2",
+     "kind": "window",
+     "u": 5.49,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w3",
+     "kind": "window",
+     "u": 7.9,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w9",
+   "edge": 9,
+   "length_m": 1.97,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w10",
+   "edge": 10,
+   "length_m": 1.48,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w11",
+   "edge": 11,
+   "length_m": 4.9,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w11:f1:w0",
+     "kind": "window",
+     "u": 0.68,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f1:w1",
+     "kind": "window",
+     "u": 3.13,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w0",
+     "kind": "window",
+     "u": 0.68,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w1",
+     "kind": "window",
+     "u": 3.13,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w12",
+   "edge": 12,
+   "length_m": 1.4,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w13",
+   "edge": 13,
+   "length_m": 4.78,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w13:f1:w0",
+     "kind": "window",
+     "u": 0.64,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w13:f1:w1",
+     "kind": "window",
+     "u": 3.03,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w13:f2:w0",
+     "kind": "window",
+     "u": 0.64,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w13:f2:w1",
+     "kind": "window",
+     "u": 3.03,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w14",
+   "edge": 14,
+   "length_m": 3.42,
+   "role": "street",
+   "street": "BAY ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w14:f1:w0",
+     "kind": "window",
+     "u": 1.16,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w14:f2:w0",
+     "kind": "window",
+     "u": 1.16,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w15",
+   "edge": 15,
+   "length_m": 11.53,
+   "role": "street",
+   "street": "BAY ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w15:f1:w0",
+     "kind": "window",
+     "u": 0.89,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f1:w1",
+     "kind": "window",
+     "u": 3.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f1:w2",
+     "kind": "window",
+     "u": 6.65,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f1:w3",
+     "kind": "window",
+     "u": 9.53,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f2:w0",
+     "kind": "window",
+     "u": 0.89,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f2:w1",
+     "kind": "window",
+     "u": 3.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f2:w2",
+     "kind": "window",
+     "u": 6.65,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w15:f2:w3",
+     "kind": "window",
+     "u": 9.53,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w16",
+   "edge": 16,
+   "length_m": 4.22,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w16:f1:w0",
+     "kind": "window",
+     "u": 0.5,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w16:f1:w1",
+     "kind": "window",
+     "u": 2.61,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w16:f2:w0",
+     "kind": "window",
+     "u": 0.5,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w16:f2:w1",
+     "kind": "window",
+     "u": 2.61,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w17",
+   "edge": 17,
+   "length_m": 1.33,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w18",
+   "edge": 18,
+   "length_m": 2.64,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w18:f1:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w18:f2:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w19",
+   "edge": 19,
+   "length_m": 1.33,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w20",
+   "edge": 20,
+   "length_m": 13.8,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w20:f1:w0",
+     "kind": "window",
+     "u": 0.83,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f1:w1",
+     "kind": "window",
+     "u": 3.59,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f1:w2",
+     "kind": "window",
+     "u": 6.35,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f1:w3",
+     "kind": "window",
+     "u": 9.11,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f1:w4",
+     "kind": "window",
+     "u": 11.87,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f2:w0",
+     "kind": "window",
+     "u": 0.83,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f2:w1",
+     "kind": "window",
+     "u": 3.59,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f2:w2",
+     "kind": "window",
+     "u": 6.35,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f2:w3",
+     "kind": "window",
+     "u": 9.11,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w20:f2:w4",
+     "kind": "window",
+     "u": 11.87,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w21",
+   "edge": 21,
+   "length_m": 2.14,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w21:f1:w0",
+     "kind": "window",
+     "u": 0.52,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w21:f2:w0",
+     "kind": "window",
+     "u": 0.52,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w22",
+   "edge": 22,
+   "length_m": 1.74,
+   "role": "recess",
+   "street": "BAY ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w23",
+   "edge": 23,
+   "length_m": 11.38,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w23:f1:w0",
+     "kind": "window",
+     "u": 0.87,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f1:w1",
+     "kind": "window",
+     "u": 3.72,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f1:w2",
+     "kind": "window",
+     "u": 6.56,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f1:w3",
+     "kind": "window",
+     "u": 9.4,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f2:w0",
+     "kind": "window",
+     "u": 0.87,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f2:w1",
+     "kind": "window",
+     "u": 3.72,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f2:w2",
+     "kind": "window",
+     "u": 6.56,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w23:f2:w3",
+     "kind": "window",
+     "u": 9.4,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w24",
+   "edge": 24,
+   "length_m": 2.12,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w24:f1:w0",
+     "kind": "window",
+     "u": 0.51,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w24:f2:w0",
+     "kind": "window",
+     "u": 0.51,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w25",
+   "edge": 25,
+   "length_m": 1.66,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w26",
+   "edge": 26,
+   "length_m": 7.94,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w26:f1:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w26:f1:w1",
+     "kind": "window",
+     "u": 3.42,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w26:f1:w2",
+     "kind": "window",
+     "u": 6.07,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w26:f2:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w26:f2:w1",
+     "kind": "window",
+     "u": 3.42,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w26:f2:w2",
+     "kind": "window",
+     "u": 6.07,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w27",
+   "edge": 27,
+   "length_m": 1.74,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w28",
+   "edge": 28,
+   "length_m": 2.04,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w28:f1:w0",
+     "kind": "window",
+     "u": 0.47,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w28:f2:w0",
+     "kind": "window",
+     "u": 0.47,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w29",
+   "edge": 29,
+   "length_m": 11.48,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w29:f1:w0",
+     "kind": "window",
+     "u": 0.89,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f1:w1",
+     "kind": "window",
+     "u": 3.76,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f1:w2",
+     "kind": "window",
+     "u": 6.63,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f1:w3",
+     "kind": "window",
+     "u": 9.5,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f2:w0",
+     "kind": "window",
+     "u": 0.89,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f2:w1",
+     "kind": "window",
+     "u": 3.76,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f2:w2",
+     "kind": "window",
+     "u": 6.63,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w29:f2:w3",
+     "kind": "window",
+     "u": 9.5,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w30",
+   "edge": 30,
+   "length_m": 1.78,
+   "role": "recess",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w31",
+   "edge": 31,
+   "length_m": 5.26,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w31:f1:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w31:f1:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w31:f2:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w31:f2:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w32",
+   "edge": 32,
+   "length_m": 2.03,
+   "role": "recess",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w33",
+   "edge": 33,
+   "length_m": 1.93,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w34",
+   "edge": 34,
+   "length_m": 7.99,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w34:f1:w0",
+     "kind": "window",
+     "u": 0.78,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w34:f1:w1",
+     "kind": "window",
+     "u": 3.44,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w34:f1:w2",
+     "kind": "window",
+     "u": 6.11,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w34:f2:w0",
+     "kind": "window",
+     "u": 0.78,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w34:f2:w1",
+     "kind": "window",
+     "u": 3.44,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w34:f2:w2",
+     "kind": "window",
+     "u": 6.11,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w35",
+   "edge": 35,
+   "length_m": 2.05,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w35:f1:w0",
+     "kind": "window",
+     "u": 0.47,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w35:f2:w0",
+     "kind": "window",
+     "u": 0.47,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w36",
+   "edge": 36,
+   "length_m": 1.62,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w37",
+   "edge": 37,
+   "length_m": 11.4,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w37:f1:w0",
+     "kind": "window",
+     "u": 0.87,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f1:w1",
+     "kind": "window",
+     "u": 3.72,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f1:w2",
+     "kind": "window",
+     "u": 6.57,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f1:w3",
+     "kind": "window",
+     "u": 9.42,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f2:w0",
+     "kind": "window",
+     "u": 0.87,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f2:w1",
+     "kind": "window",
+     "u": 3.72,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f2:w2",
+     "kind": "window",
+     "u": 6.57,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w37:f2:w3",
+     "kind": "window",
+     "u": 9.42,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w38",
+   "edge": 38,
+   "length_m": 1.9,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w39",
+   "edge": 39,
+   "length_m": 1.68,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w40",
+   "edge": 40,
+   "length_m": 8.0,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w40:f1:w0",
+     "kind": "window",
+     "u": 0.78,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w40:f1:w1",
+     "kind": "window",
+     "u": 3.45,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w40:f1:w2",
+     "kind": "window",
+     "u": 6.12,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w40:f2:w0",
+     "kind": "window",
+     "u": 0.78,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w40:f2:w1",
+     "kind": "window",
+     "u": 3.45,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w40:f2:w2",
+     "kind": "window",
+     "u": 6.12,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w41",
+   "edge": 41,
+   "length_m": 1.59,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w42",
+   "edge": 42,
+   "length_m": 2.01,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w42:f1:w0",
+     "kind": "window",
+     "u": 0.45,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w42:f2:w0",
+     "kind": "window",
+     "u": 0.45,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w43",
+   "edge": 43,
+   "length_m": 12.54,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w43:f1:w0",
+     "kind": "window",
+     "u": 0.7,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f1:w1",
+     "kind": "window",
+     "u": 3.21,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f1:w2",
+     "kind": "window",
+     "u": 5.72,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f1:w3",
+     "kind": "window",
+     "u": 8.23,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f1:w4",
+     "kind": "window",
+     "u": 10.73,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f2:w0",
+     "kind": "window",
+     "u": 0.7,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f2:w1",
+     "kind": "window",
+     "u": 3.21,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f2:w2",
+     "kind": "window",
+     "u": 5.72,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f2:w3",
+     "kind": "window",
+     "u": 8.23,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w43:f2:w4",
+     "kind": "window",
+     "u": 10.73,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w44",
+   "edge": 44,
+   "length_m": 18.71,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w45",
+   "edge": 45,
+   "length_m": 5.27,
+   "role": "street",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w45:f1:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w45:f1:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w45:f2:w0",
+     "kind": "window",
+     "u": 0.77,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w45:f2:w1",
+     "kind": "window",
+     "u": 3.4,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w46",
+   "edge": 46,
+   "length_m": 2.0,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w47",
+   "edge": 47,
+   "length_m": 1.75,
+   "role": "recess",
+   "street": "LAGUNA ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w48",
+   "edge": 48,
+   "length_m": 7.77,
+   "role": "street",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w48:f1:w0",
+     "kind": "window",
+     "u": 0.75,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w48:f1:w1",
+     "kind": "window",
+     "u": 3.34,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w48:f1:w2",
+     "kind": "window",
+     "u": 5.93,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w48:f2:w0",
+     "kind": "window",
+     "u": 0.75,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w48:f2:w1",
+     "kind": "window",
+     "u": 3.34,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w48:f2:w2",
+     "kind": "window",
+     "u": 5.93,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w49",
+   "edge": 49,
+   "length_m": 1.71,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w50",
+   "edge": 50,
+   "length_m": 2.07,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w50:f1:w0",
+     "kind": "window",
+     "u": 0.48,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w50:f2:w0",
+     "kind": "window",
+     "u": 0.48,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w51",
+   "edge": 51,
+   "length_m": 11.31,
+   "role": "street",
+   "street": "NORTH POINT ST",
+   "material": "shingle",
+   "colour": "#a36d48",
+   "texture_scale": 1.0,
+   "trim_colour": "#1c1c1c",
+   "visible": true,
+   "belts": [
+    {
+     "v": 3.55,
+     "h": 0.12,
+     "colour": "#1c1c1c",
+     "depth": 0.05,
+     "id": "w51:bel0"
+    }
+   ],
+   "openings": [
+    {
+     "id": "w3a",
+     "kind": "window",
+     "u": 0.1,
+     "v": 10.0,
+     "w": 2.4,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w3b",
+     "kind": "window",
+     "u": 3.0,
+     "v": 10.0,
+     "w": 2.6,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w3c",
+     "kind": "window",
+     "u": 6.9,
+     "v": 10.0,
+     "w": 0.9,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2a",
+     "kind": "window",
+     "u": 0.1,
+     "v": 6.9,
+     "w": 2.4,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2b",
+     "kind": "window",
+     "u": 3.0,
+     "v": 6.9,
+     "w": 2.6,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2c",
+     "kind": "window",
+     "u": 6.9,
+     "v": 6.9,
+     "w": 0.9,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   },
+   "pilasters": [],
+   "friezes": [],
+   "bands": [],
+   "balconies": [],
+   "ornaments": []
+  },
+  {
+   "id": "w52",
+   "edge": 52,
+   "length_m": 1.79,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w53",
+   "edge": 53,
+   "length_m": 1.95,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w54",
+   "edge": 54,
+   "length_m": 7.88,
+   "role": "street",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w54:f1:w0",
+     "kind": "window",
+     "u": 0.76,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w54:f1:w1",
+     "kind": "window",
+     "u": 3.39,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w54:f1:w2",
+     "kind": "window",
+     "u": 6.02,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w54:f2:w0",
+     "kind": "window",
+     "u": 0.76,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w54:f2:w1",
+     "kind": "window",
+     "u": 3.39,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w54:f2:w2",
+     "kind": "window",
+     "u": 6.02,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w55",
+   "edge": 55,
+   "length_m": 1.6,
+   "role": "recess",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w56",
+   "edge": 56,
+   "length_m": 1.94,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w57",
+   "edge": 57,
+   "length_m": 13.56,
+   "role": "street",
+   "street": "NORTH POINT ST",
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w57:f1:w0",
+     "kind": "window",
+     "u": 0.81,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f1:w1",
+     "kind": "window",
+     "u": 3.52,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f1:w2",
+     "kind": "window",
+     "u": 6.23,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f1:w3",
+     "kind": "window",
+     "u": 8.94,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f1:w4",
+     "kind": "window",
+     "u": 11.66,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f2:w0",
+     "kind": "window",
+     "u": 0.81,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f2:w1",
+     "kind": "window",
+     "u": 3.52,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f2:w2",
+     "kind": "window",
+     "u": 6.23,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f2:w3",
+     "kind": "window",
+     "u": 8.94,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w57:f2:w4",
+     "kind": "window",
+     "u": 11.66,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w58",
+   "edge": 58,
+   "length_m": 12.68,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w59",
+   "edge": 59,
+   "length_m": 5.33,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  },
+  {
+   "id": "w60",
+   "edge": 60,
+   "length_m": 24.66,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#625846",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w60:f1:w0",
+     "kind": "window",
+     "u": 0.82,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w1",
+     "kind": "window",
+     "u": 3.56,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w2",
+     "kind": "window",
+     "u": 6.3,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w3",
+     "kind": "window",
+     "u": 9.04,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w4",
+     "kind": "window",
+     "u": 11.78,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w5",
+     "kind": "window",
+     "u": 14.52,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w6",
+     "kind": "window",
+     "u": 17.26,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w7",
+     "kind": "window",
+     "u": 20.0,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f1:w8",
+     "kind": "window",
+     "u": 22.74,
+     "v": 4.91,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w0",
+     "kind": "window",
+     "u": 0.82,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w1",
+     "kind": "window",
+     "u": 3.56,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w2",
+     "kind": "window",
+     "u": 6.3,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w3",
+     "kind": "window",
+     "u": 9.04,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w4",
+     "kind": "window",
+     "u": 11.78,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w5",
+     "kind": "window",
+     "u": 14.52,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w6",
+     "kind": "window",
+     "u": 17.26,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w7",
+     "kind": "window",
+     "u": 20.0,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w60:f2:w8",
+     "kind": "window",
+     "u": 22.74,
+     "v": 8.53,
+     "w": 1.1,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.6
+   }
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-round-table-pizza",
+   "business_id": "mb-78a02126c049",
+   "category": "pizza",
+   "brand": "round_table_pizza",
+   "name": "Round Table Pizza",
+   "u0": 0,
+   "u1": 11.31,
+   "band_h": 3.55,
+   "material": "glass",
+   "palette": {
+    "wall": "#a36d48",
+    "accent": "#b0564a",
+    "frame": "#1c1c1c",
+    "base": "#2a2a2a",
+    "letter": "#ffffff",
+    "metal": "#8a8d8f",
+    "glass": "#3e474d"
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "rt:g0",
+     "kind": "window",
+     "u": 0.3,
+     "v": 0.15,
+     "w": 2.7,
+     "h": 2.85,
+     "transom_fraction": 0.2,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "rt:g1",
+     "kind": "window",
+     "u": 3.3,
+     "v": 0.15,
+     "w": 3.0,
+     "h": 2.85,
+     "transom_fraction": 0.2,
+     "privacy_fraction": 0
+    },
+    {
+     "id": "rt:door",
+     "kind": "door",
+     "u": 6.5,
+     "v": 0.0,
+     "w": 1.0,
+     "h": 2.4,
+     "leaf_count": 1,
+     "operation": "hinged",
+     "glazed": true
+    },
+    {
+     "id": "rt:g2",
+     "kind": "window",
+     "u": 7.7,
+     "v": 0.15,
+     "w": 3.1,
+     "h": 2.85,
+     "transom_fraction": 0.2,
+     "privacy_fraction": 0
+    }
+   ],
+   "awnings": [],
+   "extra_signs": [
+    {
+     "kind": "board",
+     "u": 3.6,
+     "v": 3.05,
+     "w": 3.6,
+     "h": 0.42,
+     "offset": 0.0,
+     "thick": 0.05,
+     "bg": "#1c1c1c",
+     "edge_colour": "#1c1c1c",
+     "layers": [
+      {
+       "type": "text",
+       "text": "Round Table Pizza",
+       "x": 0.5,
+       "y": 0.5,
+       "size": 0.6,
+       "fill": "#ffffff",
+       "font": "Helvetica, Arial, sans-serif",
+       "weight": 600
+      }
+     ],
+     "id": "sf-round-table-pizza:ext0"
+    }
+   ],
+   "signs": [],
+   "lights": [],
+   "edge": 51,
+   "evidence": {
+    "kind": "observed",
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ],
+ "seating": [],
+ "street": {
+  "name": "North Point Street",
+  "osm_id": 8918950,
+  "sidewalk_m": 4.57,
+  "kerb_m": 0.08,
+  "road_m": 11.92,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 14.75,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 8918950 (curb_geometry)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0016258",
+   "footprint": [
+    [
+     -42.023,
+     -19.746
+    ],
+    [
+     -26.867,
+     -17.19
+    ],
+    [
+     -29.714,
+     -0.911
+    ],
+    [
+     -44.606,
+     -3.263
+    ]
+   ],
+   "height_m": 8.66,
+   "colour": "#433833",
+   "roof_colour": "#a19e9b"
+  },
+  {
+   "id": "201006.0161030",
+   "footprint": [
+    [
+     0.55,
+     -34.285
+    ],
+    [
+     11.728,
+     -32.616
+    ],
+    [
+     11.015,
+     -28.476
+    ],
+    [
+     -0.163,
+     -30.305
+    ]
+   ],
+   "height_m": 3.98,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0000431",
+   "footprint": [
+    [
+     12.308,
+     29.213
+    ],
+    [
+     4.125,
+     78.439
+    ],
+    [
+     -75.818,
+     65.274
+    ],
+    [
+     -69.65,
+     26.829
+    ],
+    [
+     -45.923,
+     30.558
+    ],
+    [
+     -44.743,
+     23.47
+    ],
+    [
+     -66.675,
+     19.788
+    ],
+    [
+     -67.329,
+     15.134
+    ]
+   ],
+   "height_m": 4.91,
+   "colour": "#3d4247",
+   "roof_colour": "#ece8d4"
+  },
+  {
+   "id": "201006.0001476",
+   "footprint": [
+    [
+     42.56,
+     7.743
+    ],
+    [
+     38.41,
+     7.037
+    ],
+    [
+     38.779,
+     4.396
+    ],
+    [
+     37.446,
+     5.973
+    ],
+    [
+     26.093,
+     4.133
+    ],
+    [
+     25.221,
+     2.239
+    ],
+    [
+     24.844,
+     4.797
+    ],
+    [
+     20.702,
+     4.171
+    ],
+    [
+     22.141,
+     -5.39
+    ],
+    [
+     24.02,
+     -5.088
+    ],
+    [
+     25.306,
+     -13.213
+    ],
+    [
+     26.973,
+     -13.053
+    ],
+    [
+     27.7,
+     -17.926
+    ],
+    [
+     26.121,
+     -18.12
+    ],
+    [
+     27.48,
+     -27.085
+    ],
+    [
+     28.721,
+     -26.867
+    ],
+    [
+     29.496,
+     -39.789
+    ],
+    [
+     31.222,
+     -40.652
+    ],
+    [
+     29.7,
+     -40.868
+    ],
+    [
+     30.088,
+     -43.332
+    ],
+    [
+     26.475,
+     -43.885
+    ],
+    [
+     26.185,
+     -41.567
+    ],
+    [
+     20.567,
+     -42.448
+    ],
+    [
+     20.661,
+     -43.863
+    ],
+    [
+     18.857,
+     -44.131
+    ],
+    [
+     18.646,
+     -42.727
+    ],
+    [
+     1.609,
+     -45.523
+    ],
+    [
+     1.786,
+     -46.931
+    ],
+    [
+     -0.052,
+     -47.119
+    ],
+    [
+     -0.227,
+     -45.823
+    ],
+    [
+     -5.946,
+     -46.824
+    ],
+    [
+     -4.24,
+     -61.49
+    ],
+    [
+     -1.054,
+     -62.023
+    ],
+    [
+     -0.26,
+     -66.641
+    ],
+    [
+     7.629,
+     -63.805
+    ],
+    [
+     8.064,
+     -65.245
+    ],
+    [
+     13.669,
+     -64.198
+    ],
+    [
+     13.504,
+     -62.929
+    ],
+    [
+     21.707,
+     -63.022
+    ],
+    [
+     21.62,
+     -61.691
+    ],
+    [
+     25.373,
+     -61.084
+    ],
+    [
+     24.805,
+     -58.037
+    ],
+    [
+     28.754,
+     -59.06
+    ],
+    [
+     34.372,
+     -51.735
+    ],
+    [
+     34.091,
+     -49.751
+    ],
+    [
+     36.274,
+     -49.309
+    ],
+    [
+     39.946,
+     -44.861
+    ],
+    [
+     39.679,
+     -43.305
+    ],
+    [
+     50.359,
+     -41.576
+    ]
+   ],
+   "height_m": 13.12,
+   "colour": "#735d4b",
+   "roof_colour": "#5c6481"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "191043346797223",
+   "slot": "sign",
+   "captured_at": "2022-06-08T16:33:08+00:00",
+   "camera_type": "spherical",
+   "x": -4.1,
+   "y": 17.085,
+   "z": 2.0,
+   "heading": 255.98,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "636782927713751",
+   "slot": "elevation",
+   "captured_at": "2021-08-04T16:58:30+00:00",
+   "camera_type": "spherical",
+   "x": 2.992,
+   "y": 18.578,
+   "z": 2.0,
+   "heading": 255.23,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "310249804022764",
+   "slot": "oblique-left",
+   "captured_at": "2016-09-28T10:59:20+00:00",
+   "camera_type": "perspective",
+   "x": 8.292,
+   "y": 14.141,
+   "z": 2.0,
+   "heading": 181.89,
+   "hfov": 79.98,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "677486733827446",
+   "slot": "extra",
+   "captured_at": "2022-06-08T16:33:08+00:00",
+   "camera_type": "spherical",
+   "x": -3.072,
+   "y": 17.299,
+   "z": 2.0,
+   "heading": 255.82,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": "1969",
+  "stories": 3,
+  "use": "Multi-Family Residential",
+  "class": "Apartment 15 Units or more",
+  "historic": {
+   "ceqacode": "B",
+   "ceqacodereason": "No evaluation and 45 years or older",
+   "yearbuilt": "1969",
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {
+   "dining_sqft": [
+    1000,
+    2000
+   ]
+  },
+  "services": null,
+  "outdoor": {
+   "kinds": [],
+   "confidence": 0.0,
+   "sources": [],
+   "osm_says_no": false
+  },
+  "last_exterior_change": null,
+  "tenants_on_face": 1
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.parapet_h": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.material": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.colour": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.openings": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.friezes": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.belts": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.bands": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.balconies": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.51.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "seating": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  },
+  "street_objects": {
+   "kind": "observed",
+   "frames": [
+    "191043346797223",
+    "310249804022764",
+    "636782927713751",
+    "677486733827446"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "confidence": 0.42,
+   "read_by": "claude-opus-5-5"
+  }
+ },
+ "street_objects": [
+  {
+   "kind": "tree",
+   "u": 5.5,
+   "w": 4.5,
+   "r": 2.3,
+   "trunk_h": 2.8,
+   "colour": "#6d8a45",
+   "edge": 51,
+   "id": "opus-stre-51-0"
+  },
+  {
+   "kind": "tree",
+   "u": 11.4,
+   "w": 2.5,
+   "r": 1.4,
+   "trunk_h": 2.6,
+   "colour": "#6d8a45",
+   "edge": 51,
+   "id": "opus-stre-51-1"
+  }
+ ],
+ "observations_applied": 17
+}

@@ -1,0 +1,1813 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "marina-pizza-and-pasta",
+ "title": "Marina Pizza and Pasta",
+ "business_id": "mb-b04dcda1fa1c",
+ "area": "marina-union",
+ "address": {
+  "number": 2139,
+  "number_hi": null,
+  "street": "LOMBARD ST",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": "lombard",
+ "business_type": {
+  "tag": "italian",
+  "kinds": [
+   "italian"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.43667576,
+  37.79962942
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0019928",
+ "app_building": "272580070",
+ "footprint": [
+  [
+   -4.038,
+   -0.533
+  ],
+  [
+   -2.951,
+   -8.088
+  ],
+  [
+   0.583,
+   -7.568
+  ],
+  [
+   1.011,
+   -10.55
+  ],
+  [
+   -2.522,
+   -11.072
+  ],
+  [
+   -0.203,
+   -27.409
+  ],
+  [
+   8.731,
+   -26.108
+  ],
+  [
+   4.038,
+   0.534
+  ]
+ ],
+ "height_m": 12.4,
+ "floors": [
+  {
+   "v": 0,
+   "h": 3.7
+  },
+  {
+   "v": 3.7,
+   "h": 2.7
+  },
+  {
+   "v": 6.4,
+   "h": 2.7
+  },
+  {
+   "v": 9.1,
+   "h": 2.7
+  }
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#dbe1d8",
+  "parapet_h": 0.6,
+  "cornice": {
+   "h": 0.12,
+   "depth": 0.08,
+   "colour": "#ece8df",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 7.63,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 3.57,
+   "role": "recess",
+   "street": "MOULTON ST",
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 3.01,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w2:f1:w0",
+     "kind": "window",
+     "u": 0.96,
+     "v": 4.55,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w0",
+     "kind": "window",
+     "u": 0.96,
+     "v": 6.87,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f3:w0",
+     "kind": "window",
+     "u": 0.96,
+     "v": 9.2,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 3.57,
+   "role": "recess",
+   "street": "LOMBARD ST",
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w4",
+   "edge": 4,
+   "length_m": 16.5,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w5",
+   "edge": 5,
+   "length_m": 9.03,
+   "role": "street",
+   "street": "MOULTON ST",
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w5:f1:w0",
+     "kind": "window",
+     "u": 0.95,
+     "v": 4.55,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f1:w1",
+     "kind": "window",
+     "u": 3.96,
+     "v": 4.55,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f1:w2",
+     "kind": "window",
+     "u": 6.97,
+     "v": 4.55,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w0",
+     "kind": "window",
+     "u": 0.95,
+     "v": 6.87,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w1",
+     "kind": "window",
+     "u": 3.96,
+     "v": 6.87,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f2:w2",
+     "kind": "window",
+     "u": 6.97,
+     "v": 6.87,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f3:w0",
+     "kind": "window",
+     "u": 0.95,
+     "v": 9.2,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f3:w1",
+     "kind": "window",
+     "u": 3.96,
+     "v": 9.2,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w5:f3:w2",
+     "kind": "window",
+     "u": 6.97,
+     "v": 9.2,
+     "w": 1.1,
+     "h": 1.35,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w6",
+   "edge": 6,
+   "length_m": 27.05,
+   "role": "party",
+   "street": null,
+   "material": "concrete",
+   "colour": "#b9b3a8",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w7",
+   "edge": 7,
+   "length_m": 8.15,
+   "role": "street",
+   "street": "LOMBARD ST",
+   "material": "wood_siding",
+   "colour": "#b8ad9f",
+   "texture_scale": 1.0,
+   "trim_colour": "#ece8df",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "entry-2137",
+     "kind": "door",
+     "u": 0.55,
+     "v": 0.0,
+     "w": 0.95,
+     "h": 2.45,
+     "shape": "arched",
+     "colour": "#2a2826",
+     "glazed": false
+    },
+    {
+     "id": "bal-door-2",
+     "kind": "window",
+     "u": 1.0,
+     "v": 4.05,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bal-door-3",
+     "kind": "window",
+     "u": 1.0,
+     "v": 6.75,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bal-door-4",
+     "kind": "window",
+     "u": 1.0,
+     "v": 9.45,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bay",
+     "kind": "bay",
+     "u": 3.5,
+     "w": 4.5,
+     "v0": 3.9,
+     "v1": 9.9,
+     "projection": 0.6,
+     "front_share": 0.7,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#b8ad9f",
+     "trim_colour": "#ece8df",
+     "v": 4.65,
+     "h": 5.0
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   },
+   "pilasters": [],
+   "friezes": [],
+   "bands": [
+    {
+     "v0": 3.0,
+     "v1": 3.65,
+     "colour": "#f0eee8",
+     "id": "w7:ban0"
+    }
+   ],
+   "balconies": [
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 3.9,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal0"
+    },
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 6.6,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal1"
+    },
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 9.3,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal2"
+    }
+   ],
+   "ornaments": []
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-marina-pizza-and-pasta",
+   "business_id": "mb-b04dcda1fa1c",
+   "category": "restaurant",
+   "brand": null,
+   "name": "Marina Pizza and Pasta",
+   "u0": 1.75,
+   "u1": 8.15,
+   "band_h": 3.65,
+   "material": "stucco",
+   "palette": {
+    "wall": "#f0eee8",
+    "accent": "#2a2a2a",
+    "frame": "#1c1c1c",
+    "base": "#a19b91",
+    "letter": "#1c1c1c",
+    "metal": "#8a8d8f",
+    "glass": "#3a4045"
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "mp:g0",
+     "kind": "window",
+     "u": 1.85,
+     "v": 0.65,
+     "w": 4.6,
+     "h": 2.3,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0.25
+    },
+    {
+     "id": "mp:door",
+     "kind": "door",
+     "u": 6.6,
+     "v": 0.0,
+     "w": 1.1,
+     "h": 2.45,
+     "leaf_count": 1,
+     "operation": "hinged",
+     "glazed": true
+    }
+   ],
+   "awnings": [],
+   "extra_signs": [
+    {
+     "id": "mp-board",
+     "kind": "board",
+     "u": 2.4,
+     "v": 3.05,
+     "w": 4.0,
+     "h": 0.5,
+     "offset": 0.02,
+     "thick": 0.04,
+     "bg": "#f0eee8",
+     "edge_colour": "#f0eee8",
+     "layers": [
+      {
+       "type": "text",
+       "text": "Marina Pizza and Pasta",
+       "x": 0.5,
+       "y": 0.5,
+       "size": 0.6,
+       "fill": "#1c1c1c",
+       "font": "Helvetica, Arial, sans-serif",
+       "weight": 600
+      }
+     ]
+    }
+   ],
+   "signs": [],
+   "lights": [],
+   "edge": 7,
+   "evidence": {
+    "kind": "observed",
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ],
+ "seating": [],
+ "street": {
+  "name": "Lombard Street",
+  "osm_id": 85562583,
+  "sidewalk_m": 5.35,
+  "kerb_m": 0.15,
+  "road_m": 9.94,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 10.32,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 85562583 (row_minus_footways)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0167281",
+   "footprint": [
+    [
+     24.253,
+     -11.332
+    ],
+    [
+     20.086,
+     -11.973
+    ],
+    [
+     20.769,
+     -16.459
+    ],
+    [
+     24.936,
+     -15.818
+    ]
+   ],
+   "height_m": 3.53,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c8a84"
+  },
+  {
+   "id": "201006.0141860",
+   "footprint": [
+    [
+     -2.54,
+     -11.331
+    ],
+    [
+     -4.335,
+     -0.454
+    ],
+    [
+     -12.461,
+     -1.809
+    ],
+    [
+     -10.688,
+     -12.69
+    ]
+   ],
+   "height_m": 7.57,
+   "colour": "#93887a",
+   "roof_colour": "#d9ded5"
+  },
+  {
+   "id": "201006.0128652",
+   "footprint": [
+    [
+     -14.491,
+     -42.098
+    ],
+    [
+     -12.883,
+     -52.791
+    ],
+    [
+     -4.657,
+     -51.541
+    ],
+    [
+     -5.891,
+     -39.902
+    ]
+   ],
+   "height_m": 5.85,
+   "colour": "#d9d2c3",
+   "roof_colour": "#a5a5a1"
+  },
+  {
+   "id": "201006.0131967",
+   "footprint": [
+    [
+     2.042,
+     -37.727
+    ],
+    [
+     -6.073,
+     -38.585
+    ],
+    [
+     -4.274,
+     -50.06
+    ],
+    [
+     3.869,
+     -49.442
+    ]
+   ],
+   "height_m": 11.3,
+   "colour": "#bdb8ae",
+   "roof_colour": "#8e9398"
+  },
+  {
+   "id": "201006.0013207",
+   "footprint": [
+    [
+     -39.196,
+     -5.129
+    ],
+    [
+     -37.174,
+     -17.78
+    ],
+    [
+     -39.612,
+     -23.847
+    ],
+    [
+     -39.101,
+     -27.014
+    ],
+    [
+     -35.473,
+     -28.305
+    ],
+    [
+     -34.859,
+     -31.888
+    ],
+    [
+     -33.102,
+     -32.942
+    ],
+    [
+     -24.835,
+     -31.63
+    ],
+    [
+     -29.081,
+     -4.533
+    ]
+   ],
+   "height_m": 4.83,
+   "colour": "#5f5b5a",
+   "roof_colour": "#aeb0ae"
+  },
+  {
+   "id": "201006.0013870",
+   "footprint": [
+    [
+     16.711,
+     39.91
+    ],
+    [
+     13.321,
+     39.418
+    ],
+    [
+     12.842,
+     42.45
+    ],
+    [
+     6.098,
+     41.335
+    ],
+    [
+     7.542,
+     31.616
+    ],
+    [
+     24.544,
+     33.83
+    ],
+    [
+     39.282,
+     37.278
+    ],
+    [
+     40.488,
+     38.698
+    ],
+    [
+     39.13,
+     46.57
+    ],
+    [
+     28.785,
+     44.699
+    ],
+    [
+     29.504,
+     40.458
+    ],
+    [
+     23.657,
+     39.43
+    ],
+    [
+     22.94,
+     43.952
+    ],
+    [
+     16.225,
+     42.969
+    ]
+   ],
+   "height_m": 7.9,
+   "colour": "#d9d2c3",
+   "roof_colour": "#999da3"
+  },
+  {
+   "id": "201006.0020069",
+   "footprint": [
+    [
+     50.042,
+     -19.71
+    ],
+    [
+     50.299,
+     -15.595
+    ],
+    [
+     48.776,
+     -12.047
+    ],
+    [
+     20.557,
+     -16.598
+    ],
+    [
+     21.826,
+     -23.827
+    ]
+   ],
+   "height_m": 8.35,
+   "colour": "#bdb8ae",
+   "roof_colour": "#d6dcd1"
+  },
+  {
+   "id": "201006.0021483",
+   "footprint": [
+    [
+     13.123,
+     49.411
+    ],
+    [
+     17.976,
+     50.1
+    ],
+    [
+     18.366,
+     47.398
+    ],
+    [
+     13.611,
+     46.703
+    ],
+    [
+     14.22,
+     42.675
+    ],
+    [
+     24.909,
+     44.24
+    ],
+    [
+     24.714,
+     45.435
+    ],
+    [
+     27.55,
+     45.85
+    ],
+    [
+     27.771,
+     44.52
+    ],
+    [
+     39.13,
+     46.57
+    ],
+    [
+     37.647,
+     55.61
+    ],
+    [
+     12.753,
+     51.721
+    ]
+   ],
+   "height_m": 8.54,
+   "colour": "#8b8a82",
+   "roof_colour": "#eaf1e9"
+  },
+  {
+   "id": "201006.0074385",
+   "footprint": [
+    [
+     3.09,
+     59.446
+    ],
+    [
+     -4.978,
+     58.133
+    ],
+    [
+     -4.052,
+     52.454
+    ],
+    [
+     -2.266,
+     52.762
+    ],
+    [
+     -1.897,
+     50.748
+    ],
+    [
+     -0.873,
+     44.581
+    ],
+    [
+     -2.565,
+     44.288
+    ],
+    [
+     -1.858,
+     40.155
+    ],
+    [
+     6.098,
+     41.335
+    ]
+   ],
+   "height_m": 7.78,
+   "colour": "#999794",
+   "roof_colour": "#e3eae4"
+  },
+  {
+   "id": "201006.0145108",
+   "footprint": [
+    [
+     11.4,
+     -46.81
+    ],
+    [
+     9.993,
+     -36.616
+    ],
+    [
+     2.042,
+     -37.727
+    ],
+    [
+     3.869,
+     -49.442
+    ]
+   ],
+   "height_m": 9.16,
+   "colour": "#bcb9ac",
+   "roof_colour": "#d6dcd3"
+  },
+  {
+   "id": "201006.0150223",
+   "footprint": [
+    [
+     6.098,
+     41.335
+    ],
+    [
+     -1.858,
+     40.155
+    ],
+    [
+     -0.807,
+     30.685
+    ],
+    [
+     7.168,
+     32.024
+    ]
+   ],
+   "height_m": 8.09,
+   "colour": "#999794",
+   "roof_colour": "#e3eae4"
+  },
+  {
+   "id": "201006.0150712",
+   "footprint": [
+    [
+     10.269,
+     -37.003
+    ],
+    [
+     12.056,
+     -50.478
+    ],
+    [
+     17.763,
+     -49.69
+    ],
+    [
+     16.176,
+     -36.184
+    ]
+   ],
+   "height_m": 12.4,
+   "colour": "#bdb8ae",
+   "roof_colour": "#7a7f89"
+  },
+  {
+   "id": "201006.0151173",
+   "footprint": [
+    [
+     23.653,
+     -48.846
+    ],
+    [
+     21.808,
+     -35.376
+    ],
+    [
+     16.176,
+     -36.184
+    ],
+    [
+     17.763,
+     -49.69
+    ]
+   ],
+   "height_m": 12.35,
+   "colour": "#c1bab7",
+   "roof_colour": "#86919e"
+  },
+  {
+   "id": "201006.0151243",
+   "footprint": [
+    [
+     -14.432,
+     -53.052
+    ],
+    [
+     -16.27,
+     -41.199
+    ],
+    [
+     -22.886,
+     -42.23
+    ],
+    [
+     -20.833,
+     -54.049
+    ]
+   ],
+   "height_m": 3.66,
+   "colour": "#d9d2c3",
+   "roof_colour": "#d5d8cd"
+  },
+  {
+   "id": "201006.0151943",
+   "footprint": [
+    [
+     29.47,
+     -47.967
+    ],
+    [
+     27.328,
+     -34.541
+    ],
+    [
+     21.802,
+     -35.333
+    ],
+    [
+     23.647,
+     -48.802
+    ]
+   ],
+   "height_m": 12.27,
+   "colour": "#bdb8ae",
+   "roof_colour": "#6f7a8a"
+  },
+  {
+   "id": "201006.0026596",
+   "footprint": [
+    [
+     24.834,
+     4.021
+    ],
+    [
+     26.439,
+     -5.879
+    ],
+    [
+     45.716,
+     -2.781
+    ],
+    [
+     44.241,
+     6.781
+    ]
+   ],
+   "height_m": 4.74,
+   "colour": "#d9d2c3",
+   "roof_colour": "#cfd3cc"
+  },
+  {
+   "id": "201006.0031548",
+   "footprint": [
+    [
+     17.672,
+     -6.13
+    ],
+    [
+     18.729,
+     -4.974
+    ],
+    [
+     17.368,
+     3.457
+    ],
+    [
+     10.599,
+     2.353
+    ],
+    [
+     12.08,
+     -6.825
+    ],
+    [
+     14.15,
+     -6.489
+    ],
+    [
+     12.336,
+     -8.412
+    ],
+    [
+     15.881,
+     -24.77
+    ],
+    [
+     21.826,
+     -23.827
+    ],
+    [
+     19.089,
+     -7.204
+    ]
+   ],
+   "height_m": 10.13,
+   "colour": "#d9d2c3",
+   "roof_colour": "#e6efe8"
+  },
+  {
+   "id": "201006.0032789",
+   "footprint": [
+    [
+     14.864,
+     -24.961
+    ],
+    [
+     10.742,
+     1.468
+    ],
+    [
+     4.038,
+     0.534
+    ],
+    [
+     8.731,
+     -26.108
+    ]
+   ],
+   "height_m": 8.67,
+   "colour": "#444241",
+   "roof_colour": "#b4b9b4"
+  },
+  {
+   "id": "201006.0048998",
+   "footprint": [
+    [
+     -20.676,
+     -17.062
+    ],
+    [
+     -21.168,
+     -11.24
+    ],
+    [
+     -19.588,
+     -11.001
+    ],
+    [
+     -20.619,
+     -4.099
+    ],
+    [
+     -27.34,
+     -3.954
+    ],
+    [
+     -28.872,
+     -5.346
+    ],
+    [
+     -25.92,
+     -24.375
+    ],
+    [
+     -17.532,
+     -23.192
+    ],
+    [
+     -18.299,
+     -18.127
+    ]
+   ],
+   "height_m": 9.47,
+   "colour": "#d9d2c3",
+   "roof_colour": "#cfd4d1"
+  },
+  {
+   "id": "201006.0040218",
+   "footprint": [
+    [
+     -20.69,
+     -2.82
+    ],
+    [
+     -17.637,
+     -22.438
+    ],
+    [
+     -9.547,
+     -21.181
+    ],
+    [
+     -12.171,
+     -11.871
+    ],
+    [
+     -10.866,
+     -11.599
+    ],
+    [
+     -12.461,
+     -1.809
+    ]
+   ],
+   "height_m": 9.9,
+   "colour": "#d9d2c3",
+   "roof_colour": "#dce2da"
+  },
+  {
+   "id": "201006.0157056",
+   "footprint": [
+    [
+     -1.454,
+     -18.558
+    ],
+    [
+     -8.721,
+     -19.744
+    ],
+    [
+     -7.318,
+     -28.524
+    ],
+    [
+     -0.203,
+     -27.409
+    ]
+   ],
+   "height_m": 8.1,
+   "colour": "#d9d2c3",
+   "roof_colour": "#778491"
+  },
+  {
+   "id": "201006.0164432",
+   "footprint": [
+    [
+     -22.658,
+     -24.264
+    ],
+    [
+     -21.365,
+     -31.247
+    ],
+    [
+     -16.09,
+     -30.414
+    ],
+    [
+     -16.813,
+     -25.79
+    ],
+    [
+     -19.573,
+     -26.226
+    ],
+    [
+     -19.916,
+     -23.862
+    ]
+   ],
+   "height_m": 6.42,
+   "colour": "#d9d2c3",
+   "roof_colour": "#60667e"
+  },
+  {
+   "id": "201006.0003971",
+   "footprint": [
+    [
+     -48.649,
+     22.002
+    ],
+    [
+     -48.074,
+     23.272
+    ],
+    [
+     -41.08,
+     23.183
+    ],
+    [
+     -40.505,
+     24.453
+    ],
+    [
+     -33.627,
+     24.399
+    ],
+    [
+     -32.829,
+     25.655
+    ],
+    [
+     -34.691,
+     38.208
+    ],
+    [
+     -36.113,
+     37.982
+    ],
+    [
+     -39.402,
+     67.346
+    ],
+    [
+     -43.337,
+     66.718
+    ],
+    [
+     -42.999,
+     64.567
+    ],
+    [
+     -54.1,
+     62.788
+    ],
+    [
+     -54.424,
+     64.849
+    ],
+    [
+     -58.302,
+     64.23
+    ],
+    [
+     -51.861,
+     22.695
+    ]
+   ],
+   "height_m": 12.8,
+   "colour": "#615b53",
+   "roof_colour": "#a7a9a7"
+  },
+  {
+   "id": "201006.0007823",
+   "footprint": [
+    [
+     54.513,
+     -48.165
+    ],
+    [
+     51.577,
+     -29.811
+    ],
+    [
+     27.203,
+     -33.755
+    ],
+    [
+     30.117,
+     -51.989
+    ]
+   ],
+   "height_m": 7.02,
+   "colour": "#7e8fa2",
+   "roof_colour": "#aeb4b7"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "1368552763691426",
+   "slot": "sign",
+   "captured_at": "2023-04-02T01:37:31+00:00",
+   "camera_type": "perspective",
+   "x": -3.995,
+   "y": 6.792,
+   "z": 2.0,
+   "heading": 138.11,
+   "hfov": 111.2,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "513836799705461",
+   "slot": "elevation",
+   "captured_at": "2021-08-05T16:05:29+00:00",
+   "camera_type": "spherical",
+   "x": -4.985,
+   "y": 7.121,
+   "z": 2.0,
+   "heading": 85.77,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "578828003129635",
+   "slot": "oblique-left",
+   "captured_at": "2021-08-05T16:30:57+00:00",
+   "camera_type": "spherical",
+   "x": 6.822,
+   "y": 20.539,
+   "z": 2.0,
+   "heading": 266.32,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1097648674970859",
+   "slot": "oblique-right",
+   "captured_at": "2023-04-02T00:34:14+00:00",
+   "camera_type": "perspective",
+   "x": -16.623,
+   "y": 9.284,
+   "z": 2.0,
+   "heading": 84.36,
+   "hfov": 90.45,
+   "width": 2704,
+   "height": 920,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "906097173311372",
+   "slot": "extra",
+   "captured_at": "2021-08-04T17:15:30+00:00",
+   "camera_type": "spherical",
+   "x": -8.303,
+   "y": 20.404,
+   "z": 2.0,
+   "heading": 255.85,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": null,
+  "stories": null,
+  "use": null,
+  "class": null,
+  "historic": {
+   "ceqacode": "B",
+   "ceqacodereason": "No evaluation and 45 years or older",
+   "yearbuilt": null,
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {},
+  "services": null,
+  "outdoor": {
+   "kinds": [],
+   "confidence": 0.0,
+   "sources": [],
+   "osm_says_no": false
+  },
+  "last_exterior_change": null,
+  "tenants_on_face": 2
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.parapet_h": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.material": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.colour": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.openings": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.belts": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.bands": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.balconies": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.7.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "seating": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "street_objects": {
+   "kind": "observed",
+   "frames": [
+    "1368552763691426",
+    "513836799705461",
+    "578828003129635"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  }
+ },
+ "street_objects": [],
+ "observations_applied": 17
+}

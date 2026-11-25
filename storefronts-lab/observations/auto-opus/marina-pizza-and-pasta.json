@@ -1,0 +1,477 @@
+{
+ "model": "marina-pizza-and-pasta",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "Photos predate the tenant record (2023-03). The 2021 shop showed only a neon PIZZA sign, so the model uses a plain board with the record name. No awning is visible. The grid image appears to show a neighbouring building, so the wall was read from photo 2. The three stacked balconies and balcony doors are now listed one per floor. The two-storey bay sits at the right with a setback glass penthouse above. The 2023 photo seems to show a different frontage.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 12.4,
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.7
+    },
+    {
+     "v": 3.7,
+     "h": 2.7
+    },
+    {
+     "v": 6.4,
+     "h": 2.7
+    },
+    {
+     "v": 9.1,
+     "h": 2.7
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.08,
+    "colour": "#ece8df",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.colour",
+   "value": "#b8ad9f",
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.trim_colour",
+   "value": "#ece8df",
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.openings",
+   "value": [
+    {
+     "id": "entry-2137",
+     "kind": "door",
+     "u": 0.55,
+     "v": 0.0,
+     "w": 0.95,
+     "h": 2.45,
+     "shape": "arched",
+     "colour": "#2a2826",
+     "glazed": false
+    },
+    {
+     "id": "bal-door-2",
+     "kind": "window",
+     "u": 1.0,
+     "v": 4.05,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bal-door-3",
+     "kind": "window",
+     "u": 1.0,
+     "v": 6.75,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bal-door-4",
+     "kind": "window",
+     "u": 1.0,
+     "v": 9.45,
+     "w": 1.1,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#ece8df",
+     "pane_colour": "#3d4245",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "bay",
+     "kind": "bay",
+     "u": 3.5,
+     "w": 4.5,
+     "v0": 3.9,
+     "v1": 9.9,
+     "projection": 0.6,
+     "front_share": 0.7,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#b8ad9f",
+     "trim_colour": "#ece8df",
+     "v": 4.65,
+     "h": 5.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.bands",
+   "value": [
+    {
+     "v0": 3.0,
+     "v1": 3.65,
+     "colour": "#f0eee8",
+     "id": "w7:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.balconies",
+   "value": [
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 3.9,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal0"
+    },
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 6.6,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal1"
+    },
+    {
+     "u": 0.2,
+     "w": 2.5,
+     "v": 9.3,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#1e1e1e",
+     "h": 1.0,
+     "id": "w7:bal2"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-marina-pizza-and-pasta",
+     "business_id": "mb-b04dcda1fa1c",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Marina Pizza and Pasta",
+     "u0": 1.75,
+     "u1": 8.15,
+     "band_h": 3.65,
+     "material": "stucco",
+     "palette": {
+      "wall": "#f0eee8",
+      "accent": "#2a2a2a",
+      "frame": "#1c1c1c",
+      "base": "#a19b91",
+      "letter": "#1c1c1c",
+      "metal": "#8a8d8f",
+      "glass": "#3a4045"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "mp:g0",
+       "kind": "window",
+       "u": 1.85,
+       "v": 0.65,
+       "w": 4.6,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.25
+      },
+      {
+       "id": "mp:door",
+       "kind": "door",
+       "u": 6.6,
+       "v": 0.0,
+       "w": 1.1,
+       "h": 2.45,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "mp-board",
+       "kind": "board",
+       "u": 2.4,
+       "v": 3.05,
+       "w": 4.0,
+       "h": 0.5,
+       "offset": 0.02,
+       "thick": 0.04,
+       "bg": "#f0eee8",
+       "edge_colour": "#f0eee8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Marina Pizza and Pasta",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#1c1c1c",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 7,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1368552763691426",
+       "513836799705461",
+       "578828003129635"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1368552763691426",
+     "513836799705461",
+     "578828003129635"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

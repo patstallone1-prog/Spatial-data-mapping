@@ -1,0 +1,520 @@
+{
+ "model": "round-table-pizza",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+ "notes": "Wall is in deep shade and the elevation is half-blocked by a street tree. Upper windows were read as two ribbon windows plus a narrow one on each upper floor; nothing could be read at u 8-11, so nothing is placed there. The 2016 photos predate Round Table Pizza (2018 record), so the plain sign uses the record name. The earlier tenant's blue awning (u 4-9.5) is omitted. Shop glass heads were lowered to 3.0 m and the sign moved onto the shingle fascia above them.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 12.9,
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.6
+    },
+    {
+     "v": 3.6,
+     "h": 4.6
+    },
+    {
+     "v": 8.2,
+     "h": 4.7
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.15,
+    "depth": 0.1,
+    "colour": "#6b4630",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.9,
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.material",
+   "value": "shingle",
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.colour",
+   "value": "#a36d48",
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.trim_colour",
+   "value": "#1c1c1c",
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.openings",
+   "value": [
+    {
+     "id": "w3a",
+     "kind": "window",
+     "u": 0.1,
+     "v": 10.0,
+     "w": 2.4,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w3b",
+     "kind": "window",
+     "u": 3.0,
+     "v": 10.0,
+     "w": 2.6,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w3c",
+     "kind": "window",
+     "u": 6.9,
+     "v": 10.0,
+     "w": 0.9,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2a",
+     "kind": "window",
+     "u": 0.1,
+     "v": 6.9,
+     "w": 2.4,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2b",
+     "kind": "window",
+     "u": 3.0,
+     "v": 6.9,
+     "w": 2.6,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w2c",
+     "kind": "window",
+     "u": 6.9,
+     "v": 6.9,
+     "w": 0.9,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#1c1c1c",
+     "pane_colour": "#4a5560",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.belts",
+   "value": [
+    {
+     "v": 3.55,
+     "h": 0.12,
+     "colour": "#1c1c1c",
+     "depth": 0.05,
+     "id": "w51:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.51.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-round-table-pizza",
+     "business_id": "mb-78a02126c049",
+     "category": "pizza",
+     "brand": "round_table_pizza",
+     "name": "Round Table Pizza",
+     "u0": 0,
+     "u1": 11.31,
+     "band_h": 3.55,
+     "material": "glass",
+     "palette": {
+      "wall": "#a36d48",
+      "accent": "#b0564a",
+      "frame": "#1c1c1c",
+      "base": "#2a2a2a",
+      "letter": "#ffffff",
+      "metal": "#8a8d8f",
+      "glass": "#3e474d"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rt:g0",
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.15,
+       "w": 2.7,
+       "h": 2.85,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rt:g1",
+       "kind": "window",
+       "u": 3.3,
+       "v": 0.15,
+       "w": 3.0,
+       "h": 2.85,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rt:door",
+       "kind": "door",
+       "u": 6.5,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rt:g2",
+       "kind": "window",
+       "u": 7.7,
+       "v": 0.15,
+       "w": 3.1,
+       "h": 2.85,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 3.6,
+       "v": 3.05,
+       "w": 3.6,
+       "h": 0.42,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#1c1c1c",
+       "edge_colour": "#1c1c1c",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Round Table Pizza",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ],
+       "id": "sf-round-table-pizza:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 51,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "191043346797223",
+       "310249804022764",
+       "636782927713751",
+       "677486733827446"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "confidence": 0.42,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "kind": "tree",
+     "u": 5.5,
+     "w": 4.5,
+     "r": 2.3,
+     "trunk_h": 2.8,
+     "colour": "#6d8a45",
+     "edge": 51,
+     "id": "opus-stre-51-0"
+    },
+    {
+     "kind": "tree",
+     "u": 11.4,
+     "w": 2.5,
+     "r": 1.4,
+     "trunk_h": 2.6,
+     "colour": "#6d8a45",
+     "edge": 51,
+     "id": "opus-stre-51-1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "191043346797223",
+     "310249804022764",
+     "636782927713751",
+     "677486733827446"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

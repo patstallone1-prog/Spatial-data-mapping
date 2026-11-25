@@ -1,0 +1,492 @@
+{
+ "model": "nippon-curry",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+ "notes": "The grid is shifted about 0.7 m right of true; the dark building was placed from its right corner at u=9.11 and spans about 6.7 m, consistent with the neighbour's garage-door width. The stretch u 0-2.4 is the grey stucco neighbour (garage door and upper window), modelled as wall openings. The white ground-floor render with its green base is the shop palette. Sidewalk tables are from 2021 and the dining record only.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.9,
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.5
+    },
+    {
+     "v": 3.5,
+     "h": 3.2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.22,
+    "depth": 0.4,
+    "colour": "#a8553a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.2,
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "painted_brick",
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#323234",
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#f2f1ec",
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "nb-garage",
+     "kind": "door",
+     "u": 0.3,
+     "v": 0.0,
+     "w": 1.95,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#c9ccce",
+     "glazed": true
+    },
+    {
+     "id": "nb-win",
+     "kind": "window",
+     "u": 0.0,
+     "v": 4.3,
+     "w": 1.4,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#f2f2f0",
+     "pane_colour": "#5a6266",
+     "depth": 0.08,
+     "sill": false
+    },
+    {
+     "id": "up-l",
+     "kind": "window",
+     "u": 3.2,
+     "v": 3.55,
+     "w": 2.15,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#2f3438",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "up-r",
+     "kind": "window",
+     "u": 5.92,
+     "v": 3.55,
+     "w": 2.15,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#2f3438",
+     "depth": 0.2,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      3.05,
+      8.22
+     ],
+     "w": 0.32,
+     "v0": 3.45,
+     "v1": 5.4,
+     "depth": 0.04,
+     "colour": "#f2f1ec",
+     "groove_colour": "#f2f1ec",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil0"
+    },
+    {
+     "u": [
+      5.62
+     ],
+     "w": 0.6,
+     "v0": 3.45,
+     "v1": 5.4,
+     "depth": 0.04,
+     "colour": "#f2f1ec",
+     "groove_colour": "#f2f1ec",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-nippon-curry",
+     "business_id": "mb-1337b24e6fcd",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Nippon Curry",
+     "u0": 2.4,
+     "u1": 9.11,
+     "band_h": 3.5,
+     "material": "smooth_render",
+     "palette": {
+      "wall": "#f2f1ec",
+      "accent": "#1f8a5a",
+      "frame": "#2a2a2a",
+      "base": "#1f8a5a",
+      "letter": "#f2d21c",
+      "metal": "#2a2a2a",
+      "glass": "#3a4248"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "nc:gate",
+       "kind": "door",
+       "u": 3.05,
+       "v": 0.0,
+       "w": 1.05,
+       "h": 2.7,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "nc:g0",
+       "kind": "window",
+       "u": 4.2,
+       "v": 1.6,
+       "w": 4.4,
+       "h": 1.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "nc-fascia",
+       "kind": "board",
+       "u": 5.75,
+       "v": 2.65,
+       "w": 2.8,
+       "h": 0.85,
+       "offset": 0.0,
+       "thick": 0.06,
+       "bg": "#1f5cb5",
+       "edge_colour": "#1a4d99",
+       "layers": [
+        {
+         "type": "text",
+         "text": "NIPPON CURRY",
+         "x": 0.5,
+         "y": 0.38,
+         "size": 0.4,
+         "fill": "#f2d21c",
+         "font": "Arial Black, sans-serif",
+         "weight": 800
+        },
+        {
+         "type": "text",
+         "text": "feat. HINOYA CURRY",
+         "x": 0.6,
+         "y": 0.78,
+         "size": 0.17,
+         "fill": "#ffffff",
+         "font": "Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "nc-blade",
+       "kind": "blade",
+       "u": 4.65,
+       "v": 3.4,
+       "w": 0.6,
+       "h": 0.85,
+       "offset": 0.3,
+       "thick": 0.08,
+       "bg": "#1f5cb5",
+       "edge_colour": "#1a4d99",
+       "layers": [
+        {
+         "type": "text",
+         "text": "NIPPON CURRY",
+         "x": 0.5,
+         "y": 0.35,
+         "size": 0.18,
+         "fill": "#f2d21c",
+         "font": "Arial Black, sans-serif",
+         "weight": 800
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2177807083120792",
+       "710577426416252",
+       "874649660556975"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "nc-sidewalk",
+     "kind": "sidewalk_strip",
+     "u0": 4.3,
+     "u1": 9.0,
+     "depth_m": 1.8,
+     "offset_m": 0.3,
+     "tables": "two_top",
+     "chair_colour": "#b8bcbf",
+     "deck_colour": "#9a9a96",
+     "roof": "none",
+     "plants": false,
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2177807083120792",
+     "710577426416252",
+     "874649660556975"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

@@ -1,0 +1,580 @@
+{
+ "model": "las-katrinas-taqueria",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+ "notes": "Massing: corner tower 0-4.6 m with piers (parapet about 6.3 m); recessed glazed double door 4.6-7.2 m; taller block 7.2-11.0 m with a flat canopy over a punched window; low wall 11.0-19.6 m (about 5.0 m) with three gooseneck lamps over three panels. Paint is the 2026 scheme (orange stucco, green piers). The 2021 photos show the previous tenant (Outlaw Kitchen, grey, mural), so no lettering or mural was copied. The tenant's fascia board is a plain placeholder carrying the record name; no 2026 lettering on this wall was legible. The record gives the tenant as u 6.2-19.6, but the recessed door at",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.3,
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.7
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.25,
+    "depth": 0.15,
+    "colour": "#2f8a4f",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.4,
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#d9694c",
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#2f8a4f",
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      0.35,
+      4.25
+     ],
+     "w": 0.7,
+     "v0": 0.0,
+     "v1": 6.0,
+     "depth": 0.2,
+     "colour": "#2f8a4f",
+     "groove_colour": "#24703f",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.15,
+     "flutes": 0,
+     "id": "w3:pil0"
+    },
+    {
+     "u": [
+      7.4,
+      10.85
+     ],
+     "w": 0.45,
+     "v0": 0.0,
+     "v1": 5.9,
+     "depth": 0.15,
+     "colour": "#2f8a4f",
+     "groove_colour": "#24703f",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 5.55,
+     "h": 0.2,
+     "colour": "#2f8a4f",
+     "depth": 0.12,
+     "id": "w3:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [
+    {
+     "kind": "panel",
+     "u": 2.3,
+     "v": 5.5,
+     "w": 0.9,
+     "h": 0.3,
+     "colour": "#3a3a38",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w3:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w3-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Corner unit (2101)",
+     "u0": 0,
+     "u1": 4.6,
+     "band_h": 3.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9694c",
+      "accent": "#2f8a4f",
+      "frame": "#1e1e1e",
+      "base": "#2f8a4f",
+      "letter": "#f5f1e8",
+      "metal": "#8a8d8e",
+      "glass": "#3e4a50"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "c:g0",
+       "kind": "window",
+       "u": 1.0,
+       "v": 0.4,
+       "w": 2.6,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1349219800464752",
+       "194108316707781",
+       "321583919706116",
+       "542747073701508",
+       "544461716899283"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-las-katrinas-taqueria",
+     "business_id": "mb-a237dc1a92c8",
+     "category": "restaurant",
+     "brand": null,
+     "name": "LAS KATRINAS TAQUERIA",
+     "u0": 4.6,
+     "u1": 19.6,
+     "band_h": 3.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9694c",
+      "accent": "#2f8a4f",
+      "frame": "#1e1e1e",
+      "base": "#2f8a4f",
+      "letter": "#f5f1e8",
+      "metal": "#8a8d8e",
+      "glass": "#3e4a50"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lk:door",
+       "kind": "door",
+       "u": 5.1,
+       "v": 0.0,
+       "w": 1.6,
+       "h": 2.6,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "lk:g0",
+       "kind": "window",
+       "u": 8.1,
+       "v": 0.85,
+       "w": 1.9,
+       "h": 1.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "lk-canopy",
+       "kind": "flat_canopy",
+       "u0": 7.8,
+       "u1": 10.5,
+       "v": 3.4,
+       "depth_m": 0.9,
+       "drop_m": 0.25,
+       "valance_h": 0.25,
+       "colour": "#2a2a2a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f5f1e8",
+       "font": "sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "lk-fascia",
+       "kind": "board",
+       "u": 4.9,
+       "v": 2.75,
+       "w": 2.0,
+       "h": 0.3,
+       "offset": 0.05,
+       "thick": 0.08,
+       "bg": "#e8e6e0",
+       "edge_colour": "#2a2a2a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "LAS KATRINAS TAQUERIA",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#2a2a2a",
+         "font": "sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "lk-panel",
+       "kind": "board",
+       "u": 11.8,
+       "v": 2.9,
+       "w": 1.7,
+       "h": 1.4,
+       "offset": 0.1,
+       "thick": 0.06,
+       "bg": "#3a3533",
+       "edge_colour": "#222222",
+       "layers": []
+      },
+      {
+       "id": "lk-panel",
+       "kind": "board",
+       "u": 14.4,
+       "v": 2.9,
+       "w": 1.7,
+       "h": 1.4,
+       "offset": 0.1,
+       "thick": 0.06,
+       "bg": "#3a3533",
+       "edge_colour": "#222222",
+       "layers": []
+      },
+      {
+       "id": "lk-panel",
+       "kind": "board",
+       "u": 17.0,
+       "v": 2.9,
+       "w": 1.7,
+       "h": 1.4,
+       "offset": 0.1,
+       "thick": 0.06,
+       "bg": "#3a3533",
+       "edge_colour": "#222222",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 12.4,
+       "u1": 12.9,
+       "v": 4.4,
+       "w": 0.4
+      },
+      {
+       "kind": "gooseneck",
+       "u0": 15.0,
+       "u1": 15.5,
+       "v": 4.4,
+       "w": 0.4
+      },
+      {
+       "kind": "gooseneck",
+       "u0": 17.6,
+       "u1": 18.1,
+       "v": 4.4,
+       "w": 0.4
+      },
+      {
+       "kind": "gooseneck",
+       "u0": 5.6,
+       "u1": 6.1,
+       "v": 4.0,
+       "w": 0.4
+      }
+     ],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1349219800464752",
+       "194108316707781",
+       "321583919706116",
+       "542747073701508",
+       "544461716899283"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "meter-1",
+     "kind": "pole",
+     "u": 8.8,
+     "w": 0.15,
+     "r": 0.05,
+     "trunk_h": 1.4,
+     "colour": "#9a9a9a",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1349219800464752",
+     "194108316707781",
+     "321583919706116",
+     "542747073701508",
+     "544461716899283"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

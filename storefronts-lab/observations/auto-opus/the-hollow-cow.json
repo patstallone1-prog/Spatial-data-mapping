@@ -1,0 +1,538 @@
+{
+ "model": "the-hollow-cow",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "Positions were re-read from the grid with u=L at the corner turret. The building's left corner shows at about u 1.6; the strip at u 0\u20131.6 is treated as the neighbouring lot edge and left blank. The grid puts the cornice at about 10 m, against the 11.7 m LiDAR roof surface; I used the grid. The shop windows were boarded in 2021 and had posters in 2022. The fire escape is approximated as two barred balconies. The small subline on the blade sign is unreadable and was left out.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 10.4,
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.8
+    },
+    {
+     "v": 3.8,
+     "h": 3.1
+    },
+    {
+     "v": 6.9,
+     "h": 3.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.5,
+    "depth": 0.45,
+    "colour": "#e6dfc9",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.3,
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.colour",
+   "value": "#cbc4ad",
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.trim_colour",
+   "value": "#e8e2cc",
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.openings",
+   "value": [
+    {
+     "id": "bayL",
+     "kind": "bay",
+     "u": 1.7,
+     "w": 2.2,
+     "v0": 4.5,
+     "v1": 9.4,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#cbc4ad",
+     "trim_colour": "#ece6d2",
+     "cap": {
+      "h": 0.3,
+      "colour": "#e8e2cc",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.25,
+     "h": 3.9000000000000004
+    },
+    {
+     "id": "turret",
+     "kind": "bay",
+     "u": 5.4,
+     "w": 2.51,
+     "v0": 4.5,
+     "v1": 9.6,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#cbc4ad",
+     "trim_colour": "#ece6d2",
+     "cap": {
+      "h": 0.3,
+      "colour": "#e8e2cc",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.25,
+     "h": 4.1
+    },
+    {
+     "id": "flatdoor",
+     "kind": "door",
+     "u": 1.65,
+     "v": 0.0,
+     "w": 1.2,
+     "h": 2.7,
+     "shape": "rect",
+     "colour": "#2a2a28",
+     "glazed": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.pilasters",
+   "value": [
+    {
+     "u": [
+      3.0
+     ],
+     "w": 0.3,
+     "v0": 0.0,
+     "v1": 3.4,
+     "depth": 0.12,
+     "colour": "#e2dcc6",
+     "groove_colour": "#c9c2ac",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w6:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.friezes",
+   "value": [
+    {
+     "v": 9.4,
+     "h": 0.3,
+     "colour": "#e6dfc9",
+     "motif": "dentil",
+     "motif_colour": "#8a3b3b",
+     "spacing": 0.35,
+     "depth": 0.06,
+     "id": "w6:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.belts",
+   "value": [
+    {
+     "v": 3.45,
+     "h": 0.35,
+     "colour": "#e6dfc9",
+     "depth": 0.25,
+     "id": "w6:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.bands",
+   "value": [
+    {
+     "v0": 4.3,
+     "v1": 4.42,
+     "colour": "#8a3b3b",
+     "id": "w6:ban0"
+    },
+    {
+     "v0": 7.0,
+     "v1": 7.12,
+     "colour": "#8a3b3b",
+     "id": "w6:ban1"
+    },
+    {
+     "v0": 9.3,
+     "v1": 9.4,
+     "colour": "#8a3b3b",
+     "id": "w6:ban2"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.balconies",
+   "value": [
+    {
+     "u": 3.95,
+     "w": 1.6,
+     "v": 4.4,
+     "depth": 0.8,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#3a3a38",
+     "h": 0.9,
+     "id": "w6:bal0"
+    },
+    {
+     "u": 3.95,
+     "w": 1.6,
+     "v": 7.0,
+     "depth": 0.8,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#3a3a38",
+     "h": 0.9,
+     "id": "w6:bal1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.6.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-hollow-cow",
+     "business_id": "mb-763857d30027",
+     "category": "shop",
+     "brand": null,
+     "name": "The Hollow Cow",
+     "u0": 3.15,
+     "u1": 7.91,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e2dcc6",
+      "accent": "#3f5234",
+      "frame": "#2a2a28",
+      "base": "#d8d3c4",
+      "letter": "#f4f1e6",
+      "metal": "#8a8d8a",
+      "glass": "#4f5a5e"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "hc:g0",
+       "kind": "window",
+       "u": 3.3,
+       "v": 0.4,
+       "w": 2.4,
+       "h": 1.9,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      },
+      {
+       "id": "hc:door",
+       "kind": "door",
+       "u": 5.9,
+       "v": 0.0,
+       "w": 0.8,
+       "h": 2.2,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "hc:g1",
+       "kind": "window",
+       "u": 6.8,
+       "v": 0.4,
+       "w": 1.0,
+       "h": 1.9,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.0
+      },
+      {
+       "id": "hc:tr",
+       "kind": "window",
+       "u": 3.3,
+       "v": 2.65,
+       "w": 4.5,
+       "h": 0.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "shed",
+       "u0": 3.2,
+       "u1": 7.91,
+       "v": 2.85,
+       "depth_m": 1.2,
+       "drop_m": 0.65,
+       "valance_h": 0.3,
+       "colour": "#3f5234",
+       "stripe": null,
+       "valance_text": "COFFEE BEANS  PRODUCE  SHISH KEBAB  DELI SANDWICHES  SPIRITS  WINE",
+       "text_colour": "#f4f1e6",
+       "font": "Georgia, serif",
+       "sides": true,
+       "id": "sf-the-hollow-cow:awn0"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "blade",
+       "u": 7.6,
+       "v": 2.9,
+       "w": 1.0,
+       "h": 0.7,
+       "offset": 0.4,
+       "thick": 0.08,
+       "bg": "#f4f2ec",
+       "edge_colour": "#2a2a28",
+       "layers": [
+        {
+         "type": "text",
+         "text": "The Hollow Cow",
+         "x": 0.5,
+         "y": 0.3,
+         "size": 0.22,
+         "fill": "#1e1e1e",
+         "font": "Georgia, serif",
+         "weight": 600
+        }
+       ],
+       "id": "sf-the-hollow-cow:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 6,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "204284801961136",
+       "314808290391254",
+       "549139836135866"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "kind": "pole",
+     "u": 7.9,
+     "w": 0.3,
+     "r": 0.15,
+     "trunk_h": 11.0,
+     "colour": "#7a6a55",
+     "edge": 6,
+     "id": "opus-stre-6-0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "204284801961136",
+     "314808290391254",
+     "549139836135866"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

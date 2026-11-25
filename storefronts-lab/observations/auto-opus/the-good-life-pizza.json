@@ -1,0 +1,390 @@
+{
+ "model": "the-good-life-pizza",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+ "notes": "Wall 1 is taken as the flat front between the corner bay and the neighbour with the Coca-Cola sign. Positions are scaled from those corners in the photo, not from the grid. The facade top is set to the tile eave at about 6.5 m; the LiDAR 7.7 m is taken as the pitched roof behind. The 2016 Wells Fargo awning and lettering are omitted as they predate the tenant, so a plain board with the record name is used instead.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.5,
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.3
+    },
+    {
+     "v": 3.3,
+     "h": 3.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.3,
+    "depth": 0.35,
+    "colour": "#a8553f",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#d9cfa8",
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#f1efe8",
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "w1:up0",
+     "kind": "window",
+     "u": 0.89,
+     "v": 3.75,
+     "w": 0.88,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      3,
+      5
+     ],
+     "glazing": "grid",
+     "frame_colour": "#f1efe8",
+     "pane_colour": "#5c6266",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w1:flatdoor",
+     "kind": "door",
+     "u": 2.06,
+     "v": 0.0,
+     "w": 0.78,
+     "h": 2.2,
+     "shape": "arched",
+     "colour": "#1e1e1e",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 3.3,
+     "colour": "#e9e8e3",
+     "id": "w1:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-good-life-pizza",
+     "business_id": "mb-c9225773be29",
+     "category": "pizza",
+     "brand": null,
+     "name": "The Good Life Pizza",
+     "u0": 0,
+     "u1": 1.95,
+     "band_h": 3.2,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e9e8e3",
+      "accent": "#8a2a2a",
+      "frame": "#c9c9c4",
+      "base": "#bdbdb7",
+      "letter": "#2a2a2a",
+      "metal": "#a5aaa7",
+      "glass": "#55606a"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "gl:g0",
+       "kind": "window",
+       "u": 0.0,
+       "v": 0.35,
+       "w": 1.87,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "gl-board",
+       "kind": "board",
+       "u": 0.05,
+       "v": 2.75,
+       "w": 1.8,
+       "h": 0.4,
+       "offset": 0.0,
+       "thick": 0.04,
+       "bg": "#f4f1ea",
+       "edge_colour": "#2a2a2a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "The Good Life Pizza",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#2a2a2a",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "128845633338882",
+       "159971599835691",
+       "488652238938414",
+       "934283100683287"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "128845633338882",
+     "159971599835691",
+     "488652238938414",
+     "934283100683287"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

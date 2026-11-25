@@ -1,0 +1,541 @@
+{
+ "model": "il-cha",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "Photos (2021, 2023) show a vacant, dark recessed shopfront with no signage. The record's name Il Cha is used with no sign. The visible shop band runs 0.1-6.2 m, not the record's 4.0-8.3 m. The arched gated residential entry with granite surround is at the right end. A street tree smears the grid image across the whole wall; its trunk stands in front of the left neighbour and is omitted. Window positions were read by eye from photo 2; the centre windows are partly hidden behind the fire escape. The left end may be a shallow angled bay (the cornice appears to wrap); it was not modelled.",
+ "dropped": [
+  "band[0]",
+  "band[1]",
+  "band[2]",
+  "band[3]"
+ ],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 10.5,
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.8
+    },
+    {
+     "v": 3.8,
+     "h": 3.0
+    },
+    {
+     "v": 6.8,
+     "h": 3.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.45,
+    "depth": 0.4,
+    "colour": "#e6e4de",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.colour",
+   "value": "#4f575a",
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.trim_colour",
+   "value": "#e8e6e0",
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.openings",
+   "value": [
+    {
+     "id": "w2:l",
+     "kind": "window",
+     "u": 0.45,
+     "v": 4.45,
+     "w": 0.95,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#d9d9d4",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:c",
+     "kind": "window",
+     "u": 3.2,
+     "v": 4.45,
+     "w": 1.2,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#d9d9d4",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:r",
+     "kind": "window",
+     "u": 5.6,
+     "v": 4.45,
+     "w": 1.45,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#e3e3de",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w3:l",
+     "kind": "window",
+     "u": 0.45,
+     "v": 7.4,
+     "w": 0.95,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#d9d9d4",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w3:c",
+     "kind": "window",
+     "u": 3.2,
+     "v": 7.4,
+     "w": 1.2,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#d9d9d4",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w3:r",
+     "kind": "window",
+     "u": 5.4,
+     "v": 7.4,
+     "w": 1.45,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efede8",
+     "pane_colour": "#e3e3de",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "d:gate",
+     "kind": "door",
+     "u": 6.75,
+     "v": 0.15,
+     "w": 1.15,
+     "h": 2.9,
+     "shape": "arched",
+     "colour": "#f0efea",
+     "glazed": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.pilasters",
+   "value": [
+    {
+     "u": [
+      6.45,
+      8.1
+     ],
+     "w": 0.4,
+     "v0": 0.0,
+     "v1": 3.6,
+     "depth": 0.06,
+     "colour": "#9a9690",
+     "groove_colour": "#85817b",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w5:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.balconies",
+   "value": [
+    {
+     "u": 1.8,
+     "w": 2.8,
+     "v": 3.9,
+     "depth": 0.9,
+     "rail": "solid",
+     "rail_h": 1.0,
+     "colour": "#7c8285",
+     "h": 1.0,
+     "id": "w5:bal0"
+    },
+    {
+     "u": 1.8,
+     "w": 2.8,
+     "v": 6.85,
+     "depth": 0.9,
+     "rail": "solid",
+     "rail_h": 1.0,
+     "colour": "#7c8285",
+     "h": 1.0,
+     "id": "w5:bal1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-il-cha",
+     "business_id": "mb-1c40d5f441d3",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Il Cha",
+     "u0": 0.1,
+     "u1": 6.2,
+     "band_h": 3.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#4f575a",
+      "accent": "#1c1d1e",
+      "frame": "#1a1a1a",
+      "base": "#2a2b2c",
+      "letter": "#f2f0ea",
+      "metal": "#9a9ea0",
+      "glass": "#25292b"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.4,
+       "w": 3.6,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "id": "sf-il-cha:ope0"
+      },
+      {
+       "kind": "door",
+       "u": 4.1,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true,
+       "id": "sf-il-cha:ope1"
+      },
+      {
+       "kind": "window",
+       "u": 5.2,
+       "v": 0.4,
+       "w": 0.85,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "id": "sf-il-cha:ope2"
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 6.2,
+       "v": 3.5,
+       "depth_m": 0.9,
+       "drop_m": 0.15,
+       "valance_h": 0.15,
+       "colour": "#2a2c2d",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2f0ea",
+       "font": "Helvetica, sans-serif",
+       "sides": false,
+       "id": "sf-il-cha:awn0"
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 5,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "346522260510418",
+       "391640492296078",
+       "524009206604995",
+       "919943758563314"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "kind": "pole",
+     "u": 0.4,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 1.4,
+     "colour": "#7a7f80",
+     "edge": 5,
+     "id": "opus-stre-5-0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "346522260510418",
+     "391640492296078",
+     "524009206604995",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

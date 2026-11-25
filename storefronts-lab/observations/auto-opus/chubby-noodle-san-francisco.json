@@ -1,0 +1,438 @@
+{
+ "model": "chubby-noodle-san-francisco",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+ "notes": "Positions are taken from the photographed corners: the Webster corner at u=0 and the right end at u=8.5. The grid image puts the building about 2.5 m further along the wall and its height scale disagrees with the LiDAR roof at 11.6 m, so I ignored its placement. The 2022 photos show 'Silver Clouds', which predates the tenant on record; the fascia uses a plain board with the record name instead. Each bay has three windows per floor (front and two sides) over two floors.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 11.9,
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.7
+    },
+    {
+     "v": 3.7,
+     "h": 3.5
+    },
+    {
+     "v": 7.2,
+     "h": 3.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.75,
+    "depth": 0.55,
+    "colour": "#d9cc9a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.3,
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#5f6e55",
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#d9cc9a",
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "bayL",
+     "kind": "bay",
+     "u": -0.2,
+     "w": 2.8,
+     "v0": 3.9,
+     "v1": 10.6,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "painted_wood",
+     "colour": "#d9cc9a",
+     "trim_colour": "#6e2a24",
+     "cap": {
+      "h": 0.3,
+      "colour": "#d9cc9a",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 4.65,
+     "h": 5.699999999999999
+    },
+    {
+     "id": "bayR",
+     "kind": "bay",
+     "u": 5.8,
+     "w": 2.7,
+     "v0": 3.9,
+     "v1": 10.6,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "painted_wood",
+     "colour": "#d9cc9a",
+     "trim_colour": "#6e2a24",
+     "cap": {
+      "h": 0.3,
+      "colour": "#d9cc9a",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 4.65,
+     "h": 5.699999999999999
+    },
+    {
+     "id": "flatsdoor",
+     "kind": "door",
+     "u": 7.2,
+     "v": 0.0,
+     "w": 1.0,
+     "h": 2.8,
+     "shape": "rect",
+     "colour": "#2a2a28",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      0.25,
+      5.75,
+      8.3
+     ],
+     "w": 0.35,
+     "v0": 0.0,
+     "v1": 3.7,
+     "depth": 0.1,
+     "colour": "#d9cc9a",
+     "groove_colour": "#c4b583",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [
+    {
+     "v": 10.65,
+     "h": 0.25,
+     "colour": "#d9cc9a",
+     "motif": "dentil",
+     "motif_colour": "#6e2a24",
+     "spacing": 0.2,
+     "depth": 0.06,
+     "id": "w3:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 7.05,
+     "h": 0.12,
+     "colour": "#6e2a24",
+     "depth": 0.05,
+     "id": "w3:bel0"
+    },
+    {
+     "v": 3.75,
+     "h": 0.2,
+     "colour": "#d9cc9a",
+     "depth": 0.1,
+     "id": "w3:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [
+    {
+     "v0": 10.4,
+     "v1": 10.52,
+     "colour": "#6e2a24",
+     "id": "w3:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-chubby-noodle-san-francisco",
+     "business_id": "mb-ee10aa890f21",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Chubby Noodle San Francisco",
+     "u0": 0.4,
+     "u1": 5.6,
+     "band_h": 3.6,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#5f6e55",
+      "accent": "#1e1e20",
+      "frame": "#d9cc9a",
+      "base": "#4f5c47",
+      "letter": "#f2efe6",
+      "metal": "#8a8d8c",
+      "glass": "#3a4248"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "kind": "door",
+       "u": 0.7,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.6,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true,
+       "id": "sf-chubby-noodle-san-francisco:ope0"
+      },
+      {
+       "kind": "window",
+       "u": 0.7,
+       "v": 2.75,
+       "w": 0.9,
+       "h": 0.5,
+       "transom_fraction": 1.0,
+       "privacy_fraction": 0,
+       "id": "sf-chubby-noodle-san-francisco:ope1"
+      },
+      {
+       "kind": "window",
+       "u": 2.4,
+       "v": 0.85,
+       "w": 3.0,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "id": "sf-chubby-noodle-san-francisco:ope2"
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 2.3,
+       "v": 2.95,
+       "w": 3.2,
+       "h": 0.6,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#1e1e20",
+       "edge_colour": "#1e1e20",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Chubby Noodle",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#f2efe6",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ],
+       "id": "sf-chubby-noodle-san-francisco:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "147783104683580"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "147783104683580"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

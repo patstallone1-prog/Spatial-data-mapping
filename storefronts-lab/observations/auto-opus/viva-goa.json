@@ -1,0 +1,531 @@
+{
+ "model": "viva-goa",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+ "notes": "Awning lettering changed between photos; the 2023 version (TAKE OUT / CATERING 415-440-2600) is used. The awning is clipped to the wall although it runs slightly past u=0. The rooftop canopy and antenna are set back and not modelled on the wall plane. The blade sign stands perpendicular to the wall, so it draws thin on the elevation. Door positions were refined from photo 5.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.4,
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.45
+    },
+    {
+     "v": 3.45,
+     "h": 3.95
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.18,
+    "depth": 0.1,
+    "colour": "#7f8a99",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.3,
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "metal_panel",
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#7c8796",
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.trim_colour",
+   "value": "#9aa3ae",
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.openings",
+   "value": [
+    {
+     "id": "up-l",
+     "kind": "window",
+     "u": 1.05,
+     "v": 3.55,
+     "w": 1.5,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e6e6e2",
+     "pane_colour": "#9ea6a3",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up-m",
+     "kind": "window",
+     "u": 4.1,
+     "v": 3.55,
+     "w": 1.6,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e6e6e2",
+     "pane_colour": "#9ea6a3",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up-r-glassblock",
+     "kind": "window",
+     "u": 6.62,
+     "v": 3.55,
+     "w": 0.95,
+     "h": 1.45,
+     "shape": "rect",
+     "glazing": "grid",
+     "lattice_m": 0.2,
+     "mullions": [
+      5,
+      7
+     ],
+     "frame_colour": "#d9d6cf",
+     "pane_colour": "#b8b2a2",
+     "depth": 0.12,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-viva-goa",
+     "business_id": "mb-713b704ea952",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Viva Goa",
+     "u0": 0,
+     "u1": 7.68,
+     "band_h": 3.45,
+     "material": "stone",
+     "palette": {
+      "wall": "#8a7f72",
+      "accent": "#b5163a",
+      "frame": "#6e1f24",
+      "base": "#7d7366",
+      "letter": "#f6f1ea",
+      "metal": "#8f9396",
+      "glass": "#3e4447"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "vg:g0",
+       "kind": "window",
+       "u": 0.6,
+       "v": 0.95,
+       "w": 1.75,
+       "h": 1.15,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "vg:door",
+       "kind": "door",
+       "u": 3.1,
+       "v": 0.0,
+       "w": 1.1,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "vg:door2",
+       "kind": "door",
+       "u": 6.3,
+       "v": 0.0,
+       "w": 0.75,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      }
+     ],
+     "awnings": [
+      {
+       "id": "vg-awn",
+       "kind": "dome",
+       "u0": 0.0,
+       "u1": 7.68,
+       "v": 3.45,
+       "depth_m": 1.2,
+       "drop_m": 1.15,
+       "valance_h": 0.2,
+       "colour": "#b5163a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f6f1ea",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "vg-awn-letters",
+       "kind": "letters",
+       "u": 1.0,
+       "v": 2.55,
+       "w": 6.3,
+       "h": 0.75,
+       "offset": 0.6,
+       "thick": 0.01,
+       "bg": "#b5163a",
+       "edge_colour": "#b5163a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Viva Goa",
+         "x": 0.33,
+         "y": 0.45,
+         "size": 0.6,
+         "fill": "#f6f1ea",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "Indian Cuisine",
+         "x": 0.76,
+         "y": 0.35,
+         "size": 0.38,
+         "fill": "#f6f1ea",
+         "font": "\"Arial Narrow\", sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "text",
+         "text": "TAKE OUT / CATERING 415-440-2600",
+         "x": 0.76,
+         "y": 0.8,
+         "size": 0.18,
+         "fill": "#f6f1ea",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "vg-blade",
+       "kind": "blade",
+       "u": 0.35,
+       "v": 7.5,
+       "w": 2.0,
+       "h": 1.3,
+       "offset": 0.3,
+       "thick": 0.3,
+       "bg": "#f4f1ea",
+       "edge_colour": "#5b3a26",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Viva Goa",
+         "x": 0.55,
+         "y": 0.4,
+         "size": 0.32,
+         "fill": "#1f4f9a",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "INDIAN CUISINE",
+         "x": 0.55,
+         "y": 0.72,
+         "size": 0.14,
+         "fill": "#c0392b",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "vg-blade-box",
+       "kind": "blade",
+       "u": 0.45,
+       "v": 6.0,
+       "w": 0.7,
+       "h": 1.4,
+       "offset": 0.35,
+       "thick": 0.3,
+       "bg": "#8a5a3a",
+       "edge_colour": "#6b4429",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 4,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "3125044231051665",
+       "353501536285093",
+       "526742941985010",
+       "692188468913485",
+       "742887877335994"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3125044231051665",
+     "353501536285093",
+     "526742941985010",
+     "692188468913485",
+     "742887877335994"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

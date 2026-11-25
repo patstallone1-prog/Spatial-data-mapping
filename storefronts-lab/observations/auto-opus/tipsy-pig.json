@@ -1,0 +1,415 @@
+{
+ "model": "tipsy-pig",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "The shopfront divisions are read from the post positions in photo 2, scaled to the wall corners. The glazing is mostly hidden behind the dining enclosure. The door is placed at the entrance gap. The record lists the dining as sidewalk, so the enclosure is placed close to the wall; its exact offset is uncertain. Parapet height is estimated.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 5.4,
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.4,
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#e6e4dd",
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#f0efea",
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-tipsy-pig",
+     "business_id": "mb-030e4322f896",
+     "category": "shop",
+     "brand": null,
+     "name": "Tipsy Pig",
+     "u0": 0,
+     "u1": 8.3,
+     "band_h": 4.15,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6e4dd",
+      "accent": "#1c1e1d",
+      "frame": "#eeede8",
+      "base": "#1c1e1d",
+      "letter": "#d4a842",
+      "metal": "#2a2a2a",
+      "glass": "#2b3034"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "tp:g0",
+       "kind": "window",
+       "u": 0.45,
+       "v": 0.4,
+       "w": 1.95,
+       "h": 2.8,
+       "transom_fraction": 0.12,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "tp:g1",
+       "kind": "window",
+       "u": 2.6,
+       "v": 0.4,
+       "w": 1.2,
+       "h": 2.8,
+       "transom_fraction": 0.12,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "tp:g2",
+       "kind": "window",
+       "u": 4.0,
+       "v": 0.4,
+       "w": 1.3,
+       "h": 2.8,
+       "transom_fraction": 0.12,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "tp:door",
+       "kind": "door",
+       "u": 5.5,
+       "v": 0.0,
+       "w": 1.2,
+       "h": 2.75,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "tp:g3",
+       "kind": "window",
+       "u": 6.85,
+       "v": 0.4,
+       "w": 1.05,
+       "h": 2.8,
+       "transom_fraction": 0.12,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "tp-fascia",
+       "kind": "board",
+       "u": 0.0,
+       "v": 3.65,
+       "w": 8.1,
+       "h": 0.5,
+       "offset": 0.0,
+       "thick": 0.06,
+       "bg": "#1c1e1d",
+       "edge_colour": "#1c1e1d",
+       "layers": [
+        {
+         "type": "text",
+         "text": "THE TIPSY PIG",
+         "x": 0.46,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#d4a842",
+         "font": "Georgia, \"Times New Roman\", serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 2.6,
+       "u1": 4.9,
+       "v": 4.6,
+       "w": 0.3
+      }
+     ],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "157994929775723",
+       "228394552376770",
+       "3226713144260627"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.6,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "tp-dining-left",
+     "kind": "parklet",
+     "edge": 3,
+     "u0": -0.3,
+     "u1": 5.6,
+     "depth_m": 2.0,
+     "offset_m": 0.3,
+     "barrier": "low_wall",
+     "barrier_h": 1.0,
+     "barrier_colour": "#1c1e1d",
+     "deck_colour": "#8a8780",
+     "tables": "four_top",
+     "chair_colour": "#9a8a6a",
+     "roof": "corrugated",
+     "roof_colour": "#7d8580",
+     "roof_h": 2.85,
+     "plants": false,
+     "evidence": {
+      "kind": "observed",
+      "how": "enclosed dining: black lower wall, white rails with X bracing at the left end, grey corrugated roof",
+      "frames": [
+       "photo2",
+       "photo3"
+      ]
+     }
+    },
+    {
+     "id": "tp-dining-right",
+     "kind": "parklet",
+     "edge": 3,
+     "u0": 6.5,
+     "u1": 8.6,
+     "depth_m": 2.0,
+     "offset_m": 0.3,
+     "barrier": "low_wall",
+     "barrier_h": 1.0,
+     "barrier_colour": "#1c1e1d",
+     "deck_colour": "#8a8780",
+     "tables": "four_top",
+     "chair_colour": "#9a8a6a",
+     "roof": "corrugated",
+     "roof_colour": "#7d8580",
+     "roof_h": 2.85,
+     "plants": false,
+     "evidence": {
+      "kind": "observed",
+      "how": "second section right of the entrance gap",
+      "frames": [
+       "photo2"
+      ]
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "157994929775723",
+     "228394552376770",
+     "3226713144260627"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

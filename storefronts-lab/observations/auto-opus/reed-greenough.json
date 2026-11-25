@@ -1,0 +1,378 @@
+{
+ "model": "reed-greenough",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "notes": "Opening bottoms hidden behind cars; sill heights of the two arched windows are estimated. Arches are pointed (gothic), modelled as 'arched'. Sign board is faded and was read from the 2021 photo. The 2021 panels (R, G and mural) are covers over the openings and are not modelled.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 5.9,
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 5.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.08,
+    "depth": 0.06,
+    "colour": "#3a322c",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.4,
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#4a4038",
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#3a322c",
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-reed-greenough",
+     "business_id": "mb-243bf0e160d2",
+     "category": "bar",
+     "brand": null,
+     "name": "Reed & Greenough",
+     "u0": 0,
+     "u1": 7.82,
+     "band_h": 4.2,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#4a4038",
+      "accent": "#6b5a45",
+      "frame": "#2a2420",
+      "base": "#3a322c",
+      "letter": "#c9b27a",
+      "metal": "#2a2a2a",
+      "glass": "#5a6468"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rg:door-l",
+       "kind": "door",
+       "u": 0.1,
+       "v": 0.0,
+       "w": 0.85,
+       "h": 2.6,
+       "shape": "arched",
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "rg:win-l",
+       "kind": "window",
+       "u": 1.45,
+       "v": 0.9,
+       "w": 1.15,
+       "h": 1.95,
+       "shape": "arched",
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rg:entry",
+       "kind": "door",
+       "u": 3.5,
+       "v": 0.0,
+       "w": 1.5,
+       "h": 2.65,
+       "shape": "arched",
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rg:win-r",
+       "kind": "window",
+       "u": 5.85,
+       "v": 0.9,
+       "w": 1.15,
+       "h": 1.95,
+       "shape": "arched",
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "rg-board",
+       "kind": "board",
+       "u": 1.6,
+       "v": 3.3,
+       "w": 4.8,
+       "h": 0.6,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#6b5a45",
+       "edge_colour": "#4a4038",
+       "layers": [
+        {
+         "type": "text",
+         "text": "REED & GREENOUGH",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#c9b27a",
+         "font": "Georgia, serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1784986985218215",
+       "526807062668892",
+       "822021338679682"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "confidence": 0.58,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "rg-tree",
+     "kind": "tree",
+     "u": 7.6,
+     "w": 4.0,
+     "r": 2.5,
+     "trunk_h": 3.0,
+     "colour": "#3f5a32",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1784986985218215",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "confidence": 0.58,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}
