@@ -247,7 +247,7 @@ def test_houses_ahead_of_the_walker_keep_layout_and_shell_windows_are_clear() ->
     # A slight grey: a pane that can be seen to be there, and still a window (2026-11-12: at
     # 0.12 and near white it could not be told from an open hole). No transmission: it would
     # draw the scene twice a frame.
-    # (2026-11-25) Real glass: nearly clear face-on (GLASS.face_opacity, 0.05) and a mirror of the
+    # (2026-11-25) Real glass: grey and seen through face-on (GLASS.face_opacity, 0.2) and a mirror of the
     # sky and street at a slant (module 02 realGlass), its edges grimy -- not a flat grey.
     spec = re.search(r"const WINDOW_GLASS = \{ tint: 0x([0-9a-f]{6}), opacity: GLASS\.face_opacity,", js)
     r, g, b = (int(spec.group(1)[i:i + 2], 16) / 255 for i in (0, 2, 4))
