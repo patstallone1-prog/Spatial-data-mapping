@@ -36,6 +36,7 @@ import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf,
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
+import { JUMP, PUNCH, SWING, jumpAir, jumpCrouch, jumpLand, punchPose, swingPose } from "./body-moves.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, wheelStep, withinView } from "./detail.mjs";
@@ -3943,31 +3944,49 @@ diffuseColor.rgb *= kbCloth;`);
   function startAct(kind, dur, at, fn) {
     Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false });
   }
-  const air = { y: 0, v: 0, up: false };
+  //: In the air, and either side of it (body-moves.mjs): ``crouch`` the load before take-off,
+  //: ``land`` the knees giving after it.
+  const air = { y: 0, v: 0, up: false, v0: 0, peak: 0, crouch: null, land: null };
+  //: How a jump has the body now: body-moves' pose for the crouch, the flight or the landing.
+  function jumpBody(now = performance.now()) {
+    if (air.crouch) return jumpCrouch((now - air.crouch.t0) / (JUMP.crouch_s * 1000), air.crouch.h);
+    if (air.up) return jumpAir(air.v0 ? air.v / air.v0 : 0);
+    if (air.land) {
+      const t = (now - air.land.t0) / (JUMP.land_s * 1000);
+      if (t < 1) return jumpLand(t, air.land.fall);
+      air.land = null;
+    }
+    return null;
+  }
   function stepBody(dt) {
     if (pose.kind) {
       const t = (performance.now() - pose.t0) / pose.dur;
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
       if (t >= 1) pose.kind = null;
     }
+    // Down into the knees first, then off the ground (jumpKey).
+    if (air.crouch && performance.now() - air.crouch.t0 >= JUMP.crouch_s * 1000) {
+      Object.assign(air, { up: true, v: air.crouch.v, v0: air.crouch.v, y: 0.001, peak: 0, crouch: null, land: null });
+    }
     if (air.up) {
-      air.y += air.v * dt; air.v -= 9.81 * dt;
-      if (air.y <= 0) { air.y = 0; air.v = 0; air.up = false; }
+      air.y += air.v * dt; air.v -= 9.81 * dt; air.peak = Math.max(air.peak, air.y);
+      if (air.y <= 0) { air.y = 0; air.v = 0; air.up = false; air.land = { t0: performance.now(), fall: air.peak }; }
     }
     // Bent down to lift: the hips go down as the back bends.
     const t = pose.kind ? Math.min(1, (performance.now() - pose.t0) / pose.dur) : 0;
     const bend = pose.kind === "pickup" || pose.kind === "strain" ? Math.sin(Math.PI * t) : 0;
-    ctx.avatar.userData.lift = air.y - 0.32 * bend;
+    ctx.avatar.userData.lift = air.y - 0.32 * bend - (jumpBody()?.drop || 0);
   }
   //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf).
   function jumpKey() {
     const p = self();
-    if (air.up || car.active || car.riding || transit.ride || p?.resting) return;
+    if (air.up || air.crouch || car.active || car.riding || transit.ride || p?.resting) return;
     // Not in the city (on the map, not joined): your legs at the start's strength, nothing carried.
     const load = !p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory);
     const j = jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, load);
     if (j.height < 0.03) { notify(`Carrying ${load} kg, you can barely leave the ground.`); return; }
-    air.up = true; air.v = j.speed; air.y = 0.001;
+    // Bent down first, then up: the take-off is stepBody's, at the bottom of the crouch.
+    air.crouch = { t0: performance.now(), v: j.speed, h: j.height };
   }
   // The bones the poses turn: the clip's (a Mixamo-named figure) or the drawn walker's limbs.
   let bones = null, bonesOf = null;
@@ -4054,25 +4073,15 @@ diffuseColor.rgb *= kbCloth;`);
       return;
     }
     if (pose.kind === "swing") {
+      // Empty-handed a straight punch from a guard; holding something, a swing wound up over the
+      // shoulder and brought through the target (body-moves.mjs), at the target's height.
       const arm = pose.aim?.arm ?? Math.PI / 2;
-      if (!p?.hands) {
-        // A punch: the fist drawn back to the chin, then straight out at the target's height
-        // (pose.aim), the shoulder turning into it.
-        const out = t < 0.3 ? 0 : t < 0.55 ? ease((t - 0.3) / 0.25) : 1 - ease((t - 0.55) / 0.45);
-        const cock = t < 0.3 ? ease(t / 0.3) : Math.max(0, 1 - out * 1.6);
-        fwd(B.rUpper, 0.35 * cock + arm * out); fwd(B.rFore, 1.9 * cock + 0.15 * out);
-        fwd(B.lUpper, 0.5); fwd(B.lFore, 1.7);        // the other hand up, guarding
-        turn(B.spine, 0, 1, 0, 0.3 * cock - 0.35 * out);
-        return;
-      }
-      // Up and back, then down through the blow -- onto the target, at its height.
-      const up = t < 0.45 ? ease(t / 0.45) : 1 - ease((t - 0.45) / 0.55);
-      const low = Math.max(0.3, Math.min(1.8, arm));
-      fwd(B.rUpper, low + (2.7 - low) * up); fwd(B.rFore, 0.7 - 0.5 * up);
-      if (hold === "shoulder") fwd(B.lUpper, 0.3 + 2.0 * up);
-      // Over into the blow (the back forward as the arm comes down).
-      turn(B.spine, 0, 1, 0, 0.35 * (up - 0.5)); fwd(B.spine, -0.25 * (1 - up));
-      inHand();
+      const S = p?.hands ? swingPose(t, arm, hold === "two_hands" || hold === "shoulder") : punchPose(t, arm);
+      fwd(B.rUpper, S.rUpper); fwd(B.rFore, S.rFore); fwd(B.lUpper, S.lUpper); fwd(B.lFore, S.lFore);
+      if (S.rSide) turn(B.rUpper, 0, 0, 1, -S.rSide);
+      if (S.lSide) turn(B.lUpper, 0, 0, 1, S.lSide);
+      turn(B.spine, 0, 1, 0, S.twist); fwd(B.spine, S.lean);
+      if (p?.hands) inHand();
       return;
     }
     if (pose.kind === "throw") {
@@ -4086,7 +4095,14 @@ diffuseColor.rgb *= kbCloth;`);
       turn(B.spine, 0, 1, 0, -0.4 * back); fwd(B.spine, t > 0.5 ? 0.3 * (1 - back) : 0);
       return;
     }
-    if (air.up) { const k = Math.min(1, air.y * 3); fwd(B.rUpper, 0.7 * k); fwd(B.lUpper, 0.7 * k); }
+    // A jump: the crouch, the flight and the landing (jumpBody) -- the legs, the back, and the
+    // arms where the hands are free.
+    const J = jumpBody();
+    if (J) {
+      if (B.rThigh && B.lThigh) { fwd(B.rThigh, J.thigh); fwd(B.lThigh, J.thigh); fwd(B.rShin, J.shin); fwd(B.lShin, J.shin); }
+      fwd(B.spine, J.lean);
+      if (!hold || hold === "hand") { fwd(B.lUpper, J.upper); fwd(B.lFore, J.fore); if (!hold) { fwd(B.rUpper, J.upper); fwd(B.rFore, J.fore); } }
+    }
     if (hold === "hand") { fwd(B.rUpper, 0.15); fwd(B.rFore, 0.55); }
     else if (hold === "tool") { fwd(B.rUpper, 0.25); fwd(B.rFore, 0.95); }
     else if (hold === "two_hands") { fwd(B.rUpper, 0.75); fwd(B.lUpper, 0.75); fwd(B.rFore, 0.8); fwd(B.lFore, 0.8); }
@@ -4129,7 +4145,7 @@ diffuseColor.rgb *= kbCloth;`);
     const aim = nearestHittable(R.tools.reach_m);
     if (aim) ctx.faceTo?.(aim.x, aim.z);
     pose.aim = aim ? aimOf(aim) : AIM_AHEAD;
-    startAct("swing", 0.45, 0.55, () => strikeKey(null, aim));
+    startAct("swing", p.hands ? SWING.dur_s : PUNCH.dur_s, p.hands ? SWING.hit : PUNCH.hit, () => strikeKey(null, aim));
   }
   //: The nearest person or breakable thing within ``reach`` of you, any way round:
   //: {kind: "person", q, x, z, d} or {kind: "thing", t, x, z, d}. Someone is taken over a thing
@@ -5172,7 +5188,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (district.places.length) listings();
     }
     if (shop.place && !ctx.isFirstPerson?.()) ctx.firstPerson?.(true);
-    return Boolean(visible.people.length || visible.vehicles.length || car.active || transit.ride || routeBuses.length || taxi.at || shop.place || working || pose.kind || air.up || flying.length);
+    return Boolean(visible.people.length || visible.vehicles.length || car.active || transit.ride || routeBuses.length || taxi.at || shop.place || working || pose.kind || air.up || air.crouch || air.land || flying.length);
   }
   // ---- the city in motion: each frame ------------------------------------------------------------
   const SIM_M = 240;          // cars nearer than this are driven by the rules (fleet.mjs Drivers)
