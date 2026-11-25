@@ -1510,7 +1510,8 @@ function walkSteer(dt, speed = 1.4) {
   // The view comes round behind, easing after the turn and no faster than its own most (unless
   // it is being dragged; seen from the walker's eyes, forward is always the way the head goes).
   const [dx, dz] = dirOf(h);
-  if (state.firstPerson || !dragging) {
+  // (A view set by hand a moment ago is kept as set: magicViewKept, module 32.)
+  if (state.firstPerson || (!dragging && !(typeof magicViewKept === "function" && magicViewKept()))) {
     const eyes = state.firstPerson;
     const gap = Math.atan2(Math.sin(h + Math.PI - state.yaw), Math.cos(h + Math.PI - state.yaw));
     // The magic camera (module 32) comes round faster the further you have turned from it: turned

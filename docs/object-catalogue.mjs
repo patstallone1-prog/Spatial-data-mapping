@@ -60,6 +60,8 @@ function surfaceOf(o) {
   if (!s) return null;
   const material = Array.isArray(o.material) ? o.material[0] : o.material;
   if (String(s).startsWith("tree:") && material?.alphaTest > 0) return String(s).replace(/^tree:/, "foliage:");
+  // A tree drawn in full round you (module 17 treeNear) is split the same way: its leaves walk under.
+  if (s === "tree_near" && material?.alphaTest > 0) return "foliage:near";
   return s;
 }
 
@@ -146,8 +148,11 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
       if (!a || NOT_NEARBY.has(a.family) || a.collision.source === "footprint" || a.collision.source === "host") return;
       const solid = a.collision.source === "mesh" && a.collision.blocks.includes("character");
       const soft = a.traversal === "pass_through" && a.speed < 1;
-      // Ground, buildings and the layers that keep their own colliders are only described.
-      candidates.push({ o, a, surface, solid, soft });
+      // Ground, buildings and the layers that keep their own colliders are only described. A tree
+      // drawn whole (not instanced) is solid at its trunk's foot only, as an instanced one is: its
+      // limbs at head height and its leaves give way (2026-11-25: they had stood as an unseen wall).
+      const trunk = solid && a.collision.shape === "trunk" && !o.isInstancedMesh;
+      candidates.push({ o, a, surface, solid, soft, trunk });
     });
     indexedAt = performance.now();
   }
@@ -173,6 +178,11 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
         o.getMatrixAt(i, m); m.premultiply(o.matrixWorld); v.setFromMatrixPosition(m);
         put(v.x, v.z, i);
       }
+    } else if (c.trunk) {
+      o.geometry.boundingSphere || o.geometry.computeBoundingSphere();
+      sphere.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld);
+      put(sphere.center.x, sphere.center.z, -1);
+      cells.trunk = true;
     } else if (c.solid) {
       const pos = o.geometry.getAttribute("position"), index = o.geometry.index, n = index ? index.count : pos.count;
       const count = Math.floor(n / 3), P = new Float64Array(count * 6), Y = new Float64Array(count * 2);
@@ -245,6 +255,25 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
     return { pts, ...mid };
   }
 
+  // A whole (not instanced) tree's trunk at body height: its geometry's lowest layer, placed by the
+  // mesh, where that reaches between step height and head clearance above the feet.
+  function meshTrunkOutline(c, feet) {
+    const layers = layersOf(c.o.geometry);
+    if (!layers) return null;
+    const l = layers.boxes.findIndex((box) => box[0] <= box[2]);
+    if (l < 0) return null;
+    const box = layers.boxes[l], mw = c.o.matrixWorld;
+    const ya = layers.y0 + layers.h * l / LAYERS, yb = layers.y0 + layers.h * (l + 1) / LAYERS;
+    // (Solid while the tree reaches into the walker's height at all: a short tree's lowest layer is
+    // below the knee, but its trunk still stands there.)
+    let low = Infinity, high = -Infinity;
+    for (const y of [ya, layers.y0 + layers.h]) { v.set(box[0], y, box[1]).applyMatrix4(mw); if (v.y < low) low = v.y; if (v.y > high) high = v.y; }
+    if (high <= feet + step || low >= feet + clearance) return { pts: null, low, high };
+    const pts = [];
+    for (const [px, pz] of [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]]) { v.set(px, (ya + yb) / 2, pz).applyMatrix4(mw); pts.push(v.x, v.z); }
+    return { pts, low, high };
+  }
+
   function update(x, feet, z, force = false) {
     const now = performance.now();
     if (now - indexedAt > reindexMs) { reindex(); force = true; }
@@ -270,6 +299,13 @@ export function createProximity({ THREE, catalogue, roots, reindexMs = 4000 }) {
             if (d > radius) continue;
             described.push({ c, i: item, d, low: out.low, high: out.high, ax: v.x, az: v.z });
             if (out.pts && (c.solid || c.soft)) colliders.push({ c, i: item, pts: out.pts });
+          } else if (g.cells.trunk) {
+            const out = meshTrunkOutline(c, feet);
+            if (!out || !out.pts) continue;
+            const ax = (out.pts[0] + out.pts[4]) / 2, az = (out.pts[1] + out.pts[5]) / 2, d = Math.hypot(ax - x, az - z);
+            if (d > radius) continue;
+            colliders.push({ c, i: -1, pts: out.pts });
+            described.push({ c, i: -1, d, low: out.low, high: out.high, ax, az });
           } else if (g.cells.triangles) {
             const { P, Y } = g.cells.triangles, k6 = item * 6, low = Y[2 * item], high = Y[2 * item + 1];
             if (high <= feet + step || low >= feet + clearance) continue;

@@ -565,14 +565,16 @@ function nightRimAll(object) {
 //: (2026-11-25: a pane is seen as a pane -- a grey of its own and a little sheen, between the
 //: near-invisible 0.05 of 11-24 and the 0.42 blue-green of before it.)
 const GLASS = Object.freeze({
-  face_opacity: 0.2,       // looking straight through: there, but seen through
+  face_opacity: 0.27,      // looking straight through: there, but seen through (0.2 until 2026-11-25:
+                           // a touch more, with the greyer body below, so windows read as glass)
   edge_opacity: 0.68,      // at a grazing slant
   fresnel_power: 4.5,      // Schlick's 5, a little softer
   face_reflection: 0.16,   // what the pane mirrors looking straight at it: glass's own 0.04, more for
                            // the room behind a pane being unlit here (a real one is lit, and dimmer than the street),
                            // and a little more for the sheen of a pane in the street
-  grey: "#8c9295",         // the body of the glass: float glass's grey, edge on and through it
-  grey_share: 0.6,         // how far a pane's own colour is taken toward it
+  grey: "#7a8084",         // the body of the glass: float glass's grey, edge on and through it (a
+                           // little darker, 2026-11-25: a subtle grey tint that shows the pane)
+  grey_share: 0.72,        // how far a pane's own colour is taken toward it
   roughness: 0.05,
   specular: 4.0,           // the sun's highlight, as a multiple of a plain dielectric's (F0 0.04 -> ~0.16)
   reflection: 0.9,         // the cube map's share at full slant, by day

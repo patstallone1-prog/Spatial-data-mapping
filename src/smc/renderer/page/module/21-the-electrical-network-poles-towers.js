@@ -2582,6 +2582,7 @@ canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   // A trackpad pinch arrives as a wheel with ctrlKey; lines and pages are scaled to pixels.
   const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? innerHeight : 1;
+  if (typeof magicViewSet === "function") magicViewSet();
   zoomBy(Math.exp(e.deltaY * unit * (e.ctrlKey ? TRACKPAD_PINCH_PER_UNIT : WHEEL_ZOOM_PER_UNIT)));
 }, { passive: false });
 const touches = new Map();
@@ -2600,7 +2601,7 @@ canvas.addEventListener("pointermove", (e) => {
   touches.set(e.pointerId, [e.clientX, e.clientY]);
   if (touches.size !== 2) return;
   const spread = touchSpread();
-  if (pinchSpread > 0 && spread > 0) zoomBy((pinchSpread / spread) ** TOUCH_PINCH_POWER);
+  if (pinchSpread > 0 && spread > 0) { if (typeof magicViewSet === "function") magicViewSet(); zoomBy((pinchSpread / spread) ** TOUCH_PINCH_POWER); }
   pinchSpread = spread;
 });
 for (const type of ["pointerup", "pointercancel"]) {

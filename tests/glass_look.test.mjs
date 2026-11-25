@@ -33,19 +33,20 @@ const program = (material) => {
   return shader;
 };
 
-test("a grey pane seen through straight on, a mirror at a slant: 0.2 to 0.68 by a Fresnel power of 4.5", () => {
-  // (2026-11-25: there as a pane, between the near-invisible 0.05 and the old 0.42.)
+test("a grey pane seen through straight on, a mirror at a slant: 0.27 to 0.68 by a Fresnel power of 4.5", () => {
+  // (2026-11-25: there as a pane, between the near-invisible 0.05 and the old 0.42; later that day a
+  // little more, 0.27, with a greyer body, so windows show.)
   const { GLASS, glassOpacity } = G;
-  assert.equal(GLASS.face_opacity, 0.2);
+  assert.equal(GLASS.face_opacity, 0.27);
   assert.equal(GLASS.edge_opacity, 0.68);
   assert.ok(GLASS.fresnel_power >= 4 && GLASS.fresnel_power <= 5);
   assert.ok(GLASS.roughness >= 0.02 && GLASS.roughness <= 0.08);
-  assert.ok(Math.abs(glassOpacity(1) - 0.2) < 1e-9);
+  assert.ok(Math.abs(glassOpacity(1) - 0.27) < 1e-9);
   assert.ok(Math.abs(glassOpacity(0) - 0.68) < 1e-9);
   let last = 0;
   for (let c = 1; c >= 0; c -= 0.05) { const a = glassOpacity(c); assert.ok(a >= last - 1e-12); last = a; }
   // Seen from across a street (60 degrees off the pane's normal) it is still mostly see-through.
-  assert.ok(glassOpacity(Math.cos(Math.PI / 3)) < 0.25);
+  assert.ok(glassOpacity(Math.cos(Math.PI / 3)) < 0.32);
   assert.ok(glassOpacity(Math.cos(80 * Math.PI / 180)) > 0.35);
   // A little sheen face on: more than bare glass's 0.04 mirrored, short of a mirror.
   assert.ok(GLASS.face_reflection > 0.12 && GLASS.face_reflection < 0.25);
@@ -66,7 +67,7 @@ test("the glass's program compiles over every set of switches, with nothing decl
     const base = new THREE.MeshStandardMaterial({ color: 0x5c6468, map: null });
     if (lit) G.nightWindows(base);
     const m = G.realGlass(base, { paneUv });
-    assert.ok(m.transparent && m.depthWrite === false && m.opacity === 0.2 && m.envMapIntensity === 0, "seen through, its reflection its own");
+    assert.ok(m.transparent && m.depthWrite === false && m.opacity === G.GLASS.face_opacity && m.envMapIntensity === 0, "seen through, its reflection its own");
     // Grey: the pane's own colour taken most of the way to float glass's grey, once only.
     const [r, g, b] = [0, 2, 4].map((i) => parseInt(m.color.getHexString().slice(i, i + 2), 16) / 255);
     assert.ok(Math.max(r, g, b) - Math.min(r, g, b) < 0.08 && (r + g + b) / 3 > 0.35 && (r + g + b) / 3 < 0.65, `grey (${m.color.getHexString()})`);

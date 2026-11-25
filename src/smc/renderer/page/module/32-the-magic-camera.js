@@ -21,7 +21,9 @@ var MAGIC = {
   // When it last looked for a clear line, when the view was last dragged, whether you are hidden.
   checkedAt: 0, draggedAt: -1e9, hidden: false,
   // Looked for every so often (ms); left alone for so long after a drag (ms).
-  checkEveryMs: 120, dragHoldMs: 1800,
+  // A view set by hand (dragged or zoomed) is kept as it is so long after (ms): the cameraman does not
+  // change it and the view does not come round behind you (walkSteer) until then.
+  checkEveryMs: 120, dragHoldMs: 5000,
   yawRate: 1.3, pitchRate: 0.5, maxPitch: 1.25,
   // Ahead: so many seconds of the way at the speed, up to so far.
   leadS: 0.3, leadMax: 5,
@@ -42,7 +44,10 @@ var MAGIC = {
 //: The view given on foot and at the wheel: how far behind (m) and how high it looks down from
 //: (rad above level). On foot close enough to read a face and a door; in the car far enough back
 //: to see the junction coming.
-var MAGIC_VIEWS = { walk: { dist_m: 7, pitch: 0.36 }, drive: { dist_m: 13, pitch: 0.44 } };
+var MAGIC_VIEWS = { walk: { dist_m: 4.6, pitch: 0.3 }, drive: { dist_m: 13, pitch: 0.44 } };
+//: On foot the view lets you get a little ahead as you go: it stands back by this share of the distance
+//: a metre a second, up to the most, eased slowly so the zoom goes out a little after you set off.
+var MAGIC_TRAIL = { perMps: 0.07, most: 0.3, ease: 0.9 };
 //: The offsets tried for a clear line, the smallest change first.
 var MAGIC_TRIES = (() => {
   const out = [];
@@ -113,10 +118,10 @@ function magicCameraStep(dt) {
   // Ahead the faster you go; further back in the car at speed.
   const leadGoal = moving ? Math.min(MAGIC.leadMax, MAGIC.speed * MAGIC.leadS) : 0;
   MAGIC.lead += (leadGoal - MAGIC.lead) * Math.min(1, dt * 1.5);
-  const backGoal = driving ? Math.min(0.3, MAGIC.speed / 45) : 0;
-  MAGIC.back += (backGoal - MAGIC.back) * Math.min(1, dt * 1.2);
+  const backGoal = driving ? Math.min(0.3, MAGIC.speed / 45) : moving ? Math.min(MAGIC_TRAIL.most, MAGIC.speed * MAGIC_TRAIL.perMps) : 0;
+  MAGIC.back += (backGoal - MAGIC.back) * Math.min(1, dt * (driving ? 1.2 : MAGIC_TRAIL.ease));
   // The cameraman, where it is loaded and on: it does the looking for a clear view from here.
-  if (cameramanOn() && state.dist <= ORBIT_BLOCK_REACH_M) { cameramanStep(dt, t, now, held, driving); return; }
+  if (cameramanOn() && state.dist <= ORBIT_BLOCK_REACH_M) { cameramanStep(dt, t, now, dragging, driving, !dragging && magicViewKept(now)); return; }
   MAGIC.distK = 1; MAGIC.shoulder = 0; MAGIC.lift = 0; MAGIC.focusMix = 0; MAGIC.cmGhost = false;
   if (typeof CM !== "undefined" && CM.fadeEl) cmFade(0);
   if (moving && !held && now - MAGIC.checkedAt > MAGIC.checkEveryMs && state.dist <= ORBIT_BLOCK_REACH_M) {
@@ -202,6 +207,22 @@ function magicPullIn(wall, full) {
   if (wall !== null && MAGIC.near > wall + 0.35) MAGIC.near = wall + 0.35;
   if (goal >= full - 0.01 && MAGIC.near >= full - 0.03) { MAGIC.near = null; return null; }
   return MAGIC.near;
+}
+//: Whether a view set by hand (dragged, or zoomed) is still to be kept as it was set.
+function magicViewKept(now = performance.now()) {
+  return typeof MAGIC !== "undefined" && Boolean(MAGIC) && magicCameraOn() && now - MAGIC.draggedAt < MAGIC.dragHoldMs;
+}
+//: The view zoomed by hand: kept as set, as a drag is.
+function magicViewSet() {
+  if (typeof MAGIC === "undefined" || !MAGIC || !magicCameraOn()) return;
+  if (typeof CM !== "undefined" && cameramanOn()) CM.man.taken();
+  if (MAGIC.yawOff || MAGIC.pitchOff) {
+    state.yaw += MAGIC.yawOff;
+    state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, state.pitch + MAGIC.pitchOff));
+    MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0;
+  }
+  MAGIC.preset = null;
+  MAGIC.draggedAt = performance.now();
 }
 //: The view dragged: what the camera had turned by itself becomes the view asked for (so it
 //: does not jump), and it is left there.
@@ -407,12 +428,12 @@ function cmSubjectPoints(t, driving) {
 }
 //: Each frame in City mode (magicCameraStep): the cameraman told where you are and what you are
 //: doing, and its shot taken up as the magic camera's offsets.
-function cameramanStep(dt, t, now, held, driving) {
+function cameramanStep(dt, t, now, held, driving, kept = false) {
   cmGather(t, now);
   CM.home = cmBuildingTop(t.x, t.z)?.way || null;
   // Which way the view is being dragged (the cameraman leads that way only), and how hard the car
   // is turning (no cuts while you steer hard).
-  if (CM.lastYaw !== null && dragging) { const d = state.yaw - CM.lastYaw; if (Math.abs(d) > 1e-4) CM.dragDir = Math.sign(d); } else if (!held) CM.dragDir = 0;
+  if (CM.lastYaw !== null && dragging) { const d = state.yaw - CM.lastYaw; if (Math.abs(d) > 1e-4) CM.dragDir = Math.sign(d); } else if (!held && !kept) CM.dragDir = 0;
   CM.lastYaw = state.yaw;
   const c = driving ? livingCity?.car?.() : null;
   if (c && Number.isFinite(c.yaw)) { if (CM.carYaw !== null && dt > 0) CM.steer += (Math.min(1, Math.abs(Math.atan2(Math.sin(c.yaw - CM.carYaw), Math.cos(c.yaw - CM.carYaw))) / dt / 0.8) - CM.steer) * Math.min(1, dt * 4); CM.carYaw = c.yaw; } else { CM.carYaw = null; CM.steer = 0; }
@@ -425,7 +446,7 @@ function cameramanStep(dt, t, now, held, driving) {
     now, dt, mode: driving ? "drive" : inside ? "inside" : "walk", strength: CM.strength,
     base: { yaw: state.yaw, pitch: state.pitch, dist: state.dist * (1 + MAGIC.back) }, aim: { x: aim.x, y: aim.y, z: aim.z },
     you: { x: t.x, y: t.y, z: t.z }, points: cmSubjectPoints(t, driving), focus,
-    held, dragDir: CM.dragDir, events: cue?.events || [], activity: held ? null : cue?.activity || null,
+    held, kept, dragDir: CM.dragDir, events: cue?.events || [], activity: held ? null : cue?.activity || null,
     speed: MAGIC.speed, travel: { x: MAGIC.vx, z: MAGIC.vz }, steering: CM.steer,
     occlusion: cmOcclusion, solidAt: cmSolidAt,
   });

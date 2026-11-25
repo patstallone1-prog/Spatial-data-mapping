@@ -130,3 +130,20 @@ test("E with nothing in front says so; E on the face lets go and drops", async (
   run(play.stepAir, [], () => !play.airborne, 3);
   assert.ok(Math.abs(avatar.position.y - 0.1) < 1e-6 && avatar.position.z > 0, "dropped back down in front");
 });
+
+test("a jump roughly at a tree trunk takes hold of it; facing well away it is a plain jump", async () => {
+  // A trunk 0.4 m across and 6 m high, the walker 0.7 m from it, turned about 17 degrees off it.
+  const { play, avatar, notes } = page({ id: "vegetation.tree", name: "Tree", material: "green_wood", h: 6, t: 0.4, w: 0.4, d: 0.7 });
+  await settle();
+  avatar.rotation.y = Math.PI + 0.3;
+  assert.ok(play.thingInFront(), "roughly facing it, the trunk is found");
+  assert.equal(play.jumpKey(), true);
+  assert.ok(play.climbing, `took hold: ${notes.at(-1)}`);
+  // Turned right away from it, a jump is only a jump.
+  const other = page({ id: "vegetation.tree", name: "Tree", material: "green_wood", h: 6, t: 0.4, w: 0.4, d: 0.7 });
+  await settle();
+  other.avatar.rotation.y = Math.PI + 1.2;
+  assert.equal(other.play.thingInFront(), null);
+  other.play.jumpKey();
+  assert.ok(!other.play.climbing);
+});

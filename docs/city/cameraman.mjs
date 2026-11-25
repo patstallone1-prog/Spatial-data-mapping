@@ -13,26 +13,30 @@
 //   aim moved half as far, so you sit off-centre), lift (m up), and focusMix (how far the aim moves
 //   toward what you are dealing with: a person you talk to, a hand holding a phone).
 
-//: The settings. ``strong`` is the default the user chose (2026-11-25): it pushes hard away from what is
-//: in the way. ``gentle`` keeps nearer the view asked for; ``off`` is the old magic camera.
+//: The settings. ``strong`` is the default the user chose (2026-11-25); ``gentle`` keeps nearer the view
+//: asked for; ``off`` is the old magic camera. Second round (2026-11-25): subtler -- mostly it just
+//: follows behind and a little above, close; it drifts less far and more slowly, on foot it fades
+//: rather than sweeps for anything but a small change, and it waits longer between cuts. The hard cuts
+//: (at the wheel, a fight right round) are kept. A view you set by hand is kept as you set it (the
+//: page passes ``kept`` for 5 s after a drag or a zoom).
 export const CAMERAMAN = {
   checkMs: 125,            // how often shots are scored (8 Hz)
-  holdCutMs: 2500,         // a shot is held at least so long before another cut
-  poorMs: { walk: 400, drive: 250, inside: 700 },   // seen this badly for so long, a cut is looked for
-  poorBelow: 0.55,         // the drift's best seen share under which it is "poor"
+  holdCutMs: { walk: 4000, drive: 2500, inside: 4500 },   // a shot is held at least so long before another cut
+  poorMs: { walk: 900, drive: 250, inside: 1200 },   // seen this badly for so long, a cut is looked for
+  poorBelow: 0.5,          // the drift's best seen share under which it is "poor"
   cutAbove: 0.85,          // a cut is made only to a shot seen at least this well
   minCutRad: 0.52,         // and at least 30 degrees away (less reads as a jump: it is drifted to)
-  fadeOverRad: 1.75,       // a change of more than about 100 degrees fades out and in instead of swooping
-  swoopS: { walk: 0.6, drive: 0.45, inside: 0.95 },
+  fadeOverRad: 0.9,        // on foot a change of more than about 50 degrees fades out and in instead of sweeping
+  swoopS: { walk: 0.7, drive: 0.45, inside: 1.0 },
   fadeOutS: 0.2, fadeInS: 0.3,
   ghostBelow: 0.35, ghostAfterMs: 250,
   // The drift's ease: time constants (s) and the most it moves a second.
-  ease: { strong: 0.28, gentle: 0.5, held: 0.14, inside: 0.6 },
-  rate: { dYaw: 1.6, dPitch: 0.8, distK: 1.3, shoulder: 1.6, lift: 1.2, focusMix: 1.5 },
+  ease: { strong: 0.6, gentle: 0.9, held: 0.2, inside: 0.9 },
+  rate: { dYaw: 0.8, dPitch: 0.45, distK: 0.8, shoulder: 0.9, lift: 0.7, focusMix: 1.2 },
   // How far from the view asked for the drift may go.
-  reach: { walk: 1.05, drive: 0.75, inside: 0.4 },
+  reach: { walk: 0.5, drive: 0.6, inside: 0.3 },
   // How much being seen counts against straying from the view asked for.
-  seen: { strong: 3.2, gentle: 1.6 },
+  seen: { strong: 2.2, gentle: 1.3 },
   // Named shots hold for so long after their event.
   holdEventMs: { fight: 3000, crash: 3500, arrive: 2500, door: 1500 },
   // At the wheel, stopped this long (at a light), the view cuts to the side; moving again, back.
@@ -158,7 +162,7 @@ export function createOccluders({ cell = 4 } = {}) {
 //: few together (round and in, round and over the shoulder). ``reach`` caps how far round.
 function driftCandidates(g, reach, held, dragDir) {
   const out = [];
-  const yaws = held ? [0, ...(dragDir ? [0.12 * dragDir, 0.25 * dragDir] : [])] : [0, 0.15, -0.15, 0.35, -0.35, 0.6, -0.6, 0.9, -0.9];
+  const yaws = held ? [0, ...(dragDir ? [0.12 * dragDir, 0.25 * dragDir] : [])] : [0, 0.12, -0.12, 0.25, -0.25, 0.4, -0.4, 0.6, -0.6].filter((y) => Math.abs(y) <= reach + 1e-9);
   const forms = [
     [0, 1, 0, 0], [0.14, 1, 0, 0], [0.3, 1, 0, 0], [-0.08, 1, 0, 0],
     [0, 0.78, 0, 0], [0, 0.58, 0, 0], [0.12, 0.7, 0, 0], [0.05, 0.45, 0, 0],
@@ -274,7 +278,24 @@ export function createCameraman(options = {}) {
     const now = input.now, dt = Math.max(0, Math.min(0.1, input.dt || 0));
     const mode = input.mode || "walk", strength = input.strength || "strong";
     const held = Boolean(input.held), dragDir = Math.sign(input.dragDir || 0);
+    const holdCut = C.holdCutMs[mode] ?? C.holdCutMs.walk;
     let began = null;
+    // A view set by hand a moment ago (the page's ``kept``): left exactly as it is -- no drift, no
+    // cut, no named shot -- only the outline is still looked after.
+    if (input.kept) {
+      for (const e of input.events || []) if (C.holdEventMs[e]) event = { kind: e, until: now + C.holdEventMs[e] };
+      move = null; poorSince = null; stoppedSince = null;
+      Object.assign(goal, cur);
+      if (now - checkedAt >= C.checkMs && input.occlusion) {
+        checkedAt = now; stats.checks += 1;
+        const seenNow = seenShare(input, cur);
+        stats.lastScore = seenNow;
+        if (seenNow < C.ghostBelow) lowSince ??= now; else lowSince = null;
+        ghost = lowSince !== null && now - lowSince > C.ghostAfterMs;
+      }
+      if (ghost) stats.ghostMs += dt * 1000;
+      return { shot: { ...cur }, fade: 0, ghost, cut: null };
+    }
     // One-shot happenings and what you are doing now.
     for (const e of input.events || []) {
       if (C.holdEventMs[e]) event = { kind: e, until: now + C.holdEventMs[e] };
@@ -287,7 +308,7 @@ export function createCameraman(options = {}) {
     if (mode === "drive" && !held) {
       if ((input.speed || 0) < 0.6) stoppedSince ??= now; else if ((input.speed || 0) > C.driveSideOffMps) stoppedSince = null;
       const wantSide = stoppedSince !== null && now - stoppedSince > C.driveSideAfterMs;
-      if (wantSide !== sideShot && now - lastCutAt > C.holdCutMs) {
+      if (wantSide !== sideShot && now - lastCutAt > holdCut) {
         sideShot = wantSide;
         const to = namedShot(wantSide ? "drive_side" : "home", { side: cur.dYaw < 0 ? -1 : 1 });
         startMove("cut", to, now, mode); began = "cut";
@@ -306,7 +327,7 @@ export function createCameraman(options = {}) {
       const named = !held && activity ? namedShot(activity, { base: input.base, you: input.you, focus: input.focus, side: cur.dYaw < 0 ? -1 : 1 }) : null;
       if (named && !move && !sideShot) {
         const far = Math.abs(wrap(named.dYaw - goal.dYaw)) + Math.abs(named.distK - goal.distK);
-        if (far > 0.25 && now - lastCutAt > C.holdCutMs * 0.5 && seenShare(input, named) >= 0.6) {
+        if (far > 0.25 && now - lastCutAt > holdCut * 0.5 && seenShare(input, named) >= 0.6) {
           const kind = moveKind(named, mode, activity); startMove(kind, named, now, mode); began = kind;
         }
       } else if (!move && !sideShot && (goalSeen < 0.97 || stats.checks % 8 === 0)) {
@@ -317,7 +338,7 @@ export function createCameraman(options = {}) {
         // Poor for long enough, and not steering hard: a cut to a shot that sees you well.
         if (!held && seen < C.poorBelow) poorSince ??= now; else poorSince = null;
         const poorFor = poorSince === null ? 0 : now - poorSince;
-        if (poorFor > (C.poorMs[mode] ?? C.poorMs.walk) && now - lastCutAt > C.holdCutMs && (input.steering || 0) < 0.6 && !input.crashFresh) {
+        if (poorFor > (C.poorMs[mode] ?? C.poorMs.walk) && now - lastCutAt > holdCut && (input.steering || 0) < 0.6 && !input.crashFresh) {
           const wide = [];
           for (let k = 0; k < 12; k += 1) {
             const dYaw = wrap((k / 12) * Math.PI * 2);

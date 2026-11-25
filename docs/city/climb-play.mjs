@@ -21,6 +21,8 @@ import { bodyFromRig, createLimbIK, faceFrame, limbBones, poseClimber } from "./
 const G = 9.81;
 //: How close a thing must be to be climbed or jumped at (m), and how squarely you must face it.
 export const CLIMB_REACH_M = 1.15, FACING_DOT = 0.55;
+//: The turns either side of where you face that a jump looks along for something to take hold of.
+export const CLIMB_FAN_RAD = [0, 0.2, -0.2, 0.4, -0.4];
 
 export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () => ({}), legs = () => ({ height: 0.45, speed: 3 }) }) {
   // The mechanics, from the object catalogue (fetched once, on first need).
@@ -50,15 +52,20 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
 
   // ---- what is in front --------------------------------------------------------------------------
 
-  //: The climbable thing in front within reach, cheaply (for the hints): { kind, name, d, k } or null.
+  //: The climbable thing in front within reach, cheaply (for the hints): { kind, name, d, k, dir } or
+  //: null. Facing it roughly is enough (2026-11-25): a fan either side of where you face, nearest
+  //: first, so a jump at a tree you are not quite square to still takes hold of it.
   function thingInFront(reach = CLIMB_REACH_M) {
     const objs = ctx.objects?.();
     if (!objs) return null;
-    const [fx, fz] = facing(), at = me();
+    const y = ctx.avatar.rotation.y, at = me();
     for (let d = 0.3; d <= reach + 1e-9; d += 0.15) {
-      const k = objs.blocked(at.x + fx * d, at.z + fz * d, 0.12);
-      const kind = k && faceKindOf(k.c.a.id);
-      if (kind) return { kind, name: k.c.a.name || kind, d, k };
+      for (const off of CLIMB_FAN_RAD) {
+        const fx = Math.sin(y + off), fz = Math.cos(y + off);
+        const k = objs.blocked(at.x + fx * d, at.z + fz * d, 0.12);
+        const kind = k && faceKindOf(k.c.a.id);
+        if (kind) return { kind, name: k.c.a.name || kind, d, k, dir: [fx, fz] };
+      }
     }
     return null;
   }
@@ -80,7 +87,7 @@ export function createClimbPlay({ THREE, ctx, notify = () => {}, climber = () =>
   //: faceFrame), top (world y), d } or null with ``why``.
   function measure(found = thingInFront()) {
     if (!found) return { why: "Nothing to climb in front of you." };
-    const o = found.k.c.o, at = me(), [fx, fz] = facing(), y0 = feetY();
+    const o = found.k.c.o, at = me(), [fx, fz] = found.dir || facing(), y0 = feetY();
     const dir = v1.set(fx, 0, fz).normalize();
     let hit = null;
     for (const h of [1.0, 0.6, 1.4, 0.3]) { hit = hitOn(o, v2.set(at.x, y0 + h, at.z), dir, CLIMB_REACH_M + 0.6); if (hit) break; }
