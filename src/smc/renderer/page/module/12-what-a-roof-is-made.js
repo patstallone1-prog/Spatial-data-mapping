@@ -1009,6 +1009,9 @@ function buildingMesh(feature) {
   // drawn from the low corner it is that much taller (groundRiseFor). Not a car park or a
   // filling station (a lot at one level), nor a building drawn as its mapped parts.
   const rise = !shaped && !ARCHETYPE_LOT_KINDS.has(feature.archetype) ? groundRiseFor(feature.points, hillLift) : 0;
+  // The height before the ground's rise is the one a storefront plan was bound to: the rise only
+  // stretches the shell down to the low corner, and the plan's band stands on that corner.
+  const boundHeight = height;
   if (rise > 0.05) { height += rise; feature._groundRiseM = +rise.toFixed(2); }
   // Seeded from the footprint, so a building keeps its material and colour between reloads.
   const seed = Math.round((feature.points[0][0] * 1e5) + (feature.points[0][1] * 1e5) * 7919);
@@ -1029,7 +1032,7 @@ function buildingMesh(feature) {
   // A researched storefront cuts its ground band out of the plain extruded shell it was fitted
   // to; a shaped roof's shell, or a height that has moved, keeps the original renderer.
   let exteriorPlan=typeof storeExteriorFor==="function" ? storeExteriorFor(feature) : null, exteriorOrigin=null;
-  if(exteriorPlan && (shaped || Math.abs(exteriorPlan.height_m-height)>.001 || !exteriorPlan.origin_lon_lat)) {
+  if(exteriorPlan && (shaped || Math.abs(exteriorPlan.height_m-boundHeight)>.001 || !exteriorPlan.origin_lon_lat)) {
     feature._storeExteriorDisabled=true;exteriorPlan=null;
   }
   if(exteriorPlan) {
