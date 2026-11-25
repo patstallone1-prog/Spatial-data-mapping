@@ -562,12 +562,17 @@ function nightRimAll(object) {
 //: reflections do. The picture is dimmed by night. A pane is never quite flat (float glass waves
 //: over a metre or so: the reflection ripples), its edges hold the grime a cloth misses, and it
 //: casts no shadow and bends no light.
+//: (2026-11-25: a pane is seen as a pane -- a grey of its own and a little sheen, between the
+//: near-invisible 0.05 of 11-24 and the 0.42 blue-green of before it.)
 const GLASS = Object.freeze({
-  face_opacity: 0.05,      // looking straight through
-  edge_opacity: 0.65,      // at a grazing slant
+  face_opacity: 0.2,       // looking straight through: there, but seen through
+  edge_opacity: 0.68,      // at a grazing slant
   fresnel_power: 4.5,      // Schlick's 5, a little softer
-  face_reflection: 0.12,   // what the pane mirrors looking straight at it: glass's own 0.04, more for
-                           // the room behind a pane being unlit here (a real one is lit, and dimmer than the street)
+  face_reflection: 0.16,   // what the pane mirrors looking straight at it: glass's own 0.04, more for
+                           // the room behind a pane being unlit here (a real one is lit, and dimmer than the street),
+                           // and a little more for the sheen of a pane in the street
+  grey: "#8c9295",         // the body of the glass: float glass's grey, edge on and through it
+  grey_share: 0.6,         // how far a pane's own colour is taken toward it
   roughness: 0.05,
   specular: 4.0,           // the sun's highlight, as a multiple of a plain dielectric's (F0 0.04 -> ~0.16)
   reflection: 0.9,         // the cube map's share at full slant, by day
@@ -628,6 +633,9 @@ function glassCube() {
 //: stays as opaque as that patch makes it.
 function realGlass(material, { paneUv = false, face = GLASS.face_opacity } = {}) {
   if (!material || !material.isMeshStandardMaterial) return material;
+  // Never less there than GLASS.face_opacity: a caller's clearer pane is the grey glass too.
+  face = Math.max(face, GLASS.face_opacity);
+  if (!material.userData.realGlass) material.color.lerp(new THREE.Color(GLASS.grey), GLASS.grey_share);
   material.transparent = true; material.depthWrite = false; material.opacity = face;
   material.roughness = GLASS.roughness; material.metalness = 0; material.envMapIntensity = 0;   // its reflection is the cube map's
   material.userData.realGlass = true;
