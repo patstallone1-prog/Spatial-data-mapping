@@ -78,7 +78,8 @@ def one(biz: dict, budget: float, check: bool = True) -> dict:
     mid = base["id"]
     base["photos"] = photos_for(base, limit=8)
     since = _since(biz["id"])
-    views = O.clean_views(biz["id"], base.get("corridor"), since=since)
+    ok = O.ok_frames(biz["id"], base.get("corridor"))
+    views = O._choose(ok, since, 4)
     if not views:
         return {"skip": "photos: no clean view"}
     mine = [s for s in base["storefronts"] if s.get("business_id") == base.get("business_id")] or base["storefronts"]
@@ -87,6 +88,9 @@ def one(biz: dict, budget: float, check: bool = True) -> dict:
     e = mine[0]["edge"]
     L = float(base["walls"][e]["length_m"])
     top = max(base["height_m"], 4.0)
+    whole = O.whole_wall_view(base, e, ok, top)
+    if whole is not None:  # first: it sets the rhythm the closer views fill in
+        views = [whole] + [v for v in views if v["frame_id"] != whole["frame_id"]][:3]
     pairs = [(v, O.render_view(v, top)) for v in views]
     views = [v for v, im in pairs if im is not None]
     imgs = [im for _, im in pairs if im is not None]

@@ -97,3 +97,11 @@ def test_cost_counts_cached_tokens_at_their_rates():
     u = SimpleNamespace(input_tokens=1_000_000, output_tokens=100_000, cache_read_input_tokens=1_000_000,
                         cache_creation_input_tokens=0)
     assert abs(O.cost(u) - (4.0 + 2.0 + 0.2)) < 1e-9
+
+
+def test_repeat_lays_a_module_out_exactly():
+    parts = [{"kind": "window", "u": 1.28, "v": 4, "w": 0.62, "h": 0.95, "repeat": {"period": 3.3, "count": 3}},
+             {"u": [1.59, 2.85], "w": 0.62, "v0": 5, "v1": 7, "repeat": {"period": 3.3, "count": 2}}]
+    win, pil = O.expand(parts, 27.4)[:3], O.expand(parts, 27.4)[3]
+    assert [w["u"] for w in win] == [1.28, 4.58, 7.88] and all("repeat" not in w for w in win)
+    assert pil["u"] == [1.59, 2.85, 4.89, 6.15]

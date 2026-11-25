@@ -43,7 +43,7 @@ from ..config import LAB, OUT
 MODEL = "claude-opus-5-5"
 EFFORT = "medium"
 MAX_TOKENS = 32000
-PROMPT_VERSION = "opus-wall/1"
+PROMPT_VERSION = "opus-wall/3"
 #: USD per million tokens (Opus 5.5): input, output, cache read, 5-minute cache write
 PRICE = {"in": 4.0, "out": 20.0, "cache_read": 0.20, "cache_write": 5.0}
 DIR = OUT / "opus"
@@ -118,6 +118,9 @@ Vocabulary (only these values are drawn; anything else is dropped):
     bg, edge_colour, layers: [{type text, text, x, y (0-1 in the sign), size (share of sign height), fill,
     font, weight} | {type rect|disc|halfdisc, x, y, w, h, r, fill}]}
   * lights: {kind string|gooseneck|downlight, u0, u1, v, w}
+- repeat: any wall opening, pilaster group, balcony, ornament or shop opening may carry
+  "repeat": {"period": m, "count": n}; it is drawn n times, period metres apart along the wall
+  (a pilaster group's whole u list shifts). Use it for every regular rhythm.
 - seating: {kind parklet|sidewalk_strip|patio, u0, u1, depth_m, offset_m, barrier rail|rope|planks|low_wall,
   barrier_h, barrier_colour, deck_colour, tables, chair_colour, roof (none|corrugated|slats), roof_colour,
   roof_h, plants}
@@ -133,13 +136,20 @@ Coordinates: one wall at a time. u is metres along the wall from its start (u=0)
 the wall length you are given); v is metres up from the pavement. In the photographs the wall start
 is on the left when you face the wall from the street. The grid image (when given) is the
 photographs projected onto the wall plane with a labelled 1 m grid; red lines mark u=0, u=L and v=0.
-It smears whatever stands off the wall (awnings, blades, trees, parklets): read those from the
+The grid comes from approximate camera positions and can be shifted up to about 1 m along the
+wall; the building's corners are true. Place a module by its distance from the corners you see in
+the photographs (the first bay's distance from u=0, the last bay's from u=L), and check that both
+ends agree with the period before trusting the grid. It smears whatever stands off the wall (awnings, blades, trees, parklets): read those from the
 photographs and place them using the grid only for where along the wall they are.
 
 What matters, in order:
-1. Every opening, sign, awning and shop that is there, none that is not. Count windows per floor and
-   check the count against the photographs; buildings on these streets repeat a module: find it
-   (window, pier, window, pier) and keep the rhythm exact.
+1. Every opening, sign, awning and shop that is there, none that is not, along the WHOLE wall from
+   u=0 to u=L, not only the tenant's stretch. Buildings on these streets repeat a module (window,
+   pier, window, pier): count the bays across the whole front in the whole-wall photograph, derive
+   the period from the wall length and that count (not by placing each bay by eye), find where the
+   first one starts, and give it once with "repeat". A module continues across the wall unless a
+   photograph shows it change; where one image is smeared or blocked, read that stretch from another
+   and carry the rhythm through, saying so in notes. Leave out only what no photograph shows.
 2. Depth: how far each thing stands out of or sits into the wall. Window reveals, bays, cornices,
    awnings, blades, pilasters and belts all have depth; use the angled photographs to judge it.
 3. The subtle patterns that make the building recognisable: pilaster flutes and stepped caps,
@@ -199,19 +209,56 @@ def _rows(bid: str, corridor: str | None, area: str) -> tuple[list[dict], dict[s
     return [], {}
 
 
-def clean_views(bid: str, corridor: str | None, area: str = "marina-union", since: str | None = None,
-                max_views: int = 4, max_occluded: float = 0.35) -> list[dict]:
-    """The frames worth sending: pixel-ok, one per view, distinct. Each item has frame_id, slot,
-    captured_at, aim, frame (camera meta) and why it was chosen."""
+def ok_frames(bid: str, corridor: str | None, area: str = "marina-union", max_occluded: float = 0.35,
+              min_span: float = 15.0) -> list[dict]:
+    """Every frame of this front that passed the pixel stage, with its aim and camera."""
     px, picks = _rows(bid, corridor, area)
-    ok = [p for p in px if not p.get("rejects") and p.get("geometry_ok", True)
-          and (p.get("metrics") or {}).get("occluded_storefront", 0) <= max_occluded and p["frame_id"] in picks
-          and float((picks[p["frame_id"]].get("aim") or {}).get("span_deg") or 0) >= 15.0]
+    ok = [dict(p) for p in px if not p.get("rejects") and p.get("geometry_ok", True)
+          and (p.get("metrics") or {}).get("occluded_storefront", 0) <= max_occluded and p["frame_id"] in picks]
     for p in ok:
         g = picks[p["frame_id"]]
         p["_view"] = g.get("view") or p.get("slot")
         p["_aim"], p["_frame"] = g.get("aim") or {}, g.get("frame") or {}
         p["_range"] = (g.get("metrics") or {}).get("range_m", 12.0)
+    return [p for p in ok if float(p["_aim"].get("span_deg") or 0) >= min_span]
+
+
+def whole_wall_view(base: dict, e: int, ok: list[dict], top: float) -> dict | None:
+    """A clean panorama that sees the whole wall, both ends, at the best resolution: the shop
+    views are aimed at the tenant's stretch, this one shows the rhythm of the whole front."""
+    from ..photos.rectify import wall_frame
+    a, t, n, L = wall_frame(base, e)
+    pos = {p["frame_id"]: p for p in base.get("photos") or []}
+    best = None
+    for p in ok:
+        cam = pos.get(p["frame_id"])
+        if not cam or p["_frame"].get("camera_type") not in ("spherical", "equirectangular"):
+            continue
+        c = np.array([cam["x"], cam["y"]], float)
+        perp = float(np.dot(c - a, n))
+        if perp < 3.0:
+            continue
+        b0 = math.degrees(math.atan2(*(a - c)))  # compass bearing (x east, y north)
+        b1 = math.degrees(math.atan2(*(a + L * t - c)))
+        span = abs((b1 - b0 + 180) % 360 - 180)
+        if span > 105:
+            continue
+        mid = b0 + ((b1 - b0 + 180) % 360 - 180) / 2
+        if best is None or span > best[0]:
+            heading = p["_frame"].get("heading") or cam.get("heading") or 0.0
+            best = (span, {**p, "_why": "the whole wall, end to end", "_range": perp,
+                           "_aim": {"rel_to_heading": (mid - heading + 540) % 360 - 180, "span_deg": span}})
+    return best[1] if best else None
+
+
+def clean_views(bid: str, corridor: str | None, area: str = "marina-union", since: str | None = None,
+                max_views: int = 4, max_occluded: float = 0.35) -> list[dict]:
+    """The frames worth sending: pixel-ok, one per view, distinct. Each item has frame_id, slot,
+    captured_at, aim, frame (camera meta) and why it was chosen."""
+    return _choose(ok_frames(bid, corridor, area, max_occluded), since, max_views)
+
+
+def _choose(ok: list[dict], since: str | None, max_views: int) -> list[dict]:
     chosen: list[dict] = []
 
     def distinct(p):
@@ -419,6 +466,34 @@ def _span(d: dict, L: float, H: float, keys=("u", "v", "w", "h")) -> dict | None
     return {**d, "u": round(u, 2), "v": round(v, 2), "w": round(w, 2), "h": round(h, 2)}
 
 
+def expand(items, L: float) -> list:
+    """Parts carrying ``repeat: {period, count}`` become count copies, period apart along the
+    wall (a pilaster's whole ``u`` list shifts). The model gives the module, the code lays it out
+    exactly, so a long front keeps its rhythm."""
+    out = []
+    for x in items if isinstance(items, list) else []:
+        rp = x.get("repeat") if isinstance(x, dict) else None
+        if not isinstance(rp, dict):
+            out.append(x)
+            continue
+        p, n = _num(rp.get("period"), 0.2, L), int(_num(rp.get("count"), 1, 80, 1))
+        base_x = {k: v for k, v in x.items() if k != "repeat"}
+        if p is None:
+            out.append(base_x)
+            continue
+        if isinstance(base_x.get("u"), list):  # a pilaster group: one entry, every u shifted
+            us = [float(u) + i * p for i in range(n) for u in base_x["u"] if _num(u, -50, 500) is not None]
+            out.append({**base_x, "u": sorted(round(u, 3) for u in us)})
+            continue
+        for i in range(n):
+            y = dict(base_x)
+            for k in ("u", "u0", "u1"):
+                if _num(y.get(k), -50, 500) is not None:
+                    y[k] = round(float(y[k]) + i * p, 3)
+            out.append(y)
+    return out
+
+
 def sanitize(ans: dict, base: dict, e: int) -> dict:
     """The answer clamped to the wall and the vocabulary; parts that cannot be drawn are dropped
     and counted in ``dropped``."""
@@ -428,7 +503,7 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
 
     def keep(kind, items, fn):
         out = []
-        for i, x in enumerate(items if isinstance(items, list) else []):
+        for i, x in enumerate(expand(items, L)):
             y = fn(x) if isinstance(x, dict) else None
             if y is None:
                 dropped.append(f"{kind}[{i}]")
