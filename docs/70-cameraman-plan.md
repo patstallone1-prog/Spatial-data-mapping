@@ -1,6 +1,39 @@
-# The cameraman (plan)
+# The cameraman
 
-Status: plan only, nothing built. Kept on branch `claude/opus-wall-materials`, not merged.
+Status: built (2026-11-25), phases 1-4 and the named shots of phase 5; the level-of-detail
+pre-warm and the headless route harness are not built. The code is `docs/city/cameraman.mjs` (the
+pure part, tested in `tests/city_cameraman.test.mjs`) and the cameraman section of page module 32.
+`kerbsideCameraman("strong" | "gentle" | "off")` in the console (or `?camera=` in the address)
+picks how hard it works; "off" is the magic camera as it was. Strong is the default.
+
+## The user's answers (2026-11-25)
+1. Cuts: mostly swoops and fades out and in. Hard cuts for cinematic parts (a car ride), or when
+   something is happening (a fight) and the new shot is right round: then a hard cut to a closer view.
+2. While you hold the view: strong, pushing away from obstacles -- not blocking, but bending the
+   camera's path to miss them.
+3. At the wheel it may cut to new shots.
+4. Interiors yes, but more subtle, so it does not disorient.
+5. For later: someone getting their phone out -> a close-up of the phone in their hand (the
+   "phone" shot exists in cameraman.mjs; nothing asks for it yet, as you have no phone to take out).
+
+## As built
+- Occluders: the catalogue's instances near you (posts as their upright only, shelters, kiosks,
+  fences by their own turned boxes, trees as a trunk and a see-through crown), the city's vehicles
+  (`cameraBlockers` in view.mjs), and the buildings (`orbitBuildingTop`, answers cached by
+  half-metre square). Gathered every 0.7 s or 5 m.
+- Subject points: head, chest, feet and both hands (the bones) on foot; the car's corners and roof.
+- Drift at 8 Hz over 16 forms of shot (rise, nearer, over either shoulder, higher) at up to 9
+  turns; held views only solve rise, distance, shoulder and height (and lead the way you drag).
+- Cuts: after 0.4 s (on foot; 0.25 s driving, 0.7 s inside) seen less than 55%, to a shot seen
+  at least 85% and 30 degrees or more away, keeping screen direction while you move, held 2.5 s.
+  On foot a swoop, or a fade out and in past 100 degrees; at the wheel a hard cut; in a fight a
+  hard cut to the closer side shot when it is right round; inside always a slow swoop, and the
+  drift keeps within 0.4 rad of the view asked for.
+- Named shots: over the shoulder when you talk to someone (click-to-talk), a closer side view in
+  a fight (a punch thrown at someone, for 3 s), the side of the car when stopped at a light for 4 s
+  (cut back when moving), and a reset to the view asked for on getting into or out of a car.
+- The outline: only after 250 ms of you being hidden with nothing clearing it, never for a
+  building the camera has already come in past, and not for see-through things (crowns, chain link).
 
 ## What it is for
 In City mode the view should look after itself the way a good camera operator would:

@@ -76,7 +76,7 @@ RULES = [
     # the mechanics holdout is run by hand (docs/62); a change to it runs the calibration suite
     (["tests/mechanics_holdout.mjs"], ["tests/mechanics.test.mjs"]),
     # run in Blender, not importable here: the moves it writes are what the test reads
-    (["tools/avatars/build_moves.py", "docs/city/models/moves/**", "docs/city/moves-sheet.html"], ["tests/test_moves_library.py"]),
+    (["tools/avatars/build_moves.py", "tools/avatars/thin_moves.py", "docs/city/models/moves/**", "docs/city/moves-sheet.html"], ["tests/test_moves_library.py"]),
 ]
 #: Files a module reads by directory rather than by name: a change to one of them is a change to
 #: each module named here, and selects those modules' consumers. The page's shell and module

@@ -43,3 +43,40 @@ test("the crowd shows hits, falls, talk and the officers' hands with its own bod
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   assert.match(view, /if \(mv\) return Boolean\(figures\.canMove\?\.\(mv\.name\)\)/);
 });
+
+// The second pass (Mixamo captures): the jump, the swim, held swings, dig and push, and the
+// crowd's sitting and leaning are played from life where the moves are loaded.
+const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+const water = readFileSync(new URL("../src/smc/renderer/page/module/33-into-the-water.js", import.meta.url), "utf8");
+const walker = readFileSync(new URL("../src/smc/renderer/page/module/22-explore-the-view-without-the.js", import.meta.url), "utf8");
+
+test("the jump is captured: take-off fitted to the crouch, held falling, landed, and walked out of", () => {
+  assert.match(view, /const JUMP_MOVES = \["JumpUp", "JumpFall", "JumpLanding"\]/);
+  assert.match(view, /ctx\.playMove\("JumpUp", \{ fade: 0\.06, out: 0\.12, speed: clip \/ JUMP\.crouch_s \}\)/);
+  assert.match(view, /if \(air\.mocap\) ctx\.playMove\?\.\("JumpFall", \{ loop: true/);
+  assert.match(view, /ctx\.playMove\?\.\("JumpLanding"/);
+  // Walking off cuts the landing short; the posed jump is not laid over the captured one.
+  assert.match(view, /air\.mocap && air\.land && walkSpeed > 0\.8[\s\S]{0,80}ctx\.stopMove\?\.\("JumpLanding"\)/);
+  assert.match(view, /function jumpBody\(now = performance\.now\(\)\) \{\s*if \(air\.mocap\) \{/);
+});
+
+test("swimming plays the captured stroke (lying) or treading (upright), not the posed crawl", () => {
+  assert.match(water, /const want = sw \? \(lying \? "SwimStroke" : "SwimTread"\) : null;/);
+  assert.match(water, /if \(swimMoveStep\(sw, goal\)\) \{/);
+  assert.match(view, /if \(sw && \/\^Swim\/\.test\(ctx\.moveActive\?\.\(\) \|\| ""\)\) return;/);
+});
+
+test("held swings, digging and pushing are captured moves fitted to the act, not hurried", () => {
+  assert.match(view, /swing: \(p\) => \(p\?\.hands \? \{ name: \["two_hands", "shoulder"\]\.includes\(physOf\(R, p\.hands\)\.hold\) \? "ChopHeld" : "SwingHeld" \}/);
+  assert.match(view, /dig: \(\) => \(\{ name: "Dig"/);
+  assert.match(view, /const speed = Math\.max\(0\.7, Math\.min\(1\.6, length \/ dur\)\);/);
+  // What is held stays in the hand through a captured move.
+  assert.match(view, /if \(pose\.mocap\) \{ if \(p\?\.hands && pose\.kind !== "pickup"\) inHand\(\); return; \}/);
+  // A move may be played for only the first part of its clip.
+  assert.match(walker, /function playWalkerMove\(name, \{ fade = 0\.12, out = 0\.18, speed = 1, loop = false, length = null \} = \{\}\)/);
+});
+
+test("the crowd sits and leans on its own bodies", () => {
+  assert.ok(CROWD_MOVES.includes("SeatIdle") && CROWD_MOVES.includes("LeanWall"));
+  assert.match(view, /sit: "SeatIdle", sit_phone: "SeatIdle", lean_wall: "LeanWall"/);
+});

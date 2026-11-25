@@ -250,7 +250,8 @@ test("X aims at the nearest target's height and turns to it; G walks over with t
   assert.ok(bench >= 0.5 && person <= 2.1);
   // The swing turns you to what it is aimed at, and the blow lands on that.
   assert.match(src, /const aim = nearestHittable\(R\.tools\.reach_m\);\n    if \(aim\) ctx\.faceTo\?\.\(aim\.x, aim\.z\);/);
-  assert.match(src, /startAct\("swing", p\.hands \? SWING\.dur_s : PUNCH\.dur_s, p\.hands \? SWING\.hit : PUNCH\.hit, \(\) => \(aim\?\.kind === "person" && !p\.hands \? punchLands\(aim, "right"\) : strikeKey\(null, aim\)\)\)/);
+  // (Something held: the captured swing's own length and strike where it is loaded, else SWING's.)
+  assert.match(src, /startAct\("swing", heldDur \? heldDur \/ 1\.15 : p\.hands \? SWING\.dur_s : PUNCH\.dur_s,\s*heldDur && heldReach \? Math\.min\(0\.9, heldReach\.at_s \/ heldDur\) : p\.hands \? SWING\.hit : PUNCH\.hit,\s*\(\) => \(aim\?\.kind === "person" && !p\.hands \? punchLands\(aim, "right"\) : strikeKey\(null, aim\)\)\)/);
   // An empty hand punches straight out at that height rather than swinging overhead; what is held
   // is swung through it (body-moves.mjs; city_body_moves.test.mjs reads the curves).
   assert.match(src, /const S = p\?\.hands \? swingPose\(t, arm, hold === "two_hands" \|\| hold === "shoulder"\) : punchPose\(t, arm\);/);
