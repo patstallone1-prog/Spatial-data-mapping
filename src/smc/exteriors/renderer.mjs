@@ -47,7 +47,7 @@ export function cutExteriorWallBands(THREE, geometry, plan, origin = {x: 0, y: 0
         const a = source.attributes[n];
         return [n, Array.from({length: a.itemSize}, (_, k) => a.array[(i + j) * a.itemSize + k])];
       })))];
-      if (group.materialIndex !== 0) for (const f of plan.facades) {
+      if (group.materialIndex !== 0 || plan.cut_all_groups) for (const f of plan.facades) {
         const L = Math.hypot(f.b[0] - f.a[0], f.b[1] - f.a[1]);
         const tx = (f.b[0] - f.a[0]) / L, ty = (f.b[1] - f.a[1]) / L;
         const position = v => [v.position[0] - origin.x - f.a[0], -(v.position[2] - origin.z) - f.a[1]];
@@ -56,8 +56,8 @@ export function cutExteriorWallBands(THREE, geometry, plan, origin = {x: 0, y: 0
           return [x * tx + y * ty, v.position[1] - origin.y];
         };
         pieces = pieces.flatMap(poly => poly.every(v => {
-          const [x, y] = position(v); return Math.abs(x * -ty + y * tx) < 0.003;
-        }) ? outsideRectangle(poly, project, [f.u0, f.u1, 0, f.band_height_m]) : [poly]);
+          const [x, y] = position(v); return Math.abs(x * -ty + y * tx) < (f.clip_tolerance_m || 0.003);
+        }) ? outsideRectangle(poly, project, [f.u0, f.u1, f.band_bottom_m || 0, f.band_height_m]) : [poly]);
       }
       for (const poly of pieces) for (let j = 1; j < poly.length - 1; j++) {
         const tri = [poly[0], poly[j], poly[j + 1]];
@@ -209,6 +209,11 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
       emissiveMap: map, emissiveIntensity: sign.illumination === 'none' ? 0 : 0.32});
     materialCache.set(key, m); return m;
   };
+  // Read parts (facade.observed): awning cloth, sign art and motif strips, made once per look.
+  const observedMaterial = (key, make) => {
+    if (!materialCache.has(key)) materialCache.set(key, make());
+    return materialCache.get(key);
+  };
   const mount = (target, plan, origin = {x: 0, y: 0, z: 0}) => {
     if (!plan.validation?.passed) return null;
     const group = new THREE.Group(), walls = new Batch(THREE), signs = new Batch(THREE);
@@ -234,7 +239,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
         if (!materialCache.has(key)) {
           const m = material(p.wall, p.roughness).clone();
           const bands = f.observed_bands.filter(b => /^#[0-9a-f]{6}$/i.test(b.colour || ''));
-          m.onBeforeCompile = shader => {
+          m.onBeforeCompile = shader => { globalThis.__kerbsideProxyLight?.patch?.(shader);
             shader.vertexShader = 'varying float facadeY;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nfacadeY = position.y;');
             shader.fragmentShader = 'varying float facadeY;\n' + shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + bands.map(b => {
               const c = new THREE.Color(b.colour); return `if(facadeY>=${Number(b.bottom_m).toFixed(6)}&&facadeY<${Number(b.top_m).toFixed(6)}) diffuseColor.rgb=vec3(${c.r},${c.g},${c.b});`;
@@ -253,10 +258,19 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
         const arch = o.shape === 'arched' || o.design?.shape === 'arched';
         const rise = arch ? Math.min(o.h * 0.32, o.w / 2, o.arch_rise_m ?? o.h * 0.25) : 0;
         const glassKey = 'glass|' + p.glass + '|' + (o.privacy_fraction || 0);
-        if (!materialCache.has(glassKey)) materialCache.set(glassKey, new THREE.MeshPhysicalMaterial({
-          color: p.glass, transparent: true, opacity: options.glassOpacity ?? 0.42,
-          roughness: 0.1, metalness: 0.05, transmission: 0.18, side: THREE.DoubleSide,
-        }));
+        // Plain see-through glass, never three.js's transmission: one transmissive material in
+        // view has the renderer draw every opaque thing a second time each frame, into a buffer
+        // to refract (measured in City mode, 2026-11-11: 822 of 1,755 draws a frame).
+        if (!materialCache.has(glassKey)) {
+          const glass = new THREE.MeshStandardMaterial({
+            color: p.glass, transparent: true, opacity: options.glassOpacity ?? 0.42,
+            roughness: 0.1, metalness: 0.05, side: THREE.DoubleSide, depthWrite: false,
+          });
+          // Real glass where the page has it (module 02 realGlass): clear straight on, a mirror at a
+          // slant; frosted for privacy by its share.
+          globalThis.__kerbsideRealGlass?.(glass, { face: 0.05 + 0.6 * (o.privacy_fraction || 0) });
+          materialCache.set(glassKey, glass);
+        }
         if (arch) {
           const path = holePath(THREE, o, o.v + o.h);
           const at = matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0,0,0.005));
@@ -389,6 +403,7 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
           plane(u,v,sign.canopy?sign.canopy.depth_m+.024:panel?.185:.085,w,h,m);
         }
       }
+      if (f.observed) drawObserved(THREE, f, matrix, signs, material, observedMaterial);
       batch = walls;
     }
     walls.finish(group, plan.evidence);
@@ -401,6 +416,189 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
   };
   return {mount, missingAssets, brandTexture: key => textures.get(key), cutWallBands: (g, p, o) => cutExteriorWallBands(THREE, g, p, o),
     dispose() {for (const m of materialCache.values()) {if (m.map && ![...textures.values()].includes(m.map)) m.map.dispose(); m.dispose();} for (const t of textures.values()) t.dispose();}};
+}
+
+//: Read sign art is drawn at OBSERVED_PX_PER_M, never more than OBSERVED_MAX_PX across: a board
+//: is seen from the pavement, and 300 boards at the lab's 260 px/m would be most of a gigabyte.
+export const OBSERVED_PX_PER_M = 96, OBSERVED_MAX_PX = 640;
+
+function canvasFor(w, h) {
+  const c = document.createElement('canvas'), long = Math.max(w, h);
+  const px = Math.max(32, Math.min(OBSERVED_MAX_PX, Math.round(long * OBSERVED_PX_PER_M)));
+  c.width = Math.max(8, Math.round(px * w / long)); c.height = Math.max(8, Math.round(px * h / long));
+  return c;
+}
+
+function canvasMaterial(THREE, canvas, {opaque = false, glow = 0, repeat = null} = {}) {
+  const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+  if (repeat) {map.wrapS = THREE.RepeatWrapping; map.repeat.set(repeat, 1);}
+  return new THREE.MeshStandardMaterial({map, transparent: !opaque, alphaTest: opaque ? 0 : 0.05, roughness: 0.6,
+    side: THREE.DoubleSide, emissive: glow ? '#ffffff' : '#000000', emissiveMap: glow ? map : null, emissiveIntensity: glow});
+}
+
+/** One line of lettering, shrunk to fit (the lab's textPlane). */
+function letteringMaterial(THREE, text, {ink = '#f6f1e7', font = 'Georgia, serif', weight = 700, italic = false, w = 2, h = 0.3}) {
+  const c = canvasFor(w, h), g = c.getContext('2d'), it = italic ? 'italic ' : '';
+  let size = c.height * 0.72; g.font = `${it}${weight} ${size}px ${font}`;
+  while (g.measureText(text).width > c.width * 0.94 && size > 5) {size -= 1; g.font = `${it}${weight} ${size}px ${font}`;}
+  g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, c.width / 2, c.height / 2);
+  return canvasMaterial(THREE, c);
+}
+
+/** A read sign's face from its layers -- rect, roundrect, circle, ring, halfdisc, text -- as
+ *  fractions of its box (the lab's signArt). Vectors drawn here, no artwork copied. */
+function signArtMaterial(THREE, s, fallback) {
+  const w = s.w || 1, h = s.h || 0.4, c = canvasFor(w, h), g = c.getContext('2d'), W = c.width, H = c.height;
+  if (s.bg) {g.fillStyle = s.bg; if (s.radius) {g.beginPath(); g.roundRect(0, 0, W, H, s.radius * H); g.fill();} else g.fillRect(0, 0, W, H);}
+  const layers = s.layers || [{type: 'text', text: s.text || fallback, x: 0.5, y: 0.5, size: 0.72, fill: s.ink || '#f6f1e7', font: s.font, weight: s.weight, italic: s.italic}];
+  for (const L of layers) {
+    g.save(); g.fillStyle = L.fill || '#fff'; g.strokeStyle = L.stroke || 'transparent'; g.lineWidth = (L.line || 0) * H;
+    const X = (L.x ?? 0) * W, Y = (L.y ?? 0) * H;
+    if (L.type === 'rect') {g.fillRect(X, Y, (L.w ?? 1) * W, (L.h ?? 1) * H); if (L.line) g.strokeRect(X, Y, (L.w ?? 1) * W, (L.h ?? 1) * H);}
+    else if (L.type === 'roundrect') {g.beginPath(); g.roundRect(X, Y, (L.w ?? 1) * W, (L.h ?? 1) * H, (L.r ?? 0.2) * H); g.fill(); if (L.line) g.stroke();}
+    else if (L.type === 'circle' || L.type === 'ring') {g.beginPath(); g.arc(X, Y, (L.r ?? 0.4) * H, 0, Math.PI * 2); if (L.type === 'ring') g.stroke(); else {g.fill(); if (L.line) g.stroke();}}
+    else if (L.type === 'halfdisc') {g.beginPath(); g.arc(X, Y, (L.r ?? 0.4) * H, Math.PI, 0); g.closePath(); g.fill();}
+    else if (L.type === 'text' && L.text) {
+      let size = (L.size ?? 0.5) * H; const font = L.font || 'Georgia, serif', weight = L.weight || 700, it = L.italic ? 'italic ' : '';
+      g.font = `${it}${weight} ${size}px ${font}`;
+      if (L.spacing) g.letterSpacing = `${L.spacing * size}px`;
+      while (g.measureText(L.text).width > (L.maxw ?? 0.94) * W && size > 5) {size -= 1; g.font = `${it}${weight} ${size}px ${font}`;}
+      g.textAlign = L.align || 'center'; g.textBaseline = 'middle';
+      if (L.glow) {g.shadowColor = L.glow; g.shadowBlur = size * 0.35;}
+      if (L.line) g.strokeText(L.text, X, Y);
+      g.fillText(L.text, X, Y);
+    }
+    g.restore();
+  }
+  return canvasMaterial(THREE, c, {opaque: !!s.bg && !s.radius, glow: s.illumination && s.illumination !== 'none' ? 0.35 : 0});
+}
+
+function stripeMaterial(THREE, a, b, width) {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 4;
+  const g = c.getContext('2d'); g.fillStyle = a; g.fillRect(0, 0, 64, 4); g.fillStyle = b; g.fillRect(32, 0, 32, 4);
+  return canvasMaterial(THREE, c, {opaque: true, repeat: 1 / (2 * width)});
+}
+
+function motifMaterial(THREE, bg, fg, kind, spacing) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 128, 64); g.fillStyle = fg; g.strokeStyle = fg; g.lineWidth = 3;
+  if (kind === 'fan') for (let k = 0; k < 7; k++) {const a0 = Math.PI + (k / 7) * Math.PI; g.beginPath(); g.moveTo(64, 52); g.arc(64, 52, 35, a0, a0 + Math.PI / 7 * 0.75); g.closePath(); g.fill();}
+  else if (kind === 'dentil') for (let x = 4; x < 128; x += 20) g.fillRect(x, 10, 12, 44);
+  else if (kind === 'chevron') {g.beginPath(); for (let x = 0; x <= 128; x += 32) {g.moveTo(x, 50); g.lineTo(x + 16, 14); g.lineTo(x + 32, 50);} g.stroke();}
+  return canvasMaterial(THREE, c, {opaque: true, repeat: 1 / spacing});
+}
+
+function quad(THREE, pts, uvs) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs.flat(), 2));
+  g.setIndex(pts.length === 4 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2]); g.computeVertexNormals();
+  return g;
+}
+
+/** Draw a facade's read parts (smc.exteriors.observed): awnings, boards and blades, lights, and
+ *  the shop band's pilasters and friezes -- the kerbfront lab's drawing, on the canonical edge. */
+export function drawObserved(THREE, f, matrix, batch, material, cached) {
+  const o = f.observed, band = f.band_height_m, flip = matrix.determinant() < 0;
+  const at = (u, v, n) => matrix.clone().multiply(new THREE.Matrix4().makeTranslation(u, v, n));
+  const add = (g, m, where = matrix) => batch.add(g, m, where);
+  const box = (u, v, n, W, H, D, m) => add(new THREE.BoxGeometry(W, H, D), m, at(u, v, n));
+  // Lettering reads left to right from the street on either winding of the canonical ring.
+  const face = (where) => flip ? where.multiply(new THREE.Matrix4().makeScale(-1, 1, 1)) : where;
+  const text = (t, opts) => cached(['obs-text', t, opts.ink, opts.font, opts.italic, opts.w.toFixed(2), opts.h.toFixed(2)].join('|'),
+    () => letteringMaterial(THREE, t, opts));
+  const cloth = a => a.stripe ? cached(['obs-stripe', a.colour, a.stripe, a.stripe_w ?? 0.3].join('|'), () => stripeMaterial(THREE, a.colour || '#264f43', a.stripe, a.stripe_w ?? 0.3))
+    : material(a.colour || f.palette.accent, 0.92);
+  for (const a of o.awnings || []) {
+    const W = a.u1 - a.u0, uc = (a.u0 + a.u1) / 2, D = a.depth_m ?? 0.9, drop = a.drop_m ?? 0.3;
+    const val = a.valance_h ?? (a.kind === 'box' ? 0.35 : 0.22), m = cloth(a);
+    const top = Math.min(a.v ?? band - 0.3, band + 0.4);
+    let frontY = top - drop;
+    if (a.kind === 'dome' || a.kind === 'quarter_round') {
+      const N = 10, pos = [], uv = [], idx = [];
+      for (let k = 0; k <= N; k++) {
+        const th = (k / N) * Math.PI / 2, w = D * Math.sin(th), y = top - drop + drop * Math.cos(th);
+        pos.push(a.u0, y, w, a.u1, y, w); uv.push(a.u0, k / N, a.u1, k / N);
+        if (k) {const q = 2 * k; idx.push(q - 2, q, q - 1, q - 1, q, q + 1);}
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex(idx); g.computeVertexNormals(); add(g, m);
+      for (const u of [a.u0, a.u1]) for (let k = 0; k < N; k++) {
+        const t0 = (k / N) * Math.PI / 2, t1 = ((k + 1) / N) * Math.PI / 2;
+        add(quad(THREE, [[u, top - drop, 0], [u, top - drop + drop * Math.cos(t0), D * Math.sin(t0)], [u, top - drop + drop * Math.cos(t1), D * Math.sin(t1)]], [[0, 0], [0, 1], [1, 1]]), m);
+      }
+    } else if (a.kind === 'box' || a.kind === 'flat_canopy') {
+      const th = a.kind === 'flat_canopy' ? 0.12 : 0.05;
+      box(uc, top - th / 2, D / 2, W, th, D, m); frontY = top;
+      if (a.kind === 'flat_canopy') for (const u of [a.u0 + 0.2, a.u1 - 0.2]) {
+        const rod = new THREE.CylinderGeometry(0.012, 0.012, Math.hypot(D, 0.9), 6); rod.rotateX(Math.atan2(D, 0.9)); rod.translate(u, top + 0.45, D / 2);
+        add(rod, material('#333333', 0.4, 0.8));
+      }
+    } else {
+      add(quad(THREE, [[a.u0, top, 0], [a.u1, top, 0], [a.u1, frontY, D], [a.u0, frontY, D]], [[a.u0, 0], [a.u1, 0], [a.u1, 1], [a.u0, 1]]), m);
+      if (a.sides !== false && a.kind !== 'retractable') for (const u of [a.u0, a.u1])
+        add(quad(THREE, [[u, top, 0], [u, frontY, D], [u, frontY - val, D], [u, top - val * 0.4, 0]], [[0, 0], [1, 0], [1, 1], [0, 1]]), m);
+      if (a.kind === 'retractable') for (const u of [a.u0 + 0.15, a.u1 - 0.15]) {
+        const arm = new THREE.CylinderGeometry(0.015, 0.015, Math.hypot(D, drop), 6); arm.rotateX(Math.PI / 2 - Math.atan2(drop, D)); arm.translate(u, top - drop / 2 - 0.05, D / 2);
+        add(arm, material('#555555', 0.4, 0.7));
+      }
+    }
+    const dome = a.kind === 'dome' || a.kind === 'quarter_round';
+    if (a.kind !== 'flat_canopy') {
+      const vg = new THREE.PlaneGeometry(W, val); vg.translate(uc, frontY - val / 2, D + (dome ? 0.005 : 0.002));
+      add(vg, a.valance_colour ? material(a.valance_colour, 0.9) : m);
+      if (a.valance_text) {
+        const tw = Math.min(W * 0.9, a.valance_text.length * val * 0.55), th = val * 0.8;
+        add(new THREE.PlaneGeometry(tw, th), text(a.valance_text, {ink: a.text_colour || '#f6f1e7', w: tw, h: th, font: a.font || 'Georgia, serif', italic: !!a.italic}),
+          face(at(a.text_u ?? uc, frontY - val / 2, D + 0.012)));
+      }
+    }
+    if (a.text_on_slope) {
+      const tw = Math.min(W * 0.8, a.text_on_slope.length * 0.22), th = 0.3, ang = Math.atan2(top - frontY, D);
+      const where = face(at(uc, (top + frontY) / 2 + 0.02, D / 2 + 0.02)).multiply(new THREE.Matrix4().makeRotationX(-(Math.PI / 2 - ang)));
+      add(new THREE.PlaneGeometry(tw, th), text(a.text_on_slope, {ink: a.text_colour || '#f6f1e7', w: tw, h: th, font: a.font || 'Georgia, serif'}), where);
+    }
+  }
+  for (const s of o.extra_signs || []) {
+    const art = cached(['obs-sign', JSON.stringify([s.text, s.bg, s.radius, s.layers, s.ink, s.font, s.illumination, s.w, s.h]), f.name].join('|'),
+      () => signArtMaterial(THREE, s, f.name));
+    if (s.kind === 'blade') {
+      const out = s.offset ?? 0.12, thick = s.thick ?? 0.08;
+      box(s.u, s.v + s.h / 2, out + s.w / 2, thick, s.h, s.w, material(s.edge_colour || s.bg || '#222222', 0.6));
+      for (const side of [-1, 1]) {
+        const where = at(s.u + side * (thick / 2 + 0.003), s.v + s.h / 2, out + s.w / 2).multiply(new THREE.Matrix4().makeRotationY(side * Math.PI / 2));
+        add(new THREE.PlaneGeometry(s.w, s.h), art, face(where));
+      }
+      if (s.bracket !== false) box(s.u, s.v + s.h + 0.06, (s.w + out) / 2, 0.04, 0.04, s.w + out, material('#2b2b2b', 0.5, 0.6));
+    } else {
+      const depth = s.kind === 'window_vinyl' ? -0.13 : s.kind === 'board' ? 0.06 : 0.04;
+      if (s.kind === 'board') box(s.u + s.w / 2, s.v + s.h / 2, 0.025, s.w + 0.06, s.h + 0.06, 0.05, material(s.board || s.bg || '#1f2a26', 0.6));
+      add(new THREE.PlaneGeometry(s.w, s.h), art, face(at(s.u + s.w / 2, s.v + s.h / 2, depth + 0.005)));
+    }
+  }
+  for (const l of o.lights || []) {
+    if (l.kind === 'gooseneck') {
+      const m = material(l.colour || '#222222', 0.4, 0.7), shade = new THREE.CylinderGeometry(0.11, 0.06, 0.12, 12);
+      add(shade, m, at(l.u, l.v, 0.35)); box(l.u, l.v + 0.05, 0.17, 0.02, 0.02, 0.35, m);
+    } else if (l.kind === 'string') {
+      const bulbs = cached('obs-string-light', () => new THREE.MeshStandardMaterial({color: '#ffe8a8', roughness: 0.3, emissive: '#ffd27a', emissiveIntensity: 0.6, side: THREE.DoubleSide}));
+      box((l.u0 + l.u1) / 2, l.v, l.w ?? 0.5, l.u1 - l.u0, 0.012, 0.012, bulbs);
+    }
+  }
+  for (const pl of o.pilasters || []) {
+    const m = material(pl.colour || '#5e8c7b', 0.6), d = pl.depth ?? 0.14, top = pl.v1 ?? band, v0 = pl.v0 ?? 0;
+    for (const uc of pl.u) box(uc, (v0 + top) / 2, d / 2, pl.w ?? 0.3, top - v0, d, m);
+  }
+  for (const fz of o.friezes || []) {
+    const u0 = fz.u0, u1 = fz.u1, d = fz.depth ?? 0.05;
+    const m = fz.motif && fz.motif !== 'none'
+      ? cached(['obs-motif', fz.colour, fz.motif_colour, fz.motif, fz.spacing].join('|'), () => motifMaterial(THREE, fz.colour || '#2f5a4c', fz.motif_colour || '#d8b45c', fz.motif, fz.spacing || 0.8))
+      : material(fz.colour || '#2f5a4c', 0.75);
+    const g = new THREE.BoxGeometry(u1 - u0, fz.h, d), uv = g.attributes.uv;
+    for (let k = 0; k < uv.count; k++) uv.setX(k, uv.getX(k) * (u1 - u0));  // the motif repeats in metres
+    add(g, m, at((u0 + u1) / 2, fz.v + fz.h / 2, d / 2));
+  }
 }
 
 function solidIntervals(f, y) {

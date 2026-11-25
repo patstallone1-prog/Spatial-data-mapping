@@ -27,7 +27,11 @@ def build_bundle(
     selected_ids=None,
     station_inputs=(),
     dealership_inputs=(),
+    observed=None,
 ):
+    """``observed``: the kerbfront lab's photo-read buildings by app building
+    (smc.exteriors.observed.load_models); a building a read storefront lies on gets its plan
+    from the reading instead, and keeps the inferred one if the reading cannot be bound."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     package = files("smc.exteriors")
@@ -149,6 +153,16 @@ def build_bundle(
             plans[key] = plan
         except (ValueError, KeyError, TypeError) as exc:
             rejected.append({"id": key, "cohort": cohort, "errors": [str(exc)]})
+    observed_summary = None
+    if world and observed:
+        from smc.exteriors.observed import plans_for_world
+
+        read, read_rejected, unplaced = plans_for_world(world, observed)
+        for key, plan in read.items():
+            plan["cohort"] = "observed"
+            plans[key] = plan
+        rejected = [r for r in rejected if r["id"] not in read]
+        observed_summary = {"plans": len(read), "rejected": read_rejected, "unplaced_models": unplaced}
     manifest = {
         "schema": "kerbside.storefront_exteriors/1",
         "canonical_geometry_modified": False,
@@ -157,6 +171,8 @@ def build_bundle(
         "rejected": rejected,
         "buildings": plans,
     }
+    if observed_summary:
+        manifest["observed_summary"] = observed_summary
     if dealer_summary:
         manifest["dealership_summary"] = dealer_summary
     if station_inputs:
@@ -270,5 +286,6 @@ def runtime_manifest(manifest):
         "selection": manifest.get("selection"),
         "selected": len(manifest.get("selected") or []),
         "rejected": len(manifest.get("rejected") or []),
+        **({"observed": manifest["observed_summary"]["plans"]} if manifest.get("observed_summary") else {}),
         "buildings": buildings,
     }

@@ -1,7 +1,7 @@
 {
  "schema": "kerbside.storefront_exterior_tiles/1",
- "renderer_sha256": "788ae9a92ee5ebf3",
- "buildings": 19043,
+ "renderer_sha256": "70b6f66333f836e5",
+ "buildings": 19059,
  "tiles": [
   {
    "world": "app-regions/berkeley-downtown/sf-corridor-3d.json",
@@ -3852,12 +3852,14 @@
     -122.392,
     37.8095
    ],
-   "buildings": 3183,
-   "rejected": 139,
-   "bytes": 16350237,
-   "sha256": "5f9577d9331367cc",
-   "source_sha256": "980ff8b313bef4d2f08cab14b34a2b587c08e0d88cbb6cd40970033c9dda6f3e",
-   "references": "2026-11-05"
+   "buildings": 3199,
+   "rejected": 132,
+   "bytes": 17009467,
+   "sha256": "f9325845801a847c",
+   "source_sha256": "6b1c04af865b8e9ba2729cea749fdb6f8df347170c240f90654c89b6d4c5195a",
+   "references": "2026-11-05",
+   "observed": 121,
+   "readings_sha256": "795616cfe763bc4f"
   }
  ]
 }

@@ -11,6 +11,10 @@ root, as the frontage fits are published (tools/tile_frontage_fits.py):
     storefront-renderer.mjs              smc/exteriors/renderer.mjs
     storefront-assets/                   the chains' marks it draws
 
+A building whose storefronts were read from street photographs in the kerbfront lab
+(storefronts-lab/models/auto-opus, read by Claude Opus) gets its plan from that reading instead
+(smc.exteriors.observed): the shops' real names, spans, glazing, signs, awnings and lights.
+
 The manifest is what turns them on in the viewer. The worlds are read, never rewritten: names,
 fits and photo audits are bound to their exact bytes. Run again after a world is rebuilt.
 
@@ -35,11 +39,13 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from smc.exteriors.bundle import build_bundle, runtime_manifest  # noqa: E402
 from smc.exteriors.library import library  # noqa: E402
+from smc.exteriors.observed import assign, load_models  # noqa: E402
 
 LIMIT = 5000
 DOCS = ROOT / "docs"
 MANIFEST = DOCS / "storefront-exteriors.manifest.json"
 PLANS = "storefront-exteriors.json"
+READINGS = ROOT / "storefronts-lab" / "models" / "auto-opus"
 
 
 def default_worlds() -> list[Path]:
@@ -78,10 +84,24 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def publish(world_path: Path, raw: bytes) -> dict | None:
+def read_digest(world: dict, readings: dict) -> str | None:
+    """A digest of the photo readings that land on this world, or None if none do: a reading
+    re-done in the lab republishes the world it is on, and only that one."""
+    ways = {str(w["osm_id"]): w for w in world.get("ways", []) if w.get("kind") == "building"}
+    used = assign(readings, ways)
+    if not used:
+        return None
+    rows = sorted((key, model.get("id"), sorted(only)) for key, (model, only) in used.items())
+    models = sorted({model.get("id"): model for model, _ in used.values()}.items())
+    blob = json.dumps([rows, models], sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def publish(world_path: Path, raw: bytes, readings: dict | None = None) -> dict | None:
     world = json.loads(raw)
+    digest = read_digest(world, readings) if readings else None
     with tempfile.TemporaryDirectory() as tmp:
-        manifest = build_bundle(Path(tmp), world=world, limit=LIMIT)
+        manifest = build_bundle(Path(tmp), world=world, limit=LIMIT, observed=readings if digest else None)
     slim = runtime_manifest(manifest)
     plans = world_path.parent / PLANS
     if not slim["buildings"]:
@@ -93,7 +113,8 @@ def publish(world_path: Path, raw: bytes) -> dict | None:
     return {"world": str(world_path.relative_to(DOCS)), "path": str(plans.relative_to(DOCS)),
             "bbox": [b["west"], b["south"], b["east"], b["north"]], "buildings": len(slim["buildings"]),
             "rejected": slim["rejected"], "bytes": plans.stat().st_size, "sha256": sha256(plans),
-            "source_sha256": hashlib.sha256(raw).hexdigest(), "references": library()["version"]}
+            "source_sha256": hashlib.sha256(raw).hexdigest(), "references": library()["version"],
+            **({"observed": slim.get("observed", 0), "readings_sha256": digest} if digest else {})}
 
 
 def write_manifest(tiles: dict) -> None:
@@ -116,6 +137,7 @@ def main() -> int:
     args = parser.parse_args()
     previous = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
     tiles = {t["world"]: t for t in previous.get("tiles", [])}
+    readings = load_models(READINGS) if READINGS.is_dir() else {}
     for path in args.worlds or default_worlds():
         path = path.resolve()
         raw = world_bytes(path)
@@ -127,9 +149,10 @@ def main() -> int:
         # Plans already made from exactly this world, with this reference library (a chain added
         # to it changes which storefronts wear an identity).
         if (done and done.get("source_sha256") == hashlib.sha256(raw).hexdigest()
-                and done.get("references") == library()["version"] and (DOCS / done["path"]).exists()):
+                and done.get("references") == library()["version"] and (DOCS / done["path"]).exists()
+                and done.get("readings_sha256") == (read_digest(json.loads(raw), readings) if readings else None)):
             continue
-        tile = publish(path, raw)
+        tile = publish(path, raw, readings)
         tiles.pop(key, None)
         if tile:
             tiles[tile["world"]] = tile
