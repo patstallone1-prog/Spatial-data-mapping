@@ -56,7 +56,7 @@ Object.defineProperty(performance,'now',{value:()=>10000});
 const parent=new Group(),grass=createGrassStrands(THREE,{parent,maxCells:1,radius:2,
  sample:(x,z)=>x>=0&&x<4&&z>=0&&z<8?{y:3}:null});
 grass.update(2,2,2);
-const meshes=grass.group.children,vertices=meshes.flatMap(m=>m.geometry.attributes.position.array);
+const meshes=grass.group.children,vertices=meshes.flatMap(m=>Array.from(m.geometry.attributes.position.array));
 let bad=0;for(let i=0;i<vertices.length;i+=3)if(vertices[i]<0||vertices[i]>=4||vertices[i+1]<3)bad++;
 const triangles=meshes.reduce((n,m)=>n+m.geometry.index.length/3,0),lifted=meshes.every(m=>m.userData.liftedOntoGround);
 grass.dispose();console.log(JSON.stringify({bad,triangles,lifted,remaining:parent.children.length}));

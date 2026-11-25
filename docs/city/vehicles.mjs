@@ -113,6 +113,8 @@ export function vehicleMaterials(THREE) {
       glass: new THREE.MeshStandardMaterial({ color: 0x1d2a33, metalness: 0.6, roughness: 0.08, transparent: true, opacity: 0.42, depthWrite: false }),
       fixed: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.2, roughness: 0.7, vertexColors: true }),
     });
+    // A car's glass is glass (module 02 realGlass), tinted: more of it seen straight on than a window's.
+    globalThis.__kerbsideRealGlass?.(materialCache.get(THREE).glass, { face: 0.35 });
   }
   return materialCache.get(THREE);
 }

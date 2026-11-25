@@ -24,7 +24,9 @@ export function crownSway(height, speed) {
   return {amplitude: height * 0.0022 * speed, hertz: 1 / Math.sqrt(Math.max(1, height))};
 }
 
-const DECLARATIONS = "uniform float uFoliageTime;uniform vec3 uWind;uniform vec4 uWalker;\n";
+//: How many other people's feet press the grass besides the walker's: the nearest of them.
+export const FEET = 6;
+const DECLARATIONS = `uniform float uFoliageTime;uniform vec3 uWind;uniform vec4 uWalker;uniform vec4 uFeet[${FEET}];\n`;
 
 function plantChunk(kind) {
   const leaves = kind === "leaves" || kind === "shrub";
@@ -61,11 +63,17 @@ const GRASS_CHUNK = `{
   // The whole sward waves in long gusts, each blade a little out of step.
   float fmWave = sin(uFoliageTime * 1.7 - dot(transformed.xz, vec2(uWind.x, uWind.y)) * .35 + fmPhase * .15);
   vec3 fmOff = vec3(uWind.x, 0., uWind.y) * fmT * fmT * (.0035 * fmV + .0045 * fmV * fmWave);
-  // Underfoot the blades are pressed down and out from the walker.
-  vec2 fmD = transformed.xz - uWalker.xz;
-  float fmPress = (1. - smoothstep(uWalker.w * .3, uWalker.w, length(fmD))) * step(abs(transformed.y - uWalker.y), 1.5);
-  fmOff.xz += normalize(fmD + vec2(1e-4)) * fmPress * fmT * .08;
-  fmOff.y -= fmPress * fmT * fmT * .075;
+  // Underfoot the blades are pressed down and out from the walker -- and from anyone else
+  // walking through (uFeet: the nearest people, x, y, z of their feet and how far round them).
+  // The soil under the sward carries the foot; only the blades give.
+  vec4 fmFoot = uWalker;
+  for (int fmI = 0; fmI <= ${FEET}; fmI++) {
+    if (fmI > 0) fmFoot = uFeet[fmI - 1];
+    vec2 fmD = transformed.xz - fmFoot.xz;
+    float fmPress = (1. - smoothstep(fmFoot.w * .3, fmFoot.w, length(fmD))) * step(abs(transformed.y - fmFoot.y), 1.5);
+    fmOff.xz += normalize(fmD + vec2(1e-4)) * fmPress * fmT * .08;
+    fmOff.y -= fmPress * fmT * fmT * .075;
+  }
   transformed += fmOff;
 }`;
 
@@ -75,6 +83,7 @@ export function createFoliageMotion(THREE) {
     uWind: {value: new THREE.Vector3(...windVector(PREVAILING_WIND_FROM), DEFAULT_WIND)},
     // x, y, z of the walker's feet and how far round them the grass is pressed.
     uWalker: {value: new THREE.Vector4(0, -1e6, 0, .55)},
+    uFeet: {value: Array.from({length: FEET}, () => new THREE.Vector4(0, -1e6, 0, .45))},
   };
   //: kind: "leaves" | "bark" | "shrub" (instanced) or "grass" (blades with a bladeT attribute).
   function apply(material, kind) {
@@ -89,7 +98,7 @@ export function createFoliageMotion(THREE) {
         .replace("#include <begin_vertex>", `#include <begin_vertex>\n${kind === "grass" ? GRASS_CHUNK : plantChunk(kind)}`);
     };
     material.customProgramCacheKey = function () {
-      return `${previousKey ? previousKey.call(this) : ""}|foliage-${kind}-v1`;
+      return `${previousKey ? previousKey.call(this) : ""}|foliage-${kind}-v2`;
     };
     material.needsUpdate = true;
     return material;
@@ -104,6 +113,13 @@ export function createFoliageMotion(THREE) {
       uniforms.uWind.value.set(x, z, Math.max(0, wind.speed));
     }
     if (walker) uniforms.uWalker.value.set(walker.x, walker.y, walker.z, uniforms.uWalker.value.w);
+    // Others' feet: ``feet`` is a list of {x, y, z} (the nearest first); the rest are put far below.
+    const others = globalThis.__kerbsideFeet?.(walker) || null;
+    for (let i = 0; i < FEET; i += 1) {
+      const f = others?.[i], u = uniforms.uFeet.value[i];
+      if (f && Number.isFinite(f.x) && Number.isFinite(f.y) && Number.isFinite(f.z)) u.set(f.x, f.y, f.z, f.r ?? .45);
+      else u.set(0, -1e6, 0, .45);
+    }
   }
   return {uniforms, apply, update};
 }

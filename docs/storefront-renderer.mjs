@@ -256,10 +256,16 @@ export async function createExteriorRenderer(THREE, assetManifest = {}, assetBas
         // Plain see-through glass, never three.js's transmission: one transmissive material in
         // view has the renderer draw every opaque thing a second time each frame, into a buffer
         // to refract (measured in City mode, 2026-11-11: 822 of 1,755 draws a frame).
-        if (!materialCache.has(glassKey)) materialCache.set(glassKey, new THREE.MeshStandardMaterial({
-          color: p.glass, transparent: true, opacity: options.glassOpacity ?? 0.42,
-          roughness: 0.1, metalness: 0.05, side: THREE.DoubleSide, depthWrite: false,
-        }));
+        if (!materialCache.has(glassKey)) {
+          const glass = new THREE.MeshStandardMaterial({
+            color: p.glass, transparent: true, opacity: options.glassOpacity ?? 0.42,
+            roughness: 0.1, metalness: 0.05, side: THREE.DoubleSide, depthWrite: false,
+          });
+          // Real glass where the page has it (module 02 realGlass): clear straight on, a mirror at a
+          // slant; frosted for privacy by its share.
+          globalThis.__kerbsideRealGlass?.(glass, { face: 0.05 + 0.6 * (o.privacy_fraction || 0) });
+          materialCache.set(glassKey, glass);
+        }
         if (arch) {
           const path = holePath(THREE, o, o.v + o.h);
           const at = matrix.clone().multiply(new THREE.Matrix4().makeTranslation(0,0,0.005));

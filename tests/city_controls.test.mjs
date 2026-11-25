@@ -250,9 +250,10 @@ test("X aims at the nearest target's height and turns to it; G walks over with t
   assert.ok(bench >= 0.5 && person <= 2.1);
   // The swing turns you to what it is aimed at, and the blow lands on that.
   assert.match(src, /const aim = nearestHittable\(R\.tools\.reach_m\);\n    if \(aim\) ctx\.faceTo\?\.\(aim\.x, aim\.z\);/);
-  assert.match(src, /startAct\("swing", 0\.45, 0\.55, \(\) => strikeKey\(null, aim\)\)/);
-  // An empty hand jabs out at that height rather than swinging overhead.
-  assert.match(src, /if \(!p\?\.hands\) \{\n        \/\/ A punch/);
+  assert.match(src, /startAct\("swing", p\.hands \? SWING\.dur_s : PUNCH\.dur_s, p\.hands \? SWING\.hit : PUNCH\.hit, \(\) => strikeKey\(null, aim\)\)/);
+  // An empty hand punches straight out at that height rather than swinging overhead; what is held
+  // is swung through it (body-moves.mjs; city_body_moves.test.mjs reads the curves).
+  assert.match(src, /const S = p\?\.hands \? swingPose\(t, arm, hold === "two_hands" \|\| hold === "shoulder"\) : punchPose\(t, arm\);/);
   // The walk over to a thing is stepped by the page's walker (legs moving), not slid.
   assert.match(src, /ctx\.animateWalk\?\.\(moved, dx \/ d, dz \/ d\);/);
   assert.match(src, /autoWalk: \(dt\) => stepReach\(dt\)/);
