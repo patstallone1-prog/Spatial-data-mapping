@@ -18,7 +18,9 @@ const homeShells = new Set();
 //: the scene a second time for every frame it is in view, so the look of it is faked on the
 //: one pane: WINDOW_GLASS's grey at its opacity, the sky's reflection, and a fine grain and a
 //: few faint smears (paneGlassTexture) that soften whatever is seen through it, from either side.
-const WINDOW_GLASS = { tint: 0x5c6468, opacity: 0.36, roughness: 0.16, envMapIntensity: 0.7 };
+//: (2026-11-25) The pane is now real glass (realGlass, module 02): nearly clear looking straight in
+//: (GLASS.face_opacity) and a mirror of the sky and the street at a slant, its edges grimy.
+const WINDOW_GLASS = { tint: 0x5c6468, opacity: GLASS.face_opacity, roughness: GLASS.roughness, envMapIntensity: 0.7 };
 let paneGlassMap = null;
 //: A pane's own surface, one picture shared by every pane: grey grain at varying alpha (half
 //: again as clear in places as in others), and soft lighter smears where a cloth or the rain
@@ -53,9 +55,11 @@ const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.t
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
 // Lit at night from within, some of them (nightWindows, module 02).
 if (typeof nightWindows === "function") nightWindows(homeGlassMaterial);
+realGlass(homeGlassMaterial, { paneUv: true });
 const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
   transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
+realGlass(homeGlassInsideMaterial, { paneUv: true });
 //: The frames white where nothing measured them (WINDOW_FRAME_DEFAULT), the same as the window
 //: pictures, so a house's frames do not change colour when its shell is built.
 const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT, roughness: 0.8, envMapIntensity: 0.2 });
@@ -466,8 +470,8 @@ function homeWindowLayout(entry, spec) {
 // Clear, neutral glazing in both directions. Interior pixels in a photograph are not glass
 // colour or permanent architecture: curtains/blinds do not become painted window panes.
 function shellGlassOpacity(distance) {
-  // The same grey glass from either side at any distance; photographed curtains and blinds
-  // are not glass.
+  // The same glass from either side at any distance (its opacity looking straight through: the
+  // slant is the shader's); photographed curtains and blinds are not glass.
   return WINDOW_GLASS.opacity;
 }
 
@@ -493,6 +497,9 @@ function homeWindowShape(o,inset=0) {
 function homeWindowPaneGeometry(o) {
   if(homeWindowArchSpring(o)===null)return new THREE.PlaneGeometry(o.w,o.h);
   const geometry=new THREE.ShapeGeometry(homeWindowShape(o));
+  // Its uv 0 to 1 across the pane, as a plain pane's: the glass finds its edges by them (grime).
+  const uv=geometry.getAttribute("uv");
+  for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/o.w,uv.getY(i)/o.h);
   geometry.translate(-o.w/2,-o.h/2,0);return geometry;
 }
 function homeWindowArchCorners(a,ux,uz,o,uvMap,inset=0) {
@@ -602,7 +609,8 @@ function buildHomeShell(entry) {
   shellPlaster.color.setHex(WALL_PAINTS[roomPaint(Math.abs(Number(entry.way.osm_id) || 0), 99)]);
   const shellGlass = homeGlassMaterial.clone();
   if (typeof nightWindows === "function") nightWindows(shellGlass);   // (a clone loses the night's patch)
-  const shellGlassInside = homeGlassInsideMaterial.clone();
+  realGlass(shellGlass, { paneUv: true });                             // (and the glass's)
+  const shellGlassInside = realGlass(homeGlassInsideMaterial.clone(), { paneUv: true });
   const shellFrame = homeFrameMaterial.clone();
   const bands=spec.appearanceBands || [{material:spec.material,tint:spec.tint,bottom:0,top:spec.height}];
   const bandMaterials=bands.map(b=>b.frontBasis ? new THREE.MeshStandardMaterial({

@@ -3536,7 +3536,8 @@ diffuseColor.rgb *= kbCloth;`);
     const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
     // The shop window as the houses' are (module 25, WINDOW_GLASS): grey, a little worn, and
     // softening the street seen through it -- not a pane that could be taken for an open front.
-    const glass = new THREE.MeshBasicMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
+    const glass = new THREE.MeshStandardMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
+    globalThis.__kerbsideRealGlass?.(glass);   // real glass (module 02) where the page has it
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
@@ -5058,6 +5059,25 @@ diffuseColor.rgb *= kbCloth;`);
   // ---- the frame -------------------------------------------------------------------------------
   let lastCrowd = 0, lastRefresh = 0, lastStep = 0, lastSave = 0, lastRegion = 0, lastNight = false, lastFrame = 0;
   let visible = { people: [], vehicles: [] }, frameFailed = false, animalsFailed = false;
+  //: The nearest people's feet, for the grass to bend under them as it does under the walker's
+  //: (foliage-motion.mjs reads this once a frame). The same few objects each frame: no garbage.
+  const FEET_NEAR_M = 18, feetPool = Array.from({ length: 6 }, () => ({ x: 0, y: 0, z: 0, d: 0 })), feetOut = [];
+  globalThis.__kerbsideFeet = (at) => {
+    feetOut.length = 0;
+    if (!at) return feetOut;
+    for (const e of visible.people) {
+      if (e.indoors || e.riding || e.driving) continue;
+      const d = Math.hypot(e.x - at.x, e.z - at.z);
+      if (!(d < FEET_NEAR_M)) continue;
+      if (feetOut.length < feetPool.length) feetOut.push(feetPool[feetOut.length]);
+      else if (d >= feetOut[feetOut.length - 1].d) continue;
+      const f = feetOut[feetOut.length - 1];
+      f.x = e.x; f.z = e.z; f.d = d; f.y = NaN;
+      for (let i = feetOut.length - 1; i > 0 && feetOut[i].d < feetOut[i - 1].d; i -= 1) { const t = feetOut[i]; feetOut[i] = feetOut[i - 1]; feetOut[i - 1] = t; }
+    }
+    for (const f of feetOut) f.y = groundAt(f.x, f.z);
+    return feetOut;
+  };
   const ALIVE_FOR_MS = 2500, ALIVE_GIVE_UP_MS = 30_000, aliveSeen = { started: 0, since: 0 };
   // ---- level of detail (detail.mjs) ----------------------------------------------------------------
   //: The field this frame (null before the first), what tier each person and car had (and, for one

@@ -101,7 +101,12 @@ export function buildWindowDisplay(THREE, display, { width = 1.6, seed = 0 } = {
   box(width, top - sill, 0.02, 0, (top + sill) / 2, -depth / 2, 0xf3ead6, 0.85);
   box(width + 0.06, 0.05, depth, 0, top, 0, 0x2a2624, 0.05);
   for (const s of [-1, 1]) box(0.04, top - sill, depth, s * (width / 2 + 0.01), (top + sill) / 2, 0, 0x2a2624, 0.05);
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(width, top - sill), new THREE.MeshLambertMaterial({ color: 0xbfd6dc, transparent: true, opacity: 0.18, depthWrite: false }));
+  // The display window's glass (module 02 realGlass where the page has it): its uv runs 0 to 1, so
+  // its edges take the grime.
+  const glassMaterial = new THREE.MeshStandardMaterial({ color: 0xbfd6dc, transparent: true, opacity: 0.18, depthWrite: false, roughness: 0.05, metalness: 0 });
+  globalThis.__kerbsideRealGlass?.(glassMaterial, { paneUv: true });
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(width, top - sill), glassMaterial);
+  glass.castShadow = false;
   glass.position.set(0, (top + sill) / 2, depth / 2); g.add(glass);
   const y0 = sill + 0.03, n = Math.max(2, Math.floor(width / 0.42));
   const slot = (i) => -width / 2 + (i + 0.5) * (width / n);

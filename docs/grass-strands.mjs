@@ -12,6 +12,74 @@ export function grassBlade(c,r,{height=.10,hue=.29,spacing=.125}={}){
     width:.004+hash(c,r,107)*.003,angle:hash(c,r,127)*Math.PI*2,
     bend:.10+.25*hash(c,r,149)};
 }
+//: A lawn is not one length: it was mown in passes, is wetter in one place and trodden in another.
+//: A smooth field over PATCH_M metres scales every blade's length by up to PATCH_SPREAD either way.
+export const PATCH_M=1.6,PATCH_SPREAD=.18;
+export function patchLength(x,z){
+  const gx=x/PATCH_M,gz=z/PATCH_M,ix=Math.floor(gx),iz=Math.floor(gz),fx=gx-ix,fz=gz-iz;
+  const sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz),h=(a,b)=>hash(a,b,401);
+  const top=h(ix,iz)+(h(ix+1,iz)-h(ix,iz))*sx,bottom=h(ix,iz+1)+(h(ix+1,iz+1)-h(ix,iz+1))*sx;
+  return 1+PATCH_SPREAD*(2*(top+(bottom-top)*sz)-1);
+}
+//: The strands a lawn is made of are not one green: most are a mid green, some are new and
+//: yellow-green, some have dried to straw and a few are old and dark at the bottom of the sward.
+//: Each kind has its share and a range of hue, saturation and lightness (HSL, 0..1), matched to
+//: the lawn's own picture (grassTexture) so the blades and the ground under them agree.
+export const GRASS_STRANDS=[
+  {kind:'green',share:.68,hue:[.265,.33],sat:[.40,.56],light:[.27,.41]},
+  {kind:'new',share:.14,hue:[.21,.25],sat:[.48,.60],light:[.38,.48]},
+  {kind:'straw',share:.12,hue:[.10,.145],sat:[.28,.40],light:[.40,.53]},
+  {kind:'dark',share:.06,hue:[.29,.33],sat:[.30,.42],light:[.16,.23]},
+];
+export function strandColour(c,r,k){
+  let pick=hash(c,r,211+k*17),i=0;
+  while(i<GRASS_STRANDS.length-1&&pick>GRASS_STRANDS[i].share){pick-=GRASS_STRANDS[i].share;i++;}
+  const s=GRASS_STRANDS[i],at=(range,salt)=>range[0]+(range[1]-range[0])*hash(c,r,salt+k*29);
+  return {kind:s.kind,hue:at(s.hue,223),sat:at(s.sat,227),light:at(s.light,229)};
+}
+//: How long a blade grows (m): the lawn's patch length, then each blade a little longer or shorter
+//: than its neighbours (a bell, mostly within a quarter either way).
+export const BLADE_HEIGHT_M=.10;
+export function bladeLength(c,r,k,x,z){
+  return BLADE_HEIGHT_M*patchLength(x,z)*(1+.45*centredVariation(c,r,31+k*7));
+}
+//: The blades growing from one slot of the sward: a tuft of one to three (2.2 on average), each its own colour,
+//: length, width and lean, leaning out from the tuft's middle. ``spacing`` is the slot's size (m).
+export function grassTuft(c,r,{spacing=.125}={}){
+  const x0=(c+.15+hash(c,r,7)*.7)*spacing,z0=(r+.15+hash(c,r,11)*.7)*spacing;
+  const n=1+(hash(c,r,163)<.78?1:0)+(hash(c,r,167)<.42?1:0),blades=[];
+  for(let k=0;k<n;k++){
+    const spread=k?.008+hash(c,r,171+k)*.018:0,around=hash(c,r,173+k)*Math.PI*2;
+    const x=x0+Math.cos(around)*spread,z=z0+Math.sin(around)*spread,colour=strandColour(c,r,k);
+    // A blade's flat side faces any way; it leans away from the tuft's middle, more the longer it is.
+    const angle=hash(c,r,127+k*3)*Math.PI*2,lean=k?around:hash(c,r,179)*Math.PI*2;
+    blades.push({x,z,height:bladeLength(c,r,k,x,z),width:.0042+hash(c,r,107+k*5)*.0034,angle,lean,
+      bend:.12+.28*hash(c,r,149+k*3),fold:.45+.3*hash(c,r,181+k),...colour});
+  }
+  return blades;
+}
+//: A blade is folded along its midrib (a shallow V, as a real leaf blade is), narrows to a point and
+//: curves over as it leans: seven points, six triangles. Writes into the arrays at ``v`` (points)
+//: and ``t`` (indices) and returns how many points it used.
+export const BLADE_POINTS=7,BLADE_TRIANGLES=6;
+export function writeBlade(b,y,pos,v,idx,t,tips){
+  const h=b.height,w=b.width,dx=Math.cos(b.angle),dz=Math.sin(b.angle);
+  const lx=Math.cos(b.lean),lz=Math.sin(b.lean),bend=h*b.bend,fold=w*b.fold;
+  // Folded towards the side it leans to: the V opens away from the lean, as a blade bends over.
+  const nx=-dz,nz=dx,side=nx*lx+nz*lz>=0?1:-1,fx=nx*fold*side,fz=nz*fold*side;
+  const o=v*3,put=(k,x,yy,z)=>{pos[o+k*3]=x;pos[o+k*3+1]=yy;pos[o+k*3+2]=z;};
+  const mx=lx*bend*.28,mz=lz*bend*.28,mh=h*.52,tx=lx*bend,tz=lz*bend,th=h*(1-.18*b.bend);
+  put(0,b.x-dx*w,y,b.z-dz*w);put(1,b.x+dx*w,y,b.z+dz*w);put(2,b.x+fx,y,b.z+fz);
+  put(3,b.x-dx*w*.62+mx,y+mh,b.z-dz*w*.62+mz);put(4,b.x+dx*w*.62+mx,y+mh,b.z+dz*w*.62+mz);
+  put(5,b.x+fx*.6+mx,y+mh*1.02,b.z+fz*.6+mz);put(6,b.x+tx,y+th,b.z+tz);
+  const f=[0,2,3,2,5,3,2,1,5,1,4,5,3,5,6,5,4,6];
+  for(let i=0;i<18;i++)idx[t+i]=v+f[i];
+  const T=[0,0,0,.52,.52,.52,1];for(let i=0;i<7;i++)tips[v+i]=T[i];
+  return BLADE_POINTS;
+}
+//: Each point's share of the blade's own colour: darker in the shade at the root, the midrib catching
+//: the light, the tip palest.
+export const BLADE_SHADE=[.66,.66,.72,.98,.98,1.06,1.14];
 // Match the triangles actually drawn, not a differently interpolated height field.
 export function triangleGroundSampler(meshes,cell=4){
   // The triangles as nine numbers each in one array, and for each grid cell the list of the
@@ -86,36 +154,44 @@ export function createGrassStrands(THREE,{sample,parent,onMesh=()=>{},cellSize=8
   // Wind and a walker's feet bend the blades (foliage-motion.mjs); bladeT is root 0 to tip 1.
   motion?.apply(material,'grass');
   const colour=new THREE.Color();let lastX=Infinity,lastZ=Infinity,lastBuild=0,desired=[];
+  // One cell's worth of blades written into arrays kept between builds (grown as needed), then
+  // copied out at their used length: no list of numbers made for every blade.
+  let P=new Float32Array(0),C=new Float32Array(0),Tp=new Float32Array(0),I=new Uint32Array(0);
+  const grow=(a,n)=>{const b=new a.constructor(n);b.set(a);return b;};
+  const room=(points)=>{
+    if(Tp.length>=points)return;
+    const n=Math.max(points,Tp.length*2,4096*BLADE_POINTS);
+    P=grow(P,n*3);C=grow(C,n*3);Tp=grow(Tp,n);I=grow(I,Math.ceil(n/BLADE_POINTS)*BLADE_TRIANGLES*3);
+  };
   function make(tx,tz){
-    const positions=[],colours=[],indices=[],tips=[];
+    let v=0,t=0;
     const slots=Math.round(cellSize/.125);
     for(let r=tz*slots;r<(tz+1)*slots;r++)for(let c=tx*slots;c<(tx+1)*slots;c++){
-      const blade=grassBlade(c,r),at=sample(blade.x,blade.z);
+      const tuft=grassTuft(c,r),root=tuft[0],at=sample(root.x,root.z);
       if(!at||!Number.isFinite(at.y))continue;
-      // Test the blade's complete lean envelope, not only its root: paths stay clear.
-      // (Four plain calls: a list of four pairs made for each of a cell's 4,096 blades was
+      // Test the tuft's complete lean envelope, not only its root: paths stay clear.
+      // (Four plain calls: a list of four pairs made for each of a cell's 4,096 slots was
       // most of what building a cell threw away.)
-      if(!sample(blade.x-.045,blade.z)||!sample(blade.x+.045,blade.z)||!sample(blade.x,blade.z-.045)||!sample(blade.x,blade.z+.045))continue;
-      const h=blade.height*(at.heightScale??1),w=blade.width;
-      const dx=Math.cos(blade.angle),dz=Math.sin(blade.angle),bend=h*blade.bend;
-      const x=blade.x,z=blade.z,y=at.y,base=positions.length/3;
-      positions.push(x-dx*w,y,z-dz*w,x+dx*w,y,z+dz*w,
-        x-dx*w*.55-dz*bend*.3,y+h*.55,z-dz*w*.55+dx*bend*.3,
-        x+dx*w*.55-dz*bend*.3,y+h*.55,z+dz*w*.55+dx*bend*.3,
-        x-dz*bend,y+h,z+dx*bend);
-      for(let i=0;i<5;i++){
-        colour.setHSL(blade.hue+(at.hueShift??0),.48,blade.light*(i<2?.68:i===4?1.12:1),THREE.SRGBColorSpace);
-        colours.push(colour.r,colour.g,colour.b);
+      let reach=0;for(const b of tuft)reach=Math.max(reach,Math.hypot(b.x-root.x,b.z-root.z)+b.height*b.bend+b.width*1.2);
+      if(!sample(root.x-reach,root.z)||!sample(root.x+reach,root.z)||!sample(root.x,root.z-reach)||!sample(root.x,root.z+reach))continue;
+      room(v+tuft.length*BLADE_POINTS);
+      for(const blade of tuft){
+        if(at.heightScale!==undefined)blade.height*=at.heightScale;
+        const used=writeBlade(blade,at.y,P,v,I,t,Tp);
+        for(let i=0;i<used;i++){
+          colour.setHSL(blade.hue+(at.hueShift??0),blade.sat,Math.min(.9,blade.light*BLADE_SHADE[i]),THREE.SRGBColorSpace);
+          C[(v+i)*3]=colour.r;C[(v+i)*3+1]=colour.g;C[(v+i)*3+2]=colour.b;
+        }
+        v+=used;t+=BLADE_TRIANGLES*3;
       }
-      indices.push(base,base+1,base+2,base+1,base+3,base+2,base+2,base+3,base+4);
-      tips.push(0,0,.55,.55,1);
     }
-    if(!indices.length)return null;
+    if(!t)return null;
+    const positions=P.slice(0,v*3),colours=C.slice(0,v*3),tips=Tp.slice(0,v),indices=I.slice(0,t);
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
     geometry.setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
     geometry.setAttribute('bladeT',new THREE.Float32BufferAttribute(tips,1));
-    geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();
+    geometry.setIndex(THREE.Uint32BufferAttribute?new THREE.Uint32BufferAttribute(indices,1):Array.from(indices));geometry.computeVertexNormals();geometry.computeBoundingSphere();
     const mesh=new THREE.Mesh(geometry,material);mesh.userData={surface:'grass_strands',inferred:true,liftedOntoGround:true};
     mesh.receiveShadow=true;onMesh(mesh);return mesh;
   }

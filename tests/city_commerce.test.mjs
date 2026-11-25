@@ -193,12 +193,25 @@ test("a delivery: the shop's own goods in their packaging, sealed, paid once on 
   w.ledger.check();
 });
 
+test("nothing is left lying in the street to find: no seeded finds, and a made-up one is refused", () => {
+  assert.equal(R.found.per_district, 0);
+  const w = world();
+  const r = w.submit("ana", "pick_up", { id: "found:d:1:2", found: { id: "found:d:1:2", item: "soda", x: 0, z: 0 } });
+  assert.equal(r.ok, false);
+  const box = w.submit("ana", "pick_up", { id: "found:d:1:3", found: { id: "found:d:1:3", item: "storage_box", x: 0, z: 0, box: true } });
+  assert.equal(box.ok, false, "no boxes left out either");
+});
+
 test("a found box shows the same contents to whoever opens it, after any number of reloads", () => {
+  // Seeded finds are off in the city's rules (found.per_district 0); this is a district with them on.
+  const RF = { ...R, found: { ...R.found, per_district: 60 } };
   const seen = new Set();
   for (let k = 0; k < 100; k += 1) {
-    let w = world();
+    let w = new CityWorld(RF, { now: NOON, seed: "t" });
+    w.submit("ana", "join", { name: "Ana", at: AT });
+    w.ledger.mint("player:ana", m(5000), "external_trade");
     w.submit("bo", "join", { name: "Bo", at: AT });
-    if (k % 2) w = CityWorld.fromJSON(R, JSON.parse(JSON.stringify(w)));
+    if (k % 2) w = CityWorld.fromJSON(RF, JSON.parse(JSON.stringify(w)));
     const who = k % 3 ? "ana" : "bo";
     const r = w.submit(who, "pick_up", { id: "found:d:1:7", found: { id: "found:d:1:7", item: "storage_box", x: 0, z: 0, box: true } });
     assert.ok(r.ok, r.error);
