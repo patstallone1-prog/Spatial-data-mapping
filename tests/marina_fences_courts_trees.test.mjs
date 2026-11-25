@@ -118,6 +118,30 @@ test("paving that pokes under a fence into the next lawn is cut off along the fe
   assert.equal(stats.left, 0, "and the page's own count of what is left is nothing");
 });
 
+test("paving past a fence's end is kept; only the bit beside the fence is cut", () => {
+  const W = fenceWorld();
+  W.layFence(sink(), 0, -10, 0, 0, 0, 1.8, 1);          // the fence ends at z = 0 (a gate beyond)
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute([-6, 0, -2, 1, 0, -2, 1, 0, 2, -6, 0, 2], 3));
+  geom.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+  geom.setIndex([0, 1, 2, 0, 2, 3]);
+  const mesh = new THREE.Mesh(geom);
+  mesh.userData.surface = "walk";
+  W.groups.ground.add(mesh);
+  const stats = W.cutPavingAtFences();
+  let area = 0, besideFence = 0;
+  for (let t = 0; t < geom.index.count; t += 3) {
+    const [a, b, c] = [0, 1, 2].map((k) => { const i = geom.index.getX(t + k); return [geom.attributes.position.getX(i), geom.attributes.position.getZ(i)]; });
+    const A = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
+    area += A;
+    const mx = (a[0] + b[0] + c[0]) / 3, mz = (a[1] + b[1] + c[1]) / 3;
+    if (mx > 0.01 && mz < -0.01 && A > 1e-9) besideFence += A;
+  }
+  assert.ok(besideFence < 1e-6, "nothing left beyond the fence beside it");
+  assert.ok(Math.abs(area - (7 * 4 - 1 * 2)) < 1e-3, `the part past its end kept (${area.toFixed(3)} m²)`);
+  assert.equal(stats.left, 0);
+});
+
 test("paving that carries on beyond a fence (paved both sides) is not cut", () => {
   const W = fenceWorld();
   W.layFence(sink(), 0, -10, 0, 10, 0, 1.8, 1);
