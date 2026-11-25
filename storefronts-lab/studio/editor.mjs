@@ -498,7 +498,7 @@ function drawFacts() {
 // ---- boot -------------------------------------------------------------------------------------
 async function load(id) {
   const m = await fetch(`/api/models/${id}`, {cache: 'no-store'}).then(r => r.json());
-  if (/^(auto|deep)~/.test(id)) m.id = id; // a model read by kerbfront auto / qwen-run (models/auto/)
+  if (/^(auto|deep|opus)~/.test(id)) m.id = id; // a model read by kerbfront auto / qwen-run (models/auto/)
   state.model = m; state.past = []; state.future = []; state.changed.clear(); state.dirty = false;
   state.photo = Number(params.get('photo') || 0);
   drawFacts(); rebuild(); drawInspector(); status();

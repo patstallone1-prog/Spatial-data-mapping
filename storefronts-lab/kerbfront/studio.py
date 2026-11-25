@@ -57,7 +57,7 @@ def photo_view(frame_id: str, yaw: float | None, pitch: float, hfov: float, w: i
 
 
 #: machine-read models, listed after the reviewed ones as "<prefix>~<id>"
-READ_FOLDERS = {"auto": ("auto", "auto"), "deep": ("auto-deep", "qwen deep")}
+READ_FOLDERS = {"auto": ("auto", "auto"), "deep": ("auto-deep", "qwen deep"), "opus": ("auto-opus", "opus 5.5")}
 
 
 def model_path(mid: str):
