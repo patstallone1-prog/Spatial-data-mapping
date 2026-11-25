@@ -1402,7 +1402,7 @@ function fencePieces(ax, az, bx, bz, yard = false) {
   for (let k = 0; k <= n; k += 1) {
     const t0 = span * k / n, t1 = span * (k + 1) / n, tm = (t0 + t1) / 2;
     const free = k < n && !fenceAlreadyThere(ax + ux * tm, az + uz * tm, ux, uz) && !inFenceGate(ax + ux * tm, az + uz * tm)
-      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz) && !onPublicPath(ax + ux * tm, az + uz * tm) && !(yard && fenceBeforeFront(ax + ux * tm, az + uz * tm, ux, uz));
+      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz) && !(typeof onPublicPath === "function" && onPublicPath(ax + ux * tm, az + uz * tm)) && !(yard && fenceBeforeFront(ax + ux * tm, az + uz * tm, ux, uz));
     if (free && from === null) from = t0;
     if (!free && from !== null) {
       if (t0 - from >= FENCE_PIECE_MIN_M) pieces.push([ax + ux * from, az + uz * from, ax + ux * t0, az + uz * t0]);
@@ -1538,7 +1538,7 @@ function closeFenceEnds() {
   // A public way: the roadway, a pavement, a park's paving, a mapped path's tread, a driveway.
   const publicWay = (x, z) => insideCarriageway(x, z, 0.1) || pavementTopAt(x, z) !== undefined
     || (typeof inDriveway === "function" && inDriveway(x, z))
-    || (typeof parkPavementAt === "function" && parkPavementAt(x, z)) || onPublicPath(x, z);
+    || (typeof parkPavementAt === "function" && parkPavementAt(x, z)) || (typeof onPublicPath === "function" && onPublicPath(x, z));
   // Along a ray from an end: how far to the first wall or more of its own fence, or null where
   // the way is not clear to one within ``reach``. Another owner's fence in the way stops it: two
   // fences are not joined into one (a court's and a school's shut a path between them, Moscone).
@@ -1583,7 +1583,7 @@ function closeFenceEnds() {
       let sink = added.get(q.sink);
       if (!sink) added.set(q.sink, sink = { positions: [], uvs: [], indices: [], closing: true, from: q });
       const fx = best.x ?? x, fz = best.z ?? z;
-      fenceOwnedBy(q.owner);
+      typeof fenceOwnedBy === "function" && fenceOwnedBy(q.owner);
       groundedFencePanel(sink, fx, fz, fx + best.ux * best.d, fz + best.uz * best.d, q.baseY, q.height, q.tileU, q.tileV);
       fenceCloseStats.closed += 1; fenceCloseStats.closed_m += best.d;
     }
@@ -1601,7 +1601,7 @@ function closeFenceEnds() {
     mesh.renderOrder = from.mesh.renderOrder; mesh.castShadow = from.mesh.castShadow;
     (from.mesh.parent || groups.ground).add(mesh);
   }
-  fenceOwnedBy(null);
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   fenceCloseStats.closed_m = Math.round(fenceCloseStats.closed_m);
   fencePanelsLaid = [];
   return fenceCloseStats;
@@ -1649,10 +1649,10 @@ function* buildFencesSteps(ground) {
       }
       if (crosses) continue;
       // One fence is the segments that run on end to end; the next that starts elsewhere is another.
-      if (!(i >= 4 && Math.hypot(ax - flat[i - 2], az + flat[i - 1]) < 0.05)) fenceOwnedBy(`ground:${kind}:${i}`);
+      if (!(i >= 4 && Math.hypot(ax - flat[i - 2], az + flat[i - 1]) < 0.05)) typeof fenceOwnedBy === "function" && fenceOwnedBy(`ground:${kind}:${i}`);
       layFence(fenceSink,ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
     }
-    fenceOwnedBy(null);
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -2261,7 +2261,7 @@ function buildCourts(ground) {
   for (const [pitchIndex, pitch] of pitches.entries()) {
     const style = COURT_STYLE[pitch.s];
     if (!style || !style.fence) continue;
-    fenceOwnedBy(`court:${pitch.k ?? pitchIndex}`);
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(`court:${pitch.k ?? pitchIndex}`);
     // Within a block, the fence between one sport's courts and another's (court_complexes'
     // dividers), as tall as the taller of the two; courts of one sport share open run-off.
     const runs = [...(pitch.fence_runs ? pitch.fence_runs.map(r=>[r.p,style.fence]) : [[pitch.p, style.fence]]), ...(pitch.dividers || []).map((d) => [d.p,
@@ -2296,7 +2296,7 @@ function buildCourts(ground) {
       }
     }
   }
-  fenceOwnedBy(null);
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   if(!HEADSET)fencePosts.push(...fenceJoints.values());
   if(fenceRails.length) {
     const rails=new THREE.InstancedMesh(new THREE.CylinderGeometry(.026,.026,1,6),
