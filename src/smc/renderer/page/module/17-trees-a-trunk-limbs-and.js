@@ -1360,18 +1360,22 @@ function pathThroughFence(x, z, ux, uz) {
   }
   return false;
 }
-//: Whether (x, z) is on a mapped public path's tread, whichever way a fence there would run: no
-//: fence ever stands on one. (pathThroughFence keeps a path's way through a fence that crosses
-//: it; this keeps a fence off the path itself -- along it, or closing across it.)
-function onPublicPath(x, z) {
+//: Whether (x, z) is within ``pad`` of a mapped path's tread (its drawn width, module 05): ``pad``
+//: below zero keeps to the middle of it. Grass grows off it (module 18's blades stood on the paths
+//: across Moscone, the path drawn over the lawn under them, 2026-11-25).
+function pathTreadAt(x, z, pad = 0) {
   for (const [ax, az, bx, bz, half] of fenceLinesNear(fencePaths(), x, z)) {
     const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz;
     if (!(L2 > 0)) continue;
     const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L2));
-    if (Math.hypot(x - ax - vx * t, z - az - vz * t) < Math.max(0.5, half - 0.1)) return true;
+    if (Math.hypot(x - ax - vx * t, z - az - vz * t) < Math.max(pad < 0 ? 0.5 : 0, half + pad)) return true;
   }
   return false;
 }
+//: Whether (x, z) is on a mapped public path's tread, whichever way a fence there would run: no
+//: fence ever stands on one. (pathThroughFence keeps a path's way through a fence that crosses
+//: it; this keeps a fence off the path itself -- along it, or closing across it.)
+function onPublicPath(x, z) { return pathTreadAt(x, z, -0.1); }
 //: Whether a yard fence at (x, z), running (ux, uz), would stand between a street and the front
 //: of a building: the building within FENCE_FRONT.wall_m of it on one side and the roadway
 //: within FENCE_FRONT.street_m on the other. A school's or a depot's chain link fences its open

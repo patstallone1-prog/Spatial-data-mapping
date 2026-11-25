@@ -939,6 +939,8 @@ const groundReady = (async () => {
     }
     grassSampleAt=(x,z)=>{
         if(excludeGrassAt(x,z)||insideCarriageway(x,z,.15)||parkPavementAt(x,z)||buildingAt(x,z)||mappedWaterAt(x,z))return null;
+        // Nor on a mapped path drawn over the lawn (the streets layer draws it, not the park's mask).
+        if(typeof pathTreadAt==="function"&&pathTreadAt(x,z,.04))return null;
         const mask=grassMask.texture.image;
         const mx=Math.floor((x-grassMask.west)/(grassMask.east-grassMask.west)*mask.width);
         const my=Math.floor((-z-grassMask.south)/(grassMask.north-grassMask.south)*mask.height);

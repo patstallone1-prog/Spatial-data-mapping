@@ -22,7 +22,7 @@ const line = (source, start) => { const i = source.indexOf(start); assert.ok(i >
 //: The fence-laying part of module 17, in a world of the caller's: buildings, roads, footways, paths.
 function fenceWorld({ buildings = [], paths = [] } = {}) {
   const names = ["fenceOwnedBy", "noteFenceLine", "noteFenceGate", "fenceLinesNear", "fenceAlreadyThere", "inFenceGate", "fencePaths",
-    "pathThroughFence", "onPublicPath", "fencePieces", "layFence", "groundedFencePanel", "closeFenceEnds", "fenceLinesAcross", "cutCoverBy",
+    "pathThroughFence", "pathTreadAt", "onPublicPath", "fencePieces", "layFence", "groundedFencePanel", "closeFenceEnds", "fenceLinesAcross", "cutCoverBy",
     "treeOntoGrass", "clipBarycentric", "cutPavingAtFences"];
   const consts = ["const FENCE_LINE_CELL_M", "const FENCE_DOUBLE_M", "const FENCE_PIECE_STEP_M", "const FENCE_GATE_REACH_M", "const FENCE_CLOSE",
     "const fenceCloseStats", "const fenceLayStats", "const FENCE_BITE", "const TREE_ON_GRASS", "const FENCE_GROUND_STEP_M",
