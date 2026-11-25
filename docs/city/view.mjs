@@ -51,6 +51,7 @@ import { JUMP, PUNCH, SWING, jumpAir, jumpCrouch, jumpLand, punchPose, swingPose
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
 import { DETAIL_HYSTERESIS, DETAIL_RINGS, FULL, LOW, MODERATE, TRACKED, byTier, detailField, routeSamples, velocityTracker, LOCK, lockedForm, wheelStep, withinView } from "./detail.mjs";
+import { CLOSE, byWall, closeLock, feetTracker } from "./close-lock.mjs";
 import { BAR, GRID, arrange, barSlotOf, slotCount, swap } from "./inventory.mjs";
 import { enterprisePanels } from "./enterprise-panels.mjs";
 import { FINANCE_CSS, financePanels } from "./finance-panels.mjs";
@@ -1103,14 +1104,13 @@ diffuseColor.rgb *= kbCloth;`);
   //: The ground right under someone (the page's walker ground: the drawn surface, which the soil
   //: holds up -- grass bends over it, foliage-motion.mjs), looked up again only once they have
   //: moved FOOT_MOVE_M: [x, z, y] by id.
-  const feet = new Map(), FOOT_MOVE_M = 0.1;
+  //: In the close ring the way ahead of each one is looked along (close-lock.mjs feetTracker):
+  //: where the ground within ten feet of them rises or falls by more than a few millimetres it is
+  //: read again every 4 mm they move, so no foot or wheel is ever set into a kerb or a slope;
+  //: on ground that flat, every 10 cm (as before).
+  const feetNear = feetTracker((x, z) => ctx.groundAt(x, z) ?? groundAt(x, z));
   function footAt(p) {
-    let f = feet.get(p.id);
-    if (f && Math.abs(f[0] - p.x) < FOOT_MOVE_M && Math.abs(f[1] - p.z) < FOOT_MOVE_M) return f[2];
-    const y = ctx.groundAt(p.x, p.z) ?? groundAt(p.x, p.z);
-    if (!f) { if (feet.size > 6000) feet.clear(); f = [0, 0, 0]; feet.set(p.id, f); }
-    f[0] = p.x; f[1] = p.z; f[2] = y;
-    return y;
+    return feetNear.at(p, performance.now(), p.detail !== MODERATE && p.detail !== LOW);
   }
   // How the people near you move (clips.mjs): a walk, a run, a telephone at the ear, a look each
   // way at the kerb -- sampled for each, cross-faded when what they are doing changes. One state
@@ -1511,7 +1511,7 @@ diffuseColor.rgb *= kbCloth;`);
       // Yours (``mine``: there is no bicycle of your own to ride yet) in full, its wheels turning.
       const tier = b.mine ? FULL : detailNow ? detailNow.tier("people", b.x, b.z) : FULL;
       if (tier === TRACKED) continue;
-      BIKE_M.copy(base(b.x, groundAt(b.x, b.z), b.z, b.yaw, 1));
+      BIKE_M.copy(base(b.x, tier === FULL ? feetNear.at(b, performance.now(), true) : groundAt(b.x, b.z), b.z, b.yaw, 1));
       C.set(paintOf("bike", b.shade, BIKE_PAINT_MIX));
       if (!L || tier === LOW) {
         if (n >= MAX_BIKES) continue;
@@ -1656,7 +1656,7 @@ diffuseColor.rgb *= kbCloth;`);
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
       const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier, v.id === transit.ride?.vehicle || v.mine === true);
       if (f && f.n >= f.cap) continue;
-      const y = groundAt(v.x, v.z);
+      const y = tier === FULL ? feetNear.at(v, performance.now(), true) : groundAt(v.x, v.z);
       // A car in a crash rocks on its springs; a wreck sits a little down on one side; one on a
       // tow truck's hook has its front lifted (crash-scene.mjs).
       if (v.pitch) Q.setFromEuler(TOW_E.set(v.pitch, v.yaw, 0));
@@ -6403,6 +6403,33 @@ diffuseColor.rgb *= kbCloth;`);
   //: where a way's offset changes (a street narrows, a footpath meets the pavement) they step
   //: across rather than appear there. A gap wider than ``snap`` (out of sight and back) is taken.
   const glided = new Map();
+  //: The close lock (close-lock.mjs): inside the full ring nothing appears, vanishes or is put
+  //: ahead to where its day says -- people, riders and cars all move there only as they could.
+  //: ``closeFocus``: the focus this frame (the rings are measured from it, as detailNow's are).
+  let closeFocus = null;
+  // (Straight from you, not by the view's stretched field: nobody jumps behind your back.)
+  const closeIn = (kind) => (x, z, share = 1) => Boolean(closeFocus) && Math.hypot(x - closeFocus.x, z - closeFocus.z) < CLOSE.ring[kind] * share;
+  const wallAt = (x, z) => district?.city?.footprintAt?.(x, z);
+  const carBeside = (x, z) => drawnCars.some((v) => Math.abs(v.x - x) < 3.2 && Math.abs(v.z - z) < 3.2);
+  // Out of (or into) a door, a car beside them, a bus or a cab, a shop you see into.
+  const personPortal = (x, z, e) => Boolean(e.through || e.indoors || e.ride === "bus" || e.ride === "taxi") || byWall(wallAt, x, z, CLOSE.portal_m) || carBeside(x, z);
+  const peopleLock = closeLock("people", {
+    inClose: closeIn("people"),
+    portal: personPortal,
+    // Thrown, falling, carried or lying: moved by their own physics already, only followed.
+    free: (e) => Boolean(e.down || e.fall || e.lift),
+    along: (w, d) => district.city?.walkEnds(w.pave, d, 0, null, null),
+    // Out past the ring: their day has them again, as far along as it says (no time owed).
+    release: (e) => { if (e?.walk?.key) district.city?.walkLags.delete(e.walk.key); },
+  });
+  //: Whether ``id`` is drawn inside the close ring just now (by ``lock``'s record of it).
+  const lockedClose = (lock, kind, id) => { const r = lock.records.get(id); return Boolean(r?.drawn) && closeIn(kind)(r.x, r.z, CLOSE.exit); };
+  const carsLock = closeLock("cars", {
+    inClose: closeIn("cars"),
+    portal: (x, z) => byWall(wallAt, x, z, CLOSE.car_portal_m),
+    // A bicycle at its rider's pace; a car as glideCar lets its wheels take it.
+    pace: (v) => (v.model === "bike" ? Math.max(v.speed || 0, 2.5) : Math.max(4, v.speed || 0) * 1.6 + 2),
+  });
   //: Who you are talking with (talkTo): they stand and face you while it lasts.
   const talking = { id: null, until: 0, at: null, met: new Map(), come: null };
   function talkTo(who) {
@@ -6596,10 +6623,13 @@ diffuseColor.rgb *= kbCloth;`);
   const CAR_SNAP_M = 14, CAR_STAND_M = 2.5;
   function glideCar(v, now, dt) {
     const g = glided.get(v.id);
-    if (!g || now - g.t > 600 || v.model === "bike") { glided.set(v.id, { x: v.x, z: v.z, t: now }); return; }
-    const span = Math.max(dt, (now - g.t) / 1000, 1 / 120), d = Math.hypot(v.x - g.x, v.z - g.z);
+    // (Close by, a car is never put where the traffic has it: it gets there on its wheels, or
+    // stands where it is -- close-lock.mjs.)
+    const near = Boolean(g) && closeIn("cars")(g.x, g.z, CLOSE.exit);
+    if (!g || (!near && now - g.t > 600) || v.model === "bike") { glided.set(v.id, { x: v.x, z: v.z, t: now }); return; }
+    const span = Math.min(0.25, Math.max(dt, (now - g.t) / 1000, 1 / 120)), d = Math.hypot(v.x - g.x, v.z - g.z);
     g.t = now;
-    if (d >= CAR_SNAP_M || (!v.moving && d >= CAR_STAND_M)) { g.x = v.x; g.z = v.z; return; }
+    if (!near && (d >= CAR_SNAP_M || (!v.moving && d >= CAR_STAND_M))) { g.x = v.x; g.z = v.z; return; }
     // (A car come to its parking spot rolls the last of the way in, and is in it: never left
     // standing short of it in the lane.)
     if (v.parked && !v.moving) {
@@ -6740,6 +6770,8 @@ diffuseColor.rgb *= kbCloth;`);
     const c = district.city, D = district.drivers, tt = fleetAt(ms), gms = tt.gameMs;
     eyeNow();
     holdFrame(ms, now);
+    closeFocus = { x: focus.x, z: focus.z };
+    peopleLock.frame(focus, now); carsLock.frame(focus, now);
     // (``tsec``: the real second, for the lights and the traffic's rules, which never stand still.
     // Where each car is on its leg is by its owner's own time -- everyone's, unless the clock is held.)
     const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), tsec = ms / 1000;
@@ -6782,7 +6814,8 @@ diffuseColor.rgb *= kbCloth;`);
       let tier = detailNow ? detailNow.tier("people", pos.x, pos.z, was?.tier) : FULL;
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;
       if (tier === TRACKED) { personTiers.set(id, { tier, next: nextAt(id, now, TRACK_EVERY_MS), seen: now }); trackedPeople += 1; continue; }
-      if (!unseenAt(pos.x, pos.z)) holdInSight(id, now);
+      // (In sight -- or drawn close by, seen or not: their day is not started again under them.)
+      if (!unseenAt(pos.x, pos.z) || lockedClose(peopleLock, "people", id)) holdInSight(id, now);
       const entry = { id, person: e.p, ...pos, detail: tier };
       // In the shop room you are in: walked round its aisles to a till and out (shop-floor.mjs).
       const walkedIn = Boolean(pos.indoors && shop.frame?.store && floor.walk(entry, you, dt, gameHour()));
@@ -6963,6 +6996,22 @@ diffuseColor.rgb *= kbCloth;`);
       personTiers.set(id, { tier, next: low ? nextAt(id, now, LOW_EVERY_MS) : 0, entry: low ? entry : null, seen: now });
       people.push(entry);
     }
+    // Close by, nobody appears, vanishes, or is put ahead to where their day has them.
+    {
+      const kept = peopleLock.step(people, dt, now);
+      people.length = 0;
+      for (const e of kept) {
+        // (One held back walks on from where they are: kept out of the walls as the way is.)
+        if ((e.lagM || e.ghost) && !e.indoors && !e.through && c.keepOutside(e, "view")) { const r = peopleLock.records.get(e.id); if (r) { r.x = e.x; r.z = e.z; } }
+        // Behind on their walk: the time is their walk's own (walkLags), so from next frame their
+        // day has them along their own way, where they are -- round the corner, not through it.
+        // (Finishing their own way first: the walk their day is on now waits for them.)
+        // (Behind on it, or finishing their own way first: their walk waits for them -- the time
+        // they are behind is their walk's own, walkLags, given back once they are out past the ring.)
+        if ((e.ownWay || e.lagM > 0.05) && !e.ghost && e.walk?.key) c.holdWalk(e.walk.key, Math.min(dt, 0.25), true, CLOSE.walk_lag_s);
+        people.push(e); const g = glided.get(e.id); if (g) { g.x = e.x; g.z = e.z; }
+      }
+    }
     // In line at a door: going the same way through it, one at a time (npc-steer.mjs).
     let doorway = 0;
     for (const e of people) if (e.through) doorway += 1;
@@ -6986,6 +7035,8 @@ diffuseColor.rgb *= kbCloth;`);
       strides.follow(e, now, dt, e.person?.pace ?? 1.35);
     }
     if (now - stridesSwept > 2000) { stridesSwept = now; strides.sweep(now); }
+    // (Close by, nothing after the lock moves anyone further than they could go: close-lock.mjs.)
+    peopleLock.settle(people, now);
     drawnTiers.tracked.people = trackedPeople;
     if (personTiers.size > 30000) for (const [id, q] of personTiers) if (now - q.seen > 5000) personTiers.delete(id);
     if (scares.size > 400) scares.clear();
@@ -7045,7 +7096,7 @@ diffuseColor.rgb *= kbCloth;`);
       // (Driven by the rules near you, and on till it is well away: then by its day again, as
       // far behind as the traffic left it -- so the cars driven do not only ever grow in number.)
       const off = Math.hypot(probe.x - focus.x, probe.z - focus.z);
-      if (off < SIM_M && !unseenAt(probe.x, probe.z)) holdInSight(e.who ?? v.owner, now);
+      if ((off < SIM_M && !unseenAt(probe.x, probe.z)) || lockedClose(carsLock, "cars", v.id)) holdInSight(e.who ?? v.owner, now);
       if (off < SIM_M || (off < SIM_M * 1.8 && D.stateOf(v.id)?.key === key)) {
         sim.push({ id: v.id, key, route, sched, unsched, limitAt: limitAt(v.model), style: styleOf(v), cruise: Math.max(v.bike ? 3 : 4, (route.length / durS) * 1.35), length: l, width: w, unseen: unseenAt(probe.x, probe.z), bike: Boolean(v.bike) });
         legOf.set(v.id, { base, route });
@@ -7093,7 +7144,7 @@ diffuseColor.rgb *= kbCloth;`);
         // (On its own way round a jam it is drawn along that; put somewhere else -- back on its
         // day, or past what shut the street -- it is there at once, not slid across the map.)
         const { base } = legOf.get(r0.id), route = r0.route || legOf.get(r0.id).route;
-        if (r0.jump) glided.delete(r0.id);
+        if (r0.jump) { const g = glided.get(r0.id); if (!g || !closeIn("cars")(g.x, g.z, CLOSE.exit)) glided.delete(r0.id); }
         if (r0.arrived) { vehicles.push(parkedAt(base, route.endSpot || alongRoute(route, route.length, PARK_LANE))); continue; }
         // In its own lane (Drivers: the lane it chose, or on its way across to the next).
         const pos = easeToSpots(route, r0.d, alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE));
@@ -7107,6 +7158,11 @@ diffuseColor.rgb *= kbCloth;`);
       for (const hit of step.hits) carHit(hit, people);
     }
     for (const v of vehicles) glideCar(v, now, dt);
+    {
+      const kept = carsLock.step(vehicles, dt, now);
+      vehicles.length = 0;
+      for (const v of kept) { vehicles.push(v); const g = glided.get(v.id); if (g) { g.x = v.x; g.z = v.z; } }
+    }
     lastTraffic = vehicles;
     // Inside a shop its room is where you are: no car is drawn through it. (A room is laid inward
     // from the shop's front; where a front lies nearer the street than the map's kerb, traffic on
@@ -7118,6 +7174,8 @@ diffuseColor.rgb *= kbCloth;`);
         if (q.u > -reach && q.u < F.D + reach && Math.abs(q.v) < half + reach) vehicles.splice(i, 1);
       }
     }
+    // (Close by, no car or bicycle drawn further on than its wheels could take it: close-lock.mjs.)
+    carsLock.settle(vehicles, now);
     // The bicycles apart from the cars: each with how far it has rolled (its wheels and cranks
     // turn by it), and its rider while it is ridden.
     residentBikes = [];
@@ -8359,7 +8417,7 @@ diffuseColor.rgb *= kbCloth;`);
     //: low), so many only tracked, and the detail field's stretch ahead.
     //: The district's fleet (for the crowd checks from outside: the headless harness).
     fleetNow: () => district.city,
-    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast, lock: { ...lockStats },
+    detail: () => ({ people: drawnTiers.people.slice(), cars: drawnTiers.cars.slice(), tracked: { ...drawnTiers.tracked }, figures: drawnTiers.figures, clumps: drawnTiers.clumps ? { ...drawnTiers.clumps } : null, figureStats: figures.stats(), figurePlan: figLast, lock: { ...lockStats, close: { people: { ...peopleLock.stats }, cars: { ...carsLock.stats }, feet: { ...feetNear.stats }, behind: { people: peopleLock.lagging(), cars: carsLock.lagging() } } },
       stretch: detailNow?.stretch ?? 1, heading: detailNow?.heading ?? [0, 0], reach: scanReach }),
     rules: R, tick, drive, noteIncident, sendPatrol, crashes: { scenes: () => scenes.report(), dents: () => [...carDents.keys()], bodies: () => wreckBodies.size, clear: () => scenes.clearAll() }, time: { hold: holdTime, release: releaseTime, state: timeState }, animals: () => animals(), patrolNow: () => (patrol.phase ? { phase: patrol.phase, left: Math.round(patrol.route.length - patrol.d), at: patrol.at && [Math.round(patrol.at.x), Math.round(patrol.at.z)] } : null), reactionsNow: () => ({ incidents: incidents.length, crashes: district.drivers?.tally.crashes || 0, ranDown: district.drivers?.tally.ran_down || 0, scares: scares.size, reacting: [...reacting].map(([id, q]) => ({ id, kind: q.kind, off: +q.off.toFixed(1) })), yields: district.drivers?.tally.yields || 0 }),
     restaurantAt(id) {
@@ -8395,8 +8453,8 @@ diffuseColor.rgb *= kbCloth;`);
       return { ready: gaveUp || now - aliveSeen.since >= ALIVE_FOR_MS, waiting: "the city's people and traffic", people: visible.people.length, vehicles: visible.vehicles.length };
     },
     //: For checks from outside (tests in a browser): who is drawn near you, as placed this frame.
-    peopleNow: () => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, indoors: Boolean(e.indoors), dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
-      lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null, counterPoint, seated: () => seated.on, clerkLine: () => clerk.el?.innerText || null,
+    peopleNow: (doors = false) => visible.people.map((e) => ({ id: e.id, x: e.x, z: e.z, yaw: e.yaw, moving: Boolean(e.moving), activity: e.activity || null, indoors: Boolean(e.indoors), dir: e.walk?.dir ?? null, d: e.walk?.d ?? null, pace: e.walk?.pace ?? null,
+      lag: e.walk ? district.city?.walkLags.get(e.walk.key)?.lag || 0 : null, tier: e.detail ?? null, ghost: Boolean(e.ghost), behind: e.lagM || 0, door: doors ? personPortal(e.x, e.z, e) : null })), selectSlot, slots: () => ({ slots: slots.slice(), chosen }), pose: () => ({ kind: pose.kind, air: air.y }), prompt: () => promptShown, side: () => side?.kind || null, shopPanel: () => shop.room?.userData.panel || null, counterPoint, seated: () => seated.on, clerkLine: () => clerk.el?.innerText || null,
     carState() {
       if (car.active) return { model: car.model, colour: R.vehicles.models[car.model].colour, driving: true, riding: null, plate: car.plate, city: myId, seats: R.vehicles.models[car.model].seats };
       if (car.riding) return { model: "economy", colour: "#888888", driving: false, riding: car.riding, plate: "", city: myId, seats: 5 };

@@ -2038,10 +2038,11 @@ export class City {
   }
   //: A walker at the kerb (``walk.key`` from personAt) held there for ``dt`` seconds (``hold``),
   //: or making up the time after: a third quicker until they are where their day has them.
-  holdWalk(key, dt, hold) {
+  //: ``most``: the longest they may be held (s) -- the close lock holds one as long as its walk.
+  holdWalk(key, dt, hold, most = WALK_LAG_MAX_S) {
     const w = this.walkLags.get(key);
     if (hold) {
-      if (w) w.lag = Math.min(WALK_LAG_MAX_S, w.lag + dt);
+      if (w) w.lag = Math.min(Math.max(most, w.lag), w.lag + dt);
       else {
         if (this.walkLags.size > 4000) this.walkLags.delete(this.walkLags.keys().next().value);
         this.walkLags.set(key, { lag: dt });
@@ -2172,7 +2173,7 @@ export class City {
     const home = drive ? null : r0.home || this.anchor(seg.place, null, { door: false });
     const pos = drive ? alongRoute(route, along, (half, cls, park, i) => k * KERB(half, cls, park, i, k > 0 ? route : null)) : this.walkEnds(route, along, 0, home, null, 3);
     if (!forward) pos.yaw += Math.PI;
-    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1 }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : running ? "out for a run" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
+    return { ...pos, moving: true, mode: drive ? "drive" : "walk", speed: pace, walk: drive ? null : { key, pave: route, d: along, pace, dir: forward ? 1 : -1, round: true }, activity: seg.act.kind === "stroll" ? (p.visitor ? "about the shops" : running ? "out for a run" : "out for a walk") : `${this.R.jobs.roles[p.role]?.title.toLowerCase() || "at work"} at work` };
   }
   //: Where a car is at ``t``: on its way (and how far along), or standing where its last trip
   //: ended -- on the street, in a garage, or away beyond the district's streets.
