@@ -2079,6 +2079,7 @@
     "convenience",
     "electronics",
     "general",
+    "phone_store",
     "smoke_shop"
    ],
    "aisle": "checkout",
@@ -4897,7 +4898,8 @@
    "kind": "taxable",
    "service": false,
    "sold_at": [
-    "electronics"
+    "electronics",
+    "phone_store"
    ],
    "aisle": null,
    "display": null,
@@ -4919,7 +4921,8 @@
    "kind": "taxable",
    "service": false,
    "sold_at": [
-    "electronics"
+    "electronics",
+    "phone_store"
    ],
    "aisle": null,
    "display": null,
@@ -4941,7 +4944,8 @@
    "kind": "taxable",
    "service": false,
    "sold_at": [
-    "electronics"
+    "electronics",
+    "phone_store"
    ],
    "aisle": null,
    "display": null,
@@ -6116,7 +6120,8 @@
    "kind": "taxable",
    "service": false,
    "sold_at": [
-    "electronics"
+    "electronics",
+    "phone_store"
    ],
    "aisle": null,
    "display": null,

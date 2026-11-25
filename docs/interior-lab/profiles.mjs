@@ -5,7 +5,7 @@ export const protectedArea = (h,r) => isBusiness(h) && /parking|garage|ramp|fore
 export const fixedObject = o => o.measured===true || o.structural===true || /^(structural_column|structural_beam|fuel_pump|ev_charger)$/.test(o.role);
 export const ALIASES = {
   american:'restaurant',mexican:'restaurant',japanese:'restaurant',chinese:'restaurant',thai:'restaurant',vietnamese:'restaurant',indian:'restaurant',korean:'restaurant',italian:'restaurant',mediterranean:'restaurant',seafood:'restaurant',deli:'fast_food',ice_cream:'cafe',
-  convenience:'corner_store',liquor:'corner_store',wine_shop:'corner_store',smoke_shop:'corner_store',general:'shop',gifts:'shop',toys:'shop',pet:'shop',home:'shop',gallery:'books',shoes:'clothing',electronics:'hardware',auto_parts:'hardware',bike:'hardware',
+  convenience:'corner_store',liquor:'corner_store',wine_shop:'corner_store',smoke_shop:'corner_store',general:'shop',gifts:'shop',toys:'shop',pet:'shop',home:'shop',gallery:'books',shoes:'clothing',electronics:'hardware',phone_store:'hardware',auto_parts:'hardware',bike:'hardware',
   beauty:'salon',nail_salon:'salon',spa:'salon',pet_grooming:'salon',dry_cleaner:'laundry',dentist:'dental',optician:'clinic',vet:'clinic',law_office:'office',staffing:'office',print_ship:'office',fuel:'gas_station',charging_station:'ev_charging',hospital:'hospital'
 };
 const program=(label,group,primary,roles,back='stockroom')=>({label,group,primary,roles,back});
