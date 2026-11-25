@@ -1049,13 +1049,20 @@ function buildingMesh(feature) {
   const material = pickMaterial(seed, height, feature.archetype, feature.facade || null,
                                 feature.osm_id, isHome, feature);
   const style = ARCHETYPE_STYLE[feature.archetype];
-  const palette = style ? style.colours : material.colours;
+  // A shop nobody photographed is painted in the colours its kind's read walls were seen in.
+  const prior = typePriorFor(feature.archetype);
+  const palette = prior?.colours?.length ? prior.colours.map((c) => Number.parseInt(c.slice(1), 16))
+    : style ? style.colours : material.colours;
   // A colour taken off a photograph of this building, where one was. Otherwise the palette,
   // which is a statement about San Francisco's building stock and not about this building.
   // The colour sampled across the building's frames where there is one; else the colour read off
   // its photographed walls (facade_photo_materials, via the material assignments).
-  const photoColour = frontageFitFor(feature)?.appearance?.colour || (feature.colour !== undefined ? feature.colour
-    : (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)]?.colour);
+  // The Opus reader's wall colour comes before the sampled one: it is the wall's paint, read
+  // apart from its windows, where the sample is a median over glass, signs and shade.
+  const assignedRow = (MATERIAL_ASSIGNMENTS.assigned || {})[String(feature.osm_id)];
+  const opusColour = assignedRow?.basis === "opus_wall_reading" ? assignedRow.colour : undefined;
+  const photoColour = frontageFitFor(feature)?.appearance?.colour || opusColour
+    || (feature.colour !== undefined ? feature.colour : assignedRow?.colour);
   let tint = photoColour !== undefined
     ? liftSampledColour(photoColour)
     : palette[Math.floor(random(seed + 11) * palette.length)];

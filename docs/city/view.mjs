@@ -923,7 +923,25 @@ diffuseColor.rgb *= kbCloth;`);
   //: Who can be drawn as a character: walking, standing or running, on the telephone or filming,
   //: on a bicycle -- not fallen, at a sport, sat down or riding in something (the jointed figure has
   //: those poses; the characters' clips do not).
-  const figureFits = (p) => !p.down && !p.fall && (!p.ride || (p.ride === "bike" && p.bike)) && (!p.gesture || p.gesture.kind === "phone" || p.gesture.kind === "film");
+  //: What a person near you is doing that the crowd shows with a motion-captured move
+  //: (npc-figures.mjs CROWD_MOVES): {name, key} -- the key starts a once-played move again -- or
+  //: null. Struck: flinched, knocked back or down (``hitMove``, from strikePerson); squaring up,
+  //: holding someone, cuffing them; talking, waving one down, cowering or crouched to help, startled.
+  const CROWD_GESTURE_MOVES = { guard: "PunchGuard", grab: "Push", cuffing: "Interact" };
+  const CROWD_CLIP_MOVES = { talk: "Talk", wave: "Call", hail: "Call", cower: "Crouch", help: "Crouch", startle: "HitChest" };
+  function crowdMoveFor(p, clip = null) {
+    if (p.hitMove) return p.hitMove;
+    if (p.down || p.fall || p.ride) return null;   // (a crash's fall is the jointed figure's: crash.mjs)
+    const g = p.gesture?.kind;
+    if (g && CROWD_GESTURE_MOVES[g] && !p.moving) return { name: CROWD_GESTURE_MOVES[g], key: g };
+    if (!p.moving) { const c = clip ?? clipFor(p, hash32(p.id)); if (CROWD_CLIP_MOVES[c]) return { name: CROWD_CLIP_MOVES[c], key: c }; }
+    return null;
+  }
+  const figureFits = (p) => {
+    const mv = crowdMoveFor(p);
+    if (mv) return Boolean(figures.canMove?.(mv.name));
+    return !p.down && !p.fall && (!p.ride || (p.ride === "bike" && p.bike)) && (!p.gesture || p.gesture.kind === "phone" || p.gesture.kind === "film");
+  };
   //: Out running: a runner's stroll (people.mjs), or running from something.
   const RUNNING = /running|for a run/;
   // Loaded with the city, not when the first person comes near: nobody waits for the files.
@@ -1210,7 +1228,8 @@ diffuseColor.rgb *= kbCloth;`);
       // (A cyclist sat on the bicycle as it is drawn: on the ground under it, its crank turned as
       // its wheels have gone.)
       const bike = p.ride === "bike" ? p.bike : null;
-      return { id: p.id, x: p.x, y: y + (bike ? 0 : p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
+      const mv = crowdMoveFor(p, clip), move = mv && figures.canMove?.(mv.name) ? mv : null;
+      return { id: p.id, move: move?.name || null, moveKey: move?.key ?? null, x: p.x, y: y + (bike ? 0 : p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
         moving: Boolean(p.moving), speed: p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace), look,
         clip, talking, ride: Boolean(bike), crank: bike ? crankTurn(bike.odo || 0) : 0 };
     }), now, dtFig, ready, want);
@@ -4004,7 +4023,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: share of it when ``fn`` runs: the grip, the blow, the release), fn}.
   const pose = { kind: null, t0: 0, dur: 0, at: 0, fn: null, fired: false };
   function startAct(kind, dur, at, fn) {
-    Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false });
+    Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false, mocap: false, step: null });
   }
   //: In the air, and either side of it (body-moves.mjs): ``crouch`` the load before take-off,
   //: ``land`` the knees giving after it.
@@ -4025,6 +4044,12 @@ diffuseColor.rgb *= kbCloth;`);
     const inHand = self()?.hands || null;
     eatPlay.sync(inHand && R.items[inHand]?.kind === "prepared_food" && !car.active && !car.riding && !climbPlay.busy ? inHand : null);
     eatPlay.step(dt);
+    if (pose.kind && pose.step) {
+      // Stepping in behind the punch (stepInFor), eased to a stop as the fist goes out.
+      const S = pose.step, k = Math.min(1, (performance.now() - pose.t0) / 1000 / S.until_s), e = 1 - (1 - k) * (1 - k);
+      ctx.moveAvatarTo?.(S.from.x + S.dx * S.by * e, S.from.z + S.dz * S.by * e);
+      if (k >= 1) pose.step = null;
+    }
     if (pose.kind) {
       const t = (performance.now() - pose.t0) / pose.dur;
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
@@ -4212,15 +4237,22 @@ diffuseColor.rgb *= kbCloth;`);
       fwd(B.spine, -(legs ? 0.6 : 0.9) * k + shake); fwd(B.rUpper, 0.45 * k); fwd(B.lUpper, 0.45 * k); fwd(B.rFore, 0.15 * k); fwd(B.lFore, 0.15 * k);
       return;
     }
+    // (A motion-captured move is the mixer's, blended in and out there: module 22 playWalkerMove.)
+    if (pose.mocap) return;
+    // The one-shots below are turns laid over the clip underneath: faded in over their first
+    // tenth of a second and back out over their last, so the arms do not jump into a guard from
+    // the walk and back (docs/71: they snapped both ways).
+    const span = pose.dur / 1000 || 0.4, env = ease(Math.min(1, (t * span) / 0.1, ((1 - t) * span) / 0.14));
+    const fwdE = (b, a) => turn(b, -1, 0, 0, a * env), turnE = (b, x, y, z, a) => turn(b, x, y, z, a * env);
     if (pose.kind === "swing") {
       // Empty-handed a straight punch from a guard; holding something, a swing wound up over the
       // shoulder and brought through the target (body-moves.mjs), at the target's height.
       const arm = pose.aim?.arm ?? Math.PI / 2;
       const S = p?.hands ? swingPose(t, arm, hold === "two_hands" || hold === "shoulder") : punchPose(t, arm);
-      fwd(B.rUpper, S.rUpper); fwd(B.rFore, S.rFore); fwd(B.lUpper, S.lUpper); fwd(B.lFore, S.lFore);
-      if (S.rSide) turn(B.rUpper, 0, 0, 1, -S.rSide);
-      if (S.lSide) turn(B.lUpper, 0, 0, 1, S.lSide);
-      turn(B.spine, 0, 1, 0, S.twist); fwd(B.spine, S.lean);
+      fwdE(B.rUpper, S.rUpper); fwdE(B.rFore, S.rFore); fwdE(B.lUpper, S.lUpper); fwdE(B.lFore, S.lFore);
+      if (S.rSide) turnE(B.rUpper, 0, 0, 1, -S.rSide);
+      if (S.lSide) turnE(B.lUpper, 0, 0, 1, S.lSide);
+      turnE(B.spine, 0, 1, 0, S.twist); fwdE(B.spine, S.lean);
       if (p?.hands) inHand();
       return;
     }
@@ -4231,9 +4263,9 @@ diffuseColor.rgb *= kbCloth;`);
       const back = t < 0.45 ? ease(t / 0.45) : Math.max(0, 1 - ease((t - 0.45) / 0.2));
       const out = t < 0.45 ? 0 : t < 0.7 ? ease((t - 0.45) / 0.25) : 1 - ease((t - 0.7) / 0.3);
       const lvl = Math.max(0.6, Math.min(1.8, arm));
-      fwd(B.rUpper, 0.2 * (1 - back) + lvl * out); fwd(B.rFore, 1.4 * back + 0.1 * out);
-      fwd(B.lUpper, 0.35 + (lvl - 0.2) * out); fwd(B.lFore, 1.2 * back + 0.35 * out);
-      fwd(B.spine, 0.12 * back - 0.25 * out);
+      fwdE(B.rUpper, 0.2 * (1 - back) + lvl * out); fwdE(B.rFore, 1.4 * back + 0.1 * out);
+      fwdE(B.lUpper, 0.35 + (lvl - 0.2) * out); fwdE(B.lFore, 1.2 * back + 0.35 * out);
+      fwdE(B.spine, 0.12 * back - 0.25 * out);
       inHand();
       return;
     }
@@ -4241,17 +4273,17 @@ diffuseColor.rgb *= kbCloth;`);
       // A stroke of work: a saw drawn back and pushed through (the arm level, to and fro), a pry
       // leaned back on, bolt cutters squeezed shut.
       const v = work.verb, k = Math.sin(Math.PI * t);
-      if (v === "Saw") { fwd(B.rUpper, 1.1 + 0.25 * Math.cos(2 * Math.PI * t)); fwd(B.rFore, 0.6 - 0.5 * Math.cos(2 * Math.PI * t)); fwd(B.lUpper, 0.6); fwd(B.lFore, 1.3); fwd(B.spine, -0.25); }
-      else if (v === "Pry") { fwd(B.rUpper, 1.0 - 0.3 * k); fwd(B.lUpper, 1.0 - 0.3 * k); fwd(B.rFore, 0.4); fwd(B.lFore, 0.4); fwd(B.spine, 0.2 * k - 0.15); }
-      else { fwd(B.rUpper, 1.1); fwd(B.lUpper, 1.1); fwd(B.rFore, 0.3 + 0.4 * k); fwd(B.lFore, 0.3 + 0.4 * k); turn(B.rUpper, 0, 0, 1, 0.25 * k); turn(B.lUpper, 0, 0, 1, -0.25 * k); }
+      if (v === "Saw") { fwdE(B.rUpper, 1.1 + 0.25 * Math.cos(2 * Math.PI * t)); fwdE(B.rFore, 0.6 - 0.5 * Math.cos(2 * Math.PI * t)); fwdE(B.lUpper, 0.6); fwdE(B.lFore, 1.3); fwdE(B.spine, -0.25); }
+      else if (v === "Pry") { fwdE(B.rUpper, 1.0 - 0.3 * k); fwdE(B.lUpper, 1.0 - 0.3 * k); fwdE(B.rFore, 0.4); fwdE(B.lFore, 0.4); fwdE(B.spine, 0.2 * k - 0.15); }
+      else { fwdE(B.rUpper, 1.1); fwdE(B.lUpper, 1.1); fwdE(B.rFore, 0.3 + 0.4 * k); fwdE(B.lFore, 0.3 + 0.4 * k); turnE(B.rUpper, 0, 0, 1, 0.25 * k); turnE(B.lUpper, 0, 0, 1, -0.25 * k); }
       inHand();
       return;
     }
     if (pose.kind === "push") {
       // Both hands up to the chest and out, the back leaning in behind them.
       const out = t < 0.5 ? ease(t / 0.5) : 1 - ease((t - 0.5) / 0.5);
-      fwd(B.rUpper, 1.1 + 0.4 * out); fwd(B.lUpper, 1.1 + 0.4 * out); fwd(B.rFore, 1.3 - 1.1 * out); fwd(B.lFore, 1.3 - 1.1 * out);
-      fwd(B.spine, 0.3 * out);
+      fwdE(B.rUpper, 1.1 + 0.4 * out); fwdE(B.lUpper, 1.1 + 0.4 * out); fwdE(B.rFore, 1.3 - 1.1 * out); fwdE(B.lFore, 1.3 - 1.1 * out);
+      fwdE(B.spine, 0.3 * out);
       return;
     }
     if (pose.kind === "dig") {
@@ -4351,7 +4383,53 @@ diffuseColor.rgb *= kbCloth;`);
     const aim = nearestHittable(R.tools.reach_m);
     if (aim) ctx.faceTo?.(aim.x, aim.z);
     pose.aim = aim ? aimOf(aim) : AIM_AHEAD;
-    startAct("swing", p.hands ? SWING.dur_s : PUNCH.dur_s, p.hands ? SWING.hit : PUNCH.hit, () => strikeKey(null, aim));
+    // Empty-handed: a jab, a cross, then a hook (a new combination after a pause), captured
+    // moves stepped into and landed only where the fist reaches the body (punchLands).
+    if (!p.hands && ctx.hasMove?.(PUNCHES[0])) {
+      const now = performance.now();
+      if (now - punchAt > PUNCH_RESET_MS) punchN = 0;
+      punchAt = now;
+      const name = PUNCHES[punchN % PUNCHES.length];
+      punchN += 1;
+      const reach = ctx.moveReach?.(name) || { at_s: 0.25, ahead_m: 0.65, hand: name === "PunchJab" ? "left" : "right" };
+      const played = ctx.playMove(name, { fade: 0.08, out: 0.22 });
+      if (played) {
+        const at = me(), step = aim?.kind === "person" ? stepInFor(at, aim, reach) : null;
+        startAct("swing", played.duration, Math.min(0.95, reach.at_s / played.duration), () => punchLands(aim, reach.hand));
+        Object.assign(pose, { mocap: true, step });
+        return;
+      }
+    }
+    startAct("swing", p.hands ? SWING.dur_s : PUNCH.dur_s, p.hands ? SWING.hit : PUNCH.hit, () => (aim?.kind === "person" && !p.hands ? punchLands(aim, "right") : strikeKey(null, aim)));
+  }
+  //: The punches thrown in turn, and the pause (ms) after which the next starts from the jab.
+  const PUNCHES = ["PunchJab", "PunchCross", "PunchHook"], PUNCH_RESET_MS = 1400;
+  let punchAt = 0, punchN = 0;
+  //: A body's half-width at the chest (m), and how near the fist must come to it to land.
+  const BODY_R = 0.2, FIST_TOUCH = 0.12;
+  //: A step in toward someone a little out of the fist's reach: {from, dx, dz, by, until_s}, the
+  //: weight carried forward as the punch goes out; null where they are close enough already.
+  function stepInFor(at, aim, reach) {
+    const d = Math.hypot(aim.x - at.x, aim.z - at.z), want = Math.max(0.35, (reach.ahead_m || 0.65) + BODY_R - 0.06);
+    if (!(d > want + 0.04)) return null;
+    return { from: { x: at.x, z: at.z }, dx: (aim.x - at.x) / d, dz: (aim.z - at.z) / d, by: Math.min(0.9, d - want), until_s: Math.max(0.12, reach.at_s || 0.2) };
+  }
+  //: The fist at the moment it is furthest out: on the body of the one it was thrown at -- where
+  //: they are now, not where they were -- or a miss. (It landed on whoever had been aimed at within
+  //: 2.4 m, whatever the fist did: docs/71.)
+  function punchLands(aim, hand) {
+    if (aim?.kind !== "person") return strikeKey(null, aim);
+    const q = visible.people.find((e) => e.id === aim.q.id) || aim.q;
+    const B = rigBones(), bone = hand === "left" ? B.lHand : B.rHand;
+    let d;
+    if (bone?.parent) {
+      ctx.avatar.updateMatrixWorld(true);
+      bone.getWorldPosition(handR);
+      ctx.avatar.parent?.worldToLocal(handR);
+      d = Math.hypot(handR.x - q.x, handR.z - q.z);
+    } else d = Math.hypot(q.x - me().x, q.z - me().z) - 0.75;
+    if (!(d <= BODY_R + FIST_TOUCH)) { notify(`The punch misses ${q.person?.name || "them"}: the fist never reached them.`); return; }
+    return strikeKey(null, { ...aim, q, x: q.x, z: q.z });
   }
   //: The nearest person or breakable thing within ``reach`` of you, any way round:
   //: {kind: "person", q, x, z, d} or {kind: "thing", t, x, z, d}. Someone is taken over a thing
@@ -4869,7 +4947,7 @@ diffuseColor.rgb *= kbCloth;`);
       // A stumble is a step back for each the blow asked of them; a flinch sways and comes back.
       const steps = Math.max(1, r.reaction?.steps ?? re.steps);
       staggers.set(q.id, re.kind === "stumble" ? { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.15 + 0.42 * steps, dur: 0.35 * steps + 0.15, flinch: false }
-        : { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.12, dur: 0.45, flinch: true });
+        : { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.12, dur: 0.45, flinch: true, head: re.zone === "head" });
     }
     // Their instinct, as the city decided it (world.mjs cmd_strike_person): now they act on it.
     const mind = temperamentOf(q.person || { id: q.id });
@@ -6327,6 +6405,8 @@ diffuseColor.rgb *= kbCloth;`);
     stationAt: () => { const st = R.law.dispatch.station, [sx, sz] = ctx.fromLonLat(st.lon, st.lat), at = me(), d = Math.hypot(sx - at.x, sz - at.z); return d < 450 ? { x: sx, z: sz } : { x: at.x + (sx - at.x) / d * 450, z: at.z + (sz - at.z) / d * 450 }; },
     exitCar: () => exitCar(), entering: () => Boolean(entry), placeAvatar: (...a) => ctx.placeAvatar(...a), avatarVisible: (on) => ctx.avatarVisible(on),
     animateWalk: (...a) => ctx.animateWalk?.(...a), faceYaw: (y) => { ctx.avatar.rotation.y = y; },
+    playMove: (name, o) => ctx.playMove?.(name, o) || null, stopMove: (name) => ctx.stopMove?.(name),
+    incident: (kind, x, z) => noteIncident(kind, x, z, false),
     groundAt: (x, z) => ctx.groundAt?.(x, z) ?? groundAt(x, z),
     homeAt: () => {
       const p = self(), owned = Boolean(p?.home && (p.home.building || Number.isFinite(p.home.x)));
@@ -6946,6 +7026,8 @@ diffuseColor.rgb *= kbCloth;`);
         else {
           entry.x += sg.dx * sg.dist * k; entry.z += sg.dz * sg.dist * k;
           if (age < sg.dur) { busy = true; entry.moving = !sg.flinch; entry.yaw = Math.atan2(-sg.dx, -sg.dz); entry.activity = sg.flinch ? "flinching" : "stumbling back"; entry.gesture = { kind: "guard", f: 0.6 }; }
+          // (Drawn as the blow's own move: a flinch at the head or the chest, a stumble knocked back.)
+          if (age < sg.dur + 0.6) entry.hitMove = { name: sg.flinch ? (sg.head ? "HitHead" : "HitChest") : "Knockback", key: sg.t0 };
         }
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
@@ -6966,15 +7048,18 @@ diffuseColor.rgb *= kbCloth;`);
         }
         entry.x = f.x + f.dx * pose.along; entry.z = f.z + f.dz * pose.along;
         entry.lift = pose.lift; entry.fall = pose.fall; entry.down = true; entry.moving = false; entry.yaw = Math.atan2(-f.dx, -f.dz);
-        if (pose.done) { rests.set(id, { x: entry.x, z: entry.z, yaw: entry.yaw, t: now }); if (pos.down || age > 6) flings.delete(id); }
+        if (pose.done) { rests.set(id, { x: entry.x, z: entry.z, yaw: entry.yaw, t: now, crash: true }); if (pos.down || age > 6) flings.delete(id); }
       } else if (f) {
         const age = (now - f.t0) / 1000, k = Math.min(1, age / 0.7);
         entry.x = f.x + f.dx * f.throw * Math.sin(k * Math.PI / 2); entry.z = f.z + f.dz * f.throw * Math.sin(k * Math.PI / 2);
         entry.lift = Math.sin(k * Math.PI) * Math.min(1.2, f.speed * 0.12); entry.fall = k; entry.down = true; entry.moving = false;
         entry.yaw = Math.atan2(-f.dx, -f.dz);
+        // (Knocked down by a blow: the crowd's fall, played once and held where they lie.)
+        entry.hitMove = { name: "Fall", key: f.t0 }; entry.lift = 0;
         if (age > R.harm.down_s) flings.delete(entry.id);
       } else if (pos.down) {
         entry.fall = 1; entry.down = true;
+        if (!rests.get(id)?.crash) entry.hitMove = { name: "Fall", key: "down" };
         const lying = rests.get(id);
         if (lying) { entry.x = lying.x; entry.z = lying.z; entry.yaw = lying.yaw; }
         // To be carried (the books: hurt badly enough for hospital): theirs is a scene, and an

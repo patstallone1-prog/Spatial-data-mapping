@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Moves sheet</title>
+<!-- The retargeted moves (models/moves, tools/avatars/build_moves.py) on a body, as a contact
+     sheet: one figure per moment of the clip, side by side, so a clip is read at a glance.
+     ?body=<glb with a mesh> ?moves=models/moves/male.glb ?clip=PunchJab ?n=6 (frames)
+     ?view=side|front|three ?play=1 (one figure, playing) -->
+<style>body{margin:0;background:#cfd6da;font:12px system-ui;overflow:hidden}#hud{position:fixed;left:8px;top:8px;background:#fffd;padding:6px 8px;border-radius:6px;white-space:pre}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body><div id="hud">loading…</div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+const q = new URLSearchParams(location.search);
+const clipName = q.get("clip") || "PunchJab", n = +(q.get("n") || 6), view = q.get("view") || "side", play = q.get("play") === "1";
+const hud = document.getElementById("hud");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xcfd6da);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x667766, 1.3));
+const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(3, 6, 4); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 20), new THREE.MeshLambertMaterial({ color: 0x9aa58f })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const loader = new GLTFLoader();
+const [bodyBytes, moves] = await Promise.all([fetch(q.get("body")).then((r) => r.arrayBuffer()), loader.loadAsync(q.get("moves") || "models/moves/male.glb")]);
+// (Each figure its own parse of the same file: a skinned figure is not cloned by Object3D.clone.)
+const bodyOf = () => loader.parseAsync(bodyBytes.slice(0), "");
+const clip = moves.animations.find((a) => a.name === clipName);
+if (!clip) { hud.textContent = `no clip ${clipName}: ${moves.animations.map((a) => a.name).join(", ")}`; throw new Error("no clip"); }
+const count = play ? 1 : n, gap = 1.1, mixers = [];
+for (let i = 0; i < count; i += 1) {
+  const fig = (await bodyOf()).scene;
+  fig.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; for (const mt of [o.material].flat()) { mt.transparent = false; mt.alphaTest = 0.5; mt.depthWrite = true; } } });
+  // (Fitted to 1.75 m: the Soldier's file is in centimetres.)
+  fig.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(fig, true), tall = box.max.y - box.min.y;
+  if (tall > 0) fig.scale.multiplyScalar(1.75 / tall);
+  fig.position.x = (i - (count - 1) / 2) * gap;
+  scene.add(fig);
+  const mixer = new THREE.AnimationMixer(fig), a = mixer.clipAction(clip);
+  a.play(); mixer.setTime(play ? 0 : (clip.duration * i) / Math.max(1, count - 1));
+  mixers.push(mixer);
+}
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.05, 200);
+const span = count * gap + 0.6, d = span / (2 * Math.tan((15 * Math.PI) / 180) * camera.aspect) + 1.5;
+if (view === "front") camera.position.set(0, 1.1, d); else if (view === "three") camera.position.set(d * 0.55, 1.6, d * 0.85); else camera.position.set(0, 1.0, d);
+camera.lookAt(0, 0.95, 0);
+// "side": every figure turned to show its profile (facing +x).
+if (view === "side") scene.children.forEach((c) => { if (c.isObject3D && c !== ground && c.type === "Group") c.rotation.y = Math.PI / 2; });
+hud.textContent = `${clipName}  ${clip.duration.toFixed(2)} s  ${count} frames  (${moves.animations.length} clips: ${moves.animations.map((a) => a.name).join(" ")})`;
+const clock = new THREE.Clock();
+(function frame() { if (play) mixers[0].update(clock.getDelta()); renderer.render(scene, camera); requestAnimationFrame(frame); })();
+window.ready = true;
+</script></body></html>

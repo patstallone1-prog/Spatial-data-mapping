@@ -81,7 +81,33 @@ export function createPolice(api) {
   //: The people near you, a frame on (the view's crowd loop): those who saw something of yours
   //: decide whether to call (law.mjs callPlan, by who they are and how bad it was), and a caller
   //: is drawn getting their phone out and talking. ``entry``: their frame's entry (moved, posed).
+  //: People in an officer's way step aside (they walked straight through them: docs/71):
+  //: id -> {dx, dz, k, until}, the step eased in and, once the officer is by, back.
+  const yielding = new Map();
+  function giveWay(id, entry, dt) {
+    let y = yielding.get(id);
+    for (const u of units.values()) {
+      const o = u.officer;
+      if (!o || !o.moving) continue;
+      // (yaw = atan2(-dx, -dz) of the way they go: ahead is (-sin, -cos).)
+      const fx = -Math.sin(o.yaw), fz = -Math.cos(o.yaw), rx = entry.x - o.x, rz = entry.z - o.z;
+      const ahead = rx * fx + rz * fz, side = rx * fz - rz * fx;
+      if (ahead > -0.3 && ahead < 2.6 && Math.abs(side) < 0.95) {
+        const sgn = side >= 0 ? 1 : -1, push = 1.0 - Math.abs(side);
+        y = { dx: fz * sgn * push, dz: -fx * sgn * push, k: y?.k || 0, until: performance.now() + 1200, ox: o.x, oz: o.z };
+        yielding.set(id, y);
+      }
+    }
+    if (!y) return false;
+    const out = performance.now() < y.until;
+    y.k += ((out ? 1 : 0) - y.k) * Math.min(1, dt * (out ? 7 : 2));
+    if (!out && y.k < 0.03) { yielding.delete(id); return false; }
+    entry.x += y.dx * y.k; entry.z += y.dz * y.k;
+    if (out) { entry.activity = "stepping out of the officer's way"; entry.yaw = Math.atan2(-(y.ox - entry.x), -(y.oz - entry.z)); }
+    return true;
+  }
   function personFrame(id, entry, mindOf, dt, down = false) {
+    if (units.size && !down) giveWay(id, entry, dt);
     if (!crimes.length) return false;
     let mind = null;
     const you = focus();
@@ -325,6 +351,8 @@ export function createPolice(api) {
       o.gesture = { kind: "grab", f: Math.min(1, S.t / 0.8) };
       faceYaw?.(S.yaw);
       pose = { kind: "hands_up", f: Math.min(1, S.t / 0.6) };
+      // An arrest in the street: those near stop to watch, and some film it (temperament.mjs).
+      if (!S.seen || performance.now() - S.seen > 5000) { S.seen = performance.now(); api.incident?.("arrest", you.x, you.z); }
       if (S.t > 1.3) { S.step = "cuff"; S.t = 0; book(u); }
     } else if (S.step === "cuff") {
       o.moving = false; o.gesture = { kind: "cuffing", f: Math.min(1, S.t / 0.5) };
@@ -335,16 +363,30 @@ export function createPolice(api) {
       const d = dist(you, S.door), st = Math.min(d, 1.05 * dt), yaw = Math.atan2(-(S.door.x - you.x), -(S.door.z - you.z));
       const nx = you.x + ((S.door.x - you.x) / (d || 1)) * st, nz = you.z + ((S.door.z - you.z) / (d || 1)) * st;
       placeAvatar(nx, groundAt(nx, nz), nz, yaw);
-      api.animateWalk?.(st, Math.sin(-yaw), Math.cos(-yaw));
+      // Walked, not slid: the walk held as a move (the page's own step puts the idle back each
+      // frame it has no keys), at the escort's pace.
+      if (!S.walking && api.playMove?.("Walk", { loop: true, speed: 0.8, fade: 0.2 })) S.walking = true;
+      api.animateWalk?.(st, Math.sin(-yaw), Math.cos(-yaw));   // (faces the way; its clip waits on the move)
+      if (S.t > 0.3 && performance.now() - (S.seen || 0) > 5000) { S.seen = performance.now(); api.incident?.("arrest", nx, nz); }
       const at = behind(yaw, { x: nx, z: nz }, 0.55);
       o.x = at.x + Math.cos(yaw) * 0.35; o.z = at.z - Math.sin(yaw) * 0.35; o.yaw = yaw; o.moving = st > 1e-4; o.gesture = { kind: "grab", f: 1 };
       pose = { kind: "cuffed", f: 1 };
-      if (d < 0.08) { S.step = "seat"; S.t = 0; }
+      if (d < 0.08) { S.step = "seat"; S.t = 0; if (S.walking) { api.stopMove?.("Walk"); S.walking = false; } }
     } else if (S.step === "seat") {
-      faceYaw?.(u.yaw - Math.PI / 2);
-      pose = { kind: "seated_cuffed", f: Math.min(1, S.t / 1.2) };
+      // Put in: the back to the open door, sat down into the seat -- lowered as the body goes in,
+      // the officer's hand on the head -- and only then out of sight inside. (They were turned
+      // where they stood, the legs bent, and vanished: docs/71.)
+      const SIT = A.seat_s ?? 1.7;
+      S.from ??= { x: you.x, z: you.z };
+      S.seatAt ??= { x: u.x - Math.cos(u.yaw) * 0.42 + Math.sin(u.yaw) * 0.55, z: u.z + Math.sin(u.yaw) * 0.42 + Math.cos(u.yaw) * 0.55 };
+      if (!S.sitting) { S.sitting = true; S.mocap = Boolean(api.playMove?.("SitDown", { fade: 0.2, out: 0.1 })); }
+      const k = Math.max(0, Math.min(1, (S.t - 0.35) / (SIT - 0.5))), e = k * k * (3 - 2 * k);
+      const x = S.from.x + (S.seatAt.x - S.from.x) * e, z = S.from.z + (S.seatAt.z - S.from.z) * e;
+      placeAvatar(x, groundAt(x, z), z, null);
+      faceYaw?.(u.yaw - Math.PI / 2);   // facing out of the door: the back to the seat
+      pose = S.mocap ? { kind: "cuffed", f: 1 } : { kind: "seated_cuffed", f: Math.min(1, S.t / 1.2) };
       o.gesture = { kind: "grab", f: 1 };
-      if (S.t > 1.4) { S.step = "away"; S.t = 0; S.scene = { x: you.x, z: you.z }; avatarVisible(false); cuffsOn(false); notify("Put in the back of the patrol car."); }
+      if (S.t > SIT) { S.step = "away"; S.t = 0; S.scene = { x: you.x, z: you.z }; avatarVisible(false); cuffsOn(false); notify("Put in the back of the patrol car."); }
     } else if (S.step === "away") {
       if (o && walkTo(o, doorOf(u.yaw, u, -1), Q.officer_walk_ms * 1.3, dt)) u.officer = null;
       if (!u.officer && !S.leaving) { S.leaving = true; u.siren = false; u.leaveRoute = routeAway(u); u.d = 0; u.v = 0; }
@@ -366,6 +408,7 @@ export function createPolice(api) {
     const r = u.booked || {};
     const home = homeAt();
     pose = null; arrest = null;
+    api.stopMove?.();
     placeAvatar(home.x, groundAt(home.x, home.z), home.z, home.yaw || 0);
     avatarVisible(true);
     done(u);

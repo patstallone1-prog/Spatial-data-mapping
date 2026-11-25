@@ -1,0 +1,1537 @@
+{
+ "schema": "kerbside.moves/1",
+ "source": "Quaternius Universal Animation Library 1 and 2 [Standard], CC0 1.0",
+ "reference": "A_TPose",
+ "targets": {
+  "male": {
+   "file": "male.glb",
+   "bytes": 2352796,
+   "moves": {
+    "PunchGuard": {
+     "from": "ual1:Punch_Enter",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.4,
+      "up_m": 0.391
+     }
+    },
+    "PunchJab": {
+     "from": "ual1:Punch_Jab",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.653,
+      "up_m": 0.533
+     }
+    },
+    "PunchCross": {
+     "from": "ual1:Punch_Cross",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.645,
+      "up_m": 0.465
+     }
+    },
+    "PunchHook": {
+     "from": "ual2:Melee_Hook",
+     "loops": false,
+     "frames": 12,
+     "duration_s": 0.458,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.983,
+      "up_m": 0.186
+     }
+    },
+    "PunchHookRec": {
+     "from": "ual2:Melee_Hook_Rec",
+     "loops": false,
+     "frames": 15,
+     "duration_s": 0.583,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.588,
+      "up_m": 0.156
+     }
+    },
+    "SwingA": {
+     "from": "ual2:Sword_Regular_A",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.591,
+      "up_m": 0.446
+     }
+    },
+    "SwingB": {
+     "from": "ual2:Sword_Regular_B",
+     "loops": false,
+     "frames": 13,
+     "duration_s": 0.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.869,
+      "up_m": 0.247
+     }
+    },
+    "Chop": {
+     "from": "ual2:TreeChopping_Loop",
+     "loops": true,
+     "frames": 24,
+     "duration_s": 0.958,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.599,
+      "up_m": 0.267
+     }
+    },
+    "Throw": {
+     "from": "ual2:OverhandThrow",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.855,
+      "up_m": 0.378
+     }
+    },
+    "HitChest": {
+     "from": "ual1:Hit_Chest",
+     "loops": false,
+     "frames": 9,
+     "duration_s": 0.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.125,
+      "ahead_m": 0.202,
+      "up_m": 0.107
+     }
+    },
+    "HitHead": {
+     "from": "ual1:Hit_Head",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.125,
+      "ahead_m": 0.161,
+      "up_m": 0.044
+     }
+    },
+    "Knockback": {
+     "from": "ual2:Hit_Knockback",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.731,
+      "up_m": -0.108
+     }
+    },
+    "Fall": {
+     "from": "ual1:Death01",
+     "loops": false,
+     "frames": 58,
+     "duration_s": 2.375,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.708,
+      "ahead_m": 0.325,
+      "up_m": 0.126
+     }
+    },
+    "GetUp": {
+     "from": "ual2:LayToIdle",
+     "loops": false,
+     "frames": 37,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.958,
+      "ahead_m": 0.355,
+      "up_m": 0.344
+     }
+    },
+    "SitDown": {
+     "from": "ual1:Sitting_Enter",
+     "loops": false,
+     "frames": 32,
+     "duration_s": 1.292,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.792,
+      "ahead_m": 0.24,
+      "up_m": 0.089
+     }
+    },
+    "Sit": {
+     "from": "ual1:Sitting_Idle_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.958,
+      "ahead_m": 0.2,
+      "up_m": 0.137
+     }
+    },
+    "SitTalk": {
+     "from": "ual1:Sitting_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.459,
+      "up_m": 0.357
+     }
+    },
+    "StandUp": {
+     "from": "ual1:Sitting_Exit",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.333,
+      "ahead_m": 0.274,
+      "up_m": 0.052
+     }
+    },
+    "Drive": {
+     "from": "ual1:Driving_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.314,
+      "up_m": 0.353
+     }
+    },
+    "Talk": {
+     "from": "ual1:Idle_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.337,
+      "up_m": 0.317
+     }
+    },
+    "Phone": {
+     "from": "ual2:Idle_TalkingPhone_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.367,
+      "up_m": 0.304
+     }
+    },
+    "FoldArms": {
+     "from": "ual2:Idle_FoldArms_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 2.0,
+      "ahead_m": 0.203,
+      "up_m": 0.376
+     }
+    },
+    "No": {
+     "from": "ual2:Idle_No_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.625,
+      "ahead_m": 0.121,
+      "up_m": 0.016
+     }
+    },
+    "Yes": {
+     "from": "ual2:Yes",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.958,
+      "ahead_m": 0.59,
+      "up_m": 0.527
+     }
+    },
+    "Call": {
+     "from": "ual2:Idle_Rail_Call",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.754,
+      "up_m": 0.308
+     }
+    },
+    "Crouch": {
+     "from": "ual1:Crouch_Idle_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.263,
+      "up_m": -0.001
+     }
+    },
+    "CrouchWalk": {
+     "from": "ual1:Crouch_Fwd_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.417,
+      "ahead_m": 0.295,
+      "up_m": 0.023
+     }
+    },
+    "Interact": {
+     "from": "ual1:Interact",
+     "loops": false,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.75,
+      "ahead_m": 0.562,
+      "up_m": 0.398
+     }
+    },
+    "PickUp": {
+     "from": "ual1:PickUp_Table",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.25,
+      "ahead_m": 0.526,
+      "up_m": 0.007
+     }
+    },
+    "Push": {
+     "from": "ual1:Push_Loop",
+     "loops": true,
+     "frames": 65,
+     "duration_s": 2.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.667,
+      "ahead_m": 0.843,
+      "up_m": 0.463
+     }
+    },
+    "Kneel": {
+     "from": "ual1:Fixing_Kneeling",
+     "loops": true,
+     "frames": 125,
+     "duration_s": 5.167,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.667,
+      "ahead_m": 0.524,
+      "up_m": -0.047
+     }
+    },
+    "Consume": {
+     "from": "ual2:Consume",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.59,
+      "up_m": 0.567
+     }
+    },
+    "OpenChest": {
+     "from": "ual2:Chest_Open",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.551,
+      "up_m": -0.021
+     }
+    },
+    "WalkCarry": {
+     "from": "ual2:Walk_Carry_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.167,
+      "ahead_m": 0.242,
+      "up_m": 0.256
+     }
+    },
+    "JumpStart": {
+     "from": "ual1:Jump_Start",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.361,
+      "up_m": -0.043
+     }
+    },
+    "JumpAir": {
+     "from": "ual1:Jump_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.292,
+      "ahead_m": 0.185,
+      "up_m": 0.335
+     }
+    },
+    "JumpLand": {
+     "from": "ual1:Jump_Land",
+     "loops": false,
+     "frames": 31,
+     "duration_s": 1.25,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.417,
+      "ahead_m": 0.514,
+      "up_m": -0.12
+     }
+    },
+    "Jog": {
+     "from": "ual1:Jog_Fwd_Loop",
+     "loops": true,
+     "frames": 23,
+     "duration_s": 0.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.458,
+      "ahead_m": 0.531,
+      "up_m": 0.187
+     }
+    },
+    "Sprint": {
+     "from": "ual1:Sprint_Loop",
+     "loops": true,
+     "frames": 17,
+     "duration_s": 0.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.333,
+      "ahead_m": 0.557,
+      "up_m": 0.1
+     }
+    },
+    "Swim": {
+     "from": "ual1:Swim_Fwd_Loop",
+     "loops": true,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.542,
+      "ahead_m": 1.046,
+      "up_m": 0.003
+     }
+    },
+    "Tread": {
+     "from": "ual1:Swim_Idle_Loop",
+     "loops": true,
+     "frames": 81,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.206,
+      "up_m": 0.366
+     }
+    },
+    "Aim": {
+     "from": "ual1:Pistol_Aim_Neutral",
+     "loops": true,
+     "frames": 5,
+     "duration_s": 0.167,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.083,
+      "ahead_m": 0.433,
+      "up_m": 0.501
+     }
+    }
+   }
+  },
+  "female": {
+   "file": "female.glb",
+   "bytes": 2351932,
+   "moves": {
+    "PunchGuard": {
+     "from": "ual1:Punch_Enter",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.336,
+      "up_m": 0.344
+     }
+    },
+    "PunchJab": {
+     "from": "ual1:Punch_Jab",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.544,
+      "up_m": 0.483
+     }
+    },
+    "PunchCross": {
+     "from": "ual1:Punch_Cross",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.531,
+      "up_m": 0.439
+     }
+    },
+    "PunchHook": {
+     "from": "ual2:Melee_Hook",
+     "loops": false,
+     "frames": 12,
+     "duration_s": 0.458,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.866,
+      "up_m": 0.202
+     }
+    },
+    "PunchHookRec": {
+     "from": "ual2:Melee_Hook_Rec",
+     "loops": false,
+     "frames": 15,
+     "duration_s": 0.583,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.519,
+      "up_m": 0.175
+     }
+    },
+    "SwingA": {
+     "from": "ual2:Sword_Regular_A",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.52,
+      "up_m": 0.406
+     }
+    },
+    "SwingB": {
+     "from": "ual2:Sword_Regular_B",
+     "loops": false,
+     "frames": 13,
+     "duration_s": 0.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.757,
+      "up_m": 0.256
+     }
+    },
+    "Chop": {
+     "from": "ual2:TreeChopping_Loop",
+     "loops": true,
+     "frames": 24,
+     "duration_s": 0.958,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.497,
+      "up_m": 0.263
+     }
+    },
+    "Throw": {
+     "from": "ual2:OverhandThrow",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.737,
+      "up_m": 0.359
+     }
+    },
+    "HitChest": {
+     "from": "ual1:Hit_Chest",
+     "loops": false,
+     "frames": 9,
+     "duration_s": 0.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.083,
+      "ahead_m": 0.173,
+      "up_m": 0.129
+     }
+    },
+    "HitHead": {
+     "from": "ual1:Hit_Head",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.125,
+      "ahead_m": 0.142,
+      "up_m": 0.065
+     }
+    },
+    "Knockback": {
+     "from": "ual2:Hit_Knockback",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.616,
+      "up_m": -0.045
+     }
+    },
+    "Fall": {
+     "from": "ual1:Death01",
+     "loops": false,
+     "frames": 58,
+     "duration_s": 2.375,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.708,
+      "ahead_m": 0.247,
+      "up_m": 0.136
+     }
+    },
+    "GetUp": {
+     "from": "ual2:LayToIdle",
+     "loops": false,
+     "frames": 37,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 1.0,
+      "ahead_m": 0.305,
+      "up_m": 0.314
+     }
+    },
+    "SitDown": {
+     "from": "ual1:Sitting_Enter",
+     "loops": false,
+     "frames": 32,
+     "duration_s": 1.292,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.792,
+      "ahead_m": 0.194,
+      "up_m": 0.114
+     }
+    },
+    "Sit": {
+     "from": "ual1:Sitting_Idle_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.161,
+      "up_m": 0.137
+     }
+    },
+    "SitTalk": {
+     "from": "ual1:Sitting_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.404,
+      "up_m": 0.324
+     }
+    },
+    "StandUp": {
+     "from": "ual1:Sitting_Exit",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.333,
+      "ahead_m": 0.237,
+      "up_m": 0.094
+     }
+    },
+    "Drive": {
+     "from": "ual1:Driving_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.625,
+      "ahead_m": 0.253,
+      "up_m": 0.324
+     }
+    },
+    "Talk": {
+     "from": "ual1:Idle_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.294,
+      "up_m": 0.284
+     }
+    },
+    "Phone": {
+     "from": "ual2:Idle_TalkingPhone_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.32,
+      "up_m": 0.274
+     }
+    },
+    "FoldArms": {
+     "from": "ual2:Idle_FoldArms_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 2.0,
+      "ahead_m": 0.183,
+      "up_m": 0.344
+     }
+    },
+    "No": {
+     "from": "ual2:Idle_No_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.583,
+      "ahead_m": 0.106,
+      "up_m": 0.042
+     }
+    },
+    "Yes": {
+     "from": "ual2:Yes",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.958,
+      "ahead_m": 0.513,
+      "up_m": 0.478
+     }
+    },
+    "Call": {
+     "from": "ual2:Idle_Rail_Call",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.665,
+      "up_m": 0.286
+     }
+    },
+    "Crouch": {
+     "from": "ual1:Crouch_Idle_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.212,
+      "up_m": 0.056
+     }
+    },
+    "CrouchWalk": {
+     "from": "ual1:Crouch_Fwd_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.417,
+      "ahead_m": 0.238,
+      "up_m": 0.074
+     }
+    },
+    "Interact": {
+     "from": "ual1:Interact",
+     "loops": false,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.75,
+      "ahead_m": 0.487,
+      "up_m": 0.361
+     }
+    },
+    "PickUp": {
+     "from": "ual1:PickUp_Table",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.25,
+      "ahead_m": 0.459,
+      "up_m": 0.032
+     }
+    },
+    "Push": {
+     "from": "ual1:Push_Loop",
+     "loops": true,
+     "frames": 65,
+     "duration_s": 2.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.667,
+      "ahead_m": 0.747,
+      "up_m": 0.422
+     }
+    },
+    "Kneel": {
+     "from": "ual1:Fixing_Kneeling",
+     "loops": true,
+     "frames": 125,
+     "duration_s": 5.167,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.417,
+      "ahead_m": 0.438,
+      "up_m": -0.001
+     }
+    },
+    "Consume": {
+     "from": "ual2:Consume",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.511,
+      "up_m": 0.503
+     }
+    },
+    "OpenChest": {
+     "from": "ual2:Chest_Open",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.466,
+      "up_m": 0.0
+     }
+    },
+    "WalkCarry": {
+     "from": "ual2:Walk_Carry_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.083,
+      "ahead_m": 0.185,
+      "up_m": 0.241
+     }
+    },
+    "JumpStart": {
+     "from": "ual1:Jump_Start",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.293,
+      "up_m": 0.001
+     }
+    },
+    "JumpAir": {
+     "from": "ual1:Jump_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.375,
+      "ahead_m": 0.144,
+      "up_m": 0.32
+     }
+    },
+    "JumpLand": {
+     "from": "ual1:Jump_Land",
+     "loops": false,
+     "frames": 31,
+     "duration_s": 1.25,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.375,
+      "ahead_m": 0.427,
+      "up_m": -0.064
+     }
+    },
+    "Jog": {
+     "from": "ual1:Jog_Fwd_Loop",
+     "loops": true,
+     "frames": 23,
+     "duration_s": 0.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.458,
+      "ahead_m": 0.444,
+      "up_m": 0.176
+     }
+    },
+    "Sprint": {
+     "from": "ual1:Sprint_Loop",
+     "loops": true,
+     "frames": 17,
+     "duration_s": 0.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.333,
+      "ahead_m": 0.474,
+      "up_m": 0.097
+     }
+    },
+    "Swim": {
+     "from": "ual1:Swim_Fwd_Loop",
+     "loops": true,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.542,
+      "ahead_m": 0.925,
+      "up_m": -0.022
+     }
+    },
+    "Tread": {
+     "from": "ual1:Swim_Idle_Loop",
+     "loops": true,
+     "frames": 81,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.208,
+      "ahead_m": 0.177,
+      "up_m": 0.308
+     }
+    },
+    "Aim": {
+     "from": "ual1:Pistol_Aim_Neutral",
+     "loops": true,
+     "frames": 5,
+     "duration_s": 0.167,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.083,
+      "ahead_m": 0.377,
+      "up_m": 0.396
+     }
+    }
+   }
+  },
+  "soldier": {
+   "file": "soldier.glb",
+   "bytes": 2161820,
+   "moves": {
+    "PunchGuard": {
+     "from": "ual1:Punch_Enter",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.27,
+      "up_m": 0.317
+     }
+    },
+    "PunchJab": {
+     "from": "ual1:Punch_Jab",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.208,
+      "ahead_m": 0.533,
+      "up_m": 0.449
+     }
+    },
+    "PunchCross": {
+     "from": "ual1:Punch_Cross",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.496,
+      "up_m": 0.416
+     }
+    },
+    "PunchHook": {
+     "from": "ual2:Melee_Hook",
+     "loops": false,
+     "frames": 12,
+     "duration_s": 0.458,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.292,
+      "ahead_m": 0.856,
+      "up_m": 0.253
+     }
+    },
+    "PunchHookRec": {
+     "from": "ual2:Melee_Hook_Rec",
+     "loops": false,
+     "frames": 15,
+     "duration_s": 0.583,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.455,
+      "up_m": 0.204
+     }
+    },
+    "SwingA": {
+     "from": "ual2:Sword_Regular_A",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.53,
+      "up_m": 0.365
+     }
+    },
+    "SwingB": {
+     "from": "ual2:Sword_Regular_B",
+     "loops": false,
+     "frames": 13,
+     "duration_s": 0.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.704,
+      "up_m": 0.315
+     }
+    },
+    "Chop": {
+     "from": "ual2:TreeChopping_Loop",
+     "loops": true,
+     "frames": 24,
+     "duration_s": 0.958,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.25,
+      "ahead_m": 0.433,
+      "up_m": 0.263
+     }
+    },
+    "Throw": {
+     "from": "ual2:OverhandThrow",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.712,
+      "up_m": 0.41
+     }
+    },
+    "HitChest": {
+     "from": "ual1:Hit_Chest",
+     "loops": false,
+     "frames": 9,
+     "duration_s": 0.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.083,
+      "ahead_m": 0.111,
+      "up_m": 0.059
+     }
+    },
+    "HitHead": {
+     "from": "ual1:Hit_Head",
+     "loops": false,
+     "frames": 11,
+     "duration_s": 0.417,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.125,
+      "ahead_m": 0.06,
+      "up_m": 0.007
+     }
+    },
+    "Knockback": {
+     "from": "ual2:Hit_Knockback",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.603,
+      "up_m": 0.029
+     }
+    },
+    "Fall": {
+     "from": "ual1:Death01",
+     "loops": false,
+     "frames": 58,
+     "duration_s": 2.375,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.708,
+      "ahead_m": 0.191,
+      "up_m": 0.094
+     }
+    },
+    "GetUp": {
+     "from": "ual2:LayToIdle",
+     "loops": false,
+     "frames": 37,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 1.0,
+      "ahead_m": 0.264,
+      "up_m": 0.308
+     }
+    },
+    "SitDown": {
+     "from": "ual1:Sitting_Enter",
+     "loops": false,
+     "frames": 32,
+     "duration_s": 1.292,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.792,
+      "ahead_m": 0.102,
+      "up_m": 0.109
+     }
+    },
+    "Sit": {
+     "from": "ual1:Sitting_Idle_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.667,
+      "ahead_m": 0.078,
+      "up_m": 0.104
+     }
+    },
+    "SitTalk": {
+     "from": "ual1:Sitting_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.319,
+      "up_m": 0.303
+     }
+    },
+    "StandUp": {
+     "from": "ual1:Sitting_Exit",
+     "loops": false,
+     "frames": 25,
+     "duration_s": 1.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.333,
+      "ahead_m": 0.144,
+      "up_m": 0.127
+     }
+    },
+    "Drive": {
+     "from": "ual1:Driving_Loop",
+     "loops": true,
+     "frames": 41,
+     "duration_s": 1.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.625,
+      "ahead_m": 0.182,
+      "up_m": 0.28
+     }
+    },
+    "Talk": {
+     "from": "ual1:Idle_Talking_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.215,
+      "up_m": 0.259
+     }
+    },
+    "Phone": {
+     "from": "ual2:Idle_TalkingPhone_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.708,
+      "ahead_m": 0.243,
+      "up_m": 0.249
+     }
+    },
+    "FoldArms": {
+     "from": "ual2:Idle_FoldArms_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 2.0,
+      "ahead_m": 0.077,
+      "up_m": 0.327
+     }
+    },
+    "No": {
+     "from": "ual2:Idle_No_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.583,
+      "ahead_m": 0.019,
+      "up_m": -0.013
+     }
+    },
+    "Yes": {
+     "from": "ual2:Yes",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.958,
+      "ahead_m": 0.445,
+      "up_m": 0.455
+     }
+    },
+    "Call": {
+     "from": "ual2:Idle_Rail_Call",
+     "loops": false,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.375,
+      "ahead_m": 0.591,
+      "up_m": 0.333
+     }
+    },
+    "Crouch": {
+     "from": "ual1:Crouch_Idle_Loop",
+     "loops": true,
+     "frames": 71,
+     "duration_s": 2.917,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.0,
+      "ahead_m": 0.135,
+      "up_m": 0.084
+     }
+    },
+    "CrouchWalk": {
+     "from": "ual1:Crouch_Fwd_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.417,
+      "ahead_m": 0.163,
+      "up_m": 0.103
+     }
+    },
+    "Interact": {
+     "from": "ual1:Interact",
+     "loops": false,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.75,
+      "ahead_m": 0.419,
+      "up_m": 0.336
+     }
+    },
+    "PickUp": {
+     "from": "ual1:PickUp_Table",
+     "loops": false,
+     "frames": 21,
+     "duration_s": 0.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.292,
+      "ahead_m": 0.416,
+      "up_m": 0.023
+     }
+    },
+    "Push": {
+     "from": "ual1:Push_Loop",
+     "loops": true,
+     "frames": 65,
+     "duration_s": 2.667,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.667,
+      "ahead_m": 0.68,
+      "up_m": 0.472
+     }
+    },
+    "Kneel": {
+     "from": "ual1:Fixing_Kneeling",
+     "loops": true,
+     "frames": 125,
+     "duration_s": 5.167,
+     "reach": {
+      "hand": "left",
+      "at_s": 4.25,
+      "ahead_m": 0.365,
+      "up_m": 0.082
+     }
+    },
+    "Consume": {
+     "from": "ual2:Consume",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.465,
+      "up_m": 0.487
+     }
+    },
+    "OpenChest": {
+     "from": "ual2:Chest_Open",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.667,
+      "ahead_m": 0.4,
+      "up_m": 0.026
+     }
+    },
+    "WalkCarry": {
+     "from": "ual2:Walk_Carry_Loop",
+     "loops": true,
+     "frames": 49,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.0,
+      "ahead_m": 0.118,
+      "up_m": 0.189
+     }
+    },
+    "JumpStart": {
+     "from": "ual1:Jump_Start",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.0,
+      "ahead_m": 0.216,
+      "up_m": 0.002
+     }
+    },
+    "JumpAir": {
+     "from": "ual1:Jump_Loop",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.5,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.458,
+      "ahead_m": 0.057,
+      "up_m": 0.291
+     }
+    },
+    "JumpLand": {
+     "from": "ual1:Jump_Land",
+     "loops": false,
+     "frames": 31,
+     "duration_s": 1.25,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.417,
+      "ahead_m": 0.367,
+      "up_m": -0.04
+     }
+    },
+    "Jog": {
+     "from": "ual1:Jog_Fwd_Loop",
+     "loops": true,
+     "frames": 23,
+     "duration_s": 0.917,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.458,
+      "ahead_m": 0.391,
+      "up_m": 0.172
+     }
+    },
+    "Sprint": {
+     "from": "ual1:Sprint_Loop",
+     "loops": true,
+     "frames": 17,
+     "duration_s": 0.667,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.333,
+      "ahead_m": 0.414,
+      "up_m": 0.11
+     }
+    },
+    "Swim": {
+     "from": "ual1:Swim_Fwd_Loop",
+     "loops": true,
+     "frames": 33,
+     "duration_s": 1.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.542,
+      "ahead_m": 0.912,
+      "up_m": 0.059
+     }
+    },
+    "Tread": {
+     "from": "ual1:Swim_Idle_Loop",
+     "loops": true,
+     "frames": 81,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.042,
+      "ahead_m": 0.093,
+      "up_m": 0.304
+     }
+    },
+    "Aim": {
+     "from": "ual1:Pistol_Aim_Neutral",
+     "loops": true,
+     "frames": 5,
+     "duration_s": 0.167,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.125,
+      "ahead_m": 0.304,
+      "up_m": 0.372
+     }
+    }
+   }
+  }
+ }
+}

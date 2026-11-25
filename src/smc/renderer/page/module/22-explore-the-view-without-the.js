@@ -508,7 +508,66 @@ avatar.position.set(0, AVATAR_STAND_Y, 0);
 root.add(avatar);
 // The camera is first placed once the walker exists: in first person it stands in the walker's eyes.
 placeCamera();
+// ---- Moves: motion capture for what the three clips cannot show ------------------------------
+//: A punch, a hit taken, sitting down, getting into a car: Quaternius's Universal Animation
+//: Library (CC0), retargeted onto the walker's own skeleton (tools/avatars/build_moves.py; one
+//: file per body -- the creator's male and female, and the Soldier). A move is played over the
+//: idle, walk or run, faded in and back out by the mixer (playWalkerMove), so nothing snaps; while
+//: one plays, the idle/walk/run asked for is only noted, and taken up as the move fades.
+var WALKER_MOVES = { files: new Map(), manifest: null, active: null, want: null };
+//: Which body's moves fit the walker now: the creator figure's, or the Soldier's.
+function walkerMovesBody() {
+  return walkerFigure && walkerFigure.holder.parent === avatar ? (walkerFigure.body === "female" ? "female" : "male") : "soldier";
+}
+function loadWalkerMoves(body = walkerMovesBody()) {
+  if (!WALKER_MOVES.files.has(body)) {
+    WALKER_MOVES.files.set(body, new GLTFLoader().loadAsync(sharedAsset(`city/models/moves/${body}.glb`))
+      .then((g) => g.animations || []).catch((error) => { console.warn("Moves unavailable:", body, error); return []; }));
+    if (!WALKER_MOVES.manifest) WALKER_MOVES.manifest = fetch(sharedAsset("city/models/moves/moves.json")).then((r) => (r.ok ? r.json() : null))
+      .then((m) => { WALKER_MOVES.reach = m; return m; }).catch(() => null);
+  }
+  return WALKER_MOVES.files.get(body).then((clips) => { if (body === walkerMovesBody()) addWalkerMoveActions(clips); return clips; });
+}
+//: The moves as actions on the walker's mixer (each time the mixer is made anew).
+function addWalkerMoveActions(clips) {
+  if (!avatarMixer || !clips) return;
+  for (const clip of clips) if (!avatarActions[clip.name]) avatarActions[clip.name] = avatarMixer.clipAction(clip);
+}
+//: Play move ``name`` once (or ``loop``), at ``speed``; faded in over ``fade`` s and back out over
+//: ``out``. Returns {duration} or null where there is no such move.
+function playWalkerMove(name, { fade = 0.12, out = 0.18, speed = 1, loop = false } = {}) {
+  const a = avatarActions[name];
+  if (!a || !avatarMixer) return null;
+  const M = WALKER_MOVES, now = performance.now(), duration = a.getClip().duration / speed;
+  if (M.active && M.active.action !== a) M.active.action.fadeOut(fade);
+  if (!M.active && avatarActiveAction && avatarActiveAction !== a) { M.want = avatarActiveAction; avatarActiveAction.fadeOut(fade); }
+  a.reset(); a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+  a.clampWhenFinished = !loop; a.timeScale = speed; a.setEffectiveWeight(1); a.fadeIn(fade).play();
+  avatarActiveAction = null;
+  M.active = { name, action: a, end: loop ? Infinity : now + duration * 1000, out };
+  return { duration };
+}
+//: The move playing (``name``, or any) let go: faded back to the idle, walk or run.
+function stopWalkerMove(name = null) {
+  const m = WALKER_MOVES.active;
+  if (m && (!name || m.name === name)) m.end = performance.now();
+}
+//: Each frame, before the mixer: a move at its end fades out into what is wanted underneath.
+function walkerMoveStep() {
+  const M = WALKER_MOVES, m = M.active;
+  if (!m || performance.now() < m.end - m.out * 1000) return;
+  m.action.fadeOut(m.out);
+  const base = M.want || avatarActions.Idle || null;
+  M.active = null; M.want = null;
+  if (base && base !== m.action) { base.reset().fadeIn(m.out).play(); avatarActiveAction = base; }
+}
 function setAvatarAction(name) {
+  // (A move playing: what is asked for underneath waits for it.)
+  if (typeof WALKER_MOVES !== "undefined" && WALKER_MOVES.active) {
+    const want = avatarActions[name] || avatarActions.Walk || avatarActions.Run || avatarActions.Idle;
+    if (want && want !== WALKER_MOVES.active.action) WALKER_MOVES.want = want;
+    return;
+  }
   const next = avatarActions[name] || avatarActions.Walk || avatarActions.Run || avatarActions.Idle;
   if (!next || next === avatarActiveAction) return;
   next.reset().fadeIn(0.18).play();
@@ -571,6 +630,7 @@ function loadDemoCharacterAvatar(rig) {
       for (const clip of gltf.animations || []) {
         avatarActions[clip.name] = avatarMixer.clipAction(clip);
       }
+      loadWalkerMoves("soldier");
     }
     rig.userData.demoCharacterLoaded = true;
     if (walkerLook) applyWalkerLook(walkerLook);
@@ -604,8 +664,9 @@ async function showWalkerFigure(look) {
       holder.scale.setScalar(AVATAR_HEIGHT * AVATAR_SCALE / CREATOR_DEFAULT_HEIGHT_M);
       holder.position.y = -AVATAR_RADIUS;
       holder.add(figure.root);
-      walkerFigure = { figure, holder, clips: null };
+      walkerFigure = { figure, holder, clips: null, body: look.avatar?.body };
     } else {
+      walkerFigure.body = look.avatar?.body;
       await walkerFigure.figure.set(look.avatar || {}, { outfitTint: tint });
     }
     if (mine !== walkerFigureTurn) return;
@@ -625,9 +686,10 @@ async function showWalkerFigure(look) {
       avatarMixer?.stopAllAction();
       avatarMixer = new THREE.AnimationMixer(holder);
       avatarActions = Object.fromEntries(figure.animations.map((clip) => [clip.name, avatarMixer.clipAction(clip)]));
-      avatarActiveAction = null;
+      avatarActiveAction = null; WALKER_MOVES.active = null; WALKER_MOVES.want = null;
       setAvatarAction("Idle");
     }
+    loadWalkerMoves();
     holder.traverse((node) => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
     requestFrame();
   } catch (error) {
@@ -643,8 +705,9 @@ async function showWalkerFigure(look) {
     if (back && avatar.userData.soldierClips) {
       avatarMixer = new THREE.AnimationMixer(back);
       avatarActions = Object.fromEntries(avatar.userData.soldierClips.map((clip) => [clip.name, avatarMixer.clipAction(clip)]));
-      avatarActiveAction = null;
+      avatarActiveAction = null; WALKER_MOVES.active = null; WALKER_MOVES.want = null;
       setAvatarAction("Idle");
+      loadWalkerMoves("soldier");
     }
   }
 }

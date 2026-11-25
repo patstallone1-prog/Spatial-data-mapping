@@ -349,6 +349,12 @@ function setAppMode(mode) {
       // The walker's legs for a move the city made (walking over to pick a thing up, a shop's
       // floor): ``distance`` metres the way (dx, dz), at a walk -- 0 stands it still. Without
       // it a walker moved by the city glided along in its standing pose.
+      //: Motion-captured moves (module 22 playWalkerMove): play one, let it go, whether there is
+      //: one, and where its hand reaches furthest (moves.json: {hand, at_s, ahead_m, up_m}).
+      playMove: (name, options) => (typeof playWalkerMove === "function" ? playWalkerMove(name, options) : null),
+      stopMove: (name) => { if (typeof stopWalkerMove === "function") stopWalkerMove(name); },
+      hasMove: (name) => Boolean(typeof avatarActions !== "undefined" && avatarActions[name] && typeof WALKER_MOVES !== "undefined"),
+      moveReach: (name) => (typeof WALKER_MOVES !== "undefined" && WALKER_MOVES.reach?.targets?.[walkerMovesBody()]?.moves?.[name]?.reach) || null,
       animateWalk: (distance, dx = 0, dz = 0) => {
         const moving = distance > 1e-4 && dx * dx + dz * dz > 1e-9;
         avatar.userData.pace = 0.6; avatar.userData.onStairs = false; avatar.userData.grade = 0;

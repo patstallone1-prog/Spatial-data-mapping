@@ -216,11 +216,27 @@ function frontageWallTriangles(feature,geometry,indices) {
   return [{indices:front,front:true},{indices:other,front:false}].filter(p=>p.indices.length);
 }
 
+//: Kinds of building drawn from what their read walls usually are (MATERIAL_ASSIGNMENTS
+//: .type_priors, from the storefront lab's Opus readings) when nothing was read on them. A
+//: shop's photographed glass is its windows: the matcher fitted to whole walls (facade.m) reads
+//: it as a glass skin, so for these kinds its glass and metal are not believed.
+function typePriorFor(archetype) {
+  return (MATERIAL_ASSIGNMENTS.type_priors || {})[archetype] || null;
+}
+
 function pickMaterial(seed, height, archetype, facade = null, osmId = null, home = false, feature = null) {
   const fit = feature ? frontageFitFor(feature) : null;
+  const shopKind = Boolean(typePriorFor(archetype));
+  if (shopKind && facade && ["glass", "metal"].includes(facade.m)) facade = null;
   const assignment = fit?.appearance?.material && fit.appearance.material !== "unknown"
     ? { class: fit.appearance.material, basis: "reviewed_image_visual_fit" }
     : osmId == null ? null : (MATERIAL_ASSIGNMENTS.assigned || {})[String(osmId)];
+  // The storefront lab's Opus reader saw this building's wall apart from its windows and doors:
+  // its background material is the whole shell's, on every side (smc.exteriors.wall_materials).
+  if (assignment && assignment.basis === "opus_wall_reading") {
+    const read = MATERIALS.find((material) => material.name === PHOTO_CLASS_TO_MATERIAL[assignment.class]);
+    if (read) return { ...read, photoLabel: assignment.class, materialBasis: "opus_read_background" };
+  }
   // A class read off this building's photographs: the matcher's at 0.70 and up, CLIP's where
   // its reading was clear (scripts/build_material_assignments.py decided that).
   if (assignment && assignment.class

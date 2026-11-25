@@ -3296,9 +3296,18 @@ def test_a_facade_matched_from_its_photographs_outranks_the_die() -> None:
     parts.append(re.search(r"const FACADE_MATCH_MIN_CONFIDENCE = [0-9.]+;", js).group(0))
     parts.append(js[js.index("const PHOTO_CLASS_TO_MATERIAL = "):js.index("};", js.index("const PHOTO_CLASS_TO_MATERIAL = ")) + 2])
     parts.append(re.search(r'const DEFAULT_CLADDING = "[a-z_]+";', js).group(0))
-    parts += [_extract(name, js) for name in ("pickMaterial", "random")]
+    parts.append("""const MATERIAL_ASSIGNMENTS = {
+  assigned: { "42": { class: "wood_siding", confidence: 0.4, basis: "opus_wall_reading", colour: "#8a6f52" } },
+  walls: { "43": ["stucco_render", 0.45, "t"] },
+  wall_bases: { t: "business_type_prior_from_opus_reads" },
+  type_priors: { restaurant: { class: "stucco_render", confidence: 0.45, colours: ["#d9d2c3"] } },
+};""")
+    parts += [_extract(name, js) for name in ("typePriorFor", "pickMaterial", "random")]
     parts.append("""
 console.log(JSON.stringify({
+  opusRead: pickMaterial(7, 8, "restaurant", { m: "glass", conf: 2 }, 42).name,
+  restaurantGlass: pickMaterial(7, 8, "restaurant", { m: "glass", conf: 2 }, 43).name,
+  officeGlass: pickMaterial(7, 30, "office", { m: "glass", conf: 2 }).name,
   believed: pickMaterial(7, 12, "residential", { m: "brick", conf: 2 }).name,
   doubted: pickMaterial(7, 12, "residential", { m: "brick", conf: 0.2 }).name === pickMaterial(7, 12, "residential").name,
   unknownRender: pickMaterial(7, 12, "residential", { m: "thatch", conf: 0.9 }).name === pickMaterial(7, 12, "residential").name,
@@ -3315,6 +3324,10 @@ console.log(JSON.stringify({
     assert result["glassOnAHouse"] == "glass", result
     # Nothing read off the building: concrete, not a die's throw.
     assert result["nothingRead"] == "concrete", result
+    # Opus read the wall apart from its windows: that is the shell, whatever the matcher said.
+    assert result["opusRead"] == "wood", result
+    # A restaurant's glass is its windows; it takes its kind's read wall. An office's is a skin.
+    assert result["restaurantGlass"] == "stucco" and result["officeGlass"] == "glass", result
 
 
 # ---- a mapped footway does not pave the roadway ------------------------------------------

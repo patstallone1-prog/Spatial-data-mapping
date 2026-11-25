@@ -68,3 +68,28 @@ every lot the two differed, so the page switched the storefront off.
 Read sign art is drawn at 96 px per metre, and no canvas is larger than 640 px (`OBSERVED_PX_PER_M`,
 `OBSERVED_MAX_PX`). The lab draws at 260 px/m, which would have cost hundreds of MB for 300 boards. Text,
 stripe and motif materials are cached by their look.
+
+## The rest of the building: the read wall's background
+Code: `src/smc/exteriors/wall_materials.py`, run by `scripts/build_material_assignments.py`. Log:
+`data/sf_public_works/opus_wall_materials.json`.
+
+- **What is taken.** Only the walls the reader saw count.
+  - Each wall is split into its shopfront bands and the wall above and around them.
+  - Every window, door, bay and shopfront pane is cut out before anything is counted.
+  - The material covering the most solid area is the building's background. Its colour is the
+    colour of the largest solid piece in that material.
+  - Glass never counts as a background.
+  - A building with two read tenants pools both.
+- **Where it goes.** The material assignments carry it as `basis: opus_wall_reading` (wall code
+  `o`). The page draws it, and its colour, on every side of the shell. It outranks the whole-wall
+  photo matcher and the sampled colour.
+- **Logged every time.** Every rebuild of the assignments rewrites the log from the lab's stored
+  readings. A new Opus run is picked up with no re-reading and no API call.
+- **Shops nobody read.** Restaurants and retail take their kind's prior (`type_priors`): the
+  material their read walls most often are, by solid area, and the colours those walls were read
+  in. Today that is stucco for both, at 69% and 65% of read solid area. The prior is capped at
+  0.45 confidence.
+  - The whole-wall matcher's glass or metal (`facade.m`) is not believed for these kinds, because
+    a shop's photographed glass is its windows.
+  - Before this change, 55 restaurants and shops in the corridor were drawn as glass and 4 as
+    metal. Now there are none of either, except one building whose wall Opus read as metal panel.
