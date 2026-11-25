@@ -32,7 +32,6 @@ import sys
 import time
 from pathlib import Path
 
-import ijson
 import urllib3
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,6 +117,8 @@ def main() -> int:
     kept: dict[str, dict] = {}
     print(f"polygons: {POLYGONS}", flush=True)
     seen = 0
+    import ijson  # only the fetch needs it (uv pip install ijson)
+
     for f in ijson.items(Stream(POLYGONS), "features.item", use_float=True):
         seen += 1
         ring = (f.get("geometry") or {}).get("coordinates", [[]])[0]
