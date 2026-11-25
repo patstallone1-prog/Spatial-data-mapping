@@ -200,6 +200,8 @@ function sidewalkCrossingReplacementSpans(points, width) {
 const CROSSING_DEDUPE_CELL_M = 4.0;
 const CROSSING_DEDUPE_ANGLE_DEG = 12.0;
 const crossingDrawGrid = new Map();
+const crossingTrimStats = { trimmed: 0, dropped: 0 };
+if (typeof window !== "undefined") window.kerbsideCrossingTrims = crossingTrimStats;   // (for checks)
 
 function crossingDrawPose(points) {
   if (!points || points.length < 2) return null;
@@ -246,10 +248,93 @@ function crossingDrawConflict(pose, width) {
   return null;
 }
 
+//: A crossing's painted rectangle on the ground (page x, z), counter-clockwise: ``length`` along its
+//: bearing, ``width`` across.
+function crossingPaintRect(pose, width) {
+  const ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing), vx = -uz, vz = ux;
+  const L = pose.length / 2, W = (width || 3.7) / 2;
+  const r = [[pose.x + ux * L + vx * W, pose.z + uz * L + vz * W], [pose.x - ux * L + vx * W, pose.z - uz * L + vz * W],
+    [pose.x - ux * L - vx * W, pose.z - uz * L - vz * W], [pose.x + ux * L - vx * W, pose.z + uz * L - vz * W]];
+  return crossingRingArea(r) < 0 ? r.reverse() : r;
+}
+function crossingRingArea(ring) {
+  let s = 0;
+  for (let i = 0; i < ring.length; i += 1) { const a = ring[i], b = ring[(i + 1) % ring.length]; s += a[0] * b[1] - b[0] * a[1]; }
+  return s / 2;
+}
+//: The area two counter-clockwise convex rings share (m2).
+function crossingOverlapArea(subject, clip) {
+  let out = subject;
+  for (let i = 0; i < clip.length && out.length; i += 1) {
+    const A = clip[i], B = clip[(i + 1) % clip.length];
+    const inside = (p) => (B[0] - A[0]) * (p[1] - A[1]) - (B[1] - A[1]) * (p[0] - A[0]) >= 0;
+    const cut = (p, q) => {
+      const a1 = B[1] - A[1], b1 = A[0] - B[0], c1 = a1 * A[0] + b1 * A[1];
+      const a2 = q[1] - p[1], b2 = p[0] - q[0], c2 = a2 * p[0] + b2 * p[1], d = a1 * b2 - a2 * b1;
+      return Math.abs(d) < 1e-12 ? q : [(b2 * c1 - b1 * c2) / d, (a1 * c2 - a2 * c1) / d];
+    };
+    const was = out; out = [];
+    for (let j = 0; j < was.length; j += 1) {
+      const P = was[j], Q = was[(j + 1) % was.length];
+      if (inside(Q)) { if (!inside(P)) out.push(cut(P, Q)); out.push(Q); } else if (inside(P)) out.push(cut(P, Q));
+    }
+  }
+  return out.length >= 3 ? Math.abs(crossingRingArea(out)) : 0;
+}
+//: Crossings already drawn whose paint this one's would lie over (2026-11-25: a crossing laid over
+//: another at a corner, or two mapped across one another at a skewed junction, drew their stripes
+//: through each other). Returns the drawn ones it overlaps by more than ``slack`` m2.
+const CROSSING_OVERLAP_SLACK_M2 = 0.15;
+//: A crossing shortened clear of another is not drawn shorter than this (m).
+const CROSSING_MIN_AFTER_TRIM_M = 3.0;
+function crossingOverlaps(pose, width) {
+  const mine = crossingPaintRect(pose, width), hits = [];
+  const reach = Math.ceil((pose.length / 2 + 6) / CROSSING_DEDUPE_CELL_M);
+  const cx = Math.floor(pose.x / CROSSING_DEDUPE_CELL_M), cz = Math.floor(pose.z / CROSSING_DEDUPE_CELL_M);
+  for (let dx = -reach; dx <= reach; dx += 1) for (let dz = -reach; dz <= reach; dz += 1) {
+    for (const other of crossingDrawGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+      if (Math.hypot(other.x - pose.x, other.z - pose.z) > (pose.length + other.length) / 2 + 4) continue;
+      if (crossingOverlapArea(mine, crossingPaintRect(other, other.width)) > CROSSING_OVERLAP_SLACK_M2) hits.push(other);
+    }
+  }
+  return hits;
+}
+//: Shortens ``points`` (lon/lat, changed in place) from whichever end lies in a drawn crossing's
+//: paint until it no longer overlaps one; false when that would leave it too short to draw.
+function trimCrossingClear(points, width) {
+  let pose = crossingDrawPose(points);
+  if (!pose) return false;
+  for (let round = 0; round < 6; round += 1) {
+    const hits = crossingOverlaps(pose, width);
+    if (!hits.length) return true;
+    // The end nearer what it overlaps is the one in it.
+    const other = hits[0], ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing);
+    const fromStart = (other.x - pose.x) * ux + (other.z - pose.z) * uz < 0;
+    const end = fromStart ? 0 : points.length - 1, toward = fromStart ? points.length - 1 : 0;
+    let cut = 0;
+    const whole = pose.length, keep = points[end].slice();
+    for (let t = 0.25; whole - t >= CROSSING_MIN_AFTER_TRIM_M; t += 0.25) {
+      points[end] = lerpLonLat(keep, points[toward], t / whole);
+      const trial = crossingDrawPose(points);
+      if (trial && crossingOverlapArea(crossingPaintRect(trial, width), crossingPaintRect(other, other.width)) <= CROSSING_OVERLAP_SLACK_M2) { cut = t; break; }
+    }
+    if (!cut) { points[end] = keep; return false; }
+    pose = crossingDrawPose(points);
+    if (!pose) return false;
+  }
+  return crossingOverlaps(pose, width).length === 0;
+}
+
 function shouldDrawCrossing(points, width, tag = null) {
-  const pose = crossingDrawPose(points);
+  let pose = crossingDrawPose(points);
   if (!pose) return false;
   if (crossingDrawConflict(pose, width)) return false;
+  // Over another crossing's paint: stopped short of it, or not drawn at all.
+  if (crossingOverlaps(pose, width).length) {
+    if (!trimCrossingClear(points, width)) { crossingTrimStats.dropped += 1; return false; }
+    crossingTrimStats.trimmed += 1;
+    pose = crossingDrawPose(points);
+  }
   if (tag) pose.tag = tag;
   // Its width too: a sign post is kept off the paint (onCrossingGround).
   pose.width = width || 3.7;

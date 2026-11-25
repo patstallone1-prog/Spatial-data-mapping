@@ -170,6 +170,44 @@ console.log(JSON.stringify(out));
     assert all(n[0] != "furniture.street_light" or n[2] != "inferred" for n in nearby)
 
 
+@pytest.mark.skipif(NODE is None or not THREE.exists(), reason="node and tools/unreal/node_modules/three are needed")
+def test_a_tree_drawn_whole_near_you_is_solid_at_its_trunk_only() -> None:
+    """The near tier (module 17 treeNear) draws a tree whole, not instanced: its low limbs and leaves
+    stood as an unseen wall round it (2026-11-25). Only its trunk's foot is solid; leaves walk under."""
+    data = (ROOT / "docs/object-catalogue.json").read_text()
+    script = f"""
+import * as THREE from {json.dumps(THREE.as_uri())};
+import {{createCatalogue, createProximity}} from {json.dumps(MODULE.as_uri())};
+globalThis.performance ??= {{now: () => Date.now()}};
+const root = new THREE.Group();
+// Bark: a trunk 0.3 m across at (0, 0), and a limb out to x = 2.2 at 1.3-1.5 m (head height).
+const trunk = new THREE.CylinderGeometry(.15, .15, 6, 8); trunk.translate(0, 3, 0);
+const limb = new THREE.BoxGeometry(2.2, .2, .2); limb.translate(1.1, 1.4, 0);
+const bark = new THREE.Mesh(new THREE.BufferGeometry().copy(trunk), new THREE.MeshStandardMaterial());
+const parts = [trunk.toNonIndexed(), limb.toNonIndexed()];
+const pos = new Float32Array(parts.reduce((n, g) => n + g.getAttribute("position").array.length, 0));
+let o = 0; for (const g of parts) {{ pos.set(g.getAttribute("position").array, o); o += g.getAttribute("position").array.length; }}
+bark.geometry = new THREE.BufferGeometry(); bark.geometry.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+bark.userData = {{surface: "tree_near"}};
+// Leaves: a wide crown hanging to 1.0 m round the trunk.
+const crown = new THREE.SphereGeometry(2.5, 10, 8); crown.translate(0, 3.4, 0);
+const leaves = new THREE.Mesh(crown, new THREE.MeshStandardMaterial({{alphaTest: .45}}));
+leaves.userData = {{surface: "tree_near"}};
+root.add(bark, leaves);
+root.updateMatrixWorld(true);
+const p = createProximity({{THREE, catalogue: createCatalogue({data}), roots: () => [root]}});
+p.update(0, 0, 0, true);
+const r = .3;
+console.log(JSON.stringify({{trunk: Boolean(p.blocked(0, 0, r)), trunkSide: Boolean(p.blocked(.4, 0, r)),
+  underLimb: Boolean(p.blocked(1.4, 0, r)), underLeaves: Boolean(p.blocked(0, 1.6, r))}}));
+"""
+    out = subprocess.run([NODE, "--input-type=module"], input=script, capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout)
+    assert result["trunk"] and result["trunkSide"], result
+    assert not result["underLimb"] and not result["underLeaves"], result
+
+
 def test_every_wall_class_has_a_cladding_and_every_building_a_wall() -> None:
     cat = catalogue.load()
     walls = json.loads((ROOT / "docs/sf-corridor-materials.json").read_text())

@@ -47,13 +47,15 @@ test("in the open it stays on the view asked for", () => {
   assert.ok(Math.abs(out.shot.distK - 1) < 1e-6);
 });
 
-test("a van between you and the camera: it drifts to see you, no cut, no outline", () => {
+test("a van between you and the camera: it drifts (slowly, subtly) to see you, no cut, no outline", () => {
   const occ = createOccluders();
   occ.set([{ kind: "box", cx: 0, cz: 3.5, hx: 1, hz: 1.2, y0: 0, y1: 2.8, yaw: 0, opacity: 1 }]);
   assert.ok(seen(occ, { dYaw: 0, dPitch: 0, distK: 1, shoulder: 0, lift: 0, focusMix: 0 }) < 0.2);
   const cm = createCameraman();
-  const { out } = run(cm, occ, 90);
-  assert.ok(seen(occ, out.shot) > 0.9, `seen ${seen(occ, out.shot)}`);
+  const { out } = run(cm, occ, 240);
+  // Subtle: it went no further round than the walk's reach.
+  assert.ok(Math.abs(out.shot.dYaw) <= CAMERAMAN.reach.walk + 1e-6, `turned ${out.shot.dYaw}`);
+  assert.ok(seen(occ, out.shot) >= 0.85, `seen ${seen(occ, out.shot)}`);
   assert.equal(cm.stats.cuts, 0);
   assert.equal(out.ghost, false);
 });
@@ -103,11 +105,12 @@ function onlyInFront() {
     { kind: "box", cx: -1.0, cz: 15, hx: 0.1, hz: 15.5, y0: 0, y1: 40, yaw: 0, opacity: 1 }];
 }
 
-test("on foot the smallest clear change is swooped to", () => {
+test("on foot a change too big to drift is faded to, not swept (fewer sweeps)", () => {
   const occ = createOccluders(); occ.set(hiddenBehind());
   const cm = createCameraman();
   run(cm, occ, 120);
-  assert.equal(cm.stats.swoops, 1);
+  assert.equal(cm.stats.swoops, 0);
+  assert.equal(cm.stats.fades, 1);
   assert.ok(Math.abs(Math.abs(cm.current.dYaw) - Math.PI / 2) < 0.6, `turned ${cm.current.dYaw}`);
 });
 
@@ -194,4 +197,28 @@ test("the cameraman's check is cheap", () => {
   run(cm, occ, 60 * 4);
   const ms = (performance.now() - t) / cm.stats.checks;
   assert.ok(ms < 3, `${ms.toFixed(2)} ms a check`);
+});
+
+test("a view set by hand is kept as set: no drift, no cut, no named shot while kept", () => {
+  const occ = createOccluders(); occ.set(hiddenBehind());
+  const cm = createCameraman();
+  // Kept (the page's 5 s after a drag or a zoom): hidden behind a wall, it still does not move.
+  const { out, now } = run(cm, occ, 60 * 4, { kept: true, activity: "talk", focus: { x: 0, y: 1.5, z: -1.2 } });
+  assert.equal(cm.stats.cuts, 0);
+  for (const k of ["dYaw", "dPitch", "shoulder", "lift"]) assert.ok(Math.abs(out.shot[k]) < 1e-9, k);
+  assert.ok(Math.abs(out.shot.distK - 1) < 1e-9);
+  // The outline is still looked after while kept.
+  assert.equal(out.ghost, true);
+  // No longer kept, it looks after the view again.
+  run(cm, occ, 120, {}, now);
+  assert.ok(cm.stats.cuts >= 1);
+});
+
+test("on foot the drift stays near the view asked for", () => {
+  const occ = createOccluders();
+  occ.set([{ kind: "box", cx: 0.6, cz: 3.5, hx: 1.6, hz: 0.4, y0: 0, y1: 2.6, yaw: 0, opacity: 1 }]);
+  const cm = createCameraman();
+  for (let i = 0; i < 6; i += 1) run(cm, occ, 60, {}, i * 1000);
+  assert.ok(Math.abs(cm.goal.dYaw) <= CAMERAMAN.reach.walk + 1e-6);
+  assert.equal(cm.stats.swoops, 0);
 });

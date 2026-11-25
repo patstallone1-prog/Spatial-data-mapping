@@ -983,11 +983,15 @@ def test_every_street_tree_is_instanced_far_and_drawn_in_full_near():
     assert 'function treeVariant(kind, detail = "far")' in js
     assert 'const cardShare = detail === "near" ? 1 : 0.65' in js
     assert "if (i < keep) leaves.push(card); else card.dispose();" in js
-    # No per-tree LOD objects: the measured trees are instances too, faced north as measured.
+    # No per-tree LOD objects: the measured trees are instances too, each turned at random.
     assert "new THREE.LOD();\n        lod.position.set(x,base,z);" not in js
-    assert "tree.profile ? 0 : random(i * 7 + kind.length)" in js
+    assert "dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);" in js
+    # Only the measured top height is used (2026-11-25): the kind's drawing scaled evenly to it, no
+    # measured crown spread and no crown shaped to the lidar's.
+    scale = _extract("treeScale", js)
+    assert "return [up, up];" in scale and "crown_m" not in scale
     near = _extract("treeNearBuild", js)
-    assert "api.shapeCrown(position.array" in near
+    assert "shapeCrown" not in near and "new THREE.Vector3(t.across, t.up, t.across)" in near
     # Near trees share the far kind's materials: cut at walls and swayed the same.
     assert "new THREE.Mesh(geometry, farPart.material)" in near
     assert "mesh.customDepthMaterial = farPart.userData.treeDepth" in near

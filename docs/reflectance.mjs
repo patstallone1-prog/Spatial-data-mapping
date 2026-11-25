@@ -37,6 +37,7 @@ export function opticsFor(catalogue, surface) {
 function surfaceOf(o, material) {
   const s = o.userData?.surface ?? o.parent?.userData?.surface;
   if (!s) return null;
+  if (s === "tree_near" && material?.alphaTest > 0) return "foliage:near";
   return String(s).startsWith("tree:") && material?.alphaTest > 0 ? String(s).replace(/^tree:/, "foliage:") : s;
 }
 

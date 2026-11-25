@@ -56,3 +56,43 @@ test("a sliver left after the trim is not drawn", () => {
 test("every island the page lays goes through the trim", () => {
   assert.match(M16, /\.map\(\(ring\) => \(ring \? islandRingOffRoadway\(ring\) : null\)\)/);
 });
+
+test("a median down the street it divides is kept, cut only out of the junction box", () => {
+  // The street along x (z in [-5, 5]) with a junction box for x < 10; a median 2 m wide down its
+  // middle from x = 4 to x = 60: kept, its nose out of the box (2026-11-25, Fillmore between
+  // Chestnut and Bay: it had been dropped, leaving its crossings' paint unconnected).
+  const withAxis = new Function(`
+    const insideCarriageway = (x, z) => Math.abs(z) <= 5;
+    const insideJunctionBox = (x) => x < 10;
+    const nearestCarriagewaySegment = () => [0, 0, 100, 0];
+    ${pip}
+    ${body}
+    return { islandRingOffRoadway, islandStats };`);
+  const { islandRingOffRoadway, islandStats } = withAxis();
+  const kept = islandRingOffRoadway(box(4, -1, 60, 1));
+  assert.ok(kept, "the median is drawn");
+  assert.equal(islandStats.medians, 1);
+  assert.ok(kept.every(([x]) => x >= 10), "nothing left in the junction box");
+  // Across the street it is no median: still not drawn.
+  assert.equal(islandRingOffRoadway(box(20, -5, 24, 7)), null);
+});
+
+test("an island a crossing lands on keeps the part under the crossing's end", () => {
+  // A refuge on the street's edge (z 3..8, its road part z <= 5) with a crossing coming up x = 10
+  // that ends on it at z = 4 (2026-11-25: Bay and Fillmore's ramps stood on bare road beside a
+  // trimmed refuge).
+  const withCrossing = new Function(`
+    const insideCarriageway = (x, z) => Math.abs(z) <= 5;
+    const insideJunctionBox = () => false;
+    const CROSSING_DEDUPE_CELL_M = 4;
+    const crossingDrawGrid = new Map([["2:-3", [{ x: 10, z: -6, bearing: Math.PI / 2, length: 20, width: 3 }]]]);
+    ${pip}
+    ${body}
+    return { islandRingOffRoadway, islandCrossingLanding };`)();
+  assert.equal(withCrossing.islandCrossingLanding(10, 4), true);
+  assert.equal(withCrossing.islandCrossingLanding(20, 4), false);
+  const kept = withCrossing.islandRingOffRoadway(box(0, 3, 20, 8));
+  assert.ok(kept, "kept");
+  assert.ok(kept.some(([x, z]) => z < 5 && Math.abs(x - 10) < 2), "the landing stays");
+  assert.ok(!kept.some(([x, z]) => z < 5 && Math.abs(x - 10) > 3), "the rest of the road part is cut");
+});

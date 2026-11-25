@@ -253,9 +253,26 @@ const roadwayFilled = fillRoadwayToKerbs();
 //: ISLAND_TRIM_STEP_M and the points on the roadway dropped). Null where less than
 //: ISLAND_TRIM_MIN_M2 is left.
 const ISLAND_TRIM_STEP_M = 0.5, ISLAND_TRIM_MIN_M2 = 1.0, ISLAND_ROAD_MAX = 0.35;
-const islandStats = { kept: 0, trimmed: 0, dropped: 0 };
+const islandStats = { kept: 0, trimmed: 0, dropped: 0, medians: 0 };
+//: Where a drawn crossing ends on an island, the island is kept under it: its ramps' yellow paint
+//: stood on the bare road beside a refuge trimmed back out of the junction box (2026-11-25, Bay and
+//: Fillmore). Within ISLAND_LANDING_M of a crossing's end and its half-width across.
+const ISLAND_LANDING_M = 2.0;
+function islandCrossingLanding(x, z) {
+  if (typeof crossingDrawGrid === "undefined") return false;
+  const cell = typeof CROSSING_DEDUPE_CELL_M === "number" ? CROSSING_DEDUPE_CELL_M : 4;
+  const cx = Math.floor(x / cell), cz = Math.floor(z / cell), reach = Math.ceil(30 / cell);
+  for (let dx = -reach; dx <= reach; dx += 1) for (let dz = -reach; dz <= reach; dz += 1) {
+    for (const p of crossingDrawGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+      const ux = Math.cos(p.bearing), uz = Math.sin(p.bearing), half = (p.length || 0) / 2;
+      const a = (x - p.x) * ux + (z - p.z) * uz, c = Math.abs(-(x - p.x) * uz + (z - p.z) * ux);
+      if (c <= (p.width || 3.7) / 2 + 0.5 && Math.abs(Math.abs(a) - half) <= ISLAND_LANDING_M) return true;
+    }
+  }
+  return false;
+}
 function islandRingOffRoadway(ring) {
-  const onRoad = (x, z) => insideCarriageway(x, z, 0) || insideJunctionBox(x, z);
+  const onRoad = (x, z) => (insideCarriageway(x, z, 0) || insideJunctionBox(x, z)) && !islandCrossingLanding(x, z);
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
   for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
   let inside = 0, road = 0;
@@ -265,21 +282,53 @@ function islandRingOffRoadway(ring) {
     if (onRoad(x, z)) road += 1;
   }
   if (!road) { islandStats.kept += 1; return ring; }
+  // A median: long and narrow down the street it divides. The page's carriageway is laid from the
+  // street's centre line and covers it, but it is the street's own island, its sections either
+  // side of each crossing one line of kerb (2026-11-25: Fillmore's, between Chestnut and Bay, was
+  // dropped and left only its crossings' yellow paint and a trimmed piece, unconnected). It is
+  // cut back out of the junction box only, where cars turn across it.
+  const along = islandMedianAxis(ring);
+  if (along) return islandOutOf(ring, (x, z) => insideJunctionBox(x, z) && !islandCrossingLanding(x, z), "medians");
   if (road > inside * ISLAND_ROAD_MAX) { islandStats.dropped += 1; return null; }
+  return islandOutOf(ring, onRoad, "trimmed");
+}
+//: Whether ``ring`` is a median: lying along the carriageway nearest its middle, between
+//: ISLAND_MEDIAN_WIDTH_M wide and at least ISLAND_MEDIAN_LONG times as long as it is wide.
+const ISLAND_MEDIAN_WIDTH_M = [0.9, 4.5], ISLAND_MEDIAN_LONG = 3;
+function islandMedianAxis(ring) {
+  if (typeof nearestCarriagewaySegment !== "function") return null;
+  let cx = 0, cz = 0;
+  for (const [x, z] of ring) { cx += x; cz += z; }
+  cx /= ring.length; cz /= ring.length;
+  const seg = nearestCarriagewaySegment(cx, cz);
+  if (!seg) return null;
+  const len = Math.hypot(seg[2] - seg[0], seg[3] - seg[1]) || 1, ux = (seg[2] - seg[0]) / len, uz = (seg[3] - seg[1]) / len;
+  let a0 = Infinity, a1 = -Infinity, c0 = Infinity, c1 = -Infinity;
+  for (const [x, z] of ring) {
+    const a = (x - cx) * ux + (z - cz) * uz, c = -(x - cx) * uz + (z - cz) * ux;
+    a0 = Math.min(a0, a); a1 = Math.max(a1, a); c0 = Math.min(c0, c); c1 = Math.max(c1, c);
+  }
+  const L = a1 - a0, W = c1 - c0;
+  return W >= ISLAND_MEDIAN_WIDTH_M[0] && W <= ISLAND_MEDIAN_WIDTH_M[1] && L >= ISLAND_MEDIAN_LONG * W ? { ux, uz, L, W } : null;
+}
+//: ``ring`` with what lies where ``out(x, z)`` cut away (densified, then the points kept), or null
+//: for a sliver; counted under ``stat`` when anything was cut.
+function islandOutOf(ring, out, stat) {
   const dense = [];
   for (let i = 0; i < ring.length; i += 1) {
     const [ax, az] = ring[i], [bx, bz] = ring[(i + 1) % ring.length];
     const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / ISLAND_TRIM_STEP_M));
     for (let k = 0; k < n; k += 1) dense.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]);
   }
-  const kept = dense.filter(([x, z]) => !onRoad(x, z));
+  const kept = dense.filter(([x, z]) => !out(x, z));
+  if (kept.length === dense.length) { islandStats[stat === "medians" ? "medians" : "kept"] += 1; return ring; }
   let area = 0;
   for (let i = 0; i < kept.length; i += 1) {
     const [ax, az] = kept[i], [bx, bz] = kept[(i + 1) % kept.length];
     area += ax * bz - bx * az;
   }
   if (kept.length < 3 || Math.abs(area) / 2 < ISLAND_TRIM_MIN_M2) { islandStats.dropped += 1; return null; }
-  islandStats.trimmed += 1;
+  islandStats[stat] += 1;
   return kept;
 }
 function addClosedOfficialIslandSurfaces() {

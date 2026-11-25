@@ -1454,8 +1454,8 @@ const groundReady = (async () => {
       prototypeRadius=Math.max(prototypeRadius,Math.hypot(Math.max(Math.abs(b.min.x),Math.abs(b.max.x)),Math.max(Math.abs(b.min.z),Math.abs(b.max.z))));
       prototypeHeight=Math.max(prototypeHeight,b.max.y);}
     // Every tree of the kind is an instance of it here (the far tier): its bark, big limbs and
-    // leaf cards, at its measured height and spread. Round you the near tier (treeNear) draws
-    // it in full, its crown shaped to the lidar's, in place of the instance.
+    // leaf cards, scaled to its measured top. Round you the near tier (treeNear) draws it in
+    // full, the same drawing with every leaf card, in place of the instance.
     if (!HEADSET) treeNearProtos.set(kind, proto);
     const instances = list;
     const scales=instances.map(tree=>treeScale(tree,kind,prototypeHeight,prototypeRadius));
@@ -1483,8 +1483,8 @@ const groundReady = (async () => {
         // At zero here: liftOntoGround(groups.ground) puts every instance on the hill once.
         // Adding the ground here as well stood every tree twice as high as the hill it was on.
         dummy.position.y = part.position.y * up;
-        // (A tree with a measured crown faces north, as the crown it is shaped to does.)
-        dummy.rotation.set(0, tree.profile ? 0 : random(i * 7 + kind.length) * Math.PI * 2, 0);
+        // Turned at random: no tree is shaped to a measured crown now (treeScale).
+        dummy.rotation.set(0, random(i * 7 + kind.length) * Math.PI * 2, 0);
         dummy.updateMatrix();
         if(clipping[i]){
           dummy.position.y+=groundLiftAt(x,-y);dummy.updateMatrix();

@@ -254,18 +254,17 @@ function treeVariant(kind, detail = "far") {
   foliageMotion?.apply(leafMesh.material, "leaves");
   return group;
 }
-//: A tree's size: what the lidar measured where it measured one (its height and its crown,
-//: tools/plant_lidar_trees.py), else the trunk the city measured -- roughly a foot of tree per
-//: inch of diameter, capped where the prototype stops looking like the kind. A measured tree is
-//: scaled to its own height and spread, within the kind's believable proportions; the trunk
-//: rule capped every lidar tree at nine metres, a quarter of the tallest the city has.
+//: A tree's size. Only the height the lidar measured to the tree's top point is used (the user,
+//: 2026-11-25: the measured crowns and their shapes are let go): the kind's own drawing -- trunk,
+//: limbs and crown in its own proportions -- is scaled evenly so its top is at that height. A tree
+//: with no measured height takes its size from the trunk the city measured, roughly a foot of tree
+//: per inch of diameter, capped where the prototype stops looking like the kind.
 function treeScale(tree, kind, protoHeight, protoRadius) {
   const maxScale = kind === "palm" ? 5.6 : kind === "columnar" ? 6.2 : kind === "conifer" ? 7.0 : 7.4;
-  const byTrunk = Math.max(2.2, Math.min(maxScale, tree.d * 0.34));
+  const byTrunk = Math.max(2.2, Math.min(maxScale, (tree.d || 12) * 0.34));
   if (!(tree.h > 0) || !(protoHeight > 0)) return [byTrunk, byTrunk];
   const up = Math.min(60, tree.h) / protoHeight;
-  const across = tree.crown_m > 0 && protoRadius > 0 ? (tree.crown_m / 2) / protoRadius : up;
-  return [Math.max(up * 0.45, Math.min(up * 1.6, across)), up];
+  return [up, up];
 }
 
 // ---- a tree's opening, one of the walk's own squares ----
@@ -434,12 +433,10 @@ function treeNearBuild(t) {
   at[0].getMatrixAt(at[1], m);
   m.premultiply(T.rel.get(at[0]));
   const ground = m.elements[13] - far.children[0].position.y * t.up;
-  const api = T.survey?.api, profile = Boolean(t.tree.profile && api?.shapeCrown);
-  if (profile && !T.envelopes.has(t.kind))
-    T.envelopes.set(t.kind, api.crownEnvelope(near.children[1].geometry.getAttribute("position").array));
+  // The kind's own drawing, scaled as its instance is (treeScale: to the measured top only).
   const place = new THREE.Matrix4().compose(new THREE.Vector3(t.x, ground, t.z),
     new THREE.Quaternion().setFromAxisAngle(TREE_NEAR_UP, t.yaw),
-    profile ? new THREE.Vector3(1, 1, 1) : new THREE.Vector3(t.across, t.up, t.across));
+    new THREE.Vector3(t.across, t.up, t.across));
   const group = new THREE.Group();
   group.userData.treeNear = t.tree.id || t.key;
   near.children.forEach((part, n) => {
@@ -447,9 +444,6 @@ function treeNearBuild(t) {
     if (!farPart) return;
     const geometry = part.geometry.clone();
     const position = geometry.getAttribute("position");
-    // Metres from its foot: its measured crown, the trunk at its measured girth.
-    if (profile) api.shapeCrown(position.array, T.envelopes.get(t.kind), t.tree.profile,
-      Math.max(0.5, (t.tree.d || 12) * 0.0254 / 0.156));
     if (part.position.y) geometry.translate(0, part.position.y, 0);
     geometry.applyMatrix4(place);
     if (n === 1 && vegetationLibrary?.foliageNormals) vegetationLibrary.foliageNormals(position.array, geometry.getAttribute("normal").array);
@@ -459,7 +453,7 @@ function treeNearBuild(t) {
     for (let k = 0; k < at.length; k += 2) if (at[k].material === farPart.material) {
       mesh.castShadow = at[k].castShadow; mesh.receiveShadow = at[k].receiveShadow; break; }
     mesh.userData = { surface: "tree_near", liftedOntoGround: true, treeId: t.tree.id || null,
-      basis: profile ? "measured crown (USGS 3DEP 2023 lidar), modeled branches" : "mapped (city tree inventory)" };
+      basis: t.tree.h > 0 ? "measured top height (USGS 3DEP 2023 lidar), kind's drawing" : "mapped (city tree inventory)" };
     mesh.matrixAutoUpdate = false;
     group.add(mesh);
   });

@@ -42,8 +42,11 @@ def test_separate_parallel_and_perpendicular_crosswalks_are_not_duplicates():
     js = _page_js()
     result = run("\n".join([
         "const CROSSING_DEDUPE_CELL_M=4,CROSSING_DEDUPE_ANGLE_DEG=12,crossingDrawGrid=new Map();",
+        "const crossingTrimStats={trimmed:0,dropped:0},CROSSING_OVERLAP_SLACK_M2=0.15,CROSSING_MIN_AFTER_TRIM_M=3.0;",
         "function xy(x,y){return [x,y];}",
-        *[_extract(n, js) for n in ("crossingDrawPose", "crossingBearingDifference", "crossingDrawConflict", "shouldDrawCrossing")],
+        *[_extract(n, js) for n in ("crossingDrawPose", "crossingBearingDifference", "crossingDrawConflict",
+                                    "lerpLonLat", "crossingPaintRect", "crossingRingArea", "crossingOverlapArea",
+                                    "crossingOverlaps", "trimCrossingClear", "shouldDrawCrossing")],
         "console.log(JSON.stringify([shouldDrawCrossing([[-10,0],[10,0]],3.7),",
         "shouldDrawCrossing([[10,0],[-10,0]],3.7),",
         "shouldDrawCrossing([[-10,4],[10,4]],3.7),",
