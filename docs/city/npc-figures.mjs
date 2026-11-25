@@ -96,8 +96,17 @@ const PHONE_CASES = ["#1b1b1e", "#1b1b1e", "#1b1b1e", "#2a2d33", "#e8e6e1", "#3b
 //: The ways of walking. WalkPockets is with the hands in the front pockets (only for someone
 //: whose legs have pockets: NO_POCKETS).
 export const WALKS = ["Walk", "WalkBrisk", "WalkEasy", "WalkSway", "WalkPockets"];
-//: The clips played once rather than round and round (work's reach to a counter).
-const ONCE = /:reach$/;
+//: Motion-captured moves (Quaternius's Universal Animation Library, CC0, retargeted onto these
+//: same skeletons by tools/avatars/build_moves.py; docs/city/models/moves) baked for the crowd:
+//: what a person near you does that the three clips of the file cannot show -- hit, knocked
+//: back, down, talking, waving one down, crouched, arms folded, a hand to something, a shove,
+//: fists up, sitting. Without them a person doing any of these was swapped for the jointed
+//: figure, which has no knees or elbows (docs/71-animation-catalogue.md).
+export const CROWD_MOVES = ["HitChest", "HitHead", "Knockback", "Fall", "Talk", "Call", "Crouch", "FoldArms", "Interact", "Push", "PunchGuard", "Sit", "No"];
+//: Of those, the ones played once and held at their end (a blow, a fall, fists coming up).
+const ONCE_MOVES = new Set(["HitChest", "HitHead", "Knockback", "Fall", "Call", "Interact", "PunchGuard"]);
+//: The clips played once rather than round and round (work's reach to a counter; the moves above).
+const ONCE = new RegExp(`:reach$|^Move:(${[...ONCE_MOVES].join("|")})$`);
 //: A kitchen counter's top above the floor (metres): kitchen-3d.mjs's COUNTER_Y.
 export const COUNTER_TOP = 0.92;
 
@@ -245,9 +254,11 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   //: frames and length. Made here from the three the file has (Idle, Walk, Run): the ways of
   //: walking (WALKS), the cyclist, and the phone held to the ear, up to film, or read -- and
   //: taken out of a pocket into each.
-  function bake(gltf, skeleton, hand) {
+  function bake(gltf, skeleton, hand, moves = null) {
     const t0 = performance.now();
     const root = gltf.scene, mixer = new THREE.AnimationMixer(root);
+    // (The moves' clips bind to this skeleton by its bones' names: the same rig they were made on.)
+    const moveClip = (name) => moves?.animations?.find((a) => a.name === name) || null;
     const clipOf = (n) => gltf.animations.find((a) => a.name === n) || gltf.animations.find((a) => a.name.toLowerCase().includes(n.toLowerCase()));
     const src = { Idle: clipOf("Idle"), Walk: clipOf("Walk"), Run: clipOf("Run") };
     const nb = skeleton.bones.length, width = nb * 3;
@@ -473,6 +484,13 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
         { name: "Idle:pour", frames: n(1), duration: 1, pose: (t) => { poseIdle(t); const u = Math.sin((t / 1) * Math.PI * 2) * 0.015; arms(W3(0.09, T + 0.24 + u, 0.42), W3(-0.09, T + 0.26 + u, 0.4), 0.08); } },
       );
     }
+    // ---- the moves: sampled as they were captured (in place, like every clip here).
+    for (const name of CROWD_MOVES) {
+      const clip = moveClip(name);
+      if (!clip) continue;
+      jobs.push({ name: `Move:${name}`, frames: n(clip.duration), duration: clip.duration,
+        pose: (t) => { mixer.stopAllAction(); const a = mixer.clipAction(clip); a.reset().play(); mixer.setTime(Math.min(t, clip.duration - 1e-3)); update(); } });
+    }
     for (const kind of Object.keys(PH)) {
       jobs.push({ name: `Idle:${kind}`, frames: n(idleD), duration: idleD, pose: (t) => { poseIdle(t); phone(kind, 1); } });
       jobs.push({ name: `Walk:${kind}`, frames: n(walkD), duration: walkD, pose: (t) => { poseWalk("Walk", t); phone(kind, 1); } });
@@ -694,7 +712,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const skeleton = bodyMesh.skeleton;
     const boneAt = new Map(skeleton.bones.map((b, i) => [b.name, i]));
     const hand = handFrame(skeleton);
-    const { texture, table, hands } = bake(gltf, skeleton, hand);
+    // (The moves for this body, where they are published: docs/city/models/moves.)
+    const moves = await loadModel(asset(`city/models/moves/${sex}.glb`)).catch(() => null);
+    const { texture, table, hands } = bake(gltf, skeleton, hand, moves);
     const [young, old] = await Promise.all(spec.skins.map((f) => tex(f)));
     const skinMean = meanOf(young);
     const parts = [];
@@ -825,7 +845,13 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
         a.workKey = q.workKey;
       } else want = null;
     }
-    if (want) { /* at work */ }
+    // A move (CROWD_MOVES) asked of them: started again for each new ask (``moveKey``).
+    if (!want && q.move && table[`Move:${q.move}`]) {
+      want = `Move:${q.move}`;
+      if (want === a.clip && q.moveKey !== a.moveKey && ONCE.test(want)) { a.prev = a.clip; a.pt = a.t; a.t = 0; a.fade = 0; }
+      a.moveKey = q.moveKey;
+    }
+    if (want) { /* at work, or a move */ }
     else if (q.ride) want = "Cycle";
     else if (running) want = "Run";
     else if (a.phone && a.pull < 1) want = `${gait}:pull-${a.phone}`;
@@ -943,6 +969,8 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
   return {
     draw, start,
     has: (id) => S.drawn.has(id) || S.drawnPrev.has(id),
+    //: Whether every body can show move ``name`` (CROWD_MOVES, baked when the moves loaded).
+    canMove: (name) => { const b = Object.values(S.bodies); return b.length > 0 && b.every((x) => x.table[`Move:${name}`]); },
     get ready() { return S.ready; }, get failed() { return S.failed; },
     //: Where someone is in their clips (for checks: the clip, the phone and how far out).
     //: Where ``id``'s hands are as last drawn, in their own frame (metres, facing +z, the floor at

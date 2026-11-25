@@ -1555,6 +1555,7 @@ function animateAvatar(distance, direction, moving) {
 }
 function updateAvatarMixer(dt) {
   if (avatarMixer) {
+    if (typeof walkerMoveStep === "function") walkerMoveStep();
     avatarMixer.update(dt);
     const model=avatar.getObjectByName("imported-realistic-demo-character");
     if(model)model.rotation.x=avatar.userData.lastMoving

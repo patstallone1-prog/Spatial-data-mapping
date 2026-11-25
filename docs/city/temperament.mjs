@@ -94,6 +94,13 @@ export const REACT = {
 export function reactionTo(t, event, dist, who = "") {
   if (dist > REACT.notice_m) return "carry_on";
   const roll = unit(who, event.id ?? "", "react"), near = 1 - dist / REACT.notice_m;
+  // An arrest in the street: the police are there already, so nobody calls or steps in; most
+  // stop and look, the less careful film it, the most nervous keep walking a little faster.
+  if (event.kind === "arrest") {
+    if ((1 - t.nerve) * 0.5 > 0.3 + roll * 0.3) return "flee";
+    if (t.care < 0.6 && roll < 0.45) return "film";
+    return roll < 0.55 + near * 0.4 ? "watch" : "carry_on";
+  }
   const fight = event.kind === "fight";
   // Fear first: a fight frightens more than a crash, and the nearer the more.
   const fear = (1 - t.nerve) * (fight ? 1 : 0.6) * (0.55 + 0.45 * near);
