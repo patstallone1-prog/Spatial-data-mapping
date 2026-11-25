@@ -43,8 +43,15 @@ def test_only_confident_nonglass_assignments_are_served():
             assert row.get("colour"), "a row is a class, a colour, or both"
             continue
         assert row["class"] in assignments.SUPPORTED
+        if row["basis"] == "opus_wall_reading":
+            # The lab's reading of the wall apart from its windows: served at its own confidence,
+            # whatever the whole-wall matcher made of the glass.
+            assert 0 < row["confidence"] <= 1
+            continue
         # The matcher's labels at its threshold; CLIP's only where its own reading was clear.
         assert row["confidence"] >= (0.45 if row["basis"] == "image_clip_zero_shot"
                                      else assignments.MIN_CONFIDENCE)
         facade = ways[osm_id].get("facade") or {}
-        assert not (facade.get("m") in {"glass", "metal"} and facade.get("conf", 0) >= 0.6)
+        # A shop's glass is its windows, so a shop's reading is not dropped for it.
+        if ways[osm_id].get("archetype") not in assignments.TYPE_PRIOR_KINDS:
+            assert not (facade.get("m") in {"glass", "metal"} and facade.get("conf", 0) >= 0.6)

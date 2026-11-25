@@ -11,22 +11,34 @@ Two readings of the same photographs feed this:
 
 Where both read a building, CLIP's wider vocabulary wins. A building the photographs give a
 colour gets it here too (``colour``): the page uses it where the payload has no sampled colour.
+
+A third reading outranks both: the storefront lab's Opus reader (smc.exteriors.wall_materials).
+It read the wall itself apart from its windows and doors, so its background material and
+colour stand for the whole shell, every side of it. Every building it read is logged to
+``opus_wall_materials.json``. Restaurants and shops nobody read take the material their kind's
+read walls most often are, never the glass or metal the whole-wall matcher reads off shop windows.
 """
 
 from __future__ import annotations
 
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from smc.exteriors.wall_materials import TYPE_PRIOR_KINDS, build_log, type_priors  # noqa: E402
+
 LABELS = ROOT / "data/sf_public_works/material_labels.json"
 PHOTO = ROOT / "data/sf_public_works/facade_photo_materials.json"
 MODEL = ROOT / "docs/sf-corridor-3d.json"
 OUT = ROOT / "docs/sf-corridor-materials.json"
+OPUS_LOG = ROOT / "data/sf_public_works/opus_wall_materials.json"
 MIN_CONFIDENCE = 0.70
 #: How the wall material was arrived at, by code; ``walls`` rows are [class, confidence, code].
-WALL_BASES = {"p": "photographed_texture", "s": "untextured_photo_smooth_render", "a": "archetype_prior"}
+WALL_BASES = {"p": "photographed_texture", "s": "untextured_photo_smooth_render", "a": "archetype_prior",
+              "o": "opus_read_background", "t": "business_type_prior_from_opus_reads"}
 SMOOTH_WALL = "stucco_render"
 SMOOTH_CONFIDENCE = 0.5
 #: Kinds of building whose untextured walls are taken as render; an office tower's are not.
@@ -59,8 +71,9 @@ def build() -> dict:
             if label in SUPPORTED and float(conf) >= MIN_CONFIDENCE:
                 material, confidence, basis = label, float(conf), "image_inferred_not_material_truth"
         facade = way.get("facade") or {}
+        # A shop's photographed glass is its windows; the matcher fitted to whole walls says glass.
         if material and facade.get("m") in {"glass", "metal"} and facade.get("conf", 0) >= 0.6 \
-                and material != "metal_panel":
+                and material != "metal_panel" and way.get("archetype") not in TYPE_PRIOR_KINDS:
             skipped["glass_or_metal_conflict"] += 1
             material = None
         row = {}
@@ -73,21 +86,31 @@ def build() -> dict:
             row["colour"] = reading["colour"]
         if row:
             assigned[osm_id] = row
-    walls = wall_materials(ways, assigned, photo, labels)
-    payload = {"schema": "kerbside.material_assignments/3",
+    log = build_log(ROOT)
+    OPUS_LOG.write_text(json.dumps(log, indent=1, sort_keys=True) + "\n")
+    opus = 0
+    for osm_id, b in log["buildings"].items():
+        if osm_id in ways and b["class"] in SUPPORTED:
+            assigned[osm_id] = {"class": b["class"], "confidence": b["confidence"], "basis": "opus_wall_reading",
+                                **({"colour": b["colour"]} if b.get("colour") else {})}
+            opus += 1
+    sources["opus_wall_reading"] = opus
+    priors = type_priors(log)
+    walls = wall_materials(ways, assigned, photo, labels, priors)
+    payload = {"schema": "kerbside.material_assignments/4",
                "source": [str(LABELS.relative_to(ROOT)), str(PHOTO.relative_to(ROOT))],
                "min_confidence": MIN_CONFIDENCE,
                "assigned": assigned,
                "counts": dict(Counter(v["class"] for v in assigned.values() if "class" in v)),
                "colours": sum(1 for v in assigned.values() if "colour" in v),
                "sources": dict(sources), "skipped": dict(skipped),
-               "wall_bases": WALL_BASES, "walls": walls,
+               "wall_bases": WALL_BASES, "walls": walls, "type_priors": priors,
                "wall_counts": dict(Counter(f"{c}:{WALL_BASES[b]}" for c, _, b in walls.values()))}
     OUT.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
     return payload
 
 
-def wall_materials(ways: dict, assigned: dict, photo: dict, labels: dict) -> dict:
+def wall_materials(ways: dict, assigned: dict, photo: dict, labels: dict, priors: dict | None = None) -> dict:
     """[class, confidence, basis code] for every building."""
     read: dict[str, Counter] = {}
     for osm_id, row in assigned.items():
@@ -99,10 +122,12 @@ def wall_materials(ways: dict, assigned: dict, photo: dict, labels: dict) -> dic
         row = assigned.get(osm_id, {})
         kind = way.get("archetype") or "generic"
         if "class" in row:
-            walls[osm_id] = [row["class"], row["confidence"], "p"]
+            walls[osm_id] = [row["class"], row["confidence"], "o" if row["basis"] == "opus_wall_reading" else "p"]
         elif kind in SMOOTH_ARCHETYPES and (osm_id in photo or osm_id in labels):
             agrees = (photo.get(osm_id) or {}).get("top") == SMOOTH_WALL
             walls[osm_id] = [SMOOTH_WALL, SMOOTH_CONFIDENCE + (0.1 if agrees else 0.0), "s"]
+        elif kind in (priors or {}):
+            walls[osm_id] = [priors[kind]["class"], priors[kind]["confidence"], "t"]
         else:
             counts = read.get(kind) if sum((read.get(kind) or Counter()).values()) >= 20 else everyone
             cls, n = counts.most_common(1)[0]

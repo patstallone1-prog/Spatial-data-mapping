@@ -1,0 +1,2293 @@
+{
+ "buildings": {
+  "-9600044900": {
+   "by_class": {
+    "stucco_render": 61.1
+   },
+   "class": "stucco_render",
+   "colour": "#c8c1b4",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "twisted-st-cafe:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 61.1
+  },
+  "197423595": {
+   "by_class": {
+    "stucco_render": 141.9
+   },
+   "class": "stucco_render",
+   "colour": "#e6e3dc",
+   "confidence": 0.35,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "sabrosa:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 141.9
+  },
+  "197423597": {
+   "by_class": {
+    "stucco_render": 210.0
+   },
+   "class": "stucco_render",
+   "colour": "#b98a5e",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "walgreens-6625:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 210.0
+  },
+  "224143251": {
+   "by_class": {
+    "stucco_render": 103.5
+   },
+   "class": "stucco_render",
+   "colour": "#dcc57e",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "pizzeria-avellino:13"
+   ],
+   "share": 1.0,
+   "solid_m2": 103.5
+  },
+  "224143252": {
+   "by_class": {
+    "stucco_render": 8.6,
+    "wood_siding": 142.7
+   },
+   "class": "wood_siding",
+   "colour": "#cbc2ab",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "cote-ouest-bistro:0",
+    "cote-ouest-bistro:1"
+   ],
+   "share": 0.943,
+   "solid_m2": 151.3
+  },
+  "225193465": {
+   "by_class": {
+    "stucco_render": 185.4
+   },
+   "class": "stucco_render",
+   "colour": "#dba58b",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "manjro-hospitality:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 185.4
+  },
+  "225193477": {
+   "by_class": {
+    "metal_panel": 75.7,
+    "stucco_render": 36.0
+   },
+   "class": "metal_panel",
+   "colour": "#f2f2f0",
+   "confidence": 0.305,
+   "kind": "retail",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "76:1",
+    "76:2"
+   ],
+   "share": 0.678,
+   "solid_m2": 111.6
+  },
+  "243511887": {
+   "by_class": {
+    "stucco_render": 42.6
+   },
+   "class": "stucco_render",
+   "colour": "#c9bb98",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "franklin-market:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 42.6
+  },
+  "243512088": {
+   "by_class": {
+    "stucco_render": 254.2,
+    "wood_siding": 188.1
+   },
+   "class": "stucco_render",
+   "colour": "#a99c95",
+   "confidence": 0.316,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "san-francisco-e-bike-rentals:0",
+    "san-francisco-e-bike-rentals:3"
+   ],
+   "share": 0.575,
+   "solid_m2": 442.3
+  },
+  "243560510": {
+   "by_class": {
+    "stucco_render": 40.1
+   },
+   "class": "stucco_render",
+   "colour": "#d6b88e",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "torraku-ramen:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 40.1
+  },
+  "243577293": {
+   "by_class": {
+    "stucco_render": 86.0
+   },
+   "class": "stucco_render",
+   "colour": "#e9e5da",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "king-sauna:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 86.0
+  },
+  "243595463": {
+   "by_class": {
+    "stucco_render": 45.9,
+    "wood_siding": 9.7
+   },
+   "class": "stucco_render",
+   "colour": "#76735e",
+   "confidence": 0.496,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "chicos-pizza:4"
+   ],
+   "share": 0.826,
+   "solid_m2": 55.6
+  },
+  "243595783": {
+   "by_class": {
+    "ceramic_tile": 37.6,
+    "stucco_render": 61.4,
+    "wood_siding": 163.5
+   },
+   "class": "wood_siding",
+   "colour": "#d9c2ae",
+   "confidence": 0.389,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "cafe-l:1",
+    "cafe-l:10",
+    "cafe-l:3"
+   ],
+   "share": 0.623,
+   "solid_m2": 262.5
+  },
+  "243596363": {
+   "by_class": {
+    "stucco_render": 96.5
+   },
+   "class": "stucco_render",
+   "colour": "#b8bbbf",
+   "confidence": 0.42,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "maker-moss:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 96.5
+  },
+  "243601756": {
+   "by_class": {
+    "stucco_render": 331.5
+   },
+   "class": "stucco_render",
+   "colour": "#bcb8a6",
+   "confidence": 0.535,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fog-city-doggy-day-care:0",
+    "fog-city-doggy-day-care:7"
+   ],
+   "share": 1.0,
+   "solid_m2": 331.5
+  },
+  "252794026": {
+   "by_class": {
+    "wood_siding": 317.7
+   },
+   "class": "wood_siding",
+   "colour": "#a9b3a8",
+   "confidence": 0.483,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "sherman-market:3",
+    "sherman-market:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 317.7
+  },
+  "258636630": {
+   "by_class": {
+    "stucco_render": 306.4,
+    "wood_siding": 6.6
+   },
+   "class": "stucco_render",
+   "colour": "#c6d0c8",
+   "confidence": 0.457,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "rutily-s-market-and-deli:1",
+    "rutily-s-market-and-deli:12"
+   ],
+   "share": 0.979,
+   "solid_m2": 313.0
+  },
+  "258683195": {
+   "by_class": {
+    "stucco_render": 201.2
+   },
+   "class": "stucco_render",
+   "colour": "#8e9aa4",
+   "confidence": 0.524,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "1700-lombard-street:0",
+    "1700-lombard-street:4",
+    "1700-lombard-street:7"
+   ],
+   "share": 1.0,
+   "solid_m2": 201.2
+  },
+  "258683283": {
+   "by_class": {
+    "metal_panel": 107.9
+   },
+   "class": "metal_panel",
+   "colour": "#1f5fc4",
+   "confidence": 0.525,
+   "kind": "retail",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "chevron:1",
+    "chevron:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 107.9
+  },
+  "258698163": {
+   "by_class": {
+    "painted_brick": 106.3,
+    "stucco_render": 45.7
+   },
+   "class": "painted_brick",
+   "colour": "#ecebe6",
+   "confidence": 0.406,
+   "kind": "retail",
+   "lab_material": "painted_brick",
+   "read_walls": [
+    "radioshack:0",
+    "radioshack:1"
+   ],
+   "share": 0.7,
+   "solid_m2": 152.0
+  },
+  "258698166": {
+   "by_class": {
+    "wood_siding": 144.4
+   },
+   "class": "wood_siding",
+   "colour": "#c9a47c",
+   "confidence": 0.513,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "ly-s-vietnamese-cuisine:0",
+    "ly-s-vietnamese-cuisine:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 144.4
+  },
+  "258698172": {
+   "by_class": {
+    "wood_siding": 37.3
+   },
+   "class": "wood_siding",
+   "colour": "#c6a98d",
+   "confidence": 0.62,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "the-grateful-dog:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 37.3
+  },
+  "258698173": {
+   "by_class": {
+    "stucco_render": 146.4
+   },
+   "class": "stucco_render",
+   "colour": "#f4f4f2",
+   "confidence": 0.65,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "lombard-street-dry-cleaners:0",
+    "lombard-street-dry-cleaners:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 146.4
+  },
+  "258906929": {
+   "by_class": {
+    "stucco_render": 282.1
+   },
+   "class": "stucco_render",
+   "colour": "#dcbc8c",
+   "confidence": 0.54,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "albertinos:1",
+    "albertinos:6"
+   ],
+   "share": 1.0,
+   "solid_m2": 282.1
+  },
+  "258906960": {
+   "by_class": {
+    "wood_siding": 32.4
+   },
+   "class": "wood_siding",
+   "colour": "#c8cbc8",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "frisco-vapor:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 32.4
+  },
+  "258926286": {
+   "by_class": {
+    "stucco_render": 115.8,
+    "wood_siding": 37.1
+   },
+   "class": "stucco_render",
+   "colour": "#ddd5c6",
+   "confidence": 0.432,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "mama-s-luncheonette:0",
+    "mama-s-luncheonette:2"
+   ],
+   "share": 0.757,
+   "solid_m2": 152.9
+  },
+  "259217880": {
+   "by_class": {
+    "wood_siding": 218.7
+   },
+   "class": "wood_siding",
+   "colour": "#e8e7e1",
+   "confidence": 0.565,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "wilder:0",
+    "wilder:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 218.7
+  },
+  "259220272": {
+   "by_class": {
+    "stucco_render": 264.2,
+    "wood_siding": 120.4
+   },
+   "class": "stucco_render",
+   "colour": "#2a3fb0",
+   "confidence": 0.261,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fawn:6",
+    "fawn:7",
+    "lilikoi:6",
+    "lilikoi:7"
+   ],
+   "share": 0.687,
+   "solid_m2": 384.6
+  },
+  "259220287": {
+   "by_class": {
+    "stucco_render": 7.4,
+    "wood_siding": 277.1
+   },
+   "class": "wood_siding",
+   "colour": "#bab58f",
+   "confidence": 0.458,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "rapha:0",
+    "rapha:7"
+   ],
+   "share": 0.974,
+   "solid_m2": 284.5
+  },
+  "259229860": {
+   "by_class": {
+    "brick": 63.8
+   },
+   "class": "brick",
+   "colour": "#cfba92",
+   "confidence": 0.6,
+   "kind": "retail",
+   "lab_material": "brick",
+   "read_walls": [
+    "real-food-company-cooking-classes:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 63.8
+  },
+  "259229875": {
+   "by_class": {
+    "stucco_render": 226.0
+   },
+   "class": "stucco_render",
+   "colour": "#4d665c",
+   "confidence": 0.54,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "shake-shack:0",
+    "shake-shack:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 226.0
+  },
+  "260117716": {
+   "by_class": {
+    "stucco_render": 432.6
+   },
+   "class": "stucco_render",
+   "colour": "#a09a84",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "notes-from-underground:0",
+    "notes-from-underground:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 432.6
+  },
+  "26135462": {
+   "by_class": {
+    "stucco_render": 41.6
+   },
+   "class": "stucco_render",
+   "colour": "#eeeeea",
+   "confidence": 0.6,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "mel-s-drive-in:8"
+   ],
+   "share": 1.0,
+   "solid_m2": 41.6
+  },
+  "261541815": {
+   "by_class": {
+    "concrete": 41.6,
+    "wood_siding": 15.7
+   },
+   "class": "concrete",
+   "colour": "#8a8d90",
+   "confidence": 0.399,
+   "kind": "restaurant",
+   "lab_material": "concrete",
+   "read_walls": [
+    "original-buffalo-wings:0",
+    "original-buffalo-wings:2"
+   ],
+   "share": 0.726,
+   "solid_m2": 57.3
+  },
+  "261546079": {
+   "by_class": {
+    "stucco_render": 344.7
+   },
+   "class": "stucco_render",
+   "colour": "#e9e8e3",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "smooth_render",
+   "read_walls": [
+    "vela:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 344.7
+  },
+  "261552619": {
+   "by_class": {
+    "stucco_render": 99.3,
+    "wood_siding": 177.7
+   },
+   "class": "wood_siding",
+   "colour": "#8f7e6e",
+   "confidence": 0.321,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "honeybear-boba:2",
+    "honeybear-boba:3"
+   ],
+   "share": 0.641,
+   "solid_m2": 277.0
+  },
+  "261582379": {
+   "by_class": {
+    "stucco_render": 253.5
+   },
+   "class": "stucco_render",
+   "colour": "#cdc6aa",
+   "confidence": 0.553,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "the-hollow-cow:1",
+    "the-hollow-cow:6"
+   ],
+   "share": 1.0,
+   "solid_m2": 253.5
+  },
+  "262263713": {
+   "by_class": {
+    "stucco_render": 403.5,
+    "wood_siding": 85.7
+   },
+   "class": "stucco_render",
+   "colour": "#3b3e43",
+   "confidence": 0.404,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "final-final:2",
+    "final-final:3",
+    "phils-electric-company:2",
+    "phils-electric-company:3"
+   ],
+   "share": 0.825,
+   "solid_m2": 489.3
+  },
+  "262263715": {
+   "by_class": {
+    "metal_panel": 123.6
+   },
+   "class": "metal_panel",
+   "colour": "#d8d4c0",
+   "confidence": 0.46,
+   "kind": "retail",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "fuel-24-7:0",
+    "fuel-24-7:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 123.6
+  },
+  "262397366": {
+   "by_class": {
+    "stucco_render": 32.5,
+    "wood_siding": 214.7
+   },
+   "class": "wood_siding",
+   "colour": "#cbbf92",
+   "confidence": 0.434,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "blue-danube-coffee-house:2",
+    "blue-danube-coffee-house:3"
+   ],
+   "share": 0.868,
+   "solid_m2": 247.2
+  },
+  "262397369": {
+   "by_class": {
+    "stucco_render": 180.1,
+    "wood_siding": 45.9
+   },
+   "class": "stucco_render",
+   "colour": "#d4c08e",
+   "confidence": 0.438,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "golden-gate-market-deli-and-liquor:4",
+    "golden-gate-market-deli-and-liquor:5"
+   ],
+   "share": 0.797,
+   "solid_m2": 226.0
+  },
+  "262752041": {
+   "by_class": {
+    "brick": 134.6,
+    "wood_siding": 6.4
+   },
+   "class": "brick",
+   "colour": "#9a5a3c",
+   "confidence": 0.573,
+   "kind": "restaurant",
+   "lab_material": "brick",
+   "read_walls": [
+    "first-cup-caf:3"
+   ],
+   "share": 0.955,
+   "solid_m2": 141.0
+  },
+  "262752044": {
+   "by_class": {
+    "painted_brick": 22.7,
+    "stucco_render": 1476.3
+   },
+   "class": "stucco_render",
+   "colour": "#9c9c8c",
+   "confidence": 0.54,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "amro-market:0",
+    "amro-market:3",
+    "chestnut-diner:0",
+    "chestnut-diner:3"
+   ],
+   "share": 0.985,
+   "solid_m2": 1499.0
+  },
+  "262761204": {
+   "by_class": {
+    "stucco_render": 105.6
+   },
+   "class": "stucco_render",
+   "colour": "#7d7268",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "lc-window-treatments:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 105.6
+  },
+  "263265346": {
+   "by_class": {
+    "stucco_render": 48.6
+   },
+   "class": "stucco_render",
+   "colour": "#a9b4e6",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "atami-sushi:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 48.6
+  },
+  "263265348": {
+   "by_class": {
+    "wood_siding": 51.9
+   },
+   "class": "wood_siding",
+   "colour": "#a3a9de",
+   "confidence": 0.45,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "hoogasian-flowers:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 51.9
+  },
+  "263282485": {
+   "by_class": {
+    "wood_siding": 224.7
+   },
+   "class": "wood_siding",
+   "colour": "#4a3426",
+   "confidence": 0.485,
+   "kind": "restaurant",
+   "lab_material": "shingle",
+   "read_walls": [
+    "round-table-pizza:15",
+    "round-table-pizza:51"
+   ],
+   "share": 1.0,
+   "solid_m2": 224.7
+  },
+  "263282488": {
+   "by_class": {
+    "metal_panel": 40.4
+   },
+   "class": "metal_panel",
+   "colour": "#ecebe6",
+   "confidence": 0.35,
+   "kind": "retail",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "food-mart:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 40.4
+  },
+  "263282496": {
+   "by_class": {
+    "wood_siding": 58.5
+   },
+   "class": "wood_siding",
+   "colour": "#a9bfd3",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "jigalin-fitness:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 58.5
+  },
+  "263343082": {
+   "by_class": {
+    "stucco_render": 47.4
+   },
+   "class": "stucco_render",
+   "colour": "#e8d6a8",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "zushi-puzzle:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 47.4
+  },
+  "263343090": {
+   "by_class": {
+    "stucco_render": 821.6
+   },
+   "class": "stucco_render",
+   "colour": "#2b2b2d",
+   "confidence": 0.504,
+   "kind": "retail",
+   "lab_material": "smooth_render",
+   "read_walls": [
+    "first-american-title-company:0",
+    "first-american-title-company:1",
+    "first-american-title-company:3",
+    "jake-s-steaks:0",
+    "jake-s-steaks:1",
+    "jake-s-steaks:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 821.6
+  },
+  "263347487": {
+   "by_class": {
+    "wood_siding": 505.9
+   },
+   "class": "wood_siding",
+   "colour": "#6e7d70",
+   "confidence": 0.492,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "chubby-noodle-san-francisco:1",
+    "chubby-noodle-san-francisco:3",
+    "chubby-noodle-san-francisco:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 505.9
+  },
+  "263347490": {
+   "by_class": {
+    "stucco_render": 15.2,
+    "wood_siding": 39.5
+   },
+   "class": "wood_siding",
+   "colour": "#b3a497",
+   "confidence": 0.433,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "rendezvous:13"
+   ],
+   "share": 0.722,
+   "solid_m2": 54.6
+  },
+  "263347502": {
+   "by_class": {
+    "stucco_render": 43.7
+   },
+   "class": "stucco_render",
+   "colour": "#c9552f",
+   "confidence": 0.45,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "butter-and-crumble:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 43.7
+  },
+  "263347510": {
+   "by_class": {
+    "stucco_render": 189.7
+   },
+   "class": "stucco_render",
+   "colour": "#cfcdc6",
+   "confidence": 0.56,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "san-francisco-honda:1",
+    "san-francisco-honda:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 189.7
+  },
+  "263347511": {
+   "by_class": {
+    "wood_siding": 25.4
+   },
+   "class": "wood_siding",
+   "colour": "#1f2a3d",
+   "confidence": 0.45,
+   "kind": "restaurant",
+   "lab_material": "painted_wood",
+   "read_walls": [
+    "stock-in-trade:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 25.4
+  },
+  "263347526": {
+   "by_class": {
+    "stucco_render": 39.3
+   },
+   "class": "stucco_render",
+   "colour": "#263040",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "westwood:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 39.3
+  },
+  "263404720": {
+   "by_class": {
+    "stucco_render": 56.3
+   },
+   "class": "stucco_render",
+   "colour": "#d9d2bf",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "horseshoe-tavern:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 56.3
+  },
+  "263404722": {
+   "by_class": {
+    "ceramic_tile": 34.5,
+    "stone": 15.3,
+    "stucco_render": 610.2
+   },
+   "class": "stucco_render",
+   "colour": "#d6bd9b",
+   "confidence": 0.508,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "t-mobile:0",
+    "t-mobile:3"
+   ],
+   "share": 0.925,
+   "solid_m2": 660.0
+  },
+  "263404723": {
+   "by_class": {
+    "stucco_render": 188.3,
+    "wood_siding": 11.3
+   },
+   "class": "stucco_render",
+   "colour": "#ecebe4",
+   "confidence": 0.679,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "sweetgreen:0",
+    "sweetgreen:1"
+   ],
+   "share": 0.944,
+   "solid_m2": 199.6
+  },
+  "272543631": {
+   "by_class": {
+    "wood_siding": 1491.6
+   },
+   "class": "wood_siding",
+   "colour": "#8a98a6",
+   "confidence": 0.53,
+   "kind": "retail",
+   "lab_material": "shingle",
+   "read_walls": [
+    "bakana:8",
+    "bakana:9",
+    "rooster-rice:8",
+    "rooster-rice:9",
+    "spellbound:8",
+    "spellbound:9"
+   ],
+   "share": 1.0,
+   "solid_m2": 1491.6
+  },
+  "272543646": {
+   "by_class": {
+    "wood_siding": 56.7
+   },
+   "class": "wood_siding",
+   "colour": "#c9c08c",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "benjamin-moore:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 56.7
+  },
+  "272545775": {
+   "by_class": {
+    "wood_siding": 167.5
+   },
+   "class": "wood_siding",
+   "colour": "#a9b89c",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "bar-crenn:1",
+    "bar-crenn:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 167.5
+  },
+  "272545793": {
+   "by_class": {
+    "stucco_render": 47.7
+   },
+   "class": "stucco_render",
+   "colour": "#bcc8cd",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "tacko:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 47.7
+  },
+  "272545798": {
+   "by_class": {
+    "wood_siding": 49.7
+   },
+   "class": "wood_siding",
+   "colour": "#e8dcb8",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "marina-greens:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 49.7
+  },
+  "272547325": {
+   "by_class": {
+    "stucco_render": 23.3,
+    "wood_siding": 10.0
+   },
+   "class": "stucco_render",
+   "colour": "#ece9e1",
+   "confidence": 0.315,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "osome:0"
+   ],
+   "share": 0.7,
+   "solid_m2": 33.2
+  },
+  "272547328": {
+   "by_class": {
+    "stucco_render": 11.9
+   },
+   "class": "stucco_render",
+   "colour": "#d9cfa8",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "the-good-life-pizza:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 11.9
+  },
+  "272569001": {
+   "by_class": {
+    "stucco_render": 22.3,
+    "wood_siding": 13.8
+   },
+   "class": "stucco_render",
+   "colour": "#e6e8de",
+   "confidence": 0.34,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "u-dessert-story:3"
+   ],
+   "share": 0.618,
+   "solid_m2": 36.1
+  },
+  "272578350": {
+   "by_class": {
+    "stucco_render": 409.1,
+    "wood_siding": 5.8
+   },
+   "class": "stucco_render",
+   "colour": "#e6e0d4",
+   "confidence": 0.468,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "plumpjack-wine-spirits:0",
+    "plumpjack-wine-spirits:1"
+   ],
+   "share": 0.986,
+   "solid_m2": 414.9
+  },
+  "272578377": {
+   "by_class": {
+    "stucco_render": 127.2
+   },
+   "class": "stucco_render",
+   "colour": "#eeede8",
+   "confidence": 0.562,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fedex-office:0",
+    "fedex-office:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 127.2
+  },
+  "272580069": {
+   "by_class": {
+    "stucco_render": 454.9
+   },
+   "class": "stucco_render",
+   "colour": "#e6d2c6",
+   "confidence": 0.46,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "las-katrinas-taqueria:1",
+    "las-katrinas-taqueria:2",
+    "las-katrinas-taqueria:3",
+    "naan-n-curry:2",
+    "naan-n-curry:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 454.9
+  },
+  "272580070": {
+   "by_class": {
+    "stucco_render": 10.1,
+    "wood_siding": 52.2
+   },
+   "class": "wood_siding",
+   "colour": "#b8ad9f",
+   "confidence": 0.377,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "marina-pizza-and-pasta:7"
+   ],
+   "share": 0.838,
+   "solid_m2": 62.3
+  },
+  "272580071": {
+   "by_class": {
+    "stone": 15.7,
+    "stucco_render": 25.1
+   },
+   "class": "stucco_render",
+   "colour": "#cdc6b8",
+   "confidence": 0.339,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "golden-gate-bridge-bike-rentals:3"
+   ],
+   "share": 0.616,
+   "solid_m2": 40.8
+  },
+  "272580072": {
+   "by_class": {
+    "stone": 58.1,
+    "stucco_render": 59.3
+   },
+   "class": "stucco_render",
+   "colour": "#4f575a",
+   "confidence": 0.253,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "il-cha:1",
+    "il-cha:5"
+   ],
+   "share": 0.505,
+   "solid_m2": 117.4
+  },
+  "272586660": {
+   "by_class": {
+    "stucco_render": 35.3
+   },
+   "class": "stucco_render",
+   "colour": "#4d6687",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "richardson-automotive:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 35.3
+  },
+  "272593896": {
+   "by_class": {
+    "stucco_render": 1458.8
+   },
+   "class": "stucco_render",
+   "colour": "#f1f1ee",
+   "confidence": 0.468,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fichu:4",
+    "fichu:5",
+    "the-animal-connection-pet-supplies:4",
+    "the-animal-connection-pet-supplies:5",
+    "united-liquor-deli:4",
+    "united-liquor-deli:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 1458.8
+  },
+  "272594930": {
+   "by_class": {
+    "stucco_render": 43.5
+   },
+   "class": "stucco_render",
+   "colour": "#cfcfca",
+   "confidence": 0.45,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fast-fill-market:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 43.5
+  },
+  "272598433": {
+   "by_class": {
+    "wood_siding": 41.0
+   },
+   "class": "wood_siding",
+   "colour": "#3a2a22",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "painted_wood",
+   "read_walls": [
+    "chestnut-coffee-roastery:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 41.0
+  },
+  "272598436": {
+   "by_class": {
+    "stucco_render": 62.2
+   },
+   "class": "stucco_render",
+   "colour": "#7d7966",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "wago-sushi:7"
+   ],
+   "share": 1.0,
+   "solid_m2": 62.2
+  },
+  "272598437": {
+   "by_class": {
+    "wood_siding": 36.5
+   },
+   "class": "wood_siding",
+   "colour": "#a7b2c3",
+   "confidence": 0.45,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "tom-yum:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 36.5
+  },
+  "272598439": {
+   "by_class": {
+    "stucco_render": 51.8
+   },
+   "class": "stucco_render",
+   "colour": "#a9aa86",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "lmida:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 51.8
+  },
+  "272598442": {
+   "by_class": {
+    "stucco_render": 127.1,
+    "wood_siding": 307.0
+   },
+   "class": "wood_siding",
+   "colour": "#6b6862",
+   "confidence": 0.356,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "jones:0",
+    "jones:2",
+    "the-republic-restaurant-bar:0",
+    "the-republic-restaurant-bar:14",
+    "the-republic-restaurant-bar:2",
+    "tiya:0",
+    "tiya:14",
+    "tiya:4"
+   ],
+   "share": 0.707,
+   "solid_m2": 434.1
+  },
+  "272598449": {
+   "by_class": {
+    "stucco_render": 31.2
+   },
+   "class": "stucco_render",
+   "colour": "#c6ab88",
+   "confidence": 0.6,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "podshare:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 31.2
+  },
+  "272598450": {
+   "by_class": {
+    "metal_panel": 24.6,
+    "stone": 20.2
+   },
+   "class": "metal_panel",
+   "colour": "#7c8796",
+   "confidence": 0.34,
+   "kind": "restaurant",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "viva-goa:4"
+   ],
+   "share": 0.549,
+   "solid_m2": 44.8
+  },
+  "272598453": {
+   "by_class": {
+    "stucco_render": 302.5
+   },
+   "class": "stucco_render",
+   "colour": "#e3e1d9",
+   "confidence": 0.46,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "wiki-wiki-fish-company-llc:0",
+    "wiki-wiki-fish-company-llc:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 302.5
+  },
+  "272598454": {
+   "by_class": {
+    "brick": 57.7
+   },
+   "class": "brick",
+   "colour": "#7a3a2e",
+   "confidence": 0.57,
+   "kind": "restaurant",
+   "lab_material": "brick",
+   "read_walls": [
+    "a16:12"
+   ],
+   "share": 1.0,
+   "solid_m2": 57.7
+  },
+  "272604425": {
+   "by_class": {
+    "stucco_render": 46.3
+   },
+   "class": "stucco_render",
+   "colour": "#e4e2dc",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "motel-6-san-francisco-ca-lombard-street:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 46.3
+  },
+  "272604434": {
+   "by_class": {
+    "stucco_render": 121.5
+   },
+   "class": "stucco_render",
+   "colour": "#a9b4c6",
+   "confidence": 0.6,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "furniture-envy-sofas:8"
+   ],
+   "share": 1.0,
+   "solid_m2": 121.5
+  },
+  "272604439": {
+   "by_class": {
+    "stucco_render": 79.7,
+    "wood_siding": 12.8
+   },
+   "class": "stucco_render",
+   "colour": "#dfe1e3",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "delarosa:0"
+   ],
+   "share": 0.862,
+   "solid_m2": 92.5
+  },
+  "272604443": {
+   "by_class": {
+    "stucco_render": 62.1
+   },
+   "class": "stucco_render",
+   "colour": "#ecebe6",
+   "confidence": 0.72,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "apple-chestnut-street:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 62.1
+  },
+  "272604444": {
+   "by_class": {
+    "brick": 27.3,
+    "wood_siding": 12.6
+   },
+   "class": "brick",
+   "colour": "#9b5a46",
+   "confidence": 0.479,
+   "kind": "retail",
+   "lab_material": "brick",
+   "read_walls": [
+    "babygap:5"
+   ],
+   "share": 0.684,
+   "solid_m2": 39.9
+  },
+  "272604446": {
+   "by_class": {
+    "stucco_render": 182.8,
+    "wood_siding": 8.4
+   },
+   "class": "stucco_render",
+   "colour": "#4b3e37",
+   "confidence": 0.475,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "california-wine-merchant:0",
+    "california-wine-merchant:3"
+   ],
+   "share": 0.956,
+   "solid_m2": 191.3
+  },
+  "272604447": {
+   "by_class": {
+    "stucco_render": 227.9
+   },
+   "class": "stucco_render",
+   "colour": "#d4a35c",
+   "confidence": 0.52,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "chubby-noodle:0",
+    "chubby-noodle:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 227.9
+  },
+  "272604449": {
+   "by_class": {
+    "stucco_render": 102.2
+   },
+   "class": "stucco_render",
+   "colour": "#ddd4bd",
+   "confidence": 0.68,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "gap:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 102.2
+  },
+  "272610347": {
+   "by_class": {
+    "painted_brick": 25.6,
+    "stucco_render": 16.2
+   },
+   "class": "painted_brick",
+   "colour": "#323234",
+   "confidence": 0.306,
+   "kind": "restaurant",
+   "lab_material": "painted_brick",
+   "read_walls": [
+    "nippon-curry:3"
+   ],
+   "share": 0.612,
+   "solid_m2": 41.9
+  },
+  "272610348": {
+   "by_class": {
+    "stucco_render": 306.0,
+    "wood_siding": 5.9
+   },
+   "class": "stucco_render",
+   "colour": "#7fcfae",
+   "confidence": 0.491,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "united-dumplings:0",
+    "united-dumplings:3"
+   ],
+   "share": 0.981,
+   "solid_m2": 312.0
+  },
+  "272610350": {
+   "by_class": {
+    "stucco_render": 32.7
+   },
+   "class": "stucco_render",
+   "colour": "#a9adb2",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "asian-box:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 32.7
+  },
+  "272616959": {
+   "by_class": {
+    "stucco_render": 122.7
+   },
+   "class": "stucco_render",
+   "colour": "#c8b69a",
+   "confidence": 0.57,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "paper-source:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 122.7
+  },
+  "272616971": {
+   "by_class": {
+    "stucco_render": 10.3,
+    "wood_siding": 34.1
+   },
+   "class": "wood_siding",
+   "colour": "#bba98a",
+   "confidence": 0.384,
+   "kind": "restaurant",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "home-plate:1"
+   ],
+   "share": 0.768,
+   "solid_m2": 44.4
+  },
+  "272616974": {
+   "by_class": {
+    "stucco_render": 47.9
+   },
+   "class": "stucco_render",
+   "colour": "#c8c5b3",
+   "confidence": 0.6,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "isa:4"
+   ],
+   "share": 1.0,
+   "solid_m2": 47.9
+  },
+  "272616976": {
+   "by_class": {
+    "ceramic_tile": 22.4
+   },
+   "class": "ceramic_tile",
+   "colour": "#2a2a2b",
+   "confidence": 0.45,
+   "kind": "restaurant",
+   "lab_material": "tile",
+   "read_walls": [
+    "toma-mexican-restaurant:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 22.4
+  },
+  "272616981": {
+   "by_class": {
+    "stucco_render": 39.5,
+    "wood_siding": 3.9
+   },
+   "class": "stucco_render",
+   "colour": "#cdb48c",
+   "confidence": 0.41,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "nectar-wine-lounge:1"
+   ],
+   "share": 0.911,
+   "solid_m2": 43.3
+  },
+  "272616984": {
+   "by_class": {
+    "stucco_render": 29.6
+   },
+   "class": "stucco_render",
+   "colour": "#cdc2a2",
+   "confidence": 0.72,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "noah-s-bagels:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 29.6
+  },
+  "272616985": {
+   "by_class": {
+    "stucco_render": 144.1
+   },
+   "class": "stucco_render",
+   "colour": "#ecebe6",
+   "confidence": 0.588,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "popi-s-oysterette:0",
+    "popi-s-oysterette:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 144.1
+  },
+  "272632241": {
+   "by_class": {
+    "metal_panel": 47.3,
+    "stucco_render": 13.1
+   },
+   "class": "metal_panel",
+   "colour": "#aaa8a3",
+   "confidence": 0.392,
+   "kind": "restaurant",
+   "lab_material": "metal_panel",
+   "read_walls": [
+    "fengshui:5"
+   ],
+   "share": 0.783,
+   "solid_m2": 60.5
+  },
+  "272632243": {
+   "by_class": {
+    "stucco_render": 26.5
+   },
+   "class": "stucco_render",
+   "colour": "#e8dcc0",
+   "confidence": 0.6,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "bar-darling:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 26.5
+  },
+  "272632245": {
+   "by_class": {
+    "stucco_render": 21.4,
+    "wood_siding": 12.3
+   },
+   "class": "stucco_render",
+   "colour": "#ecebe6",
+   "confidence": 0.317,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "monaghans:5"
+   ],
+   "share": 0.634,
+   "solid_m2": 33.7
+  },
+  "272632255": {
+   "by_class": {
+    "stucco_render": 29.7
+   },
+   "class": "stucco_render",
+   "colour": "#d8b98c",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "sf-hole-in-the-wall-pizza:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 29.7
+  },
+  "272632265": {
+   "by_class": {
+    "stucco_render": 45.9
+   },
+   "class": "stucco_render",
+   "colour": "#d8d3c7",
+   "confidence": 0.62,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "studio-on-chestnut:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 45.9
+  },
+  "272632274": {
+   "by_class": {
+    "brick": 5.9,
+    "stucco_render": 37.1
+   },
+   "class": "stucco_render",
+   "colour": "#8b908c",
+   "confidence": 0.518,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "amada-cbd-boutique:5"
+   ],
+   "share": 0.863,
+   "solid_m2": 43.0
+  },
+  "272632287": {
+   "by_class": {
+    "brick": 173.0
+   },
+   "class": "brick",
+   "colour": "#a8694b",
+   "confidence": 0.517,
+   "kind": "retail",
+   "lab_material": "brick",
+   "read_walls": [
+    "sunski-sunspot:0",
+    "sunski-sunspot:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 173.0
+  },
+  "272632298": {
+   "by_class": {
+    "stucco_render": 511.6,
+    "wood_siding": 9.0
+   },
+   "class": "stucco_render",
+   "colour": "#ece2cc",
+   "confidence": 0.505,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "frankie-s:1",
+    "frankie-s:9",
+    "verizon:1",
+    "verizon:9"
+   ],
+   "share": 0.983,
+   "solid_m2": 520.5
+  },
+  "272632306": {
+   "by_class": {
+    "stucco_render": 22.2
+   },
+   "class": "stucco_render",
+   "colour": "#9a3524",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "phat-thai:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 22.2
+  },
+  "272632313": {
+   "by_class": {
+    "stucco_render": 33.1
+   },
+   "class": "stucco_render",
+   "colour": "#e6cb74",
+   "confidence": 0.6,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "books-inc:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 33.1
+  },
+  "272632315": {
+   "by_class": {
+    "stucco_render": 32.2
+   },
+   "class": "stucco_render",
+   "colour": "#eeece4",
+   "confidence": 0.6,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "bonita-taqueria-y-rotisserie:0"
+   ],
+   "share": 1.0,
+   "solid_m2": 32.2
+  },
+  "272632318": {
+   "by_class": {
+    "wood_siding": 121.1
+   },
+   "class": "wood_siding",
+   "colour": "#b3a46f",
+   "confidence": 0.486,
+   "kind": "retail",
+   "lab_material": "shiplap",
+   "read_walls": [
+    "beck-s-shoes:0",
+    "beck-s-shoes:1",
+    "beck-s-shoes:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 121.1
+  },
+  "272632319": {
+   "by_class": {
+    "stucco_render": 25.7
+   },
+   "class": "stucco_render",
+   "colour": "#5e6e80",
+   "confidence": 0.55,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "urban-pet-hospital:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 25.7
+  },
+  "272632320": {
+   "by_class": {
+    "stucco_render": 36.2
+   },
+   "class": "stucco_render",
+   "colour": "#ece9df",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "the-patio:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 36.2
+  },
+  "272647155": {
+   "by_class": {
+    "stucco_render": 105.4
+   },
+   "class": "stucco_render",
+   "colour": "#e6e3da",
+   "confidence": 0.5,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "blackwood:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 105.4
+  },
+  "272647181": {
+   "by_class": {
+    "stucco_render": 330.7,
+    "wood_siding": 40.6
+   },
+   "class": "stucco_render",
+   "colour": "#dcdcd5",
+   "confidence": 0.403,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "deleuse-jewelers:0",
+    "deleuse-jewelers:7"
+   ],
+   "share": 0.891,
+   "solid_m2": 371.3
+  },
+  "272647183": {
+   "by_class": {
+    "brick": 240.4
+   },
+   "class": "brick",
+   "colour": "#8c4b3b",
+   "confidence": 0.5,
+   "kind": "retail",
+   "lab_material": "brick",
+   "read_walls": [
+    "red-dot:1",
+    "red-dot:2"
+   ],
+   "share": 1.0,
+   "solid_m2": 240.4
+  },
+  "272647184": {
+   "by_class": {
+    "stucco_render": 32.0
+   },
+   "class": "stucco_render",
+   "colour": "#3a9fa3",
+   "confidence": 0.64,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "american-giant:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 32.0
+  },
+  "272647187": {
+   "by_class": {
+    "stucco_render": 43.8
+   },
+   "class": "stucco_render",
+   "colour": "#e6dcc6",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "fuzio:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 43.8
+  },
+  "272647188": {
+   "by_class": {
+    "stucco_render": 31.1
+   },
+   "class": "stucco_render",
+   "colour": "#e9e8e2",
+   "confidence": 0.72,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "bluemercury:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 31.1
+  },
+  "272647189": {
+   "by_class": {
+    "metal_panel": 6.2,
+    "wood_siding": 71.1
+   },
+   "class": "wood_siding",
+   "colour": "#23272e",
+   "confidence": 0.414,
+   "kind": "retail",
+   "lab_material": "painted_wood",
+   "read_walls": [
+    "herman-miller-retail-store:3"
+   ],
+   "share": 0.92,
+   "solid_m2": 77.3
+  },
+  "272647192": {
+   "by_class": {
+    "stucco_render": 34.5
+   },
+   "class": "stucco_render",
+   "colour": "#d9a35c",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "peet-s-coffee:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 34.5
+  },
+  "272647193": {
+   "by_class": {
+    "stucco_render": 32.7
+   },
+   "class": "stucco_render",
+   "colour": "#9fcfe0",
+   "confidence": 0.55,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "le-marais:5"
+   ],
+   "share": 1.0,
+   "solid_m2": 32.7
+  },
+  "272687478": {
+   "by_class": {
+    "brick": 59.2,
+    "stucco_render": 83.0
+   },
+   "class": "stucco_render",
+   "colour": "#45484b",
+   "confidence": 0.292,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "catnip-bones:0",
+    "catnip-bones:3"
+   ],
+   "share": 0.584,
+   "solid_m2": 142.2
+  },
+  "272687479": {
+   "by_class": {
+    "stucco_render": 66.2,
+    "wood_siding": 15.1
+   },
+   "class": "stucco_render",
+   "colour": "#ddd6c6",
+   "confidence": 0.448,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "muse-juice-bar:5"
+   ],
+   "share": 0.814,
+   "solid_m2": 81.3
+  },
+  "272691787": {
+   "by_class": {
+    "brick": 160.0,
+    "stucco_render": 558.5
+   },
+   "class": "stucco_render",
+   "colour": "#c9a77a",
+   "confidence": 0.396,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "easy-breezy-frozen-yogurt:0",
+    "easy-breezy-frozen-yogurt:7",
+    "photograph-frame:0",
+    "photograph-frame:7"
+   ],
+   "share": 0.777,
+   "solid_m2": 718.6
+  },
+  "272691788": {
+   "by_class": {
+    "stucco_render": 242.8
+   },
+   "class": "stucco_render",
+   "colour": "#d8c79b",
+   "confidence": 0.583,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "tacolicious:0",
+    "tacolicious:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 242.8
+  },
+  "272700939": {
+   "by_class": {
+    "brick": 509.0,
+    "painted_brick": 35.8,
+    "stucco_render": 58.3,
+    "wood_siding": 39.4
+   },
+   "class": "brick",
+   "colour": "#8a5a3c",
+   "confidence": 0.396,
+   "kind": "retail",
+   "lab_material": "brick",
+   "read_walls": [
+    "fiori-san-francisco:1",
+    "fiori-san-francisco:8",
+    "ristobar:0",
+    "ristobar:1"
+   ],
+   "share": 0.792,
+   "solid_m2": 642.5
+  },
+  "272770820": {
+   "by_class": {
+    "stucco_render": 360.3,
+    "wood_siding": 15.4
+   },
+   "class": "stucco_render",
+   "colour": "#d9cdb8",
+   "confidence": 0.48,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "mudpuppy-s:0",
+    "mudpuppy-s:1"
+   ],
+   "share": 0.959,
+   "solid_m2": 375.7
+  },
+  "288517654": {
+   "by_class": {
+    "ceramic_tile": 28.5,
+    "stucco_render": 414.1
+   },
+   "class": "stucco_render",
+   "colour": "#d9cdb3",
+   "confidence": 0.487,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "the-silver-platter:16",
+    "the-silver-platter:17"
+   ],
+   "share": 0.936,
+   "solid_m2": 442.7
+  },
+  "288519645": {
+   "by_class": {
+    "stucco_render": 28.5,
+    "wood_siding": 270.5
+   },
+   "class": "wood_siding",
+   "colour": "#c9a597",
+   "confidence": 0.529,
+   "kind": "retail",
+   "lab_material": "shingle",
+   "read_walls": [
+    "alison-gurney:6",
+    "alison-gurney:7"
+   ],
+   "share": 0.905,
+   "solid_m2": 299.0
+  },
+  "32839470": {
+   "by_class": {
+    "concrete": 1021.6,
+    "stucco_render": 1647.7
+   },
+   "class": "stucco_render",
+   "colour": "#d9d9d3",
+   "confidence": 0.259,
+   "kind": "retail",
+   "lab_material": "smooth_render",
+   "read_walls": [
+    "cvs-pharmacy:1",
+    "cvs-pharmacy:10",
+    "cvs-pharmacy:9",
+    "williams-sonoma-inc:1",
+    "williams-sonoma-inc:10",
+    "williams-sonoma-inc:9"
+   ],
+   "share": 0.617,
+   "solid_m2": 2669.2
+  },
+  "330960864": {
+   "by_class": {
+    "stucco_render": 26.1
+   },
+   "class": "stucco_render",
+   "colour": "#e6e4dd",
+   "confidence": 0.6,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "tipsy-pig:3"
+   ],
+   "share": 1.0,
+   "solid_m2": 26.1
+  },
+  "33808504": {
+   "by_class": {
+    "stucco_render": 347.9
+   },
+   "class": "stucco_render",
+   "colour": "#e6e2d8",
+   "confidence": 0.54,
+   "kind": "retail",
+   "lab_material": "stucco",
+   "read_walls": [
+    "van-ness-inn-san-francisco:6",
+    "van-ness-inn-san-francisco:9"
+   ],
+   "share": 1.0,
+   "solid_m2": 347.9
+  },
+  "58524120": {
+   "by_class": {
+    "stucco_render": 28.0
+   },
+   "class": "stucco_render",
+   "colour": "#e8dcbc",
+   "confidence": 0.35,
+   "kind": "restaurant",
+   "lab_material": "stucco",
+   "read_walls": [
+    "equator-coffees:1"
+   ],
+   "share": 1.0,
+   "solid_m2": 28.0
+  },
+  "69707523": {
+   "by_class": {
+    "brick": 12.3,
+    "stone": 8.1,
+    "stucco_render": 105.3,
+    "wood_siding": 123.6
+   },
+   "class": "wood_siding",
+   "colour": "#6f8a4e",
+   "confidence": 0.149,
+   "kind": "retail",
+   "lab_material": "wood_siding",
+   "read_walls": [
+    "alex-s-sign-co:0",
+    "alex-s-sign-co:1"
+   ],
+   "share": 0.496,
+   "solid_m2": 249.3
+  }
+ },
+ "counts": {
+  "brick": 7,
+  "ceramic_tile": 1,
+  "concrete": 1,
+  "metal_panel": 6,
+  "painted_brick": 2,
+  "stucco_render": 94,
+  "wood_siding": 29
+ },
+ "lab_to_class": {
+  "brick": "brick",
+  "concrete": "concrete",
+  "metal_panel": "metal_panel",
+  "painted_brick": "painted_brick",
+  "painted_wood": "wood_siding",
+  "shingle": "wood_siding",
+  "shiplap": "wood_siding",
+  "smooth_render": "stucco_render",
+  "stone": "stone",
+  "stucco": "stucco_render",
+  "tile": "ceramic_tile",
+  "wood_siding": "wood_siding"
+ },
+ "schema": "kerbside.opus_wall_materials/1",
+ "skipped": {
+  "no_app_building": 3
+ },
+ "source": [
+  "storefronts-lab/models/auto-opus",
+  "storefronts-lab/observations/auto-opus"
+ ]
+}
