@@ -174,7 +174,10 @@ test("the world's hand work: a stroke costs stamina, a nail comes from the box, 
   const stay = w.submit("me", "shove", { npc: { id: "npc:1", name: "Sam", x: 0.5, z: 0 }, falls: false, witnesses: 2 });
   assert.ok(stay.ok); assert.equal(stay.fine, 0);
   const fell = w.submit("me", "shove", { npc: { id: "npc:2", name: "Ann", x: 0.5, z: 0 }, falls: true, witnesses: 2 });
-  assert.ok(fell.ok); assert.ok(fell.fine > 0); assert.ok(fell.injury);
+  // Battery -- charged when it is caught (law.mjs): a witness's call that gets through.
+  assert.ok(fell.ok); assert.equal(fell.fine, 0); assert.ok(fell.injury); assert.equal(fell.offence.crime, "battery");
+  const told = w.submit("me", "report_crime", { offence: fell.offence.id, by: { kind: "witness" }, call_s: 10 });
+  assert.ok(told.ok && told.dispatch, told.error);
 });
 
 test("by click: set down where clicked within reach, a nail set and let drop lies there and is used first, a heavy thing pushed a stride at a time", () => {

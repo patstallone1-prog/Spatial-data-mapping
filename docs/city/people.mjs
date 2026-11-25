@@ -1584,7 +1584,7 @@ export const SHOP_FLOOR_SHARE = 0.5, SHOP_CAP_MAX = 40, SHOP_LANE_M = 0.6, SHOP_
 export const SHOP_M2_PER_PERSON = { food: 1.4, retail: 5.6, service: 9.3 };
 const SHOP_SERVICE = new Set(["bank", "barber", "salon", "beauty", "nail_salon", "spa", "clinic", "dentist", "optician", "vet", "pet_grooming",
   "laundry", "dry_cleaner", "staffing", "print_ship", "law_office", "gym"]);
-const SHOP_RETAIL = new Set(["auto_parts", "bike", "books", "clothing", "convenience", "deli", "electronics", "florist", "fuel", "gallery", "gifts",
+const SHOP_RETAIL = new Set(["auto_parts", "bike", "books", "clothing", "convenience", "deli", "electronics", "phone_store", "florist", "fuel", "gallery", "gifts",
   "grocery", "hardware", "home", "jewelry", "liquor", "pet", "pharmacy", "shoes", "shop", "smoke_shop", "toys", "wine_shop", "supermarket"]);
 export function shopGroup(kind) { return SHOP_SERVICE.has(kind) ? "service" : SHOP_RETAIL.has(kind) ? "retail" : "food"; }
 //: The lanes a shop's customers keep to (along the front, SHOP_LANE_M apart): their number.

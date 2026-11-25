@@ -21,7 +21,9 @@ test("a tenant is the kind of place its name says, where its map tag is too coar
   assert.deepEqual(shopKinds(R, "pharmacy", "Walgreens"), ["pharmacy"]);
   assert.deepEqual(shopKinds(R, "convenience", "Marina Deli & Liquor").sort(), ["deli", "liquor"]);
   assert.deepEqual(shopKinds(R, "shop", "Feldman Architecture"), [], "an office is no shop");
-  assert.deepEqual(shopKinds(R, "shop", "T-Mobile"), ["electronics"], "not a Mobil station");
+  assert.deepEqual(shopKinds(R, "shop", "T-Mobile"), ["phone_store"], "not a Mobil station");
+  assert.deepEqual(shopKinds(R, "shop", "Apple Store"), ["phone_store"], "the Apple Store on Chestnut Street sells phones");
+  assert.deepEqual(shopKinds(R, "convenience", "Green Apple Market"), ["convenience"]);
   assert.deepEqual(shopKinds(R, "salon", "Golden Door Barber"), ["barber"]);
   assert.deepEqual(shopKinds(R, "cafe", "Philz Coffee"), ["cafe"]);
   assert.deepEqual(shopKinds(R, "restaurant", null), ["restaurant"]);

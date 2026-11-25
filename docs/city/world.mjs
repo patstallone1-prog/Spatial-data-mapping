@@ -33,6 +33,7 @@ import { CREDIT_COMMANDS, installCredit } from "./credit.mjs";
 import { SOCIAL_COMMANDS, installSocial } from "./social.mjs";
 import { ANIMAL_COMMANDS, installAnimals } from "./animals.mjs";
 import { installTrials } from "./trial.mjs";
+import { LAW_COMMANDS, installLaw } from "./law.mjs";
 import { WORKSHOP_COMMANDS, installWorkshop } from "./workshop.mjs";
 import { KITCHEN_COMMANDS, installKitchen } from "./kitchen.mjs";
 import { SHOPPING_COMMANDS, installShopping } from "./shopping.mjs";
@@ -711,14 +712,13 @@ export class CityWorld {
     if (a.attrs.serviceBay) throw new CityError("The vehicle is in the repair bay.");
     const t = this.registry.take(asset, p.account, this.now);
     const evidence = [...(a.kind === "vehicle" ? ["the car's alarm"] : []), ...Array.from({ length: witnesses }, (_, i) => `witness ${i + 1}`)];
-    let bill = null;
-    if (evidence.length) {
-      bill = this.fine(p, "theft", `Theft of ${asset}`, evidence);
-      // Found and given back by the police after a while.
-      a.recover_at = this.now + 20 * 60_000;
-    }
+    // Not charged for taking it, but for being caught (law.mjs): the alarm draws those near to
+    // call, and the owner, finding it gone, reports it. Found and given back after a while.
+    const off = this.offence(p, a.kind === "vehicle" ? "car_theft" : "theft", { memo: a.kind === "vehicle" ? `taking a car${a.attrs?.plate ? ` (${a.attrs.plate})` : ""}` : `taking ${asset}`,
+      vehicle: a.kind === "vehicle" ? { id: a.id, plate: a.attrs?.plate, owner: t.owner } : null, alarm: a.kind === "vehicle" });
+    if (evidence.length) a.recover_at = this.now + 20 * 60_000;
     this.log("theft", { asset, by: pid, seen: evidence.length });
-    return { owner: t.owner, evidence, bill: bill?.id || null };
+    return { owner: t.owner, evidence, bill: null, offence: { id: off.id, crime: off.crime, severity: off.severity, alarm: off.alarm } };
   }
   //: Getting into a car: yours, one lent or leased to you -- or another's, which is theft.
   cmd_drive(pid, { vehicle }) {
@@ -857,8 +857,23 @@ export class CityWorld {
     const S = this.R.enforcement.speed_camera;
     const here = this.where(p);
     const seen = witness || (camera ? { kind: "camera", id: camera } : null);
+    // Past people on the pavement: an offence for one of them to call in, if they (almost never) do.
+    if (seen?.kind === "bystander") {
+      const vehicle = p.driving?.vehicle ? this.registry.get(p.driving.vehicle) : null;
+      const o = this.offence(p, "speeding", { memo: `${Math.round(mph)} mph, ${Math.round(over_mph)} over`, vehicle: vehicle ? { id: vehicle.id, plate: vehicle.attrs?.plate, owner: vehicle.owner } : null });
+      return { charged: 0, offence: { id: o.id, crime: o.crime, severity: o.severity } };
+    }
     if (!seenBy(seen)) return { charged: 0, unseen: true };
     const police = seen.kind === "police";
+    // Seen by a patrol car: it comes after you (law.mjs) -- pull over and you are cited, drive off
+    // and the plate is read. Only a camera sends its notice by post.
+    if (police) {
+      const vehicle = p.driving?.vehicle ? this.registry.get(p.driving.vehicle) : null;
+      const known = (p.offences || []).find((o) => o.crime === "speeding" && !o.closed && this.now - o.at < 120_000);
+      const o = known || this.offence(p, "speeding", { memo: `${Math.round(mph)} mph, ${Math.round(over_mph)} over`, vehicle: vehicle ? { id: vehicle.id, plate: vehicle.attrs?.plate, owner: vehicle.owner } : null });
+      if (!o.reported) o.reported = { by: "police", name: null, at: this.now, plate: false };
+      return { charged: 0, pursuit: true, offence: { id: o.id, crime: o.crime, severity: o.severity } };
+    }
     if (!police && !S.jurisdictions.some((j) => here.chain.includes(j))) return { charged: 0 };
     let fine = 0;
     for (const [over, amount] of S.tiers) if (over_mph >= over) fine = amount;
@@ -1193,12 +1208,10 @@ export class CityWorld {
     if (h.down_until > this.now) throw new CityError("they are down already");
     const injury = injuryFor(this.R, { joules: 20, seed: `${npc.id}:${this.now}:shove` });
     this.hurtPerson(h, injury, npc, `knocked down by ${p.name}`);
-    let fine = 0;
-    if (witnesses > 0 || npc.role === "police") {
-      fine = this.fine(p, "battery", `Battery on ${npc.name || "a resident"}: a shove that knocked them down`, [npc.role === "police" ? "the officer" : `${witnesses} witness${witnesses > 1 ? "es" : ""}`], `shove:${npc.id}:${Math.floor(this.now / 60000)}`).amount;
-    }
+    // Battery, charged when caught (law.mjs): done to an officer, it is caught there and then.
+    const off = this.offence(p, "battery", { npc, memo: `battery on ${npc.name || "a resident"}: a shove that knocked them down`, care_bill: injury.bill || 0 });
     this.log("shoved", { player: pid, npc: npc.id, falls: true, injury: injury.type });
-    return { falls: true, injury, fine, down: h.down_until > this.now, vitals: p.vitals };
+    return { falls: true, injury, fine: 0, down: h.down_until > this.now, vitals: p.vitals, offence: { id: off.id, crime: off.crime, severity: off.severity }, arrest: npc.role === "police" };
   }
   //: ``reaction``: what the blow did to their body (hit-reaction.mjs blowOn, worked out where it
   //: was seen: {kind: "flinch" | "stumble" | "fall", zone, steps, fracture}); ``near``: what is
@@ -1243,15 +1256,17 @@ export class CityWorld {
       const mine = injuryFor(this.R, { joules: 30 + hurt * 4, seed: `${pid}:${this.now}` });
       p.injuries.push({ type: mine.type, severity: mine.severity, at: this.now, cause: `hit back by ${npc.name || "them"}` });
     }
-    // Seen, reported by them, or a police officer: a battery citation, and the bill for their care.
-    let fine = 0, restitution = 0;
-    if (witnesses > 0 || response !== "down" || npc.role === "police") {
-      fine = this.fine(p, "battery", `Battery on ${npc.name || "a resident"}`, [npc.role === "police" ? "the arresting officer" : witnesses ? `${witnesses} witness${witnesses > 1 ? "es" : ""}` : "the victim's report"], `battery:${npc.id}:${Math.floor(this.now / 60000)}`).amount;
-      if (injury.bill) { restitution = injury.bill; this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "restitution", amount: injury.bill, memo: `Care for ${npc.name || "a resident"}: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }); }
-    }
+    // Not charged for the blow but for being caught (law.mjs): an officer struck arrests you there
+    // and then; otherwise it waits on a camera, an officer, or a call that gets through -- the
+    // one you hit calls once you have gone, those who saw it as their nature has it. Battery; with
+    // a weapon, assault; left for dead, attempted murder. Their care is billed with the charge.
+    const crime = h.health <= 0 ? "attempted_murder" : weapon ? "assault" : "battery";
+    const off = this.offence(p, crime, { npc, memo: `${crime === "battery" ? "battery" : crime === "assault" ? "assault" : "attempted murder"} on ${npc.name || "a resident"}${weapon ? ` with ${weapon}` : ""}`, care_bill: injury.bill || 0 });
+    const fine = 0, restitution = 0;
     if (p.vitals.health <= 0) this.faint(p, "a fight");
     this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, zone: injury.zone || null, reaction: re?.kind || null, response });
-    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, reaction: re, vitals: p.vitals };
+    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, reaction: re, vitals: p.vitals,
+      offence: { id: off.id, crime: off.crime, severity: off.severity }, arrest: npc.role === "police" || response === "arrest" };
   }
   //: The city's own collisions use the same harm, court and billing records as a player's.
   //: ``id`` identifies a single impact, so sustained contact/replayed reports cannot bill twice.
@@ -1329,6 +1344,8 @@ export class CityWorld {
       out.injury = injury; out.mine = damageMine(speed * 0.3);
       if (injury.bill) out.bill = this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "liability", amount: injury.bill,
         memo: `${npc.name || "A pedestrian"}'s care: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }).amount;
+      // Running someone down is a crime when it is caught (law.mjs); hardly a bump is not.
+      if (speed >= 4) { const v = mine; const o = this.offence(p, "vehicular_assault", { npc, memo: `running down ${npc.name || "a pedestrian"} at ${Math.round(speed * 2.237)} mph`, vehicle: v ? { id: v.id, plate: v.attrs?.plate, owner: v.owner } : null }); out.offence = { id: o.id, crime: o.crime, severity: o.severity }; }
     } else if (kind === "hit_vehicle") {
       if (!vehicle?.id) throw new CityError("no car hit");
       const h = this.harmed(vehicle.id, "vehicle", vehicle.plate || null);
@@ -1355,6 +1372,9 @@ export class CityWorld {
         const cost = Math.round(out.vehicle.loss * H.vehicle.repair_per_point);
         if (cost) out.bill = this.billing.issue({ payer: p.account, payee: "business:dealership", kind: "liability", amount: cost,
           memo: `Repair of ${vehicle.plate || "a car"} (${out.vehicle.state})`, at: this.now, due_days: 30, penalties: [Math.round(cost * 0.1)] }).amount;
+        // At fault in a crash is a citation when it is caught (law.mjs): the other driver, or
+        // someone who saw it, reports the plate; driving off makes it a hit and run.
+        if (speed >= 3) { const o = this.offence(p, "hit_vehicle", { memo: `a crash into ${vehicle.plate || "a car"}`, npc: vehicle.driver ? { id: vehicle.driver, name: vehicle.driverName } : null, vehicle: mine ? { id: mine.id, plate: mine.attrs?.plate, owner: mine.owner } : null }); out.offence = { id: o.id, crime: o.crime, severity: o.severity }; }
       }
       if (p.vitals.health <= 0) this.faint(p, "a car crash");
     } else if (kind === "hit_object") {
@@ -1867,9 +1887,11 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
   "strike_person", "shove", "labour", "drop_nail", "move_item", "collision", "crash_cleared", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
-  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
+  ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS, ...LAW_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);
+//: Crime and getting caught: offences kept until a camera, an officer or a witness's call brings them in (law.mjs).
+installLaw(CityWorld, CityError);
 installCommerce(CityWorld, CityError);
 installHomeInteriors(CityWorld, CityError);
 //: Borrowing: the credit score, the bankers and the loans (credit.mjs).

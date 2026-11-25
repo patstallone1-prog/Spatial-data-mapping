@@ -132,7 +132,7 @@ test("a thrown thing that hits someone hurts them, and is battery", () => {
   const r = w.submit("me", "throw", { to: { x: 5, z: 0 }, hit: { id: "npc:x:1", name: "Sam", x: 5, z: 0 }, witnesses: 2 });
   assert.ok(r.ok, r.error);
   assert.ok(r.hit.injury.type);
-  assert.ok(r.hit.fine > 0);
+  assert.ok(r.hit.offence && r.hit.fine === 0, "battery, charged when it is caught (law.mjs)");
   assert.ok(w.harm.get("npc:x:1").health < 100);
 });
 
