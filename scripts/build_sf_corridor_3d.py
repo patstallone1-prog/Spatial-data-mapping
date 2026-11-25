@@ -2034,6 +2034,28 @@ def annotate_region_lidar(ways: list[dict[str, Any]]) -> dict[str, Any]:
     return dict(counts)
 
 
+def annotate_height_fill(ways: list[dict[str, Any]]) -> dict[str, Any]:
+    """The buildings still at a guessed height after every other source: City3D's LoD2 model,
+    else 3dfier's LoD1.2 block (both scripts/fill_building_heights.py, on the region's lidar),
+    else the GlobalBuildingAtlas's estimate (scripts/fetch_gba_heights.py), in that order
+    (smc.buildings.height_fill). Nothing measured and no atlas cut: nothing changes."""
+    import gzip
+
+    from smc.buildings.height_fill import GbaIndex, fill_heights
+    store = ROOT / "data" / "regions" / REGION.name / "lidar" / "height_fill.json"
+    done = json.loads(store.read_text()) if store.exists() else {}
+    readings = {src: {k: v for k, v in (done.get(src) or {}).items() if v.get("height_m") is not None}
+                for src in ("city3d", "3dfier")}
+    gba_path = ROOT / "data" / "gba" / "w125_n40_w120_n35-regions.json.gz"
+    gba = None
+    if gba_path.exists():
+        with gzip.open(gba_path, "rt", encoding="utf-8") as fh:
+            gba = GbaIndex(json.load(fh)["buildings"])
+    if not any(readings.values()) and gba is None:
+        return {"available": False}
+    return fill_heights(ways, readings, gba)
+
+
 def annotate_building_enrichment(ways: list[dict[str, Any]]) -> dict[str, Any]:
     building_index = 0
     for way in ways:
@@ -2105,6 +2127,7 @@ def build_payload(root: Path, ways: list[dict[str, Any]]) -> dict[str, Any]:
     furniture_summary = publish_street_furniture()
     building_summary = annotate_building_enrichment(ways)
     building_summary["lidar_region"] = annotate_region_lidar(ways)
+    building_summary["height_fill"] = annotate_height_fill(ways)
     building_summary["named_places"] = attach_named_places(ways)
     print(f"  shopfronts named from places: {building_summary['named_places']}", file=sys.stderr)
     building_summary["facades"] = annotate_facades(ways)
@@ -2909,7 +2932,7 @@ PAGE_FIELDS = {
     "address", "alley_mouth", "archetype", "centroid", "colour", "continental", "covered", "facade",
     "crossing_m", "cycleway", "cycleway_both", "cycleway_left", "cycleway_right",
     "divider_source", "divider_surface", "divider_width_m", "garages",
-    "google_places", "height_m", "height_osm_m", "height_source", "kerb_m", "kind", "land_use", "lanes",
+    "google_places", "height_licence", "height_m", "height_osm_m", "height_source", "kerb_m", "kind", "land_use", "lanes",
     "lanes_back", "lanes_fwd", "name", "oneway", "osm_id", "osm_oneway", "parcel", "place",
     "points", "road_m", "road_source", "sources", "tags", "turn", "turn_back", "turn_fwd", "busway",
     "shops", "track_m", "walk_fallback_m", "walk_m", "walk_sides", "zoning", "coastline_band", "underground",

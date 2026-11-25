@@ -36,6 +36,10 @@ IMPLEMENTED: dict[str, dict[str, str]] = {
 }
 
 
+#: Heights read off a lidar survey: the region's own pass, the city's medians, and the two
+#: lidar models that fill what those missed (smc.buildings.height_fill).
+LIDAR_HEIGHTS = ("lidar_region", "datasf_lidar_median_height", "city3d_lod2", "3dfier_lod12")
+
 def _grade_counts(ways: list[dict]) -> Counter:
     counts: Counter = Counter()
     for way in ways:
@@ -81,8 +85,8 @@ def activation(payload: dict[str, Any], vector: dict[str, str],
                            ("official" if kerb_sources.get("official") else None),
                            kerb_sources.get("lidar_region", 0) + kerb_sources.get("official", 0), len(streets)),
         "building_height": row("building_height",
-                               "lidar" if height_sources.get("lidar_region") or height_sources.get("datasf_lidar_median_height") else "osm",
-                               height_sources.get("lidar_region", 0) + height_sources.get("datasf_lidar_median_height", 0),
+                               "lidar" if any(height_sources.get(k) for k in LIDAR_HEIGHTS) else "osm",
+                               sum(height_sources.get(k, 0) for k in LIDAR_HEIGHTS),
                                len(buildings), f"by source: {dict(height_sources)}"),
         "building_colour": row("building_colour", "imagery", colours, len(buildings)),
         "terrain": row("terrain", "lidar" if terrain else None, 1 if terrain else 0, 1,
