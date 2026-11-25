@@ -1515,7 +1515,7 @@ const groundReady = (async () => {
   // Every fence is laid: each end that meets nothing is carried on to a wall or a fence (module 17).
   try { window.kerbsideFenceEnds = closeFenceEnds(); } catch (error) { console.warn("kerbside: the fences' ends were left as laid", error); }
   // And the paving off the far side of every fence (module 17).
-  try { window.kerbsideFenceBites = cutPavingAtFences(); } catch (error) { console.warn("kerbside: the paving was left under the fences", error); }
+  try { window.kerbsideFenceBites = cutPavingAtFences((x, z) => lawnDrawnAt(x, z) && pavementSurfaceAt(x, z) === null && !buildingAt(x, z)); } catch (error) { console.warn("kerbside: the paving was left under the fences", error); }
   window.kerbsideFenceLayers = fenceLayStats;
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");

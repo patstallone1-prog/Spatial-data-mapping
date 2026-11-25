@@ -23,15 +23,16 @@ const line = (source, start) => { const i = source.indexOf(start); assert.ok(i >
 function fenceWorld({ buildings = [], paths = [] } = {}) {
   const names = ["fenceOwnedBy", "noteFenceLine", "noteFenceGate", "fenceLinesNear", "fenceAlreadyThere", "inFenceGate", "fencePaths",
     "pathThroughFence", "onPublicPath", "fencePieces", "layFence", "groundedFencePanel", "closeFenceEnds", "fenceLinesAcross", "cutCoverBy",
-    "treeOntoGrass"];
+    "treeOntoGrass", "clipBarycentric", "cutPavingAtFences"];
   const consts = ["const FENCE_LINE_CELL_M", "const FENCE_DOUBLE_M", "const FENCE_PIECE_STEP_M", "const FENCE_GATE_REACH_M", "const FENCE_CLOSE",
-    "const fenceCloseStats", "const fenceLayStats", "const FENCE_BITE", "const TREE_ON_GRASS", "const FENCE_GROUND_STEP_M"];
+    "const fenceCloseStats", "const fenceLayStats", "const FENCE_BITE", "const TREE_ON_GRASS", "const FENCE_GROUND_STEP_M",
+    "const FENCE_PAVED_SURFACES", "const fenceBiteStats"];
   const body = `
     const fenceGateGrid = new Map();
     var fenceOwnerNow = null, fencePanelsLaid = [], fencePathGrid = null;
     ${consts.map((c) => line(trees, c)).join("\n")}
     ${names.map((n) => fn(trees, n)).join("\n")}
-    return { fenceOwnedBy, layFence, closeFenceEnds, fencePieces, onPublicPath, fenceLinesAcross, cutCoverBy, treeOntoGrass,
+    return { fenceOwnedBy, layFence, closeFenceEnds, fencePieces, onPublicPath, fenceLinesAcross, cutCoverBy, treeOntoGrass, cutPavingAtFences, groups,
       fenceLineGrid, stats: fenceCloseStats, get panels() { return fencePanelsLaid; } };`;
   const inBox = (x, z, [x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1;
   const world = {
@@ -88,31 +89,40 @@ test("no fence is closed across a park path, nor laid along one", () => {
 test("paving that pokes under a fence into the next lawn is cut off along the fence line", () => {
   const W = fenceWorld();
   W.layFence(sink(), 0, -10, 0, 10, 0, 1.8, 1);
-  // A paving square from x = -6 to x = +0.8: 0.8 m of it is past the fence (x = 0).
+  // A paving square from x = -6 to x = +0.8 beside the fence (0.8 m of it past the fence, x = 0),
+  // and a long plaza triangle whose middle is 20 m from the fence and whose tip is 0.5 m past it.
   const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.Float32BufferAttribute([-6, 0, -3, 0.8, 0, -3, 0.8, 0, 3, -6, 0, 3], 3));
-  geom.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
-  geom.setIndex([0, 1, 2, 0, 2, 3]);
-  const mesh = new THREE.Mesh(geom); mesh.updateMatrixWorld();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute([-6, 0, -3, 0.8, 0, -3, 0.8, 0, 3, -6, 0, 3,
+    -60, 0, -6, -60, 0, 6, 0.5, 0, 0], 3));
+  geom.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0.5], 2));
+  geom.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6]);
+  const mesh = new THREE.Mesh(geom);
+  mesh.userData.surface = "plaza";
+  W.groups.ground.add(mesh);
+  const stats = W.cutPavingAtFences();
+  assert.ok(stats.triangles >= 3, `cut ${stats.triangles}`);
   const tri = (t) => [0, 1, 2].map((k) => { const i = geom.index.getX(t + k); return [geom.attributes.position.getX(i), geom.attributes.position.getZ(i)]; });
-  const across = new Map();
-  for (let t = 0; t < geom.index.count; t += 3) { const l = W.fenceLinesAcross(tri(t)); if (l.length) across.set(t, l); }
-  assert.equal(across.size, 2, "both triangles lie across the fence");
-  let current = null;
-  const beyond = (x, z) => current.some((f) => { const a = (x - f.ax) * f.ux + (z - f.az) * f.uz; return a > -0.05 && a < f.L + 0.05 && f.side * (f.ux * (z - f.az) - f.uz * (x - f.ax)) > 0.03; });
-  W.cutCoverBy(mesh, (x, z) => beyond(x, z), 0.12, (t) => { current = across.get(t) || null; return Boolean(current); });
   let most = -Infinity, area = 0;
   for (let t = 0; t < geom.index.count; t += 3) {
     const [a, b, c] = tri(t);
     for (const p of [a, b, c]) most = Math.max(most, p[0]);
     area += Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
   }
-  assert.ok(most < 0.25, `nothing left past the fence: the furthest corner is at x = ${most.toFixed(2)}`);
-  assert.ok(area > 6 * 6 * 0.95, `the paving this side kept (${area.toFixed(1)} m²)`);
+  assert.ok(most < 0.01, `cut on the fence's line: the furthest corner is at x = ${most.toFixed(3)}`);
+  const kept = 6 * 6 + 0.5 * 12 * 60.5 * (1 - (0.5 / 60.5) ** 2);
+  assert.ok(Math.abs(area - kept) < 0.5, `the paving this side kept whole (${area.toFixed(2)} of ${kept.toFixed(2)} m²)`);
   // A cover that runs well on through a gap (3 m past) is not a bit, and is left alone.
   assert.equal(W.fenceLinesAcross([[-6, -3], [3, -3], [3, 3]]).length, 0);
   // The pass runs once every fence is laid, closings too.
-  assert.ok(parks.indexOf("cutPavingAtFences()") > parks.indexOf("closeFenceEnds();"));
+  assert.ok(parks.indexOf("cutPavingAtFences(") > parks.indexOf("closeFenceEnds();"));
+  assert.equal(stats.left, 0, "and the page's own count of what is left is nothing");
+});
+
+test("paving that carries on beyond a fence (paved both sides) is not cut", () => {
+  const W = fenceWorld();
+  W.layFence(sink(), 0, -10, 0, 10, 0, 1.8, 1);
+  assert.equal(W.fenceLinesAcross([[-6, -3], [0.8, -3], [0.8, 3]], () => false).length, 0, "beyond is not lawn");
+  assert.equal(W.fenceLinesAcross([[-6, -3], [0.8, -3], [0.8, 3]], (x) => x > 0).length, 1, "beyond is lawn");
 });
 
 test("a tree whose base touches a lawn is moved wholly onto it; one in paving stays", () => {

@@ -38,8 +38,8 @@ def _run(body: str, names: tuple[str, ...]) -> dict:
         consts += "\nconst GARAGE_ALIGN_SLACK_M = 0.3, GARAGE_MIN_W_M = 2.2;"
         names = (*names, "garageOnItsCut", "garageFrontBlocked")
     if "settleDoors" in names:
-        consts += "\nconst garageDoorStats = { moved: 0, measuredMoved: 0, dropped: 0, stuck: 0 };"
-        names = (*names, "moveDoorOffGarages")
+        consts += "\nconst garageDoorStats = { moved: 0, measuredMoved: 0, dropped: 0, stuck: 0, takenDown: 0 }; let garageMergedMeshes = null;"
+        names = (*names, "moveDoorOffGarages", "takeDownGarage")
     if "frontDoorSpot" in names:
         # A party wall never has the door; with buildingAt() empty, no wall is one.
         names = (*names, "partyWall", "wallPoint")
@@ -160,6 +160,37 @@ def test_a_photographed_door_under_a_garage_moves_beside_it_and_keeps_its_photog
     """, ("garageSpansOnEdge", "doorOn", "settleDoors"))
     assert result["n"] == 1 and result["source"] == 1 and result["photo"] and result["moved"] == 1
     assert abs(result["centre"] - 3.75) >= 1.3 + 0.5 + 0.35 - 1e-6
+
+
+def test_a_photographed_door_with_no_room_beside_the_garage_takes_the_garage_down() -> None:
+    # A 4 m front: a 2.6 m garage leaves no clear wall for a door beside it. The photographed door
+    # stays; the garage (only the kerb's) goes, and its drawn quad is folded to nothing.
+    result = _run(f"""
+    function distanceToSegmentSquared(px, pz, ax, az, bx, bz) {{
+      const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz || 1;
+      let t = ((px - ax) * dx + (pz - az) * dz) / L; t = Math.max(0, Math.min(1, t));
+      return (ax + dx * t - px) ** 2 + (az + dz * t - pz) ** 2;
+    }}
+    function insideFootprint(entry, x, z) {{ return x > 0 && x < 4 && z > 0 && z < 10; }}
+    function photoEntryDoor() {{ return null; }}
+    const way = {_house(0, 4)};
+    way.osm_id = 9;
+    way.garages = [{{ a: M(4, 0), b: M(0, 0), t: 0.5, w: 2.6, n: 0 }}];
+    // The merged garage quad at the door, 0.12 m out, and its record.
+    const quad = [[0.7, 0, -0.12], [3.3, 0, -0.12], [3.3, 2.7, -0.12], [0.7, 2.7, -0.12], [9, 0, 9]];
+    const pos = {{ count: 5, getX: (v) => quad[v][0], getY: (v) => quad[v][1], getZ: (v) => quad[v][2],
+      setXYZ: (v, x, y, z) => {{ quad[v] = [x, y, z]; }} }};
+    const merged = {{ isMesh: true, parent: {{}}, userData: {{ surface: "garage" }}, geometry: {{ attributes: {{ position: pos }} }} }};
+    const scene = {{ traverse: (f) => f(merged) }};
+    const GARAGE_DOORS = new Map([["k", {{ key: "k", building: "9", x: 2, z: -0.12, yaw: 0, w: 2.6, h: 2.7 }}]]);
+    const entry = {{ way, local: [[4, 0], [0, 0], [0, 10], [4, 10], [4, 0]] }};
+    entry.doors = [doorOn(entry, 0, 0.5, 1.0, 1)];
+    settleDoors(entry);
+    const spread = Math.max(...quad.slice(0, 4).map((p) => Math.hypot(p[0] - quad[0][0], p[2] - quad[0][2])));
+    console.log(JSON.stringify({{ doors: entry.doors.length, garages: way.garages.length, open: GARAGE_DOORS.size,
+      spread, other: quad[4][0], down: garageDoorStats.takenDown }}));
+    """, ("garageSpansOnEdge", "doorOn", "settleDoors"))
+    assert result == {"doors": 1, "garages": 0, "open": 0, "spread": 0, "other": 9, "down": 1}
 
 
 def test_a_narrow_house_with_two_cuts_in_front_gets_one_garage_door() -> None:

@@ -1043,7 +1043,9 @@ function cutCoverOffLots(mesh) {
 const ROAD_CUT_FINE_M = 0.3;
 //: (``only(t)``, where given, says which triangles -- by their first index -- are tested at all:
 //: the others are kept whole without a look.)
-function cutCoverBy(mesh, inside, fine, only = null) {
+//: (``exact(t, P)``, where given, may split a triangle exactly first -- [barycentric triangles], or
+//: null to leave it whole -- before the halving looks at what is left.)
+function cutCoverBy(mesh, inside, fine, only = null, exact = null) {
   const geom = mesh.geometry, pos = geom.attributes.position, index = geom.getIndex();
   const e = mesh.matrixWorld.elements, ox = e[12], oz = e[14];
   const names = Object.keys(geom.attributes), added = names.map(() => []);
@@ -1062,8 +1064,9 @@ function cutCoverBy(mesh, inside, fine, only = null) {
     if (only && !only(t)) { kept.push(ids[0], ids[1], ids[2]); continue; }
     const P = ids.map((i) => [pos.getX(i) + ox, pos.getZ(i) + oz]);
     const at = (w) => [w[0] * P[0][0] + w[1] * P[1][0] + w[2] * P[2][0], w[0] * P[0][1] + w[1] * P[1][1] + w[2] * P[2][1]];
-    const whole = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], stack = [whole], pieces = [];
-    let changed = false;
+    const whole = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], split = exact ? exact(t, P) : null;
+    const stack = split ? split.slice() : [whole], pieces = [];
+    let changed = Boolean(split);
     while (stack.length) {
       const q = stack.pop(), xy0 = q.map(at), inn = xy0.map(([x, z]) => (inside(x, z) ? 1 : 0)), n = inn[0] + inn[1] + inn[2];
       const mx = (xy0[0][0] + xy0[1][0] + xy0[2][0]) / 3, mz = (xy0[0][1] + xy0[1][1] + xy0[2][1]) / 3, mid = inside(mx, mz);
@@ -1096,15 +1099,19 @@ function cutCoverBy(mesh, inside, fine, only = null) {
 //: truly runs on through a gap in the fence, further than that, is left alone.
 const FENCE_BITE = { most_m: 1.5, fine_m: 0.12, slack_m: 0.03 };
 const FENCE_PAVED_SURFACES = /^(plaza|front_walk|neutral_ground|walk|inferred:paving|inferred:service|inferred:asphalt|service_yard|court|park:play_surface|park:skatepark_surface)$/;
-const fenceBiteStats = { meshes: 0, triangles: 0 };
+const fenceBiteStats = { bites: 0, meshes: 0, triangles: 0, left: 0 };
 //: The fence lines a triangle (page x / z corners) lies across, each with the side its bit is on:
 //: [{ax, az, ux, uz, L, side}] -- side the sign of the bit's offset from the line.
-function fenceLinesAcross(V) {
+//: ``lawnAt(x, z)``: whether the far side is lawn. Only a bite into a lawn is cut: paving that
+//: carries on beyond a fence (a yard paved both sides of it) keeps the triangle that lays it.
+function fenceLinesAcross(V, lawnAt = () => true) {
   const out = [];
-  const cx = (V[0][0] + V[1][0] + V[2][0]) / 3, cz = (V[0][1] + V[1][1] + V[2][1]) / 3;
-  const seen = new Set();
-  for (const line of fenceLinesNear(fenceLineGrid, cx, cz)) {
-    if (seen.has(line)) continue; seen.add(line);
+  // Every fence in the cells the triangle covers (a plaza's triangle can be tens of metres long).
+  const xs = V.map((p) => p[0]), zs = V.map((p) => p[1]), C = FENCE_LINE_CELL_M, seen = new Set(), lines = [];
+  for (let i = Math.floor(Math.min(...xs) / C); i <= Math.floor(Math.max(...xs) / C); i += 1)
+    for (let j = Math.floor(Math.min(...zs) / C); j <= Math.floor(Math.max(...zs) / C); j += 1)
+      for (const line of fenceLineGrid.get(`${i}:${j}`) || []) if (!seen.has(line)) { seen.add(line); lines.push(line); }
+  for (const line of lines) {
     const [ax, az, bx, bz] = line, L = Math.hypot(bx - ax, bz - az);
     if (!(L > 0.3)) continue;
     const ux = (bx - ax) / L, uz = (bz - az) / L;
@@ -1115,11 +1122,27 @@ function fenceLinesAcross(V) {
     // The bit is the smaller side; a cover reaching well past on both sides runs on through.
     const side = hi < -lo ? 1 : -1, bite = Math.min(hi, -lo);
     if (bite > FENCE_BITE.most_m) continue;
-    out.push({ ax, az, ux, uz, L, side });
+    // What is beyond, at the bite: a step off the line, square from the middle of its corners there.
+    const tips = V.filter((_, k) => side * sd[k] > FENCE_BITE.slack_m);
+    const ta = Math.min(L, Math.max(0, tips.reduce((t, [x, z]) => t + (x - ax) * ux + (z - az) * uz, 0) / tips.length));
+    if (!lawnAt(ax + ux * ta - uz * side * 0.3, az + uz * ta + ux * side * 0.3)) continue;
+    // ``alongside``: the triangle lies wholly beside the fence, end to end -- cut exactly on its
+    // line; one reaching past an end of it (a gap, a gate) is halved, and only beside the fence.
+    out.push({ ax, az, ux, uz, L, side, sd, alongside: Math.min(...along) >= -0.1 && Math.max(...along) <= L + 0.1 });
   }
   return out;
 }
-function cutPavingAtFences() {
+//: A polygon in barycentric corners clipped to where ``keep(w)`` is not negative (keep is linear).
+function clipBarycentric(poly, keep) {
+  const out = [];
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], ka = keep(a), kb = keep(b);
+    if (ka >= 0) out.push(a);
+    if ((ka >= 0) !== (kb >= 0)) { const s = ka / (ka - kb); out.push([0, 1, 2].map((c) => a[c] + (b[c] - a[c]) * s)); }
+  }
+  return out;
+}
+function cutPavingAtFences(lawnAt = () => true) {
   const meshes = [];
   groups.ground.traverse((o) => { if (o.isMesh && !o.isInstancedMesh && FENCE_PAVED_SURFACES.test(o.userData?.surface || "") && o.geometry?.getIndex?.()) meshes.push(o); });
   for (const mesh of meshes) {
@@ -1131,17 +1154,32 @@ function cutPavingAtFences() {
     const across = new Map();
     for (let t = 0; t < index.count; t += 3) {
       const V = [0, 1, 2].map((k) => { const i = index.getX(t + k); return [pos.getX(i) + ox, pos.getZ(i) + oz]; });
-      const lines = fenceLinesAcross(V);
+      const lines = fenceLinesAcross(V, lawnAt);
       if (lines.length) across.set(t, lines);
     }
+    fenceBiteStats.bites += across.size;
     if (!across.size) continue;
     let current = null;
     const beyond = (x, z) => current.some((f) => {
       const a = (x - f.ax) * f.ux + (z - f.az) * f.uz;
       return a > -0.05 && a < f.L + 0.05 && f.side * (f.ux * (z - f.az) - f.uz * (x - f.ax)) > FENCE_BITE.slack_m;
     });
-    const cut = cutCoverBy(mesh, (x, z) => (current ? beyond(x, z) : false), FENCE_BITE.fine_m, (t) => { current = across.get(t) || null; return Boolean(current); });
+    // The fences the triangle lies wholly beside: its part beyond each, cut off on the line.
+    const exactly = (t) => {
+      const lines = (across.get(t) || []).filter((f) => f.alongside);
+      if (!lines.length) return null;
+      let polys = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]];
+      for (const f of lines) polys = polys.map((poly) => clipBarycentric(poly, (w) => -f.side * (w[0] * f.sd[0] + w[1] * f.sd[1] + w[2] * f.sd[2]))).filter((poly) => poly.length >= 3);
+      return polys.flatMap((poly) => poly.slice(1, -1).map((_, k) => [poly[0], poly[k + 1], poly[k + 2]]));
+    };
+    const cut = cutCoverBy(mesh, (x, z) => (current ? beyond(x, z) : false), FENCE_BITE.fine_m, (t) => { current = (across.get(t) || []).filter((f) => !f.alongside); return Boolean(across.get(t)); }, exactly);
     if (cut) { fenceBiteStats.meshes += 1; fenceBiteStats.triangles += cut; }
+    // What is left after the cut, counted the same way (the measured check: 0 when it worked).
+    const after = geom.attributes.position;
+    for (let t = 0; t < geom.index.count; t += 3) {
+      const V = [0, 1, 2].map((k) => { const i = geom.index.getX(t + k); return [after.getX(i) + ox, after.getZ(i) + oz]; });
+      if (fenceLinesAcross(V, lawnAt).some((f) => Math.max(...f.sd.map((d) => d * f.side)) > 0.15)) fenceBiteStats.left += 1;
+    }
   }
   return fenceBiteStats;
 }
