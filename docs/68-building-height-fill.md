@@ -20,8 +20,8 @@ few dozen elsewhere.
 | 2 | **3dfier** 1.5.0 (Ledoux et al. 2021; TU Delft) | LoD1.2 block: the roof's 90th percentile over the ground's 10th | height; flat or pitched from the roof's percentile spread |
 | 3 | **GlobalBuildingAtlas** (Zhu et al. 2025; TUM) | LoD1 heights estimated from 3 m PlanetScope images; 1.5-8.9 m RMSE by continent | height only |
 
-A reading is used only if it is plausible (`plausible`: 2-330 m, and no more than 8 times the footprint's
-width). Otherwise the next source is tried. If no source gives a plausible height, the guess stays.
+A reading is used only if it is plausible (`plausible`: 2-330 m, or from 1 m on a footprint under 40 m², a shed
+or a kiosk; and no more than 8 times the footprint's width). Otherwise the next source is tried. If no source gives a plausible height, the guess stays.
 `height_source` records which source was used: `city3d_lod2`, `3dfier_lod12` or `gba_lod1`. The region
 activation counts City3D and 3dfier heights as lidar heights.
 
@@ -59,6 +59,8 @@ and roofs share a class. Santa Clara's survey labels buildings (class 6) and veg
 - Where a cell's survey labels buildings, only building returns are used as roofs (`roof_classes`).
 - Elsewhere, a 3dfier reading whose roof spreads more than 3 m and more than 60% of its height is rejected
   as canopy.
+- City3D is given ground returns only outside the outline. They pin the model's foot, and a yard inside a
+  footprint is never read as its roof.
 
 ## Running it
 ```bash

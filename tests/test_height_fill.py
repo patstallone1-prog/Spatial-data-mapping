@@ -4,6 +4,7 @@ for buildings whose height was a guess."""
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 from smc.buildings.height_fill import (
     FILLABLE,
@@ -62,6 +63,8 @@ def test_an_implausible_reading_falls_through_to_the_next_source():
     fill_heights(ways, readings, gba)
     assert ways[0]["height_source"] == "gba_lod1" and ways[0]["height_m"] == 8.4
     assert not plausible(90.0, 80.0) and not plausible(1.1) and plausible(326.0, 2500.0)
+    # A shed may be that low; a house-sized footprint may not.
+    assert plausible(1.3, 12.0) and not plausible(1.3, 120.0) and not plausible(0.6, 12.0)
 
 
 def test_the_atlas_is_found_by_its_osm_way_or_else_by_the_outline_it_overlaps():
@@ -127,3 +130,43 @@ def test_roofs_published_are_pitched_ones_with_a_real_rise():
     assert roof_entry("city3d", {"roof": "hipped", "roof_height_m": 9.0}, 8.0)["roof_height_m"] == 4.0
     for r in ({"roof": "flat"}, {"roof": "complex", "roof_height_m": 3}, {"roof": "gabled", "roof_height_m": 0.4}):
         assert roof_entry("city3d", r, 10.0) is None
+
+
+ROOT = Path(__file__).resolve().parents[1]
+FILL_SCRIPT = ROOT / "scripts/fill_building_heights.py"
+GBA_SCRIPT = ROOT / "scripts/fetch_gba_heights.py"
+
+
+def _script(path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_the_fill_script_reads_3dfier_thins_for_city3d_and_picks_roof_classes():
+    import numpy as np
+    fill = _script(FILL_SCRIPT)
+    # 3dfier's CSV header, as 1.5.0 writes it: the ground at its 10th percentile.
+    row = dict(zip(["id", "ground-0.00", "ground-0.10", "ground-0.50", "roof-0.10", "roof-0.25", "roof-0.90", "roof-0.99"],
+                   ["42", "-0.09", "-0.03", "0.00", "6.88", "7.26", "8.77", "8.97"], strict=True))
+    cols = fill._tdf_columns(row)
+    assert cols["ground"] == "-0.03" and tdf_reading(cols)["height_m"] == 8.8
+    # One return per column, the highest.
+    pts = np.array([[0.05, 0.05, 1.0], [0.1, 0.1, 3.0], [0.9, 0.9, 2.0]])
+    assert sorted(fill._thin(pts, 0.3)[:, 2].tolist()) == [2.0, 3.0]
+
+    class Cloud:
+        def __init__(self, classes):
+            self.classification = np.array(classes)
+    assert fill.roof_classes(Cloud([2, 6, 6, 1, 5])) == [6]          # Santa Clara: buildings labelled
+    assert fill.roof_classes(Cloud([2, 1, 1, 1, 2])) == [1, 6]       # San Francisco: not
+
+
+def test_the_atlas_fetch_projects_web_mercator_and_keeps_only_the_regions():
+    gba = _script(GBA_SCRIPT)
+    lon, lat = gba.lonlat(-13604249.6, 4554813.7)
+    assert abs(lon + 122.208) < 0.01 and abs(lat - 37.8) < 0.05
+    boxes = gba.Boxes([(-122.45, 37.78, -122.39, 37.81)])
+    assert boxes.has(-122.42, 37.80) and not boxes.has(-122.30, 37.80)

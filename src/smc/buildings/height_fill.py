@@ -73,9 +73,15 @@ def ring_area(ring: list[tuple[float, float]]) -> float:
     return abs(sum(ring[i][0] * ring[i - 1][1] - ring[i - 1][0] * ring[i][1] for i in range(len(ring)))) / 2.0
 
 
+#: A shed, a kiosk or a utility hut stands 1-2 m; on a footprint this small a reading that low is
+#: the structure, and the 10.5 m default it replaces is far worse.
+SMALL_M2, SMALL_MIN_H = 40.0, 1.0
+
+
 def plausible(height: float | None, area_m2: float | None = None) -> bool:
     """A height a building could have on this footprint."""
-    if height is None or not math.isfinite(height) or not MIN_H <= height <= MAX_H:
+    low = SMALL_MIN_H if area_m2 and 0 < area_m2 < SMALL_M2 else MIN_H
+    if height is None or not math.isfinite(height) or not low <= height <= MAX_H:
         return False
     return not (area_m2 and area_m2 > 0 and height > MAX_SLENDERNESS * math.sqrt(area_m2))
 

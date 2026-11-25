@@ -168,7 +168,10 @@ def run_city3d(cloud, ring, work: Path, classes: list[int] | None = None) -> dic
     if ground.size < 8:
         return {"failed": "no ground at the foot"}
     base = float(np.median(ground))
-    keep = (u - base >= -0.3) & (np.isin(c, classes or [1, 6]) | (c == CLASS_GROUND))
+    # Ground returns only outside the outline: they pin the model's foot to the ground, and
+    # none inside is left for City3D to take for a roof (a shed's yard read as its roof).
+    outside = ~_inside_mask(ring, e, n)
+    keep = (u - base >= -0.3) & (np.isin(c, classes or [1, 6]) | ((c == CLASS_GROUND) & outside))
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     pts = _thin(np.column_stack((e[keep] - cx, n[keep] - cy, u[keep] - base)), THIN_M)
     if pts.shape[0] < CITY3D_MIN_POINTS * 2:
