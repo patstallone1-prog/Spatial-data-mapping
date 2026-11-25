@@ -1,0 +1,531 @@
+{
+ "model": "the-grateful-dog",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 1: 3 views",
+ "notes": "Photo 2 shows a different stretch of the block, so the model is read from the grid and photos 3 and 4. There is no repeated module. The top of the bay rises above the grid, so the false-front height is estimated. The white ground-floor trim is modelled as a belt plus thin trim strips. The street tree stands beyond u = L and was left out.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.5,
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.1
+    },
+    {
+     "v": 3.1,
+     "h": 4.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.2,
+    "depth": 0.3,
+    "colour": "#e6e0d4",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.2,
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#c6a98d",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#efebe3",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "bay-left",
+     "kind": "bay",
+     "u": 0.1,
+     "w": 2.8,
+     "v0": 4.0,
+     "v1": 7.3,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "wood_siding",
+     "colour": "#c6a98d",
+     "trim_colour": "#efebe3",
+     "v": 4.6,
+     "h": 2.3499999999999996,
+     "projection_from": "photos"
+    },
+    {
+     "id": "win-right",
+     "kind": "window",
+     "u": 4.3,
+     "v": 5.2,
+     "w": 1.7,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efebe3",
+     "pane_colour": "#3a3d40",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "flat-door",
+     "kind": "door",
+     "u": 6.3,
+     "v": 0.0,
+     "w": 0.8,
+     "h": 2.3,
+     "shape": "rect",
+     "colour": "#f2f0ea",
+     "glazed": true
+    },
+    {
+     "id": "flat-transom",
+     "kind": "window",
+     "u": 6.3,
+     "v": 2.35,
+     "w": 0.8,
+     "h": 0.5,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#efebe3",
+     "pane_colour": "#2a2c2e",
+     "depth": 0.08,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      0.05,
+      2.95,
+      5.9,
+      6.2,
+      7.2
+     ],
+     "w": 0.14,
+     "v0": 0.0,
+     "v1": 3.0,
+     "depth": 0.04,
+     "colour": "#efebe3",
+     "groove_colour": "#efebe3",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 2.95,
+     "h": 0.12,
+     "colour": "#efebe3",
+     "depth": 0.04,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 2.25,
+     "v": 2.4,
+     "w": 0.6,
+     "h": 0.22,
+     "colour": "#1e1e1e",
+     "depth": 0.02,
+     "id": "w1:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-grateful-dog",
+     "business_id": "mb-7f5bc05c22bc",
+     "category": "shop",
+     "brand": null,
+     "name": "The Grateful Dog",
+     "u0": 0,
+     "u1": 7.49,
+     "band_h": 3.0,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#c6a98d",
+      "accent": "#c4262e",
+      "frame": "#efebe3",
+      "base": "#c6a98d",
+      "letter": "#2a2a2a",
+      "metal": "#9a9a9a",
+      "glass": "#3a3d40"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "gd-door",
+       "kind": "door",
+       "u": 1.8,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.05,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "gd-garage",
+       "kind": "door",
+       "u": 3.1,
+       "v": 0.0,
+       "w": 2.7,
+       "h": 2.8,
+       "leaf_count": 1,
+       "operation": "roll_up",
+       "glazed": false
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "gd-banner",
+       "kind": "board",
+       "u": 0.8,
+       "v": 3.05,
+       "w": 3.2,
+       "h": 0.9,
+       "offset": 0.03,
+       "thick": 0.03,
+       "bg": "#e39a3a",
+       "edge_colour": "#f2efe6",
+       "layers": [
+        {
+         "type": "rect",
+         "x": 0.5,
+         "y": 0.1,
+         "w": 1.0,
+         "h": 0.2,
+         "fill": "#f2efe6"
+        },
+        {
+         "type": "text",
+         "text": "The Grateful Dog",
+         "x": 0.5,
+         "y": 0.1,
+         "size": 0.17,
+         "fill": "#2a2a2a",
+         "font": "Georgia, serif",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "gd-wallsign",
+       "kind": "board",
+       "u": 0.2,
+       "v": 1.1,
+       "w": 1.2,
+       "h": 0.8,
+       "offset": 0.02,
+       "thick": 0.02,
+       "bg": "#f4f4f2",
+       "edge_colour": "#cfcfcf",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.3,
+         "r": 0.15,
+         "fill": "#4a4a8a"
+        },
+        {
+         "type": "text",
+         "text": "The Grateful Dog",
+         "x": 0.5,
+         "y": 0.68,
+         "size": 0.15,
+         "fill": "#3a3a6a",
+         "font": "Georgia, serif",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "gd-paw",
+       "kind": "window_vinyl",
+       "u": 2.05,
+       "v": 1.28,
+       "w": 0.48,
+       "h": 0.48,
+       "offset": 0.01,
+       "thick": 0.01,
+       "bg": "#f4f4f2",
+       "edge_colour": "#1e1e1e",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.6,
+         "r": 0.25,
+         "fill": "#1e1e1e"
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1003372463743621",
+       "177537948090545",
+       "197888876051053",
+       "2949664988635026"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "177537948090545",
+     "197888876051053",
+     "2949664988635026"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

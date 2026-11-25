@@ -294,6 +294,35 @@ def compare(manual: dict, auto: dict) -> dict:
         if tm or ta:
             s, _ = f1(tm, ta, lambda r, g: 2 - abs(r["u"] - g["u"]) if abs(r["u"] - g["u"]) <= 1.5 else 0)
             check("trees", e, s >= 0.67, f1=round(s, 2), manual=[t["u"] for t in tm], auto=[t["u"] for t in ta])
+    # depth: what stands off the wall (or into it), which a flat reading cannot have
+    rm, ra = manual.get("roof") or {}, auto.get("roof") or {}
+    cm, ca = (rm.get("cornice") or {}).get("depth"), (ra.get("cornice") or {}).get("depth")
+    if cm is not None:
+        check("cornice projection", None, ca is not None and abs(cm - ca) <= 0.08, manual=cm, auto=ca, depth=True)
+    if rm.get("parapet_h") is not None:
+        check("parapet", None, ra.get("parapet_h") is not None and abs(rm["parapet_h"] - ra["parapet_h"]) <= 0.2,
+              manual=rm.get("parapet_h"), auto=ra.get("parapet_h"), depth=True)
+    for e in read_walls(manual):
+        wm, wa = manual["walls"][e], auto["walls"][e]
+        bm = [o for o in wm.get("openings", []) if o.get("kind") == "bay"]
+        ba = [o for o in wa.get("openings", []) if o.get("kind") == "bay"]
+        if bm or ba:
+            check("bays", e, len(bm) == len(ba) and all(abs(x.get("projection", 0.6) - y.get("projection", 0.6)) <= 0.2
+                                                      for x, y in zip(sorted(bm, key=lambda o: o["u"]), sorted(ba, key=lambda o: o["u"]))),
+                  manual=len(bm), auto=len(ba), depth=True)
+        km, ka = wm.get("balconies") or [], wa.get("balconies") or []
+        if km or ka:
+            check("balconies", e, len(km) == len(ka), manual=len(km), auto=len(ka), depth=True)
+        rvm = [o.get("depth") for o in wm.get("openings", []) if o.get("kind") == "window" and o.get("depth")]
+        rva = [o.get("depth") for o in wa.get("openings", []) if o.get("kind") == "window" and o.get("depth")]
+        if rvm:
+            check("window reveal", e, bool(rva) and abs(float(np.median(rvm)) - float(np.median(rva))) <= 0.05,
+                  manual=float(np.median(rvm)), auto=float(np.median(rva)) if rva else None, depth=True)
+        adm = [a.get("depth_m") for s_ in manual.get("storefronts", []) if s_.get("edge") == e for a in s_.get("awnings") or [] if a.get("depth_m")]
+        ada = [a.get("depth_m") for s_ in auto.get("storefronts", []) if s_.get("edge") == e for a in s_.get("awnings") or [] if a.get("depth_m")]
+        if adm:
+            check("awning projection", e, bool(ada) and abs(float(np.median(adm)) - float(np.median(ada))) <= 0.3,
+                  manual=float(np.median(adm)), auto=float(np.median(ada)) if ada else None, depth=True)
     passed = sum(c["pass"] for c in checks)
     return {"model": manual["id"], "agreement": round(passed / max(1, len(checks)), 3),
             "passed": passed, "checks": len(checks), "detail": checks}
@@ -371,9 +400,9 @@ def photo_agreement(m: dict, e: int, npz: Path) -> dict | None:
     return out
 
 
-def score(mid: str) -> dict:
+def score(mid: str, folder: str = "auto") -> dict:
     manual = json.loads((MODELS / f"{mid}.json").read_text())
-    auto = json.loads((AUTO_MODELS / f"{mid}.json").read_text())
+    auto = json.loads((MODELS / folder / f"{mid}.json").read_text())
     res = compare(manual, auto)
     photo = {}
     for e in read_walls(manual):

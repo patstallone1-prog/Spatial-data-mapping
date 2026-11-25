@@ -1,0 +1,475 @@
+{
+ "model": "a16",
+ "read_by": "kerbfront qwen (qwen/qwen4-max, deep, reasoning high)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 8.9,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 12",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 3.1
+    },
+    {
+     "v": 3.1,
+     "h": 2.39
+    },
+    {
+     "v": 5.49,
+     "h": 3.41
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.colour",
+   "value": "#8a3b2a",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.material",
+   "value": "brick",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.openings",
+   "value": [
+    {
+     "id": "w12:a0.95",
+     "kind": "window",
+     "u": 0.95,
+     "v": 3.18,
+     "w": 1.05,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      2
+     ]
+    },
+    {
+     "id": "w12:a2.17",
+     "kind": "window",
+     "u": 2.17,
+     "v": 3.18,
+     "w": 1.09,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      2
+     ]
+    },
+    {
+     "id": "w12:a4.84",
+     "kind": "window",
+     "u": 4.84,
+     "v": 3.18,
+     "w": 1.08,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      2
+     ]
+    },
+    {
+     "id": "w12:a6.06",
+     "kind": "window",
+     "u": 6.06,
+     "v": 3.18,
+     "w": 1.11,
+     "h": 1.72,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      2
+     ]
+    },
+    {
+     "id": "w12:a0.94",
+     "kind": "window",
+     "u": 0.94,
+     "v": 6.39,
+     "w": 1.07,
+     "h": 1.75,
+     "shape": "arched",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      4
+     ]
+    },
+    {
+     "id": "w12:a2.2",
+     "kind": "window",
+     "u": 2.2,
+     "v": 6.39,
+     "w": 1.07,
+     "h": 1.75,
+     "shape": "arched",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      4
+     ]
+    },
+    {
+     "id": "w12:a4.82",
+     "kind": "window",
+     "u": 4.82,
+     "v": 6.39,
+     "w": 1.11,
+     "h": 1.75,
+     "shape": "arched",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      4
+     ]
+    },
+    {
+     "id": "w12:a6.08",
+     "kind": "window",
+     "u": 6.08,
+     "v": 6.39,
+     "w": 1.11,
+     "h": 1.75,
+     "shape": "arched",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      2,
+      4
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.belts",
+   "value": [
+    {
+     "v": 3.0,
+     "h": 0.2,
+     "colour": "#5a4a3a",
+     "depth": 0.15
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.12.trim_colour",
+   "value": "#5a4a3a",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-a16",
+     "business_id": "mb-9140aa42bab6",
+     "name": "A16",
+     "edge": 12,
+     "u0": 0.0,
+     "u1": 7.17,
+     "band_h": 3.1,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-a16:g0",
+       "kind": "window",
+       "u": 0.2,
+       "v": 0.2,
+       "w": 2.1,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-a16:g1",
+       "kind": "window",
+       "u": 3.6,
+       "v": 0.2,
+       "w": 3.4,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-a16:door0",
+       "kind": "door",
+       "u": 2.6,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-a16:awn0",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 7.17,
+       "v": 3.1,
+       "depth_m": 1.0,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#3a3a3a",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": false,
+       "material": "metal_panel"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "816644822761650",
+       "800216694189649"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-a16:sign0",
+       "kind": "board",
+       "u": 2.4,
+       "v": 3.0,
+       "w": 1.2,
+       "h": 0.4,
+       "bg": "#2e6b4a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "A 16",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      },
+      {
+       "id": "sf-a16:sign1",
+       "kind": "blade",
+       "u": 3.5,
+       "v": 3.2,
+       "w": 1.0,
+       "h": 0.5,
+       "bg": "#1f1f1f",
+       "layers": [
+        {
+         "type": "text",
+         "text": "A 16",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "800216694189649",
+     "816644822761650"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.2,
+    "depth": 0.1,
+    "colour": "#8a3b2a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.1,
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "walls.12.trim_colour",
+   "value": "#e8e4dc",
+   "evidence": {
+    "frames": [
+     "816644822761650",
+     "800216694189649"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "qwen-sidewalk_strip-12-0",
+     "kind": "parklet",
+     "edge": 12,
+     "u0": 0.0,
+     "u1": 7.17,
+     "zone": "sidewalk"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "800216694189649",
+     "816644822761650"
+    ],
+    "how": "qwen/qwen4-max reading of the registered elevation",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

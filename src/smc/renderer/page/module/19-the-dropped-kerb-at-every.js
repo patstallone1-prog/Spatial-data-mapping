@@ -1274,6 +1274,7 @@ const STOP_ZONE = { behind: 18.0, ahead: 2.0, from: 0.25, width: 3.0, line: 0.15
 const stopMaterials = {
   frame: new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 }),
   roof: new THREE.MeshStandardMaterial({ color: STOP_ROOF_RED, roughness: 0.45, metalness: 0.25 }),
+  // A shelter's panels are glass (module 02 realGlass, below).
   glass: new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, metalness: 0.1, transparent: true,
     opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
   seat: new THREE.MeshStandardMaterial({ color: 0x8c949a, roughness: 0.5, metalness: 0.4 }),
@@ -1281,6 +1282,8 @@ const stopMaterials = {
   island: new THREE.MeshStandardMaterial({ color: 0xb9b6ad, roughness: 0.9 }),
   islandEdge: new THREE.MeshStandardMaterial({ color: 0xe8c547, roughness: 0.7 }),
 };
+realGlass(stopMaterials.glass, { paneUv: true });   // a box's every face runs 0 to 1
+
 //: A part of a stop as a unit box scaled and placed in the stop's own frame: x along the kerb,
 //: y up, z towards the road (the open side of a shelter faces the road).
 const SHELTER_PARTS = [
@@ -1335,6 +1338,7 @@ function instanceParts(parts, placements, surface) {
     mesh.computeBoundingSphere();
     mesh.userData.surface = surface;
     mesh.userData.liftedOntoGround = true;
+    if (stopMaterials[materialName].userData.realGlass) mesh.castShadow = false;   // glass casts none
     groups.furniture.add(mesh);
   }
   return placements.length;

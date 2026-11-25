@@ -40,3 +40,4 @@ and several were fixed once already and came back in a different form.
 | What | Seen | Where it comes from |
 |---|---|---|
 | Dark road shapes while a region loads | Blue-grey road sheets and dark terrain wedges along the I-880 approaches by Lake Merritt for the seconds before the detailed streets arrive | The far tiles' coarse road sheets over the coarse terrain; they go when the region is drawn in full |
+| Store-only regions draw roads only on a local server | Served from `127.0.0.1`, most regions jump in with roads only and keep retrying "Loading … in full"; the same regions load in full on the live site | Their payloads live only in the cloud store, reached through `docs/asset-map.json`, whose `origins` let only the site's own origin read it. A local page falls back to `docs/regions/`, where only a few regions have copies. Benchmark and sample those regions on the live site, or proxy `/store/` from it |

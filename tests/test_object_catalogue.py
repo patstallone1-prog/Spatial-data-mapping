@@ -103,7 +103,8 @@ def test_the_page_resolves_every_name_as_python_does() -> None:
     script = (f"import {{createCatalogue}} from {json.dumps(MODULE.as_uri())};\n"
               f"const c = createCatalogue({data});\n"
               f"console.log(JSON.stringify({json.dumps(names)}.map((n) => c.resolve(n))));")
-    out = subprocess.run([NODE, "--input-type=module", "-e", script], capture_output=True, text=True, timeout=60)
+    # on stdin: the catalogue is past the 128 KB a single argument may be on Linux
+    out = subprocess.run([NODE, "--input-type=module"], input=script, capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout) == [catalogue.resolve(n) for n in names]
 
@@ -149,7 +150,8 @@ const out = {{
 }};
 console.log(JSON.stringify(out));
 """
-    out = subprocess.run([NODE, "--input-type=module", "-e", script], capture_output=True, text=True, timeout=60)
+    # on stdin: the catalogue is past the 128 KB a single argument may be on Linux
+    out = subprocess.run([NODE, "--input-type=module"], input=script, capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
     assert result["pole"] and result["poleClose"] and not result["clearOfPole"]

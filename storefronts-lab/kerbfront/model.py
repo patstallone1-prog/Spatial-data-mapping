@@ -444,6 +444,8 @@ def build(name_or_id: str, area: str = "marina-union") -> dict:
         "frame": "local metres: x east, y north, z up",
         "building_id": bd.id, "app_building": (bf.get("kerbside") or {}).get("osm_id"),
         "footprint": [list(p) for p in ring], "height_m": height, "floors": floors,
+        # the LiDAR outline before simplifying: it traces cantilevered bays (bay_depth reads them)
+        "outline": [list(loc(p)) for p in list(bd.poly.exterior.coords)[:-1]],
         "roof": roof, "walls": walls, "storefronts": [sf], "seating": seating, "street": st,
         "context": ctx, "photos": [],
         "facts": {"year_built": asm.get("year_property_built"), "stories": stories,
@@ -507,7 +509,7 @@ def write(model: dict) -> Path:
 
 
 def photos_for_wall(model: dict, edge: int, u: tuple[float, float] | None = None, k: int = 4,
-                    area: str = "marina-union", since: str | None = None) -> list[dict]:
+                    area: str = "marina-union", since: str | None = None, detail: bool = False):
     """More frames for one wall of a model (a corner building's second street, a parklet's
     stretch): the stage-1 filter run against that wall, appended to ``model["photos"]``."""
     from .faces import Face
@@ -557,6 +559,8 @@ def photos_for_wall(model: dict, edge: int, u: tuple[float, float] | None = None
                       "position_source": f.get("position_source"), "wall": edge,
                       "licence": "CC BY-SA 4.0 (c) Mapillary contributors"})
     model["photos"].extend(added)
+    if detail:  # the geometry rows too (aim, range, view), the face and frame metadata
+        return added, picks, fmeta, face
     return added
 
 
@@ -571,3 +575,30 @@ def street_for_wall(model: dict, edge: int, area: str = "marina-union") -> dict:
     st = street_for({"street": model["walls"][edge].get("street"), "p0": (a[0] + ox, a[1] + oy),
                      "p1": (b[0] + ox, b[1] + oy)}, frame, (ox, oy))
     return {"edge": edge, **st}
+
+
+def bay_depth(model: dict, edge: int, u: float, w: float, lo: float = 0.2, hi: float = 1.5) -> float | None:
+    """How far a bay at ``u``..``u + w`` on wall ``edge`` stands out of the wall, read from the
+    LiDAR outline (``model["outline"]``): the outline's furthest point outside the simplified
+    wall line within the bay's span. None when the outline shows no bay there (the LiDAR missed
+    it, or the bay is shallower than ``lo``)."""
+    from shapely.geometry import LineString, Polygon as _P
+    pts = model.get("outline") or []
+    if len(pts) < 3:
+        return None
+    ring = model["footprint"]
+    a, b = ring[edge], ring[(edge + 1) % len(ring)]
+    L = math.dist(a, b)
+    tx, ty = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, ny = ty, -tx  # outward for a counter-clockwise ring
+    # sample the outline's boundary densely (vertices alone miss a bay face between them)
+    line = LineString(list(pts) + [pts[0]])
+    best = 0.0
+    for k in range(int(line.length / 0.1) + 1):
+        q = line.interpolate(k * 0.1)
+        dx, dy = q.x - a[0], q.y - a[1]
+        along, out = dx * tx + dy * ty, dx * nx + dy * ny
+        if u + 0.15 <= along <= u + w - 0.15 and 0 < out <= hi:
+            best = max(best, out)
+    return round(best, 2) if best >= lo else None
+

@@ -301,6 +301,7 @@ function addTransitIslands() {
   const post = new THREE.MeshStandardMaterial({ color: 0x5f676b, roughness: 0.45, metalness: 0.55 });
   const glass = new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.05, transparent: true, opacity: 0.3,
     side: THREE.DoubleSide, depthWrite: false });
+  realGlass(glass);
   const seat = new THREE.MeshStandardMaterial({ color: 0x8c949a, roughness: 0.5, metalness: 0.4 });
   const parts = new Map();
   const add = (material, x, y, z, w, h, d, yaw) => {

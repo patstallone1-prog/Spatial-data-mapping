@@ -1,0 +1,1194 @@
+{
+ "model": "golden-gate-market-deli-and-liquor",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 4: 2 views; wall 5: 4 views",
+ "notes": "The grid is shifted about +1.4 m: the building's left corner sits at grid u\u22481.4 and the neighbouring one-storey building fills grid 0-1.4. Positions are therefore measured from the true corners, and the overlay sits about 1.4 m left of the photo features. The two bays are on a 4.2 m period, centred with about 0.8 m margins. The tile pent roof over the fabric awning is modelled as a shed awning. The blade sign lettering is illegible, so only its emblem is drawn. | Positions are read from the whole-wall photo using the left corner; the grid's ground-floor smear runs about 0.5 m to the right of them. The upper wall is tan stucco to about u=15.4; beyond that is a dark fenced or shed area next to the neighbour. The roof height uses the grid (about 7.9 m) rather than LiDAR (9.7 m). The one-storey wood addition is painted red in 2021 and pale blue-white in 2016. Its small windows have dark brown frames. I left out the PIZZA-BY-THE-SLICE lettering and the mural because they belong to a tenant not on record. The high-left realty billboard (old 'GATE LIQUORS' gh",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.7,
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.6
+    },
+    {
+     "v": 4.6,
+     "h": 4.4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.65,
+    "depth": 0.5,
+    "colour": "#e3d8bc",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.7,
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#c8b38a",
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.trim_colour",
+   "value": "#e6dcc0",
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.openings",
+   "value": [
+    {
+     "id": "bay-l",
+     "kind": "bay",
+     "u": 0.8,
+     "w": 2.85,
+     "v0": 5.1,
+     "v1": 8.55,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#c8b38a",
+     "trim_colour": "#e6dcc0",
+     "cap": {
+      "h": 0.4,
+      "colour": "#e3d8bc",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.699999999999999,
+     "h": 2.500000000000001,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-l",
+     "kind": "bay",
+     "u": 5.0,
+     "w": 2.85,
+     "v0": 5.1,
+     "v1": 8.55,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#c8b38a",
+     "trim_colour": "#e6dcc0",
+     "cap": {
+      "h": 0.4,
+      "colour": "#e3d8bc",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.699999999999999,
+     "h": 2.500000000000001,
+     "projection_from": "photos"
+    },
+    {
+     "id": "w-entry",
+     "kind": "window",
+     "u": 0.5,
+     "v": 3.6,
+     "w": 0.75,
+     "h": 0.5,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#e6dcc0",
+     "pane_colour": "#5a5f60",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "d-2765",
+     "kind": "door",
+     "u": 0.6,
+     "v": 0.15,
+     "w": 0.8,
+     "h": 2.15,
+     "shape": "rect",
+     "colour": "#ece9e0",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.pilasters",
+   "value": [
+    {
+     "u": [
+      0.35,
+      1.5
+     ],
+     "w": 0.25,
+     "v0": 0.0,
+     "v1": 3.4,
+     "depth": 0.08,
+     "colour": "#e8e6df",
+     "groove_colour": "#cfcac0",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w4:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.friezes",
+   "value": [
+    {
+     "v": 8.95,
+     "h": 0.35,
+     "colour": "#e3d8bc",
+     "motif": "dentil",
+     "motif_colour": "#c8b38a",
+     "spacing": 0.45,
+     "depth": 0.1,
+     "id": "w4:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.belts",
+   "value": [
+    {
+     "v": 5.0,
+     "h": 0.2,
+     "colour": "#e6dcc0",
+     "depth": 0.15,
+     "id": "w4:bel0"
+    },
+    {
+     "v": 3.4,
+     "h": 0.12,
+     "colour": "#e6dcc0",
+     "depth": 0.08,
+     "id": "w4:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.ornaments",
+   "value": [
+    {
+     "kind": "bracket",
+     "u": 1.2,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn0"
+    },
+    {
+     "kind": "bracket",
+     "u": 2.2,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn1"
+    },
+    {
+     "kind": "bracket",
+     "u": 3.2,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn2"
+    },
+    {
+     "kind": "bracket",
+     "u": 5.4,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn3"
+    },
+    {
+     "kind": "bracket",
+     "u": 6.4,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn4"
+    },
+    {
+     "kind": "bracket",
+     "u": 7.4,
+     "v": 4.75,
+     "w": 0.25,
+     "h": 0.3,
+     "colour": "#e6dcc0",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w4:orn5"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-golden-gate-market-deli-and-liquor",
+     "business_id": "mb-1b3fc1608e6c",
+     "category": "shop",
+     "brand": null,
+     "name": "Golden Gate Market Deli and Liquor",
+     "u0": 1.3,
+     "u1": 8.62,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#c8b38a",
+      "accent": "#6e2a2a",
+      "frame": "#9a2a22",
+      "base": "#9c8a6e",
+      "letter": "#f4efe4",
+      "metal": "#8a8a86",
+      "glass": "#3e4447"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "gg:g0",
+       "kind": "window",
+       "u": 1.55,
+       "v": 1.0,
+       "w": 2.45,
+       "h": 1.55,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "gg:door",
+       "kind": "door",
+       "u": 4.2,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.5,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "gg:g1",
+       "kind": "window",
+       "u": 5.6,
+       "v": 0.4,
+       "w": 2.9,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "gg-tile",
+       "kind": "shed",
+       "u0": 1.4,
+       "u1": 8.62,
+       "v": 4.2,
+       "depth_m": 0.8,
+       "drop_m": 0.6,
+       "valance_h": 0.0,
+       "colour": "#7e2e2a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": false
+      },
+      {
+       "id": "gg-fabric",
+       "kind": "shed",
+       "u0": 1.3,
+       "u1": 8.62,
+       "v": 3.15,
+       "depth_m": 0.9,
+       "drop_m": 0.45,
+       "valance_h": 0.3,
+       "colour": "#6e2a2a",
+       "stripe": null,
+       "valance_text": "GOLDEN GATE MARKET & DELI   ATM   BEER\u00b7WINE\u00b7LIQUOR",
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "gg-blade",
+       "kind": "blade",
+       "u": 3.9,
+       "v": 4.9,
+       "w": 0.9,
+       "h": 1.3,
+       "offset": 0.6,
+       "thick": 0.15,
+       "bg": "#d2452a",
+       "edge_colour": "#222222",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.45,
+         "r": 0.3,
+         "fill": "#e8762e"
+        }
+       ]
+      },
+      {
+       "id": "gg-atm",
+       "kind": "board",
+       "u": 6.0,
+       "v": 3.0,
+       "w": 0.6,
+       "h": 0.4,
+       "offset": 0.05,
+       "thick": 0.03,
+       "bg": "#2f6b3a",
+       "edge_colour": "#f0e8c8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BAY ATM",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.4,
+         "fill": "#f4efe4",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 4,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1701887319999674",
+       "2509815832497998",
+       "800888010574851"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 0.9,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 2.8,
+     "colour": "#8a8a86",
+     "edge": 4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1701887319999674",
+     "2509815832497998",
+     "800888010574851"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.colour",
+   "value": "#d4c08e",
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.trim_colour",
+   "value": "#ece6d6",
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.openings",
+   "value": [
+    {
+     "id": "up1",
+     "kind": "window",
+     "u": 1.65,
+     "v": 4.65,
+     "w": 0.95,
+     "h": 1.05,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece6d6",
+     "pane_colour": "#3a3d3e",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up2",
+     "kind": "window",
+     "u": 4.45,
+     "v": 4.7,
+     "w": 1.0,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece6d6",
+     "pane_colour": "#3a3d3e",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up3",
+     "kind": "window",
+     "u": 6.5,
+     "v": 4.65,
+     "w": 0.5,
+     "h": 1.05,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece6d6",
+     "pane_colour": "#3a3d3e",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up4",
+     "kind": "window",
+     "u": 9.2,
+     "v": 4.65,
+     "w": 0.95,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece6d6",
+     "pane_colour": "#3a3d3e",
+     "depth": 0.1,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 11.3,
+     "v": 4.6,
+     "w": 0.4,
+     "h": 1.0,
+     "colour": "#a9a9a4",
+     "depth": 0.1,
+     "id": "w5:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-golden-gate-market-deli-and-liquor",
+     "business_id": "mb-1b3fc1608e6c",
+     "category": "shop",
+     "brand": null,
+     "name": "Golden Gate Market Deli and Liquor",
+     "u0": 1.3,
+     "u1": 8.62,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#c8b38a",
+      "accent": "#6e2a2a",
+      "frame": "#9a2a22",
+      "base": "#9c8a6e",
+      "letter": "#f4efe4",
+      "metal": "#8a8a86",
+      "glass": "#3e4447"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "gg:g0",
+       "kind": "window",
+       "u": 1.55,
+       "v": 1.0,
+       "w": 2.45,
+       "h": 1.55,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "gg:door",
+       "kind": "door",
+       "u": 4.2,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.5,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "gg:g1",
+       "kind": "window",
+       "u": 5.6,
+       "v": 0.4,
+       "w": 2.9,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "gg-tile",
+       "kind": "shed",
+       "u0": 1.4,
+       "u1": 8.62,
+       "v": 4.2,
+       "depth_m": 0.8,
+       "drop_m": 0.6,
+       "valance_h": 0.0,
+       "colour": "#7e2e2a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": false
+      },
+      {
+       "id": "gg-fabric",
+       "kind": "shed",
+       "u0": 1.3,
+       "u1": 8.62,
+       "v": 3.15,
+       "depth_m": 0.9,
+       "drop_m": 0.45,
+       "valance_h": 0.3,
+       "colour": "#6e2a2a",
+       "stripe": null,
+       "valance_text": "GOLDEN GATE MARKET & DELI   ATM   BEER\u00b7WINE\u00b7LIQUOR",
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "gg-blade",
+       "kind": "blade",
+       "u": 3.9,
+       "v": 4.9,
+       "w": 0.9,
+       "h": 1.3,
+       "offset": 0.6,
+       "thick": 0.15,
+       "bg": "#d2452a",
+       "edge_colour": "#222222",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.45,
+         "r": 0.3,
+         "fill": "#e8762e"
+        }
+       ]
+      },
+      {
+       "id": "gg-atm",
+       "kind": "board",
+       "u": 6.0,
+       "v": 3.0,
+       "w": 0.6,
+       "h": 0.4,
+       "offset": 0.05,
+       "thick": 0.03,
+       "bg": "#2f6b3a",
+       "edge_colour": "#f0e8c8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BAY ATM",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.4,
+         "fill": "#f4efe4",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 4,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1701887319999674",
+       "2509815832497998",
+       "800888010574851"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-golden-gate-market-deli-and-liquor-w5",
+     "business_id": "mb-1b3fc1608e6c",
+     "category": "shop",
+     "brand": null,
+     "name": "Golden Gate Market Deli and Liquor",
+     "u0": 0,
+     "u1": 12.8,
+     "band_h": 4.05,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#c8352c",
+      "accent": "#ffffff",
+      "frame": "#3a2622",
+      "base": "#a82c25",
+      "letter": "#ffffff",
+      "metal": "#d8d8d4",
+      "glass": "#2e3236"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lyon-g1",
+       "kind": "window",
+       "u": 2.0,
+       "v": 1.65,
+       "w": 1.1,
+       "h": 0.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lyon-g2",
+       "kind": "window",
+       "u": 3.9,
+       "v": 1.65,
+       "w": 1.1,
+       "h": 0.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lyon-g3",
+       "kind": "window",
+       "u": 6.1,
+       "v": 1.65,
+       "w": 1.05,
+       "h": 0.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lyon-door",
+       "kind": "door",
+       "u": 8.1,
+       "v": 0.0,
+       "w": 1.2,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 0.6,
+       "u1": 6.4,
+       "v": 3.7,
+       "w": 0.3
+      }
+     ],
+     "edge": 5,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1114112804369750",
+       "1265416603908979",
+       "1415407209030559",
+       "1678685339006578",
+       "528938675152057",
+       "730151827664192"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "lyon-patio",
+     "kind": "patio",
+     "u0": 0.0,
+     "u1": 9.5,
+     "depth_m": 2.6,
+     "offset_m": 0.0,
+     "barrier": "planks",
+     "barrier_h": 1.0,
+     "barrier_colour": "#5a4636",
+     "deck_colour": "#7a6a58",
+     "tables": "four_top",
+     "chair_colour": "#b0322a",
+     "roof": "none",
+     "plants": true,
+     "edge": 5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 0.9,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 2.8,
+     "colour": "#8a8a86",
+     "edge": 4
+    },
+    {
+     "id": "lyon-pole",
+     "kind": "pole",
+     "u": 13.2,
+     "w": 0.35,
+     "r": 0.15,
+     "trunk_h": 9.0,
+     "colour": "#8a8a86",
+     "edge": 5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1114112804369750",
+     "1265416603908979",
+     "1415407209030559",
+     "1678685339006578",
+     "528938675152057",
+     "730151827664192"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

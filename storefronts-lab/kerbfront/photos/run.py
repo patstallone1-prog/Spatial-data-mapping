@@ -122,7 +122,7 @@ def run_geometry(area: str = "marina-union", corridor: str | None = None,
 
 
 def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: int = 40,
-               per_business: int = 5, size: int = 2048) -> dict:
+               per_business: int = 5, size: int = 2048, only: set[str] | None = None) -> dict:
     out, biz, faces, frame, bfacts = _load(area)
     tag = corridor or "all"
     data = json.loads((out / f"photos_{tag}.json").read_text())
@@ -130,7 +130,7 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
     frames, _ = frames_for(area)
     fmeta = {f["id"]: f for f in frames}
     fxy = {f["id"]: frame.xy(f["lon"], f["lat"]) for f in frames}
-    rows = [r for r in data["results"] if r["picks"]]
+    rows = [r for r in data["results"] if r["picks"] and (only is None or r["business"] in only)]
     rows.sort(key=lambda r: -len(r["picks"]))
     done, verdicts = [], Counter()
     for r in rows[:limit]:
@@ -169,7 +169,12 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
         done.append(r)
     summary = {"area": area, "corridor": corridor, "businesses": len(done),
                "pixel_verdicts": dict(verdicts)}
-    (out / f"pixels_{tag}.json").write_text(json.dumps({"summary": summary, "results": done}, default=str))
+    dest = out / f"pixels_{tag}.json"
+    if only is not None and dest.exists():
+        # a targeted run (``only``) adds to the file: other businesses' verdicts are kept
+        seen = {r["business"] for r in done}
+        done = done + [r for r in json.loads(dest.read_text())["results"] if r["business"] not in seen]
+    dest.write_text(json.dumps({"summary": summary, "results": done}, default=str))
     return summary
 
 

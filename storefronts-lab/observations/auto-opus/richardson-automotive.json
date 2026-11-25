@@ -1,0 +1,448 @@
+{
+ "model": "richardson-automotive",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 2 views",
+ "notes": "Pier and bay positions are placed from the corners in photos 2 and 3, which agree with each other (piers about 1.45, 5.5, 9.1, 12.75 m). The rectified grid compresses the fascia into about 12 m (lettering ending near u 10.3), so it is treated as mis-scaled. The left blue block with the upper box is taken to be wall 1, not this wall. Parked cars obscure the pier bases.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 4.3,
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.9
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.85,
+    "colour": "#8a4a40",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.4,
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#4d6687",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#9a4b43",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      1.45,
+      5.5,
+      9.1,
+      12.75
+     ],
+     "w": 0.75,
+     "v0": 0.0,
+     "v1": 3.0,
+     "depth": 0.15,
+     "colour": "#50698c",
+     "groove_colour": "#34465f",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-richardson-automotive",
+     "business_id": "mb-5b288d8f6f77",
+     "category": "industrial",
+     "brand": null,
+     "name": "Richardson Automotive",
+     "u0": 0,
+     "u1": 14.0,
+     "band_h": 3.0,
+     "material": "stucco",
+     "palette": {
+      "wall": "#4d6687",
+      "accent": "#9a4b43",
+      "frame": "#2b2f36",
+      "base": "#50698c",
+      "letter": "#ece6dc",
+      "metal": "#8d9196",
+      "glass": "#2a2e33"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rich:bay1",
+       "kind": "door",
+       "u": 1.95,
+       "v": 0.0,
+       "w": 3.1,
+       "h": 2.85,
+       "leaf_count": 1,
+       "operation": "roll_up",
+       "glazed": false
+      },
+      {
+       "id": "rich:bay2",
+       "kind": "door",
+       "u": 5.9,
+       "v": 0.0,
+       "w": 2.8,
+       "h": 2.85,
+       "leaf_count": 1,
+       "operation": "roll_up",
+       "glazed": false
+      },
+      {
+       "id": "rich:bay3",
+       "kind": "door",
+       "u": 9.5,
+       "v": 0.0,
+       "w": 2.85,
+       "h": 2.85,
+       "leaf_count": 1,
+       "operation": "roll_up",
+       "glazed": false
+      }
+     ],
+     "awnings": [
+      {
+       "id": "rich-fascia",
+       "kind": "box",
+       "u0": 0.0,
+       "u1": 14.0,
+       "v": 4.05,
+       "depth_m": 0.8,
+       "drop_m": 1.05,
+       "valance_h": 0.0,
+       "colour": "#9a4b43",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ece6dc",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "rich-sign",
+       "kind": "board",
+       "u": 1.0,
+       "v": 3.2,
+       "w": 12.0,
+       "h": 0.55,
+       "offset": 0.82,
+       "thick": 0.03,
+       "bg": "#9a4b43",
+       "edge_colour": "#7e3e37",
+       "layers": [
+        {
+         "type": "text",
+         "text": "RICHARDSON",
+         "x": 0.27,
+         "y": 0.5,
+         "size": 0.75,
+         "fill": "#ece6dc",
+         "font": "Arial, Helvetica, sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "AUTOMOTIVE SERVICE",
+         "x": 0.73,
+         "y": 0.52,
+         "size": 0.5,
+         "fill": "#ece6dc",
+         "font": "Arial, Helvetica, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1839021949599962",
+       "193870556113929",
+       "3199851883565496",
+       "539091135061456",
+       "866419517604230"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "rich-tree",
+     "kind": "tree",
+     "u": 14.3,
+     "w": 4.5,
+     "r": 2.6,
+     "trunk_h": 2.5,
+     "colour": "#4f6b3a",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "193870556113929",
+     "3199851883565496",
+     "539091135061456",
+     "866419517604230"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

@@ -229,6 +229,16 @@ function normaliseGarages(ways) {
         }
       }
     }
+    // Behind its own cut, always: a door the fitting slid along the wall (clamped off a corner,
+    // given up to the front door, merged over two cuts) is drawn back within its cut's width --
+    // narrower where it must be -- and goes where that leaves less than a car's width. And never
+    // where there is no room in front of it: a wall set back in a notch of the footprint (a
+    // doorway's indent, a light well), whose mouth is narrower than the door, has no garage.
+    for (let i = fitted.length - 1; i >= 0; i -= 1) {
+      const g = fitted[i];
+      if (!garageOnItsCut(g)) { fitted.splice(i, 1); stats.offCut = (stats.offCut || 0) + 1; continue; }
+      if (garageFrontBlocked(way, g, walls, WALL_CELL)) { fitted.splice(i, 1); stats.indent = (stats.indent || 0) + 1; }
+    }
     way.garages = fitted.map(({ wallKey, length, centre, cutCentre, cutW, ...g }) => g);
     for (const g of way.garages) {
       const zone = drivewayZone(g);
@@ -237,6 +247,45 @@ function normaliseGarages(ways) {
     stats.kept += way.garages.length;
   }
   return stats;
+}
+//: How far a garage door may stand past its kerb cut's drawn edge, either side (m), and the
+//: narrowest a door is drawn (a car's width and a little): narrower, behind its cut, it goes.
+const GARAGE_ALIGN_SLACK_M = 0.3, GARAGE_MIN_W_M = 2.2;
+//: Whether a fitted garage ({centre, w, length, cutCentre, cutW, t}) stands behind its cut. One
+//: that has slid off it is drawn back -- narrowed to what the cut and the wall share -- and
+//: reports false where that leaves less than GARAGE_MIN_W_M.
+function garageOnItsCut(g) {
+  if (![g.cutCentre, g.cutW, g.centre, g.w, g.length].every(Number.isFinite)) return true;
+  const lo = Math.max(0, g.cutCentre - g.cutW / 2 - GARAGE_ALIGN_SLACK_M);
+  const hi = Math.min(g.length, g.cutCentre + g.cutW / 2 + GARAGE_ALIGN_SLACK_M);
+  if (g.centre - g.w / 2 >= lo - 1e-6 && g.centre + g.w / 2 <= hi + 1e-6) return true;
+  const w = Math.min(g.w, hi - lo);
+  if (!(w >= GARAGE_MIN_W_M)) return false;
+  g.w = w;
+  g.centre = Math.min(Math.max(g.centre, lo + w / 2), hi - w / 2);
+  g.t = g.centre / g.length;
+  return true;
+}
+//: Whether the ground in front of a garage door is built on: a point a little out from its foot,
+//: across its width, inside this building's own footprint (the door is at the back of a notch
+//: in it) or another's. ``walls``: every building wall by WALL_CELL cell (normaliseGarages).
+function garageFrontBlocked(way, g, walls, cell) {
+  const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+  const L = Math.hypot(bx - ax, by - ay);
+  if (!(L > 0.5)) return false;
+  const tx = (bx - ax) / L, ty = (by - ay) / L, bearing = (g.n || 0) * Math.PI / 180;
+  const nx = Math.sin(bearing), ny = Math.cos(bearing), centre = g.t * L, half = (g.w || 2.6) / 2;
+  const rings = new Map();
+  const ringOf = (w) => { if (!rings.has(w)) rings.set(w, w.points.map((p) => xy(p[0], p[1]))); return rings.get(w); };
+  const near = new Set([way]);
+  const kx = Math.floor((ax + bx) / 2 / cell), ky = Math.floor((ay + by) / 2 / cell);
+  for (let dx = -1; dx <= 1; dx += 1) for (let dy = -1; dy <= 1; dy += 1)
+    for (const w of walls.get(`${kx + dx}:${ky + dy}`) || []) near.add(w.way);
+  for (const u of [-half + 0.25, 0, half - 0.25]) for (const d of [0.4, 1.2]) {
+    const px = ax + tx * (centre + u) + nx * d, py = ay + ty * (centre + u) + ny * d;
+    for (const w of near) if (pointInRing(px, py, ringOf(w))) return true;
+  }
+  return false;
 }
 //: How far behind its kerb cut a garage door may stand (the footway and a setback).
 const GARAGE_REACH_PAGE_M = 22;
@@ -358,6 +407,21 @@ function fitOpeningOnOutline(way, fit, o) {
   }
   return best;
 }
+//: Whether two openings on a building's walls ({a, b, t, w}: a footprint edge, the fraction along
+//: it of the opening's middle, its width) overlap, or come within ``clear`` metres of it: on one
+//: line of wall (parallel, within 0.6 m of each other's line) and overlapping along it.
+function openingsClash(g, k, clear = 0) {
+  const P = (o) => {
+    const [ax, ay] = xy(o.a[0], o.a[1]), [bx, by] = xy(o.b[0], o.b[1]);
+    const L = Math.hypot(bx - ax, by - ay) || 1;
+    return { x: ax + (bx - ax) * o.t, y: ay + (by - ay) * o.t, ux: (bx - ax) / L, uy: (by - ay) / L, w: o.w || 2.6 };
+  };
+  const p = P(g), q = P(k);
+  if (Math.abs(p.ux * q.ux + p.uy * q.uy) < 0.9) return false;
+  const dx = q.x - p.x, dy = q.y - p.y;
+  if (Math.abs(dx * -p.uy + dy * p.ux) > 0.6) return false;
+  return Math.abs(dx * p.ux + dy * p.uy) < (p.w + q.w) / 2 + clear;
+}
 function addPhotoGarages(ways) {
   const stats = { photo: 0, kerbReplaced: 0 };
   for (const way of ways) {
@@ -382,13 +446,20 @@ function addPhotoGarages(ways) {
         photo: true, certainty: o.role_certainty, id: o.id,
       });
     }
+    // The front door the photograph found (entry_inference's primary entry), as wide as its
+    // recess where it is set back in one -- the indent a garage can never be drawn over.
+    const pe = fit.primary_entry;
+    if (pe && [pe.u, pe.w].every(Number.isFinite)) {
+      const w = Math.max(pe.w, Number.isFinite(pe.recess_width_m) ? pe.recess_width_m : 0);
+      const at = fitOpeningOnOutline(way, fit, { u: pe.u + pe.w / 2 - w / 2, w });
+      if (at) onFoot.push({ ...at, w });
+    }
     if (!photo.length && !onFoot.length) continue;
-    const sameWall = (g, k) => g.a[0] === k.a[0] && g.a[1] === k.a[1] && g.b[0] === k.b[0] && g.b[1] === k.b[1];
-    const overlaps = (g, k) => sameWall(g, k) && Math.abs(g.t - k.t) * k.L < ((g.w || 2.6) + k.w) / 2;
+    // On the same line of wall (any piece of it: a front is often several footprint edges in a
+    // row) and within a door's clearance of each other along it.
+    const overlaps = (g, k, clear) => openingsClash(g, k, clear);
     const kept = (way.garages || []).filter((g) => {
-      const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
-      const L = Math.hypot(bx - ax, by - ay);
-      const clash = [...photo, ...onFoot].some((k) => overlaps({ ...g, L }, k));
+      const clash = photo.some((k) => overlaps(g, k, 0)) || onFoot.some((k) => overlaps(g, k, DOOR_CLEAR_M));
       if (clash) stats.kerbReplaced += 1;
       return !clash;
     });

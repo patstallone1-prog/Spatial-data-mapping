@@ -51,3 +51,25 @@ def test_windows_in_a_row_share_sill_and_head():
                           {"u": 0, "v": 6.0, "w": 1, "h": 1.4}])
     assert [o["v"] for o in rows] == [3.05, 3.05, 6.0]
     assert rows[0]["h"] == rows[1]["h"]
+
+
+def test_a_sign_seen_before_the_tenant_moved_in_takes_the_tenant_name():
+    from kerbfront.auto.flow import _same_name, to_model
+    assert _same_name("SUPER DUPER", "Super Duper Burgers") and not _same_name("Squat & Gobble", "Bar Darling")
+    base = {"storefronts": [{"edge": 1, "name": "Bar Darling"}]}
+    import kerbfront.auto.flow as F
+    obs = [{"path": "storefronts", "value": [{"edge": 1, "name": "Bar Darling",
+            "extra_signs": [{"u": 1.0, "v": 3.0, "bg": "#ffffff"}]}]}]
+    real = F.observations
+    F.observations = lambda b, r: obs
+    try:
+        read = {"signs": [{"u": 1.0, "v": 3.0, "text": "Squat & Gobble"}], "awnings": [], "seating_q": [],
+                "frames": [], "pre_tenancy": True}
+        _, out = to_model(base, {1: read})
+        sign = out[0]["value"][0]["extra_signs"][0]
+        assert sign["layers"][0]["text"] == "Bar Darling" and "Squat & Gobble" in sign["text_source"]
+        read["pre_tenancy"] = False
+        _, out = to_model(base, {1: read})
+        assert out[0]["value"][0]["extra_signs"][0]["layers"][0]["text"] == "Squat & Gobble"
+    finally:
+        F.observations = real

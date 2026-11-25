@@ -1,0 +1,5393 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "williams-sonoma-inc",
+ "title": "Williams-Sonoma, Inc.",
+ "business_id": "mb-f52e0d3b2703",
+ "area": "marina-union",
+ "address": {
+  "number": 3250,
+  "number_hi": null,
+  "street": "VAN NESS AVE",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": null,
+ "business_type": {
+  "tag": "shop",
+  "kinds": [
+   "shop"
+  ],
+  "office": false,
+  "render": "storefront",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.42524056,
+  37.80579536
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0000657",
+ "app_building": "32839470",
+ "footprint": [
+  [
+   32.351,
+   33.63
+  ],
+  [
+   -3.376,
+   28.089
+  ],
+  [
+   2.66,
+   -17.224
+  ],
+  [
+   31.039,
+   -12.688
+  ],
+  [
+   28.725,
+   2.235
+  ],
+  [
+   99.36,
+   13.787
+  ],
+  [
+   98.423,
+   20.474
+  ],
+  [
+   108.661,
+   22.007
+  ],
+  [
+   110.753,
+   7.871
+  ],
+  [
+   116.761,
+   8.496
+  ],
+  [
+   112.526,
+   35.644
+  ],
+  [
+   33.852,
+   22.976
+  ]
+ ],
+ "height_m": 10.7,
+ "floors": [
+  {
+   "v": 0,
+   "h": 4.4
+  },
+  {
+   "v": 4.4,
+   "h": 3.0
+  },
+  {
+   "v": 7.4,
+   "h": 3.0
+  }
+ ],
+ "outline": [
+  [
+   65.918,
+   28.577
+  ],
+  [
+   76.624,
+   30.022
+  ],
+  [
+   77.508,
+   29.906
+  ],
+  [
+   80.307,
+   30.267
+  ],
+  [
+   80.297,
+   30.332
+  ],
+  [
+   112.526,
+   35.644
+  ],
+  [
+   112.532,
+   35.641
+  ],
+  [
+   114.409,
+   22.868
+  ],
+  [
+   114.276,
+   22.848
+  ],
+  [
+   115.714,
+   14.463
+  ],
+  [
+   115.761,
+   14.469
+  ],
+  [
+   115.764,
+   14.468
+  ],
+  [
+   116.761,
+   8.496
+  ],
+  [
+   110.753,
+   7.871
+  ],
+  [
+   110.005,
+   13.816
+  ],
+  [
+   110.067,
+   13.822
+  ],
+  [
+   109.831,
+   15.195
+  ],
+  [
+   108.661,
+   22.007
+  ],
+  [
+   98.423,
+   20.474
+  ],
+  [
+   99.36,
+   13.787
+  ],
+  [
+   28.725,
+   2.235
+  ],
+  [
+   31.039,
+   -12.688
+  ],
+  [
+   4.24,
+   -17.076
+  ],
+  [
+   2.741,
+   -17.316
+  ],
+  [
+   2.738,
+   -17.314
+  ],
+  [
+   2.722,
+   -17.217
+  ],
+  [
+   2.664,
+   -17.226
+  ],
+  [
+   2.66,
+   -17.224
+  ],
+  [
+   1.155,
+   -7.766
+  ],
+  [
+   1.201,
+   -7.759
+  ],
+  [
+   0.873,
+   -5.381
+  ],
+  [
+   -2.659,
+   17.224
+  ],
+  [
+   -1.884,
+   17.346
+  ],
+  [
+   -3.376,
+   28.089
+  ],
+  [
+   32.351,
+   33.63
+  ],
+  [
+   32.354,
+   33.628
+  ],
+  [
+   33.852,
+   22.976
+  ],
+  [
+   61.394,
+   27.314
+  ],
+  [
+   61.373,
+   27.455
+  ],
+  [
+   65.477,
+   28.082
+  ]
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#676d7d",
+  "parapet_h": 0.3,
+  "cornice": {
+   "h": 1.1,
+   "depth": 1.2,
+   "colour": "#ececea",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 36.15,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w0:f1:w0",
+     "kind": "window",
+     "u": 0.74,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w1",
+     "kind": "window",
+     "u": 3.32,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w2",
+     "kind": "window",
+     "u": 5.91,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w3",
+     "kind": "window",
+     "u": 8.49,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w4",
+     "kind": "window",
+     "u": 11.07,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w5",
+     "kind": "window",
+     "u": 13.65,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w6",
+     "kind": "window",
+     "u": 16.24,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w7",
+     "kind": "window",
+     "u": 18.82,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w8",
+     "kind": "window",
+     "u": 21.4,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w9",
+     "kind": "window",
+     "u": 23.98,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w10",
+     "kind": "window",
+     "u": 26.57,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w11",
+     "kind": "window",
+     "u": 29.15,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w12",
+     "kind": "window",
+     "u": 31.73,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f1:w13",
+     "kind": "window",
+     "u": 34.31,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w0",
+     "kind": "window",
+     "u": 0.74,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w1",
+     "kind": "window",
+     "u": 3.32,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w2",
+     "kind": "window",
+     "u": 5.91,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w3",
+     "kind": "window",
+     "u": 8.49,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w4",
+     "kind": "window",
+     "u": 11.07,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w5",
+     "kind": "window",
+     "u": 13.65,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w6",
+     "kind": "window",
+     "u": 16.24,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w7",
+     "kind": "window",
+     "u": 18.82,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w8",
+     "kind": "window",
+     "u": 21.4,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w9",
+     "kind": "window",
+     "u": 23.98,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w10",
+     "kind": "window",
+     "u": 26.57,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w11",
+     "kind": "window",
+     "u": 29.15,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w12",
+     "kind": "window",
+     "u": 31.73,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w0:f2:w13",
+     "kind": "window",
+     "u": 34.31,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 45.71,
+   "role": "street",
+   "street": "VAN NESS AVE",
+   "material": "smooth_render",
+   "colour": "#dfe1de",
+   "texture_scale": 1.0,
+   "trim_colour": "#6f7482",
+   "visible": true,
+   "belts": [
+    {
+     "v": 0.45,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel0"
+    },
+    {
+     "v": 2.2,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel1"
+    },
+    {
+     "v": 3.9,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel2"
+    },
+    {
+     "v": 5.7,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel3"
+    },
+    {
+     "v": 7.4,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel4"
+    },
+    {
+     "v": 9.2,
+     "h": 0.06,
+     "colour": "#6f7482",
+     "depth": 0.02,
+     "id": "w1:bel5"
+    }
+   ],
+   "openings": [
+    {
+     "id": "gf-glass",
+     "kind": "window",
+     "u": 5.6,
+     "v": 0.3,
+     "w": 12.0,
+     "h": 3.9,
+     "shape": "rect",
+     "mullions": [
+      6,
+      1
+     ],
+     "frame_colour": "#9aa3a0",
+     "pane_colour": "#3f6a63",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "ribbon",
+     "kind": "window",
+     "u": 7.0,
+     "v": 7.2,
+     "w": 13.2,
+     "h": 2.0,
+     "shape": "rect",
+     "mullions": [
+      10,
+      1
+     ],
+     "frame_colour": "#9aa3a0",
+     "pane_colour": "#3c6660",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "glassblock-drum",
+     "kind": "window",
+     "u": 24.7,
+     "v": 0.0,
+     "w": 2.8,
+     "h": 8.2,
+     "shape": "rect",
+     "glazing": "grid",
+     "lattice_m": 0.2,
+     "frame_colour": "#cfd3cf",
+     "pane_colour": "#d9ddd6",
+     "depth": 0.05,
+     "sill": false
+    },
+    {
+     "id": "glassblock-slot",
+     "kind": "window",
+     "u": 33.0,
+     "v": 0.0,
+     "w": 0.9,
+     "h": 10.1,
+     "shape": "rect",
+     "glazing": "grid",
+     "lattice_m": 0.2,
+     "frame_colour": "#cfd3cf",
+     "pane_colour": "#d4d8d2",
+     "depth": 0.25,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   },
+   "pilasters": [
+    {
+     "u": [
+      20.6
+     ],
+     "w": 0.55,
+     "v0": 7.2,
+     "v1": 9.2,
+     "depth": 0.55,
+     "colour": "#f0f0ec",
+     "groove_colour": "#d8d8d4",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "friezes": [],
+   "bands": [],
+   "balconies": [],
+   "ornaments": []
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 28.74,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w2:f1:w0",
+     "kind": "window",
+     "u": 0.76,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w1",
+     "kind": "window",
+     "u": 3.37,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w2",
+     "kind": "window",
+     "u": 5.98,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w3",
+     "kind": "window",
+     "u": 8.59,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w4",
+     "kind": "window",
+     "u": 11.21,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w5",
+     "kind": "window",
+     "u": 13.82,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w6",
+     "kind": "window",
+     "u": 16.43,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w7",
+     "kind": "window",
+     "u": 19.04,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w8",
+     "kind": "window",
+     "u": 21.66,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w9",
+     "kind": "window",
+     "u": 24.27,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f1:w10",
+     "kind": "window",
+     "u": 26.88,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w0",
+     "kind": "window",
+     "u": 0.76,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w1",
+     "kind": "window",
+     "u": 3.37,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w2",
+     "kind": "window",
+     "u": 5.98,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w3",
+     "kind": "window",
+     "u": 8.59,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w4",
+     "kind": "window",
+     "u": 11.21,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w5",
+     "kind": "window",
+     "u": 13.82,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w6",
+     "kind": "window",
+     "u": 16.43,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w7",
+     "kind": "window",
+     "u": 19.04,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w8",
+     "kind": "window",
+     "u": 21.66,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w9",
+     "kind": "window",
+     "u": 24.27,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w2:f2:w10",
+     "kind": "window",
+     "u": 26.88,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 15.1,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w3:f1:w0",
+     "kind": "window",
+     "u": 0.71,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f1:w1",
+     "kind": "window",
+     "u": 3.23,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f1:w2",
+     "kind": "window",
+     "u": 5.74,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f1:w3",
+     "kind": "window",
+     "u": 8.26,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f1:w4",
+     "kind": "window",
+     "u": 10.78,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f1:w5",
+     "kind": "window",
+     "u": 13.29,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w0",
+     "kind": "window",
+     "u": 0.71,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w1",
+     "kind": "window",
+     "u": 3.23,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w2",
+     "kind": "window",
+     "u": 5.74,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w3",
+     "kind": "window",
+     "u": 8.26,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w4",
+     "kind": "window",
+     "u": 10.78,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w3:f2:w5",
+     "kind": "window",
+     "u": 13.29,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w4",
+   "edge": 4,
+   "length_m": 71.57,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w4:f1:w0",
+     "kind": "window",
+     "u": 0.73,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w1",
+     "kind": "window",
+     "u": 3.28,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w2",
+     "kind": "window",
+     "u": 5.84,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w3",
+     "kind": "window",
+     "u": 8.4,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w4",
+     "kind": "window",
+     "u": 10.95,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w5",
+     "kind": "window",
+     "u": 13.51,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w6",
+     "kind": "window",
+     "u": 16.07,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w7",
+     "kind": "window",
+     "u": 18.62,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w8",
+     "kind": "window",
+     "u": 21.18,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w9",
+     "kind": "window",
+     "u": 23.73,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w10",
+     "kind": "window",
+     "u": 26.29,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w11",
+     "kind": "window",
+     "u": 28.85,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w12",
+     "kind": "window",
+     "u": 31.4,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w13",
+     "kind": "window",
+     "u": 33.96,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w14",
+     "kind": "window",
+     "u": 36.51,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w15",
+     "kind": "window",
+     "u": 39.07,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w16",
+     "kind": "window",
+     "u": 41.63,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w17",
+     "kind": "window",
+     "u": 44.18,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w18",
+     "kind": "window",
+     "u": 46.74,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w19",
+     "kind": "window",
+     "u": 49.3,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w20",
+     "kind": "window",
+     "u": 51.85,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w21",
+     "kind": "window",
+     "u": 54.41,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w22",
+     "kind": "window",
+     "u": 56.96,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w23",
+     "kind": "window",
+     "u": 59.52,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w24",
+     "kind": "window",
+     "u": 62.08,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w25",
+     "kind": "window",
+     "u": 64.63,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w26",
+     "kind": "window",
+     "u": 67.19,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f1:w27",
+     "kind": "window",
+     "u": 69.75,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w0",
+     "kind": "window",
+     "u": 0.73,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w1",
+     "kind": "window",
+     "u": 3.28,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w2",
+     "kind": "window",
+     "u": 5.84,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w3",
+     "kind": "window",
+     "u": 8.4,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w4",
+     "kind": "window",
+     "u": 10.95,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w5",
+     "kind": "window",
+     "u": 13.51,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w6",
+     "kind": "window",
+     "u": 16.07,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w7",
+     "kind": "window",
+     "u": 18.62,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w8",
+     "kind": "window",
+     "u": 21.18,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w9",
+     "kind": "window",
+     "u": 23.73,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w10",
+     "kind": "window",
+     "u": 26.29,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w11",
+     "kind": "window",
+     "u": 28.85,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w12",
+     "kind": "window",
+     "u": 31.4,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w13",
+     "kind": "window",
+     "u": 33.96,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w14",
+     "kind": "window",
+     "u": 36.51,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w15",
+     "kind": "window",
+     "u": 39.07,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w16",
+     "kind": "window",
+     "u": 41.63,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w17",
+     "kind": "window",
+     "u": 44.18,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w18",
+     "kind": "window",
+     "u": 46.74,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w19",
+     "kind": "window",
+     "u": 49.3,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w20",
+     "kind": "window",
+     "u": 51.85,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w21",
+     "kind": "window",
+     "u": 54.41,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w22",
+     "kind": "window",
+     "u": 56.96,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w23",
+     "kind": "window",
+     "u": 59.52,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w24",
+     "kind": "window",
+     "u": 62.08,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w25",
+     "kind": "window",
+     "u": 64.63,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w26",
+     "kind": "window",
+     "u": 67.19,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w4:f2:w27",
+     "kind": "window",
+     "u": 69.75,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w5",
+   "edge": 5,
+   "length_m": 6.75,
+   "role": "recess",
+   "street": "POLK ST",
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w6",
+   "edge": 6,
+   "length_m": 10.35,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w6:f1:w0",
+     "kind": "window",
+     "u": 0.74,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f1:w1",
+     "kind": "window",
+     "u": 3.33,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f1:w2",
+     "kind": "window",
+     "u": 5.92,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f1:w3",
+     "kind": "window",
+     "u": 8.51,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f2:w0",
+     "kind": "window",
+     "u": 0.74,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f2:w1",
+     "kind": "window",
+     "u": 3.33,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f2:w2",
+     "kind": "window",
+     "u": 5.92,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w6:f2:w3",
+     "kind": "window",
+     "u": 8.51,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w7",
+   "edge": 7,
+   "length_m": 14.29,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w7:f1:w0",
+     "kind": "window",
+     "u": 0.88,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f1:w1",
+     "kind": "window",
+     "u": 3.74,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f1:w2",
+     "kind": "window",
+     "u": 6.59,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f1:w3",
+     "kind": "window",
+     "u": 9.45,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f1:w4",
+     "kind": "window",
+     "u": 12.31,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f2:w0",
+     "kind": "window",
+     "u": 0.88,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f2:w1",
+     "kind": "window",
+     "u": 3.74,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f2:w2",
+     "kind": "window",
+     "u": 6.59,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f2:w3",
+     "kind": "window",
+     "u": 9.45,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w7:f2:w4",
+     "kind": "window",
+     "u": 12.31,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w8",
+   "edge": 8,
+   "length_m": 6.04,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w8:f1:w0",
+     "kind": "window",
+     "u": 0.96,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f1:w1",
+     "kind": "window",
+     "u": 3.98,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w0",
+     "kind": "window",
+     "u": 0.96,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w8:f2:w1",
+     "kind": "window",
+     "u": 3.98,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  },
+  {
+   "id": "w9",
+   "edge": 9,
+   "length_m": 27.48,
+   "role": "street",
+   "street": "POLK ST",
+   "material": "concrete",
+   "colour": "#c9c8c2",
+   "texture_scale": 1.0,
+   "trim_colour": "#5c6670",
+   "visible": true,
+   "belts": [
+    {
+     "v": 1.3,
+     "h": 0.03,
+     "colour": "#9e9d98",
+     "depth": 0.01,
+     "id": "w9:bel0"
+    },
+    {
+     "v": 2.4,
+     "h": 0.03,
+     "colour": "#9e9d98",
+     "depth": 0.01,
+     "id": "w9:bel1"
+    },
+    {
+     "v": 3.5,
+     "h": 0.03,
+     "colour": "#9e9d98",
+     "depth": 0.01,
+     "id": "w9:bel2"
+    },
+    {
+     "v": 4.6,
+     "h": 0.03,
+     "colour": "#9e9d98",
+     "depth": 0.01,
+     "id": "w9:bel3"
+    },
+    {
+     "v": 8.6,
+     "h": 0.03,
+     "colour": "#9e9d98",
+     "depth": 0.01,
+     "id": "w9:bel4"
+    }
+   ],
+   "openings": [
+    {
+     "id": "w9:ribbon2",
+     "kind": "window",
+     "u": 17.8,
+     "v": 5.0,
+     "w": 8.3,
+     "h": 2.9,
+     "shape": "rect",
+     "mullions": [
+      6,
+      1
+     ],
+     "frame_colour": "#4d5a66",
+     "pane_colour": "#3f86a6",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "w9:ribbon3",
+     "kind": "window",
+     "u": 16.0,
+     "v": 10.0,
+     "w": 10.0,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      10,
+      1
+     ],
+     "frame_colour": "#4d5a66",
+     "pane_colour": "#4a93b3",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "w9:win2-mid",
+     "kind": "window",
+     "u": 12.4,
+     "v": 5.0,
+     "w": 2.9,
+     "h": 2.4,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#4d5a66",
+     "pane_colour": "#3f86a6",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "w9:slotwin",
+     "kind": "window",
+     "u": 9.8,
+     "v": 4.8,
+     "w": 0.7,
+     "h": 3.2,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#4d5a66",
+     "pane_colour": "#3f86a6",
+     "depth": 0.25,
+     "sill": false
+    },
+    {
+     "id": "w9:grille",
+     "kind": "door",
+     "u": 12.4,
+     "v": 0.3,
+     "w": 3.0,
+     "h": 2.7,
+     "shape": "rect",
+     "colour": "#77746e",
+     "glazed": false
+    },
+    {
+     "id": "w9:slot",
+     "kind": "door",
+     "u": 10.0,
+     "v": 0.0,
+     "w": 0.9,
+     "h": 3.2,
+     "shape": "rect",
+     "colour": "#2e2d2b",
+     "glazed": false
+    },
+    {
+     "id": "w9:slotL",
+     "kind": "door",
+     "u": 1.8,
+     "v": 0.0,
+     "w": 0.6,
+     "h": 3.2,
+     "shape": "rect",
+     "colour": "#3a3936",
+     "glazed": false
+    },
+    {
+     "id": "w9:board",
+     "kind": "door",
+     "u": 4.0,
+     "v": 0.0,
+     "w": 1.1,
+     "h": 2.3,
+     "shape": "rect",
+     "colour": "#a8916e",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   },
+   "pilasters": [],
+   "friezes": [],
+   "bands": [],
+   "balconies": [],
+   "ornaments": [
+    {
+     "shape": "rect",
+     "u": 21.5,
+     "v": 3.2,
+     "w": 0.35,
+     "h": 0.2,
+     "colour": "#e6e6e2",
+     "depth": 0.12,
+     "id": "w9:orn0"
+    }
+   ]
+  },
+  {
+   "id": "w10",
+   "edge": 10,
+   "length_m": 79.69,
+   "role": "street",
+   "street": "BEACH ST",
+   "material": "concrete",
+   "colour": "#9ea397",
+   "texture_scale": 1.0,
+   "trim_colour": "#8c9186",
+   "visible": true,
+   "belts": [
+    {
+     "v": 4.2,
+     "h": 0.25,
+     "colour": "#a4a99d",
+     "depth": 0.1,
+     "id": "w10:bel0"
+    }
+   ],
+   "openings": [
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 0.4,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 10.36,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 20.32,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 30.28,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 40.24,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 50.2,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 60.16,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-a",
+     "kind": "window",
+     "u": 70.12,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 3.6,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 13.56,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 23.52,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 33.48,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 43.44,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 53.4,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 63.36,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "gf-b",
+     "kind": "window",
+     "u": 73.32,
+     "v": 1.1,
+     "w": 2.7,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#5a6a70",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 0.4,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 10.36,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 20.32,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 30.28,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 40.24,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 50.2,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 60.16,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-a",
+     "kind": "window",
+     "u": 70.12,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 3.6,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 13.56,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 23.52,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 33.48,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 43.44,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 53.4,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 63.36,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-b",
+     "kind": "window",
+     "u": 73.32,
+     "v": 5.0,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 0.4,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 10.36,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 20.32,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 30.28,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 40.24,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 50.2,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 60.16,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-a",
+     "kind": "window",
+     "u": 70.12,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 3.6,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 13.56,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 23.52,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 33.48,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 43.44,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 53.4,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 63.36,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-b",
+     "kind": "window",
+     "u": 73.32,
+     "v": 8.1,
+     "w": 2.7,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3d3c",
+     "pane_colour": "#4f5e63",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 7.7,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 17.66,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 27.62,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 37.58,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 47.54,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 57.5,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 67.46,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    },
+    {
+     "id": "slot",
+     "kind": "window",
+     "u": 77.42,
+     "v": 0.6,
+     "w": 0.9,
+     "h": 9.6,
+     "shape": "rect",
+     "mullions": [
+      1,
+      12
+     ],
+     "frame_colour": "#2a2c2b",
+     "pane_colour": "#303332",
+     "depth": 0.35,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   },
+   "pilasters": [],
+   "friezes": [],
+   "bands": [],
+   "balconies": [],
+   "ornaments": []
+  },
+  {
+   "id": "w11",
+   "edge": 11,
+   "length_m": 10.76,
+   "role": "open",
+   "street": null,
+   "material": "concrete",
+   "colour": "#adada7",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [
+    {
+     "id": "w11:f1:w0",
+     "kind": "window",
+     "u": 0.79,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f1:w1",
+     "kind": "window",
+     "u": 3.48,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f1:w2",
+     "kind": "window",
+     "u": 6.17,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f1:w3",
+     "kind": "window",
+     "u": 8.86,
+     "v": 4.68,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w0",
+     "kind": "window",
+     "u": 0.79,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w1",
+     "kind": "window",
+     "u": 3.48,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w2",
+     "kind": "window",
+     "u": 6.17,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    },
+    {
+     "id": "w11:f2:w3",
+     "kind": "window",
+     "u": 8.86,
+     "v": 7.46,
+     "w": 1.1,
+     "h": 1.61,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "evidence": {
+      "kind": "inferred",
+      "source": "kerbfront default grid",
+      "confidence": 0.2
+     }
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (archetype_prior)",
+    "confidence": 0.4
+   }
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-williams-sonoma-inc",
+   "business_id": "mb-f52e0d3b2703",
+   "category": "shop",
+   "brand": null,
+   "name": "Williams-Sonoma, Inc.",
+   "u0": 10.9,
+   "u1": 45.71,
+   "band_h": 4.2,
+   "material": "smooth_render",
+   "palette": {
+    "wall": "#dfe1de",
+    "accent": "#6f7482",
+    "frame": "#9aa3a0",
+    "base": "#bfc2bf",
+    "letter": "#4a4038",
+    "metal": "#a5aaa7",
+    "glass": "#3f6a63"
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "ws-entry",
+     "kind": "door",
+     "u": 22.6,
+     "v": 0.0,
+     "w": 1.8,
+     "h": 2.6,
+     "leaf_count": 2,
+     "operation": "hinged",
+     "glazed": true
+    }
+   ],
+   "awnings": [],
+   "extra_signs": [
+    {
+     "id": "ws-letters",
+     "kind": "letters",
+     "u": 20.8,
+     "v": 2.3,
+     "w": 1.8,
+     "h": 0.16,
+     "offset": 0,
+     "thick": 0.02,
+     "bg": null,
+     "edge_colour": null,
+     "layers": [
+      {
+       "type": "text",
+       "text": "WILLIAMS-SONOMA, INC.",
+       "x": 0.5,
+       "y": 0.5,
+       "size": 0.9,
+       "fill": "#4a4038",
+       "font": "Georgia, serif",
+       "weight": 500
+      }
+     ]
+    }
+   ],
+   "signs": [],
+   "lights": [],
+   "edge": 1,
+   "evidence": {
+    "kind": "observed",
+    "frames": [
+     "1414206787483884",
+     "157887570127846",
+     "194742626020896",
+     "197849318989138",
+     "827083815193638"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ],
+ "seating": [],
+ "street": {
+  "name": "Van Ness Avenue",
+  "osm_id": 26987989,
+  "sidewalk_m": 3.0,
+  "kerb_m": 0.204,
+  "road_m": 13.03,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 8.76,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 26987989 (row_minus_footways)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0014216",
+   "footprint": [
+    [
+     6.897,
+     61.911
+    ],
+    [
+     -4.63,
+     60.07
+    ],
+    [
+     -0.843,
+     36.203
+    ],
+    [
+     10.684,
+     38.044
+    ]
+   ],
+   "height_m": 5.97,
+   "colour": "#70695a",
+   "roof_colour": "#f8feeb"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "827083815193638",
+   "slot": "sign",
+   "captured_at": "2022-06-08T11:25:00+00:00",
+   "camera_type": "spherical",
+   "x": -9.043,
+   "y": -6.607,
+   "z": 2.0,
+   "heading": 345.89,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "194742626020896",
+   "slot": "elevation",
+   "captured_at": "2021-08-10T10:17:55+00:00",
+   "camera_type": "spherical",
+   "x": -8.927,
+   "y": -5.543,
+   "z": 2.0,
+   "heading": 351.79,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "197849318989138",
+   "slot": "oblique-left",
+   "captured_at": "2021-08-10T10:17:57+00:00",
+   "camera_type": "spherical",
+   "x": -11.791,
+   "y": 7.388,
+   "z": 2.0,
+   "heading": 348.28,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1414206787483884",
+   "slot": "oblique-right",
+   "captured_at": "2026-10-05T11:08:10+00:00",
+   "camera_type": "perspective",
+   "x": -5.534,
+   "y": -31.326,
+   "z": 2.0,
+   "heading": 349.07,
+   "hfov": 80.4,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "157887570127846",
+   "slot": "extra",
+   "captured_at": "2022-06-08T11:25:00+00:00",
+   "camera_type": "spherical",
+   "x": -9.22,
+   "y": -5.598,
+   "z": 2.0,
+   "heading": 345.9,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "207305304991390",
+   "slot": "wall10:sign",
+   "captured_at": "2022-06-08T11:27:42+00:00",
+   "camera_type": "spherical",
+   "x": 71.806,
+   "y": 41.747,
+   "z": 2.0,
+   "heading": 76.4,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "975450116361225",
+   "slot": "wall10:elevation",
+   "captured_at": "2021-08-10T10:15:57+00:00",
+   "camera_type": "spherical",
+   "x": 71.145,
+   "y": 39.38,
+   "z": 2.0,
+   "heading": 262.9,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "234961055204559",
+   "slot": "wall10:oblique-left",
+   "captured_at": "2021-08-10T10:16:47+00:00",
+   "camera_type": "spherical",
+   "x": 78.036,
+   "y": 40.08,
+   "z": 2.0,
+   "heading": 84.15,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "448607787461911",
+   "slot": "wall10:oblique-right",
+   "captured_at": "2022-06-08T11:27:41+00:00",
+   "camera_type": "spherical",
+   "x": 64.607,
+   "y": 40.33,
+   "z": 2.0,
+   "heading": 74.43,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "172616978189184",
+   "slot": "wall10:extra",
+   "captured_at": "2021-08-10T10:16:45+00:00",
+   "camera_type": "spherical",
+   "x": 70.112,
+   "y": 39.096,
+   "z": 2.0,
+   "heading": 89.92,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1102598543789853",
+   "slot": "wall10:extra",
+   "captured_at": "2022-06-08T11:27:42+00:00",
+   "camera_type": "spherical",
+   "x": 70.428,
+   "y": 41.514,
+   "z": 2.0,
+   "heading": 75.32,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 10,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1549675375515474",
+   "slot": "wall9:sign",
+   "captured_at": "2022-06-08T11:26:47+00:00",
+   "camera_type": "spherical",
+   "x": 125.307,
+   "y": 23.597,
+   "z": 2.0,
+   "heading": 348.21,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "551790199297073",
+   "slot": "wall9:elevation",
+   "captured_at": "2021-08-10T10:17:11+00:00",
+   "camera_type": "spherical",
+   "x": 121.024,
+   "y": 21.866,
+   "z": 2.0,
+   "heading": 172.65,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "555200092292889",
+   "slot": "wall9:oblique-left",
+   "captured_at": "2021-08-10T09:51:29+00:00",
+   "camera_type": "spherical",
+   "x": 125.192,
+   "y": 18.526,
+   "z": 2.0,
+   "heading": 353.97,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "172621498704958",
+   "slot": "wall9:oblique-right",
+   "captured_at": "2022-06-08T11:26:49+00:00",
+   "camera_type": "spherical",
+   "x": 124.355,
+   "y": 30.229,
+   "z": 2.0,
+   "heading": 347.86,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "2358200648284753",
+   "slot": "wall9:extra",
+   "captured_at": "2026-10-05T14:12:45+00:00",
+   "camera_type": "perspective",
+   "x": 124.334,
+   "y": 6.39,
+   "z": 2.0,
+   "heading": 353.89,
+   "hfov": 95.19,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "978485672951857",
+   "slot": "wall9:extra",
+   "captured_at": "2021-08-10T10:21:11+00:00",
+   "camera_type": "spherical",
+   "x": 124.435,
+   "y": 27.183,
+   "z": 2.0,
+   "heading": 356.29,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 9,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": "1957",
+  "stories": 3,
+  "use": "Commercial Office",
+  "class": "Office",
+  "historic": {
+   "ceqacode": "B",
+   "ceqacodereason": "No evaluation and 45 years or older",
+   "yearbuilt": "1957",
+   "name": null
+  },
+  "context_statement": null,
+  "licence": {},
+  "services": null,
+  "outdoor": {
+   "kinds": [],
+   "confidence": 0.0,
+   "sources": [],
+   "osm_says_no": false
+  },
+  "last_exterior_change": null,
+  "tenants_on_face": 1
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.parapet_h": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.material": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.colour": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.openings": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.belts": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.bands": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.balconies": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "1414206787483884",
+    "157887570127846",
+    "194742626020896",
+    "197849318989138",
+    "827083815193638"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 4 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "seating": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "street_objects": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.material": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.colour": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.openings": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.belts": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.bands": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.balconies": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.10.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "1102598543789853",
+    "207305304991390",
+    "448607787461911"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 10, 2 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.material": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.colour": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.openings": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.belts": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.bands": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.balconies": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.9.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "1549675375515474",
+    "172621498704958",
+    "551790199297073",
+    "978485672951857"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+   "confidence": 0.45,
+   "read_by": "claude-opus-5-5"
+  }
+ },
+ "street_objects": [
+  {
+   "id": "pole-1",
+   "kind": "pole",
+   "u": 1.5,
+   "w": 0.3,
+   "r": 0.12,
+   "colour": "#8a8e8c",
+   "edge": 1
+  },
+  {
+   "id": "tree-1",
+   "kind": "tree",
+   "u": 22.0,
+   "w": 6.0,
+   "r": 3.5,
+   "trunk_h": 3.5,
+   "colour": "#5f7d3c",
+   "edge": 10
+  },
+  {
+   "id": "tree-2",
+   "kind": "tree",
+   "u": 46.0,
+   "w": 7.0,
+   "r": 4.0,
+   "trunk_h": 3.5,
+   "colour": "#5f7d3c",
+   "edge": 10
+  },
+  {
+   "id": "tree-3",
+   "kind": "tree",
+   "u": 67.5,
+   "w": 7.0,
+   "r": 4.0,
+   "trunk_h": 3.5,
+   "colour": "#5f7d3c",
+   "edge": 10
+  },
+  {
+   "id": "w9-tree-1",
+   "kind": "tree",
+   "u": 4.5,
+   "w": 5.0,
+   "r": 2.8,
+   "trunk_h": 3.0,
+   "colour": "#4f6a3a",
+   "edge": 9
+  },
+  {
+   "id": "w9-tree-2",
+   "kind": "tree",
+   "u": 15.6,
+   "w": 5.5,
+   "r": 3.0,
+   "trunk_h": 3.2,
+   "colour": "#4f6a3a",
+   "edge": 9
+  },
+  {
+   "id": "w9-pole",
+   "kind": "pole",
+   "u": 5.6,
+   "w": 0.2,
+   "r": 0.08,
+   "trunk_h": 4.0,
+   "colour": "#3a3a38",
+   "edge": 9
+  }
+ ],
+ "observations_applied": 43
+}

@@ -1,0 +1,570 @@
+{
+ "model": "blackwood",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 3 views",
+ "notes": "White Art Deco section u0-~7.9 with ribbed piers (period ~0.76 m) and a notched, stepped parapet. Right section ~7.9-15.89 is tan stucco (#c4a68a) with a lower top (~6.4 m); it is mostly hidden by the street tree and cannot be drawn as a separate colour. Record places Blackwood at 4.0-7.9, but the photos show City Optix there and the Blackwood board on the right, so the photos were followed. Storefront glazing is hidden behind the parklet.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.1,
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 7.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#e6e3da",
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#d9d5ca",
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "clere-a",
+     "kind": "window",
+     "u": 0.1,
+     "v": 4.25,
+     "w": 5.4,
+     "h": 0.7,
+     "shape": "rect",
+     "mullions": [
+      6,
+      1
+     ],
+     "frame_colour": "#d9d5ca",
+     "pane_colour": "#5d6a70",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "clere-b",
+     "kind": "window",
+     "u": 6.3,
+     "v": 4.25,
+     "w": 1.5,
+     "h": 0.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#d9d5ca",
+     "pane_colour": "#5d6a70",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "tan-grille",
+     "kind": "window",
+     "u": 8.4,
+     "v": 4.0,
+     "w": 3.0,
+     "h": 0.85,
+     "shape": "rect",
+     "mullions": [
+      6,
+      2
+     ],
+     "frame_colour": "#f2f0ea",
+     "pane_colour": "#1e1e1e",
+     "depth": 0.25,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      0.1,
+      0.86,
+      1.62,
+      2.38,
+      3.14,
+      3.9,
+      4.66,
+      5.42,
+      6.18,
+      6.94
+     ],
+     "w": 0.3,
+     "v0": 5.1,
+     "v1": 7.0,
+     "depth": 0.08,
+     "colour": "#e6e3da",
+     "groove_colour": "#c9c5bb",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.12,
+     "flutes": 0,
+     "id": "w3:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w3-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "SameDayHealth",
+     "u0": 0,
+     "u1": 4.6,
+     "band_h": 4.1,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6e3da",
+      "accent": "#151515",
+      "frame": "#1a1a1a",
+      "base": "#3a3a3a",
+      "letter": "#f4f4f4",
+      "metal": "#9a9a9a",
+      "glass": "#4c5a60"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [
+      {
+       "id": "sdh-canopy",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 4.6,
+       "v": 4.1,
+       "depth_m": 1.2,
+       "drop_m": 0.6,
+       "valance_h": 0.6,
+       "colour": "#151515",
+       "stripe": null,
+       "valance_text": "SAMEDAYHEALTH",
+       "text_colour": "#f4f4f4",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "4165022453584911",
+       "502960318454155",
+       "839438763377840",
+       "854284485612560"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-blackwood",
+     "business_id": "mb-5f2542a569e5",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Blackwood",
+     "u0": 4.6,
+     "u1": 9.2,
+     "band_h": 4.1,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6e3da",
+      "accent": "#151515",
+      "frame": "#1a1a1a",
+      "base": "#3a3a3a",
+      "letter": "#d9d6cc",
+      "metal": "#9a9a9a",
+      "glass": "#4c5a60"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [
+      {
+       "id": "co-box",
+       "kind": "box",
+       "u0": 4.6,
+       "u1": 9.6,
+       "v": 4.1,
+       "depth_m": 1.2,
+       "drop_m": 0.9,
+       "valance_h": 0.9,
+       "colour": "#151515",
+       "stripe": null,
+       "valance_text": "CITY OPTIX",
+       "text_colour": "#d9d6cc",
+       "font": "\"Brush Script MT\", cursive",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "co-lattice",
+       "kind": "board",
+       "u": 4.95,
+       "v": 3.6,
+       "w": 0.35,
+       "h": 0.6,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#1a1a1a",
+       "edge_colour": "#e8e8e8",
+       "layers": [
+        {
+         "type": "rect",
+         "x": 0.5,
+         "y": 0.5,
+         "w": 0.8,
+         "h": 0.06,
+         "fill": "#e8e8e8"
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "4165022453584911",
+       "502960318454155",
+       "839438763377840",
+       "854284485612560"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w3-2",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Blackwood",
+     "u0": 9.2,
+     "u1": 15.89,
+     "band_h": 3.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#c4a68a",
+      "accent": "#1c1a19",
+      "frame": "#1a1a1a",
+      "base": "#3a3a3a",
+      "letter": "#e8e4da",
+      "metal": "#9a9a9a",
+      "glass": "#3e4a4e"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "bw-board",
+       "kind": "board",
+       "u": 9.2,
+       "v": 3.0,
+       "w": 2.6,
+       "h": 0.5,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#1c1a19",
+       "edge_colour": "#3a3532",
+       "layers": [
+        {
+         "type": "text",
+         "text": "BLACKWOOD",
+         "x": 0.5,
+         "y": 0.45,
+         "size": 0.5,
+         "fill": "#e8e4da",
+         "font": "\"Marker Felt\", cursive",
+         "weight": 400
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "string",
+       "u0": 0.0,
+       "u1": 15.89,
+       "v": 2.4,
+       "w": 0.3
+      }
+     ],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "4165022453584911",
+       "502960318454155",
+       "839438763377840",
+       "854284485612560"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "bw-parklet",
+     "kind": "parklet",
+     "u0": -0.3,
+     "u1": 15.89,
+     "depth_m": 2.4,
+     "offset_m": 0.3,
+     "barrier": "planks",
+     "barrier_h": 1.0,
+     "barrier_colour": "#7a5a44",
+     "deck_colour": "#6d5a46",
+     "tables": "four_top",
+     "chair_colour": "#3a3a36",
+     "roof": "corrugated",
+     "roof_colour": "#6e6a62",
+     "roof_h": 2.7,
+     "plants": true,
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 12.8,
+     "w": 6.0,
+     "r": 3.5,
+     "trunk_h": 3.5,
+     "colour": "#3f5a32",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "4165022453584911",
+     "502960318454155",
+     "839438763377840",
+     "854284485612560"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

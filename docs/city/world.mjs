@@ -491,6 +491,8 @@ export class CityWorld {
       const debris = Object.values(this.R.found.debris || {});
       // A box or bag left out on a clear-out day (commerce.outcomes.found_containers) is found too.
       const boxes = found.box ? this.R.commerce?.outcomes?.found_containers?.kinds || [] : [];
+      // Nothing is seeded on the pavement (rules found.per_district 0): only a crash's debris is found.
+      if (!(this.R.found.per_district > 0) && !debris.includes(found.item)) throw new CityError("nothing like that lies here");
       if (!this.R.found.items.includes(found.item) && !debris.includes(found.item) && !boxes.includes(found.item)) throw new CityError("nothing like that lies here");
       thing = { id: found.id, item: found.item, qty: 1, x: found.x, z: found.z, found: true };
     }

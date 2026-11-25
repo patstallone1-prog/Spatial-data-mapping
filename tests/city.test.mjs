@@ -436,9 +436,16 @@ test("put down, picked up, handed over; a faint and its bill", () => {
   assert.equal(w.submit("ben", "pick_up", { id: dropped, at: { x: 30, z: 0 } }).ok, false, "too far");
   assert.equal(w.submit("ben", "pick_up", { id: dropped, at: { x: 1, z: 1 } }).ok, true);
   assert.equal(w.submit("ana", "pick_up", { id: dropped }).ok, false, "gone");
+  // Nothing is seeded on the pavement to find: a "found" book is refused (only tasks' things and
+  // what people put down lie in the street).
   const found = { id: "found:d:1:3", item: "book", x: 2, z: 0 };
-  assert.equal(w.submit("ana", "pick_up", { found, at: { x: 1, z: 0 } }).ok, true);
-  assert.equal(w.submit("ben", "pick_up", { found, at: { x: 1, z: 0 } }).ok, false, "a found thing is picked up once");
+  assert.equal(R.found.per_district, 0);
+  assert.equal(w.submit("ana", "pick_up", { found, at: { x: 1, z: 0 } }).ok, false, "no random finds");
+  // Where a district turns the seeded finds back on, each is picked up once.
+  const RF = { ...R, found: { ...R.found, per_district: 60 } }, wf = new CityWorld(RF, { now: WED_13 });
+  wf.submit("ana", "join", { name: "Ana", at }); wf.submit("ben", "join", { name: "Ben", at });
+  assert.equal(wf.submit("ana", "pick_up", { found, at: { x: 1, z: 0 } }).ok, true);
+  assert.equal(wf.submit("ben", "pick_up", { found, at: { x: 1, z: 0 } }).ok, false, "a found thing is picked up once");
   assert.equal(w.submit("ben", "give_item", { to: "ana", item: "umbrella" }).ok, true);
   assert.equal(w.players.get("ana").inventory.umbrella, 1);
   // A crash bad enough: out cold, woken at home, billed for the ambulance.

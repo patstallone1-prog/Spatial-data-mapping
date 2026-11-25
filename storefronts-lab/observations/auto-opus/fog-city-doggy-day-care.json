@@ -1,0 +1,1605 @@
+{
+ "model": "fog-city-doggy-day-care",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 4 views; wall 7: 3 views",
+ "notes": "Upper floors 3-4 between u 5 and 11 are hidden by the street tree; no windows are given there. Right end: photos 4/5 show a fifth garage at the far right, but it appears to sit under the lower neighbouring building, so it is left off. The 2025 photo shows a 'Lombard Doggy Daycare' sign in place of the Fog City board; Fog City lettering is taken from the 2021/2022 photos, which match the tenant on record. Vertical stacks are now given as separate windows because repeat runs along the wall, not up it. | Parts now follow the rectified grid. Height is unresolved: the grid roofline is about 11.4 m but LiDAR gives the roof surface at 13.0 m; 12.0 m is a compromise. The building's left corner falls near u=1.8 in the grid and the strip before it shows the neighbour. The two bays are drawn at a 3.7 m period, fitted by eye to their edges rather than derived from a count. Only two plain windows are left of the bays because the arch takes the lowest level. The small phone and web text on the sign is not legible and is omitted.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 13.0,
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.5
+    },
+    {
+     "v": 3.5,
+     "h": 3.0
+    },
+    {
+     "v": 6.5,
+     "h": 2.95
+    },
+    {
+     "v": 9.45,
+     "h": 3.05
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.55,
+    "depth": 0.5,
+    "colour": "#3f5a4c",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#bcb8a6",
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#3f5a4c",
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "bayL-f0",
+     "kind": "bay",
+     "u": 0.6,
+     "w": 3.0,
+     "v0": 3.4,
+     "v1": 6.3,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 3.98,
+     "h": 1.74,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.6,
+     "w": 3.0,
+     "v0": 6.3,
+     "v1": 9.2,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 6.88,
+     "h": 1.74,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f2",
+     "kind": "bay",
+     "u": 0.6,
+     "w": 3.0,
+     "v0": 9.2,
+     "v1": 12.1,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 9.78,
+     "h": 1.74,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR1-f0",
+     "kind": "bay",
+     "u": 14.8,
+     "w": 3.0,
+     "v0": 6.2,
+     "v1": 9.15,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 6.79,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR1-f1",
+     "kind": "bay",
+     "u": 14.8,
+     "w": 3.0,
+     "v0": 9.15,
+     "v1": 12.1,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 9.74,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR2-f0",
+     "kind": "bay",
+     "u": 20.0,
+     "w": 3.1,
+     "v0": 6.2,
+     "v1": 9.15,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 6.79,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR2-f1",
+     "kind": "bay",
+     "u": 20.0,
+     "w": 3.1,
+     "v0": 9.15,
+     "v1": 12.1,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#bcb8a6",
+     "trim_colour": "#3f5a4c",
+     "v": 9.74,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "s1a",
+     "kind": "window",
+     "u": 4.1,
+     "v": 4.0,
+     "w": 0.7,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "s1b",
+     "kind": "window",
+     "u": 4.1,
+     "v": 7.0,
+     "w": 0.7,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "s1c",
+     "kind": "window",
+     "u": 4.1,
+     "v": 10.0,
+     "w": 0.7,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "s2a",
+     "kind": "window",
+     "u": 18.75,
+     "v": 4.0,
+     "w": 0.65,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "s2b",
+     "kind": "window",
+     "u": 18.75,
+     "v": 7.0,
+     "w": 0.65,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "s2c",
+     "kind": "window",
+     "u": 18.75,
+     "v": 10.0,
+     "w": 0.65,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2a",
+     "kind": "window",
+     "u": 5.6,
+     "v": 3.85,
+     "w": 2.7,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2b",
+     "kind": "window",
+     "u": 9.2,
+     "v": 3.85,
+     "w": 1.0,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2c",
+     "kind": "window",
+     "u": 11.5,
+     "v": 3.85,
+     "w": 2.6,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2d",
+     "kind": "window",
+     "u": 14.8,
+     "v": 3.85,
+     "w": 2.7,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2e",
+     "kind": "window",
+     "u": 20.1,
+     "v": 3.85,
+     "w": 2.7,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f3c",
+     "kind": "window",
+     "u": 12.1,
+     "v": 6.9,
+     "w": 2.0,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f4c",
+     "kind": "window",
+     "u": 12.1,
+     "v": 9.6,
+     "w": 2.0,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#f0eee6",
+     "pane_colour": "#4a5458",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "gar1",
+     "kind": "door",
+     "u": 9.6,
+     "v": 0.0,
+     "w": 2.2,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3f5a4c",
+     "glazed": true
+    },
+    {
+     "id": "gar1",
+     "kind": "door",
+     "u": 12.2,
+     "v": 0.0,
+     "w": 2.2,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3f5a4c",
+     "glazed": true
+    },
+    {
+     "id": "gar1",
+     "kind": "door",
+     "u": 14.8,
+     "v": 0.0,
+     "w": 2.2,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3f5a4c",
+     "glazed": true
+    },
+    {
+     "id": "gar4",
+     "kind": "door",
+     "u": 17.8,
+     "v": 0.0,
+     "w": 3.7,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3f5a4c",
+     "glazed": true
+    },
+    {
+     "id": "d-flats",
+     "kind": "door",
+     "u": 22.3,
+     "v": 0.0,
+     "w": 0.9,
+     "h": 2.2,
+     "shape": "rect",
+     "colour": "#2e2e2c",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 12.15,
+     "h": 0.15,
+     "colour": "#3f5a4c",
+     "depth": 0.08,
+     "id": "w0:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [
+    {
+     "u": 17.6,
+     "w": 2.5,
+     "v": 6.3,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#d8d8d2",
+     "h": 1.0,
+     "id": "w0:bal0"
+    },
+    {
+     "u": 17.6,
+     "w": 2.5,
+     "v": 9.25,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#d8d8d2",
+     "h": 1.0,
+     "id": "w0:bal1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-fog-city-doggy-day-care",
+     "business_id": "mb-19511f786c2a",
+     "category": "shop",
+     "brand": null,
+     "name": "Fog City Doggy Day Care",
+     "u0": 0,
+     "u1": 9.3,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#bcb8a6",
+      "accent": "#5cc65a",
+      "frame": "#2a2a28",
+      "base": "#a9a594",
+      "letter": "#1f5a2a",
+      "metal": "#8a8d8a",
+      "glass": "#3e474b"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "fc-door",
+       "kind": "door",
+       "u": 0.9,
+       "v": 0.0,
+       "w": 1.5,
+       "h": 2.5,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "fc-g1",
+       "kind": "window",
+       "u": 3.6,
+       "v": 0.6,
+       "w": 2.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.5
+      },
+      {
+       "id": "fc-g2",
+       "kind": "window",
+       "u": 6.7,
+       "v": 0.6,
+       "w": 2.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.6
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 4.3,
+       "v": 2.6,
+       "w": 4.0,
+       "h": 0.6,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#5cc65a",
+       "edge_colour": "#2f7a36",
+       "layers": [
+        {
+         "type": "text",
+         "text": "FOG CITY",
+         "x": 0.45,
+         "y": 0.22,
+         "size": 0.3,
+         "fill": "#e0482a",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "DOGGIE DAY CARE",
+         "x": 0.45,
+         "y": 0.6,
+         "size": 0.35,
+         "fill": "#1f4a22",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "415-409-DOGS \u2022 WWW.FOGCITYDOGS.COM",
+         "x": 0.45,
+         "y": 0.88,
+         "size": 0.13,
+         "fill": "#1f4a22",
+         "font": "Arial, sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "disc",
+         "x": 0.9,
+         "y": 0.5,
+         "r": 0.35,
+         "fill": "#f2f2ee"
+        }
+       ],
+       "id": "sf-fog-city-doggy-day-care:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1068289360370131",
+       "356878245879256",
+       "4059020787688341",
+       "522794102311621",
+       "5419459338159976",
+       "6172091829501065"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "kind": "tree",
+     "u": 9.0,
+     "w": 6.0,
+     "r": 3.2,
+     "trunk_h": 4.5,
+     "colour": "#4d6b34",
+     "edge": 0,
+     "id": "opus-stre-0-0"
+    },
+    {
+     "kind": "pole",
+     "u": 0.2,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 4.0,
+     "colour": "#3a3d3a",
+     "edge": 0,
+     "id": "opus-stre-0-1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1068289360370131",
+     "356878245879256",
+     "4059020787688341",
+     "522794102311621",
+     "5419459338159976",
+     "6172091829501065"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.colour",
+   "value": "#a9ad94",
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.trim_colour",
+   "value": "#2f4a3e",
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.openings",
+   "value": [
+    {
+     "id": "entry-arch",
+     "kind": "door",
+     "u": 2.0,
+     "v": 0.0,
+     "w": 1.5,
+     "h": 3.8,
+     "shape": "arched",
+     "colour": "#2a2a28",
+     "glazed": false
+    },
+    {
+     "id": "wL-f3",
+     "kind": "window",
+     "u": 2.6,
+     "v": 5.8,
+     "w": 0.8,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f1efe6",
+     "pane_colour": "#4d5a60",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "wL-f4",
+     "kind": "window",
+     "u": 2.6,
+     "v": 8.2,
+     "w": 0.8,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f1efe6",
+     "pane_colour": "#4d5a60",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "bay-1-f0",
+     "kind": "bay",
+     "u": 4.0,
+     "w": 3.4,
+     "v0": 3.4,
+     "v1": 5.8,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 3.88,
+     "h": 1.44,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-1-f1",
+     "kind": "bay",
+     "u": 4.0,
+     "w": 3.4,
+     "v0": 5.8,
+     "v1": 8.2,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 6.28,
+     "h": 1.44,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-1-f2",
+     "kind": "bay",
+     "u": 4.0,
+     "w": 3.4,
+     "v0": 8.2,
+     "v1": 10.6,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 8.68,
+     "h": 1.44,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-1-f0",
+     "kind": "bay",
+     "u": 7.7,
+     "w": 3.4,
+     "v0": 3.4,
+     "v1": 5.8,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 3.88,
+     "h": 1.44,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-1-f1",
+     "kind": "bay",
+     "u": 7.7,
+     "w": 3.4,
+     "v0": 5.8,
+     "v1": 8.2,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 6.28,
+     "h": 1.44,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-1-f2",
+     "kind": "bay",
+     "u": 7.7,
+     "w": 3.4,
+     "v0": 8.2,
+     "v1": 10.6,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9ad94",
+     "trim_colour": "#2f4a3e",
+     "v": 8.68,
+     "h": 1.44,
+     "projection_from": "photos"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.belts",
+   "value": [
+    {
+     "v": 10.4,
+     "h": 0.2,
+     "colour": "#2f4a3e",
+     "depth": 0.08,
+     "id": "w7:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.balconies",
+   "value": [
+    {
+     "u": 6.0,
+     "w": 2.2,
+     "v": 3.6,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#c9c9c0",
+     "h": 0.9,
+     "id": "w7:bal0"
+    },
+    {
+     "u": 6.0,
+     "w": 2.2,
+     "v": 6.0,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#c9c9c0",
+     "h": 0.9,
+     "id": "w7:bal1"
+    },
+    {
+     "u": 6.0,
+     "w": 2.2,
+     "v": 8.4,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#c9c9c0",
+     "h": 0.9,
+     "id": "w7:bal2"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.7.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 4.9,
+     "v": 2.1,
+     "w": 0.45,
+     "h": 0.4,
+     "colour": "#3a3c38",
+     "depth": 0.03,
+     "id": "w7:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-fog-city-doggy-day-care",
+     "business_id": "mb-19511f786c2a",
+     "category": "shop",
+     "brand": null,
+     "name": "Fog City Doggy Day Care",
+     "u0": 0,
+     "u1": 9.3,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#bcb8a6",
+      "accent": "#5cc65a",
+      "frame": "#2a2a28",
+      "base": "#a9a594",
+      "letter": "#1f5a2a",
+      "metal": "#8a8d8a",
+      "glass": "#3e474b"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "fc-door",
+       "kind": "door",
+       "u": 0.9,
+       "v": 0.0,
+       "w": 1.5,
+       "h": 2.5,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "fc-g1",
+       "kind": "window",
+       "u": 3.6,
+       "v": 0.6,
+       "w": 2.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.5
+      },
+      {
+       "id": "fc-g2",
+       "kind": "window",
+       "u": 6.7,
+       "v": 0.6,
+       "w": 2.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.6
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 4.3,
+       "v": 2.6,
+       "w": 4.0,
+       "h": 0.6,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#5cc65a",
+       "edge_colour": "#2f7a36",
+       "layers": [
+        {
+         "type": "text",
+         "text": "FOG CITY",
+         "x": 0.45,
+         "y": 0.22,
+         "size": 0.3,
+         "fill": "#e0482a",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "DOGGIE DAY CARE",
+         "x": 0.45,
+         "y": 0.6,
+         "size": 0.35,
+         "fill": "#1f4a22",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "415-409-DOGS \u2022 WWW.FOGCITYDOGS.COM",
+         "x": 0.45,
+         "y": 0.88,
+         "size": 0.13,
+         "fill": "#1f4a22",
+         "font": "Arial, sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "disc",
+         "x": 0.9,
+         "y": 0.5,
+         "r": 0.35,
+         "fill": "#f2f2ee"
+        }
+       ],
+       "id": "sf-fog-city-doggy-day-care:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1068289360370131",
+       "356878245879256",
+       "4059020787688341",
+       "522794102311621",
+       "5419459338159976",
+       "6172091829501065"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-fog-city-doggy-day-care-w7",
+     "business_id": "mb-19511f786c2a",
+     "category": "shop",
+     "brand": null,
+     "name": "Fog City Doggy Day Care",
+     "u0": 3.6,
+     "u1": 11.1,
+     "band_h": 2.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#a9ad94",
+      "accent": "#5fc48e",
+      "frame": "#2e302d",
+      "base": "#a9ad94",
+      "letter": "#d9364a",
+      "metal": "#8a8d88",
+      "glass": "#3f4b50"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "kind": "window",
+       "u": 4.0,
+       "v": 0.7,
+       "w": 1.9,
+       "h": 1.25,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3,
+       "id": "sf-fog-city-doggy-day-care-w7:ope0"
+      },
+      {
+       "kind": "window",
+       "u": 6.2,
+       "v": 0.7,
+       "w": 1.8,
+       "h": 1.25,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3,
+       "id": "sf-fog-city-doggy-day-care-w7:ope1"
+      },
+      {
+       "kind": "door",
+       "u": 8.2,
+       "v": 0.0,
+       "w": 1.5,
+       "h": 2.0,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true,
+       "id": "sf-fog-city-doggy-day-care-w7:ope2"
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 6.4,
+       "v": 2.0,
+       "w": 3.4,
+       "h": 0.55,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#5fc48e",
+       "edge_colour": "#2e6b4a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "FOG CITY",
+         "x": 0.45,
+         "y": 0.28,
+         "size": 0.35,
+         "fill": "#d9364a",
+         "font": "\"Cooper Black\", Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "DOGGIE DAY CARE",
+         "x": 0.45,
+         "y": 0.66,
+         "size": 0.32,
+         "fill": "#1d2a22",
+         "font": "\"Cooper Black\", Georgia, serif",
+         "weight": 700
+        }
+       ],
+       "id": "sf-fog-city-doggy-day-care-w7:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 7,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "105889071800704",
+       "1751069405259737",
+       "254337339856424",
+       "464679945774713",
+       "476199436830080"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "kind": "tree",
+     "u": 9.0,
+     "w": 6.0,
+     "r": 3.2,
+     "trunk_h": 4.5,
+     "colour": "#4d6b34",
+     "edge": 0,
+     "id": "opus-stre-0-0"
+    },
+    {
+     "kind": "pole",
+     "u": 0.2,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 4.0,
+     "colour": "#3a3d3a",
+     "edge": 0,
+     "id": "opus-stre-0-1"
+    },
+    {
+     "kind": "pole",
+     "u": 10.9,
+     "w": 0.3,
+     "r": 0.12,
+     "trunk_h": 9.0,
+     "colour": "#6f7470",
+     "edge": 7,
+     "id": "opus-stre-7-0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "105889071800704",
+     "1751069405259737",
+     "254337339856424",
+     "464679945774713",
+     "476199436830080"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 7, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

@@ -1,0 +1,405 @@
+{
+ "model": "dragon-well",
+ "read_by": "kerbfront qwen (qwen/qwen4-max, deep, reasoning high)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.4,
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 3",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 2.7
+    },
+    {
+     "v": 2.7,
+     "h": 4.7
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#b3a99c",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "shingle",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:a6.02",
+     "kind": "window",
+     "u": 6.02,
+     "v": 3.33,
+     "w": 2.2,
+     "h": 1.11,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      4,
+      1
+     ]
+    },
+    {
+     "id": "w3:a8.3",
+     "kind": "window",
+     "u": 8.3,
+     "v": 3.33,
+     "w": 3.5,
+     "h": 1.11,
+     "shape": "rect",
+     "frame_colour": null,
+     "depth": 0.15,
+     "sill": true,
+     "mullions": [
+      4,
+      1
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-dragon-well",
+     "business_id": "mb-31c7748889b3",
+     "name": "Dragon Well",
+     "edge": 3,
+     "u0": 0.0,
+     "u1": 13.9,
+     "band_h": 2.7,
+     "category": "restaurant",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e2dfd7",
+      "accent": "#324b62",
+      "frame": "#292f33",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-dragon-well:g0",
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.3,
+       "w": 5.0,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:g1",
+       "kind": "window",
+       "u": 5.6,
+       "v": 0.3,
+       "w": 2.6,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:g2",
+       "kind": "window",
+       "u": 8.5,
+       "v": 0.3,
+       "w": 3.5,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:g3",
+       "kind": "window",
+       "u": 12.2,
+       "v": 0.3,
+       "w": 1.2,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-dragon-well:door0",
+       "kind": "door",
+       "u": 6.5,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      },
+      {
+       "id": "sf-dragon-well:door1",
+       "kind": "door",
+       "u": 12.5,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-dragon-well:awn0",
+       "kind": "shed",
+       "u0": 5.5,
+       "u1": 8.2,
+       "v": 3.0,
+       "depth_m": 0.8,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#3fb8c4",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      },
+      {
+       "id": "sf-dragon-well:awn1",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 13.5,
+       "v": 2.7,
+       "depth_m": 1.5,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#8a2a2a",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": false,
+       "material": "metal_panel"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "656554992621313",
+       "801261194498468",
+       "495218682583259",
+       "844665136442121"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-dragon-well:sign0",
+       "kind": "board",
+       "u": 8.3,
+       "v": 2.8,
+       "w": 3.5,
+       "h": 0.6,
+       "bg": "#f0ece4",
+       "layers": [
+        {
+         "type": "text",
+         "text": "DRAGON WELL",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ]
+      },
+      {
+       "id": "sf-dragon-well:sign1",
+       "kind": "blade",
+       "u": 13.4,
+       "v": 3.3,
+       "w": 0.5,
+       "h": 3.0,
+       "bg": "#a02020",
+       "layers": [
+        {
+         "type": "text",
+         "text": "MARINA",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#f6f1e7"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "495218682583259",
+     "656554992621313",
+     "801261194498468",
+     "844665136442121"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.1,
+    "depth": 0.1,
+    "colour": "#9a9184",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#8a2a2a",
+   "evidence": {
+    "frames": [
+     "656554992621313",
+     "801261194498468",
+     "495218682583259",
+     "844665136442121"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

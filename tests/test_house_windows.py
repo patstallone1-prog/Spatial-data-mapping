@@ -108,11 +108,12 @@ def test_the_street_and_the_shell_draw_the_same_windows() -> None:
 
 def test_shell_glass_is_the_same_grey_from_both_sides_at_every_distance() -> None:
     js = _page_js()
-    script = "const WINDOW_GLASS = { opacity: 0.36 };\n" + _extract("shellGlassOpacity", js) + \
+    script = "const WINDOW_GLASS = { opacity: 0.05 };\n" + _extract("shellGlassOpacity", js) + \
         "\nconsole.log(JSON.stringify([2, 6, 12, 18, 25, 60].map(shellGlassOpacity)));"
     out = subprocess.run([NODE, "-"], input=script, capture_output=True, text=True, timeout=30)
     values = json.loads(out.stdout)
-    assert values == [0.36] * 6, "source curtains and distance must not make panes opaque"
+    # (The pane's face-on opacity: its slant is real glass's Fresnel, in the shader -- module 02.)
+    assert values == [0.05] * 6, "source curtains and distance must not make panes opaque"
 
 
 def test_trees_are_built_of_limbs_and_leaves_and_each_kind_differently() -> None:

@@ -378,6 +378,7 @@ function noteParkAreaGates(areas) {
   return noted;
 }
 function fenceArea(area, pts, height, kind, sink) {
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(`area:${area.id ?? `${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`}`);
   const gates = parkAreaGates(area, pts);
   let cx = 0, cz = 0;
   for (const [x, z] of pts) { cx += x; cz += z; }
@@ -431,7 +432,9 @@ function fenceArea(area, pts, height, kind, sink) {
 function fenceSink() {
   const sink = { positions: [], uvs: [], indices: [], posts: [], gates: [] };
   sink.quad = (x0, z0, x1, z1, h, span) => {
+    sink.leaf = true;
     groundedFencePanel(sink,x0,z0,x1,z1,PLAYGROUND_Y,h,1,h);
+    sink.leaf = false;
   };
   sink.fence = (x0, z0, x1, z1, h) => layFence(sink, x0, z0, x1, z1, PLAYGROUND_Y, h, 1, h);
   return sink;
@@ -641,6 +644,7 @@ function* buildParkAreasSteps(areas) {
     const surfaceMesh = addGround(new THREE.Mesh(geom, material), finish === "skate" ? "park:skatepark_surface" : "park:play_surface");
     surfaceMesh.renderOrder = -1;
   }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   const picketMaterial = new THREE.MeshStandardMaterial({ map: playFenceTexture(), alphaTest: 0.5, side: THREE.DoubleSide,
     color: 0x2f3a33, roughness: 0.55, metalness: 0.45 });
   emitFence(picket, picketMaterial, "park:playground_fence");
@@ -750,11 +754,12 @@ async function buildPropertyFences() {
     runs.forEach((run, i) => {
       const { panels, openings } = api.cutGates(run, gates.filter((g) => g.run === i));
       for (const o of openings) noteFenceGate(o.a[0], o.a[1], o.b[0], o.b[1]);
-      cut.push({ run, panels, openings });
+      cut.push({ run, panels, openings, owner: `property:${prop.id ?? stats.properties}` });
     });
   }
-  for (const { run, panels, openings } of cut) {
+  for (const { run, panels, openings, owner } of cut) {
     if (((k += 1) & 15) === 0) await new Promise((r) => setTimeout(r));
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(owner);
     const sink = sinkOf(run.style), tile = run.style === "chain_link" ? 0.6 : run.style === "board" || run.style === "wall" || run.style === "hedge" ? 1.5 : 1;
     for (const panel of panels) for (let j = 0; j + 1 < panel.length; j += 1) {
       const [sx, sz] = panel[j], [ex, ez] = panel[j + 1];
@@ -774,6 +779,7 @@ async function buildPropertyFences() {
       stats.gates += 1; if (o.basis === "recorded") stats.gates_recorded += 1; else stats.gates_inferred += 1;
     }
   }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   const barMap = playFenceTexture();
   const materialOf = (style) => style === "chain_link" ? chainlinkMaterial()
     : style === "board" ? fenceMaterial(FENCE_STYLE.board) : style === "wall" ? fenceMaterial(FENCE_STYLE.wall)
@@ -933,6 +939,8 @@ const groundReady = (async () => {
     }
     grassSampleAt=(x,z)=>{
         if(excludeGrassAt(x,z)||insideCarriageway(x,z,.15)||parkPavementAt(x,z)||buildingAt(x,z)||mappedWaterAt(x,z))return null;
+        // Nor on a mapped path drawn over the lawn (the streets layer draws it, not the park's mask).
+        if(typeof pathTreadAt==="function"&&pathTreadAt(x,z,.04))return null;
         const mask=grassMask.texture.image;
         const mx=Math.floor((x-grassMask.west)/(grassMask.east-grassMask.west)*mask.width);
         const my=Math.floor((-z-grassMask.south)/(grassMask.north-grassMask.south)*mask.height);
@@ -1327,6 +1335,23 @@ const groundReady = (async () => {
     tree.p = [moved[0] / metersPerLon + midLon, -moved[1] / metersPerLat + midLat];
     treeSquareStats.offFence += 1;
   }
+  // A tree whose base touches grass stands wholly on it: one half on a lawn and half on paving
+  // read as a tree planted across the edge of a path. It is moved, the least way it can be
+  // (TREE_ON_GRASS.reach_m at most), to where the ground round its base is all lawn -- and off
+  // fences, driveways and poles as before. A tree in a kerbside opening keeps its opening; one
+  // with no lawn round it at all is in paving and keeps its place.
+  const grassUnder = (x, z) => lawnDrawnAt(x, z) && pavementSurfaceAt(x, z) === null && !insideCarriageway(x, z, 0)
+    && !buildingAt(x, z) && !overWaterAt(x, z);
+  for (const tree of trees) {
+    if (treePlotCorners.has(tree) || islandTrees.some((t) => t.tree === tree)) continue;
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    const moved = treeOntoGrass(tx, -ty, grassUnder, (x, z) => !nearestFenceLine(x, z, TREE_FENCE_CLEAR_M)
+      && !inDriveway(x, z) && !poleNear(x, z, TREE_POLE_CLEAR_SOFT_M));
+    if (moved === null) continue;
+    if (moved === false) { treeSquareStats.grassEdge = (treeSquareStats.grassEdge || 0) + 1; continue; }
+    tree.p = [moved[0] / metersPerLon + midLon, -moved[1] / metersPerLat + midLat];
+    treeSquareStats.ontoGrass = (treeSquareStats.ontoGrass || 0) + 1;
+  }
   for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const tz = -ty;
@@ -1491,6 +1516,8 @@ const groundReady = (async () => {
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
   // Every fence is laid: each end that meets nothing is carried on to a wall or a fence (module 17).
   try { window.kerbsideFenceEnds = closeFenceEnds(); } catch (error) { console.warn("kerbside: the fences' ends were left as laid", error); }
+  // And the paving off the far side of every fence (module 17).
+  try { window.kerbsideFenceBites = cutPavingAtFences((x, z) => lawnDrawnAt(x, z) && pavementSurfaceAt(x, z) === null && !buildingAt(x, z)); } catch (error) { console.warn("kerbside: the paving was left under the fences", error); }
   window.kerbsideFenceLayers = fenceLayStats;
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");

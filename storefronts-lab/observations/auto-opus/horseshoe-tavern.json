@@ -1,0 +1,587 @@
+{
+ "model": "horseshoe-tavern",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 1: 1 views",
+ "notes": "The upper windows and parapet posts were moved about 0.2 m toward the wall end, to sit between the photograph read from the building corners and the grid. The ground floor is largely hidden by the parklet roof and glass, so the shop glass and door are approximate. The record places the Horseshoe Tavern at u 4.9-7.8; I followed the photograph instead, where its dome awning and door sit around u 3.7-5.7. On the Los Hermanos sign only the name is legible, and the shop name comes from it. The horseshoe sculpture on the parklet was left out.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.4,
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.2
+    },
+    {
+     "v": 4.2,
+     "h": 4.8
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.12,
+    "depth": 0.06,
+    "colour": "#6b3a2e",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.4,
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#d9d2bf",
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#6b3a2e",
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "up:w0",
+     "kind": "window",
+     "u": 1.3,
+     "v": 5.25,
+     "w": 0.88,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#2e3436",
+     "pane_colour": "#3c4a50",
+     "depth": 0.15,
+     "sill": true
+    },
+    {
+     "id": "up:w0",
+     "kind": "window",
+     "u": 3.6,
+     "v": 5.25,
+     "w": 0.88,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#2e3436",
+     "pane_colour": "#3c4a50",
+     "depth": 0.15,
+     "sill": true
+    },
+    {
+     "id": "up:w0",
+     "kind": "window",
+     "u": 5.9,
+     "v": 5.25,
+     "w": 0.88,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#2e3436",
+     "pane_colour": "#3c4a50",
+     "depth": 0.15,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      1.75,
+      4.05,
+      6.35
+     ],
+     "w": 0.45,
+     "v0": 7.3,
+     "v1": 9.3,
+     "depth": 0.06,
+     "colour": "#d9d2bf",
+     "groove_colour": "#b8b09c",
+     "top": "flat",
+     "flutes": 3,
+     "id": "w1:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [
+    {
+     "v0": 8.25,
+     "v1": 8.37,
+     "colour": "#6b3a2e",
+     "id": "w1:ban0"
+    },
+    {
+     "v0": 8.7,
+     "v1": 8.819999999999999,
+     "colour": "#6b3a2e",
+     "id": "w1:ban1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [
+    {
+     "u": 0.7,
+     "w": 2.1,
+     "v": 4.6,
+     "depth": 0.6,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#3a3a3a",
+     "h": 1.0,
+     "id": "w1:bal0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w1-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Los Hermanos",
+     "u0": 0,
+     "u1": 3.6,
+     "band_h": 3.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9d2bf",
+      "accent": "#3f7a5a",
+      "frame": "#2e3436",
+      "base": "#6b3a2e",
+      "letter": "#c0392b",
+      "metal": "#8a8f8c",
+      "glass": "#4a5a60"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lh:g0",
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.4,
+       "w": 2.6,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "lh-awn",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 3.4,
+       "v": 3.2,
+       "depth_m": 0.9,
+       "drop_m": 0.5,
+       "valance_h": 0.2,
+       "colour": "#3f7a5a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "lh-blade",
+       "kind": "blade",
+       "u": 3.75,
+       "v": 3.4,
+       "w": 0.9,
+       "h": 1.5,
+       "offset": 0.2,
+       "thick": 0.15,
+       "bg": "#f2ead2",
+       "edge_colour": "#2f6b4a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "LOS HERMANOS",
+         "x": 0.5,
+         "y": 0.3,
+         "size": 0.12,
+         "fill": "#c0392b",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1451320161944383",
+       "1482237085466153",
+       "653613409546960",
+       "664792188515812"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-horseshoe-tavern",
+     "business_id": "mb-dcd5706dd5f8",
+     "category": "bar",
+     "brand": null,
+     "name": "Horseshoe Tavern",
+     "u0": 3.6,
+     "u1": 7.78,
+     "band_h": 3.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9d2bf",
+      "accent": "#1f2a24",
+      "frame": "#2a2a2a",
+      "base": "#6b3a2e",
+      "letter": "#ffffff",
+      "metal": "#8a8f8c",
+      "glass": "#3a4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "hs:door",
+       "kind": "door",
+       "u": 4.1,
+       "v": 0.0,
+       "w": 1.1,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      },
+      {
+       "id": "hs:g0",
+       "kind": "window",
+       "u": 5.6,
+       "v": 0.4,
+       "w": 1.9,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "hs-dome",
+       "kind": "dome",
+       "u0": 3.9,
+       "u1": 5.7,
+       "v": 3.3,
+       "depth_m": 0.6,
+       "drop_m": 0.7,
+       "valance_h": 0.25,
+       "colour": "#1f2a24",
+       "stripe": null,
+       "valance_text": "HORSESHOE TAVERN 2024",
+       "text_colour": "#ffffff",
+       "font": "Georgia, serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "hs-blade",
+       "kind": "blade",
+       "u": 5.9,
+       "v": 4.6,
+       "w": 1.3,
+       "h": 0.5,
+       "offset": 0.3,
+       "thick": 0.15,
+       "bg": "#1a1a1a",
+       "edge_colour": "#c0392b",
+       "layers": [
+        {
+         "type": "text",
+         "text": "HORSESHOE",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#e74c3c",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1451320161944383",
+       "1482237085466153",
+       "653613409546960",
+       "664792188515812"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "hs-parklet",
+     "kind": "parklet",
+     "u0": 0.0,
+     "u1": 7.78,
+     "depth_m": 2.0,
+     "offset_m": 4.0,
+     "barrier": "low_wall",
+     "barrier_h": 1.0,
+     "barrier_colour": "#7a2a24",
+     "deck_colour": "#6d5a46",
+     "tables": "two_top",
+     "chair_colour": "#6b4a30",
+     "roof": "corrugated",
+     "roof_colour": "#3f6b52",
+     "roof_h": 2.7,
+     "plants": false,
+     "edge": 1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1451320161944383",
+     "1482237085466153",
+     "653613409546960",
+     "664792188515812"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

@@ -293,7 +293,8 @@ def observations(model: dict, reads: dict[int, dict]) -> list[dict]:
         ops = []
         for o in r["windows"]:
             ops.append({"id": f"w{e}:a{o['u']}", "kind": "window", "u": o["u"], "v": o["v"], "w": o["w"], "h": o["h"],
-                        "shape": o["shape"], "frame_colour": o["frame_colour"], "depth": 0.12, "sill": True})
+                        "shape": o["shape"], "frame_colour": o["frame_colour"], "depth": o.get("depth", 0.12),
+                        "sill": o.get("sill", True), **({"mullions": o["mullions"]} if o.get("mullions") else {})})
         ob(f"walls.{e}.openings", ops, fr, "dark rectangles above the shop band, snapped to rows", 0.55)
         ob(f"walls.{e}.pilasters", [{**p, "groove_colour": None, "top": "flat"} for p in r["pilasters"]], fr,
            "repeating vertical runs of a second colour", 0.5)
@@ -303,7 +304,7 @@ def observations(model: dict, reads: dict[int, dict]) -> list[dict]:
             if b["v"] + b["h"] >= h - 0.25:
                 cornice = b
             elif b["v"] > 0.5:
-                belts.append({"v": b["v"], "h": max(0.06, b["h"]), "colour": b["colour"], "depth": 0.06})
+                belts.append({"v": b["v"], "h": max(0.06, b["h"]), "colour": b["colour"], "depth": b.get("depth", 0.06)})
         ob(f"walls.{e}.belts", belts, fr, "rows of a second colour across the wall", 0.5)
         ob(f"walls.{e}.friezes", [], fr, "friezes are read as belts", 0.5)
         trim = cornice["colour"] if cornice else (belts[0]["colour"] if belts else
