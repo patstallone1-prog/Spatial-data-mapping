@@ -182,3 +182,6 @@ supabase/.temp/
 # store's crowd/ folder and read from there; a local copy for the harness is not committed (docs/55).
 /docs/city/models/crowd/
 /docs/city/models/npc/
+
+# GlobalBuildingAtlas cut to the regions (scripts/fetch_gba_heights.py): CC BY-NC heights, not committed
+data/gba/
