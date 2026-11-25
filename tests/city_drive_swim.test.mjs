@@ -176,7 +176,7 @@ test("the magic camera is City mode's and comes round faster the further you hav
   assert.match(cam, /function magicCameraOn\(\)[\s\S]*cityGame\(\)/);
   assert.match(walk, /urgent = !eyes && typeof magicCameraOn === "function" && magicCameraOn\(\)/);
   // Not shoved or stopped: zoomed in, eased, to stand on your side of a building.
-  assert.match(place, /if \(magic\) \{\s*magicNear = magicPullIn\(blocked, distV\);/);
+  assert.match(place, /if \(magic\) \{\s*const full = camera.position.distanceTo\(look\);\s*magicNear = magicPullIn\(blocked, full\);/);
   assert.doesNotMatch(cam, /magicOutOfBuildings/);
   assert.match(cam, /function magicWallLean\(aim\)/);
   // Only the car is kept out of the water; the walker goes in, in City mode.

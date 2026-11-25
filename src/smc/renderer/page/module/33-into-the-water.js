@@ -116,10 +116,36 @@ function swimBodyPose(model, dt) {
   avatar.userData.swimLie = lie;
   if (!model) return;
   if (swimBase.key !== model.uuid) { swimBase.key = model.uuid; swimBase.y = model.position.y; swimBase.z = model.position.z; }
+  // The stroke captured from life (Mixamo, models/moves): a breaststroke, lying in the water by
+  // itself, faster at a sprint; treading water upright. The body is not laid down over it.
+  if (swimMoveStep(sw, goal)) {
+    if (was >= 1e-3 || model.rotation.x) { model.position.y = swimBase.y; model.position.z = swimBase.z; }
+    return;
+  }
   if (lie < 1e-3) { if (was >= 1e-3) { model.position.y = swimBase.y; model.position.z = swimBase.z; } return; }
   // Laid forward about the feet, then put back so the hips stay where the rig's origin is.
   const th = WATER_WADE.lie * lie, s = Math.max(1e-3, avatar.scale.y || 1), hip = AVATAR_RADIUS / s;
   model.rotation.x += th;
   model.position.y = swimBase.y + hip * (1 - Math.cos(th));
   model.position.z = swimBase.z - hip * Math.sin(th);
+}
+//: Which captured stroke plays now (SwimStroke lying, SwimTread upright), or null: played as the
+//: walker's move while afloat, let go on leaving the water. True while one plays.
+var swimMove = { name: null, speed: 1 };
+function swimMoveStep(sw, lying) {
+  const want = sw ? (lying ? "SwimStroke" : "SwimTread") : null;
+  const ok = want && typeof playWalkerMove === "function" && typeof avatarActions !== "undefined" && avatarActions[want];
+  if (!ok) {
+    if (swimMove.name && typeof stopWalkerMove === "function") stopWalkerMove(swimMove.name);
+    swimMove.name = null;
+    return false;
+  }
+  const speed = sw.mode === "sprint" ? 1.45 : !avatar.userData.lastMoving && lying ? 0.6 : 1;
+  if (swimMove.name !== want || WALKER_MOVES.active?.name !== want) {
+    playWalkerMove(want, { loop: true, fade: 0.35, out: 0.35, speed });
+    swimMove.name = want; swimMove.speed = speed;
+  } else if (Math.abs(swimMove.speed - speed) > 0.01) {
+    WALKER_MOVES.active.action.timeScale = speed; swimMove.speed = speed;
+  }
+  return true;
 }

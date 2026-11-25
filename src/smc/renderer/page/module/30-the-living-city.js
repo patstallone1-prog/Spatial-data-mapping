@@ -354,6 +354,8 @@ function setAppMode(mode) {
       playMove: (name, options) => (typeof playWalkerMove === "function" ? playWalkerMove(name, options) : null),
       stopMove: (name) => { if (typeof stopWalkerMove === "function") stopWalkerMove(name); },
       hasMove: (name) => Boolean(typeof avatarActions !== "undefined" && avatarActions[name] && typeof WALKER_MOVES !== "undefined"),
+      moveActive: () => (typeof WALKER_MOVES !== "undefined" ? WALKER_MOVES.active?.name || null : null),
+      moveDuration: (name) => (typeof avatarActions !== "undefined" && avatarActions[name] ? avatarActions[name].getClip().duration : null),
       moveReach: (name) => (typeof WALKER_MOVES !== "undefined" && WALKER_MOVES.reach?.targets?.[walkerMovesBody()]?.moves?.[name]?.reach) || null,
       animateWalk: (distance, dx = 0, dz = 0) => {
         const moving = distance > 1e-4 && dx * dx + dz * dz > 1e-9;

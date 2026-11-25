@@ -928,7 +928,8 @@ diffuseColor.rgb *= kbCloth;`);
   //: null. Struck: flinched, knocked back or down (``hitMove``, from strikePerson); squaring up,
   //: holding someone, cuffing them; talking, waving one down, cowering or crouched to help, startled.
   const CROWD_GESTURE_MOVES = { guard: "PunchGuard", grab: "Push", cuffing: "Interact" };
-  const CROWD_CLIP_MOVES = { talk: "Talk", wave: "Call", hail: "Call", cower: "Crouch", help: "Crouch", startle: "HitChest" };
+  //: (Sitting and leaning on a wall from Mixamo's capture: the jointed figure had no knees to sit with.)
+  const CROWD_CLIP_MOVES = { talk: "Talk", wave: "Call", hail: "Call", cower: "Crouch", help: "Crouch", startle: "HitChest", sit: "SeatIdle", sit_phone: "SeatIdle", lean_wall: "LeanWall" };
   function crowdMoveFor(p, clip = null) {
     if (p.hitMove) return p.hitMove;
     if (p.down || p.fall || p.ride) return null;   // (a crash's fall is the jointed figure's: crash.mjs)
@@ -2506,6 +2507,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (!car.mesh.parent) group.add(car.mesh);
       ctx.avatarVisible(false);
       ctx.moveAvatarTo(car.x, car.z);
+      cueCamera("enter_car");
       notify(`Driving your ${spec.name.toLowerCase()} (${car.plate}). Up and Down are the pedals, Left and Right the wheel. A/D change lanes, S stops at the light, P parks. Enter to get out.`);
       refresh();
     } };
@@ -2523,6 +2525,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (car.mesh) parked.set(car.vehicle, car.mesh);
     car.mesh = null;
     car.active = false; car.speed = 0;
+    cueCamera("exit_car");
     const dims = VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan;
     // Out of the driver's door; by the other side's where something stands at the driver's.
     let points = carPoints(car, dims, 1);
@@ -2763,6 +2766,24 @@ diffuseColor.rgb *= kbCloth;`);
     for (const [id, m] of [...parked, ...peerCars]) {
       if (m.parent) test(`mesh:${id}`, { x: m.position.x, z: m.position.z, yaw: m.rotation.y }, m.userData.model);
     }
+    return out;
+  }
+  //: The vehicles within ``reach`` of (x, z) as boxes, for the cameraman (cameraman.mjs) to see past:
+  //: the traffic, the buses, your taxi, your parked cars and the others'. Each {x, z, yaw, w, h, l}
+  //: (the car's own heading: forward is -sin, -cos). Never your own car while you drive it.
+  function cameraBlockers(x, z, reach = 40) {
+    const out = [];
+    const add = (id, v, model) => {
+      if (!v || !Number.isFinite(v.x) || Math.abs(v.x - x) > reach || Math.abs(v.z - z) > reach) return;
+      if (car.active && (id === car.vehicle || id === `mesh:${car.vehicle}`)) return;
+      if (transit.ride && id === transit.ride.id) return;
+      const [w, h, l] = VEHICLE_DIMS[model] || VEHICLE_DIMS.sedan;
+      out.push({ id, x: v.x, z: v.z, yaw: v.yaw || 0, w, h, l });
+    };
+    for (const v of drawnCars) add(v.id, v, v.model);
+    for (const b of routeBuses) add(b.id, b, b.model || "bus");
+    if (taxi.at && !car.riding) add(taxi.at.id, taxi.at, "taxi");
+    for (const [id, m] of [...parked, ...peerCars]) if (m.parent && m.visible !== false) add(`mesh:${id}`, { x: m.position.x, z: m.position.z, yaw: m.rotation.y }, m.userData.model);
     return out;
   }
   //: Whether a step from (x0, z0) to (x1, z1) walks into a car: one it is not already inside (a
@@ -3764,6 +3785,7 @@ diffuseColor.rgb *= kbCloth;`);
     return true;
   }
   function enterShop(place, { asStaff = false } = {}) {
+    cueCamera("door");
     const F = shopFrame(place);
     if (!F) return false;
     if (car.active || transit.ride) return false;
@@ -3789,6 +3811,7 @@ diffuseColor.rgb *= kbCloth;`);
     return true;
   }
   function leaveShop(quiet = false) {
+    if (shop.place) cueCamera("door");
     if (!shop.place) return;
     standUp(); hideClerk(); shopWin?.close();
     floor.close();
@@ -4024,12 +4047,41 @@ diffuseColor.rgb *= kbCloth;`);
   const pose = { kind: null, t0: 0, dur: 0, at: 0, fn: null, fired: false };
   function startAct(kind, dur, at, fn) {
     Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false, mocap: false, step: null });
+    // The act played as a move captured from life where there is one (Mixamo, models/moves), fitted
+    // to the act's time; the posed turns below are the fallback.
+    const move = ACT_MOVES[kind]?.(self());
+    if (move && ctx.hasMove?.(move.name)) {
+      const clip = ctx.moveDuration?.(move.name) || dur, length = move.of ? clip * move.of : clip;
+      // (Not hurried past a real pace: a long stroke runs on a little after the act's own time.)
+      const speed = Math.max(0.7, Math.min(1.6, length / dur));
+      if (ctx.playMove(move.name, { fade: 0.12, out: 0.2, speed, length })) pose.mocap = true;
+    }
   }
+  //: Which captured move plays an act: a dig with a shovel (one stroke of its loop), a shove at
+  //: something heavy, and a held thing swung -- a two-handed thing brought down overhead, anything
+  //: else across. A punch picks its own (swingKey); the pick-up's squat stays posed. ``of``: how
+  //: much of the clip the act's time covers.
+  const ACT_MOVES = {
+    dig: () => ({ name: "Dig", of: 0.5 }),
+    push: () => ({ name: "PushObject", of: 0.9 }),
+    swing: (p) => (p?.hands ? { name: ["two_hands", "shoulder"].includes(physOf(R, p.hands).hold) ? "ChopHeld" : "SwingHeld" } : null),
+  };
   //: In the air, and either side of it (body-moves.mjs): ``crouch`` the load before take-off,
   //: ``land`` the knees giving after it.
-  const air = { y: 0, v: 0, up: false, v0: 0, peak: 0, crouch: null, land: null };
+  const air = { y: 0, v: 0, up: false, v0: 0, peak: 0, crouch: null, land: null, mocap: false };
+  //: The jump captured from life (Mixamo, models/moves): the take-off (JumpUp, fitted to the crouch's
+  //: time), the fall held in the air (JumpFall, a loop), and the landing (JumpLanding: the knees
+  //: take it and the body comes up) -- cut short once you walk off. Where the moves are not loaded,
+  //: body-moves' posed jump as before.
+  const JUMP_MOVES = ["JumpUp", "JumpFall", "JumpLanding"];
+  const jumpMocap = () => JUMP_MOVES.every((n) => ctx.hasMove?.(n));
+  let lastAt = null, walkSpeed = 0;
   //: How a jump has the body now: body-moves' pose for the crouch, the flight or the landing.
   function jumpBody(now = performance.now()) {
+    if (air.mocap) {
+      if (air.land && now - air.land.t0 > air.land.ms) air.land = null;
+      return null;
+    }
     if (air.crouch) return jumpCrouch((now - air.crouch.t0) / (JUMP.crouch_s * 1000), air.crouch.h);
     if (air.up) return jumpAir(air.v0 ? air.v / air.v0 : 0);
     if (air.land) {
@@ -4055,18 +4107,28 @@ diffuseColor.rgb *= kbCloth;`);
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
       if (t >= 1) pose.kind = null;
     }
+    // How fast you are walking (m/s): a landing is cut short once you walk off.
+    { const at = me(); if (lastAt && dt > 0) walkSpeed += (Math.hypot(at.x - lastAt.x, at.z - lastAt.z) / dt - walkSpeed) * Math.min(1, dt * 8); lastAt = { x: at.x, z: at.z }; }
     // Down into the knees first, then off the ground (jumpKey).
     if (air.crouch && performance.now() - air.crouch.t0 >= JUMP.crouch_s * 1000) {
       Object.assign(air, { up: true, v: air.crouch.v, v0: air.crouch.v, y: 0.001, peak: 0, crouch: null, land: null });
+      if (air.mocap) ctx.playMove?.("JumpFall", { loop: true, fade: 0.14 });
     }
     if (air.up) {
       air.y += air.v * dt; air.v -= 9.81 * dt; air.peak = Math.max(air.peak, air.y);
-      if (air.y <= 0) { air.y = 0; air.v = 0; air.up = false; air.land = { t0: performance.now(), fall: air.peak }; }
+      if (air.y <= 0) {
+        air.y = 0; air.v = 0; air.up = false;
+        // The landing: harder (slower to come up) the further the fall.
+        const played = air.mocap ? ctx.playMove?.("JumpLanding", { fade: 0.06, out: 0.22, speed: air.peak > 0.6 ? 1 : 1.35 }) : null;
+        air.land = { t0: performance.now(), fall: air.peak, ms: played ? played.duration * 1000 : JUMP.land_s * 1000 };
+        if (air.mocap && !played) air.mocap = false;
+      }
     }
+    if (air.mocap && air.land && walkSpeed > 0.8 && performance.now() - air.land.t0 > 260) { ctx.stopMove?.("JumpLanding"); air.land = null; }
     // Bent down to lift: the hips go down as the back bends.
     const t = pose.kind ? Math.min(1, (performance.now() - pose.t0) / pose.dur) : 0;
-    const bend = pose.kind === "pickup" || pose.kind === "strain" ? Math.sin(Math.PI * t) : 0;
-    ctx.avatar.userData.lift = air.y - 0.32 * bend - (jumpBody()?.drop || 0);
+    const bend = (pose.kind === "pickup" || pose.kind === "strain") && !pose.mocap ? Math.sin(Math.PI * t) : 0;
+    ctx.avatar.userData.lift = air.y - 0.32 * bend - (jumpBody()?.drop || 0);   // (the captured jump bends its own knees: no drop)
   }
   //: What you carry (kg): nothing off the city (on the map, not joined).
   const loadKg = (p = self()) => (!p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory));
@@ -4134,6 +4196,11 @@ diffuseColor.rgb *= kbCloth;`);
     if (climbPlay.jumpKey()) return;
     // Bent down first, then up: the take-off is stepBody's, at the bottom of the crouch.
     air.crouch = { t0: performance.now(), v: j.speed, h: j.height };
+    air.mocap = jumpMocap() && !self()?.hands;
+    if (air.mocap) {
+      const clip = ctx.moveDuration?.("JumpUp") || JUMP.crouch_s;
+      if (!ctx.playMove("JumpUp", { fade: 0.06, out: 0.12, speed: clip / JUMP.crouch_s })) air.mocap = false;
+    }
   }
   // The bones the poses turn: the clip's (a Mixamo-named figure) or the drawn walker's limbs.
   let bones = null, bonesOf = null;
@@ -4205,6 +4272,7 @@ diffuseColor.rgb *= kbCloth;`);
     // body to the hip, the legs fluttering -- or, treading water upright, the arms sculling out to
     // the sides and the legs pedalling.
     const sw = ctx.avatar.userData.swim;
+    if (sw && /^Swim/.test(ctx.moveActive?.() || "")) return;   // (the captured stroke: module 33)
     if (sw) {
       const ph = sw.phase, TAU = Math.PI * 2, legs = Boolean(B.rThigh && B.lThigh && B.rShin && B.lShin);
       if (sw.mode === "swim" || sw.mode === "sprint") {
@@ -4226,6 +4294,9 @@ diffuseColor.rgb *= kbCloth;`);
       return;
     }
     const t = pose.kind ? Math.min(1, (performance.now() - pose.t0) / pose.dur) : 0;
+    // (A motion-captured move is the mixer's, blended in and out there: module 22 playWalkerMove;
+    // what is held stays in the hand through it.)
+    if (pose.mocap) { if (p?.hands && pose.kind !== "pickup") inHand(); return; }
     if (pose.kind === "pickup" || pose.kind === "strain") {
       // A squat to the ground in front of the feet: the thighs forward and the shins back (the
       // hips come down as the knees bend -- stepBody lowers them), the back bent forward, and the
@@ -4237,8 +4308,6 @@ diffuseColor.rgb *= kbCloth;`);
       fwd(B.spine, -(legs ? 0.6 : 0.9) * k + shake); fwd(B.rUpper, 0.45 * k); fwd(B.lUpper, 0.45 * k); fwd(B.rFore, 0.15 * k); fwd(B.lFore, 0.15 * k);
       return;
     }
-    // (A motion-captured move is the mixer's, blended in and out there: module 22 playWalkerMove.)
-    if (pose.mocap) return;
     // The one-shots below are turns laid over the clip underneath: faded in over their first
     // tenth of a second and back out over their last, so the arms do not jump into a guard from
     // the walk and back (docs/71: they snapped both ways).
@@ -4382,6 +4451,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!sw.ok) { notify(sw.reason); return; }
     const aim = nearestHittable(R.tools.reach_m);
     if (aim) ctx.faceTo?.(aim.x, aim.z);
+    if (aim?.kind === "person") cueCamera("fight", aim.q.id);
     pose.aim = aim ? aimOf(aim) : AIM_AHEAD;
     // Empty-handed: a jab, a cross, then a hook (a new combination after a pause), captured
     // moves stepped into and landed only where the fist reaches the body (punchLands).
@@ -4400,7 +4470,11 @@ diffuseColor.rgb *= kbCloth;`);
         return;
       }
     }
-    startAct("swing", p.hands ? SWING.dur_s : PUNCH.dur_s, p.hands ? SWING.hit : PUNCH.hit, () => (aim?.kind === "person" && !p.hands ? punchLands(aim, "right") : strikeKey(null, aim)));
+    const heldMove = p.hands ? ACT_MOVES.swing(p) : null, heldReach = heldMove ? ctx.moveReach?.(heldMove.name) : null;
+    const heldDur = heldMove && ctx.moveDuration?.(heldMove.name);
+    startAct("swing", heldDur ? heldDur / 1.15 : p.hands ? SWING.dur_s : PUNCH.dur_s,
+      heldDur && heldReach ? Math.min(0.9, heldReach.at_s / heldDur) : p.hands ? SWING.hit : PUNCH.hit,
+      () => (aim?.kind === "person" && !p.hands ? punchLands(aim, "right") : strikeKey(null, aim)));
   }
   //: The punches thrown in turn, and the pause (ms) after which the next starts from the jab.
   const PUNCHES = ["PunchJab", "PunchCross", "PunchHook"], PUNCH_RESET_MS = 1400;
@@ -6512,6 +6586,28 @@ diffuseColor.rgb *= kbCloth;`);
   });
   //: Who you are talking with (talkTo): they stand and face you while it lasts.
   const talking = { id: null, until: 0, at: null, met: new Map(), come: null };
+  //: What the cameraman (cameraman.mjs, page module 32) is told: what has happened since it last
+  //: asked (into or out of a car, through a shop's door) and what you are doing now -- a fight, or a
+  //: talk -- with whom (their place, the focus of the shot).
+  const camCue = { events: [], fightAt: 0, fightWith: null };
+  function cueCamera(kind, who = null) {
+    if (camCue.events.length < 8) camCue.events.push(kind);
+    if (kind === "fight") { camCue.fightAt = performance.now(); camCue.fightWith = who; }
+  }
+  function cameraCue() {
+    const now = performance.now(), events = camCue.events.splice(0), at = me();
+    const find = (id) => visible.people.find((e) => e.id === id);
+    let activity = null, focus = null;
+    if (camCue.fightWith && now - camCue.fightAt < 3000) {
+      const q = find(camCue.fightWith);
+      if (q && Math.hypot(q.x - at.x, q.z - at.z) < 4) { activity = "fight"; focus = { x: q.x, z: q.z, up: 1.3 }; }
+    }
+    if (!activity && talking.id && now < talking.until) {
+      const q = find(talking.id);
+      if (q && Math.hypot(q.x - at.x, q.z - at.z) < 3.5) { activity = "talk"; focus = { x: q.x, z: q.z, up: 1.5 }; }
+    }
+    return { events, activity, focus, inside: Boolean(shop.place), driving: Boolean(car.active || cycle.active) };
+  }
   function talkTo(who) {
     if (!who?.id) return;
     if (talking.id !== who.id) { talking.at = null; talking.come = null; }
@@ -8547,7 +8643,7 @@ diffuseColor.rgb *= kbCloth;`);
     },
     placePeerCar, carChanged: () => {}, world: () => world, view: () => view, applyHomeInterior: args => send("customize_home", args), applyBusinessInterior: args => send("customize_business", args), notify, district, visible: () => visible, get me() { return myId; }, books: () => ({ state: online.state, why: online.why, version: online.version }),
     storeSigns: () => [...storeSigns].map(([id, x]) => ({ id, key: x.key, parts: x.group.children.length })),
-    scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt,
+    scan: () => scan, objective: () => objective(), taskOffers: () => taskOffers(), drawnCars: () => drawnCars, walkerBlocked, walkerSlide, carsAt, cameraBlockers, cameraCue,
     water: (cls, at) => waterProperties(R, cls, at), send,
     //: For looking at the fleet: each kind it draws at ``tier`` side by side from (x, z) along +x,
     //: facing ``yaw``, in ``colour`` (the bus in its livery); called again, the row is taken away

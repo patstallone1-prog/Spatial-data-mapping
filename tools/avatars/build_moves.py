@@ -1,10 +1,16 @@
 """Motion-captured moves for the game's people, from Quaternius's Universal Animation Library
-(1 and 2, CC0), retargeted onto the game's own skeletons. Run inside Blender (no add-ons needed):
+(1 and 2, CC0) and from Mixamo (Adobe's free library, used under its licence: royalty-free in a
+game, the raw files not redistributed -- they are kept out of the repository), retargeted onto the
+game's own skeletons. Run inside Blender (no add-ons needed):
 
     ~/Applications/Blender.app/Contents/MacOS/Blender -b --python tools/avatars/build_moves.py -- \
-        --ual1 AnimationLibrary_Godot_Standard.glb --ual2 UAL2_Standard.glb \
+        --ual1 AnimationLibrary_Godot_Standard.glb --ual2 UAL2_Standard.glb --mixamo mixamo/ \
         --target male=crowd/male.glb --target female=crowd/female.glb --target soldier=Soldier.glb \
         --out docs/city/models/moves
+
+``--mixamo`` is a folder of Mixamo exports, one FBX per move named as in MOVES (X Bot, skeleton
+only, 30 fps). Their bones already carry Mixamo's names, and their rest pose is the T-pose the
+retarget starts from.
 
 The libraries' clips are keyed on two rigs: UAL 1's is a Rigify deform rig (``DEF-*``), UAL 2's
 the Unreal mannequin's names. Both are renamed to Mixamo's, which the MakeHuman bodies (crowd
@@ -110,6 +116,21 @@ MOVES = {
     "Swim": ("ual1", "Swim_Fwd_Loop", True),
     "Tread": ("ual1", "Swim_Idle_Loop", True),
     "Aim": ("ual1", "Pistol_Aim_Neutral", True),
+    # Mixamo (motion capture of real people): the jump, swimming, sitting and leaning in the crowd,
+    # a held thing swung, digging and pushing -- the actions docs/71 rated lowest. "rise": False
+    # keeps the hips from rising above standing (the page's jump lifts the body; the clip only
+    # bends and stretches it). "max_s": a long loop cut to its first so many seconds.
+    "JumpUp": ("mixamo", "JumpUp", False, {"rise": False}),
+    "JumpFall": ("mixamo", "JumpFall", True, {"rise": False}),
+    "JumpLanding": ("mixamo", "JumpLanding", False, {"rise": False}),
+    "SwimStroke": ("mixamo", "SwimStroke", True),
+    "SwimTread": ("mixamo", "SwimTread", True),
+    "SeatIdle": ("mixamo", "SeatIdle", True, {"max_s": 6}),
+    "LeanWall": ("mixamo", "LeanWall", True, {"max_s": 8}),
+    "SwingHeld": ("mixamo", "SwingHeld", False, {"max_s": 1.5}),
+    "ChopHeld": ("mixamo", "ChopHeld", False, {"max_s": 1.4}),
+    "Dig": ("mixamo", "Dig", True),
+    "PushObject": ("mixamo", "PushObject", True, {"max_s": 2}),
 }
 REFERENCE = "A_TPose"
 
@@ -118,6 +139,7 @@ def args():
     p = argparse.ArgumentParser()
     p.add_argument("--ual1", type=Path, required=True)
     p.add_argument("--ual2", type=Path, required=True)
+    p.add_argument("--mixamo", type=Path, default=None, help="folder of Mixamo FBX exports, one per move")
     p.add_argument("--target", action="append", required=True, help="name=path.glb")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--only", nargs="*", default=None, help="move names")
@@ -139,6 +161,42 @@ def import_glb(path: Path):
     new = [o for o in bpy.data.objects if o not in before]
     arm = next(o for o in new if o.type == "ARMATURE")
     return arm, new, [a for a in bpy.data.actions if a not in acts]
+
+
+def import_fbx(path: Path):
+    before, acts = set(bpy.data.objects), set(bpy.data.actions)
+    bpy.ops.import_scene.fbx(filepath=str(path), automatic_bone_orientation=False, ignore_leaf_bones=True)
+    new = [o for o in bpy.data.objects if o not in before]
+    arm = next(o for o in new if o.type == "ARMATURE")
+    return arm, new, [a for a in bpy.data.actions if a not in acts]
+
+
+def rest(arm):
+    """The armature in its rest pose: no action, every bone as it was bound."""
+    if arm.animation_data:
+        arm.animation_data.action = None
+    for pb in arm.pose.bones:
+        pb.rotation_mode = "QUATERNION"
+        pb.rotation_quaternion = (1, 0, 0, 0)
+        pb.location = (0, 0, 0)
+        pb.scale = (1, 1, 1)
+    bpy.context.view_layer.update()
+
+
+def mixamo_source(path: Path, facing: mathutils.Vector):
+    """One Mixamo export as a source: its armature (already Mixamo's names) and its one clip, with
+    the rest pose -- Mixamo's T-pose -- as the reference."""
+    arm, objs, actions = import_fbx(path)
+    for o in objs:
+        if o.type == "MESH":
+            o.hide_set(True)
+    arm.animation_data_create()
+    rest(arm)
+    if forward(arm).dot(facing) < 0:
+        arm.matrix_world = mathutils.Matrix.Rotation(math.pi, 4, "Z") @ arm.matrix_world
+        bpy.context.view_layer.update()
+    act = max(actions, key=lambda a: a.frame_range[1] - a.frame_range[0])
+    return arm, {REFERENCE: None, path.stem: act}
 
 
 def forward(arm, prefix="mixamorig:"):
@@ -169,7 +227,7 @@ def source(path: Path, mapping: dict, facing: mathutils.Vector):
     return arm, {clip_name(a): a for a in actions}
 
 
-def retarget(src, src_actions, tgt, clip: str, name: str, reach: dict | None = None) -> bpy.types.Action:
+def retarget(src, src_actions, tgt, clip: str, name: str, reach: dict | None = None, opts: dict | None = None) -> bpy.types.Action:
     """(``reach``, if given, is filled with where each hand reaches furthest ahead of the hips:
     {"hand": "left"|"right", "at_s": seconds, "ahead_m": metres, "up_m": height over the hips} --
     the moment a punch or a reach lands.)"""
@@ -180,9 +238,13 @@ def retarget(src, src_actions, tgt, clip: str, name: str, reach: dict | None = N
     def world_pose(arm):
         return {n: arm.matrix_world @ arm.pose.bones[n].matrix for n in names}
 
-    src.animation_data.action = src_actions[REFERENCE]
-    scene.frame_set(int(src_actions[REFERENCE].frame_range[0]))
-    bpy.context.view_layer.update()
+    opts = opts or {}
+    if src_actions.get(REFERENCE) is None:
+        rest(src)   # (a Mixamo export: its rest pose is the T-pose)
+    else:
+        src.animation_data.action = src_actions[REFERENCE]
+        scene.frame_set(int(src_actions[REFERENCE].frame_range[0]))
+        bpy.context.view_layer.update()
     src_ref = world_pose(src)
     for n in order:
         pb = tgt.pose.bones[n]
@@ -211,6 +273,8 @@ def retarget(src, src_actions, tgt, clip: str, name: str, reach: dict | None = N
     start, end = (int(f) for f in act.frame_range)
     facing = forward(tgt)
     fps = scene.render.fps / scene.render.fps_base
+    if opts.get("max_s"):
+        end = min(end, start + int(round(opts["max_s"] * fps)))
     best = None
     for frame in range(start, end + 1):
         scene.frame_set(frame)
@@ -222,6 +286,8 @@ def retarget(src, src_actions, tgt, clip: str, name: str, reach: dict | None = N
             loc = (tgt.matrix_world @ pb.matrix).to_translation()
             if n == hip:
                 loc = tgt_ref[n].to_translation() + (now[n].to_translation() - src_ref[n].to_translation()) * ratio
+                if opts.get("rise") is False:
+                    loc.z = min(loc.z, tgt_ref[n].to_translation().z + 0.03)   # (world metres)
             pb.matrix = tgt.matrix_world.inverted() @ mathutils.Matrix.LocRotScale(loc, rot, None)
             bpy.context.view_layer.update()
             pb.keyframe_insert("rotation_quaternion", frame=frame - start)
@@ -268,7 +334,7 @@ def strip_to_one_triangle(objs, arm):
     return keep
 
 
-def build(target_name: str, target: Path, ual1: Path, ual2: Path, out: Path, only=None) -> dict:
+def build(target_name: str, target: Path, ual1: Path, ual2: Path, out: Path, only=None, mixamo: Path | None = None) -> dict:
     clear()
     tgt, objs, old = import_glb(target)
     for a in old:
@@ -277,12 +343,22 @@ def build(target_name: str, target: Path, ual1: Path, ual2: Path, out: Path, onl
     facing = forward(tgt)
     sources = {"ual1": source(ual1, UAL1_TO_MIXAMO, facing), "ual2": source(ual2, UAL2_TO_MIXAMO, facing)}
     made, report = [], {}
-    for name, (lib, clip, loops) in MOVES.items():
+    for name, spec in MOVES.items():
+        lib, clip, loops = spec[:3]
+        opts = spec[3] if len(spec) > 3 else {}
         if only and name not in only:
             continue
-        src, acts = sources[lib]
+        if lib == "mixamo":
+            path = (mixamo / f"{clip}.fbx") if mixamo else None
+            if not path or not path.exists():
+                print(f"skipped {name}: no Mixamo export {clip}.fbx")
+                continue
+            sources[f"mixamo:{clip}"] = mixamo_source(path, facing)
+            src, acts = sources[f"mixamo:{clip}"]
+        else:
+            src, acts = sources[lib]
         reach = {}
-        action = retarget(src, acts, tgt, clip, name, reach)
+        action = retarget(src, acts, tgt, clip, name, reach, opts)
         made.append(action)
         start, end = action.frame_range
         fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
@@ -309,11 +385,12 @@ def build(target_name: str, target: Path, ual1: Path, ual2: Path, out: Path, onl
 
 def main():
     a = args()
-    manifest = {"schema": "kerbside.moves/1", "source": "Quaternius Universal Animation Library 1 and 2 [Standard], CC0 1.0",
+    manifest = {"schema": "kerbside.moves/1",
+                "source": "Quaternius Universal Animation Library 1 and 2 [Standard], CC0 1.0; Mixamo (Adobe) motion capture, royalty-free in games, raw files not redistributed",
                 "reference": REFERENCE, "targets": {}}
     for spec in a.target:
         name, path = spec.split("=", 1)
-        manifest["targets"][name] = build(name, Path(path), a.ual1, a.ual2, a.out, a.only)
+        manifest["targets"][name] = build(name, Path(path), a.ual1, a.ual2, a.out, a.only, a.mixamo)
     (a.out / "moves.json").write_text(json.dumps(manifest, indent=1) + "\n")
     print(json.dumps({k: v["bytes"] for k, v in manifest["targets"].items()}))
 

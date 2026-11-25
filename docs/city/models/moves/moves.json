@@ -1,11 +1,11 @@
 {
  "schema": "kerbside.moves/1",
- "source": "Quaternius Universal Animation Library 1 and 2 [Standard], CC0 1.0",
+ "source": "Quaternius Universal Animation Library 1 and 2 [Standard], CC0 1.0; Mixamo (Adobe) motion capture, royalty-free in games, raw files not redistributed",
  "reference": "A_TPose",
  "targets": {
   "male": {
    "file": "male.glb",
-   "bytes": 2352796,
+   "bytes": 1538812,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -510,12 +510,144 @@
       "ahead_m": 0.433,
       "up_m": 0.501
      }
+    },
+    "JumpUp": {
+     "from": "mixamo:JumpUp",
+     "loops": false,
+     "frames": 8,
+     "duration_s": 0.233,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.233,
+      "ahead_m": 0.437,
+      "up_m": 0.448
+     }
+    },
+    "JumpFall": {
+     "from": "mixamo:JumpFall",
+     "loops": true,
+     "frames": 22,
+     "duration_s": 0.7,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.567,
+      "ahead_m": 0.63,
+      "up_m": 0.228
+     }
+    },
+    "JumpLanding": {
+     "from": "mixamo:JumpLanding",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.067,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.367,
+      "ahead_m": 0.635,
+      "up_m": 0.167
+     }
+    },
+    "SwimStroke": {
+     "from": "mixamo:SwimStroke",
+     "loops": true,
+     "frames": 151,
+     "duration_s": 5.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.367,
+      "ahead_m": 0.946,
+      "up_m": -0.137
+     }
+    },
+    "SwimTread": {
+     "from": "mixamo:SwimTread",
+     "loops": true,
+     "frames": 91,
+     "duration_s": 3.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.433,
+      "ahead_m": 0.624,
+      "up_m": 0.324
+     }
+    },
+    "SeatIdle": {
+     "from": "mixamo:SeatIdle",
+     "loops": true,
+     "frames": 181,
+     "duration_s": 6.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.767,
+      "ahead_m": 0.242,
+      "up_m": 0.079
+     }
+    },
+    "LeanWall": {
+     "from": "mixamo:LeanWall",
+     "loops": true,
+     "frames": 101,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.2,
+      "ahead_m": 0.01,
+      "up_m": -0.02
+     }
+    },
+    "SwingHeld": {
+     "from": "mixamo:SwingHeld",
+     "loops": false,
+     "frames": 46,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.933,
+      "ahead_m": 0.715,
+      "up_m": 0.347
+     }
+    },
+    "ChopHeld": {
+     "from": "mixamo:ChopHeld",
+     "loops": false,
+     "frames": 43,
+     "duration_s": 1.4,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.833,
+      "ahead_m": 0.769,
+      "up_m": 0.31
+     }
+    },
+    "Dig": {
+     "from": "mixamo:Dig",
+     "loops": true,
+     "frames": 146,
+     "duration_s": 4.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.5,
+      "ahead_m": 0.506,
+      "up_m": -0.118
+     }
+    },
+    "PushObject": {
+     "from": "mixamo:PushObject",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.667,
+      "ahead_m": 0.918,
+      "up_m": -0.045
+     }
     }
    }
   },
   "female": {
    "file": "female.glb",
-   "bytes": 2351932,
+   "bytes": 1541560,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -1020,12 +1152,144 @@
       "ahead_m": 0.377,
       "up_m": 0.396
      }
+    },
+    "JumpUp": {
+     "from": "mixamo:JumpUp",
+     "loops": false,
+     "frames": 8,
+     "duration_s": 0.233,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.233,
+      "ahead_m": 0.33,
+      "up_m": 0.418
+     }
+    },
+    "JumpFall": {
+     "from": "mixamo:JumpFall",
+     "loops": true,
+     "frames": 22,
+     "duration_s": 0.7,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.567,
+      "ahead_m": 0.51,
+      "up_m": 0.243
+     }
+    },
+    "JumpLanding": {
+     "from": "mixamo:JumpLanding",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.067,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.367,
+      "ahead_m": 0.539,
+      "up_m": 0.176
+     }
+    },
+    "SwimStroke": {
+     "from": "mixamo:SwimStroke",
+     "loops": true,
+     "frames": 151,
+     "duration_s": 5.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.367,
+      "ahead_m": 0.844,
+      "up_m": -0.104
+     }
+    },
+    "SwimTread": {
+     "from": "mixamo:SwimTread",
+     "loops": true,
+     "frames": 91,
+     "duration_s": 3.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.533,
+      "ahead_m": 0.553,
+      "up_m": 0.302
+     }
+    },
+    "SeatIdle": {
+     "from": "mixamo:SeatIdle",
+     "loops": true,
+     "frames": 181,
+     "duration_s": 6.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.367,
+      "ahead_m": 0.2,
+      "up_m": 0.097
+     }
+    },
+    "LeanWall": {
+     "from": "mixamo:LeanWall",
+     "loops": true,
+     "frames": 101,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.867,
+      "ahead_m": -0.002,
+      "up_m": -0.007
+     }
+    },
+    "SwingHeld": {
+     "from": "mixamo:SwingHeld",
+     "loops": false,
+     "frames": 46,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.933,
+      "ahead_m": 0.606,
+      "up_m": 0.335
+     }
+    },
+    "ChopHeld": {
+     "from": "mixamo:ChopHeld",
+     "loops": false,
+     "frames": 43,
+     "duration_s": 1.4,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.833,
+      "ahead_m": 0.66,
+      "up_m": 0.302
+     }
+    },
+    "Dig": {
+     "from": "mixamo:Dig",
+     "loops": true,
+     "frames": 146,
+     "duration_s": 4.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.5,
+      "ahead_m": 0.432,
+      "up_m": -0.067
+     }
+    },
+    "PushObject": {
+     "from": "mixamo:PushObject",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.667,
+      "ahead_m": 0.797,
+      "up_m": -0.012
+     }
     }
    }
   },
   "soldier": {
    "file": "soldier.glb",
-   "bytes": 2161820,
+   "bytes": 1481112,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -1084,7 +1348,7 @@
       "hand": "right",
       "at_s": 0.0,
       "ahead_m": 0.455,
-      "up_m": 0.204
+      "up_m": 0.203
      }
     },
     "SwingA": {
@@ -1408,7 +1672,7 @@
       "hand": "left",
       "at_s": 0.667,
       "ahead_m": 0.465,
-      "up_m": 0.487
+      "up_m": 0.488
      }
     },
     "OpenChest": {
@@ -1529,6 +1793,138 @@
       "at_s": 0.125,
       "ahead_m": 0.304,
       "up_m": 0.372
+     }
+    },
+    "JumpUp": {
+     "from": "mixamo:JumpUp",
+     "loops": false,
+     "frames": 8,
+     "duration_s": 0.233,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.233,
+      "ahead_m": 0.291,
+      "up_m": 0.412
+     }
+    },
+    "JumpFall": {
+     "from": "mixamo:JumpFall",
+     "loops": true,
+     "frames": 22,
+     "duration_s": 0.7,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.567,
+      "ahead_m": 0.485,
+      "up_m": 0.243
+     }
+    },
+    "JumpLanding": {
+     "from": "mixamo:JumpLanding",
+     "loops": false,
+     "frames": 33,
+     "duration_s": 1.067,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.367,
+      "ahead_m": 0.47,
+      "up_m": 0.167
+     }
+    },
+    "SwimStroke": {
+     "from": "mixamo:SwimStroke",
+     "loops": true,
+     "frames": 151,
+     "duration_s": 5.0,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.367,
+      "ahead_m": 0.824,
+      "up_m": -0.035
+     }
+    },
+    "SwimTread": {
+     "from": "mixamo:SwimTread",
+     "loops": true,
+     "frames": 91,
+     "duration_s": 3.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.533,
+      "ahead_m": 0.476,
+      "up_m": 0.312
+     }
+    },
+    "SeatIdle": {
+     "from": "mixamo:SeatIdle",
+     "loops": true,
+     "frames": 181,
+     "duration_s": 6.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.367,
+      "ahead_m": 0.134,
+      "up_m": 0.035
+     }
+    },
+    "LeanWall": {
+     "from": "mixamo:LeanWall",
+     "loops": true,
+     "frames": 101,
+     "duration_s": 3.333,
+     "reach": {
+      "hand": "left",
+      "at_s": 2.633,
+      "ahead_m": -0.087,
+      "up_m": -0.091
+     }
+    },
+    "SwingHeld": {
+     "from": "mixamo:SwingHeld",
+     "loops": false,
+     "frames": 46,
+     "duration_s": 1.5,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.933,
+      "ahead_m": 0.628,
+      "up_m": 0.255
+     }
+    },
+    "ChopHeld": {
+     "from": "mixamo:ChopHeld",
+     "loops": false,
+     "frames": 43,
+     "duration_s": 1.4,
+     "reach": {
+      "hand": "right",
+      "at_s": 0.833,
+      "ahead_m": 0.635,
+      "up_m": 0.287
+     }
+    },
+    "Dig": {
+     "from": "mixamo:Dig",
+     "loops": true,
+     "frames": 146,
+     "duration_s": 4.833,
+     "reach": {
+      "hand": "left",
+      "at_s": 3.5,
+      "ahead_m": 0.384,
+      "up_m": -0.13
+     }
+    },
+    "PushObject": {
+     "from": "mixamo:PushObject",
+     "loops": true,
+     "frames": 61,
+     "duration_s": 2.0,
+     "reach": {
+      "hand": "left",
+      "at_s": 1.667,
+      "ahead_m": 0.776,
+      "up_m": 0.035
      }
     }
    }

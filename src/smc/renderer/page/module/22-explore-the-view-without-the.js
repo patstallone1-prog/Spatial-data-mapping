@@ -535,10 +535,12 @@ function addWalkerMoveActions(clips) {
 }
 //: Play move ``name`` once (or ``loop``), at ``speed``; faded in over ``fade`` s and back out over
 //: ``out``. Returns {duration} or null where there is no such move.
-function playWalkerMove(name, { fade = 0.12, out = 0.18, speed = 1, loop = false } = {}) {
+function playWalkerMove(name, { fade = 0.12, out = 0.18, speed = 1, loop = false, length = null } = {}) {
   const a = avatarActions[name];
   if (!a || !avatarMixer) return null;
-  const M = WALKER_MOVES, now = performance.now(), duration = a.getClip().duration / speed;
+  // (``length``: only so many seconds of the clip from its start -- the share of a long loop an act
+  // takes -- then it lets go.)
+  const M = WALKER_MOVES, now = performance.now(), duration = Math.min(a.getClip().duration, length ?? Infinity) / speed;
   if (M.active && M.active.action !== a) M.active.action.fadeOut(fade);
   if (!M.active && avatarActiveAction && avatarActiveAction !== a) { M.want = avatarActiveAction; avatarActiveAction.fadeOut(fade); }
   a.reset(); a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);

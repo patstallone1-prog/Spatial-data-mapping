@@ -35,6 +35,9 @@ var MAGIC = {
   inS: 0.14, outS: 0.75,
   // Which way you are going (m/s).
   vx: 0, vz: 0,
+  // The cameraman's shot beyond the turn and rise (cameraman.mjs): a share of the distance, to the
+  // right (m), up (m), and how far the aim is moved toward what you deal with; whether it wants the outline.
+  distK: 1, shoulder: 0, lift: 0, focusMix: 0, focus: null, cmGhost: false,
 };
 //: The view given on foot and at the wheel: how far behind (m) and how high it looks down from
 //: (rad above level). On foot close enough to read a face and a door; in the car far enough back
@@ -74,6 +77,8 @@ function magicCameraStep(dt) {
   if (!magicCameraOn()) {
     MAGIC.yawOff = MAGIC.pitchOff = MAGIC.goalYaw = MAGIC.goalPitch = 0; MAGIC.lead = 0; MAGIC.back = 0;
     MAGIC.push = MAGIC.pushGoal = 0; MAGIC.near = null; MAGIC.ahead = null;
+    MAGIC.distK = 1; MAGIC.shoulder = 0; MAGIC.lift = 0; MAGIC.focusMix = 0; MAGIC.cmGhost = false;
+    if (typeof CM !== "undefined" && CM.fadeEl) cmFade(0);
     return;
   }
   const t = state.target;
@@ -110,6 +115,10 @@ function magicCameraStep(dt) {
   MAGIC.lead += (leadGoal - MAGIC.lead) * Math.min(1, dt * 1.5);
   const backGoal = driving ? Math.min(0.3, MAGIC.speed / 45) : 0;
   MAGIC.back += (backGoal - MAGIC.back) * Math.min(1, dt * 1.2);
+  // The cameraman, where it is loaded and on: it does the looking for a clear view from here.
+  if (cameramanOn() && state.dist <= ORBIT_BLOCK_REACH_M) { cameramanStep(dt, t, now, held, driving); return; }
+  MAGIC.distK = 1; MAGIC.shoulder = 0; MAGIC.lift = 0; MAGIC.focusMix = 0; MAGIC.cmGhost = false;
+  if (typeof CM !== "undefined" && CM.fadeEl) cmFade(0);
   if (moving && !held && now - MAGIC.checkedAt > MAGIC.checkEveryMs && state.dist <= ORBIT_BLOCK_REACH_M) {
     MAGIC.checkedAt = now;
     const aim = magicAim(t);
@@ -197,6 +206,8 @@ function magicPullIn(wall, full) {
 //: The view dragged: what the camera had turned by itself becomes the view asked for (so it
 //: does not jump), and it is left there.
 function magicCameraDragged() {
+  // (The cameraman's turn and rise become the view asked for; how near and high it stands is kept.)
+  if (typeof CM !== "undefined" && cameramanOn()) CM.man.taken();
   if (!MAGIC.yawOff && !MAGIC.pitchOff) { MAGIC.draggedAt = performance.now(); return; }
   state.yaw += MAGIC.yawOff;
   state.pitch = Math.max(ORBIT_MIN_PITCH, Math.min(1.28, state.pitch + MAGIC.pitchOff));
@@ -248,4 +259,219 @@ function magicShowGhost(on) {
   for (const g of magicGhostsOf(root) || []) g.visible = true;
   magicGhostRoots.add(root);
   MAGIC.hidden = true;
+}
+// ---- The cameraman (docs/70, docs/city/cameraman.mjs) ------------------------------------------------
+//: The view as a camera operator would keep it: every so often it scores shots near the one it holds
+//: by how much of you they see -- past buildings, and past the trees, poles, shelters, fences and
+//: vehicles the old probe never saw -- and eases to the best; when none near will do, it cuts:
+//: mostly a swoop, a fade out and in for a change too big to swoop, a hard cut in the car or for a
+//: fight right round; gently inside a room. Talking it looks over your shoulder; in a fight it comes
+//: closer, from the side; stopped at a light it cuts to the side of the car. While you hold the view it
+//: keeps your direction and bends the camera round what is in the way (nearer, higher, to the
+//: side) instead of stopping on it. The outline is drawn only when nothing clears you for a moment.
+//: ``kerbsideCameraman("strong" | "gentle" | "off")`` sets how hard it works ("off" is the magic
+//: camera as it was); strong is the default.
+var CM = {
+  lib: null, man: null, occ: null, strength: "strong",
+  gatheredAt: -1e9, gx: 0, gz: 0, home: null, bcache: new Map(), bcacheAt: 0,
+  lastYaw: null, dragDir: 0, carYaw: null, steer: 0, fadeEl: null, bones: null, bonesKey: null,
+  bSince: null, out: null, points: [], probe: null,
+};
+try { CM.strength = new URLSearchParams(location.search).get("camera") || localStorage.getItem("kerbside.cameraman") || "strong"; } catch { CM.strength = "strong"; }
+if (typeof sharedAsset === "function" && typeof location !== "undefined") {
+  import(sharedAsset("city/cameraman.mjs?rev=__CITY_HASH__"))
+    .then((lib) => { CM.lib = lib; CM.man = lib.createCameraman(); CM.occ = lib.createOccluders(); })
+    .catch((e) => console.warn("cameraman not loaded", e));
+}
+if (typeof window !== "undefined") {
+  window.kerbsideCameraman = (strength) => {
+    if (strength !== undefined) {
+      CM.strength = ["off", "gentle", "strong"].includes(strength) ? strength : "strong";
+      try { localStorage.setItem("kerbside.cameraman", CM.strength); } catch {}
+      CM.man?.reset();
+    }
+    return { strength: CM.strength, ready: Boolean(CM.man), occluders: CM.occ?.count ?? 0, ...(CM.man ? { stats: { ...CM.man.stats }, shot: CM.man.current, moving: CM.man.moving } : {}) };
+  };
+}
+function cameramanOn() { return Boolean(CM.man) && CM.strength !== "off"; }
+//: What blocks the eye, by the catalogue's archetype: a post (drawn as its upright only: a street
+//: light's arm is not a wall), a turned box, a tree (a trunk and a see-through crown) or a crown. The
+//: number is how solid it is to the eye.
+var CM_BLOCKS = {
+  "furniture.street_light": ["post", 1], "furniture.utility_pole": ["post", 1], "furniture.trolley_pole": ["post", 1],
+  "furniture.sign_post": ["post", 1], "furniture.traffic_signal": ["post", 1], "furniture.floodlight": ["post", 1],
+  "furniture.parking_meter": ["post", 1], "furniture.tower": ["box", 1], "furniture.sign_plate": ["box", 0.9],
+  "furniture.shelter": ["box", 0.5], "furniture.ad_panel": ["box", 1], "furniture.cabinet": ["box", 1],
+  "furniture.station_entrance": ["box", 1], "furniture.street_cafe": ["box", 0.5], "furniture.play_equipment": ["box", 0.35],
+  "barrier.fence_board": ["box", 1], "barrier.fence_picket": ["box", 0.55], "barrier.fence_chainlink": ["box", 0.15],
+  "barrier.wall": ["box", 1], "barrier.jersey": ["box", 1], "barrier.parapet": ["box", 1], "barrier.railing": ["box", 0.3],
+  "structure.mast": ["post", 1], "vehicle.car": ["box", 0.95],
+  "vegetation.tree": ["tree", 0.5], "vegetation.foliage": ["crown", 0.45],
+};
+var cmM = null, cmV = null, cmA = null, cmB = null;
+//: One instance as the cameraman's boxes and balls (cameraman.mjs createOccluders).
+function cmInstanceShapes(e, out) {
+  const spec = CM_BLOCKS[e.archetype?.id];
+  if (!spec) return;
+  const o = e.o, g = o.geometry;
+  if (!g.boundingBox) g.computeBoundingBox();
+  const bb = g.boundingBox;
+  if (!bb || !Number.isFinite(bb.min.x)) return;
+  cmM ||= new THREE.Matrix4(); cmV ||= new THREE.Vector3(); cmA ||= new THREE.Vector3(); cmB ||= new THREE.Vector3();
+  o.getMatrixAt(e.i, cmM); cmM.premultiply(o.matrixWorld);
+  const el = cmM.elements;
+  const sx = Math.hypot(el[0], el[1], el[2]), sy = Math.hypot(el[4], el[5], el[6]), sz = Math.hypot(el[8], el[9], el[10]);
+  if (!(sx > 0 && sy > 0 && sz > 0)) return;
+  bb.getCenter(cmV).applyMatrix4(cmM);
+  const hx = (bb.max.x - bb.min.x) / 2 * sx, hy = (bb.max.y - bb.min.y) / 2 * sy, hz = (bb.max.z - bb.min.z) / 2 * sz;
+  const y0 = cmV.y - hy, y1 = cmV.y + hy, yaw = Math.atan2(-el[2] / sx, el[0] / sx), [shape, opacity] = spec;
+  if (!(hy > 0.05) || hy > 60) return;
+  // A post is its upright where it stands: the instance's own place (its foot), not the middle of
+  // the box its arm or sign makes.
+  cmA.setFromMatrixPosition(cmM);
+  if (shape === "post") out.push({ kind: "box", cx: cmA.x, cz: cmA.z, hx: 0.14, hz: 0.14, yaw: 0, y0, y1, opacity });
+  else if (shape === "box") out.push({ kind: "box", cx: cmV.x, cz: cmV.z, hx: Math.max(0.05, hx), hz: Math.max(0.05, hz), yaw, y0, y1, opacity });
+  else if (shape === "tree") {
+    const h = y1 - y0, r = Math.max(0.6, Math.min(Math.max(hx, hz) * 0.9, h * 0.45));
+    out.push({ kind: "box", cx: cmA.x, cz: cmA.z, hx: 0.18, hz: 0.18, yaw: 0, y0, y1: y0 + h * 0.45, opacity: 1 });
+    out.push({ kind: "ball", x: cmV.x, y: y0 + h * 0.65, z: cmV.z, r, opacity });
+  } else out.push({ kind: "ball", x: cmV.x, y: cmV.y, z: cmV.z, r: Math.max(0.4, Math.max(hx, hz, hy) * 0.85), opacity });
+}
+//: What is near what the view follows, gathered again every so often or when it has moved on.
+function cmGather(t, now) {
+  if (now - CM.gatheredAt < 700 && Math.hypot(t.x - CM.gx, t.z - CM.gz) < 5) return;
+  CM.gatheredAt = now; CM.gx = t.x; CM.gz = t.z;
+  const out = [];
+  const prox = typeof objectProximity !== "undefined" ? objectProximity : null;
+  try {
+    if (prox?.instancesNear) for (const e of prox.instancesNear(t.x, t.z, 36, (a) => CM_BLOCKS[a.id] !== undefined, 700)) cmInstanceShapes(e, out);
+  } catch (e) { /* the catalogue is between indexings */ }
+  const cars = typeof livingCity !== "undefined" ? livingCity?.cameraBlockers?.(t.x, t.z, 40) : null;
+  for (const v of cars || []) {
+    const ground = typeof walkerGroundAt === "function" ? walkerGroundAt(v.x, v.z) : t.y;
+    out.push({ kind: "box", cx: v.x, cz: v.z, hx: v.w / 2, hz: v.l / 2, yaw: v.yaw, y0: ground + 0.15, y1: ground + v.h, opacity: 0.95, car: v.id });
+  }
+  CM.occ.set(out);
+  // The buildings' answers are kept a while (they do not move), and dropped now and then for the
+  // tiles that have come in since.
+  if (now - CM.bcacheAt > 10000 || CM.bcache.size > 150000) { CM.bcache.clear(); CM.bcacheAt = now; }
+}
+function cmBuildingTop(x, z) {
+  const k = (Math.floor(x * 2) + 1048576) * 2097152 + (Math.floor(z * 2) + 1048576);
+  let v = CM.bcache.get(k);
+  if (v === undefined) { v = orbitBuildingTop(x, z) || null; CM.bcache.set(k, v); }
+  return v;
+}
+//: How hidden ``b`` is from a camera at ``a``: behind a building (solid), or behind the things
+//: gathered (some see-through).
+function cmOcclusion(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z, L = Math.hypot(dx, dz), n = Math.max(1, Math.ceil(L / 0.5));
+  for (let i = 1; i <= n; i += 1) {
+    const f = i / n;
+    if (f * L < 0.4) continue;
+    const hit = cmBuildingTop(b.x + dx * f, b.z + dz * f);
+    if (hit && hit.way !== CM.home && b.y + dy * f < hit.top) return 1;
+  }
+  return CM.occ.occlusion(a, b);
+}
+function cmSolidAt(p) { const hit = cmBuildingTop(p.x, p.z); return Boolean(hit && hit.way !== CM.home && p.y < hit.top - 0.2); }
+//: The points of you the shot must see: head, chest, both hands and feet on foot (the hands where
+//: they are); the car's corners and roof at the wheel.
+function cmSubjectPoints(t, driving) {
+  const pts = CM.points; pts.length = 0;
+  const carMesh = driving ? livingCity?.car?.()?.mesh : null;
+  if (carMesh) {
+    const c = livingCity.car(), yaw = c.yaw ?? carMesh.rotation.y, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    const y = carMesh.position.y;
+    for (const [f, r] of [[2, 0.8], [2, -0.8], [-2, 0.8], [-2, -0.8]]) pts.push({ x: carMesh.position.x + fx * f + rx * r, y: y + 0.9, z: carMesh.position.z + fz * f + rz * r, w: 1 });
+    pts.push({ x: carMesh.position.x, y: y + 1.4, z: carMesh.position.z, w: 2 });
+    return pts;
+  }
+  const feet = typeof avatar !== "undefined" ? avatar.position : t;
+  const fy = Number.isFinite(state.floorY) ? state.floorY : (typeof walkerGroundAt === "function" ? walkerGroundAt(feet.x, feet.z) : feet.y);
+  pts.push({ x: feet.x, y: fy + 1.65, z: feet.z, w: 3 }, { x: feet.x, y: fy + 1.25, z: feet.z, w: 2 }, { x: feet.x, y: fy + 0.15, z: feet.z, w: 1 });
+  // The hands, from the bones (found once a body).
+  const key = typeof avatar !== "undefined" ? avatar.children[0]?.uuid : null;
+  if (key && CM.bonesKey !== key) {
+    CM.bonesKey = key;
+    CM.bones = [avatar.getObjectByName?.("mixamorigRightHand"), avatar.getObjectByName?.("mixamorigLeftHand")].filter(Boolean);
+  }
+  CM.probe ||= new THREE.Vector3();
+  for (const b of CM.bones || []) {
+    b.getWorldPosition(CM.probe);
+    if (avatar.parent) avatar.parent.worldToLocal(CM.probe);
+    if (Number.isFinite(CM.probe.x) && Math.hypot(CM.probe.x - feet.x, CM.probe.z - feet.z) < 2) pts.push({ x: CM.probe.x, y: CM.probe.y, z: CM.probe.z, w: 2 });
+  }
+  if (pts.length < 5) pts.push({ x: feet.x, y: fy + 1.0, z: feet.z, w: 3 });
+  return pts;
+}
+//: Each frame in City mode (magicCameraStep): the cameraman told where you are and what you are
+//: doing, and its shot taken up as the magic camera's offsets.
+function cameramanStep(dt, t, now, held, driving) {
+  cmGather(t, now);
+  CM.home = cmBuildingTop(t.x, t.z)?.way || null;
+  // Which way the view is being dragged (the cameraman leads that way only), and how hard the car
+  // is turning (no cuts while you steer hard).
+  if (CM.lastYaw !== null && dragging) { const d = state.yaw - CM.lastYaw; if (Math.abs(d) > 1e-4) CM.dragDir = Math.sign(d); } else if (!held) CM.dragDir = 0;
+  CM.lastYaw = state.yaw;
+  const c = driving ? livingCity?.car?.() : null;
+  if (c && Number.isFinite(c.yaw)) { if (CM.carYaw !== null && dt > 0) CM.steer += (Math.min(1, Math.abs(Math.atan2(Math.sin(c.yaw - CM.carYaw), Math.cos(c.yaw - CM.carYaw))) / dt / 0.8) - CM.steer) * Math.min(1, dt * 4); CM.carYaw = c.yaw; } else { CM.carYaw = null; CM.steer = 0; }
+  const cue = typeof livingCity !== "undefined" ? livingCity?.cameraCue?.() : null;
+  const inside = Boolean(cue?.inside) || Number.isFinite(state.floorY);
+  const ground = typeof walkerGroundAt === "function" ? walkerGroundAt(t.x, t.z) : t.y;
+  const focus = cue?.focus ? { x: cue.focus.x, y: (Number.isFinite(state.floorY) ? state.floorY : ground) + (cue.focus.up ?? 1.4), z: cue.focus.z } : null;
+  const aim = magicAim(t);
+  const out = CM.man.step({
+    now, dt, mode: driving ? "drive" : inside ? "inside" : "walk", strength: CM.strength,
+    base: { yaw: state.yaw, pitch: state.pitch, dist: state.dist * (1 + MAGIC.back) }, aim: { x: aim.x, y: aim.y, z: aim.z },
+    you: { x: t.x, y: t.y, z: t.z }, points: cmSubjectPoints(t, driving), focus,
+    held, dragDir: CM.dragDir, events: cue?.events || [], activity: held ? null : cue?.activity || null,
+    speed: MAGIC.speed, travel: { x: MAGIC.vx, z: MAGIC.vz }, steering: CM.steer,
+    occlusion: cmOcclusion, solidAt: cmSolidAt,
+  });
+  CM.out = out;
+  const s = out.shot;
+  MAGIC.yawOff = s.dYaw; MAGIC.pitchOff = s.dPitch; MAGIC.distK = s.distK; MAGIC.shoulder = s.shoulder; MAGIC.lift = s.lift;
+  MAGIC.focusMix = focus ? s.focusMix : 0; MAGIC.focus = focus;
+  MAGIC.goalYaw = MAGIC.goalPitch = 0; MAGIC.push = MAGIC.pushGoal = 0; MAGIC.ahead = null;
+  MAGIC.cmGhost = out.ghost;
+  cmFade(out.fade);
+}
+//: The fade between two shots: black drawn over the view (not over the panels).
+function cmFade(v) {
+  if (!CM.fadeEl) {
+    if (!(v > 0.001) || typeof document === "undefined" || !canvas?.parentElement) return;
+    const el = document.createElement("div");
+    el.id = "cameraman-fade";
+    el.style.cssText = "position:absolute;inset:0;background:#000;pointer-events:none;opacity:0;z-index:1";
+    canvas.parentElement.insertBefore(el, canvas.nextSibling);
+    CM.fadeEl = el;
+  }
+  const o = Math.max(0, Math.min(1, v || 0));
+  if (CM.fadeEl.style.opacity !== String(o)) CM.fadeEl.style.opacity = String(o);
+}
+var cmLook = null, cmShift = null;
+//: The shot's own placing over the magic camera's (placeCamera, module 21): the camera to your
+//: right by ``shoulder`` and up by ``lift``, the aim moved half as far right and toward what you are
+//: dealing with by ``focusMix``. Moves camera.position; returns where to look.
+function magicShotLook(aim, yaw) {
+  cmLook ||= new THREE.Vector3(); cmShift ||= new THREE.Vector3();
+  cmLook.copy(aim);
+  if (!cameramanOn() || typeof MAGIC === "undefined") return cmLook;
+  const sh = MAGIC.shoulder || 0, rx = Math.cos(yaw), rz = -Math.sin(yaw), f = MAGIC.focus, fm = f ? MAGIC.focusMix || 0 : 0;
+  cmLook.x += rx * sh * 0.5 + (f ? (f.x - aim.x) * fm : 0);
+  cmLook.y += f ? (f.y - aim.y) * fm : 0;
+  cmLook.z += rz * sh * 0.5 + (f ? (f.z - aim.z) * fm : 0);
+  cmShift.set(cmLook.x - aim.x + rx * sh * 0.5, cmLook.y - aim.y + (MAGIC.lift || 0), cmLook.z - aim.z + rz * sh * 0.5);
+  camera.position.add(cmShift);
+  return cmLook;
+}
+//: The outline under the cameraman: only when it has found you hidden for a moment -- and not for
+//: a building the camera has already come in past -- or a building between you a moment (250 ms)
+//: and not yet zoomed past.
+function cameramanGhost(blocked, buildingGhost) {
+  const now = performance.now();
+  if (buildingGhost) CM.bSince ??= now; else CM.bSince = null;
+  const pulledPast = blocked !== null && !buildingGhost;
+  return (Boolean(MAGIC.cmGhost) && !pulledPast) || (CM.bSince !== null && now - CM.bSince > 250);
 }

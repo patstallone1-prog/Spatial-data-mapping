@@ -2290,26 +2290,31 @@ function placeCamera() {
   const aim = magic ? magicAim(state.target) : state.target;
   const yawV = magic ? state.yaw + MAGIC.yawOff : state.yaw;
   const pitchV = magic ? Math.min(MAGIC.maxPitch, state.pitch + MAGIC.pitchOff) : state.pitch;
-  const distV = magic ? state.dist * (1 + MAGIC.back) : state.dist;
+  const distV = magic ? state.dist * (1 + MAGIC.back) * (MAGIC.distK || 1) : state.dist;
   const x = Math.sin(yawV) * Math.cos(pitchV) * distV;
   const z = Math.cos(yawV) * Math.cos(pitchV) * distV;
   const y = Math.sin(pitchV) * distV;
   camera.position.copy(aim).add(new THREE.Vector3(x, y, z));
+  // The cameraman's shot (module 32): over a shoulder, a little higher, the aim moved toward what
+  // you are dealing with. Where it looks from here on.
+  const look = magic && typeof magicShotLook === "function" ? magicShotLook(aim, yawV) : aim;
   // A building between what the view looks at and where the camera would stand stops the camera
   // short of it, as its wall would stop you: turning the view round a house shows its wall, never
   // the rooms behind it. The distance asked for is kept, so turning back out lets the view out.
   cameraPulledIn = false;
   // From further out (the overview, a city from the air) nothing is pulled in: a tower near what
   // the view looks at would otherwise drag the camera down to the street.
-  let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(aim, camera.position) : null;
+  let blocked = state.dist <= ORBIT_BLOCK_REACH_M ? orbitBlockedAt(look, camera.position) : null;
   // The magic camera is not shoved or stopped: where nothing it tried clears the building (or
   // the view was turned there), it zooms in, eased, to stand on your side of it (magicPullIn).
   // For the moment the ease has not caught up you are drawn through the wall as an outline.
   let magicNear = null;
   if (magic) {
-    magicNear = magicPullIn(blocked, distV);
-    if (magicNear !== null) { camera.position.sub(aim).setLength(magicNear).add(aim); cameraPulledIn = true; }
-    magicShowGhost(blocked !== null && (magicNear === null || magicNear > blocked + 0.05));
+    const full = camera.position.distanceTo(look);
+    magicNear = magicPullIn(blocked, full);
+    if (magicNear !== null) { camera.position.sub(look).setLength(magicNear).add(look); cameraPulledIn = true; }
+    const buildingGhost = blocked !== null && (magicNear === null || magicNear > blocked + 0.05);
+    magicShowGhost(typeof cameramanOn === "function" && cameramanOn() ? cameramanGhost(blocked, buildingGhost) : buildingGhost);
     blocked = null;
   } else if (typeof magicShowGhost === "function") magicShowGhost(false);
   // Over it first. Pulled straight in, a camera with a shop behind it was shoved from sixty
@@ -2346,7 +2351,7 @@ function placeCamera() {
     }
   }
   constrainWorldCamera();
-  camera.lookAt(aim);
+  camera.lookAt(look);
   if (state.tilt > 0) camera.rotateX(Math.min(state.tilt, ORBIT_MAX_TILT));
   fitViewToAltitude();
 }

@@ -102,7 +102,7 @@ export const WALKS = ["Walk", "WalkBrisk", "WalkEasy", "WalkSway", "WalkPockets"
 //: back, down, talking, waving one down, crouched, arms folded, a hand to something, a shove,
 //: fists up, sitting. Without them a person doing any of these was swapped for the jointed
 //: figure, which has no knees or elbows (docs/71-animation-catalogue.md).
-export const CROWD_MOVES = ["HitChest", "HitHead", "Knockback", "Fall", "Talk", "Call", "Crouch", "FoldArms", "Interact", "Push", "PunchGuard", "Sit", "No"];
+export const CROWD_MOVES = ["HitChest", "HitHead", "Knockback", "Fall", "Talk", "Call", "Crouch", "FoldArms", "Interact", "Push", "PunchGuard", "SeatIdle", "LeanWall", "No"];
 //: Of those, the ones played once and held at their end (a blow, a fall, fists coming up).
 const ONCE_MOVES = new Set(["HitChest", "HitHead", "Knockback", "Fall", "Call", "Interact", "PunchGuard"]);
 //: The clips played once rather than round and round (work's reach to a counter; the moves above).
