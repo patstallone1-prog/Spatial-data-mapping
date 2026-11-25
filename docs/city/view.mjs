@@ -40,7 +40,8 @@ import { createClimbPlay } from "./climb-play.mjs";
 import { createEatPlay } from "./eat-play.mjs";
 import { TOOLS as TOOL_VERBS, affordances, hintChips, steady } from "./affordances.mjs";
 import { createMechanics } from "./mechanics.mjs";
-import { strikePreview, substanceOf } from "./strike-preview.mjs";
+import { IMPLEMENT, strikePreview, substanceOf } from "./strike-preview.mjs";
+import { blowOn, victimOf } from "./hit-reaction.mjs";
 import { WORK, createWork } from "./mechanics-work.mjs";
 import { createCollisions } from "./mechanics-collide.mjs";
 import { madeFrom } from "./plated.mjs";
@@ -1089,7 +1090,24 @@ diffuseColor.rgb *= kbCloth;`);
       out.push({ p, y, d: (p.x - VIEW_AT.x) ** 2 + (p.z - VIEW_AT.z) ** 2 });
     }
     if (out.length > MAX_PEOPLE) { out.sort((a, b) => a.d - b.d); out.length = MAX_PEOPLE; }
+    // Those drawn stand on the ground where they are, not on the metre-square's: the cache's
+    // height from up to 0.7 m away had feet 5 cm or more into the pavement at 1.75% of the places
+    // people stand in the Marina (10 cm at 0.9%, 42 cm at the worst: a kerb's edge, a hill;
+    // measured 2026-11-25), so the crowd always had someone sunk to the ankles.
+    for (const o of out) if (!(shop.place && o.p.indoors === shop.place.id)) o.y = footAt(o.p);
     return out;
+  }
+  //: The ground right under someone (the page's walker ground: the drawn surface, which the soil
+  //: holds up -- grass bends over it, foliage-motion.mjs), looked up again only once they have
+  //: moved FOOT_MOVE_M: [x, z, y] by id.
+  const feet = new Map(), FOOT_MOVE_M = 0.1;
+  function footAt(p) {
+    let f = feet.get(p.id);
+    if (f && Math.abs(f[0] - p.x) < FOOT_MOVE_M && Math.abs(f[1] - p.z) < FOOT_MOVE_M) return f[2];
+    const y = ctx.groundAt(p.x, p.z) ?? groundAt(p.x, p.z);
+    if (!f) { if (feet.size > 6000) feet.clear(); f = [0, 0, 0]; feet.set(p.id, f); }
+    f[0] = p.x; f[1] = p.z; f[2] = y;
+    return y;
   }
   // How the people near you move (clips.mjs): a walk, a run, a telephone at the ear, a look each
   // way at the kerb -- sampled for each, cross-faded when what they are doing changes. One state
@@ -4768,20 +4786,63 @@ diffuseColor.rgb *= kbCloth;`);
     if (countsDirty) { countsDirty = 0; store.set("kerbside:hint-counts", hintCounts); }
   }
   function setHints(v) { hintSetting = v; store.set("kerbside:hints", v); if (hintBox) hintBox.dataset.sig = ""; }
-  //: A blow to someone: they are hurt by it, and hit back, run, or (an officer) arrest you.
+  //: What your blow does to ``q``'s body (hit-reaction.mjs, on the mechanics engine): where it
+  //: lands, and whether they flinch, stumble back or go down -- by the blow's energy and what it
+  //: is struck with, and their weight, height and strength.
+  function blowReaction(q) {
+    const M = mechanics(), p = self();
+    if (!M || !p) return null;
+    const sw = swingOf(R, p.hands, p.vitals.strength), [lo, hi] = R.tools.strength_scale;
+    const spec = R.tools.kinds[sw.kind] || R.tools.kinds.fists;
+    const joules = sw.joules ?? spec.energy_j * (lo + (hi - lo) * Math.max(0, Math.min(100, p.vitals.strength)) / 100);
+    const victim = victimOf({ ...(q.person || {}), figure: q.figure || q.person?.figure });
+    // A punch is thrown at the face; a swing of a thing in the hand comes in a little lower.
+    const aimY = victim.height_m * (sw.kind === "fists" ? 0.88 : 0.8);
+    const held = sw.kind === "blunt" ? (R.items[p.hands]?.kg || 0.5) + 2 : undefined;
+    try { return { victim, ...blowOn(M, { joules, tool: IMPLEMENT[sw.kind] || "fist", strike_mass_kg: held, aimY, seed: `${q.id}:${Math.round(gameNow())}` }, victim) }; } catch (error) { console.warn("blow", error); return null; }
+  }
+  //: Someone struck staggers: [id] -> { t0, x, z, dx, dz, dist, dur, flinch }.
+  const staggers = new Map();
+  const ZONE_WORD = { head: "the face", chest: "the chest", belly: "the stomach", arm: "a raised arm", leg: "the leg" };
+  //: A blow to someone: it lands somewhere (their head, chest, stomach, a raised arm), they flinch,
+  //: stumble back or go down; then their own instinct takes over: they hit back, call the police,
+  //: run, call to the people round for help, or freeze -- or (an officer) arrest you.
   async function strikePerson(q) {
     noteIncident("fight", q.x, q.z, true);
-    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, x: q.x, z: q.z, yaw: q.yaw }, witnesses: witnessesNear(q.x, q.z) - 1 });
+    const inc = incidents[incidents.length - 1];
+    const re = blowReaction(q), me0 = me();
+    const policeNear = Boolean(patrol.phase) || visible.people.some((e) => e.id !== q.id && ["police", "patrol"].includes(e.person?.role) && Math.hypot(e.x - q.x, e.z - q.z) < 45);
+    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, age: q.person?.age ?? q.person?.base?.age, strength: re?.victim.strength, x: q.x, z: q.z, yaw: q.yaw },
+      witnesses: witnessesNear(q.x, q.z) - 1, reaction: re ? { kind: re.kind, zone: re.zone, steps: re.steps, fracture: re.fracture } : null, near: { police: policeNear } });
     if (!r.ok) { notify(r.error); return; }
     const name = q.person?.name || "them";
+    // Away from you, along the blow.
+    const ax = q.x - me0.x, az = q.z - me0.z, L = Math.hypot(ax, az) || 1, dx = ax / L, dz = az / L;
     if (r.down) {
-      const yaw = ctx.getYaw();
-      flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx: -Math.sin(yaw), dz: -Math.cos(yaw), speed: 2, throw: 0.8 });
+      flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: 2, throw: 0.8 + (re?.capture_m || 0) });
       district.city?.forget(q.id);
+    } else if (re) {
+      // A stumble is a step back for each the blow asked of them; a flinch sways and comes back.
+      const steps = Math.max(1, r.reaction?.steps ?? re.steps);
+      staggers.set(q.id, re.kind === "stumble" ? { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.15 + 0.42 * steps, dur: 0.35 * steps + 0.15, flinch: false }
+        : { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.12, dur: 0.45, flinch: true });
     }
-    if (r.response === "hit back") knockBack(Math.sin(ctx.getYaw()), Math.cos(ctx.getYaw()), 1.5);
-    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `${name} hits back: -${r.hurt} health` : r.response === "down" ? `${name} goes down` : `${name} runs`;
-    notify(`${r.tool === "fists" ? "A punch" : "A blow"} (${r.joules} J): ${name} — ${r.injury.type}. ${what}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
+    // Their instinct, as the city decided it (world.mjs cmd_strike_person): now they act on it.
+    const mind = temperamentOf(q.person || { id: q.id });
+    const act = { "flee": "flee", "call police": "call", "call for help": "shout", "freeze": "freeze", "hit back": "fight" }[r.response];
+    if (act && inc && !r.down) {
+      const now = performance.now(), secs = act === "fight" ? 4 : act === "freeze" ? 3 : reactionFor(mind, act === "shout" ? "call" : act);
+      reacting.set(q.id, { kind: act, until: now + secs * 1000, ix: me0.x, iz: me0.z, at: { x: q.x, z: q.z }, off: 0, far: REACT.flee_m[0] + (REACT.flee_m[1] - REACT.flee_m[0]) * (1 - mind.nerve), inc, victim: true });
+      // Called to for help: those round who would help come (temperament.mjs reactionTo, as at a crash).
+      if (act === "shout") noteIncident("help", q.x, q.z, true);
+    }
+    if (r.response === "hit back") knockBack(dx, dz, 1.5);
+    const landed = re ? ` to ${ZONE_WORD[re.zone] || "the body"}` : "";
+    const body = r.down ? `${name} goes down` : re?.kind === "stumble" ? `${name} stumbles back` : re?.kind === "flinch" ? `${name} flinches` : name;
+    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `they come back at you: -${r.hurt} health`
+      : r.response === "call police" ? "they get out their phone and call 911" : r.response === "call for help" ? "they shout for help" : r.response === "freeze" ? "they freeze"
+      : r.response === "down" ? "" : "they run";
+    notify(`${r.tool === "fists" ? "A punch" : "A blow"}${landed} (${r.joules} J): ${body} — ${r.injury.type}${what ? `; ${what}` : ""}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
   }
   const hidden = new Map();   // damage key -> {o, i, matrix}
   const FAR = new THREE.Matrix4().makeScale(1e-4, 1e-4, 1e-4).setPosition(0, -1e5, 0);
@@ -6718,6 +6779,16 @@ diffuseColor.rgb *= kbCloth;`);
               const going = next > re.off && !(ctx.roadAt?.(nx, nz) && !ctx.roadAt?.(re.at.x, re.at.z)) && !c.footprintAt?.(nx, nz);
               if (going) re.off = next;
               entry.x = re.at.x - ux * re.off; entry.z = re.at.z - uz * re.off; entry.moving = going; entry.yaw = Math.atan2(ux, uz); entry.activity = "running from it";
+            } else if (re.kind === "fight") {
+              // Squaring up to you: in to arm's length, facing you, fists up.
+              const next = Math.min(Math.max(0, L - 0.9), re.off + 1.6 * dt), going = next > re.off + 1e-4;
+              re.off = next;
+              entry.x = re.at.x + ux * re.off; entry.z = re.at.z + uz * re.off; entry.moving = going; entry.yaw = Math.atan2(-ux, -uz);
+              entry.activity = "squaring up to you"; entry.gesture = { kind: "guard", f: 1 };
+            } else if (re.kind === "shout" || re.kind === "freeze") {
+              entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
+              entry.activity = re.kind === "shout" ? "shouting for help" : "frozen to the spot";
+              if (re.kind === "freeze") entry.gesture = { kind: "guard", f: 0.4 };
             } else if (re.kind === "help") {
               const next = Math.min(Math.max(0, L - 1.8), re.off + 2.4 * dt), going = next > re.off + 1e-4;
               re.off = next;
@@ -6726,10 +6797,24 @@ diffuseColor.rgb *= kbCloth;`);
               entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
               entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : "watching";
               if (re.kind !== "watch") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
-              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
+              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.victim ? "The one you hit is calling 911: a patrol car is on its way." : re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
             }
             if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);
           }
+        }
+      }
+      // Struck (strikePerson): carried back along the blow a step at a time, or swayed and back.
+      const sg = staggers.get(id);
+      if (sg) {
+        const age = (now - sg.t0) / 1000, k0 = Math.min(1, age / sg.dur);
+        // A stumble holds where it ended while they react to it, then they are back on their way.
+        const hold = !sg.flinch && (reacting.has(id) || age < sg.dur + 1.5);
+        if (!sg.flinch && !hold && sg.end === undefined) sg.end = age;
+        const k = sg.flinch ? Math.sin(k0 * Math.PI) : hold ? 1 - (1 - k0) ** 2 : Math.max(0, 1 - (age - sg.end) / 1.2);
+        if (k <= 0 && age > sg.dur) staggers.delete(id);
+        else {
+          entry.x += sg.dx * sg.dist * k; entry.z += sg.dz * sg.dist * k;
+          if (age < sg.dur) { busy = true; entry.moving = !sg.flinch; entry.yaw = Math.atan2(-sg.dx, -sg.dz); entry.activity = sg.flinch ? "flinching" : "stumbling back"; entry.gesture = { kind: "guard", f: 0.6 }; }
         }
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.

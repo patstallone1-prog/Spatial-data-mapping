@@ -21,6 +21,8 @@ import { clockOf } from "./clock.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
+import { RESPONSE, injuryAt, instinct } from "./hit-reaction.mjs";
+import { temperamentOf } from "./temperament.mjs";
 import { CRASH, damageLevel, impactOn } from "./crash.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
@@ -40,6 +42,8 @@ import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/ho
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
 const VEHICLE_KG = { car: 1500, truck: 2600, van: 2500, bus: 13000 };
+//: What a blow can do to a body, and where it can land (hit-reaction.mjs).
+const REACTION_KINDS = new Set(["flinch", "stumble", "fall"]), ZONES = new Set(["head", "chest", "belly", "arm", "leg"]);
 
 export const AUTHORITIES = {
   "authority:bata": "Bay Area Toll Authority",
@@ -1196,7 +1200,10 @@ export class CityWorld {
     this.log("shoved", { player: pid, npc: npc.id, falls: true, injury: injury.type });
     return { falls: true, injury, fine, down: h.down_until > this.now, vitals: p.vitals };
   }
-  cmd_strike_person(pid, { npc, witnesses = 0, thrown = null }) {
+  //: ``reaction``: what the blow did to their body (hit-reaction.mjs blowOn, worked out where it
+  //: was seen: {kind: "flinch" | "stumble" | "fall", zone, steps, fracture}); ``near``: what is
+  //: round them ({police: an officer or patrol in sight}). Their instinct then decides what they do.
+  cmd_strike_person(pid, { npc, witnesses = 0, thrown = null, reaction = null, near = null }) {
     const p = this.player(pid);
     if (!npc?.id) throw new CityError("nobody there");
     if (!thrown && p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
@@ -1211,14 +1218,25 @@ export class CityWorld {
     if (blow.breaks) this.shatter(p, p.hands);
     const h = this.harmed(npc.id, "person", npc.name || null);
     if (h.down_until > this.now) throw new CityError("they are down already");
-    const injury = injuryFor(this.R, { joules, seed: `${npc.id}:${this.now}` });
+    const re = REACTION_KINDS.has(reaction?.kind) ? { kind: reaction.kind, zone: ZONES.has(reaction.zone) ? reaction.zone : null, steps: Math.max(0, Math.min(3, reaction.steps | 0)), fracture: Boolean(reaction.fracture) } : null;
+    // A bone broken where it landed is at least the band that breaks bones.
+    let injury = injuryFor(this.R, { joules: re?.fracture ? Math.max(joules, 150) : joules, seed: `${npc.id}:${this.now}` });
+    if (re?.zone) {
+      const band = [...this.R.harm.blow].reverse().find((b) => b.severity === injury.severity);
+      injury = injuryAt(injury, re.zone, band?.types || [], `${npc.id}:${this.now}`);
+    }
     this.hurtPerson(h, injury, npc, `struck by ${p.name}${weapon ? ` with ${weapon}` : ""}`);
+    // Knocked off their feet (or stunned) by the blow itself: down, whatever the injury.
+    if (re?.kind === "fall") h.down_until = Math.max(h.down_until || 0, this.now + this.R.harm.down_s * 1000);
     const down = h.down_until > this.now;
+    // Their instinct (hit-reaction.mjs): who they are, how they are hurt, you against them, who
+    // is watching and whether the police are near.
+    const t = temperamentOf({ id: npc.id, age: npc.age, base: { role: npc.role } });
+    const act = instinct(t, { reaction: down ? { kind: "fall" } : re || { kind: "flinch" }, strength: npc.strength ?? 50, attacker: p.vitals.strength,
+      severity: injury.severity, witnesses, police_near: Boolean(near?.police), phone: npc.phone !== false, role: npc.role, seed: `${npc.id}:${this.now}` }).act;
     const r = rng(npc.id, this.now, "response");
-    let response = down ? "down" : "flee", hurt = 0;
-    if (npc.role === "police") response = "arrest";
-    else if (!down && r() < this.R.harm.retaliate_chance) {
-      response = "hit back";
+    let response = RESPONSE[act] || "flee", hurt = 0;
+    if (response === "hit back") {
       const [a, b] = this.R.harm.retaliate_health;
       hurt = Math.round(a + r() * (b - a));
       p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - hurt) };
@@ -1232,8 +1250,8 @@ export class CityWorld {
       if (injury.bill) { restitution = injury.bill; this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "restitution", amount: injury.bill, memo: `Care for ${npc.name || "a resident"}: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }); }
     }
     if (p.vitals.health <= 0) this.faint(p, "a fight");
-    this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, response });
-    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, vitals: p.vitals };
+    this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, zone: injury.zone || null, reaction: re?.kind || null, response });
+    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, reaction: re, vitals: p.vitals };
   }
   //: The city's own collisions use the same harm, court and billing records as a player's.
   //: ``id`` identifies a single impact, so sustained contact/replayed reports cannot bill twice.
