@@ -47,6 +47,9 @@ doorGroup.name = "doors";
 root.add(doorGroup);
 const entryGlassMaterial = new THREE.MeshStandardMaterial({ color: 0x899a99, metalness: .28,
   roughness: .22, transparent: true, opacity: .55, side: THREE.DoubleSide });
+// A door's glass is glass (module 02): a little more of it seen face-on than a window's -- it is
+// usually patterned or tinted -- and a mirror at a slant.
+realGlass(entryGlassMaterial, { face: 0.18 });
 const entryFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x414646, roughness: .5 });
 const doorsShown = new Set();
 function showDoor(door) {

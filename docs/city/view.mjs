@@ -3536,7 +3536,8 @@ diffuseColor.rgb *= kbCloth;`);
     const ceiling = flat(0xf4f2ee, { side: THREE.BackSide });
     // The shop window as the houses' are (module 25, WINDOW_GLASS): grey, a little worn, and
     // softening the street seen through it -- not a pane that could be taken for an open front.
-    const glass = new THREE.MeshBasicMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
+    const glass = new THREE.MeshStandardMaterial({ color: 0x9aa2a6, map: paneTexture(), transparent: true, opacity: 0.34, side: THREE.BackSide, depthWrite: false });
+    globalThis.__kerbsideRealGlass?.(glass);   // real glass (module 02) where the page has it
     // Box faces: +x, -x, +y, -y, +z (the back wall), -z (the front, glass).
     const shell = new THREE.Mesh(new THREE.BoxGeometry(F.W, 3.2, F.D).translate(0, 1.6, F.D / 2), [sideWall, sideWall, ceiling, floor, wall, glass]);
     g.add(shell);
